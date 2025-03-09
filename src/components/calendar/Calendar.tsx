@@ -54,6 +54,22 @@ const AppointmentCalendar: React.FC<CalendarProps> = ({
         // Używamy kolorów bazujących na statusie wizyty
         const backgroundColor = AppointmentStatusColors[event.status];
 
+        // Specjalne formatowanie dla protokołów
+        if (event.isProtocol) {
+            return {
+                style: {
+                    backgroundColor,
+                    borderRadius: '4px',
+                    opacity: 0.9,
+                    color: 'white',
+                    border: '2px solid #2c3e50', // Grubsza obwódka dla protokołów
+                    display: 'block',
+                    fontWeight: 'normal', // Normalna czcionka, nie pogrubiona
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                }
+            };
+        }
+
         return {
             style: {
                 backgroundColor,

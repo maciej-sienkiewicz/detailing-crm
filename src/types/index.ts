@@ -104,9 +104,10 @@ export interface Appointment {
     customerId?: string;
     vehicleId?: string;
     serviceType: string;
-    status: AppointmentStatus; // Zmiana typu z 'scheduled' | 'in-progress' | 'completed' | 'cancelled' na AppointmentStatus
+    status: AppointmentStatus;
     notes?: string;
-    statusUpdatedAt?: string; // Dodajemy datę aktualizacji statusu
+    statusUpdatedAt?: string;
+    isProtocol?: boolean; // Flag wskazujący, czy wydarzenie pochodzi z protokołu
 }
 
 export interface Customer {

@@ -12,6 +12,7 @@ import {
     deleteAppointment,
     updateAppointmentStatus
 } from '../../api/mocks/appointmentMocks';
+import { fetchProtocolsAsAppointments } from '../../services/ProtocolCalendarService';
 
 const CalendarPage: React.FC = () => {
     const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -27,21 +28,29 @@ const CalendarPage: React.FC = () => {
 
     // Pobieranie danych przy montowaniu komponentu
     useEffect(() => {
-        const loadAppointments = async () => {
+        const loadAppointmentsAndProtocols = async () => {
             try {
                 setLoading(true);
-                const data = await fetchAppointments();
-                setAppointments(data);
+
+                // Równoległe pobieranie wizyt i protokołów
+                const [appointmentsData, protocolsData] = await Promise.all([
+                    fetchAppointments(),
+                    fetchProtocolsAsAppointments()
+                ]);
+
+                // Łączenie danych
+                const combinedData = [...appointmentsData, ...protocolsData];
+                setAppointments(combinedData);
                 setError(null);
             } catch (err) {
                 setError('Nie udało się załadować danych kalendarza.');
-                console.error('Error fetching appointments:', err);
+                console.error('Error fetching appointments or protocols:', err);
             } finally {
                 setLoading(false);
             }
         };
 
-        loadAppointments();
+        loadAppointmentsAndProtocols();
     }, []);
 
     // Obsługa wyboru wizyty
@@ -82,6 +91,12 @@ const CalendarPage: React.FC = () => {
 
     // Obsługa edycji wizyty
     const handleEditClick = () => {
+        // Protokołów nie można edytować z poziomu kalendarza
+        if (selectedAppointment?.isProtocol) {
+            setError('Nie można edytować protokołu z poziomu kalendarza. Przejdź do widoku protokołów.');
+            return;
+        }
+
         setShowAppointmentDetailsModal(false);
         setShowEditAppointmentModal(true);
     };
@@ -110,6 +125,12 @@ const CalendarPage: React.FC = () => {
     const handleDeleteAppointment = async () => {
         if (!selectedAppointment) return;
 
+        // Nie pozwalamy na usuwanie protokołów z kalendarza
+        if (selectedAppointment.isProtocol) {
+            setError('Nie można usunąć protokołu z poziomu kalendarza. Przejdź do widoku protokołów.');
+            return;
+        }
+
         if (window.confirm('Czy na pewno chcesz usunąć tę wizytę?')) {
             try {
                 await deleteAppointment(selectedAppointment.id);
@@ -128,6 +149,24 @@ const CalendarPage: React.FC = () => {
         if (!selectedAppointment) return;
 
         try {
+            // Dla protokołów, aktualizacja statusu wymaga dodatkowej obsługi
+            if (selectedAppointment.isProtocol) {
+                // Tu powinno być wywołanie API do aktualizacji statusu protokołu
+                // Dla uproszczenia tylko aktualizujemy lokalnie
+                const updatedAppointment = {
+                    ...selectedAppointment,
+                    status: newStatus,
+                    statusUpdatedAt: new Date().toISOString()
+                };
+
+                setAppointments(appointments.map(appointment =>
+                    appointment.id === updatedAppointment.id ? updatedAppointment : appointment
+                ));
+                setSelectedAppointment(updatedAppointment);
+                return;
+            }
+
+            // Standardowa obsługa dla zwykłych wizyt
             const updatedAppointment = await updateAppointmentStatus(selectedAppointment.id, newStatus);
             setAppointments(appointments.map(appointment =>
                 appointment.id === updatedAppointment.id ? updatedAppointment : appointment

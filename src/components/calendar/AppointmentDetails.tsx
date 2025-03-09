@@ -2,9 +2,20 @@ import React from 'react';
 import styled from 'styled-components';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { FaCalendarAlt, FaClock, FaUser, FaTag, FaEdit, FaTrash } from 'react-icons/fa';
+import {
+    FaCalendarAlt,
+    FaClock,
+    FaUser,
+    FaTag,
+    FaEdit,
+    FaTrash,
+    FaCar,
+    FaClipboardCheck,
+    FaExternalLinkAlt
+} from 'react-icons/fa';
 import { Appointment } from '../../types';
 import { AppointmentStatusManager } from './AppointmentStatusManager';
+import { useNavigate } from 'react-router-dom';
 
 interface AppointmentDetailsProps {
     appointment: Appointment;
@@ -19,6 +30,8 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
                                                                    onDelete,
                                                                    onStatusChange
                                                                }) => {
+    const navigate = useNavigate();
+
     // Formatowanie daty i godziny
     const formatDateTimeRange = (start: Date, end: Date) => {
         const startDate = format(start, 'PPPP', { locale: pl });
@@ -28,8 +41,23 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
         return `${startDate}, ${startTime} - ${endTime}`;
     };
 
+    // Przekierowanie do widoku protokołu
+    const handleGoToProtocol = () => {
+        if (appointment.isProtocol && appointment.id) {
+            // Pobieramy ID protokołu z ID wydarzenia
+            const protocolId = appointment.id.replace('protocol-', '');
+            navigate(`/protocols/car-reception?id=${protocolId}`);
+        }
+    };
+
     return (
         <Container>
+            {appointment.isProtocol && (
+                <ProtocolBadge>
+                    <FaClipboardCheck /> Protokół przyjęcia pojazdu
+                </ProtocolBadge>
+            )}
+
             <Title>{appointment.title}</Title>
 
             <DetailRow>
@@ -53,25 +81,43 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
                 </DetailRow>
             )}
 
+            {appointment.vehicleId && appointment.isProtocol && (
+                <DetailRow>
+                    <DetailIcon><FaCar /></DetailIcon>
+                    <DetailText>Nr rej.: {appointment.vehicleId}</DetailText>
+                </DetailRow>
+            )}
+
             <DetailRow>
                 <DetailIcon><FaTag /></DetailIcon>
-                <DetailText>{appointment.serviceType}</DetailText>
+                <DetailText>
+                    {appointment.isProtocol ? 'Protokół przyjęcia' : appointment.serviceType}
+                </DetailText>
             </DetailRow>
 
             {appointment.notes && (
                 <Notes>
-                    <NotesTitle>Notatki:</NotesTitle>
+                    <NotesTitle>Informacje:</NotesTitle>
                     <NotesContent>{appointment.notes}</NotesContent>
                 </Notes>
             )}
 
             <Actions>
-                <ActionButton onClick={onEdit} primary>
-                    <FaEdit /> Edytuj
-                </ActionButton>
-                <ActionButton onClick={onDelete} danger>
-                    <FaTrash /> Usuń
-                </ActionButton>
+                {appointment.isProtocol ? (
+                    <ActionButton onClick={handleGoToProtocol} primary>
+                        <FaExternalLinkAlt /> Przejdź do protokołu
+                    </ActionButton>
+                ) : (
+                    <ActionButton onClick={onEdit} primary>
+                        <FaEdit /> Edytuj
+                    </ActionButton>
+                )}
+
+                {!appointment.isProtocol && (
+                    <ActionButton onClick={onDelete} danger>
+                        <FaTrash /> Usuń
+                    </ActionButton>
+                )}
             </Actions>
         </Container>
     );
@@ -79,12 +125,29 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
 
 const Container = styled.div`
     padding: 16px;
+    position: relative;
+`;
+
+const ProtocolBadge = styled.div`
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: #2c3e50;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 5px;
 `;
 
 const Title = styled.h2`
     font-size: 18px;
     color: #34495e;
     margin: 0 0 16px 0;
+    padding-right: 120px; // Miejsce na badge
 `;
 
 const StatusContainer = styled.div`
