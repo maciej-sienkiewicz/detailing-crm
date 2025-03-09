@@ -1,4 +1,4 @@
-import { CarReceptionProtocol, ProtocolStatus } from '../../types';
+import {CarReceptionProtocol, DiscountType, ProtocolStatus} from '../../types';
 
 // Mockowane dane protokołów przyjęcia pojazdu
 export const mockCarReceptionProtocols: CarReceptionProtocol[] = [
@@ -20,9 +20,9 @@ export const mockCarReceptionProtocols: CarReceptionProtocol[] = [
         phone: '+48 123 456 789',
         notes: 'Klient prosi o szczególną ostrożność przy drzwiach kierowcy.',
         selectedServices: [
-            { id: '1', name: 'Detailing kompletny', price: 1200, discount: 10, finalPrice: 1080 },
-            { id: '3', name: 'Czyszczenie wnętrza', price: 350, discount: 0, finalPrice: 350 },
-            { id: '4', name: 'Nakładanie powłoki ceramicznej', price: 1500, discount: 5, finalPrice: 1425 }
+            { id: '1', name: 'Detailing kompletny', price: 1200, discountValue: 10, discountType: DiscountType.AMOUNT, finalPrice: 1080 },
+            { id: '3', name: 'Czyszczenie wnętrza', price: 350, discountValue: 10, discountType: DiscountType.AMOUNT, finalPrice: 350 },
+            { id: '4', name: 'Nakładanie powłoki ceramicznej', price: 1500, discountValue: 10, discountType: DiscountType.AMOUNT, finalPrice: 1425 }
         ],
         status: ProtocolStatus.IN_PROGRESS,
         statusUpdatedAt: '2025-03-10T08:30:00Z',
@@ -44,8 +44,8 @@ export const mockCarReceptionProtocols: CarReceptionProtocol[] = [
         email: 'anna.nowak@example.com',
         phone: '+48 987 654 321',
         selectedServices: [
-            { id: '2', name: 'Korekta lakieru', price: 500, discount: 0, finalPrice: 500 },
-            { id: '5', name: 'Pranie tapicerki', price: 300, discount: 0, finalPrice: 300 }
+            { id: '2', name: 'Korekta lakieru', price: 500, discountValue: 10, discountType: DiscountType.AMOUNT, finalPrice: 500 },
+            { id: '5', name: 'Pranie tapicerki', price: 300, discountValue: 10, discountType: DiscountType.AMOUNT, finalPrice: 300 }
         ],
         status: ProtocolStatus.PENDING_APPROVAL,
         statusUpdatedAt: '2025-03-09T14:30:00Z',

@@ -111,33 +111,70 @@ export interface Appointment {
     isProtocol?: boolean; // Flag wskazujący, czy wydarzenie pochodzi z protokołu
 }
 
-export interface Customer {
+// Expanded client interface with CRM features
+export interface ClientExpanded {
     id: string;
     firstName: string;
     lastName: string;
     email: string;
     phone: string;
     address?: string;
-    vehicles: Vehicle[];
+    company?: string;
+    taxId?: string;
+
+    // CRM metrics
+    totalVisits: number;
+    totalTransactions: number;
+    abandonedSales: number;
+    totalRevenue: number;
+    contactAttempts: number;
+    lastVisitDate?: string;
+    notes?: string;
+
+    // Relations
+    vehicles: string[]; // IDs of vehicles
 }
 
-export interface Vehicle {
+// Extended vehicle interface with tracking features
+export interface VehicleExpanded {
     id: string;
     make: string;
     model: string;
     year: number;
     licensePlate: string;
     color?: string;
-    customerId: string;
+    vin?: string;
+
+    // Tracking metrics
+    totalServices: number;
+    lastServiceDate?: string;
+    serviceHistory: ServiceHistoryItem[];
+    totalSpent: number;
+
+    // Relations
+    ownerIds: string[]; // IDs of owners (can have multiple)
 }
 
-export interface User {
+// Service history tracking
+export interface ServiceHistoryItem {
     id: string;
-    username: string;
-    firstName: string;
-    lastName: string;
-    role: 'admin' | 'manager' | 'employee';
+    date: string;
+    serviceType: string;
+    description: string;
+    price: number;
+    protocolId?: string;
 }
+
+// Contact attempt tracking
+export interface ContactAttempt {
+    id: string;
+    clientId: string;
+    date: string;
+    type: 'PHONE' | 'EMAIL' | 'SMS' | 'OTHER';
+    description: string;
+    result: 'SUCCESS' | 'NO_ANSWER' | 'CALLBACK_REQUESTED' | 'REJECTED';
+}
+
 
 // Typ do obsługi bocznego menu
 export interface MenuItem {
