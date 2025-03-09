@@ -9,7 +9,11 @@ import {
     FaPercent,
     FaTags,
     FaRegListAlt,
-    FaCalendarCheck
+    FaCalendarCheck,
+    FaCarSide,
+    FaEye,
+    FaWrench,
+    FaWindowClose
 } from 'react-icons/fa';
 
 interface SecondaryMenuProps {
@@ -32,6 +36,12 @@ const secondaryMenuOptions: Record<string, SubMenuItem[]> = {
         { id: 'employees', label: 'Pracownicy', icon: <FaUsers />, path: '/settings/employees' },
         { id: 'taxes', label: 'Podatki', icon: <FaMoneyBillWave />, path: '/settings/taxes' },
         { id: 'services', label: 'Lista usług i prac', icon: <FaClipboardList />, path: '/settings/services' }
+    ],
+    protocols: [
+        { id: 'car-reception', label: 'Protokół przyjęcia pojazdu', icon: <FaCarSide />, path: '/protocols/car-reception' },
+        { id: 'car-inspection', label: 'Protokół oględzin pojazdu', icon: <FaEye />, path: '/protocols/car-inspection' },
+        { id: 'wheel-renovation', label: 'Protokół renowacji felg', icon: <FaWrench />, path: '/protocols/wheel-renovation' },
+        { id: 'window-tinting', label: 'Protokół przyciemniania szyb', icon: <FaWindowClose />, path: '/protocols/window-tinting' }
     ],
     clients: [
         { id: 'owners', label: 'Właściciele pojazdów', icon: <FaUsers />, path: '/clients/owners' },
@@ -92,7 +102,8 @@ const getMenuTitle = (menuId: string): string => {
         clients: 'Klienci',
         finances: 'Finanse',
         warehouse: 'Magazyn',
-        pricing: 'Ceny i rabaty'
+        pricing: 'Ceny i rabaty',
+        protocols: 'Protokoły'
     };
 
     return titles[menuId] || menuId;

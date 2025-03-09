@@ -38,6 +38,13 @@ const mainMenuItems: MainMenuItem[] = [
         hasSubmenu: false
     },
     {
+        id: 'protocols',
+        label: 'Protokoły',
+        icon: <FaClipboardCheck />,
+        path: '/protocols',
+        hasSubmenu: true
+    },
+    {
         id: 'clients',
         label: 'Klienci',
         icon: <FaUsers />,

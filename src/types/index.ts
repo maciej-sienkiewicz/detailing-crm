@@ -16,13 +16,27 @@ export enum AppointmentStatus {
     COMPLETED = 'COMPLETED'                 // Wydano
 }
 
+export enum DiscountType {
+    PERCENTAGE = 'PERCENTAGE',  // Rabat procentowy (np. 10%)
+    AMOUNT = 'AMOUNT',          // Rabat kwotowy (np. obniżka o 100 zł)
+    FIXED_PRICE = 'FIXED_PRICE' // Stała cena (ustalona kwota końcowa)
+}
+
+// Etykiety dla typów rabatów
+export const DiscountTypeLabels: Record<DiscountType, string> = {
+    [DiscountType.PERCENTAGE]: 'Rabat procentowy',
+    [DiscountType.AMOUNT]: 'Rabat kwotowy',
+    [DiscountType.FIXED_PRICE]: 'Cena finalna'
+};
+
 // Definicja typu dla usługi wybranej w protokole
 export interface SelectedService {
     id: string;
     name: string;
     price: number;
-    discount: number;  // wartość rabatu w procentach
-    finalPrice: number; // cena po rabacie
+    discountType: DiscountType;  // typ rabatu
+    discountValue: number;       // wartość rabatu (procent, kwota lub cena finalna)
+    finalPrice: number;          // cena po rabacie
 }
 
 // Definicja typu dla protokołu przyjęcia pojazdu

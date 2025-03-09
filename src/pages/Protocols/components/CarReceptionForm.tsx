@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { FaPlus, FaSearch, FaPercent, FaTrash } from 'react-icons/fa';
-import { CarReceptionProtocol, SelectedService } from '../../../types';
+import {
+    CarReceptionProtocol,
+    ProtocolStatus,
+    ProtocolStatusLabels,
+    SelectedService,
+    DiscountType,
+    DiscountTypeLabels
+} from '../../../types';
 import { addCarReceptionProtocol, updateCarReceptionProtocol } from '../../../api/mocks/carReceptionMocks';
 
 interface CarReceptionFormProps {
@@ -37,7 +44,8 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
             email: '',
             phone: '',
             notes: '',
-            selectedServices: []
+            selectedServices: [],
+            status: ProtocolStatus.PENDING_APPROVAL // Domyślny status - Do zatwierdzenia
         }
     );
 
@@ -54,7 +62,7 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
     // Obliczanie sum w tabeli usług
     const totalPrice = (formData.selectedServices || []).reduce((sum, service) => sum + service.price, 0);
     const totalDiscount = (formData.selectedServices || []).reduce((sum, service) =>
-        sum + (service.price * service.discount / 100), 0);
+        sum + (service.price - service.finalPrice), 0);
     const totalFinalPrice = (formData.selectedServices || []).reduce((sum, service) => sum + service.finalPrice, 0);
 
     // Wyszukiwanie usług na podstawie zapytania
@@ -126,7 +134,8 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
             id: selectedServiceToAdd.id,
             name: selectedServiceToAdd.name,
             price: selectedServiceToAdd.price,
-            discount: 0,
+            discountType: DiscountType.PERCENTAGE,
+            discountValue: 0,
             finalPrice: selectedServiceToAdd.price
         };
 
@@ -156,19 +165,64 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
         });
     };
 
-    // Aktualizacja rabatu usługi
-    const handleDiscountChange = (serviceId: string, discount: number) => {
-        if (discount < 0) discount = 0;
-        if (discount > 100) discount = 100;
-
+    // Aktualizacja typu rabatu
+    const handleDiscountTypeChange = (serviceId: string, discountType: DiscountType) => {
         const updatedServices = (formData.selectedServices || []).map(service => {
             if (service.id === serviceId) {
-                const newDiscount = discount;
-                const newFinalPrice = service.price - (service.price * newDiscount / 100);
+                // Zachowujemy aktualną wartość rabatu, ale zmieniamy typ
+                // i przeliczamy cenę końcową
+                let newFinalPrice = service.price;
+                let newDiscountValue = 0;
+
+                // W zależności od nowego typu rabatu, konwertujemy wartość rabatu
+                // Każdy typ rabatu ma swoją logikę przeliczania
+                switch (discountType) {
+                    case DiscountType.PERCENTAGE:
+                        // Konwersja z innych typów na procenty
+                        if (service.discountType === DiscountType.AMOUNT) {
+                            // Z kwotowego na procentowy
+                            newDiscountValue = (service.discountValue / service.price) * 100;
+                            if (newDiscountValue > 100) newDiscountValue = 100;
+                        } else if (service.discountType === DiscountType.FIXED_PRICE) {
+                            // Z ceny finalnej na procentowy
+                            newDiscountValue = ((service.price - service.discountValue) / service.price) * 100;
+                            if (newDiscountValue < 0) newDiscountValue = 0;
+                        }
+                        newFinalPrice = service.price * (1 - newDiscountValue / 100);
+                        break;
+
+                    case DiscountType.AMOUNT:
+                        // Konwersja z innych typów na kwotowy
+                        if (service.discountType === DiscountType.PERCENTAGE) {
+                            // Z procentowego na kwotowy
+                            newDiscountValue = service.price * (service.discountValue / 100);
+                        } else if (service.discountType === DiscountType.FIXED_PRICE) {
+                            // Z ceny finalnej na kwotowy
+                            newDiscountValue = service.price - service.discountValue;
+                            if (newDiscountValue < 0) newDiscountValue = 0;
+                        }
+                        newFinalPrice = service.price - newDiscountValue;
+                        break;
+
+                    case DiscountType.FIXED_PRICE:
+                        // Konwersja na cenę finalną
+                        if (service.discountType === DiscountType.PERCENTAGE) {
+                            // Z procentowego na cenę finalną
+                            newDiscountValue = service.price * (1 - service.discountValue / 100);
+                        } else if (service.discountType === DiscountType.AMOUNT) {
+                            // Z kwotowego na cenę finalną
+                            newDiscountValue = service.price - service.discountValue;
+                            if (newDiscountValue < 0) newDiscountValue = 0;
+                        }
+                        newFinalPrice = newDiscountValue;
+                        break;
+                }
+
                 return {
                     ...service,
-                    discount: newDiscount,
-                    finalPrice: newFinalPrice
+                    discountType,
+                    discountValue: parseFloat(newDiscountValue.toFixed(2)),
+                    finalPrice: parseFloat(newFinalPrice.toFixed(2))
                 };
             }
             return service;
@@ -177,6 +231,60 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
         setFormData({
             ...formData,
             selectedServices: updatedServices
+        });
+    };
+
+    // Aktualizacja wartości rabatu
+    const handleDiscountValueChange = (serviceId: string, discountValue: number) => {
+        const updatedServices = (formData.selectedServices || []).map(service => {
+            if (service.id === serviceId) {
+                let newDiscountValue = discountValue;
+                let newFinalPrice = service.price;
+
+                // Różna logika w zależności od typu rabatu
+                switch (service.discountType) {
+                    case DiscountType.PERCENTAGE:
+                        // Limit procentowy od 0 do 100
+                        if (newDiscountValue < 0) newDiscountValue = 0;
+                        if (newDiscountValue > 100) newDiscountValue = 100;
+                        newFinalPrice = service.price * (1 - newDiscountValue / 100);
+                        break;
+
+                    case DiscountType.AMOUNT:
+                        // Limit kwotowy od 0 do ceny
+                        if (newDiscountValue < 0) newDiscountValue = 0;
+                        if (newDiscountValue > service.price) newDiscountValue = service.price;
+                        newFinalPrice = service.price - newDiscountValue;
+                        break;
+
+                    case DiscountType.FIXED_PRICE:
+                        // Limit ceny finalnej od 0 do ceny początkowej
+                        if (newDiscountValue < 0) newDiscountValue = 0;
+                        if (newDiscountValue > service.price) newDiscountValue = service.price;
+                        newFinalPrice = newDiscountValue;
+                        break;
+                }
+
+                return {
+                    ...service,
+                    discountValue: newDiscountValue,
+                    finalPrice: parseFloat(newFinalPrice.toFixed(2))
+                };
+            }
+            return service;
+        });
+
+        setFormData({
+            ...formData,
+            selectedServices: updatedServices
+        });
+    };
+
+    // Obsługa zmiany statusu
+    const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setFormData({
+            ...formData,
+            status: e.target.value as ProtocolStatus
         });
     };
 
@@ -231,6 +339,10 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
             errors.selectedServices = 'Wybierz co najmniej jedną usługę';
         }
 
+        if (!formData.status) {
+            errors.status = 'Status jest wymagany';
+        }
+
         setFormErrors(errors);
         return Object.keys(errors).length === 0;
     };
@@ -254,11 +366,18 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
                     ...(formData as CarReceptionProtocol),
                     id: protocol.id,
                     createdAt: protocol.createdAt,
-                    updatedAt: new Date().toISOString()
+                    updatedAt: new Date().toISOString(),
+                    statusUpdatedAt: formData.status !== protocol.status
+                        ? new Date().toISOString()
+                        : protocol.statusUpdatedAt || protocol.createdAt
                 });
             } else {
                 // Dodanie nowego protokołu
-                savedProtocol = await addCarReceptionProtocol(formData as Omit<CarReceptionProtocol, 'id' | 'createdAt' | 'updatedAt'>);
+                const now = new Date().toISOString();
+                savedProtocol = await addCarReceptionProtocol({
+                    ...(formData as Omit<CarReceptionProtocol, 'id' | 'createdAt' | 'updatedAt'>),
+                    statusUpdatedAt: now
+                });
             }
 
             onSave(savedProtocol);
@@ -306,6 +425,24 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
                                 required
                             />
                             {formErrors.endDate && <ErrorText>{formErrors.endDate}</ErrorText>}
+                        </FormGroup>
+
+                        <FormGroup>
+                            <Label htmlFor="status">Status*</Label>
+                            <Select
+                                id="status"
+                                name="status"
+                                value={formData.status || ProtocolStatus.PENDING_APPROVAL}
+                                onChange={handleStatusChange}
+                                required
+                            >
+                                {Object.entries(ProtocolStatusLabels).map(([value, label]) => (
+                                    <option key={value} value={value}>
+                                        {label}
+                                    </option>
+                                ))}
+                            </Select>
+                            {formErrors.status && <ErrorText>{formErrors.status}</ErrorText>}
                         </FormGroup>
                     </FormRow>
                 </FormSection>
@@ -545,8 +682,8 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
                             <thead>
                             <tr>
                                 <TableHeader>Nazwa</TableHeader>
-                                <TableHeader>Cena</TableHeader>
-                                <TableHeader>Rabat (%)</TableHeader>
+                                <TableHeader>Cena bazowa</TableHeader>
+                                <TableHeader>Rabat</TableHeader>
                                 <TableHeader>Cena końcowa</TableHeader>
                                 <TableHeader>Akcje</TableHeader>
                             </tr>
@@ -565,16 +702,30 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
                                         <TableCell>{service.price.toFixed(2)} zł</TableCell>
                                         <TableCell>
                                             <DiscountContainer>
-                                                <DiscountInput
-                                                    type="number"
-                                                    min="0"
-                                                    max="100"
-                                                    value={service.discount}
-                                                    onChange={(e) => handleDiscountChange(service.id, parseInt(e.target.value, 10) || 0)}
-                                                />
-                                                <DiscountIcon>
-                                                    <FaPercent />
-                                                </DiscountIcon>
+                                                <DiscountInputGroup>
+                                                    <DiscountInput
+                                                        type="number"
+                                                        min="0"
+                                                        max={service.discountType === DiscountType.PERCENTAGE ? 100 : undefined}
+                                                        value={service.discountValue}
+                                                        onChange={(e) => handleDiscountValueChange(service.id, parseFloat(e.target.value) || 0)}
+                                                    />
+                                                    <DiscountTypeSelect
+                                                        value={service.discountType}
+                                                        onChange={(e) => handleDiscountTypeChange(service.id, e.target.value as DiscountType)}
+                                                    >
+                                                        {Object.entries(DiscountTypeLabels).map(([value, label]) => (
+                                                            <option key={value} value={value}>
+                                                                {label}
+                                                            </option>
+                                                        ))}
+                                                    </DiscountTypeSelect>
+                                                </DiscountInputGroup>
+                                                {service.discountType === DiscountType.PERCENTAGE && (
+                                                    <DiscountPercentage>
+                                                        ({(service.price * service.discountValue / 100).toFixed(2)} zł)
+                                                    </DiscountPercentage>
+                                                )}
                                             </DiscountContainer>
                                         </TableCell>
                                         <TableCell>{service.finalPrice.toFixed(2)} zł</TableCell>
@@ -689,6 +840,20 @@ const Input = styled.input`
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 14px;
+
+    &:focus {
+        outline: none;
+        border-color: #3498db;
+        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+    }
+`;
+
+const Select = styled.select`
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    background-color: white;
 
     &:focus {
         outline: none;
@@ -872,17 +1037,23 @@ const TableFooterCell = styled.td`
 
 const DiscountContainer = styled.div`
     display: flex;
+    flex-direction: column;
+    width: 220px;
+`;
+
+const DiscountInputGroup = styled.div`
+    display: flex;
     align-items: center;
-    width: 100px;
-    position: relative;
+    width: 100%;
+    gap: 4px;
 `;
 
 const DiscountInput = styled.input`
-    padding: 8px 30px 8px 12px;
+    padding: 8px 12px;
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 14px;
-    width: 100%;
+    width: 80px;
 
     &:focus {
         outline: none;
@@ -900,11 +1071,26 @@ const DiscountInput = styled.input`
     }
 `;
 
-const DiscountIcon = styled.div`
-    position: absolute;
-    right: 10px;
+const DiscountTypeSelect = styled.select`
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+    background-color: white;
+    flex: 1;
+    
+    &:focus {
+        outline: none;
+        border-color: #3498db;
+        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+    }
+`;
+
+const DiscountPercentage = styled.div`
     font-size: 12px;
     color: #7f8c8d;
+    margin-top: 4px;
+    text-align: right;
 `;
 
 const ActionButton = styled.button`
