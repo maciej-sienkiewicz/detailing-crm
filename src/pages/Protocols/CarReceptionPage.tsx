@@ -8,14 +8,20 @@ import {
 } from '../../api/mocks/carReceptionMocks';
 import { CarReceptionProtocol } from '../../types';
 import { CarReceptionForm } from './components/CarReceptionForm';
+import {useLocation} from "react-router-dom";
 
 const CarReceptionPage: React.FC = () => {
+    const location = useLocation();
     const [protocols, setProtocols] = useState<CarReceptionProtocol[]>([]);
     const [availableServices, setAvailableServices] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showForm, setShowForm] = useState(false);
     const [editingProtocol, setEditingProtocol] = useState<CarReceptionProtocol | null>(null);
+
+    // Sprawdzamy, czy mamy dane do stworzenia protokołu z wizyty
+    const protocolDataFromAppointment = location.state?.protocolData;
+    const appointmentId = location.state?.appointmentId;
 
     // Pobieranie danych
     useEffect(() => {
@@ -29,6 +35,12 @@ const CarReceptionPage: React.FC = () => {
                 setProtocols(protocolsData);
                 setAvailableServices(servicesData);
                 setError(null);
+
+                // Jeśli mamy dane z wizyty, automatycznie otworzymy formularz
+                if (protocolDataFromAppointment) {
+                    setEditingProtocol(null); // To nie jest edycja, tylko nowy protokół
+                    setShowForm(true);
+                }
             } catch (err) {
                 setError('Nie udało się pobrać danych protokołów');
                 console.error('Error fetching car reception protocols:', err);
@@ -38,7 +50,8 @@ const CarReceptionPage: React.FC = () => {
         };
 
         fetchData();
-    }, []);
+    }, [protocolDataFromAppointment]);
+
 
     // Obsługa dodawania nowego protokołu
     const handleAddProtocol = () => {
@@ -97,6 +110,8 @@ const CarReceptionPage: React.FC = () => {
                         <CarReceptionForm
                             protocol={editingProtocol}
                             availableServices={availableServices}
+                            initialData={protocolDataFromAppointment}
+                            appointmentId={appointmentId}
                             onSave={handleSaveProtocol}
                             onCancel={() => {
                                 setShowForm(false);

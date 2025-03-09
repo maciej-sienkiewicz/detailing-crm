@@ -62,6 +62,7 @@ export interface CarReceptionProtocol {
     statusUpdatedAt?: string; // Data ostatniej aktualizacji statusu
     createdAt: string;
     updatedAt: string;
+    appointmentId?: string; // Powiązanie z wizytą w kalendarzu, jeśli protokół powstał z wizyty
 }
 
 // Definicja typu dla dokumentu pracownika

@@ -14,6 +14,8 @@ import { addCarReceptionProtocol, updateCarReceptionProtocol } from '../../../ap
 interface CarReceptionFormProps {
     protocol: CarReceptionProtocol | null;
     availableServices: Array<{ id: string; name: string; price: number }>;
+    initialData?: Partial<CarReceptionProtocol>; // Dane początkowe z wizyty
+    appointmentId?: string; // ID wizyty, z której powstaje protokół
     onSave: (protocol: CarReceptionProtocol) => void;
     onCancel: () => void;
 }
@@ -21,14 +23,16 @@ interface CarReceptionFormProps {
 export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
                                                                       protocol,
                                                                       availableServices,
+                                                                      initialData,
+                                                                      appointmentId,
                                                                       onSave,
                                                                       onCancel
                                                                   }) => {
     const today = new Date().toISOString().split('T')[0];
 
-    // Inicjalizacja formularza z danymi protokołu lub pustym obiektem
+    // Inicjalizacja formularza z danymi protokołu, danymi z wizyty lub pustym obiektem
     const [formData, setFormData] = useState<Partial<CarReceptionProtocol>>(
-        protocol || {
+        protocol || initialData || {
             startDate: today,
             endDate: today,
             licensePlate: '',
@@ -369,14 +373,16 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
                     updatedAt: new Date().toISOString(),
                     statusUpdatedAt: formData.status !== protocol.status
                         ? new Date().toISOString()
-                        : protocol.statusUpdatedAt || protocol.createdAt
+                        : protocol.statusUpdatedAt || protocol.createdAt,
+                    appointmentId: protocol.appointmentId // Zachowujemy powiązanie z wizytą, jeśli istniało
                 });
             } else {
                 // Dodanie nowego protokołu
                 const now = new Date().toISOString();
                 savedProtocol = await addCarReceptionProtocol({
                     ...(formData as Omit<CarReceptionProtocol, 'id' | 'createdAt' | 'updatedAt'>),
-                    statusUpdatedAt: now
+                    statusUpdatedAt: now,
+                    appointmentId: appointmentId // Powiązanie z wizytą, jeśli tworzymy z wizyty
                 });
             }
 
@@ -392,7 +398,14 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
     return (
         <FormContainer>
             <FormHeader>
-                <h2>{protocol ? 'Edycja protokołu przyjęcia pojazdu' : 'Nowy protokół przyjęcia pojazdu'}</h2>
+                <h2>
+                    {protocol
+                        ? 'Edycja protokołu przyjęcia pojazdu'
+                        : appointmentId
+                            ? 'Nowy protokół przyjęcia pojazdu (z wizyty)'
+                            : 'Nowy protokół przyjęcia pojazdu'
+                    }
+                </h2>
             </FormHeader>
 
             {error && <ErrorMessage>{error}</ErrorMessage>}

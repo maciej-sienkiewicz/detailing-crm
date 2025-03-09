@@ -22,13 +22,15 @@ interface AppointmentDetailsProps {
     onEdit: () => void;
     onDelete: () => void;
     onStatusChange: (status: any) => void;
+    onCreateProtocol: () => void;
 }
 
 const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
                                                                    appointment,
                                                                    onEdit,
                                                                    onDelete,
-                                                                   onStatusChange
+                                                                   onStatusChange,
+                                                                   onCreateProtocol
                                                                }) => {
     const navigate = useNavigate();
 
@@ -108,15 +110,17 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
                         <FaExternalLinkAlt /> Przejdź do protokołu
                     </ActionButton>
                 ) : (
-                    <ActionButton onClick={onEdit} primary>
-                        <FaEdit /> Edytuj
-                    </ActionButton>
-                )}
-
-                {!appointment.isProtocol && (
-                    <ActionButton onClick={onDelete} danger>
-                        <FaTrash /> Usuń
-                    </ActionButton>
+                    <>
+                        <ActionButton onClick={onEdit} primary>
+                            <FaEdit /> Edytuj
+                        </ActionButton>
+                        <ActionButton onClick={onDelete} danger>
+                            <FaTrash /> Usuń
+                        </ActionButton>
+                        <ActionButton onClick={onCreateProtocol} special>
+                            <FaClipboardCheck /> Utwórz protokół
+                        </ActionButton>
+                    </>
                 )}
             </Actions>
         </Container>
@@ -198,7 +202,7 @@ const Actions = styled.div`
     gap: 10px;
 `;
 
-const ActionButton = styled.button<{ primary?: boolean; danger?: boolean }>`
+const ActionButton = styled.button<{ primary?: boolean; danger?: boolean; special?: boolean }>`
     display: flex;
     align-items: center;
     gap: 6px;
@@ -207,7 +211,7 @@ const ActionButton = styled.button<{ primary?: boolean; danger?: boolean }>`
     font-size: 14px;
     cursor: pointer;
     transition: background-color 0.2s;
-    
+
     ${props => props.primary && `
         background-color: #3498db;
         color: white;
@@ -217,7 +221,7 @@ const ActionButton = styled.button<{ primary?: boolean; danger?: boolean }>`
             background-color: #2980b9;
         }
     `}
-    
+
     ${props => props.danger && `
         background-color: #fff;
         color: #e74c3c;
@@ -225,6 +229,16 @@ const ActionButton = styled.button<{ primary?: boolean; danger?: boolean }>`
         
         &:hover {
             background-color: #fef5f5;
+        }
+    `}
+
+    ${props => props.special && `
+        background-color: #fff;
+        color: #27ae60;
+        border: 1px solid #27ae60;
+        
+        &:hover {
+            background-color: #f0f9f4;
         }
     `}
 `;

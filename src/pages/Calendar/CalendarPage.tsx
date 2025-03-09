@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 import AppointmentCalendar from '../../components/calendar/Calendar';
 import Modal from '../../components/common/Modal';
 import AppointmentForm from '../../components/calendar/AppointmentForm';
@@ -13,8 +14,10 @@ import {
     updateAppointmentStatus
 } from '../../api/mocks/appointmentMocks';
 import { fetchProtocolsAsAppointments } from '../../services/ProtocolCalendarService';
+import { mapAppointmentToProtocol } from '../../services/ProtocolMappingService';
 
 const CalendarPage: React.FC = () => {
+    const navigate = useNavigate();
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
@@ -25,6 +28,7 @@ const CalendarPage: React.FC = () => {
     const [showAppointmentDetailsModal, setShowAppointmentDetailsModal] = useState(false);
     const [showEditAppointmentModal, setShowEditAppointmentModal] = useState(false);
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+
 
     // Pobieranie danych przy montowaniu komponentu
     useEffect(() => {
@@ -57,6 +61,38 @@ const CalendarPage: React.FC = () => {
     const handleAppointmentSelect = (appointment: Appointment) => {
         setSelectedAppointment(appointment);
         setShowAppointmentDetailsModal(true);
+    };
+
+    // Obsługa tworzenia protokołu z wizyty
+    const handleCreateProtocol = () => {
+        if (!selectedAppointment) return;
+
+        // Jeśli to już jest protokół, nie powinniśmy tworzyć nowego
+        if (selectedAppointment.isProtocol) {
+            setError('To wydarzenie jest już protokołem.');
+            return;
+        }
+
+        try {
+            // Mapowanie danych wizyty na dane protokołu
+            const protocolData = mapAppointmentToProtocol(selectedAppointment);
+
+            // Zamykamy modal szczegółów
+            setShowAppointmentDetailsModal(false);
+
+            // Przekierowujemy do strony tworzenia protokołu z przygotowanymi danymi
+            // W rzeczywistej aplikacji dane byłyby przekazywane przez store (Redux/Context)
+            // Na potrzeby demonstracji przekazujemy w parametrach URL
+            navigate('/protocols/car-reception?createFromAppointment=true', {
+                state: {
+                    protocolData,
+                    appointmentId: selectedAppointment.id
+                }
+            });
+        } catch (err) {
+            console.error('Error creating protocol from appointment:', err);
+            setError('Nie udało się utworzyć protokołu z wizyty.');
+        }
     };
 
     // Obsługa zmiany zakresu kalendarza (np. zmiana miesiąca)
@@ -183,7 +219,7 @@ const CalendarPage: React.FC = () => {
             <CalendarHeader>
                 <h1>Kalendarz</h1>
                 <CalendarActions>
-                    <Button primary onClick={handleNewAppointmentClick}>+ Nowa wizyta</Button>
+                    <Button primary onClick={handleNewAppointmentClick}>+ Szybka notatka</Button>
                 </CalendarActions>
             </CalendarHeader>
 
@@ -225,9 +261,11 @@ const CalendarPage: React.FC = () => {
                         onEdit={handleEditClick}
                         onDelete={handleDeleteAppointment}
                         onStatusChange={handleStatusChange}
+                        onCreateProtocol={handleCreateProtocol}
                     />
                 </Modal>
             )}
+
 
             {/* Modal edycji wizyty */}
             {selectedAppointment && (
