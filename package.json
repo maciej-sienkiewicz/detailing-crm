@@ -1,0 +1,50 @@
+{
+  "name": "detailing-crm",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@tanstack/react-query": "^5.0.0",
+    "@types/node": "^16.18.x",
+    "@types/react": "^18.2.x",
+    "@types/react-big-calendar": "^1.6.x",
+    "@types/react-dom": "^18.2.x",
+    "@types/styled-components": "^5.1.x",
+    "date-fns": "^2.29.x",
+    "react": "^18.2.0",
+    "react-big-calendar": "^1.8.0",
+    "react-dom": "^18.2.0",
+    "react-icons": "^4.12.0",
+    "react-router-dom": "^6.18.0",
+    "styled-components": "^6.1.0",
+    "typescript": "^4.9.5"
+  },
+  "scripts": {
+    "start": "vite",
+    "build": "tsc && vite build",
+    "serve": "vite preview",
+    "test": "vitest"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.0.0",
+    "vite": "^4.3.9",
+    "vitest": "^0.32.0"
+  }
+}
