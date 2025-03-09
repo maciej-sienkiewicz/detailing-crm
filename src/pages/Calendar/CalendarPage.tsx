@@ -3,8 +3,15 @@ import styled from 'styled-components';
 import AppointmentCalendar from '../../components/calendar/Calendar';
 import Modal from '../../components/common/Modal';
 import AppointmentForm from '../../components/calendar/AppointmentForm';
-import { Appointment } from '../../types';
-import { fetchAppointments, addAppointment } from '../../api/mocks/appointmentMocks';
+import AppointmentDetails from '../../components/calendar/AppointmentDetails';
+import { Appointment, AppointmentStatus } from '../../types';
+import {
+    fetchAppointments,
+    addAppointment,
+    updateAppointment,
+    deleteAppointment,
+    updateAppointmentStatus
+} from '../../api/mocks/appointmentMocks';
 
 const CalendarPage: React.FC = () => {
     const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -14,6 +21,8 @@ const CalendarPage: React.FC = () => {
 
     // Stan dla formularza nowego wydarzenia
     const [showNewAppointmentModal, setShowNewAppointmentModal] = useState(false);
+    const [showAppointmentDetailsModal, setShowAppointmentDetailsModal] = useState(false);
+    const [showEditAppointmentModal, setShowEditAppointmentModal] = useState(false);
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
     // Pobieranie danych przy montowaniu komponentu
@@ -38,8 +47,7 @@ const CalendarPage: React.FC = () => {
     // Obsługa wyboru wizyty
     const handleAppointmentSelect = (appointment: Appointment) => {
         setSelectedAppointment(appointment);
-        // Tutaj można by otworzyć modal ze szczegółami wizyty
-        console.log('Selected appointment:', appointment);
+        setShowAppointmentDetailsModal(true);
     };
 
     // Obsługa zmiany zakresu kalendarza (np. zmiana miesiąca)
@@ -69,6 +77,65 @@ const CalendarPage: React.FC = () => {
         } catch (err) {
             console.error('Error saving appointment:', err);
             setError('Nie udało się zapisać wizyty.');
+        }
+    };
+
+    // Obsługa edycji wizyty
+    const handleEditClick = () => {
+        setShowAppointmentDetailsModal(false);
+        setShowEditAppointmentModal(true);
+    };
+
+    // Zapisywanie edytowanej wizyty
+    const handleUpdateAppointment = async (appointmentData: Omit<Appointment, 'id'>) => {
+        if (!selectedAppointment) return;
+
+        try {
+            const updatedAppointment = await updateAppointment({
+                ...appointmentData,
+                id: selectedAppointment.id
+            } as Appointment);
+
+            setAppointments(appointments.map(appointment =>
+                appointment.id === updatedAppointment.id ? updatedAppointment : appointment
+            ));
+            setShowEditAppointmentModal(false);
+        } catch (err) {
+            console.error('Error updating appointment:', err);
+            setError('Nie udało się zaktualizować wizyty.');
+        }
+    };
+
+    // Usuwanie wizyty
+    const handleDeleteAppointment = async () => {
+        if (!selectedAppointment) return;
+
+        if (window.confirm('Czy na pewno chcesz usunąć tę wizytę?')) {
+            try {
+                await deleteAppointment(selectedAppointment.id);
+                setAppointments(appointments.filter(appointment => appointment.id !== selectedAppointment.id));
+                setShowAppointmentDetailsModal(false);
+                setSelectedAppointment(null);
+            } catch (err) {
+                console.error('Error deleting appointment:', err);
+                setError('Nie udało się usunąć wizyty.');
+            }
+        }
+    };
+
+    // Obsługa zmiany statusu wizyty
+    const handleStatusChange = async (newStatus: AppointmentStatus) => {
+        if (!selectedAppointment) return;
+
+        try {
+            const updatedAppointment = await updateAppointmentStatus(selectedAppointment.id, newStatus);
+            setAppointments(appointments.map(appointment =>
+                appointment.id === updatedAppointment.id ? updatedAppointment : appointment
+            ));
+            setSelectedAppointment(updatedAppointment);
+        } catch (err) {
+            console.error('Error updating appointment status:', err);
+            setError('Nie udało się zmienić statusu wizyty.');
         }
     };
 
@@ -106,6 +173,41 @@ const CalendarPage: React.FC = () => {
                     onCancel={() => setShowNewAppointmentModal(false)}
                 />
             </Modal>
+
+            {/* Modal szczegółów wizyty */}
+            {selectedAppointment && (
+                <Modal
+                    isOpen={showAppointmentDetailsModal}
+                    onClose={() => setShowAppointmentDetailsModal(false)}
+                    title="Szczegóły wizyty"
+                >
+                    <AppointmentDetails
+                        appointment={selectedAppointment}
+                        onEdit={handleEditClick}
+                        onDelete={handleDeleteAppointment}
+                        onStatusChange={handleStatusChange}
+                    />
+                </Modal>
+            )}
+
+            {/* Modal edycji wizyty */}
+            {selectedAppointment && (
+                <Modal
+                    isOpen={showEditAppointmentModal}
+                    onClose={() => setShowEditAppointmentModal(false)}
+                    title="Edytuj wizytę"
+                >
+                    <AppointmentForm
+                        selectedDate={selectedAppointment.start}
+                        editingAppointment={selectedAppointment}
+                        onSave={handleUpdateAppointment}
+                        onCancel={() => {
+                            setShowEditAppointmentModal(false);
+                            setShowAppointmentDetailsModal(true);
+                        }}
+                    />
+                </Modal>
+            )}
         </CalendarPageContainer>
     );
 };

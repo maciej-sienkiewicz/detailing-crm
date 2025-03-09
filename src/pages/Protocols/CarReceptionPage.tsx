@@ -4,12 +4,10 @@ import { FaPlus, FaEdit, FaTrash, FaCarSide, FaFileAlt } from 'react-icons/fa';
 import {
     fetchCarReceptionProtocols,
     deleteCarReceptionProtocol,
-    fetchAvailableServices,
-    updateProtocolStatus
+    fetchAvailableServices
 } from '../../api/mocks/carReceptionMocks';
-import { CarReceptionProtocol, ProtocolStatus } from '../../types';
+import { CarReceptionProtocol } from '../../types';
 import { CarReceptionForm } from './components/CarReceptionForm';
-import { StatusManager } from './components/StatusManager';
 
 const CarReceptionPage: React.FC = () => {
     const [protocols, setProtocols] = useState<CarReceptionProtocol[]>([]);
@@ -44,6 +42,7 @@ const CarReceptionPage: React.FC = () => {
 
     // Obsługa dodawania nowego protokołu
     const handleAddProtocol = () => {
+        const today = new Date().toISOString().split('T')[0];
         setEditingProtocol(null);
         setShowForm(true);
     };
@@ -77,23 +76,6 @@ const CarReceptionPage: React.FC = () => {
         }
         setShowForm(false);
         setEditingProtocol(null);
-    };
-
-    // Zmiana statusu protokołu
-    const handleStatusChange = async (protocolId: string, newStatus: ProtocolStatus) => {
-        try {
-            const updatedProtocol = await updateProtocolStatus(protocolId, newStatus);
-
-            // Aktualizacja listy protokołów
-            setProtocols(
-                protocols.map(protocol =>
-                    protocol.id === protocolId ? updatedProtocol : protocol
-                )
-            );
-        } catch (err) {
-            setError('Nie udało się zmienić statusu protokołu');
-            console.error('Error updating protocol status:', err);
-        }
     };
 
     return (
@@ -135,7 +117,6 @@ const CarReceptionPage: React.FC = () => {
                                         <TableHeader>Data</TableHeader>
                                         <TableHeader>Właściciel</TableHeader>
                                         <TableHeader>Numer rejestracyjny</TableHeader>
-                                        <TableHeader>Status</TableHeader>
                                         <TableHeader>Akcje</TableHeader>
                                     </tr>
                                     </thead>
@@ -164,12 +145,6 @@ const CarReceptionPage: React.FC = () => {
                                             </TableCell>
                                             <TableCell>
                                                 <LicensePlate>{protocol.licensePlate}</LicensePlate>
-                                            </TableCell>
-                                            <TableCell>
-                                                <StatusManager
-                                                    status={protocol.status}
-                                                    onStatusChange={(newStatus) => handleStatusChange(protocol.id, newStatus)}
-                                                />
                                             </TableCell>
                                             <TableCell>
                                                 <ActionButtons>
@@ -348,68 +323,6 @@ const LicensePlate = styled.div`
     border-radius: 4px;
     font-weight: 500;
     color: #3498db;
-`;
-
-// Style dla statusów
-const StatusContainer = styled.div`
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-`;
-
-const StatusBadge = styled.div`
-    display: inline-block;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 13px;
-    font-weight: 500;
-    color: white;
-`;
-
-const StatusActionButton = styled.button`
-    background: none;
-    border: none;
-    color: #7f8c8d;
-    font-size: 14px;
-    cursor: pointer;
-    padding: 4px;
-    display: flex;
-    align-items: center;
-    border-radius: 4px;
-
-    &:hover {
-        background-color: #f0f0f0;
-        color: #34495e;
-    }
-`;
-
-const StatusMenu = styled.div`
-    position: absolute;
-    top: 100%;
-    left: 0;
-    z-index: 10;
-    background-color: white;
-    border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    min-width: 160px;
-    margin-top: 8px;
-    overflow: hidden;
-`;
-
-const StatusMenuItem = styled.div`
-    padding: 8px 12px;
-    cursor: pointer;
-    border-left: 3px solid;
-    transition: background-color 0.2s;
-
-    &:hover {
-        background-color: #f5f5f5;
-    }
-
-    &:not(:last-child) {
-        border-bottom: 1px solid #eee;
-    }
 `;
 
 const ActionButtons = styled.div`

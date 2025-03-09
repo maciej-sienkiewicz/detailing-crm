@@ -7,6 +7,15 @@ export enum ProtocolStatus {
     COMPLETED = 'COMPLETED'                 // Wydano
 }
 
+// Dodajemy enum dla statusów wizyt - używamy tych samych co dla protokołów
+export enum AppointmentStatus {
+    PENDING_APPROVAL = 'PENDING_APPROVAL',  // Do zatwierdzenia
+    CONFIRMED = 'CONFIRMED',                // Potwierdzona
+    IN_PROGRESS = 'IN_PROGRESS',            // W realizacji
+    READY_FOR_PICKUP = 'READY_FOR_PICKUP',  // Oczekiwanie na oddanie
+    COMPLETED = 'COMPLETED'                 // Wydano
+}
+
 // Definicja typu dla usługi wybranej w protokole
 export interface SelectedService {
     id: string;
@@ -81,8 +90,9 @@ export interface Appointment {
     customerId?: string;
     vehicleId?: string;
     serviceType: string;
-    status: 'scheduled' | 'in-progress' | 'completed' | 'cancelled';
+    status: AppointmentStatus; // Zmiana typu z 'scheduled' | 'in-progress' | 'completed' | 'cancelled' na AppointmentStatus
     notes?: string;
+    statusUpdatedAt?: string; // Dodajemy datę aktualizacji statusu
 }
 
 export interface Customer {
@@ -123,7 +133,7 @@ export interface MenuItem {
     expanded?: boolean;
 }
 
-// Obiekty pomocnicze dla statusów
+// Obiekty pomocnicze dla statusów protokołów
 export const ProtocolStatusLabels: Record<ProtocolStatus, string> = {
     [ProtocolStatus.PENDING_APPROVAL]: 'Do zatwierdzenia',
     [ProtocolStatus.CONFIRMED]: 'Potwierdzona',
@@ -138,4 +148,21 @@ export const ProtocolStatusColors: Record<ProtocolStatus, string> = {
     [ProtocolStatus.IN_PROGRESS]: '#9b59b6',      // Fioletowy
     [ProtocolStatus.READY_FOR_PICKUP]: '#2ecc71', // Zielony
     [ProtocolStatus.COMPLETED]: '#7f8c8d'         // Szary
+};
+
+// Obiekty pomocnicze dla statusów wizyt
+export const AppointmentStatusLabels: Record<AppointmentStatus, string> = {
+    [AppointmentStatus.PENDING_APPROVAL]: 'Do zatwierdzenia',
+    [AppointmentStatus.CONFIRMED]: 'Potwierdzona',
+    [AppointmentStatus.IN_PROGRESS]: 'W realizacji',
+    [AppointmentStatus.READY_FOR_PICKUP]: 'Oczekiwanie na oddanie',
+    [AppointmentStatus.COMPLETED]: 'Wydano'
+};
+
+export const AppointmentStatusColors: Record<AppointmentStatus, string> = {
+    [AppointmentStatus.PENDING_APPROVAL]: '#f39c12', // Pomarańczowy
+    [AppointmentStatus.CONFIRMED]: '#3498db',        // Niebieski
+    [AppointmentStatus.IN_PROGRESS]: '#9b59b6',      // Fioletowy
+    [AppointmentStatus.READY_FOR_PICKUP]: '#2ecc71', // Zielony
+    [AppointmentStatus.COMPLETED]: '#7f8c8d'         // Szary
 };

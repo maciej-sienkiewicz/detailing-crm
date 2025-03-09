@@ -4,7 +4,7 @@ import { format, parse, startOfWeek, getDay, addMinutes } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import styled from 'styled-components';
-import { Appointment } from '../../types';
+import { Appointment, AppointmentStatusColors } from '../../types';
 
 // Konfiguracja lokalizera date-fns
 const locales = {
@@ -51,20 +51,8 @@ const AppointmentCalendar: React.FC<CalendarProps> = ({
 
     // Dostosowanie wyglądu wydarzenia
     const eventStyleGetter = (event: Appointment) => {
-        let backgroundColor = '#3498db'; // Domyślny kolor
-
-        // Różne kolory w zależności od statusu
-        switch (event.status) {
-            case 'in-progress':
-                backgroundColor = '#2ecc71'; // Zielony
-                break;
-            case 'completed':
-                backgroundColor = '#95a5a6'; // Szary
-                break;
-            case 'cancelled':
-                backgroundColor = '#e74c3c'; // Czerwony
-                break;
-        }
+        // Używamy kolorów bazujących na statusie wizyty
+        const backgroundColor = AppointmentStatusColors[event.status];
 
         return {
             style: {

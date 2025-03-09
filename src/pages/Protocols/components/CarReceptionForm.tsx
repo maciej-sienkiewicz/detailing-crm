@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { FaPlus, FaSearch, FaPercent, FaTrash } from 'react-icons/fa';
-import { CarReceptionProtocol, ProtocolStatus, ProtocolStatusLabels, SelectedService } from '../../../types';
+import { CarReceptionProtocol, SelectedService } from '../../../types';
 import { addCarReceptionProtocol, updateCarReceptionProtocol } from '../../../api/mocks/carReceptionMocks';
 
 interface CarReceptionFormProps {
@@ -37,8 +37,7 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
             email: '',
             phone: '',
             notes: '',
-            selectedServices: [],
-            status: ProtocolStatus.PENDING_APPROVAL // Domyślny status - Do zatwierdzenia
+            selectedServices: []
         }
     );
 
@@ -181,14 +180,6 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
         });
     };
 
-    // Obsługa zmiany statusu
-    const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setFormData({
-            ...formData,
-            status: e.target.value as ProtocolStatus
-        });
-    };
-
     const validateForm = (): boolean => {
         const errors: Record<string, string> = {};
 
@@ -240,10 +231,6 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
             errors.selectedServices = 'Wybierz co najmniej jedną usługę';
         }
 
-        if (!formData.status) {
-            errors.status = 'Status jest wymagany';
-        }
-
         setFormErrors(errors);
         return Object.keys(errors).length === 0;
     };
@@ -267,18 +254,11 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
                     ...(formData as CarReceptionProtocol),
                     id: protocol.id,
                     createdAt: protocol.createdAt,
-                    updatedAt: new Date().toISOString(),
-                    statusUpdatedAt: formData.status !== protocol.status
-                        ? new Date().toISOString()
-                        : protocol.statusUpdatedAt || protocol.createdAt
+                    updatedAt: new Date().toISOString()
                 });
             } else {
                 // Dodanie nowego protokołu
-                const now = new Date().toISOString();
-                savedProtocol = await addCarReceptionProtocol({
-                    ...(formData as Omit<CarReceptionProtocol, 'id' | 'createdAt' | 'updatedAt'>),
-                    statusUpdatedAt: now
-                });
+                savedProtocol = await addCarReceptionProtocol(formData as Omit<CarReceptionProtocol, 'id' | 'createdAt' | 'updatedAt'>);
             }
 
             onSave(savedProtocol);
@@ -326,24 +306,6 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
                                 required
                             />
                             {formErrors.endDate && <ErrorText>{formErrors.endDate}</ErrorText>}
-                        </FormGroup>
-
-                        <FormGroup>
-                            <Label htmlFor="status">Status*</Label>
-                            <Select
-                                id="status"
-                                name="status"
-                                value={formData.status || ProtocolStatus.PENDING_APPROVAL}
-                                onChange={handleStatusChange}
-                                required
-                            >
-                                {Object.entries(ProtocolStatusLabels).map(([value, label]) => (
-                                    <option key={value} value={value}>
-                                        {label}
-                                    </option>
-                                ))}
-                            </Select>
-                            {formErrors.status && <ErrorText>{formErrors.status}</ErrorText>}
                         </FormGroup>
                     </FormRow>
                 </FormSection>
@@ -727,20 +689,6 @@ const Input = styled.input`
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 14px;
-
-    &:focus {
-        outline: none;
-        border-color: #3498db;
-        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
-    }
-`;
-
-const Select = styled.select`
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
-    background-color: white;
 
     &:focus {
         outline: none;

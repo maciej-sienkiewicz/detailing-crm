@@ -1,20 +1,35 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import { FaExchangeAlt } from 'react-icons/fa';
-import { ProtocolStatus, ProtocolStatusLabels, ProtocolStatusColors } from '../../../types';
-import { StatusBadge } from './StatusBadge';
+import { AppointmentStatus, AppointmentStatusLabels, AppointmentStatusColors } from '../../types';
 
-interface StatusManagerProps {
-    status: ProtocolStatus;
-    onStatusChange: (newStatus: ProtocolStatus) => void;
-    disabledStatuses?: ProtocolStatus[];
+interface AppointmentStatusBadgeProps {
+    status: AppointmentStatus;
+    showLabel?: boolean;
 }
 
-export const StatusManager: React.FC<StatusManagerProps> = ({
-                                                                status,
-                                                                onStatusChange,
-                                                                disabledStatuses = []
-                                                            }) => {
+export const AppointmentStatusBadge: React.FC<AppointmentStatusBadgeProps> = ({ status, showLabel = true }) => {
+    const statusColor = AppointmentStatusColors[status];
+    const statusLabel = AppointmentStatusLabels[status];
+
+    return (
+        <Badge style={{ backgroundColor: statusColor }}>
+            {showLabel && statusLabel}
+        </Badge>
+    );
+};
+
+interface AppointmentStatusManagerProps {
+    status: AppointmentStatus;
+    onStatusChange: (newStatus: AppointmentStatus) => void;
+    disabledStatuses?: AppointmentStatus[];
+}
+
+export const AppointmentStatusManager: React.FC<AppointmentStatusManagerProps> = ({
+                                                                                      status,
+                                                                                      onStatusChange,
+                                                                                      disabledStatuses = []
+                                                                                  }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -37,7 +52,7 @@ export const StatusManager: React.FC<StatusManagerProps> = ({
         setIsMenuOpen(!isMenuOpen);
     };
 
-    const handleStatusSelect = (newStatus: ProtocolStatus) => {
+    const handleStatusSelect = (newStatus: AppointmentStatus) => {
         onStatusChange(newStatus);
         setIsMenuOpen(false);
     };
@@ -45,7 +60,7 @@ export const StatusManager: React.FC<StatusManagerProps> = ({
     return (
         <Container ref={menuRef}>
             <StatusRow>
-                <StatusBadge status={status} />
+                <AppointmentStatusBadge status={status} />
                 <StatusActionButton
                     onClick={toggleMenu}
                     title="Zmień status"
@@ -56,21 +71,21 @@ export const StatusManager: React.FC<StatusManagerProps> = ({
 
             {isMenuOpen && (
                 <StatusMenu>
-                    {Object.entries(ProtocolStatusLabels)
+                    {Object.entries(AppointmentStatusLabels)
                         .filter(([statusValue]) => {
                             // Nie pokazuj aktualnego statusu
                             if (statusValue === status) return false;
                             // Nie pokazuj statusów z listy wyłączonych
-                            if (disabledStatuses.includes(statusValue as ProtocolStatus)) return false;
+                            if (disabledStatuses.includes(statusValue as AppointmentStatus)) return false;
                             return true;
                         })
                         .map(([statusValue, label]) => (
                             <StatusMenuItem
                                 key={statusValue}
-                                onClick={() => handleStatusSelect(statusValue as ProtocolStatus)}
+                                onClick={() => handleStatusSelect(statusValue as AppointmentStatus)}
                                 style={{
-                                    color: ProtocolStatusColors[statusValue as ProtocolStatus],
-                                    borderLeftColor: ProtocolStatusColors[statusValue as ProtocolStatus]
+                                    color: AppointmentStatusColors[statusValue as AppointmentStatus],
+                                    borderLeftColor: AppointmentStatusColors[statusValue as AppointmentStatus]
                                 }}
                             >
                                 {label}
@@ -82,6 +97,15 @@ export const StatusManager: React.FC<StatusManagerProps> = ({
         </Container>
     );
 };
+
+const Badge = styled.div`
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: white;
+`;
 
 const Container = styled.div`
   position: relative;
@@ -138,5 +162,3 @@ const StatusMenuItem = styled.div`
     border-bottom: 1px solid #eee;
   }
 `;
-
-export default StatusManager;

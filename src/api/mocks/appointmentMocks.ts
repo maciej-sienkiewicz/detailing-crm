@@ -1,4 +1,4 @@
-import { Appointment } from '../../types';
+import { Appointment, AppointmentStatus } from '../../types';
 
 // Pomocnicza funkcja do generowania dat
 const createDate = (year: number, month: number, day: number, hour: number = 0, minute: number = 0) => {
@@ -20,8 +20,9 @@ export const mockAppointments: Appointment[] = [
         customerId: 'cust1',
         vehicleId: 'veh1',
         serviceType: 'basic_detailing',
-        status: 'scheduled',
-        notes: 'Pierwsza wizyta klienta'
+        status: AppointmentStatus.CONFIRMED,
+        notes: 'Pierwsza wizyta klienta',
+        statusUpdatedAt: new Date().toISOString()
     },
     {
         id: '2',
@@ -31,7 +32,8 @@ export const mockAppointments: Appointment[] = [
         customerId: 'cust2',
         vehicleId: 'veh2',
         serviceType: 'paint_correction',
-        status: 'scheduled'
+        status: AppointmentStatus.PENDING_APPROVAL,
+        statusUpdatedAt: new Date().toISOString()
     },
     {
         id: '3',
@@ -41,7 +43,8 @@ export const mockAppointments: Appointment[] = [
         customerId: 'cust3',
         vehicleId: 'veh3',
         serviceType: 'ceramic_coating',
-        status: 'scheduled'
+        status: AppointmentStatus.IN_PROGRESS,
+        statusUpdatedAt: new Date().toISOString()
     },
     {
         id: '4',
@@ -51,7 +54,8 @@ export const mockAppointments: Appointment[] = [
         customerId: 'cust1',
         vehicleId: 'veh1',
         serviceType: 'interior_cleaning',
-        status: 'scheduled'
+        status: AppointmentStatus.READY_FOR_PICKUP,
+        statusUpdatedAt: new Date().toISOString()
     },
     {
         id: '5',
@@ -61,7 +65,8 @@ export const mockAppointments: Appointment[] = [
         customerId: 'cust4',
         vehicleId: 'veh4',
         serviceType: 'headlight_restoration',
-        status: 'scheduled'
+        status: AppointmentStatus.COMPLETED,
+        statusUpdatedAt: new Date().toISOString()
     }
 ];
 
@@ -80,9 +85,11 @@ export const addAppointment = (appointment: Omit<Appointment, 'id'>): Promise<Ap
     return new Promise((resolve) => {
         // Symulacja opóźnienia sieciowego
         setTimeout(() => {
+            const now = new Date().toISOString();
             const newAppointment: Appointment = {
                 ...appointment,
-                id: `app${Math.floor(Math.random() * 10000)}`
+                id: `app${Math.floor(Math.random() * 10000)}`,
+                statusUpdatedAt: now
             };
 
             // Tutaj w rzeczywistym API wysyłalibyśmy dane do backendu
@@ -98,7 +105,35 @@ export const updateAppointment = (appointment: Appointment): Promise<Appointment
     return new Promise((resolve) => {
         // Symulacja opóźnienia sieciowego
         setTimeout(() => {
-            resolve(appointment);
+            const now = new Date().toISOString();
+            const updatedAppointment: Appointment = {
+                ...appointment,
+                statusUpdatedAt: now
+            };
+            resolve(updatedAppointment);
+        }, 500);
+    });
+};
+
+// Funkcja symulująca zmianę statusu wizyty
+export const updateAppointmentStatus = (id: string, status: AppointmentStatus): Promise<Appointment> => {
+    return new Promise((resolve, reject) => {
+        // Symulacja opóźnienia sieciowego
+        setTimeout(() => {
+            const appointment = mockAppointments.find(app => app.id === id);
+            if (!appointment) {
+                reject(new Error('Wizyta nie została znaleziona'));
+                return;
+            }
+
+            const now = new Date().toISOString();
+            const updatedAppointment: Appointment = {
+                ...appointment,
+                status,
+                statusUpdatedAt: now
+            };
+
+            resolve(updatedAppointment);
         }, 500);
     });
 };
