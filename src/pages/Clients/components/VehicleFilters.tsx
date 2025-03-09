@@ -35,7 +35,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
     };
 
     return (
-        <>
+        <FilterContainer>
             <FilterToggle onClick={onToggleFilters}>
                 <FaFilter /> {showFilters ? 'Ukryj filtry' : 'Pokaż filtry'}
             </FilterToggle>
@@ -135,98 +135,104 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
                     </FiltersActions>
                 </FiltersContainer>
             )}
-        </>
+        </FilterContainer>
     );
 };
 
 // Styled components
+const FilterContainer = styled.div`
+    width: 100%;
+`;
+
 const FilterToggle = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background-color: #f9f9f9;
-  color: #34495e;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  padding: 8px 16px;
-  font-weight: 500;
-  cursor: pointer;
-  
-  &:hover {
-    background-color: #f0f0f0;
-  }
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #f9f9f9;
+    color: #34495e;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 8px 16px;
+    font-weight: 500;
+    cursor: pointer;
+
+    &:hover {
+        background-color: #f0f0f0;
+    }
 `;
 
 const FiltersContainer = styled.div`
   background-color: #f9f9f9;
   border-radius: 4px;
   padding: 16px;
+  margin-top: 10px;
   margin-bottom: 20px;
   border: 1px solid #eee;
+  width: 100%;
 `;
 
 const FiltersGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 16px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 16px;
 `;
 
 const FilterGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 `;
 
 const Label = styled.label`
-  font-weight: 500;
-  font-size: 14px;
-  color: #333;
+    font-weight: 500;
+    font-size: 14px;
+    color: #333;
 `;
 
 const Input = styled.input`
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
-  
-  &:focus {
-    outline: none;
-    border-color: #3498db;
-    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
-  }
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+
+    &:focus {
+        outline: none;
+        border-color: #3498db;
+        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+    }
 `;
 
 const FiltersActions = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 16px;
 `;
 
 const FilterResults = styled.div`
-  font-size: 14px;
-  color: #7f8c8d;
+    font-size: 14px;
+    color: #7f8c8d;
 `;
 
 const ClearFiltersButton = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: none;
-  border: none;
-  color: #e74c3c;
-  font-size: 14px;
-  cursor: pointer;
-  padding: 4px 8px;
-  
-  &:hover:not(:disabled) {
-    text-decoration: underline;
-  }
-  
-  &:disabled {
-    color: #bdc3c7;
-    cursor: not-allowed;
-  }
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    color: #e74c3c;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 4px 8px;
+
+    &:hover:not(:disabled) {
+        text-decoration: underline;
+    }
+
+    &:disabled {
+        color: #bdc3c7;
+        cursor: not-allowed;
+    }
 `;
 
 export default VehicleFilters;

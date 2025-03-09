@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { FaPlus } from 'react-icons/fa';
-import { ClientExpanded } from '../../types/client';
+import { ClientExpanded } from '../../types';
 import {
     fetchClients,
     deleteClient,
@@ -158,9 +158,12 @@ const OwnersPage: React.FC = () => {
         setShowAddModal(false);
     };
 
-    const handleDeleteClick = (client: ClientExpanded) => {
-        setSelectedClient(client);
-        setShowDeleteConfirm(true);
+    const handleDeleteClick = (clientId: string) => {
+        const client = clients.find(c => c.id === clientId);
+        if (client) {
+            setSelectedClient(client);
+            setShowDeleteConfirm(true);
+        }
     };
 
     const handleConfirmDelete = async () => {
@@ -224,19 +227,21 @@ const OwnersPage: React.FC = () => {
             <PageHeader>
                 <h1>Właściciele pojazdów</h1>
                 <HeaderActions>
-                    <ClientFilters
-                        filters={filters}
-                        showFilters={showFilters}
-                        onToggleFilters={() => setShowFilters(!showFilters)}
-                        onFilterChange={handleFilterChange}
-                        onResetFilters={resetFilters}
-                        resultCount={filteredClients.length}
-                    />
                     <AddButton onClick={handleAddClient}>
                         <FaPlus /> Dodaj klienta
                     </AddButton>
                 </HeaderActions>
             </PageHeader>
+
+            {/* Filter section - moved outside the header */}
+            <ClientFilters
+                filters={filters}
+                showFilters={showFilters}
+                onToggleFilters={() => setShowFilters(!showFilters)}
+                onFilterChange={handleFilterChange}
+                onResetFilters={resetFilters}
+                resultCount={filteredClients.length}
+            />
 
             {error && <ErrorMessage>{error}</ErrorMessage>}
 

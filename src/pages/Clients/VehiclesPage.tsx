@@ -145,6 +145,7 @@ const VehiclesPage: React.FC = () => {
         }));
     };
 
+    // Reset filters
     const resetFilters = () => {
         setFilters({
             licensePlate: '',
@@ -240,19 +241,21 @@ const VehiclesPage: React.FC = () => {
                     <h1>Pojazdy</h1>
                 )}
                 <HeaderActions>
-                    <VehicleFilters
-                        filters={filters}
-                        showFilters={showFilters}
-                        onToggleFilters={() => setShowFilters(!showFilters)}
-                        onFilterChange={handleFilterChange}
-                        onResetFilters={resetFilters}
-                        resultCount={filteredVehicles.length}
-                    />
                     <AddButton onClick={handleAddVehicle}>
                         <FaPlus /> Dodaj pojazd
                     </AddButton>
                 </HeaderActions>
             </PageHeader>
+
+            {/* Filter section - moved outside the header */}
+            <VehicleFilters
+                filters={filters}
+                showFilters={showFilters}
+                onToggleFilters={() => setShowFilters(!showFilters)}
+                onFilterChange={handleFilterChange}
+                onResetFilters={resetFilters}
+                resultCount={filteredVehicles.length}
+            />
 
             {error && <ErrorMessage>{error}</ErrorMessage>}
 
@@ -335,7 +338,7 @@ const PageHeader = styled.div`
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
-    
+
     h1 {
         font-size: 24px;
         margin: 0;
@@ -359,7 +362,7 @@ const BackButton = styled.button`
     border-radius: 50%;
     cursor: pointer;
     color: #34495e;
-    
+
     &:hover {
         background-color: #f0f0f0;
     }
@@ -387,7 +390,7 @@ const AddButton = styled.button`
     padding: 8px 16px;
     font-weight: 500;
     cursor: pointer;
-    
+
     &:hover {
         background-color: #2980b9;
     }
@@ -419,7 +422,7 @@ const EmptyState = styled.div`
 
 const DeleteConfirmContent = styled.div`
     padding: 16px 0;
-    
+
     p {
         margin: 0 0 16px 0;
     }
@@ -439,7 +442,7 @@ const CancelButton = styled.button`
     border-radius: 4px;
     font-size: 14px;
     cursor: pointer;
-    
+
     &:hover {
         background-color: #e9e9e9;
     }
@@ -453,7 +456,7 @@ const DeleteButton = styled.button`
     border-radius: 4px;
     font-size: 14px;
     cursor: pointer;
-    
+
     &:hover {
         background-color: #c0392b;
     }
