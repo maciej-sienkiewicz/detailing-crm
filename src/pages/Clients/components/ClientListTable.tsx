@@ -1,10 +1,12 @@
 import React from 'react';
 import styled from 'styled-components';
-import { FaEdit, FaTrash, FaCar, FaHistory, FaSms } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaCar, FaHistory, FaSms, FaCheckSquare, FaSquare } from 'react-icons/fa';
 import { ClientExpanded } from '../../../types';
 
 interface ClientListTableProps {
     clients: ClientExpanded[];
+    selectedClientIds: string[]; // Dodane: lista zaznaczonych ID klientów
+    onToggleSelection: (clientId: string) => void; // Dodane: przełączanie zaznaczenia
     onSelectClient: (client: ClientExpanded) => void;
     onEditClient: (client: ClientExpanded) => void;
     onDeleteClient: (clientId: string) => void;
@@ -15,6 +17,8 @@ interface ClientListTableProps {
 
 const ClientListTable: React.FC<ClientListTableProps> = ({
                                                              clients,
+                                                             selectedClientIds,
+                                                             onToggleSelection,
                                                              onSelectClient,
                                                              onEditClient,
                                                              onDeleteClient,
@@ -27,6 +31,7 @@ const ClientListTable: React.FC<ClientListTableProps> = ({
             <Table>
                 <TableHead>
                     <TableRow>
+                        <TableHeader width="50px"></TableHeader> {/* Kolumna na checkbox */}
                         <TableHeader>Imię i nazwisko</TableHeader>
                         <TableHeader>Kontakt</TableHeader>
                         <TableHeader>Firma</TableHeader>
@@ -37,20 +42,28 @@ const ClientListTable: React.FC<ClientListTableProps> = ({
                 </TableHead>
                 <TableBody>
                     {clients.map(client => (
-                        <TableRow key={client.id} onClick={() => onSelectClient(client)}>
-                            <TableCell>
+                        <TableRow key={client.id}>
+                            <TableCell onClick={(e) => {
+                                e.stopPropagation();
+                                onToggleSelection(client.id);
+                            }}>
+                                <SelectionCheckbox>
+                                    {selectedClientIds.includes(client.id) ? <FaCheckSquare /> : <FaSquare />}
+                                </SelectionCheckbox>
+                            </TableCell>
+                            <TableCell onClick={() => onSelectClient(client)}>
                                 <ClientName>{client.firstName} {client.lastName}</ClientName>
                                 {client.lastVisitDate && (
                                     <LastVisit>Ostatnia wizyta: {formatDate(client.lastVisitDate)}</LastVisit>
                                 )}
                             </TableCell>
-                            <TableCell>
+                            <TableCell onClick={() => onSelectClient(client)}>
                                 <ContactInfo>
                                     <div>{client.email}</div>
                                     <div>{client.phone}</div>
                                 </ContactInfo>
                             </TableCell>
-                            <TableCell>
+                            <TableCell onClick={() => onSelectClient(client)}>
                                 {client.company && (
                                     <>
                                         <div>{client.company}</div>
@@ -58,7 +71,7 @@ const ClientListTable: React.FC<ClientListTableProps> = ({
                                     </>
                                 )}
                             </TableCell>
-                            <TableCell>
+                            <TableCell onClick={() => onSelectClient(client)}>
                                 <MetricsCell>
                                     <MetricItem>
                                         <MetricValue>{client.totalVisits}</MetricValue>
@@ -70,7 +83,7 @@ const ClientListTable: React.FC<ClientListTableProps> = ({
                                     </MetricItem>
                                 </MetricsCell>
                             </TableCell>
-                            <TableCell>
+                            <TableCell onClick={() => onSelectClient(client)}>
                                 <Revenue>{client.totalRevenue.toFixed(2)} zł</Revenue>
                             </TableCell>
                             <TableCell onClick={(e) => e.stopPropagation()}>
@@ -153,16 +166,35 @@ const TableRow = styled.tr`
   }
 `;
 
-const TableHeader = styled.th`
+const TableHeader = styled.th<{ width?: string }>`
   text-align: left;
   padding: 12px 16px;
   font-weight: 600;
   color: #333;
+  width: ${props => props.width || 'auto'};
 `;
 
 const TableCell = styled.td`
   padding: 12px 16px;
   vertical-align: middle;
+`;
+
+// Zmodyfikowany styl checkboxa - zmienione tło z niebieskiego na białe
+const SelectionCheckbox = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 18px;
+  
+  svg {
+    color: #7f8c8d; /* Zmieniony kolor z #3498db na ciemniejszy szary */
+    background-color: white; /* Białe tło */
+  }
+  
+  &:hover {
+    opacity: 0.8;
+  }
 `;
 
 const ClientName = styled.div`
