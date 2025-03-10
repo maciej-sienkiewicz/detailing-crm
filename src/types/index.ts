@@ -63,6 +63,11 @@ export interface CarReceptionProtocol {
     createdAt: string;
     updatedAt: string;
     appointmentId?: string; // Powiązanie z wizytą w kalendarzu, jeśli protokół powstał z wizyty
+
+    // Nowe pola dla rozszerzonej funkcjonalności
+    comments?: any[]; // Komentarze i aktualizacje
+    purchaseInvoices?: any[]; // Faktury zakupowe
+    vehicleIssues?: any[]; // Problemy i uwagi dotyczące pojazdu
 }
 
 // Definicja typu dla dokumentu pracownika

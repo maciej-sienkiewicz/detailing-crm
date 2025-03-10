@@ -8,10 +8,11 @@ import {
 } from '../../api/mocks/carReceptionMocks';
 import { CarReceptionProtocol } from '../../types';
 import { CarReceptionForm } from './components/CarReceptionForm';
-import {useLocation} from "react-router-dom";
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const CarReceptionPage: React.FC = () => {
     const location = useLocation();
+    const navigate = useNavigate();
     const [protocols, setProtocols] = useState<CarReceptionProtocol[]>([]);
     const [availableServices, setAvailableServices] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -58,6 +59,11 @@ const CarReceptionPage: React.FC = () => {
         const today = new Date().toISOString().split('T')[0];
         setEditingProtocol(null);
         setShowForm(true);
+    };
+
+    // Obsługa przejścia do szczegółów protokołu
+    const handleViewProtocol = (protocol: CarReceptionProtocol) => {
+        navigate(`/protocols/car-reception/${protocol.id}`);
     };
 
     // Obsługa edytowania protokołu
@@ -137,7 +143,7 @@ const CarReceptionPage: React.FC = () => {
                                     </thead>
                                     <tbody>
                                     {protocols.map(protocol => (
-                                        <TableRow key={protocol.id}>
+                                        <TableRow key={protocol.id} onClick={() => handleViewProtocol(protocol)}>
                                             <TableCell>
                                                 <CarInfo>
                                                     <strong>{protocol.make} {protocol.model}</strong>
@@ -161,7 +167,7 @@ const CarReceptionPage: React.FC = () => {
                                             <TableCell>
                                                 <LicensePlate>{protocol.licensePlate}</LicensePlate>
                                             </TableCell>
-                                            <TableCell>
+                                            <TableCell onClick={(e) => e.stopPropagation()}>
                                                 <ActionButtons>
                                                     <ActionButton onClick={() => handleEditProtocol(protocol)}>
                                                         <FaEdit />

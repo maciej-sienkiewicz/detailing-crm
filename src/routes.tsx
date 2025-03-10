@@ -5,8 +5,10 @@ import TaxesPage from './pages/Settings/TaxesPage';
 import ServicesPage from './pages/Settings/ServicesPage';
 import EmployeesPage from './pages/Settings/EmployeesPage';
 import CarReceptionPage from './pages/Protocols/CarReceptionPage';
+import ProtocolDetailsPage from './pages/Protocols/ProtocolDetailsPage';
 import OwnersPage from './pages/Clients/OwnersPage';
 import VehiclesPage from './pages/Clients/VehiclesPage';
+
 
 // Tymczasowe komponenty dla innych stron - do zastąpienia rzeczywistymi implementacjami
 const PlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
@@ -41,6 +43,7 @@ const AppRoutes: React.FC = () => {
 
                     {/* Protokoły */}
                     <Route path="/protocols/car-reception" element={<CarReceptionPage />} />
+                    <Route path="/protocols/car-reception/:id" element={<ProtocolDetailsPage />} />
                     <Route path="/protocols/car-inspection" element={<PlaceholderPage title="Protokół oględzin pojazdu" />} />
                     <Route path="/protocols/wheel-renovation" element={<PlaceholderPage title="Protokół renowacji felg" />} />
                     <Route path="/protocols/window-tinting" element={<PlaceholderPage title="Protokół przyciemniania szyb" />} />
