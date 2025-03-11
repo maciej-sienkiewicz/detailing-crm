@@ -1,5 +1,3 @@
-import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
 import CalendarPage from './pages/Calendar/CalendarPage';
 import TaxesPage from './pages/Settings/TaxesPage';
 import ServicesPage from './pages/Settings/ServicesPage';
@@ -8,6 +6,7 @@ import CarReceptionPage from './pages/Protocols/CarReceptionPage';
 import ProtocolDetailsPage from './pages/Protocols/ProtocolDetailsPage';
 import OwnersPage from './pages/Clients/OwnersPage';
 import VehiclesPage from './pages/Clients/VehiclesPage';
+import ReportsPage from './pages/Reports/ReportsPage';
 
 
 // Tymczasowe komponenty dla innych stron - do zastąpienia rzeczywistymi implementacjami
