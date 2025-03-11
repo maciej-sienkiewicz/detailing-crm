@@ -8,6 +8,7 @@ import CarReceptionPage from './pages/Protocols/CarReceptionPage';
 import ProtocolDetailsPage from './pages/Protocols/ProtocolDetailsPage';
 import OwnersPage from './pages/Clients/OwnersPage';
 import VehiclesPage from './pages/Clients/VehiclesPage';
+import ReportsPage from "./pages/Reports/ReportsPage";
 
 
 // Tymczasowe komponenty dla innych stron - do zastąpienia rzeczywistymi implementacjami
@@ -33,6 +34,11 @@ const AppRoutes: React.FC = () => {
 
                     {/* Inne strony */}
                     <Route path="/finances" element={<PlaceholderPage title="Finanse" />} />
+
+                    {/* Raporty */}
+                    <Route path="/reports" element={<ReportsPage />} />
+
+
                     <Route path="/warehouse" element={<PlaceholderPage title="Magazyn" />} />
                     {/* Strony ustawień */}
                     <Route path="/settings/general" element={<PlaceholderPage title="Ustawienia ogólne" />} />

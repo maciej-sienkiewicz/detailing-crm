@@ -8,6 +8,7 @@
     "@types/react": "^18.2.x",
     "@types/react-big-calendar": "^1.6.x",
     "@types/react-dom": "^18.2.x",
+    "@types/recharts": "^1.8.29",
     "@types/styled-components": "^5.1.x",
     "date-fns": "^2.29.x",
     "react": "^18.2.0",
@@ -15,6 +16,7 @@
     "react-dom": "^18.2.0",
     "react-icons": "^4.12.0",
     "react-router-dom": "^6.18.0",
+    "recharts": "^2.15.1",
     "styled-components": "^6.1.0",
     "typescript": "^4.9.5"
   },
