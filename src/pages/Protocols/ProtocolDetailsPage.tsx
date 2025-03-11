@@ -149,6 +149,8 @@ const ProtocolDetailsPage: React.FC = () => {
 // Styled components
 const PageContainer = styled.div`
     padding: 20px;
+    max-width: 100%;
+    overflow-x: hidden;
 `;
 
 const PageHeader = styled.div`
@@ -158,10 +160,6 @@ const PageHeader = styled.div`
     margin-bottom: 20px;
 `;
 
-const HeaderLeft = styled.div`
-    display: flex;
-    align-items: center;
-`;
 
 const BackButton = styled.button`
     display: flex;
@@ -179,6 +177,24 @@ const BackButton = styled.button`
     &:hover {
         background-color: #f0f0f0;
     }
+
+    @media (max-width: 480px) {
+        margin-right: 0;
+    }
+`;
+
+const HeaderLeft = styled.div`
+    display: flex;
+    align-items: center;
+
+    @media (max-width: 480px) {
+        flex-direction: column;
+        align-items: flex-start;
+
+        ${BackButton} {
+            margin-bottom: 10px;
+        }
+    }
 `;
 
 const HeaderTitle = styled.div`
@@ -186,6 +202,10 @@ const HeaderTitle = styled.div`
         font-size: 24px;
         margin: 0;
         color: #2c3e50;
+
+        @media (max-width: 768px) {
+            font-size: 20px;
+        }
     }
 `;
 
@@ -195,10 +215,6 @@ const HeaderSubtitle = styled.div`
     margin-top: 4px;
 `;
 
-const HeaderActions = styled.div`
-    display: flex;
-    gap: 10px;
-`;
 
 const ActionButton = styled.button<{ primary?: boolean }>`
     display: flex;
@@ -218,19 +234,51 @@ const ActionButton = styled.button<{ primary?: boolean }>`
     }
 `;
 
+const HeaderActions = styled.div`
+    display: flex;
+    gap: 10px;
+
+    @media (max-width: 768px) {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    @media (max-width: 480px) {
+        flex-direction: column;
+        width: 100%;
+
+        ${ActionButton} {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+`;
+
 const MainContent = styled.div`
     display: flex;
     gap: 20px;
+
+    @media (max-width: 992px) {
+        flex-direction: column;
+    }
 `;
 
 const LeftSidebar = styled.div`
     width: 300px;
     flex-shrink: 0;
+
+    @media (max-width: 992px) {
+        width: 100%;
+    }
 `;
 
 const ContentArea = styled.div`
     flex: 1;
     min-width: 0;
+
+    @media (max-width: 992px) {
+        margin-top: 20px;
+    }
 `;
 
 const TabContent = styled.div`
@@ -238,6 +286,14 @@ const TabContent = styled.div`
     border-radius: 0 0 8px 8px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     padding: 20px;
+
+    @media (max-width: 768px) {
+        padding: 15px;
+    }
+
+    @media (max-width: 480px) {
+        padding: 12px;
+    }
 `;
 
 const LoadingContainer = styled.div`
@@ -247,6 +303,10 @@ const LoadingContainer = styled.div`
     padding: 50px;
     font-size: 16px;
     color: #7f8c8d;
+
+    @media (max-width: 768px) {
+        padding: 30px;
+    }
 `;
 
 const ErrorContainer = styled.div`
@@ -255,6 +315,14 @@ const ErrorContainer = styled.div`
     align-items: center;
     padding: 50px;
     text-align: center;
+
+    @media (max-width: 768px) {
+        padding: 30px;
+    }
+
+    @media (max-width: 480px) {
+        padding: 20px;
+    }
 `;
 
 const ErrorMessage = styled.div`
@@ -264,6 +332,13 @@ const ErrorMessage = styled.div`
     border-radius: 4px;
     margin-bottom: 20px;
     font-size: 16px;
+    width: 100%;
+    max-width: 500px;
+
+    @media (max-width: 480px) {
+        padding: 12px 15px;
+        font-size: 14px;
+    }
 `;
 
 export default ProtocolDetailsPage;

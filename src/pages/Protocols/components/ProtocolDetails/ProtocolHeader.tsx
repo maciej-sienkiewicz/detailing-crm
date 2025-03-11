@@ -119,7 +119,12 @@ const StatusSelect = styled.select`
     border-radius: 4px;
     font-size: 14px;
     margin-bottom: 10px;
-    
+
+    @media (max-width: 768px) {
+        padding: 12px 10px;
+        font-size: 16px;
+    }
+
     &:focus {
         outline: none;
         border-color: #3498db;
@@ -137,7 +142,12 @@ const NextStatusButton = styled.button`
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    
+
+    @media (max-width: 768px) {
+        padding: 10px 12px;
+        font-size: 14px;
+    }
+
     &:hover {
         background-color: #d5e9f9;
     }
@@ -154,7 +164,16 @@ const InfoGrid = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
+
+    @media (max-width: 768px) {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    @media (max-width: 480px) {
+        grid-template-columns: 1fr;
+    }
 `;
+
 
 const InfoItem = styled.div``;
 

@@ -68,11 +68,25 @@ const TabsContainer = styled.div`
     background-color: white;
     border-radius: 8px 8px 0 0;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
+    overflow-x: auto;
     margin-bottom: -1px;
     position: relative;
     z-index: 2;
+
+    @media (max-width: 768px) {
+        flex-wrap: nowrap;
+        justify-content: flex-start;
+        white-space: nowrap;
+    }
+
+    /* Hide scrollbar but allow scrolling */
+    &::-webkit-scrollbar {
+        display: none;
+    }
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 `;
+
 
 const TabItem = styled.div<{ active: boolean }>`
     padding: 15px 20px;
@@ -83,7 +97,17 @@ const TabItem = styled.div<{ active: boolean }>`
     font-weight: ${props => props.active ? '500' : 'normal'};
     border-bottom: 2px solid ${props => props.active ? '#3498db' : 'transparent'};
     background-color: ${props => props.active ? 'white' : '#fafafa'};
-    
+
+    @media (max-width: 768px) {
+        padding: 12px 15px;
+        flex-shrink: 0;
+    }
+
+    @media (max-width: 480px) {
+        font-size: 13px;
+        padding: 10px 12px;
+    }
+
     &:hover {
         background-color: ${props => props.active ? 'white' : '#f5f5f5'};
     }
@@ -92,10 +116,19 @@ const TabItem = styled.div<{ active: boolean }>`
 const TabIcon = styled.div`
     margin-right: 8px;
     font-size: 14px;
+
+    @media (max-width: 480px) {
+        margin-right: 5px;
+        font-size: 13px;
+    }
 `;
 
 const TabLabel = styled.div`
     font-size: 14px;
+
+    @media (max-width: 480px) {
+        font-size: 13px;
+    }
 `;
 
 export default ProtocolTabs;
