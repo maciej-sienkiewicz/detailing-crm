@@ -17,7 +17,7 @@ import {
     FaSearchPlus,
     FaCogs,
     FaWindowMaximize,
-    FaClipboardCheck, FaChartBar
+    FaClipboardCheck
 } from 'react-icons/fa';
 
 // Dane menu głównego
@@ -49,13 +49,6 @@ const mainMenuItems: MainMenuItem[] = [
         label: 'Klienci',
         icon: <FaUsers />,
         hasSubmenu: true
-    },
-    {
-        id: 'reports',
-        label: 'Raporty',
-        icon: <FaChartBar />,
-        path: '/reports',
-        hasSubmenu: false
     },
     {
         id: 'finances',
