@@ -81,8 +81,6 @@ const CalendarPage: React.FC = () => {
             setShowAppointmentDetailsModal(false);
 
             // Przekierowujemy do strony tworzenia protokołu z przygotowanymi danymi
-            // W rzeczywistej aplikacji dane byłyby przekazywane przez store (Redux/Context)
-            // Na potrzeby demonstracji przekazujemy w parametrach URL
             navigate('/protocols/car-reception?createFromAppointment=true', {
                 state: {
                     protocolData,
@@ -116,7 +114,17 @@ const CalendarPage: React.FC = () => {
     // Zapisywanie nowej wizyty
     const handleSaveAppointment = async (appointmentData: Omit<Appointment, 'id'>) => {
         try {
-            const newAppointment = await addAppointment(appointmentData);
+            // Dodanie domyślnej daty końca i statusu
+            const enhancedData = {
+                ...appointmentData,
+                end: new Date(appointmentData.start),
+                status: AppointmentStatus.PENDING_APPROVAL
+            };
+
+            // Domyślna data końca - 1 godzina po starcie
+            enhancedData.end.setHours(enhancedData.end.getHours() + 1);
+
+            const newAppointment = await addAppointment(enhancedData);
             setAppointments([...appointments, newAppointment]);
             setShowNewAppointmentModal(false);
         } catch (err) {
@@ -142,10 +150,15 @@ const CalendarPage: React.FC = () => {
         if (!selectedAppointment) return;
 
         try {
-            const updatedAppointment = await updateAppointment({
+            // Zachowujemy istniejącą datę końca i status
+            const enhancedData = {
                 ...appointmentData,
-                id: selectedAppointment.id
-            } as Appointment);
+                id: selectedAppointment.id,
+                end: selectedAppointment.end,
+                status: selectedAppointment.status
+            };
+
+            const updatedAppointment = await updateAppointment(enhancedData as Appointment);
 
             setAppointments(appointments.map(appointment =>
                 appointment.id === updatedAppointment.id ? updatedAppointment : appointment

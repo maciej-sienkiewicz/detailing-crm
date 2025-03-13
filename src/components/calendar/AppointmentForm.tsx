@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { Appointment, AppointmentStatus, AppointmentStatusLabels } from '../../types';
+import { Appointment, AppointmentStatus } from '../../types';
 
 interface AppointmentFormProps {
     selectedDate: Date;
@@ -22,32 +22,21 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
     const [eventType, setEventType] = useState<EventType>('reservation');
     const [title, setTitle] = useState('');
     const [fullName, setFullName] = useState('');
-    const [endDate, setEndDate] = useState<string>('');
     const [note, setNote] = useState('');
     const [responsiblePerson, setResponsiblePerson] = useState('');
-    const [status, setStatus] = useState<AppointmentStatus>(AppointmentStatus.PENDING_APPROVAL); // Domyślny status
 
-    // Inicjalizacja daty końcowej na ten sam dzień co data początkowa lub z edytowanej wizyty
+    // Inicjalizacja danych z edytowanej wizyty
     useEffect(() => {
         if (editingAppointment) {
             setTitle(editingAppointment.title);
             setFullName(editingAppointment.customerId || '');
-            setEndDate(format(editingAppointment.end, 'yyyy-MM-dd'));
             setNote(editingAppointment.notes || '');
-            setStatus(editingAppointment.status);
             setEventType(editingAppointment.serviceType as EventType);
-        } else {
-            const formattedDate = format(selectedDate, 'yyyy-MM-dd');
-            setEndDate(formattedDate);
         }
     }, [selectedDate, editingAppointment]);
 
     const handleEventTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setEventType(e.target.value as EventType);
-    };
-
-    const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setStatus(e.target.value as AppointmentStatus);
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -56,16 +45,18 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
         const startTime = new Date(selectedDate);
         startTime.setHours(8, 0, 0); // Domyślnie ustawiamy na 8:00
 
-        const endTime = new Date(endDate);
-        endTime.setHours(16, 0, 0); // Domyślnie ustawiamy na 16:00
+        // Dodajemy domyślną datę końcową (1 godzina później)
+        const endTime = new Date(startTime);
+        endTime.setHours(endTime.getHours() + 1);
 
+        // Tworzymy dane wizyty z domyślnymi wartościami dla wymaganych pól
         const commonFields = {
             title,
             start: editingAppointment ? editingAppointment.start : startTime,
-            end: editingAppointment ? new Date(endDate) : endTime,
+            end: editingAppointment ? editingAppointment.end : endTime,
             notes: note,
             serviceType: eventType,
-            status: status
+            status: AppointmentStatus.PENDING_APPROVAL // Domyślny status
         };
 
         if (eventType === 'reservation') {
@@ -106,21 +97,6 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
                 />
             </FormGroup>
 
-            <FormGroup>
-                <Label htmlFor="status">Status wizyty</Label>
-                <Select
-                    id="status"
-                    value={status}
-                    onChange={handleStatusChange}
-                >
-                    {Object.entries(AppointmentStatusLabels).map(([value, label]) => (
-                        <option key={value} value={value}>
-                            {label}
-                        </option>
-                    ))}
-                </Select>
-            </FormGroup>
-
             {eventType === 'reservation' ? (
                 <>
                     <FormGroup>
@@ -130,17 +106,6 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
                             type="text"
                             value={fullName}
                             onChange={(e) => setFullName(e.target.value)}
-                            required
-                        />
-                    </FormGroup>
-
-                    <FormGroup>
-                        <Label htmlFor="endDate">Data zakończenia</Label>
-                        <Input
-                            id="endDate"
-                            type="date"
-                            value={endDate}
-                            onChange={(e) => setEndDate(e.target.value)}
                             required
                         />
                     </FormGroup>

@@ -1,4 +1,4 @@
-import { Appointment, CarReceptionProtocol, ProtocolStatus, SelectedService, DiscountType } from '../types';
+import { Appointment, CarReceptionProtocol, ProtocolStatus, SelectedService, DiscountType, AppointmentStatus } from '../types';
 import { mockAvailableServices } from '../api/mocks/carReceptionMocks';
 
 /**
@@ -7,7 +7,16 @@ import { mockAvailableServices } from '../api/mocks/carReceptionMocks';
 export const mapAppointmentToProtocol = (appointment: Appointment): Partial<CarReceptionProtocol> => {
     // Przygotowanie dat w formacie ISO (YYYY-MM-DD)
     const startDate = appointment.start.toISOString().split('T')[0];
-    const endDate = appointment.end.toISOString().split('T')[0];
+
+    // Dla daty końcowej używamy daty początkowej + 1 dzień, jeśli nie określono inaczej
+    let endDate;
+    if (appointment.end) {
+        endDate = appointment.end.toISOString().split('T')[0];
+    } else {
+        const nextDay = new Date(appointment.start);
+        nextDay.setDate(nextDay.getDate() + 1);
+        endDate = nextDay.toISOString().split('T')[0];
+    }
 
     // Próba wyodrębnienia informacji o pojeździe z tytułu wizyty
     let make = '';
@@ -64,26 +73,26 @@ export const mapAppointmentToProtocol = (appointment: Appointment): Partial<CarR
         }
     }
 
-    // Mapowanie statusu wizyty na status protokołu
-    let protocolStatus: ProtocolStatus;
-    switch (appointment.status) {
-        case 'PENDING_APPROVAL':
-            protocolStatus = ProtocolStatus.PENDING_APPROVAL;
-            break;
-        case 'CONFIRMED':
-            protocolStatus = ProtocolStatus.CONFIRMED;
-            break;
-        case 'IN_PROGRESS':
-            protocolStatus = ProtocolStatus.IN_PROGRESS;
-            break;
-        case 'READY_FOR_PICKUP':
-            protocolStatus = ProtocolStatus.READY_FOR_PICKUP;
-            break;
-        case 'COMPLETED':
-            protocolStatus = ProtocolStatus.COMPLETED;
-            break;
-        default:
-            protocolStatus = ProtocolStatus.PENDING_APPROVAL;
+    // Mapowanie statusu wizyty na status protokołu - używamy domyślnego statusu, jeśli nie określono
+    let protocolStatus = ProtocolStatus.PENDING_APPROVAL;
+    if (appointment.status) {
+        switch (appointment.status) {
+            case AppointmentStatus.PENDING_APPROVAL:
+                protocolStatus = ProtocolStatus.PENDING_APPROVAL;
+                break;
+            case AppointmentStatus.CONFIRMED:
+                protocolStatus = ProtocolStatus.CONFIRMED;
+                break;
+            case AppointmentStatus.IN_PROGRESS:
+                protocolStatus = ProtocolStatus.IN_PROGRESS;
+                break;
+            case AppointmentStatus.READY_FOR_PICKUP:
+                protocolStatus = ProtocolStatus.READY_FOR_PICKUP;
+                break;
+            case AppointmentStatus.COMPLETED:
+                protocolStatus = ProtocolStatus.COMPLETED;
+                break;
+        }
     }
 
     return {

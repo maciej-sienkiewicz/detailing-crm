@@ -35,12 +35,8 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
     const navigate = useNavigate();
 
     // Formatowanie daty i godziny
-    const formatDateTimeRange = (start: Date, end: Date) => {
-        const startDate = format(start, 'PPPP', { locale: pl });
-        const startTime = format(start, 'HH:mm');
-        const endTime = format(end, 'HH:mm');
-
-        return `${startDate}, ${startTime} - ${endTime}`;
+    const formatDateTime = (date: Date) => {
+        return format(date, 'PPPP, HH:mm', { locale: pl });
     };
 
     // Przekierowanie do widoku protokołu
@@ -73,7 +69,7 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
 
             <DetailRow>
                 <DetailIcon><FaCalendarAlt /></DetailIcon>
-                <DetailText>{formatDateTimeRange(appointment.start, appointment.end)}</DetailText>
+                <DetailText>{formatDateTime(appointment.start)}</DetailText>
             </DetailRow>
 
             {appointment.customerId && (

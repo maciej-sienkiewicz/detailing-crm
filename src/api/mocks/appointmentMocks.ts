@@ -81,13 +81,13 @@ export const fetchAppointments = (): Promise<Appointment[]> => {
 };
 
 // Funkcja symulująca dodawanie nowego spotkania
-export const addAppointment = (appointment: Omit<Appointment, 'id'>): Promise<Appointment> => {
+export const addAppointment = (appointmentData: Omit<Appointment, 'id'>): Promise<Appointment> => {
     return new Promise((resolve) => {
         // Symulacja opóźnienia sieciowego
         setTimeout(() => {
             const now = new Date().toISOString();
             const newAppointment: Appointment = {
-                ...appointment,
+                ...appointmentData,
                 id: `app${Math.floor(Math.random() * 10000)}`,
                 statusUpdatedAt: now
             };
