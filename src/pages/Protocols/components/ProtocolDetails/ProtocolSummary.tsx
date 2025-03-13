@@ -19,11 +19,6 @@ interface ProtocolSummaryProps {
 }
 
 const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol }) => {
-    // Format date for display
-    const formatDate = (dateString: string): string => {
-        if (!dateString) return '';
-        return format(new Date(dateString), 'dd MMMM yyyy', { locale: pl });
-    };
 
     // Calculate the total value
     const totalValue = protocol.selectedServices.reduce(
@@ -172,30 +167,6 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol }) => {
                 </Section>
             )}
 
-            <Section>
-                <SectionTitle>Daty i terminy</SectionTitle>
-                <InfoGrid>
-                    <DateInfoItem>
-                        <DateInfoLabel>Data utworzenia protokołu</DateInfoLabel>
-                        <DateInfoValue>{formatDate(protocol.createdAt)}</DateInfoValue>
-                    </DateInfoItem>
-
-                    <DateInfoItem>
-                        <DateInfoLabel>Data ostatniej aktualizacji</DateInfoLabel>
-                        <DateInfoValue>{formatDate(protocol.updatedAt)}</DateInfoValue>
-                    </DateInfoItem>
-
-                    <DateInfoItem>
-                        <DateInfoLabel>Data przyjęcia pojazdu</DateInfoLabel>
-                        <DateInfoValue>{formatDate(protocol.startDate)}</DateInfoValue>
-                    </DateInfoItem>
-
-                    <DateInfoItem>
-                        <DateInfoLabel>Planowana data wydania</DateInfoLabel>
-                        <DateInfoValue>{formatDate(protocol.endDate)}</DateInfoValue>
-                    </DateInfoItem>
-                </InfoGrid>
-            </Section>
         </SummaryContainer>
     );
 };
@@ -335,34 +306,6 @@ const NotesContent = styled.div`
     font-size: 14px;
     color: #34495e;
     white-space: pre-line;
-`;
-
-const InfoGrid = styled.div`
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
-    
-    @media (max-width: 768px) {
-        grid-template-columns: 1fr;
-    }
-`;
-
-const DateInfoItem = styled.div`
-    background-color: #f9f9f9;
-    border-radius: 4px;
-    padding: 12px 15px;
-`;
-
-const DateInfoLabel = styled.div`
-    font-size: 12px;
-    color: #7f8c8d;
-    margin-bottom: 4px;
-`;
-
-const DateInfoValue = styled.div`
-    font-size: 15px;
-    color: #34495e;
-    font-weight: 500;
 `;
 
 export default ProtocolSummary;
