@@ -7,7 +7,7 @@ import {
     fetchAvailableServices
 } from '../../api/mocks/carReceptionMocks';
 import { CarReceptionProtocol } from '../../types';
-import { CarReceptionForm } from './components/CarReceptionForm';
+import { CarReceptionForm } from './components/CarReceptionForm/CarReceptionForm';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const CarReceptionPage: React.FC = () => {
