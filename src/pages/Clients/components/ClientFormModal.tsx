@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { ClientExpanded } from '../../../types/client';
+import { ClientExpanded } from '../../../types';
 import { addClient, updateClient } from '../../../api/mocks/clientMocks';
 import Modal from '../../../components/common/Modal';
 
@@ -40,7 +40,7 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ client, onSave, onCan
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
 
-        setFormData(prev => ({
+        setFormData((prev: any) => ({
             ...prev,
             [name]: value
         }));
