@@ -29,7 +29,6 @@ const CalendarPage: React.FC = () => {
     const [showEditAppointmentModal, setShowEditAppointmentModal] = useState(false);
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
-
     // Pobieranie danych przy montowaniu komponentu
     useEffect(() => {
         const loadAppointmentsAndProtocols = async () => {
@@ -93,7 +92,7 @@ const CalendarPage: React.FC = () => {
         }
     };
 
-    // Obsługa zmiany zakresu kalendarza (np. zmiana miesiąca)
+    // Obsługa zmiany zakresu kalendarza
     const handleRangeChange = (range: Date[] | { start: Date; end: Date }) => {
         // Tutaj można by pobrać nowe dane na podstawie wybranego zakresu dat
         console.log('Range changed:', range);
@@ -114,17 +113,7 @@ const CalendarPage: React.FC = () => {
     // Zapisywanie nowej wizyty
     const handleSaveAppointment = async (appointmentData: Omit<Appointment, 'id'>) => {
         try {
-            // Dodanie domyślnej daty końca i statusu
-            const enhancedData = {
-                ...appointmentData,
-                end: new Date(appointmentData.start),
-                status: AppointmentStatus.PENDING_APPROVAL
-            };
-
-            // Domyślna data końca - 1 godzina po starcie
-            enhancedData.end.setHours(enhancedData.end.getHours() + 1);
-
-            const newAppointment = await addAppointment(enhancedData);
+            const newAppointment = await addAppointment(appointmentData);
             setAppointments([...appointments, newAppointment]);
             setShowNewAppointmentModal(false);
         } catch (err) {
@@ -150,20 +139,16 @@ const CalendarPage: React.FC = () => {
         if (!selectedAppointment) return;
 
         try {
-            // Zachowujemy istniejącą datę końca i status
-            const enhancedData = {
+            const updatedAppointment = await updateAppointment({
                 ...appointmentData,
                 id: selectedAppointment.id,
-                end: selectedAppointment.end,
-                status: selectedAppointment.status
-            };
-
-            const updatedAppointment = await updateAppointment(enhancedData as Appointment);
+            } as Appointment);
 
             setAppointments(appointments.map(appointment =>
                 appointment.id === updatedAppointment.id ? updatedAppointment : appointment
             ));
             setShowEditAppointmentModal(false);
+            setShowAppointmentDetailsModal(true);
         } catch (err) {
             console.error('Error updating appointment:', err);
             setError('Nie udało się zaktualizować wizyty.');
@@ -232,7 +217,7 @@ const CalendarPage: React.FC = () => {
             <CalendarHeader>
                 <h1>Kalendarz</h1>
                 <CalendarActions>
-                    <Button primary onClick={handleNewAppointmentClick}>+ Szybka notatka</Button>
+                    <Button primary onClick={handleNewAppointmentClick}>+ Nowa wizyta</Button>
                 </CalendarActions>
             </CalendarHeader>
 
@@ -253,7 +238,7 @@ const CalendarPage: React.FC = () => {
             <Modal
                 isOpen={showNewAppointmentModal}
                 onClose={() => setShowNewAppointmentModal(false)}
-                title="Nowe wydarzenie"
+                title="Nowa wizyta"
             >
                 <AppointmentForm
                     selectedDate={selectedDate}
@@ -278,7 +263,6 @@ const CalendarPage: React.FC = () => {
                     />
                 </Modal>
             )}
-
 
             {/* Modal edycji wizyty */}
             {selectedAppointment && (

@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { format } from 'date-fns';
-import { pl } from 'date-fns/locale';
 import { Appointment, AppointmentStatus } from '../../types';
 
 interface AppointmentFormProps {
@@ -11,33 +9,24 @@ interface AppointmentFormProps {
     editingAppointment?: Appointment | null;
 }
 
-type EventType = 'reservation' | 'reminder';
-
 const AppointmentForm: React.FC<AppointmentFormProps> = ({
                                                              selectedDate,
                                                              onSave,
                                                              onCancel,
                                                              editingAppointment = null
                                                          }) => {
-    const [eventType, setEventType] = useState<EventType>('reservation');
     const [title, setTitle] = useState('');
-    const [fullName, setFullName] = useState('');
+    const [customerName, setCustomerName] = useState('');
     const [note, setNote] = useState('');
-    const [responsiblePerson, setResponsiblePerson] = useState('');
 
     // Inicjalizacja danych z edytowanej wizyty
     useEffect(() => {
         if (editingAppointment) {
             setTitle(editingAppointment.title);
-            setFullName(editingAppointment.customerId || '');
+            setCustomerName(editingAppointment.customerId || '');
             setNote(editingAppointment.notes || '');
-            setEventType(editingAppointment.serviceType as EventType);
         }
-    }, [selectedDate, editingAppointment]);
-
-    const handleEventTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setEventType(e.target.value as EventType);
-    };
+    }, [editingAppointment]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -49,43 +38,22 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
         const endTime = new Date(startTime);
         endTime.setHours(endTime.getHours() + 1);
 
-        // Tworzymy dane wizyty z domyślnymi wartościami dla wymaganych pól
-        const commonFields = {
+        // Tworzymy dane wizyty z domyślnymi wartościami
+        const appointmentData = {
             title,
+            customerId: customerName,
             start: editingAppointment ? editingAppointment.start : startTime,
             end: editingAppointment ? editingAppointment.end : endTime,
             notes: note,
-            serviceType: eventType,
+            serviceType: 'reservation', // Domyślny typ
             status: AppointmentStatus.PENDING_APPROVAL // Domyślny status
         };
 
-        if (eventType === 'reservation') {
-            onSave({
-                ...commonFields,
-                customerId: fullName, // Tymczasowo używamy fullName jako customerId
-            });
-        } else {
-            onSave({
-                ...commonFields,
-                customerId: responsiblePerson, // Tymczasowo używamy responsiblePerson jako customerId
-            });
-        }
+        onSave(appointmentData);
     };
 
     return (
         <FormContainer onSubmit={handleSubmit}>
-            <FormGroup>
-                <Label htmlFor="eventType">Typ wydarzenia</Label>
-                <Select
-                    id="eventType"
-                    value={eventType}
-                    onChange={handleEventTypeChange}
-                >
-                    <option value="reservation">Rezerwacja</option>
-                    <option value="reminder">Przypomnienie</option>
-                </Select>
-            </FormGroup>
-
             <FormGroup>
                 <Label htmlFor="title">Nazwa wydarzenia</Label>
                 <Input
@@ -93,58 +61,33 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Np. Mycie detailingowe"
                     required
                 />
             </FormGroup>
 
-            {eventType === 'reservation' ? (
-                <>
-                    <FormGroup>
-                        <Label htmlFor="fullName">Imię i nazwisko</Label>
-                        <Input
-                            id="fullName"
-                            type="text"
-                            value={fullName}
-                            onChange={(e) => setFullName(e.target.value)}
-                            required
-                        />
-                    </FormGroup>
+            <FormGroup>
+                <Label htmlFor="customerName">Imię i nazwisko klienta</Label>
+                <Input
+                    id="customerName"
+                    type="text"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder="Np. Jan Kowalski"
+                    required
+                />
+            </FormGroup>
 
-                    <FormGroup>
-                        <Label htmlFor="note">Notatka</Label>
-                        <Textarea
-                            id="note"
-                            value={note}
-                            onChange={(e) => setNote(e.target.value)}
-                            rows={3}
-                        />
-                    </FormGroup>
-                </>
-            ) : (
-                <>
-                    <FormGroup>
-                        <Label htmlFor="note">Notatka</Label>
-                        <Textarea
-                            id="note"
-                            value={note}
-                            onChange={(e) => setNote(e.target.value)}
-                            rows={3}
-                            required
-                        />
-                    </FormGroup>
-
-                    <FormGroup>
-                        <Label htmlFor="responsiblePerson">Osoba odpowiedzialna</Label>
-                        <Input
-                            id="responsiblePerson"
-                            type="text"
-                            value={responsiblePerson}
-                            onChange={(e) => setResponsiblePerson(e.target.value)}
-                            required
-                        />
-                    </FormGroup>
-                </>
-            )}
+            <FormGroup>
+                <Label htmlFor="note">Notatka</Label>
+                <Textarea
+                    id="note"
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder="Dodatkowe informacje..."
+                    rows={3}
+                />
+            </FormGroup>
 
             <ButtonGroup>
                 <Button type="button" onClick={onCancel} secondary>
@@ -181,20 +124,6 @@ const Input = styled.input`
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 14px;
-
-    &:focus {
-        outline: none;
-        border-color: #3498db;
-        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
-    }
-`;
-
-const Select = styled.select`
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
-    background-color: white;
 
     &:focus {
         outline: none;
