@@ -11,55 +11,69 @@ import {
     ErrorText
 } from '../styles/styles';
 
+// Import komponentu pola wyszukiwania
+import SearchField from './SearchField';
+
 interface ClientInfoSectionProps {
     formData: Partial<CarReceptionProtocol>;
     errors: FormErrors;
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
+    onSearchByField?: (field: 'ownerName' | 'companyName' | 'taxId' | 'email' | 'phone') => void;
 }
 
 const ClientInfoSection: React.FC<ClientInfoSectionProps> = ({
                                                                  formData,
                                                                  errors,
-                                                                 onChange
+                                                                 onChange,
+                                                                 onSearchByField
                                                              }) => {
+    const handleSearchClick = (field: 'ownerName' | 'companyName' | 'taxId' | 'email' | 'phone') => {
+        if (onSearchByField) {
+            onSearchByField(field);
+        }
+    };
+
     return (
         <FormSection>
             <SectionTitle>Dane właściciela</SectionTitle>
             <FormRow>
                 <FormGroup>
                     <Label htmlFor="ownerName">Imię i nazwisko*</Label>
-                    <Input
+                    <SearchField
                         id="ownerName"
                         name="ownerName"
                         value={formData.ownerName || ''}
                         onChange={onChange}
                         placeholder="np. Jan Kowalski"
                         required
+                        onSearchClick={() => handleSearchClick('ownerName')}
+                        error={errors.ownerName}
                     />
-                    {errors.ownerName && <ErrorText>{errors.ownerName}</ErrorText>}
                 </FormGroup>
             </FormRow>
 
             <FormRow>
                 <FormGroup>
                     <Label htmlFor="companyName">Nazwa firmy</Label>
-                    <Input
+                    <SearchField
                         id="companyName"
                         name="companyName"
                         value={formData.companyName || ''}
                         onChange={onChange}
                         placeholder="np. AutoFirma Sp. z o.o."
+                        onSearchClick={() => handleSearchClick('companyName')}
                     />
                 </FormGroup>
 
                 <FormGroup>
                     <Label htmlFor="taxId">NIP</Label>
-                    <Input
+                    <SearchField
                         id="taxId"
                         name="taxId"
                         value={formData.taxId || ''}
                         onChange={onChange}
                         placeholder="np. 1234567890"
+                        onSearchClick={() => handleSearchClick('taxId')}
                     />
                 </FormGroup>
             </FormRow>
@@ -67,29 +81,30 @@ const ClientInfoSection: React.FC<ClientInfoSectionProps> = ({
             <FormRow>
                 <FormGroup>
                     <Label htmlFor="email">Email*</Label>
-                    <Input
+                    <SearchField
                         id="email"
                         name="email"
-                        type="email"
                         value={formData.email || ''}
                         onChange={onChange}
                         placeholder="np. jan.kowalski@example.com"
                         required
+                        onSearchClick={() => handleSearchClick('email')}
+                        error={errors.email}
                     />
-                    {errors.email && <ErrorText>{errors.email}</ErrorText>}
                 </FormGroup>
 
                 <FormGroup>
                     <Label htmlFor="phone">Telefon*</Label>
-                    <Input
+                    <SearchField
                         id="phone"
                         name="phone"
                         value={formData.phone || ''}
                         onChange={onChange}
                         placeholder="np. +48 123 456 789"
                         required
+                        onSearchClick={() => handleSearchClick('phone')}
+                        error={errors.phone}
                     />
-                    {errors.phone && <ErrorText>{errors.phone}</ErrorText>}
                 </FormGroup>
             </FormRow>
         </FormSection>

@@ -80,7 +80,7 @@ export const mockClients: ClientExpanded[] = [
         totalRevenue: 4200,
         contactAttempts: 7,
         lastVisitDate: '2025-02-28',
-        vehicles: ['veh7']
+        vehicles: ['veh7', 'veh1']
     }
 ];
 
@@ -115,7 +115,7 @@ export const mockVehicles: VehicleExpanded[] = [
             }
         ],
         totalSpent: 2000,
-        ownerIds: ['client1']
+        ownerIds: ['client1', 'client5']
     },
     {
         id: 'veh2',

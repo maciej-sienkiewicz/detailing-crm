@@ -15,19 +15,30 @@ import {
     ErrorText
 } from '../styles/styles';
 
+// Import komponentu pola wyszukiwania
+import SearchField from './SearchField';
+
 interface VehicleInfoSectionProps {
     formData: Partial<CarReceptionProtocol>;
     errors: FormErrors;
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
     onStatusChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+    onSearchByField?: (field: 'licensePlate') => void;
 }
 
 const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                                                                    formData,
                                                                    errors,
                                                                    onChange,
-                                                                   onStatusChange
+                                                                   onStatusChange,
+                                                                   onSearchByField
                                                                }) => {
+    const handleSearchClick = (field: 'licensePlate') => {
+        if (onSearchByField) {
+            onSearchByField(field);
+        }
+    };
+
     return (
         <>
             <FormSection>
@@ -84,15 +95,16 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                 <FormRow>
                     <FormGroup>
                         <Label htmlFor="licensePlate">Tablica rejestracyjna*</Label>
-                        <Input
+                        <SearchField
                             id="licensePlate"
                             name="licensePlate"
                             value={formData.licensePlate || ''}
                             onChange={onChange}
                             placeholder="np. WA12345"
                             required
+                            onSearchClick={() => handleSearchClick('licensePlate')}
+                            error={errors.licensePlate}
                         />
-                        {errors.licensePlate && <ErrorText>{errors.licensePlate}</ErrorText>}
                     </FormGroup>
 
                     <FormGroup>

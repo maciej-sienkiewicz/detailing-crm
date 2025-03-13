@@ -3,7 +3,9 @@ import {
     CarReceptionProtocol,
     ProtocolStatus,
     DiscountType,
-    SelectedService
+    SelectedService,
+    ClientExpanded,
+    VehicleExpanded
 } from '../../../../types';
 import { addCarReceptionProtocol, updateCarReceptionProtocol } from '../../../../api/mocks/carReceptionMocks';
 
@@ -14,10 +16,15 @@ import ClientInfoSection from './components/ClientInfoSection';
 import NotesSection from './components/NotesSection';
 import ServiceSection from './components/ServiceSection';
 import FormActions from './components/FormActions';
+import ClientSelectionModal from '../../../Protocols/components/ClientSelectionModal';
+import VehicleSelectionModal from '../../../Protocols/components/VehicleSelectionModal';
 
 // Import hooków
 import { useFormValidation } from './hooks/useFormValidation';
 import { useServiceCalculations } from './hooks/useServiceCalculations';
+
+// Import serwisów
+import { FormSearchService, SearchCriteria } from '../services/FormSearchService';
 
 // Import styli
 import { FormContainer, Form, ErrorMessage } from './styles/styles';
@@ -66,12 +73,20 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [searchLoading, setSearchLoading] = useState(false);
 
     // Stan dla wyszukiwania usług
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<Array<{ id: string; name: string; price: number }>>([]);
     const [showResults, setShowResults] = useState(false);
     const [selectedServiceToAdd, setSelectedServiceToAdd] = useState<{ id: string; name: string; price: number } | null>(null);
+
+    // Stan dla modali wyszukiwania
+    const [showClientModal, setShowClientModal] = useState(false);
+    const [showVehicleModal, setShowVehicleModal] = useState(false);
+    const [foundClients, setFoundClients] = useState<ClientExpanded[]>([]);
+    const [foundVehicles, setFoundVehicles] = useState<VehicleExpanded[]>([]);
+    const [searchError, setSearchError] = useState<string | null>(null);
 
     // Użycie custom hooków
     const { errors, validateForm, clearFieldError } = useFormValidation(formData);
@@ -177,6 +192,125 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
         });
     };
 
+    // Obsługa wyszukiwania po polach formularza
+    const handleSearchByField = async (field: 'licensePlate' | 'ownerName' | 'companyName' | 'taxId' | 'email' | 'phone') => {
+        const fieldValue = formData[field] as string;
+
+        if (!fieldValue || fieldValue.trim() === '') {
+            setSearchError('Pole wyszukiwania jest puste');
+            return;
+        }
+
+        setSearchLoading(true);
+        setSearchError(null);
+
+        try {
+            const criteria: SearchCriteria = { field, value: fieldValue };
+            const results = await FormSearchService.searchByField(criteria);
+
+            setFoundClients(results.clients);
+            setFoundVehicles(results.vehicles);
+
+            // Decyzja o pokazaniu odpowiedniego modala
+            if (field === 'licensePlate') {
+                if (results.vehicles.length === 0) {
+                    setSearchError('Nie znaleziono pojazdów o podanym numerze rejestracyjnym');
+                } else if (results.vehicles.length === 1) {
+                    // Jeśli znaleziono dokładnie jeden pojazd, wypełnij dane
+                    fillVehicleData(results.vehicles[0]);
+
+                    // Jeśli pojazd ma więcej niż jednego właściciela, pokaż modal wyboru klienta
+                    if (results.clients.length > 1) {
+                        setShowClientModal(true);
+                    } else if (results.clients.length === 1) {
+                        // Jeśli jest tylko jeden właściciel, wypełnij jego dane
+                        fillClientData(results.clients[0]);
+                    }
+                } else {
+                    // Jeśli znaleziono więcej pojazdów, pokaż modal wyboru pojazdu
+                    setShowVehicleModal(true);
+                }
+            } else {
+                // Dla innych pól (związanych z klientem)
+                if (results.clients.length === 0) {
+                    setSearchError('Nie znaleziono klientów o podanych danych');
+                } else if (results.clients.length === 1) {
+                    // Jeśli znaleziono dokładnie jednego klienta, wypełnij dane
+                    fillClientData(results.clients[0]);
+
+                    // Jeśli klient ma więcej niż jeden pojazd, pokaż modal wyboru pojazdu
+                    if (results.vehicles.length > 1) {
+                        setShowVehicleModal(true);
+                    } else if (results.vehicles.length === 1) {
+                        // Jeśli jest tylko jeden pojazd, wypełnij jego dane
+                        fillVehicleData(results.vehicles[0]);
+                    }
+                } else {
+                    // Jeśli znaleziono więcej klientów, pokaż modal wyboru klienta
+                    setShowClientModal(true);
+                }
+            }
+        } catch (err) {
+            console.error('Error searching:', err);
+            setSearchError('Wystąpił błąd podczas wyszukiwania');
+        } finally {
+            setSearchLoading(false);
+        }
+    };
+
+    // Wypełnienie danych pojazdu w formularzu
+    const fillVehicleData = (vehicle: VehicleExpanded) => {
+        const vehicleData = FormSearchService.mapVehicleToFormData(vehicle);
+        setFormData(prev => ({
+            ...prev,
+            ...vehicleData
+        }));
+    };
+
+    // Wypełnienie danych klienta w formularzu
+    const fillClientData = (client: ClientExpanded) => {
+        const clientData = FormSearchService.mapClientToFormData(client);
+        setFormData(prev => ({
+            ...prev,
+            ...clientData
+        }));
+    };
+
+    // Obsługa wyboru klienta z modalu
+    const handleClientSelect = (client: ClientExpanded) => {
+        fillClientData(client);
+        setShowClientModal(false);
+
+        // Sprawdź czy klient ma pojazdy i czy już wcześniej nie wypełniliśmy danych pojazdu
+        if (foundVehicles.length > 0 && !formData.licensePlate) {
+            // Pobierz pojazdy dla wybranego klienta
+            const clientVehicles = foundVehicles.filter(vehicle =>
+                vehicle.ownerIds.includes(client.id)
+            );
+
+            if (clientVehicles.length === 1) {
+                fillVehicleData(clientVehicles[0]);
+            } else if (clientVehicles.length > 1) {
+                setFoundVehicles(clientVehicles);
+                setShowVehicleModal(true);
+            }
+        }
+    };
+
+    // Obsługa wyboru pojazdu z modalu
+    const handleVehicleSelect = (vehicle: VehicleExpanded) => {
+        fillVehicleData(vehicle);
+        setShowVehicleModal(false);
+
+        // Jeśli nie mamy jeszcze danych klienta, a pojazd ma jednego właściciela
+        if (!formData.ownerName && vehicle.ownerIds.length === 1) {
+            const owner = foundClients.find(client => client.id === vehicle.ownerIds[0]);
+            if (owner) {
+                fillClientData(owner);
+            }
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -229,6 +363,7 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
             />
 
             {error && <ErrorMessage>{error}</ErrorMessage>}
+            {searchError && <ErrorMessage>{searchError}</ErrorMessage>}
 
             <Form onSubmit={handleSubmit}>
                 {/* Sekcja terminów i statusu */}
@@ -237,6 +372,7 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
                     errors={errors}
                     onChange={handleChange}
                     onStatusChange={handleStatusChange}
+                    onSearchByField={handleSearchByField}
                 />
 
                 {/* Sekcja danych klienta */}
@@ -244,6 +380,7 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
                     formData={formData}
                     errors={errors}
                     onChange={handleChange}
+                    onSearchByField={handleSearchByField}
                 />
 
                 {/* Sekcja usług */}
@@ -276,6 +413,24 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
                     isEditing={!!protocol}
                 />
             </Form>
+
+            {/* Modalne okno wyboru klienta */}
+            {showClientModal && (
+                <ClientSelectionModal
+                    clients={foundClients}
+                    onSelect={handleClientSelect}
+                    onCancel={() => setShowClientModal(false)}
+                />
+            )}
+
+            {/* Modalne okno wyboru pojazdu */}
+            {showVehicleModal && (
+                <VehicleSelectionModal
+                    vehicles={foundVehicles}
+                    onSelect={handleVehicleSelect}
+                    onCancel={() => setShowVehicleModal(false)}
+                />
+            )}
         </FormContainer>
     );
 };
