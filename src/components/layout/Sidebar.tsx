@@ -45,6 +45,13 @@ const mainMenuItems: MainMenuItem[] = [
         hasSubmenu: true
     },
     {
+        id: 'orders',
+        label: 'Zlecenia',
+        icon: <FaClipboardCheck />,
+        path: '/orders',
+        hasSubmenu: true
+    },
+    {
         id: 'clients',
         label: 'Klienci',
         icon: <FaUsers />,

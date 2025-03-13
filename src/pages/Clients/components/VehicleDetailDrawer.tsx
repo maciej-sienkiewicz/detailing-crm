@@ -157,7 +157,7 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
 
                                         {service.protocolId && (
                                             <ProtocolLink
-                                                href={`/protocols/car-reception?id=${service.protocolId}`}
+                                                href={`/orders/car-reception?id=${service.protocolId}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                             >

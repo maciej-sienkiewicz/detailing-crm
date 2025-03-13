@@ -55,6 +55,11 @@ const AppRoutes: React.FC = () => {
                     <Route path="/protocols/window-tinting" element={<PlaceholderPage title="Protokół przyciemniania szyb" />} />
                     <Route path="/protocols" element={<Navigate to="/protocols/car-reception" replace />} />
 
+                    {/* Protokoły */}
+                    <Route path="/orders/scheduled" element={<CarReceptionPage />} />
+                    <Route path="/orders/car-reception/:id" element={<ProtocolDetailsPage />} />
+                    <Route path="/orders" element={<Navigate to="/protocols/car-reception" replace />} />
+
                     {/* Strona 404 - nieistniejąca ścieżka */}
                     <Route path="*" element={<div>Strona nie istnieje</div>} />
             </Routes>

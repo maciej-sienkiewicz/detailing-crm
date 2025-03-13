@@ -43,6 +43,11 @@ const secondaryMenuOptions: Record<string, SubMenuItem[]> = {
         { id: 'wheel-renovation', label: 'Protokół renowacji felg', icon: <FaWrench />, path: '/protocols/wheel-renovation' },
         { id: 'window-tinting', label: 'Protokół przyciemniania szyb', icon: <FaWindowClose />, path: '/protocols/window-tinting' }
     ],
+    orders: [
+        { id: 'scheduled', label: 'Zaplanowane', icon: <FaCarSide />, path: '/orders/scheduled' },
+        { id: 'to-be-picked-up', label: 'Oczekujące na odbiór', icon: <FaEye />, path: '/orders/to-be-picked-up' },
+        { id: 'archive', label: 'Archiwum', icon: <FaWrench />, path: '/orders/archive' },
+    ],
     clients: [
         { id: 'owners', label: 'Właściciele pojazdów', icon: <FaUsers />, path: '/clients/owners' },
         { id: 'vehicles', label: 'Pojazdy', icon: <FaCog />, path: '/clients/vehicles' }
@@ -103,7 +108,8 @@ const getMenuTitle = (menuId: string): string => {
         finances: 'Finanse',
         warehouse: 'Magazyn',
         pricing: 'Ceny i rabaty',
-        protocols: 'Protokoły'
+        protocols: 'Protokoły',
+        orders: 'Zamówienia'
     };
 
     return titles[menuId] || menuId;

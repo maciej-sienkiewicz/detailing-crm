@@ -67,7 +67,7 @@ const ProtocolDetailsPage: React.FC = () => {
 
     // Go back to protocols list
     const handleGoBack = () => {
-        navigate('/protocols/car-reception');
+        navigate('/orders/scheduled');
     };
 
     // Update protocol data after changes
@@ -121,7 +121,7 @@ const ProtocolDetailsPage: React.FC = () => {
                     </HeaderTitle>
                 </HeaderLeft>
                 <HeaderActions>
-                    <ActionButton title="Edytuj protokół" onClick={() => navigate(`/protocols/car-reception?edit=${protocol.id}`)}>
+                    <ActionButton title="Edytuj protokół" onClick={() => navigate(`/orders/car-reception?edit=${protocol.id}`)}>
                         <FaEdit /> Edytuj
                     </ActionButton>
                     <ActionButton title="Drukuj protokół" primary>

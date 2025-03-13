@@ -98,7 +98,7 @@ const VehicleHistoryModal: React.FC<VehicleHistoryModalProps> = ({
 
                                                 {item.protocolId && (
                                                     <TimelineProtocolLink
-                                                        href={`/protocols/car-reception?id=${item.protocolId}`}
+                                                        href={`/orders/car-reception?id=${item.protocolId}`}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                     >

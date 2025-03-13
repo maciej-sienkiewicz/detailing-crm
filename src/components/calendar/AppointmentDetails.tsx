@@ -44,7 +44,7 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
         if (appointment.isProtocol && appointment.id) {
             // Pobieramy ID protokołu z ID wydarzenia
             const protocolId = appointment.id.replace('protocol-', '');
-            navigate(`/protocols/car-reception?id=${protocolId}`);
+            navigate(`/orders/car-reception?id=${protocolId}`);
         }
     };
 

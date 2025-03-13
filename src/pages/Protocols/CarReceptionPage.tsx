@@ -63,7 +63,7 @@ const CarReceptionPage: React.FC = () => {
 
     // Obsługa przejścia do szczegółów protokołu
     const handleViewProtocol = (protocol: CarReceptionProtocol) => {
-        navigate(`/protocols/car-reception/${protocol.id}`);
+        navigate(`/orders/car-reception/${protocol.id}`);
     };
 
     // Obsługa edytowania protokołu

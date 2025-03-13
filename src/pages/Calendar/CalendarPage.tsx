@@ -80,7 +80,7 @@ const CalendarPage: React.FC = () => {
             setShowAppointmentDetailsModal(false);
 
             // Przekierowujemy do strony tworzenia protokołu z przygotowanymi danymi
-            navigate('/protocols/car-reception?createFromAppointment=true', {
+            navigate('/orders/car-reception?createFromAppointment=true', {
                 state: {
                     protocolData,
                     appointmentId: selectedAppointment.id
