@@ -124,8 +124,8 @@ const ProtocolDetailsPage: React.FC = () => {
                     <ActionButton title="Edytuj protokół" onClick={() => navigate(`/protocols/car-reception?edit=${protocol.id}`)}>
                         <FaEdit /> Edytuj
                     </ActionButton>
-                    <ActionButton title="Generuj PDF" primary>
-                        <FaFilePdf /> Generuj PDF
+                    <ActionButton title="Drukuj protokół" primary>
+                        <FaFilePdf /> Drukuj protokół
                     </ActionButton>
                 </HeaderActions>
             </PageHeader>

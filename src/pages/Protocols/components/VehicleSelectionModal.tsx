@@ -60,9 +60,6 @@ const VehicleSelectionModal: React.FC<VehicleSelectionModalProps> = ({
                                                 </VehicleDetail>
                                             )}
                                         </VehicleDetails>
-                                        <SelectButton>
-                                            <FaCheck /> Wybierz
-                                        </SelectButton>
                                     </VehicleItem>
                                 ))}
                             </VehiclesList>
@@ -204,27 +201,6 @@ const VehicleDetail = styled.div`
     display: flex;
     align-items: center;
     gap: 6px;
-`;
-
-const SelectButton = styled.div`
-    position: absolute;
-    top: 12px;
-    right: 80px;
-    background-color: #2ecc71;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 5px 10px;
-    font-size: 13px;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    opacity: 0;
-    transition: opacity 0.2s;
-
-    ${VehicleItem}:hover & {
-        opacity: 1;
-    }
 `;
 
 const ButtonGroup = styled.div`
