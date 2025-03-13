@@ -47,15 +47,7 @@ const AppRoutes: React.FC = () => {
                     <Route path="/settings/services" element={<ServicesPage />} />
                     <Route path="/settings" element={<Navigate to="/settings/general" replace />} />
 
-                    {/* Protokoły */}
-                    <Route path="/protocols/car-reception" element={<CarReceptionPage />} />
-                    <Route path="/protocols/car-reception/:id" element={<ProtocolDetailsPage />} />
-                    <Route path="/protocols/car-inspection" element={<PlaceholderPage title="Protokół oględzin pojazdu" />} />
-                    <Route path="/protocols/wheel-renovation" element={<PlaceholderPage title="Protokół renowacji felg" />} />
-                    <Route path="/protocols/window-tinting" element={<PlaceholderPage title="Protokół przyciemniania szyb" />} />
-                    <Route path="/protocols" element={<Navigate to="/protocols/car-reception" replace />} />
-
-                    {/* Protokoły */}
+                    {/* Wizyty */}
                     <Route path="/orders/scheduled" element={<CarReceptionPage />} />
                     <Route path="/orders/car-reception/:id" element={<ProtocolDetailsPage />} />
                     <Route path="/orders" element={<Navigate to="/protocols/car-reception" replace />} />
