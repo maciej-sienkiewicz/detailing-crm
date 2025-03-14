@@ -6,7 +6,8 @@ import {
     FaEdit,
     FaFilePdf,
     FaCarSide,
-    FaCheckSquare // Nowa ikona dla przycisku Zakończ zlecenie
+    FaCheckSquare,
+    FaKey // Ikona dla przycisku Wydaj samochód
 } from 'react-icons/fa';
 import { CarReceptionProtocol, ProtocolStatus } from '../../types';
 import { fetchCarReceptionProtocol, updateProtocolStatus } from '../../api/mocks/carReceptionMocks';
@@ -18,8 +19,11 @@ import ProtocolInvoices from './components/ProtocolDetails/ProtocolInvoices';
 import ProtocolClientInfo from './components/ProtocolDetails/ProtocolClientInfo';
 import ProtocolVehicleStatus from './components/ProtocolDetails/ProtocolVehicleStatus';
 import ProtocolStatusTimeline from './components/ProtocolDetails/ProtocolStatusTimeline';
-import QualityVerificationModal from './components/QualityVerificationModal'; // Importujemy komponent modalu weryfikacji
-import CustomerNotificationModal from './components/CustomerNotificationModal'; // Importujemy komponent modalu powiadomień
+import QualityVerificationModal from './components/QualityVerificationModal';
+import CustomerNotificationModal from './components/CustomerNotificationModal';
+import ClientCommentsModal from './components/ClientCommentsModal';
+import ReturnItemsModal from './components/ReturnItemsModal';
+import PaymentModal from './components/PaymentModal';
 
 // Define tab types
 type TabType = 'summary' | 'comments' | 'invoices' | 'client' | 'vehicle';
@@ -36,6 +40,11 @@ const ProtocolDetailsPage: React.FC = () => {
     // Stany dla modali
     const [showVerificationModal, setShowVerificationModal] = useState(false);
     const [showNotificationModal, setShowNotificationModal] = useState(false);
+
+    // Stany dla procesu wydania samochodu
+    const [showClientCommentsModal, setShowClientCommentsModal] = useState(false);
+    const [showReturnItemsModal, setShowReturnItemsModal] = useState(false);
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
 
     // Load protocol data
     useEffect(() => {
@@ -134,6 +143,74 @@ const ProtocolDetailsPage: React.FC = () => {
     // Sprawdzenie czy przycisk "Zakończ zlecenie" powinien być dostępny
     const canFinishOrder = protocol?.status === ProtocolStatus.IN_PROGRESS;
 
+    // Sprawdzenie czy przycisk "Wydaj samochód" powinien być dostępny
+    const canReleaseVehicle = protocol?.status === ProtocolStatus.READY_FOR_PICKUP;
+
+    // Obsługa procesu wydania samochodu
+    const handleReleaseVehicle = () => {
+        // Rozpoczynamy proces wydania samochodu od sprawdzenia komentarzy dla klienta
+        setShowClientCommentsModal(true);
+    };
+
+    // Funkcja wywoływana po zamknięciu modalu komentarzy dla klienta
+    const handleClientCommentsModalClose = () => {
+        setShowClientCommentsModal(false);
+
+        // Sprawdzamy, czy należy zwrócić przedmioty klientowi
+        if (protocol?.keysProvided || protocol?.documentsProvided) {
+            setShowReturnItemsModal(true);
+        } else {
+            // Jeśli nie, przechodzimy od razu do modalu płatności
+            setShowPaymentModal(true);
+        }
+    };
+
+    // Funkcja wywoływana po zamknięciu modalu zwrotu przedmiotów
+    const handleReturnItemsModalClose = () => {
+        setShowReturnItemsModal(false);
+        // Przechodzimy do modalu płatności
+        setShowPaymentModal(true);
+    };
+
+    // Funkcja wywoływana po potwierdzeniu płatności i wydaniu pojazdu
+    const handlePaymentConfirm = async (paymentData: {
+        paymentMethod: 'cash' | 'card';
+        documentType: 'invoice' | 'receipt' | 'other';
+    }) => {
+        // Zamykamy modal płatności
+        setShowPaymentModal(false);
+
+        // Zmieniamy status na "Wydano"
+        await handleStatusChange(ProtocolStatus.COMPLETED);
+
+        // W rzeczywistej aplikacji tutaj moglibyśmy:
+        // 1. Rejestrować płatność w systemie
+        // 2. Generować wybrany dokument (faktura/paragon)
+        // 3. Dodawać informację o wydaniu pojazdu do historii
+
+        console.log('Zarejestrowano płatność:', paymentData.paymentMethod);
+        console.log('Wystawiono dokument:', paymentData.documentType);
+    };
+
+    // Render the component based on active tab
+
+    const renderTabContent = () => {
+        switch (activeTab) {
+            case 'summary':
+                return <ProtocolSummary protocol={protocol!} />;
+            case 'comments':
+                return <ProtocolComments protocol={protocol!} onProtocolUpdate={handleProtocolUpdate} />;
+            case 'invoices':
+                return <ProtocolInvoices protocol={protocol!} onProtocolUpdate={handleProtocolUpdate} />;
+            case 'client':
+                return <ProtocolClientInfo protocol={protocol!} />;
+            case 'vehicle':
+                return <ProtocolVehicleStatus protocol={protocol!} onProtocolUpdate={handleProtocolUpdate} />;
+            default:
+                return <ProtocolSummary protocol={protocol!} />;
+        }
+    };
+
     if (loading) {
         return <LoadingContainer>Ładowanie protokołu...</LoadingContainer>;
     }
@@ -148,24 +225,6 @@ const ProtocolDetailsPage: React.FC = () => {
             </ErrorContainer>
         );
     }
-
-    // Render the component based on active tab
-    const renderTabContent = () => {
-        switch (activeTab) {
-            case 'summary':
-                return <ProtocolSummary protocol={protocol} />;
-            case 'comments':
-                return <ProtocolComments protocol={protocol} onProtocolUpdate={handleProtocolUpdate} />;
-            case 'invoices':
-                return <ProtocolInvoices protocol={protocol} onProtocolUpdate={handleProtocolUpdate} />;
-            case 'client':
-                return <ProtocolClientInfo protocol={protocol} />;
-            case 'vehicle':
-                return <ProtocolVehicleStatus protocol={protocol} onProtocolUpdate={handleProtocolUpdate} />;
-            default:
-                return <ProtocolSummary protocol={protocol} />;
-        }
-    };
 
     return (
         <PageContainer>
@@ -185,9 +244,17 @@ const ProtocolDetailsPage: React.FC = () => {
                             <FaCheckSquare /> Zakończ zlecenie
                         </ActionButton>
                     )}
+
+                    {canReleaseVehicle && (
+                        <ActionButton title="Wydaj samochód" primary="true" release="true" onClick={handleReleaseVehicle}>
+                            <FaKey /> Wydaj samochód
+                        </ActionButton>
+                    )}
+
                     <ActionButton title="Edytuj protokół" onClick={() => navigate(`/orders/car-reception?edit=${protocol.id}`)}>
                         <FaEdit /> Edytuj
                     </ActionButton>
+
                     <ActionButton title="Drukuj protokół" primary="true">
                         <FaFilePdf /> Drukuj protokół
                     </ActionButton>
@@ -221,6 +288,27 @@ const ProtocolDetailsPage: React.FC = () => {
                 onConfirm={handleNotificationSelection}
                 customerPhone={protocol?.phone}
                 customerEmail={protocol?.email}
+            />
+
+            {/* Modele procesu wydania samochodu */}
+            <ClientCommentsModal
+                isOpen={showClientCommentsModal}
+                onClose={handleClientCommentsModalClose}
+                comments={protocol?.comments || []}
+            />
+
+            <ReturnItemsModal
+                isOpen={showReturnItemsModal}
+                onClose={handleReturnItemsModalClose}
+                keysProvided={protocol?.keysProvided || false}
+                documentsProvided={protocol?.documentsProvided || false}
+            />
+
+            <PaymentModal
+                isOpen={showPaymentModal}
+                onClose={() => setShowPaymentModal(false)}
+                onConfirm={handlePaymentConfirm}
+                totalAmount={protocol?.selectedServices.reduce((sum, s) => sum + s.finalPrice, 0) || 0}
             />
         </PageContainer>
     );
@@ -295,19 +383,20 @@ const HeaderSubtitle = styled.div`
     margin-top: 4px;
 `;
 
-
-const ActionButton = styled.button<{ primary?: string; special?: string }>`
+const ActionButton = styled.button<{ primary?: string; special?: string; release?: string }>`
     display: flex;
     align-items: center;
     gap: 8px;
     padding: 8px 16px;
     background-color: ${props => {
         if (props.special) return '#2ecc71';
+        if (props.release) return '#f39c12';
         return props.primary ? '#3498db' : '#f9f9f9';
     }};
-    color: ${props => props.primary || props.special ? 'white' : '#34495e'};
+    color: ${props => props.primary || props.special || props.release ? 'white' : '#34495e'};
     border: 1px solid ${props => {
         if (props.special) return '#2ecc71';
+        if (props.release) return '#f39c12';
         return props.primary ? '#3498db' : '#eee';
     }};
     border-radius: 4px;
@@ -317,10 +406,12 @@ const ActionButton = styled.button<{ primary?: string; special?: string }>`
     &:hover {
         background-color: ${props => {
             if (props.special) return '#27ae60';
+            if (props.release) return '#e67e22';
             return props.primary ? '#2980b9' : '#f0f0f0';
         }};
         border-color: ${props => {
             if (props.special) return '#27ae60';
+            if (props.release) return '#e67e22';
             return props.primary ? '#2980b9' : '#ddd';
         }};
     }
