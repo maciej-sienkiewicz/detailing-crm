@@ -22,7 +22,6 @@ import ProtocolStatusTimeline from './components/ProtocolDetails/ProtocolStatusT
 import QualityVerificationModal from './components/QualityVerificationModal';
 import CustomerNotificationModal from './components/CustomerNotificationModal';
 import ClientCommentsModal from './components/ClientCommentsModal';
-import ReturnItemsModal from './components/ReturnItemsModal';
 import PaymentModal from './components/PaymentModal';
 
 // Define tab types
@@ -43,7 +42,6 @@ const ProtocolDetailsPage: React.FC = () => {
 
     // Stany dla procesu wydania samochodu
     const [showClientCommentsModal, setShowClientCommentsModal] = useState(false);
-    const [showReturnItemsModal, setShowReturnItemsModal] = useState(false);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
 
     // Load protocol data
@@ -155,20 +153,6 @@ const ProtocolDetailsPage: React.FC = () => {
     // Funkcja wywoływana po zamknięciu modalu komentarzy dla klienta
     const handleClientCommentsModalClose = () => {
         setShowClientCommentsModal(false);
-
-        // Sprawdzamy, czy należy zwrócić przedmioty klientowi
-        if (protocol?.keysProvided || protocol?.documentsProvided) {
-            setShowReturnItemsModal(true);
-        } else {
-            // Jeśli nie, przechodzimy od razu do modalu płatności
-            setShowPaymentModal(true);
-        }
-    };
-
-    // Funkcja wywoływana po zamknięciu modalu zwrotu przedmiotów
-    const handleReturnItemsModalClose = () => {
-        setShowReturnItemsModal(false);
-        // Przechodzimy do modalu płatności
         setShowPaymentModal(true);
     };
 
@@ -295,13 +279,6 @@ const ProtocolDetailsPage: React.FC = () => {
                 isOpen={showClientCommentsModal}
                 onClose={handleClientCommentsModalClose}
                 comments={protocol?.comments || []}
-            />
-
-            <ReturnItemsModal
-                isOpen={showReturnItemsModal}
-                onClose={handleReturnItemsModalClose}
-                keysProvided={protocol?.keysProvided || false}
-                documentsProvided={protocol?.documentsProvided || false}
             />
 
             <PaymentModal
