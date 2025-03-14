@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { FaArrowLeft, FaEdit, FaFilePdf, FaCarSide } from 'react-icons/fa';
+import {
+    FaArrowLeft,
+    FaEdit,
+    FaFilePdf,
+    FaCarSide,
+    FaCheckSquare // Nowa ikona dla przycisku Zakończ zlecenie
+} from 'react-icons/fa';
 import { CarReceptionProtocol, ProtocolStatus } from '../../types';
 import { fetchCarReceptionProtocol, updateProtocolStatus } from '../../api/mocks/carReceptionMocks';
 import ProtocolHeader from './components/ProtocolDetails/ProtocolHeader';
@@ -12,6 +18,7 @@ import ProtocolInvoices from './components/ProtocolDetails/ProtocolInvoices';
 import ProtocolClientInfo from './components/ProtocolDetails/ProtocolClientInfo';
 import ProtocolVehicleStatus from './components/ProtocolDetails/ProtocolVehicleStatus';
 import ProtocolStatusTimeline from './components/ProtocolDetails/ProtocolStatusTimeline';
+import QualityVerificationModal from './components/QualityVerificationModal'; // Importujemy nowy komponent modalu
 
 // Define tab types
 type TabType = 'summary' | 'comments' | 'invoices' | 'client' | 'vehicle';
@@ -24,6 +31,9 @@ const ProtocolDetailsPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<TabType>('summary');
+
+    // Nowy stan dla modalu weryfikacji jakości
+    const [showVerificationModal, setShowVerificationModal] = useState(false);
 
     // Load protocol data
     useEffect(() => {
@@ -75,6 +85,23 @@ const ProtocolDetailsPage: React.FC = () => {
         setProtocol(updatedProtocol);
     };
 
+    // Nowa funkcja do obsługi przycisku "Zakończ zlecenie"
+    const handleFinishOrder = () => {
+        // Pokazujemy modal weryfikacji jakości
+        setShowVerificationModal(true);
+    };
+
+    // Funkcja wywoływana po zatwierdzeniu w modalu weryfikacji
+    const handleQualityVerified = async () => {
+        // Zmieniamy status na "Oczekiwanie na odbiór"
+        await handleStatusChange(ProtocolStatus.READY_FOR_PICKUP);
+        // Zamykamy modal
+        setShowVerificationModal(false);
+    };
+
+    // Sprawdzenie czy przycisk "Zakończ zlecenie" powinien być dostępny
+    const canFinishOrder = protocol?.status === ProtocolStatus.IN_PROGRESS;
+
     if (loading) {
         return <LoadingContainer>Ładowanie protokołu...</LoadingContainer>;
     }
@@ -121,10 +148,15 @@ const ProtocolDetailsPage: React.FC = () => {
                     </HeaderTitle>
                 </HeaderLeft>
                 <HeaderActions>
+                    {canFinishOrder && (
+                        <ActionButton title="Zakończ zlecenie" primary="true" special="true" onClick={handleFinishOrder}>
+                            <FaCheckSquare /> Zakończ zlecenie
+                        </ActionButton>
+                    )}
                     <ActionButton title="Edytuj protokół" onClick={() => navigate(`/orders/car-reception?edit=${protocol.id}`)}>
                         <FaEdit /> Edytuj
                     </ActionButton>
-                    <ActionButton title="Drukuj protokół" primary>
+                    <ActionButton title="Drukuj protokół" primary="true">
                         <FaFilePdf /> Drukuj protokół
                     </ActionButton>
                 </HeaderActions>
@@ -142,6 +174,13 @@ const ProtocolDetailsPage: React.FC = () => {
                     </TabContent>
                 </ContentArea>
             </MainContent>
+
+            {/* Modal weryfikacji jakości */}
+            <QualityVerificationModal
+                isOpen={showVerificationModal}
+                onClose={() => setShowVerificationModal(false)}
+                onConfirm={handleQualityVerified}
+            />
         </PageContainer>
     );
 };
@@ -216,21 +255,33 @@ const HeaderSubtitle = styled.div`
 `;
 
 
-const ActionButton = styled.button<{ primary?: boolean }>`
+const ActionButton = styled.button<{ primary?: string; special?: string }>`
     display: flex;
     align-items: center;
     gap: 8px;
     padding: 8px 16px;
-    background-color: ${props => props.primary ? '#3498db' : '#f9f9f9'};
-    color: ${props => props.primary ? 'white' : '#34495e'};
-    border: 1px solid ${props => props.primary ? '#3498db' : '#eee'};
+    background-color: ${props => {
+        if (props.special) return '#2ecc71';
+        return props.primary ? '#3498db' : '#f9f9f9';
+    }};
+    color: ${props => props.primary || props.special ? 'white' : '#34495e'};
+    border: 1px solid ${props => {
+        if (props.special) return '#2ecc71';
+        return props.primary ? '#3498db' : '#eee';
+    }};
     border-radius: 4px;
     font-weight: 500;
     cursor: pointer;
 
     &:hover {
-        background-color: ${props => props.primary ? '#2980b9' : '#f0f0f0'};
-        border-color: ${props => props.primary ? '#2980b9' : '#ddd'};
+        background-color: ${props => {
+            if (props.special) return '#27ae60';
+            return props.primary ? '#2980b9' : '#f0f0f0';
+        }};
+        border-color: ${props => {
+            if (props.special) return '#27ae60';
+            return props.primary ? '#2980b9' : '#ddd';
+        }};
     }
 `;
 
