@@ -1,19 +1,17 @@
 // Dodajemy enum dla statusów protokołu
 export enum ProtocolStatus {
-    PENDING_APPROVAL = 'PENDING_APPROVAL',  // Do zatwierdzenia
-    CONFIRMED = 'CONFIRMED',                // Potwierdzona
-    IN_PROGRESS = 'IN_PROGRESS',            // W realizacji
-    READY_FOR_PICKUP = 'READY_FOR_PICKUP',  // Oczekiwanie na odbiór
-    COMPLETED = 'COMPLETED'                 // Wydano
+    SCHEDULED = 'SCHEDULED',                  // Zaplanowano
+    IN_PROGRESS = 'IN_PROGRESS',              // W realizacji
+    READY_FOR_PICKUP = 'READY_FOR_PICKUP',    // Oczekiwanie na odbiór
+    COMPLETED = 'COMPLETED'                   // Wydano
 }
 
 // Dodajemy enum dla statusów wizyt - używamy tych samych co dla protokołów
 export enum AppointmentStatus {
-    PENDING_APPROVAL = 'PENDING_APPROVAL',  // Do zatwierdzenia
-    CONFIRMED = 'CONFIRMED',                // Potwierdzona
-    IN_PROGRESS = 'IN_PROGRESS',            // W realizacji
-    READY_FOR_PICKUP = 'READY_FOR_PICKUP',  // Oczekiwanie na oddanie
-    COMPLETED = 'COMPLETED'                 // Wydano
+    SCHEDULED = 'SCHEDULED',                  // Zaplanowano
+    IN_PROGRESS = 'IN_PROGRESS',              // W realizacji
+    READY_FOR_PICKUP = 'READY_FOR_PICKUP',    // Oczekiwanie na odbiór
+    COMPLETED = 'COMPLETED'                   // Wydano
 }
 
 export enum DiscountType {
@@ -193,16 +191,14 @@ export interface MenuItem {
 
 // Obiekty pomocnicze dla statusów protokołów
 export const ProtocolStatusLabels: Record<ProtocolStatus, string> = {
-    [ProtocolStatus.PENDING_APPROVAL]: 'Do zatwierdzenia',
-    [ProtocolStatus.CONFIRMED]: 'Potwierdzona',
+    [ProtocolStatus.SCHEDULED]: 'Zaplanowano',
     [ProtocolStatus.IN_PROGRESS]: 'W realizacji',
     [ProtocolStatus.READY_FOR_PICKUP]: 'Oczekiwanie na odbiór',
     [ProtocolStatus.COMPLETED]: 'Wydano'
 };
 
 export const ProtocolStatusColors: Record<ProtocolStatus, string> = {
-    [ProtocolStatus.PENDING_APPROVAL]: '#f39c12', // Pomarańczowy
-    [ProtocolStatus.CONFIRMED]: '#3498db',        // Niebieski
+    [ProtocolStatus.SCHEDULED]: '#3498db',        // Niebieski
     [ProtocolStatus.IN_PROGRESS]: '#9b59b6',      // Fioletowy
     [ProtocolStatus.READY_FOR_PICKUP]: '#2ecc71', // Zielony
     [ProtocolStatus.COMPLETED]: '#7f8c8d'         // Szary
@@ -210,16 +206,14 @@ export const ProtocolStatusColors: Record<ProtocolStatus, string> = {
 
 // Obiekty pomocnicze dla statusów wizyt
 export const AppointmentStatusLabels: Record<AppointmentStatus, string> = {
-    [AppointmentStatus.PENDING_APPROVAL]: 'Do zatwierdzenia',
-    [AppointmentStatus.CONFIRMED]: 'Potwierdzona',
+    [AppointmentStatus.SCHEDULED]: 'Zaplanowano',
     [AppointmentStatus.IN_PROGRESS]: 'W realizacji',
-    [AppointmentStatus.READY_FOR_PICKUP]: 'Oczekiwanie na oddanie',
+    [AppointmentStatus.READY_FOR_PICKUP]: 'Oczekiwanie na odbiór',
     [AppointmentStatus.COMPLETED]: 'Wydano'
 };
 
 export const AppointmentStatusColors: Record<AppointmentStatus, string> = {
-    [AppointmentStatus.PENDING_APPROVAL]: '#f39c12', // Pomarańczowy
-    [AppointmentStatus.CONFIRMED]: '#3498db',        // Niebieski
+    [AppointmentStatus.SCHEDULED]: '#3498db',        // Niebieski
     [AppointmentStatus.IN_PROGRESS]: '#9b59b6',      // Fioletowy
     [AppointmentStatus.READY_FOR_PICKUP]: '#2ecc71', // Zielony
     [AppointmentStatus.COMPLETED]: '#7f8c8d'         // Szary

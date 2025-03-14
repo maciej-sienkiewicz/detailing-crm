@@ -25,9 +25,7 @@ const ProtocolHeader: React.FC<ProtocolHeaderProps> = ({ protocol, onStatusChang
     // Helper to get the next possible status based on current status
     const getNextStatus = (): ProtocolStatus | null => {
         switch (protocol.status) {
-            case ProtocolStatus.PENDING_APPROVAL:
-                return ProtocolStatus.CONFIRMED;
-            case ProtocolStatus.CONFIRMED:
+            case ProtocolStatus.SCHEDULED:
                 return ProtocolStatus.IN_PROGRESS;
             case ProtocolStatus.IN_PROGRESS:
                 return ProtocolStatus.READY_FOR_PICKUP;

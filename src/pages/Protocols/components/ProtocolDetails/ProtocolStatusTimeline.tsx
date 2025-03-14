@@ -3,8 +3,7 @@ import styled from 'styled-components';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import {
-    FaHourglassHalf,
-    FaCheckCircle,
+    FaCalendarCheck,
     FaTools,
     FaClock,
     FaCarSide
@@ -29,10 +28,8 @@ const ProtocolStatusTimeline: React.FC<ProtocolStatusTimelineProps> = ({ protoco
     // Function to get the appropriate icon for each status
     const getStatusIcon = (status: ProtocolStatus) => {
         switch (status) {
-            case ProtocolStatus.PENDING_APPROVAL:
-                return <FaHourglassHalf />;
-            case ProtocolStatus.CONFIRMED:
-                return <FaCheckCircle />;
+            case ProtocolStatus.SCHEDULED:
+                return <FaCalendarCheck />;
             case ProtocolStatus.IN_PROGRESS:
                 return <FaTools />;
             case ProtocolStatus.READY_FOR_PICKUP:
@@ -40,7 +37,7 @@ const ProtocolStatusTimeline: React.FC<ProtocolStatusTimelineProps> = ({ protoco
             case ProtocolStatus.COMPLETED:
                 return <FaCarSide />;
             default:
-                return <FaHourglassHalf />;
+                return <FaCalendarCheck />;
         }
     };
 
@@ -53,8 +50,7 @@ const ProtocolStatusTimeline: React.FC<ProtocolStatusTimelineProps> = ({ protoco
     // Create a virtual status history based on the current protocol status
     // In a real app, you would track the actual status history
     const statusOrder: ProtocolStatus[] = [
-        ProtocolStatus.PENDING_APPROVAL,
-        ProtocolStatus.CONFIRMED,
+        ProtocolStatus.SCHEDULED,
         ProtocolStatus.IN_PROGRESS,
         ProtocolStatus.READY_FOR_PICKUP,
         ProtocolStatus.COMPLETED
