@@ -18,7 +18,8 @@ import ProtocolInvoices from './components/ProtocolDetails/ProtocolInvoices';
 import ProtocolClientInfo from './components/ProtocolDetails/ProtocolClientInfo';
 import ProtocolVehicleStatus from './components/ProtocolDetails/ProtocolVehicleStatus';
 import ProtocolStatusTimeline from './components/ProtocolDetails/ProtocolStatusTimeline';
-import QualityVerificationModal from './components/QualityVerificationModal'; // Importujemy nowy komponent modalu
+import QualityVerificationModal from './components/QualityVerificationModal'; // Importujemy komponent modalu weryfikacji
+import CustomerNotificationModal from './components/CustomerNotificationModal'; // Importujemy komponent modalu powiadomień
 
 // Define tab types
 type TabType = 'summary' | 'comments' | 'invoices' | 'client' | 'vehicle';
@@ -32,8 +33,9 @@ const ProtocolDetailsPage: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<TabType>('summary');
 
-    // Nowy stan dla modalu weryfikacji jakości
+    // Stany dla modali
     const [showVerificationModal, setShowVerificationModal] = useState(false);
+    const [showNotificationModal, setShowNotificationModal] = useState(false);
 
     // Load protocol data
     useEffect(() => {
@@ -92,11 +94,41 @@ const ProtocolDetailsPage: React.FC = () => {
     };
 
     // Funkcja wywoływana po zatwierdzeniu w modalu weryfikacji
-    const handleQualityVerified = async () => {
+    const handleQualityVerified = () => {
+        // Zamykamy modal weryfikacji
+        setShowVerificationModal(false);
+        // Otwieramy modal powiadomień
+        setShowNotificationModal(true);
+    };
+
+    // Funkcja wywoływana po wyborze opcji powiadomienia klienta
+    const handleNotificationSelection = async (notificationOptions: {
+        sendSms: boolean;
+        sendEmail: boolean;
+    }) => {
+        // Zamykamy modal powiadomień
+        setShowNotificationModal(false);
+
         // Zmieniamy status na "Oczekiwanie na odbiór"
         await handleStatusChange(ProtocolStatus.READY_FOR_PICKUP);
-        // Zamykamy modal
-        setShowVerificationModal(false);
+
+        // Tutaj moglibyśmy zaimplementować faktyczne wysyłanie powiadomień
+        if (notificationOptions.sendSms) {
+            console.log('Wysyłanie SMS do klienta:', protocol?.phone);
+            // W rzeczywistej aplikacji: sendSmsNotification(protocol.phone);
+        }
+
+        if (notificationOptions.sendEmail) {
+            console.log('Wysyłanie e-mail do klienta:', protocol?.email);
+            // W rzeczywistej aplikacji: sendEmailNotification(protocol.email);
+        }
+
+        // Możemy dodać komentarz o wysłanym powiadomieniu
+        if (notificationOptions.sendSms || notificationOptions.sendEmail) {
+            // Dodanie komentarza systemowego o powiadomieniu
+            // W rzeczywistej implementacji dodalibyśmy to do protokołu
+            console.log('Dodanie informacji o powiadomieniu do historii protokołu');
+        }
     };
 
     // Sprawdzenie czy przycisk "Zakończ zlecenie" powinien być dostępny
@@ -180,6 +212,15 @@ const ProtocolDetailsPage: React.FC = () => {
                 isOpen={showVerificationModal}
                 onClose={() => setShowVerificationModal(false)}
                 onConfirm={handleQualityVerified}
+            />
+
+            {/* Modal powiadomienia klienta */}
+            <CustomerNotificationModal
+                isOpen={showNotificationModal}
+                onClose={() => setShowNotificationModal(false)}
+                onConfirm={handleNotificationSelection}
+                customerPhone={protocol?.phone}
+                customerEmail={protocol?.email}
             />
         </PageContainer>
     );
