@@ -3,7 +3,8 @@ import styled from 'styled-components';
 import ActivityHeader from './components/ActivityHeader';
 import ActivityFilters from './components/ActivityFilters';
 import ActivityList from './components/ActivityList';
-import DailySummary from './components/DailySummary';
+import ActivityStatistics from './components/ActivityStatistics';
+import ActivityDateRange from './components/ActivityDateRange';
 import { fetchActivityItems, fetchDailySummary } from '../../api/mocks/activityMocks';
 import { ActivityItem, ActivityFilter, DailySummaryData } from '../../types/activity';
 
@@ -11,9 +12,16 @@ const ActivityFeedPage: React.FC = () => {
     const [activities, setActivities] = useState<ActivityItem[]>([]);
     const [filteredActivities, setFilteredActivities] = useState<ActivityItem[]>([]);
     const [dailySummary, setDailySummary] = useState<DailySummaryData | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState({
+        activities: true,
+        summary: true
+    });
     const [error, setError] = useState<string | null>(null);
-    const [activeFilters, setActiveFilters] = useState<ActivityFilter[]>([]);
+    const [activeFilters, setActiveFilters] = useState<ActivityFilter[]>([
+        { type: 'category', value: 'all' },
+        { type: 'entity', value: 'all' },
+        { type: 'user', value: 'all' }
+    ]);
     const [dateRange, setDateRange] = useState<{
         startDate: string;
         endDate: string;
@@ -24,30 +32,47 @@ const ActivityFeedPage: React.FC = () => {
 
     // Pobieranie danych aktywności
     useEffect(() => {
-        const loadData = async () => {
+        const loadActivities = async () => {
             try {
-                setLoading(true);
+                setLoading(prev => ({ ...prev, activities: true }));
+                setError(null);
 
                 // Pobierz aktywności
                 const activitiesData = await fetchActivityItems(dateRange.startDate, dateRange.endDate);
                 setActivities(activitiesData);
+
+                // Początkowe filtrowanie
                 setFilteredActivities(activitiesData);
-
-                // Pobierz dzienne podsumowanie
-                const summaryData = await fetchDailySummary();
-                setDailySummary(summaryData);
-
-                setError(null);
             } catch (err) {
                 setError('Nie udało się załadować danych aktywności.');
                 console.error('Error loading activity data:', err);
             } finally {
-                setLoading(false);
+                setLoading(prev => ({ ...prev, activities: false }));
             }
         };
 
-        loadData();
+        loadActivities();
     }, [dateRange]);
+
+    // Pobieranie danych podsumowania dziennego
+    useEffect(() => {
+        const loadSummary = async () => {
+            try {
+                setLoading(prev => ({ ...prev, summary: true }));
+
+                // Pobierz dzienne podsumowanie
+                const summaryData = await fetchDailySummary();
+                setDailySummary(summaryData);
+            } catch (err) {
+                console.error('Error loading summary data:', err);
+                // Nie ustawiamy ogólnego błędu, aby nie przeszkadzać w wyświetlaniu aktywności
+            } finally {
+                setLoading(prev => ({ ...prev, summary: false }));
+            }
+        };
+
+        loadSummary();
+    }, [dateRange.endDate]); // Odświeżanie tylko przy zmianie daty końcowej
 
     // Filtrowanie aktywności
     useEffect(() => {
@@ -56,21 +81,38 @@ const ActivityFeedPage: React.FC = () => {
             return;
         }
 
-        const filtered = activities.filter(activity =>
-            activeFilters.some(filter => filter.type === 'all') || // "Wszystkie" filter
-            activeFilters.some(filter => {
-                if (filter.type === 'category') {
-                    return activity.category === filter.value;
-                }
-                if (filter.type === 'entity') {
-                    return activity.entityType === filter.value;
-                }
-                if (filter.type === 'user') {
-                    return activity.userId === filter.value;
-                }
-                return false;
-            })
+        // Sprawdzenie czy wszystkie typy filtrów mają ustawioną wartość 'all'
+        const allFilterTypes = ['category', 'entity', 'user'];
+        const hasOnlyAllFilters = allFilterTypes.every(type =>
+            activeFilters.some(filter => filter.type === type && filter.value === 'all')
         );
+
+        if (hasOnlyAllFilters) {
+            setFilteredActivities(activities);
+            return;
+        }
+
+        const filtered = activities.filter(activity => {
+            // Sprawdzenie dla kategorii
+            const categoryFilter = activeFilters.find(filter => filter.type === 'category');
+            if (categoryFilter && categoryFilter.value !== 'all' && activity.category !== categoryFilter.value) {
+                return false;
+            }
+
+            // Sprawdzenie dla encji
+            const entityFilter = activeFilters.find(filter => filter.type === 'entity');
+            if (entityFilter && entityFilter.value !== 'all' && activity.entityType !== entityFilter.value) {
+                return false;
+            }
+
+            // Sprawdzenie dla użytkownika
+            const userFilter = activeFilters.find(filter => filter.type === 'user');
+            if (userFilter && userFilter.value !== 'all' && activity.userId !== userFilter.value) {
+                return false;
+            }
+
+            return true;
+        });
 
         setFilteredActivities(filtered);
     }, [activities, activeFilters]);
@@ -89,17 +131,22 @@ const ActivityFeedPage: React.FC = () => {
         <PageContainer>
             <ActivityHeader />
 
+            <ActivityDateRange
+                dateRange={dateRange}
+                onDateRangeChange={handleDateRangeChange}
+            />
+
+            <ActivityStatistics
+                summaryData={dailySummary}
+                loading={loading.summary}
+            />
+
             <MainContent>
                 <LeftColumn>
                     <ActivityFilters
                         onFilterChange={handleFilterChange}
-                        onDateRangeChange={handleDateRangeChange}
                         activeFilters={activeFilters}
-                        dateRange={dateRange}
                     />
-                    <DailySummaryContainer>
-                        <DailySummary summaryData={dailySummary} loading={loading} />
-                    </DailySummaryContainer>
                 </LeftColumn>
 
                 <RightColumn>
@@ -107,7 +154,7 @@ const ActivityFeedPage: React.FC = () => {
 
                     <ActivityList
                         activities={filteredActivities}
-                        loading={loading}
+                        loading={loading.activities}
                     />
                 </RightColumn>
             </MainContent>
@@ -115,45 +162,41 @@ const ActivityFeedPage: React.FC = () => {
     );
 };
 
+// Styled components
 const PageContainer = styled.div`
-  padding: 20px;
-  max-width: 100%;
+    padding: 20px;
+    max-width: 100%;
 `;
 
 const MainContent = styled.div`
-  display: flex;
-  gap: 20px;
-  margin-top: 20px;
-  
-  @media (max-width: 992px) {
-    flex-direction: column;
-  }
+    display: flex;
+    gap: 20px;
+
+    @media (max-width: 992px) {
+        flex-direction: column;
+    }
 `;
 
 const LeftColumn = styled.div`
-  width: 300px;
-  flex-shrink: 0;
-  
-  @media (max-width: 992px) {
-    width: 100%;
-  }
-`;
+    width: 300px;
+    flex-shrink: 0;
 
-const DailySummaryContainer = styled.div`
-  margin-top: 20px;
+    @media (max-width: 992px) {
+        width: 100%;
+    }
 `;
 
 const RightColumn = styled.div`
-  flex: 1;
-  min-width: 0;
+    flex: 1;
+    min-width: 0;
 `;
 
 const ErrorMessage = styled.div`
-  background-color: #fdecea;
-  color: #e74c3c;
-  padding: 12px;
-  border-radius: 4px;
-  margin-bottom: 20px;
+    background-color: #fdecea;
+    color: #e74c3c;
+    padding: 12px;
+    border-radius: 4px;
+    margin-bottom: 20px;
 `;
 
 export default ActivityFeedPage;
