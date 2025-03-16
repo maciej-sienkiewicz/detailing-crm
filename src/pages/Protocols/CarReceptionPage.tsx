@@ -23,6 +23,7 @@ const CarReceptionPage: React.FC = () => {
     // Sprawdzamy, czy mamy dane do stworzenia protokołu z wizyty
     const protocolDataFromAppointment = location.state?.protocolData;
     const appointmentId = location.state?.appointmentId;
+    const editProtocolId = location.state?.editProtocolId;
 
     // Pobieranie danych
     useEffect(() => {
@@ -42,6 +43,17 @@ const CarReceptionPage: React.FC = () => {
                     setEditingProtocol(null); // To nie jest edycja, tylko nowy protokół
                     setShowForm(true);
                 }
+
+                // Jeśli mamy ID protokołu do edycji, znajdź go i otwórz formularz
+                if (editProtocolId) {
+                    const protocolToEdit = protocolsData.find(p => p.id === editProtocolId);
+                    if (protocolToEdit) {
+                        setEditingProtocol(protocolToEdit);
+                        setShowForm(true);
+                    } else {
+                        setError('Nie udało się znaleźć protokołu do edycji');
+                    }
+                }
             } catch (err) {
                 setError('Nie udało się pobrać danych protokołów');
                 console.error('Error fetching car reception protocols:', err);
@@ -51,7 +63,7 @@ const CarReceptionPage: React.FC = () => {
         };
 
         fetchData();
-    }, [protocolDataFromAppointment]);
+    }, [protocolDataFromAppointment, editProtocolId]);
 
 
     // Obsługa dodawania nowego protokołu

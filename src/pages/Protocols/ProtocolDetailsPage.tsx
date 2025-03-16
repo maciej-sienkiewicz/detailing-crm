@@ -240,7 +240,11 @@ const ProtocolDetailsPage: React.FC = () => {
                         </ActionButton>
                     )}
 
-                    <ActionButton title="Edytuj protokół" onClick={() => navigate(`/orders/car-reception?edit=${protocol.id}`)}>
+                    <ActionButton title="Edytuj protokół" onClick={() => navigate(`/orders/scheduled`, {
+                        state: {
+                            editProtocolId: protocol.id
+                        }
+                    })}>
                         <FaEdit /> Edytuj
                     </ActionButton>
 
