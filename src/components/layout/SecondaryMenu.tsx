@@ -102,7 +102,7 @@ const getMenuTitle = (menuId: string): string => {
         finances: 'Finanse',
         warehouse: 'Magazyn',
         pricing: 'Ceny i rabaty',
-        orders: 'Zamówienia'
+        orders: 'Zlecenia'
     };
 
     return titles[menuId] || menuId;

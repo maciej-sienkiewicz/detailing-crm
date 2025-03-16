@@ -196,14 +196,6 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
         clearFieldError('selectedServices');
     };
 
-    // Obsługa zmiany statusu
-    const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setFormData({
-            ...formData,
-            status: e.target.value as ProtocolStatus
-        });
-    };
-
     // Obsługa wyszukiwania po polach formularza
     const handleSearchByField = async (field: 'licensePlate' | 'ownerName' | 'companyName' | 'taxId' | 'email' | 'phone') => {
         const fieldValue = formData[field] as string;
@@ -383,7 +375,6 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
                     formData={formData}
                     errors={errors}
                     onChange={handleChange}
-                    onStatusChange={handleStatusChange}
                     onSearchByField={handleSearchByField}
                 />
 

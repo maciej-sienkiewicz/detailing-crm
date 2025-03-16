@@ -325,13 +325,6 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                                 <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
                                     <DiscountContainer>
                                         <DiscountInputGroup>
-                                            <DiscountInput
-                                                type="number"
-                                                min="0"
-                                                max={service.discountType === DiscountType.PERCENTAGE ? 100 : undefined}
-                                                value={service.discountValue}
-                                                onChange={(e) => onDiscountValueChange(service.id, parseFloat(e.target.value) || 0)}
-                                            />
                                             <DiscountTypeSelect
                                                 value={service.discountType}
                                                 onChange={(e) => onDiscountTypeChange(service.id, e.target.value as DiscountType)}
@@ -342,6 +335,13 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                                                     </option>
                                                 ))}
                                             </DiscountTypeSelect>
+                                            <DiscountInput
+                                                type="number"
+                                                min="0"
+                                                max={service.discountType === DiscountType.PERCENTAGE ? 100 : undefined}
+                                                value={service.discountValue}
+                                                onChange={(e) => onDiscountValueChange(service.id, parseFloat(e.target.value) || 0)}
+                                            />
                                         </DiscountInputGroup>
                                         {service.discountType === DiscountType.PERCENTAGE && (
                                             <DiscountPercentage>

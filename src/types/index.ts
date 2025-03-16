@@ -96,6 +96,17 @@ export interface CarReceptionProtocol {
     vehicleImages?: VehicleImage[]; // Nowe pole dla zdjęć pojazdu
 }
 
+export interface VehicleImage {
+    id: string;
+    url: string;
+    name: string;
+    size: number;
+    type: string;
+    createdAt: string;
+    description?: string; // Opcjonalny opis zdjęcia
+    location?: string;    // Opcjonalna lokalizacja uszkodzenia/zdjęcia
+}
+
 // Definicja typu dla dokumentu pracownika
 export interface EmployeeDocument {
     id: string;
@@ -219,7 +230,7 @@ export interface MenuItem {
 
 // Obiekty pomocnicze dla statusów protokołów
 export const ProtocolStatusLabels: Record<ProtocolStatus, string> = {
-    [ProtocolStatus.SCHEDULED]: 'Zaplanowano',
+    [ProtocolStatus.SCHEDULED]: 'Stworzono zlecenie',
     [ProtocolStatus.IN_PROGRESS]: 'W realizacji',
     [ProtocolStatus.READY_FOR_PICKUP]: 'Oczekiwanie na odbiór',
     [ProtocolStatus.COMPLETED]: 'Wydano'
@@ -234,7 +245,7 @@ export const ProtocolStatusColors: Record<ProtocolStatus, string> = {
 
 // Obiekty pomocnicze dla statusów wizyt
 export const AppointmentStatusLabels: Record<AppointmentStatus, string> = {
-    [AppointmentStatus.SCHEDULED]: 'Zaplanowano',
+    [AppointmentStatus.SCHEDULED]: 'Stworzono zlecenie',
     [AppointmentStatus.IN_PROGRESS]: 'W realizacji',
     [AppointmentStatus.READY_FOR_PICKUP]: 'Oczekiwanie na odbiór',
     [AppointmentStatus.COMPLETED]: 'Wydano'

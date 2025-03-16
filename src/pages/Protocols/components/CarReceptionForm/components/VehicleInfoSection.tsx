@@ -1,5 +1,5 @@
 import React from 'react';
-import { CarReceptionProtocol, ProtocolStatus, ProtocolStatusLabels } from '../../../../../types';
+import { CarReceptionProtocol } from '../../../../../types';
 import { FormErrors } from '../hooks/useFormValidation';
 import {
     FormSection,
@@ -8,7 +8,6 @@ import {
     FormGroup,
     Label,
     Input,
-    Select,
     CheckboxGroup,
     CheckboxLabel,
     Checkbox,
@@ -22,7 +21,6 @@ interface VehicleInfoSectionProps {
     formData: Partial<CarReceptionProtocol>;
     errors: FormErrors;
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
-    onStatusChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
     onSearchByField?: (field: 'licensePlate') => void;
 }
 
@@ -30,7 +28,6 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                                                                    formData,
                                                                    errors,
                                                                    onChange,
-                                                                   onStatusChange,
                                                                    onSearchByField
                                                                }) => {
     const handleSearchClick = (field: 'licensePlate') => {
@@ -68,24 +65,6 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                             required
                         />
                         {errors.endDate && <ErrorText>{errors.endDate}</ErrorText>}
-                    </FormGroup>
-
-                    <FormGroup>
-                        <Label htmlFor="status">Status*</Label>
-                        <Select
-                            id="status"
-                            name="status"
-                            value={formData.status || ProtocolStatus.PENDING_APPROVAL}
-                            onChange={onStatusChange}
-                            required
-                        >
-                            {Object.entries(ProtocolStatusLabels).map(([value, label]) => (
-                                <option key={value} value={value}>
-                                    {label}
-                                </option>
-                            ))}
-                        </Select>
-                        {errors.status && <ErrorText>{errors.status}</ErrorText>}
                     </FormGroup>
                 </FormRow>
             </FormSection>
