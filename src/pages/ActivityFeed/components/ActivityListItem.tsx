@@ -2,7 +2,6 @@ import React from 'react';
 import styled from 'styled-components';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { FaClock, FaCheckCircle, FaExclamationCircle } from 'react-icons/fa';
 import { ActivityItem } from '../../../types/activity';
 import ActivityEntityLink from './ActivityEntityLink';
 
@@ -15,45 +14,6 @@ const ActivityListItem: React.FC<ActivityListItemProps> = ({ activity, icon }) =
     // Formatowanie czasu
     const formatTime = (timestamp: string): string => {
         return format(new Date(timestamp), 'HH:mm', { locale: pl });
-    };
-
-    // Renderowanie statusu aktywności
-    const renderStatus = () => {
-        if (!activity.status) return null;
-
-        const getStatusIcon = () => {
-            switch (activity.status) {
-                case 'success':
-                    return <StatusIcon success><FaCheckCircle /></StatusIcon>;
-                case 'error':
-                    return <StatusIcon error><FaExclamationCircle /></StatusIcon>;
-                case 'pending':
-                    return <StatusIcon pending><FaClock /></StatusIcon>;
-                default:
-                    return null;
-            }
-        };
-
-        return (
-            <StatusContainer>
-                {getStatusIcon()}
-                <StatusText status={activity.status}>
-                    {activity.statusText || getDefaultStatusText(activity.status)}
-                </StatusText>
-            </StatusContainer>
-        );
-    };
-
-    // Domyślny tekst statusu
-    const getDefaultStatusText = (status: string | undefined | null): string => {
-        if (!status) return 'Informacja';
-
-        switch (status) {
-            case 'success': return 'Wykonano pomyślnie';
-            case 'error': return 'Wystąpił błąd';
-            case 'pending': return 'W trakcie realizacji';
-            default: return 'Informacja';
-        }
     };
 
     // Renderowanie powiązanych encji
@@ -84,12 +44,6 @@ const ActivityListItem: React.FC<ActivityListItemProps> = ({ activity, icon }) =
                         <MetadataLabel>Czas rozmowy:</MetadataLabel>
                         <MetadataValue>{activity.metadata.callDuration}</MetadataValue>
                     </MetadataItem>
-                    {activity.metadata.callResult && (
-                        <MetadataItem>
-                            <MetadataLabel>Wynik:</MetadataLabel>
-                            <MetadataValue>{activity.metadata.callResult}</MetadataValue>
-                        </MetadataItem>
-                    )}
                     {activity.metadata.callNotes && (
                         <MetadataNotes>{activity.metadata.callNotes}</MetadataNotes>
                     )}
@@ -125,7 +79,6 @@ const ActivityListItem: React.FC<ActivityListItemProps> = ({ activity, icon }) =
                     <ActivityMessage>{activity.message}</ActivityMessage>
                     {renderEntities()}
                     {renderMetadata()}
-                    {renderStatus()}
                 </ActivityContent>
 
                 <ActivityTime>

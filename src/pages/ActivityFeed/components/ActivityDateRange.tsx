@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { format, subDays, isValid } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { FaCalendarAlt, FaFileExport, FaChevronDown } from 'react-icons/fa';
+import { FaCalendarAlt, FaChevronDown } from 'react-icons/fa';
 
 interface ActivityDateRangeProps {
     dateRange: {
@@ -15,7 +15,6 @@ interface ActivityDateRangeProps {
 const ActivityDateRange: React.FC<ActivityDateRangeProps> = ({ dateRange, onDateRangeChange }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [localDateRange, setLocalDateRange] = useState(dateRange);
-    const [showExportOptions, setShowExportOptions] = useState(false);
 
     // Predefiniowane zakresy dat
     const predefinedRanges = [
@@ -81,17 +80,6 @@ const ActivityDateRange: React.FC<ActivityDateRangeProps> = ({ dateRange, onDate
         setLocalDateRange(range);
     };
 
-    // Obsługa eksportu danych
-    const handleExportData = (format: 'pdf' | 'excel' | 'csv') => {
-        // W rzeczywistej aplikacji, tutaj byłoby faktyczne eksportowanie danych
-        console.log(`Eksport danych w formacie: ${format}`);
-        console.log(`Zakres dat: ${dateRange.startDate} - ${dateRange.endDate}`);
-
-        // Symulacja sukcesu eksportu
-        alert(`Eksport danych w formacie ${format.toUpperCase()} rozpoczęty.`);
-        setShowExportOptions(false);
-    };
-
     // Formatowanie wyświetlanej daty
     const formatDisplayDate = (dateString: string): string => {
         const date = new Date(dateString);
@@ -112,14 +100,6 @@ const ActivityDateRange: React.FC<ActivityDateRangeProps> = ({ dateRange, onDate
                     <FaChevronDown />
                 </DropdownIcon>
             </DateRangeSelector>
-
-            <ExportButton onClick={() => setShowExportOptions(!showExportOptions)}>
-                <FaFileExport />
-                <span>Eksport</span>
-                <DropdownIcon isOpen={showExportOptions}>
-                    <FaChevronDown />
-                </DropdownIcon>
-            </ExportButton>
 
             {isOpen && (
                 <DatePickerDropdown>
@@ -170,20 +150,6 @@ const ActivityDateRange: React.FC<ActivityDateRangeProps> = ({ dateRange, onDate
                     </CustomRangePicker>
                 </DatePickerDropdown>
             )}
-
-            {showExportOptions && (
-                <ExportDropdown>
-                    <ExportOption onClick={() => handleExportData('pdf')}>
-                        Eksport do PDF
-                    </ExportOption>
-                    <ExportOption onClick={() => handleExportData('excel')}>
-                        Eksport do Excel
-                    </ExportOption>
-                    <ExportOption onClick={() => handleExportData('csv')}>
-                        Eksport do CSV
-                    </ExportOption>
-                </ExportDropdown>
-            )}
         </DateRangeContainer>
     );
 };
@@ -230,23 +196,6 @@ const DropdownIcon = styled.div<{ isOpen: boolean }>`
   color: #7f8c8d;
   transition: transform 0.2s;
   transform: ${props => props.isOpen ? 'rotate(180deg)' : 'rotate(0)'};
-`;
-
-const ExportButton = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background-color: #f0f7ff;
-  color: #3498db;
-  border: 1px solid #d5e9f9;
-  border-radius: 4px;
-  padding: 8px 12px;
-  cursor: pointer;
-  position: relative;
-  
-  &:hover {
-    background-color: #d5e9f9;
-  }
 `;
 
 const DatePickerDropdown = styled.div`
@@ -359,40 +308,6 @@ const ApplyButton = styled.button`
   
   &:hover {
     background-color: #2980b9;
-  }
-`;
-
-const ExportDropdown = styled.div`
-  position: absolute;
-  top: 100%;
-  right: 0;
-  width: 200px;
-  background-color: white;
-  border-radius: 4px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  margin-top: 5px;
-  z-index: 10;
-  overflow: hidden;
-  
-  @media (max-width: 768px) {
-    width: 100%;
-    left: 0;
-    right: auto;
-  }
-`;
-
-const ExportOption = styled.div`
-  padding: 10px 15px;
-  cursor: pointer;
-  font-size: 14px;
-  color: #34495e;
-  
-  &:hover {
-    background-color: #f0f7ff;
-  }
-  
-  &:not(:last-child) {
-    border-bottom: 1px solid #eee;
   }
 `;
 
