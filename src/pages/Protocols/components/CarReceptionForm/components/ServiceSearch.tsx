@@ -1,3 +1,4 @@
+// Modyfikacja ServiceSearch.tsx
 import React from 'react';
 import { FaSearch, FaPlus } from 'react-icons/fa';
 import {
@@ -9,7 +10,8 @@ import {
     SearchResultsList,
     SearchResultItem,
     SearchResultPrice,
-    AddServiceButton
+    AddServiceButton,
+    CustomServiceInfo
 } from '../styles/styles';
 
 interface ServiceSearchProps {
@@ -20,6 +22,7 @@ interface ServiceSearchProps {
     onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onSelectService: (service: { id: string; name: string; price: number }) => void;
     onAddService: () => void;
+    allowCustomService: boolean;
 }
 
 const ServiceSearch: React.FC<ServiceSearchProps> = ({
@@ -29,8 +32,13 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
                                                          selectedServiceToAdd,
                                                          onSearchChange,
                                                          onSelectService,
-                                                         onAddService
+                                                         onAddService,
+                                                         allowCustomService
                                                      }) => {
+    const isCustomService = searchQuery.trim() !== '' &&
+        searchResults.length === 0 &&
+        !selectedServiceToAdd;
+
     return (
         <SearchContainer>
             <SearchInputGroup>
@@ -60,12 +68,18 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
                         ))}
                     </SearchResultsList>
                 )}
+
+                {isCustomService && allowCustomService && (
+                    <CustomServiceInfo>
+                        Usługa niestandardowa - po dodaniu należy ustawić cenę
+                    </CustomServiceInfo>
+                )}
             </SearchInputGroup>
 
             <AddServiceButton
                 type="button"
                 onClick={onAddService}
-                disabled={!selectedServiceToAdd}
+                disabled={!(selectedServiceToAdd || (allowCustomService && searchQuery.trim() !== ''))}
             >
                 <FaPlus /> Dodaj usługę
             </AddServiceButton>

@@ -29,7 +29,16 @@ import { useServiceCalculations } from './hooks/useServiceCalculations';
 import { FormSearchService, SearchCriteria } from '../services/FormSearchService';
 
 // Import styli
-import { ErrorMessage, Form, FormContainer } from './styles/styles';
+import {
+    Button,
+    ConfirmationDialog, DialogActions,
+    DialogContent,
+    DialogText,
+    DialogTitle,
+    ErrorMessage,
+    Form,
+    FormContainer
+} from './styles/styles';
 
 interface CarReceptionFormProps {
     protocol: CarReceptionProtocol | null;
@@ -90,6 +99,9 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
     const [foundClients, setFoundClients] = useState<ClientExpanded[]>([]);
     const [foundVehicles, setFoundVehicles] = useState<VehicleExpanded[]>([]);
     const [searchError, setSearchError] = useState<string | null>(null);
+
+    const [showZeroPriceDialog, setShowZeroPriceDialog] = useState(false);
+    const [pendingSubmit, setPendingSubmit] = useState(false);
 
     // Użycie custom hooków
     const { errors, validateForm, clearFieldError } = useFormValidation(formData);
@@ -177,24 +189,39 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
     };
 
     // Dodanie wybranej usługi do tabeli
+// Zmodyfikuj handleAddService aby umożliwić niestandardowe usługi:
     const handleAddService = () => {
-        if (!selectedServiceToAdd) return;
+        if (selectedServiceToAdd) {
+            // Dodaj wybraną istniejącą usługę
+            const newService: Omit<SelectedService, 'finalPrice'> = {
+                id: selectedServiceToAdd.id,
+                name: selectedServiceToAdd.name,
+                price: selectedServiceToAdd.price,
+                discountType: DiscountType.PERCENTAGE,
+                discountValue: 0
+            };
 
-        const newService: Omit<SelectedService, 'finalPrice'> = {
-            id: selectedServiceToAdd.id,
-            name: selectedServiceToAdd.name,
-            price: selectedServiceToAdd.price,
-            discountType: DiscountType.PERCENTAGE,
-            discountValue: 0
-        };
+            addService(newService);
+        } else if (searchQuery.trim() !== '') {
+            // Dodaj niestandardową usługę
+            const customId = `custom-${Date.now()}`; // Generowanie unikalnego ID
+            const newService: Omit<SelectedService, 'finalPrice'> = {
+                id: customId,
+                name: searchQuery.trim(),
+                price: 0, // Domyślna cena zero, którą użytkownik będzie musiał zaktualizować
+                discountType: DiscountType.PERCENTAGE,
+                discountValue: 0
+            };
 
-        addService(newService);
+            addService(newService);
+        }
 
         // Resetowanie pola wyszukiwania
         setSearchQuery('');
         setSelectedServiceToAdd(null);
         clearFieldError('selectedServices');
     };
+
 
     // Obsługa wyszukiwania po polach formularza
     const handleSearchByField = async (field: 'licensePlate' | 'ownerName' | 'companyName' | 'taxId' | 'email' | 'phone') => {
@@ -322,6 +349,15 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
             return;
         }
 
+        // Sprawdzamy czy istnieją usługi z ceną 0
+        const hasZeroPriceServices = services.some(service => service.finalPrice === 0);
+
+        if (hasZeroPriceServices && !pendingSubmit) {
+            setPendingSubmit(true);
+            setShowZeroPriceDialog(true);
+            return;
+        }
+
         try {
             setLoading(true);
             setError(null);
@@ -356,7 +392,19 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
             console.error('Error saving protocol:', err);
         } finally {
             setLoading(false);
+            setPendingSubmit(false);
         }
+    };
+
+    const handleConfirmZeroPrice = () => {
+        setShowZeroPriceDialog(false);
+        // Kontynuuj zapisywanie formularza
+        handleSubmit(new Event('submit') as any);
+    };
+
+    const handleCancelZeroPrice = () => {
+        setShowZeroPriceDialog(false);
+        setPendingSubmit(false);
     };
 
     return (
@@ -402,6 +450,7 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
                     onDiscountValueChange={updateDiscountValue}
                     onBasePriceChange={updateBasePrice}
                     calculateTotals={calculateTotals}
+                    allowCustomService={true} // Nowa właściwość
                 />
 
                 {/* Nowa sekcja zdjęć */}
@@ -440,6 +489,26 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
                     onSelect={handleVehicleSelect}
                     onCancel={() => setShowVehicleModal(false)}
                 />
+            )}
+
+            {showZeroPriceDialog && (
+                <ConfirmationDialog>
+                    <DialogContent>
+                        <DialogTitle>Uwaga: Wykryto usługi z ceną 0 zł</DialogTitle>
+                        <DialogText>
+                            Niektóre z dodanych usług mają cenę końcową równą 0 zł.
+                            Czy na pewno chcesz kontynuować z tymi wartościami?
+                        </DialogText>
+                        <DialogActions>
+                            <Button secondary onClick={handleCancelZeroPrice}>
+                                Anuluj i popraw
+                            </Button>
+                            <Button primary onClick={handleConfirmZeroPrice}>
+                                Kontynuuj z ceną 0 zł
+                            </Button>
+                        </DialogActions>
+                    </DialogContent>
+                </ConfirmationDialog>
             )}
         </FormContainer>
     );

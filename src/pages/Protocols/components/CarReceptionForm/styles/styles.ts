@@ -417,3 +417,51 @@ export const TotalValue = styled.span`
     font-weight: 600;
     color: #27ae60;
 `;
+
+export const CustomServiceInfo = styled.div`
+    font-size: 12px;
+    color: #7f8c8d;
+    margin-top: 4px;
+    font-style: italic;
+`;
+
+// Modyfikacja dialoga walidacji - dodać do styles.ts
+export const ConfirmationDialog = styled.div`
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+`;
+
+export const DialogContent = styled.div`
+    background-color: white;
+    padding: 25px;
+    border-radius: 6px;
+    width: 450px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+`;
+
+export const DialogTitle = styled.h3`
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #e74c3c;
+    font-size: 18px;
+`;
+
+export const DialogText = styled.p`
+    margin-bottom: 20px;
+    line-height: 1.5;
+    color: #333;
+`;
+
+export const DialogActions = styled.div`
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+`;
