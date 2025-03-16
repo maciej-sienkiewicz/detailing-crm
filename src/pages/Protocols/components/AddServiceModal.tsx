@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { FaPlus, FaSearch, FaMobileAlt, FaTimes, FaCheck } from 'react-icons/fa';
+import { FaPlus, FaSearch, FaMobileAlt, FaTimes, FaCheck, FaEdit } from 'react-icons/fa';
 
 interface Service {
     id: string;
     name: string;
     price: number;
+}
+
+interface SelectedServiceWithPrice extends Service {
+    customPrice?: number; // Dodajemy pole do przechowywania niestandardowej ceny
 }
 
 interface AddServiceModalProps {
@@ -27,7 +31,12 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                                                          }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [filteredServices, setFilteredServices] = useState<Service[]>([]);
-    const [selectedServices, setSelectedServices] = useState<Service[]>([]);
+    const [selectedServices, setSelectedServices] = useState<SelectedServiceWithPrice[]>([]);
+
+    // Stan dla edytora ceny
+    const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
+    const [editingPrice, setEditingPrice] = useState<string>('');
+    const [editingPricePosition, setEditingPricePosition] = useState<{x: number, y: number}>({x: 0, y: 0});
 
     // Sprawdzenie czy można wysłać SMS
     const canSendSMS = !!customerPhone;
@@ -42,6 +51,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         if (isOpen) {
             setSearchQuery('');
             setSelectedServices([]);
+            setEditingServiceId(null);
         }
     }, [isOpen]);
 
@@ -65,17 +75,142 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
             setSelectedServices(selectedServices.filter(s => s.id !== service.id));
         } else {
             // W przeciwnym razie dodaj ją
-            setSelectedServices([...selectedServices, service]);
+            setSelectedServices([...selectedServices, { ...service }]);
         }
     };
 
     const handleAddServices = () => {
         if (selectedServices.length === 0) return;
 
+        // Przygotowujemy usługi z uwzględnieniem niestandardowych cen
+        const servicesWithCustomPrices = selectedServices.map(service => ({
+            id: service.id,
+            name: service.name,
+            price: service.customPrice !== undefined ? service.customPrice : service.price
+        }));
+
         onAddServices({
-            services: selectedServices
+            services: servicesWithCustomPrices
         });
     };
+
+    // Obsługa kliknięcia prawym przyciskiem myszy - otwiera edytor ceny
+    const handlePriceRightClick = (e: React.MouseEvent, service: SelectedServiceWithPrice) => {
+        e.preventDefault(); // Zapobiegaj domyślnemu menu kontekstowemu przeglądarki
+
+        // Znajdujemy element nadrzędny (wiersz usługi)
+        const priceElement = e.currentTarget as HTMLElement;
+        const serviceItem = priceElement.closest('.selected-service-item');
+
+        if (serviceItem) {
+            const rect = serviceItem.getBoundingClientRect();
+
+            setEditingServiceId(service.id);
+            setEditingPrice((service.customPrice !== undefined ? service.customPrice : service.price).toString());
+
+            // Ustal pozycję edytora ceny - centralnie obok wybranej usługi
+            setEditingPricePosition({
+                x: Math.max(10, rect.left + (rect.width / 2) - 125), // Wyśrodkowany, min 10px od lewej krawędzi
+                y: rect.top // Wyrównanie do górnej krawędzi wiersza
+            });
+        } else {
+            // Fallback - używamy pozycji kliknięcia tylko jeśli nie znaleźliśmy wiersza
+            setEditingServiceId(service.id);
+            setEditingPrice((service.customPrice !== undefined ? service.customPrice : service.price).toString());
+
+            setEditingPricePosition({
+                x: Math.max(10, e.clientX - 125),
+                y: e.clientY
+            });
+        }
+    };
+
+    // Obsługa kliknięcia na ikonę edycji ceny
+    const handleEditPrice = (e: React.MouseEvent, service: SelectedServiceWithPrice) => {
+        // Znajdujemy element nadrzędny (wiersz usługi)
+        const priceElement = e.currentTarget as HTMLElement;
+        const serviceItem = priceElement.closest('.selected-service-item');
+
+        if (serviceItem) {
+            const rect = serviceItem.getBoundingClientRect();
+
+            setEditingServiceId(service.id);
+            setEditingPrice((service.customPrice !== undefined ? service.customPrice : service.price).toString());
+
+            // Ustal pozycję edytora ceny - centralnie obok wybranej usługi
+            setEditingPricePosition({
+                x: Math.max(10, rect.left + (rect.width / 2) - 125), // Wyśrodkowany, min 10px od lewej krawędzi
+                y: rect.top // Wyrównanie do górnej krawędzi wiersza
+            });
+        } else {
+            // Fallback jeśli nie znajdziemy elementu nadrzędnego
+            const rect = priceElement.getBoundingClientRect();
+
+            setEditingServiceId(service.id);
+            setEditingPrice((service.customPrice !== undefined ? service.customPrice : service.price).toString());
+
+            setEditingPricePosition({
+                x: Math.max(10, rect.left - 100),
+                y: rect.top
+            });
+        }
+    };
+
+    // Zapisywanie edytowanej ceny
+    const handleSavePrice = () => {
+        if (!editingServiceId) return;
+
+        const newPrice = parseFloat(editingPrice);
+        if (isNaN(newPrice) || newPrice < 0) {
+            setEditingServiceId(null);
+            return;
+        }
+
+        // Aktualizuj cenę dla wybranej usługi
+        setSelectedServices(prev => prev.map(service => {
+            if (service.id === editingServiceId) {
+                return {
+                    ...service,
+                    customPrice: newPrice
+                };
+            }
+            return service;
+        }));
+
+        setEditingServiceId(null);
+    };
+
+    // Zamknij edytor ceny przy kliku poza nim
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (editingServiceId && !(e.target as Element).closest('.price-editor')) {
+                setEditingServiceId(null);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [editingServiceId]);
+
+    // Obsługa klawisza Enter i Escape
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (!editingServiceId) return;
+
+            if (e.key === 'Enter') {
+                handleSavePrice();
+            } else if (e.key === 'Escape') {
+                setEditingServiceId(null);
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [editingServiceId, editingPrice]);
 
     if (!isOpen) return null;
 
@@ -141,9 +276,16 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                         ) : (
                             <SelectedServicesList>
                                 {selectedServices.map(service => (
-                                    <SelectedServiceItem key={service.id}>
+                                    <SelectedServiceItem className="selected-service-item" key={service.id}>
                                         <SelectedServiceName>{service.name}</SelectedServiceName>
-                                        <SelectedServicePrice>{service.price.toFixed(2)} zł</SelectedServicePrice>
+                                        <SelectedServicePrice
+                                            onContextMenu={(e) => handlePriceRightClick(e, service)}
+                                        >
+                                            {(service.customPrice !== undefined ? service.customPrice : service.price).toFixed(2)} zł
+                                            <EditPriceIcon onClick={(e) => handleEditPrice(e, service)}>
+                                                <FaEdit />
+                                            </EditPriceIcon>
+                                        </SelectedServicePrice>
                                         <SelectedServiceRemove
                                             onClick={(e) => {
                                                 e.stopPropagation();
@@ -157,7 +299,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                                 <TotalPriceRow>
                                     <TotalPriceLabel>Łącznie:</TotalPriceLabel>
                                     <TotalPriceValue>
-                                        {selectedServices.reduce((sum, s) => sum + s.price, 0).toFixed(2)} zł
+                                        {selectedServices.reduce((sum, s) => sum + (s.customPrice !== undefined ? s.customPrice : s.price), 0).toFixed(2)} zł
                                     </TotalPriceValue>
                                 </TotalPriceRow>
                             </SelectedServicesList>
@@ -196,6 +338,53 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                     </ConfirmButton>
                 </ModalFooter>
             </ModalContainer>
+
+            {/* Edytor ceny */}
+            {editingServiceId && (
+                <EditPricePopup
+                    className="price-editor"
+                    style={{
+                        position: 'fixed',
+                        top: editingPricePosition.y,
+                        left: editingPricePosition.x
+                    }}
+                    onClick={(e) => e.stopPropagation()} // Zapobiegaj zamknięciu po kliknięciu w edytor
+                >
+                    <PopupTitle>Edytuj cenę</PopupTitle>
+                    <EditPriceForm>
+                        <EditPriceInput
+                            type="text"
+                            value={editingPrice}
+                            onChange={(e) => {
+                                // Pozwól na wprowadzanie tylko cyfr i kropki/przecinka
+                                const value = e.target.value;
+                                if (value === '' || /^[0-9]*[.,]?[0-9]*$/.test(value)) {
+                                    setEditingPrice(value);
+                                }
+                            }}
+                            placeholder="Wprowadź nową cenę"
+                            autoFocus
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    handleSavePrice();
+                                } else if (e.key === 'Escape') {
+                                    e.preventDefault();
+                                    setEditingServiceId(null);
+                                }
+                            }}
+                        />
+                        <EditPriceButtons>
+                            <Button onClick={() => setEditingServiceId(null)}>
+                                Anuluj
+                            </Button>
+                            <Button primary onClick={handleSavePrice}>
+                                Zapisz
+                            </Button>
+                        </EditPriceButtons>
+                    </EditPriceForm>
+                </EditPricePopup>
+            )}
         </ModalOverlay>
     );
 };
@@ -403,6 +592,25 @@ const SelectedServicePrice = styled.div`
     font-size: 14px;
     color: #2980b9;
     margin: 0 10px;
+    cursor: pointer;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    &:hover {
+        text-decoration: underline dotted;
+    }
+`;
+
+const EditPriceIcon = styled.span`
+    color: #3498db;
+    font-size: 13px;
+    opacity: 0.7;
+
+    &:hover {
+        opacity: 1;
+    }
 `;
 
 const SelectedServiceRemove = styled.button`
@@ -503,7 +711,7 @@ const ModalFooter = styled.div`
     gap: 10px;
 `;
 
-const Button = styled.button`
+const Button = styled.button<{ primary?: boolean }>`
     display: flex;
     align-items: center;
     gap: 6px;
@@ -512,6 +720,24 @@ const Button = styled.button`
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
+
+    ${props => props.primary ? `
+        background-color: #3498db;
+        color: white;
+        border: none;
+        
+        &:hover {
+            background-color: #2980b9;
+        }
+    ` : `
+        background-color: white;
+        color: #333;
+        border: 1px solid #ddd;
+        
+        &:hover {
+            background-color: #f5f5f5;
+        }
+    `}
 `;
 
 const CancelButton = styled(Button)`
@@ -533,6 +759,53 @@ const ConfirmButton = styled(Button)<{ disabled: boolean }>`
     &:hover:not(:disabled) {
         background-color: #2980b9;
     }
+`;
+
+// Komponenty do edycji ceny
+const EditPricePopup = styled.div`
+    background-color: white;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    padding: 15px;
+    width: 250px;
+    z-index: 1100;
+
+    // Zapobiegamy wyjściu poza ekran
+    &.price-editor {
+        max-width: calc(100vw - 40px);
+    }
+`;
+
+const PopupTitle = styled.div`
+    font-weight: 500;
+    font-size: 15px;
+    margin-bottom: 10px;
+    color: #34495e;
+`;
+
+const EditPriceForm = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+`;
+
+const EditPriceInput = styled.input`
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+
+    &:focus {
+        outline: none;
+        border-color: #3498db;
+        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+    }
+`;
+
+const EditPriceButtons = styled.div`
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
 `;
 
 export default AddServiceModal;
