@@ -83,16 +83,17 @@ export interface CarReceptionProtocol {
     phone: string;
     notes?: string;
     selectedServices: SelectedService[];
-    status: ProtocolStatus; // Nowe pole statusu
-    statusUpdatedAt?: string; // Data ostatniej aktualizacji statusu
+    status: ProtocolStatus;
+    statusUpdatedAt?: string;
     createdAt: string;
     updatedAt: string;
-    appointmentId?: string; // Powiązanie z wizytą w kalendarzu, jeśli protokół powstał z wizyty
+    appointmentId?: string;
 
-    // Nowe pola dla rozszerzonej funkcjonalności
-    comments?: any[]; // Komentarze i aktualizacje
-    purchaseInvoices?: any[]; // Faktury zakupowe
-    vehicleIssues?: any[]; // Problemy i uwagi dotyczące pojazdu
+    // Dodane i istniejące rozszerzenia
+    comments?: any[];
+    purchaseInvoices?: any[];
+    vehicleIssues?: any[];
+    vehicleImages?: VehicleImage[]; // Nowe pole dla zdjęć pojazdu
 }
 
 // Definicja typu dla dokumentu pracownika

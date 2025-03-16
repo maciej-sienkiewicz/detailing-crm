@@ -1,13 +1,14 @@
-import React, {useEffect, useState} from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     CarReceptionProtocol,
     ClientExpanded,
     DiscountType,
     ProtocolStatus,
     SelectedService,
-    VehicleExpanded
+    VehicleExpanded,
+    VehicleImage
 } from '../../../../types';
-import {addCarReceptionProtocol, updateCarReceptionProtocol} from '../../../../api/mocks/carReceptionMocks';
+import { addCarReceptionProtocol, updateCarReceptionProtocol } from '../../../../api/mocks/carReceptionMocks';
 
 // Import komponentów
 import FormHeader from './components/FormHeader';
@@ -18,16 +19,17 @@ import ServiceSection from './components/ServiceSection';
 import FormActions from './components/FormActions';
 import ClientSelectionModal from '../../../Protocols/components/ClientSelectionModal';
 import VehicleSelectionModal from '../../../Protocols/components/VehicleSelectionModal';
+import ImageUploadSection from './components/ImageUploadSection';
 
 // Import hooków
-import {useFormValidation} from './hooks/useFormValidation';
-import {useServiceCalculations} from './hooks/useServiceCalculations';
+import { useFormValidation } from './hooks/useFormValidation';
+import { useServiceCalculations } from './hooks/useServiceCalculations';
 
 // Import serwisów
-import {FormSearchService, SearchCriteria} from '../services/FormSearchService';
+import { FormSearchService, SearchCriteria } from '../services/FormSearchService';
 
 // Import styli
-import {ErrorMessage, Form, FormContainer} from './styles/styles';
+import { ErrorMessage, Form, FormContainer } from './styles/styles';
 
 interface CarReceptionFormProps {
     protocol: CarReceptionProtocol | null;
@@ -67,7 +69,8 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
             phone: '',
             notes: '',
             selectedServices: [],
-            status: ProtocolStatus.SCHEDULED
+            status: ProtocolStatus.SCHEDULED,
+            vehicleImages: [] // Inicjalizacja pustej tablicy zdjęć
         }
     );
 
@@ -149,6 +152,14 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
 
         // Usuwanie błędów przy edycji pola
         clearFieldError(name);
+    };
+
+    // Obsługa aktualizacji zdjęć
+    const handleImagesChange = (images: VehicleImage[]) => {
+        setFormData(prev => ({
+            ...prev,
+            vehicleImages: images
+        }));
     };
 
     // Obsługa wyszukiwania usług
@@ -398,8 +409,14 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
                     onRemoveService={removeService}
                     onDiscountTypeChange={updateDiscountType}
                     onDiscountValueChange={updateDiscountValue}
-                    onBasePriceChange={updateBasePrice}  // Nowa funkcja
+                    onBasePriceChange={updateBasePrice}
                     calculateTotals={calculateTotals}
+                />
+
+                {/* Nowa sekcja zdjęć */}
+                <ImageUploadSection
+                    images={formData.vehicleImages || []}
+                    onImagesChange={handleImagesChange}
                 />
 
                 {/* Sekcja uwag */}
