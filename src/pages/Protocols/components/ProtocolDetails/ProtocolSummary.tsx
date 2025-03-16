@@ -81,9 +81,9 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
     };
 
     // Obsługa dodania nowych usług
+// Zaktualizowana funkcja handleAddServices bez obsługi customMessage
     const handleAddServices = async (servicesData: {
         services: Array<{ id: string; name: string; price: number }>;
-        customMessage?: string;
     }) => {
         if (servicesData.services.length === 0) return;
 
@@ -113,11 +113,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
             };
 
             // W rzeczywistej implementacji użylibyśmy API backendu:
-            // const savedProtocol = await addServicesWithNotification(
-            //   protocol.id,
-            //   servicesData.services,
-            //   servicesData.customMessage
-            // );
+            // const savedProtocol = await addServicesWithNotification(protocol.id, servicesData.services);
 
             // Symulacja zapisu do backendu
             const savedProtocol = await updateCarReceptionProtocol(updatedProtocol);

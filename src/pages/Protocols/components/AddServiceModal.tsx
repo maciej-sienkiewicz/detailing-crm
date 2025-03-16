@@ -12,8 +12,7 @@ interface AddServiceModalProps {
     isOpen: boolean;
     onClose: () => void;
     onAddServices: (servicesData: {
-        services: Service[],
-        customMessage?: string
+        services: Service[]
     }) => void;
     availableServices: Service[];
     customerPhone?: string;
@@ -29,7 +28,6 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
     const [searchQuery, setSearchQuery] = useState('');
     const [filteredServices, setFilteredServices] = useState<Service[]>([]);
     const [selectedServices, setSelectedServices] = useState<Service[]>([]);
-    const [customMessage, setCustomMessage] = useState('');
 
     // Sprawdzenie czy można wysłać SMS
     const canSendSMS = !!customerPhone;
@@ -44,7 +42,6 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         if (isOpen) {
             setSearchQuery('');
             setSelectedServices([]);
-            setCustomMessage('');
         }
     }, [isOpen]);
 
@@ -72,17 +69,11 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         }
     };
 
-    // Default notification message
-    const defaultMessage = selectedServices.length > 0
-        ? `Wykryliśmy potrzebę wykonania dodatkowych usług: ${selectedServices.map(s => s.name).join(', ')}. Łączny koszt: ${selectedServices.reduce((sum, s) => sum + s.price, 0).toFixed(2)} zł. Odpowiedz TAK, aby zatwierdzić.`
-        : '';
-
     const handleAddServices = () => {
         if (selectedServices.length === 0) return;
 
         onAddServices({
-            services: selectedServices,
-            customMessage: customMessage.trim() ? customMessage : defaultMessage
+            services: selectedServices
         });
     };
 
@@ -179,33 +170,18 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                     {canNotifyError ? (
                         <ErrorMessage>{canNotifyError}</ErrorMessage>
                     ) : (
-                        <>
-                            <SmsInfo>
-                                <SmsIcon><FaMobileAlt /></SmsIcon>
-                                <SmsDetails>
-                                    <SmsTitle>Automatyczne powiadomienie SMS</SmsTitle>
-                                    <SmsDescription>
-                                        Po dodaniu usług klient otrzyma SMS z prośbą o zatwierdzenie na numer: {customerPhone}
-                                    </SmsDescription>
-                                </SmsDetails>
-                            </SmsInfo>
-
-                            <MessageFieldset>
-                                <MessageLabel>Treść wiadomości (opcjonalnie):</MessageLabel>
-                                <MessageTextarea
-                                    value={customMessage}
-                                    onChange={(e) => setCustomMessage(e.target.value)}
-                                    placeholder={defaultMessage}
-                                    rows={4}
-                                />
-                                {!customMessage && selectedServices.length > 0 && (
-                                    <MessageHint>
-                                        Domyślna wiadomość: <br />
-                                        {defaultMessage}
-                                    </MessageHint>
-                                )}
-                            </MessageFieldset>
-                        </>
+                        <SmsInfo>
+                            <SmsIcon><FaMobileAlt /></SmsIcon>
+                            <SmsDetails>
+                                <SmsTitle>Automatyczne powiadomienie SMS</SmsTitle>
+                                <SmsDescription>
+                                    Po dodaniu usług klient otrzyma SMS z prośbą o zatwierdzenie na numer: {customerPhone}
+                                </SmsDescription>
+                                <SmsNote>
+                                    Treść wiadomości zostanie wygenerowana automatycznie przez system.
+                                </SmsNote>
+                            </SmsDetails>
+                        </SmsInfo>
                     )}
                 </ModalBody>
                 <ModalFooter>
@@ -510,40 +486,13 @@ const SmsTitle = styled.div`
 const SmsDescription = styled.div`
     font-size: 13px;
     color: #7f8c8d;
-`;
-
-const MessageFieldset = styled.div`
-    margin-top: 15px;
-`;
-
-const MessageLabel = styled.label`
-    display: block;
-    font-size: 14px;
-    color: #34495e;
     margin-bottom: 8px;
 `;
 
-const MessageTextarea = styled.textarea`
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
-    font-family: inherit;
-    resize: vertical;
-
-    &:focus {
-        outline: none;
-        border-color: #3498db;
-        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
-    }
-`;
-
-const MessageHint = styled.div`
-    font-size: 12px;
+const SmsNote = styled.div`
+    font-size: 13px;
     color: #95a5a6;
     font-style: italic;
-    margin-top: 5px;
 `;
 
 const ModalFooter = styled.div`
