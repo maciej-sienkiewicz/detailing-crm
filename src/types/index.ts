@@ -28,14 +28,41 @@ export const DiscountTypeLabels: Record<DiscountType, string> = {
 };
 
 // Definicja typu dla usługi wybranej w protokole
+// Dodanie do modelu typu usługi - stan zatwierdzenia
+export enum ServiceApprovalStatus {
+    PENDING = 'PENDING',       // Oczekiwanie na potwierdzenie
+    APPROVED = 'APPROVED',     // Zatwierdzona przez klienta
+    REJECTED = 'REJECTED'      // Odrzucona przez klienta
+}
+
+// Rozszerzenie interfejsu SelectedService o nowe pola
 export interface SelectedService {
     id: string;
     name: string;
     price: number;
-    discountType: DiscountType;  // typ rabatu
-    discountValue: number;       // wartość rabatu (procent, kwota lub cena finalna)
-    finalPrice: number;          // cena po rabacie
+    discountType: DiscountType;
+    discountValue: number;
+    finalPrice: number;
+    approvalStatus?: ServiceApprovalStatus; // Status zatwierdzenia usługi
+    addedAt?: string;                      // Data dodania usługi
+    approvedAt?: string;                   // Data zatwierdzenia usługi
+    rejectedAt?: string;                   // Data odrzucenia usługi
+    confirmationMessage?: string;          // Wiadomość wysłana do klienta
+    clientMessage?: string;                // Odpowiedź klienta
 }
+
+// Obiekty pomocnicze dla statusów zatwierdzenia usług
+export const ServiceApprovalStatusLabels: Record<ServiceApprovalStatus, string> = {
+    [ServiceApprovalStatus.PENDING]: 'Oczekiwanie na potwierdzenie',
+    [ServiceApprovalStatus.APPROVED]: 'Zatwierdzona',
+    [ServiceApprovalStatus.REJECTED]: 'Odrzucona'
+};
+
+export const ServiceApprovalStatusColors: Record<ServiceApprovalStatus, string> = {
+    [ServiceApprovalStatus.PENDING]: '#95a5a6',     // Szary
+    [ServiceApprovalStatus.APPROVED]: '#2ecc71',    // Zielony
+    [ServiceApprovalStatus.REJECTED]: '#e74c3c'     // Czerwony
+};
 
 // Definicja typu dla protokołu przyjęcia pojazdu
 export interface CarReceptionProtocol {

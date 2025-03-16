@@ -1,7 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
-import { format } from 'date-fns';
-import { pl } from 'date-fns/locale';
 import {
     FaCarSide,
     FaUser,
@@ -10,20 +8,152 @@ import {
     FaFileInvoiceDollar,
     FaTags,
     FaBuilding,
-    FaIdCard
+    FaIdCard,
+    FaPlus,
+    FaBell,
+    FaTimesCircle,
+    FaClock
 } from 'react-icons/fa';
-import { CarReceptionProtocol } from '../../../../types';
+import { CarReceptionProtocol, ServiceApprovalStatus, SelectedService } from '../../../../types';
+import AddServiceModal from '../AddServiceModal';
+import { updateCarReceptionProtocol } from '../../../../api/mocks/carReceptionMocks';
+import { fetchAvailableServices } from '../../../../api/mocks/carReceptionMocks';
 
 interface ProtocolSummaryProps {
     protocol: CarReceptionProtocol;
+    onProtocolUpdate?: (updatedProtocol: CarReceptionProtocol) => void;
 }
 
-const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol }) => {
+const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolUpdate }) => {
+    const [showAddServiceModal, setShowAddServiceModal] = useState(false);
+    const [availableServices, setAvailableServices] = useState<Array<{id: string; name: string; price: number;}>>([]);
+    const [isLoading, setIsLoading] = useState(false);
 
-    // Calculate the total value
-    const totalValue = protocol.selectedServices.reduce(
-        (sum, service) => sum + service.finalPrice, 0
-    );
+    // Pobierz dostępne usługi podczas otwierania modalu
+    const handleOpenAddServiceModal = async () => {
+        setIsLoading(true);
+        try {
+            const services = await fetchAvailableServices();
+            setAvailableServices(services);
+        } catch (error) {
+            console.error('Błąd podczas pobierania listy usług', error);
+        } finally {
+            setIsLoading(false);
+            setShowAddServiceModal(true);
+        }
+    };
+
+    // Obsługa anulowania usługi w oczekiwaniu
+    const handleCancelService = async (serviceId: string) => {
+        if (!window.confirm('Czy na pewno chcesz anulować tę usługę?')) return;
+
+        // Filtrujemy usługi, usuwając anulowaną
+        const updatedServices = protocol.selectedServices.filter(service => service.id !== serviceId);
+        const updatedProtocol = {
+            ...protocol,
+            selectedServices: updatedServices,
+            updatedAt: new Date().toISOString()
+        };
+
+        try {
+            const savedProtocol = await updateCarReceptionProtocol(updatedProtocol);
+
+            if (onProtocolUpdate) {
+                console.log('Wywołanie onProtocolUpdate po anulowaniu usługi:', savedProtocol);
+                onProtocolUpdate(savedProtocol);
+            } else {
+                console.warn('onProtocolUpdate nie jest dostępna, brak aktualizacji UI');
+            }
+        } catch (error) {
+            console.error('Błąd podczas anulowania usługi', error);
+        }
+    };
+
+    // Obsługa ponownego wysłania powiadomienia
+    const handleResendNotification = async (serviceId: string) => {
+        // Znajdujemy usługę, dla której wysyłamy ponownie powiadomienie
+        const service = protocol.selectedServices.find(s => s.id === serviceId);
+        if (!service) return;
+
+        // W rzeczywistym systemie tutaj wysyłalibyśmy żądanie do backendu
+        // aby ponownie wysłał SMS do klienta
+        alert(`Ponowne wysłanie SMS z prośbą o potwierdzenie usługi: ${service.name}`);
+    };
+
+    // Obsługa dodania nowych usług
+    const handleAddServices = async (servicesData: {
+        services: Array<{ id: string; name: string; price: number }>;
+        customMessage?: string;
+    }) => {
+        if (servicesData.services.length === 0) return;
+
+        try {
+            setIsLoading(true);
+            const now = new Date().toISOString();
+
+            // Utworzenie nowych usług
+            const newServices: SelectedService[] = servicesData.services.map(serviceData => ({
+                id: `service_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+                name: serviceData.name,
+                price: serviceData.price,
+                discountType: 'PERCENTAGE', // Domyślny typ rabatu
+                discountValue: 0,           // Domyślna wartość rabatu
+                finalPrice: serviceData.price,
+                approvalStatus: ServiceApprovalStatus.PENDING,
+                addedAt: now,
+                confirmationMessage: `Wysłano SMS z prośbą o potwierdzenie usługi`
+            }));
+
+            // Dodanie usług do protokołu
+            const updatedServices = [...protocol.selectedServices, ...newServices];
+            const updatedProtocol = {
+                ...protocol,
+                selectedServices: updatedServices,
+                updatedAt: now
+            };
+
+            // W rzeczywistej implementacji użylibyśmy API backendu:
+            // const savedProtocol = await addServicesWithNotification(
+            //   protocol.id,
+            //   servicesData.services,
+            //   servicesData.customMessage
+            // );
+
+            // Symulacja zapisu do backendu
+            const savedProtocol = await updateCarReceptionProtocol(updatedProtocol);
+
+            // Aktualizacja UI
+            if (onProtocolUpdate) {
+                console.log('Wywołanie onProtocolUpdate z nowymi usługami:', savedProtocol);
+                onProtocolUpdate(savedProtocol);
+            } else {
+                console.warn('onProtocolUpdate nie jest dostępna, brak aktualizacji UI');
+            }
+
+            setShowAddServiceModal(false);
+
+            // Informacja dla użytkownika
+            alert(`Dodano ${newServices.length} ${newServices.length === 1 ? 'usługę' : newServices.length < 5 ? 'usługi' : 'usług'}. SMS zostanie wysłany na numer ${protocol.phone}.`);
+
+            // W rzeczywistym systemie backend wysłałby SMS do klienta
+            console.log(`SMS zostanie wysłany przez backend na numer: ${protocol.phone}`);
+        } catch (error) {
+            console.error('Błąd podczas dodawania nowych usług:', error);
+            alert('Wystąpił błąd podczas dodawania usług. Spróbuj ponownie.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Obliczanie sum
+    const allServices = protocol.selectedServices;
+    const approvedValue = allServices
+        .filter(service => !service.approvalStatus || service.approvalStatus === ServiceApprovalStatus.APPROVED)
+        .reduce((sum, service) => sum + service.finalPrice, 0);
+
+    const pendingValue = allServices
+        .filter(service => service.approvalStatus === ServiceApprovalStatus.PENDING)
+        .reduce((sum, service) => sum + service.finalPrice, 0);
 
     return (
         <SummaryContainer>
@@ -126,36 +256,88 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol }) => {
             </Section>
 
             <Section>
-                <SectionTitle>Usługi</SectionTitle>
+                <SectionTitleWithAction>
+                    <SectionTitle>Usługi</SectionTitle>
+                    <AddButton onClick={handleOpenAddServiceModal} disabled={isLoading}>
+                        <FaPlus /> {isLoading ? 'Ładowanie...' : 'Dodaj usługę'}
+                    </AddButton>
+                </SectionTitleWithAction>
+
                 <ServicesTable>
                     <TableHeader>
                         <HeaderCell wide>Nazwa usługi</HeaderCell>
                         <HeaderCell>Cena bazowa</HeaderCell>
                         <HeaderCell>Rabat</HeaderCell>
                         <HeaderCell>Cena końcowa</HeaderCell>
+                        <HeaderCell action>Akcje</HeaderCell>
                     </TableHeader>
 
-                    {protocol.selectedServices.map((service) => (
-                        <TableRow key={service.id}>
-                            <TableCell wide>{service.name}</TableCell>
-                            <TableCell>{service.price.toFixed(2)} zł</TableCell>
-                            <TableCell>
-                                {service.discountValue > 0
-                                    ? `${service.discountValue}${service.discountType === 'PERCENTAGE' ? '%' : ' zł'}`
-                                    : '-'
-                                }
+                    {allServices.length === 0 ? (
+                        <TableRow>
+                            <TableCell colSpan={5} style={{ textAlign: 'center' }}>
+                                Brak usług. Kliknij "Dodaj usługę", aby dodać pierwszą.
                             </TableCell>
-                            <TableCell>{service.finalPrice.toFixed(2)} zł</TableCell>
                         </TableRow>
-                    ))}
+                    ) : (
+                        allServices.map((service) => (
+                            <TableRow
+                                key={service.id}
+                                pending={service.approvalStatus === ServiceApprovalStatus.PENDING}
+                            >
+                                <TableCell wide>
+                                    <ServiceNameContainer>
+                                        <ServiceName>{service.name}</ServiceName>
+                                        {service.approvalStatus === ServiceApprovalStatus.PENDING && (
+                                            <PendingBadge>
+                                                <FaClock /> Oczekuje na potwierdzenie
+                                            </PendingBadge>
+                                        )}
+                                    </ServiceNameContainer>
+                                </TableCell>
+                                <TableCell>{service.price.toFixed(2)} zł</TableCell>
+                                <TableCell>
+                                    {service.discountValue > 0
+                                        ? `${service.discountValue}${service.discountType === 'PERCENTAGE' ? '%' : ' zł'}`
+                                        : '-'
+                                    }
+                                </TableCell>
+                                <TableCell>{service.finalPrice.toFixed(2)} zł</TableCell>
+                                <TableCell action>
+                                    {service.approvalStatus === ServiceApprovalStatus.PENDING && (
+                                        <ActionButtons>
+                                            <ActionButton
+                                                title="Wyślij ponownie SMS"
+                                                onClick={() => handleResendNotification(service.id)}
+                                            >
+                                                <FaBell />
+                                            </ActionButton>
+                                            <ActionButton
+                                                title="Anuluj usługę"
+                                                danger
+                                                onClick={() => handleCancelService(service.id)}
+                                            >
+                                                <FaTimesCircle />
+                                            </ActionButton>
+                                        </ActionButtons>
+                                    )}
+                                </TableCell>
+                            </TableRow>
+                        ))
+                    )}
 
                     <TableFooter>
                         <FooterCell wide>Razem</FooterCell>
-                        <FooterCell>{protocol.selectedServices.reduce((sum, s) => sum + s.price, 0).toFixed(2)} zł</FooterCell>
+                        <FooterCell>{allServices.reduce((sum, s) => sum + s.price, 0).toFixed(2)} zł</FooterCell>
                         <FooterCell>
-                            {(protocol.selectedServices.reduce((sum, s) => sum + s.price, 0) - totalValue).toFixed(2)} zł
+                            {(allServices.reduce((sum, s) => sum + s.price, 0) - (approvedValue + pendingValue)).toFixed(2)} zł
                         </FooterCell>
-                        <FooterCell highlight>{totalValue.toFixed(2)} zł</FooterCell>
+                        <FooterCell>
+                            <TotalValue highlight>{approvedValue.toFixed(2)} zł</TotalValue>
+                            {pendingValue > 0 && (
+                                <PendingValue>+ {pendingValue.toFixed(2)} zł oczekuje</PendingValue>
+                            )}
+                        </FooterCell>
+                        <FooterCell action></FooterCell>
                     </TableFooter>
                 </ServicesTable>
             </Section>
@@ -167,6 +349,14 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol }) => {
                 </Section>
             )}
 
+            {/* Modal dodawania usługi */}
+            <AddServiceModal
+                isOpen={showAddServiceModal}
+                onClose={() => setShowAddServiceModal(false)}
+                onAddServices={handleAddServices}
+                availableServices={availableServices}
+                customerPhone={protocol.phone}
+            />
         </SummaryContainer>
     );
 };
@@ -182,12 +372,36 @@ const Section = styled.div`
     }
 `;
 
+const SectionTitleWithAction = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+`;
+
 const SectionTitle = styled.h3`
     font-size: 16px;
     margin: 0 0 15px 0;
     padding-bottom: 8px;
     border-bottom: 1px solid #eee;
     color: #2c3e50;
+`;
+
+const AddButton = styled.button<{ disabled?: boolean }>`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background-color: ${props => props.disabled ? '#e0e0e0' : '#f0f7ff'};
+    color: ${props => props.disabled ? '#95a5a6' : '#3498db'};
+    border: 1px solid ${props => props.disabled ? '#d5d5d5' : '#d5e9f9'};
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+
+    &:hover:not(:disabled) {
+        background-color: #d5e9f9;
+    }
 `;
 
 const TwoColumnGrid = styled.div`
@@ -261,42 +475,101 @@ const TableHeader = styled.div`
     font-weight: 500;
 `;
 
-const HeaderCell = styled.div<{ wide?: boolean }>`
+const HeaderCell = styled.div<{ wide?: boolean; action?: boolean }>`
     padding: 12px 16px;
     font-size: 13px;
     color: #7f8c8d;
-    flex: ${props => props.wide ? 2 : 1};
+    flex: ${props => props.wide ? 2 : props.action ? 0.5 : 1};
 `;
 
-const TableRow = styled.div`
+const TableRow = styled.div<{ pending?: boolean }>`
     display: flex;
     border-bottom: 1px solid #eee;
+    background-color: ${props => props.pending ? '#f8f9fa' : 'white'};
+    opacity: ${props => props.pending ? 0.7 : 1};
 
     &:last-child {
         border-bottom: none;
     }
 `;
 
-const TableCell = styled.div<{ wide?: boolean }>`
+const TableCell = styled.div<{ wide?: boolean; colSpan?: number; action?: boolean }>`
     padding: 12px 16px;
     font-size: 14px;
     color: #34495e;
-    flex: ${props => props.wide ? 2 : 1};
+    flex: ${props => props.wide ? 2 : props.action ? 0.5 : props.colSpan ? props.colSpan : 1};
+`;
+
+const ServiceNameContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+`;
+
+const ServiceName = styled.div`
+    font-weight: 500;
+    color: #34495e;
+`;
+
+const PendingBadge = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: #95a5a6;
+    background-color: #f0f0f0;
+    padding: 3px 6px;
+    border-radius: 4px;
+    width: fit-content;
+`;
+
+const ActionButtons = styled.div`
+    display: flex;
+    gap: 6px;
+`;
+
+const ActionButton = styled.button<{ danger?: boolean }>`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background-color: ${props => props.danger ? '#fef5f5' : '#f0f7ff'};
+    color: ${props => props.danger ? '#e74c3c' : '#3498db'};
+    border: 1px solid ${props => props.danger ? '#fde8e8' : '#d5e9f9'};
+    border-radius: 4px;
+    cursor: pointer;
+    
+    &:hover {
+        background-color: ${props => props.danger ? '#fde8e8' : '#d5e9f9'};
+    }
 `;
 
 const TableFooter = styled.div`
     display: flex;
-    background-color: #f9f9f9;
+    background-color: #f9f9fa;
     border-top: 1px solid #eee;
     font-weight: 500;
 `;
 
-const FooterCell = styled.div<{ wide?: boolean; highlight?: boolean }>`
+const FooterCell = styled.div<{ wide?: boolean; highlight?: boolean; action?: boolean }>`
     padding: 12px 16px;
     font-size: 14px;
     color: ${props => props.highlight ? '#27ae60' : '#34495e'};
     font-weight: ${props => props.highlight ? '600' : '500'};
-    flex: ${props => props.wide ? 2 : 1};
+    flex: ${props => props.wide ? 2 : props.action ? 0.5 : 1};
+`;
+
+const TotalValue = styled.div<{ highlight?: boolean }>`
+    color: ${props => props.highlight ? '#27ae60' : '#34495e'};
+    font-weight: 600;
+`;
+
+const PendingValue = styled.div`
+    font-size: 12px;
+    color: #95a5a6;
+    font-weight: normal;
+    margin-top: 2px;
 `;
 
 const NotesContent = styled.div`

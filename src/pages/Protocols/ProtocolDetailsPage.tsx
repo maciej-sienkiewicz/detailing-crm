@@ -91,6 +91,7 @@ const ProtocolDetailsPage: React.FC = () => {
 
     // Update protocol data after changes
     const handleProtocolUpdate = (updatedProtocol: CarReceptionProtocol) => {
+        console.log('Protokół zaktualizowany:', updatedProtocol); // Dla debugowania
         setProtocol(updatedProtocol);
     };
 
@@ -179,19 +180,23 @@ const ProtocolDetailsPage: React.FC = () => {
     // Render the component based on active tab
 
     const renderTabContent = () => {
+        if (!protocol) {
+            return <div>Brak danych protokołu</div>;
+        }
+
         switch (activeTab) {
             case 'summary':
-                return <ProtocolSummary protocol={protocol!} />;
+                return <ProtocolSummary protocol={protocol} onProtocolUpdate={handleProtocolUpdate} />;
             case 'comments':
-                return <ProtocolComments protocol={protocol!} onProtocolUpdate={handleProtocolUpdate} />;
+                return <ProtocolComments protocol={protocol} onProtocolUpdate={handleProtocolUpdate} />;
             case 'invoices':
-                return <ProtocolInvoices protocol={protocol!} onProtocolUpdate={handleProtocolUpdate} />;
+                return <ProtocolInvoices protocol={protocol} onProtocolUpdate={handleProtocolUpdate} />;
             case 'client':
-                return <ProtocolClientInfo protocol={protocol!} />;
+                return <ProtocolClientInfo protocol={protocol} />;
             case 'vehicle':
-                return <ProtocolVehicleStatus protocol={protocol!} onProtocolUpdate={handleProtocolUpdate} />;
+                return <ProtocolVehicleStatus protocol={protocol} onProtocolUpdate={handleProtocolUpdate} />;
             default:
-                return <ProtocolSummary protocol={protocol!} />;
+                return <ProtocolSummary protocol={protocol} onProtocolUpdate={handleProtocolUpdate} />;
         }
     };
 
