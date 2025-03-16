@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import {
     CarReceptionProtocol,
-    ProtocolStatus,
-    DiscountType,
-    SelectedService,
     ClientExpanded,
+    DiscountType,
+    ProtocolStatus,
+    SelectedService,
     VehicleExpanded
 } from '../../../../types';
-import { addCarReceptionProtocol, updateCarReceptionProtocol } from '../../../../api/mocks/carReceptionMocks';
+import {addCarReceptionProtocol, updateCarReceptionProtocol} from '../../../../api/mocks/carReceptionMocks';
 
 // Import komponentów
 import FormHeader from './components/FormHeader';
@@ -20,14 +20,14 @@ import ClientSelectionModal from '../../../Protocols/components/ClientSelectionM
 import VehicleSelectionModal from '../../../Protocols/components/VehicleSelectionModal';
 
 // Import hooków
-import { useFormValidation } from './hooks/useFormValidation';
-import { useServiceCalculations } from './hooks/useServiceCalculations';
+import {useFormValidation} from './hooks/useFormValidation';
+import {useServiceCalculations} from './hooks/useServiceCalculations';
 
 // Import serwisów
-import { FormSearchService, SearchCriteria } from '../services/FormSearchService';
+import {FormSearchService, SearchCriteria} from '../services/FormSearchService';
 
 // Import styli
-import { FormContainer, Form, ErrorMessage } from './styles/styles';
+import {ErrorMessage, Form, FormContainer} from './styles/styles';
 
 interface CarReceptionFormProps {
     protocol: CarReceptionProtocol | null;
@@ -67,7 +67,7 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
             phone: '',
             notes: '',
             selectedServices: [],
-            status: ProtocolStatus.PENDING_APPROVAL // Domyślny status - Do zatwierdzenia
+            status: ProtocolStatus.SCHEDULED
         }
     );
 
@@ -96,6 +96,7 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
         calculateTotals,
         addService,
         removeService,
+        updateBasePrice,
         updateDiscountType,
         updateDiscountValue
     } = useServiceCalculations(formData.selectedServices || []);
@@ -397,6 +398,7 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
                     onRemoveService={removeService}
                     onDiscountTypeChange={updateDiscountType}
                     onDiscountValueChange={updateDiscountValue}
+                    onBasePriceChange={updateBasePrice}  // Nowa funkcja
                     calculateTotals={calculateTotals}
                 />
 

@@ -36,6 +36,41 @@ export const useServiceCalculations = (initialServices: SelectedService[] = []) 
         return updatedServices;
     };
 
+    // Zmiana ceny bazowej usługi
+    const updateBasePrice = (serviceId: string, newPrice: number) => {
+        const updatedServices = services.map(service => {
+            if (service.id === serviceId) {
+                // Zachowaj obecne wartości rabatu, ale przelicz cenę końcową na podstawie nowej ceny bazowej
+                let newFinalPrice = newPrice;
+
+                switch (service.discountType) {
+                    case DiscountType.PERCENTAGE:
+                        // Rabat procentowy - przelicz na podstawie procentu
+                        newFinalPrice = newPrice * (1 - service.discountValue / 100);
+                        break;
+                    case DiscountType.AMOUNT:
+                        // Rabat kwotowy - odejmij kwotę od nowej ceny bazowej
+                        newFinalPrice = Math.max(0, newPrice - service.discountValue);
+                        break;
+                    case DiscountType.FIXED_PRICE:
+                        // Cena stała - nie zmieniaj finalnej ceny
+                        newFinalPrice = service.discountValue;
+                        break;
+                }
+
+                return {
+                    ...service,
+                    price: newPrice,
+                    finalPrice: parseFloat(newFinalPrice.toFixed(2))
+                };
+            }
+            return service;
+        });
+
+        setServices(updatedServices);
+        return updatedServices;
+    };
+
     // Aktualizacja typu rabatu
     const updateDiscountType = (serviceId: string, discountType: DiscountType) => {
         const updatedServices = services.map(service => {
@@ -152,6 +187,7 @@ export const useServiceCalculations = (initialServices: SelectedService[] = []) 
         calculateTotals,
         addService,
         removeService,
+        updateBasePrice,
         updateDiscountType,
         updateDiscountValue
     };
