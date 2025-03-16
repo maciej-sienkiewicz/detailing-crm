@@ -84,7 +84,7 @@ const ActivityFilters: React.FC<ActivityFiltersProps> = ({
     };
 
     // Obsługa wyboru filtru
-    const handleFilterSelect = (filterType: string, value: string) => {
+    const handleFilterSelect = (filterType: "category" | "entity" | "user" | "all", value: string) => {
         // Tworzymy nową tablicę bez filtrów tego typu
         const updatedFilters = activeFilters.filter(filter => filter.type !== filterType);
 

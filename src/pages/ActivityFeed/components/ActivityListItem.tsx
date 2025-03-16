@@ -45,16 +45,14 @@ const ActivityListItem: React.FC<ActivityListItemProps> = ({ activity, icon }) =
     };
 
     // Domyślny tekst statusu
-    const getDefaultStatusText = (status: string): string => {
+    const getDefaultStatusText = (status: string | undefined | null): string => {
+        if (!status) return 'Informacja';
+
         switch (status) {
-            case 'success':
-                return 'Wykonano pomyślnie';
-            case 'error':
-                return 'Wystąpił błąd';
-            case 'pending':
-                return 'W trakcie realizacji';
-            default:
-                return '';
+            case 'success': return 'Wykonano pomyślnie';
+            case 'error': return 'Wystąpił błąd';
+            case 'pending': return 'W trakcie realizacji';
+            default: return 'Informacja';
         }
     };
 

@@ -17,7 +17,9 @@ import {
     FaSearchPlus,
     FaCogs,
     FaWindowMaximize,
-    FaClipboardCheck, FaChartBar
+    FaClipboardCheck,
+    FaChartBar,
+    FaRss
 } from 'react-icons/fa';
 
 // Dane menu głównego
@@ -35,6 +37,13 @@ const mainMenuItems: MainMenuItem[] = [
         label: 'Kalendarz',
         icon: <FaCalendarAlt />,
         path: '/calendar',
+        hasSubmenu: false
+    },
+    {
+        id: 'activity',
+        label: 'Aktualności',
+        icon: <FaRss />,
+        path: '/activity',
         hasSubmenu: false
     },
     {

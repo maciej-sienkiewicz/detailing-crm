@@ -11,7 +11,7 @@ import {
     FaCheckCircle,
     FaExclamationCircle
 } from 'react-icons/fa';
-import { ActivityItem } from '../../../types/activity';
+import {ActivityItem, ActivityStatus} from '../../../types/activity';
 import ActivityEntityLink from './ActivityEntityLink';
 
 interface ActivityDetailProps {
@@ -33,7 +33,7 @@ const ActivityDetail: React.FC<ActivityDetailProps> = ({
     };
 
     // Określenie koloru statusu
-    const getStatusColor = (status: string | undefined): string => {
+    const getStatusColor = (status: ActivityStatus | undefined): string => {
         if (!status) return '#7f8c8d';
 
         switch (status) {
@@ -59,7 +59,7 @@ const ActivityDetail: React.FC<ActivityDetailProps> = ({
     };
 
     // Domyślny tekst statusu
-    const getDefaultStatusText = (status: string | undefined): string => {
+    const getDefaultStatusText = (status: ActivityStatus | undefined): string => {
         if (!status) return 'Informacja';
 
         switch (status) {

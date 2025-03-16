@@ -77,7 +77,7 @@ const ActivityForm: React.FC<ActivityFormProps> = ({ isOpen, onClose, onActivity
     ];
 
     // Statusy aktywności
-    const statusOptions: Array<{id: ActivityStatus; label: string}> = [
+    const statusOptions: Array<{id: string; label: string}> = [
         { id: 'success', label: 'Sukces' },
         { id: 'pending', label: 'W trakcie' },
         { id: 'error', label: 'Błąd' }
@@ -201,9 +201,14 @@ const ActivityForm: React.FC<ActivityFormProps> = ({ isOpen, onClose, onActivity
                                         <Label htmlFor="status">Status</Label>
                                         <Select
                                             id="status"
-                                            value={status || ''}
-                                            onChange={(e) => setStatus(e.target.value as ActivityStatus)}
+                                            value={status || ''} // To zapewnia, że wartość nigdy nie będzie null
+                                            onChange={(e) => {
+                                                // Konwersja pustego stringa z powrotem na null jeśli potrzeba
+                                                const newStatus = e.target.value === '' ? null : e.target.value as ActivityStatus;
+                                                setStatus(newStatus);
+                                            }}
                                         >
+                                            <option value="">Wybierz status</option>
                                             {statusOptions.map(opt => (
                                                 <option key={opt.id} value={opt.id}>{opt.label}</option>
                                             ))}
