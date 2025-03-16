@@ -1,4 +1,3 @@
-// Modyfikacja ServiceSearch.tsx
 import React from 'react';
 import { FaSearch, FaPlus } from 'react-icons/fa';
 import {
@@ -22,6 +21,7 @@ interface ServiceSearchProps {
     onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onSelectService: (service: { id: string; name: string; price: number }) => void;
     onAddService: () => void;
+    onAddServiceDirect: (service: { id: string; name: string; price: number }) => void;
     allowCustomService: boolean;
 }
 
@@ -33,11 +33,20 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
                                                          onSearchChange,
                                                          onSelectService,
                                                          onAddService,
+                                                         onAddServiceDirect,
                                                          allowCustomService
                                                      }) => {
     const isCustomService = searchQuery.trim() !== '' &&
         searchResults.length === 0 &&
         !selectedServiceToAdd;
+
+    // Funkcja obsługująca kliknięcie na usługę z listy - od razu dodaje usługę
+    const handleServiceClick = (service: { id: string; name: string; price: number }) => {
+        // Najpierw aktualizujemy stan wybranej usługi (dla zachowania kompatybilności)
+        onSelectService(service);
+        // Od razu dodajemy usługę do tabeli
+        onAddServiceDirect(service);
+    };
 
     return (
         <SearchContainer>
@@ -60,7 +69,7 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
                         {searchResults.map(service => (
                             <SearchResultItem
                                 key={service.id}
-                                onClick={() => onSelectService(service)}
+                                onClick={() => handleServiceClick(service)}
                             >
                                 <div>{service.name}</div>
                                 <SearchResultPrice>{service.price.toFixed(2)} zł</SearchResultPrice>

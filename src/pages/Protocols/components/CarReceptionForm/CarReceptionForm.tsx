@@ -407,6 +407,24 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
         setPendingSubmit(false);
     };
 
+    const handleAddServiceDirect = (service: { id: string; name: string; price: number }) => {
+        const newService: Omit<SelectedService, 'finalPrice'> = {
+            id: service.id,
+            name: service.name,
+            price: service.price,
+            discountType: DiscountType.PERCENTAGE,
+            discountValue: 0
+        };
+
+        addService(newService);
+
+        // Resetowanie pola wyszukiwania
+        setSearchQuery('');
+        setSelectedServiceToAdd(null);
+        clearFieldError('selectedServices');
+        setShowResults(false);
+    };
+
     return (
         <FormContainer>
             <FormHeader
@@ -445,6 +463,7 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
                     onSearchChange={handleSearchChange}
                     onSelectService={handleSelectService}
                     onAddService={handleAddService}
+                    onAddServiceDirect={handleAddServiceDirect}
                     onRemoveService={removeService}
                     onDiscountTypeChange={updateDiscountType}
                     onDiscountValueChange={updateDiscountValue}

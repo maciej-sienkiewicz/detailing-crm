@@ -25,6 +25,7 @@ interface ServiceSectionProps {
     onBasePriceChange: (serviceId: string, newPrice: number) => void;
     calculateTotals: () => { totalPrice: number; totalDiscount: number; totalFinalPrice: number };
     allowCustomService: boolean;
+    onAddServiceDirect: (service: { id: string; name: string; price: number }) => void;
 }
 
 const ServiceSection: React.FC<ServiceSectionProps> = ({
@@ -37,6 +38,7 @@ const ServiceSection: React.FC<ServiceSectionProps> = ({
                                                            onSearchChange,
                                                            onSelectService,
                                                            onAddService,
+                                                           onAddServiceDirect,
                                                            onRemoveService,
                                                            onDiscountTypeChange,
                                                            onDiscountValueChange,
@@ -57,6 +59,7 @@ const ServiceSection: React.FC<ServiceSectionProps> = ({
                 onSearchChange={onSearchChange}
                 onSelectService={onSelectService}
                 onAddService={onAddService}
+                onAddServiceDirect={onAddServiceDirect}
                 allowCustomService={allowCustomService}
             />
 
