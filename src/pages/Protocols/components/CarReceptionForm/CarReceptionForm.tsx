@@ -9,6 +9,7 @@ import {
     VehicleImage
 } from '../../../../types';
 import { addCarReceptionProtocol, updateCarReceptionProtocol } from '../../../../api/mocks/carReceptionMocks';
+import ReferralSourceSection, { ReferralSource } from './components/ReferralSourceSection';
 
 // Import komponentów
 import FormHeader from './components/FormHeader';
@@ -79,7 +80,9 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
             notes: '',
             selectedServices: [],
             status: ProtocolStatus.SCHEDULED,
-            vehicleImages: [] // Inicjalizacja pustej tablicy zdjęć
+            vehicleImages: [],
+            referralSource: undefined,  // Change from null to undefined
+            otherSourceDetails: ''
         }
     );
 
@@ -222,6 +225,22 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
         clearFieldError('selectedServices');
     };
 
+    const handleReferralSourceChange = (source: ReferralSource | null) => {
+        // Use type assertion to tell TypeScript this is a valid value
+        const referralValue = source as CarReceptionProtocol['referralSource'];
+
+        setFormData({
+            ...formData,
+            referralSource: referralValue
+        });
+    };
+
+    const handleOtherSourceDetailsChange = (details: string) => {
+        setFormData({
+            ...formData,
+            otherSourceDetails: details
+        });
+    };
 
     // Obsługa wyszukiwania po polach formularza
     const handleSearchByField = async (field: 'licensePlate' | 'ownerName' | 'companyName' | 'taxId' | 'email' | 'phone') => {
@@ -452,6 +471,13 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
                     onSearchByField={handleSearchByField}
                 />
 
+                <ReferralSourceSection
+                    referralSource={formData.referralSource || null}
+                    otherSourceDetails={formData.otherSourceDetails || ''}
+                    onSourceChange={handleReferralSourceChange}
+                    onOtherDetailsChange={handleOtherSourceDetailsChange}
+                />
+
                 {/* Sekcja usług */}
                 <ServiceSection
                     searchQuery={searchQuery}
@@ -469,7 +495,7 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
                     onDiscountValueChange={updateDiscountValue}
                     onBasePriceChange={updateBasePrice}
                     calculateTotals={calculateTotals}
-                    allowCustomService={true} // Nowa właściwość
+                    allowCustomService={true}
                 />
 
                 {/* Nowa sekcja zdjęć */}

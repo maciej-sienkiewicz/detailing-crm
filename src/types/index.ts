@@ -88,6 +88,8 @@ export interface CarReceptionProtocol {
     createdAt: string;
     updatedAt: string;
     appointmentId?: string;
+    referralSource?: 'regular_customer' | 'recommendation' | 'search_engine' | 'social_media' | 'local_ad' | 'other';
+    otherSourceDetails?: string;
 
     // Dodane i istniejące rozszerzenia
     comments?: any[];
