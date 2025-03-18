@@ -33,6 +33,9 @@ const ClientInfoSection: React.FC<ClientInfoSectionProps> = ({
         }
     };
 
+    // Sprawdzenie, czy którekolwiek z pól kontaktowych jest wypełnione
+    const hasContactInfo = !!formData.phone || !!formData.email;
+
     return (
         <FormSection>
             <SectionTitle>Dane właściciela</SectionTitle>
@@ -80,33 +83,39 @@ const ClientInfoSection: React.FC<ClientInfoSectionProps> = ({
 
             <FormRow>
                 <FormGroup>
-                    <Label htmlFor="email">Email*</Label>
+                    <Label htmlFor="email">Email{!formData.phone ? '*' : ''}</Label>
                     <SearchField
                         id="email"
                         name="email"
                         value={formData.email || ''}
                         onChange={onChange}
                         placeholder="np. jan.kowalski@example.com"
-                        required
+                        required={!formData.phone}
                         onSearchClick={() => handleSearchClick('email')}
                         error={errors.email}
                     />
                 </FormGroup>
 
                 <FormGroup>
-                    <Label htmlFor="phone">Telefon*</Label>
+                    <Label htmlFor="phone">Telefon{!formData.email ? '*' : ''}</Label>
                     <SearchField
                         id="phone"
                         name="phone"
                         value={formData.phone || ''}
                         onChange={onChange}
                         placeholder="np. +48 123 456 789"
-                        required
+                        required={!formData.email}
                         onSearchClick={() => handleSearchClick('phone')}
                         error={errors.phone}
                     />
                 </FormGroup>
             </FormRow>
+
+            {!hasContactInfo && errors.contactInfo && (
+                <ErrorText style={{ marginTop: '5px' }}>
+                    {errors.contactInfo}
+                </ErrorText>
+            )}
         </FormSection>
     );
 };

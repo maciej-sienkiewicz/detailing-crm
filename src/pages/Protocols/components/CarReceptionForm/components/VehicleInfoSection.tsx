@@ -75,16 +75,14 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                 <SectionTitle>Dane pojazdu</SectionTitle>
                 <FormRow>
                     <FormGroup>
-                        <Label htmlFor="licensePlate">Tablica rejestracyjna*</Label>
+                        <Label htmlFor="licensePlate">Tablica rejestracyjna</Label>
                         <SearchField
                             id="licensePlate"
                             name="licensePlate"
                             value={formData.licensePlate || ''}
                             onChange={onChange}
                             placeholder="np. WA12345"
-                            required
                             onSearchClick={() => handleSearchClick('licensePlate')}
-                            error={errors.licensePlate}
                         />
                     </FormGroup>
 
@@ -117,7 +115,7 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
 
                 <FormRow>
                     <FormGroup>
-                        <Label htmlFor="productionYear">Rok produkcji*</Label>
+                        <Label htmlFor="productionYear">Rok produkcji</Label>
                         <Input
                             id="productionYear"
                             name="productionYear"
@@ -126,9 +124,7 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                             max={new Date().getFullYear() + 1}
                             value={formData.productionYear || ''}
                             onChange={onChange}
-                            required
                         />
-                        {errors.productionYear && <ErrorText>{errors.productionYear}</ErrorText>}
                     </FormGroup>
 
                     {isFullProtocol && (
