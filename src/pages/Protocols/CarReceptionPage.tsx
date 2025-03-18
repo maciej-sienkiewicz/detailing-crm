@@ -20,6 +20,8 @@ const CarReceptionPage: React.FC = () => {
     const [showForm, setShowForm] = useState(false);
     const [editingProtocol, setEditingProtocol] = useState<CarReceptionProtocol | null>(null);
 
+    const [isFullProtocol, setIsFullProtocol] = useState(true);
+
     // Sprawdzamy, czy mamy dane do stworzenia protokołu z wizyty
     const protocolDataFromAppointment = location.state?.protocolData;
     const appointmentId = location.state?.appointmentId;
@@ -130,6 +132,7 @@ const CarReceptionPage: React.FC = () => {
                             availableServices={availableServices}
                             initialData={protocolDataFromAppointment}
                             appointmentId={appointmentId}
+                            isFullProtocol={isFullProtocol}  // Przekaż flagę do formularza
                             onSave={handleSaveProtocol}
                             onCancel={() => {
                                 setShowForm(false);

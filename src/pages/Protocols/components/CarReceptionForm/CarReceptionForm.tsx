@@ -46,6 +46,7 @@ interface CarReceptionFormProps {
     availableServices: Array<{ id: string; name: string; price: number }>;
     initialData?: Partial<CarReceptionProtocol>;
     appointmentId?: string;
+    isFullProtocol?: boolean; // Nowa flaga
     onSave: (protocol: CarReceptionProtocol) => void;
     onCancel: () => void;
 }
@@ -55,6 +56,7 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
                                                                       availableServices,
                                                                       initialData,
                                                                       appointmentId,
+                                                                      isFullProtocol,
                                                                       onSave,
                                                                       onCancel
                                                                   }) => {
@@ -461,6 +463,7 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
                     errors={errors}
                     onChange={handleChange}
                     onSearchByField={handleSearchByField}
+                    isFullProtocol={isFullProtocol}
                 />
 
                 {/* Sekcja danych klienta */}

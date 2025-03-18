@@ -22,13 +22,15 @@ interface VehicleInfoSectionProps {
     errors: FormErrors;
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
     onSearchByField?: (field: 'licensePlate') => void;
+    isFullProtocol?: boolean;
 }
 
 const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                                                                    formData,
                                                                    errors,
                                                                    onChange,
-                                                                   onSearchByField
+                                                                   onSearchByField,
+                                                                   isFullProtocol = true
                                                                }) => {
     const handleSearchClick = (field: 'licensePlate') => {
         if (onSearchByField) {
@@ -129,7 +131,8 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                         {errors.productionYear && <ErrorText>{errors.productionYear}</ErrorText>}
                     </FormGroup>
 
-                    <FormGroup>
+                    {isFullProtocol && (
+                        <FormGroup>
                         <Label htmlFor="mileage">Przebieg (km)*</Label>
                         <Input
                             id="mileage"
@@ -142,33 +145,36 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                         />
                         {errors.mileage && <ErrorText>{errors.mileage}</ErrorText>}
                     </FormGroup>
+                    )}
                 </FormRow>
 
-                <FormRow>
-                    <CheckboxGroup>
-                        <CheckboxLabel>
-                            <Checkbox
-                                name="keysProvided"
-                                checked={formData.keysProvided || false}
-                                onChange={onChange}
-                                type="checkbox"
-                            />
-                            Przekazano kluczyk
-                        </CheckboxLabel>
-                    </CheckboxGroup>
+                {isFullProtocol && (
+                    <FormRow>
+                        <CheckboxGroup>
+                            <CheckboxLabel>
+                                <Checkbox
+                                    name="keysProvided"
+                                    checked={formData.keysProvided || false}
+                                    onChange={onChange}
+                                    type="checkbox"
+                                />
+                                Przekazano kluczyk
+                            </CheckboxLabel>
+                        </CheckboxGroup>
 
-                    <CheckboxGroup>
-                        <CheckboxLabel>
-                            <Checkbox
-                                name="documentsProvided"
-                                checked={formData.documentsProvided || false}
-                                onChange={onChange}
-                                type="checkbox"
-                            />
-                            Przekazano dokumenty
-                        </CheckboxLabel>
-                    </CheckboxGroup>
-                </FormRow>
+                        <CheckboxGroup>
+                            <CheckboxLabel>
+                                <Checkbox
+                                    name="documentsProvided"
+                                    checked={formData.documentsProvided || false}
+                                    onChange={onChange}
+                                    type="checkbox"
+                                />
+                                Przekazano dokumenty
+                            </CheckboxLabel>
+                        </CheckboxGroup>
+                    </FormRow>
+                )}
             </FormSection>
         </>
     );
