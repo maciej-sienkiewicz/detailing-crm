@@ -19,13 +19,18 @@ const CarReceptionPage: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [showForm, setShowForm] = useState(false);
     const [editingProtocol, setEditingProtocol] = useState<CarReceptionProtocol | null>(null);
-
-    const [isFullProtocol, setIsFullProtocol] = useState(true);
+    const [formData, setFormData] = useState<Partial<CarReceptionProtocol>>({});
 
     // Sprawdzamy, czy mamy dane do stworzenia protokołu z wizyty
     const protocolDataFromAppointment = location.state?.protocolData;
     const appointmentId = location.state?.appointmentId;
     const editProtocolId = location.state?.editProtocolId;
+    const startDateFromCalendar = location.state?.startDate;
+    const isFullProtocolFromNav = location.state?.isFullProtocol !== undefined
+        ? location.state.isFullProtocol
+        : true; // domyślnie true, jeśli nie określono
+
+    const [isFullProtocol, setIsFullProtocol] = useState(isFullProtocolFromNav);
 
     // Pobieranie danych
     useEffect(() => {
@@ -43,6 +48,21 @@ const CarReceptionPage: React.FC = () => {
                 // Jeśli mamy dane z wizyty, automatycznie otworzymy formularz
                 if (protocolDataFromAppointment) {
                     setEditingProtocol(null); // To nie jest edycja, tylko nowy protokół
+                    setShowForm(true);
+                }
+
+                // Jeśli przyszliśmy z kalendarza z nową wizytą
+                if (startDateFromCalendar) {
+                    const today = new Date().toISOString().split('T')[0];
+                    setEditingProtocol(null);
+                    const initialData = {
+                        startDate: startDateFromCalendar,
+                        endDate: startDateFromCalendar
+                    };
+                    setFormData(prev => ({
+                        ...prev,
+                        ...initialData
+                    }));
                     setShowForm(true);
                 }
 
@@ -65,7 +85,7 @@ const CarReceptionPage: React.FC = () => {
         };
 
         fetchData();
-    }, [protocolDataFromAppointment, editProtocolId]);
+    }, [protocolDataFromAppointment, editProtocolId, startDateFromCalendar]);
 
 
     // Obsługa dodawania nowego protokołu
@@ -130,7 +150,7 @@ const CarReceptionPage: React.FC = () => {
                         <CarReceptionForm
                             protocol={editingProtocol}
                             availableServices={availableServices}
-                            initialData={protocolDataFromAppointment}
+                            initialData={protocolDataFromAppointment || formData}
                             appointmentId={appointmentId}
                             isFullProtocol={isFullProtocol}  // Przekaż flagę do formularza
                             onSave={handleSaveProtocol}

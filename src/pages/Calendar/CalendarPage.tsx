@@ -5,6 +5,7 @@ import AppointmentCalendar from '../../components/calendar/Calendar';
 import Modal from '../../components/common/Modal';
 import AppointmentForm from '../../components/calendar/AppointmentForm';
 import AppointmentDetails from '../../components/calendar/AppointmentDetails';
+import ConfirmationDialog from '../../components/common/ConfirmationDialog';
 import { Appointment, AppointmentStatus } from '../../types';
 import {
     fetchAppointments,
@@ -27,6 +28,7 @@ const CalendarPage: React.FC = () => {
     const [showNewAppointmentModal, setShowNewAppointmentModal] = useState(false);
     const [showAppointmentDetailsModal, setShowAppointmentDetailsModal] = useState(false);
     const [showEditAppointmentModal, setShowEditAppointmentModal] = useState(false);
+    const [showNewVisitConfirmation, setShowNewVisitConfirmation] = useState(false);
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
     // Pobieranie danych przy montowaniu komponentu
@@ -101,6 +103,25 @@ const CalendarPage: React.FC = () => {
     // Obsługa tworzenia nowej wizyty
     const handleAppointmentCreate = (start: Date, end: Date) => {
         setSelectedDate(start);
+        setShowNewVisitConfirmation(true);
+    };
+
+    // Obsługa potwierdzenia tworzenia nowej wizyty
+    const handleConfirmNewVisit = () => {
+        setShowNewVisitConfirmation(false);
+        // Przekierowanie do strony protokołu z flagą isFullProtocol=false
+        navigate('/orders/scheduled', {
+            state: {
+                startDate: selectedDate.toISOString().split('T')[0],
+                isFullProtocol: false
+            }
+        });
+    };
+
+    // Obsługa anulowania tworzenia nowej wizyty
+    const handleCancelNewVisit = () => {
+        setShowNewVisitConfirmation(false);
+        // Opcjonalnie możemy tutaj otworzyć standardowy formularz
         setShowNewAppointmentModal(true);
     };
 
@@ -282,6 +303,17 @@ const CalendarPage: React.FC = () => {
                     />
                 </Modal>
             )}
+
+            {/* Dialog potwierdzenia nowej wizyty */}
+            <ConfirmationDialog
+                isOpen={showNewVisitConfirmation}
+                title="Nowa wizyta"
+                message="Czy chcesz zaplanować nową wizytę?"
+                confirmText="Tak"
+                cancelText="Nie, dodaję przypomnienie"
+                onConfirm={handleConfirmNewVisit}
+                onCancel={handleCancelNewVisit}
+            />
         </CalendarPageContainer>
     );
 };

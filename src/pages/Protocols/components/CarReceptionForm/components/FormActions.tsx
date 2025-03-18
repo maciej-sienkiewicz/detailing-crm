@@ -5,12 +5,14 @@ interface FormActionsProps {
     onCancel: () => void;
     isLoading: boolean;
     isEditing: boolean;
+    isFullProtocol?: boolean;
 }
 
 const FormActions: React.FC<FormActionsProps> = ({
                                                      onCancel,
                                                      isLoading,
-                                                     isEditing
+                                                     isEditing,
+                                                     isFullProtocol = true
                                                  }) => {
     return (
         <ActionsContainer>
@@ -20,7 +22,7 @@ const FormActions: React.FC<FormActionsProps> = ({
             <Button type="submit" primary disabled={isLoading}>
                 {isLoading
                     ? 'Zapisywanie...'
-                    : (isEditing ? 'Zapisz zmiany' : 'Utwórz protokół')
+                    : (isEditing ? 'Zapisz zmiany' : (isFullProtocol ? 'Utwórz protokół' : 'Zaplanuj wizytę'))
                 }
             </Button>
         </ActionsContainer>

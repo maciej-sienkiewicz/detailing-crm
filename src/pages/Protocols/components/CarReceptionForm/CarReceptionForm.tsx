@@ -451,6 +451,7 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
             <FormHeader
                 isEditing={!!protocol}
                 appointmentId={appointmentId}
+                isFullProtocol={isFullProtocol}
             />
 
             {error && <ErrorMessage>{error}</ErrorMessage>}
@@ -518,6 +519,7 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
                     onCancel={onCancel}
                     isLoading={loading}
                     isEditing={!!protocol}
+                    isFullProtocol={isFullProtocol}
                 />
             </Form>
 
