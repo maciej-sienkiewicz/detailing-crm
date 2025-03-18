@@ -1,3 +1,4 @@
+// src/pages/Protocols/components/AddServiceModal.tsx
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { FaPlus, FaSearch, FaMobileAlt, FaTimes, FaCheck, FaEdit } from 'react-icons/fa';
@@ -77,6 +78,39 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
             // W przeciwnym razie dodaj ją
             setSelectedServices([...selectedServices, { ...service }]);
         }
+    };
+
+    // Obsługa dodania niestandardowej usługi
+    const handleAddCustomService = () => {
+        if (!searchQuery.trim()) return;
+
+        // Sprawdź czy usługa o tej nazwie nie jest już wybrana
+        if (selectedServices.some(s => s.name.toLowerCase() === searchQuery.trim().toLowerCase())) {
+            alert("Usługa o podanej nazwie jest już na liście wybranych usług.");
+            return;
+        }
+
+        // Sprawdź czy nie próbujemy dodać usługi z dostępnych serwisów
+        const existingService = availableServices.find(s =>
+            s.name.toLowerCase() === searchQuery.trim().toLowerCase()
+        );
+
+        if (existingService) {
+            // Jeśli to już istniejąca usługa, po prostu ją dodaj
+            toggleServiceSelection(existingService);
+            return;
+        }
+
+        // Utwórz nową niestandardową usługę
+        const customService: SelectedServiceWithPrice = {
+            id: `custom-${Date.now()}`,
+            name: searchQuery.trim(),
+            price: 0, // Domyślna cena zero
+            customPrice: 0
+        };
+
+        setSelectedServices([...selectedServices, customService]);
+        setSearchQuery(''); // Wyczyść pole wyszukiwania
     };
 
     const handleAddServices = () => {
@@ -212,6 +246,11 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         };
     }, [editingServiceId, editingPrice]);
 
+    // Sprawdza czy wpisana nazwa jest niestandardową usługą (nie istnieje w dostępnych usługach)
+    const isCustomService = searchQuery.trim() !== '' &&
+        !filteredServices.some(s => s.name.toLowerCase() === searchQuery.trim().toLowerCase()) &&
+        !selectedServices.some(s => s.name.toLowerCase() === searchQuery.trim().toLowerCase());
+
     if (!isOpen) return null;
 
     return (
@@ -235,15 +274,28 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                             <SearchIcon><FaSearch /></SearchIcon>
                             <SearchInput
                                 type="text"
-                                placeholder="Wyszukaj usługę..."
+                                placeholder="Wyszukaj usługę lub wpisz nazwę niestandardowej usługi..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
                         </SearchInputWrapper>
+
+                        {isCustomService && (
+                            <CustomServiceInfo>
+                                Niestandardowa usługa - po dodaniu należy ustawić cenę
+                            </CustomServiceInfo>
+                        )}
+
+                        <AddCustomButton
+                            onClick={handleAddCustomService}
+                            disabled={!searchQuery.trim() || selectedServices.some(s => s.name.toLowerCase() === searchQuery.trim().toLowerCase())}
+                        >
+                            <FaPlus /> {isCustomService ? "Dodaj niestandardową usługę" : "Dodaj do listy"}
+                        </AddCustomButton>
                     </SearchContainer>
 
                     <ServicesList>
-                        {filteredServices.length === 0 ? (
+                        {filteredServices.length === 0 && !isCustomService ? (
                             <EmptySearchResults>
                                 Nie znaleziono usług spełniających kryteria wyszukiwania
                             </EmptySearchResults>
@@ -467,6 +519,9 @@ const SectionTitle = styled.h3`
 
 const SearchContainer = styled.div`
     margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 `;
 
 const SearchInputWrapper = styled.div`
@@ -493,6 +548,38 @@ const SearchInput = styled.input`
         outline: none;
         border-color: #3498db;
         box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+    }
+`;
+
+const CustomServiceInfo = styled.div`
+    font-size: 12px;
+    color: #7f8c8d;
+    font-style: italic;
+    margin-top: -5px;
+`;
+
+const AddCustomButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #f0f7ff;
+    color: #3498db;
+    border: 1px solid #d5e9f9;
+    border-radius: 4px;
+    padding: 8px 15px;
+    font-size: 14px;
+    cursor: pointer;
+    align-self: flex-start;
+
+    &:hover:not(:disabled) {
+        background-color: #d5e9f9;
+    }
+
+    &:disabled {
+        background-color: #f5f5f5;
+        color: #bbb;
+        border-color: #ddd;
+        cursor: not-allowed;
     }
 `;
 
