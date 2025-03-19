@@ -1,20 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { FaPlus, FaEdit, FaTrash, FaCarSide, FaFileAlt } from 'react-icons/fa';
-import {
-    fetchCarReceptionProtocols,
-    deleteCarReceptionProtocol,
-    fetchAvailableServices
-} from '../../api/mocks/carReceptionMocks';
+import { ProtocolListItem, ProtocolStatus } from '../../types/protocol';
 import { CarReceptionProtocol } from '../../types';
 import { CarReceptionForm } from './components/CarReceptionForm/CarReceptionForm';
 import { useLocation, useNavigate } from 'react-router-dom';
-import {carReceptionApi} from "../../api/carReceptionApi";
+import { protocolsApi } from '../../api/protocolsApi';
+import { fetchAvailableServices } from '../../api/mocks/carReceptionMocks';
 
 const CarReceptionPage: React.FC = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const [protocols, setProtocols] = useState<CarReceptionProtocol[]>([]);
+    const [protocols, setProtocols] = useState<ProtocolListItem[]>([]);
     const [availableServices, setAvailableServices] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -38,11 +35,13 @@ const CarReceptionPage: React.FC = () => {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const [protocolsData, servicesData] = await Promise.all([
-                    fetchCarReceptionProtocols(),
-                    fetchAvailableServices()
-                ]);
+                // Używamy nowego API do pobierania listy protokołów
+                const protocolsData = await protocolsApi.getProtocolsList();
+                console.log(protocolsData);
                 setProtocols(protocolsData);
+
+                // Pobieramy dostępne usługi
+                const servicesData = await fetchAvailableServices();
                 setAvailableServices(servicesData);
                 setError(null);
 
@@ -67,14 +66,19 @@ const CarReceptionPage: React.FC = () => {
                     setShowForm(true);
                 }
 
-                // Jeśli mamy ID protokołu do edycji, znajdź go i otwórz formularz
+                // Jeśli mamy ID protokołu do edycji, pobieramy go i otwieramy formularz
                 if (editProtocolId) {
-                    const protocolToEdit = protocolsData.find(p => p.id === editProtocolId);
-                    if (protocolToEdit) {
-                        setEditingProtocol(protocolToEdit);
-                        setShowForm(true);
-                    } else {
-                        setError('Nie udało się znaleźć protokołu do edycji');
+                    try {
+                        const protocolToEdit = await protocolsApi.getProtocolDetails(editProtocolId);
+                        if (protocolToEdit) {
+                            setEditingProtocol(protocolToEdit);
+                            setShowForm(true);
+                        } else {
+                            setError('Nie udało się znaleźć protokołu do edycji');
+                        }
+                    } catch (err) {
+                        setError('Nie udało się pobrać protokołu do edycji');
+                        console.error('Error fetching protocol for edit:', err);
                     }
                 }
             } catch (err) {
@@ -88,7 +92,6 @@ const CarReceptionPage: React.FC = () => {
         fetchData();
     }, [protocolDataFromAppointment, editProtocolId, startDateFromCalendar]);
 
-
     // Obsługa dodawania nowego protokołu
     const handleAddProtocol = () => {
         const today = new Date().toISOString().split('T')[0];
@@ -97,14 +100,28 @@ const CarReceptionPage: React.FC = () => {
     };
 
     // Obsługa przejścia do szczegółów protokołu
-    const handleViewProtocol = (protocol: CarReceptionProtocol) => {
+    const handleViewProtocol = (protocol: ProtocolListItem) => {
         navigate(`/orders/car-reception/${protocol.id}`);
     };
 
     // Obsługa edytowania protokołu
-    const handleEditProtocol = (protocol: CarReceptionProtocol) => {
-        setEditingProtocol(protocol);
-        setShowForm(true);
+    const handleEditProtocol = async (protocolId: string) => {
+        try {
+            setLoading(true);
+            const protocolDetails = await protocolsApi.getProtocolDetails(protocolId);
+
+            if (protocolDetails) {
+                setEditingProtocol(protocolDetails);
+                setShowForm(true);
+            } else {
+                setError('Nie udało się pobrać danych protokołu do edycji');
+            }
+        } catch (err) {
+            setError('Błąd podczas pobierania danych protokołu do edycji');
+            console.error('Error fetching protocol for edit:', err);
+        } finally {
+            setLoading(false);
+        }
     };
 
     // Obsługa usunięcia protokołu
@@ -112,7 +129,7 @@ const CarReceptionPage: React.FC = () => {
         if (window.confirm('Czy na pewno chcesz usunąć ten protokół?')) {
             try {
                 // Używamy nowego API do usuwania
-                const success = await carReceptionApi.deleteCarReceptionProtocol(id);
+                const success = await protocolsApi.deleteProtocol(id);
 
                 if (success) {
                     setProtocols(protocols.filter(protocol => protocol.id !== id));
@@ -121,19 +138,24 @@ const CarReceptionPage: React.FC = () => {
                 }
             } catch (err) {
                 setError('Nie udało się usunąć protokołu');
+                console.error('Error deleting protocol:', err);
             }
         }
     };
 
     // Obsługa zapisania protokołu
     const handleSaveProtocol = (protocol: CarReceptionProtocol) => {
-        if (editingProtocol) {
-            // Aktualizacja istniejącego protokołu
-            setProtocols(protocols.map(p => p.id === protocol.id ? protocol : p));
-        } else {
-            // Dodanie nowego protokołu
-            setProtocols([...protocols, protocol]);
-        }
+        // Po zapisaniu lub aktualizacji, odświeżamy listę protokołów
+        const fetchUpdatedProtocols = async () => {
+            try {
+                const protocolsData = await protocolsApi.getProtocolsList();
+                setProtocols(protocolsData);
+            } catch (err) {
+                console.error('Error refreshing protocols list:', err);
+            }
+        };
+
+        fetchUpdatedProtocols();
         setShowForm(false);
         setEditingProtocol(null);
     };
@@ -159,7 +181,7 @@ const CarReceptionPage: React.FC = () => {
                             availableServices={availableServices}
                             initialData={protocolDataFromAppointment || formData}
                             appointmentId={appointmentId}
-                            isFullProtocol={isFullProtocol}  // Przekaż flagę do formularza
+                            isFullProtocol={isFullProtocol}
                             onSave={handleSaveProtocol}
                             onCancel={() => {
                                 setShowForm(false);
@@ -188,30 +210,30 @@ const CarReceptionPage: React.FC = () => {
                                         <TableRow key={protocol.id} onClick={() => handleViewProtocol(protocol)}>
                                             <TableCell>
                                                 <CarInfo>
-                                                    <strong>{protocol.make} {protocol.model}</strong>
-                                                    <span>Rok: {protocol.productionYear}</span>
+                                                    <strong>{protocol.vehicle.make} {protocol.vehicle.model}</strong>
+                                                    <span>Rok: {protocol.vehicle.productionYear}</span>
                                                 </CarInfo>
                                             </TableCell>
                                             <TableCell>
                                                 <DateRange>
-                                                    <span>Od: {formatDate(protocol.startDate)}</span>
-                                                    <span>Do: {formatDate(protocol.endDate)}</span>
+                                                    <span>Od: {formatDate(protocol.period.startDate)}</span>
+                                                    <span>Do: {formatDate(protocol.period.endDate)}</span>
                                                 </DateRange>
                                             </TableCell>
                                             <TableCell>
                                                 <OwnerInfo>
-                                                    <div>{protocol.ownerName}</div>
-                                                    {protocol.companyName && (
-                                                        <CompanyInfo>{protocol.companyName}</CompanyInfo>
+                                                    <div>{protocol.owner.name}</div>
+                                                    {protocol.owner.companyName && (
+                                                        <CompanyInfo>{protocol.owner.companyName}</CompanyInfo>
                                                     )}
                                                 </OwnerInfo>
                                             </TableCell>
                                             <TableCell>
-                                                <LicensePlate>{protocol.licensePlate}</LicensePlate>
+                                                <LicensePlate>{protocol.vehicle.licensePlate}</LicensePlate>
                                             </TableCell>
                                             <TableCell onClick={(e) => e.stopPropagation()}>
                                                 <ActionButtons>
-                                                    <ActionButton onClick={() => handleEditProtocol(protocol)}>
+                                                    <ActionButton onClick={() => handleEditProtocol(protocol.id)}>
                                                         <FaEdit />
                                                     </ActionButton>
                                                     <ActionButton danger onClick={() => handleDeleteProtocol(protocol.id)}>

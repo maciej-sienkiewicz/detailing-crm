@@ -2,6 +2,27 @@ import { apiClient } from './apiClient';
 import { ProtocolListItem, ProtocolStatus } from '../types/protocol';
 import { CarReceptionProtocol } from '../types';
 
+// Funkcja pomocnicza do konwersji ze snake_case na camelCase
+const convertSnakeToCamel = (data: any): any => {
+    if (data === null || data === undefined || typeof data !== 'object') {
+        return data;
+    }
+
+    if (Array.isArray(data)) {
+        return data.map(item => convertSnakeToCamel(item));
+    }
+
+    return Object.keys(data).reduce((result, key) => {
+        // Konwertuj klucz ze snake_case na camelCase
+        const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+
+        // Rekurencyjnie konwertuj wartość jeśli jest obiektem
+        result[camelKey] = convertSnakeToCamel(data[key]);
+
+        return result;
+    }, {} as Record<string, any>);
+};
+
 // Interfejs dla parametrów filtrowania
 interface ProtocolFilterParams {
     clientName?: string;
@@ -29,7 +50,13 @@ export const protocolsApi = {
             if (filters.startDate) queryParams.startDate = filters.startDate;
             if (filters.endDate) queryParams.endDate = filters.endDate;
 
-            return await apiClient.get<ProtocolListItem[]>('/receptions/list', queryParams);
+            // Pobierz dane z API
+            const rawData = await apiClient.get<any[]>('/receptions/list', queryParams);
+
+            // Przekształć dane ze snake_case na camelCase
+            const transformedData = convertSnakeToCamel(rawData) as ProtocolListItem[];
+
+            return transformedData;
         } catch (error) {
             console.error('Error fetching protocols list:', error);
             return [];
@@ -41,7 +68,13 @@ export const protocolsApi = {
      */
     getProtocolDetails: async (id: string): Promise<CarReceptionProtocol | null> => {
         try {
-            return await apiClient.get<CarReceptionProtocol>(`/receptions/${id}`);
+            // Pobierz dane z API
+            const rawData = await apiClient.get<any>(`/receptions/${id}`);
+
+            // Przekształć dane ze snake_case na camelCase
+            const transformedData = convertSnakeToCamel(rawData) as CarReceptionProtocol;
+
+            return transformedData;
         } catch (error) {
             console.error(`Error fetching protocol details (ID: ${id}):`, error);
             return null;
@@ -53,7 +86,16 @@ export const protocolsApi = {
      */
     createProtocol: async (protocol: Omit<CarReceptionProtocol, 'id'>): Promise<CarReceptionProtocol | null> => {
         try {
-            return await apiClient.post<CarReceptionProtocol>('/receptions', protocol);
+            // Przekształć dane z camelCase na snake_case (dla API)
+            const protocolToSnakeCase = convertCamelToSnake(protocol);
+
+            // Wyślij dane do API
+            const rawResponse = await apiClient.post<any>('/receptions', protocolToSnakeCase);
+
+            // Przekształć odpowiedź ze snake_case na camelCase
+            const transformedResponse = convertSnakeToCamel(rawResponse) as CarReceptionProtocol;
+
+            return transformedResponse;
         } catch (error) {
             console.error('Error creating protocol:', error);
             return null;
@@ -65,7 +107,16 @@ export const protocolsApi = {
      */
     updateProtocol: async (protocol: CarReceptionProtocol): Promise<CarReceptionProtocol | null> => {
         try {
-            return await apiClient.put<CarReceptionProtocol>(`/receptions/${protocol.id}`, protocol);
+            // Przekształć dane z camelCase na snake_case (dla API)
+            const protocolToSnakeCase = convertCamelToSnake(protocol);
+
+            // Wyślij dane do API
+            const rawResponse = await apiClient.put<any>(`/receptions/${protocol.id}`, protocolToSnakeCase);
+
+            // Przekształć odpowiedź ze snake_case na camelCase
+            const transformedResponse = convertSnakeToCamel(rawResponse) as CarReceptionProtocol;
+
+            return transformedResponse;
         } catch (error) {
             console.error(`Error updating protocol (ID: ${protocol.id}):`, error);
             return null;
@@ -77,7 +128,17 @@ export const protocolsApi = {
      */
     updateProtocolStatus: async (id: string, status: ProtocolStatus): Promise<CarReceptionProtocol | null> => {
         try {
-            return await apiClient.patch<CarReceptionProtocol>(`/receptions/${id}/status`, { status });
+            // Przekształć dane z camelCase na snake_case (dla API)
+            const statusData = { status };
+            const statusToSnakeCase = convertCamelToSnake(statusData);
+
+            // Wyślij dane do API
+            const rawResponse = await apiClient.patch<any>(`/receptions/${id}/status`, statusToSnakeCase);
+
+            // Przekształć odpowiedź ze snake_case na camelCase
+            const transformedResponse = convertSnakeToCamel(rawResponse) as CarReceptionProtocol;
+
+            return transformedResponse;
         } catch (error) {
             console.error(`Error updating protocol status (ID: ${id}):`, error);
             return null;
@@ -96,4 +157,25 @@ export const protocolsApi = {
             return false;
         }
     }
+};
+
+// Funkcja pomocnicza do konwersji z camelCase na snake_case (dla wysyłania danych do API)
+const convertCamelToSnake = (data: any): any => {
+    if (data === null || data === undefined || typeof data !== 'object') {
+        return data;
+    }
+
+    if (Array.isArray(data)) {
+        return data.map(item => convertCamelToSnake(item));
+    }
+
+    return Object.keys(data).reduce((result, key) => {
+        // Konwertuj klucz z camelCase na snake_case
+        const snakeKey = key.replace(/([A-Z])/g, (_, letter) => `_${letter.toLowerCase()}`);
+
+        // Rekurencyjnie konwertuj wartość jeśli jest obiektem
+        result[snakeKey] = convertCamelToSnake(data[key]);
+
+        return result;
+    }, {} as Record<string, any>);
 };
