@@ -1,12 +1,15 @@
-// Typy dla odpowiedzi z API dla protokołów przyjęcia pojazdów w widoku listy
+// src/types/protocol.ts
+// Typy związane z protokołami przyjęcia pojazdów
+
+import { SelectedService } from './common';
 
 // Statusy protokołu
 export enum ProtocolStatus {
-    SCHEDULED = 'SCHEDULED',
-    PENDING_APPROVAL = 'PENDING_APPROVAL',
-    IN_PROGRESS = 'IN_PROGRESS',
-    READY_FOR_PICKUP = 'READY_FOR_PICKUP',
-    COMPLETED = 'COMPLETED'
+    SCHEDULED = 'SCHEDULED',                  // Zaplanowano
+    PENDING_APPROVAL = 'PENDING_APPROVAL',    // Oczekuje zatwierdzenia
+    IN_PROGRESS = 'IN_PROGRESS',              // W realizacji
+    READY_FOR_PICKUP = 'READY_FOR_PICKUP',    // Oczekiwanie na odbiór
+    COMPLETED = 'COMPLETED'                   // Wydano/zakończono
 }
 
 // Etykiety dla statusów protokołów
@@ -27,7 +30,53 @@ export const ProtocolStatusColors: Record<ProtocolStatus, string> = {
     [ProtocolStatus.COMPLETED]: '#7f8c8d'         // Szary
 };
 
-// Podstawowe informacje o pojeździe
+// Interfejs dla zdjęcia pojazdu
+export interface VehicleImage {
+    id: string;
+    url: string;
+    name: string;
+    size: number;
+    type: string;
+    createdAt: string;
+    description?: string; // Opcjonalny opis zdjęcia
+    location?: string;    // Opcjonalna lokalizacja uszkodzenia/zdjęcia
+}
+
+// Definicja protokołu przyjęcia pojazdu
+export interface CarReceptionProtocol {
+    id: string;
+    startDate: string;
+    endDate: string;
+    licensePlate: string;
+    make: string;
+    model: string;
+    productionYear: number;
+    mileage: number;
+    keysProvided: boolean;
+    documentsProvided: boolean;
+    ownerName: string;
+    companyName?: string;
+    taxId?: string;
+    email: string;
+    phone: string;
+    notes?: string;
+    selectedServices: SelectedService[];
+    status: ProtocolStatus;
+    statusUpdatedAt?: string;
+    createdAt: string;
+    updatedAt: string;
+    appointmentId?: string;
+    referralSource?: 'regular_customer' | 'recommendation' | 'search_engine' | 'social_media' | 'local_ad' | 'other';
+    otherSourceDetails?: string;
+
+    // Dodatkowe pola
+    comments?: any[];
+    purchaseInvoices?: any[];
+    vehicleIssues?: any[];
+    vehicleImages?: VehicleImage[]; // Zdjęcia pojazdu
+}
+
+// Podstawowe informacje o pojeździe (dla widoku listy)
 export interface VehicleBasicInfo {
     make: string;
     model: string;
@@ -36,13 +85,13 @@ export interface VehicleBasicInfo {
     color?: string;
 }
 
-// Podstawowe informacje o właścicielu
+// Podstawowe informacje o właścicielu (dla widoku listy)
 export interface OwnerBasicInfo {
     name: string;
     companyName?: string;
 }
 
-// Informacje o okresie
+// Informacje o okresie (dla widoku listy)
 export interface PeriodInfo {
     startDate: string;
     endDate: string;
