@@ -23,6 +23,7 @@ import QualityVerificationModal from './components/QualityVerificationModal';
 import CustomerNotificationModal from './components/CustomerNotificationModal';
 import ClientCommentsModal from './components/ClientCommentsModal';
 import PaymentModal from './components/PaymentModal';
+import {protocolsApi} from "../../api/protocolsApi";
 
 // Define tab types
 type TabType = 'summary' | 'comments' | 'invoices' | 'client' | 'vehicle';
@@ -51,7 +52,7 @@ const ProtocolDetailsPage: React.FC = () => {
 
             try {
                 setLoading(true);
-                const data = await fetchCarReceptionProtocol(id);
+                const data = await protocolsApi.getProtocolDetails(id);
 
                 if (!data) {
                     setError('Protokół nie został znaleziony.');

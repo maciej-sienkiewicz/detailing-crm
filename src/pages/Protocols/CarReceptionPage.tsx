@@ -37,7 +37,6 @@ const CarReceptionPage: React.FC = () => {
                 setLoading(true);
                 // Używamy nowego API do pobierania listy protokołów
                 const protocolsData = await protocolsApi.getProtocolsList();
-                console.log(protocolsData);
                 setProtocols(protocolsData);
 
                 // Pobieramy dostępne usługi
