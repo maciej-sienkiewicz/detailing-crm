@@ -7,8 +7,10 @@ import {
     fetchAvailableServices
 } from '../../api/mocks/carReceptionMocks';
 import { CarReceptionProtocol } from '../../types';
-import { CarReceptionForm } from './components/CarReceptionForm';
+import { CarReceptionForm } from './components/CarReceptionForm/CarReceptionForm';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { carReceptionApi } from '../../api/carReceptionApi';
+
 
 const CarReceptionPage: React.FC = () => {
     const location = useLocation();
@@ -19,20 +21,30 @@ const CarReceptionPage: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [showForm, setShowForm] = useState(false);
     const [editingProtocol, setEditingProtocol] = useState<CarReceptionProtocol | null>(null);
+    const [formData, setFormData] = useState<Partial<CarReceptionProtocol>>({});
 
     // Sprawdzamy, czy mamy dane do stworzenia protokołu z wizyty
     const protocolDataFromAppointment = location.state?.protocolData;
     const appointmentId = location.state?.appointmentId;
+    const editProtocolId = location.state?.editProtocolId;
+    const startDateFromCalendar = location.state?.startDate;
+    const isFullProtocolFromNav = location.state?.isFullProtocol !== undefined
+        ? location.state.isFullProtocol
+        : true; // domyślnie true, jeśli nie określono
 
-    // Pobieranie danych
+    const [isFullProtocol, setIsFullProtocol] = useState(isFullProtocolFromNav);
+
     useEffect(() => {
         const fetchData = async () => {
             try {
                 setLoading(true);
+
+                // Używamy nowego API do pobierania danych
                 const [protocolsData, servicesData] = await Promise.all([
-                    fetchCarReceptionProtocols(),
-                    fetchAvailableServices()
+                    carReceptionApi.fetchCarReceptionProtocols(),
+                    fetchAvailableServices() // To możemy pozostawić jako mockowane na razie
                 ]);
+
                 setProtocols(protocolsData);
                 setAvailableServices(servicesData);
                 setError(null);
@@ -41,6 +53,32 @@ const CarReceptionPage: React.FC = () => {
                 if (protocolDataFromAppointment) {
                     setEditingProtocol(null); // To nie jest edycja, tylko nowy protokół
                     setShowForm(true);
+                }
+
+                // Jeśli przyszliśmy z kalendarza z nową wizytą
+                if (startDateFromCalendar) {
+                    const today = new Date().toISOString().split('T')[0];
+                    setEditingProtocol(null);
+                    const initialData = {
+                        startDate: startDateFromCalendar,
+                        endDate: startDateFromCalendar
+                    };
+                    setFormData(prev => ({
+                        ...prev,
+                        ...initialData
+                    }));
+                    setShowForm(true);
+                }
+
+                // Jeśli mamy ID protokołu do edycji, znajdź go i otwórz formularz
+                if (editProtocolId) {
+                    const protocolToEdit = protocolsData.find(p => p.id === editProtocolId);
+                    if (protocolToEdit) {
+                        setEditingProtocol(protocolToEdit);
+                        setShowForm(true);
+                    } else {
+                        setError('Nie udało się znaleźć protokołu do edycji');
+                    }
                 }
             } catch (err) {
                 setError('Nie udało się pobrać danych protokołów');
@@ -51,7 +89,7 @@ const CarReceptionPage: React.FC = () => {
         };
 
         fetchData();
-    }, [protocolDataFromAppointment]);
+    }, [protocolDataFromAppointment, editProtocolId, startDateFromCalendar]);
 
 
     // Obsługa dodawania nowego protokołu
@@ -63,7 +101,7 @@ const CarReceptionPage: React.FC = () => {
 
     // Obsługa przejścia do szczegółów protokołu
     const handleViewProtocol = (protocol: CarReceptionProtocol) => {
-        navigate(`/protocols/car-reception/${protocol.id}`);
+        navigate(`/orders/car-reception/${protocol.id}`);
     };
 
     // Obsługa edytowania protokołu
@@ -76,10 +114,17 @@ const CarReceptionPage: React.FC = () => {
     const handleDeleteProtocol = async (id: string) => {
         if (window.confirm('Czy na pewno chcesz usunąć ten protokół?')) {
             try {
-                await deleteCarReceptionProtocol(id);
-                setProtocols(protocols.filter(protocol => protocol.id !== id));
+                // Używamy nowego API do usuwania
+                const success = await carReceptionApi.deleteCarReceptionProtocol(id);
+
+                if (success) {
+                    setProtocols(protocols.filter(protocol => protocol.id !== id));
+                } else {
+                    setError('Nie udało się usunąć protokołu');
+                }
             } catch (err) {
                 setError('Nie udało się usunąć protokołu');
+                console.error('Error deleting protocol:', err);
             }
         }
     };
@@ -116,8 +161,9 @@ const CarReceptionPage: React.FC = () => {
                         <CarReceptionForm
                             protocol={editingProtocol}
                             availableServices={availableServices}
-                            initialData={protocolDataFromAppointment}
+                            initialData={protocolDataFromAppointment || formData}
                             appointmentId={appointmentId}
+                            isFullProtocol={isFullProtocol}  // Przekaż flagę do formularza
                             onSave={handleSaveProtocol}
                             onCancel={() => {
                                 setShowForm(false);
