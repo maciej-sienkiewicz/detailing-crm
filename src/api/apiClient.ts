@@ -5,8 +5,8 @@ const getAuthToken = (): string | null => {
     return localStorage.getItem('auth_token');
 };
 
-// Bazowy URL API (później zostanie zmieniony na rzeczywisty endpoint)
-const API_BASE_URL = '/api'; // W produkcji będzie to pełny URL do backendu
+// Bazowy URL API - teraz wskazuje na lokalny serwer Spring Boot
+const API_BASE_URL = 'http://localhost:8080/api';
 
 // Podstawowe opcje dla wszystkich żądań API
 const getDefaultOptions = (): RequestInit => ({
@@ -20,10 +20,17 @@ const getDefaultOptions = (): RequestInit => ({
 // Podstawowa funkcja fetch API z obsługą błędów
 const apiFetch = async <T>(endpoint: string, options: RequestInit = {}): Promise<T> => {
     const url = `${API_BASE_URL}${endpoint}`;
+
+    // Logowanie wywołania API do konsoli dla debugowania
+    console.log(`API request to: ${url}`, options);
+
     const response = await fetch(url, {
         ...getDefaultOptions(),
         ...options,
     });
+
+    // Logowanie statusu odpowiedzi
+    console.log(`API response status: ${response.status}`);
 
     if (!response.ok) {
         // Obsługa różnych kodów błędów HTTP
@@ -43,6 +50,7 @@ const apiFetch = async <T>(endpoint: string, options: RequestInit = {}): Promise
         // Próba uzyskania informacji o błędzie z odpowiedzi JSON
         try {
             const errorData = await response.json();
+            console.error('API error details:', errorData);
             throw new Error(errorData.message || 'An error occurred');
         } catch (e) {
             throw new Error(`HTTP error ${response.status}`);

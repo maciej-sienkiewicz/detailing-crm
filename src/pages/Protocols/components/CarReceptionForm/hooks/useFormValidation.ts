@@ -11,10 +11,6 @@ export const useFormValidation = (formData: Partial<CarReceptionProtocol>) => {
     const validateForm = (): boolean => {
         const newErrors: FormErrors = {};
 
-        if (!formData.licensePlate?.trim()) {
-            newErrors.licensePlate = 'Numer rejestracyjny jest wymagany';
-        }
-
         if (!formData.make?.trim()) {
             newErrors.make = 'Marka pojazdu jest wymagana';
         }
@@ -53,14 +49,6 @@ export const useFormValidation = (formData: Partial<CarReceptionProtocol>) => {
             newErrors.endDate = 'Data zakończenia usługi jest wymagana';
         } else if (formData.startDate && formData.endDate < formData.startDate) {
             newErrors.endDate = 'Data zakończenia nie może być wcześniejsza niż data rozpoczęcia';
-        }
-
-        if (!formData.selectedServices || formData.selectedServices.length === 0) {
-            newErrors.selectedServices = 'Wybierz co najmniej jedną usługę';
-        }
-
-        if (!formData.status) {
-            newErrors.status = 'Status jest wymagany';
         }
 
         setErrors(newErrors);

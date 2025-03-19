@@ -10,6 +10,7 @@ import {
 } from '../../../../types';
 import { addCarReceptionProtocol, updateCarReceptionProtocol } from '../../../../api/mocks/carReceptionMocks';
 import ReferralSourceSection, { ReferralSource } from './components/ReferralSourceSection';
+import { carReceptionApi } from '../../../../api/carReceptionApi';
 
 // Import komponentów
 import FormHeader from './components/FormHeader';
@@ -387,7 +388,7 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
 
             if (protocol?.id) {
                 // Aktualizacja istniejącego protokołu
-                savedProtocol = await updateCarReceptionProtocol({
+                const protocolToUpdate: CarReceptionProtocol = {
                     ...(formData as CarReceptionProtocol),
                     id: protocol.id,
                     createdAt: protocol.createdAt,
@@ -396,21 +397,32 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
                         ? new Date().toISOString()
                         : protocol.statusUpdatedAt || protocol.createdAt,
                     appointmentId: protocol.appointmentId // Zachowujemy powiązanie z wizytą, jeśli istniało
-                });
+                };
+
+                // Używamy nowego API zamiast mockowanych danych
+                savedProtocol = await carReceptionApi.updateCarReceptionProtocol(protocolToUpdate);
+
+                console.log('Protocol updated successfully:', savedProtocol);
             } else {
-                // Dodanie nowego protokołu
+                // Przygotowanie danych do utworzenia nowego protokołu
                 const now = new Date().toISOString();
-                savedProtocol = await addCarReceptionProtocol({
+                const newProtocolData: Omit<CarReceptionProtocol, 'id' | 'createdAt' | 'updatedAt'> = {
                     ...(formData as Omit<CarReceptionProtocol, 'id' | 'createdAt' | 'updatedAt'>),
                     statusUpdatedAt: now,
                     appointmentId: appointmentId // Powiązanie z wizytą, jeśli tworzymy z wizyty
-                });
+                };
+
+
+                // Używamy nowego API zamiast mockowanych danych
+                savedProtocol = await carReceptionApi.createCarReceptionProtocol(newProtocolData);
+
+                console.log('Protocol created successfully:', savedProtocol);
             }
 
             onSave(savedProtocol);
         } catch (err) {
-            setError('Nie udało się zapisać protokołu. Spróbuj ponownie.');
             console.error('Error saving protocol:', err);
+            setError('Nie udało się zapisać protokołu. Spróbuj ponownie.');
         } finally {
             setLoading(false);
             setPendingSubmit(false);

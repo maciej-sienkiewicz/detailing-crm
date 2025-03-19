@@ -9,6 +9,8 @@ import {
 import { CarReceptionProtocol } from '../../types';
 import { CarReceptionForm } from './components/CarReceptionForm/CarReceptionForm';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { carReceptionApi } from '../../api/carReceptionApi';
+
 
 const CarReceptionPage: React.FC = () => {
     const location = useLocation();
@@ -32,15 +34,17 @@ const CarReceptionPage: React.FC = () => {
 
     const [isFullProtocol, setIsFullProtocol] = useState(isFullProtocolFromNav);
 
-    // Pobieranie danych
     useEffect(() => {
         const fetchData = async () => {
             try {
                 setLoading(true);
+
+                // Używamy nowego API do pobierania danych
                 const [protocolsData, servicesData] = await Promise.all([
-                    fetchCarReceptionProtocols(),
-                    fetchAvailableServices()
+                    carReceptionApi.fetchCarReceptionProtocols(),
+                    fetchAvailableServices() // To możemy pozostawić jako mockowane na razie
                 ]);
+
                 setProtocols(protocolsData);
                 setAvailableServices(servicesData);
                 setError(null);
@@ -110,10 +114,17 @@ const CarReceptionPage: React.FC = () => {
     const handleDeleteProtocol = async (id: string) => {
         if (window.confirm('Czy na pewno chcesz usunąć ten protokół?')) {
             try {
-                await deleteCarReceptionProtocol(id);
-                setProtocols(protocols.filter(protocol => protocol.id !== id));
+                // Używamy nowego API do usuwania
+                const success = await carReceptionApi.deleteCarReceptionProtocol(id);
+
+                if (success) {
+                    setProtocols(protocols.filter(protocol => protocol.id !== id));
+                } else {
+                    setError('Nie udało się usunąć protokołu');
+                }
             } catch (err) {
                 setError('Nie udało się usunąć protokołu');
+                console.error('Error deleting protocol:', err);
             }
         }
     };
