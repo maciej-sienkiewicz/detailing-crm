@@ -1,322 +1,152 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import styled from 'styled-components';
-import { FaPlus, FaEdit, FaTrash, FaCarSide, FaFileAlt } from 'react-icons/fa';
-import {
-    fetchCarReceptionProtocols,
-    deleteCarReceptionProtocol,
-    fetchAvailableServices
-} from '../../api/mocks/carReceptionMocks';
-import { CarReceptionProtocol } from '../../types';
-import { CarReceptionForm } from './components/CarReceptionForm/CarReceptionForm';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { carReceptionApi } from '../../api/carReceptionApi';
+import { FaEdit, FaTrash, FaEye, FaFileAlt } from 'react-icons/fa';
+import { ProtocolListItem, ProtocolStatus, ProtocolStatusColors, ProtocolStatusLabels } from '../../types/protocol';
 
+interface ProtocolsTableProps {
+    protocols: ProtocolListItem[];
+    onViewProtocol: (protocol: ProtocolListItem) => void;
+    onEditProtocol: (protocol: ProtocolListItem) => void;
+    onDeleteProtocol: (id: string) => void;
+    onPrintProtocol: (id: string) => void;
+    loading: boolean;
+}
 
-const CarReceptionPage: React.FC = () => {
-    const location = useLocation();
-    const navigate = useNavigate();
-    const [protocols, setProtocols] = useState<CarReceptionProtocol[]>([]);
-    const [availableServices, setAvailableServices] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [showForm, setShowForm] = useState(false);
-    const [editingProtocol, setEditingProtocol] = useState<CarReceptionProtocol | null>(null);
-    const [formData, setFormData] = useState<Partial<CarReceptionProtocol>>({});
+const ProtocolsTable: React.FC<ProtocolsTableProps> = ({
+                                                           protocols,
+                                                           onViewProtocol,
+                                                           onEditProtocol,
+                                                           onDeleteProtocol,
+                                                           onPrintProtocol,
+                                                           loading
+                                                       }) => {
+    // Formatowanie daty
+    const formatDate = (dateString: string): string => {
+        if (!dateString) return '';
 
-    // Sprawdzamy, czy mamy dane do stworzenia protokołu z wizyty
-    const protocolDataFromAppointment = location.state?.protocolData;
-    const appointmentId = location.state?.appointmentId;
-    const editProtocolId = location.state?.editProtocolId;
-    const startDateFromCalendar = location.state?.startDate;
-    const isFullProtocolFromNav = location.state?.isFullProtocol !== undefined
-        ? location.state.isFullProtocol
-        : true; // domyślnie true, jeśli nie określono
-
-    const [isFullProtocol, setIsFullProtocol] = useState(isFullProtocolFromNav);
-
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setLoading(true);
-
-                // Używamy nowego API do pobierania danych
-                const [protocolsData, servicesData] = await Promise.all([
-                    carReceptionApi.fetchCarReceptionProtocols(),
-                    fetchAvailableServices() // To możemy pozostawić jako mockowane na razie
-                ]);
-
-                setProtocols(protocolsData);
-                setAvailableServices(servicesData);
-                setError(null);
-
-                // Jeśli mamy dane z wizyty, automatycznie otworzymy formularz
-                if (protocolDataFromAppointment) {
-                    setEditingProtocol(null); // To nie jest edycja, tylko nowy protokół
-                    setShowForm(true);
-                }
-
-                // Jeśli przyszliśmy z kalendarza z nową wizytą
-                if (startDateFromCalendar) {
-                    const today = new Date().toISOString().split('T')[0];
-                    setEditingProtocol(null);
-                    const initialData = {
-                        startDate: startDateFromCalendar,
-                        endDate: startDateFromCalendar
-                    };
-                    setFormData(prev => ({
-                        ...prev,
-                        ...initialData
-                    }));
-                    setShowForm(true);
-                }
-
-                // Jeśli mamy ID protokołu do edycji, znajdź go i otwórz formularz
-                if (editProtocolId) {
-                    const protocolToEdit = protocolsData.find(p => p.id === editProtocolId);
-                    if (protocolToEdit) {
-                        setEditingProtocol(protocolToEdit);
-                        setShowForm(true);
-                    } else {
-                        setError('Nie udało się znaleźć protokołu do edycji');
-                    }
-                }
-            } catch (err) {
-                setError('Nie udało się pobrać danych protokołów');
-                console.error('Error fetching car reception protocols:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchData();
-    }, [protocolDataFromAppointment, editProtocolId, startDateFromCalendar]);
-
-
-    // Obsługa dodawania nowego protokołu
-    const handleAddProtocol = () => {
-        const today = new Date().toISOString().split('T')[0];
-        setEditingProtocol(null);
-        setShowForm(true);
+        const date = new Date(dateString);
+        return date.toLocaleDateString('pl-PL', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        });
     };
 
-    // Obsługa przejścia do szczegółów protokołu
-    const handleViewProtocol = (protocol: CarReceptionProtocol) => {
-        navigate(`/orders/car-reception/${protocol.id}`);
+    // Formatowanie kwoty
+    const formatAmount = (amount: number): string => {
+        return amount.toLocaleString('pl-PL', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }) + ' zł';
     };
 
-    // Obsługa edytowania protokołu
-    const handleEditProtocol = (protocol: CarReceptionProtocol) => {
-        setEditingProtocol(protocol);
-        setShowForm(true);
-    };
+    if (loading) {
+        return <LoadingMessage>Ładowanie danych...</LoadingMessage>;
+    }
 
-    // Obsługa usunięcia protokołu
-    const handleDeleteProtocol = async (id: string) => {
-        if (window.confirm('Czy na pewno chcesz usunąć ten protokół?')) {
-            try {
-                // Używamy nowego API do usuwania
-                const success = await carReceptionApi.deleteCarReceptionProtocol(id);
-
-                if (success) {
-                    setProtocols(protocols.filter(protocol => protocol.id !== id));
-                } else {
-                    setError('Nie udało się usunąć protokołu');
-                }
-            } catch (err) {
-                setError('Nie udało się usunąć protokołu');
-                console.error('Error deleting protocol:', err);
-            }
-        }
-    };
-
-    // Obsługa zapisania protokołu
-    const handleSaveProtocol = (protocol: CarReceptionProtocol) => {
-        if (editingProtocol) {
-            // Aktualizacja istniejącego protokołu
-            setProtocols(protocols.map(p => p.id === protocol.id ? protocol : p));
-        } else {
-            // Dodanie nowego protokołu
-            setProtocols([...protocols, protocol]);
-        }
-        setShowForm(false);
-        setEditingProtocol(null);
-    };
+    if (protocols.length === 0) {
+        return (
+            <EmptyState>
+                <p>Brak protokołów przyjęcia. Kliknij "Nowy protokół", aby utworzyć pierwszy.</p>
+            </EmptyState>
+        );
+    }
 
     return (
-        <PageContainer>
-            <PageHeader>
-                <h1>Protokoły przyjęcia pojazdu</h1>
-                <AddButton onClick={handleAddProtocol}>
-                    <FaPlus /> Nowy protokół
-                </AddButton>
-            </PageHeader>
-
-            {loading ? (
-                <LoadingMessage>Ładowanie danych...</LoadingMessage>
-            ) : error ? (
-                <ErrorMessage>{error}</ErrorMessage>
-            ) : (
-                <>
-                    {showForm ? (
-                        <CarReceptionForm
-                            protocol={editingProtocol}
-                            availableServices={availableServices}
-                            initialData={protocolDataFromAppointment || formData}
-                            appointmentId={appointmentId}
-                            isFullProtocol={isFullProtocol}  // Przekaż flagę do formularza
-                            onSave={handleSaveProtocol}
-                            onCancel={() => {
-                                setShowForm(false);
-                                setEditingProtocol(null);
-                            }}
-                        />
-                    ) : (
-                        <>
-                            {protocols.length === 0 ? (
-                                <EmptyState>
-                                    <p>Brak protokołów przyjęcia. Kliknij "Nowy protokół", aby utworzyć pierwszy.</p>
-                                </EmptyState>
-                            ) : (
-                                <ProtocolsTable>
-                                    <thead>
-                                    <tr>
-                                        <TableHeader>Pojazd</TableHeader>
-                                        <TableHeader>Data</TableHeader>
-                                        <TableHeader>Właściciel</TableHeader>
-                                        <TableHeader>Numer rejestracyjny</TableHeader>
-                                        <TableHeader>Akcje</TableHeader>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-                                    {protocols.map(protocol => (
-                                        <TableRow key={protocol.id} onClick={() => handleViewProtocol(protocol)}>
-                                            <TableCell>
-                                                <CarInfo>
-                                                    <strong>{protocol.make} {protocol.model}</strong>
-                                                    <span>Rok: {protocol.productionYear}</span>
-                                                </CarInfo>
-                                            </TableCell>
-                                            <TableCell>
-                                                <DateRange>
-                                                    <span>Od: {formatDate(protocol.startDate)}</span>
-                                                    <span>Do: {formatDate(protocol.endDate)}</span>
-                                                </DateRange>
-                                            </TableCell>
-                                            <TableCell>
-                                                <OwnerInfo>
-                                                    <div>{protocol.ownerName}</div>
-                                                    {protocol.companyName && (
-                                                        <CompanyInfo>{protocol.companyName}</CompanyInfo>
-                                                    )}
-                                                </OwnerInfo>
-                                            </TableCell>
-                                            <TableCell>
-                                                <LicensePlate>{protocol.licensePlate}</LicensePlate>
-                                            </TableCell>
-                                            <TableCell onClick={(e) => e.stopPropagation()}>
-                                                <ActionButtons>
-                                                    <ActionButton onClick={() => handleEditProtocol(protocol)}>
-                                                        <FaEdit />
-                                                    </ActionButton>
-                                                    <ActionButton danger onClick={() => handleDeleteProtocol(protocol.id)}>
-                                                        <FaTrash />
-                                                    </ActionButton>
-                                                    <ActionButton title="Drukuj protokół">
-                                                        <FaFileAlt />
-                                                    </ActionButton>
-                                                </ActionButtons>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                    </tbody>
-                                </ProtocolsTable>
-                            )}
-                        </>
-                    )}
-                </>
-            )}
-        </PageContainer>
+        <TableContainer>
+            <Table>
+                <thead>
+                <tr>
+                    <TableHeader>Pojazd</TableHeader>
+                    <TableHeader>Data</TableHeader>
+                    <TableHeader>Właściciel</TableHeader>
+                    <TableHeader>Nr rejestracyjny</TableHeader>
+                    <TableHeader>Status</TableHeader>
+                    <TableHeader>Wartość</TableHeader>
+                    <TableHeader>Akcje</TableHeader>
+                </tr>
+                </thead>
+                <tbody>
+                {protocols.map((protocol) => (
+                    <TableRow key={protocol.id} onClick={() => onViewProtocol(protocol)}>
+                        <TableCell>
+                            <CarInfo>
+                                <strong>{protocol.vehicle.make} {protocol.vehicle.model}</strong>
+                                <span>Rok: {protocol.vehicle.productionYear}</span>
+                            </CarInfo>
+                        </TableCell>
+                        <TableCell>
+                            <DateRange>
+                                <span>Od: {formatDate(protocol.period.startDate)}</span>
+                                <span>Do: {formatDate(protocol.period.endDate)}</span>
+                            </DateRange>
+                        </TableCell>
+                        <TableCell>
+                            <OwnerInfo>
+                                <div>{protocol.owner.name}</div>
+                                {protocol.owner.companyName && (
+                                    <CompanyInfo>{protocol.owner.companyName}</CompanyInfo>
+                                )}
+                            </OwnerInfo>
+                        </TableCell>
+                        <TableCell>
+                            <LicensePlate>{protocol.vehicle.licensePlate}</LicensePlate>
+                        </TableCell>
+                        <TableCell>
+                            <StatusBadge status={protocol.status}>
+                                {ProtocolStatusLabels[protocol.status]}
+                            </StatusBadge>
+                            <ServiceCount>{protocol.totalServiceCount} usług</ServiceCount>
+                        </TableCell>
+                        <TableCell>
+                            <TotalAmount>{formatAmount(protocol.totalAmount)}</TotalAmount>
+                        </TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                            <ActionButtons>
+                                <ActionButton title="Zobacz szczegóły" onClick={() => onViewProtocol(protocol)}>
+                                    <FaEye />
+                                </ActionButton>
+                                <ActionButton title="Edytuj" onClick={() => onEditProtocol(protocol)}>
+                                    <FaEdit />
+                                </ActionButton>
+                                <ActionButton
+                                    danger
+                                    title="Usuń"
+                                    onClick={() => {
+                                        if (window.confirm('Czy na pewno chcesz usunąć ten protokół?')) {
+                                            onDeleteProtocol(protocol.id);
+                                        }
+                                    }}
+                                >
+                                    <FaTrash />
+                                </ActionButton>
+                                <ActionButton
+                                    title="Drukuj protokół"
+                                    onClick={() => onPrintProtocol(protocol.id)}
+                                >
+                                    <FaFileAlt />
+                                </ActionButton>
+                            </ActionButtons>
+                        </TableCell>
+                    </TableRow>
+                ))}
+                </tbody>
+            </Table>
+        </TableContainer>
     );
 };
 
-// Funkcja pomocnicza do formatowania daty
-const formatDate = (dateString: string): string => {
-    if (!dateString) return '';
-
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pl-PL', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-    });
-};
-
-// Style komponentów
-
-const PageContainer = styled.div`
-    padding: 20px;
+// Styled components
+const TableContainer = styled.div`
+    overflow-x: auto;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 `;
 
-const PageHeader = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-
-    h1 {
-        font-size: 24px;
-        margin: 0;
-    }
-`;
-
-const AddButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background-color: #3498db;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 8px 16px;
-    font-weight: 500;
-    cursor: pointer;
-
-    &:hover {
-        background-color: #2980b9;
-    }
-`;
-
-const LoadingMessage = styled.div`
-    display: flex;
-    justify-content: center;
-    padding: 40px;
-    font-size: 16px;
-    color: #7f8c8d;
-`;
-
-const ErrorMessage = styled.div`
-    background-color: #fdecea;
-    color: #e74c3c;
-    padding: 12px;
-    border-radius: 4px;
-    margin-bottom: 20px;
-`;
-
-const EmptyState = styled.div`
-    background-color: #f9f9f9;
-    border-radius: 4px;
-    padding: 30px;
-    text-align: center;
-    color: #7f8c8d;
-`;
-
-const ProtocolsTable = styled.table`
+const Table = styled.table`
     width: 100%;
     border-collapse: collapse;
-    background-color: white;
-    border-radius: 4px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
 `;
 
 const TableHeader = styled.th`
@@ -326,9 +156,12 @@ const TableHeader = styled.th`
     border-bottom: 2px solid #eee;
     font-weight: 600;
     color: #333;
+    white-space: nowrap;
 `;
 
 const TableRow = styled.tr`
+    cursor: pointer;
+
     &:not(:last-child) {
         border-bottom: 1px solid #eee;
     }
@@ -392,6 +225,31 @@ const LicensePlate = styled.div`
     color: #3498db;
 `;
 
+interface StatusBadgeProps {
+    status: ProtocolStatus;
+}
+
+const StatusBadge = styled.div<StatusBadgeProps>`
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    color: white;
+    background-color: ${props => ProtocolStatusColors[props.status]};
+    margin-bottom: 4px;
+`;
+
+const ServiceCount = styled.div`
+    font-size: 12px;
+    color: #7f8c8d;
+`;
+
+const TotalAmount = styled.div`
+    font-weight: 600;
+    color: #2ecc71;
+`;
+
 const ActionButtons = styled.div`
     display: flex;
     gap: 8px;
@@ -411,4 +269,20 @@ const ActionButton = styled.button<{ danger?: boolean }>`
     }
 `;
 
-export default CarReceptionPage;
+const LoadingMessage = styled.div`
+    display: flex;
+    justify-content: center;
+    padding: 40px;
+    font-size: 16px;
+    color: #7f8c8d;
+`;
+
+const EmptyState = styled.div`
+    background-color: #f9f9f9;
+    border-radius: 4px;
+    padding: 30px;
+    text-align: center;
+    color: #7f8c8d;
+`;
+
+export default ProtocolsTable;

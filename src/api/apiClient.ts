@@ -78,6 +78,14 @@ export const apiClient = {
         });
     },
 
+    patch: <T>(endpoint: string, data: any): Promise<T> => {
+        return apiFetch<T>(endpoint, {
+            method: 'PATCH',
+            body: JSON.stringify(data)
+        });
+    },
+
+
     put: <T>(endpoint: string, data: any): Promise<T> => {
         return apiFetch<T>(endpoint, {
             method: 'PUT',
