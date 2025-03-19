@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { FaTimes, FaUser, FaBuilding, FaIdCard, FaMapMarkerAlt, FaEnvelope, FaPhone, FaCalendarAlt, FaMoneyBillWave, FaCar, FaHistory } from 'react-icons/fa';
 import { ClientExpanded, ContactAttempt } from '../../../types';
 import { fetchContactAttemptsByClientId } from '../../../api/mocks/clientMocks';
+import {clientApi} from "../../../api/clientsApi";
 
 interface ClientDetailDrawerProps {
     isOpen: boolean;
@@ -23,7 +24,7 @@ const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
             if (client) {
                 setLoading(true);
                 try {
-                    const history = await fetchContactAttemptsByClientId(client.id);
+                    const history = await clientApi.fetchContactAttemptsByClientById(client.id);
                     setContactHistory(history);
                 } catch (error) {
                     console.error('Error loading contact history:', error);

@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { ClientExpanded, ContactAttempt } from '../../../types/client';
 import { addContactAttempt } from '../../../api/mocks/clientMocks';
 import Modal from '../../../components/common/Modal';
+import {clientApi} from "../../../api/clientsApi";
 
 interface ContactAttemptModalProps {
     client: ClientExpanded;
@@ -74,7 +75,7 @@ const ContactAttemptModal: React.FC<ContactAttemptModalProps> = ({
             setLoading(true);
             setError(null);
 
-            await addContactAttempt(formData);
+            await clientApi.createContactAttempt(formData);
             onSave();
         } catch (err) {
             setError('Nie udało się zapisać próby kontaktu. Spróbuj ponownie.');

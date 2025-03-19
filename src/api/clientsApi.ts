@@ -1,4 +1,4 @@
-import { ClientExpanded } from '../types';
+import {ClientExpanded, ContactAttempt} from '../types';
 import { apiClient } from './apiClient';
 
 // Interfejs dla danych klienta do zapisu (bez pól statystyk)
@@ -65,6 +65,30 @@ export const clientApi = {
         } catch (error) {
             console.error('Error fetching clients:', error);
             throw error;
+        }
+    },
+
+    createContactAttempt: async (contactAttempt: ContactAttempt): Promise<ContactAttempt> => {
+        try {
+            const requestData = convertCamelToSnake(contactAttempt);
+            const response = await apiClient.post<any>('/clients/contact-attempts', requestData);
+
+            // Konwertujemy odpowiedź z snake_case na camelCase
+            return convertSnakeToCamel(response) as ContactAttempt;
+        } catch (error) {
+            console.error('Error creating client:', error);
+            throw error;
+        }
+    },
+
+    // Pobieranie pojedynczego klienta
+    fetchContactAttemptsByClientById: async (id: string): Promise<ContactAttempt[]> => {
+        try {
+            const data = await apiClient.get<any>(`/clients/${id}/contact-attempts`);
+            return convertSnakeToCamel(data) as ContactAttempt[];
+        } catch (error) {
+            console.error(`Error fetching client ${id}:`, error);
+            return [];
         }
     },
 

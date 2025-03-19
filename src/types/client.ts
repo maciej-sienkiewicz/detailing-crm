@@ -20,7 +20,7 @@ export interface ClientExpanded {
 }
 
 export interface ContactAttempt {
-    id: string;
+    id?: string;
     clientId: string;
     date: string;
     type: 'PHONE' | 'EMAIL' | 'SMS' | 'OTHER';

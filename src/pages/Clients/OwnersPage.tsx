@@ -203,6 +203,7 @@ const OwnersPage: React.FC = () => {
 
             // Close detail drawer if opened for the deleted client
             if (showDetailDrawer) {
+                console.log("dupa");
                 setShowDetailDrawer(false);
             }
         } catch (err) {
