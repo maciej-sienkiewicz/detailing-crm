@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { ClientExpanded } from '../../../types';
-import { addClient, updateClient } from '../../../api/mocks/clientMocks';
+import { ClientData, clientApi } from '../../../api/clientsApi';
 import Modal from '../../../components/common/Modal';
 
 interface ClientFormModalProps {
@@ -14,9 +14,17 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ client, onSave, onCan
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Initialize form with client data or empty values
-    const [formData, setFormData] = useState<Partial<ClientExpanded>>(
-        client || {
+    const [formData, setFormData] = useState<ClientData>(
+        client ? {
+            firstName: client.firstName,
+            lastName: client.lastName,
+            email: client.email,
+            phone: client.phone,
+            address: client.address,
+            company: client.company,
+            taxId: client.taxId,
+            notes: client.notes
+        } : {
             firstName: '',
             lastName: '',
             email: '',
@@ -24,28 +32,21 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ client, onSave, onCan
             address: '',
             company: '',
             taxId: '',
-            notes: '',
-            totalVisits: 0,
-            totalTransactions: 0,
-            abandonedSales: 0,
-            totalRevenue: 0,
-            contactAttempts: 0,
-            vehicles: []
+            notes: ''
         }
     );
 
-    // Form validation errors
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
 
-        setFormData((prev: any) => ({
+        setFormData((prev) => ({
             ...prev,
             [name]: value
         }));
 
-        // Clear error when field is edited
+        // Czyszczenie błędu po edycji pola
         if (errors[name]) {
             setErrors({
                 ...errors,
@@ -65,14 +66,10 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ client, onSave, onCan
             newErrors.lastName = 'Nazwisko jest wymagane';
         }
 
-        if (!formData.email?.trim()) {
-            newErrors.email = 'Email jest wymagany';
+        if (!formData.email?.trim() && !formData.phone?.trim()) {
+            newErrors.email = 'Podaj adres email lub/i numer telefonu.';
         } else if (!/^[^@]+@[^@]+\.[^@]+$/.test(formData.email)) {
             newErrors.email = 'Podaj prawidłowy adres email';
-        }
-
-        if (!formData.phone?.trim()) {
-            newErrors.phone = 'Numer telefonu jest wymagany';
         }
 
         setErrors(newErrors);
@@ -93,14 +90,11 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ client, onSave, onCan
             let savedClient: ClientExpanded;
 
             if (client && client.id) {
-                // Update existing client
-                savedClient = await updateClient({
-                    ...client,
-                    ...formData
-                } as ClientExpanded);
+                // Aktualizacja istniejącego klienta
+                savedClient = await clientApi.updateClient(client.id, formData);
             } else {
-                // Create new client
-                savedClient = await addClient(formData as Omit<ClientExpanded, 'id'>);
+                // Utworzenie nowego klienta
+                savedClient = await clientApi.createClient(formData);
             }
 
             onSave(savedClient);
@@ -238,7 +232,7 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ client, onSave, onCan
                         </FormGroup>
                     </FormSection>
 
-                    {/* Only show this section when editing, not for new clients */}
+                    {/* Sekcja statystyk tylko dla edycji istniejącego klienta */}
                     {client && (
                         <FormSection>
                             <SectionTitle>Statystyki CRM</SectionTitle>
@@ -247,30 +241,30 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ client, onSave, onCan
                             <FormRow>
                                 <StatItem>
                                     <StatLabel>Liczba wizyt:</StatLabel>
-                                    <StatValue>{formData.totalVisits}</StatValue>
+                                    <StatValue>{client.totalVisits}</StatValue>
                                 </StatItem>
 
                                 <StatItem>
                                     <StatLabel>Liczba transakcji:</StatLabel>
-                                    <StatValue>{formData.totalTransactions}</StatValue>
+                                    <StatValue>{client.totalTransactions}</StatValue>
                                 </StatItem>
                             </FormRow>
 
                             <FormRow>
                                 <StatItem>
                                     <StatLabel>Porzucone szanse:</StatLabel>
-                                    <StatValue>{formData.abandonedSales}</StatValue>
+                                    <StatValue>{client.abandonedSales}</StatValue>
                                 </StatItem>
 
                                 <StatItem>
                                     <StatLabel>Suma przychodów:</StatLabel>
-                                    <StatValue>{formData.totalRevenue?.toFixed(2)} zł</StatValue>
+                                    <StatValue>{client.totalRevenue?.toFixed(2)} zł</StatValue>
                                 </StatItem>
                             </FormRow>
 
                             <StatItem>
                                 <StatLabel>Próby kontaktu:</StatLabel>
-                                <StatValue>{formData.contactAttempts}</StatValue>
+                                <StatValue>{client.contactAttempts}</StatValue>
                             </StatItem>
                         </FormSection>
                     )}
@@ -405,7 +399,7 @@ const Button = styled.button`
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
-    
+
     &:disabled {
         opacity: 0.6;
         cursor: not-allowed;
@@ -416,7 +410,7 @@ const CancelButton = styled(Button)`
     background-color: #f5f5f5;
     color: #333;
     border: 1px solid #ddd;
-    
+
     &:hover:not(:disabled) {
         background-color: #e9e9e9;
     }
@@ -426,7 +420,7 @@ const SaveButton = styled(Button)`
     background-color: #3498db;
     color: white;
     border: none;
-    
+
     &:hover:not(:disabled) {
         background-color: #2980b9;
     }

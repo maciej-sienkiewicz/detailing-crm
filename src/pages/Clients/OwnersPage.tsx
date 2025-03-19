@@ -3,11 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { FaPlus, FaSms, FaCheckSquare, FaSquare } from 'react-icons/fa';
 import { ClientExpanded } from '../../types';
-import {
-    fetchClients,
-    deleteClient,
-    fetchVehiclesByOwnerId
-} from '../../api/mocks/clientMocks';
+import { clientApi } from '../../api/clientsApi';
 import ClientListTable from './components/ClientListTable';
 import ClientDetailDrawer from './components/ClientDetailDrawer';
 import ClientFilters, { ClientFilters as ClientFiltersType } from './components/ClientFilters';
@@ -53,7 +49,7 @@ const OwnersPage: React.FC = () => {
         const loadClients = async () => {
             try {
                 setLoading(true);
-                const data = await fetchClients();
+                const data = await clientApi.fetchClients();
                 setClients(data);
                 setFilteredClients(data);
                 setError(null);
@@ -135,7 +131,6 @@ const OwnersPage: React.FC = () => {
     }, [clients, filters, selectedClientIds]);
 
     // Effect do obsługi zaznaczenia lub odznaczenia wszystkich
-    // (zmienione aby czyścić wszystko przy odznaczeniu "zaznacz wszystkie")
     useEffect(() => {
         if (selectAll) {
             // Dodaj tylko odfiltrowane elementy do wybranych
@@ -201,7 +196,7 @@ const OwnersPage: React.FC = () => {
         if (!selectedClient) return;
 
         try {
-            await deleteClient(selectedClient.id);
+            await clientApi.deleteClient(selectedClient.id);
             setClients(clients.filter(c => c.id !== selectedClient.id));
             setShowDeleteConfirm(false);
             setSelectedClient(null);
@@ -264,7 +259,6 @@ const OwnersPage: React.FC = () => {
         });
     };
 
-    // Obsługa zaznaczenia/odznaczenia wszystkich (zmieniona)
     const toggleSelectAll = () => {
         const newSelectAll = !selectAll;
         setSelectAll(newSelectAll);
