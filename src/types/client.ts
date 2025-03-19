@@ -1,7 +1,3 @@
-// src/types/client.ts
-// Typy związane z klientami
-
-// Rozszerzony interfejs klienta z funkcjami CRM
 export interface ClientExpanded {
     id: string;
     firstName: string;
@@ -12,7 +8,6 @@ export interface ClientExpanded {
     company?: string;
     taxId?: string;
 
-    // CRM metrics
     totalVisits: number;
     totalTransactions: number;
     abandonedSales: number;
@@ -21,11 +16,9 @@ export interface ClientExpanded {
     lastVisitDate?: string;
     notes?: string;
 
-    // Relations
-    vehicles: string[]; // IDs of vehicles
+    vehicles: string[];
 }
 
-// Śledzenie prób kontaktu
 export interface ContactAttempt {
     id: string;
     clientId: string;
