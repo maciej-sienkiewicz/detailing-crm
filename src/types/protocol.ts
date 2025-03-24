@@ -54,6 +54,7 @@ export interface CarReceptionProtocol {
     mileage: number;
     keysProvided: boolean;
     documentsProvided: boolean;
+    ownerId: number;
     ownerName: string;
     companyName?: string;
     taxId?: string;

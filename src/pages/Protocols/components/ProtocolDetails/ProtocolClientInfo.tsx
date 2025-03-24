@@ -19,6 +19,8 @@ import {
     fetchVehiclesByOwnerId
 } from '../../../../api/mocks/clientMocks';
 import { useNavigate } from 'react-router-dom';
+import {clientApi} from "../../../../api/clientsApi";
+import {protocolsApi} from "../../../../api/protocolsApi";
 
 interface ProtocolClientInfoProps {
     protocol: CarReceptionProtocol;
@@ -36,11 +38,7 @@ const ProtocolClientInfo: React.FC<ProtocolClientInfoProps> = ({ protocol }) => 
         const loadClientData = async () => {
             try {
                 setLoading(true);
-                // In a real app, you'd search by ID, but we'll search by name in this mock
-                const clients = await fetchClients();
-                const matchedClient = clients.find(c =>
-                    `${c.firstName} ${c.lastName}` === protocol.ownerName
-                );
+                const matchedClient = await clientApi.fetchClientById(protocol.ownerId);
 
                 if (matchedClient) {
                     setClient(matchedClient);

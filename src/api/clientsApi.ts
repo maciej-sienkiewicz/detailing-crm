@@ -93,7 +93,7 @@ export const clientApi = {
     },
 
     // Pobieranie pojedynczego klienta
-    fetchClientById: async (id: string): Promise<ClientExpanded | null> => {
+    fetchClientById: async (id: number): Promise<ClientExpanded | null> => {
         try {
             const data = await apiClient.get<any>(`/clients/${id}`);
             return convertSnakeToCamel(data) as ClientExpanded;
