@@ -86,7 +86,7 @@ const ProtocolDetailsPage: React.FC = () => {
 
     // Go back to protocols list
     const handleGoBack = () => {
-        navigate('/orders/scheduled');
+        navigate('/orders');
     };
 
     // Update protocol data after changes
@@ -254,7 +254,7 @@ const ProtocolDetailsPage: React.FC = () => {
                         </ActionButton>
                     )}
 
-                    <ActionButton title="Edytuj protokół" onClick={() => navigate(`/orders/scheduled`, {
+                    <ActionButton title="Edytuj protokół" onClick={() => navigate(`/orders`, {
                         state: {
                             editProtocolId: protocol.id
                         }

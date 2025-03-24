@@ -52,7 +52,7 @@ const AppRoutes: React.FC = () => {
             <Route path="/settings" element={<Navigate to="/settings/general" replace />} />
 
             {/* Wizyty */}
-            <Route path="/orders/scheduled" element={<CarReceptionPage />} />
+            <Route path="/orders" element={<CarReceptionPage />} />
             <Route path="/orders/car-reception/:id" element={<ProtocolDetailsPage />} />
             <Route path="/orders" element={<Navigate to="/protocols/car-reception" replace />} />
 

@@ -110,7 +110,7 @@ const CalendarPage: React.FC = () => {
     const handleConfirmNewVisit = () => {
         setShowNewVisitConfirmation(false);
         // Przekierowanie do strony protokołu z flagą isFullProtocol=false
-        navigate('/orders/scheduled', {
+        navigate('/orders', {
             state: {
                 startDate: selectedDate.toISOString().split('T')[0],
                 isFullProtocol: false

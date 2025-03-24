@@ -6,18 +6,29 @@ import { CarReceptionProtocol } from '../../types';
 import { CarReceptionForm } from './components/CarReceptionForm/CarReceptionForm';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { protocolsApi } from '../../api/protocolsApi';
-import { fetchAvailableServices } from '../../api/mocks/carReceptionMocks';
-
+import { fetchAvailableServices } from '../../api/mocks/carReceptionMocks';    // Aktualizacja filtrów po zmianie głównej listy protokołów
 const CarReceptionPage: React.FC = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const [protocols, setProtocols] = useState<ProtocolListItem[]>([]);
+    const [filteredProtocols, setFilteredProtocols] = useState<ProtocolListItem[]>([]);
     const [availableServices, setAvailableServices] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showForm, setShowForm] = useState(false);
     const [editingProtocol, setEditingProtocol] = useState<CarReceptionProtocol | null>(null);
     const [formData, setFormData] = useState<Partial<CarReceptionProtocol>>({});
+
+    // Nowy stan do obsługi aktywnego filtru
+    const [activeFilter, setActiveFilter] = useState<'Zaplanowane' | 'Gotowe na odbiór' | 'Archiwum' | 'Wszystkie'>('Wszystkie');
+
+    // Definiujemy mapowanie filtrów na statusy protokołów
+    const filterMapping = {
+        'Zaplanowane': [ProtocolStatus.SCHEDULED, ProtocolStatus.IN_PROGRESS],
+        'Gotowe na odbiór': [ProtocolStatus.READY_FOR_PICKUP],
+        'Archiwum': [ProtocolStatus.COMPLETED],
+        'Wszystkie': [ProtocolStatus.SCHEDULED, ProtocolStatus.IN_PROGRESS, ProtocolStatus.READY_FOR_PICKUP, ProtocolStatus.COMPLETED]
+    };
 
     // Sprawdzamy, czy mamy dane do stworzenia protokołu z wizyty
     const protocolDataFromAppointment = location.state?.protocolData;
@@ -30,6 +41,14 @@ const CarReceptionPage: React.FC = () => {
 
     const [isFullProtocol, setIsFullProtocol] = useState(isFullProtocolFromNav);
 
+    // Dodajemy stan, który będzie wymuszał odświeżenie listy protokołów
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+    // Funkcja do wymuszenia odświeżenia listy protokołów
+    const refreshProtocolsList = () => {
+        setRefreshTrigger(prev => prev + 1);
+    };
+
     // Pobieranie danych
     useEffect(() => {
         const fetchData = async () => {
@@ -38,6 +57,16 @@ const CarReceptionPage: React.FC = () => {
                 // Używamy nowego API do pobierania listy protokołów
                 const protocolsData = await protocolsApi.getProtocolsList();
                 setProtocols(protocolsData);
+
+                // Zastosuj aktualny filtr
+                if (activeFilter === 'Wszystkie') {
+                    setFilteredProtocols(protocolsData);
+                } else {
+                    const statusesToFilter = filterMapping[activeFilter];
+                    setFilteredProtocols(protocolsData.filter(protocol =>
+                        statusesToFilter.includes(protocol.status)
+                    ));
+                }
 
                 // Pobieramy dostępne usługi
                 const servicesData = await fetchAvailableServices();
@@ -89,7 +118,23 @@ const CarReceptionPage: React.FC = () => {
         };
 
         fetchData();
-    }, [protocolDataFromAppointment, editProtocolId, startDateFromCalendar]);
+    }, [protocolDataFromAppointment, editProtocolId, startDateFromCalendar, refreshTrigger]);
+
+    // Nowa funkcja do zmiany filtra
+    const handleFilterChange = (filter: 'Zaplanowane' | 'Gotowe na odbiór' | 'Archiwum' | 'Wszystkie') => {
+        setActiveFilter(filter);
+
+        // Filtrujemy lokalnie, bez ponownego zapytania do serwera
+        if (filter === 'Wszystkie') {
+            setFilteredProtocols(protocols);
+        } else {
+            const statusesToFilter = filterMapping[filter];
+            const filtered = protocols.filter(protocol =>
+                statusesToFilter.includes(protocol.status)
+            );
+            setFilteredProtocols(filtered);
+        }
+    };
 
     // Obsługa dodawania nowego protokołu
     const handleAddProtocol = () => {
@@ -123,6 +168,23 @@ const CarReceptionPage: React.FC = () => {
         }
     };
 
+    // Dodajemy funkcję, by umożliwić odświeżenie listy przy powrocie z innych komponentów
+    useEffect(() => {
+        // Funkcja do odświeżenia danych przy powrocie do strony
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible' && !showForm && !loading) {
+                refreshProtocolsList();
+            }
+        };
+
+        // Nasłuchujemy na zmiany widoczności dokumentu zamiast focus
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [showForm, loading]);
+
     // Obsługa usunięcia protokołu
     const handleDeleteProtocol = async (id: string) => {
         if (window.confirm('Czy na pewno chcesz usunąć ten protokół?')) {
@@ -131,7 +193,8 @@ const CarReceptionPage: React.FC = () => {
                 const success = await protocolsApi.deleteProtocol(id);
 
                 if (success) {
-                    setProtocols(protocols.filter(protocol => protocol.id !== id));
+                    // Po pomyślnym usunięciu protokołu odświeżamy listę
+                    refreshProtocolsList();
                 } else {
                     setError('Nie udało się usunąć protokołu');
                 }
@@ -144,17 +207,8 @@ const CarReceptionPage: React.FC = () => {
 
     // Obsługa zapisania protokołu
     const handleSaveProtocol = (protocol: CarReceptionProtocol) => {
-        // Po zapisaniu lub aktualizacji, odświeżamy listę protokołów
-        const fetchUpdatedProtocols = async () => {
-            try {
-                const protocolsData = await protocolsApi.getProtocolsList();
-                setProtocols(protocolsData);
-            } catch (err) {
-                console.error('Error refreshing protocols list:', err);
-            }
-        };
-
-        fetchUpdatedProtocols();
+        // Zamiast bezpośrednio pobierać dane, wywołujemy odświeżenie
+        refreshProtocolsList();
         setShowForm(false);
         setEditingProtocol(null);
     };
@@ -167,6 +221,34 @@ const CarReceptionPage: React.FC = () => {
                     <FaPlus /> Nowy protokół
                 </AddButton>
             </PageHeader>
+
+            {/* Nowy komponent z przyciskami filtrowania */}
+            <FilterButtons>
+                <FilterButton
+                    active={activeFilter === 'Wszystkie'}
+                    onClick={() => handleFilterChange('Wszystkie')}
+                >
+                    Wszystkie
+                </FilterButton>
+                <FilterButton
+                    active={activeFilter === 'Zaplanowane'}
+                    onClick={() => handleFilterChange('Zaplanowane')}
+                >
+                    Zaplanowane
+                </FilterButton>
+                <FilterButton
+                    active={activeFilter === 'Gotowe na odbiór'}
+                    onClick={() => handleFilterChange('Gotowe na odbiór')}
+                >
+                    Gotowe na odbiór
+                </FilterButton>
+                <FilterButton
+                    active={activeFilter === 'Archiwum'}
+                    onClick={() => handleFilterChange('Archiwum')}
+                >
+                    Archiwum
+                </FilterButton>
+            </FilterButtons>
 
             {loading ? (
                 <LoadingMessage>Ładowanie danych...</LoadingMessage>
@@ -189,9 +271,10 @@ const CarReceptionPage: React.FC = () => {
                         />
                     ) : (
                         <>
-                            {protocols.length === 0 ? (
+                            {filteredProtocols.length === 0 ? (
                                 <EmptyState>
-                                    <p>Brak protokołów przyjęcia. Kliknij "Nowy protokół", aby utworzyć pierwszy.</p>
+                                    <p>Brak protokołów przyjęcia {activeFilter !== 'Wszystkie' ? `w grupie "${activeFilter}"` : ''}.
+                                        {activeFilter === 'Wszystkie' ? ' Kliknij "Nowy protokół", aby utworzyć pierwszy.' : ''}</p>
                                 </EmptyState>
                             ) : (
                                 <ProtocolsTable>
@@ -201,11 +284,12 @@ const CarReceptionPage: React.FC = () => {
                                         <TableHeader>Data</TableHeader>
                                         <TableHeader>Właściciel</TableHeader>
                                         <TableHeader>Numer rejestracyjny</TableHeader>
+                                        <TableHeader>Status</TableHeader>
                                         <TableHeader>Akcje</TableHeader>
                                     </tr>
                                     </thead>
                                     <tbody>
-                                    {protocols.map(protocol => (
+                                    {filteredProtocols.map(protocol => (
                                         <TableRow key={protocol.id} onClick={() => handleViewProtocol(protocol)}>
                                             <TableCell>
                                                 <CarInfo>
@@ -229,6 +313,11 @@ const CarReceptionPage: React.FC = () => {
                                             </TableCell>
                                             <TableCell>
                                                 <LicensePlate>{protocol.vehicle.licensePlate}</LicensePlate>
+                                            </TableCell>
+                                            <TableCell>
+                                                <StatusBadge status={protocol.status}>
+                                                    {getStatusLabel(protocol.status)}
+                                                </StatusBadge>
                                             </TableCell>
                                             <TableCell onClick={(e) => e.stopPropagation()}>
                                                 <ActionButtons>
@@ -268,8 +357,93 @@ const formatDate = (dateString: string): string => {
     });
 };
 
-// Style komponentów
+// Funkcja pomocnicza do uzyskania etykiety statusu
+const getStatusLabel = (status: ProtocolStatus): string => {
+    const statusLabels: Record<ProtocolStatus, string> = {
+        [ProtocolStatus.SCHEDULED]: 'Zaplanowano',
+        [ProtocolStatus.IN_PROGRESS]: 'W realizacji',
+        [ProtocolStatus.READY_FOR_PICKUP]: 'Gotowy do odbioru',
+        [ProtocolStatus.COMPLETED]: 'Zakończony'
+    };
 
+    return statusLabels[status] || status;
+};
+
+// Nowe style dla filtrów
+const FilterButtons = styled.div`
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+`;
+
+const FilterButton = styled.button<{ active: boolean }>`
+    padding: 8px 16px;
+    background-color: ${props => props.active ? '#3498db' : '#f8f9fa'};
+    color: ${props => props.active ? 'white' : '#333'};
+    border: 1px solid ${props => props.active ? '#2980b9' : '#ddd'};
+    border-radius: 4px;
+    font-weight: ${props => props.active ? '500' : 'normal'};
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+        background-color: ${props => props.active ? '#2980b9' : '#f0f0f0'};
+    }
+`;
+
+// Nowy styl dla wyświetlania statusu
+const StatusBadge = styled.div<{ status: ProtocolStatus }>`
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    background-color: ${props => {
+        switch (props.status) {
+            case ProtocolStatus.SCHEDULED:
+                return '#e3f2fd'; // jasny niebieski
+            case ProtocolStatus.IN_PROGRESS:
+                return '#f3e5f5'; // jasny fioletowy
+            case ProtocolStatus.READY_FOR_PICKUP:
+                return '#e8f5e9'; // jasny zielony
+            case ProtocolStatus.COMPLETED:
+                return '#f5f5f5'; // jasny szary
+            default:
+                return '#f5f5f5';
+        }
+    }};
+    color: ${props => {
+        switch (props.status) {
+            case ProtocolStatus.SCHEDULED:
+                return '#1976d2'; // ciemny niebieski
+            case ProtocolStatus.IN_PROGRESS:
+                return '#7b1fa2'; // ciemny fioletowy 
+            case ProtocolStatus.READY_FOR_PICKUP:
+                return '#2e7d32'; // ciemny zielony
+            case ProtocolStatus.COMPLETED:
+                return '#616161'; // ciemny szary
+            default:
+                return '#616161';
+        }
+    }};
+    border: 1px solid ${props => {
+        switch (props.status) {
+            case ProtocolStatus.SCHEDULED:
+                return '#bbdefb'; // jaśniejszy niebieski
+            case ProtocolStatus.IN_PROGRESS:
+                return '#e1bee7'; // jaśniejszy fioletowy
+            case ProtocolStatus.READY_FOR_PICKUP:
+                return '#c8e6c9'; // jaśniejszy zielony
+            case ProtocolStatus.COMPLETED:
+                return '#e0e0e0'; // jaśniejszy szary
+            default:
+                return '#e0e0e0';
+        }
+    }};
+`;
+
+// Istniejące style - pozostawiamy bez zmian
 const PageContainer = styled.div`
     padding: 20px;
 `;

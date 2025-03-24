@@ -51,7 +51,7 @@ const mainMenuItems: MainMenuItem[] = [
         label: 'Zlecenia',
         icon: <FaClipboardCheck />,
         path: '/orders',
-        hasSubmenu: true
+        hasSubmenu: false
     },
     {
         id: 'clients',

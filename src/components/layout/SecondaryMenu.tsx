@@ -37,11 +37,6 @@ const secondaryMenuOptions: Record<string, SubMenuItem[]> = {
         { id: 'taxes', label: 'Podatki', icon: <FaMoneyBillWave />, path: '/settings/taxes' },
         { id: 'services', label: 'Lista usług i prac', icon: <FaClipboardList />, path: '/settings/services' }
     ],
-    orders: [
-        { id: 'scheduled', label: 'Zaplanowane', icon: <FaCarSide />, path: '/orders/scheduled' },
-        { id: 'to-be-picked-up', label: 'Oczekujące na odbiór', icon: <FaEye />, path: '/orders/to-be-picked-up' },
-        { id: 'archive', label: 'Archiwum', icon: <FaWrench />, path: '/orders/archive' },
-    ],
     clients: [
         { id: 'owners', label: 'Właściciele pojazdów', icon: <FaUsers />, path: '/clients/owners' },
         { id: 'vehicles', label: 'Pojazdy', icon: <FaCog />, path: '/clients/vehicles' }
@@ -102,7 +97,6 @@ const getMenuTitle = (menuId: string): string => {
         finances: 'Finanse',
         warehouse: 'Magazyn',
         pricing: 'Ceny i rabaty',
-        orders: 'Zlecenia'
     };
 
     return titles[menuId] || menuId;
