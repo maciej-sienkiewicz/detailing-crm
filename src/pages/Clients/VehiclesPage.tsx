@@ -3,12 +3,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { FaPlus, FaArrowLeft } from 'react-icons/fa';
 import { VehicleExpanded } from '../../types';
-import {
-    fetchVehicles,
-    fetchVehiclesByOwnerId,
-    deleteVehicle,
-    fetchClientById
-} from '../../api/mocks/clientMocks';
+import { vehicleApi } from '../../api/vehiclesApi';
+import { clientApi } from '../../api/clientsApi';
 import VehicleListTable from './components/VehicleListTable';
 import VehicleDetailDrawer from './components/VehicleDetailDrawer';
 import VehicleFilters, { VehicleFilters as VehicleFiltersType } from './components/VehicleFilters';
@@ -56,15 +52,15 @@ const VehiclesPage: React.FC = () => {
                 // If we have an owner ID, fetch only that owner's vehicles
                 let vehiclesData;
                 if (ownerId) {
-                    vehiclesData = await fetchVehiclesByOwnerId(ownerId);
+                    vehiclesData = await vehicleApi.fetchVehiclesByOwnerId(ownerId);
 
                     // Also fetch the owner's name
-                    const owner = await fetchClientById(ownerId);
+                    const owner = await clientApi.fetchClientById(ownerId);
                     if (owner) {
                         setOwnerName(`${owner.firstName} ${owner.lastName}`);
                     }
                 } else {
-                    vehiclesData = await fetchVehicles();
+                    vehiclesData = await vehicleApi.fetchVehicles();
                 }
 
                 setVehicles(vehiclesData);
@@ -167,20 +163,45 @@ const VehiclesPage: React.FC = () => {
         setShowAddModal(true);
     };
 
-    const handleSaveVehicle = (vehicle: VehicleExpanded) => {
-        if (selectedVehicle) {
-            // Update existing vehicle
-            setVehicles(vehicles.map(v => v.id === vehicle.id ? vehicle : v));
+    const handleSaveVehicle = async (vehicle: VehicleExpanded) => {
+        try {
+            if (selectedVehicle && selectedVehicle.id) {
+                // Update existing vehicle
+                const updatedVehicle = await vehicleApi.updateVehicle(selectedVehicle.id, {
+                    make: vehicle.make,
+                    model: vehicle.model,
+                    year: vehicle.year,
+                    licensePlate: vehicle.licensePlate,
+                    color: vehicle.color,
+                    vin: vehicle.vin,
+                    ownerIds: vehicle.ownerIds
+                });
 
-            // Update the selected vehicle if detail drawer is open
-            if (showDetailDrawer) {
-                setSelectedVehicle(vehicle);
+                setVehicles(vehicles.map(v => v.id === updatedVehicle.id ? updatedVehicle : v));
+
+                // Update the selected vehicle if detail drawer is open
+                if (showDetailDrawer) {
+                    setSelectedVehicle(updatedVehicle);
+                }
+            } else {
+                // Add new vehicle
+                const newVehicle = await vehicleApi.createVehicle({
+                    make: vehicle.make,
+                    model: vehicle.model,
+                    year: vehicle.year,
+                    licensePlate: vehicle.licensePlate,
+                    color: vehicle.color,
+                    vin: vehicle.vin,
+                    ownerIds: vehicle.ownerIds
+                });
+
+                setVehicles(prev => [...prev, newVehicle]);
             }
-        } else {
-            // Add new vehicle
-            setVehicles(prev => [...prev, vehicle]);
+            setShowAddModal(false);
+        } catch (err) {
+            setError('Nie udało się zapisać pojazdu');
+            console.error('Error saving vehicle:', err);
         }
-        setShowAddModal(false);
     };
 
     const handleDeleteClick = (vehicleId: string) => {
@@ -195,14 +216,17 @@ const VehiclesPage: React.FC = () => {
         if (!selectedVehicle) return;
 
         try {
-            await deleteVehicle(selectedVehicle.id);
-            setVehicles(vehicles.filter(v => v.id !== selectedVehicle.id));
-            setShowDeleteConfirm(false);
-            setSelectedVehicle(null);
+            const success = await vehicleApi.deleteVehicle(selectedVehicle.id);
 
-            // Close drawer if currently showing the deleted vehicle
-            if (showDetailDrawer) {
-                setShowDetailDrawer(false);
+            if (success) {
+                setVehicles(vehicles.filter(v => v.id !== selectedVehicle.id));
+                setShowDeleteConfirm(false);
+                setSelectedVehicle(null);
+
+                // Close drawer if currently showing the deleted vehicle
+                if (showDetailDrawer) {
+                    setShowDetailDrawer(false);
+                }
             }
         } catch (err) {
             setError('Nie udało się usunąć pojazdu');

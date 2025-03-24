@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { VehicleExpanded } from '../../../types/client';
-import { addVehicle, updateVehicle, fetchClients } from '../../../api/mocks/clientMocks';
+import { VehicleExpanded } from '../../../types/vehicle';
+import { clientApi } from '../../../api/clientsApi';
 import Modal from '../../../components/common/Modal';
 
 interface VehicleFormModalProps {
@@ -46,7 +46,7 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
         const loadOwners = async () => {
             try {
                 setLoadingOwners(true);
-                const clientsData = await fetchClients();
+                const clientsData = await clientApi.fetchClients();
 
                 const ownersData = clientsData.map(client => ({
                     id: client.id,
@@ -135,42 +135,31 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!validateForm()) {
             return;
         }
 
+        setLoading(true);
+
+        // Prepare the vehicle data by copying only necessary fields
+        const vehicleData: Partial<VehicleExpanded> = {
+            ...vehicle,
+            make: formData.make,
+            model: formData.model,
+            year: formData.year,
+            licensePlate: formData.licensePlate,
+            color: formData.color,
+            vin: formData.vin,
+            ownerIds: formData.ownerIds || []
+        };
+
         try {
-            setLoading(true);
-            setError(null);
-
-            let savedVehicle: VehicleExpanded;
-
-            if (vehicle && vehicle.id) {
-                // Update existing vehicle
-                savedVehicle = await updateVehicle({
-                    ...vehicle,
-                    ...formData,
-                    ownerIds: formData.ownerIds || []
-                } as VehicleExpanded);
-            } else {
-                // Create new vehicle
-                savedVehicle = await addVehicle({
-                    ...formData,
-                    totalServices: 0,
-                    totalSpent: 0,
-                    serviceHistory: [],
-                    ownerIds: formData.ownerIds || []
-                } as Omit<VehicleExpanded, 'id'>);
-            }
-
-            onSave(savedVehicle);
+            onSave(vehicleData as VehicleExpanded);
         } catch (err) {
             setError('Nie udało się zapisać pojazdu. Spróbuj ponownie.');
-            console.error('Error saving vehicle:', err);
-        } finally {
             setLoading(false);
         }
     };
@@ -419,13 +408,13 @@ const Select = styled.select`
     border-radius: 4px;
     font-size: 14px;
     background-color: white;
-    
+
     &:focus {
         outline: none;
         border-color: #3498db;
         box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
     }
-    
+
     &[multiple] {
         height: auto;
         min-height: 110px;
@@ -474,7 +463,7 @@ const Button = styled.button`
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
-    
+
     &:disabled {
         opacity: 0.6;
         cursor: not-allowed;
@@ -485,7 +474,7 @@ const CancelButton = styled(Button)`
     background-color: #f5f5f5;
     color: #333;
     border: 1px solid #ddd;
-    
+
     &:hover:not(:disabled) {
         background-color: #e9e9e9;
     }
@@ -495,7 +484,7 @@ const SaveButton = styled(Button)`
     background-color: #3498db;
     color: white;
     border: none;
-    
+
     &:hover:not(:disabled) {
         background-color: #2980b9;
     }

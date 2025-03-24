@@ -1,10 +1,6 @@
 import { ClientExpanded, VehicleExpanded } from '../types';
-import {
-    mockClients,
-    mockVehicles,
-    fetchVehiclesByOwnerId,
-    fetchClientById
-} from '../api/mocks/clientMocks';
+import { clientApi } from '../api/clientsApi';
+import { vehicleApi } from '../api/vehiclesApi';
 
 // Interfejs dla wyników wyszukiwania
 export interface SearchResults {
@@ -26,9 +22,11 @@ export class SearchService {
         }
 
         try {
-            // W prawdziwej implementacji uderzalibyśmy tu do API
-            // Na potrzeby mockowe filtrujemy dane lokalnie
-            const foundVehicles = mockVehicles.filter(vehicle =>
+            // Pobieramy wszystkie pojazdy i filtrujemy lokalnie (w prawdziwej implementacji
+            // backend miałby endpoint do wyszukiwania, lub używalibyśmy parametrów zapytania)
+            const allVehicles = await vehicleApi.fetchVehicles();
+
+            const foundVehicles = allVehicles.filter(vehicle =>
                 vehicle.licensePlate.toLowerCase().includes(licensePlate.toLowerCase())
             );
 
@@ -41,7 +39,7 @@ export class SearchService {
             // Pobieramy dane klientów
             const foundClients: ClientExpanded[] = [];
             for (const id of ownerIds) {
-                const client = await fetchClientById(id);
+                const client = await clientApi.fetchClientById(id);
                 if (client) {
                     foundClients.push(client);
                 }
@@ -66,9 +64,11 @@ export class SearchService {
         }
 
         try {
-            // Filtrujemy klientów po imieniu i nazwisku
+            // Pobieramy wszystkich klientów i filtrujemy lokalnie
+            const allClients = await clientApi.fetchClients();
+
             const searchTermLower = name.toLowerCase();
-            const foundClients = mockClients.filter(client => {
+            const foundClients = allClients.filter(client => {
                 const fullName = `${client.firstName} ${client.lastName}`.toLowerCase();
                 return fullName.includes(searchTermLower);
             });
@@ -76,7 +76,7 @@ export class SearchService {
             // Jeśli znaleziono klientów, zbieramy ich pojazdy
             const foundVehicles: VehicleExpanded[] = [];
             for (const client of foundClients) {
-                const clientVehicles = await fetchVehiclesByOwnerId(client.id);
+                const clientVehicles = await vehicleApi.fetchVehiclesByOwnerId(client.id);
                 foundVehicles.push(...clientVehicles);
             }
 
@@ -99,15 +99,17 @@ export class SearchService {
         }
 
         try {
-            // Filtrujemy klientów po NIP
-            const foundClients = mockClients.filter(client =>
+            // Pobieramy wszystkich klientów i filtrujemy lokalnie
+            const allClients = await clientApi.fetchClients();
+
+            const foundClients = allClients.filter(client =>
                 client.taxId && client.taxId.includes(taxId)
             );
 
             // Jeśli znaleziono klientów, zbieramy ich pojazdy
             const foundVehicles: VehicleExpanded[] = [];
             for (const client of foundClients) {
-                const clientVehicles = await fetchVehiclesByOwnerId(client.id);
+                const clientVehicles = await vehicleApi.fetchVehiclesByOwnerId(client.id);
                 foundVehicles.push(...clientVehicles);
             }
 
@@ -130,15 +132,17 @@ export class SearchService {
         }
 
         try {
-            // Filtrujemy klientów po emailu
-            const foundClients = mockClients.filter(client =>
+            // Pobieramy wszystkich klientów i filtrujemy lokalnie
+            const allClients = await clientApi.fetchClients();
+
+            const foundClients = allClients.filter(client =>
                 client.email.toLowerCase().includes(email.toLowerCase())
             );
 
             // Jeśli znaleziono klientów, zbieramy ich pojazdy
             const foundVehicles: VehicleExpanded[] = [];
             for (const client of foundClients) {
-                const clientVehicles = await fetchVehiclesByOwnerId(client.id);
+                const clientVehicles = await vehicleApi.fetchVehiclesByOwnerId(client.id);
                 foundVehicles.push(...clientVehicles);
             }
 
@@ -161,15 +165,17 @@ export class SearchService {
         }
 
         try {
-            // Filtrujemy klientów po telefonie
-            const foundClients = mockClients.filter(client =>
+            // Pobieramy wszystkich klientów i filtrujemy lokalnie
+            const allClients = await clientApi.fetchClients();
+
+            const foundClients = allClients.filter(client =>
                 client.phone.includes(phone)
             );
 
             // Jeśli znaleziono klientów, zbieramy ich pojazdy
             const foundVehicles: VehicleExpanded[] = [];
             for (const client of foundClients) {
-                const clientVehicles = await fetchVehiclesByOwnerId(client.id);
+                const clientVehicles = await vehicleApi.fetchVehiclesByOwnerId(client.id);
                 foundVehicles.push(...clientVehicles);
             }
 
@@ -192,15 +198,17 @@ export class SearchService {
         }
 
         try {
-            // Filtrujemy klientów po nazwie firmy
-            const foundClients = mockClients.filter(client =>
+            // Pobieramy wszystkich klientów i filtrujemy lokalnie
+            const allClients = await clientApi.fetchClients();
+
+            const foundClients = allClients.filter(client =>
                 client.company && client.company.toLowerCase().includes(company.toLowerCase())
             );
 
             // Jeśli znaleziono klientów, zbieramy ich pojazdy
             const foundVehicles: VehicleExpanded[] = [];
             for (const client of foundClients) {
-                const clientVehicles = await fetchVehiclesByOwnerId(client.id);
+                const clientVehicles = await vehicleApi.fetchVehiclesByOwnerId(client.id);
                 foundVehicles.push(...clientVehicles);
             }
 
@@ -219,7 +227,7 @@ export class SearchService {
      */
     static async getVehiclesForClient(clientId: string): Promise<VehicleExpanded[]> {
         try {
-            return await fetchVehiclesByOwnerId(clientId);
+            return await vehicleApi.fetchVehiclesByOwnerId(clientId);
         } catch (error) {
             console.error('Error fetching vehicles for client:', error);
             throw new Error('Failed to fetch vehicles');

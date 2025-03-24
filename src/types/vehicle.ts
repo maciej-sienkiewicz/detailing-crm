@@ -1,7 +1,7 @@
 // src/types/vehicle.ts
 // Typy związane z pojazdami
 
-// Rozszerzony interfejs pojazdu ze śledzeniem serwisowym
+// Rozszerzony interfejs pojazdu bez historii serwisowej (ładowanej osobno)
 export interface VehicleExpanded {
     id: string;
     make: string;
@@ -14,11 +14,14 @@ export interface VehicleExpanded {
     // Metryki śledzenia
     totalServices: number;
     lastServiceDate?: string;
-    serviceHistory: ServiceHistoryItem[];
     totalSpent: number;
 
     // Relacje
     ownerIds: string[]; // ID właścicieli (może mieć wielu)
+
+    // Historia serwisowa już nie jest częścią głównego modelu pojazdu,
+    // będzie pobierana osobnym zapytaniem
+    serviceHistory?: ServiceHistoryItem[];
 }
 
 // Śledzenie historii serwisowej

@@ -77,7 +77,7 @@ const ProtocolDetailsPage: React.FC = () => {
         if (!protocol) return;
 
         try {
-            const updatedProtocol = await updateProtocolStatus(protocol.id, newStatus);
+            const updatedProtocol = await protocolsApi.updateProtocolStatus(protocol.id, newStatus);
             setProtocol(updatedProtocol);
         } catch (err) {
             setError('Nie udało się zaktualizować statusu protokołu.');

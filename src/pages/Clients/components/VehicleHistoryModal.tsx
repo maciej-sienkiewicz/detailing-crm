@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import {
     FaCalendarAlt,
@@ -7,7 +7,8 @@ import {
     FaMoneyBillWave,
     FaExternalLinkAlt
 } from 'react-icons/fa';
-import { VehicleExpanded, ServiceHistoryItem } from '../../../types';
+import { VehicleExpanded } from '../../../types';
+import { vehicleApi, ServiceHistoryResponse } from '../../../api/vehiclesApi';
 import Modal from '../../../components/common/Modal';
 
 interface VehicleHistoryModalProps {
@@ -19,6 +20,29 @@ const VehicleHistoryModal: React.FC<VehicleHistoryModalProps> = ({
                                                                      vehicle,
                                                                      onClose
                                                                  }) => {
+    const [serviceHistory, setServiceHistory] = useState<ServiceHistoryResponse[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    // Pobieranie historii serwisowej
+    useEffect(() => {
+        const loadServiceHistory = async () => {
+            try {
+                setLoading(true);
+                const history = await vehicleApi.fetchVehicleServiceHistory(vehicle.id);
+                setServiceHistory(history);
+                setError(null);
+            } catch (err) {
+                console.error('Error loading service history:', err);
+                setError('Nie udało się załadować historii serwisowej');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadServiceHistory();
+    }, [vehicle.id]);
+
     return (
         <Modal
             isOpen={true}
@@ -70,7 +94,11 @@ const VehicleHistoryModal: React.FC<VehicleHistoryModalProps> = ({
                 <HistorySection>
                     <SectionTitle>Historia usług</SectionTitle>
 
-                    {vehicle.serviceHistory.length === 0 ? (
+                    {loading ? (
+                        <LoadingMessage>Ładowanie historii serwisowej...</LoadingMessage>
+                    ) : error ? (
+                        <ErrorMessage>{error}</ErrorMessage>
+                    ) : serviceHistory.length === 0 ? (
                         <EmptyHistory>
                             <EmptyIcon><FaClipboardList /></EmptyIcon>
                             <EmptyText>Brak historii serwisowej dla tego pojazdu</EmptyText>
@@ -78,7 +106,7 @@ const VehicleHistoryModal: React.FC<VehicleHistoryModalProps> = ({
                     ) : (
                         <HistoryTimeline>
                             {/* Sort history items by date (newest first) */}
-                            {[...vehicle.serviceHistory]
+                            {serviceHistory
                                 .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                                 .map((item, index) => (
                                     <TimelineItem key={item.id}>
@@ -88,7 +116,7 @@ const VehicleHistoryModal: React.FC<VehicleHistoryModalProps> = ({
                                                 <TimelineDate>
                                                     <FaCalendarAlt /> {formatDate(item.date)}
                                                 </TimelineDate>
-                                                <TimelineServiceType>{item.serviceType}</TimelineServiceType>
+                                                <TimelineServiceType>{item.service_type}</TimelineServiceType>
                                             </TimelineHeader>
 
                                             <TimelineDescription>{item.description}</TimelineDescription>
@@ -96,9 +124,9 @@ const VehicleHistoryModal: React.FC<VehicleHistoryModalProps> = ({
                                             <TimelineFooter>
                                                 <TimelinePrice>{item.price.toFixed(2)} zł</TimelinePrice>
 
-                                                {item.protocolId && (
+                                                {item.protocol_id && (
                                                     <TimelineProtocolLink
-                                                        href={`/orders/car-reception?id=${item.protocolId}`}
+                                                        href={`/orders/car-reception?id=${item.protocol_id}`}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                     >
@@ -197,7 +225,7 @@ const StatGrid = styled.div`
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 16px;
-    
+
     @media (max-width: 600px) {
         grid-template-columns: 1fr;
     }
@@ -236,6 +264,20 @@ const HistorySection = styled.div`
     margin-bottom: 20px;
 `;
 
+const LoadingMessage = styled.div`
+    text-align: center;
+    padding: 20px;
+    color: #7f8c8d;
+`;
+
+const ErrorMessage = styled.div`
+    background-color: #fdecea;
+    color: #e74c3c;
+    padding: 12px;
+    border-radius: 4px;
+    margin-bottom: 16px;
+`;
+
 const EmptyHistory = styled.div`
     display: flex;
     flex-direction: column;
@@ -260,7 +302,7 @@ const EmptyText = styled.div`
 const HistoryTimeline = styled.div`
     position: relative;
     padding-left: 20px;
-    
+
     &:before {
         content: '';
         position: absolute;
@@ -275,7 +317,7 @@ const HistoryTimeline = styled.div`
 const TimelineItem = styled.div`
     position: relative;
     margin-bottom: 20px;
-    
+
     &:last-child {
         margin-bottom: 0;
     }
@@ -306,7 +348,7 @@ const TimelineHeader = styled.div`
     justify-content: space-between;
     align-items: center;
     margin-bottom: 8px;
-    
+
     @media (max-width: 480px) {
         flex-direction: column;
         align-items: flex-start;
@@ -359,7 +401,7 @@ const TimelineProtocolLink = styled.a`
     font-size: 13px;
     color: #3498db;
     text-decoration: none;
-    
+
     &:hover {
         text-decoration: underline;
     }
