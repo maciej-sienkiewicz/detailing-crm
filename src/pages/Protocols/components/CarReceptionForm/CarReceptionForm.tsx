@@ -365,9 +365,13 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
+        console.log("Dupa blada")
         e.preventDefault();
 
+        console.log("marmolada")
+
         if (!validateForm()) {
+            console.log("validation dupa")
             return;
         }
 
@@ -386,6 +390,8 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
 
             let savedProtocol: CarReceptionProtocol;
 
+            console.log("Tu jestem")
+            console.log(protocol?.id)
             if (protocol?.id) {
                 // Aktualizacja istniejącego protokołu
                 const protocolToUpdate: CarReceptionProtocol = {

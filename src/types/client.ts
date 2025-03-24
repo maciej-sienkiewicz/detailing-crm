@@ -19,6 +19,12 @@ export interface ClientExpanded {
     vehicles: string[];
 }
 
+export interface ClientStatistics {
+    totalVisits: number;
+    totalRevenue: number;
+    vehicleNo: number;
+}
+
 export interface ContactAttempt {
     id?: string;
     clientId: string;

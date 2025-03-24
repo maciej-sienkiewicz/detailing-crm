@@ -12,7 +12,7 @@ import {
     FaMoneyBillWave,
     FaExternalLinkAlt
 } from 'react-icons/fa';
-import { CarReceptionProtocol } from '../../../../types';
+import {CarReceptionProtocol, ClientStatistics} from '../../../../types';
 import { ClientExpanded, VehicleExpanded } from '../../../../types';
 import {
     fetchVehiclesByOwnerId
@@ -27,6 +27,7 @@ interface ProtocolClientInfoProps {
 const ProtocolClientInfo: React.FC<ProtocolClientInfoProps> = ({ protocol }) => {
     const navigate = useNavigate();
     const [client, setClient] = useState<ClientExpanded | null>(null);
+    const [clientStats, setClientStats] = useState<ClientStatistics | null>(null);
     const [vehicles, setVehicles] = useState<VehicleExpanded[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -44,6 +45,8 @@ const ProtocolClientInfo: React.FC<ProtocolClientInfoProps> = ({ protocol }) => 
 
                 // Pobierz dane klienta z API
                 const matchedClient = await clientApi.fetchClientById(clientId);
+                const matchedClientStats = await clientApi.fetchClientStatsById(clientId);
+                setClientStats(matchedClientStats);
 
                 if (matchedClient) {
                     console.log('Client found:', matchedClient);
@@ -125,6 +128,10 @@ const ProtocolClientInfo: React.FC<ProtocolClientInfoProps> = ({ protocol }) => 
         return <EmptyState>Brak danych klienta w systemie CRM.</EmptyState>;
     }
 
+    if (!clientStats) {
+        return <EmptyState>Brak danych klienta w systemie CRM.</EmptyState>;
+    }
+
     return (
         <ClientInfoContainer>
             <ClientHeader>
@@ -190,19 +197,19 @@ const ProtocolClientInfo: React.FC<ProtocolClientInfoProps> = ({ protocol }) => 
                 <StatsGrid>
                     <StatItem>
                         <StatIcon><FaHistory /></StatIcon>
-                        <StatValue>{client.totalVisits}</StatValue>
+                        <StatValue>{clientStats.totalVisits}</StatValue>
                         <StatLabel>Liczba wizyt</StatLabel>
                     </StatItem>
 
                     <StatItem>
                         <StatIcon><FaMoneyBillWave /></StatIcon>
-                        <StatValue>{formatCurrency(client.totalRevenue)}</StatValue>
+                        <StatValue>{formatCurrency(clientStats.totalRevenue)}</StatValue>
                         <StatLabel>Wartość zamówień</StatLabel>
                     </StatItem>
 
                     <StatItem>
                         <StatIcon><FaCar /></StatIcon>
-                        <StatValue>{client.vehicles.length}</StatValue>
+                        <StatValue>{clientStats.vehicleNo}</StatValue>
                         <StatLabel>Liczba pojazdów</StatLabel>
                     </StatItem>
                 </StatsGrid>

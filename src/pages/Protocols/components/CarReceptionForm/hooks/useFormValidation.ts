@@ -23,10 +23,6 @@ export const useFormValidation = (formData: Partial<CarReceptionProtocol>) => {
             newErrors.productionYear = 'Podaj prawidłowy rok produkcji';
         }
 
-        if (!formData.mileage && formData.mileage !== 0) {
-            newErrors.mileage = 'Przebieg jest wymagany';
-        }
-
         if (!formData.ownerName?.trim()) {
             newErrors.ownerName = 'Imię i nazwisko właściciela jest wymagane';
         }
@@ -51,6 +47,7 @@ export const useFormValidation = (formData: Partial<CarReceptionProtocol>) => {
             newErrors.endDate = 'Data zakończenia nie może być wcześniejsza niż data rozpoczęcia';
         }
 
+        console.log(newErrors)
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };

@@ -1,4 +1,4 @@
-import {ClientExpanded, ContactAttempt} from '../types';
+import {ClientExpanded, ClientStatistics, ContactAttempt} from '../types';
 import { apiClient } from './apiClient';
 
 // Interfejs dla danych klienta do zapisu (bez pól statystyk)
@@ -118,6 +118,22 @@ export const clientApi = {
             return enrichClientData(data);
         } catch (error) {
             console.error(`Error fetching client ${id}:`, error);
+            return null;
+        }
+    },
+
+    fetchClientStatsById: async (id: number | string): Promise<ClientStatistics | null> => {
+        try {
+            const data = await apiClient.get<any>(`/clients/${id}/statistics`);
+            return {
+                ...data,
+                // Dodajemy brakujące pola wymagane przez interfejs ClientExpanded, jeśli nie istnieją
+                totalVisits: data.totalVisits || 0,
+                totalRevenue: data.totalRevenue || 0,
+                vehicleNo: data.vehicleNo || 0
+            };
+        } catch (error) {
+            console.error(`Error fetching client stats ${id}:`, error);
             return null;
         }
     },

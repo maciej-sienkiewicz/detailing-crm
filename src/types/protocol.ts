@@ -6,7 +6,6 @@ import { SelectedService } from './common';
 // Statusy protokołu
 export enum ProtocolStatus {
     SCHEDULED = 'SCHEDULED',                  // Zaplanowano
-    PENDING_APPROVAL = 'PENDING_APPROVAL',    // Oczekuje zatwierdzenia
     IN_PROGRESS = 'IN_PROGRESS',              // W realizacji
     READY_FOR_PICKUP = 'READY_FOR_PICKUP',    // Oczekiwanie na odbiór
     COMPLETED = 'COMPLETED'                   // Wydano/zakończono
@@ -15,7 +14,6 @@ export enum ProtocolStatus {
 // Etykiety dla statusów protokołów
 export const ProtocolStatusLabels: Record<ProtocolStatus, string> = {
     [ProtocolStatus.SCHEDULED]: 'Zaplanowano',
-    [ProtocolStatus.PENDING_APPROVAL]: 'Oczekuje na zatwierdzenie',
     [ProtocolStatus.IN_PROGRESS]: 'W realizacji',
     [ProtocolStatus.READY_FOR_PICKUP]: 'Gotowy do odbioru',
     [ProtocolStatus.COMPLETED]: 'Zakończony'
@@ -24,7 +22,6 @@ export const ProtocolStatusLabels: Record<ProtocolStatus, string> = {
 // Kolory dla statusów protokołów
 export const ProtocolStatusColors: Record<ProtocolStatus, string> = {
     [ProtocolStatus.SCHEDULED]: '#3498db',        // Niebieski
-    [ProtocolStatus.PENDING_APPROVAL]: '#f39c12', // Pomarańczowy
     [ProtocolStatus.IN_PROGRESS]: '#9b59b6',      // Fioletowy
     [ProtocolStatus.READY_FOR_PICKUP]: '#2ecc71', // Zielony
     [ProtocolStatus.COMPLETED]: '#7f8c8d'         // Szary
