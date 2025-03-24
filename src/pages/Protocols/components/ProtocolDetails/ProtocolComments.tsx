@@ -1,19 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { FaUser, FaPaperPlane, FaCalendarAlt, FaClock } from 'react-icons/fa';
+import { FaUser, FaPaperPlane, FaCalendarAlt, FaClock, FaSpinner } from 'react-icons/fa';
 import { CarReceptionProtocol } from '../../../../types';
-import { updateCarReceptionProtocol } from '../../../../api/mocks/carReceptionMocks';
-
-// Define a Comment interface
-interface Comment {
-    id: string;
-    author: string;
-    content: string;
-    timestamp: string;
-    type?: 'internal' | 'customer' | 'system'; // Typ komentarza - wewnętrzny, dla klienta, systemowy
-}
+import { Comment, commentsApi } from '../../../../api/commentsApi';
 
 interface ProtocolCommentsProps {
     protocol: CarReceptionProtocol;
@@ -21,11 +12,32 @@ interface ProtocolCommentsProps {
 }
 
 const ProtocolComments: React.FC<ProtocolCommentsProps> = ({ protocol, onProtocolUpdate }) => {
-    // Extract comments from protocol or initialize empty array
-    const [comments, setComments] = useState<Comment[]>(protocol.comments || []);
+    // Stan lokalny komponentu
+    const [comments, setComments] = useState<Comment[]>([]);
     const [newComment, setNewComment] = useState('');
     const [commentType, setCommentType] = useState<'internal' | 'customer'>('internal');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    // Pobieranie komentarzy przy pierwszym renderowaniu komponentu
+    useEffect(() => {
+        const fetchComments = async () => {
+            setIsLoading(true);
+            setError(null);
+            try {
+                const fetchedComments = await commentsApi.getComments(protocol.id);
+                setComments(fetchedComments);
+            } catch (err) {
+                console.error('Error fetching comments:', err);
+                setError('Nie udało się pobrać komentarzy. Spróbuj odświeżyć stronę.');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchComments();
+    }, [protocol.id]);
 
     // Format date for display
     const formatDateTime = (dateString: string): string => {
@@ -38,43 +50,39 @@ const ProtocolComments: React.FC<ProtocolCommentsProps> = ({ protocol, onProtoco
         if (!newComment.trim()) return;
 
         setIsSubmitting(true);
+        setError(null);
+
         try {
             // Create new comment object
-            const comment: Comment = {
-                id: `comment_${Date.now()}`,
+            const commentData: Comment = {
+                protocolId: protocol.id,
                 author: 'Administrator', // W prawdziwej aplikacji byłby to aktualny użytkownik
                 content: newComment,
-                timestamp: new Date().toISOString(),
                 type: commentType
             };
 
-            // Add comment to local state
-            const updatedComments = [...comments, comment];
-            setComments(updatedComments);
+            // Wysyłanie do API
+            const savedComment = await commentsApi.addComment(commentData);
 
-            // Update protocol with new comment
-            const updatedProtocol = {
-                ...protocol,
-                comments: updatedComments,
-                updatedAt: new Date().toISOString()
-            };
+            if (savedComment) {
+                // Dodaj komentarz do lokalnego stanu
+                setComments(prevComments => [...prevComments, savedComment]);
 
-            // Save to backend
-            const savedProtocol = await updateCarReceptionProtocol(updatedProtocol);
-            onProtocolUpdate(savedProtocol);
-
-            // Clear input
-            setNewComment('');
+                // Clear input
+                setNewComment('');
+            } else {
+                setError('Nie udało się dodać komentarza. Spróbuj ponownie.');
+            }
         } catch (error) {
             console.error('Error adding comment:', error);
-            // W produkcyjnej aplikacji pokazalibyśmy komunikat o błędzie
+            setError('Wystąpił błąd podczas dodawania komentarza.');
         } finally {
             setIsSubmitting(false);
         }
     };
 
     // Podziel komentarze na typy dla grupowania
-    const internalComments = comments.filter(c => c.type === 'internal' || !c.type);
+    const internalComments = comments.filter(c => c.type === 'internal');
     const customerComments = comments.filter(c => c.type === 'customer');
     const systemComments = comments.filter(c => c.type === 'system');
 
@@ -114,15 +122,22 @@ const ProtocolComments: React.FC<ProtocolCommentsProps> = ({ protocol, onProtoco
                         disabled={!newComment.trim() || isSubmitting}
                         typeColor={commentType === 'internal' ? '#3498db' : '#27ae60'}
                     >
-                        <FaPaperPlane /> {isSubmitting ? 'Dodawanie...' : 'Dodaj komentarz'}
+                        {isSubmitting ? <FaSpinner className="spinner" /> : <FaPaperPlane />}
+                        {isSubmitting ? 'Dodawanie...' : 'Dodaj komentarz'}
                     </SubmitButton>
                 </CommentInputWrapper>
+
+                {error && <ErrorMessage>{error}</ErrorMessage>}
             </AddCommentSection>
 
             {/* Całkowita historia komentarzy */}
             <SectionTitle>Historia komentarzy</SectionTitle>
 
-            {comments.length === 0 ? (
+            {isLoading ? (
+                <LoadingState>
+                    <FaSpinner className="spinner" /> Ładowanie komentarzy...
+                </LoadingState>
+            ) : comments.length === 0 ? (
                 <EmptyState>
                     Brak komentarzy. Dodaj pierwszy komentarz dotyczący tego zlecenia.
                 </EmptyState>
@@ -143,7 +158,7 @@ const ProtocolComments: React.FC<ProtocolCommentsProps> = ({ protocol, onProtoco
                                             <AuthorName>{comment.author}</AuthorName>
                                             <CommentTime>
                                                 <TimeIcon><FaCalendarAlt /></TimeIcon>
-                                                {formatDateTime(comment.timestamp)}
+                                                {formatDateTime(comment.timestamp || '')}
                                             </CommentTime>
                                         </AuthorInfo>
                                     </CommentAuthor>
@@ -168,7 +183,7 @@ const ProtocolComments: React.FC<ProtocolCommentsProps> = ({ protocol, onProtoco
                                             <AuthorName>{comment.author}</AuthorName>
                                             <CommentTime>
                                                 <TimeIcon><FaCalendarAlt /></TimeIcon>
-                                                {formatDateTime(comment.timestamp)}
+                                                {formatDateTime(comment.timestamp || '')}
                                             </CommentTime>
                                         </AuthorInfo>
                                     </CommentAuthor>
@@ -191,7 +206,7 @@ const ProtocolComments: React.FC<ProtocolCommentsProps> = ({ protocol, onProtoco
                                         <SystemIcon><FaClock /></SystemIcon>
                                         <div>
                                             <SystemContent>{comment.content}</SystemContent>
-                                            <SystemTime>{formatDateTime(comment.timestamp)}</SystemTime>
+                                            <SystemTime>{formatDateTime(comment.timestamp || '')}</SystemTime>
                                         </div>
                                     </SystemCommentContent>
                                 </CommentItem>
@@ -232,24 +247,24 @@ const TypeButton = styled.button<{ active?: boolean; customerType?: boolean }>`
     flex: 1;
     padding: 10px;
     border: 1px solid ${props => props.active
-    ? (props.customerType ? '#27ae60' : '#3498db')
-    : '#ddd'};
+            ? (props.customerType ? '#27ae60' : '#3498db')
+            : '#ddd'};
     background-color: ${props => props.active
-    ? (props.customerType ? '#eafaf1' : '#eaf6fd')
-    : 'white'};
+            ? (props.customerType ? '#eafaf1' : '#eaf6fd')
+            : 'white'};
     color: ${props => props.active
-    ? (props.customerType ? '#27ae60' : '#3498db')
-    : '#7f8c8d'};
+            ? (props.customerType ? '#27ae60' : '#3498db')
+            : '#7f8c8d'};
     border-radius: 4px;
     font-size: 14px;
     font-weight: ${props => props.active ? '500' : 'normal'};
     cursor: pointer;
     transition: all 0.2s;
-    
+
     &:hover {
         background-color: ${props => props.active
-    ? (props.customerType ? '#eafaf1' : '#eaf6fd')
-    : '#f5f5f5'};
+                ? (props.customerType ? '#eafaf1' : '#eaf6fd')
+                : '#f5f5f5'};
     }
 `;
 
@@ -298,6 +313,42 @@ const SubmitButton = styled.button<{ typeColor: string }>`
     &:disabled {
         background-color: #95a5a6;
         cursor: not-allowed;
+    }
+
+    .spinner {
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+`;
+
+const ErrorMessage = styled.div`
+    margin-top: 10px;
+    padding: 8px 12px;
+    background-color: #fdecea;
+    color: #e74c3c;
+    border-radius: 4px;
+    font-size: 13px;
+`;
+
+const LoadingState = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 30px;
+    color: #7f8c8d;
+    
+    .spinner {
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
     }
 `;
 
