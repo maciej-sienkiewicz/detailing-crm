@@ -55,6 +55,24 @@ const convertCamelToSnake = (data: any): any => {
     }, {} as Record<string, any>);
 };
 
+// Konwersja niepełnych danych klienta z API na pełny format ClientExpanded
+const enrichClientData = (clientData: any): ClientExpanded => {
+    // Najpierw konwertujemy nazwy pól ze snake_case na camelCase
+    const camelCaseClient = convertSnakeToCamel(clientData);
+
+    // Zapewniamy, że wszystkie wymagane pola istnieją - dodajemy brakujące z wartościami domyślnymi
+    return {
+        ...camelCaseClient,
+        // Dodajemy brakujące pola wymagane przez interfejs ClientExpanded, jeśli nie istnieją
+        totalVisits: camelCaseClient.totalVisits || 0,
+        totalTransactions: camelCaseClient.totalTransactions || 0,
+        abandonedSales: camelCaseClient.abandonedSales || 0,
+        totalRevenue: camelCaseClient.totalRevenue || 0,
+        contactAttempts: camelCaseClient.contactAttempts || 0,
+        vehicles: camelCaseClient.vehicles || []
+    };
+};
+
 export const clientApi = {
     // Pobieranie listy klientów
     fetchClients: async (): Promise<ClientExpanded[]> => {
@@ -93,10 +111,11 @@ export const clientApi = {
     },
 
     // Pobieranie pojedynczego klienta
-    fetchClientById: async (id: number): Promise<ClientExpanded | null> => {
+    fetchClientById: async (id: number | string): Promise<ClientExpanded | null> => {
         try {
             const data = await apiClient.get<any>(`/clients/${id}`);
-            return convertSnakeToCamel(data) as ClientExpanded;
+            // Używamy enrichClientData do wzbogacenia danych o brakujące pola
+            return enrichClientData(data);
         } catch (error) {
             console.error(`Error fetching client ${id}:`, error);
             return null;

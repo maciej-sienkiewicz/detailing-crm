@@ -15,12 +15,10 @@ import {
 import { CarReceptionProtocol } from '../../../../types';
 import { ClientExpanded, VehicleExpanded } from '../../../../types';
 import {
-    fetchClients,
     fetchVehiclesByOwnerId
 } from '../../../../api/mocks/clientMocks';
 import { useNavigate } from 'react-router-dom';
-import {clientApi} from "../../../../api/clientsApi";
-import {protocolsApi} from "../../../../api/protocolsApi";
+import { clientApi } from "../../../../api/clientsApi";
 
 interface ProtocolClientInfoProps {
     protocol: CarReceptionProtocol;
@@ -33,23 +31,33 @@ const ProtocolClientInfo: React.FC<ProtocolClientInfoProps> = ({ protocol }) => 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Load client data based on protocol's owner name
+    // Load client data based on protocol's owner ID
     useEffect(() => {
         const loadClientData = async () => {
             try {
                 setLoading(true);
-                const matchedClient = await clientApi.fetchClientById(protocol.ownerId);
+
+                // Pobierz ID klienta - może to być ownerId lub id jako string
+                const clientId = protocol.ownerId
+
+                console.log('Fetching client with ID:', clientId);
+
+                // Pobierz dane klienta z API
+                const matchedClient = await clientApi.fetchClientById(clientId);
 
                 if (matchedClient) {
+                    console.log('Client found:', matchedClient);
                     setClient(matchedClient);
 
                     // Load client's vehicles
                     const clientVehicles = await fetchVehiclesByOwnerId(matchedClient.id);
                     setVehicles(clientVehicles);
                 } else {
+                    console.error('Client not found for ID:', clientId);
                     setError('Nie znaleziono klienta w bazie danych.');
                 }
             } catch (err) {
+                console.error('Error loading client data:', err);
                 setError('Wystąpił błąd podczas ładowania danych klienta.');
             } finally {
                 setLoading(false);
@@ -57,7 +65,7 @@ const ProtocolClientInfo: React.FC<ProtocolClientInfoProps> = ({ protocol }) => 
         };
 
         loadClientData();
-    }, [protocol.ownerName]);
+    }, [protocol]);
 
     // Format currency for display
     const formatCurrency = (value: number): string => {
@@ -305,7 +313,7 @@ const ViewClientButton = styled.button`
     padding: 6px 12px;
     font-size: 13px;
     cursor: pointer;
-    
+
     &:hover {
         background-color: #d5e9f9;
     }
@@ -327,7 +335,7 @@ const TwoColumnGrid = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 15px;
-    
+
     @media (max-width: 768px) {
         grid-template-columns: 1fr;
     }
@@ -364,7 +372,7 @@ const StatsGrid = styled.div`
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 15px;
-    
+
     @media (max-width: 768px) {
         grid-template-columns: 1fr;
     }
@@ -412,7 +420,7 @@ const VehicleItem = styled.div<{ highlight?: boolean }>`
     border-left: 3px solid ${props => props.highlight ? '#3498db' : 'transparent'};
     border-radius: 4px;
     cursor: pointer;
-    
+
     &:hover {
         background-color: ${props => props.highlight ? '#e7f3ff' : '#f0f0f0'};
     }

@@ -23,6 +23,26 @@ const convertSnakeToCamel = (data: any): any => {
     }, {} as Record<string, any>);
 };
 
+// Funkcja pomocnicza do wzbogacania danych protokołu
+const enrichProtocolData = (protocolData: any): CarReceptionProtocol => {
+    // Najpierw konwertujemy nazwy pól ze snake_case na camelCase
+    const camelCaseProtocol = convertSnakeToCamel(protocolData);
+
+    // Zapewniamy, że wszystkie wymagane pola istnieją
+    return {
+        ...camelCaseProtocol,
+        // Konwertujemy ID właściciela z formatu API (może być przekazywane jako string)
+        ownerId: camelCaseProtocol.ownerId !== undefined ? camelCaseProtocol.ownerId :
+            protocolData.owner_id !== undefined ? protocolData.owner_id : null,
+        // Domyślne wartości dla pól, których może brakować
+        selectedServices: camelCaseProtocol.selectedServices || [],
+        vehicleImages: camelCaseProtocol.vehicleImages || [],
+        vehicleIssues: camelCaseProtocol.vehicleIssues || [],
+        purchaseInvoices: camelCaseProtocol.purchaseInvoices || [],
+        comments: camelCaseProtocol.comments || []
+    };
+};
+
 // Interfejs dla parametrów filtrowania
 interface ProtocolFilterParams {
     clientName?: string;
@@ -70,9 +90,11 @@ export const protocolsApi = {
         try {
             // Pobierz dane z API
             const rawData = await apiClient.get<any>(`/receptions/${id}`);
+            console.log('Raw protocol data:', rawData);
 
-            // Przekształć dane ze snake_case na camelCase
-            const transformedData = convertSnakeToCamel(rawData) as CarReceptionProtocol;
+            // Przekształć dane ze snake_case na camelCase i wzbogać o brakujące pola
+            const transformedData = enrichProtocolData(rawData);
+            console.log('Transformed protocol data:', transformedData);
 
             return transformedData;
         } catch (error) {
@@ -93,7 +115,7 @@ export const protocolsApi = {
             const rawResponse = await apiClient.post<any>('/receptions', protocolToSnakeCase);
 
             // Przekształć odpowiedź ze snake_case na camelCase
-            const transformedResponse = convertSnakeToCamel(rawResponse) as CarReceptionProtocol;
+            const transformedResponse = enrichProtocolData(rawResponse);
 
             return transformedResponse;
         } catch (error) {
@@ -114,7 +136,7 @@ export const protocolsApi = {
             const rawResponse = await apiClient.put<any>(`/receptions/${protocol.id}`, protocolToSnakeCase);
 
             // Przekształć odpowiedź ze snake_case na camelCase
-            const transformedResponse = convertSnakeToCamel(rawResponse) as CarReceptionProtocol;
+            const transformedResponse = enrichProtocolData(rawResponse);
 
             return transformedResponse;
         } catch (error) {
@@ -136,7 +158,7 @@ export const protocolsApi = {
             const rawResponse = await apiClient.patch<any>(`/receptions/${id}/status`, statusToSnakeCase);
 
             // Przekształć odpowiedź ze snake_case na camelCase
-            const transformedResponse = convertSnakeToCamel(rawResponse) as CarReceptionProtocol;
+            const transformedResponse = enrichProtocolData(rawResponse);
 
             return transformedResponse;
         } catch (error) {

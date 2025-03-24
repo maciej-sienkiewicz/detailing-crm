@@ -7,7 +7,7 @@ import {
     FaFilePdf,
     FaCarSide,
     FaCheckSquare,
-    FaKey // Ikona dla przycisku Wydaj samochód
+    FaKey
 } from 'react-icons/fa';
 import { CarReceptionProtocol, ProtocolStatus } from '../../types';
 import { fetchCarReceptionProtocol, updateProtocolStatus } from '../../api/mocks/carReceptionMocks';
@@ -72,17 +72,16 @@ const ProtocolDetailsPage: React.FC = () => {
         loadProtocol();
     }, [id]);
 
-    // Handle status change
-    const handleStatusChange = async (newStatus: ProtocolStatus) => {
+    // Handle status change - ta funkcja aktualizuje tylko lokalny stan
+    const handleStatusChange = (newStatus: ProtocolStatus) => {
         if (!protocol) return;
 
-        try {
-            const updatedProtocol = await protocolsApi.updateProtocolStatus(protocol.id, newStatus);
-            setProtocol(updatedProtocol);
-        } catch (err) {
-            setError('Nie udało się zaktualizować statusu protokołu.');
-            console.error('Error updating protocol status:', err);
-        }
+        // Aktualizujemy lokalnie tylko status, reszta danych protokołu pozostaje bez zmian
+        setProtocol({
+            ...protocol,
+            status: newStatus,
+            statusUpdatedAt: new Date().toISOString(),  // Aktualizujemy datę zmiany statusu lokalnie
+        });
     };
 
     // Go back to protocols list
@@ -92,7 +91,7 @@ const ProtocolDetailsPage: React.FC = () => {
 
     // Update protocol data after changes
     const handleProtocolUpdate = (updatedProtocol: CarReceptionProtocol) => {
-        console.log('Protokół zaktualizowany:', updatedProtocol); // Dla debugowania
+        console.log('Protokół zaktualizowany:', updatedProtocol);
         setProtocol(updatedProtocol);
     };
 
@@ -119,7 +118,14 @@ const ProtocolDetailsPage: React.FC = () => {
         setShowNotificationModal(false);
 
         // Zmieniamy status na "Oczekiwanie na odbiór"
-        await handleStatusChange(ProtocolStatus.READY_FOR_PICKUP);
+        handleStatusChange(ProtocolStatus.READY_FOR_PICKUP);
+
+        // W tle aktualizujemy status w API
+        try {
+            await protocolsApi.updateProtocolStatus(protocol!.id, ProtocolStatus.READY_FOR_PICKUP);
+        } catch (error) {
+            console.error('Błąd podczas aktualizacji statusu w API:', error);
+        }
 
         // Tutaj moglibyśmy zaimplementować faktyczne wysyłanie powiadomień
         if (notificationOptions.sendSms) {
@@ -166,8 +172,15 @@ const ProtocolDetailsPage: React.FC = () => {
         // Zamykamy modal płatności
         setShowPaymentModal(false);
 
-        // Zmieniamy status na "Wydano"
-        await handleStatusChange(ProtocolStatus.COMPLETED);
+        // Zmieniamy status lokalnie na "Wydano"
+        handleStatusChange(ProtocolStatus.COMPLETED);
+
+        // W tle aktualizujemy status w API
+        try {
+            await protocolsApi.updateProtocolStatus(protocol!.id, ProtocolStatus.COMPLETED);
+        } catch (error) {
+            console.error('Błąd podczas aktualizacji statusu w API:', error);
+        }
 
         // W rzeczywistej aplikacji tutaj moglibyśmy:
         // 1. Rejestrować płatność w systemie

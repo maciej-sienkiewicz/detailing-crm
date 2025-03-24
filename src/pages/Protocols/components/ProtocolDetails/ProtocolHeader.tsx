@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { CarReceptionProtocol, ProtocolStatus, ProtocolStatusLabels } from '../../../../types';
+import { protocolsApi } from '../../../../api/protocolsApi';
 
 interface ProtocolHeaderProps {
     protocol: CarReceptionProtocol;
@@ -10,6 +11,9 @@ interface ProtocolHeaderProps {
 }
 
 const ProtocolHeader: React.FC<ProtocolHeaderProps> = ({ protocol, onStatusChange }) => {
+    const [isUpdating, setIsUpdating] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
     // Format dates for display
     const formatDate = (dateString: string): string => {
         if (!dateString) return '';
@@ -38,6 +42,30 @@ const ProtocolHeader: React.FC<ProtocolHeaderProps> = ({ protocol, onStatusChang
         }
     };
 
+    // Obsługa zmiany statusu
+    const handleStatusChange = async (newStatus: ProtocolStatus) => {
+        if (newStatus === protocol.status) return; // Nie rób nic, jeśli status nie zmienił się
+
+        try {
+            setIsUpdating(true);
+            setError(null);
+
+            // Zamiast pobierać cały obiekt z API, aktualizujemy tylko status lokalnie
+            // Wywołujemy callback z nowym statusem od razu
+            onStatusChange(newStatus);
+
+            // W tle aktualizujemy status w API
+            await protocolsApi.updateProtocolStatus(protocol.id, newStatus);
+        } catch (err) {
+            console.error('Error changing protocol status:', err);
+            // Nawet jeśli wystąpi błąd, nie przywracamy starego statusu,
+            // aby uniknąć problemów z synchronizacją
+            setError('Wystąpił błąd podczas zapisywania statusu na serwerze');
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
     const nextStatus = getNextStatus();
 
     return (
@@ -46,7 +74,8 @@ const ProtocolHeader: React.FC<ProtocolHeaderProps> = ({ protocol, onStatusChang
                 <StatusLabel>Status</StatusLabel>
                 <StatusSelect
                     value={protocol.status}
-                    onChange={(e) => onStatusChange(e.target.value as ProtocolStatus)}
+                    onChange={(e) => handleStatusChange(e.target.value as ProtocolStatus)}
+                    disabled={isUpdating}
                 >
                     {Object.entries(ProtocolStatusLabels).map(([value, label]) => (
                         <option key={value} value={value}>
@@ -55,8 +84,13 @@ const ProtocolHeader: React.FC<ProtocolHeaderProps> = ({ protocol, onStatusChang
                     ))}
                 </StatusSelect>
 
+                {error && <ErrorMessage>{error}</ErrorMessage>}
+
                 {nextStatus && (
-                    <NextStatusButton onClick={() => onStatusChange(nextStatus)}>
+                    <NextStatusButton
+                        onClick={() => handleStatusChange(nextStatus)}
+                        disabled={isUpdating}
+                    >
                         → {ProtocolStatusLabels[nextStatus]}
                     </NextStatusButton>
                 )}
@@ -128,6 +162,20 @@ const StatusSelect = styled.select`
         border-color: #3498db;
         box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
     }
+
+    &:disabled {
+        background-color: #f5f5f5;
+        cursor: not-allowed;
+    }
+`;
+
+const ErrorMessage = styled.div`
+    color: #e74c3c;
+    font-size: 13px;
+    margin-bottom: 10px;
+    padding: 5px 8px;
+    background-color: #fdecea;
+    border-radius: 3px;
 `;
 
 const NextStatusButton = styled.button`
@@ -146,8 +194,15 @@ const NextStatusButton = styled.button`
         font-size: 14px;
     }
 
-    &:hover {
+    &:hover:not(:disabled) {
         background-color: #d5e9f9;
+    }
+
+    &:disabled {
+        background-color: #f5f5f5;
+        color: #95a5a6;
+        border-color: #e0e0e0;
+        cursor: not-allowed;
     }
 `;
 
@@ -171,7 +226,6 @@ const InfoGrid = styled.div`
         grid-template-columns: 1fr;
     }
 `;
-
 
 const InfoItem = styled.div``;
 
