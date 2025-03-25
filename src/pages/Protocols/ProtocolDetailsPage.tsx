@@ -249,17 +249,6 @@ const ProtocolDetailsPage: React.FC = () => {
                 </HeaderLeft>
                 <HeaderActions>
 
-                    {isScheduled && (
-                        <ActionButton title="Otwórz zlecenie" onClick={() => navigate(`/orders`, {
-                            state: {
-                                editProtocolId: protocol.id,
-                                isOpenProtocolAction: true
-                            }
-                        })}>
-                            <FaEdit /> Otwórz zlecenie
-                        </ActionButton>
-                    )}
-
                     {canFinishOrder && (
                         <ActionButton title="Zakończ zlecenie" primary="true" special="true" onClick={handleFinishOrder}>
                             <FaCheckSquare /> Zakończ zlecenie
@@ -280,9 +269,22 @@ const ProtocolDetailsPage: React.FC = () => {
                         <FaEdit /> Edytuj
                     </ActionButton>
 
+                    {isScheduled && (
+                        <ActionButton title="Otwórz zlecenie" primary="true" onClick={() => navigate(`/orders`, {
+                            state: {
+                                editProtocolId: protocol.id,
+                                isOpenProtocolAction: true
+                            }
+                        })}>
+                            <FaEdit /> Otwórz zlecenie
+                        </ActionButton>
+                    )}
+
+                    {!isScheduled && (
                     <ActionButton title="Drukuj protokół" primary="true">
                         <FaFilePdf /> Drukuj protokół
                     </ActionButton>
+                    )}
                 </HeaderActions>
             </PageHeader>
 

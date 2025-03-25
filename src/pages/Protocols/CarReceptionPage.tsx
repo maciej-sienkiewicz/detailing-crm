@@ -225,6 +225,7 @@ const CarReceptionPage: React.FC = () => {
         refreshProtocolsList();
         setShowForm(false);
         setEditingProtocol(null);
+        navigate(`/orders/car-reception/${protocol.id}`);
     };
 
     // Obsługa powrotu z formularza
