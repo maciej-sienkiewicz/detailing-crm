@@ -1,4 +1,4 @@
-import {VehicleExpanded, VehicleOwner} from '../types';
+import {VehicleExpanded, VehicleOwner, VehicleStatistics} from '../types';
 import { apiClient } from './apiClient';
 import {id} from "date-fns/locale";
 
@@ -86,6 +86,15 @@ export const vehicleApi = {
         try {
             const data = await apiClient.get<VehicleResponse[]>('/vehicles');
             return convertSnakeToCamel(data) as VehicleExpanded[];
+        } catch (error) {
+            console.error('Error fetching vehicles:', error);
+            throw error;
+        }
+    },
+
+    fetchVehicleStatistics: async (vehicleId: string): Promise<VehicleStatistics> => {
+        try {
+            return await apiClient.get<VehicleStatistics>(`/vehicles/${vehicleId}/statistics`);
         } catch (error) {
             console.error('Error fetching vehicles:', error);
             throw error;

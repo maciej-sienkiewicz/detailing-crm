@@ -90,19 +90,6 @@ const ClientFilters: React.FC<ClientFiltersProps> = ({
                         </FilterGroup>
 
                         <FilterGroup>
-                            <Label htmlFor="minTransactions">Min. liczba transakcji</Label>
-                            <Input
-                                id="minTransactions"
-                                name="minTransactions"
-                                type="number"
-                                min="0"
-                                value={filters.minTransactions}
-                                onChange={onFilterChange}
-                                placeholder="Min. liczba transakcji..."
-                            />
-                        </FilterGroup>
-
-                        <FilterGroup>
                             <Label htmlFor="minRevenue">Min. przychody (zł)</Label>
                             <Input
                                 id="minRevenue"

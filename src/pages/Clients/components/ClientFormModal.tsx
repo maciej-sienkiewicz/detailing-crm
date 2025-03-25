@@ -241,11 +241,6 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ client, onSave, onCan
                                     <StatLabel>Liczba wizyt:</StatLabel>
                                     <StatValue>{client.totalVisits}</StatValue>
                                 </StatItem>
-
-                                <StatItem>
-                                    <StatLabel>Liczba transakcji:</StatLabel>
-                                    <StatValue>{client.totalTransactions}</StatValue>
-                                </StatItem>
                             </FormRow>
 
                             <FormRow>

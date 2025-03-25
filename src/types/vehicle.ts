@@ -24,6 +24,11 @@ export interface VehicleExpanded {
     serviceHistory?: ServiceHistoryItem[];
 }
 
+export interface VehicleStatistics {
+    servicesNo: number;
+    totalRevenue: number;
+}
+
 export interface VehicleOwner {
     ownerId: number;
     ownerName: string;

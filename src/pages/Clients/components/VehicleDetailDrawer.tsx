@@ -10,7 +10,7 @@ import {
     FaUser,
     FaExternalLinkAlt
 } from 'react-icons/fa';
-import {VehicleExpanded, VehicleOwner} from '../../../types';
+import {VehicleExpanded, VehicleOwner, VehicleStatistics} from '../../../types';
 import { vehicleApi, ServiceHistoryResponse } from '../../../api/vehiclesApi';
 import { clientApi } from '../../../api/clientsApi';
 
@@ -29,6 +29,7 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
     const [loadingOwners, setLoadingOwners] = useState(false);
     const [serviceHistory, setServiceHistory] = useState<ServiceHistoryResponse[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
+    const [vehicleStats, setVehicleStats] = useState<VehicleStatistics | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     // Pobieranie właścicieli pojazdu
@@ -40,6 +41,7 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
 
                     // Filter out null values (if any client failed to load)
                     setOwners( await vehicleApi.fetchOwners(vehicle.id));
+                    setVehicleStats(await vehicleApi.fetchVehicleStatistics(vehicle.id));
                 } catch (error) {
                     console.error('Error loading vehicle owners:', error);
                     setError('Nie udało się załadować właścicieli pojazdu');
@@ -73,6 +75,8 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
     }, [vehicle]);
 
     if (!vehicle) return null;
+
+    if(!vehicleStats) return null;
 
     return (
         <DrawerContainer isOpen={isOpen}>
@@ -136,13 +140,13 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
                 <MetricsGrid>
                     <MetricCard>
                         <MetricIcon $color="#3498db"><FaTools /></MetricIcon>
-                        <MetricValue>{vehicle.totalServices}</MetricValue>
+                        <MetricValue>{vehicleStats.servicesNo}</MetricValue>
                         <MetricLabel>Liczba usług</MetricLabel>
                     </MetricCard>
 
                     <MetricCard>
                         <MetricIcon $color="#2ecc71"><FaMoneyBillWave /></MetricIcon>
-                        <MetricValue>{vehicle.totalSpent.toFixed(2)} zł</MetricValue>
+                        <MetricValue>{vehicleStats?.totalRevenue.toFixed(2)} zł</MetricValue>
                         <MetricLabel>Suma przychodów</MetricLabel>
                     </MetricCard>
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { FaPlus, FaArrowLeft } from 'react-icons/fa';
-import { VehicleExpanded } from '../../types';
+import {VehicleExpanded, VehicleStatistics} from '../../types';
 import { vehicleApi } from '../../api/vehiclesApi';
 import { clientApi } from '../../api/clientsApi';
 import VehicleListTable from './components/VehicleListTable';
@@ -62,7 +62,6 @@ const VehiclesPage: React.FC = () => {
                 } else {
                     vehiclesData = await vehicleApi.fetchVehicles();
                 }
-
                 setVehicles(vehiclesData);
                 setFilteredVehicles(vehiclesData);
                 setError(null);

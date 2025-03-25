@@ -77,10 +77,6 @@ const ClientListTable: React.FC<ClientListTableProps> = ({
                                         <MetricValue>{client.totalVisits}</MetricValue>
                                         <MetricLabel>wizyt</MetricLabel>
                                     </MetricItem>
-                                    <MetricItem>
-                                        <MetricValue>{client.totalTransactions}</MetricValue>
-                                        <MetricLabel>transakcji</MetricLabel>
-                                    </MetricItem>
                                 </MetricsCell>
                             </TableCell>
                             <TableCell onClick={() => onSelectClient(client)}>
