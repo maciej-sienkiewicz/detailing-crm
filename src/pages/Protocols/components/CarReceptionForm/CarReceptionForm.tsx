@@ -204,7 +204,8 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
                 name: selectedServiceToAdd.name,
                 price: selectedServiceToAdd.price,
                 discountType: DiscountType.PERCENTAGE,
-                discountValue: 0
+                discountValue: 0,
+                approvalStatus: ServiceApprovalStatus.APPROVED
             };
 
             addService(newService);
@@ -216,7 +217,8 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
                 name: searchQuery.trim(),
                 price: 0, // Domyślna cena zero, którą użytkownik będzie musiał zaktualizować
                 discountType: DiscountType.PERCENTAGE,
-                discountValue: 0
+                discountValue: 0,
+                approvalStatus: ServiceApprovalStatus.APPROVED
             };
 
             addService(newService);

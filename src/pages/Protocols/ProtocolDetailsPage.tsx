@@ -23,6 +23,8 @@ import CustomerNotificationModal from './components/CustomerNotificationModal';
 import ClientCommentsModal from './components/ClientCommentsModal';
 import PaymentModal from './components/PaymentModal';
 import {protocolsApi} from "../../api/protocolsApi";
+import protocolComments from "./components/ProtocolDetails/ProtocolComments";
+import {Comment, commentsApi} from "../../api/commentsApi";
 
 // Define tab types
 type TabType = 'summary' | 'comments' | 'invoices' | 'client' | 'vehicle';
@@ -32,6 +34,7 @@ const ProtocolDetailsPage: React.FC = () => {
     const navigate = useNavigate();
 
     const [protocol, setProtocol] = useState<CarReceptionProtocol | null>(null);
+    const [comments, setComments] = useState<Comment[] | null>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<TabType>('summary');
@@ -52,6 +55,7 @@ const ProtocolDetailsPage: React.FC = () => {
             try {
                 setLoading(true);
                 const data = await protocolsApi.getProtocolDetails(id);
+                const comments = await commentsApi.getComments(id)
 
                 if (!data) {
                     setError('Protokół nie został znaleziony.');
@@ -59,6 +63,7 @@ const ProtocolDetailsPage: React.FC = () => {
                 }
 
                 setProtocol(data);
+                setComments(comments)
                 setError(null);
             } catch (err) {
                 setError('Wystąpił błąd podczas ładowania protokołu.');
@@ -314,7 +319,7 @@ const ProtocolDetailsPage: React.FC = () => {
             <ClientCommentsModal
                 isOpen={showClientCommentsModal}
                 onClose={handleClientCommentsModalClose}
-                comments={protocol?.comments || []}
+                comments={comments}
             />
 
             <PaymentModal
