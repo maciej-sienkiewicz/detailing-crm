@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { FaTimes, FaUser, FaBuilding, FaIdCard, FaMapMarkerAlt, FaEnvelope, FaPhone, FaCalendarAlt, FaMoneyBillWave, FaCar, FaHistory } from 'react-icons/fa';
-import { ClientExpanded, ContactAttempt } from '../../../types';
+import {ClientExpanded, ClientStatistics, ContactAttempt} from '../../../types';
 import { fetchContactAttemptsByClientId } from '../../../api/mocks/clientMocks';
 import {clientApi} from "../../../api/clientsApi";
 
@@ -17,6 +17,7 @@ const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
                                                                    onClose
                                                                }) => {
     const [contactHistory, setContactHistory] = useState<ContactAttempt[]>([]);
+    const [clientStats, setClientStats] = useState<ClientStatistics | null>(null);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -25,7 +26,9 @@ const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
                 setLoading(true);
                 try {
                     const history = await clientApi.fetchContactAttemptsByClientById(client.id);
+                    const clientStats = await clientApi.fetchClientStatsById(client.id);
                     setContactHistory(history);
+                    setClientStats(clientStats)
                 } catch (error) {
                     console.error('Error loading contact history:', error);
                 } finally {
@@ -37,7 +40,7 @@ const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
         loadContactHistory();
     }, [client]);
 
-    if (!client) return null;
+    if (!client || !clientStats) return null;
 
     return (
         <DrawerContainer isOpen={isOpen}>
@@ -120,19 +123,19 @@ const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
                 <MetricsGrid>
                     <MetricCard>
                         <MetricIcon $color="#3498db"><FaCalendarAlt /></MetricIcon>
-                        <MetricValue>{client.totalVisits}</MetricValue>
+                        <MetricValue>{clientStats.totalVisits}</MetricValue>
                         <MetricLabel>Liczba wizyt</MetricLabel>
                     </MetricCard>
 
                     <MetricCard>
                         <MetricIcon $color="#2ecc71"><FaMoneyBillWave /></MetricIcon>
-                        <MetricValue>{client.totalRevenue.toFixed(2)} zł</MetricValue>
+                        <MetricValue>{clientStats.totalRevenue.toFixed(2)} zł</MetricValue>
                         <MetricLabel>Suma przychodów</MetricLabel>
                     </MetricCard>
 
                     <MetricCard>
                         <MetricIcon $color="#f39c12"><FaCar /></MetricIcon>
-                        <MetricValue>{client.vehicles.length}</MetricValue>
+                        <MetricValue>{clientStats.vehicleNo}</MetricValue>
                         <MetricLabel>Pojazdy</MetricLabel>
                     </MetricCard>
 

@@ -68,7 +68,7 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ client, onSave, onCan
 
         if (!formData.email?.trim() && !formData.phone?.trim()) {
             newErrors.email = 'Podaj adres email lub/i numer telefonu.';
-        } else if (!/^[^@]+@[^@]+\.[^@]+$/.test(formData.email)) {
+        } else if (formData.email?.trim() && !/^[^@]+@[^@]+\.[^@]+$/.test(formData.email)) {
             newErrors.email = 'Podaj prawidłowy adres email';
         }
 
@@ -149,7 +149,7 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ client, onSave, onCan
 
                         <FormRow>
                             <FormGroup>
-                                <Label htmlFor="email">Email*</Label>
+                                <Label htmlFor="email">Email</Label>
                                 <Input
                                     id="email"
                                     name="email"
@@ -157,20 +157,18 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ client, onSave, onCan
                                     value={formData.email || ''}
                                     onChange={handleChange}
                                     placeholder="Email"
-                                    required
                                 />
                                 {errors.email && <ErrorText>{errors.email}</ErrorText>}
                             </FormGroup>
 
                             <FormGroup>
-                                <Label htmlFor="phone">Telefon*</Label>
+                                <Label htmlFor="phone">Telefon</Label>
                                 <Input
                                     id="phone"
                                     name="phone"
                                     value={formData.phone || ''}
                                     onChange={handleChange}
                                     placeholder="Numer telefonu"
-                                    required
                                 />
                                 {errors.phone && <ErrorText>{errors.phone}</ErrorText>}
                             </FormGroup>

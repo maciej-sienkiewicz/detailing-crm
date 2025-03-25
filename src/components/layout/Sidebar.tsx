@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import {
     FaCalendarAlt,
@@ -106,6 +106,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                              activeMenuItem
                                          }) => {
     const location = useLocation();
+    const navigate = useNavigate();
 
     const handleMenuItemClick = (item: MainMenuItem) => {
         if (item.hasSubmenu) {
@@ -113,6 +114,10 @@ const Sidebar: React.FC<SidebarProps> = ({
         } else if (item.path) {
             // Jeśli element menu nie ma submenu, przechodzimy do określonej ścieżki
             onMenuItemClick(null);
+
+            // Zawsze nawiguj do ścieżki, co spowoduje przeładowanie komponentu
+            // i zamknięcie formularza jeśli jest otwarty
+            navigate(item.path);
         }
     };
 
@@ -149,6 +154,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 <MenuItemLink
                                     to={item.path}
                                     $active={location.pathname.startsWith(item.path)}
+                                    onClick={(e) => {
+                                        // Zatrzymaj domyślną nawigację Link
+                                        // żeby obsłużyć ją w handleMenuItemClick
+                                        e.preventDefault();
+                                    }}
                                 >
                                     <MenuIcon>{item.icon}</MenuIcon>
                                     <MenuLabel>{item.label}</MenuLabel>

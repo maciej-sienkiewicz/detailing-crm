@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { FaPlus, FaEdit, FaTrash, FaCarSide, FaFileAlt } from 'react-icons/fa';
-import { ProtocolListItem, ProtocolStatus } from '../../types/protocol';
-import { CarReceptionProtocol } from '../../types';
-import { CarReceptionForm } from './components/CarReceptionForm/CarReceptionForm';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { protocolsApi } from '../../api/protocolsApi';
-import { fetchAvailableServices } from '../../api/mocks/carReceptionMocks';    // Aktualizacja filtrów po zmianie głównej listy protokołów
+import {FaArrowLeft, FaEdit, FaFileAlt, FaPlus, FaTrash} from 'react-icons/fa';
+import {ProtocolListItem, ProtocolStatus} from '../../types/protocol';
+import {CarReceptionProtocol} from '../../types';
+import {CarReceptionForm} from './components/CarReceptionForm/CarReceptionForm';
+import {useLocation, useNavigate} from 'react-router-dom';
+import {protocolsApi} from '../../api/protocolsApi';
+import {fetchAvailableServices} from '../../api/mocks/carReceptionMocks';
+
 const CarReceptionPage: React.FC = () => {
     const location = useLocation();
     const navigate = useNavigate();
@@ -34,6 +35,7 @@ const CarReceptionPage: React.FC = () => {
     const protocolDataFromAppointment = location.state?.protocolData;
     const appointmentId = location.state?.appointmentId;
     const editProtocolId = location.state?.editProtocolId;
+    const isOpenProtocolAction = location.state?.isOpenProtocolAction;
     const startDateFromCalendar = location.state?.startDate;
     const isFullProtocolFromNav = location.state?.isFullProtocol !== undefined
         ? location.state.isFullProtocol
@@ -99,6 +101,9 @@ const CarReceptionPage: React.FC = () => {
                     try {
                         const protocolToEdit = await protocolsApi.getProtocolDetails(editProtocolId);
                         if (protocolToEdit) {
+                            if(isOpenProtocolAction) {
+                                protocolToEdit.status = ProtocolStatus.IN_PROGRESS;
+                            }
                             setEditingProtocol(protocolToEdit);
                             setShowForm(true);
                         } else {
@@ -120,6 +125,14 @@ const CarReceptionPage: React.FC = () => {
         fetchData();
     }, [protocolDataFromAppointment, editProtocolId, startDateFromCalendar, refreshTrigger]);
 
+    // Efekt dla obsługi odświeżenia komponentu po zmianie ścieżki
+    // Dzięki temu, gdy klikniemy w menu głównym "Zlecenia", aplikacja zawsze pokaże listę protokołów
+    useEffect(() => {
+        setShowForm(false);
+        setEditingProtocol(null);
+        refreshProtocolsList();
+    }, [location.key]);
+
     // Nowa funkcja do zmiany filtra
     const handleFilterChange = (filter: 'Zaplanowane' | 'Gotowe na odbiór' | 'Archiwum' | 'Wszystkie') => {
         setActiveFilter(filter);
@@ -140,6 +153,7 @@ const CarReceptionPage: React.FC = () => {
     const handleAddProtocol = () => {
         const today = new Date().toISOString().split('T')[0];
         setEditingProtocol(null);
+        setFormData({});
         setShowForm(true);
     };
 
@@ -213,42 +227,63 @@ const CarReceptionPage: React.FC = () => {
         setEditingProtocol(null);
     };
 
+    // Obsługa powrotu z formularza
+    const handleFormCancel = () => {
+        setShowForm(false);
+        setEditingProtocol(null);
+    };
+
     return (
         <PageContainer>
             <PageHeader>
-                <h1>Protokoły przyjęcia pojazdu</h1>
-                <AddButton onClick={handleAddProtocol}>
-                    <FaPlus /> Nowy protokół
-                </AddButton>
+                {showForm ? (
+                    <>
+                        <HeaderLeft>
+                            <BackButton onClick={handleFormCancel}>
+                                <FaArrowLeft />
+                            </BackButton>
+                            <h1>{editingProtocol ? 'Edycja protokołu' : 'Nowy protokół przyjęcia pojazdu'}</h1>
+                        </HeaderLeft>
+                    </>
+                ) : (
+                    <>
+                        <h1>Protokoły przyjęcia pojazdu</h1>
+                        <AddButton onClick={handleAddProtocol}>
+                            <FaPlus /> Nowy protokół
+                        </AddButton>
+                    </>
+                )}
             </PageHeader>
 
-            {/* Nowy komponent z przyciskami filtrowania */}
-            <FilterButtons>
-                <FilterButton
-                    active={activeFilter === 'Wszystkie'}
-                    onClick={() => handleFilterChange('Wszystkie')}
-                >
-                    Wszystkie
-                </FilterButton>
-                <FilterButton
-                    active={activeFilter === 'Zaplanowane'}
-                    onClick={() => handleFilterChange('Zaplanowane')}
-                >
-                    Zaplanowane
-                </FilterButton>
-                <FilterButton
-                    active={activeFilter === 'Gotowe na odbiór'}
-                    onClick={() => handleFilterChange('Gotowe na odbiór')}
-                >
-                    Gotowe na odbiór
-                </FilterButton>
-                <FilterButton
-                    active={activeFilter === 'Archiwum'}
-                    onClick={() => handleFilterChange('Archiwum')}
-                >
-                    Archiwum
-                </FilterButton>
-            </FilterButtons>
+            {/* Nowy komponent z przyciskami filtrowania - ukrywamy podczas wyświetlania formularza */}
+            {!showForm && (
+                <FilterButtons>
+                    <FilterButton
+                        active={activeFilter === 'Wszystkie'}
+                        onClick={() => handleFilterChange('Wszystkie')}
+                    >
+                        Wszystkie
+                    </FilterButton>
+                    <FilterButton
+                        active={activeFilter === 'Zaplanowane'}
+                        onClick={() => handleFilterChange('Zaplanowane')}
+                    >
+                        Zaplanowane
+                    </FilterButton>
+                    <FilterButton
+                        active={activeFilter === 'Gotowe na odbiór'}
+                        onClick={() => handleFilterChange('Gotowe na odbiór')}
+                    >
+                        Gotowe na odbiór
+                    </FilterButton>
+                    <FilterButton
+                        active={activeFilter === 'Archiwum'}
+                        onClick={() => handleFilterChange('Archiwum')}
+                    >
+                        Archiwum
+                    </FilterButton>
+                </FilterButtons>
+            )}
 
             {loading ? (
                 <LoadingMessage>Ładowanie danych...</LoadingMessage>
@@ -264,10 +299,7 @@ const CarReceptionPage: React.FC = () => {
                             appointmentId={appointmentId}
                             isFullProtocol={isFullProtocol}
                             onSave={handleSaveProtocol}
-                            onCancel={() => {
-                                setShowForm(false);
-                                setEditingProtocol(null);
-                            }}
+                            onCancel={handleFormCancel}
                         />
                     ) : (
                         <>
@@ -457,6 +489,29 @@ const PageHeader = styled.div`
     h1 {
         font-size: 24px;
         margin: 0;
+    }
+`;
+
+const HeaderLeft = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 15px;
+`;
+
+const BackButton = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background-color: #f9f9f9;
+    border: 1px solid #eee;
+    border-radius: 50%;
+    cursor: pointer;
+    color: #34495e;
+
+    &:hover {
+        background-color: #f0f0f0;
     }
 `;
 

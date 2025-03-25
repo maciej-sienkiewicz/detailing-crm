@@ -10,7 +10,6 @@ import {
     FaKey
 } from 'react-icons/fa';
 import { CarReceptionProtocol, ProtocolStatus } from '../../types';
-import { fetchCarReceptionProtocol, updateProtocolStatus } from '../../api/mocks/carReceptionMocks';
 import ProtocolHeader from './components/ProtocolDetails/ProtocolHeader';
 import ProtocolTabs from './components/ProtocolDetails/ProtocolTabs';
 import ProtocolSummary from './components/ProtocolDetails/ProtocolSummary';
@@ -152,6 +151,8 @@ const ProtocolDetailsPage: React.FC = () => {
     // Sprawdzenie czy przycisk "Wydaj samochód" powinien być dostępny
     const canReleaseVehicle = protocol?.status === ProtocolStatus.READY_FOR_PICKUP;
 
+    const isScheduled = protocol?.status === ProtocolStatus.SCHEDULED;
+
     // Obsługa procesu wydania samochodu
     const handleReleaseVehicle = () => {
         // Rozpoczynamy proces wydania samochodu od sprawdzenia komentarzy dla klienta
@@ -242,6 +243,18 @@ const ProtocolDetailsPage: React.FC = () => {
                     </HeaderTitle>
                 </HeaderLeft>
                 <HeaderActions>
+
+                    {isScheduled && (
+                        <ActionButton title="Otwórz zlecenie" onClick={() => navigate(`/orders`, {
+                            state: {
+                                editProtocolId: protocol.id,
+                                isOpenProtocolAction: true
+                            }
+                        })}>
+                            <FaEdit /> Otwórz zlecenie
+                        </ActionButton>
+                    )}
+
                     {canFinishOrder && (
                         <ActionButton title="Zakończ zlecenie" primary="true" special="true" onClick={handleFinishOrder}>
                             <FaCheckSquare /> Zakończ zlecenie
