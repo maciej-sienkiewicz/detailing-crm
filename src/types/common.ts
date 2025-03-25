@@ -21,18 +21,6 @@ export enum ServiceApprovalStatus {
     REJECTED = 'REJECTED'      // Odrzucona przez klienta
 }
 
-// Obiekty pomocnicze dla statusów zatwierdzenia usług
-export const ServiceApprovalStatusLabels: Record<ServiceApprovalStatus, string> = {
-    [ServiceApprovalStatus.PENDING]: 'Oczekiwanie na potwierdzenie',
-    [ServiceApprovalStatus.APPROVED]: 'Zatwierdzona',
-    [ServiceApprovalStatus.REJECTED]: 'Odrzucona'
-};
-
-export const ServiceApprovalStatusColors: Record<ServiceApprovalStatus, string> = {
-    [ServiceApprovalStatus.PENDING]: '#95a5a6',     // Szary
-    [ServiceApprovalStatus.APPROVED]: '#2ecc71',    // Zielony
-    [ServiceApprovalStatus.REJECTED]: '#e74c3c'     // Czerwony
-};
 
 // Definicja typu dla usługi wybranej w protokole
 export interface SelectedService {
