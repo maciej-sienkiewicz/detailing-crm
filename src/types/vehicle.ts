@@ -24,6 +24,11 @@ export interface VehicleExpanded {
     serviceHistory?: ServiceHistoryItem[];
 }
 
+export interface VehicleOwner {
+    ownerId: number;
+    ownerName: string;
+}
+
 // Śledzenie historii serwisowej
 export interface ServiceHistoryItem {
     id: string;

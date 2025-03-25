@@ -103,7 +103,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
                         </FilterGroup>
 
                         <FilterGroup>
-                            <Label htmlFor="minSpent">Min. wydatki (zł)</Label>
+                            <Label htmlFor="minSpent">Min. przychód (zł)</Label>
                             <Input
                                 id="minSpent"
                                 name="minSpent"
@@ -111,7 +111,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
                                 min="0"
                                 value={filters.minSpent}
                                 onChange={onFilterChange}
-                                placeholder="Min. kwota wydatków..."
+                                placeholder="Min. kwota przychodu..."
                             />
                         </FilterGroup>
                     </FiltersGrid>

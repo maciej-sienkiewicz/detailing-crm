@@ -1,5 +1,6 @@
-import { VehicleExpanded } from '../types';
+import {VehicleExpanded, VehicleOwner} from '../types';
 import { apiClient } from './apiClient';
+import {id} from "date-fns/locale";
 
 // Interfejs dla odpowiedzi z serwera
 interface VehicleResponse {
@@ -85,6 +86,16 @@ export const vehicleApi = {
         try {
             const data = await apiClient.get<VehicleResponse[]>('/vehicles');
             return convertSnakeToCamel(data) as VehicleExpanded[];
+        } catch (error) {
+            console.error('Error fetching vehicles:', error);
+            throw error;
+        }
+    },
+
+    fetchOwners: async (vehicleId: string): Promise<VehicleOwner[]> => {
+        try {
+            const data = await apiClient.get<VehicleResponse[]>(`/vehicles/${vehicleId}/owners`);
+            return convertSnakeToCamel(data) as VehicleOwner[];
         } catch (error) {
             console.error('Error fetching vehicles:', error);
             throw error;

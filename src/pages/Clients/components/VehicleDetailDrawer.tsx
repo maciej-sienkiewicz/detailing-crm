@@ -10,7 +10,7 @@ import {
     FaUser,
     FaExternalLinkAlt
 } from 'react-icons/fa';
-import { VehicleExpanded } from '../../../types';
+import {VehicleExpanded, VehicleOwner} from '../../../types';
 import { vehicleApi, ServiceHistoryResponse } from '../../../api/vehiclesApi';
 import { clientApi } from '../../../api/clientsApi';
 
@@ -25,7 +25,7 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
                                                                      vehicle,
                                                                      onClose
                                                                  }) => {
-    const [owners, setOwners] = useState<{ id: string; name: string }[]>([]);
+    const [owners, setOwners] = useState<VehicleOwner[]>([]);
     const [loadingOwners, setLoadingOwners] = useState(false);
     const [serviceHistory, setServiceHistory] = useState<ServiceHistoryResponse[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
@@ -37,19 +37,9 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
             if (vehicle) {
                 setLoadingOwners(true);
                 try {
-                    // Load owner details for each owner ID
-                    const ownersData = await Promise.all(
-                        vehicle.ownerIds.map(async (ownerId) => {
-                            const client = await clientApi.fetchClientById(ownerId);
-                            return client ? {
-                                id: client.id,
-                                name: `${client.firstName} ${client.lastName}`
-                            } : null;
-                        })
-                    );
 
                     // Filter out null values (if any client failed to load)
-                    setOwners(ownersData.filter(owner => owner !== null) as { id: string; name: string }[]);
+                    setOwners( await vehicleApi.fetchOwners(vehicle.id));
                 } catch (error) {
                     console.error('Error loading vehicle owners:', error);
                     setError('Nie udało się załadować właścicieli pojazdu');
@@ -133,9 +123,9 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
                 ) : (
                     <OwnersList>
                         {owners.map(owner => (
-                            <OwnerItem key={owner.id}>
+                            <OwnerItem key={owner.ownerId}>
                                 <OwnerIcon><FaUser /></OwnerIcon>
-                                <OwnerName>{owner.name}</OwnerName>
+                                <OwnerName>{owner.ownerName}</OwnerName>
                             </OwnerItem>
                         ))}
                     </OwnersList>
@@ -153,7 +143,7 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
                     <MetricCard>
                         <MetricIcon $color="#2ecc71"><FaMoneyBillWave /></MetricIcon>
                         <MetricValue>{vehicle.totalSpent.toFixed(2)} zł</MetricValue>
-                        <MetricLabel>Suma wydatków</MetricLabel>
+                        <MetricLabel>Suma przychodów</MetricLabel>
                     </MetricCard>
 
                     {vehicle.lastServiceDate && (

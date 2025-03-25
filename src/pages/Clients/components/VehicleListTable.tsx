@@ -27,7 +27,7 @@ const VehicleListTable: React.FC<VehicleListTableProps> = ({
                         <TableHeader>Nr rejestracyjny</TableHeader>
                         <TableHeader>VIN</TableHeader>
                         <TableHeader>Usługi</TableHeader>
-                        <TableHeader>Wydatki</TableHeader>
+                        <TableHeader>Przychody</TableHeader>
                         <TableHeader>Akcje</TableHeader>
                     </TableRow>
                 </TableHead>

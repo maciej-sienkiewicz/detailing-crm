@@ -6,7 +6,7 @@ import Modal from '../../components/common/Modal';
 import AppointmentForm from '../../components/calendar/AppointmentForm';
 import AppointmentDetails from '../../components/calendar/AppointmentDetails';
 import ConfirmationDialog from '../../components/common/ConfirmationDialog';
-import { Appointment, AppointmentStatus } from '../../types';
+import {Appointment, AppointmentStatus, ProtocolStatus} from '../../types';
 import {
     fetchAppointments,
     addAppointment,
@@ -69,10 +69,21 @@ const CalendarPage: React.FC = () => {
         if (!selectedAppointment) return;
 
         // Jeśli to już jest protokół, nie powinniśmy tworzyć nowego
+        if ((selectedAppointment.isProtocol && (selectedAppointment.status as unknown as ProtocolStatus) == ProtocolStatus.SCHEDULED) ) {
+            navigate(`/orders`, {
+                state: {
+                    editProtocolId: selectedAppointment.id,
+                    isOpenProtocolAction: true
+                }
+            })
+            return;
+        }
+
         if (selectedAppointment.isProtocol) {
             setError('To wydarzenie jest już protokołem.');
             return;
         }
+
 
         try {
             // Mapowanie danych wizyty na dane protokołu
@@ -146,8 +157,14 @@ const CalendarPage: React.FC = () => {
     // Obsługa edycji wizyty
     const handleEditClick = () => {
         // Protokołów nie można edytować z poziomu kalendarza
-        if (selectedAppointment?.isProtocol) {
-            setError('Nie można edytować protokołu z poziomu kalendarza. Przejdź do widoku protokołów.');
+        if ((selectedAppointment?.isProtocol && (selectedAppointment?.status as unknown as ProtocolStatus) == ProtocolStatus.SCHEDULED)) {
+            navigate(`/orders`, {
+                state: {
+                    editProtocolId: selectedAppointment.id,
+                    isOpenProtocolAction: false,
+                    isFullProtocol: false
+                }
+            })
             return;
         }
 

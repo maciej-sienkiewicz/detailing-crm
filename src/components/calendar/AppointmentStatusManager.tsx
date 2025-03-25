@@ -61,12 +61,6 @@ export const AppointmentStatusManager: React.FC<AppointmentStatusManagerProps> =
         <Container ref={menuRef}>
             <StatusRow>
                 <AppointmentStatusBadge status={status} />
-                <StatusActionButton
-                    onClick={toggleMenu}
-                    title="Zmień status"
-                >
-                    <FaExchangeAlt />
-                </StatusActionButton>
             </StatusRow>
 
             {isMenuOpen && (

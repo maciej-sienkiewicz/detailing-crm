@@ -13,7 +13,7 @@ import {
     FaClipboardCheck,
     FaExternalLinkAlt
 } from 'react-icons/fa';
-import { Appointment } from '../../types';
+import {Appointment, ProtocolStatus} from '../../types';
 import { AppointmentStatusManager } from './AppointmentStatusManager';
 import { useNavigate } from 'react-router-dom';
 
@@ -44,18 +44,12 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
         if (appointment.isProtocol && appointment.id) {
             // Pobieramy ID protokołu z ID wydarzenia
             const protocolId = appointment.id.replace('protocol-', '');
-            navigate(`/orders/car-reception?id=${protocolId}`);
+            navigate(`/orders/car-reception/${protocolId}`);
         }
     };
 
     return (
         <Container>
-            {appointment.isProtocol && (
-                <ProtocolBadge>
-                    <FaClipboardCheck /> Protokół przyjęcia pojazdu
-                </ProtocolBadge>
-            )}
-
             <Title>{appointment.title}</Title>
 
             <DetailRow>
@@ -101,7 +95,7 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
             )}
 
             <Actions>
-                {appointment.isProtocol ? (
+                {(appointment.isProtocol && (appointment.status as unknown as ProtocolStatus) !== ProtocolStatus.SCHEDULED) ? (
                     <ActionButton onClick={handleGoToProtocol} primary>
                         <FaExternalLinkAlt /> Przejdź do protokołu
                     </ActionButton>

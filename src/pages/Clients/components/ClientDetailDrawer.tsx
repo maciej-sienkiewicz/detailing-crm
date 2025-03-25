@@ -141,7 +141,7 @@ const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
 
                     <MetricCard>
                         <MetricIcon $color="#9b59b6"><FaHistory /></MetricIcon>
-                        <MetricValue>{client.contactAttempts}</MetricValue>
+                        <MetricValue>{contactHistory.length}</MetricValue>
                         <MetricLabel>Próby kontaktu</MetricLabel>
                     </MetricCard>
                 </MetricsGrid>

@@ -302,7 +302,7 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                                 </StatItem>
 
                                 <StatItem>
-                                    <StatLabel>Suma wydatków:</StatLabel>
+                                    <StatLabel>Suma przychodów:</StatLabel>
                                     <StatValue>{vehicle.totalSpent.toFixed(2)} zł</StatValue>
                                 </StatItem>
                             </FormRow>

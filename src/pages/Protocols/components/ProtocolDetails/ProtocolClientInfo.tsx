@@ -239,7 +239,7 @@ const ProtocolClientInfo: React.FC<ProtocolClientInfoProps> = ({ protocol }) => 
                                         <DetailValue>{vehicle.totalServices}</DetailValue>
                                     </VehicleDetailItem>
                                     <VehicleDetailItem>
-                                        <DetailLabel>Wydatki:</DetailLabel>
+                                        <DetailLabel>Przychody:</DetailLabel>
                                         <DetailValue>{formatCurrency(vehicle.totalSpent)}</DetailValue>
                                     </VehicleDetailItem>
                                 </VehicleDetails>

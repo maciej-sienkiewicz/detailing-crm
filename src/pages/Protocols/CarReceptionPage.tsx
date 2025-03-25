@@ -96,6 +96,8 @@ const CarReceptionPage: React.FC = () => {
                     setShowForm(true);
                 }
 
+                console.log("Tu jestem");
+                console.log(editProtocolId);
                 // Jeśli mamy ID protokołu do edycji, pobieramy go i otwieramy formularz
                 if (editProtocolId) {
                     try {
