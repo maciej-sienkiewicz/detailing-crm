@@ -78,7 +78,6 @@ export const clientApi = {
     fetchClients: async (): Promise<ClientExpanded[]> => {
         try {
             const data = await apiClient.get<any[]>('/clients');
-            console.log(data);
             return convertSnakeToCamel(data) as ClientExpanded[];
         } catch (error) {
             console.error('Error fetching clients:', error);

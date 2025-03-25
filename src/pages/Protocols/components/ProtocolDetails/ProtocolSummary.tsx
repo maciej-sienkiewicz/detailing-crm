@@ -18,6 +18,8 @@ import { CarReceptionProtocol, ServiceApprovalStatus, SelectedService } from '..
 import AddServiceModal from '../AddServiceModal';
 import { updateCarReceptionProtocol } from '../../../../api/mocks/carReceptionMocks';
 import { fetchAvailableServices } from '../../../../api/mocks/carReceptionMocks';
+import { protocolsApi } from '../../../../api/protocolsApi';
+import { apiClient } from '../../../../api/apiClient';
 
 interface ProtocolSummaryProps {
     protocol: CarReceptionProtocol;
@@ -56,7 +58,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
         };
 
         try {
-            const savedProtocol = await updateCarReceptionProtocol(updatedProtocol);
+            const savedProtocol = await protocolsApi.updateProtocol(updatedProtocol);
 
             if (onProtocolUpdate) {
                 console.log('Wywołanie onProtocolUpdate po anulowaniu usługi:', savedProtocol);
@@ -116,7 +118,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
             // const savedProtocol = await addServicesWithNotification(protocol.id, servicesData.services);
 
             // Symulacja zapisu do backendu
-            const savedProtocol = await updateCarReceptionProtocol(updatedProtocol);
+            const savedProtocol = await protocolsApi.updateProtocol(updatedProtocol);
 
             // Aktualizacja UI
             if (onProtocolUpdate) {

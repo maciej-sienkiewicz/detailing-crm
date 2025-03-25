@@ -4,7 +4,7 @@ import {
     ClientExpanded,
     DiscountType,
     ProtocolStatus,
-    SelectedService,
+    SelectedService, ServiceApprovalStatus,
     VehicleExpanded,
     VehicleImage
 } from '../../../../types';
@@ -365,13 +365,9 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
-        console.log("Dupa blada")
         e.preventDefault();
 
-        console.log("marmolada")
-
         if (!validateForm()) {
-            console.log("validation dupa")
             return;
         }
 
@@ -452,7 +448,8 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
             name: service.name,
             price: service.price,
             discountType: DiscountType.PERCENTAGE,
-            discountValue: 0
+            discountValue: 0,
+            approvalStatus: ServiceApprovalStatus.APPROVED
         };
 
         addService(newService);

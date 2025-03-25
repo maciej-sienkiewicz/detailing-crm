@@ -52,7 +52,6 @@ export const carReceptionApi = {
 
             // Konwertuj dane do formatu oczekiwanego przez API
             const requestData = convertToSnakeCase(protocol);
-            console.log(requestData);
 
             // Wysyłanie żądania POST
             const response = await apiClient.post<CarReceptionResponse>('/receptions', requestData);
