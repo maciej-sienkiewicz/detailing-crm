@@ -19,6 +19,7 @@ import {
 } from '../../../../api/mocks/clientMocks';
 import { useNavigate } from 'react-router-dom';
 import { clientApi } from "../../../../api/clientsApi";
+import {vehicleApi} from "../../../../api/vehiclesApi";
 
 interface ProtocolClientInfoProps {
     protocol: CarReceptionProtocol;
@@ -53,7 +54,7 @@ const ProtocolClientInfo: React.FC<ProtocolClientInfoProps> = ({ protocol }) => 
                     setClient(matchedClient);
 
                     // Load client's vehicles
-                    const clientVehicles = await fetchVehiclesByOwnerId(matchedClient.id);
+                    const clientVehicles = await vehicleApi.fetchVehiclesByOwnerId(matchedClient.id);
                     setVehicles(clientVehicles);
                 } else {
                     console.error('Client not found for ID:', clientId);
