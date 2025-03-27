@@ -83,6 +83,24 @@ export const protocolsApi = {
         }
     },
 
+    getProtocolsByClientId: async (clientId: string): Promise<ProtocolListItem[]> => {
+        try {
+            // Budowanie parametrów zapytania
+            const queryParams: Record<string, string> = {};
+
+            // Pobierz dane z API
+            const rawData = await apiClient.get<any[]>(`/receptions/${clientId}/protocols`, queryParams);
+
+            // Przekształć dane ze snake_case na camelCase
+            const transformedData = convertSnakeToCamel(rawData) as ProtocolListItem[];
+
+            return transformedData;
+        } catch (error) {
+            console.error('Error fetching protocols list:', error);
+            return [];
+        }
+    },
+
     /**
      * Pobiera szczegóły protokołu
      */

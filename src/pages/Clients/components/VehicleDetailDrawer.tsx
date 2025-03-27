@@ -10,9 +10,16 @@ import {
     FaUser,
     FaExternalLinkAlt
 } from 'react-icons/fa';
-import {VehicleExpanded, VehicleOwner, VehicleStatistics} from '../../../types';
+import {
+    ClientProtocolHistory,
+    ProtocolListItem, ProtocolStatus,
+    VehicleExpanded,
+    VehicleOwner,
+    VehicleStatistics
+} from '../../../types';
 import { vehicleApi, ServiceHistoryResponse } from '../../../api/vehiclesApi';
 import { clientApi } from '../../../api/clientsApi';
+import {carReceptionApi} from "../../../api/carReceptionApi";
 
 interface VehicleDetailDrawerProps {
     isOpen: boolean;
@@ -27,7 +34,7 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
                                                                  }) => {
     const [owners, setOwners] = useState<VehicleOwner[]>([]);
     const [loadingOwners, setLoadingOwners] = useState(false);
-    const [serviceHistory, setServiceHistory] = useState<ServiceHistoryResponse[]>([]);
+    const [protocolHistory, setProtocolHistory] = useState<ClientProtocolHistory[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [vehicleStats, setVehicleStats] = useState<VehicleStatistics | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -60,8 +67,8 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
             if (vehicle) {
                 setLoadingHistory(true);
                 try {
-                    const history = await vehicleApi.fetchVehicleServiceHistory(vehicle.id);
-                    setServiceHistory(history);
+                    const protocols = await carReceptionApi.getProtocolsByClientId(vehicle.ownerIds[0]);
+                    setProtocolHistory(protocols);
                 } catch (error) {
                     console.error('Error loading service history:', error);
                     setError('Nie udało się załadować historii serwisowej');
@@ -163,27 +170,44 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
 
                 {loadingHistory ? (
                     <LoadingText>Ładowanie historii serwisowej...</LoadingText>
-                ) : serviceHistory.length === 0 ? (
+                ) : protocolHistory.length === 0 ? (
                     <EmptyMessage>Brak historii serwisowej</EmptyMessage>
                 ) : (
                     <ServiceHistoryList>
-                        {serviceHistory
-                            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) // Sort by date, newest first
+                        {protocolHistory
+                            .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime()) // Sort by date, newest first
                             .map(service => (
                                 <ServiceHistoryItem key={service.id}>
-                                    <ServiceDate>{formatDate(service.date)}</ServiceDate>
-                                    <ServiceType>{service.service_type}</ServiceType>
-                                    <ServiceDescription>{service.description}</ServiceDescription>
-                                    <ServiceFooter>
-                                        <ServicePrice>{service.price.toFixed(2)} zł</ServicePrice>
+                                    <ServiceHeader>
+                                        <ServiceDate>{formatDate(service.startDate)}</ServiceDate>
+                                        <StatusBadge status={service.status}>
+                                            {service.status === ProtocolStatus.COMPLETED ? 'Zakończony' :
+                                                service.status === ProtocolStatus.SCHEDULED ? 'Zaplanowany' :
+                                                    service.status === ProtocolStatus.READY_FOR_PICKUP ? 'Gotowy do odbioru' :
+                                                        String(service.status)}
+                                        </StatusBadge>
+                                    </ServiceHeader>
 
-                                        {service.protocol_id && (
+                                    <ServiceInfo>
+                                        <ServiceVehicleInfo>
+                                            {service.make} {service.model}
+                                            <LicenseBadge>{service.licensePlate}</LicenseBadge>
+                                        </ServiceVehicleInfo>
+                                    </ServiceInfo>
+
+                                    <ServiceFooter>
+                                        <PriceTag>
+                                            <PriceLabel>Kwota:</PriceLabel>
+                                            <PriceValue>{service.totalAmount.toFixed(2)} zł</PriceValue>
+                                        </PriceTag>
+
+                                        {service.id && (
                                             <ProtocolLink
-                                                href={`/orders/car-reception?id=${service.protocol_id}`}
+                                                href={`/orders/car-reception?id=${service.id}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                             >
-                                                <FaExternalLinkAlt /> Protokół
+                                                <FaExternalLinkAlt /> Szczegóły protokołu
                                             </ProtocolLink>
                                         )}
                                     </ServiceFooter>
@@ -208,6 +232,80 @@ const formatDate = (dateString: string): string => {
         day: '2-digit'
     });
 };
+
+const ServiceHeader = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+`;
+
+const StatusBadge = styled.div<{ status: ProtocolStatus }>`
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 12px;
+    color: white;
+    background-color: ${props => {
+    switch(props.status) {
+        case ProtocolStatus.COMPLETED:
+            return '#27ae60'; // zielony
+        case ProtocolStatus.SCHEDULED:
+            return '#3498db'; // niebieski
+        case ProtocolStatus.READY_FOR_PICKUP:
+            return '#f39c12'; // pomarańczowy
+        default:
+            return '#95a5a6'; // szary
+    }
+}};
+`;
+
+const ServiceInfo = styled.div`
+    margin-bottom: 16px;
+`;
+
+const ServiceVehicleInfo = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 15px;
+    font-weight: 500;
+    color: #34495e;
+    flex-wrap: wrap;
+`;
+
+const LicenseBadge = styled.span`
+    background-color: #f0f7ff;
+    color: #3498db;
+    border: 1px solid #d5e9f9;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-weight: 600;
+    font-size: 14px;
+    display: inline-block;
+`;
+
+const PriceTag = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+`;
+
+const PriceLabel = styled.span`
+    font-size: 13px;
+    font-weight: 500;
+    color: #7f8c8d;
+`;
+
+const PriceValue = styled.span`
+    background-color: rgba(46, 204, 113, 0.15);
+    color: #27ae60;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 14px;
+    border: 1px solid rgba(46, 204, 113, 0.3);
+`;
 
 // Styled components
 const DrawerContainer = styled.div<{ isOpen: boolean }>`

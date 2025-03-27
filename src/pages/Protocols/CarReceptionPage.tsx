@@ -21,11 +21,12 @@ const CarReceptionPage: React.FC = () => {
     const [formData, setFormData] = useState<Partial<CarReceptionProtocol>>({});
 
     // Nowy stan do obsługi aktywnego filtru
-    const [activeFilter, setActiveFilter] = useState<'Zaplanowane' | 'Gotowe na odbiór' | 'Archiwum' | 'Wszystkie'>('Wszystkie');
+    const [activeFilter, setActiveFilter] = useState<'Zaplanowane' | 'W realizacji' | 'Gotowe na odbiór' | 'Archiwum' | 'Wszystkie'>('Wszystkie');
 
     // Definiujemy mapowanie filtrów na statusy protokołów
     const filterMapping = {
-        'Zaplanowane': [ProtocolStatus.SCHEDULED, ProtocolStatus.IN_PROGRESS],
+        'Zaplanowane': [ProtocolStatus.SCHEDULED],
+        'W realizacji': [ProtocolStatus.IN_PROGRESS],
         'Gotowe na odbiór': [ProtocolStatus.READY_FOR_PICKUP],
         'Archiwum': [ProtocolStatus.COMPLETED],
         'Wszystkie': [ProtocolStatus.SCHEDULED, ProtocolStatus.IN_PROGRESS, ProtocolStatus.READY_FOR_PICKUP, ProtocolStatus.COMPLETED]
@@ -134,7 +135,7 @@ const CarReceptionPage: React.FC = () => {
     }, [location.key]);
 
     // Nowa funkcja do zmiany filtra
-    const handleFilterChange = (filter: 'Zaplanowane' | 'Gotowe na odbiór' | 'Archiwum' | 'Wszystkie') => {
+    const handleFilterChange = (filter: 'Zaplanowane' | 'W realizacji' | 'Gotowe na odbiór' | 'Archiwum' | 'Wszystkie') => {
         setActiveFilter(filter);
 
         // Filtrujemy lokalnie, bez ponownego zapytania do serwera
@@ -270,6 +271,12 @@ const CarReceptionPage: React.FC = () => {
                         onClick={() => handleFilterChange('Zaplanowane')}
                     >
                         Zaplanowane
+                    </FilterButton>
+                    <FilterButton
+                        active={activeFilter === 'W realizacji'}
+                        onClick={() => handleFilterChange('W realizacji')}
+                    >
+                        W realizacji
                     </FilterButton>
                     <FilterButton
                         active={activeFilter === 'Gotowe na odbiór'}

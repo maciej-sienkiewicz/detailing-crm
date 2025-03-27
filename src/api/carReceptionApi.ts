@@ -1,4 +1,4 @@
-import { CarReceptionProtocol } from '../types';
+import {CarReceptionProtocol, ClientProtocolHistory, ProtocolListItem} from '../types';
 import { apiClient } from './apiClient';
 
 // Interfejs dla odpowiedzi z serwera
@@ -71,6 +71,18 @@ export const carReceptionApi = {
         } catch (error) {
             console.error('Error creating protocol:', error);
             throw error;
+        }
+    },
+
+    getProtocolsByClientId: async (clientId: string): Promise<ClientProtocolHistory[]> => {
+        try {
+            // Pobierz dane z API
+            const rawData = await apiClient.get<any[]>(`/receptions/${clientId}/protocols`);
+
+            return convertToCamelCase(rawData) as ClientProtocolHistory[];;
+        } catch (error) {
+            console.error('Error fetching protocols list:', error);
+            return [];
         }
     },
 

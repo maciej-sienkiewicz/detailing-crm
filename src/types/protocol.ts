@@ -105,3 +105,14 @@ export interface ProtocolListItem {
     totalServiceCount: number;
     totalAmount: number;
 }
+
+export interface ClientProtocolHistory {
+    id: string;
+    startDate: string;
+    endDate: string;
+    status: ProtocolStatus;
+    make: string
+    model: string;
+    licensePlate: string;
+    totalAmount: number;
+}
