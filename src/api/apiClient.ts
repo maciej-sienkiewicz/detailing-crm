@@ -24,10 +24,39 @@ const apiFetch = async <T>(endpoint: string, options: RequestInit = {}): Promise
     // Logowanie wywołania API do konsoli dla debugowania
     console.log(`API request to: ${url}`, options);
 
-    const response = await fetch(url, {
-        ...getDefaultOptions(),
-        ...options,
-    });
+    // Sprawdzamy, czy mamy do czynienia z FormData
+    const isFormData = options.body instanceof FormData;
+
+    // Przygotowujemy opcje żądania
+    let fetchOptions: RequestInit;
+
+    if (isFormData) {
+        // Dla FormData, kopiujemy domyślne opcje, ale bez Content-Type
+        const { headers, ...restDefaultOptions } = getDefaultOptions();
+        const headersWithoutContentType: Record<string, string> = { ...headers as Record<string, string> };
+        delete headersWithoutContentType['Content-Type'];
+
+        fetchOptions = {
+            ...restDefaultOptions,
+            ...options,
+            headers: {
+                ...headersWithoutContentType,
+                ...(options.headers as Record<string, string> || {})
+            }
+        };
+    } else {
+        // Dla standardowych żądań, używamy domyślnych opcji
+        fetchOptions = {
+            ...getDefaultOptions(),
+            ...options,
+            headers: {
+                ...getDefaultOptions().headers,
+                ...(options.headers || {})
+            }
+        };
+    }
+
+    const response = await fetch(url, fetchOptions);
 
     // Logowanie statusu odpowiedzi
     console.log(`API response status: ${response.status}`);
@@ -57,12 +86,29 @@ const apiFetch = async <T>(endpoint: string, options: RequestInit = {}): Promise
         }
     }
 
-    // Zwróć dane JSON z odpowiedzi
-    return response.json();
+    // Sprawdź, czy odpowiedź jest pusta
+    const contentType = response.headers.get('Content-Type');
+    const contentLength = response.headers.get('Content-Length');
+
+    // Jeśli odpowiedź jest pusta, zwracamy pusty obiekt
+    if (contentLength === '0') {
+        return {} as T;
+    }
+
+    // Jeśli Content-Type to JSON, parsujemy odpowiedź jako JSON
+    if (contentType && contentType.includes('application/json')) {
+        return response.json();
+    }
+
+    // W przeciwnym razie zwracamy odpowiedź jako tekst
+    return response.text() as unknown as T;
 };
 
 // Eksportowane funkcje do wykonywania różnych typów żądań HTTP
 export const apiClient = {
+    // Metoda do uzyskania bazowego URL API
+    getBaseUrl: () => API_BASE_URL,
+
     get: <T>(endpoint: string, queryParams: Record<string, string> = {}): Promise<T> => {
         // Konstruowanie parametrów zapytania
         const queryString = new URLSearchParams(queryParams).toString();
@@ -71,25 +117,45 @@ export const apiClient = {
         return apiFetch<T>(url);
     },
 
-    post: <T>(endpoint: string, data: any): Promise<T> => {
+    post: <T>(endpoint: string, data: any, options: RequestInit = {}): Promise<T> => {
+        // Sprawdzamy, czy wysyłamy FormData
+        const isFormData = data instanceof FormData;
+
+        // Jeśli nie jest to FormData, konwertujemy na JSON string
+        const body = isFormData ? data : JSON.stringify(data);
+
         return apiFetch<T>(endpoint, {
             method: 'POST',
-            body: JSON.stringify(data)
+            body,
+            ...options
         });
     },
 
-    patch: <T>(endpoint: string, data: any): Promise<T> => {
+    patch: <T>(endpoint: string, data: any, options: RequestInit = {}): Promise<T> => {
+        // Sprawdzamy, czy wysyłamy FormData
+        const isFormData = data instanceof FormData;
+
+        // Jeśli nie jest to FormData, konwertujemy na JSON string
+        const body = isFormData ? data : JSON.stringify(data);
+
         return apiFetch<T>(endpoint, {
             method: 'PATCH',
-            body: JSON.stringify(data)
+            body,
+            ...options
         });
     },
 
+    put: <T>(endpoint: string, data: any, options: RequestInit = {}): Promise<T> => {
+        // Sprawdzamy, czy wysyłamy FormData
+        const isFormData = data instanceof FormData;
 
-    put: <T>(endpoint: string, data: any): Promise<T> => {
+        // Jeśli nie jest to FormData, konwertujemy na JSON string
+        const body = isFormData ? data : JSON.stringify(data);
+
         return apiFetch<T>(endpoint, {
             method: 'PUT',
-            body: JSON.stringify(data)
+            body,
+            ...options
         });
     },
 
@@ -99,9 +165,3 @@ export const apiClient = {
         });
     }
 };
-
-// Użycie powyższych funkcji będzie następujące:
-// apiClient.get<Appointment[]>('/appointments')
-// apiClient.post<Appointment>('/appointments', newAppointment)
-// apiClient.put<Appointment>('/appointments/123', updatedAppointment)
-// apiClient.delete<void>('/appointments/123')

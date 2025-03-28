@@ -29,14 +29,15 @@ export const ProtocolStatusColors: Record<ProtocolStatus, string> = {
 
 // Interfejs dla zdjęcia pojazdu
 export interface VehicleImage {
-    id: string;
-    url: string;
-    name: string;
-    size: number;
-    type: string;
-    createdAt: string;
-    description?: string; // Opcjonalny opis zdjęcia
-    location?: string;    // Opcjonalna lokalizacja uszkodzenia/zdjęcia
+    id: string;              // Unikalny identyfikator zdjęcia
+    url: string;             // URL do obrazu (blobURL dla lokalnych, URL serwera dla zapisanych)
+    name: string;            // Nazwa pliku
+    size: number;            // Rozmiar pliku w bajtach
+    type: string;            // Typ MIME pliku
+    createdAt: string;       // Data utworzenia
+    description?: string;    // Opis zdjęcia (opcjonalny)
+    location?: string;       // Miejsce uszkodzenia (opcjonalne)
+    file?: File;             // Referencja do oryginalnego obiektu File (dla nowych zdjęć)
 }
 
 // Definicja protokołu przyjęcia pojazdu

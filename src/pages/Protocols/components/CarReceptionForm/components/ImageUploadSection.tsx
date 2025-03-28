@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import styled from 'styled-components';
 import { FaCamera, FaUpload, FaTrash, FaImage, FaExclamationCircle, FaEye } from 'react-icons/fa';
-import { VehicleImage } from '../../../../types';
+import { VehicleImage } from '../../../../../types';
 import ImagePreviewModal from '../../../components/ImagePreviewModal';
 
 interface ImageUploadSectionProps {
@@ -57,7 +57,8 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
                 name: file.name,
                 size: file.size,
                 type: file.type,
-                createdAt: new Date().toISOString()
+                createdAt: new Date().toISOString(),
+                file: file // Dodajemy referencję do oryginalnego pliku
             });
         });
 
@@ -67,6 +68,13 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
 
     // Obsługuje usuwanie zdjęcia
     const handleRemoveImage = (imageId: string) => {
+        const imageToRemove = images.find(img => img.id === imageId);
+
+        // Jeśli to jest blobURL, zwalniamy zasoby przeglądarki
+        if (imageToRemove && imageToRemove.url.startsWith('blob:')) {
+            URL.revokeObjectURL(imageToRemove.url);
+        }
+
         const updatedImages = images.filter(img => img.id !== imageId);
         onImagesChange(updatedImages);
     };
