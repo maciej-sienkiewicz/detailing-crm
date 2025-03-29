@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { FaTimes, FaChevronLeft, FaChevronRight, FaTrash } from 'react-icons/fa';
 import { VehicleImage } from '../../../types';
+import { apiClient } from '../../../api/apiClient';
 
 interface ImagePreviewModalProps {
     isOpen: boolean;
@@ -23,6 +24,19 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
     if (!isOpen || images.length === 0) return null;
 
     const currentImage = images[activeIndex];
+
+    // Helper function to get the image URL
+    const getImageUrl = (image: VehicleImage): string => {
+        // Jeśli obraz ma bezpośredni URL (np. z ObjectURL dla lokalnych plików), użyj go
+        if (image.url) return image.url;
+
+        // W przeciwnym razie zbuduj URL z API
+        if (image.id && image.protocolId) {
+            return `${apiClient.getBaseUrl()}/receptions/${image.protocolId}/images/${image.id}`;
+        }
+
+        return ''; // Fallback
+    };
 
     const handlePrevious = () => {
         setActiveIndex((prevIndex) => (prevIndex === 0 ? images.length - 1 : prevIndex - 1));
@@ -75,7 +89,7 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
 
             <ModalContent>
                 <ImageContainer>
-                    <ImageElement src={currentImage.url} alt={currentImage.name} />
+                    <ImageElement src={getImageUrl(currentImage)} alt={currentImage.name} />
                 </ImageContainer>
 
                 <ImageInfo>
@@ -102,7 +116,7 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
                                 selected={index === activeIndex}
                                 onClick={() => setActiveIndex(index)}
                             >
-                                <img src={image.url} alt={`Miniatura ${index + 1}`} />
+                                <img src={getImageUrl(image)} alt={`Miniatura ${index + 1}`} />
                             </Thumbnail>
                         ))}
                     </ThumbnailsContainer>
@@ -151,7 +165,7 @@ const CloseButton = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
-    
+
     &:hover {
         color: #ddd;
     }
@@ -174,11 +188,11 @@ const NavigationButton = styled.button<{ position: 'left' | 'right' }>`
     justify-content: center;
     cursor: pointer;
     z-index: 1600;
-    
+
     &:hover {
         background: rgba(0, 0, 0, 0.8);
     }
-    
+
     @media (max-width: 768px) {
         width: 40px;
         height: 40px;
@@ -244,7 +258,7 @@ const DeleteButton = styled.button`
     padding: 8px 12px;
     font-size: 14px;
     cursor: pointer;
-    
+
     &:hover {
         background-color: rgba(231, 76, 60, 1);
     }
@@ -257,16 +271,16 @@ const ThumbnailsContainer = styled.div`
     width: 100%;
     max-width: 100%;
     padding: 10px 0;
-    
+
     &::-webkit-scrollbar {
         height: 6px;
     }
-    
+
     &::-webkit-scrollbar-track {
         background: rgba(255, 255, 255, 0.1);
         border-radius: 10px;
     }
-    
+
     &::-webkit-scrollbar-thumb {
         background: rgba(255, 255, 255, 0.3);
         border-radius: 10px;
@@ -281,11 +295,11 @@ const Thumbnail = styled.div<{ selected: boolean }>`
     opacity: ${props => props.selected ? 1 : 0.6};
     transition: all 0.2s;
     flex-shrink: 0;
-    
+
     &:hover {
         opacity: 1;
     }
-    
+
     img {
         width: 100%;
         height: 100%;

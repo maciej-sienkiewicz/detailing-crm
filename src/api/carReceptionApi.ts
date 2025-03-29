@@ -46,15 +46,20 @@ const convertToCamelCase = (obj: any): any => {
 };
 
 // Funkcja do mapowania obrazów z serwera na format aplikacji
-const mapServerImagesToDisplayImages = (serverImages: any[]): VehicleImage[] => {
+const mapServerImagesToDisplayImages = (serverImages: any[], protocolId?: string): VehicleImage[] => {
     if (!serverImages || !Array.isArray(serverImages)) return [];
 
     return serverImages.map(serverImage => {
         const camelCaseImage = convertToCamelCase(serverImage);
 
-        // Tworzymy URL do obrazu na podstawie identyfikatora przechowywania
-        if (camelCaseImage.storageId) {
-            camelCaseImage.url = `${apiClient.getBaseUrl()}/images/${camelCaseImage.storageId}`;
+        // Dodajemy ID protokołu do obiektu obrazu (potrzebne do budowania URL)
+        if (protocolId) {
+            camelCaseImage.protocolId = protocolId;
+        }
+
+        // Tworzymy URL do obrazu na podstawie endpointu API
+        if (camelCaseImage.id) {
+            camelCaseImage.url = `${apiClient.getBaseUrl()}/receptions/image/85022a19-1833-4e26-b5cd-db8b8a4dcdcc`;
         }
 
         return camelCaseImage as VehicleImage;
@@ -317,6 +322,62 @@ export const carReceptionApi = {
         } catch (error) {
             console.error(`Error deleting image ${imageId} from protocol ${protocolId}:`, error);
             return false;
+        }
+    },
+
+    fetchVehicleImages: async (protocolId: string): Promise<VehicleImage[]> => {
+        try {
+            const response = await apiClient.get<any[]>(`/receptions/receptions/${protocolId}/images`);
+
+            // Konwertuj odpowiedź na format używany w aplikacji
+            return mapServerImagesToDisplayImages(response, protocolId);
+        } catch (error) {
+            console.error(`Error fetching images for protocol ${protocolId}:`, error);
+            return [];
+        }
+    },
+
+    addVehicleImages: async (protocolId: string, files: File[]): Promise<VehicleImage[]> => {
+        try {
+            // Utwórz FormData dla plików
+            const formData = new FormData();
+
+            // Dodaj każdy plik do FormData
+            files.forEach((file, index) => {
+                formData.append(`images[${index}]`, file);
+            });
+
+            // Wysyłanie żądania POST z FormData
+            const response = await apiClient.post<any[]>(`/receptions/${protocolId}/images`, formData);
+
+            // Konwertuj odpowiedź na format używany w aplikacji
+            return mapServerImagesToDisplayImages(response, protocolId);
+        } catch (error) {
+            console.error(`Error adding images to protocol ${protocolId}:`, error);
+            throw error;
+        }
+    },
+
+    // Aktualizacja metadanych zdjęcia (np. opis, lokalizacja)
+    updateVehicleImage: async (protocolId: string, imageId: string, metadata: { description?: string, location?: string }): Promise<VehicleImage | null> => {
+        try {
+            // Przekształć dane z camelCase na snake_case
+            const requestData = convertToCamelCase(metadata);
+
+            // Wysyłanie żądania PATCH
+            const response = await apiClient.patch<any>(`/receptions/${protocolId}/images/${imageId}`, requestData);
+
+            // Konwertuj odpowiedź na format używany w aplikacji
+            const updatedImage = convertToCamelCase(response) as VehicleImage;
+
+            // Dodaj URL do obrazu
+            updatedImage.url = `${apiClient.getBaseUrl()}/receptions/${protocolId}/images/${imageId}`;
+            updatedImage.protocolId = protocolId;
+
+            return updatedImage;
+        } catch (error) {
+            console.error(`Error updating image ${imageId} metadata:`, error);
+            return null;
         }
     }
 };

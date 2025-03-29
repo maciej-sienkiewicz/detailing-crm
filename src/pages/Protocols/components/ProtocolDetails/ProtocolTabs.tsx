@@ -5,11 +5,12 @@ import {
     FaComments,
     FaFileInvoiceDollar,
     FaUser,
-    FaCarSide
+    FaCarSide,
+    FaImages
 } from 'react-icons/fa';
 
 // Define tab types
-type TabType = 'summary' | 'comments' | 'invoices' | 'client' | 'vehicle';
+type TabType = 'summary' | 'comments' | 'invoices' | 'client' | 'vehicle' | 'gallery';
 
 interface ProtocolTabsProps {
     activeTab: TabType;
@@ -57,6 +58,14 @@ const ProtocolTabs: React.FC<ProtocolTabsProps> = ({ activeTab, onChange }) => {
             >
                 <TabIcon><FaCarSide /></TabIcon>
                 <TabLabel>Status pojazdu</TabLabel>
+            </TabItem>
+
+            <TabItem
+                active={activeTab === 'gallery'}
+                onClick={() => onChange('gallery')}
+            >
+                <TabIcon><FaImages /></TabIcon>
+                <TabLabel>Galeria</TabLabel>
             </TabItem>
         </TabsContainer>
     );

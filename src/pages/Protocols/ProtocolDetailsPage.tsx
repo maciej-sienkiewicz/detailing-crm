@@ -17,17 +17,17 @@ import ProtocolComments from './components/ProtocolDetails/ProtocolComments';
 import ProtocolInvoices from './components/ProtocolDetails/ProtocolInvoices';
 import ProtocolClientInfo from './components/ProtocolDetails/ProtocolClientInfo';
 import ProtocolVehicleStatus from './components/ProtocolDetails/ProtocolVehicleStatus';
+import ProtocolGallery from './components/ProtocolDetails/ProtocolGallery';
 import ProtocolStatusTimeline from './components/ProtocolDetails/ProtocolStatusTimeline';
 import QualityVerificationModal from './components/QualityVerificationModal';
 import CustomerNotificationModal from './components/CustomerNotificationModal';
 import ClientCommentsModal from './components/ClientCommentsModal';
 import PaymentModal from './components/PaymentModal';
 import {protocolsApi} from "../../api/protocolsApi";
-import protocolComments from "./components/ProtocolDetails/ProtocolComments";
 import {Comment, commentsApi} from "../../api/commentsApi";
 
 // Define tab types
-type TabType = 'summary' | 'comments' | 'invoices' | 'client' | 'vehicle';
+type TabType = 'summary' | 'comments' | 'invoices' | 'client' | 'vehicle' | 'gallery';
 
 const ProtocolDetailsPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -198,7 +198,6 @@ const ProtocolDetailsPage: React.FC = () => {
     };
 
     // Render the component based on active tab
-
     const renderTabContent = () => {
         if (!protocol) {
             return <div>Brak danych protokołu</div>;
@@ -215,6 +214,8 @@ const ProtocolDetailsPage: React.FC = () => {
                 return <ProtocolClientInfo protocol={protocol} />;
             case 'vehicle':
                 return <ProtocolVehicleStatus protocol={protocol} onProtocolUpdate={handleProtocolUpdate} />;
+            case 'gallery':
+                return <ProtocolGallery protocol={protocol} onProtocolUpdate={handleProtocolUpdate} />;
             default:
                 return <ProtocolSummary protocol={protocol} onProtocolUpdate={handleProtocolUpdate} />;
         }
@@ -281,9 +282,9 @@ const ProtocolDetailsPage: React.FC = () => {
                     )}
 
                     {!isScheduled && (
-                    <ActionButton title="Drukuj protokół" primary="true">
-                        <FaFilePdf /> Drukuj protokół
-                    </ActionButton>
+                        <ActionButton title="Drukuj protokół" primary="true">
+                            <FaFilePdf /> Drukuj protokół
+                        </ActionButton>
                     )}
                 </HeaderActions>
             </PageHeader>
