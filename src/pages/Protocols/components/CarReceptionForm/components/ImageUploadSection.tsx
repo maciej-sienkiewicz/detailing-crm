@@ -1,9 +1,10 @@
 import React, { useState, useRef } from 'react';
 import styled from 'styled-components';
-import { FaCamera, FaUpload, FaTrash, FaImage, FaExclamationCircle, FaEye } from 'react-icons/fa';
+import { FaCamera, FaUpload, FaTrash, FaImage, FaExclamationCircle, FaEye, FaEdit } from 'react-icons/fa';
 import { VehicleImage } from '../../../../../types';
 import ImagePreviewModal from '../../../components/ImagePreviewModal';
-import {apiClient} from "../../../../../api/apiClient";
+import ImageNameEditModal from '../../../components/ImageNameEditModal';
+import { apiClient } from '../../../../../api/apiClient';
 
 interface ImageUploadSectionProps {
     images: VehicleImage[];
@@ -20,8 +21,33 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
     const [previewModalOpen, setPreviewModalOpen] = useState(false);
     const [previewImageIndex, setPreviewImageIndex] = useState(0);
 
+    // Stan dla modalu edycji nazwy
+    const [nameEditModalOpen, setNameEditModalOpen] = useState(false);
+    const [editingImageIndex, setEditingImageIndex] = useState(-1);
+
     // Maksymalny rozmiar pliku (5MB)
     const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
+    // Funkcja do generowania URL zdjęcia
+    const getImageUrl = (image: VehicleImage): string => {
+        // Dla lokalnych zdjęć (blobURL)
+        if (image.url && image.url.startsWith('blob:')) {
+            return image.url;
+        }
+
+        // Dla zdjęć z serwera
+        if (image.id) {
+            if (image.url && !image.url.startsWith('blob:')) {
+                return image.url; // Jeśli url jest już prawidłowo ustawiony
+            }
+
+            // Konstruujemy URL do API
+            const baseUrl = apiClient.getBaseUrl();
+            return `${baseUrl}/receptions/image/${image.id}`;
+        }
+
+        return ''; // Fallback dla nieprawidłowych danych
+    };
 
     // Obsługuje dodawanie nowych zdjęć
     const handleAddImages = (event: React.ChangeEvent<HTMLInputElement> | React.DragEvent<HTMLDivElement>) => {
@@ -59,11 +85,14 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
             // Tworzy URL do podglądu obrazu
             const imageUrl = URL.createObjectURL(file);
 
+            // Przygotuj nazwę - usunięcie rozszerzenia pliku
+            const fileNameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
+
             // Dodaje nowy obraz do tablicy
             newImages.push({
                 id: `img_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
                 url: imageUrl,
-                name: file.name,
+                name: fileNameWithoutExt, // Użyj nazwy bez rozszerzenia jako początkowej nazwy
                 size: file.size,
                 type: file.type,
                 createdAt: new Date().toISOString(),
@@ -71,13 +100,25 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
             });
         });
 
-        // Aktualizuje stan
-        onImagesChange([...images, ...newImages]);
+        // Otwórz modal edycji nazwy dla pierwszego nowo dodanego zdjęcia
+        if (newImages.length > 0) {
+            const updatedImages = [...images, ...newImages];
+            onImagesChange(updatedImages);
+
+            // Otwórz modal do edycji nazwy pierwszego nowego zdjęcia
+            setEditingImageIndex(images.length); // Indeks pierwszego nowego zdjęcia
+            setNameEditModalOpen(true);
+        }
     };
 
     // Obsługuje usuwanie zdjęcia
     const handleRemoveImage = (imageId: string) => {
         const imageToRemove = images.find(img => img.id === imageId);
+
+        // Jeśli to jest blobURL, zwalniamy zasoby przeglądarki
+        if (imageToRemove && imageToRemove.url && imageToRemove.url.startsWith('blob:')) {
+            URL.revokeObjectURL(imageToRemove.url);
+        }
 
         const updatedImages = images.filter(img => img.id !== imageId);
         onImagesChange(updatedImages);
@@ -111,6 +152,25 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
         setPreviewModalOpen(true);
     };
 
+    // Obsługuje otwieranie modalu edycji nazwy
+    const handleEditName = (index: number, e: React.MouseEvent) => {
+        e.stopPropagation(); // Zatrzymuje propagację, żeby nie otworzyć modalu podglądu
+        setEditingImageIndex(index);
+        setNameEditModalOpen(true);
+    };
+
+    // Obsługuje zapisanie zmienionej nazwy
+    const handleSaveName = (newName: string) => {
+        if (editingImageIndex >= 0 && editingImageIndex < images.length) {
+            const updatedImages = [...images];
+            updatedImages[editingImageIndex] = {
+                ...updatedImages[editingImageIndex],
+                name: newName
+            };
+            onImagesChange(updatedImages);
+        }
+    };
+
     // Obsługuje przeciągnięcie i upuszczenie plików
     const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
@@ -136,26 +196,6 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
         if (bytes < 1024) return bytes + ' B';
         if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
         return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-    };
-
-    const getImageUrl = (image: VehicleImage): string => {
-        // Dla lokalnych zdjęć (blobURL)
-        if (image.url && image.url.startsWith('blob:')) {
-            return image.url;
-        }
-
-        // Dla zdjęć z serwera
-        if (image.id) {
-            if (image.url && !image.url.startsWith('blob:')) {
-                return image.url; // Jeśli url jest już prawidłowo ustawiony
-            }
-
-            // Konstruujemy URL do API
-            const baseUrl = apiClient.getBaseUrl();
-            return `${baseUrl}/receptions/image/${image.id}`;
-        }
-
-        return ''; // Fallback dla nieprawidłowych danych
     };
 
     return (
@@ -214,7 +254,12 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
                                 </ViewOverlay>
                             </ImageThumbnail>
                             <ImageInfo>
-                                <ImageName>{image.name}</ImageName>
+                                <ImageNameContainer>
+                                    <ImageName>{image.name || 'Bez nazwy'}</ImageName>
+                                    <EditNameButton onClick={(e) => handleEditName(index, e)}>
+                                        <FaEdit />
+                                    </EditNameButton>
+                                </ImageNameContainer>
                                 <ImageSize>{formatFileSize(image.size)}</ImageSize>
                             </ImageInfo>
                             <RemoveButton onClick={() => handleRemoveImage(image.id)}>
@@ -240,6 +285,17 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
                 currentImageIndex={previewImageIndex}
                 onDelete={handleRemoveImage}
             />
+
+            {/* Modal edycji nazwy zdjęcia */}
+            {editingImageIndex >= 0 && editingImageIndex < images.length && (
+                <ImageNameEditModal
+                    isOpen={nameEditModalOpen}
+                    onClose={() => setNameEditModalOpen(false)}
+                    onSave={handleSaveName}
+                    initialName={images[editingImageIndex].name || ''}
+                    imageUrl={getImageUrl(images[editingImageIndex])}
+                />
+            )}
         </SectionContainer>
     );
 };
@@ -389,13 +445,39 @@ const ImageInfo = styled.div`
     padding: 10px;
 `;
 
+const ImageNameContainer = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3px;
+`;
+
 const ImageName = styled.div`
     font-size: 13px;
     color: #34495e;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    margin-bottom: 3px;
+    margin-right: 5px;
+    flex: 1;
+`;
+
+const EditNameButton = styled.button`
+    background: none;
+    border: none;
+    color: #3498db;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.6;
+
+    &:hover {
+        opacity: 1;
+        color: #2980b9;
+    }
 `;
 
 const ImageSize = styled.div`
