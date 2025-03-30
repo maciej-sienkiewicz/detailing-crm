@@ -27,15 +27,23 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
 
     // Helper function to get the image URL
     const getImageUrl = (image: VehicleImage): string => {
-        // Jeśli obraz ma bezpośredni URL (np. z ObjectURL dla lokalnych plików), użyj go
-        if (image.url) return image.url;
-
-        // W przeciwnym razie zbuduj URL z API
-        if (image.id && image.protocolId) {
-            return `${apiClient.getBaseUrl()}/receptions/image/${image.id}`;
+        // Dla lokalnych zdjęć (blobURL)
+        if (image.url && image.url.startsWith('blob:')) {
+            return image.url;
         }
 
-        return ''; // Fallback
+        // Dla zdjęć z serwera
+        if (image.id) {
+            if (image.url && !image.url.startsWith('blob:')) {
+                return image.url; // Jeśli url jest już prawidłowo ustawiony
+            }
+
+            // Konstruujemy URL do API
+            const baseUrl = apiClient.getBaseUrl();
+            return `${baseUrl}/receptions/image/${image.id}`;
+        }
+
+        return ''; // Fallback dla nieprawidłowych danych
     };
 
     const handlePrevious = () => {
