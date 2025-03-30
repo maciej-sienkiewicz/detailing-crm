@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { FaCamera, FaUpload, FaTrash, FaImage, FaExclamationCircle, FaEye } from 'react-icons/fa';
 import { VehicleImage } from '../../../../../types';
 import ImagePreviewModal from '../../../components/ImagePreviewModal';
+import {apiClient} from "../../../../../api/apiClient";
 
 interface ImageUploadSectionProps {
     images: VehicleImage[];
@@ -137,6 +138,26 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
         return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
     };
 
+    const getImageUrl = (image: VehicleImage): string => {
+        // Dla lokalnych zdjęć (blobURL)
+        if (image.url && image.url.startsWith('blob:')) {
+            return image.url;
+        }
+
+        // Dla zdjęć z serwera
+        if (image.id) {
+            if (image.url && !image.url.startsWith('blob:')) {
+                return image.url; // Jeśli url jest już prawidłowo ustawiony
+            }
+
+            // Konstruujemy URL do API
+            const baseUrl = apiClient.getBaseUrl();
+            return `${baseUrl}/receptions/image/${image.id}`;
+        }
+
+        return ''; // Fallback dla nieprawidłowych danych
+    };
+
     return (
         <SectionContainer>
             <SectionTitle>Zdjęcia</SectionTitle>
@@ -187,7 +208,7 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
                     {images.map((image, index) => (
                         <ImageItem key={image.id}>
                             <ImageThumbnail onClick={() => handleOpenPreview(index)}>
-                                <img src={image.url} alt={image.name} />
+                                <img src={getImageUrl(image)} alt={image.name} />
                                 <ViewOverlay>
                                     <FaEye />
                                 </ViewOverlay>
