@@ -23,7 +23,15 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
     const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
     // Obsługuje dodawanie nowych zdjęć
-    const handleAddImages = (files: FileList | null) => {
+    const handleAddImages = (event: React.ChangeEvent<HTMLInputElement> | React.DragEvent<HTMLDivElement>) => {
+        // Zapobiega domyślnej akcji przeglądarki, która może powodować przesłanie formularza
+        event.preventDefault();
+
+        // Pobierz pliki z odpowiedniego źródła zdarzenia
+        const files = event instanceof DragEvent
+            ? (event as React.DragEvent<HTMLDivElement>).dataTransfer.files
+            : (event.target as HTMLInputElement).files;
+
         if (!files || files.length === 0) return;
 
         setError(null);
@@ -70,24 +78,27 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
     const handleRemoveImage = (imageId: string) => {
         const imageToRemove = images.find(img => img.id === imageId);
 
-        // Jeśli to jest blobURL, zwalniamy zasoby przeglądarki
-        if (imageToRemove && imageToRemove.url.startsWith('blob:')) {
-            URL.revokeObjectURL(imageToRemove.url);
-        }
-
         const updatedImages = images.filter(img => img.id !== imageId);
         onImagesChange(updatedImages);
     };
 
     // Obsługuje kliknięcie w przycisk "Dodaj zdjęcie"
-    const handleUploadClick = () => {
+    const handleUploadClick = (e: React.MouseEvent) => {
+        // Zapobiega domyślnej akcji przeglądarki
+        e.preventDefault();
+        e.stopPropagation();
+
         if (fileInputRef.current) {
             fileInputRef.current.click();
         }
     };
 
     // Obsługuje kliknięcie w przycisk "Zrób zdjęcie"
-    const handleCameraClick = () => {
+    const handleCameraClick = (e: React.MouseEvent) => {
+        // Zapobiega domyślnej akcji przeglądarki
+        e.preventDefault();
+        e.stopPropagation();
+
         if (cameraInputRef.current) {
             cameraInputRef.current.click();
         }
@@ -102,18 +113,21 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
     // Obsługuje przeciągnięcie i upuszczenie plików
     const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
+        e.stopPropagation();
         setIsDragging(true);
     };
 
     const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
+        e.stopPropagation();
         setIsDragging(false);
     };
 
     const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
+        e.stopPropagation();
         setIsDragging(false);
-        handleAddImages(e.dataTransfer.files);
+        handleAddImages(e);
     };
 
     // Formatuje rozmiar pliku do czytelnej postaci
@@ -141,10 +155,10 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
             >
                 <UploadText>Przeciągnij i upuść zdjęcia tutaj lub użyj przycisków poniżej</UploadText>
                 <UploadButtons>
-                    <UploadButton onClick={handleUploadClick}>
+                    <UploadButton type="button" onClick={handleUploadClick}>
                         <FaUpload /> Dodaj zdjęcie
                     </UploadButton>
-                    <UploadButton onClick={handleCameraClick}>
+                    <UploadButton type="button" onClick={handleCameraClick}>
                         <FaCamera /> Zrób zdjęcie
                     </UploadButton>
                 </UploadButtons>
@@ -153,7 +167,7 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
                 <input
                     type="file"
                     ref={fileInputRef}
-                    onChange={(e) => handleAddImages(e.target.files)}
+                    onChange={handleAddImages}
                     accept="image/*"
                     multiple
                     style={{ display: 'none' }}
@@ -161,7 +175,7 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
                 <input
                     type="file"
                     ref={cameraInputRef}
-                    onChange={(e) => handleAddImages(e.target.files)}
+                    onChange={handleAddImages}
                     accept="image/*"
                     capture="environment"
                     style={{ display: 'none' }}
