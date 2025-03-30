@@ -32,7 +32,7 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
 
         // W przeciwnym razie zbuduj URL z API
         if (image.id && image.protocolId) {
-            return `${apiClient.getBaseUrl()}/receptions/${image.protocolId}/images/${image.id}`;
+            return `${apiClient.getBaseUrl()}/receptions/image/${image.id}`;
         }
 
         return ''; // Fallback

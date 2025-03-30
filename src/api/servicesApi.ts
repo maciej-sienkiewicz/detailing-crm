@@ -185,5 +185,41 @@ export const servicesApi = {
             console.error('Błąd podczas wysyłania powiadomienia:', error);
             return false;
         }
-    }
+    },
+
+    updateProtocolServices: async (
+        protocolId: string,
+        services: {
+            name: string;
+            price: number;
+            discountType?: string;
+            discountValue?: number;
+            finalPrice?: number;
+            approvalStatus?: string;
+        }[]
+    ): Promise<boolean> => {
+        try {
+            // Konwertuj dane z camelCase na snake_case
+            const servicesList = services.map(service => ({
+                name: service.name,
+                price: service.price,
+                discount_type: service.discountType || "PERCENTAGE",
+                discount_value: service.discountValue || 0,
+                final_price: service.finalPrice || service.price,
+                approval_status: service.approvalStatus || "PENDING"
+            }));
+
+            // Przygotuj obiekt zgodny ze strukturą ServicesUpdateCommand
+            const requestData = {
+                services: servicesList
+            };
+
+            // Wyślij dane zgodne ze strukturą oczekiwaną przez backend
+            await apiClient.put(`/receptions/${protocolId}/services`, requestData);
+            return true;
+        } catch (error) {
+            console.error('Błąd podczas aktualizacji usług protokołu:', error);
+            throw error;
+        }
+    },
 };

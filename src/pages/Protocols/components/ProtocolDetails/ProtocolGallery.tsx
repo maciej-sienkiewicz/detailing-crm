@@ -189,7 +189,7 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
 
         // Otherwise, construct URL from the API
         if (image.id) {
-            return `${apiClient.getBaseUrl()}/receptions/${protocol.id}/images/${image.id}`;
+            return `${apiClient.getBaseUrl()}/receptions/image/${image.id}`;
         }
 
         return ''; // Fallback

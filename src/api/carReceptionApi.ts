@@ -59,7 +59,7 @@ const mapServerImagesToDisplayImages = (serverImages: any[], protocolId?: string
 
         // Tworzymy URL do obrazu na podstawie endpointu API
         if (camelCaseImage.id) {
-            camelCaseImage.url = `${apiClient.getBaseUrl()}/receptions/image/85022a19-1833-4e26-b5cd-db8b8a4dcdcc`;
+            camelCaseImage.url = `${apiClient.getBaseUrl()}/image/${serverImage.id}`;
         }
 
         return camelCaseImage as VehicleImage;
@@ -317,7 +317,7 @@ export const carReceptionApi = {
     // Usuwanie zdjęcia z protokołu
     deleteVehicleImage: async (protocolId: string, imageId: string): Promise<boolean> => {
         try {
-            await apiClient.delete(`/receptions/${protocolId}/images/${imageId}`);
+            await apiClient.delete(`/receptions/${protocolId}/image/${imageId}`);
             return true;
         } catch (error) {
             console.error(`Error deleting image ${imageId} from protocol ${protocolId}:`, error);
@@ -365,13 +365,13 @@ export const carReceptionApi = {
             const requestData = convertToCamelCase(metadata);
 
             // Wysyłanie żądania PATCH
-            const response = await apiClient.patch<any>(`/receptions/${protocolId}/images/${imageId}`, requestData);
+            const response = await apiClient.patch<any>(`/receptions/${protocolId}/image/${imageId}`, requestData);
 
             // Konwertuj odpowiedź na format używany w aplikacji
             const updatedImage = convertToCamelCase(response) as VehicleImage;
 
             // Dodaj URL do obrazu
-            updatedImage.url = `${apiClient.getBaseUrl()}/receptions/${protocolId}/images/${imageId}`;
+            updatedImage.url = `${apiClient.getBaseUrl()}/receptions/${protocolId}/image/${imageId}`;
             updatedImage.protocolId = protocolId;
 
             return updatedImage;
