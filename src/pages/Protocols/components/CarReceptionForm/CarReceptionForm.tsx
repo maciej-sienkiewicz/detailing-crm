@@ -41,6 +41,7 @@ import {
     Form,
     FormContainer
 } from './styles/styles';
+import VisitTitleSection from "./components/VisitTitleSection";
 
 interface CarReceptionFormProps {
     protocol: CarReceptionProtocol | null;
@@ -77,6 +78,7 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
     const [formData, setFormData] = useState<Partial<CarReceptionProtocol>>(
         protocol || initialData || {
             ...initializeDates(),
+            title: '',              // Dodajemy inicjalizację pola title
             licensePlate: '',
             make: '',
             model: '',
@@ -429,6 +431,14 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
             updatedFormData.endDate = `${updatedFormData.endDate.split('T')[0]}T23:59:59`;
         }
 
+        // Automatycznie ustaw tytuł, jeśli pole jest puste
+        if (!updatedFormData.title || updatedFormData.title.trim() === '') {
+            // Generujemy tytuł na podstawie marki, modelu i imienia właściciela
+            if (updatedFormData.make && updatedFormData.model && updatedFormData.ownerName) {
+                updatedFormData.title = `${updatedFormData.make} ${updatedFormData.model} - ${updatedFormData.ownerName}`;
+            }
+        }
+
         // Aktualizacja formData
         setFormData(updatedFormData);
 
@@ -534,6 +544,11 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
             {searchError && <ErrorMessage>{searchError}</ErrorMessage>}
 
             <Form onSubmit={handleSubmit}>
+                <VisitTitleSection
+                    title={formData.title || ''}
+                    onChange={handleChange}
+                    error={errors.title}
+                />
                 {/* Sekcja terminów i statusu */}
                 <VehicleInfoSection
                     formData={formData}

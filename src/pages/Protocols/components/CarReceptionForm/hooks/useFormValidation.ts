@@ -11,6 +11,12 @@ export const useFormValidation = (formData: Partial<CarReceptionProtocol>) => {
     const validateForm = (): boolean => {
         const newErrors: FormErrors = {};
 
+        // Walidacja tytułu nie jest wymagana, ponieważ będzie generowany automatycznie
+        // Możemy ewentualnie dodać walidację maksymalnej długości
+        if (formData.title && formData.title.length > 100) {
+            newErrors.title = 'Tytuł wizyty nie może przekraczać 100 znaków';
+        }
+
         if (!formData.make?.trim()) {
             newErrors.make = 'Marka pojazdu jest wymagana';
         }
@@ -27,14 +33,12 @@ export const useFormValidation = (formData: Partial<CarReceptionProtocol>) => {
             newErrors.ownerName = 'Imię i nazwisko właściciela jest wymagane';
         }
 
-        if (!formData.email?.trim()) {
-            newErrors.email = 'Adres email jest wymagany';
-        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-            newErrors.email = 'Podaj prawidłowy adres email';
-        }
-
-        if (!formData.phone?.trim()) {
-            newErrors.phone = 'Numer telefonu jest wymagany';
+        if (!formData.email?.trim() && !formData.phone?.trim()) {
+            newErrors.contactInfo = 'Podaj przynajmniej jeden sposób kontaktu (email lub telefon)';
+        } else {
+            if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+                newErrors.email = 'Podaj prawidłowy adres email';
+            }
         }
 
         // Walidacja daty rozpoczęcia
