@@ -254,9 +254,6 @@ const CalendarPage: React.FC = () => {
         <CalendarPageContainer>
             <CalendarHeader>
                 <h1>Kalendarz</h1>
-                <CalendarActions>
-                    <Button primary onClick={handleNewAppointmentClick}>+ Rezerwacja wizyty</Button>
-                </CalendarActions>
             </CalendarHeader>
 
             {loading && <LoadingIndicator>Ładowanie danych...</LoadingIndicator>}
