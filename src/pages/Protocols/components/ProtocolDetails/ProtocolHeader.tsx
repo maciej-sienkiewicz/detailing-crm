@@ -21,6 +21,11 @@ const ProtocolHeader: React.FC<ProtocolHeaderProps> = ({ protocol, onStatusChang
         return format(new Date(dateString), 'dd MMMM yyyy', { locale: pl });
     };
 
+    const formatDateTime = (dateString: string): string => {
+        if (!dateString) return '';
+        return format(new Date(dateString), 'dd MMM yyyy, HH:mm', { locale: pl });
+    };
+
     // Calculate the total value of services
     const totalValue = protocol.selectedServices.reduce(
         (sum, service) => sum + service.finalPrice, 0
@@ -100,7 +105,7 @@ const ProtocolHeader: React.FC<ProtocolHeaderProps> = ({ protocol, onStatusChang
                 <InfoGrid>
                     <InfoItem>
                         <InfoLabel>Data przyjęcia</InfoLabel>
-                        <InfoValue>{formatDate(protocol.startDate)}</InfoValue>
+                        <InfoValue>{formatDateTime(protocol.startDate)}</InfoValue>
                     </InfoItem>
 
                     <InfoItem>

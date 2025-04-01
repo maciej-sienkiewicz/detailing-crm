@@ -46,8 +46,8 @@ export interface VehicleImage {
 // Definicja protokołu przyjęcia pojazdu
 export interface CarReceptionProtocol {
     id: string;
-    startDate: string;
-    endDate: string;
+    startDate: string;       // Teraz zawiera datę i godzinę (format ISO 8601)
+    endDate: string;         // Zawsze będzie ustawiony na koniec dnia
     licensePlate: string;
     make: string;
     model: string;

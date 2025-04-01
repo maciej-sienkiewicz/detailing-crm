@@ -76,12 +76,19 @@ export const carReceptionApi = {
             const hasImages = protocol.vehicleImages && protocol.vehicleImages.length > 0;
             const hasFileImages = hasImages && protocol.vehicleImages!.some(img => img.file);
 
+            // Przygotowujemy dane protokołu, upewniając się że daty mają odpowiedni format
+            const protocolData = {
+                ...protocol,
+                startDate: protocol.startDate,  // Format ISO: "YYYY-MM-DDTHH:MM:SS"
+                endDate: protocol.endDate       // Format ISO: "YYYY-MM-DDTHH:MM:SS" (zawsze 23:59:59)
+            };
+
             // Jeśli mamy zdjęcia z plikami, używamy FormData
             if (hasFileImages) {
                 const formData = new FormData();
 
                 // Usuwamy pliki z obiektu protokołu i dodajemy je do FormData
-                const protocolWithoutFiles = { ...protocol };
+                const protocolWithoutFiles = { ...protocolData };
 
                 if (protocolWithoutFiles.vehicleImages) {
                     // Przekształcamy zdjęcia do prostej struktury bez pól File
@@ -116,7 +123,7 @@ export const carReceptionApi = {
 
                 // Połącz dane protokołu z odpowiedzią serwera
                 const result: CarReceptionProtocol = {
-                    ...protocol,
+                    ...protocolData,
                     id: convertedResponse.id,
                     createdAt: convertedResponse.createdAt,
                     updatedAt: convertedResponse.updatedAt,
@@ -131,7 +138,7 @@ export const carReceptionApi = {
                 return result;
             } else {
                 // Jeśli nie mamy zdjęć z plikami, używamy standardowego JSON
-                const requestData = convertToSnakeCase(protocol);
+                const requestData = convertToSnakeCase(protocolData);
 
                 // Wysyłanie żądania POST z JSON
                 const response = await apiClient.post<CarReceptionResponse>('/receptions', requestData);
@@ -142,7 +149,7 @@ export const carReceptionApi = {
 
                 // Połącz dane protokołu z odpowiedzią serwera
                 const result: CarReceptionProtocol = {
-                    ...protocol,
+                    ...protocolData,
                     id: convertedResponse.id,
                     createdAt: convertedResponse.createdAt,
                     updatedAt: convertedResponse.updatedAt,

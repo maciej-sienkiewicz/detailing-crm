@@ -52,6 +52,18 @@ interface CarReceptionFormProps {
     onCancel: () => void;
 }
 
+// Funkcja pomocnicza do inicjalizacji dat z odpowiednim formatem
+const initializeDates = () => {
+    const today = new Date().toISOString().split('T')[0];
+    const startTime = '08:00:00'; // Domyślna godzina rozpoczęcia - 8:00 rano
+    const endTime = '23:59:59';   // Koniec dnia dla daty zakończenia
+
+    return {
+        startDate: `${today}T${startTime}`,
+        endDate: `${today}T${endTime}`
+    };
+};
+
 export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
                                                                       protocol,
                                                                       availableServices,
@@ -61,13 +73,10 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
                                                                       onSave,
                                                                       onCancel
                                                                   }) => {
-    const today = new Date().toISOString().split('T')[0];
-
     // Inicjalizacja formularza z danymi protokołu, danymi z wizyty lub pustym obiektem
     const [formData, setFormData] = useState<Partial<CarReceptionProtocol>>(
         protocol || initialData || {
-            startDate: today,
-            endDate: today,
+            ...initializeDates(),
             licensePlate: '',
             make: '',
             model: '',
@@ -84,7 +93,7 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
             selectedServices: [],
             status: ProtocolStatus.SCHEDULED,
             vehicleImages: [],
-            referralSource: undefined,  // Change from null to undefined
+            referralSource: undefined,
             otherSourceDetails: ''
         }
     );
@@ -147,6 +156,7 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
         }));
     }, [services]);
 
+    // Obsługuje zmianę danych formularza
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
 
@@ -161,6 +171,12 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
                 ...formData,
                 [name]: value ? parseInt(value, 10) : 0
             });
+        } else if (name === 'startDate' || name === 'endDate') {
+            // Specjalna obsługa dla pól daty, które teraz zawierają również czas
+            setFormData({
+                ...formData,
+                [name]: value // Wartość już powinna być w formacie ISO
+            });
         } else {
             setFormData({
                 ...formData,
@@ -171,6 +187,32 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
         // Usuwanie błędów przy edycji pola
         clearFieldError(name);
     };
+
+    // Efekt do obsługi startDate z kalendarza
+    useEffect(() => {
+        if (initialData?.startDate) {
+            // Jeśli mamy datę z kalendarzaza to musimy dodać do niej czas (8:00 rano)
+            let startDateWithTime = initialData.startDate;
+            if (!startDateWithTime.includes('T')) {
+                startDateWithTime = `${startDateWithTime}T08:00:00`;
+            }
+
+            // Dla endDate zawsze ustawiamy koniec dnia
+            let endDateWithTime = initialData.endDate || initialData.startDate;
+            if (!endDateWithTime.includes('T')) {
+                endDateWithTime = `${endDateWithTime}T23:59:59`;
+            } else if (!endDateWithTime.endsWith('23:59:59')) {
+                // Jeśli już ma czas, ale nie jest to koniec dnia, zmieniamy na koniec dnia
+                endDateWithTime = `${endDateWithTime.split('T')[0]}T23:59:59`;
+            }
+
+            setFormData(prev => ({
+                ...prev,
+                startDate: startDateWithTime,
+                endDate: endDateWithTime
+            }));
+        }
+    }, [initialData?.startDate, initialData?.endDate]);
 
     // Obsługa aktualizacji zdjęć
     const handleImagesChange = (images: VehicleImage[]) => {
@@ -195,7 +237,6 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
     };
 
     // Dodanie wybranej usługi do tabeli
-// Zmodyfikuj handleAddService aby umożliwić niestandardowe usługi:
     const handleAddService = () => {
         if (selectedServiceToAdd) {
             // Dodaj wybraną istniejącą usługę
@@ -366,8 +407,30 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
         }
     };
 
+    // Obsługa zapisania formularza
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Upewniamy się, że daty mają odpowiedni format
+        const updatedFormData = {
+            ...formData
+        };
+
+        // Sprawdźmy format startDate - dodajemy domyślny czas, jeśli go nie ma
+        if (updatedFormData.startDate && !updatedFormData.startDate.includes('T')) {
+            updatedFormData.startDate = `${updatedFormData.startDate}T08:00:00`;
+        }
+
+        // Dla endDate zawsze ustawiamy koniec dnia
+        if (updatedFormData.endDate && !updatedFormData.endDate.includes('T')) {
+            updatedFormData.endDate = `${updatedFormData.endDate}T23:59:59`;
+        } else if (updatedFormData.endDate && !updatedFormData.endDate.endsWith('23:59:59')) {
+            // Jeśli już ma czas, ale nie jest to koniec dnia, zmieniamy na koniec dnia
+            updatedFormData.endDate = `${updatedFormData.endDate.split('T')[0]}T23:59:59`;
+        }
+
+        // Aktualizacja formData
+        setFormData(updatedFormData);
 
         if (!validateForm()) {
             return;
@@ -388,16 +451,14 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
 
             let savedProtocol: CarReceptionProtocol;
 
-            console.log("Tu jestem")
-            console.log(protocol?.id)
             if (protocol?.id) {
                 // Aktualizacja istniejącego protokołu
                 const protocolToUpdate: CarReceptionProtocol = {
-                    ...(formData as CarReceptionProtocol),
+                    ...(updatedFormData as CarReceptionProtocol),
                     id: protocol.id,
                     createdAt: protocol.createdAt,
                     updatedAt: new Date().toISOString(),
-                    statusUpdatedAt: formData.status !== protocol.status
+                    statusUpdatedAt: updatedFormData.status !== protocol.status
                         ? new Date().toISOString()
                         : protocol.statusUpdatedAt || protocol.createdAt,
                     appointmentId: protocol.appointmentId // Zachowujemy powiązanie z wizytą, jeśli istniało
@@ -411,7 +472,7 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
                 // Przygotowanie danych do utworzenia nowego protokołu
                 const now = new Date().toISOString();
                 const newProtocolData: Omit<CarReceptionProtocol, 'id' | 'createdAt' | 'updatedAt'> = {
-                    ...(formData as Omit<CarReceptionProtocol, 'id' | 'createdAt' | 'updatedAt'>),
+                    ...(updatedFormData as Omit<CarReceptionProtocol, 'id' | 'createdAt' | 'updatedAt'>),
                     statusUpdatedAt: now,
                     appointmentId: appointmentId // Powiązanie z wizytą, jeśli tworzymy z wizyty
                 };

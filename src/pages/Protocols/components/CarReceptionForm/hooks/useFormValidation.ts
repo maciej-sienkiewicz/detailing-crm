@@ -37,17 +37,24 @@ export const useFormValidation = (formData: Partial<CarReceptionProtocol>) => {
             newErrors.phone = 'Numer telefonu jest wymagany';
         }
 
+        // Walidacja daty rozpoczęcia
         if (!formData.startDate) {
             newErrors.startDate = 'Data rozpoczęcia usługi jest wymagana';
         }
 
+        // Walidacja daty zakończenia
         if (!formData.endDate) {
             newErrors.endDate = 'Data zakończenia usługi jest wymagana';
-        } else if (formData.startDate && formData.endDate < formData.startDate) {
-            newErrors.endDate = 'Data zakończenia nie może być wcześniejsza niż data rozpoczęcia';
+        } else if (formData.startDate && formData.endDate) {
+            // Porównujemy daty z uwzględnieniem godziny
+            const startDateObj = new Date(formData.startDate);
+            const endDateObj = new Date(formData.endDate);
+
+            if (endDateObj < startDateObj) {
+                newErrors.endDate = 'Data zakończenia nie może być wcześniejsza niż data rozpoczęcia';
+            }
         }
 
-        console.log(newErrors)
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };

@@ -64,6 +64,11 @@ const ProtocolVehicleStatus: React.FC<ProtocolVehicleStatusProps> = ({ protocol,
         return format(new Date(dateString), 'dd MMMM yyyy', { locale: pl });
     };
 
+    const formatDateTime = (dateString: string): string => {
+        if (!dateString) return '';
+        return format(new Date(dateString), 'dd MMM yyyy, HH:mm', { locale: pl });
+    };
+
     // Handle mileage update
     const handleUpdateMileage = async () => {
         if (mileage === protocol.mileage) return;
@@ -186,7 +191,7 @@ const ProtocolVehicleStatus: React.FC<ProtocolVehicleStatusProps> = ({ protocol,
 
                         <VehicleDetailItem>
                             <DetailLabel>Data przyjęcia</DetailLabel>
-                            <DetailValue>{formatDate(protocol.startDate)}</DetailValue>
+                            <DetailValue>{formatDateTime(protocol.startDate)}</DetailValue>
                         </VehicleDetailItem>
                     </VehicleDetailsGrid>
                 </VehicleInfoCard>

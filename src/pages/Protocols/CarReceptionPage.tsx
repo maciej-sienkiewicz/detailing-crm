@@ -390,11 +390,24 @@ const formatDate = (dateString: string): string => {
     if (!dateString) return '';
 
     const date = new Date(dateString);
-    return date.toLocaleDateString('pl-PL', {
+
+    // Formatowanie daty
+    const formattedDate = date.toLocaleDateString('pl-PL', {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit'
     });
+
+    // Dodajemy godzinę tylko dla daty początkowej (startDate)
+    if (dateString.includes('T') && dateString.split('T')[1] !== '23:59:59') {
+        const time = date.toLocaleTimeString('pl-PL', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        return `${formattedDate}, ${time}`;
+    }
+
+    return formattedDate;
 };
 
 // Funkcja pomocnicza do uzyskania etykiety statusu
