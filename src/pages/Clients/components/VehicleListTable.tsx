@@ -39,7 +39,7 @@ const VehicleListTable: React.FC<VehicleListTableProps> = ({
                                 <VehicleYear>Rok: {vehicle.year}</VehicleYear>
                             </TableCell>
                             <TableCell>
-                                <LicensePlate>{vehicle.licensePlate}</LicensePlate>
+                                {vehicle.licensePlate}
                             </TableCell>
                             <TableCell>
                                 {vehicle.vin || '-'}

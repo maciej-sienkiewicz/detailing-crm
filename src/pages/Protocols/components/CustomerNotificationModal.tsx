@@ -20,8 +20,8 @@ const CustomerNotificationModal: React.FC<CustomerNotificationModalProps> = ({
                                                                                  customerPhone,
                                                                                  customerEmail
                                                                              }) => {
-    const [sendSms, setSendSms] = useState(true);
-    const [sendEmail, setSendEmail] = useState(true);
+    const [sendSms, setSendSms] = useState(false);
+    const [sendEmail, setSendEmail] = useState(false);
 
     if (!isOpen) return null;
 

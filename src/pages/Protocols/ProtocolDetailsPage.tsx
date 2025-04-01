@@ -161,7 +161,11 @@ const ProtocolDetailsPage: React.FC = () => {
     // Obsługa procesu wydania samochodu
     const handleReleaseVehicle = () => {
         // Rozpoczynamy proces wydania samochodu od sprawdzenia komentarzy dla klienta
-        setShowClientCommentsModal(true);
+        if(comments != null && comments.filter(c => c.type === 'customer').length > 0) {
+            setShowClientCommentsModal(true);
+        } else {
+            setShowPaymentModal(true);
+        }
     };
 
     // Funkcja wywoływana po zamknięciu modalu komentarzy dla klienta

@@ -352,7 +352,7 @@ const CarReceptionPage: React.FC = () => {
                                                 </OwnerInfo>
                                             </TableCell>
                                             <TableCell>
-                                                <LicensePlate>{protocol.vehicle.licensePlate}</LicensePlate>
+                                                {protocol.vehicle.licensePlate}
                                             </TableCell>
                                             <TableCell>
                                                 <StatusBadge status={protocol.status}>
