@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { CarReceptionProtocol } from '../../../../../types';
 import { FormErrors } from '../hooks/useFormValidation';
 import {
@@ -40,6 +40,37 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
         }
     };
 
+    // Efekt ustawiający aktualną datę i godzinę dla pełnego protokołu
+    useEffect(() => {
+        console.log("dupa")
+        if (isFullProtocol) {
+            console.log("dupa dwa");
+            // Pobieramy aktualną datę i czas
+            const now = new Date();
+            const currentDate = now.toISOString().split('T')[0]; // Format YYYY-MM-DD
+
+            // Formatujemy godzinę jako HH:MM
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const currentTime = `${hours}:${minutes}`;
+
+            // Tworzymy pełną datę w formacie ISO
+            const fullDateTime = `${currentDate}T${currentTime}:00`;
+
+            // Tworzymy syntetyczne zdarzenie dla formularza
+            const syntheticEvent = {
+                target: {
+                    name: 'startDate',
+                    value: fullDateTime,
+                    type: 'text'
+                }
+            } as React.ChangeEvent<HTMLInputElement>;
+
+            // Wywołujemy funkcję obsługi zmiany
+            onChange(syntheticEvent);
+        }
+    }, [isFullProtocol]);
+
     return (
         <>
             <FormSection>
@@ -77,7 +108,7 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                                     }}
                                     required
                                     className="time-input"
-                             />
+                                />
                             )}
                         </DateTimeContainer>
                         {errors.startDate && <ErrorText>{errors.startDate}</ErrorText>}
@@ -178,7 +209,7 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
 
                     {isFullProtocol && (
                         <FormGroup>
-                            <Label htmlFor="mileage">Przebieg (km)*</Label>
+                            <Label htmlFor="mileage">Przebieg (km)</Label>
                             <Input
                                 id="mileage"
                                 name="mileage"
@@ -186,7 +217,6 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                                 min="0"
                                 value={formData.mileage || ''}
                                 onChange={onChange}
-                                required
                             />
                             {errors.mileage && <ErrorText>{errors.mileage}</ErrorText>}
                         </FormGroup>

@@ -127,7 +127,8 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
         removeService,
         updateBasePrice,
         updateDiscountType,
-        updateDiscountValue
+        updateDiscountValue,
+        updateServiceNote
     } = useServiceCalculations(formData.selectedServices || []);
 
     // Wyszukiwanie usług na podstawie zapytania
@@ -492,6 +493,16 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
         }
     };
 
+    const handleAddServiceNote = (serviceId: string, note: string) => {
+        setServices(prevServices =>
+            prevServices.map(service =>
+                service.id === serviceId
+                    ? { ...service, note }
+                    : service
+            )
+        );
+    };
+
     const handleAddServiceDirect = (service: { id: string; name: string; price: number }) => {
         const newService: Omit<SelectedService, 'finalPrice'> = {
             id: service.id,
@@ -563,6 +574,7 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
                     onDiscountTypeChange={updateDiscountType}
                     onDiscountValueChange={updateDiscountValue}
                     onBasePriceChange={updateBasePrice}
+                    onAddNote={updateServiceNote}  // Dodajemy tę linię
                     calculateTotals={calculateTotals}
                     allowCustomService={true}
                 />

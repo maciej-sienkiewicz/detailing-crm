@@ -23,6 +23,7 @@ interface ServiceSectionProps {
     onDiscountTypeChange: (serviceId: string, discountType: DiscountType) => void;
     onDiscountValueChange: (serviceId: string, discountValue: number) => void;
     onBasePriceChange: (serviceId: string, newPrice: number) => void;
+    onAddNote?: (serviceId: string, note: string) => void;
     calculateTotals: () => { totalPrice: number; totalDiscount: number; totalFinalPrice: number };
     allowCustomService: boolean;
     onAddServiceDirect: (service: { id: string; name: string; price: number }) => void;
@@ -43,6 +44,7 @@ const ServiceSection: React.FC<ServiceSectionProps> = ({
                                                            onDiscountTypeChange,
                                                            onDiscountValueChange,
                                                            onBasePriceChange,
+                                                           onAddNote,
                                                            calculateTotals,
                                                            allowCustomService
                                                        }) => {
@@ -69,6 +71,7 @@ const ServiceSection: React.FC<ServiceSectionProps> = ({
                 onDiscountTypeChange={onDiscountTypeChange}
                 onDiscountValueChange={onDiscountValueChange}
                 onBasePriceChange={onBasePriceChange}
+                onAddNote={onAddNote}
                 calculateTotals={calculateTotals}
             />
         </FormSection>

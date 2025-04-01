@@ -50,7 +50,7 @@ const mainMenuItems: MainMenuItem[] = [
     },
     {
         id: 'orders',
-        label: 'Zlecenia',
+        label: 'Wizyty',
         icon: <FaClipboardCheck />,
         path: '/orders',
         hasSubmenu: false

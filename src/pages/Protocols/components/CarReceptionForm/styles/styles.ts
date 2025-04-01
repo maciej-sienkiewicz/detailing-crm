@@ -480,17 +480,26 @@ export const DiscountPercentage = styled.div`
     }
 `;
 
-export const ActionButton = styled.button`
+export const ActionButton = styled.button<{ danger?: boolean; note?: boolean }>`
     background: none;
     border: none;
-    color: #e74c3c;
+    color: ${props => {
+        if (props.danger) return '#e74c3c';
+        if (props.note) return '#27ae60';
+        return '#3498db';
+    }};
     font-size: 16px;
     cursor: pointer;
     padding: 4px;
     border-radius: 4px;
+    transition: all 0.2s;
 
     &:hover {
-        background-color: #fdecea;
+        background-color: ${props => {
+            if (props.danger) return '#fdecea';
+            if (props.note) return '#eafaf1';
+            return '#f0f7ff';
+        }};
     }
 
     @media (max-width: 480px) {

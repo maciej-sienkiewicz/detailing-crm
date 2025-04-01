@@ -36,6 +36,7 @@ export interface SelectedService {
     rejectedAt?: string;                   // Data odrzucenia usługi
     confirmationMessage?: string;          // Wiadomość wysłana do klienta
     clientMessage?: string;                // Odpowiedź klienta
+    note?: string;                         // Dodatkowa notatka do usługi
 }
 
 // Typ do obsługi bocznego menu

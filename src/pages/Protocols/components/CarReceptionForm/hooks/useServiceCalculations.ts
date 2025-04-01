@@ -181,6 +181,22 @@ export const useServiceCalculations = (initialServices: SelectedService[] = []) 
         return updatedServices;
     };
 
+    // Dodajemy nową funkcję do aktualizacji notatki dla usługi
+    const updateServiceNote = (serviceId: string, note: string) => {
+        const updatedServices = services.map(service => {
+            if (service.id === serviceId) {
+                return {
+                    ...service,
+                    note
+                };
+            }
+            return service;
+        });
+
+        setServices(updatedServices);
+        return updatedServices;
+    };
+
     return {
         services,
         setServices,
@@ -189,6 +205,7 @@ export const useServiceCalculations = (initialServices: SelectedService[] = []) 
         removeService,
         updateBasePrice,
         updateDiscountType,
-        updateDiscountValue
+        updateDiscountValue,
+        updateServiceNote
     };
 };

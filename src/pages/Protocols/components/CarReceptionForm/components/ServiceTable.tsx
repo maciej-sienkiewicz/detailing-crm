@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FaTrash, FaPlus, FaEdit } from 'react-icons/fa';
+import { FaTrash, FaPlus, FaEdit, FaStickyNote } from 'react-icons/fa';
 import { DiscountType, DiscountTypeLabels, SelectedService } from '../../../../../types';
 import {
     ServicesTableContainer,
@@ -18,6 +18,7 @@ import {
     TotalValue
 } from '../styles/styles';
 import styled from 'styled-components';
+import ServiceNoteModal from "../../SerivceNoteModal";
 
 // Styl dla menu kontekstowego
 const ContextMenu = styled.div`
@@ -72,6 +73,29 @@ const EditIcon = styled.span`
     margin-left: 10px;
     display: flex;
     align-items: center;
+`;
+
+// Nowy komponent dla notatki
+const ServiceNote = styled.div`
+    font-size: 12px;
+    color: #7f8c8d;
+    margin-top: 4px;
+    font-style: italic;
+    line-height: 1.4;
+    padding-top: 4px;
+    border-top: 1px dashed #eee;
+    word-break: break-word;
+`;
+
+// Kontener dla nazwy usługi i notatki
+const ServiceNameContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+`;
+
+const ServiceName = styled.div`
+    font-weight: normal;
+    color: #34495e;
 `;
 
 // Nowy komponent dla komórki z rabatem
@@ -180,12 +204,24 @@ const StyledDiscountContainer = styled.div`
     width: 100%;
 `;
 
+// Kontener dla przycisków akcji
+const ActionButtonsContainer = styled.div`
+    display: flex;
+    gap: 5px;
+`;
+
+// Rozszerzenie interfejsu SelectedService o pole note
+interface ServiceWithNote extends SelectedService {
+    note?: string;
+}
+
 interface ServiceTableProps {
-    services: SelectedService[];
+    services: ServiceWithNote[];
     onRemoveService: (serviceId: string) => void;
     onDiscountTypeChange: (serviceId: string, discountType: DiscountType) => void;
     onDiscountValueChange: (serviceId: string, discountValue: number) => void;
     onBasePriceChange: (serviceId: string, newPrice: number) => void;
+    onAddNote?: (serviceId: string, note: string) => void;
     calculateTotals: () => { totalPrice: number; totalDiscount: number; totalFinalPrice: number };
 }
 
@@ -195,6 +231,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                                                        onDiscountTypeChange,
                                                        onDiscountValueChange,
                                                        onBasePriceChange,
+                                                       onAddNote,
                                                        calculateTotals
                                                    }) => {
     const { totalPrice, totalDiscount, totalFinalPrice } = calculateTotals();
@@ -227,11 +264,24 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
         currentPrice: 0
     });
 
+    // State dla modalu notatki
+    const [noteModal, setNoteModal] = useState<{
+        visible: boolean;
+        serviceId: string;
+        serviceName: string;
+        currentNote: string;
+    }>({
+        visible: false,
+        serviceId: '',
+        serviceName: '',
+        currentNote: ''
+    });
+
     // State do przechowywania nowej ceny jako string, aby uniknąć problemów z zerami wiodącymi
     const [newPrice, setNewPrice] = useState<string>('');
 
     // Obsługa kliknięcia prawym przyciskiem na cenę
-    const handlePriceRightClick = (e: React.MouseEvent, service: SelectedService) => {
+    const handlePriceRightClick = (e: React.MouseEvent, service: ServiceWithNote) => {
         e.preventDefault(); // Zapobiegaj domyślnemu menu kontekstowemu przeglądarki
 
         setContextMenu({
@@ -277,6 +327,23 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
         }
 
         setEditPopup({...editPopup, visible: false});
+    };
+
+    // Otwórz modal dodawania/edycji notatki
+    const handleOpenNoteModal = (service: ServiceWithNote) => {
+        setNoteModal({
+            visible: true,
+            serviceId: service.id,
+            serviceName: service.name,
+            currentNote: service.note || ''
+        });
+    };
+
+    // Zapisz notatkę
+    const handleSaveNote = (note: string) => {
+        if (onAddNote && noteModal.serviceId) {
+            onAddNote(noteModal.serviceId, note);
+        }
     };
 
     // Zamknij menu kontekstowe przy kliknięciu na stronę
@@ -329,7 +396,14 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                 ) : (
                     services.map(service => (
                         <tr key={service.id}>
-                            <TableCell>{service.name}</TableCell>
+                            <TableCell>
+                                <ServiceNameContainer>
+                                    <ServiceName>{service.name}</ServiceName>
+                                    {service.note && (
+                                        <ServiceNote>{service.note}</ServiceNote>
+                                    )}
+                                </ServiceNameContainer>
+                            </TableCell>
                             <EditablePriceCell
                                 id={`price-${service.id}`}
                                 onContextMenu={(e) => handlePriceRightClick(e, service)}
@@ -391,13 +465,24 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                                 </div>
                             </TableCell>
                             <TableCell>
-                                <ActionButton
-                                    type="button"
-                                    onClick={() => onRemoveService(service.id)}
-                                    title="Usuń usługę"
-                                >
-                                    <FaTrash />
-                                </ActionButton>
+                                <ActionButtonsContainer>
+                                    <ActionButton
+                                        type="button"
+                                        onClick={() => handleOpenNoteModal(service)}
+                                        title="Dodaj notatkę"
+                                        note={!!service.note}
+                                    >
+                                        <FaStickyNote />
+                                    </ActionButton>
+                                    <ActionButton
+                                        type="button"
+                                        onClick={() => onRemoveService(service.id)}
+                                        title="Usuń usługę"
+                                        danger
+                                    >
+                                        <FaTrash />
+                                    </ActionButton>
+                                </ActionButtonsContainer>
                             </TableCell>
                         </tr>
                     ))
@@ -473,6 +558,15 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                     </EditPriceForm>
                 </EditPricePopup>
             )}
+
+            {/* Modal notatki */}
+            <ServiceNoteModal
+                isOpen={noteModal.visible}
+                onClose={() => setNoteModal({...noteModal, visible: false})}
+                onSave={handleSaveNote}
+                serviceName={noteModal.serviceName}
+                initialNote={noteModal.currentNote}
+            />
         </ServicesTableContainer>
     );
 };
