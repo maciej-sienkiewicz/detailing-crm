@@ -1,9 +1,9 @@
 import React, { useState, useRef } from 'react';
 import styled from 'styled-components';
-import { FaCamera, FaUpload, FaTrash, FaImage, FaExclamationCircle, FaEye, FaEdit } from 'react-icons/fa';
+import { FaCamera, FaUpload, FaTrash, FaImage, FaExclamationCircle, FaEye, FaEdit, FaTags } from 'react-icons/fa';
 import { VehicleImage } from '../../../../../types';
 import ImagePreviewModal from '../../../components/ImagePreviewModal';
-import ImageNameEditModal from '../../../components/ImageNameEditModal';
+import ImageEditModal from '../../../components/ImageEditModal';
 import { apiClient } from '../../../../../api/apiClient';
 
 interface ImageUploadSectionProps {
@@ -21,8 +21,8 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
     const [previewModalOpen, setPreviewModalOpen] = useState(false);
     const [previewImageIndex, setPreviewImageIndex] = useState(0);
 
-    // Stan dla modalu edycji nazwy
-    const [nameEditModalOpen, setNameEditModalOpen] = useState(false);
+    // Stan dla modalu edycji informacji o zdjęciu
+    const [editModalOpen, setEditModalOpen] = useState(false);
     const [editingImageIndex, setEditingImageIndex] = useState(-1);
 
     // Maksymalny rozmiar pliku (5MB)
@@ -96,18 +96,19 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
                 size: file.size,
                 type: file.type,
                 createdAt: new Date().toISOString(),
+                tags: [], // Inicjalizuj pustą tablicę tagów
                 file: file // Dodajemy referencję do oryginalnego pliku
             });
         });
 
-        // Otwórz modal edycji nazwy dla pierwszego nowo dodanego zdjęcia
+        // Otwórz modal edycji informacji dla pierwszego nowo dodanego zdjęcia
         if (newImages.length > 0) {
             const updatedImages = [...images, ...newImages];
             onImagesChange(updatedImages);
 
-            // Otwórz modal do edycji nazwy pierwszego nowego zdjęcia
+            // Otwórz modal do edycji informacji pierwszego nowego zdjęcia
             setEditingImageIndex(images.length); // Indeks pierwszego nowego zdjęcia
-            setNameEditModalOpen(true);
+            setEditModalOpen(true);
         }
     };
 
@@ -152,20 +153,21 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
         setPreviewModalOpen(true);
     };
 
-    // Obsługuje otwieranie modalu edycji nazwy
-    const handleEditName = (index: number, e: React.MouseEvent) => {
+    // Obsługuje otwieranie modalu edycji informacji o zdjęciu
+    const handleEditImage = (index: number, e: React.MouseEvent) => {
         e.stopPropagation(); // Zatrzymuje propagację, żeby nie otworzyć modalu podglądu
         setEditingImageIndex(index);
-        setNameEditModalOpen(true);
+        setEditModalOpen(true);
     };
 
-    // Obsługuje zapisanie zmienionej nazwy
-    const handleSaveName = (newName: string) => {
+    // Obsługuje zapisanie zmienionych informacji o zdjęciu
+    const handleSaveImageInfo = (newName: string, newTags: string[]) => {
         if (editingImageIndex >= 0 && editingImageIndex < images.length) {
             const updatedImages = [...images];
             updatedImages[editingImageIndex] = {
                 ...updatedImages[editingImageIndex],
-                name: newName
+                name: newName,
+                tags: newTags
             };
             onImagesChange(updatedImages);
         }
@@ -248,7 +250,7 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
                     {images.map((image, index) => (
                         <ImageItem key={image.id}>
                             <ImageThumbnail onClick={() => handleOpenPreview(index)}>
-                                <img src={getImageUrl(image)} alt={image.name} />
+                                <img src={getImageUrl(image)} alt={image.name || 'Zdjęcie'} />
                                 <ViewOverlay>
                                     <FaEye />
                                 </ViewOverlay>
@@ -256,11 +258,27 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
                             <ImageInfo>
                                 <ImageNameContainer>
                                     <ImageName>{image.name || 'Bez nazwy'}</ImageName>
-                                    <EditNameButton onClick={(e) => handleEditName(index, e)}>
+                                    <EditButton onClick={(e) => handleEditImage(index, e)}>
                                         <FaEdit />
-                                    </EditNameButton>
+                                    </EditButton>
                                 </ImageNameContainer>
-                                <ImageSize>{formatFileSize(image.size)}</ImageSize>
+                                <ImageMetaContainer>
+                                    <ImageSize>{formatFileSize(image.size)}</ImageSize>
+                                    {image.tags && image.tags.length > 0 && (
+                                        <TagsContainer>
+                                            <TagsIcon><FaTags /></TagsIcon>
+                                            <TagsCount>{image.tags.length}</TagsCount>
+                                        </TagsContainer>
+                                    )}
+                                </ImageMetaContainer>
+
+                                {image.tags && image.tags.length > 0 && (
+                                    <TagsList>
+                                        {image.tags.map(tag => (
+                                            <TagBadge key={tag}>{tag}</TagBadge>
+                                        ))}
+                                    </TagsList>
+                                )}
                             </ImageInfo>
                             <RemoveButton onClick={() => handleRemoveImage(image.id)}>
                                 <FaTrash />
@@ -286,13 +304,14 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
                 onDelete={handleRemoveImage}
             />
 
-            {/* Modal edycji nazwy zdjęcia */}
+            {/* Modal edycji informacji o zdjęciu */}
             {editingImageIndex >= 0 && editingImageIndex < images.length && (
-                <ImageNameEditModal
-                    isOpen={nameEditModalOpen}
-                    onClose={() => setNameEditModalOpen(false)}
-                    onSave={handleSaveName}
+                <ImageEditModal
+                    isOpen={editModalOpen}
+                    onClose={() => setEditModalOpen(false)}
+                    onSave={handleSaveImageInfo}
                     initialName={images[editingImageIndex].name || ''}
+                    initialTags={images[editingImageIndex].tags || []}
                     imageUrl={getImageUrl(images[editingImageIndex])}
                 />
             )}
@@ -381,7 +400,7 @@ const UploadButton = styled.button`
 
 const ImagesList = styled.div`
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 15px;
 
     @media (max-width: 480px) {
@@ -462,7 +481,7 @@ const ImageName = styled.div`
     flex: 1;
 `;
 
-const EditNameButton = styled.button`
+const EditButton = styled.button`
     background: none;
     border: none;
     color: #3498db;
@@ -480,9 +499,55 @@ const EditNameButton = styled.button`
     }
 `;
 
+const ImageMetaContainer = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+`;
+
 const ImageSize = styled.div`
     font-size: 12px;
     color: #7f8c8d;
+`;
+
+const TagsContainer = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 3px;
+`;
+
+const TagsIcon = styled.span`
+    color: #3498db;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+`;
+
+const TagsCount = styled.span`
+    font-size: 12px;
+    color: #3498db;
+    font-weight: 500;
+`;
+
+const TagsList = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 3px;
+`;
+
+const TagBadge = styled.div`
+    background-color: #f0f7ff;
+    color: #3498db;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 10px;
+    border: 1px solid #d5e9f9;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 `;
 
 const RemoveButton = styled.button`
