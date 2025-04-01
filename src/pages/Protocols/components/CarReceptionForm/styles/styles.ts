@@ -18,15 +18,27 @@ export const FormHeader = styled.div`
         font-size: 18px;
         color: #34495e;
     }
+
+    @media (max-width: 576px) {
+        padding: 12px 15px;
+    }
 `;
 
 export const Form = styled.form`
     padding: 20px;
+
+    @media (max-width: 576px) {
+        padding: 15px 10px;
+    }
 `;
 
 // Section styles
 export const FormSection = styled.section`
     margin-bottom: 30px;
+
+    @media (max-width: 576px) {
+        margin-bottom: 25px;
+    }
 `;
 
 export const SectionTitle = styled.h3`
@@ -35,6 +47,11 @@ export const SectionTitle = styled.h3`
     margin: 0 0 15px 0;
     padding-bottom: 8px;
     border-bottom: 1px solid #eee;
+
+    @media (max-width: 576px) {
+        font-size: 15px;
+        margin-bottom: 12px;
+    }
 `;
 
 // Form row and group styles
@@ -44,9 +61,18 @@ export const FormRow = styled.div`
     gap: 20px;
     margin-bottom: 15px;
 
-    @media (max-width: 768px) {
-        flex-direction: column;
-        gap: 15px;
+    &.responsive-row {
+        @media (max-width: 768px) {
+            flex-direction: column;
+            gap: 15px;
+        }
+    }
+
+    &.checkbox-row {
+        @media (max-width: 576px) {
+            flex-direction: column;
+            align-items: flex-start;
+        }
     }
 `;
 
@@ -58,6 +84,24 @@ export const FormGroup = styled.div`
 
     @media (max-width: 768px) {
         min-width: 100%;
+    }
+
+    &.date-time-group {
+        flex: 3;
+        @media (max-width: 768px) {
+            flex: 1;
+        }
+    }
+`;
+
+// Nowy kontener dla pól daty i czasu
+export const DateTimeContainer = styled.div`
+    display: flex;
+    gap: 10px;
+
+    @media (max-width: 576px) {
+        flex-direction: column;
+        gap: 8px;
     }
 `;
 
@@ -74,6 +118,19 @@ export const Input = styled.input`
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 14px;
+    width: 100%;
+
+    &.time-input {
+        width: 100px;
+
+        @media (max-width: 576px) {
+            width: 100%;
+        }
+    }
+
+    &.date-input {
+        flex: 1;
+    }
 
     &:focus {
         outline: none;
@@ -115,6 +172,12 @@ export const CheckboxGroup = styled.div`
     display: flex;
     align-items: center;
     margin-right: 20px;
+
+    @media (max-width: 576px) {
+        margin-right: 0;
+        margin-bottom: 10px;
+        width: 100%;
+    }
 `;
 
 export const CheckboxLabel = styled.label`
@@ -139,6 +202,10 @@ export const SearchContainer = styled.div`
 
     @media (max-width: 768px) {
         flex-direction: column;
+    }
+
+    @media (max-width: 576px) {
+        gap: 10px;
     }
 `;
 
@@ -239,6 +306,12 @@ export const AddServiceButton = styled.button`
 export const ServicesTableContainer = styled.div`
     margin-top: 10px;
     overflow-x: auto;
+
+    @media (max-width: 576px) {
+        margin-left: -10px;
+        margin-right: -10px;
+        width: calc(100% + 20px);
+    }
 `;
 
 export const ServicesTable = styled.table`
@@ -254,12 +327,22 @@ export const TableHeader = styled.th`
     border-bottom: 2px solid #eee;
     font-weight: 600;
     color: #333;
+
+    @media (max-width: 768px) {
+        padding: 10px 8px;
+        font-size: 13px;
+    }
 `;
 
 export const TableCell = styled.td`
     padding: 12px;
     border-bottom: 1px solid #eee;
     vertical-align: middle;
+
+    @media (max-width: 768px) {
+        padding: 8px;
+        font-size: 13px;
+    }
 `;
 
 export const TableFooterCell = styled.td`
@@ -267,12 +350,24 @@ export const TableFooterCell = styled.td`
     font-weight: 600;
     background-color: #f9f9f9;
     border-top: 2px solid #eee;
+
+    @media (max-width: 768px) {
+        padding: 10px 8px;
+    }
 `;
 
 export const DiscountContainer = styled.div`
     display: flex;
     flex-direction: column;
     width: 220px;
+
+    @media (max-width: 768px) {
+        width: 180px;
+    }
+
+    @media (max-width: 576px) {
+        width: 160px;
+    }
 `;
 
 export const DiscountInputGroup = styled.div`
@@ -303,6 +398,11 @@ export const DiscountInput = styled.input`
     &[type=number] {
         -moz-appearance: textfield;
     }
+
+    @media (max-width: 768px) {
+        width: 60px;
+        padding: 6px 8px;
+    }
 `;
 
 export const DiscountTypeSelect = styled.select`
@@ -312,11 +412,16 @@ export const DiscountTypeSelect = styled.select`
     font-size: 13px;
     background-color: white;
     flex: 1;
-    
+
     &:focus {
         outline: none;
         border-color: #3498db;
         box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+    }
+
+    @media (max-width: 768px) {
+        padding: 6px 8px;
+        font-size: 12px;
     }
 `;
 
@@ -325,6 +430,10 @@ export const DiscountPercentage = styled.div`
     color: #7f8c8d;
     margin-top: 4px;
     text-align: right;
+
+    @media (max-width: 768px) {
+        font-size: 11px;
+    }
 `;
 
 export const ActionButton = styled.button`
@@ -348,6 +457,11 @@ export const FormActions = styled.div`
     margin-top: 30px;
     padding-top: 20px;
     border-top: 1px solid #eee;
+
+    @media (max-width: 576px) {
+        flex-direction: column-reverse;
+        gap: 10px;
+    }
 `;
 
 export const Button = styled.button<{ primary?: boolean; secondary?: boolean }>`
@@ -355,6 +469,7 @@ export const Button = styled.button<{ primary?: boolean; secondary?: boolean }>`
     border-radius: 4px;
     font-weight: 500;
     cursor: pointer;
+    width: auto;
 
     ${props => props.primary && `
     background-color: #3498db;
@@ -383,6 +498,11 @@ export const Button = styled.button<{ primary?: boolean; secondary?: boolean }>`
       background-color: #f5f5f5;
     }
   `}
+
+    @media (max-width: 576px) {
+    width: 100%;
+    padding: 12px 20px;
+}
 `;
 
 export const ErrorMessage = styled.div`
@@ -391,6 +511,11 @@ export const ErrorMessage = styled.div`
     padding: 12px 20px;
     margin: 0 20px 20px;
     border-radius: 4px;
+
+    @media (max-width: 576px) {
+        margin: 0 10px 15px;
+        padding: 10px 15px;
+    }
 `;
 
 export const ErrorText = styled.div`
@@ -425,7 +550,21 @@ export const CustomServiceInfo = styled.div`
     font-style: italic;
 `;
 
-// Modyfikacja dialoga walidacji - dodać do styles.ts
+// Dla SearchField
+export const FieldContainer = styled.div`
+    width: 100%;
+
+    @media (max-width: 576px) {
+        margin-bottom: 5px;
+    }
+`;
+
+export const InputWithIcon = styled.div`
+    position: relative;
+    width: 100%;
+`;
+
+// Modyfikacja dialoga walidacji
 export const ConfirmationDialog = styled.div`
     position: fixed;
     top: 0;
@@ -445,6 +584,11 @@ export const DialogContent = styled.div`
     border-radius: 6px;
     width: 450px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+
+    @media (max-width: 576px) {
+        width: 90%;
+        padding: 20px;
+    }
 `;
 
 export const DialogTitle = styled.h3`
@@ -452,16 +596,28 @@ export const DialogTitle = styled.h3`
     margin-bottom: 15px;
     color: #e74c3c;
     font-size: 18px;
+
+    @media (max-width: 576px) {
+        font-size: 16px;
+    }
 `;
 
 export const DialogText = styled.p`
     margin-bottom: 20px;
     line-height: 1.5;
     color: #333;
+    
+    @media (max-width: 576px) {
+        font-size: 14px;
+    }
 `;
 
 export const DialogActions = styled.div`
     display: flex;
     justify-content: flex-end;
     gap: 10px;
+    
+    @media (max-width: 576px) {
+        flex-direction: column-reverse;
+    }
 `;

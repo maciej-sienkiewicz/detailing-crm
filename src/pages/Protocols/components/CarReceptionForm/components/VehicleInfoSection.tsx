@@ -11,11 +11,13 @@ import {
     CheckboxGroup,
     CheckboxLabel,
     Checkbox,
-    ErrorText
+    ErrorText,
+    DateTimeContainer
 } from '../styles/styles';
 
 // Import komponentu pola wyszukiwania
 import SearchField from './SearchField';
+import styled from 'styled-components';
 
 interface VehicleInfoSectionProps {
     formData: Partial<CarReceptionProtocol>;
@@ -42,10 +44,10 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
         <>
             <FormSection>
                 <SectionTitle>Dane usługi</SectionTitle>
-                <FormRow>
-                    <FormGroup style={{ flex: 3 }}>
+                <FormRow className="responsive-row">
+                    <FormGroup className="date-time-group">
                         <Label htmlFor="startDate">Data rozpoczęcia*</Label>
-                        <div style={{ display: 'flex', gap: '10px' }}>
+                        <DateTimeContainer>
                             <Input
                                 id="startDate"
                                 name="startDate"
@@ -53,7 +55,7 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                                 value={formData.startDate ? formData.startDate.split('T')[0] : ''}
                                 onChange={onChange}
                                 required
-                                style={{ flex: 1 }}
+                                className="date-input"
                             />
                             <Input
                                 id="startTime"
@@ -73,13 +75,13 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                                     onChange(syntheticEvent);
                                 }}
                                 required
-                                style={{ width: '100px' }}
+                                className="time-input"
                             />
-                        </div>
+                        </DateTimeContainer>
                         {errors.startDate && <ErrorText>{errors.startDate}</ErrorText>}
                     </FormGroup>
 
-                    <FormGroup style={{ flex: 2 }}>
+                    <FormGroup>
                         <Label htmlFor="endDate">Data zakończenia*</Label>
                         <Input
                             id="endDate"
@@ -118,7 +120,7 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
 
             <FormSection>
                 <SectionTitle>Dane pojazdu</SectionTitle>
-                <FormRow>
+                <FormRow className="responsive-row">
                     <FormGroup>
                         <Label htmlFor="licensePlate">Tablica rejestracyjna</Label>
                         <SearchField
@@ -158,7 +160,7 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                     </FormGroup>
                 </FormRow>
 
-                <FormRow>
+                <FormRow className="responsive-row">
                     <FormGroup>
                         <Label htmlFor="productionYear">Rok produkcji</Label>
                         <Input
@@ -190,7 +192,7 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                 </FormRow>
 
                 {isFullProtocol && (
-                    <FormRow>
+                    <FormRow className="responsive-row checkbox-row">
                         <CheckboxGroup>
                             <CheckboxLabel>
                                 <Checkbox

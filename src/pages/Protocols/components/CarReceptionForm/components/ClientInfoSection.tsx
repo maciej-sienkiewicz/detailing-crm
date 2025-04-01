@@ -39,7 +39,7 @@ const ClientInfoSection: React.FC<ClientInfoSectionProps> = ({
     return (
         <FormSection>
             <SectionTitle>Dane właściciela</SectionTitle>
-            <FormRow>
+            <FormRow className="responsive-row">
                 <FormGroup>
                     <Label htmlFor="ownerName">Imię i nazwisko*</Label>
                     <SearchField
@@ -55,7 +55,7 @@ const ClientInfoSection: React.FC<ClientInfoSectionProps> = ({
                 </FormGroup>
             </FormRow>
 
-            <FormRow>
+            <FormRow className="responsive-row">
                 <FormGroup>
                     <Label htmlFor="companyName">Nazwa firmy</Label>
                     <SearchField
@@ -81,7 +81,7 @@ const ClientInfoSection: React.FC<ClientInfoSectionProps> = ({
                 </FormGroup>
             </FormRow>
 
-            <FormRow>
+            <FormRow className="responsive-row">
                 <FormGroup>
                     <Label htmlFor="email">Email{!formData.phone ? '*' : ''}</Label>
                     <SearchField
