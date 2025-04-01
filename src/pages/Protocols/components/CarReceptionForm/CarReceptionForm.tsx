@@ -115,7 +115,6 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
     const [foundVehicles, setFoundVehicles] = useState<VehicleExpanded[]>([]);
     const [searchError, setSearchError] = useState<string | null>(null);
 
-    const [showZeroPriceDialog, setShowZeroPriceDialog] = useState(false);
     const [pendingSubmit, setPendingSubmit] = useState(false);
 
     // Użycie custom hooków
@@ -441,7 +440,6 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
 
         if (hasZeroPriceServices && !pendingSubmit) {
             setPendingSubmit(true);
-            setShowZeroPriceDialog(true);
             return;
         }
 
@@ -492,17 +490,6 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
             setLoading(false);
             setPendingSubmit(false);
         }
-    };
-
-    const handleConfirmZeroPrice = () => {
-        setShowZeroPriceDialog(false);
-        // Kontynuuj zapisywanie formularza
-        handleSubmit(new Event('submit') as any);
-    };
-
-    const handleCancelZeroPrice = () => {
-        setShowZeroPriceDialog(false);
-        setPendingSubmit(false);
     };
 
     const handleAddServiceDirect = (service: { id: string; name: string; price: number }) => {
@@ -617,26 +604,6 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
                     onSelect={handleVehicleSelect}
                     onCancel={() => setShowVehicleModal(false)}
                 />
-            )}
-
-            {showZeroPriceDialog && (
-                <ConfirmationDialog>
-                    <DialogContent>
-                        <DialogTitle>Uwaga: Wykryto usługi z ceną 0 zł</DialogTitle>
-                        <DialogText>
-                            Niektóre z dodanych usług mają cenę końcową równą 0 zł.
-                            Czy na pewno chcesz kontynuować z tymi wartościami?
-                        </DialogText>
-                        <DialogActions>
-                            <Button secondary onClick={handleCancelZeroPrice}>
-                                Anuluj i popraw
-                            </Button>
-                            <Button primary onClick={handleConfirmZeroPrice}>
-                                Kontynuuj z ceną 0 zł
-                            </Button>
-                        </DialogActions>
-                    </DialogContent>
-                </ConfirmationDialog>
             )}
         </FormContainer>
     );

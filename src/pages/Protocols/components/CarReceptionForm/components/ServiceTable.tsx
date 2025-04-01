@@ -17,6 +17,7 @@ import {
     TotalAmount,
     TotalValue
 } from '../styles/styles';
+import styled from 'styled-components';
 
 // Styl dla menu kontekstowego
 const ContextMenu = styled.div`
@@ -73,6 +74,26 @@ const EditIcon = styled.span`
     align-items: center;
 `;
 
+// Nowy komponent dla komórki z rabatem
+const DiscountCell = styled(TableCell)`
+    min-width: 220px;
+    width: 220px;
+
+    @media (max-width: 768px) {
+        min-width: 180px;
+        width: 180px;
+    }
+
+    @media (max-width: 576px) {
+        min-width: 160px;
+        width: 160px;
+    }
+
+    @media (max-width: 480px) {
+        min-width: 140px;
+        width: 100%;
+    }
+`;
 
 // Styl dla okna edycji
 const EditPricePopup = styled.div`
@@ -143,8 +164,21 @@ const Button = styled.button<{ primary?: boolean }>`
     `}
 `;
 
-// Import styled
-import styled from 'styled-components';
+// Nowy komponent dla zawartości komórki rabatu
+const DiscountCellContent = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+`;
+
+// Zaktualizowany komponent DiscountContainer
+const StyledDiscountContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+`;
 
 interface ServiceTableProps {
     services: SelectedService[];
@@ -229,7 +263,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                 currentPrice: service.price
             });
 
-            setNewPrice(service.price);
+            setNewPrice(service.price.toString());
         }
     };
 
@@ -321,9 +355,9 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                                     </EditIcon>
                                 </PriceContainer>
                             </EditablePriceCell>
-                            <TableCell>
-                                <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
-                                    <DiscountContainer>
+                            <DiscountCell>
+                                <DiscountCellContent>
+                                    <StyledDiscountContainer>
                                         <DiscountInputGroup>
                                             <DiscountTypeSelect
                                                 value={service.discountType}
@@ -348,9 +382,9 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                                                 ({(service.price * service.discountValue / 100).toFixed(2)} zł)
                                             </DiscountPercentage>
                                         )}
-                                    </DiscountContainer>
-                                </div>
-                            </TableCell>
+                                    </StyledDiscountContainer>
+                                </DiscountCellContent>
+                            </DiscountCell>
                             <TableCell>
                                 <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
                                     {service.finalPrice.toFixed(2)} zł

@@ -383,17 +383,21 @@ export const DiscountContainer = styled.div`
     display: flex;
     flex-direction: column;
     width: 220px;
+    min-width: 220px;
 
     @media (max-width: 768px) {
         width: 180px;
+        min-width: 180px;
     }
 
     @media (max-width: 576px) {
         width: 160px;
+        min-width: 160px;
     }
 
     @media (max-width: 480px) {
         width: 100%;
+        min-width: 100px;
     }
 `;
 
