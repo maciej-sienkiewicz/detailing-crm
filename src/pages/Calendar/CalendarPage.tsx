@@ -255,7 +255,7 @@ const CalendarPage: React.FC = () => {
             <CalendarHeader>
                 <h1>Kalendarz</h1>
                 <CalendarActions>
-                    <Button primary onClick={handleNewAppointmentClick}>+ Nowa wizyta</Button>
+                    <Button primary onClick={handleNewAppointmentClick}>+ Rezerwacja wizyty</Button>
                 </CalendarActions>
             </CalendarHeader>
 
@@ -276,7 +276,7 @@ const CalendarPage: React.FC = () => {
             <Modal
                 isOpen={showNewAppointmentModal}
                 onClose={() => setShowNewAppointmentModal(false)}
-                title="Nowa wizyta"
+                title="Rezerwacja wizyty"
             >
                 <AppointmentForm
                     selectedDate={selectedDate}
@@ -324,10 +324,10 @@ const CalendarPage: React.FC = () => {
             {/* Dialog potwierdzenia nowej wizyty */}
             <ConfirmationDialog
                 isOpen={showNewVisitConfirmation}
-                title="Nowa wizyta"
-                message="Czy chcesz zaplanować nową wizytę?"
+                title="Rezerwacja wizyty"
+                message="Czy chcesz zarezerwować wizytę?"
                 confirmText="Tak"
-                cancelText="Nie, dodaję przypomnienie"
+                cancelText="Nie, dodaję inne wydarzenie"
                 onConfirm={handleConfirmNewVisit}
                 onCancel={handleCancelNewVisit}
             />

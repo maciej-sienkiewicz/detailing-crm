@@ -14,9 +14,9 @@ const FormHeader: React.FC<FormHeaderProps> = ({ isEditing, appointmentId, isFul
     if (isEditing) {
         title = 'Edycja protokołu przyjęcia pojazdu';
     } else if (appointmentId) {
-        title = 'Nowy protokół przyjęcia pojazdu (z wizyty)';
+        title = 'Rozpoczęcie wizyty';
     } else if (!isFullProtocol) {
-        title = 'Nowa rezerwacja wizyty';
+        title = 'Rezerwacja wizyty';
     } else {
         title = 'Nowy protokół przyjęcia pojazdu';
     }

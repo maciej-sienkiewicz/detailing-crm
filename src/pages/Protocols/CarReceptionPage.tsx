@@ -244,7 +244,7 @@ const CarReceptionPage: React.FC = () => {
                             <BackButton onClick={handleFormCancel}>
                                 <FaArrowLeft />
                             </BackButton>
-                            <h1>{editingProtocol ? 'Edycja protokołu' : 'Nowy protokół przyjęcia pojazdu'}</h1>
+                            <h1>{editingProtocol ? 'Edycja protokołu' : 'Wizyta'}</h1>
                         </HeaderLeft>
                     </>
                 ) : (

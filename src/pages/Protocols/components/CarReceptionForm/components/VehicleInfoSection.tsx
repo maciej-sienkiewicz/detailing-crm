@@ -57,26 +57,28 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                                 required
                                 className="date-input"
                             />
-                            <Input
-                                id="startTime"
-                                name="startTime"
-                                type="time"
-                                value={formData.startDate ? (formData.startDate.split('T')[1]?.substring(0, 5) || '08:00') : '08:00'}
-                                onChange={(e) => {
-                                    const date = formData.startDate ? formData.startDate.split('T')[0] : new Date().toISOString().split('T')[0];
-                                    const newDateTime = `${date}T${e.target.value}:00`;
-                                    const syntheticEvent = {
-                                        target: {
-                                            name: 'startDate',
-                                            value: newDateTime,
-                                            type: 'text'
-                                        }
-                                    } as React.ChangeEvent<HTMLInputElement>;
-                                    onChange(syntheticEvent);
-                                }}
-                                required
-                                className="time-input"
-                            />
+                            {isFullProtocol && (
+                                <Input
+                                    id="startTime"
+                                    name="startTime"
+                                    type="time"
+                                    value={formData.startDate ? (formData.startDate.split('T')[1]?.substring(0, 5) || '08:00') : '08:00'}
+                                    onChange={(e) => {
+                                        const date = formData.startDate ? formData.startDate.split('T')[0] : new Date().toISOString().split('T')[0];
+                                        const newDateTime = `${date}T${e.target.value}:00`;
+                                        const syntheticEvent = {
+                                            target: {
+                                                name: 'startDate',
+                                                value: newDateTime,
+                                                type: 'text'
+                                            }
+                                        } as React.ChangeEvent<HTMLInputElement>;
+                                        onChange(syntheticEvent);
+                                    }}
+                                    required
+                                    className="time-input"
+                             />
+                            )}
                         </DateTimeContainer>
                         {errors.startDate && <ErrorText>{errors.startDate}</ErrorText>}
                     </FormGroup>
