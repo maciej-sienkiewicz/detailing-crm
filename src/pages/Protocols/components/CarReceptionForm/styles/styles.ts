@@ -7,6 +7,11 @@ export const FormContainer = styled.div`
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     overflow: hidden;
     margin-bottom: 20px;
+    max-width: 100%;
+
+    @media (max-width: 768px) {
+        border-radius: 6px;
+    }
 `;
 
 export const FormHeader = styled.div`
@@ -21,6 +26,10 @@ export const FormHeader = styled.div`
 
     @media (max-width: 576px) {
         padding: 12px 15px;
+
+        h2 {
+            font-size: 16px;
+        }
     }
 `;
 
@@ -318,6 +327,10 @@ export const ServicesTable = styled.table`
     width: 100%;
     border-collapse: collapse;
     margin-bottom: 20px;
+
+    @media (max-width: 480px) {
+        font-size: 12px;
+    }
 `;
 
 export const TableHeader = styled.th`
@@ -332,6 +345,11 @@ export const TableHeader = styled.th`
         padding: 10px 8px;
         font-size: 13px;
     }
+
+    @media (max-width: 480px) {
+        padding: 8px 5px;
+        font-size: 12px;
+    }
 `;
 
 export const TableCell = styled.td`
@@ -342,6 +360,11 @@ export const TableCell = styled.td`
     @media (max-width: 768px) {
         padding: 8px;
         font-size: 13px;
+    }
+
+    @media (max-width: 480px) {
+        padding: 6px 5px;
+        font-size: 12px;
     }
 `;
 
@@ -368,6 +391,10 @@ export const DiscountContainer = styled.div`
     @media (max-width: 576px) {
         width: 160px;
     }
+
+    @media (max-width: 480px) {
+        width: 100%;
+    }
 `;
 
 export const DiscountInputGroup = styled.div`
@@ -375,6 +402,11 @@ export const DiscountInputGroup = styled.div`
     align-items: center;
     width: 100%;
     gap: 4px;
+
+    @media (max-width: 480px) {
+        flex-direction: column;
+        gap: 5px;
+    }
 `;
 
 export const DiscountInput = styled.input`
@@ -403,6 +435,10 @@ export const DiscountInput = styled.input`
         width: 60px;
         padding: 6px 8px;
     }
+
+    @media (max-width: 480px) {
+        width: 100%;
+    }
 `;
 
 export const DiscountTypeSelect = styled.select`
@@ -422,6 +458,10 @@ export const DiscountTypeSelect = styled.select`
     @media (max-width: 768px) {
         padding: 6px 8px;
         font-size: 12px;
+    }
+
+    @media (max-width: 480px) {
+        width: 100%;
     }
 `;
 
@@ -447,6 +487,11 @@ export const ActionButton = styled.button`
 
     &:hover {
         background-color: #fdecea;
+    }
+
+    @media (max-width: 480px) {
+        font-size: 14px;
+        padding: 3px;
     }
 `;
 
@@ -502,6 +547,7 @@ export const Button = styled.button<{ primary?: boolean; secondary?: boolean }>`
     @media (max-width: 576px) {
     width: 100%;
     padding: 12px 20px;
+    min-height: 44px;
 }
 `;
 
@@ -588,6 +634,8 @@ export const DialogContent = styled.div`
     @media (max-width: 576px) {
         width: 90%;
         padding: 20px;
+        max-height: 80vh;
+        overflow-y: auto;
     }
 `;
 
@@ -606,7 +654,7 @@ export const DialogText = styled.p`
     margin-bottom: 20px;
     line-height: 1.5;
     color: #333;
-    
+
     @media (max-width: 576px) {
         font-size: 14px;
     }
@@ -616,7 +664,7 @@ export const DialogActions = styled.div`
     display: flex;
     justify-content: flex-end;
     gap: 10px;
-    
+
     @media (max-width: 576px) {
         flex-direction: column-reverse;
     }

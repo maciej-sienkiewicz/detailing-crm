@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+// src/components/layout/Layout.tsx
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { FaBars } from 'react-icons/fa';
+import { FaBars, FaTimes } from 'react-icons/fa';
 import Sidebar from './Sidebar';
 import SecondaryMenu from './SecondaryMenu';
 
@@ -9,8 +10,33 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-    const [sidebarOpen, setSidebarOpen] = useState(true); // Domyślnie menu jest otwarte
+    const [sidebarOpen, setSidebarOpen] = useState(true); // Domyślnie menu jest otwarte na desktopie
     const [activeMenuItem, setActiveMenuItem] = useState<string | null>(null);
+    const [isMobile, setIsMobile] = useState(false);
+
+    // Funkcja do wykrywania rozmiaru ekranu
+    useEffect(() => {
+        const checkIfMobile = () => {
+            setIsMobile(window.innerWidth <= 768);
+            // Na urządzeniach mobilnych domyślnie menu jest zamknięte
+            if (window.innerWidth <= 768) {
+                setSidebarOpen(false);
+            } else {
+                setSidebarOpen(true);
+            }
+        };
+
+        // Sprawdź przy pierwszym renderowaniu
+        checkIfMobile();
+
+        // Ustaw nasłuchiwanie na zmiany rozmiaru okna
+        window.addEventListener('resize', checkIfMobile);
+
+        // Usuń nasłuchiwanie przy odmontowaniu komponentu
+        return () => {
+            window.removeEventListener('resize', checkIfMobile);
+        };
+    }, []);
 
     const toggleSidebar = () => {
         setSidebarOpen(!sidebarOpen);
@@ -18,6 +44,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
     const handleMenuItemClick = (menuId: string | null) => {
         setActiveMenuItem(menuId);
+        // Na urządzeniach mobilnych, zamknij menu po wybraniu opcji
+        if (isMobile) {
+            setSidebarOpen(false);
+        }
+    };
+
+    // Obsługa kliknięcia poza menu na urządzeniach mobilnych
+    const handleClickOutside = () => {
+        if (isMobile && sidebarOpen) {
+            setSidebarOpen(false);
+        }
     };
 
     return (
@@ -28,19 +65,30 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </HamburgerButton>
             )}
 
+            {/* Overlay który przyciemnia ekran na urządzeniach mobilnych */}
+            {isMobile && sidebarOpen && (
+                <SidebarOverlay onClick={handleClickOutside} />
+            )}
+
             <Sidebar
                 isOpen={sidebarOpen}
                 toggleSidebar={toggleSidebar}
                 onMenuItemClick={handleMenuItemClick}
                 activeMenuItem={activeMenuItem}
+                isMobile={isMobile}
             />
 
             <SecondaryMenu
                 activeMenuItem={activeMenuItem}
                 isMainSidebarOpen={sidebarOpen}
+                isMobile={isMobile}
             />
 
-            <MainContent sidebarOpen={sidebarOpen} hasSecondaryMenu={!!activeMenuItem}>
+            <MainContent
+                sidebarOpen={sidebarOpen}
+                hasSecondaryMenu={!!activeMenuItem}
+                isMobile={isMobile}
+            >
                 {children}
             </MainContent>
         </LayoutContainer>
@@ -50,6 +98,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 const LayoutContainer = styled.div`
     display: flex;
     min-height: 100vh;
+    position: relative;
 `;
 
 const HamburgerButton = styled.button`
@@ -66,7 +115,7 @@ const HamburgerButton = styled.button`
     color: white;
     border: none;
     cursor: pointer;
-    z-index: 50;
+    z-index: 100;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 
     &:hover {
@@ -74,16 +123,32 @@ const HamburgerButton = styled.button`
     }
 `;
 
-const MainContent = styled.main<{ sidebarOpen: boolean, hasSecondaryMenu: boolean }>`
+const SidebarOverlay = styled.div`
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 90;
+`;
+
+const MainContent = styled.main<{ sidebarOpen: boolean, hasSecondaryMenu: boolean, isMobile: boolean }>`
     flex: 1;
     padding: 20px;
-    margin-left: ${({ sidebarOpen, hasSecondaryMenu }) => {
-        if (sidebarOpen && hasSecondaryMenu) return '450px'; // Szerokość głównego + drugiego menu
-        if (sidebarOpen) return '250px'; // Tylko główne menu
-        return '0';
-    }};
+    margin-left: ${({ sidebarOpen, hasSecondaryMenu, isMobile }) => {
+    if (isMobile) return '0';
+    if (sidebarOpen && hasSecondaryMenu) return '450px'; // Szerokość głównego + drugiego menu
+    if (sidebarOpen) return '250px'; // Tylko główne menu
+    return '0';
+}};
     transition: margin-left 0.3s ease-in-out;
     width: 100%;
+    
+    @media (max-width: 768px) {
+        padding: 15px;
+        margin-top: ${({ sidebarOpen }) => sidebarOpen ? '0' : '60px'};
+    }
 `;
 
 export default Layout;

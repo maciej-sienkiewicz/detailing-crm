@@ -1,3 +1,6 @@
+// src/App.tsx
+// Aktualizacja globalnych stylów w aplikacji, aby zapewnić lepszą responsywność
+
 import React from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { createGlobalStyle } from 'styled-components';
@@ -17,6 +20,8 @@ const GlobalStyle = createGlobalStyle`
         background-color: #f8f9fa;
         color: #333;
         line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
     }
 
     h1, h2, h3, h4, h5, h6 {
@@ -26,10 +31,26 @@ const GlobalStyle = createGlobalStyle`
 
     h1 {
         font-size: 24px;
+
+        @media (max-width: 768px) {
+            font-size: 22px;
+        }
+
+        @media (max-width: 576px) {
+            font-size: 20px;
+        }
     }
 
     h2 {
         font-size: 20px;
+
+        @media (max-width: 768px) {
+            font-size: 18px;
+        }
+
+        @media (max-width: 576px) {
+            font-size: 16px;
+        }
     }
 
     a {
@@ -43,6 +64,33 @@ const GlobalStyle = createGlobalStyle`
 
     button, input, select, textarea {
         font-family: inherit;
+    }
+
+    /* Dodatkowe style dla lepszej responsywności tabel */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    @media (max-width: 768px) {
+        .responsive-table {
+            display: block;
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+    }
+
+    /* Style dla lepszej responsywności formularzy */
+    input, select, textarea {
+        max-width: 100%;
+    }
+
+    /* Poprawa widoczności przycisków na urządzeniach dotykowych */
+    @media (max-width: 576px) {
+        button {
+            min-height: 44px; /* Zalecana minimalna wysokość dla elementów dotykowych */
+        }
     }
 `;
 

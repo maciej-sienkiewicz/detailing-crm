@@ -1,3 +1,4 @@
+// src/components/layout/SecondaryMenu.tsx
 import React from 'react';
 import styled from 'styled-components';
 import { Link, useLocation } from 'react-router-dom';
@@ -13,12 +14,14 @@ import {
     FaCarSide,
     FaEye,
     FaWrench,
-    FaWindowClose
+    FaWindowClose,
+    FaTimes
 } from 'react-icons/fa';
 
 interface SecondaryMenuProps {
     activeMenuItem: string | null;
     isMainSidebarOpen: boolean;
+    isMobile: boolean;
 }
 
 // Struktura danych dla opcji menu drugiego poziomu
@@ -56,7 +59,11 @@ const secondaryMenuOptions: Record<string, SubMenuItem[]> = {
     ]
 };
 
-const SecondaryMenu: React.FC<SecondaryMenuProps> = ({ activeMenuItem, isMainSidebarOpen }) => {
+const SecondaryMenu: React.FC<SecondaryMenuProps> = ({
+                                                         activeMenuItem,
+                                                         isMainSidebarOpen,
+                                                         isMobile
+                                                     }) => {
     const location = useLocation();
 
     if (!activeMenuItem || !isMainSidebarOpen || !secondaryMenuOptions[activeMenuItem]) {
@@ -69,6 +76,7 @@ const SecondaryMenu: React.FC<SecondaryMenuProps> = ({ activeMenuItem, isMainSid
         <SecondaryMenuContainer
             activeMenuItem={activeMenuItem}
             isMainSidebarOpen={isMainSidebarOpen}
+            isMobile={isMobile}
         >
             <MenuHeader>
                 {getMenuTitle(activeMenuItem)}
@@ -105,17 +113,19 @@ const getMenuTitle = (menuId: string): string => {
 const SecondaryMenuContainer = styled.div<{
     activeMenuItem: string | null;
     isMainSidebarOpen: boolean;
+    isMobile: boolean;
 }>`
     position: fixed;
     top: 0;
-    left: 250px;
-    width: 200px;
+    left: ${props => props.isMobile ? '0' : '250px'};
+    width: ${props => props.isMobile ? '100%' : '200px'};
     height: 100%;
     background-color: #f5f5f5;
     border-right: 1px solid #e0e0e0;
     overflow-y: auto;
-    z-index: 80;
+    z-index: ${props => props.isMobile ? '95' : '80'};
     display: ${props => props.activeMenuItem && props.isMainSidebarOpen ? 'block' : 'none'};
+    transform: ${props => props.isMobile ? 'translateX(250px)' : 'none'};
 `;
 
 const MenuHeader = styled.div`
