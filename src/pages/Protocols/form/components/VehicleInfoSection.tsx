@@ -42,9 +42,7 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
 
     // Efekt ustawiający aktualną datę i godzinę dla pełnego protokołu
     useEffect(() => {
-        console.log("dupa")
         if (isFullProtocol) {
-            console.log("dupa dwa");
             // Pobieramy aktualną datę i czas
             const now = new Date();
             const currentDate = now.toISOString().split('T')[0]; // Format YYYY-MM-DD

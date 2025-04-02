@@ -73,6 +73,11 @@ export const useFormSubmit = (
 
             if (protocol?.id) {
                 // Aktualizacja istniejącego protokołu
+                const approvedServices = updatedFormData.selectedServices?.map(service => ({
+                    ...service,
+                    approvalStatus: ServiceApprovalStatus.APPROVED
+                })) || [];
+
                 const protocolToUpdate: CarReceptionProtocol = {
                     ...(updatedFormData as CarReceptionProtocol),
                     id: protocol.id,
@@ -81,7 +86,8 @@ export const useFormSubmit = (
                     statusUpdatedAt: updatedFormData.status !== protocol.status
                         ? new Date().toISOString()
                         : protocol.statusUpdatedAt || protocol.createdAt,
-                    appointmentId: protocol.appointmentId // Zachowujemy powiązanie z wizytą, jeśli istniało
+                    appointmentId: protocol.appointmentId, // Zachowujemy powiązanie z wizytą, jeśli istniało,
+                    selectedServices: approvedServices  // Używamy zaktualizowanych usług
                 };
 
                 // Używamy API do aktualizacji protokołu
