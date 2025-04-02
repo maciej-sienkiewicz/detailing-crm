@@ -1,11 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaArrowLeft, FaPlus } from 'react-icons/fa';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useProtocolList } from './components/CarReceptionForm/hooks/useProtocolList';
-import { useProtocolActions } from './components/CarReceptionForm/hooks/useProtocolActions';
-import { CarReceptionForm } from './components/CarReceptionForm/CarReceptionForm';
-import { ProtocolFilters } from './components/CarReceptionForm/components/ProtocolFilters';
-import { ProtocolList } from './components/CarReceptionForm/components/ProtocolList';
 import { fetchAvailableServices } from '../../api/mocks/carReceptionMocks';
 import {
     PageContainer,
@@ -16,6 +11,11 @@ import {
     LoadingMessage,
     ErrorMessage
 } from './styles';
+import {useProtocolList} from "./form/hooks/useProtocolList";
+import {useProtocolActions} from "./form/hooks/useProtocolActions";
+import {ProtocolFilters} from "./list/ProtocolFilters";
+import CarReceptionForm from "./form/CarReceptionForm";
+import {ProtocolList} from "./list/ProtocolList";
 
 const CarReceptionPage: React.FC = () => {
     const location = useLocation();

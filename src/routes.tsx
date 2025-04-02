@@ -5,11 +5,11 @@ import TaxesPage from './pages/Settings/TaxesPage';
 import ServicesPage from './pages/Settings/ServicesPage';
 import EmployeesPage from './pages/Settings/EmployeesPage';
 import CarReceptionPage from './pages/Protocols/CarReceptionPage';
-import ProtocolDetailsPage from './pages/Protocols/ProtocolDetailsPage';
 import OwnersPage from './pages/Clients/OwnersPage';
 import VehiclesPage from './pages/Clients/VehiclesPage';
 import ReportsPage from "./pages/Reports/ReportsPage";
 import ActivityFeedPage from "./pages/ActivityFeed/ActivityFeedPage";
+import ProtocolDetailsPage from "./pages/Protocols/details/ProtocolDetailsPage";
 
 
 // Tymczasowe komponenty dla innych stron - do zastąpienia rzeczywistymi implementacjami
