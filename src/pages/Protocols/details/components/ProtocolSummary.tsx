@@ -81,7 +81,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
     };
 
     // Obsługa dodania nowych usług
-// Zaktualizowana funkcja handleAddServices bez obsługi customMessage
+    // Zaktualizowana funkcja handleAddServices bez obsługi customMessage
     const handleAddServices = async (servicesData: {
         services: Array<{ id: string; name: string; price: number }>;
     }) => {
@@ -289,6 +289,12 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                                             <PendingBadge>
                                                 <FaClock /> Oczekuje na potwierdzenie
                                             </PendingBadge>
+                                        )}
+                                        {/* Wyświetl komentarz jeśli istnieje */}
+                                        {service.note && (
+                                            <ServiceNote>
+                                                {service.note}
+                                            </ServiceNote>
                                         )}
                                     </ServiceNameContainer>
                                 </TableCell>
@@ -509,6 +515,18 @@ const ServiceName = styled.div`
     color: #34495e;
 `;
 
+// Nowy komponent dla notatki do usługi
+const ServiceNote = styled.div`
+    font-size: 12px;
+    color: #7f8c8d;
+    margin-top: 4px;
+    font-style: italic;
+    line-height: 1.4;
+    padding-top: 4px;
+    border-top: 1px dashed #eee;
+    word-break: break-word;
+`;
+
 const PendingBadge = styled.div`
     display: flex;
     align-items: center;
@@ -537,7 +555,7 @@ const ActionButton = styled.button<{ danger?: boolean }>`
     border: 1px solid ${props => props.danger ? '#fde8e8' : '#d5e9f9'};
     border-radius: 4px;
     cursor: pointer;
-    
+
     &:hover {
         background-color: ${props => props.danger ? '#fde8e8' : '#d5e9f9'};
     }
