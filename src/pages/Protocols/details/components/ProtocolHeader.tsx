@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { CarReceptionProtocol, ProtocolStatus, ProtocolStatusLabels } from '../../../../types';
 import { protocolsApi } from '../../../../api/protocolsApi';
+import ProtocolConfirmationModal from '../../shared/modals/ProtocolConfirmationModal';
 
 interface ProtocolHeaderProps {
     protocol: CarReceptionProtocol;
@@ -13,11 +14,12 @@ interface ProtocolHeaderProps {
 const ProtocolHeader: React.FC<ProtocolHeaderProps> = ({ protocol, onStatusChange }) => {
     const [isUpdating, setIsUpdating] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+    const [pendingStatusChange, setPendingStatusChange] = useState<ProtocolStatus | null>(null);
 
     // Format dates for display
     const formatDate = (dateString: string): string => {
         if (!dateString) return '';
-
         return format(new Date(dateString), 'dd MMMM yyyy', { locale: pl });
     };
 
@@ -47,27 +49,66 @@ const ProtocolHeader: React.FC<ProtocolHeaderProps> = ({ protocol, onStatusChang
         }
     };
 
-    // Obsługa zmiany statusu
-    const handleStatusChange = async (newStatus: ProtocolStatus) => {
-        if (newStatus === protocol.status) return; // Nie rób nic, jeśli status nie zmienił się
+    // Handler for status select change
+    const handleStatusSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newStatus = e.target.value as ProtocolStatus;
+        handleStatusChange(newStatus);
+    };
 
+    // Combined status change handler
+    const handleStatusChange = (newStatus: ProtocolStatus) => {
+        if (newStatus === protocol.status) return; // No change, do nothing
+
+        // Check if we're transitioning from SCHEDULED to IN_PROGRESS
+        if (protocol.status === ProtocolStatus.SCHEDULED && newStatus === ProtocolStatus.IN_PROGRESS) {
+            // Store the pending status change and show confirmation modal
+            setPendingStatusChange(newStatus);
+            setShowConfirmationModal(true);
+        } else {
+            // For other transitions, proceed directly with the status change
+            processStatusChange(newStatus);
+        }
+    };
+
+    // Process status change after any confirmation
+    const processStatusChange = async (newStatus: ProtocolStatus) => {
         try {
             setIsUpdating(true);
             setError(null);
 
-            // Zamiast pobierać cały obiekt z API, aktualizujemy tylko status lokalnie
-            // Wywołujemy callback z nowym statusem od razu
+            // Update local state immediately for responsive UI
             onStatusChange(newStatus);
 
-            // W tle aktualizujemy status w API
+            // Update status in API
             await protocolsApi.updateProtocolStatus(protocol.id, newStatus);
         } catch (err) {
             console.error('Error changing protocol status:', err);
-            // Nawet jeśli wystąpi błąd, nie przywracamy starego statusu,
-            // aby uniknąć problemów z synchronizacją
             setError('Wystąpił błąd podczas zapisywania statusu na serwerze');
         } finally {
             setIsUpdating(false);
+        }
+    };
+
+    // Handle confirmation modal actions
+    const handleConfirmationComplete = (options: { print: boolean; sendEmail: boolean }) => {
+        if (pendingStatusChange) {
+            // Process the status change after confirmation
+            processStatusChange(pendingStatusChange);
+
+            // Reset pending status and close modal
+            setPendingStatusChange(null);
+            setShowConfirmationModal(false);
+
+            // Here you can also add logic to handle the print/email options
+            if (options.print) {
+                console.log('Printing protocol...');
+                // Implement printing logic
+            }
+
+            if (options.sendEmail && protocol.email) {
+                console.log(`Sending email to ${protocol.email}...`);
+                // Implement email sending logic
+            }
         }
     };
 
@@ -79,7 +120,7 @@ const ProtocolHeader: React.FC<ProtocolHeaderProps> = ({ protocol, onStatusChang
                 <StatusLabel>Status</StatusLabel>
                 <StatusSelect
                     value={protocol.status}
-                    onChange={(e) => handleStatusChange(e.target.value as ProtocolStatus)}
+                    onChange={handleStatusSelectChange}
                     disabled={isUpdating}
                 >
                     {Object.entries(ProtocolStatusLabels).map(([value, label]) => (
@@ -124,6 +165,15 @@ const ProtocolHeader: React.FC<ProtocolHeaderProps> = ({ protocol, onStatusChang
                     </InfoItem>
                 </InfoGrid>
             </InfoSection>
+
+            {/* Protocol Confirmation Modal */}
+            <ProtocolConfirmationModal
+                isOpen={showConfirmationModal}
+                onClose={() => setShowConfirmationModal(false)}
+                protocolId={protocol.id}
+                clientEmail={protocol.email || ''}
+                onConfirm={handleConfirmationComplete}
+            />
         </HeaderContainer>
     );
 };
