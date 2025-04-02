@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CarReceptionProtocol, ServiceApprovalStatus } from '../../../../types';
+import { CarReceptionProtocol, ProtocolStatus, ServiceApprovalStatus } from '../../../../types';
 import { carReceptionApi } from '../../../../api/carReceptionApi';
 import { useFormValidation } from './useFormValidation';
 
@@ -9,23 +9,33 @@ interface UseFormSubmitResult {
     pendingSubmit: boolean;
     setPendingSubmit: React.Dispatch<React.SetStateAction<boolean>>;
     handleSubmit: (e: React.FormEvent) => Promise<void>;
+    shouldShowConfirmationModal: boolean;
+    isOpenProtocolAction: boolean;
+}
+
+interface ConfirmationOptions {
+    print: boolean;
+    sendEmail: boolean;
 }
 
 export const useFormSubmit = (
     formData: Partial<CarReceptionProtocol>,
     protocol: CarReceptionProtocol | null,
     appointmentId?: string,
-    onSave?: (protocol: CarReceptionProtocol) => void
+    onSave?: (protocol: CarReceptionProtocol, showConfirmationModal: boolean) => void,
+    isOpenProtocolAction: boolean = false
 ): UseFormSubmitResult => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [pendingSubmit, setPendingSubmit] = useState(false);
+    const [shouldShowConfirmationModal, setShouldShowConfirmationModal] = useState(false);
 
     const { validateForm } = useFormValidation(formData);
 
     // Obsługa zapisania formularza
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        console.log('handleSubmit wywołane', { protocol, formData });
 
         // Upewniamy się, że daty mają odpowiedni format
         const updatedFormData = {
@@ -54,6 +64,7 @@ export const useFormSubmit = (
         }
 
         if (!validateForm()) {
+            console.log('Walidacja formularza nie powiodła się');
             return;
         }
 
@@ -70,8 +81,21 @@ export const useFormSubmit = (
             setError(null);
 
             let savedProtocol: CarReceptionProtocol;
+            let showConfirmationModal = false;
+
+            // Wykrywamy, czy to akcja "Rozpocznij wizytę"
+            // 1. Sprawdzamy, czy jest to edycja istniejącego protokołu
+            // 2. Sprawdzamy, czy protokół jest w statusie IN_PROGRESS
+            // 3. Sprawdzamy czy na URL mamy parametr isOpenProtocolAction
+            const isStartVisitAction = protocol?.id &&
+                formData.status === ProtocolStatus.IN_PROGRESS &&
+                (window.location.search.includes('isOpenProtocolAction') ||
+                    window.location.href.includes('isOpenProtocolAction'));
+
+            console.log('isStartVisitAction:', isStartVisitAction);
 
             if (protocol?.id) {
+                console.log('Aktualizacja istniejącego protokołu, id:', protocol.id);
                 // Aktualizacja istniejącego protokołu
                 const approvedServices = updatedFormData.selectedServices?.map(service => ({
                     ...service,
@@ -87,14 +111,29 @@ export const useFormSubmit = (
                         ? new Date().toISOString()
                         : protocol.statusUpdatedAt || protocol.createdAt,
                     appointmentId: protocol.appointmentId, // Zachowujemy powiązanie z wizytą, jeśli istniało,
-                    selectedServices: approvedServices  // Używamy zaktualizowanych usług
+                    selectedServices: approvedServices,  // Używamy zaktualizowanych usług,
                 };
+
+                // Sprawdzamy czy przechodziliśmy ze stanu SCHEDULED do IN_PROGRESS
+                console.log('Sprawdzanie zmiany statusu:');
+                console.log('- Oryginalny status:', protocol.status);
+                console.log('- Nowy status:', protocolToUpdate.status);
+                console.log('- isStartVisitAction:', isStartVisitAction);
+
+                // Pokazujemy modal jeśli wykryliśmy akcję "Rozpocznij wizytę"
+                if (isStartVisitAction ||
+                    (protocol.status === ProtocolStatus.SCHEDULED &&
+                        protocolToUpdate.status === ProtocolStatus.IN_PROGRESS)) {
+                    console.log('Wykryto akcję "Rozpocznij wizytę" lub zmianę statusu - będzie wyświetlony modal');
+                    showConfirmationModal = true;
+                }
 
                 // Używamy API do aktualizacji protokołu
                 savedProtocol = await carReceptionApi.updateCarReceptionProtocol(protocolToUpdate);
 
                 console.log('Protocol updated successfully:', savedProtocol);
             } else {
+                console.log('Tworzenie nowego protokołu');
                 // Przygotowanie danych do utworzenia nowego protokołu
                 const now = new Date().toISOString();
 
@@ -104,8 +143,13 @@ export const useFormSubmit = (
                     approvalStatus: ServiceApprovalStatus.APPROVED
                 })) || [];
 
+                // Ustaw status IN_PROGRESS dla nowo tworzonych protokołów
+                const status = updatedFormData.status || ProtocolStatus.IN_PROGRESS;
+                console.log('Status nowego protokołu:', status);
+
                 const newProtocolData: Omit<CarReceptionProtocol, 'id' | 'createdAt' | 'updatedAt'> = {
                     ...updatedFormData,
+                    status,
                     selectedServices: approvedServices,  // Używamy zaktualizowanych usług
                     statusUpdatedAt: now,
                     appointmentId: appointmentId // Powiązanie z wizytą, jeśli tworzymy z wizyty
@@ -114,11 +158,22 @@ export const useFormSubmit = (
                 // Używamy API do utworzenia protokołu
                 savedProtocol = await carReceptionApi.createCarReceptionProtocol(newProtocolData);
 
+                // Dla nowo utworzonych protokołów ze statusem IN_PROGRESS, pokazujemy modal potwierdzenia
+                if (status === ProtocolStatus.IN_PROGRESS) {
+                    console.log('Nowy protokół z IN_PROGRESS, będzie wyświetlony modal');
+                    showConfirmationModal = true;
+                }
+
                 console.log('Protocol created successfully:', savedProtocol);
             }
 
+            setShouldShowConfirmationModal(showConfirmationModal);
+            console.log('Wywołanie onSave z parametrami:', savedProtocol.id, showConfirmationModal);
+
             if (onSave) {
-                onSave(savedProtocol);
+                onSave(savedProtocol, showConfirmationModal);
+            } else {
+                console.warn('Brak funkcji onSave, protokół został zapisany ale nie jest obsługiwany przez UI');
             }
         } catch (err) {
             console.error('Error saving protocol:', err);
@@ -134,6 +189,8 @@ export const useFormSubmit = (
         error,
         pendingSubmit,
         setPendingSubmit,
-        handleSubmit
+        handleSubmit,
+        shouldShowConfirmationModal,
+        isOpenProtocolAction
     };
 };

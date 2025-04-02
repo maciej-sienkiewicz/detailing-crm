@@ -37,6 +37,7 @@ import {
 } from './styles';
 import ClientSelectionModal from "../shared/modals/ClientSelectionModal";
 import VehicleSelectionModal from "../shared/modals/VehicleSelectionModal";
+import ProtocolConfirmationModal from "../shared/modals/ProtocolConfirmationModal";
 
 interface CarReceptionFormProps {
     protocol: CarReceptionProtocol | null;
@@ -44,8 +45,9 @@ interface CarReceptionFormProps {
     initialData?: Partial<CarReceptionProtocol>;
     appointmentId?: string;
     isFullProtocol?: boolean;
-    onSave: (protocol: CarReceptionProtocol) => void;
+    onSave: (protocol: CarReceptionProtocol, showConfirmationModal: boolean) => void;
     onCancel: () => void;
+    isOpenProtocolAction: boolean;
 }
 
 export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
@@ -55,8 +57,13 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
                                                                       appointmentId,
                                                                       isFullProtocol = true,
                                                                       onSave,
-                                                                      onCancel
+                                                                      onCancel,
+                                                                      isOpenProtocolAction
                                                                   }) => {
+    // Stan modala potwierdzenia
+    const [showProtocolConfirmationModal, setShowProtocolConfirmationModal] = useState(false);
+    const [savedProtocol, setSavedProtocol] = useState<CarReceptionProtocol | null>(null);
+
     // Custom hooks for form management
     const {
         formData,
@@ -90,6 +97,34 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
         setShowVehicleModal
     } = useVehicleSearch(formData, setFormData, foundClients);
 
+    // Obsługa zapisu protokołu z wyświetleniem modala potwierdzenia
+    const handleSaveProtocol = (protocol: CarReceptionProtocol, showConfirmationModal: boolean) => {
+        if (isOpenProtocolAction) {
+            setSavedProtocol(protocol);
+            setShowProtocolConfirmationModal(true);
+        } else {
+            onSave(protocol, false);
+        }
+    };
+
+    // Obsługa zamknięcia modala potwierdzenia
+    const handleConfirmationClosed = () => {
+        setShowProtocolConfirmationModal(false);
+        if (savedProtocol) {
+            onSave(savedProtocol, false);
+            setSavedProtocol(null);
+        }
+    };
+
+    // Obsługa potwierdzenia z modala
+    const handleConfirmationConfirm = (options: { print: boolean; sendEmail: boolean }) => {
+        setShowProtocolConfirmationModal(false);
+        if (savedProtocol) {
+            onSave(savedProtocol, false);
+            setSavedProtocol(null);
+        }
+    };
+
     // Custom hook for form submission
     const {
         loading,
@@ -97,7 +132,7 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
         pendingSubmit,
         setPendingSubmit,
         handleSubmit
-    } = useFormSubmit(formData, protocol, appointmentId, onSave);
+    } = useFormSubmit(formData, protocol, appointmentId, handleSaveProtocol, isOpenProtocolAction);
 
     // Custom hook for service calculations
     const {
@@ -125,9 +160,11 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
     React.useEffect(() => {
         setFormData(prev => ({
             ...prev,
-            selectedServices: services
+            selectedServices: services,
+            // Dla nowych protokołów, zmieniamy domyślny status na IN_PROGRESS
+            status: !protocol ? ProtocolStatus.IN_PROGRESS : prev.status
         }));
-    }, [services, setFormData]);
+    }, [services, setFormData, protocol]);
 
     // Handle search change
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -329,6 +366,17 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
                         </DialogActions>
                     </DialogContent>
                 </ConfirmationDialog>
+            )}
+
+            {/* Modal potwierdzenia protokołu */}
+            {showProtocolConfirmationModal && savedProtocol && (
+                <ProtocolConfirmationModal
+                    isOpen={showProtocolConfirmationModal}
+                    onClose={handleConfirmationClosed}
+                    protocolId={savedProtocol.id}
+                    clientEmail={savedProtocol.email || ''}
+                    onConfirm={handleConfirmationConfirm}
+                />
             )}
         </FormContainer>
     );
