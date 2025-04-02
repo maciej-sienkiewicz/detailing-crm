@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { NavigateFunction } from 'react-router-dom';
-import { CarReceptionProtocol, ProtocolListItem } from '../../../../types';
+import {CarReceptionProtocol, ProtocolListItem, ProtocolStatus} from '../../../../types';
 import { protocolsApi } from '../../../../api/protocolsApi';
 interface UseProtocolActionsResult {
     editingProtocol: CarReceptionProtocol | null;
     formData: Partial<CarReceptionProtocol>;
     handleAddProtocol: () => void;
     handleViewProtocol: (protocol: ProtocolListItem) => void;
-    handleEditProtocol: (protocolId: string) => Promise<void>;
+    handleEditProtocol: (protocolId: string, isOpenProtocolAction: boolean) => Promise<void>;
     handleDeleteProtocol: (id: string) => Promise<void>;
     handleSaveProtocol: (protocol: CarReceptionProtocol) => void;
     handleFormCancel: () => void;
@@ -37,12 +37,24 @@ export const useProtocolActions = (
     };
 
     // Obsługa edytowania protokołu
-    const handleEditProtocol = async (protocolId: string) => {
+    const handleEditProtocol = async (protocolId: string, isOpenProtocolAction: boolean = false) => {
         try {
             setLoading(true);
             const protocolDetails = await protocolsApi.getProtocolDetails(protocolId);
 
             if (protocolDetails) {
+                // Jeśli mamy flagę isOpenProtocolAction i protokół jest w statusie SCHEDULED,
+                // zmieniamy status na IN_PROGRESS
+                if (isOpenProtocolAction && protocolDetails.status === ProtocolStatus.SCHEDULED) {
+                    // Aktualizujemy status protokołu na IN_PROGRESS
+                    protocolDetails.status = ProtocolStatus.IN_PROGRESS;
+
+                    // Zapisujemy zmianę statusu do API
+                    await protocolsApi.updateProtocolStatus(protocolId, ProtocolStatus.IN_PROGRESS);
+
+                    console.log('Protokół został zmieniony na status W realizacji:', protocolDetails);
+                }
+
                 setEditingProtocol(protocolDetails);
                 setShowForm(true);
             } else {
@@ -54,7 +66,7 @@ export const useProtocolActions = (
         } finally {
             setLoading(false);
         }
-    };
+    }
 
     // Obsługa usunięcia protokołu
     const handleDeleteProtocol = async (id: string) => {

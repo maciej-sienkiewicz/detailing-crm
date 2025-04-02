@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CarReceptionProtocol } from '../../../../types';
+import { CarReceptionProtocol, ServiceApprovalStatus } from '../../../../types';
 import { carReceptionApi } from '../../../../api/carReceptionApi';
 import { useFormValidation } from './useFormValidation';
 
@@ -91,11 +91,19 @@ export const useFormSubmit = (
             } else {
                 // Przygotowanie danych do utworzenia nowego protokołu
                 const now = new Date().toISOString();
+
+                // Ustaw status APPROVED dla wszystkich usług w nowym protokole
+                const approvedServices = updatedFormData.selectedServices?.map(service => ({
+                    ...service,
+                    approvalStatus: ServiceApprovalStatus.APPROVED
+                })) || [];
+
                 const newProtocolData: Omit<CarReceptionProtocol, 'id' | 'createdAt' | 'updatedAt'> = {
-                    ...(updatedFormData as Omit<CarReceptionProtocol, 'id' | 'createdAt' | 'updatedAt'>),
+                    ...updatedFormData,
+                    selectedServices: approvedServices,  // Używamy zaktualizowanych usług
                     statusUpdatedAt: now,
                     appointmentId: appointmentId // Powiązanie z wizytą, jeśli tworzymy z wizyty
-                };
+                } as Omit<CarReceptionProtocol, 'id' | 'createdAt' | 'updatedAt'>;
 
                 // Używamy API do utworzenia protokołu
                 savedProtocol = await carReceptionApi.createCarReceptionProtocol(newProtocolData);

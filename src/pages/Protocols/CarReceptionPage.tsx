@@ -73,6 +73,12 @@ const CarReceptionPage: React.FC = () => {
 
     // Obsługa przekierowania z innych widoków
     useEffect(() => {
+        setShowForm(false);
+        refreshProtocolsList();
+    }, [location.key]);
+
+// Obsługa przekierowania z innych widoków
+    useEffect(() => {
         const handleRedirectData = async () => {
             // Jeśli mamy dane z wizyty, automatycznie otworzymy formularz
             if (protocolDataFromAppointment) {
@@ -86,12 +92,12 @@ const CarReceptionPage: React.FC = () => {
 
             // Jeśli mamy ID protokołu do edycji, pobieramy go i otwieramy formularz
             if (editProtocolId) {
-                await handleEditProtocol(editProtocolId);
+                await handleEditProtocol(editProtocolId, isOpenProtocolAction || false);
             }
         };
 
         handleRedirectData();
-    }, [protocolDataFromAppointment, editProtocolId, startDateFromCalendar]);
+    }, [protocolDataFromAppointment, editProtocolId, startDateFromCalendar, isOpenProtocolAction]);
 
     // Efekt dla obsługi odświeżenia komponentu po zmianie ścieżki
     useEffect(() => {
