@@ -1,22 +1,22 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import styled from 'styled-components';
 import {
+    FaBell,
+    FaBuilding,
     FaCarSide,
-    FaUser,
-    FaPhone,
+    FaClock,
     FaEnvelope,
     FaFileInvoiceDollar,
-    FaTags,
-    FaBuilding,
     FaIdCard,
+    FaPhone,
     FaPlus,
-    FaBell,
+    FaTags,
     FaTimesCircle,
-    FaClock
+    FaUser
 } from 'react-icons/fa';
-import { CarReceptionProtocol, ServiceApprovalStatus, SelectedService } from '../../../../types';
-import { fetchAvailableServices } from '../../../../api/mocks/carReceptionMocks';
-import { protocolsApi } from '../../../../api/protocolsApi';
+import {CarReceptionProtocol, ProtocolStatus, SelectedService, ServiceApprovalStatus} from '../../../../types';
+import {fetchAvailableServices} from '../../../../api/mocks/carReceptionMocks';
+import {protocolsApi} from '../../../../api/protocolsApi';
 import AddServiceModal from "../../shared/modals/AddServiceModal";
 
 interface ProtocolSummaryProps {
@@ -254,9 +254,11 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
             <Section>
                 <SectionTitleWithAction>
                     <SectionTitle>Usługi</SectionTitle>
+                    {protocol.status == ProtocolStatus.IN_PROGRESS && (
                     <AddButton onClick={handleOpenAddServiceModal} disabled={isLoading}>
                         <FaPlus /> {isLoading ? 'Ładowanie...' : 'Dodaj usługę'}
                     </AddButton>
+                    )}
                 </SectionTitleWithAction>
 
                 <ServicesTable>

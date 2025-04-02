@@ -266,6 +266,7 @@ const ProtocolDetailsPage: React.FC = () => {
                         </ActionButton>
                     )}
 
+                    {protocol.status == ProtocolStatus.SCHEDULED && (
                     <ActionButton title="Edytuj protokół" onClick={() => navigate(`/orders`, {
                         state: {
                             editProtocolId: protocol.id
@@ -273,6 +274,7 @@ const ProtocolDetailsPage: React.FC = () => {
                     })}>
                         <FaEdit /> Edytuj
                     </ActionButton>
+                    )}
 
                     {isScheduled && (
                         <ActionButton title="Rozpocznij wizytę" primary="true" onClick={() => navigate(`/orders`, {
