@@ -11,14 +11,13 @@ import {
     LoadingMessage,
     ErrorMessage
 } from './styles';
-import {useProtocolList} from "./form/hooks/useProtocolList";
-import {useProtocolActions} from "./form/hooks/useProtocolActions";
-import {ProtocolFilters} from "./list/ProtocolFilters";
-import CarReceptionForm from "./form/CarReceptionForm";
-import {ProtocolList} from "./list/ProtocolList";
+import { useProtocolList } from "./form/hooks/useProtocolList";
+import { useProtocolActions } from "./form/hooks/useProtocolActions";
+import { ProtocolFilters } from "./list/ProtocolFilters";
+import { ProtocolList } from "./list/ProtocolList";
 import ProtocolConfirmationModal from "./shared/modals/ProtocolConfirmationModal";
 import { ProtocolStatus } from '../../types';
-import {protocolsApi} from "../../api/protocolsApi";
+import EditProtocolForm from "./form/components/EditProtocolForm";
 
 const CarReceptionPage: React.FC = () => {
     const location = useLocation();
@@ -26,7 +25,7 @@ const CarReceptionPage: React.FC = () => {
     const [showForm, setShowForm] = useState(false);
     const [availableServices, setAvailableServices] = useState<any[]>([]);
 
-    // Stan do sledzenia, czy mamy wyswietlic modal we flow po nawigacji
+    // Stan do śledzenia, czy mamy wyświetlić modal we flow po nawigacji
     const [showModalPostNavigation, setShowModalPostNavigation] = useState(false);
     const [postNavigationProtocol, setPostNavigationProtocol] = useState<any>(null);
 
@@ -103,45 +102,12 @@ const CarReceptionPage: React.FC = () => {
     const protocolDataFromAppointment = location.state?.protocolData;
     const appointmentId = location.state?.appointmentId;
     const editProtocolId = location.state?.editProtocolId;
-    const isOpenProtocolAction = location.state?.isOpenProtocolAction;
     const startDateFromCalendar = location.state?.startDate;
     const isFullProtocolFromNav = location.state?.isFullProtocol !== undefined
         ? location.state.isFullProtocol
         : true; // domyślnie true, jeśli nie określono
 
     const [isFullProtocol, setIsFullProtocol] = useState(isFullProtocolFromNav);
-
-    // Efekt do sprawdzania czy mamy wyswietlic modal po nawigacji
-    // (otwieramy strone szczegolowa jakiegos protokolu)
-    useEffect(() => {
-        const checkForProtocolOpening = async () => {
-            // Sprawdz, czy jestesmy na stronie szczegolowej protokolu
-            const match = location.pathname.match(/\/orders\/car-reception\/(.+)/);
-            if (match && match[1]) {
-                const protocolId = match[1];
-
-                // Sprawdz, czy mamy flage, ze to bylo "Rozpocznij wizyte"
-                if (location.search.includes('showConfirmation=true') ||
-                    location.search.includes('isOpenProtocolAction=true')) {
-
-                    try {
-                        // Pobierz dane protokolu
-                        const protocol = await protocolsApi.getProtocolDetails(protocolId);
-
-                        // Jesli status jest IN_PROGRESS, pokaz modal
-                        if (protocol && protocol.status === ProtocolStatus.IN_PROGRESS) {
-                            setPostNavigationProtocol(protocol);
-                            setShowModalPostNavigation(true);
-                        }
-                    } catch (error) {
-                        console.error('Błąd pobierania danych protokołu:', error);
-                    }
-                }
-            }
-        };
-
-        checkForProtocolOpening();
-    }, [location.pathname, location.search]);
 
     // Efekt do pobierania usług
     useEffect(() => {
@@ -170,7 +136,6 @@ const CarReceptionPage: React.FC = () => {
             console.log('protocolDataFromAppointment:', !!protocolDataFromAppointment);
             console.log('startDateFromCalendar:', !!startDateFromCalendar);
             console.log('editProtocolId:', editProtocolId);
-            console.log('isOpenProtocolAction:', isOpenProtocolAction);
 
             // Jeśli mamy dane z wizyty, automatycznie otworzymy formularz
             if (protocolDataFromAppointment) {
@@ -184,12 +149,23 @@ const CarReceptionPage: React.FC = () => {
 
             // Jeśli mamy ID protokołu do edycji, pobieramy go i otwieramy formularz
             if (editProtocolId) {
-                await handleEditProtocol(editProtocolId, Boolean(isOpenProtocolAction));
+                // Sprawdzamy, czy to jest akcja rozpoczynania wizyty
+                const isStartVisitAction = location.state?.isOpenProtocolAction;
+
+                if (isStartVisitAction) {
+                    // Przekieruj na stronę rozpoczęcia wizyty
+                    navigate(`/orders/start-visit/${editProtocolId}`);
+                    return;
+                }
+
+                // Standardowa edycja
+                await handleEditProtocol(editProtocolId);
+                setShowForm(true);
             }
         };
 
         handleRedirectData();
-    }, [protocolDataFromAppointment, editProtocolId, startDateFromCalendar, isOpenProtocolAction]);
+    }, [protocolDataFromAppointment, editProtocolId, startDateFromCalendar]);
 
     return (
         <PageContainer>
@@ -228,7 +204,7 @@ const CarReceptionPage: React.FC = () => {
             ) : (
                 <>
                     {showForm ? (
-                        <CarReceptionForm
+                        <EditProtocolForm
                             protocol={editingProtocol}
                             availableServices={availableServices}
                             initialData={protocolDataFromAppointment || formData}
@@ -236,7 +212,6 @@ const CarReceptionPage: React.FC = () => {
                             isFullProtocol={isFullProtocol}
                             onSave={handleSaveProtocol}
                             onCancel={handleFormCancel}
-                            isOpenProtocolAction={isOpenProtocolAction}
                         />
                     ) : (
                         <ProtocolList

@@ -25,6 +25,7 @@ interface VehicleInfoSectionProps {
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
     onSearchByField?: (field: 'licensePlate') => void;
     isFullProtocol?: boolean;
+    readOnly?: boolean; // Dodajemy opcjonalną właściwość readOnly
 }
 
 const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
@@ -32,10 +33,11 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                                                                    errors,
                                                                    onChange,
                                                                    onSearchByField,
-                                                                   isFullProtocol = true
+                                                                   isFullProtocol = true,
+                                                                   readOnly = false // Dodajemy z wartością domyślną false
                                                                }) => {
     const handleSearchClick = (field: 'licensePlate') => {
-        if (onSearchByField) {
+        if (onSearchByField && !readOnly) {
             onSearchByField(field);
         }
     };

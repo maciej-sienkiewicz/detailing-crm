@@ -1,3 +1,4 @@
+// src/pages/Protocols/form/components/ClientInfoSection.tsx
 import React from 'react';
 import { CarReceptionProtocol } from '../../../../types';
 import { FormErrors } from '../hooks/useFormValidation';
@@ -7,7 +8,8 @@ import {
     FormRow,
     FormGroup,
     Label,
-    ErrorText
+    ErrorText,
+    Input // Dodajemy Input na wypadek, gdybyśmy potrzebowali go zamiast SearchField
 } from '../styles';
 
 // Import komponentu pola wyszukiwania
@@ -18,16 +20,18 @@ interface ClientInfoSectionProps {
     errors: FormErrors;
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
     onSearchByField?: (field: 'ownerName' | 'companyName' | 'taxId' | 'email' | 'phone') => void;
+    readOnly?: boolean; // Dodajemy opcjonalną właściwość readOnly
 }
 
 const ClientInfoSection: React.FC<ClientInfoSectionProps> = ({
                                                                  formData,
                                                                  errors,
                                                                  onChange,
-                                                                 onSearchByField
+                                                                 onSearchByField,
+                                                                 readOnly = false // Domyślnie false
                                                              }) => {
     const handleSearchClick = (field: 'ownerName' | 'companyName' | 'taxId' | 'email' | 'phone') => {
-        if (onSearchByField) {
+        if (onSearchByField && !readOnly) {
             onSearchByField(field);
         }
     };
@@ -35,78 +39,105 @@ const ClientInfoSection: React.FC<ClientInfoSectionProps> = ({
     // Sprawdzenie, czy którekolwiek z pól kontaktowych jest wypełnione
     const hasContactInfo = !!formData.phone || !!formData.email;
 
+    // Funkcja renderująca pole - zależnie od readOnly użyje Input lub SearchField
+    const renderField = (
+        id: string,
+        name: 'ownerName' | 'companyName' | 'taxId' | 'email' | 'phone',
+        value: string,
+        placeholder: string,
+        required: boolean = false,
+        error?: string
+    ) => {
+        if (readOnly) {
+            return (
+                <Input
+                    id={id}
+                    name={name}
+                    value={value || ''}
+                    placeholder={placeholder}
+                    required={required}
+                    readOnly={true}
+                    style={{ backgroundColor: '#f9f9f9', cursor: 'not-allowed' }}
+                />
+            );
+        }
+
+        return (
+            <SearchField
+                id={id}
+                name={name}
+                value={value || ''}
+                onChange={onChange}
+                placeholder={placeholder}
+                required={required}
+                onSearchClick={() => handleSearchClick(name)}
+                error={error}
+            />
+        );
+    };
+
     return (
         <FormSection>
             <SectionTitle>Dane właściciela</SectionTitle>
             <FormRow className="responsive-row">
                 <FormGroup>
                     <Label htmlFor="ownerName">Imię i nazwisko*</Label>
-                    <SearchField
-                        id="ownerName"
-                        name="ownerName"
-                        value={formData.ownerName || ''}
-                        onChange={onChange}
-                        placeholder="np. Jan Kowalski"
-                        required
-                        onSearchClick={() => handleSearchClick('ownerName')}
-                        error={errors.ownerName}
-                    />
+                    {renderField(
+                        "ownerName",
+                        "ownerName",
+                        formData.ownerName || '',
+                        "np. Jan Kowalski",
+                        true,
+                        errors.ownerName
+                    )}
                 </FormGroup>
             </FormRow>
 
             <FormRow className="responsive-row">
                 <FormGroup>
                     <Label htmlFor="companyName">Nazwa firmy</Label>
-                    <SearchField
-                        id="companyName"
-                        name="companyName"
-                        value={formData.companyName || ''}
-                        onChange={onChange}
-                        placeholder="np. AutoFirma Sp. z o.o."
-                        onSearchClick={() => handleSearchClick('companyName')}
-                    />
+                    {renderField(
+                        "companyName",
+                        "companyName",
+                        formData.companyName || '',
+                        "np. AutoFirma Sp. z o.o."
+                    )}
                 </FormGroup>
 
                 <FormGroup>
                     <Label htmlFor="taxId">NIP</Label>
-                    <SearchField
-                        id="taxId"
-                        name="taxId"
-                        value={formData.taxId || ''}
-                        onChange={onChange}
-                        placeholder="np. 1234567890"
-                        onSearchClick={() => handleSearchClick('taxId')}
-                    />
+                    {renderField(
+                        "taxId",
+                        "taxId",
+                        formData.taxId || '',
+                        "np. 1234567890"
+                    )}
                 </FormGroup>
             </FormRow>
 
             <FormRow className="responsive-row">
                 <FormGroup>
                     <Label htmlFor="email">Email{!formData.phone ? '*' : ''}</Label>
-                    <SearchField
-                        id="email"
-                        name="email"
-                        value={formData.email || ''}
-                        onChange={onChange}
-                        placeholder="np. jan.kowalski@example.com"
-                        required={!formData.phone}
-                        onSearchClick={() => handleSearchClick('email')}
-                        error={errors.email}
-                    />
+                    {renderField(
+                        "email",
+                        "email",
+                        formData.email || '',
+                        "np. jan.kowalski@example.com",
+                        !formData.phone,
+                        errors.email
+                    )}
                 </FormGroup>
 
                 <FormGroup>
                     <Label htmlFor="phone">Telefon{!formData.email ? '*' : ''}</Label>
-                    <SearchField
-                        id="phone"
-                        name="phone"
-                        value={formData.phone || ''}
-                        onChange={onChange}
-                        placeholder="np. +48 123 456 789"
-                        required={!formData.email}
-                        onSearchClick={() => handleSearchClick('phone')}
-                        error={errors.phone}
-                    />
+                    {renderField(
+                        "phone",
+                        "phone",
+                        formData.phone || '',
+                        "np. +48 123 456 789",
+                        !formData.email,
+                        errors.phone
+                    )}
                 </FormGroup>
             </FormRow>
 
