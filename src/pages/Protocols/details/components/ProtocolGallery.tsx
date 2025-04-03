@@ -137,6 +137,8 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
     };
 
     // Handle uploading the current image after editing
+// Handle uploading the current image after editing
+// Handle uploading the current image after editing
     const handleUploadCurrentImage = async () => {
         if (!currentUploadImage || !currentUploadImage.file) return;
 
@@ -144,8 +146,18 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
         setError(null);
 
         try {
+            console.log('Przesyłanie obrazu z metadanymi:', currentUploadImage);
+
+            // Upewniamy się, że wszystkie potrzebne metadane są ustawione
+            const imageToUpload = {
+                ...currentUploadImage,
+                // Upewnij się, że nazwa i tagi są zdefiniowane
+                name: currentUploadImage.name || currentUploadImage.file.name.replace(/\.[^/.]+$/, ""),
+                tags: currentUploadImage.tags || []
+            };
+
             // Użyj naszej nowej funkcji do przesyłania pojedynczego obrazu
-            const uploadedImage = await carReceptionApi.uploadVehicleImage(protocol.id, currentUploadImage);
+            const uploadedImage = await carReceptionApi.uploadVehicleImage(protocol.id, imageToUpload);
 
             // Usuń tymczasowy obraz i dodaj nowy z serwera
             const updatedImages = [
@@ -178,30 +190,138 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
 
     const handleSaveImageInfo = (newName: string, newTags: string[]) => {
         if (editingImageIndex >= 0 && editingImageIndex < images.length) {
+            console.log('Zapisywanie informacji o obrazie:', { newName, newTags });
+
+            // Pobierz obecny obraz
+            const currentImage = images[editingImageIndex];
+            console.log('Obecny obraz:', currentImage);
+
+            // Tworzymy lokalne kopie obrazów do aktualizacji stanu
             const updatedImages = [...images];
             updatedImages[editingImageIndex] = {
-                ...updatedImages[editingImageIndex],
+                ...currentImage,
                 name: newName,
                 tags: newTags
             };
+
+            // Aktualizujemy kolekcję obrazów w stanie lokalnym
             setImages(updatedImages);
 
-            // Jeśli to tymczasowy obraz, zaktualizuj również currentUploadImage
-            if (currentUploadImage && updatedImages[editingImageIndex].id.startsWith('temp_')) {
-                setCurrentUploadImage({
+            // Obsługa w zależności od tego, czy to tymczasowy czy istniejący obraz
+            if (currentImage.id.startsWith('temp_') && currentUploadImage) {
+                // Dla tymczasowych obrazów, które jeszcze nie zostały przesłane na serwer
+
+                // Tworzymy kopię aktualnego obiektu z nowymi danymi
+                const updatedUploadImage = {
                     ...currentUploadImage,
                     name: newName,
                     tags: newTags
-                });
+                };
 
-                // Przesyłamy obraz po zakończeniu edycji
-                handleUploadCurrentImage();
+                console.log('Zaktualizowany obraz przed przesłaniem:', updatedUploadImage);
+                setCurrentUploadImage(updatedUploadImage);
+
+                // Zamykamy modal
+                setEditModalOpen(false);
+                setEditingImageIndex(-1);
+
+                // Przesyłamy obraz z nowymi metadanymi
+                setIsLoading(true);
+                setError(null);
+
+                // Używamy opóźnienia, aby mieć pewność, że stan został zaktualizowany
+                setTimeout(() => {
+                    carReceptionApi.uploadVehicleImage(protocol.id, updatedUploadImage)
+                        .then(uploadedImage => {
+                            console.log('Obraz przesłany pomyślnie:', uploadedImage);
+
+                            // Aktualizujemy kolekcję obrazów, usuwając tymczasowy i dodając nowy
+                            const finalImages = [
+                                ...images.filter(img => !img.id.startsWith('temp_')),
+                                uploadedImage
+                            ];
+
+                            setImages(finalImages);
+
+                            // Aktualizujemy protokół w komponencie nadrzędnym
+                            const updatedProtocol = {
+                                ...protocol,
+                                vehicleImages: finalImages
+                            };
+                            onProtocolUpdate(updatedProtocol);
+
+                            // Czyszczenie
+                            setCurrentUploadImage(null);
+                        })
+                        .catch(err => {
+                            console.error('Błąd podczas przesyłania obrazu:', err);
+                            setError('Wystąpił błąd podczas przesyłania zdjęcia. Spróbuj ponownie.');
+
+                            // Usuwamy tymczasowy obraz w przypadku błędu
+                            setImages(images.filter(img => !img.id.startsWith('temp_')));
+                            setCurrentUploadImage(null);
+                        })
+                        .finally(() => {
+                            setIsLoading(false);
+                        });
+                }, 100);
+            } else if (!currentImage.id.startsWith('temp_')) {
+                // Dla istniejących obrazów, które już są na serwerze
+
+                // Zamykamy modal
+                setEditModalOpen(false);
+                setEditingImageIndex(-1);
+
+                // Wywołanie API do aktualizacji metadanych
+                setIsLoading(true);
+
+                carReceptionApi.updateVehicleImage(protocol.id, currentImage.id, {
+                    name: newName,
+                    tags: newTags
+                })
+                    .then(updatedImage => {
+                        if (updatedImage) {
+                            console.log('Metadane obrazu zaktualizowane pomyślnie:', updatedImage);
+
+                            // Znajdź index obrazu w kolekcji i zaktualizuj
+                            const imageIndex = images.findIndex(img => img.id === updatedImage.id);
+                            if (imageIndex !== -1) {
+                                const finalImages = [...images];
+                                finalImages[imageIndex] = updatedImage;
+
+                                // Aktualizujemy stan lokalny
+                                setImages(finalImages);
+
+                                // Aktualizujemy protokół w komponencie nadrzędnym
+                                const updatedProtocol = {
+                                    ...protocol,
+                                    vehicleImages: finalImages
+                                };
+                                onProtocolUpdate(updatedProtocol);
+                            }
+                        } else {
+                            // W przypadku braku odpowiedzi, pozostaw zaktualizowany stan lokalny
+                            console.warn('Brak odpowiedzi z serwera, zachowuję tylko stan lokalny');
+                            onProtocolUpdate({
+                                ...protocol,
+                                vehicleImages: updatedImages
+                            });
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Błąd podczas aktualizacji metadanych obrazu:', err);
+                        setError('Wystąpił błąd podczas aktualizacji informacji o zdjęciu.');
+
+                        // Przywróć poprzedni stan w przypadku błędu
+                        setImages([...images]);
+                    })
+                    .finally(() => {
+                        setIsLoading(false);
+                    });
             }
-
-            setEditModalOpen(false);
-            setEditingImageIndex(-1);
         }
-    };
+    }
+
 
     const handleEditImage = (index: number, e: React.MouseEvent) => {
         e.stopPropagation(); // Prevent opening preview modal

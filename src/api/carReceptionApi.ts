@@ -365,29 +365,6 @@ export const carReceptionApi = {
         }
     },
 
-    // Aktualizacja metadanych zdjęcia (np. opis, lokalizacja)
-    updateVehicleImage: async (protocolId: string, imageId: string, metadata: { description?: string, location?: string }): Promise<VehicleImage | null> => {
-        try {
-            // Przekształć dane z camelCase na snake_case
-            const requestData = convertToCamelCase(metadata);
-
-            // Wysyłanie żądania PATCH
-            const response = await apiClient.patch<any>(`/receptions/${protocolId}/image/${imageId}`, requestData);
-
-            // Konwertuj odpowiedź na format używany w aplikacji
-            const updatedImage = convertToCamelCase(response) as VehicleImage;
-
-            // Dodaj URL do obrazu
-            updatedImage.url = `${apiClient.getBaseUrl()}/receptions/${protocolId}/image/${imageId}`;
-            updatedImage.protocolId = protocolId;
-
-            return updatedImage;
-        } catch (error) {
-            console.error(`Error updating image ${imageId} metadata:`, error);
-            return null;
-        }
-    },
-
     uploadVehicleImage: async (
         protocolId: string,
         image: VehicleImage
@@ -406,17 +383,42 @@ export const carReceptionApi = {
             // Dodajemy plik do FormData
             formData.append('images[0]', image.file, image.file.name);
 
-            // Przygotowujemy dane obrazu bez pliku
-            const {file, ...imageWithoutFile} = image;
+            // Wyłuskujemy nazwę pliku bez rozszerzenia jako domyślną nazwę
+            const defaultName = image.file.name.replace(/\.[^/.]+$/, "");
 
-            // Przekształcamy na format zgodny z API (snake_case) i dodajemy flagę hasFile
-            const imageData = {
-                ...convertToSnakeCase(imageWithoutFile),
+            // Przygotowujemy podstawowe dane obrazu
+            const imageDataRaw = {
+                id: image.id && image.id.startsWith('temp_') ? undefined : image.id,
+                name: image.name || defaultName,
+                size: image.size,
+                type: image.type,
+                tags: Array.isArray(image.tags) ? image.tags : [],
                 has_file: true
             };
 
+            // Konwertujemy camelCase na snake_case ręcznie dla pewności
+            const imageData = {
+                id: imageDataRaw.id,
+                name: imageDataRaw.name,
+                size: imageDataRaw.size,
+                type: imageDataRaw.type,
+                tags: imageDataRaw.tags,
+                has_file: true
+            };
+
+            console.log('Image data to be sent:', imageData);
+
             // Dodajemy dane obrazu jako parametr 'image' w formacie JSON
             formData.append('image', JSON.stringify(imageData));
+
+            // Debug - sprawdzamy zawartość formData
+            for (let [key, value] of formData.entries()) {
+                if (key !== 'images[0]') {
+                    console.log(`FormData entry - ${key}:`, value);
+                } else {
+                    console.log(`FormData entry - ${key}: [file]`);
+                }
+            }
 
             // Wysyłamy żądanie POST z FormData
             const response = await apiClient.post<{ id: string }>(
@@ -431,6 +433,9 @@ export const carReceptionApi = {
                 ...image,
                 id: response.id,
                 protocolId: protocolId,
+                // Zachowujemy metadane
+                name: imageDataRaw.name,
+                tags: imageDataRaw.tags,
                 // Dodajemy timestamp utworzenia
                 createdAt: new Date().toISOString()
             };
@@ -439,6 +444,37 @@ export const carReceptionApi = {
         } catch (error) {
             console.error('Error uploading vehicle image:', error);
             throw error;
+        }
+    },
+
+    updateVehicleImage: async (protocolId: string, imageId: string, metadata: {
+        description?: string,
+        location?: string,
+        name?: string,
+        tags?: string[]
+    }): Promise<VehicleImage | null> => {
+        try {
+            console.log(`Updating image ${imageId} metadata:`, metadata);
+
+            // Przekształć dane z camelCase na snake_case
+            const requestData = convertToSnakeCase(metadata);
+            console.log('Request data after conversion:', requestData);
+
+            // Wysyłanie żądania PATCH
+            const response = await apiClient.patch<any>(`/receptions/${protocolId}/image/${imageId}`, requestData);
+            console.log('Image update response:', response);
+
+            // Konwertuj odpowiedź na format używany w aplikacji
+            const updatedImage = convertToCamelCase(response) as VehicleImage;
+
+            // Dodaj URL do obrazu
+            updatedImage.url = `${apiClient.getBaseUrl()}/receptions/image/${imageId}`;
+            updatedImage.protocolId = protocolId;
+
+            return updatedImage;
+        } catch (error) {
+            console.error(`Error updating image ${imageId} metadata:`, error);
+            return null;
         }
     }
 };
