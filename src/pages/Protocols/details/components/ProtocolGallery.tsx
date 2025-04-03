@@ -8,7 +8,7 @@ import {
     FaExclamationCircle,
     FaEye,
     FaEdit,
-    FaTags, FaPlus
+    FaTags, FaPlus, FaTimes
 } from 'react-icons/fa';
 import { CarReceptionProtocol, VehicleImage } from '../../../../types';
 import { apiClient } from '../../../../api/apiClient';
@@ -25,11 +25,9 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
     const [images, setImages] = useState<VehicleImage[]>(protocol.vehicleImages || []);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [uploadingFiles, setUploadingFiles] = useState<File[]>([]);
+    const [currentUploadImage, setCurrentUploadImage] = useState<VehicleImage | null>(null);
     const [showPreviewModal, setShowPreviewModal] = useState(false);
     const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-
-    // Add state for the image edit modal
     const [editModalOpen, setEditModalOpen] = useState(false);
     const [editingImageIndex, setEditingImageIndex] = useState(-1);
 
@@ -38,7 +36,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
 
     // Fetch images when component mounts
     useEffect(() => {
-        // Try to get images if protocol.vehicleImages is empty or doesn't exist
         if (!protocol.vehicleImages || protocol.vehicleImages.length === 0) {
             fetchImages();
         } else {
@@ -79,7 +76,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
 
     const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files && event.target.files.length > 0) {
-            // Process files and open edit modal for the first one
             handleAddImages(event);
 
             // Reset input so the same file can be selected again if needed
@@ -91,7 +87,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
 
     // Function to handle adding new images
     const handleAddImages = (event: React.ChangeEvent<HTMLInputElement>) => {
-        // Prevent default browser action that might cause form submission
         event.preventDefault();
 
         const files = event.target.files;
@@ -117,126 +112,64 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
             return;
         }
 
-        // Set these files as the uploading files (they'll be sent to server after modal confirmation)
-        setUploadingFiles(filesArray);
+        // Obsługujemy tylko jeden plik na raz, zgodnie z API
+        const file = filesArray[0];
 
-        // Convert files to VehicleImage objects for preview only
-        const newImages: VehicleImage[] = [];
+        // Create temp image for preview with unique ID
+        const tempImage: VehicleImage = {
+            id: `temp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+            url: URL.createObjectURL(file),
+            name: file.name.replace(/\.[^/.]+$/, ""), // Remove file extension
+            size: file.size,
+            type: file.type,
+            createdAt: new Date().toISOString(),
+            tags: [],
+            file: file
+        };
 
-        filesArray.forEach(file => {
-            // Create URL for image preview
-            const imageUrl = URL.createObjectURL(file);
+        // Set as current upload and add to images array
+        setCurrentUploadImage(tempImage);
+        setImages([...images, tempImage]);
 
-            // Prepare name - remove file extension
-            const fileNameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
-
-            // Add new image to array
-            newImages.push({
-                id: `temp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-                url: imageUrl,
-                name: fileNameWithoutExt, // Use name without extension as initial name
-                size: file.size,
-                type: file.type,
-                createdAt: new Date().toISOString(),
-                tags: [], // Initialize empty tags array
-                file: file // Add reference to original file
-            });
-        });
-
-        // Add temporary preview images to the state
-        if (newImages.length > 0) {
-            const updatedImages = [...images, ...newImages];
-            setImages(updatedImages);
-
-            // Open modal to edit information for the first new image
-            setEditingImageIndex(images.length); // Index of the first new image
-            setEditModalOpen(true);
-        }
+        // Open modal to edit image info
+        setEditingImageIndex(images.length);
+        setEditModalOpen(true);
     };
 
-    const handleUpload = async () => {
-        if (uploadingFiles.length === 0) return;
+    // Handle uploading the current image after editing
+    const handleUploadCurrentImage = async () => {
+        if (!currentUploadImage || !currentUploadImage.file) return;
 
         setIsLoading(true);
         setError(null);
 
         try {
-            // Get temporary images that were already added to the UI
-            const tempImages = images.filter(img => img.id.startsWith('temp_'));
+            // Użyj naszej nowej funkcji do przesyłania pojedynczego obrazu
+            const uploadedImage = await carReceptionApi.uploadVehicleImage(protocol.id, currentUploadImage);
 
-            // Create a map of temporary images by file name to retrieve their names and tags
-            const tempImageMap = new Map(
-                tempImages.map(img => [
-                    img.file?.name || '',
-                    { name: img.name, tags: img.tags || [] }
-                ])
-            );
+            // Usuń tymczasowy obraz i dodaj nowy z serwera
+            const updatedImages = [
+                ...images.filter(img => !img.id.startsWith('temp_')),
+                uploadedImage
+            ];
 
-            // Create FormData for upload
-            const formData = new FormData();
+            // Aktualizuj stan lokalny
+            setImages(updatedImages);
 
-            // Add each file to formData
-            uploadingFiles.forEach((file, index) => {
-                formData.append(`images[${index}]`, file);
-            });
-
-            // Add metadata for each file if we want to send that to the server
-            // This would require backend support for this format
-            const imageMetadata = uploadingFiles.map((file, index) => {
-                const tempImageInfo = tempImageMap.get(file.name);
-                return {
-                    index,
-                    name: tempImageInfo?.name || file.name.replace(/\.[^/.]+$/, ""),
-                    tags: tempImageInfo?.tags || []
-                };
-            });
-
-            // If your API supports sending metadata along with the files
-            // formData.append('metadata', JSON.stringify(imageMetadata));
-
-            // Upload using API
-            const uploadedImages = await carReceptionApi.addVehicleImages(protocol.id, uploadingFiles);
-
-            // Update the uploaded images with the names and tags from temporary images
-            const finalImages = uploadedImages.map(serverImage => {
-                // Try to find corresponding temp image by matching file names or other properties
-                const matchingTempImage = tempImages.find(
-                    tempImg => tempImg.file?.name === serverImage.name ||
-                        tempImg.name === serverImage.name
-                );
-
-                if (matchingTempImage) {
-                    return {
-                        ...serverImage,
-                        name: matchingTempImage.name,
-                        tags: matchingTempImage.tags
-                    };
-                }
-
-                return serverImage;
-            });
-
-            // Update the protocol with the new images
-            const updatedImages = [...images.filter(img => !img.id.startsWith('temp_')), ...finalImages];
+            // Aktualizuj protokół w komponencie nadrzędnym
             const updatedProtocol = {
                 ...protocol,
                 vehicleImages: updatedImages
             };
-
-            // Update parent component with new protocol data
             onProtocolUpdate(updatedProtocol);
 
-            // Update local state with the proper image data from the server
-            setImages(updatedImages);
-
-            // Clear upload state
-            setUploadingFiles([]);
-
+            // Wyczyść bieżący obraz
+            setCurrentUploadImage(null);
         } catch (err) {
-            console.error('Error uploading images:', err);
-            setError('Wystąpił błąd podczas przesyłania zdjęć. Spróbuj ponownie.');
+            console.error('Error uploading image:', err);
+            setError('Wystąpił błąd podczas przesyłania zdjęcia. Spróbuj ponownie.');
 
-            // Remove temporary images from state
+            // Usuń tymczasowy obraz ze stanu
             setImages(images.filter(img => !img.id.startsWith('temp_')));
         } finally {
             setIsLoading(false);
@@ -253,25 +186,20 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
             };
             setImages(updatedImages);
 
-            // Check if this is a temp image (one of the newly added ones)
-            const isTemp = updatedImages[editingImageIndex].id.startsWith('temp_');
+            // Jeśli to tymczasowy obraz, zaktualizuj również currentUploadImage
+            if (currentUploadImage && updatedImages[editingImageIndex].id.startsWith('temp_')) {
+                setCurrentUploadImage({
+                    ...currentUploadImage,
+                    name: newName,
+                    tags: newTags
+                });
 
-            // Check if we should process more new images
-            const nextTempIndex = images.findIndex((img, idx) =>
-                idx > editingImageIndex && img.id.startsWith('temp_')
-            );
-
-            if (nextTempIndex !== -1) {
-                // Move to the next temporary image
-                setEditingImageIndex(nextTempIndex);
-            } else {
-                // All images processed, if we were working with temp images, upload them
-                if (isTemp && uploadingFiles.length > 0) {
-                    handleUpload();
-                }
-                setEditModalOpen(false);
-                setEditingImageIndex(-1);
+                // Przesyłamy obraz po zakończeniu edycji
+                handleUploadCurrentImage();
             }
+
+            setEditModalOpen(false);
+            setEditingImageIndex(-1);
         }
     };
 
@@ -279,12 +207,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
         e.stopPropagation(); // Prevent opening preview modal
         setEditingImageIndex(index);
         setEditModalOpen(true);
-    };
-
-    const cancelUpload = (index: number) => {
-        const newFiles = [...uploadingFiles];
-        newFiles.splice(index, 1);
-        setUploadingFiles(newFiles);
     };
 
     const handleDeleteImage = async (imageId: string) => {
@@ -295,6 +217,7 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
         // Don't attempt to delete temporary images from the server
         if (imageId.startsWith('temp_')) {
             setImages(images.filter(img => img.id !== imageId));
+            setCurrentUploadImage(null);
             return;
         }
 
@@ -372,16 +295,18 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                     <FaCamera /> Zdjęcia pojazdu
                 </GalleryTitle>
                 <GalleryActions>
-                    <UploadButton onClick={handleUploadClick}>
-                        <FaUpload /> Dodaj zdjęcia
+                    <UploadButton onClick={handleUploadClick} disabled={isLoading}>
+                        <FaUpload /> Dodaj zdjęcie
                     </UploadButton>
+                    <CameraButton onClick={handleCameraClick} disabled={isLoading}>
+                        <FaCamera /> Zrób zdjęcie
+                    </CameraButton>
                     <input
                         id="file-upload"
                         type="file"
                         ref={fileInputRef}
                         onChange={handleFileSelect}
                         accept="image/*"
-                        multiple
                         style={{ display: 'none' }}
                     />
                     <input
@@ -396,49 +321,29 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                 </GalleryActions>
             </GalleryHeader>
 
-            {error && <ErrorMessage>{error}</ErrorMessage>}
+            {error && <ErrorMessage><FaExclamationCircle /> {error}</ErrorMessage>}
 
-            {/* Pending uploads section */}
-            {uploadingFiles.length > 0 && (
-                <UploadsSection>
-                    <SectionTitle>Zdjęcia do przesłania</SectionTitle>
-                    <PendingUploads>
-                        {uploadingFiles.map((file, index) => (
-                            <PendingUploadItem key={`${file.name}_${index}`}>
-                                <PendingUploadPreview>
-                                    <FaImage />
-                                </PendingUploadPreview>
-                                <PendingUploadInfo>
-                                    <PendingUploadName>{file.name}</PendingUploadName>
-                                    <PendingUploadSize>{formatFileSize(file.size)}</PendingUploadSize>
-                                </PendingUploadInfo>
-                                <CancelUploadButton onClick={() => cancelUpload(index)}>
-                                    <FaTimesCircle />
-                                </CancelUploadButton>
-                            </PendingUploadItem>
-                        ))}
-                    </PendingUploads>
-                    <UploadActionsBar>
-                        <TotalFilesInfo>{uploadingFiles.length} {uploadingFiles.length === 1 ? 'plik' : 'plików'} do przesłania</TotalFilesInfo>
-                        <UploadButtonMain onClick={handleUpload} disabled={isLoading}>
-                            {isLoading ? <FaSpinner className="spinner" /> : <FaUpload />}
-                            {isLoading ? 'Przesyłanie...' : 'Prześlij wszystkie'}
-                        </UploadButtonMain>
-                    </UploadActionsBar>
-                </UploadsSection>
+            {/* Upload progress */}
+            {isLoading && currentUploadImage && (
+                <UploadingMessage>
+                    <FaSpinner /> Przesyłanie zdjęcia...
+                </UploadingMessage>
             )}
 
             {/* Gallery section */}
             {isLoading && images.length === 0 ? (
                 <LoadingContainer>
-                    <FaSpinner className="spinner" /> Ładowanie zdjęć...
+                    <FaSpinner /> Ładowanie zdjęć...
                 </LoadingContainer>
             ) : images.length > 0 ? (
                 <GalleryGrid>
                     {images.map((image, index) => (
-                        <GalleryItem key={image.id || index}>
+                        <GalleryItem key={image.id || index} className={image.id.startsWith('temp_') ? 'temp-image' : ''}>
                             <ImageContainer onClick={() => handleImageClick(index)}>
                                 <StyledImage src={getImageUrl(image)} alt={image.name || `Zdjęcie ${index + 1}`} />
+                                {image.id.startsWith('temp_') && (
+                                    <TempBadge>Przygotowywanie</TempBadge>
+                                )}
                             </ImageContainer>
                             <ImageInfo>
                                 <ImageNameContainer>
@@ -498,10 +403,11 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                         setEditModalOpen(false);
                         setEditingImageIndex(-1);
 
-                        // When the user closes the modal, completely abort the operation
-                        // Remove all temporary images and clear upload queue
-                        setImages(images.filter(img => !img.id.startsWith('temp_')));
-                        setUploadingFiles([]);
+                        // When the user closes the modal, abort the operation for temp images
+                        if (currentUploadImage) {
+                            setImages(images.filter(img => !img.id.startsWith('temp_')));
+                            setCurrentUploadImage(null);
+                        }
                     }}
                     onSave={handleSaveImageInfo}
                     initialName={images[editingImageIndex].name || ''}
@@ -550,8 +456,23 @@ const UploadButton = styled.button`
     font-size: 13px;
     cursor: pointer;
 
-    &:hover {
+    &:hover:not(:disabled) {
         background-color: #d5e9f9;
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+`;
+
+const CameraButton = styled(UploadButton)`
+    background-color: #f4f9f0;
+    color: #27ae60;
+    border-color: #c8e6c9;
+
+    &:hover:not(:disabled) {
+        background-color: #c8e6c9;
     }
 `;
 
@@ -567,122 +488,16 @@ const ErrorMessage = styled.div`
     font-size: 14px;
 `;
 
-const UploadsSection = styled.div`
-    background-color: #f9f9f9;
-    border-radius: 4px;
-    padding: 15px;
-    margin-bottom: 20px;
-`;
-
-const SectionTitle = styled.div`
-    font-weight: 500;
-    font-size: 14px;
-    color: #34495e;
-    margin-bottom: 10px;
-`;
-
-const PendingUploads = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-bottom: 15px;
-`;
-
-const PendingUploadItem = styled.div`
-    display: flex;
-    align-items: center;
-    background-color: white;
-    border: 1px solid #eee;
-    border-radius: 4px;
-    padding: 10px;
-`;
-
-const PendingUploadPreview = styled.div`
-    width: 40px;
-    height: 40px;
-    background-color: #f0f7ff;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #3498db;
-    margin-right: 15px;
-`;
-
-const PendingUploadInfo = styled.div`
-    flex: 1;
-`;
-
-const PendingUploadName = styled.div`
-    font-size: 14px;
-    color: #34495e;
-    margin-bottom: 2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 300px;
-`;
-
-const PendingUploadSize = styled.div`
-    font-size: 12px;
-    color: #7f8c8d;
-`;
-
-const CancelUploadButton = styled.button`
-    background: none;
-    border: none;
-    color: #e74c3c;
-    cursor: pointer;
-    padding: 5px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    &:hover {
-        color: #c0392b;
-    }
-`;
-
-const UploadActionsBar = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-`;
-
-const TotalFilesInfo = styled.div`
-    font-size: 13px;
-    color: #7f8c8d;
-`;
-
-const UploadButtonMain = styled.button`
+const UploadingMessage = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 15px;
-    background-color: #3498db;
-    color: white;
-    border: none;
+    background-color: #e1f5fe;
+    color: #0288d1;
+    padding: 10px;
     border-radius: 4px;
+    margin-bottom: 10px;
     font-size: 14px;
-    cursor: pointer;
-
-    &:hover:not(:disabled) {
-        background-color: #2980b9;
-    }
-
-    &:disabled {
-        background-color: #95a5a6;
-        cursor: not-allowed;
-    }
-
-    .spinner {
-        animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
 `;
 
 const LoadingContainer = styled.div`
@@ -691,22 +506,19 @@ const LoadingContainer = styled.div`
     justify-content: center;
     padding: 40px 0;
     color: #7f8c8d;
-
-    .spinner {
-        animation: spin 1s linear infinite;
-        margin-right: 10px;
-    }
-
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
+    gap: 8px;
 `;
 
 const GalleryGrid = styled.div`
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 20px;
+
+    .temp-image {
+        opacity: 0.8;
+        border-color: #3498db;
+        box-shadow: 0 0 0 1px #3498db;
+    }
 `;
 
 const GalleryItem = styled.div`
@@ -715,6 +527,7 @@ const GalleryItem = styled.div`
     overflow: hidden;
     position: relative;
     background-color: white;
+    transition: all 0.2s ease;
 
     &:hover {
         border-color: #3498db;
@@ -739,6 +552,18 @@ const ImageContainer = styled.div`
             transform: scale(1.05);
         }
     }
+`;
+
+const TempBadge = styled.div`
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(52, 152, 219, 0.8);
+    color: white;
+    padding: 4px 8px;
+    font-size: 11px;
+    text-align: center;
 `;
 
 const StyledImage = styled.img`
@@ -870,17 +695,6 @@ const EmptyGallery = styled.div`
     border-radius: 8px;
     color: #95a5a6;
     text-align: center;
-
-    svg {
-        font-size: 32px;
-        margin-bottom: 10px;
-        opacity: 0.5;
-    }
-
-    p {
-        margin: 0;
-        font-size: 14px;
-    }
 `;
 
 const EmptyGalleryIcon = styled.div`
@@ -912,19 +726,14 @@ const EmptyGalleryAction = styled.button`
     }
 `;
 
-const FaTimesCircle = styled(FaEdit)`
-    /* Replacement for FaTimesCircle which may not be imported */
-`;
-
 const FaSpinner = styled.div`
     display: inline-block;
     width: 1em;
     height: 1em;
     border: 2px solid rgba(255,255,255,0.3);
     border-radius: 50%;
-    border-top-color: white;
+    border-top-color: #3498db;
     animation: spin 1s ease-in-out infinite;
-    margin-right: 0.5em;
 
     @keyframes spin {
         to { transform: rotate(360deg); }

@@ -386,5 +386,59 @@ export const carReceptionApi = {
             console.error(`Error updating image ${imageId} metadata:`, error);
             return null;
         }
+    },
+
+    uploadVehicleImage: async (
+        protocolId: string,
+        image: VehicleImage
+    ): Promise<VehicleImage> => {
+        try {
+            console.log('Uploading vehicle image to protocol:', protocolId, image);
+
+            // Sprawdzamy czy mamy plik do wysłania
+            if (!image.file) {
+                throw new Error('No file provided for upload');
+            }
+
+            // Tworzymy FormData do przesłania pliku
+            const formData = new FormData();
+
+            // Dodajemy plik do FormData
+            formData.append('images[0]', image.file, image.file.name);
+
+            // Przygotowujemy dane obrazu bez pliku
+            const {file, ...imageWithoutFile} = image;
+
+            // Przekształcamy na format zgodny z API (snake_case) i dodajemy flagę hasFile
+            const imageData = {
+                ...convertToSnakeCase(imageWithoutFile),
+                has_file: true
+            };
+
+            // Dodajemy dane obrazu jako parametr 'image' w formacie JSON
+            formData.append('image', JSON.stringify(imageData));
+
+            // Wysyłamy żądanie POST z FormData
+            const response = await apiClient.post<{ id: string }>(
+                `/receptions/${protocolId}/image`,
+                formData
+            );
+
+            console.log('Server response for image upload:', response);
+
+            // Tworzymy zaktualizowany obiekt obrazu z odpowiedzią z serwera
+            const updatedImage: VehicleImage = {
+                ...image,
+                id: response.id,
+                protocolId: protocolId,
+                // Dodajemy timestamp utworzenia
+                createdAt: new Date().toISOString()
+            };
+
+            return updatedImage;
+        } catch (error) {
+            console.error('Error uploading vehicle image:', error);
+            throw error;
+        }
     }
 };
