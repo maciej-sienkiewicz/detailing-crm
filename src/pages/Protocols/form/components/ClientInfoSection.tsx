@@ -9,10 +9,9 @@ import {
     FormGroup,
     Label,
     ErrorText,
-    Input // Dodajemy Input na wypadek, gdybyśmy potrzebowali go zamiast SearchField
+    Input
 } from '../styles';
 
-// Import komponentu pola wyszukiwania
 import SearchField from './SearchField';
 
 interface ClientInfoSectionProps {
@@ -20,7 +19,7 @@ interface ClientInfoSectionProps {
     errors: FormErrors;
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
     onSearchByField?: (field: 'ownerName' | 'companyName' | 'taxId' | 'email' | 'phone') => void;
-    readOnly?: boolean; // Dodajemy opcjonalną właściwość readOnly
+    readOnly?: boolean;
 }
 
 const ClientInfoSection: React.FC<ClientInfoSectionProps> = ({
