@@ -53,14 +53,6 @@ const ProtocolTabs: React.FC<ProtocolTabsProps> = ({ activeTab, onChange }) => {
             </TabItem>
 
             <TabItem
-                active={activeTab === 'vehicle'}
-                onClick={() => onChange('vehicle')}
-            >
-                <TabIcon><FaCarSide /></TabIcon>
-                <TabLabel>Status pojazdu</TabLabel>
-            </TabItem>
-
-            <TabItem
                 active={activeTab === 'gallery'}
                 onClick={() => onChange('gallery')}
             >
