@@ -1,32 +1,7 @@
+import { Service } from '../types';
 import { apiClient } from './apiClient';
-import { ServiceApprovalStatus } from '../types';
 
-// Interfejs dla usługi
-export interface ServiceData {
-    id: string;
-    name: string;
-    price: number;
-    description?: string;
-    vatRate?: number;
-}
-
-// Interfejs dla usługi w protokole
-export interface ProtocolServiceData {
-    id: string;
-    name: string;
-    price: number;
-    finalPrice: number;
-    discountType: string;
-    discountValue: number;
-    approvalStatus: ServiceApprovalStatus;
-    addedAt: string;
-    approvedAt?: string;
-    rejectedAt?: string;
-    confirmationMessage?: string;
-    clientMessage?: string;
-}
-
-// Funkcja pomocnicza konwertująca nazwy pól ze snake_case na camelCase
+// Konwersja snake_case na camelCase dla odpowiedzi z API
 const convertSnakeToCamel = (data: any): any => {
     if (data === null || data === undefined || typeof data !== 'object') {
         return data;
@@ -47,7 +22,7 @@ const convertSnakeToCamel = (data: any): any => {
     }, {} as Record<string, any>);
 };
 
-// Funkcja pomocnicza do konwersji z camelCase na snake_case (dla wysyłania danych do API)
+// Konwersja camelCase na snake_case dla wysyłanych danych
 const convertCamelToSnake = (data: any): any => {
     if (data === null || data === undefined || typeof data !== 'object') {
         return data;
@@ -68,158 +43,78 @@ const convertCamelToSnake = (data: any): any => {
     }, {} as Record<string, any>);
 };
 
+export interface ServiceData {
+    name: string;
+    description: string;
+    price: number;
+    vatRate: number;
+}
+
 export const servicesApi = {
-    /**
-     * Pobiera wszystkie dostępne usługi
-     */
-    fetchServices: async (): Promise<ServiceData[]> => {
+    // Pobieranie listy usług
+    fetchServices: async (): Promise<Service[]> => {
         try {
-            const response = await apiClient.get<any[]>('/services');
-            return convertSnakeToCamel(response) as ServiceData[];
+            const data = await apiClient.get<any[]>('/services');
+            return convertSnakeToCamel(data) as Service[];
         } catch (error) {
-            console.error('Błąd podczas pobierania usług:', error);
-            return [];
-        }
-    },
-
-    /**
-     * Dodaje usługę do protokołu wraz z powiadomieniem
-     */
-    addServiceToProtocol: async (
-        protocolId: string,
-        services: { id: string; name: string; price: number }[],
-        notificationType?: 'SMS' | 'EMAIL' | 'BOTH' | 'NONE'
-    ): Promise<boolean> => {
-        try {
-            const requestData = convertCamelToSnake({
-                services,
-                notificationType: notificationType || 'SMS',
-            });
-
-            await apiClient.post(`/receptions/${protocolId}/services`, requestData);
-            return true;
-        } catch (error) {
-            console.error('Błąd podczas dodawania usług do protokołu:', error);
+            console.error('Error fetching services:', error);
             throw error;
         }
     },
 
-    /**
-     * Pobiera usługi przypisane do protokołu
-     */
-    getProtocolServices: async (protocolId: string): Promise<ProtocolServiceData[]> => {
+    // Pobieranie pojedynczej usługi
+    fetchServiceById: async (id: string): Promise<Service | null> => {
         try {
-            const response = await apiClient.get<any[]>(`/receptions/${protocolId}/services`);
-            return convertSnakeToCamel(response) as ProtocolServiceData[];
+            const data = await apiClient.get<any>(`/services/${id}`);
+            return convertSnakeToCamel(data) as Service;
         } catch (error) {
-            console.error('Błąd podczas pobierania usług protokołu:', error);
-            return [];
+            console.error(`Error fetching service ${id}:`, error);
+            return null;
         }
     },
 
-    /**
-     * Zmienia status usługi (np. zatwierdza lub odrzuca)
-     */
-    updateServiceStatus: async (
-        protocolId: string,
-        serviceId: string,
-        status: ServiceApprovalStatus,
-        clientMessage?: string
-    ): Promise<boolean> => {
+    // Tworzenie nowej usługi
+    createService: async (serviceData: ServiceData): Promise<Service> => {
         try {
-            const requestData = convertCamelToSnake({
-                status,
-                clientMessage
-            });
-
-            await apiClient.patch(`/receptions/${protocolId}/services/${serviceId}/status`, requestData);
-            return true;
+            const requestData = convertCamelToSnake(serviceData);
+            const response = await apiClient.post<any>('/services', requestData);
+            return convertSnakeToCamel(response) as Service;
         } catch (error) {
-            console.error('Błąd podczas aktualizacji statusu usługi:', error);
-            return false;
-        }
-    },
-
-    /**
-     * Pobiera kategorie usług
-     */
-    fetchServiceCategories: async (): Promise<string[]> => {
-        try {
-            const response = await apiClient.get<string[]>('/services/categories');
-            return response;
-        } catch (error) {
-            console.error('Błąd podczas pobierania kategorii usług:', error);
-            return [];
-        }
-    },
-
-    /**
-     * Anuluje usługę oczekującą na potwierdzenie
-     */
-    cancelPendingService: async (protocolId: string, serviceId: string): Promise<boolean> => {
-        try {
-            await apiClient.delete(`/receptions/${protocolId}/services/${serviceId}`);
-            return true;
-        } catch (error) {
-            console.error('Błąd podczas anulowania usługi:', error);
-            return false;
-        }
-    },
-
-    /**
-     * Wysyła ponowne powiadomienie do klienta odnośnie usługi
-     */
-    resendServiceNotification: async (
-        protocolId: string,
-        serviceId: string,
-        notificationType: 'SMS' | 'EMAIL' | 'BOTH' = 'SMS'
-    ): Promise<boolean> => {
-        try {
-            const requestData = convertCamelToSnake({
-                notificationType
-            });
-
-            await apiClient.post(`/receptions/${protocolId}/services/${serviceId}/notify`, requestData);
-            return true;
-        } catch (error) {
-            console.error('Błąd podczas wysyłania powiadomienia:', error);
-            return false;
-        }
-    },
-
-    updateProtocolServices: async (
-        protocolId: string,
-        services: {
-            name: string;
-            price: number;
-            discountType?: string;
-            discountValue?: number;
-            finalPrice?: number;
-            approvalStatus?: string;
-        }[]
-    ): Promise<boolean> => {
-        try {
-            // Konwertuj dane z camelCase na snake_case
-            const servicesList = services.map(service => ({
-                name: service.name,
-                price: service.price,
-                discount_type: service.discountType || "PERCENTAGE",
-                discount_value: service.discountValue || 0,
-                final_price: service.finalPrice || service.price,
-                approval_status: service.approvalStatus || "PENDING"
-            }));
-
-            // Przygotuj obiekt zgodny ze strukturą ServicesUpdateCommand
-            const requestData = {
-                services: servicesList
-            };
-
-            // Wyślij dane zgodne ze strukturą oczekiwaną przez backend
-            await apiClient.put(`/receptions/${protocolId}/services`, requestData);
-            return true;
-        } catch (error) {
-            console.error('Błąd podczas aktualizacji usług protokołu:', error);
+            console.error('Error creating service:', error);
             throw error;
         }
     },
+
+    // Aktualizacja istniejącej usługi
+    updateService: async (id: string, serviceData: ServiceData): Promise<Service> => {
+        try {
+            const requestData = convertCamelToSnake(serviceData);
+            const response = await apiClient.put<any>(`/services/${id}`, requestData);
+            return convertSnakeToCamel(response) as Service;
+        } catch (error) {
+            console.error(`Error updating service ${id}:`, error);
+            throw error;
+        }
+    },
+
+    // Usuwanie usługi
+    deleteService: async (id: string): Promise<boolean> => {
+        try {
+            await apiClient.delete(`/services/${id}`);
+            return true;
+        } catch (error) {
+            console.error(`Error deleting service ${id}:`, error);
+            throw error;
+        }
+    },
+
+    // Pobieranie domyślnej stawki VAT
+    fetchDefaultVatRate: async (): Promise<number> => {
+        try {
+            return 30; // Domyślna wartość jako fallback
+        } catch (error) {
+            console.error('Error fetching default VAT rate:', error);
+            return 23; // Zwracamy domyślną wartość w przypadku błędu
+        }
+    }
 };

@@ -53,6 +53,7 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
     const handleAddImages = (event: React.ChangeEvent<HTMLInputElement> | React.DragEvent<HTMLDivElement>) => {
         // Zapobiega domyślnej akcji przeglądarki, która może powodować przesłanie formularza
         event.preventDefault();
+        event.stopPropagation(); // Dodane, aby powstrzymać zdarzenie przed propagacją do formularza
 
         // Pobierz pliki z odpowiedniego źródła zdarzenia
         const files = event instanceof DragEvent
@@ -161,7 +162,13 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
     };
 
     // Obsługuje zapisanie zmienionych informacji o zdjęciu
-    const handleSaveImageInfo = (newName: string, newTags: string[]) => {
+    const handleSaveImageInfo = (newName: string, newTags: string[], e?: React.MouseEvent) => {
+        // Zatrzymaj zdarzenie, jeśli zostało przekazane
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
         if (editingImageIndex >= 0 && editingImageIndex < images.length) {
             const updatedImages = [...images];
             updatedImages[editingImageIndex] = {
@@ -170,6 +177,10 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
                 tags: newTags
             };
             onImagesChange(updatedImages);
+
+            // Wyraźnie zamykamy modal edycji po zapisaniu
+            setEditModalOpen(false);
+            setEditingImageIndex(-1);
         }
     };
 
@@ -198,6 +209,13 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
         if (bytes < 1024) return bytes + ' B';
         if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
         return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    };
+
+    // Obsługa zdarzenia zmiany pliku dla file input, zapobiegająca zatwierdzeniu formularza
+    const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        handleAddImages(e);
     };
 
     return (
@@ -230,18 +248,20 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
                 <input
                     type="file"
                     ref={fileInputRef}
-                    onChange={handleAddImages}
+                    onChange={handleFileInputChange}
                     accept="image/*"
                     multiple
                     style={{ display: 'none' }}
+                    onClick={(e) => e.stopPropagation()}
                 />
                 <input
                     type="file"
                     ref={cameraInputRef}
-                    onChange={handleAddImages}
+                    onChange={handleFileInputChange}
                     accept="image/*"
                     capture="environment"
                     style={{ display: 'none' }}
+                    onClick={(e) => e.stopPropagation()}
                 />
             </UploadArea>
 
@@ -319,7 +339,7 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
     );
 };
 
-// Stylowanie komponentów
+// Stylowanie komponentów pozostaje bez zmian
 const SectionContainer = styled.div`
     margin-bottom: 30px;
 `;

@@ -1,14 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { FaEdit, FaTrash, FaPlus, FaSearch, FaFilter, FaTimes } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaPlus, FaFilter, FaTimes } from 'react-icons/fa';
 import { Service } from '../../types';
-import {
-    fetchServices,
-    addService,
-    updateService,
-    deleteService,
-    fetchDefaultVatRate
-} from '../../api/mocks/servicesMocks';
+import { servicesApi } from '../../api/servicesApi';
 
 // Interfejs dla filtrów
 interface ServiceFilters {
@@ -44,8 +38,8 @@ const ServicesPage: React.FC = () => {
 
                 // Równoległe pobieranie danych dla lepszej wydajności
                 const [servicesData, vatRateData] = await Promise.all([
-                    fetchServices(),
-                    fetchDefaultVatRate()
+                    servicesApi.fetchServices(),
+                    servicesApi.fetchDefaultVatRate()
                 ]);
 
                 setServices(servicesData);
@@ -158,7 +152,7 @@ const ServicesPage: React.FC = () => {
     const handleDeleteService = async (id: string) => {
         if (window.confirm('Czy na pewno chcesz usunąć tę usługę?')) {
             try {
-                const result = await deleteService(id);
+                const result = await servicesApi.deleteService(id);
 
                 if (result) {
                     // Aktualizacja stanu lokalnego po pomyślnym usunięciu
@@ -177,13 +171,13 @@ const ServicesPage: React.FC = () => {
 
             if (service.id) {
                 // Aktualizacja istniejącej usługi
-                savedService = await updateService(service);
+                savedService = await servicesApi.updateService(service.id, service);
                 // Aktualizacja stanu lokalnego
                 setServices(services.map(s => s.id === savedService.id ? savedService : s));
             } else {
                 // Dodanie nowej usługi
-                const { id, ...serviceWithoutId } = service;
-                savedService = await addService(serviceWithoutId);
+                const { id, ...serviceData } = service;
+                savedService = await servicesApi.createService(serviceData);
                 // Aktualizacja stanu lokalnego
                 setServices([...services, savedService]);
             }
@@ -369,167 +363,167 @@ const ServicesPage: React.FC = () => {
     );
 };
 
-// Komponent modalu do dodawania/edycji usługi
-interface ServiceFormModalProps {
-    service: Service;
-    defaultVatRate: number;
-    onSave: (service: Service) => void;
-    onCancel: () => void;
-}
+    // Komponent modalu do dodawania/edycji usługi
+    interface ServiceFormModalProps {
+        service: Service;
+        defaultVatRate: number;
+        onSave: (service: Service) => void;
+        onCancel: () => void;
+    }
 
-const ServiceFormModal: React.FC<ServiceFormModalProps> = ({
-                                                               service,
-                                                               defaultVatRate,
-                                                               onSave,
-                                                               onCancel
-                                                           }) => {
-    const [formData, setFormData] = useState<Service>(service);
-    const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+    const ServiceFormModal: React.FC<ServiceFormModalProps> = ({
+                                                                   service,
+                                                                   defaultVatRate,
+                                                                   onSave,
+                                                                   onCancel
+                                                               }) => {
+        const [formData, setFormData] = useState<Service>(service);
+        const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
+        const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+            const { name, value } = e.target;
 
-        // Parsowanie wartości liczbowych
-        if (name === 'price' || name === 'vatRate') {
-            const numValue = parseFloat(value);
-            setFormData({
-                ...formData,
-                [name]: isNaN(numValue) ? 0 : numValue
-            });
-        } else {
-            setFormData({
-                ...formData,
-                [name]: value
-            });
-        }
+            // Parsowanie wartości liczbowych
+            if (name === 'price' || name === 'vatRate') {
+                const numValue = parseFloat(value);
+                setFormData({
+                    ...formData,
+                    [name]: isNaN(numValue) ? 0 : numValue
+                });
+            } else {
+                setFormData({
+                    ...formData,
+                    [name]: value
+                });
+            }
 
-        // Usuwanie błędów przy edycji pola
-        if (formErrors[name]) {
-            setFormErrors({
-                ...formErrors,
-                [name]: ''
-            });
-        }
-    };
+            // Usuwanie błędów przy edycji pola
+            if (formErrors[name]) {
+                setFormErrors({
+                    ...formErrors,
+                    [name]: ''
+                });
+            }
+        };
 
-    const validateForm = (): boolean => {
-        const errors: Record<string, string> = {};
+        const validateForm = (): boolean => {
+            const errors: Record<string, string> = {};
 
-        if (!formData.name.trim()) {
-            errors.name = 'Nazwa usługi jest wymagana';
-        }
+            if (!formData.name.trim()) {
+                errors.name = 'Nazwa usługi jest wymagana';
+            }
 
-        if (formData.price < 0) {
-            errors.price = 'Cena nie może być ujemna';
-        }
+            if (formData.price < 0) {
+                errors.price = 'Cena nie może być ujemna';
+            }
 
-        if (formData.vatRate < 0 || formData.vatRate > 100) {
-            errors.vatRate = 'Stawka VAT musi być wartością od 0 do 100';
-        }
+            if (formData.vatRate < 0 || formData.vatRate > 100) {
+                errors.vatRate = 'Stawka VAT musi być wartością od 0 do 100';
+            }
 
-        setFormErrors(errors);
-        return Object.keys(errors).length === 0;
-    };
+            setFormErrors(errors);
+            return Object.keys(errors).length === 0;
+        };
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
+        const handleSubmit = (e: React.FormEvent) => {
+            e.preventDefault();
 
-        if (validateForm()) {
-            onSave(formData);
-        }
-    };
+            if (validateForm()) {
+                onSave(formData);
+            }
+        };
 
-    return (
-        <ModalOverlay>
-            <ModalContainer>
-                <ModalHeader>
-                    <h2>{service.id ? 'Edytuj usługę' : 'Dodaj nową usługę'}</h2>
-                    <CloseButton onClick={onCancel}>&times;</CloseButton>
-                </ModalHeader>
-                <ModalBody>
-                    <Form onSubmit={handleSubmit}>
-                        <FormGroup>
-                            <Label htmlFor="name">Nazwa usługi*</Label>
-                            <Input
-                                id="name"
-                                name="name"
-                                value={formData.name}
-                                onChange={handleChange}
-                                placeholder="Nazwa usługi"
-                                required
-                            />
-                            {formErrors.name && <ErrorText>{formErrors.name}</ErrorText>}
-                        </FormGroup>
-
-                        <FormGroup>
-                            <Label htmlFor="description">Opis usługi</Label>
-                            <Textarea
-                                id="description"
-                                name="description"
-                                value={formData.description}
-                                onChange={handleChange}
-                                placeholder="Opis usługi"
-                                rows={3}
-                            />
-                        </FormGroup>
-
-                        <FormRow>
+        return (
+            <ModalOverlay>
+                <ModalContainer>
+                    <ModalHeader>
+                        <h2>{service.id ? 'Edytuj usługę' : 'Dodaj nową usługę'}</h2>
+                        <CloseButton onClick={onCancel}>&times;</CloseButton>
+                    </ModalHeader>
+                    <ModalBody>
+                        <Form onSubmit={handleSubmit}>
                             <FormGroup>
-                                <Label htmlFor="price">Cena netto (zł)*</Label>
+                                <Label htmlFor="name">Nazwa usługi*</Label>
                                 <Input
-                                    id="price"
-                                    name="price"
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    value={formData.price}
+                                    id="name"
+                                    name="name"
+                                    value={formData.name}
                                     onChange={handleChange}
+                                    placeholder="Nazwa usługi"
                                     required
                                 />
-                                {formErrors.price && <ErrorText>{formErrors.price}</ErrorText>}
+                                {formErrors.name && <ErrorText>{formErrors.name}</ErrorText>}
                             </FormGroup>
 
                             <FormGroup>
-                                <Label htmlFor="vatRate">
-                                    Stawka VAT (%)*
-                                    <HelpText>Domyślnie: {defaultVatRate}%</HelpText>
-                                </Label>
-                                <Input
-                                    id="vatRate"
-                                    name="vatRate"
-                                    type="number"
-                                    step="1"
-                                    min="0"
-                                    max="100"
-                                    value={formData.vatRate}
+                                <Label htmlFor="description">Opis usługi</Label>
+                                <Textarea
+                                    id="description"
+                                    name="description"
+                                    value={formData.description}
                                     onChange={handleChange}
-                                    required
+                                    placeholder="Opis usługi"
+                                    rows={3}
                                 />
-                                {formErrors.vatRate && <ErrorText>{formErrors.vatRate}</ErrorText>}
                             </FormGroup>
-                        </FormRow>
 
-                        <FormGroup>
-                            <Label>Cena brutto</Label>
-                            <PriceSummary>
-                                {(formData.price * (1 + formData.vatRate / 100)).toFixed(2)} zł
-                            </PriceSummary>
-                        </FormGroup>
+                            <FormRow>
+                                <FormGroup>
+                                    <Label htmlFor="price">Cena netto (zł)*</Label>
+                                    <Input
+                                        id="price"
+                                        name="price"
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={formData.price}
+                                        onChange={handleChange}
+                                        required
+                                    />
+                                    {formErrors.price && <ErrorText>{formErrors.price}</ErrorText>}
+                                </FormGroup>
 
-                        <ButtonGroup>
-                            <Button type="button" secondary onClick={onCancel}>
-                                Anuluj
-                            </Button>
-                            <Button type="submit" primary>
-                                {service.id ? 'Zapisz zmiany' : 'Dodaj usługę'}
-                            </Button>
-                        </ButtonGroup>
-                    </Form>
-                </ModalBody>
-            </ModalContainer>
-        </ModalOverlay>
-    );
-};
+                                <FormGroup>
+                                    <Label htmlFor="vatRate">
+                                        Stawka VAT (%)*
+                                        <HelpText>Domyślnie: {defaultVatRate}%</HelpText>
+                                    </Label>
+                                    <Input
+                                        id="vatRate"
+                                        name="vatRate"
+                                        type="number"
+                                        step="1"
+                                        min="0"
+                                        max="100"
+                                        value={formData.vatRate}
+                                        onChange={handleChange}
+                                        required
+                                    />
+                                    {formErrors.vatRate && <ErrorText>{formErrors.vatRate}</ErrorText>}
+                                </FormGroup>
+                            </FormRow>
+
+                            <FormGroup>
+                                <Label>Cena brutto</Label>
+                                <PriceSummary>
+                                    {(formData.price * (1 + formData.vatRate / 100)).toFixed(2)} zł
+                                </PriceSummary>
+                            </FormGroup>
+
+                            <ButtonGroup>
+                                <Button type="button" secondary onClick={onCancel}>
+                                    Anuluj
+                                </Button>
+                                <Button type="submit" primary>
+                                    {service.id ? 'Zapisz zmiany' : 'Dodaj usługę'}
+                                </Button>
+                            </ButtonGroup>
+                        </Form>
+                    </ModalBody>
+                </ModalContainer>
+            </ModalOverlay>
+        );
+    };
 
 // Style komponentów
 
