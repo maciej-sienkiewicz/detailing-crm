@@ -75,6 +75,36 @@ const EditIcon = styled.span`
     align-items: center;
 `;
 
+// Nowy komponent dla pola ilości
+const QuantityInput = styled.input`
+    width: 60px;
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    text-align: center;
+
+    &:focus {
+        outline: none;
+        border-color: #3498db;
+        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+    }
+
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    &[type=number] {
+        -moz-appearance: textfield;
+    }
+
+    @media (max-width: 768px) {
+        width: 50px;
+        padding: 4px 6px;
+    }
+`;
+
 // Nowy komponent dla notatki
 const ServiceNote = styled.div`
     font-size: 12px;
@@ -221,6 +251,7 @@ interface ServiceTableProps {
     onDiscountTypeChange: (serviceId: string, discountType: DiscountType) => void;
     onDiscountValueChange: (serviceId: string, discountValue: number) => void;
     onBasePriceChange: (serviceId: string, newPrice: number) => void;
+    onQuantityChange: (serviceId: string, quantity: number) => void;  // Nowa funkcja do obsługi zmiany ilości
     onAddNote?: (serviceId: string, note: string) => void;
     calculateTotals: () => { totalPrice: number; totalDiscount: number; totalFinalPrice: number };
 }
@@ -231,6 +262,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                                                        onDiscountTypeChange,
                                                        onDiscountValueChange,
                                                        onBasePriceChange,
+                                                       onQuantityChange,  // Nowy prop
                                                        onAddNote,
                                                        calculateTotals
                                                    }) => {
@@ -329,6 +361,16 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
         setEditPopup({...editPopup, visible: false});
     };
 
+    // Obsługa zmiany ilości
+    const handleQuantityChange = (serviceId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = parseInt(e.target.value);
+
+        // Minimalna ilość to 1
+        const quantity = isNaN(value) || value < 1 ? 1 : value;
+
+        onQuantityChange(serviceId, quantity);
+    };
+
     // Otwórz modal dodawania/edycji notatki
     const handleOpenNoteModal = (service: ServiceWithNote) => {
         setNoteModal({
@@ -381,6 +423,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                 <tr>
                     <TableHeader>Nazwa</TableHeader>
                     <TableHeader>Cena bazowa</TableHeader>
+                    <TableHeader>Ilość</TableHeader> {/* Nowa kolumna */}
                     <TableHeader>Rabat</TableHeader>
                     <TableHeader>Cena końcowa</TableHeader>
                     <TableHeader>Akcje</TableHeader>
@@ -389,7 +432,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                 <tbody>
                 {services.length === 0 ? (
                     <tr>
-                        <TableCell colSpan={5} style={{ textAlign: 'center' }}>
+                        <TableCell colSpan={6} style={{ textAlign: 'center' }}>
                             Brak wybranych usług. Użyj pola wyszukiwania, aby dodać usługi.
                         </TableCell>
                     </tr>
@@ -429,6 +472,15 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                                     </EditIcon>
                                 </PriceContainer>
                             </EditablePriceCell>
+                            {/* Nowa kolumna z polem do wprowadzania ilości */}
+                            <TableCell>
+                                <QuantityInput
+                                    type="number"
+                                    min="1"
+                                    value={service.quantity || 1}
+                                    onChange={(e) => handleQuantityChange(service.id, e)}
+                                />
+                            </TableCell>
                             <DiscountCell>
                                 <DiscountCellContent>
                                     <StyledDiscountContainer>
@@ -453,7 +505,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                                         </DiscountInputGroup>
                                         {service.discountType === DiscountType.PERCENTAGE && (
                                             <DiscountPercentage>
-                                                ({(service.price * service.discountValue / 100).toFixed(2)} zł)
+                                                ({(service.price * service.quantity * service.discountValue / 100).toFixed(2)} zł)
                                             </DiscountPercentage>
                                         )}
                                     </StyledDiscountContainer>
@@ -491,7 +543,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                 <tfoot>
                 <tr>
                     <TableFooterCell>Suma:</TableFooterCell>
-                    <TableFooterCell>{totalPrice.toFixed(2)} zł</TableFooterCell>
+                    <TableFooterCell colSpan={2}>{totalPrice.toFixed(2)} zł</TableFooterCell>
                     <TableFooterCell>
                         {totalDiscount.toFixed(2)} zł
                     </TableFooterCell>

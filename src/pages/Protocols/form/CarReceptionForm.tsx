@@ -144,7 +144,8 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
         updateBasePrice,
         updateDiscountType,
         updateDiscountValue,
-        updateServiceNote
+        updateServiceNote,
+        updateQuantity  // Dodana nowa funkcja
     } = useServiceCalculations(formData.selectedServices || []);
 
     // State for service search
@@ -304,6 +305,7 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
                     onDiscountTypeChange={updateDiscountType}
                     onDiscountValueChange={updateDiscountValue}
                     onBasePriceChange={updateBasePrice}
+                    onQuantityChange={updateQuantity}  // Dodany nowy prop
                     onAddNote={updateServiceNote}
                     calculateTotals={calculateTotals}
                     allowCustomService={true}

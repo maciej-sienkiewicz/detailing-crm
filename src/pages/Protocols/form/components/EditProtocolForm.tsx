@@ -111,7 +111,8 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
         updateBasePrice,
         updateDiscountType,
         updateDiscountValue,
-        updateServiceNote
+        updateServiceNote,
+        updateQuantity  // Dodana nowa funkcja
     } = useServiceCalculations(formData.selectedServices || []);
 
     // State for service search
@@ -272,13 +273,15 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
                     onSelectService={handleSelectService}
                     onAddService={handleAddService}
                     onAddServiceDirect={handleAddServiceDirect}
+                    onRemoveService={removeService}
                     onDiscountTypeChange={updateDiscountType}
                     onDiscountValueChange={updateDiscountValue}
                     onBasePriceChange={updateBasePrice}
+                    onQuantityChange={updateQuantity}  // Dodany nowy prop
                     onAddNote={updateServiceNote}
                     calculateTotals={calculateTotals}
                     allowCustomService={true}
-                    onServiceAdded={handleServiceAdded}
+                    onServiceAdded={onServiceAdded}
                 />
 
                 <ImageUploadSection

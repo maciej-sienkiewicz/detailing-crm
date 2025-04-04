@@ -23,11 +23,12 @@ interface ServiceSectionProps {
     onDiscountTypeChange: (serviceId: string, discountType: DiscountType) => void;
     onDiscountValueChange: (serviceId: string, discountValue: number) => void;
     onBasePriceChange: (serviceId: string, newPrice: number) => void;
+    onQuantityChange: (serviceId: string, quantity: number) => void; // Nowy prop
     onAddNote?: (serviceId: string, note: string) => void;
     calculateTotals: () => { totalPrice: number; totalDiscount: number; totalFinalPrice: number };
     allowCustomService: boolean;
     onAddServiceDirect: (service: { id: string; name: string; price: number }) => void;
-    onServiceAdded?: () => void; // Nowa funkcja callback do odświeżenia listy usług
+    onServiceAdded?: () => void; // Funkcja callback do odświeżenia listy usług
 }
 
 const ServiceSection: React.FC<ServiceSectionProps> = ({
@@ -45,6 +46,7 @@ const ServiceSection: React.FC<ServiceSectionProps> = ({
                                                            onDiscountTypeChange,
                                                            onDiscountValueChange,
                                                            onBasePriceChange,
+                                                           onQuantityChange, // Nowy prop
                                                            onAddNote,
                                                            calculateTotals,
                                                            allowCustomService,
@@ -74,6 +76,7 @@ const ServiceSection: React.FC<ServiceSectionProps> = ({
                 onDiscountTypeChange={onDiscountTypeChange}
                 onDiscountValueChange={onDiscountValueChange}
                 onBasePriceChange={onBasePriceChange}
+                onQuantityChange={onQuantityChange} // Przekazujemy nową funkcję
                 onAddNote={onAddNote}
                 calculateTotals={calculateTotals}
             />

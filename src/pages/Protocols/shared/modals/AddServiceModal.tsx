@@ -12,7 +12,8 @@ interface Service {
 
 interface SelectedServiceWithPrice extends Service {
     customPrice?: number;
-    note?: string; // Added note field to store service notes
+    quantity?: number;  // Dodane pole ilości
+    note?: string;
 }
 
 interface ServiceWithNote {
@@ -138,12 +139,13 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
     const handleAddServices = () => {
         if (selectedServices.length === 0) return;
 
-        // Przygotowujemy usługi z uwzględnieniem niestandardowych cen i notatek
+        // Przygotowujemy usługi z uwzględnieniem niestandardowych cen, ilości i notatek
         const servicesWithCustomPrices = selectedServices.map(service => ({
             id: service.id,
             name: service.name,
             price: service.customPrice !== undefined ? service.customPrice : service.price,
-            note: service.note // Upewniamy się, że nota jest dołączana do obiektu
+            quantity: service.quantity || 1,  // Uwzględniamy ilość
+            note: service.note
         }));
 
         console.log('Przygotowane usługi do wysłania:', servicesWithCustomPrices);
@@ -396,6 +398,24 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                                                 <ServiceNote>{service.note}</ServiceNote>
                                             )}
                                         </SelectedServiceNameContainer>
+
+                                        {/* Nowe pole ilości */}
+                                        <QuantityContainer>
+                                            <QuantityLabel>Ilość:</QuantityLabel>
+                                            <QuantityInput
+                                                type="number"
+                                                min="1"
+                                                value={service.quantity || 1}
+                                                onChange={(e) => {
+                                                    const quantity = parseInt(e.target.value) || 1;
+                                                    const updatedServices = selectedServices.map(s =>
+                                                        s.id === service.id ? {...s, quantity} : s
+                                                    );
+                                                    setSelectedServices(updatedServices);
+                                                }}
+                                            />
+                                        </QuantityContainer>
+
                                         <SelectedServicePrice
                                             onContextMenu={(e) => handlePriceRightClick(e, service)}
                                         >
@@ -431,7 +451,9 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                                 <TotalPriceRow>
                                     <TotalPriceLabel>Łącznie:</TotalPriceLabel>
                                     <TotalPriceValue>
-                                        {selectedServices.reduce((sum, s) => sum + (s.customPrice !== undefined ? s.customPrice : s.price), 0).toFixed(2)} zł
+                                        {selectedServices.reduce((sum, s) =>
+                                                sum + (s.customPrice !== undefined ? s.customPrice : s.price) * (s.quantity || 1),
+                                            0).toFixed(2)} zł
                                     </TotalPriceValue>
                                 </TotalPriceRow>
                             </SelectedServicesList>
@@ -1020,6 +1042,41 @@ const EditPriceButtons = styled.div`
     display: flex;
     justify-content: flex-end;
     gap: 10px;
+`;
+
+const QuantityContainer = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 80px;
+`;
+
+const QuantityLabel = styled.span`
+    font-size: 13px;
+    color: #7f8c8d;
+`;
+
+const QuantityInput = styled.input`
+    width: 40px;
+    padding: 4px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+    text-align: center;
+
+    &:focus {
+        outline: none;
+        border-color: #3498db;
+    }
+
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    &[type=number] {
+        -moz-appearance: textfield;
+    }
 `;
 
 export default AddServiceModal;

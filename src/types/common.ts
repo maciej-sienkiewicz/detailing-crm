@@ -26,17 +26,18 @@ export enum ServiceApprovalStatus {
 export interface SelectedService {
     id: string;
     name: string;
-    price: number;
+    price: number;         // Cena jednostkowa
+    quantity: number;      // Nowe pole: ilość sztuk/jednostek
     discountType: DiscountType;
     discountValue: number;
-    finalPrice: number;
-    approvalStatus?: ServiceApprovalStatus; // Status zatwierdzenia usługi
-    addedAt?: string;                      // Data dodania usługi
-    approvedAt?: string;                   // Data zatwierdzenia usługi
-    rejectedAt?: string;                   // Data odrzucenia usługi
-    confirmationMessage?: string;          // Wiadomość wysłana do klienta
-    clientMessage?: string;                // Odpowiedź klienta
-    note?: string;                         // Dodatkowa notatka do usługi
+    finalPrice: number;    // Cena końcowa (po uwzględnieniu ilości i rabatu)
+    approvalStatus?: ServiceApprovalStatus;
+    addedAt?: string;
+    approvedAt?: string;
+    rejectedAt?: string;
+    confirmationMessage?: string;
+    clientMessage?: string;
+    note?: string;
 }
 
 // Typ do obsługi bocznego menu
