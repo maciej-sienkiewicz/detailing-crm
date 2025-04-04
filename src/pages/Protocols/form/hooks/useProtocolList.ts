@@ -28,7 +28,7 @@ export const useProtocolList = (): UseProtocolListResult => {
     const [filteredProtocols, setFilteredProtocols] = useState<ProtocolListItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [activeFilter, setActiveFilter] = useState<FilterType>('Oczekujące na odbiór');
+    const [activeFilter, setActiveFilter] = useState<FilterType>('W realizacji');
     const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     // Funkcja do wymuszenia odświeżenia listy protokołów
