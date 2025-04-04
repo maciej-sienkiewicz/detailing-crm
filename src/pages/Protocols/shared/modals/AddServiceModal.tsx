@@ -1,7 +1,8 @@
-// src/pages/Protocols/components/AddServiceModal.tsx
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import styled from 'styled-components';
-import { FaPlus, FaSearch, FaMobileAlt, FaTimes, FaCheck, FaEdit } from 'react-icons/fa';
+import { FaPlus, FaSearch, FaMobileAlt, FaTimes, FaCheck, FaEdit, FaStickyNote } from 'react-icons/fa';
+import ServiceNoteModalWrapper from "./ServiceNoteModalWrapper";
 
 interface Service {
     id: string;
@@ -10,14 +11,22 @@ interface Service {
 }
 
 interface SelectedServiceWithPrice extends Service {
-    customPrice?: number; // Dodajemy pole do przechowywania niestandardowej ceny
+    customPrice?: number;
+    note?: string; // Added note field to store service notes
+}
+
+interface ServiceWithNote {
+    id: string;
+    name: string;
+    price: number;
+    note?: string; // Upewnij się, że nota jest zdefiniowana w interfejsie
 }
 
 interface AddServiceModalProps {
     isOpen: boolean;
     onClose: () => void;
     onAddServices: (servicesData: {
-        services: Service[]
+        services: ServiceWithNote[];
     }) => void;
     availableServices: Service[];
     customerPhone?: string;
@@ -34,20 +43,33 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
     const [filteredServices, setFilteredServices] = useState<Service[]>([]);
     const [selectedServices, setSelectedServices] = useState<SelectedServiceWithPrice[]>([]);
 
-    // Stan dla edytora ceny
+    // State for price editor
     const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
     const [editingPrice, setEditingPrice] = useState<string>('');
     const [editingPricePosition, setEditingPricePosition] = useState<{x: number, y: number}>({x: 0, y: 0});
 
-    // Sprawdzenie czy można wysłać SMS
+    // State for note modal
+    const [noteModal, setNoteModal] = useState<{
+        visible: boolean;
+        serviceId: string;
+        serviceName: string;
+        currentNote: string;
+    }>({
+        visible: false,
+        serviceId: '',
+        serviceName: '',
+        currentNote: ''
+    });
+
+    // Check if SMS can be sent
     const canSendSMS = !!customerPhone;
 
-    // Błąd do wyświetlenia, gdy nie można powiadomić klienta
+    // Error to show when notification cannot be sent
     const canNotifyError = !canSendSMS
         ? "Brak numeru telefonu klienta. Nie będzie możliwe wysłanie powiadomienia SMS."
         : "";
 
-    // Reset stanu przy otwieraniu modalu
+    // Reset state when modal opens
     useEffect(() => {
         if (isOpen) {
             setSearchQuery('');
@@ -56,7 +78,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         }
     }, [isOpen]);
 
-    // Filtrowanie usług na podstawie wyszukiwania
+    // Filter services based on search
     useEffect(() => {
         if (searchQuery.trim() === '') {
             setFilteredServices(availableServices);
@@ -69,70 +91,73 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         }
     }, [searchQuery, availableServices]);
 
-    // Obsługa wyboru usługi
+    // Toggle service selection
     const toggleServiceSelection = (service: Service) => {
         if (selectedServices.some(s => s.id === service.id)) {
-            // Jeśli usługa jest już wybrana, usuń ją
+            // If the service is already selected, remove it
             setSelectedServices(selectedServices.filter(s => s.id !== service.id));
         } else {
-            // W przeciwnym razie dodaj ją
+            // Otherwise add it
             setSelectedServices([...selectedServices, { ...service }]);
         }
     };
 
-    // Obsługa dodania niestandardowej usługi
+    // Handle adding custom service
     const handleAddCustomService = () => {
         if (!searchQuery.trim()) return;
 
-        // Sprawdź czy usługa o tej nazwie nie jest już wybrana
+        // Check if service with this name is already selected
         if (selectedServices.some(s => s.name.toLowerCase() === searchQuery.trim().toLowerCase())) {
             alert("Usługa o podanej nazwie jest już na liście wybranych usług.");
             return;
         }
 
-        // Sprawdź czy nie próbujemy dodać usługi z dostępnych serwisów
+        // Check if we're trying to add an existing service
         const existingService = availableServices.find(s =>
             s.name.toLowerCase() === searchQuery.trim().toLowerCase()
         );
 
         if (existingService) {
-            // Jeśli to już istniejąca usługa, po prostu ją dodaj
+            // If it's an existing service, just add it
             toggleServiceSelection(existingService);
             return;
         }
 
-        // Utwórz nową niestandardową usługę
+        // Create a new custom service
         const customService: SelectedServiceWithPrice = {
             id: `custom-${Date.now()}`,
             name: searchQuery.trim(),
-            price: 0, // Domyślna cena zero
+            price: 0, // Default price is zero
             customPrice: 0
         };
 
         setSelectedServices([...selectedServices, customService]);
-        setSearchQuery(''); // Wyczyść pole wyszukiwania
+        setSearchQuery(''); // Clear search field
     };
 
     const handleAddServices = () => {
         if (selectedServices.length === 0) return;
 
-        // Przygotowujemy usługi z uwzględnieniem niestandardowych cen
+        // Przygotowujemy usługi z uwzględnieniem niestandardowych cen i notatek
         const servicesWithCustomPrices = selectedServices.map(service => ({
             id: service.id,
             name: service.name,
-            price: service.customPrice !== undefined ? service.customPrice : service.price
+            price: service.customPrice !== undefined ? service.customPrice : service.price,
+            note: service.note // Upewniamy się, że nota jest dołączana do obiektu
         }));
+
+        console.log('Przygotowane usługi do wysłania:', servicesWithCustomPrices);
 
         onAddServices({
             services: servicesWithCustomPrices
         });
     };
 
-    // Obsługa kliknięcia prawym przyciskiem myszy - otwiera edytor ceny
+    // Handle right click on price - open price editor
     const handlePriceRightClick = (e: React.MouseEvent, service: SelectedServiceWithPrice) => {
-        e.preventDefault(); // Zapobiegaj domyślnemu menu kontekstowemu przeglądarki
+        e.preventDefault(); // Prevent default browser context menu
 
-        // Znajdujemy element nadrzędny (wiersz usługi)
+        // Find parent element (service row)
         const priceElement = e.currentTarget as HTMLElement;
         const serviceItem = priceElement.closest('.selected-service-item');
 
@@ -142,13 +167,13 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
             setEditingServiceId(service.id);
             setEditingPrice((service.customPrice !== undefined ? service.customPrice : service.price).toString());
 
-            // Ustal pozycję edytora ceny - centralnie obok wybranej usługi
+            // Set position of the price editor - centered next to the selected service
             setEditingPricePosition({
-                x: Math.max(10, rect.left + (rect.width / 2) - 125), // Wyśrodkowany, min 10px od lewej krawędzi
-                y: rect.top // Wyrównanie do górnej krawędzi wiersza
+                x: Math.max(10, rect.left + (rect.width / 2) - 125), // Centered, min 10px from left edge
+                y: rect.top // Aligned with top edge of row
             });
         } else {
-            // Fallback - używamy pozycji kliknięcia tylko jeśli nie znaleźliśmy wiersza
+            // Fallback - use click position if we can't find the row
             setEditingServiceId(service.id);
             setEditingPrice((service.customPrice !== undefined ? service.customPrice : service.price).toString());
 
@@ -159,9 +184,9 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         }
     };
 
-    // Obsługa kliknięcia na ikonę edycji ceny
+    // Handle click on edit price icon
     const handleEditPrice = (e: React.MouseEvent, service: SelectedServiceWithPrice) => {
-        // Znajdujemy element nadrzędny (wiersz usługi)
+        // Find parent element (service row)
         const priceElement = e.currentTarget as HTMLElement;
         const serviceItem = priceElement.closest('.selected-service-item');
 
@@ -171,13 +196,13 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
             setEditingServiceId(service.id);
             setEditingPrice((service.customPrice !== undefined ? service.customPrice : service.price).toString());
 
-            // Ustal pozycję edytora ceny - centralnie obok wybranej usługi
+            // Set position of price editor - centered next to selected service
             setEditingPricePosition({
-                x: Math.max(10, rect.left + (rect.width / 2) - 125), // Wyśrodkowany, min 10px od lewej krawędzi
-                y: rect.top // Wyrównanie do górnej krawędzi wiersza
+                x: Math.max(10, rect.left + (rect.width / 2) - 125), // Centered, min 10px from left edge
+                y: rect.top // Aligned with top edge of row
             });
         } else {
-            // Fallback jeśli nie znajdziemy elementu nadrzędnego
+            // Fallback if parent element not found
             const rect = priceElement.getBoundingClientRect();
 
             setEditingServiceId(service.id);
@@ -190,7 +215,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         }
     };
 
-    // Zapisywanie edytowanej ceny
+    // Save edited price
     const handleSavePrice = () => {
         if (!editingServiceId) return;
 
@@ -200,7 +225,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
             return;
         }
 
-        // Aktualizuj cenę dla wybranej usługi
+        // Update price for selected service
         setSelectedServices(prev => prev.map(service => {
             if (service.id === editingServiceId) {
                 return {
@@ -214,7 +239,43 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         setEditingServiceId(null);
     };
 
-    // Zamknij edytor ceny przy kliku poza nim
+    // Open note modal
+    const handleOpenNoteModal = (service: SelectedServiceWithPrice) => {
+        setNoteModal({
+            visible: true,
+            serviceId: service.id,
+            serviceName: service.name,
+            currentNote: service.note || ''
+        });
+    };
+
+    // Save note
+    const handleSaveNote = (note: string) => {
+        if (!noteModal.serviceId) return;
+
+        console.log('Zapisywanie notatki dla usługi:', noteModal.serviceId);
+        console.log('Treść notatki:', note);
+
+        // Aktualizacja notatki dla wybranej usługi
+        const updatedServices = selectedServices.map(service => {
+            if (service.id === noteModal.serviceId) {
+                console.log('Znaleziono usługę do aktualizacji:', service);
+                const updatedService = {
+                    ...service,
+                    note: note
+                };
+                console.log('Zaktualizowana usługa:', updatedService);
+                return updatedService;
+            }
+            return service;
+        });
+
+        console.log('Wszystkie usługi po aktualizacji:', updatedServices);
+        setSelectedServices(updatedServices);
+        setNoteModal({...noteModal, visible: false});
+    };
+
+    // Close price editor when clicking outside
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
             if (editingServiceId && !(e.target as Element).closest('.price-editor')) {
@@ -228,7 +289,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         };
     }, [editingServiceId]);
 
-    // Obsługa klawisza Enter i Escape
+    // Handle Enter and Escape keys
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (!editingServiceId) return;
@@ -246,7 +307,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         };
     }, [editingServiceId, editingPrice]);
 
-    // Sprawdza czy wpisana nazwa jest niestandardową usługą (nie istnieje w dostępnych usługach)
+    // Check if entered name is a custom service (doesn't exist in available services)
     const isCustomService = searchQuery.trim() !== '' &&
         !filteredServices.some(s => s.name.toLowerCase() === searchQuery.trim().toLowerCase()) &&
         !selectedServices.some(s => s.name.toLowerCase() === searchQuery.trim().toLowerCase());
@@ -329,7 +390,12 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                             <SelectedServicesList>
                                 {selectedServices.map(service => (
                                     <SelectedServiceItem className="selected-service-item" key={service.id}>
-                                        <SelectedServiceName>{service.name}</SelectedServiceName>
+                                        <SelectedServiceNameContainer>
+                                            <SelectedServiceName>{service.name}</SelectedServiceName>
+                                            {service.note && (
+                                                <ServiceNote>{service.note}</ServiceNote>
+                                            )}
+                                        </SelectedServiceNameContainer>
                                         <SelectedServicePrice
                                             onContextMenu={(e) => handlePriceRightClick(e, service)}
                                         >
@@ -338,14 +404,28 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                                                 <FaEdit />
                                             </EditPriceIcon>
                                         </SelectedServicePrice>
-                                        <SelectedServiceRemove
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                toggleServiceSelection(service);
-                                            }}
-                                        >
-                                            <FaTimes />
-                                        </SelectedServiceRemove>
+                                        <SelectedServiceActions>
+                                            <ActionButton
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleOpenNoteModal(service);
+                                                }}
+                                                title="Dodaj notatkę"
+                                                note={!!service.note}
+                                            >
+                                                <FaStickyNote />
+                                            </ActionButton>
+                                            <ActionButton
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    toggleServiceSelection(service);
+                                                }}
+                                                title="Usuń usługę"
+                                                danger
+                                            >
+                                                <FaTimes />
+                                            </ActionButton>
+                                        </SelectedServiceActions>
                                     </SelectedServiceItem>
                                 ))}
                                 <TotalPriceRow>
@@ -391,7 +471,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                 </ModalFooter>
             </ModalContainer>
 
-            {/* Edytor ceny */}
+            {/* Price editor */}
             {editingServiceId && (
                 <EditPricePopup
                     className="price-editor"
@@ -400,7 +480,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                         top: editingPricePosition.y,
                         left: editingPricePosition.x
                     }}
-                    onClick={(e) => e.stopPropagation()} // Zapobiegaj zamknięciu po kliknięciu w edytor
+                    onClick={(e) => e.stopPropagation()} // Prevent closing when clicking editor
                 >
                     <PopupTitle>Edytuj cenę</PopupTitle>
                     <EditPriceForm>
@@ -408,7 +488,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                             type="text"
                             value={editingPrice}
                             onChange={(e) => {
-                                // Pozwól na wprowadzanie tylko cyfr i kropki/przecinka
+                                // Allow only digits and period/comma
                                 const value = e.target.value;
                                 if (value === '' || /^[0-9]*[.,]?[0-9]*$/.test(value)) {
                                     setEditingPrice(value);
@@ -437,10 +517,22 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                     </EditPriceForm>
                 </EditPricePopup>
             )}
+
+            {/* Service Note Modal */}
+            {noteModal.visible && (
+                <ServiceNoteModalWrapper
+                    isOpen={noteModal.visible}
+                    onClose={() => setNoteModal({...noteModal, visible: false})}
+                    onSave={handleSaveNote}
+                    serviceName={noteModal.serviceName}
+                    initialNote={noteModal.currentNote}
+                />
+            )}
         </ModalOverlay>
     );
 };
 
+// Styled components
 const ModalOverlay = styled.div`
     position: fixed;
     top: 0;
@@ -662,16 +754,33 @@ const SelectedServicesList = styled.div`
 
 const SelectedServiceItem = styled.div`
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     padding: 10px 15px;
     border-bottom: 1px solid #eee;
     background-color: #f0f7ff;
 `;
 
-const SelectedServiceName = styled.div`
+const SelectedServiceNameContainer = styled.div`
+    display: flex;
+    flex-direction: column;
     flex: 1;
-    font-size: 14px;
+`;
+
+const SelectedServiceName = styled.div`
+    font-weight: normal;
     color: #34495e;
+`;
+
+// New component for service note
+const ServiceNote = styled.div`
+    font-size: 12px;
+    color: #7f8c8d;
+    margin-top: 4px;
+    font-style: italic;
+    line-height: 1.4;
+    padding-top: 4px;
+    border-top: 1px dashed #eee;
+    word-break: break-word;
 `;
 
 const SelectedServicePrice = styled.div`
@@ -700,21 +809,43 @@ const EditPriceIcon = styled.span`
     }
 `;
 
-const SelectedServiceRemove = styled.button`
+const SelectedServiceActions = styled.div`
+    display: flex;
+    gap: 5px;
+    align-items: center;
+`;
+
+const ActionButton = styled.button<{ danger?: boolean; note?: boolean }>`
     display: flex;
     align-items: center;
     justify-content: center;
     width: 24px;
     height: 24px;
-    background-color: #fef5f5;
-    color: #e74c3c;
-    border: 1px solid #fde8e8;
+    background-color: ${props => {
+        if (props.danger) return '#fef5f5';
+        if (props.note) return '#eafaf1';
+        return '#f0f7ff';
+    }};
+    color: ${props => {
+        if (props.danger) return '#e74c3c';
+        if (props.note) return '#27ae60';
+        return '#3498db';
+    }};
+    border: 1px solid ${props => {
+        if (props.danger) return '#fde8e8';
+        if (props.note) return '#d5f5e3';
+        return '#d5e9f9';
+    }};
     border-radius: 4px;
     font-size: 12px;
     cursor: pointer;
 
     &:hover {
-        background-color: #fde8e8;
+        background-color: ${props => {
+            if (props.danger) return '#fde8e8';
+            if (props.note) return '#d5f5e3';
+            return '#d5e9f9';
+        }};
     }
 `;
 
@@ -799,13 +930,9 @@ const ModalFooter = styled.div`
 `;
 
 const Button = styled.button<{ primary?: boolean }>`
-    display: flex;
-    align-items: center;
-    gap: 6px;
     padding: 8px 16px;
     border-radius: 4px;
     font-size: 14px;
-    font-weight: 500;
     cursor: pointer;
 
     ${props => props.primary ? `
@@ -848,7 +975,7 @@ const ConfirmButton = styled(Button)<{ disabled: boolean }>`
     }
 `;
 
-// Komponenty do edycji ceny
+// Price editor components
 const EditPricePopup = styled.div`
     background-color: white;
     border-radius: 4px;
@@ -857,7 +984,7 @@ const EditPricePopup = styled.div`
     width: 250px;
     z-index: 1100;
 
-    // Zapobiegamy wyjściu poza ekran
+    // Prevent extending outside the screen
     &.price-editor {
         max-width: calc(100vw - 40px);
     }

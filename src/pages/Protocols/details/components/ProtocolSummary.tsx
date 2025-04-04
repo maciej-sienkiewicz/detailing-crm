@@ -81,9 +81,8 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
     };
 
     // Obsługa dodania nowych usług
-    // Zaktualizowana funkcja handleAddServices bez obsługi customMessage
     const handleAddServices = async (servicesData: {
-        services: Array<{ id: string; name: string; price: number }>;
+        services: Array<{ id: string; name: string; price: number; note?: string }>;
     }) => {
         if (servicesData.services.length === 0) return;
 
@@ -91,18 +90,33 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
             setIsLoading(true);
             const now = new Date().toISOString();
 
-            // Utworzenie nowych usług
-            const newServices: SelectedService[] = servicesData.services.map(serviceData => ({
-                id: `service_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
-                name: serviceData.name,
-                price: serviceData.price,
-                discountType: 'PERCENTAGE', // Domyślny typ rabatu
-                discountValue: 0,           // Domyślna wartość rabatu
-                finalPrice: serviceData.price,
-                approvalStatus: ServiceApprovalStatus.PENDING,
-                addedAt: now,
-                confirmationMessage: `Wysłano SMS z prośbą o potwierdzenie usługi`
-            }));
+            // Wypisz dane otrzymane z modalu
+            console.log('Dane usług otrzymane z modalu:', servicesData.services);
+
+            // Utworzenie nowych usług z zachowaniem notatek
+            const newServices: SelectedService[] = servicesData.services.map(serviceData => {
+                const newService: SelectedService = {
+                    id: `service_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+                    name: serviceData.name,
+                    price: serviceData.price,
+                    discountType: 'PERCENTAGE', // Domyślny typ rabatu
+                    discountValue: 0,           // Domyślna wartość rabatu
+                    finalPrice: serviceData.price,
+                    approvalStatus: ServiceApprovalStatus.PENDING,
+                    addedAt: now,
+                    confirmationMessage: `Wysłano SMS z prośbą o potwierdzenie usługi`
+                };
+
+                // Dodaj notatkę, jeśli istnieje
+                if (serviceData.note) {
+                    newService.note = serviceData.note;
+                    console.log(`Dodano notatkę do usługi ${serviceData.name}:`, serviceData.note);
+                }
+
+                return newService;
+            });
+
+            console.log('Przygotowane usługi do dodania do protokołu:', newServices);
 
             // Dodanie usług do protokołu
             const updatedServices = [...protocol.selectedServices, ...newServices];
@@ -112,27 +126,17 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                 updatedAt: now
             };
 
-            // W rzeczywistej implementacji użylibyśmy API backendu:
-            // const savedProtocol = await addServicesWithNotification(protocol.id, servicesData.services);
-
-            // Symulacja zapisu do backendu
+            // Zapisz do API
             const savedProtocol = await protocolsApi.updateProtocol(updatedProtocol);
 
-            // Aktualizacja UI
-            if (onProtocolUpdate) {
-                console.log('Wywołanie onProtocolUpdate z nowymi usługami:', savedProtocol);
-                onProtocolUpdate(savedProtocol);
-            } else {
-                console.warn('onProtocolUpdate nie jest dostępna, brak aktualizacji UI');
-            }
+            // Zaktualizuj UI
+            onProtocolUpdate(savedProtocol);
 
+            // Zamknij modal
             setShowAddServiceModal(false);
 
             // Informacja dla użytkownika
             alert(`Dodano ${newServices.length} ${newServices.length === 1 ? 'usługę' : newServices.length < 5 ? 'usługi' : 'usług'}. SMS zostanie wysłany na numer ${protocol.phone}.`);
-
-            // W rzeczywistym systemie backend wysłałby SMS do klienta
-            console.log(`SMS zostanie wysłany przez backend na numer: ${protocol.phone}`);
         } catch (error) {
             console.error('Błąd podczas dodawania nowych usług:', error);
             alert('Wystąpił błąd podczas dodawania usług. Spróbuj ponownie.');
