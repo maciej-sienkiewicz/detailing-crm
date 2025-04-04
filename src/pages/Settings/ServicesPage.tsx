@@ -164,7 +164,6 @@ const ServicesPage: React.FC = () => {
         }
     };
 
-    // Obsługa zapisu usługi (dodawanie lub aktualizacja)
     const handleSaveService = async (service: Service) => {
         try {
             let savedService: Service;
@@ -177,14 +176,24 @@ const ServicesPage: React.FC = () => {
             } else {
                 // Dodanie nowej usługi
                 const { id, ...serviceData } = service;
-                savedService = await servicesApi.createService(serviceData);
-                // Aktualizacja stanu lokalnego
-                setServices([...services, savedService]);
+                try {
+                    savedService = await servicesApi.createService(serviceData);
+
+                    // Aktualizacja stanu lokalnego
+                    if (savedService) {
+                        setServices([...services, savedService]);
+                    }
+                } catch (error) {
+                    console.error('Błąd podczas tworzenia usługi:', error);
+                    setError('Nie udało się zapisać usługi w bazie danych.');
+                    throw error;
+                }
             }
 
             setShowModal(false);
             setEditingService(null);
         } catch (err) {
+            console.error('Nie udało się zapisać usługi:', err);
             setError('Nie udało się zapisać usługi.');
         }
     };

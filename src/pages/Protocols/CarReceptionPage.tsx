@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaArrowLeft, FaPlus } from 'react-icons/fa';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { fetchAvailableServices } from '../../api/mocks/carReceptionMocks';
+import { servicesApi } from '../../api/servicesApi';
 import {
     PageContainer,
     PageHeader,
@@ -113,7 +113,7 @@ const CarReceptionPage: React.FC = () => {
     useEffect(() => {
         const fetchServices = async () => {
             try {
-                const servicesData = await fetchAvailableServices();
+                const servicesData = await servicesApi.fetchServices();
                 setAvailableServices(servicesData);
             } catch (err) {
                 console.error('Error fetching available services:', err);
@@ -122,6 +122,25 @@ const CarReceptionPage: React.FC = () => {
 
         fetchServices();
     }, []);
+
+    // Funkcja do ponownego załadowania usług po dodaniu nowej
+    const refreshServices = async () => {
+        try {
+            console.log("Odświeżanie listy usług...");
+            const servicesData = await servicesApi.fetchServices();
+            console.log("Pobrano zaktualizowaną listę usług:", servicesData.length);
+            setAvailableServices(prevServices => {
+                // Zachowujemy referencję do poprzedniego stanu, jeśli nowy jest pusty
+                if (!servicesData || servicesData.length === 0) {
+                    console.warn("Pobrano pustą listę usług, zachowuję poprzedni stan");
+                    return prevServices;
+                }
+                return servicesData;
+            });
+        } catch (err) {
+            console.error('Error refreshing services list:', err);
+        }
+    };
 
     // Obsługa przekierowania z innych widoków
     useEffect(() => {
@@ -212,6 +231,7 @@ const CarReceptionPage: React.FC = () => {
                             isFullProtocol={isFullProtocol}
                             onSave={handleSaveProtocol}
                             onCancel={handleFormCancel}
+                            onServiceAdded={refreshServices}
                         />
                     ) : (
                         <ProtocolList

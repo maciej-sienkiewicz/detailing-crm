@@ -74,11 +74,42 @@ export const servicesApi = {
     },
 
     // Tworzenie nowej usługi
-    createService: async (serviceData: ServiceData): Promise<Service> => {
+    createService: async (serviceData: ServiceData): Promise<any> => {
         try {
             const requestData = convertCamelToSnake(serviceData);
             const response = await apiClient.post<any>('/services', requestData);
-            return convertSnakeToCamel(response) as Service;
+
+            console.log("Odpowiedź API przy tworzeniu usługi:", response);
+
+            // Po utworzeniu usługi, serwer zwraca tylko ID (ServiceRecipeId)
+            // Tworzymy lokalnie obiekt symulujący pełną odpowiedź usługi
+            if (response && typeof response === 'object' && 'value' in response) {
+                // Oznacza to, że otrzymaliśmy odpowiedź w formacie {value: "123456"}
+                return {
+                    id: response.value,
+                    name: serviceData.name,
+                    description: serviceData.description,
+                    price: serviceData.price,
+                    vatRate: serviceData.vatRate,
+                    // Dodajemy brakujące pola z bieżącą datą
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+            } else if (typeof response === 'string') {
+                // Jeśli odpowiedź to string, zakładamy że to ID
+                return {
+                    id: response,
+                    name: serviceData.name,
+                    description: serviceData.description,
+                    price: serviceData.price,
+                    vatRate: serviceData.vatRate,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+            }
+
+            // Jeśli jednak otrzymaliśmy pełną odpowiedź, używamy jej po konwersji
+            return convertSnakeToCamel(response);
         } catch (error) {
             console.error('Error creating service:', error);
             throw error;

@@ -46,6 +46,7 @@ interface EditProtocolFormProps {
     isFullProtocol?: boolean;
     onSave: (protocol: CarReceptionProtocol, showConfirmationModal: boolean) => void;
     onCancel: () => void;
+    onServiceAdded?: () => void; // Nowa funkcja callback do odświeżenia listy usług
 }
 
 export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
@@ -55,7 +56,8 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
                                                                       appointmentId,
                                                                       isFullProtocol = true,
                                                                       onSave,
-                                                                      onCancel
+                                                                      onCancel,
+                                                                      onServiceAdded
                                                                   }) => {
     // Custom hooks for form management
     const {
@@ -213,6 +215,13 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
         setShowResults(false);
     };
 
+    // Wywołanie funkcji odświeżającej po dodaniu nowej usługi
+    const handleServiceAdded = () => {
+        if (onServiceAdded) {
+            onServiceAdded();
+        }
+    };
+
     return (
         <FormContainer>
             <FormHeader
@@ -263,13 +272,13 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
                     onSelectService={handleSelectService}
                     onAddService={handleAddService}
                     onAddServiceDirect={handleAddServiceDirect}
-                    onRemoveService={removeService}
                     onDiscountTypeChange={updateDiscountType}
                     onDiscountValueChange={updateDiscountValue}
                     onBasePriceChange={updateBasePrice}
                     onAddNote={updateServiceNote}
                     calculateTotals={calculateTotals}
                     allowCustomService={true}
+                    onServiceAdded={handleServiceAdded}
                 />
 
                 <ImageUploadSection
