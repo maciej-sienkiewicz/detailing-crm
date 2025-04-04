@@ -90,15 +90,6 @@ const QuantityInput = styled.input`
         box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
     }
 
-    &::-webkit-outer-spin-button,
-    &::-webkit-inner-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
-    }
-    &[type=number] {
-        -moz-appearance: textfield;
-    }
-
     @media (max-width: 768px) {
         width: 50px;
         padding: 4px 6px;
@@ -268,7 +259,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                                                    }) => {
     const { totalPrice, totalDiscount, totalFinalPrice } = calculateTotals();
 
-    // State dla menu kontekstowego
+    // Stan dla menu kontekstowego
     const [contextMenu, setContextMenu] = useState<{
         visible: boolean;
         x: number;
@@ -308,6 +299,9 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
         serviceName: '',
         currentNote: ''
     });
+
+    // State dla ilości (jako tekst) dla każdej usługi
+    const [quantityInputs, setQuantityInputs] = useState<Record<string, string>>({});
 
     // State do przechowywania nowej ceny jako string, aby uniknąć problemów z zerami wiodącymi
     const [newPrice, setNewPrice] = useState<string>('');
@@ -361,15 +355,63 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
         setEditPopup({...editPopup, visible: false});
     };
 
-    // Obsługa zmiany ilości
-    const handleQuantityChange = (serviceId: string, e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = parseInt(e.target.value);
+    // Obsługa zmiany ilości - aktualizuje stan lokalny pola wprowadzania
+    const handleQuantityInputChange = (serviceId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
 
-        // Minimalna ilość to 1
-        const quantity = isNaN(value) || value < 1 ? 1 : value;
-
-        onQuantityChange(serviceId, quantity);
+        // Aktualizacja stanu lokalnego pola wprowadzania - pozwala na naturalne edytowanie
+        setQuantityInputs({
+            ...quantityInputs,
+            [serviceId]: value
+        });
     };
+
+    // Obsługa zatwierdzenia ilości - wywoływane na blur lub enter
+    const handleQuantityBlur = (serviceId: string) => {
+        const inputValue = quantityInputs[serviceId] || '';
+        const parsedValue = parseInt(inputValue, 10);
+
+        // Jeśli wartość jest prawidłową liczbą i nie jest taka sama jak bieżąca ilość
+        if (!isNaN(parsedValue) && parsedValue > 0) {
+            onQuantityChange(serviceId, parsedValue);
+        } else {
+            // Jeśli wartość jest nieprawidłowa, przywróć aktualną ilość z usługi
+            const service = services.find(s => s.id === serviceId);
+            if (service) {
+                setQuantityInputs({
+                    ...quantityInputs,
+                    [serviceId]: String(service.quantity || 1)
+                });
+            }
+        }
+    };
+
+    // Obsługa klawisza Enter w polu ilości
+    const handleQuantityKeyDown = (serviceId: string, e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleQuantityBlur(serviceId);
+        }
+    };
+
+    // Inicjalizacja/aktualizacja wartości pola ilości na podstawie usługi
+    React.useEffect(() => {
+        const newInputs: Record<string, string> = {};
+
+        services.forEach(service => {
+            // Użyj istniejącej wartości (jeśli użytkownik edytuje) lub weź z usługi
+            if (!(service.id in quantityInputs)) {
+                newInputs[service.id] = String(service.quantity || 1);
+            }
+        });
+
+        if (Object.keys(newInputs).length > 0) {
+            setQuantityInputs(prev => ({
+                ...prev,
+                ...newInputs
+            }));
+        }
+    }, [services]);
 
     // Otwórz modal dodawania/edycji notatki
     const handleOpenNoteModal = (service: ServiceWithNote) => {
@@ -475,10 +517,13 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                             {/* Nowa kolumna z polem do wprowadzania ilości */}
                             <TableCell>
                                 <QuantityInput
-                                    type="number"
-                                    min="1"
-                                    value={service.quantity || 1}
-                                    onChange={(e) => handleQuantityChange(service.id, e)}
+                                    type="text"
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
+                                    value={quantityInputs[service.id] || ''}
+                                    onChange={(e) => handleQuantityInputChange(service.id, e)}
+                                    onBlur={() => handleQuantityBlur(service.id)}
+                                    onKeyDown={(e) => handleQuantityKeyDown(service.id, e)}
                                 />
                             </TableCell>
                             <DiscountCell>
@@ -505,7 +550,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                                         </DiscountInputGroup>
                                         {service.discountType === DiscountType.PERCENTAGE && (
                                             <DiscountPercentage>
-                                                ({(service.price * service.quantity * service.discountValue / 100).toFixed(2)} zł)
+                                                ({(service.price * (service.quantity || 1) * service.discountValue / 100).toFixed(2)} zł)
                                             </DiscountPercentage>
                                         )}
                                     </StyledDiscountContainer>

@@ -25,10 +25,6 @@ export const useFormValidation = (formData: Partial<CarReceptionProtocol>) => {
             newErrors.model = 'Model pojazdu jest wymagany';
         }
 
-        if (!formData.productionYear || formData.productionYear < 1900 || formData.productionYear > new Date().getFullYear() + 1) {
-            newErrors.productionYear = 'Podaj prawidłowy rok produkcji';
-        }
-
         if (!formData.ownerName?.trim()) {
             newErrors.ownerName = 'Imię i nazwisko właściciela jest wymagane';
         }
