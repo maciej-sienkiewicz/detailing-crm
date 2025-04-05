@@ -12,7 +12,7 @@ interface Service {
 
 interface SelectedServiceWithPrice extends Service {
     customPrice?: number;
-    quantity?: number;  // Dodane pole ilości
+    quantity: number;  // Teraz nie jest opcjonalne
     note?: string;
 }
 
@@ -27,7 +27,13 @@ interface AddServiceModalProps {
     isOpen: boolean;
     onClose: () => void;
     onAddServices: (servicesData: {
-        services: ServiceWithNote[];
+        services: Array<{
+            id: string;
+            name: string;
+            price: number;
+            note?: string;
+            quantity: number; // Dodane pole quantity, które nie jest opcjonalne
+        }>;
     }) => void;
     availableServices: Service[];
     customerPhone?: string;
@@ -98,8 +104,11 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
             // If the service is already selected, remove it
             setSelectedServices(selectedServices.filter(s => s.id !== service.id));
         } else {
-            // Otherwise add it
-            setSelectedServices([...selectedServices, { ...service }]);
+            // Otherwise add it with default quantity of 1
+            setSelectedServices([...selectedServices, {
+                ...service,
+                quantity: 1 // Dodajemy domyślną wartość dla quantity
+            }]);
         }
     };
 
@@ -128,6 +137,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         const customService: SelectedServiceWithPrice = {
             id: `custom-${Date.now()}`,
             name: searchQuery.trim(),
+            quantity: 1,
             price: 0, // Default price is zero
             customPrice: 0
         };
@@ -144,7 +154,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
             id: service.id,
             name: service.name,
             price: service.customPrice !== undefined ? service.customPrice : service.price,
-            quantity: service.quantity || 1,  // Uwzględniamy ilość
+            quantity: service.quantity || 1,  // Zawsze przekazujemy ilość, domyślnie 1
             note: service.note
         }));
 

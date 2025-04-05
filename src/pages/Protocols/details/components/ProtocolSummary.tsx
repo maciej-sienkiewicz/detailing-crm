@@ -12,7 +12,8 @@ import {
     FaPlus,
     FaTags,
     FaTimesCircle,
-    FaUser
+    FaUser,
+    FaTrash
 } from 'react-icons/fa';
 import {CarReceptionProtocol, ProtocolStatus, SelectedService, ServiceApprovalStatus} from '../../../../types';
 import {fetchAvailableServices} from '../../../../api/mocks/carReceptionMocks';
@@ -69,6 +70,32 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
         }
     };
 
+    // Obsługa usuwania usługi (dla wszystkich usług, nie tylko oczekujących)
+    const handleDeleteService = async (serviceId: string) => {
+        if (!window.confirm('Czy na pewno chcesz usunąć tę usługę?')) return;
+
+        // Filtrujemy usługi, usuwając wybraną
+        const updatedServices = protocol.selectedServices.filter(service => service.id !== serviceId);
+        const updatedProtocol = {
+            ...protocol,
+            selectedServices: updatedServices,
+            updatedAt: new Date().toISOString()
+        };
+
+        try {
+            const savedProtocol = await protocolsApi.updateProtocol(updatedProtocol);
+
+            if (onProtocolUpdate) {
+                console.log('Wywołanie onProtocolUpdate po usunięciu usługi:', savedProtocol);
+                onProtocolUpdate(savedProtocol);
+            } else {
+                console.warn('onProtocolUpdate nie jest dostępna, brak aktualizacji UI');
+            }
+        } catch (error) {
+            console.error('Błąd podczas usuwania usługi', error);
+        }
+    };
+
     // Obsługa ponownego wysłania powiadomienia
     const handleResendNotification = async (serviceId: string) => {
         // Znajdujemy usługę, dla której wysyłamy ponownie powiadomienie
@@ -82,7 +109,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
 
     // Obsługa dodania nowych usług
     const handleAddServices = async (servicesData: {
-        services: Array<{ id: string; name: string; price: number; note?: string }>;
+        services: Array<{ id: string; name: string; price: number; note?: string; quantity: number }>;
     }) => {
         if (servicesData.services.length === 0) return;
 
@@ -93,15 +120,16 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
             // Wypisz dane otrzymane z modalu
             console.log('Dane usług otrzymane z modalu:', servicesData.services);
 
-            // Utworzenie nowych usług z zachowaniem notatek
+            // Utworzenie nowych usług z zachowaniem notatek i liczby sztuk
             const newServices: SelectedService[] = servicesData.services.map(serviceData => {
                 const newService: SelectedService = {
                     id: `service_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
                     name: serviceData.name,
                     price: serviceData.price,
+                    quantity: serviceData.quantity || 1, // Uwzględniamy ilość, domyślnie 1
                     discountType: 'PERCENTAGE', // Domyślny typ rabatu
                     discountValue: 0,           // Domyślna wartość rabatu
-                    finalPrice: serviceData.price,
+                    finalPrice: serviceData.price * (serviceData.quantity || 1), // Cena × ilość
                     approvalStatus: ServiceApprovalStatus.PENDING,
                     addedAt: now,
                     confirmationMessage: `Wysłano SMS z prośbą o potwierdzenie usługi`
@@ -259,9 +287,9 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                 <SectionTitleWithAction>
                     <SectionTitle>Usługi</SectionTitle>
                     {protocol.status == ProtocolStatus.IN_PROGRESS && (
-                    <AddButton onClick={handleOpenAddServiceModal} disabled={isLoading}>
-                        <FaPlus /> {isLoading ? 'Ładowanie...' : 'Dodaj usługę'}
-                    </AddButton>
+                        <AddButton onClick={handleOpenAddServiceModal} disabled={isLoading}>
+                            <FaPlus /> {isLoading ? 'Ładowanie...' : 'Dodaj usługę'}
+                        </AddButton>
                     )}
                 </SectionTitleWithAction>
 
@@ -269,6 +297,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                     <TableHeader>
                         <HeaderCell wide>Nazwa usługi</HeaderCell>
                         <HeaderCell>Cena bazowa</HeaderCell>
+                        <HeaderCell>Liczba sztuk</HeaderCell>
                         <HeaderCell>Rabat</HeaderCell>
                         <HeaderCell>Cena końcowa</HeaderCell>
                         <HeaderCell action>Akcje</HeaderCell>
@@ -276,7 +305,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
 
                     {allServices.length === 0 ? (
                         <TableRow>
-                            <TableCell colSpan={5} style={{ textAlign: 'center' }}>
+                            <TableCell colSpan={6} style={{ textAlign: 'center' }}>
                                 Brak usług. Kliknij "Dodaj usługę", aby dodać pierwszą.
                             </TableCell>
                         </TableRow>
@@ -303,6 +332,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                                     </ServiceNameContainer>
                                 </TableCell>
                                 <TableCell>{service.price.toFixed(2)} zł</TableCell>
+                                <TableCell>{service.quantity || 1}</TableCell>
                                 <TableCell>
                                     {service.discountValue > 0
                                         ? `${service.discountValue}${service.discountType === 'PERCENTAGE' ? '%' : ' zł'}`
@@ -311,23 +341,32 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                                 </TableCell>
                                 <TableCell>{service.finalPrice.toFixed(2)} zł</TableCell>
                                 <TableCell action>
-                                    {service.approvalStatus === ServiceApprovalStatus.PENDING && (
-                                        <ActionButtons>
-                                            <ActionButton
-                                                title="Wyślij ponownie SMS"
-                                                onClick={() => handleResendNotification(service.id)}
-                                            >
-                                                <FaBell />
-                                            </ActionButton>
-                                            <ActionButton
-                                                title="Anuluj usługę"
-                                                danger
-                                                onClick={() => handleCancelService(service.id)}
-                                            >
-                                                <FaTimesCircle />
-                                            </ActionButton>
-                                        </ActionButtons>
-                                    )}
+                                    <ActionButtons>
+                                        {service.approvalStatus === ServiceApprovalStatus.PENDING && (
+                                            <>
+                                                <ActionButton
+                                                    title="Wyślij ponownie SMS"
+                                                    onClick={() => handleResendNotification(service.id)}
+                                                >
+                                                    <FaBell />
+                                                </ActionButton>
+                                                <ActionButton
+                                                    title="Anuluj usługę"
+                                                    danger
+                                                    onClick={() => handleCancelService(service.id)}
+                                                >
+                                                    <FaTimesCircle />
+                                                </ActionButton>
+                                            </>
+                                        )}
+                                        <ActionButton
+                                            title="Usuń usługę"
+                                            danger
+                                            onClick={() => handleDeleteService(service.id)}
+                                        >
+                                            <FaTrash />
+                                        </ActionButton>
+                                    </ActionButtons>
                                 </TableCell>
                             </TableRow>
                         ))
@@ -336,8 +375,9 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                     <TableFooter>
                         <FooterCell wide>Razem</FooterCell>
                         <FooterCell>{allServices.reduce((sum, s) => sum + s.price, 0).toFixed(2)} zł</FooterCell>
+                        <FooterCell>{allServices.reduce((sum, s) => sum + (s.quantity || 1), 0)}</FooterCell>
                         <FooterCell>
-                            {(allServices.reduce((sum, s) => sum + s.price, 0) - (approvedValue + pendingValue)).toFixed(2)} zł
+                            {(allServices.reduce((sum, s) => sum + s.price * (s.quantity || 1), 0) - (approvedValue + pendingValue)).toFixed(2)} zł
                         </FooterCell>
                         <FooterCell>
                             <TotalValue highlight>{approvedValue.toFixed(2)} zł</TotalValue>
@@ -487,7 +527,7 @@ const HeaderCell = styled.div<{ wide?: boolean; action?: boolean }>`
     padding: 12px 16px;
     font-size: 13px;
     color: #7f8c8d;
-    flex: ${props => props.wide ? 2 : props.action ? 0.5 : 1};
+    flex: ${props => props.wide ? 2 : props.action ? 0.7 : 1};
 `;
 
 const TableRow = styled.div<{ pending?: boolean }>`
@@ -505,7 +545,7 @@ const TableCell = styled.div<{ wide?: boolean; colSpan?: number; action?: boolea
     padding: 12px 16px;
     font-size: 14px;
     color: #34495e;
-    flex: ${props => props.wide ? 2 : props.action ? 0.5 : props.colSpan ? props.colSpan : 1};
+    flex: ${props => props.wide ? 2 : props.action ? 0.7 : props.colSpan ? props.colSpan : 1};
 `;
 
 const ServiceNameContainer = styled.div`
@@ -577,7 +617,7 @@ const FooterCell = styled.div<{ wide?: boolean; highlight?: boolean; action?: bo
     font-size: 14px;
     color: ${props => props.highlight ? '#27ae60' : '#34495e'};
     font-weight: ${props => props.highlight ? '600' : '500'};
-    flex: ${props => props.wide ? 2 : props.action ? 0.5 : 1};
+    flex: ${props => props.wide ? 2 : props.action ? 0.7 : 1};
 `;
 
 const TotalValue = styled.div<{ highlight?: boolean }>`
