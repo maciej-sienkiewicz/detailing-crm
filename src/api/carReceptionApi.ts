@@ -70,7 +70,6 @@ export const carReceptionApi = {
     // Tworzenie nowego protokołu przyjęcia
     createCarReceptionProtocol: async (protocol: Omit<CarReceptionProtocol, 'id' | 'createdAt' | 'updatedAt' | 'statusUpdatedAt'>): Promise<CarReceptionProtocol> => {
         try {
-            console.log('Sending protocol data to server:', protocol);
 
             // Sprawdzamy czy mamy zdjęcia z plikami do wysłania
             const hasImages = protocol.vehicleImages && protocol.vehicleImages.length > 0;
@@ -116,8 +115,6 @@ export const carReceptionApi = {
                 // Wysyłanie żądania POST z FormData
                 const response = await apiClient.post<CarReceptionResponse>('/receptions/with-files', formData);
 
-                console.log('Server response:', response);
-
                 // Konwertuj odpowiedź na format używany w aplikacji
                 const convertedResponse = convertToCamelCase(response);
 
@@ -142,7 +139,6 @@ export const carReceptionApi = {
 
                 // Wysyłanie żądania POST z JSON
                 const response = await apiClient.post<CarReceptionResponse>('/receptions', requestData);
-                console.log('Server response:', response);
 
                 // Konwertuj odpowiedź na format używany w aplikacji
                 const convertedResponse = convertToCamelCase(response);

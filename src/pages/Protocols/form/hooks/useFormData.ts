@@ -61,22 +61,49 @@ export const useFormData = (
     const { errors, validateForm, clearFieldError } = useFormValidation(formData);
 
     // Efekt do obsługi startDate z kalendarza
+// W pliku src/pages/Protocols/form/hooks/useFormData.ts (linia około 49)
+// W useEffect obsługującym inicjalizację daty
+
+// W pliku src/pages/Protocols/form/hooks/useFormData.ts (linia około 49)
+// W useEffect obsługującym inicjalizację daty
+
     useEffect(() => {
         if (initialData?.startDate) {
-            // Jeśli mamy datę z kalendarza to musimy dodać do niej czas (8:00 rano)
-            let startDateWithTime = initialData.startDate;
-            if (!startDateWithTime.includes('T')) {
+            // Logujemy wartość daty początkowej dla celów diagnostycznych
+            console.log('Inicjalizacja formularza z datą początkową:', initialData.startDate);
+
+            // Sprawdzamy format daty
+            let startDateWithTime: string = initialData.startDate;
+
+            // Jeśli mamy pełną datę ISO, używamy jej bezpośrednio
+            if (startDateWithTime.includes('T')) {
+                // Data już ma format ISO z czasem, nie modyfikujemy
+                console.log('Użycie pełnej daty ISO z czasem');
+            } else {
+                // Jeśli mamy tylko datę YYYY-MM-DD, dodajemy domyślny czas (8:00)
                 startDateWithTime = `${startDateWithTime}T08:00:00`;
+                console.log('Dodanie domyślnego czasu 08:00 do daty');
             }
 
             // Dla endDate zawsze ustawiamy koniec dnia
-            let endDateWithTime = initialData.endDate || initialData.startDate;
-            if (!endDateWithTime.includes('T')) {
-                endDateWithTime = `${endDateWithTime}T23:59:59`;
-            } else if (!endDateWithTime.endsWith('23:59:59')) {
-                // Jeśli już ma czas, ale nie jest to koniec dnia, zmieniamy na koniec dnia
-                endDateWithTime = `${endDateWithTime.split('T')[0]}T23:59:59`;
+            let endDateWithTime: string;
+
+            if (initialData.endDate) {
+                endDateWithTime = initialData.endDate;
+
+                if (!endDateWithTime.includes('T')) {
+                    // Jeśli endDate jest tylko datą (YYYY-MM-DD), dodajemy koniec dnia
+                    endDateWithTime = `${endDateWithTime}T23:59:59`;
+                } else if (!endDateWithTime.endsWith('23:59:59')) {
+                    // Jeśli już ma czas, ale nie jest to koniec dnia, zmieniamy na koniec dnia
+                    endDateWithTime = `${endDateWithTime.split('T')[0]}T23:59:59`;
+                }
+            } else {
+                // Jeśli nie ma endDate, ustawiamy na ten sam dzień co startDate, ale na koniec dnia
+                endDateWithTime = `${startDateWithTime.split('T')[0]}T23:59:59`;
             }
+
+            console.log('Ustawiona data końcowa:', endDateWithTime);
 
             setFormData(prev => ({
                 ...prev,

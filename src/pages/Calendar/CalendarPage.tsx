@@ -120,10 +120,15 @@ const CalendarPage: React.FC = () => {
     // Obsługa potwierdzenia tworzenia nowej wizyty
     const handleConfirmNewVisit = () => {
         setShowNewVisitConfirmation(false);
-        // Przekierowanie do strony protokołu z flagą isFullProtocol=false
+
+        // Tworzymy datę w lokalnej strefie czasowej z przesunięciem o 12:00
+        // aby uniknąć problemów ze strefami czasowymi
+        const localDate = new Date(selectedDate);
+        localDate.setHours(12, 0, 0, 0); // Ustawiamy godzinę na 12:00
+
         navigate('/orders', {
             state: {
-                startDate: selectedDate.toISOString().split('T')[0],
+                startDate: localDate.toISOString(), // Przekazujemy datę ISO z godziną 12:00
                 isFullProtocol: false
             }
         });

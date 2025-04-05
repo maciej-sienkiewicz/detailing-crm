@@ -108,11 +108,9 @@ export const protocolsApi = {
         try {
             // Pobierz dane z API
             const rawData = await apiClient.get<any>(`/receptions/${id}`);
-            console.log('Raw protocol data:', rawData);
 
             // Przekształć dane ze snake_case na camelCase i wzbogać o brakujące pola
             const transformedData = enrichProtocolData(rawData);
-            console.log('Transformed protocol data:', transformedData);
 
             return transformedData;
         } catch (error) {

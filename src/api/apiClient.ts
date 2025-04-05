@@ -22,7 +22,6 @@ const apiFetch = async <T>(endpoint: string, options: RequestInit = {}): Promise
     const url = `${API_BASE_URL}${endpoint}`;
 
     // Logowanie wywołania API do konsoli dla debugowania
-    console.log(`API request to: ${url}`, options);
 
     // Sprawdzamy, czy mamy do czynienia z FormData
     const isFormData = options.body instanceof FormData;
@@ -59,7 +58,6 @@ const apiFetch = async <T>(endpoint: string, options: RequestInit = {}): Promise
     const response = await fetch(url, fetchOptions);
 
     // Logowanie statusu odpowiedzi
-    console.log(`API response status: ${response.status}`);
 
     if (!response.ok) {
         // Obsługa różnych kodów błędów HTTP

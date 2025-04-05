@@ -56,15 +56,12 @@ const CarReceptionPage: React.FC = () => {
 
     // Obsługa zamknięcia modalu protokołu
     const handleProtocolConfirmationClosed = () => {
-        console.log('Modal potwierdzenia zamknięty');
-
         // Sprawdz, ktory modal zamykamy
         if (isShowingConfirmationModal) {
             setIsShowingConfirmationModal(false);
 
             // Jesli zamykamy modal w trakcie edycji
             if (currentProtocol) {
-                console.log(`Kończenie procesu zapisu po zamknięciu modalu, protocol.id: ${currentProtocol.id}`);
                 refreshProtocolsList();
                 setShowForm(false);
                 navigate(`/orders/car-reception/${currentProtocol.id}`);
@@ -78,19 +75,16 @@ const CarReceptionPage: React.FC = () => {
 
     // Obsługa potwierdzeń z modalu protokołu
     const handleProtocolConfirmationConfirm = (options: { print: boolean; sendEmail: boolean }) => {
-        console.log('Potwierdzenie z modalu:', options);
 
         // Pobierz odpowiedni protocol z zaleznosci od kontekstu
         const protocol = currentProtocol || postNavigationProtocol;
 
         // Tutaj można zaimplementować faktyczne drukowanie lub wysyłanie e-maila
         if (options.print && protocol) {
-            console.log('Drukowanie protokołu', protocol.id);
             // W rzeczywistej aplikacji wywołalibyśmy usługę drukowania
         }
 
         if (options.sendEmail && protocol?.email) {
-            console.log('Wysyłanie protokołu e-mailem do', protocol.email);
             // W rzeczywistej aplikacji wywołalibyśmy usługę wysyłania e-maila
         }
 
@@ -111,6 +105,11 @@ const CarReceptionPage: React.FC = () => {
 
     // Efekt do pobierania usług
     useEffect(() => {
+        if (startDateFromCalendar) {
+            setShowForm(true);
+            console.log('Data z kalendarza:', startDateFromCalendar);
+        }
+
         const fetchServices = async () => {
             try {
                 const servicesData = await servicesApi.fetchServices();
@@ -126,9 +125,7 @@ const CarReceptionPage: React.FC = () => {
     // Funkcja do ponownego załadowania usług po dodaniu nowej
     const refreshServices = async () => {
         try {
-            console.log("Odświeżanie listy usług...");
             const servicesData = await servicesApi.fetchServices();
-            console.log("Pobrano zaktualizowaną listę usług:", servicesData.length);
             setAvailableServices(prevServices => {
                 // Zachowujemy referencję do poprzedniego stanu, jeśli nowy jest pusty
                 if (!servicesData || servicesData.length === 0) {
@@ -226,7 +223,13 @@ const CarReceptionPage: React.FC = () => {
                         <EditProtocolForm
                             protocol={editingProtocol}
                             availableServices={availableServices}
-                            initialData={protocolDataFromAppointment || formData}
+                            initialData={
+                                protocolDataFromAppointment ||
+                                (startDateFromCalendar ? {
+                                    ...formData,
+                                    startDate: startDateFromCalendar
+                                } : formData)
+                            }
                             appointmentId={appointmentId}
                             isFullProtocol={isFullProtocol}
                             onSave={handleSaveProtocol}
