@@ -8,23 +8,26 @@ export enum ProtocolStatus {
     SCHEDULED = 'SCHEDULED',                  // Zaplanowano
     IN_PROGRESS = 'IN_PROGRESS',              // W realizacji
     READY_FOR_PICKUP = 'READY_FOR_PICKUP',    // Oczekiwanie na odbiór
-    COMPLETED = 'COMPLETED'                   // Wydano/zakończono
+    COMPLETED = 'COMPLETED',                  // Wydano/zakończono
+    CANCELLED = 'CANCELLED'                   // Anulowano
 }
 
-// Etykiety dla statusów protokołów
+// Zaktualizuj etykiety dla statusów
 export const ProtocolStatusLabels: Record<ProtocolStatus, string> = {
     [ProtocolStatus.SCHEDULED]: 'Zaplanowano',
     [ProtocolStatus.IN_PROGRESS]: 'W realizacji',
     [ProtocolStatus.READY_FOR_PICKUP]: 'Gotowy do odbioru',
-    [ProtocolStatus.COMPLETED]: 'Zakończony'
+    [ProtocolStatus.COMPLETED]: 'Zakończony',
+    [ProtocolStatus.CANCELLED]: 'Anulowany'
 };
 
-// Kolory dla statusów protokołów
+// Zaktualizuj kolory dla statusów
 export const ProtocolStatusColors: Record<ProtocolStatus, string> = {
     [ProtocolStatus.SCHEDULED]: '#3498db',        // Niebieski
     [ProtocolStatus.IN_PROGRESS]: '#9b59b6',      // Fioletowy
     [ProtocolStatus.READY_FOR_PICKUP]: '#2ecc71', // Zielony
-    [ProtocolStatus.COMPLETED]: '#7f8c8d'         // Szary
+    [ProtocolStatus.COMPLETED]: '#7f8c8d',        // Szary
+    [ProtocolStatus.CANCELLED]: '#e74c3c'         // Czerwony
 };
 
 // Interfejs dla zdjęcia pojazdu

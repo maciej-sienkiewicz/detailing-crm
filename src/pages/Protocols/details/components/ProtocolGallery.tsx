@@ -19,9 +19,10 @@ import ImageEditModal from "../../shared/modals/ImageEditModal";
 interface ProtocolGalleryProps {
     protocol: CarReceptionProtocol;
     onProtocolUpdate: (updatedProtocol: CarReceptionProtocol) => void;
+    disabled: boolean;
 }
 
-const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolUpdate }) => {
+const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolUpdate, disabled = false }) => {
     const [images, setImages] = useState<VehicleImage[]>(protocol.vehicleImages || []);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -415,10 +416,10 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                     <FaCamera /> Zdjęcia pojazdu
                 </GalleryTitle>
                 <GalleryActions>
-                    <UploadButton onClick={handleUploadClick} disabled={isLoading}>
+                    <UploadButton onClick={handleUploadClick} disabled={isLoading || disabled}>
                         <FaUpload /> Dodaj zdjęcie
                     </UploadButton>
-                    <CameraButton onClick={handleCameraClick} disabled={isLoading}>
+                    <CameraButton onClick={handleCameraClick} disabled={isLoading || disabled}>
                         <FaCamera /> Zrób zdjęcie
                     </CameraButton>
                     <input
@@ -500,7 +501,7 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                 <EmptyGallery>
                     <EmptyGalleryIcon><FaCamera /></EmptyGalleryIcon>
                     <EmptyGalleryMessage>Brak zdjęć dla tego pojazdu</EmptyGalleryMessage>
-                    <EmptyGalleryAction onClick={handleUploadClick}>
+                    <EmptyGalleryAction onClick={handleUploadClick} disabled={disabled}>
                         <FaPlus /> Dodaj pierwsze zdjęcie
                     </EmptyGalleryAction>
                 </EmptyGallery>

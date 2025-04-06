@@ -1,7 +1,7 @@
 import React from 'react';
 import { FilterButtons, FilterButton } from '../styles';
 
-export type FilterType = 'Zaplanowane' | 'W realizacji' | 'Oczekujące na odbiór' | 'Archiwum' | 'Wszystkie';
+export type FilterType = 'Zaplanowane' | 'W realizacji' | 'Oczekujące na odbiór' | 'Archiwum' | 'Wszystkie' | 'Porzucone';
 
 interface ProtocolFiltersProps {
     activeFilter: FilterType;
@@ -40,6 +40,12 @@ export const ProtocolFilters: React.FC<ProtocolFiltersProps> = ({ activeFilter, 
                 onClick={() => onFilterChange('Archiwum')}
             >
                 Archiwum
+            </FilterButton>
+            <FilterButton
+                active={activeFilter === 'Porzucone'}
+                onClick={() => onFilterChange('Porzucone')}
+            >
+                Porzucone
             </FilterButton>
         </FilterButtons>
     );

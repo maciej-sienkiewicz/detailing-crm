@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { format } from 'date-fns';
-import { pl } from 'date-fns/locale';
-import { FaUser, FaPaperPlane, FaCalendarAlt, FaClock, FaSpinner } from 'react-icons/fa';
-import { CarReceptionProtocol } from '../../../../types';
-import { Comment, commentsApi } from '../../../../api/commentsApi';
+import {format} from 'date-fns';
+import {pl} from 'date-fns/locale';
+import {FaCalendarAlt, FaClock, FaPaperPlane, FaSpinner, FaUser} from 'react-icons/fa';
+import {CarReceptionProtocol, ProtocolStatus} from '../../../../types';
+import {Comment, commentsApi} from '../../../../api/commentsApi';
 
 interface ProtocolCommentsProps {
     protocol: CarReceptionProtocol;
@@ -100,6 +100,7 @@ const ProtocolComments: React.FC<ProtocolCommentsProps> = ({ protocol, onProtoco
                     <TypeButton
                         active={commentType === 'customer'}
                         onClick={() => setCommentType('customer')}
+                        disabled={protocol.status === ProtocolStatus.CANCELLED}
                         customerType
                     >
                         Informacja dla klienta

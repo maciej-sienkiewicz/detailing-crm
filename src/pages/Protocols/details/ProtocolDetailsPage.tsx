@@ -7,7 +7,8 @@ import {
     FaFilePdf,
     FaCarSide,
     FaCheckSquare,
-    FaKey
+    FaKey,
+    FaBan
 } from 'react-icons/fa';
 import {protocolsApi} from "../../../api/protocolsApi";
 import {Comment, commentsApi} from"../../../api/commentsApi";
@@ -25,7 +26,9 @@ import QualityVerificationModal from "./modals/QualityVerificationModal";
 import CustomerNotificationModal from "./modals/CustomerNotificationModal";
 import ClientCommentsModal from "./modals/ClientCommentsModal";
 import PaymentModal from "./modals/PaymentModal";
-import PDFViewer from "../../../components/PDFViewer";
+import PDFViewer from "../../../components/PdfViewer";
+import CancelProtocolModal from "../shared/components/CancelProtocolModal";
+
 
 // Define tab types
 type TabType = 'summary' | 'comments' | 'invoices' | 'client' | 'vehicle' | 'gallery';
@@ -39,6 +42,8 @@ const ProtocolDetailsPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<TabType>('summary');
+    const [showCancelModal, setShowCancelModal] = useState(false);
+
 
     // Stany dla modali
     const [showVerificationModal, setShowVerificationModal] = useState(false);
@@ -50,6 +55,30 @@ const ProtocolDetailsPage: React.FC = () => {
 
     // Stan do obsługi podglądu PDF
     const [showPdfPreview, setShowPdfPreview] = useState(false);
+
+    const handleCancelProtocol = async (reason: CancellationReason) => {
+        try {
+            // Wykorzystujemy istniejącą metodę updateProtocolStatus do zmiany statusu na CANCELLED
+            await protocolsApi.updateProtocolStatus(protocol.id, ProtocolStatus.CANCELLED, reason);
+
+            // Aktualizuj lokalny stan
+            setProtocol({
+                ...protocol,
+                status: ProtocolStatus.CANCELLED,
+                statusUpdatedAt: new Date().toISOString()
+            });
+
+            // Zamknij modal
+            setShowCancelModal(false);
+
+            // Opcjonalnie: pokazujemy powiadomienie o sukcesie
+            alert('Protokół został anulowany');
+        } catch (error) {
+            console.error('Błąd podczas anulowania protokołu:', error);
+            alert('Wystąpił błąd podczas anulowania protokołu');
+        }
+    };
+
 
     // Load protocol data
     useEffect(() => {
@@ -223,7 +252,7 @@ const ProtocolDetailsPage: React.FC = () => {
             case 'vehicle':
                 return <ProtocolVehicleStatus protocol={protocol} onProtocolUpdate={handleProtocolUpdate} />;
             case 'gallery':
-                return <ProtocolGallery protocol={protocol} onProtocolUpdate={handleProtocolUpdate} />;
+                return <ProtocolGallery protocol={protocol} onProtocolUpdate={handleProtocolUpdate} disabled={true} />;
             default:
                 return <ProtocolSummary protocol={protocol} onProtocolUpdate={handleProtocolUpdate} />;
         }
@@ -295,6 +324,14 @@ const ProtocolDetailsPage: React.FC = () => {
                             <FaFilePdf /> Drukuj protokół
                         </ActionButton>
                     )}
+
+                    <ActionButton
+                        title="Anuluj wizytę"
+                        danger="true"
+                        onClick={() => setShowCancelModal(true)}
+                    >
+                        <FaBan /> Anuluj wizytę
+                    </ActionButton>
                 </HeaderActions>
             </PageHeader>
 
@@ -347,6 +384,15 @@ const ProtocolDetailsPage: React.FC = () => {
                     protocolId={protocol.id}
                     onClose={() => setShowPdfPreview(false)}
                     title={`Protokół przyjęcia pojazdu #${protocol.id}`}
+                />
+            )}
+
+            {showCancelModal && (
+                <CancelProtocolModal
+                    isOpen={showCancelModal}
+                    onClose={() => setShowCancelModal(false)}
+                    onConfirm={handleCancelProtocol}
+                    protocolId={protocol.id}
                 />
             )}
         </PageContainer>
@@ -422,7 +468,7 @@ const HeaderSubtitle = styled.div`
     margin-top: 4px;
 `;
 
-const ActionButton = styled.button<{ primary?: string; special?: string; release?: string }>`
+const ActionButton = styled.button<{ primary?: string; special?: string; release?: string; danger?: string }>`
     display: flex;
     align-items: center;
     gap: 8px;
@@ -430,12 +476,14 @@ const ActionButton = styled.button<{ primary?: string; special?: string; release
     background-color: ${props => {
         if (props.special) return '#2ecc71';
         if (props.release) return '#f39c12';
+        if (props.danger) return '#e74c3c';
         return props.primary ? '#3498db' : '#f9f9f9';
     }};
-    color: ${props => props.primary || props.special || props.release ? 'white' : '#34495e'};
+    color: ${props => props.primary || props.special || props.release || props.danger ? 'white' : '#34495e'};
     border: 1px solid ${props => {
         if (props.special) return '#2ecc71';
         if (props.release) return '#f39c12';
+        if (props.danger) return '#e74c3c';
         return props.primary ? '#3498db' : '#eee';
     }};
     border-radius: 4px;
@@ -446,11 +494,13 @@ const ActionButton = styled.button<{ primary?: string; special?: string; release
         background-color: ${props => {
             if (props.special) return '#27ae60';
             if (props.release) return '#e67e22';
+            if (props.danger) return '#c0392b';
             return props.primary ? '#2980b9' : '#f0f0f0';
         }};
         border-color: ${props => {
             if (props.special) return '#27ae60';
             if (props.release) return '#e67e22';
+            if (props.danger) return '#c0392b';
             return props.primary ? '#2980b9' : '#ddd';
         }};
     }

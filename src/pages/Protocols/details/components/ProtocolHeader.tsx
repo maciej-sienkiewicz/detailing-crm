@@ -113,7 +113,7 @@ const ProtocolHeader: React.FC<ProtocolHeaderProps> = ({ protocol, onStatusChang
                 <StatusSelect
                     value={protocol.status}
                     onChange={handleStatusSelectChange}
-                    disabled={isUpdating}
+                    disabled={isUpdating || protocol.status === ProtocolStatus.CANCELLED}
                 >
                     {Object.entries(ProtocolStatusLabels).map(([value, label]) => (
                         <option key={value} value={value}>

@@ -164,7 +164,7 @@ export const protocolsApi = {
     /**
      * Zmienia status protokołu
      */
-    updateProtocolStatus: async (id: string, status: ProtocolStatus): Promise<CarReceptionProtocol | null> => {
+    updateProtocolStatus: async (id: string, status: ProtocolStatus, reason?: string): Promise<CarReceptionProtocol | null> => {
         try {
             // Przekształć dane z camelCase na snake_case (dla API)
             const statusData = { status };

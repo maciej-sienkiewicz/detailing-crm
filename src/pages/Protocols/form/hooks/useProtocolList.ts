@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { ProtocolListItem, ProtocolStatus } from '../../../../types';
 import { protocolsApi } from '../../../../api/protocolsApi';
 
-type FilterType = 'Zaplanowane' | 'W realizacji' | 'Oczekujące na odbiór' | 'Archiwum' | 'Wszystkie';
+type FilterType = 'Zaplanowane' | 'W realizacji' | 'Oczekujące na odbiór' | 'Archiwum' | 'Wszystkie' | 'Porzucone';
 
 interface UseProtocolListResult {
     protocols: ProtocolListItem[];
@@ -20,7 +20,8 @@ const filterMapping: Record<FilterType, ProtocolStatus[]> = {
     'W realizacji': [ProtocolStatus.IN_PROGRESS],
     'Oczekujące na odbiór': [ProtocolStatus.READY_FOR_PICKUP],
     'Archiwum': [ProtocolStatus.COMPLETED],
-    'Wszystkie': [ProtocolStatus.SCHEDULED, ProtocolStatus.IN_PROGRESS, ProtocolStatus.READY_FOR_PICKUP, ProtocolStatus.COMPLETED]
+    'Wszystkie': [ProtocolStatus.SCHEDULED, ProtocolStatus.IN_PROGRESS, ProtocolStatus.READY_FOR_PICKUP, ProtocolStatus.COMPLETED, ProtocolStatus.CANCELLED],
+    'Porzucone': [ProtocolStatus.CANCELLED]
 };
 
 export const useProtocolList = (): UseProtocolListResult => {
