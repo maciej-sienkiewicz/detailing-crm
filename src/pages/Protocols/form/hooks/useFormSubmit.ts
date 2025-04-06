@@ -158,10 +158,11 @@ export const useFormSubmit = (
                 // Używamy API do utworzenia protokołu
                 savedProtocol = await carReceptionApi.createCarReceptionProtocol(newProtocolData);
 
-                // Dla nowo utworzonych protokołów ze statusem IN_PROGRESS, pokazujemy modal potwierdzenia
                 if (status === ProtocolStatus.IN_PROGRESS) {
                     console.log('Nowy protokół z IN_PROGRESS, będzie wyświetlony modal');
                     showConfirmationModal = true;
+
+                    await new Promise(resolve => setTimeout(resolve, 500));
                 }
 
                 console.log('Protocol created successfully:', savedProtocol);

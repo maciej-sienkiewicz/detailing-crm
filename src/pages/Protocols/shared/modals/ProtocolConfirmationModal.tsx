@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { FaPrint, FaEnvelope, FaCheck, FaTimes } from 'react-icons/fa';
+import { FaPrint, FaEnvelope, FaCheck, FaTimes, FaSpinner } from 'react-icons/fa';
+import { pdfService } from '../../../../api/pdfService';
 
 interface ProtocolConfirmationModalProps {
     isOpen: boolean;
@@ -19,8 +20,11 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
                                                                              }) => {
     const [selectedOptions, setSelectedOptions] = useState<{ print: boolean; sendEmail: boolean }>({
         print: true,
-        sendEmail: false
+        sendEmail: !!clientEmail
     });
+    const [isPrinting, setIsPrinting] = useState(false);
+    const [isSendingEmail, setIsSendingEmail] = useState(false);
+    const [hasError, setHasError] = useState<string | null>(null);
 
     const handleOptionChange = (option: 'print' | 'sendEmail') => {
         setSelectedOptions(prev => ({
@@ -29,9 +33,59 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
         }));
     };
 
-    const handleConfirm = () => {
-        onConfirm(selectedOptions);
-        onClose();
+    const handlePrintProtocol = async () => {
+        try {
+            setIsPrinting(true);
+            await pdfService.printProtocolPdf(protocolId);
+            setIsPrinting(false);
+        } catch (error) {
+            console.error('Error printing protocol:', error);
+            setHasError('Wystąpił błąd podczas generowania PDF');
+            setIsPrinting(false);
+        }
+    };
+
+    const handleSendEmail = async () => {
+        if (!clientEmail) return;
+
+        try {
+            setIsSendingEmail(true);
+            // await emailService.sendProtocolEmail(protocolId, clientEmail);
+            setIsSendingEmail(false);
+        } catch (error) {
+            console.error('Error sending email:', error);
+            setHasError('Wystąpił błąd podczas wysyłania emaila');
+            setIsSendingEmail(false);
+        }
+    };
+
+    const handleConfirm = async () => {
+        setHasError(null);
+
+        try {
+            // Execute actions in parallel
+            const actions = [];
+
+            // Handle printing if selected
+            if (selectedOptions.print) {
+                actions.push(handlePrintProtocol());
+            }
+
+            // Handle email sending if selected
+            if (selectedOptions.sendEmail && clientEmail) {
+                actions.push(handleSendEmail());
+            }
+
+            // Wait for all actions to complete
+            await Promise.all(actions);
+
+            // Inform parent component about the confirmation
+            onConfirm(selectedOptions);
+            onClose();
+        } catch (error) {
+            console.error('Error during confirmation actions:', error);
+            setHasError('Wystąpił błąd podczas wykonywania żądanych akcji');
+        }
     };
 
     const handleSkip = () => {
@@ -56,13 +110,19 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
                         </div>
                     </SuccessMessage>
 
+                    {hasError && (
+                        <ErrorMessage>
+                            {hasError}
+                        </ErrorMessage>
+                    )}
+
                     <OptionsContainer>
                         <Option
                             selected={selectedOptions.print}
                             onClick={() => handleOptionChange('print')}
                         >
                             <OptionIconBox selected={selectedOptions.print}>
-                                <FaPrint />
+                                {isPrinting ? <FaSpinner className="spinner" /> : <FaPrint />}
                             </OptionIconBox>
                             <OptionContent>
                                 <OptionTitle>Wydrukuj protokół</OptionTitle>
@@ -78,17 +138,20 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
                         <Option
                             selected={selectedOptions.sendEmail}
                             onClick={() => handleOptionChange('sendEmail')}
+                            disabled={!clientEmail}
                         >
-                            <OptionIconBox selected={selectedOptions.sendEmail}>
-                                <FaEnvelope />
+                            <OptionIconBox selected={selectedOptions.sendEmail && !!clientEmail}>
+                                {isSendingEmail ? <FaSpinner className="spinner" /> : <FaEnvelope />}
                             </OptionIconBox>
                             <OptionContent>
                                 <OptionTitle>Wyślij na email</OptionTitle>
                                 <OptionDescription>
-                                    Wyślij kopię protokołu na adres: {clientEmail || 'brak adresu email'}
+                                    {clientEmail
+                                        ? `Wyślij kopię protokołu na adres: ${clientEmail}`
+                                        : 'Brak adresu email - opcja niedostępna'}
                                 </OptionDescription>
                             </OptionContent>
-                            <Checkbox selected={selectedOptions.sendEmail}>
+                            <Checkbox selected={selectedOptions.sendEmail && !!clientEmail}>
                                 <FaCheck />
                             </Checkbox>
                         </Option>
@@ -98,7 +161,10 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
                     <SkipButton onClick={handleSkip}>
                         <FaTimes /> Pomiń
                     </SkipButton>
-                    <ConfirmButton onClick={handleConfirm}>
+                    <ConfirmButton
+                        onClick={handleConfirm}
+                        disabled={isPrinting || isSendingEmail}
+                    >
                         <FaCheck /> Zatwierdź
                     </ConfirmButton>
                 </ActionButtons>
@@ -146,6 +212,16 @@ const ModalBody = styled.div`
     gap: 20px;
 `;
 
+const ErrorMessage = styled.div`
+    display: flex;
+    padding: 15px;
+    background-color: #fdecea;
+    border-radius: 8px;
+    color: #e74c3c;
+    font-size: 14px;
+    border-left: 3px solid #e74c3c;
+`;
+
 const SuccessMessage = styled.div`
     display: flex;
     align-items: center;
@@ -185,7 +261,7 @@ const OptionsContainer = styled.div`
     gap: 12px;
 `;
 
-const Option = styled.div<{ selected: boolean }>`
+const Option = styled.div<{ selected: boolean, disabled?: boolean }>`
     display: flex;
     align-items: center;
     gap: 15px;
@@ -193,11 +269,12 @@ const Option = styled.div<{ selected: boolean }>`
     border-radius: 8px;
     border: 1px solid ${props => props.selected ? '#3498db' : '#e0e0e0'};
     background-color: ${props => props.selected ? '#f0f7ff' : 'white'};
-    cursor: pointer;
+    cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
     transition: all 0.2s;
+    opacity: ${props => props.disabled ? 0.6 : 1};
 
     &:hover {
-        background-color: ${props => props.selected ? '#f0f7ff' : '#f9f9f9'};
+        background-color: ${props => !props.disabled && (props.selected ? '#f0f7ff' : '#f9f9f9')};
     }
 `;
 
@@ -212,6 +289,19 @@ const OptionIconBox = styled.div<{ selected: boolean }>`
     border-radius: 8px;
     font-size: 18px;
     transition: all 0.2s;
+
+    .spinner {
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        from {
+            transform: rotate(0deg);
+        }
+        to {
+            transform: rotate(360deg);
+        }
+    }
 `;
 
 const OptionContent = styled.div`
@@ -264,12 +354,13 @@ const ButtonBase = styled.button`
     cursor: pointer;
 `;
 
-const ConfirmButton = styled(ButtonBase)`
-    background-color: #3498db;
+const ConfirmButton = styled(ButtonBase)<{ disabled?: boolean }>`
+    background-color: ${props => props.disabled ? '#95a5a6' : '#3498db'};
     color: white;
     border: none;
+    cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
 
-    &:hover {
+    &:hover:not(:disabled) {
         background-color: #2980b9;
     }
 `;

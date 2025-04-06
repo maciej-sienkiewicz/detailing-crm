@@ -75,18 +75,11 @@ const CarReceptionPage: React.FC = () => {
 
     // Obsługa potwierdzeń z modalu protokołu
     const handleProtocolConfirmationConfirm = (options: { print: boolean; sendEmail: boolean }) => {
-
         // Pobierz odpowiedni protocol z zaleznosci od kontekstu
         const protocol = currentProtocol || postNavigationProtocol;
 
-        // Tutaj można zaimplementować faktyczne drukowanie lub wysyłanie e-maila
-        if (options.print && protocol) {
-            // W rzeczywistej aplikacji wywołalibyśmy usługę drukowania
-        }
-
-        if (options.sendEmail && protocol?.email) {
-            // W rzeczywistej aplikacji wywołalibyśmy usługę wysyłania e-maila
-        }
+        // Both printing and email sending are handled directly in the ProtocolConfirmationModal
+        // component using the respective services. We just need to close the modal here.
 
         // Zamknij modal
         handleProtocolConfirmationClosed();

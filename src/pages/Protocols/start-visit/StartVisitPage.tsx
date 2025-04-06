@@ -98,7 +98,8 @@ const StartVisitPage: React.FC = () => {
 
     // Obsługa potwierdzenia z modala
     const handleConfirmationConfirm = (options: { print: boolean; sendEmail: boolean }) => {
-        // Tutaj możesz dodać logikę do drukowania lub wysyłania e-maila
+        // Printing and email sending are handled by the ProtocolConfirmationModal component
+        // We just need to handle the navigation after the confirmation
         setShowConfirmationModal(false);
         if (savedProtocol) {
             navigate(`/orders/car-reception/${savedProtocol.id}`);

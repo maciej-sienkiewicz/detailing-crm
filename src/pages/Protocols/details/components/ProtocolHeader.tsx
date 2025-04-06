@@ -99,16 +99,8 @@ const ProtocolHeader: React.FC<ProtocolHeaderProps> = ({ protocol, onStatusChang
             setPendingStatusChange(null);
             setShowConfirmationModal(false);
 
-            // Here you can also add logic to handle the print/email options
-            if (options.print) {
-                console.log('Printing protocol...');
-                // Implement printing logic
-            }
-
-            if (options.sendEmail && protocol.email) {
-                console.log(`Sending email to ${protocol.email}...`);
-                // Implement email sending logic
-            }
+            // Note: The printing action is handled directly in the ProtocolConfirmationModal component
+            // using the pdfService. Email sending would also be handled there, if implemented.
         }
     };
 

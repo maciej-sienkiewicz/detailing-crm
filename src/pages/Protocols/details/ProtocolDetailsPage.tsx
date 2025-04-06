@@ -283,7 +283,17 @@ const ProtocolDetailsPage: React.FC = () => {
                     )}
 
                     {!isScheduled && (
-                        <ActionButton title="Drukuj protokół" primary="true">
+                        <ActionButton
+                            title="Drukuj protokół"
+                            primary="true"
+                            onClick={() => {
+                                if (protocol && protocol.id) {
+                                    import('../../../api/pdfService').then(module => {
+                                        module.pdfService.printProtocolPdf(protocol.id);
+                                    });
+                                }
+                            }}
+                        >
                             <FaFilePdf /> Drukuj protokół
                         </ActionButton>
                     )}
