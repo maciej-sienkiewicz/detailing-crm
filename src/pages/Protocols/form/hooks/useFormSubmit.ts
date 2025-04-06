@@ -32,6 +32,24 @@ export const useFormSubmit = (
 
     const { validateForm } = useFormValidation(formData);
 
+    const cleanDateFormat = (dateString: string): string => {
+        if (!dateString) return '';
+
+        // Jeśli data zawiera 'Z' na końcu (format ISO z UTC)
+        if (dateString.endsWith('Z')) {
+            // Usuń 'Z' i ewentualne milisekundy (.000)
+            const dateParts = dateString.substring(0, dateString.length - 1).split('.');
+            return dateParts[0]; // Zwróć część bez milisekund i Z
+        }
+
+        // Jeśli zawiera milisekundy, ale bez Z
+        if (dateString.includes('.')) {
+            return dateString.split('.')[0];
+        }
+
+        return dateString;
+    };
+
     // Obsługa zapisania formularza
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -41,6 +59,16 @@ export const useFormSubmit = (
         const updatedFormData = {
             ...formData
         };
+
+        if (updatedFormData.startDate) {
+            updatedFormData.startDate = cleanDateFormat(updatedFormData.startDate);
+            console.log('Cleaned startDate:', updatedFormData.startDate);
+        }
+
+        if (updatedFormData.endDate) {
+            updatedFormData.endDate = cleanDateFormat(updatedFormData.endDate);
+            console.log('Cleaned endDate:', updatedFormData.endDate);
+        }
 
         // Sprawdźmy format startDate - dodajemy domyślny czas, jeśli go nie ma
         if (updatedFormData.startDate && !updatedFormData.startDate.includes('T')) {
