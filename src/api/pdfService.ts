@@ -3,29 +3,87 @@ import { apiClient } from './apiClient';
 
 export const pdfService = {
     /**
-     * Generates and opens a PDF for the specified protocol
+     * Generuje URL do PDF-a dla określonego protokołu
      *
-     * @param protocolId - The ID of the protocol to generate a PDF for
-     * @param openInNewTab - Whether to open the PDF in a new tab (default: true)
-     * @returns Promise that resolves when the PDF is opened
+     * @param protocolId - ID protokołu
+     * @returns URL do PDF-a
      */
-    printProtocolPdf: async (protocolId: string, openInNewTab: boolean = true): Promise<void> => {
+    getProtocolPdfUrl: (protocolId: string): string => {
+        return `${apiClient.getBaseUrl()}/printer/protocol/${protocolId}/pdf`;
+    },
+
+    /**
+     * Pobiera PDF jako Blob i tworzy tymczasowy URL
+     *
+     * @param protocolId - ID protokołu
+     * @returns Promise z URL do podglądu PDF-a
+     */
+    fetchPdfAsBlob: async (protocolId: string): Promise<string> => {
         try {
-            console.log(`Generating PDF for protocol ${protocolId}`);
+            const pdfUrl = pdfService.getProtocolPdfUrl(protocolId);
 
-            // Construct the URL for the PDF endpoint
-            const pdfUrl = `${apiClient.getBaseUrl()}/printer/protocol/${protocolId}/pdf`;
+            // Dodajemy timestamp jako query param, aby uniknąć cachowania
+            const urlWithTimestamp = `${pdfUrl}?t=${new Date().getTime()}`;
 
-            if (openInNewTab) {
-                // Open the PDF in a new tab
-                window.open(pdfUrl, '_blank');
+            const response = await fetch(urlWithTimestamp, {
+                method: 'GET',
+                headers: {},
+                // Ustawiamy credentials, aby ciasteczka sesyjne były przesyłane
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                throw new Error(`Błąd pobierania PDF: ${response.status} ${response.statusText}`);
+            }
+
+            // Pobieramy odpowiedź jako Blob
+            const blob = await response.blob();
+
+            // Tworzymy tymczasowy URL dla Bloba
+            return URL.createObjectURL(blob);
+        } catch (error) {
+            console.error('Błąd podczas pobierania PDF:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Otwiera PDF w nowej karcie
+     *
+     * @param protocolId - ID protokołu
+     */
+    openPdfInNewTab: (protocolId: string): void => {
+        const pdfUrl = pdfService.getProtocolPdfUrl(protocolId);
+        const urlWithTimestamp = `${pdfUrl}?t=${new Date().getTime()}`;
+        window.open(urlWithTimestamp, '_blank');
+    },
+
+    /**
+     * Drukuje protokół PDF bezpośrednio
+     *
+     * @param protocolId - ID protokołu
+     */
+    printProtocolPdf: async (protocolId: string): Promise<void> => {
+        try {
+            // Najpierw pobierz PDF jako Blob
+            const blobUrl = await pdfService.fetchPdfAsBlob(protocolId);
+
+            // Otwórz okno z PDF i wydrukuj
+            const printWindow = window.open(blobUrl, '_blank');
+            if (printWindow) {
+                printWindow.addEventListener('load', () => {
+                    printWindow.print();
+                    // Zwolnij URL Bloba po wydrukowaniu
+                    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+                });
             } else {
-                // Open in the same tab
-                window.location.href = pdfUrl;
+                // Jeśli nie udało się otworzyć okna, zwolnij URL
+                URL.revokeObjectURL(blobUrl);
+                throw new Error('Nie udało się otworzyć okna wydruku');
             }
         } catch (error) {
-            console.error(`Error generating PDF for protocol ${protocolId}:`, error);
-            throw new Error('Failed to generate protocol PDF');
+            console.error('Błąd podczas drukowania:', error);
+            throw error;
         }
     }
 };

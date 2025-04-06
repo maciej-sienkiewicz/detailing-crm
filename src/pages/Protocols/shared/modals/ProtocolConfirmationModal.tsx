@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { FaPrint, FaEnvelope, FaCheck, FaTimes, FaSpinner } from 'react-icons/fa';
-import { pdfService } from '../../../../api/pdfService';
+import PDFViewer from "../../../../components/PdfViewer";
 
 interface ProtocolConfirmationModalProps {
     isOpen: boolean;
@@ -25,6 +25,7 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
     const [isPrinting, setIsPrinting] = useState(false);
     const [isSendingEmail, setIsSendingEmail] = useState(false);
     const [hasError, setHasError] = useState<string | null>(null);
+    const [showPdfPreview, setShowPdfPreview] = useState(false);
 
     const handleOptionChange = (option: 'print' | 'sendEmail') => {
         setSelectedOptions(prev => ({
@@ -36,11 +37,12 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
     const handlePrintProtocol = async () => {
         try {
             setIsPrinting(true);
-            await pdfService.printProtocolPdf(protocolId);
+            // Zamiast drukować od razu, pokazujemy podgląd
+            setShowPdfPreview(true);
             setIsPrinting(false);
         } catch (error) {
-            console.error('Error printing protocol:', error);
-            setHasError('Wystąpił błąd podczas generowania PDF');
+            console.error('Error preparing PDF preview:', error);
+            setHasError('Wystąpił błąd podczas generowania podglądu PDF');
             setIsPrinting(false);
         }
     };
@@ -63,28 +65,43 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
         setHasError(null);
 
         try {
-            // Execute actions in parallel
-            const actions = [];
-
-            // Handle printing if selected
+            // Jeśli wybrano drukowanie, pokaż podgląd PDF
             if (selectedOptions.print) {
-                actions.push(handlePrintProtocol());
+                handlePrintProtocol();
+                return; // Nie zamykaj modalu, będzie obsłużone po zamknięciu podglądu
             }
 
-            // Handle email sending if selected
+            // Jeśli wybrano tylko email, wyślij go
             if (selectedOptions.sendEmail && clientEmail) {
-                actions.push(handleSendEmail());
+                await handleSendEmail();
             }
 
-            // Wait for all actions to complete
-            await Promise.all(actions);
-
-            // Inform parent component about the confirmation
+            // Poinformuj komponenty nadrzędne o potwierdzeniu
             onConfirm(selectedOptions);
             onClose();
         } catch (error) {
             console.error('Error during confirmation actions:', error);
             setHasError('Wystąpił błąd podczas wykonywania żądanych akcji');
+        }
+    };
+
+    const handlePdfPreviewClose = () => {
+        setShowPdfPreview(false);
+
+        // Jeśli wybrano też email, wyślij go teraz
+        if (selectedOptions.sendEmail && clientEmail) {
+            handleSendEmail().then(() => {
+                // Poinformuj komponenty nadrzędne o potwierdzeniu po zamknięciu podglądu
+                onConfirm(selectedOptions);
+                onClose();
+            }).catch(error => {
+                console.error('Error sending email after PDF preview:', error);
+                setHasError('Wystąpił błąd podczas wysyłania emaila');
+            });
+        } else {
+            // Jeśli nie wybrano emaila, po prostu zamknij
+            onConfirm(selectedOptions);
+            onClose();
         }
     };
 
@@ -127,7 +144,7 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
                             <OptionContent>
                                 <OptionTitle>Wydrukuj protokół</OptionTitle>
                                 <OptionDescription>
-                                    Drukuje protokół przyjęcia pojazdu dla klienta
+                                    Otwiera protokół przyjęcia pojazdu do podglądu i wydruku
                                 </OptionDescription>
                             </OptionContent>
                             <Checkbox selected={selectedOptions.print}>
@@ -169,6 +186,15 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
                     </ConfirmButton>
                 </ActionButtons>
             </ModalContent>
+
+            {/* Podgląd PDF */}
+            {showPdfPreview && (
+                <PDFViewer
+                    protocolId={protocolId}
+                    onClose={handlePdfPreviewClose}
+                    title={`Protokół przyjęcia pojazdu #${protocolId}`}
+                />
+            )}
         </ModalOverlay>
     );
 };

@@ -25,6 +25,7 @@ import QualityVerificationModal from "./modals/QualityVerificationModal";
 import CustomerNotificationModal from "./modals/CustomerNotificationModal";
 import ClientCommentsModal from "./modals/ClientCommentsModal";
 import PaymentModal from "./modals/PaymentModal";
+import PDFViewer from "../../../components/PDFViewer";
 
 // Define tab types
 type TabType = 'summary' | 'comments' | 'invoices' | 'client' | 'vehicle' | 'gallery';
@@ -46,6 +47,9 @@ const ProtocolDetailsPage: React.FC = () => {
     // Stany dla procesu wydania samochodu
     const [showClientCommentsModal, setShowClientCommentsModal] = useState(false);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
+
+    // Stan do obsługi podglądu PDF
+    const [showPdfPreview, setShowPdfPreview] = useState(false);
 
     // Load protocol data
     useEffect(() => {
@@ -267,13 +271,13 @@ const ProtocolDetailsPage: React.FC = () => {
                     )}
 
                     {protocol.status == ProtocolStatus.SCHEDULED && (
-                    <ActionButton title="Edytuj protokół" onClick={() => navigate(`/orders`, {
-                        state: {
-                            editProtocolId: protocol.id
-                        }
-                    })}>
-                        <FaEdit /> Edytuj
-                    </ActionButton>
+                        <ActionButton title="Edytuj protokół" onClick={() => navigate(`/orders`, {
+                            state: {
+                                editProtocolId: protocol.id
+                            }
+                        })}>
+                            <FaEdit /> Edytuj
+                        </ActionButton>
                     )}
 
                     {isScheduled && (
@@ -286,13 +290,7 @@ const ProtocolDetailsPage: React.FC = () => {
                         <ActionButton
                             title="Drukuj protokół"
                             primary="true"
-                            onClick={() => {
-                                if (protocol && protocol.id) {
-                                    import('../../../api/pdfService').then(module => {
-                                        module.pdfService.printProtocolPdf(protocol.id);
-                                    });
-                                }
-                            }}
+                            onClick={() => setShowPdfPreview(true)}
                         >
                             <FaFilePdf /> Drukuj protokół
                         </ActionButton>
@@ -342,6 +340,15 @@ const ProtocolDetailsPage: React.FC = () => {
                 onConfirm={handlePaymentConfirm}
                 totalAmount={protocol?.selectedServices.reduce((sum, s) => sum + s.finalPrice, 0) || 0}
             />
+
+            {/* PDF Preview Modal */}
+            {showPdfPreview && protocol && (
+                <PDFViewer
+                    protocolId={protocol.id}
+                    onClose={() => setShowPdfPreview(false)}
+                    title={`Protokół przyjęcia pojazdu #${protocol.id}`}
+                />
+            )}
         </PageContainer>
     );
 };
