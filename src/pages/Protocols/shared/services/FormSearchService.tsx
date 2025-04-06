@@ -66,6 +66,18 @@ export class FormSearchService {
     }
 
     /**
+     * Pobierz właścicieli dla danego pojazdu
+     */
+    static async getOwnersForVehicle(vehicleId: string): Promise<ClientExpanded[]> {
+        try {
+            return await SearchService.getOwnersForVehicle(vehicleId);
+        } catch (error) {
+            console.error('Error fetching owners for vehicle:', error);
+            throw new Error('Failed to fetch owners for vehicle');
+        }
+    }
+
+    /**
      * Przygotowuje dane klienta do uzupełnienia formularza
      */
     static mapClientToFormData(client: ClientExpanded) {

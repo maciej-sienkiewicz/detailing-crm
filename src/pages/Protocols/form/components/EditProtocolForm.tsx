@@ -46,7 +46,7 @@ interface EditProtocolFormProps {
     isFullProtocol?: boolean;
     onSave: (protocol: CarReceptionProtocol, showConfirmationModal: boolean) => void;
     onCancel: () => void;
-    onServiceAdded?: () => void; // Nowa funkcja callback do odświeżenia listy usług
+    onServiceAdded?: () => void; // Funkcja callback do odświeżenia listy usług
 }
 
 export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
@@ -72,24 +72,32 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
         handleImagesChange
     } = useFormData(protocol, initialData);
 
-    // Custom hook for client search
+    // Custom hook for client search with extended functionality
     const {
         foundClients,
+        foundVehicles: clientVehicles,
         showClientModal,
+        showVehicleModal: showClientVehiclesModal,
         searchError: clientSearchError,
         handleSearchByClientField,
         handleClientSelect,
-        setShowClientModal
+        handleVehicleSelect: handleClientVehicleSelect,
+        setShowClientModal,
+        setShowVehicleModal: setShowClientVehiclesModal
     } = useClientSearch(formData, setFormData);
 
-    // Custom hook for vehicle search
+    // Custom hook for vehicle search with extended functionality
     const {
         foundVehicles,
+        foundVehicleOwners,
         showVehicleModal,
+        showClientModal: showVehicleOwnersModal,
         searchError: vehicleSearchError,
         handleSearchByVehicleField,
         handleVehicleSelect,
-        setShowVehicleModal
+        handleClientSelect: handleVehicleOwnerSelect,
+        setShowVehicleModal,
+        setShowClientModal: setShowVehicleOwnersModal
     } = useVehicleSearch(formData, setFormData, foundClients);
 
     // Custom hook for form submission
@@ -112,7 +120,7 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
         updateDiscountType,
         updateDiscountValue,
         updateServiceNote,
-        updateQuantity  // Dodana nowa funkcja
+        updateQuantity
     } = useServiceCalculations(formData.selectedServices || []);
 
     // State for service search
@@ -171,7 +179,8 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
                 price: selectedServiceToAdd.price,
                 discountType: "PERCENTAGE" as any,
                 discountValue: 0,
-                approvalStatus: undefined
+                approvalStatus: undefined,
+                quantity: 1 // Dodajemy domyślną ilość
             };
 
             addService(newService);
@@ -184,7 +193,8 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
                 price: 0, // Default price zero, user will update
                 discountType: "PERCENTAGE" as any,
                 discountValue: 0,
-                approvalStatus: undefined
+                approvalStatus: undefined,
+                quantity: 1 // Dodajemy domyślną ilość
             };
 
             addService(newService);
@@ -204,7 +214,8 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
             price: service.price,
             discountType: "PERCENTAGE" as any,
             discountValue: 0,
-            approvalStatus: undefined
+            approvalStatus: undefined,
+            quantity: 1 // Dodajemy domyślną ilość
         };
 
         addService(newService);
@@ -277,7 +288,7 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
                     onDiscountTypeChange={updateDiscountType}
                     onDiscountValueChange={updateDiscountValue}
                     onBasePriceChange={updateBasePrice}
-                    onQuantityChange={updateQuantity}  // Dodany nowy prop
+                    onQuantityChange={updateQuantity}
                     onAddNote={updateServiceNote}
                     calculateTotals={calculateTotals}
                     allowCustomService={true}
@@ -311,12 +322,30 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
                 />
             )}
 
-            {/* Vehicle selection modal */}
+            {/* Vehicle owners selection modal (from vehicle search) */}
+            {showVehicleOwnersModal && (
+                <ClientSelectionModal
+                    clients={foundVehicleOwners}
+                    onSelect={handleVehicleOwnerSelect}
+                    onCancel={() => setShowVehicleOwnersModal(false)}
+                />
+            )}
+
+            {/* Vehicle selection modal (from license plate) */}
             {showVehicleModal && (
                 <VehicleSelectionModal
                     vehicles={foundVehicles}
                     onSelect={handleVehicleSelect}
                     onCancel={() => setShowVehicleModal(false)}
+                />
+            )}
+
+            {/* Client's vehicles selection modal (from client search) */}
+            {showClientVehiclesModal && (
+                <VehicleSelectionModal
+                    vehicles={clientVehicles}
+                    onSelect={handleClientVehicleSelect}
+                    onCancel={() => setShowClientVehiclesModal(false)}
                 />
             )}
 
@@ -345,5 +374,3 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
         </FormContainer>
     );
 };
-
-export default EditProtocolForm;

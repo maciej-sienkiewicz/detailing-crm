@@ -233,4 +233,33 @@ export class SearchService {
             throw new Error('Failed to fetch vehicles');
         }
     }
+
+    /**
+     * Pobieranie właścicieli dla danego pojazdu
+     * Ta metoda jest implementowana lokalnie na podstawie danych z pojazdu
+     */
+    static async getOwnersForVehicle(vehicleId: string): Promise<ClientExpanded[]> {
+        try {
+            // Najpierw pobieramy dane pojazdu
+            const vehicle = await vehicleApi.fetchVehicleById(vehicleId);
+
+            if (!vehicle) {
+                throw new Error(`Vehicle with ID ${vehicleId} not found`);
+            }
+
+            // Następnie pobieramy dane właścicieli
+            const owners: ClientExpanded[] = [];
+            for (const ownerId of vehicle.ownerIds) {
+                const owner = await clientApi.fetchClientById(ownerId);
+                if (owner) {
+                    owners.push(owner);
+                }
+            }
+
+            return owners;
+        } catch (error) {
+            console.error('Error fetching owners for vehicle:', error);
+            throw new Error('Failed to fetch vehicle owners');
+        }
+    }
 }

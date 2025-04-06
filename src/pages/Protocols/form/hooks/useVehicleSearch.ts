@@ -6,23 +6,30 @@ import {FormSearchService} from "../../shared/services/FormSearchService";
 
 interface UseVehicleSearchResult {
     foundVehicles: VehicleExpanded[];
+    foundVehicleOwners: ClientExpanded[];
     showVehicleModal: boolean;
+    showClientModal: boolean;
     searchError: string | null;
     searchLoading: boolean;
     handleSearchByVehicleField: (field: 'licensePlate') => Promise<void>;
     handleVehicleSelect: (vehicle: VehicleExpanded) => void;
+    handleClientSelect: (client: ClientExpanded) => void;
     setShowVehicleModal: (show: boolean) => void;
+    setShowClientModal: (show: boolean) => void;
 }
 
 export const useVehicleSearch = (
     formData: Partial<CarReceptionProtocol>,
     setFormData: React.Dispatch<React.SetStateAction<Partial<CarReceptionProtocol>>>,
-    foundClients: ClientExpanded[]
+    availableClients: ClientExpanded[] = []
 ): UseVehicleSearchResult => {
     const [foundVehicles, setFoundVehicles] = useState<VehicleExpanded[]>([]);
+    const [foundVehicleOwners, setFoundVehicleOwners] = useState<ClientExpanded[]>([]);
     const [showVehicleModal, setShowVehicleModal] = useState(false);
+    const [showClientModal, setShowClientModal] = useState(false);
     const [searchError, setSearchError] = useState<string | null>(null);
     const [searchLoading, setSearchLoading] = useState(false);
+    const [selectedVehicle, setSelectedVehicle] = useState<VehicleExpanded | null>(null);
 
     // Funkcja do wypełnienia danych pojazdu w formularzu
     const fillVehicleData = (vehicle: VehicleExpanded) => {
@@ -31,6 +38,9 @@ export const useVehicleSearch = (
             ...prev,
             ...vehicleData
         }));
+
+        // Zapisujemy wybrany pojazd do stanu
+        setSelectedVehicle(vehicle);
     };
 
     // Funkcja do wypełnienia danych klienta w formularzu
@@ -62,20 +72,27 @@ export const useVehicleSearch = (
 
             // Decyzja o pokazaniu odpowiedniego modala
             if (results.vehicles.length === 0) {
+                // Nie znaleziono pojazdów
                 setSearchError('Nie znaleziono pojazdów o podanym numerze rejestracyjnym');
             } else if (results.vehicles.length === 1) {
-                // Jeśli znaleziono dokładnie jeden pojazd, wypełnij dane
-                fillVehicleData(results.vehicles[0]);
+                // Znaleziono dokładnie jeden pojazd
+                const vehicle = results.vehicles[0];
+                fillVehicleData(vehicle);
 
-                // Jeśli pojazd ma więcej niż jednego właściciela, pokaż modal wyboru klienta
-                if (results.clients.length > 1) {
-                    setShowVehicleModal(true);
+                // Sprawdzamy właścicieli pojazdu
+                if (results.clients.length === 0) {
+                    // Pojazd nie ma przypisanych właścicieli
+                    setSearchError('Pojazd nie ma przypisanego właściciela');
                 } else if (results.clients.length === 1) {
-                    // Jeśli jest tylko jeden właściciel, wypełnij jego dane
+                    // Pojazd ma jednego właściciela - automatycznie uzupełniamy jego dane
                     fillClientData(results.clients[0]);
+                } else {
+                    // Pojazd ma wielu właścicieli - wyświetlamy modal wyboru
+                    setFoundVehicleOwners(results.clients);
+                    setShowClientModal(true);
                 }
             } else {
-                // Jeśli znaleziono więcej pojazdów, pokaż modal wyboru pojazdu
+                // Znaleziono więcej pojazdów - wyświetlamy modal wyboru pojazdu
                 setShowVehicleModal(true);
             }
         } catch (err) {
@@ -91,22 +108,45 @@ export const useVehicleSearch = (
         fillVehicleData(vehicle);
         setShowVehicleModal(false);
 
-        // Jeśli nie mamy jeszcze danych klienta, a pojazd ma jednego właściciela
-        if (!formData.ownerName && vehicle.ownerIds.length === 1) {
-            const owner = foundClients.find(client => client.id === vehicle.ownerIds[0]);
-            if (owner) {
-                fillClientData(owner);
+        // Po wyborze pojazdu, sprawdzamy czy ma właścicieli
+        if (vehicle.ownerIds && vehicle.ownerIds.length > 0) {
+            // Filtrujemy dostępnych klientów, aby znaleźć właścicieli pojazdu
+            const owners = availableClients.filter(client =>
+                vehicle.ownerIds.includes(client.id)
+            );
+
+            if (owners.length === 0) {
+                // Nie znaleziono właścicieli w dostępnych klientach
+                // Można spróbować pobrać ich z API
+                console.warn('No owners found in available clients. Consider fetching from API.');
+            } else if (owners.length === 1) {
+                // Pojazd ma jednego właściciela - automatycznie uzupełniamy jego dane
+                fillClientData(owners[0]);
+            } else {
+                // Pojazd ma wielu właścicieli - wyświetlamy modal wyboru
+                setFoundVehicleOwners(owners);
+                setShowClientModal(true);
             }
         }
     };
 
+    // Obsługa wyboru klienta z modalu (właściciela pojazdu)
+    const handleClientSelect = (client: ClientExpanded) => {
+        fillClientData(client);
+        setShowClientModal(false);
+    };
+
     return {
         foundVehicles,
+        foundVehicleOwners,
         showVehicleModal,
+        showClientModal,
         searchError,
         searchLoading,
         handleSearchByVehicleField,
         handleVehicleSelect,
-        setShowVehicleModal
+        handleClientSelect,
+        setShowVehicleModal,
+        setShowClientModal
     };
 };

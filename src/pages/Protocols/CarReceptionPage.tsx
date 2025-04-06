@@ -17,7 +17,7 @@ import { ProtocolFilters } from "./list/ProtocolFilters";
 import { ProtocolList } from "./list/ProtocolList";
 import ProtocolConfirmationModal from "./shared/modals/ProtocolConfirmationModal";
 import { ProtocolStatus } from '../../types';
-import EditProtocolForm from "./form/components/EditProtocolForm";
+import {EditProtocolForm} from "./form/components/EditProtocolForm";
 
 const CarReceptionPage: React.FC = () => {
     const location = useLocation();
