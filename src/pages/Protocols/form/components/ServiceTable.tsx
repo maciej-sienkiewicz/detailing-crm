@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { FaTrash, FaPlus, FaEdit, FaStickyNote } from 'react-icons/fa';
 import { DiscountType, DiscountTypeLabels, SelectedService } from '../../../../types';
 import {
@@ -23,7 +23,7 @@ import ServiceNoteModal from "../../shared/modals/SerivceNoteModal";
 // Stałe
 const DEFAULT_VAT_RATE = 23; // Domyślna stawka VAT (23%)
 
-// Rozszerzone typy rabatu - używamy enum dla TypeScript
+// Rozszerzone typy rabatu - zamieniamy na enum dla zgodności
 enum ExtendedDiscountType {
     PERCENTAGE = 'PERCENTAGE',
     AMOUNT_GROSS = 'AMOUNT_GROSS',
@@ -259,15 +259,15 @@ const PriceTypeOption = styled.div<{ selected: boolean }>`
     background-color: ${props => props.selected ? '#f0f7ff' : 'white'};
     color: ${props => props.selected ? '#3498db' : '#333'};
     font-weight: ${props => props.selected ? '500' : 'normal'};
-
+    
     &:first-child {
         border-radius: 4px 0 0 4px;
     }
-
+    
     &:last-child {
         border-radius: 0 4px 4px 0;
     }
-
+    
     &:hover {
         background-color: ${props => props.selected ? '#f0f7ff' : '#f9f9f9'};
     }
@@ -416,25 +416,9 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
     const [enhancedServices, setEnhancedServices] = useState<ServiceWithNote[]>(() =>
         services.map(service => ({
             ...service,
-            extendedDiscountType: service.extendedDiscountType || getExtendedDiscountType(service.discountType)
+            extendedDiscountType: getExtendedDiscountType(service.discountType)
         }))
     );
-
-    useEffect(() => {
-        setEnhancedServices(prevServices => {
-            // Zachowaj extendedDiscountType dla istniejących usług
-            const updatedServices = services.map(service => {
-                const existingService = prevServices.find(s => s.id === service.id);
-                return {
-                    ...service,
-                    extendedDiscountType: existingService?.extendedDiscountType ||
-                        service.extendedDiscountType ||
-                        getExtendedDiscountType(service.discountType)
-                };
-            });
-            return updatedServices;
-        });
-    }, [services]);
 
     // Funkcje pomocnicze do obliczeń cen netto/brutto
     const calculateNetPrice = (grossPrice: number, vatRate: number = DEFAULT_VAT_RATE): number => {
@@ -445,62 +429,8 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
         return netPrice * (1 + vatRate / 100);
     };
 
-    // Funkcja do sprawdzania typu rabatu dla obliczeń
-    const isNetPriceDiscountType = (discountType: ExtendedDiscountType | DiscountType): boolean => {
-        return discountType === ExtendedDiscountType.AMOUNT_NET ||
-            discountType === ExtendedDiscountType.FIXED_PRICE_NET;
-    };
-
-    // Funkcja do przetwarzania rabatu z uwzględnieniem typów netto/brutto
-    const calculateDiscountedPrice = (
-        basePrice: number,
-        discountValue: number,
-        discountType: ExtendedDiscountType | DiscountType,
-        quantity: number,
-        vatRate: number
-    ): number => {
-        const totalBasePrice = basePrice * quantity;
-        let finalPrice: number;
-
-        switch(discountType) {
-            case ExtendedDiscountType.PERCENTAGE:
-            case DiscountType.PERCENTAGE:
-                // Rabat procentowy działa tak samo dla netto i brutto
-                finalPrice = totalBasePrice * (1 - discountValue / 100);
-                break;
-
-            case ExtendedDiscountType.AMOUNT_GROSS:
-            case DiscountType.AMOUNT:
-                // Rabat kwotowy brutto - odejmujemy wartość od ceny brutto
-                finalPrice = Math.max(0, totalBasePrice - discountValue);
-                break;
-
-            case ExtendedDiscountType.AMOUNT_NET:
-                // Rabat kwotowy netto - najpierw przeliczamy rabat na brutto
-                const discountGross = calculateGrossPrice(discountValue, vatRate);
-                finalPrice = Math.max(0, totalBasePrice - discountGross);
-                break;
-
-            case ExtendedDiscountType.FIXED_PRICE_GROSS:
-            case DiscountType.FIXED_PRICE:
-                // Ustawienie ceny końcowej brutto
-                finalPrice = discountValue;
-                break;
-
-            case ExtendedDiscountType.FIXED_PRICE_NET:
-                // Ustawienie ceny końcowej netto - przeliczamy na brutto
-                finalPrice = calculateGrossPrice(discountValue, vatRate);
-                break;
-
-            default:
-                finalPrice = totalBasePrice;
-        }
-
-        return finalPrice;
-    };
-
     // Aktualizacja stanu usług przy zmianie props
-    useEffect(() => {
+    React.useEffect(() => {
         setEnhancedServices(services.map(service => ({
             ...service,
             extendedDiscountType: service.extendedDiscountType || getExtendedDiscountType(service.discountType)
@@ -653,7 +583,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
     };
 
     // Inicjalizacja/aktualizacja wartości pola ilości na podstawie usługi
-    useEffect(() => {
+    React.useEffect(() => {
         const newInputs: Record<string, string> = {};
 
         services.forEach(service => {
@@ -688,145 +618,8 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
         }
     };
 
-    // Handler do obsługi zmiany typu rabatu z rozszerzonym typem
-    const handleExtendedDiscountTypeChange = (serviceId: string, newExtendedTypeValue: string) => {
-        // Konwertuj wartość string na enum
-        const newExtendedType = newExtendedTypeValue as ExtendedDiscountType;
-
-        // Znajdź usługę
-        const service = enhancedServices.find(s => s.id === serviceId);
-        if (!service) return;
-
-        // Mapuj rozszerzony typ na standardowy typ dla API
-        const standardType = mapToStandardDiscountType(newExtendedType);
-
-        // Przelicz wartość rabatu przy zmianie typu
-        const vatRate = service.vatRate || DEFAULT_VAT_RATE;
-        const quantity = service.quantity || 1;
-        const basePrice = service.price;
-        let newDiscountValue = service.discountValue;
-
-        // Konwersja wartości rabatu przy zmianie typu
-        const currentType = service.extendedDiscountType || getExtendedDiscountType(service.discountType);
-
-        if (currentType !== newExtendedType) {
-            // Najpierw oblicz aktualną cenę końcową
-            const currentFinalPrice = service.finalPrice;
-            const currentFinalPriceNet = calculateNetPrice(currentFinalPrice, vatRate);
-
-            switch (newExtendedType) {
-                case ExtendedDiscountType.PERCENTAGE:
-                    // Konwersja na procent
-                    const discount = basePrice * quantity - currentFinalPrice;
-                    newDiscountValue = (discount / (basePrice * quantity)) * 100;
-                    if (newDiscountValue > 100) newDiscountValue = 100;
-                    if (newDiscountValue < 0) newDiscountValue = 0;
-                    break;
-
-                case ExtendedDiscountType.AMOUNT_GROSS:
-                    // Konwersja na kwotę brutto
-                    newDiscountValue = basePrice * quantity - currentFinalPrice;
-                    if (newDiscountValue < 0) newDiscountValue = 0;
-                    break;
-
-                case ExtendedDiscountType.AMOUNT_NET:
-                    // Konwersja na kwotę netto
-                    const discountGross = basePrice * quantity - currentFinalPrice;
-                    newDiscountValue = calculateNetPrice(discountGross, vatRate);
-                    if (newDiscountValue < 0) newDiscountValue = 0;
-                    break;
-
-                case ExtendedDiscountType.FIXED_PRICE_GROSS:
-                    // Ustawienie ceny końcowej brutto
-                    newDiscountValue = currentFinalPrice;
-                    break;
-
-                case ExtendedDiscountType.FIXED_PRICE_NET:
-                    // Ustawienie ceny końcowej netto
-                    newDiscountValue = currentFinalPriceNet;
-                    break;
-            }
-        }
-
-        // Oblicz nową cenę końcową
-        const newFinalPrice = calculateDiscountedPrice(
-            basePrice,
-            newDiscountValue,
-            newExtendedType,
-            quantity,
-            vatRate
-        );
-
-        // Debugowanie
-        console.log('Zmiana typu rabatu:', {
-            serviceId,
-            nowType: newExtendedType,
-            wasType: currentType,
-            newDiscountValue,
-            newFinalPrice
-        });
-
-        // Zapisz rozszerzony typ w stanie lokalnym
-        setEnhancedServices(prev => {
-            const updatedServices = prev.map(s => {
-                if (s.id === serviceId) {
-                    return {
-                        ...s,
-                        extendedDiscountType: newExtendedType,
-                        discountValue: parseFloat(newDiscountValue.toFixed(2)),
-                        finalPrice: parseFloat(newFinalPrice.toFixed(2))
-                    };
-                }
-                return s;
-            });
-            return updatedServices;
-        });
-
-        // Wywołaj oryginalną funkcję z typem standardowym i nową wartością rabatu
-        onDiscountTypeChange(serviceId, standardType);
-        onDiscountValueChange(serviceId, parseFloat(newDiscountValue.toFixed(2)));
-    };
-
-    // Aktualizacja wartości rabatu z uwzględnieniem rozszerzonych typów
-    const handleExtendedDiscountValueChange = (serviceId: string, newValue: number) => {
-        // Znajdź usługę
-        const service = enhancedServices.find(s => s.id === serviceId);
-        if (!service) return;
-
-        const vatRate = service.vatRate || DEFAULT_VAT_RATE;
-        const quantity = service.quantity || 1;
-        const basePrice = service.price;
-        const discountType = service.extendedDiscountType || getExtendedDiscountType(service.discountType);
-
-        // Oblicz nową cenę końcową z uwzględnieniem typu rabatu (netto/brutto)
-        const newFinalPrice = calculateDiscountedPrice(
-            basePrice,
-            newValue,
-            discountType,
-            quantity,
-            vatRate
-        );
-
-        // Aktualizuj stan lokalny
-        const updatedServices = enhancedServices.map(s => {
-            if (s.id === serviceId) {
-                return {
-                    ...s,
-                    discountValue: newValue,
-                    finalPrice: parseFloat(newFinalPrice.toFixed(2))
-                };
-            }
-            return s;
-        });
-
-        setEnhancedServices(updatedServices);
-
-        // Wywołaj oryginalną funkcję
-        onDiscountValueChange(serviceId, newValue);
-    };
-
     // Zamknij menu kontekstowe przy kliknięciu na stronę
-    useEffect(() => {
+    React.useEffect(() => {
         const handleClickOutside = () => {
             setContextMenu({...contextMenu, visible: false});
         };
@@ -837,8 +630,9 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
             document.removeEventListener('click', handleClickOutside);
         };
     }, [contextMenu]);
-// Zamknij okno edycji przy kliknięciu Escape
-    useEffect(() => {
+
+    // Zamknij okno edycji przy kliknięciu Escape
+    React.useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape') {
                 setEditPopup({...editPopup, visible: false});
@@ -880,6 +674,27 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
             totalNetValue,
             totalGrossValue
         };
+    };
+
+    // Handler do obsługi zmiany typu rabatu z rozszerzonym typem
+    const handleExtendedDiscountTypeChange = (serviceId: string, newExtendedType: ExtendedDiscountType) => {
+        // Mapuj rozszerzony typ na standardowy typ dla API
+        const standardType = mapToStandardDiscountType(newExtendedType);
+
+        // Zapisz rozszerzony typ w stanie lokalnym
+        const updatedServices = enhancedServices.map(service => {
+            if (service.id === serviceId) {
+                return {
+                    ...service,
+                    extendedDiscountType: newExtendedType
+                };
+            }
+            return service;
+        });
+        setEnhancedServices(updatedServices);
+
+        // Wywołaj oryginalną funkcję z typem standardowym
+        onDiscountTypeChange(serviceId, standardType);
     };
 
     // Oblicz łączne sumy netto i brutto
@@ -1003,7 +818,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                                         <StyledDiscountContainer>
                                             <DiscountInputGroup>
                                                 <DiscountTypeSelect
-                                                    value={service.extendedDiscountType || ExtendedDiscountType.PERCENTAGE}
+                                                    value={service.extendedDiscountType || getExtendedDiscountType(service.discountType)}
                                                     onChange={(e) => handleExtendedDiscountTypeChange(service.id, e.target.value as ExtendedDiscountType)}
                                                 >
                                                     {Object.entries(DiscountTypeLabelsExtended).map(([value, label]) => (
@@ -1015,12 +830,12 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                                                 <DiscountInput
                                                     type="number"
                                                     min="0"
-                                                    max={service.extendedDiscountType === ExtendedDiscountType.PERCENTAGE ? 100 : undefined}
+                                                    max={service.discountType === 'PERCENTAGE' ? 100 : undefined}
                                                     value={service.discountValue}
-                                                    onChange={(e) => handleExtendedDiscountValueChange(service.id, parseFloat(e.target.value) || 0)}
+                                                    onChange={(e) => onDiscountValueChange(service.id, parseFloat(e.target.value) || 0)}
                                                 />
                                             </DiscountInputGroup>
-                                            {service.extendedDiscountType === ExtendedDiscountType.PERCENTAGE && (
+                                            {service.discountType === 'PERCENTAGE' && (
                                                 <DiscountPercentage>
                                                     ({(service.price * (service.quantity || 1) * service.discountValue / 100).toFixed(2)} zł)
                                                 </DiscountPercentage>
@@ -1084,9 +899,9 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                     </TableFooterCell>
                     <TableFooterCell>
                         <PriceWrapper>
-                            <TotalValue>{totalFinalPrice.toFixed(2)} zł</TotalValue>
+                            <TotalValue>{totalGrossValue.toFixed(2)} zł</TotalValue>
                             <PriceType>brutto</PriceType>
-                            <TotalValue>{calculateNetPrice(totalFinalPrice, DEFAULT_VAT_RATE).toFixed(2)} zł</TotalValue>
+                            <TotalValue>{totalNetValue.toFixed(2)} zł</TotalValue>
                             <PriceType>netto</PriceType>
                         </PriceWrapper>
                     </TableFooterCell>
