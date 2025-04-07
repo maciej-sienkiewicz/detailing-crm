@@ -172,7 +172,7 @@ export const useFormSubmit = (
                 })) || [];
 
                 // Ustaw status IN_PROGRESS dla nowo tworzonych protokołów
-                const status = updatedFormData.status || ProtocolStatus.IN_PROGRESS;
+                const status = isOpenProtocolAction ? ProtocolStatus.IN_PROGRESS : ProtocolStatus.SCHEDULED;
                 console.log('Status nowego protokołu:', status);
 
                 const newProtocolData: Omit<CarReceptionProtocol, 'id' | 'createdAt' | 'updatedAt'> = {
