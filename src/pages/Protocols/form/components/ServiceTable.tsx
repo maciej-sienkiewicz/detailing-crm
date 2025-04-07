@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaTrash, FaPlus, FaEdit, FaStickyNote } from 'react-icons/fa';
 import { DiscountType, DiscountTypeLabels, SelectedService } from '../../../../types';
 import {
@@ -19,6 +19,57 @@ import {
 } from '../styles';
 import styled from 'styled-components';
 import ServiceNoteModal from "../../shared/modals/SerivceNoteModal";
+
+// Stałe
+const DEFAULT_VAT_RATE = 23; // Domyślna stawka VAT (23%)
+
+// Rozszerzone typy rabatu - używamy enum dla TypeScript
+enum ExtendedDiscountType {
+    PERCENTAGE = 'PERCENTAGE',
+    AMOUNT_GROSS = 'AMOUNT_GROSS',
+    AMOUNT_NET = 'AMOUNT_NET',
+    FIXED_PRICE_GROSS = 'FIXED_PRICE_GROSS',
+    FIXED_PRICE_NET = 'FIXED_PRICE_NET'
+}
+
+// Nowe wersje etykiet rabatu uwzględniające ceny netto/brutto
+const DiscountTypeLabelsExtended: Record<ExtendedDiscountType, string> = {
+    [ExtendedDiscountType.PERCENTAGE]: "Procent",
+    [ExtendedDiscountType.AMOUNT_GROSS]: "Kwota (brutto)",
+    [ExtendedDiscountType.AMOUNT_NET]: "Kwota (netto)",
+    [ExtendedDiscountType.FIXED_PRICE_GROSS]: "Cena końcowa (brutto)",
+    [ExtendedDiscountType.FIXED_PRICE_NET]: "Cena końcowa (netto)"
+};
+
+// Funkcja do mapowania typów rabatu
+const mapToStandardDiscountType = (extendedType: ExtendedDiscountType): DiscountType => {
+    switch (extendedType) {
+        case ExtendedDiscountType.PERCENTAGE:
+            return DiscountType.PERCENTAGE;
+        case ExtendedDiscountType.AMOUNT_GROSS:
+        case ExtendedDiscountType.AMOUNT_NET:
+            return DiscountType.AMOUNT;
+        case ExtendedDiscountType.FIXED_PRICE_GROSS:
+        case ExtendedDiscountType.FIXED_PRICE_NET:
+            return DiscountType.FIXED_PRICE;
+        default:
+            return DiscountType.PERCENTAGE;
+    }
+};
+
+// Funkcja do mapowania standardowych typów na rozszerzone
+const getExtendedDiscountType = (standardType: DiscountType): ExtendedDiscountType => {
+    switch (standardType) {
+        case DiscountType.PERCENTAGE:
+            return ExtendedDiscountType.PERCENTAGE;
+        case DiscountType.AMOUNT:
+            return ExtendedDiscountType.AMOUNT_GROSS;
+        case DiscountType.FIXED_PRICE:
+            return ExtendedDiscountType.FIXED_PRICE_GROSS;
+        default:
+            return ExtendedDiscountType.PERCENTAGE;
+    }
+};
 
 // Styl dla menu kontekstowego
 const ContextMenu = styled.div`
@@ -56,6 +107,11 @@ const EditablePriceCell = styled(TableCell)`
     }
 `;
 
+// Styl dla komórek cen
+const PriceCell = styled(TableCell)`
+    min-width: 120px;
+`;
+
 const PriceContainer = styled.div`
     display: flex;
     align-items: center;
@@ -65,6 +121,17 @@ const PriceContainer = styled.div`
 
 const PriceValue = styled.span`
     flex: 1;
+`;
+
+const PriceLabel = styled.div`
+    font-size: 11px;
+    color: #7f8c8d;
+    margin-top: 2px;
+`;
+
+const PriceWrapper = styled.div`
+    display: flex;
+    flex-direction: column;
 `;
 
 const EditIcon = styled.span`
@@ -178,6 +245,34 @@ const EditPriceInput = styled.input`
     }
 `;
 
+const PriceTypeSelector = styled.div`
+    display: flex;
+    margin-bottom: 10px;
+`;
+
+const PriceTypeOption = styled.div<{ selected: boolean }>`
+    flex: 1;
+    padding: 8px;
+    text-align: center;
+    cursor: pointer;
+    border: 1px solid ${props => props.selected ? '#3498db' : '#ddd'};
+    background-color: ${props => props.selected ? '#f0f7ff' : 'white'};
+    color: ${props => props.selected ? '#3498db' : '#333'};
+    font-weight: ${props => props.selected ? '500' : 'normal'};
+
+    &:first-child {
+        border-radius: 4px 0 0 4px;
+    }
+
+    &:last-child {
+        border-radius: 0 4px 4px 0;
+    }
+
+    &:hover {
+        background-color: ${props => props.selected ? '#f0f7ff' : '#f9f9f9'};
+    }
+`;
+
 const EditPriceButtons = styled.div`
     display: flex;
     justify-content: flex-end;
@@ -231,9 +326,18 @@ const ActionButtonsContainer = styled.div`
     gap: 5px;
 `;
 
-// Rozszerzenie interfejsu SelectedService o pole note
+// Nowy styl dla podkreślenia cen netto/brutto
+const PriceType = styled.div`
+    font-size: 10px;
+    color: #7f8c8d;
+    margin-top: 2px;
+`;
+
+// Rozszerzenie interfejsu SelectedService o pole note i vatRate
 interface ServiceWithNote extends SelectedService {
     note?: string;
+    vatRate?: number; // Stawka VAT dla usługi
+    extendedDiscountType?: ExtendedDiscountType; // Dodatkowe pole dla rozszerzonego typu rabatu
 }
 
 interface ServiceTableProps {
@@ -242,7 +346,7 @@ interface ServiceTableProps {
     onDiscountTypeChange: (serviceId: string, discountType: DiscountType) => void;
     onDiscountValueChange: (serviceId: string, discountValue: number) => void;
     onBasePriceChange: (serviceId: string, newPrice: number) => void;
-    onQuantityChange: (serviceId: string, quantity: number) => void;  // Nowa funkcja do obsługi zmiany ilości
+    onQuantityChange: (serviceId: string, quantity: number) => void;  // Funkcja do obsługi zmiany ilości
     onAddNote?: (serviceId: string, note: string) => void;
     calculateTotals: () => { totalPrice: number; totalDiscount: number; totalFinalPrice: number };
 }
@@ -253,7 +357,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                                                        onDiscountTypeChange,
                                                        onDiscountValueChange,
                                                        onBasePriceChange,
-                                                       onQuantityChange,  // Nowy prop
+                                                       onQuantityChange,
                                                        onAddNote,
                                                        calculateTotals
                                                    }) => {
@@ -279,12 +383,14 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
         y: number;
         serviceId: string;
         currentPrice: number;
+        isGrossPrice: boolean; // Czy edytujemy cenę brutto
     }>({
         visible: false,
         x: 0,
         y: 0,
         serviceId: '',
-        currentPrice: 0
+        currentPrice: 0,
+        isGrossPrice: true // Domyślnie edytujemy cenę brutto
     });
 
     // State dla modalu notatki
@@ -305,6 +411,101 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
 
     // State do przechowywania nowej ceny jako string, aby uniknąć problemów z zerami wiodącymi
     const [newPrice, setNewPrice] = useState<string>('');
+
+    // Stan dla usług z dodatkowym polem extendedDiscountType
+    const [enhancedServices, setEnhancedServices] = useState<ServiceWithNote[]>(() =>
+        services.map(service => ({
+            ...service,
+            extendedDiscountType: service.extendedDiscountType || getExtendedDiscountType(service.discountType)
+        }))
+    );
+
+    useEffect(() => {
+        setEnhancedServices(prevServices => {
+            // Zachowaj extendedDiscountType dla istniejących usług
+            const updatedServices = services.map(service => {
+                const existingService = prevServices.find(s => s.id === service.id);
+                return {
+                    ...service,
+                    extendedDiscountType: existingService?.extendedDiscountType ||
+                        service.extendedDiscountType ||
+                        getExtendedDiscountType(service.discountType)
+                };
+            });
+            return updatedServices;
+        });
+    }, [services]);
+
+    // Funkcje pomocnicze do obliczeń cen netto/brutto
+    const calculateNetPrice = (grossPrice: number, vatRate: number = DEFAULT_VAT_RATE): number => {
+        return grossPrice / (1 + vatRate / 100);
+    };
+
+    const calculateGrossPrice = (netPrice: number, vatRate: number = DEFAULT_VAT_RATE): number => {
+        return netPrice * (1 + vatRate / 100);
+    };
+
+    // Funkcja do sprawdzania typu rabatu dla obliczeń
+    const isNetPriceDiscountType = (discountType: ExtendedDiscountType | DiscountType): boolean => {
+        return discountType === ExtendedDiscountType.AMOUNT_NET ||
+            discountType === ExtendedDiscountType.FIXED_PRICE_NET;
+    };
+
+    // Funkcja do przetwarzania rabatu z uwzględnieniem typów netto/brutto
+    const calculateDiscountedPrice = (
+        basePrice: number,
+        discountValue: number,
+        discountType: ExtendedDiscountType | DiscountType,
+        quantity: number,
+        vatRate: number
+    ): number => {
+        const totalBasePrice = basePrice * quantity;
+        let finalPrice: number;
+
+        switch(discountType) {
+            case ExtendedDiscountType.PERCENTAGE:
+            case DiscountType.PERCENTAGE:
+                // Rabat procentowy działa tak samo dla netto i brutto
+                finalPrice = totalBasePrice * (1 - discountValue / 100);
+                break;
+
+            case ExtendedDiscountType.AMOUNT_GROSS:
+            case DiscountType.AMOUNT:
+                // Rabat kwotowy brutto - odejmujemy wartość od ceny brutto
+                finalPrice = Math.max(0, totalBasePrice - discountValue);
+                break;
+
+            case ExtendedDiscountType.AMOUNT_NET:
+                // Rabat kwotowy netto - najpierw przeliczamy rabat na brutto
+                const discountGross = calculateGrossPrice(discountValue, vatRate);
+                finalPrice = Math.max(0, totalBasePrice - discountGross);
+                break;
+
+            case ExtendedDiscountType.FIXED_PRICE_GROSS:
+            case DiscountType.FIXED_PRICE:
+                // Ustawienie ceny końcowej brutto
+                finalPrice = discountValue;
+                break;
+
+            case ExtendedDiscountType.FIXED_PRICE_NET:
+                // Ustawienie ceny końcowej netto - przeliczamy na brutto
+                finalPrice = calculateGrossPrice(discountValue, vatRate);
+                break;
+
+            default:
+                finalPrice = totalBasePrice;
+        }
+
+        return finalPrice;
+    };
+
+    // Aktualizacja stanu usług przy zmianie props
+    useEffect(() => {
+        setEnhancedServices(services.map(service => ({
+            ...service,
+            extendedDiscountType: service.extendedDiscountType || getExtendedDiscountType(service.discountType)
+        })));
+    }, [services]);
 
     // Obsługa kliknięcia prawym przyciskiem na cenę
     const handlePriceRightClick = (e: React.MouseEvent, service: ServiceWithNote) => {
@@ -336,11 +537,55 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                 x: rect.left,
                 y: rect.bottom + window.scrollY,
                 serviceId: service.id,
-                currentPrice: service.price
+                currentPrice: service.price,
+                isGrossPrice: true // Domyślnie edytujemy cenę brutto
             });
 
             setNewPrice(service.price.toString());
         }
+    };
+
+    // Obsługa kliknięcia lewym przyciskiem myszy na cenę
+    const handlePriceClick = (e: React.MouseEvent, service: ServiceWithNote) => {
+        // Otwórz okno edycji
+        const rect = e.currentTarget.getBoundingClientRect();
+        setEditPopup({
+            visible: true,
+            x: rect.left,
+            y: rect.bottom + window.scrollY,
+            serviceId: service.id,
+            currentPrice: service.price,
+            isGrossPrice: true // Domyślnie edytujemy cenę brutto
+        });
+        setNewPrice(service.price.toString());
+    };
+
+    // Obsługa zmiany typu ceny (netto/brutto) w oknie edycji
+    const handlePriceTypeChange = (isGross: boolean) => {
+        // Znajdź usługę
+        const service = services.find(s => s.id === editPopup.serviceId);
+        if (!service) return;
+
+        const vatRate = service.vatRate || DEFAULT_VAT_RATE;
+        let newPriceValue = parseFloat(newPrice) || service.price;
+
+        // Przelicz cenę z aktualnego typu na nowy
+        if (editPopup.isGrossPrice && !isGross) {
+            // Zmiana z brutto na netto
+            newPriceValue = calculateNetPrice(newPriceValue, vatRate);
+        } else if (!editPopup.isGrossPrice && isGross) {
+            // Zmiana z netto na brutto
+            newPriceValue = calculateGrossPrice(newPriceValue, vatRate);
+        }
+
+        // Aktualizuj stan
+        setEditPopup({
+            ...editPopup,
+            isGrossPrice: isGross
+        });
+
+        // Aktualizuj wartość w polu
+        setNewPrice(newPriceValue.toFixed(2));
     };
 
     // Zapisz nową cenę
@@ -349,7 +594,20 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
         const parsedPrice = newPrice.trim() === '' ? 0 : parseFloat(newPrice);
 
         if (!isNaN(parsedPrice) && parsedPrice >= 0) {
-            onBasePriceChange(editPopup.serviceId, parsedPrice);
+            // Znajdź usługę
+            const service = services.find(s => s.id === editPopup.serviceId);
+            if (!service) return;
+
+            // Oblicz odpowiednią cenę (brutto lub netto) w zależności od wyboru
+            const vatRate = service.vatRate || DEFAULT_VAT_RATE;
+            let finalPrice = parsedPrice;
+
+            // Jeśli wprowadziliśmy cenę netto, to przelicz ją na brutto dla modelu danych
+            if (!editPopup.isGrossPrice) {
+                finalPrice = calculateGrossPrice(parsedPrice, vatRate);
+            }
+
+            onBasePriceChange(editPopup.serviceId, finalPrice);
         }
 
         setEditPopup({...editPopup, visible: false});
@@ -395,7 +653,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
     };
 
     // Inicjalizacja/aktualizacja wartości pola ilości na podstawie usługi
-    React.useEffect(() => {
+    useEffect(() => {
         const newInputs: Record<string, string> = {};
 
         services.forEach(service => {
@@ -430,8 +688,145 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
         }
     };
 
+    // Handler do obsługi zmiany typu rabatu z rozszerzonym typem
+    const handleExtendedDiscountTypeChange = (serviceId: string, newExtendedTypeValue: string) => {
+        // Konwertuj wartość string na enum
+        const newExtendedType = newExtendedTypeValue as ExtendedDiscountType;
+
+        // Znajdź usługę
+        const service = enhancedServices.find(s => s.id === serviceId);
+        if (!service) return;
+
+        // Mapuj rozszerzony typ na standardowy typ dla API
+        const standardType = mapToStandardDiscountType(newExtendedType);
+
+        // Przelicz wartość rabatu przy zmianie typu
+        const vatRate = service.vatRate || DEFAULT_VAT_RATE;
+        const quantity = service.quantity || 1;
+        const basePrice = service.price;
+        let newDiscountValue = service.discountValue;
+
+        // Konwersja wartości rabatu przy zmianie typu
+        const currentType = service.extendedDiscountType || getExtendedDiscountType(service.discountType);
+
+        if (currentType !== newExtendedType) {
+            // Najpierw oblicz aktualną cenę końcową
+            const currentFinalPrice = service.finalPrice;
+            const currentFinalPriceNet = calculateNetPrice(currentFinalPrice, vatRate);
+
+            switch (newExtendedType) {
+                case ExtendedDiscountType.PERCENTAGE:
+                    // Konwersja na procent
+                    const discount = basePrice * quantity - currentFinalPrice;
+                    newDiscountValue = (discount / (basePrice * quantity)) * 100;
+                    if (newDiscountValue > 100) newDiscountValue = 100;
+                    if (newDiscountValue < 0) newDiscountValue = 0;
+                    break;
+
+                case ExtendedDiscountType.AMOUNT_GROSS:
+                    // Konwersja na kwotę brutto
+                    newDiscountValue = basePrice * quantity - currentFinalPrice;
+                    if (newDiscountValue < 0) newDiscountValue = 0;
+                    break;
+
+                case ExtendedDiscountType.AMOUNT_NET:
+                    // Konwersja na kwotę netto
+                    const discountGross = basePrice * quantity - currentFinalPrice;
+                    newDiscountValue = calculateNetPrice(discountGross, vatRate);
+                    if (newDiscountValue < 0) newDiscountValue = 0;
+                    break;
+
+                case ExtendedDiscountType.FIXED_PRICE_GROSS:
+                    // Ustawienie ceny końcowej brutto
+                    newDiscountValue = currentFinalPrice;
+                    break;
+
+                case ExtendedDiscountType.FIXED_PRICE_NET:
+                    // Ustawienie ceny końcowej netto
+                    newDiscountValue = currentFinalPriceNet;
+                    break;
+            }
+        }
+
+        // Oblicz nową cenę końcową
+        const newFinalPrice = calculateDiscountedPrice(
+            basePrice,
+            newDiscountValue,
+            newExtendedType,
+            quantity,
+            vatRate
+        );
+
+        // Debugowanie
+        console.log('Zmiana typu rabatu:', {
+            serviceId,
+            nowType: newExtendedType,
+            wasType: currentType,
+            newDiscountValue,
+            newFinalPrice
+        });
+
+        // Zapisz rozszerzony typ w stanie lokalnym
+        setEnhancedServices(prev => {
+            const updatedServices = prev.map(s => {
+                if (s.id === serviceId) {
+                    return {
+                        ...s,
+                        extendedDiscountType: newExtendedType,
+                        discountValue: parseFloat(newDiscountValue.toFixed(2)),
+                        finalPrice: parseFloat(newFinalPrice.toFixed(2))
+                    };
+                }
+                return s;
+            });
+            return updatedServices;
+        });
+
+        // Wywołaj oryginalną funkcję z typem standardowym i nową wartością rabatu
+        onDiscountTypeChange(serviceId, standardType);
+        onDiscountValueChange(serviceId, parseFloat(newDiscountValue.toFixed(2)));
+    };
+
+    // Aktualizacja wartości rabatu z uwzględnieniem rozszerzonych typów
+    const handleExtendedDiscountValueChange = (serviceId: string, newValue: number) => {
+        // Znajdź usługę
+        const service = enhancedServices.find(s => s.id === serviceId);
+        if (!service) return;
+
+        const vatRate = service.vatRate || DEFAULT_VAT_RATE;
+        const quantity = service.quantity || 1;
+        const basePrice = service.price;
+        const discountType = service.extendedDiscountType || getExtendedDiscountType(service.discountType);
+
+        // Oblicz nową cenę końcową z uwzględnieniem typu rabatu (netto/brutto)
+        const newFinalPrice = calculateDiscountedPrice(
+            basePrice,
+            newValue,
+            discountType,
+            quantity,
+            vatRate
+        );
+
+        // Aktualizuj stan lokalny
+        const updatedServices = enhancedServices.map(s => {
+            if (s.id === serviceId) {
+                return {
+                    ...s,
+                    discountValue: newValue,
+                    finalPrice: parseFloat(newFinalPrice.toFixed(2))
+                };
+            }
+            return s;
+        });
+
+        setEnhancedServices(updatedServices);
+
+        // Wywołaj oryginalną funkcję
+        onDiscountValueChange(serviceId, newValue);
+    };
+
     // Zamknij menu kontekstowe przy kliknięciu na stronę
-    React.useEffect(() => {
+    useEffect(() => {
         const handleClickOutside = () => {
             setContextMenu({...contextMenu, visible: false});
         };
@@ -442,9 +837,8 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
             document.removeEventListener('click', handleClickOutside);
         };
     }, [contextMenu]);
-
-    // Zamknij okno edycji przy kliknięciu Escape
-    React.useEffect(() => {
+// Zamknij okno edycji przy kliknięciu Escape
+    useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape') {
                 setEditPopup({...editPopup, visible: false});
@@ -458,6 +852,85 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
         };
     }, [editPopup]);
 
+    // Funkcja obliczająca wszystkie potrzebne ceny dla usługi
+    const calculateServicePrices = (service: ServiceWithNote) => {
+        const vatRate = service.vatRate || DEFAULT_VAT_RATE;
+        const quantity = service.quantity || 1;
+
+        // Cena bazowa brutto (podawana przez użytkownika)
+        const baseGrossPrice = service.price;
+        // Cena bazowa netto
+        const baseNetPrice = calculateNetPrice(baseGrossPrice, vatRate);
+
+        // Cena końcowa brutto (po uwzględnieniu rabatu)
+        const finalGrossPrice = service.finalPrice;
+        // Cena końcowa netto
+        const finalNetPrice = calculateNetPrice(finalGrossPrice, vatRate);
+
+        // Wartość netto (cena końcowa netto × ilość)
+        const totalNetValue = finalNetPrice * quantity;
+        // Wartość brutto (cena końcowa brutto × ilość)
+        const totalGrossValue = finalGrossPrice * quantity;
+
+        return {
+            baseNetPrice,
+            baseGrossPrice,
+            finalNetPrice,
+            finalGrossPrice,
+            totalNetValue,
+            totalGrossValue
+        };
+    };
+
+    // Oblicz łączne sumy netto i brutto
+    const calculateNetGrossTotals = () => {
+        let totalNetValue = 0;
+        let totalGrossValue = 0;
+        let totalBaseNetValue = 0;
+        let totalBaseGrossValue = 0;
+        let totalDiscountValue = 0;
+
+        services.forEach(service => {
+            const {
+                totalNetValue: netValue,
+                totalGrossValue: grossValue,
+                baseNetPrice,
+                baseGrossPrice,
+            } = calculateServicePrices(service);
+
+            const quantity = service.quantity || 1;
+
+            // Obliczanie wartości bazowych (przed rabatem)
+            const baseTotalNet = baseNetPrice * quantity;
+            const baseTotalGross = baseGrossPrice * quantity;
+
+            // Obliczanie wartości rabatu
+            const discountValueGross = baseTotalGross - grossValue;
+
+            totalNetValue += netValue;
+            totalGrossValue += grossValue;
+            totalBaseNetValue += baseTotalNet;
+            totalBaseGrossValue += baseTotalGross;
+            totalDiscountValue += discountValueGross;
+        });
+
+        return {
+            totalNetValue,
+            totalGrossValue,
+            totalBaseNetValue,
+            totalBaseGrossValue,
+            totalDiscountValue
+        };
+    };
+
+    const {
+        totalNetValue,
+        totalGrossValue,
+        totalBaseNetValue,
+        totalBaseGrossValue,
+        totalDiscountValue
+    } = calculateNetGrossTotals();
+
     return (
         <ServicesTableContainer>
             <Table>
@@ -465,7 +938,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                 <tr>
                     <TableHeader>Nazwa</TableHeader>
                     <TableHeader>Cena bazowa</TableHeader>
-                    <TableHeader>Ilość</TableHeader> {/* Nowa kolumna */}
+                    <TableHeader>Ilość</TableHeader>
                     <TableHeader>Rabat</TableHeader>
                     <TableHeader>Cena końcowa</TableHeader>
                     <TableHeader>Akcje</TableHeader>
@@ -479,120 +952,144 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                         </TableCell>
                     </tr>
                 ) : (
-                    services.map(service => (
-                        <tr key={service.id}>
-                            <TableCell>
-                                <ServiceNameContainer>
-                                    <ServiceName>{service.name}</ServiceName>
-                                    {service.note && (
-                                        <ServiceNote>{service.note}</ServiceNote>
-                                    )}
-                                </ServiceNameContainer>
-                            </TableCell>
-                            <EditablePriceCell
-                                id={`price-${service.id}`}
-                                onContextMenu={(e) => handlePriceRightClick(e, service)}
-                                onClick={(e) => {
-                                    // Otwórz okno edycji również po lewym kliknięciu dla lepszej dostępności
-                                    const rect = e.currentTarget.getBoundingClientRect();
-                                    setEditPopup({
-                                        visible: true,
-                                        x: rect.left,
-                                        y: rect.bottom + window.scrollY,
-                                        serviceId: service.id,
-                                        currentPrice: service.price
-                                    });
-                                    setNewPrice(service.price.toString());
-                                }}
-                            >
-                                <PriceContainer>
-                                    <PriceValue>
-                                        {service.price.toFixed(2)} zł
-                                    </PriceValue>
-                                    <EditIcon>
-                                        <FaEdit />
-                                    </EditIcon>
-                                </PriceContainer>
-                            </EditablePriceCell>
-                            {/* Nowa kolumna z polem do wprowadzania ilości */}
-                            <TableCell>
-                                <QuantityInput
-                                    type="text"
-                                    inputMode="numeric"
-                                    pattern="[0-9]*"
-                                    value={quantityInputs[service.id] || ''}
-                                    onChange={(e) => handleQuantityInputChange(service.id, e)}
-                                    onBlur={() => handleQuantityBlur(service.id)}
-                                    onKeyDown={(e) => handleQuantityKeyDown(service.id, e)}
-                                />
-                            </TableCell>
-                            <DiscountCell>
-                                <DiscountCellContent>
-                                    <StyledDiscountContainer>
-                                        <DiscountInputGroup>
-                                            <DiscountTypeSelect
-                                                value={service.discountType}
-                                                onChange={(e) => onDiscountTypeChange(service.id, e.target.value as DiscountType)}
-                                            >
-                                                {Object.entries(DiscountTypeLabels).map(([value, label]) => (
-                                                    <option key={value} value={value}>
-                                                        {label}
-                                                    </option>
-                                                ))}
-                                            </DiscountTypeSelect>
-                                            <DiscountInput
-                                                type="number"
-                                                min="0"
-                                                max={service.discountType === DiscountType.PERCENTAGE ? 100 : undefined}
-                                                value={service.discountValue}
-                                                onChange={(e) => onDiscountValueChange(service.id, parseFloat(e.target.value) || 0)}
-                                            />
-                                        </DiscountInputGroup>
-                                        {service.discountType === DiscountType.PERCENTAGE && (
-                                            <DiscountPercentage>
-                                                ({(service.price * (service.quantity || 1) * service.discountValue / 100).toFixed(2)} zł)
-                                            </DiscountPercentage>
+                    enhancedServices.map(service => {
+                        const prices = calculateServicePrices(service);
+
+                        return (
+                            <tr key={service.id}>
+                                <TableCell>
+                                    <ServiceNameContainer>
+                                        <ServiceName>{service.name}</ServiceName>
+                                        {service.note && (
+                                            <ServiceNote>{service.note}</ServiceNote>
                                         )}
-                                    </StyledDiscountContainer>
-                                </DiscountCellContent>
-                            </DiscountCell>
-                            <TableCell>
-                                <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
-                                    {service.finalPrice.toFixed(2)} zł
-                                </div>
-                            </TableCell>
-                            <TableCell>
-                                <ActionButtonsContainer>
-                                    <ActionButton
-                                        type="button"
-                                        onClick={() => handleOpenNoteModal(service)}
-                                        title="Dodaj notatkę"
-                                        note={!!service.note}
-                                    >
-                                        <FaStickyNote />
-                                    </ActionButton>
-                                    <ActionButton
-                                        type="button"
-                                        onClick={() => onRemoveService(service.id)}
-                                        title="Usuń usługę"
-                                        danger
-                                    >
-                                        <FaTrash />
-                                    </ActionButton>
-                                </ActionButtonsContainer>
-                            </TableCell>
-                        </tr>
-                    ))
+                                    </ServiceNameContainer>
+                                </TableCell>
+                                <EditablePriceCell
+                                    id={`price-${service.id}`}
+                                    onContextMenu={(e) => handlePriceRightClick(e, service)}
+                                    onClick={(e) => handlePriceClick(e, service)}
+                                >
+                                    <PriceContainer>
+                                        <PriceWrapper>
+                                            <PriceValue>
+                                                {prices.baseGrossPrice.toFixed(2)} zł
+                                                <PriceType>brutto</PriceType>
+                                            </PriceValue>
+                                            <PriceValue>
+                                                {prices.baseNetPrice.toFixed(2)} zł
+                                                <PriceType>netto</PriceType>
+                                            </PriceValue>
+                                        </PriceWrapper>
+                                        <EditIcon>
+                                            <FaEdit />
+                                        </EditIcon>
+                                    </PriceContainer>
+                                </EditablePriceCell>
+                                {/* Komórka z polem do wprowadzania ilości */}
+                                <TableCell>
+                                    <QuantityInput
+                                        type="text"
+                                        inputMode="numeric"
+                                        pattern="[0-9]*"
+                                        value={quantityInputs[service.id] || ''}
+                                        onChange={(e) => handleQuantityInputChange(service.id, e)}
+                                        onBlur={() => handleQuantityBlur(service.id)}
+                                        onKeyDown={(e) => handleQuantityKeyDown(service.id, e)}
+                                    />
+                                </TableCell>
+                                <DiscountCell>
+                                    <DiscountCellContent>
+                                        <StyledDiscountContainer>
+                                            <DiscountInputGroup>
+                                                <DiscountTypeSelect
+                                                    value={service.extendedDiscountType || ExtendedDiscountType.PERCENTAGE}
+                                                    onChange={(e) => handleExtendedDiscountTypeChange(service.id, e.target.value as ExtendedDiscountType)}
+                                                >
+                                                    {Object.entries(DiscountTypeLabelsExtended).map(([value, label]) => (
+                                                        <option key={value} value={value}>
+                                                            {label}
+                                                        </option>
+                                                    ))}
+                                                </DiscountTypeSelect>
+                                                <DiscountInput
+                                                    type="number"
+                                                    min="0"
+                                                    max={service.extendedDiscountType === ExtendedDiscountType.PERCENTAGE ? 100 : undefined}
+                                                    value={service.discountValue}
+                                                    onChange={(e) => handleExtendedDiscountValueChange(service.id, parseFloat(e.target.value) || 0)}
+                                                />
+                                            </DiscountInputGroup>
+                                            {service.extendedDiscountType === ExtendedDiscountType.PERCENTAGE && (
+                                                <DiscountPercentage>
+                                                    ({(service.price * (service.quantity || 1) * service.discountValue / 100).toFixed(2)} zł)
+                                                </DiscountPercentage>
+                                            )}
+                                        </StyledDiscountContainer>
+                                    </DiscountCellContent>
+                                </DiscountCell>
+                                <PriceCell>
+                                    <PriceWrapper>
+                                        <PriceValue>
+                                            {prices.finalGrossPrice.toFixed(2)} zł
+                                            <PriceType>brutto</PriceType>
+                                        </PriceValue>
+                                        <PriceValue>
+                                            {prices.finalNetPrice.toFixed(2)} zł
+                                            <PriceType>netto</PriceType>
+                                        </PriceValue>
+                                    </PriceWrapper>
+                                </PriceCell>
+                                <TableCell>
+                                    <ActionButtonsContainer>
+                                        <ActionButton
+                                            type="button"
+                                            onClick={() => handleOpenNoteModal(service)}
+                                            title="Dodaj notatkę"
+                                            note={!!service.note}
+                                        >
+                                            <FaStickyNote />
+                                        </ActionButton>
+                                        <ActionButton
+                                            type="button"
+                                            onClick={() => onRemoveService(service.id)}
+                                            title="Usuń usługę"
+                                            danger
+                                        >
+                                            <FaTrash />
+                                        </ActionButton>
+                                    </ActionButtonsContainer>
+                                </TableCell>
+                            </tr>
+                        )})
                 )}
                 </tbody>
                 <tfoot>
                 <tr>
                     <TableFooterCell>Suma:</TableFooterCell>
-                    <TableFooterCell colSpan={2}>{totalPrice.toFixed(2)} zł</TableFooterCell>
                     <TableFooterCell>
-                        {totalDiscount.toFixed(2)} zł
+                        <PriceWrapper>
+                            <TotalValue>{totalBaseGrossValue.toFixed(2)} zł</TotalValue>
+                            <PriceType>brutto</PriceType>
+                            <TotalValue>{totalBaseNetValue.toFixed(2)} zł</TotalValue>
+                            <PriceType>netto</PriceType>
+                        </PriceWrapper>
                     </TableFooterCell>
-                    <TableFooterCell>{totalFinalPrice.toFixed(2)} zł</TableFooterCell>
+                    <TableFooterCell colSpan={1}></TableFooterCell>
+                    <TableFooterCell>
+                        <PriceWrapper>
+                            <TotalValue>{totalDiscountValue.toFixed(2)} zł</TotalValue>
+                            <PriceType>brutto</PriceType>
+                        </PriceWrapper>
+                    </TableFooterCell>
+                    <TableFooterCell>
+                        <PriceWrapper>
+                            <TotalValue>{totalFinalPrice.toFixed(2)} zł</TotalValue>
+                            <PriceType>brutto</PriceType>
+                            <TotalValue>{calculateNetPrice(totalFinalPrice, DEFAULT_VAT_RATE).toFixed(2)} zł</TotalValue>
+                            <PriceType>netto</PriceType>
+                        </PriceWrapper>
+                    </TableFooterCell>
                     <TableFooterCell></TableFooterCell>
                 </tr>
                 </tfoot>
@@ -626,6 +1123,21 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                 >
                     <PopupTitle>Edytuj cenę bazową</PopupTitle>
                     <EditPriceForm>
+                        <PriceTypeSelector>
+                            <PriceTypeOption
+                                selected={editPopup.isGrossPrice}
+                                onClick={() => handlePriceTypeChange(true)}
+                            >
+                                Cena brutto
+                            </PriceTypeOption>
+                            <PriceTypeOption
+                                selected={!editPopup.isGrossPrice}
+                                onClick={() => handlePriceTypeChange(false)}
+                            >
+                                Cena netto
+                            </PriceTypeOption>
+                        </PriceTypeSelector>
+
                         <EditPriceInput
                             type="text"
                             value={newPrice}
@@ -636,7 +1148,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                                     setNewPrice(value);
                                 }
                             }}
-                            placeholder="Wprowadź nową cenę"
+                            placeholder={`Wprowadź cenę ${editPopup.isGrossPrice ? 'brutto' : 'netto'}`}
                             autoFocus
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
