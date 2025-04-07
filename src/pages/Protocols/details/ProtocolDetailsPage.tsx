@@ -1,17 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, {useEffect, useState} from 'react';
+import {useNavigate, useParams} from 'react-router-dom';
 import styled from 'styled-components';
-import {
-    FaArrowLeft,
-    FaEdit,
-    FaFilePdf,
-    FaCarSide,
-    FaCheckSquare,
-    FaKey,
-    FaBan
-} from 'react-icons/fa';
+import {FaArrowLeft, FaBan, FaCheckSquare, FaEdit, FaFilePdf, FaKey} from 'react-icons/fa';
 import {protocolsApi} from "../../../api/protocolsApi";
-import {Comment, commentsApi} from"../../../api/commentsApi";
+import {Comment, commentsApi} from "../../../api/commentsApi";
 import {CarReceptionProtocol, ProtocolStatus} from "../../../types";
 import ProtocolSummary from "./components/ProtocolSummary";
 import ProtocolComments from "./components/ProtocolComments";
@@ -252,7 +244,7 @@ const ProtocolDetailsPage: React.FC = () => {
             case 'vehicle':
                 return <ProtocolVehicleStatus protocol={protocol} onProtocolUpdate={handleProtocolUpdate} />;
             case 'gallery':
-                return <ProtocolGallery protocol={protocol} onProtocolUpdate={handleProtocolUpdate} disabled={true} />;
+                return <ProtocolGallery protocol={protocol} onProtocolUpdate={handleProtocolUpdate} disabled={protocol.status === ProtocolStatus.CANCELLED} />;
             default:
                 return <ProtocolSummary protocol={protocol} onProtocolUpdate={handleProtocolUpdate} />;
         }
