@@ -10,7 +10,8 @@ import VehiclesPage from './pages/Clients/VehiclesPage';
 import ReportsPage from "./pages/Reports/ReportsPage";
 import ActivityFeedPage from "./pages/ActivityFeed/ActivityFeedPage";
 import ProtocolDetailsPage from "./pages/Protocols/details/ProtocolDetailsPage";
-import StartVisitPage from "./pages/Protocols/start-visit/StartVisitPage"; // Dodajemy import
+import StartVisitPage from "./pages/Protocols/start-visit/StartVisitPage";
+import CalendarColorsPage from "./pages/Settings/CalendarColorsPage"; // Dodajemy import
 
 
 // Tymczasowe komponenty dla innych stron - do zastąpienia rzeczywistymi implementacjami
@@ -46,7 +47,7 @@ const AppRoutes: React.FC = () => {
 
             <Route path="/warehouse" element={<PlaceholderPage title="Magazyn" />} />
             {/* Strony ustawień */}
-            <Route path="/settings/general" element={<PlaceholderPage title="Ustawienia ogólne" />} />
+            <Route path="/settings/general" element={<CalendarColorsPage />} />
             <Route path="/settings/employees" element={<EmployeesPage />} />
             <Route path="/settings/taxes" element={<TaxesPage />} />
             <Route path="/settings/services" element={<ServicesPage />} />
