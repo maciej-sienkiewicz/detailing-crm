@@ -12,7 +12,6 @@ interface Service {
 
 interface SelectedServiceWithPrice extends Service {
     customPrice?: number;
-    quantity: number;  // Teraz nie jest opcjonalne
     note?: string;
 }
 
@@ -32,7 +31,6 @@ interface AddServiceModalProps {
             name: string;
             price: number;
             note?: string;
-            quantity: number; // Dodane pole quantity, które nie jest opcjonalne
         }>;
     }) => void;
     availableServices: Service[];
@@ -105,10 +103,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
             setSelectedServices(selectedServices.filter(s => s.id !== service.id));
         } else {
             // Otherwise add it with default quantity of 1
-            setSelectedServices([...selectedServices, {
-                ...service,
-                quantity: 1 // Dodajemy domyślną wartość dla quantity
-            }]);
+            setSelectedServices([...selectedServices]);
         }
     };
 
@@ -137,7 +132,6 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         const customService: SelectedServiceWithPrice = {
             id: `custom-${Date.now()}`,
             name: searchQuery.trim(),
-            quantity: 1,
             price: 0, // Default price is zero
             customPrice: 0
         };
@@ -154,7 +148,6 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
             id: service.id,
             name: service.name,
             price: service.customPrice !== undefined ? service.customPrice : service.price,
-            quantity: service.quantity || 1,  // Zawsze przekazujemy ilość, domyślnie 1
             note: service.note
         }));
 
@@ -409,23 +402,6 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                                             )}
                                         </SelectedServiceNameContainer>
 
-                                        {/* Nowe pole ilości */}
-                                        <QuantityContainer>
-                                            <QuantityLabel>Ilość:</QuantityLabel>
-                                            <QuantityInput
-                                                type="number"
-                                                min="1"
-                                                value={service.quantity || 1}
-                                                onChange={(e) => {
-                                                    const quantity = parseInt(e.target.value) || 1;
-                                                    const updatedServices = selectedServices.map(s =>
-                                                        s.id === service.id ? {...s, quantity} : s
-                                                    );
-                                                    setSelectedServices(updatedServices);
-                                                }}
-                                            />
-                                        </QuantityContainer>
-
                                         <SelectedServicePrice
                                             onContextMenu={(e) => handlePriceRightClick(e, service)}
                                         >
@@ -462,7 +438,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                                     <TotalPriceLabel>Łącznie:</TotalPriceLabel>
                                     <TotalPriceValue>
                                         {selectedServices.reduce((sum, s) =>
-                                                sum + (s.customPrice !== undefined ? s.customPrice : s.price) * (s.quantity || 1),
+                                                sum + (s.customPrice !== undefined ? s.customPrice : s.price),
                                             0).toFixed(2)} zł
                                     </TotalPriceValue>
                                 </TotalPriceRow>
@@ -1052,41 +1028,6 @@ const EditPriceButtons = styled.div`
     display: flex;
     justify-content: flex-end;
     gap: 10px;
-`;
-
-const QuantityContainer = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    min-width: 80px;
-`;
-
-const QuantityLabel = styled.span`
-    font-size: 13px;
-    color: #7f8c8d;
-`;
-
-const QuantityInput = styled.input`
-    width: 40px;
-    padding: 4px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 13px;
-    text-align: center;
-
-    &:focus {
-        outline: none;
-        border-color: #3498db;
-    }
-
-    &::-webkit-outer-spin-button,
-    &::-webkit-inner-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
-    }
-    &[type=number] {
-        -moz-appearance: textfield;
-    }
 `;
 
 export default AddServiceModal;

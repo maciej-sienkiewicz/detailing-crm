@@ -23,7 +23,6 @@ interface ServiceSectionProps {
     onDiscountTypeChange: (serviceId: string, discountType: DiscountType) => void;
     onDiscountValueChange: (serviceId: string, discountValue: number) => void;
     onBasePriceChange: (serviceId: string, newPrice: number) => void;
-    onQuantityChange: (serviceId: string, quantity: number) => void; // Nowy prop
     onAddNote?: (serviceId: string, note: string) => void;
     calculateTotals: () => { totalPrice: number; totalDiscount: number; totalFinalPrice: number };
     allowCustomService: boolean;
@@ -46,7 +45,6 @@ const ServiceSection: React.FC<ServiceSectionProps> = ({
                                                            onDiscountTypeChange,
                                                            onDiscountValueChange,
                                                            onBasePriceChange,
-                                                           onQuantityChange, // Nowy prop
                                                            onAddNote,
                                                            calculateTotals,
                                                            allowCustomService,
@@ -76,7 +74,6 @@ const ServiceSection: React.FC<ServiceSectionProps> = ({
                 onDiscountTypeChange={onDiscountTypeChange}
                 onDiscountValueChange={onDiscountValueChange}
                 onBasePriceChange={onBasePriceChange}
-                onQuantityChange={onQuantityChange} // Przekazujemy nową funkcję
                 onAddNote={onAddNote}
                 calculateTotals={calculateTotals}
             />

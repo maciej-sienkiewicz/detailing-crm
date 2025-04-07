@@ -190,7 +190,7 @@ const CarReceptionPage: React.FC = () => {
                     </>
                 ) : (
                     <>
-                        <h1>Protokoły przyjęcia pojazdu</h1>
+                        <h1>Wizyty</h1>
                         <AddButton onClick={handleAddProtocol}>
                             <FaPlus /> Rozpocznij wizytę
                         </AddButton>

@@ -142,27 +142,6 @@ const EditIcon = styled.span`
     align-items: center;
 `;
 
-// Nowy komponent dla pola ilości
-const QuantityInput = styled.input`
-    width: 60px;
-    padding: 6px 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
-    text-align: center;
-
-    &:focus {
-        outline: none;
-        border-color: #3498db;
-        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
-    }
-
-    @media (max-width: 768px) {
-        width: 50px;
-        padding: 4px 6px;
-    }
-`;
-
 // Nowy komponent dla notatki
 const ServiceNote = styled.div`
     font-size: 12px;
@@ -346,7 +325,6 @@ interface ServiceTableProps {
     onDiscountTypeChange: (serviceId: string, discountType: DiscountType) => void;
     onDiscountValueChange: (serviceId: string, discountValue: number) => void;
     onBasePriceChange: (serviceId: string, newPrice: number) => void;
-    onQuantityChange: (serviceId: string, quantity: number) => void;  // Funkcja do obsługi zmiany ilości
     onAddNote?: (serviceId: string, note: string) => void;
     calculateTotals: () => { totalPrice: number; totalDiscount: number; totalFinalPrice: number };
 }
@@ -357,7 +335,6 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                                                        onDiscountTypeChange,
                                                        onDiscountValueChange,
                                                        onBasePriceChange,
-                                                       onQuantityChange,
                                                        onAddNote,
                                                        calculateTotals
                                                    }) => {
@@ -405,9 +382,6 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
         serviceName: '',
         currentNote: ''
     });
-
-    // State dla ilości (jako tekst) dla każdej usługi
-    const [quantityInputs, setQuantityInputs] = useState<Record<string, string>>({});
 
     // State do przechowywania nowej ceny jako string, aby uniknąć problemów z zerami wiodącymi
     const [newPrice, setNewPrice] = useState<string>('');
@@ -543,64 +517,6 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
         setEditPopup({...editPopup, visible: false});
     };
 
-    // Obsługa zmiany ilości - aktualizuje stan lokalny pola wprowadzania
-    const handleQuantityInputChange = (serviceId: string, e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value;
-
-        // Aktualizacja stanu lokalnego pola wprowadzania - pozwala na naturalne edytowanie
-        setQuantityInputs({
-            ...quantityInputs,
-            [serviceId]: value
-        });
-    };
-
-    // Obsługa zatwierdzenia ilości - wywoływane na blur lub enter
-    const handleQuantityBlur = (serviceId: string) => {
-        const inputValue = quantityInputs[serviceId] || '';
-        const parsedValue = parseInt(inputValue, 10);
-
-        // Jeśli wartość jest prawidłową liczbą i nie jest taka sama jak bieżąca ilość
-        if (!isNaN(parsedValue) && parsedValue > 0) {
-            onQuantityChange(serviceId, parsedValue);
-        } else {
-            // Jeśli wartość jest nieprawidłowa, przywróć aktualną ilość z usługi
-            const service = services.find(s => s.id === serviceId);
-            if (service) {
-                setQuantityInputs({
-                    ...quantityInputs,
-                    [serviceId]: String(service.quantity || 1)
-                });
-            }
-        }
-    };
-
-    // Obsługa klawisza Enter w polu ilości
-    const handleQuantityKeyDown = (serviceId: string, e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            handleQuantityBlur(serviceId);
-        }
-    };
-
-    // Inicjalizacja/aktualizacja wartości pola ilości na podstawie usługi
-    React.useEffect(() => {
-        const newInputs: Record<string, string> = {};
-
-        services.forEach(service => {
-            // Użyj istniejącej wartości (jeśli użytkownik edytuje) lub weź z usługi
-            if (!(service.id in quantityInputs)) {
-                newInputs[service.id] = String(service.quantity || 1);
-            }
-        });
-
-        if (Object.keys(newInputs).length > 0) {
-            setQuantityInputs(prev => ({
-                ...prev,
-                ...newInputs
-            }));
-        }
-    }, [services]);
-
     // Otwórz modal dodawania/edycji notatki
     const handleOpenNoteModal = (service: ServiceWithNote) => {
         setNoteModal({
@@ -649,7 +565,6 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
     // Funkcja obliczająca wszystkie potrzebne ceny dla usługi
     const calculateServicePrices = (service: ServiceWithNote) => {
         const vatRate = service.vatRate || DEFAULT_VAT_RATE;
-        const quantity = service.quantity || 1;
 
         // Cena bazowa brutto (podawana przez użytkownika)
         const baseGrossPrice = service.price;
@@ -662,9 +577,9 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
         const finalNetPrice = calculateNetPrice(finalGrossPrice, vatRate);
 
         // Wartość netto (cena końcowa netto × ilość)
-        const totalNetValue = finalNetPrice * quantity;
+        const totalNetValue = finalNetPrice;
         // Wartość brutto (cena końcowa brutto × ilość)
-        const totalGrossValue = finalGrossPrice * quantity;
+        const totalGrossValue = finalGrossPrice;
 
         return {
             baseNetPrice,
@@ -713,11 +628,9 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                 baseGrossPrice,
             } = calculateServicePrices(service);
 
-            const quantity = service.quantity || 1;
-
             // Obliczanie wartości bazowych (przed rabatem)
-            const baseTotalNet = baseNetPrice * quantity;
-            const baseTotalGross = baseGrossPrice * quantity;
+            const baseTotalNet = baseNetPrice;
+            const baseTotalGross = baseGrossPrice;
 
             // Obliczanie wartości rabatu
             const discountValueGross = baseTotalGross - grossValue;
@@ -753,7 +666,6 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                 <tr>
                     <TableHeader>Nazwa</TableHeader>
                     <TableHeader>Cena bazowa</TableHeader>
-                    <TableHeader>Ilość</TableHeader>
                     <TableHeader>Rabat</TableHeader>
                     <TableHeader>Cena końcowa</TableHeader>
                     <TableHeader>Akcje</TableHeader>
@@ -801,18 +713,6 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                                         </EditIcon>
                                     </PriceContainer>
                                 </EditablePriceCell>
-                                {/* Komórka z polem do wprowadzania ilości */}
-                                <TableCell>
-                                    <QuantityInput
-                                        type="text"
-                                        inputMode="numeric"
-                                        pattern="[0-9]*"
-                                        value={quantityInputs[service.id] || ''}
-                                        onChange={(e) => handleQuantityInputChange(service.id, e)}
-                                        onBlur={() => handleQuantityBlur(service.id)}
-                                        onKeyDown={(e) => handleQuantityKeyDown(service.id, e)}
-                                    />
-                                </TableCell>
                                 <DiscountCell>
                                     <DiscountCellContent>
                                         <StyledDiscountContainer>
@@ -837,7 +737,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                                             </DiscountInputGroup>
                                             {service.discountType === 'PERCENTAGE' && (
                                                 <DiscountPercentage>
-                                                    ({(service.price * (service.quantity || 1) * service.discountValue / 100).toFixed(2)} zł)
+                                                    ({(service.price * service.discountValue / 100).toFixed(2)} zł)
                                                 </DiscountPercentage>
                                             )}
                                         </StyledDiscountContainer>
@@ -890,11 +790,12 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                             <PriceType>netto</PriceType>
                         </PriceWrapper>
                     </TableFooterCell>
-                    <TableFooterCell colSpan={1}></TableFooterCell>
                     <TableFooterCell>
                         <PriceWrapper>
                             <TotalValue>{totalDiscountValue.toFixed(2)} zł</TotalValue>
                             <PriceType>brutto</PriceType>
+                            <TotalValue>{totalDiscountValue.toFixed(2)} zł</TotalValue>
+                            <PriceType>netto</PriceType>
                         </PriceWrapper>
                     </TableFooterCell>
                     <TableFooterCell>

@@ -19,7 +19,7 @@ import CustomerNotificationModal from "./modals/CustomerNotificationModal";
 import ClientCommentsModal from "./modals/ClientCommentsModal";
 import PaymentModal from "./modals/PaymentModal";
 import PDFViewer from "../../../components/PdfViewer";
-import CancelProtocolModal from "../shared/components/CancelProtocolModal";
+import CancelProtocolModal, {CancellationReason} from "../shared/components/CancelProtocolModal";
 
 
 // Define tab types
@@ -273,7 +273,7 @@ const ProtocolDetailsPage: React.FC = () => {
                         <FaArrowLeft />
                     </BackButton>
                     <HeaderTitle>
-                        <h1>Protokół #{protocol.id}</h1>
+                        <h1>Wizyta #{protocol.id}</h1>
                         <HeaderSubtitle>{protocol.make} {protocol.model} ({protocol.licensePlate})</HeaderSubtitle>
                     </HeaderTitle>
                 </HeaderLeft>

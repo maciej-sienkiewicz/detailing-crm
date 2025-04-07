@@ -27,7 +27,6 @@ export interface SelectedService {
     id: string;
     name: string;
     price: number;         // Cena jednostkowa
-    quantity: number;      // Nowe pole: ilość sztuk/jednostek
     discountType: DiscountType;
     discountValue: number;
     finalPrice: number;    // Cena końcowa (po uwzględnieniu ilości i rabatu)

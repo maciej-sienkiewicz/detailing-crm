@@ -108,31 +108,6 @@ const ProtocolHeader: React.FC<ProtocolHeaderProps> = ({ protocol, onStatusChang
 
     return (
         <HeaderContainer>
-            <StatusSection>
-                <StatusLabel>Status</StatusLabel>
-                <StatusSelect
-                    value={protocol.status}
-                    onChange={handleStatusSelectChange}
-                    disabled={isUpdating || protocol.status === ProtocolStatus.CANCELLED}
-                >
-                    {Object.entries(ProtocolStatusLabels).map(([value, label]) => (
-                        <option key={value} value={value}>
-                            {label}
-                        </option>
-                    ))}
-                </StatusSelect>
-
-                {error && <ErrorMessage>{error}</ErrorMessage>}
-
-                {nextStatus && (
-                    <NextStatusButton
-                        onClick={() => handleStatusChange(nextStatus)}
-                        disabled={isUpdating}
-                    >
-                        → {ProtocolStatusLabels[nextStatus]}
-                    </NextStatusButton>
-                )}
-            </StatusSection>
 
             <InfoSection>
                 <InfoGrid>

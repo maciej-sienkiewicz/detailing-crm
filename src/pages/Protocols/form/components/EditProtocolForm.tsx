@@ -120,7 +120,6 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
         updateDiscountType,
         updateDiscountValue,
         updateServiceNote,
-        updateQuantity
     } = useServiceCalculations(formData.selectedServices || []);
 
     // State for service search
@@ -180,7 +179,6 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
                 discountType: "PERCENTAGE" as any,
                 discountValue: 0,
                 approvalStatus: undefined,
-                quantity: 1 // Dodajemy domyślną ilość
             };
 
             addService(newService);
@@ -194,7 +192,6 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
                 discountType: "PERCENTAGE" as any,
                 discountValue: 0,
                 approvalStatus: undefined,
-                quantity: 1 // Dodajemy domyślną ilość
             };
 
             addService(newService);
@@ -215,7 +212,6 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
             discountType: "PERCENTAGE" as any,
             discountValue: 0,
             approvalStatus: undefined,
-            quantity: 1 // Dodajemy domyślną ilość
         };
 
         addService(newService);
@@ -288,7 +284,6 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
                     onDiscountTypeChange={updateDiscountType}
                     onDiscountValueChange={updateDiscountValue}
                     onBasePriceChange={updateBasePrice}
-                    onQuantityChange={updateQuantity}
                     onAddNote={updateServiceNote}
                     calculateTotals={calculateTotals}
                     allowCustomService={true}

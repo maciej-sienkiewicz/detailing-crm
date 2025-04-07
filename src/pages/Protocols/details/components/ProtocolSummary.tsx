@@ -109,7 +109,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
 
     // Obsługa dodania nowych usług
     const handleAddServices = async (servicesData: {
-        services: Array<{ id: string; name: string; price: number; note?: string; quantity: number }>;
+        services: Array<{ id: string; name: string; price: number; note?: string }>;
     }) => {
         if (servicesData.services.length === 0) return;
 
@@ -126,10 +126,9 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                     id: `service_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
                     name: serviceData.name,
                     price: serviceData.price,
-                    quantity: serviceData.quantity || 1, // Uwzględniamy ilość, domyślnie 1
                     discountType: 'PERCENTAGE', // Domyślny typ rabatu
                     discountValue: 0,           // Domyślna wartość rabatu
-                    finalPrice: serviceData.price * (serviceData.quantity || 1), // Cena × ilość
+                    finalPrice: serviceData.price, // Cena × ilość
                     approvalStatus: ServiceApprovalStatus.PENDING,
                     addedAt: now,
                     confirmationMessage: `Wysłano SMS z prośbą o potwierdzenie usługi`
@@ -297,7 +296,6 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                     <TableHeader>
                         <HeaderCell wide>Nazwa usługi</HeaderCell>
                         <HeaderCell>Cena bazowa</HeaderCell>
-                        <HeaderCell>Liczba sztuk</HeaderCell>
                         <HeaderCell>Rabat</HeaderCell>
                         <HeaderCell>Cena końcowa</HeaderCell>
                         <HeaderCell action>Akcje</HeaderCell>
@@ -332,10 +330,9 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                                     </ServiceNameContainer>
                                 </TableCell>
                                 <TableCell>{service.price.toFixed(2)} zł</TableCell>
-                                <TableCell>{service.quantity || 1}</TableCell>
                                 <TableCell>
                                     {service.discountValue > 0
-                                        ? `${service.discountValue}${service.discountType === 'PERCENTAGE' ? '%' : ' zł'}`
+                                        ? `${service.discountValue.toFixed(2)}${service.discountType === 'PERCENTAGE' ? '%' : ' zł'}`
                                         : '-'
                                     }
                                 </TableCell>
@@ -375,9 +372,8 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                     <TableFooter>
                         <FooterCell wide>Razem</FooterCell>
                         <FooterCell>{allServices.reduce((sum, s) => sum + s.price, 0).toFixed(2)} zł</FooterCell>
-                        <FooterCell>{allServices.reduce((sum, s) => sum + (s.quantity || 1), 0)}</FooterCell>
                         <FooterCell>
-                            {(allServices.reduce((sum, s) => sum + s.price * (s.quantity || 1), 0) - (approvedValue + pendingValue)).toFixed(2)} zł
+                            {(allServices.reduce((sum, s) => sum + s.price, 0) - (approvedValue + pendingValue)).toFixed(2)} zł
                         </FooterCell>
                         <FooterCell>
                             <TotalValue highlight>{approvedValue.toFixed(2)} zł</TotalValue>
