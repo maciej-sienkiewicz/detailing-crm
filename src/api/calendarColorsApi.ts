@@ -51,9 +51,6 @@ const convertCamelToSnake = (data: any): any => {
 export const calendarColorsApi = {
     // Pobieranie wszystkich kolorów kalendarza
     fetchCalendarColors: async (): Promise<CalendarColor[]> => {
-        if (USE_MOCKS) {
-            return mocks.fetchCalendarColors();
-        }
 
         try {
             const data = await apiClient.get<any[]>('/calendar/colors');
@@ -64,26 +61,8 @@ export const calendarColorsApi = {
         }
     },
 
-    // Pobieranie pojedynczego koloru
-    fetchCalendarColor: async (id: string): Promise<CalendarColor | null> => {
-        if (USE_MOCKS) {
-            return mocks.fetchCalendarColor(id);
-        }
-
-        try {
-            const data = await apiClient.get<any>(`/calendar/colors/${id}`);
-            return convertSnakeToCamel(data) as CalendarColor;
-        } catch (error) {
-            console.error(`Error fetching calendar color ${id}:`, error);
-            return null;
-        }
-    },
-
     // Tworzenie nowego koloru
     createCalendarColor: async (colorData: Omit<CalendarColor, 'id'>): Promise<CalendarColor | null> => {
-        if (USE_MOCKS) {
-            return mocks.createCalendarColor(colorData);
-        }
 
         try {
             const requestData = convertCamelToSnake(colorData);
@@ -97,10 +76,6 @@ export const calendarColorsApi = {
 
     // Aktualizacja istniejącego koloru
     updateCalendarColor: async (id: string, colorData: Omit<CalendarColor, 'id'>): Promise<CalendarColor | null> => {
-        if (USE_MOCKS) {
-            return mocks.updateCalendarColor(id, colorData);
-        }
-
         try {
             const requestData = convertCamelToSnake(colorData);
             const response = await apiClient.put<any>(`/calendar/colors/${id}`, requestData);
@@ -113,10 +88,6 @@ export const calendarColorsApi = {
 
     // Usuwanie koloru
     deleteCalendarColor: async (id: string): Promise<boolean> => {
-        if (USE_MOCKS) {
-            return mocks.deleteCalendarColor(id);
-        }
-
         try {
             await apiClient.delete(`/calendar/colors/${id}`);
             return true;
@@ -128,10 +99,6 @@ export const calendarColorsApi = {
 
     // Sprawdzenie, czy dana nazwa koloru jest już zajęta
     isColorNameTaken: async (name: string, excludeId?: string): Promise<boolean> => {
-        if (USE_MOCKS) {
-            return mocks.isColorNameTaken(name, excludeId);
-        }
-
         try {
             const queryParams: Record<string, string> = { name };
             if (excludeId) {

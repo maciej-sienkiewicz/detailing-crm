@@ -41,7 +41,7 @@ export interface VehicleImage {
     description?: string;
     location?: string;
     tags?: string[];
-    file?: File;         
+    file?: File;
     storageId?: string;
     protocolId?: string;
 }
@@ -50,6 +50,7 @@ export interface VehicleImage {
 export interface CarReceptionProtocol {
     id: string;
     title?: string;        // Tytuł wizyty
+    calendarColorId?: string; // ID koloru używanego do wyświetlania wizyty w kalendarzu
     startDate: string;     // Teraz zawiera datę i godzinę (format ISO 8601)
     endDate: string;       // Zawsze będzie ustawiony na koniec dnia
     licensePlate: string;

@@ -263,6 +263,7 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
             <Form onSubmit={handleSubmit}>
                 <VisitTitleSection
                     title={formData.title || ''}
+                    selectedColorId={formData.calendarColorId} // Dodane pole calendarColorId
                     onChange={handleChange}
                     error={errors.title}
                 />
@@ -381,5 +382,3 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
         </FormContainer>
     );
 };
-
-export default CarReceptionForm;

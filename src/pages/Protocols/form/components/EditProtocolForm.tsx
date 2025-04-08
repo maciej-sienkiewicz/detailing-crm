@@ -243,6 +243,7 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
             <Form onSubmit={handleSubmit}>
                 <VisitTitleSection
                     title={formData.title || ''}
+                    selectedColorId={formData.calendarColorId} // Dodane pole calendarColorId
                     onChange={handleChange}
                     error={errors.title}
                 />

@@ -4,7 +4,7 @@ import { format, parse, startOfWeek, getDay, addMinutes } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import styled from 'styled-components';
-import { Appointment, AppointmentStatusColors } from '../../types';
+import {Appointment, AppointmentStatus, AppointmentStatusColors} from '../../types';
 
 // Konfiguracja lokalizera date-fns
 const locales = {
@@ -52,15 +52,29 @@ const AppointmentCalendar: React.FC<CalendarProps> = ({
     // Dostosowanie wyglądu wydarzenia
     const eventStyleGetter = (event: Appointment) => {
         // Używamy kolorów bazujących na statusie wizyty
-        const backgroundColor = AppointmentStatusColors[event.status];
+        let backgroundColor = AppointmentStatusColors[event.status];
+        let opacity = 0.8;
+        let borderColor = '0';
 
         // Specjalne formatowanie dla protokołów
         if (event.isProtocol) {
+            // Sprawdzamy czy to protokół zakończony (COMPLETED)
+            if (event.status === AppointmentStatus.COMPLETED) {
+                opacity = 0.5; // Zakończone protokoły są bardziej przeźroczyste
+            }
+
+            // Sprawdzamy czy to protokół anulowany (CANCELLED)
+            // Musimy użyć sprawdzenia wartości, ponieważ typy nie są zgodne między AppointmentStatus i ProtocolStatus
+            if (event.status === AppointmentStatus.CANCELLED) {
+                backgroundColor = '#444444'; // Ciemno szary dla anulowanych protokołów
+                opacity = 0.7;
+            }
+
             return {
                 style: {
                     backgroundColor,
                     borderRadius: '4px',
-                    opacity: 0.9,
+                    opacity,
                     color: 'white',
                     border: '2px solid #2c3e50', // Grubsza obwódka dla protokołów
                     display: 'block',
@@ -74,7 +88,7 @@ const AppointmentCalendar: React.FC<CalendarProps> = ({
             style: {
                 backgroundColor,
                 borderRadius: '4px',
-                opacity: 0.8,
+                opacity,
                 color: 'white',
                 border: '0',
                 display: 'block'

@@ -36,6 +36,7 @@ export const useFormData = (
         protocol || initialData || {
             ...initializeDates(),
             title: '',
+            calendarColorId: '', // Dodane nowe pole
             licensePlate: '',
             make: '',
             model: '',
@@ -61,12 +62,6 @@ export const useFormData = (
     const { errors, validateForm, clearFieldError } = useFormValidation(formData);
 
     // Efekt do obsługi startDate z kalendarza
-// W pliku src/pages/Protocols/form/hooks/useFormData.ts (linia około 49)
-// W useEffect obsługującym inicjalizację daty
-
-// W pliku src/pages/Protocols/form/hooks/useFormData.ts (linia około 49)
-// W useEffect obsługującym inicjalizację daty
-
     useEffect(() => {
         if (initialData?.startDate) {
             // Logujemy wartość daty początkowej dla celów diagnostycznych

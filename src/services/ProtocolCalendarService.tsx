@@ -86,6 +86,9 @@ export const mapProtocolListItemToAppointment = (protocolItem: ProtocolListItem)
         case ProtocolStatus.COMPLETED:
             appointmentStatus = AppointmentStatus.COMPLETED;
             break;
+        case ProtocolStatus.CANCELLED:
+            appointmentStatus = AppointmentStatus.CANCELLED;
+            break;
         default:
             appointmentStatus = AppointmentStatus.SCHEDULED;
     }

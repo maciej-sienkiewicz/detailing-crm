@@ -4,6 +4,7 @@ import { protocolsApi } from '../../../../api/protocolsApi';
 
 // Sekcje formularza
 import FormHeader from '../../form/components/FormHeader';
+import VisitTitleSection from '../../form/components/VisitTitleSection';
 import VehicleInfoSection from '../../form/components/VehicleInfoSection';
 import ClientInfoSection from '../../form/components/ClientInfoSection';
 import ServiceSection from '../../form/components/ServiceSection';
@@ -187,6 +188,13 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
             {error && <ErrorMessage>{error}</ErrorMessage>}
 
             <Form onSubmit={handleSubmit}>
+                <VisitTitleSection
+                    title={formData.title || ''}
+                    selectedColorId={formData.calendarColorId} // Dodane pole calendarColorId
+                    onChange={handleChange}
+                    error={undefined}
+                />
+
                 <VehicleInfoSection
                     formData={formData}
                     errors={{}}
