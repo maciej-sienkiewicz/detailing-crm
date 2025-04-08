@@ -374,15 +374,6 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
         // Jeśli wartość jest prawidłową liczbą i nie jest taka sama jak bieżąca ilość
         if (!isNaN(parsedValue) && parsedValue > 0) {
             onQuantityChange(serviceId, parsedValue);
-        } else {
-            // Jeśli wartość jest nieprawidłowa, przywróć aktualną ilość z usługi
-            const service = services.find(s => s.id === serviceId);
-            if (service) {
-                setQuantityInputs({
-                    ...quantityInputs,
-                    [serviceId]: String(service.quantity || 1)
-                });
-            }
         }
     };
 
@@ -397,13 +388,6 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
     // Inicjalizacja/aktualizacja wartości pola ilości na podstawie usługi
     React.useEffect(() => {
         const newInputs: Record<string, string> = {};
-
-        services.forEach(service => {
-            // Użyj istniejącej wartości (jeśli użytkownik edytuje) lub weź z usługi
-            if (!(service.id in quantityInputs)) {
-                newInputs[service.id] = String(service.quantity || 1);
-            }
-        });
 
         if (Object.keys(newInputs).length > 0) {
             setQuantityInputs(prev => ({
@@ -465,7 +449,6 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                 <tr>
                     <TableHeader>Nazwa</TableHeader>
                     <TableHeader>Cena bazowa</TableHeader>
-                    <TableHeader>Ilość</TableHeader> {/* Nowa kolumna */}
                     <TableHeader>Rabat</TableHeader>
                     <TableHeader>Cena końcowa</TableHeader>
                     <TableHeader>Akcje</TableHeader>
@@ -515,17 +498,6 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                                 </PriceContainer>
                             </EditablePriceCell>
                             {/* Nowa kolumna z polem do wprowadzania ilości */}
-                            <TableCell>
-                                <QuantityInput
-                                    type="text"
-                                    inputMode="numeric"
-                                    pattern="[0-9]*"
-                                    value={quantityInputs[service.id] || ''}
-                                    onChange={(e) => handleQuantityInputChange(service.id, e)}
-                                    onBlur={() => handleQuantityBlur(service.id)}
-                                    onKeyDown={(e) => handleQuantityKeyDown(service.id, e)}
-                                />
-                            </TableCell>
                             <DiscountCell>
                                 <DiscountCellContent>
                                     <StyledDiscountContainer>
@@ -550,7 +522,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                                         </DiscountInputGroup>
                                         {service.discountType === DiscountType.PERCENTAGE && (
                                             <DiscountPercentage>
-                                                ({(service.price * (service.quantity || 1) * service.discountValue / 100).toFixed(2)} zł)
+                                                ({(service.price  * service.discountValue / 100).toFixed(2)} zł)
                                             </DiscountPercentage>
                                         )}
                                     </StyledDiscountContainer>
