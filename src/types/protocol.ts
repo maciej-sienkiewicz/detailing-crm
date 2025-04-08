@@ -113,6 +113,7 @@ export interface ProtocolListItem {
     status: ProtocolStatus;
     totalServiceCount: number;
     totalAmount: number;
+    calendarColorId?: string
 }
 
 export interface ClientProtocolHistory {

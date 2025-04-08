@@ -1,10 +1,12 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Calendar, Views, dateFnsLocalizer } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay, addMinutes } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import styled from 'styled-components';
-import {Appointment, AppointmentStatus, AppointmentStatusColors} from '../../types';
+import { Appointment, AppointmentStatus, AppointmentStatusColors } from '../../types';
+import { calendarColorsApi } from '../../api/calendarColorsApi';
+import {CalendarColor} from "../../types/calendar";
 
 // Konfiguracja lokalizera date-fns
 const locales = {
@@ -32,6 +34,29 @@ const AppointmentCalendar: React.FC<CalendarProps> = ({
                                                           onRangeChange,
                                                           onEventCreate
                                                       }) => {
+    // Stan do przechowywania kolorów kalendarza
+    const [calendarColors, setCalendarColors] = useState<Record<string, CalendarColor>>({});
+
+    // Pobieranie kolorów kalendarza przy pierwszym renderowaniu
+    useEffect(() => {
+        const fetchCalendarColors = async () => {
+            try {
+                const colors = await calendarColorsApi.fetchCalendarColors();
+                // Konwersja tablicy kolorów na obiekt z kluczami ID dla łatwego dostępu
+                const colorsMap = colors.reduce((acc, color) => {
+                    acc[color.id] = color;
+                    return acc;
+                }, {} as Record<string, CalendarColor>);
+
+                setCalendarColors(colorsMap);
+            } catch (error) {
+                console.error('Błąd podczas pobierania kolorów kalendarza:', error);
+            }
+        };
+
+        fetchCalendarColors();
+    }, []);
+
     // Obsługa wyboru wydarzenia
     const handleSelectEvent = (event: Appointment) => {
         onEventSelect(event);
@@ -51,23 +76,83 @@ const AppointmentCalendar: React.FC<CalendarProps> = ({
 
     // Dostosowanie wyglądu wydarzenia
     const eventStyleGetter = (event: Appointment) => {
-        // Używamy kolorów bazujących na statusie wizyty
-        let backgroundColor = AppointmentStatusColors[event.status];
-        let opacity = 0.8;
-        let borderColor = '0';
+        // Sprawdzenie, czy wydarzenie ma przypisany kolor kalendarza
+        console.log(event.title)
+        console.log(event.calendarColorId);
+        if (event.calendarColorId && calendarColors[event.calendarColorId]) {
+            // Jeśli ma przypisany kolor kalendarza, użyj go
+            console.log(event.title)
+            console.log(event.calendarColorId);
+            const calendarColor = calendarColors[event.calendarColorId].color;
+            let opacity = 0.8;
 
-        // Specjalne formatowanie dla protokołów
-        if (event.isProtocol) {
-            // Sprawdzamy czy to protokół zakończony (COMPLETED)
-            if (event.status === AppointmentStatus.COMPLETED) {
-                opacity = 0.5; // Zakończone protokoły są bardziej przeźroczyste
+            // Specjalne formatowanie dla protokołów
+            if (event.isProtocol) {
+                // Sprawdzamy czy to protokół zakończony (COMPLETED)
+                if (event.status === AppointmentStatus.COMPLETED) {
+                    opacity = 0.3; // Zakończone protokoły są bardziej przeźroczyste
+                }
+
+                // Sprawdzamy czy to protokół anulowany (CANCELLED)
+                if (event.status === AppointmentStatus.CANCELLED) {
+                    opacity = 0.7;
+                }
+
+                return {
+                    style: {
+                        backgroundColor: calendarColor,
+                        borderRadius: '4px',
+                        opacity,
+                        color: 'white',
+                        border: '2px solid #2c3e50', // Grubsza obwódka dla protokołów
+                        display: 'block',
+                        fontWeight: 'normal', // Normalna czcionka, nie pogrubiona
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                    }
+                };
             }
 
-            // Sprawdzamy czy to protokół anulowany (CANCELLED)
-            // Musimy użyć sprawdzenia wartości, ponieważ typy nie są zgodne między AppointmentStatus i ProtocolStatus
-            if (event.status === AppointmentStatus.CANCELLED) {
-                backgroundColor = '#444444'; // Ciemno szary dla anulowanych protokołów
-                opacity = 0.7;
+            return {
+                style: {
+                    backgroundColor: calendarColor,
+                    borderRadius: '4px',
+                    opacity,
+                    color: 'white',
+                    border: '0',
+                    display: 'block'
+                }
+            };
+        } else {
+            // Jeśli nie ma przypisanego koloru kalendarza, użyj kolorów bazujących na statusie wizyty
+            let backgroundColor = AppointmentStatusColors[event.status];
+            let opacity = 0.8;
+
+            // Specjalne formatowanie dla protokołów
+            if (event.isProtocol) {
+                // Sprawdzamy czy to protokół zakończony (COMPLETED)
+                if (event.status === AppointmentStatus.COMPLETED) {
+                    opacity = 0.5; // Zakończone protokoły są bardziej przeźroczyste
+                }
+
+                // Sprawdzamy czy to protokół anulowany (CANCELLED)
+                // Musimy użyć sprawdzenia wartości, ponieważ typy nie są zgodne między AppointmentStatus i ProtocolStatus
+                if (event.status === AppointmentStatus.CANCELLED) {
+                    backgroundColor = '#444444'; // Ciemno szary dla anulowanych protokołów
+                    opacity = 0.7;
+                }
+
+                return {
+                    style: {
+                        backgroundColor,
+                        borderRadius: '4px',
+                        opacity,
+                        color: 'white',
+                        border: '2px solid #2c3e50', // Grubsza obwódka dla protokołów
+                        display: 'block',
+                        fontWeight: 'normal', // Normalna czcionka, nie pogrubiona
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                    }
+                };
             }
 
             return {
@@ -76,24 +161,11 @@ const AppointmentCalendar: React.FC<CalendarProps> = ({
                     borderRadius: '4px',
                     opacity,
                     color: 'white',
-                    border: '2px solid #2c3e50', // Grubsza obwódka dla protokołów
-                    display: 'block',
-                    fontWeight: 'normal', // Normalna czcionka, nie pogrubiona
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                    border: '0',
+                    display: 'block'
                 }
             };
         }
-
-        return {
-            style: {
-                backgroundColor,
-                borderRadius: '4px',
-                opacity,
-                color: 'white',
-                border: '0',
-                display: 'block'
-            }
-        };
     };
 
     return (

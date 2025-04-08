@@ -41,4 +41,5 @@ export interface Appointment {
     notes?: string;
     statusUpdatedAt?: string;
     isProtocol?: boolean; // Flaga wskazująca, czy wydarzenie pochodzi z protokołu
+    calendarColorId?: string;
 }

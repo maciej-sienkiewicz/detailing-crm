@@ -55,7 +55,8 @@ export const mapProtocolToAppointment = (protocol: CarReceptionProtocol): Appoin
         status: appointmentStatus,
         notes: `Protokół przyjęcia pojazdu\nTel: ${protocol.phone}\nUsługi:\n${servicesList}\nWartość: ${totalValue.toFixed(2)} zł`,
         statusUpdatedAt: protocol.statusUpdatedAt || protocol.createdAt,
-        isProtocol: true // Dodatkowe pole do identyfikacji, że to protokół
+        isProtocol: true, // Dodatkowe pole do identyfikacji, że to protokół
+        calendarColorId: protocol.calendarColorId
     };
 };
 
@@ -112,7 +113,8 @@ export const mapProtocolListItemToAppointment = (protocolItem: ProtocolListItem)
         status: appointmentStatus,
         notes: notes,
         statusUpdatedAt: new Date().toISOString(), // Brak informacji o dacie aktualizacji statusu w ProtocolListItem
-        isProtocol: true // Dodatkowe pole do identyfikacji, że to protokół
+        isProtocol: true, // Dodatkowe pole do identyfikacji, że to protokół,
+        calendarColorId: protocolItem.calendarColorId
     };
 };
 
