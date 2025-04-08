@@ -353,21 +353,27 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
     // Obliczanie sumy
     const calculateTotals = () => {
         const totalBasePrice = selectedServices.reduce((sum, service) => sum + service.price, 0);
-        const totalDiscount = selectedServices.reduce((sum, service) => sum + (service.price - service.finalPrice), 0);
+        const totalDiscountGross = selectedServices.reduce((sum, service) => sum + (service.price - service.finalPrice), 0);
         const totalFinalPrice = selectedServices.reduce((sum, service) => sum + service.finalPrice, 0);
+
+        const totalBaseNetPrice = calculateNetPrice(totalBasePrice);
+        const totalFinalNetPrice = calculateNetPrice(totalFinalPrice);
+        const totalDiscountNet = totalBaseNetPrice - totalFinalNetPrice;
 
         return {
             totalBasePrice,
-            totalDiscount,
+            totalDiscountGross,
+            totalDiscountNet,
             totalFinalPrice,
-            totalBaseNetPrice: calculateNetPrice(totalBasePrice),
-            totalFinalNetPrice: calculateNetPrice(totalFinalPrice)
+            totalBaseNetPrice,
+            totalFinalNetPrice
         };
     };
 
     const {
         totalBasePrice,
-        totalDiscount,
+        totalDiscountGross,
+        totalDiscountNet,
         totalFinalPrice,
         totalBaseNetPrice,
         totalFinalNetPrice
@@ -586,7 +592,12 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                                             </PriceWrapper>
                                         </FooterCell>
                                         <FooterCell width="20%">
-                                            <TotalValue>{totalDiscount.toFixed(2)} zł</TotalValue>
+                                            <PriceWrapper>
+                                                <TotalValue>{totalDiscountGross.toFixed(2)} zł</TotalValue>
+                                                <PriceType>brutto</PriceType>
+                                                <TotalValue>{totalDiscountNet.toFixed(2)} zł</TotalValue>
+                                                <PriceType>netto</PriceType>
+                                            </PriceWrapper>
                                         </FooterCell>
                                         <FooterCell width="15%">
                                             <PriceWrapper>

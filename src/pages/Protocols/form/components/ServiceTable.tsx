@@ -728,6 +728,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                                 <TableCell>
                                     <ActionButtonsContainer>
                                         <ActionButton
+                                            type="button"
                                             onClick={() => handleOpenNoteModal(service)}
                                             title="Dodaj notatkę"
                                             note={!!service.note}

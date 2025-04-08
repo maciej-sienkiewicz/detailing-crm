@@ -194,7 +194,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
 
     // Funkcja obliczająca wszystkie potrzebne ceny dla usługi
     const calculateServicePrices = (service: SelectedService) => {
-        const vatRate = service.vatRate || DEFAULT_VAT_RATE;
+        const vatRate =  DEFAULT_VAT_RATE;
 
         // Cena bazowa brutto (podawana przez użytkownika)
         const baseGrossPrice = service.price;
@@ -220,7 +220,8 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
         let totalGrossValue = 0;
         let totalBaseNetValue = 0;
         let totalBaseGrossValue = 0;
-        let totalDiscountValue = 0;
+        let totalDiscountGrossValue = 0;
+        let totalDiscountNetValue = 0;
 
         protocol.selectedServices.forEach(service => {
             const {
@@ -232,12 +233,14 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
 
             // Obliczanie wartości rabatu
             const discountValueGross = baseGrossPrice - finalGrossPrice;
+            const discountValueNet = baseNetPrice - finalNetPrice;
 
             totalNetValue += finalNetPrice;
             totalGrossValue += finalGrossPrice;
             totalBaseNetValue += baseNetPrice;
             totalBaseGrossValue += baseGrossPrice;
-            totalDiscountValue += discountValueGross;
+            totalDiscountGrossValue += discountValueGross;
+            totalDiscountNetValue += discountValueNet;
         });
 
         return {
@@ -245,7 +248,8 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
             totalGrossValue,
             totalBaseNetValue,
             totalBaseGrossValue,
-            totalDiscountValue
+            totalDiscountGrossValue,
+            totalDiscountNetValue
         };
     };
 
@@ -256,7 +260,8 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
         totalGrossValue,
         totalBaseNetValue,
         totalBaseGrossValue,
-        totalDiscountValue
+        totalDiscountGrossValue,
+        totalDiscountNetValue
     } = calculateNetGrossTotals();
 
     return (
@@ -484,7 +489,10 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                         </FooterCell>
                         <FooterCell>
                             <PriceWrapper>
-                                <TotalValue>{totalDiscountValue.toFixed(2)} zł</TotalValue>
+                                <TotalValue>{totalDiscountGrossValue.toFixed(2)} zł</TotalValue>
+                                <PriceType>brutto</PriceType>
+                                <TotalValue>{totalDiscountNetValue.toFixed(2)} zł</TotalValue>
+                                <PriceType>netto</PriceType>
                             </PriceWrapper>
                         </FooterCell>
                         <FooterCell>
