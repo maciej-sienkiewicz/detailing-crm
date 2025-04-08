@@ -2,65 +2,6 @@ import { Appointment, AppointmentStatus, CarReceptionProtocol, ProtocolListItem,
 import { protocolsApi } from '../api/protocolsApi';
 
 /**
- * Konwertuje protokół przyjęcia pojazdu na obiekt wizyty w kalendarzu
- */
-export const mapProtocolToAppointment = (protocol: CarReceptionProtocol): Appointment => {
-    // Utworzenie dat początku i końca
-    const startDate = new Date(protocol.startDate);
-    const endDate = new Date(protocol.endDate);
-
-    // Domyślne ustawienie godzin (8:00 - 16:00)
-    startDate.setHours(8, 0, 0, 0);
-    endDate.setHours(16, 0, 0, 0);
-
-    // Mapowanie statusu protokołu na status wizyty
-    let appointmentStatus: AppointmentStatus;
-    switch (protocol.status) {
-        case ProtocolStatus.SCHEDULED:
-            appointmentStatus = AppointmentStatus.SCHEDULED;
-            break;
-        case ProtocolStatus.IN_PROGRESS:
-            appointmentStatus = AppointmentStatus.IN_PROGRESS;
-            break;
-        case ProtocolStatus.READY_FOR_PICKUP:
-            appointmentStatus = AppointmentStatus.READY_FOR_PICKUP;
-            break;
-        case ProtocolStatus.COMPLETED:
-            appointmentStatus = AppointmentStatus.COMPLETED;
-            break;
-        default:
-            appointmentStatus = AppointmentStatus.SCHEDULED;
-    }
-
-    // Przygotowanie listy usług do notatki
-    const servicesList = protocol.selectedServices
-        .map(service => `- ${service.name}`)
-        .join('\n');
-
-    // Obliczenie łącznej wartości usług
-    const totalValue = protocol.selectedServices.reduce(
-        (sum, service) => sum + service.finalPrice,
-        0
-    );
-
-    // Zwracamy obiekt wizyty w kalendarzu
-    return {
-        id: protocol.id,
-        title: `${protocol.make} ${protocol.model} - ${protocol.licensePlate}`,
-        start: startDate,
-        end: endDate,
-        customerId: protocol.ownerName,
-        vehicleId: protocol.licensePlate,
-        serviceType: 'car_reception_protocol',
-        status: appointmentStatus,
-        notes: `Protokół przyjęcia pojazdu\nTel: ${protocol.phone}\nUsługi:\n${servicesList}\nWartość: ${totalValue.toFixed(2)} zł`,
-        statusUpdatedAt: protocol.statusUpdatedAt || protocol.createdAt,
-        isProtocol: true, // Dodatkowe pole do identyfikacji, że to protokół
-        calendarColorId: protocol.calendarColorId
-    };
-};
-
-/**
  * Konwertuje element listy protokołów (ProtocolListItem) na obiekt wizyty w kalendarzu
  */
 export const mapProtocolListItemToAppointment = (protocolItem: ProtocolListItem): Appointment => {
@@ -114,7 +55,8 @@ export const mapProtocolListItemToAppointment = (protocolItem: ProtocolListItem)
         notes: notes,
         statusUpdatedAt: new Date().toISOString(), // Brak informacji o dacie aktualizacji statusu w ProtocolListItem
         isProtocol: true, // Dodatkowe pole do identyfikacji, że to protokół,
-        calendarColorId: protocolItem.calendarColorId
+        calendarColorId: protocolItem.calendarColorId,
+        services: protocolItem.selectedServices
     };
 };
 

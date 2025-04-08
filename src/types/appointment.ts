@@ -2,6 +2,9 @@
 // Typy związane z wizytami i terminarzem
 
 // Statusy wizyt
+import {Service} from "./service";
+import {SelectedService} from "./common";
+
 export enum AppointmentStatus {
     SCHEDULED = 'SCHEDULED',                  // Zaplanowano
     IN_PROGRESS = 'IN_PROGRESS',              // W realizacji
@@ -42,4 +45,5 @@ export interface Appointment {
     statusUpdatedAt?: string;
     isProtocol?: boolean; // Flaga wskazująca, czy wydarzenie pochodzi z protokołu
     calendarColorId?: string;
+    services: SelectedService[]
 }

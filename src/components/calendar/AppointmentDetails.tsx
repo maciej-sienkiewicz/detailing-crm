@@ -11,9 +11,10 @@ import {
     FaTrash,
     FaCar,
     FaClipboardCheck,
-    FaExternalLinkAlt
+    FaExternalLinkAlt,
+    FaTools
 } from 'react-icons/fa';
-import {Appointment, ProtocolStatus} from '../../types';
+import {Appointment, ProtocolStatus, SelectedService} from '../../types';
 import { AppointmentStatusManager } from './AppointmentStatusManager';
 import { useNavigate } from 'react-router-dom';
 
@@ -87,11 +88,22 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
                 </DetailText>
             </DetailRow>
 
-            {appointment.notes && (
-                <Notes>
-                    <NotesTitle>Informacje:</NotesTitle>
-                    <NotesContent>{appointment.notes}</NotesContent>
-                </Notes>
+            {appointment.services && appointment.services.length > 0 && (
+                <ServicesList>
+                    <ServicesTitle>
+                        <FaTools style={{ marginRight: '8px' }} />
+                        Usługi:
+                    </ServicesTitle>
+                    {appointment.services.map((service, index) => (
+                        <ServiceItem key={index}>
+                            <ServiceName>{service.name}</ServiceName>
+                            <ServicePrice>{service.finalPrice.toFixed(2)} zł</ServicePrice>
+                        </ServiceItem>
+                    ))}
+                    <TotalPrice>
+                        Razem: {appointment.services.reduce((sum, service) => sum + service.finalPrice, 0).toFixed(2)} zł
+                    </TotalPrice>
+                </ServicesList>
             )}
 
             <Actions>
@@ -164,6 +176,55 @@ const DetailIcon = styled.div`
 const DetailText = styled.div`
     color: #34495e;
     font-size: 14px;
+`;
+
+const ServicesList = styled.div`
+    margin-top: 16px;
+    background-color: #f9f9f9;
+    padding: 12px;
+    border-radius: 4px;
+`;
+
+const ServicesTitle = styled.div`
+    font-weight: 600;
+    margin-bottom: 10px;
+    font-size: 14px;
+    color: #34495e;
+    display: flex;
+    align-items: center;
+`;
+
+const ServiceItem = styled.div`
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    padding-bottom: 6px;
+    border-bottom: 1px dashed #e0e0e0;
+    
+    &:last-of-type {
+        border-bottom: none;
+    }
+`;
+
+const ServiceName = styled.div`
+    font-size: 14px;
+    color: #34495e;
+`;
+
+const ServicePrice = styled.div`
+    font-size: 14px;
+    color: #34495e;
+    font-weight: 500;
+`;
+
+const TotalPrice = styled.div`
+    margin-top: 10px;
+    padding-top: 6px;
+    border-top: 1px solid #e0e0e0;
+    text-align: right;
+    font-weight: bold;
+    font-size: 14px;
+    color: #34495e;
 `;
 
 const Notes = styled.div`
