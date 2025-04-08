@@ -1,39 +1,60 @@
 import React, { useState, useEffect } from 'react';
-import ReactDOM from 'react-dom';
 import styled from 'styled-components';
-import { FaPlus, FaSearch, FaMobileAlt, FaTimes, FaCheck, FaEdit, FaStickyNote } from 'react-icons/fa';
-import ServiceNoteModalWrapper from "./ServiceNoteModalWrapper";
+import { FaPlus, FaTimes, FaSearch, FaSpinner, FaStickyNote, FaEdit } from 'react-icons/fa';
+import {DiscountType} from "../../../../types";
 
-interface Service {
-    id: string;
-    name: string;
-    price: number;
+// Rozszerzone typy rabatu - zamieniamy na enum dla zgodności
+enum ExtendedDiscountType {
+    PERCENTAGE = 'PERCENTAGE',
+    AMOUNT_GROSS = 'AMOUNT_GROSS',
+    AMOUNT_NET = 'AMOUNT_NET',
+    FIXED_PRICE_GROSS = 'FIXED_PRICE_GROSS',
+    FIXED_PRICE_NET = 'FIXED_PRICE_NET'
 }
 
-interface SelectedServiceWithPrice extends Service {
-    customPrice?: number;
-    note?: string;
-}
+// Nowe wersje etykiet rabatu uwzględniające ceny netto/brutto
+const DiscountTypeLabelsExtended: Record<ExtendedDiscountType, string> = {
+    [ExtendedDiscountType.PERCENTAGE]: "Procent",
+    [ExtendedDiscountType.AMOUNT_GROSS]: "Kwota (brutto)",
+    [ExtendedDiscountType.AMOUNT_NET]: "Kwota (netto)",
+    [ExtendedDiscountType.FIXED_PRICE_GROSS]: "Cena końcowa (brutto)",
+    [ExtendedDiscountType.FIXED_PRICE_NET]: "Cena końcowa (netto)"
+};
 
-interface ServiceWithNote {
-    id: string;
-    name: string;
-    price: number;
-    note?: string; // Upewnij się, że nota jest zdefiniowana w interfejsie
-}
+// Funkcja do mapowania typów rabatu
+const mapToStandardDiscountType = (extendedType: ExtendedDiscountType): DiscountType => {
+    switch (extendedType) {
+        case ExtendedDiscountType.PERCENTAGE:
+            return DiscountType.PERCENTAGE;
+        case ExtendedDiscountType.AMOUNT_GROSS:
+        case ExtendedDiscountType.AMOUNT_NET:
+            return DiscountType.AMOUNT;
+        case ExtendedDiscountType.FIXED_PRICE_GROSS:
+        case ExtendedDiscountType.FIXED_PRICE_NET:
+            return DiscountType.FIXED_PRICE;
+        default:
+            return DiscountType.PERCENTAGE;
+    }
+};
+
+// Stałe
+const DEFAULT_VAT_RATE = 23; // Domyślna stawka VAT (23%)
 
 interface AddServiceModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onAddServices: (servicesData: {
+    onAddServices: (data: {
         services: Array<{
             id: string;
             name: string;
             price: number;
-            note?: string;
-        }>;
+            discountType?: DiscountType;
+            discountValue?: number;
+            finalPrice: number;
+            note?: string
+        }>
     }) => void;
-    availableServices: Service[];
+    availableServices: Array<{ id: string; name: string; price: number }>;
     customerPhone?: string;
 }
 
@@ -45,277 +66,312 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                                                              customerPhone
                                                          }) => {
     const [searchQuery, setSearchQuery] = useState('');
-    const [filteredServices, setFilteredServices] = useState<Service[]>([]);
-    const [selectedServices, setSelectedServices] = useState<SelectedServiceWithPrice[]>([]);
+    const [selectedServices, setSelectedServices] = useState<Array<{
+        id: string;
+        name: string;
+        price: number;
+        discountType: DiscountType;
+        extendedDiscountType: ExtendedDiscountType;
+        discountValue: number;
+        finalPrice: number;
+        note?: string;
+    }>>([]);
+    const [showResults, setShowResults] = useState(false);
+    const [searchResults, setSearchResults] = useState<Array<{
+        id: string;
+        name: string;
+        price: number;
+    }>>([]);
+    const [customServiceMode, setCustomServiceMode] = useState(false);
+    const [customServiceName, setCustomServiceName] = useState('');
+    const [customServicePrice, setCustomServicePrice] = useState('');
+    const [addingServiceNote, setAddingServiceNote] = useState<{
+        index: number;
+        open: boolean;
+        note: string;
+    }>({ index: -1, open: false, note: '' });
+    const [editingDiscount, setEditingDiscount] = useState<{
+        index: number;
+        open: boolean;
+    }>({ index: -1, open: false });
 
-    // State for price editor
-    const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
-    const [editingPrice, setEditingPrice] = useState<string>('');
-    const [editingPricePosition, setEditingPricePosition] = useState<{x: number, y: number}>({x: 0, y: 0});
+    // Funkcje do przeliczania cen netto/brutto
+    const calculateNetPrice = (grossPrice: number): number => {
+        return grossPrice / (1 + DEFAULT_VAT_RATE / 100);
+    };
 
-    // State for note modal
-    const [noteModal, setNoteModal] = useState<{
-        visible: boolean;
-        serviceId: string;
-        serviceName: string;
-        currentNote: string;
-    }>({
-        visible: false,
-        serviceId: '',
-        serviceName: '',
-        currentNote: ''
-    });
+    const calculateGrossPrice = (netPrice: number): number => {
+        return netPrice * (1 + DEFAULT_VAT_RATE / 100);
+    };
 
-    // Check if SMS can be sent
-    const canSendSMS = !!customerPhone;
+    // Funkcja obliczająca cenę końcową po rabacie
+    const calculateFinalPrice = (
+        price: number,
+        discountType: DiscountType,
+        extendedDiscountType: ExtendedDiscountType,
+        discountValue: number
+    ): number => {
+        let finalPrice = price;
 
-    // Error to show when notification cannot be sent
-    const canNotifyError = !canSendSMS
-        ? "Brak numeru telefonu klienta. Nie będzie możliwe wysłanie powiadomienia SMS."
-        : "";
+        switch (discountType) {
+            case DiscountType.PERCENTAGE:
+                // Rabat procentowy
+                finalPrice = price * (1 - discountValue / 100);
+                break;
+            case DiscountType.AMOUNT:
+                // Rabat kwotowy
+                if (extendedDiscountType === ExtendedDiscountType.AMOUNT_NET) {
+                    // Przeliczamy rabat kwotowy netto na brutto
+                    const discountValueGross = calculateGrossPrice(discountValue);
+                    finalPrice = Math.max(0, price - discountValueGross);
+                } else {
+                    // Rabat kwotowy brutto
+                    finalPrice = Math.max(0, price - discountValue);
+                }
+                break;
+            case DiscountType.FIXED_PRICE:
+                // Cena końcowa
+                if (extendedDiscountType === ExtendedDiscountType.FIXED_PRICE_NET) {
+                    // Przeliczamy cenę końcową netto na brutto
+                    finalPrice = calculateGrossPrice(discountValue);
+                } else {
+                    // Cena końcowa brutto
+                    finalPrice = discountValue;
+                }
+                break;
+        }
 
-    // Reset state when modal opens
+        return parseFloat(finalPrice.toFixed(2));
+    };
+
     useEffect(() => {
-        if (isOpen) {
-            setSearchQuery('');
+        // Reset stanu po zamknięciu modalu
+        if (!isOpen) {
             setSelectedServices([]);
-            setEditingServiceId(null);
+            setSearchQuery('');
+            setSearchResults([]);
+            setShowResults(false);
+            setCustomServiceMode(false);
+            setCustomServiceName('');
+            setCustomServicePrice('');
         }
     }, [isOpen]);
 
-    // Filter services based on search
-    useEffect(() => {
-        if (searchQuery.trim() === '') {
-            setFilteredServices(availableServices);
-        } else {
-            const query = searchQuery.toLowerCase();
-            const results = availableServices.filter(service =>
-                service.name.toLowerCase().includes(query)
-            );
-            setFilteredServices(results);
-        }
-    }, [searchQuery, availableServices]);
+    // Obsługa wyszukiwania
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const query = e.target.value;
+        setSearchQuery(query);
 
-    // Toggle service selection
-    const toggleServiceSelection = (service: Service) => {
-        if (selectedServices.some(s => s.id === service.id)) {
-            // If the service is already selected, remove it
-            setSelectedServices(selectedServices.filter(s => s.id !== service.id));
-        } else {
-            // Otherwise add it with default quantity of 1
-            setSelectedServices([...selectedServices]);
-        }
-    };
-
-    // Handle adding custom service
-    const handleAddCustomService = () => {
-        if (!searchQuery.trim()) return;
-
-        // Check if service with this name is already selected
-        if (selectedServices.some(s => s.name.toLowerCase() === searchQuery.trim().toLowerCase())) {
-            alert("Usługa o podanej nazwie jest już na liście wybranych usług.");
+        if (query.trim() === '') {
+            setSearchResults([]);
+            setShowResults(false);
             return;
         }
 
-        // Check if we're trying to add an existing service
-        const existingService = availableServices.find(s =>
-            s.name.toLowerCase() === searchQuery.trim().toLowerCase()
+        setShowResults(true);
+
+        // Filtruj dostępne usługi
+        const filteredServices = availableServices.filter(service =>
+            service.name.toLowerCase().includes(query.toLowerCase()) &&
+            !selectedServices.some(selected => selected.id === service.id)
         );
 
-        if (existingService) {
-            // If it's an existing service, just add it
-            toggleServiceSelection(existingService);
-            return;
-        }
-
-        // Create a new custom service
-        const customService: SelectedServiceWithPrice = {
-            id: `custom-${Date.now()}`,
-            name: searchQuery.trim(),
-            price: 0, // Default price is zero
-            customPrice: 0
-        };
-
-        setSelectedServices([...selectedServices, customService]);
-        setSearchQuery(''); // Clear search field
+        setSearchResults(filteredServices);
     };
 
-    const handleAddServices = () => {
+    // Dodawanie usługi z wyników wyszukiwania
+    const handleAddServiceFromSearch = (service: { id: string; name: string; price: number }) => {
+        const newService = {
+            ...service,
+            discountType: DiscountType.PERCENTAGE,
+            extendedDiscountType: ExtendedDiscountType.PERCENTAGE,
+            discountValue: 0,
+            finalPrice: service.price
+        };
+
+        setSelectedServices([...selectedServices, newService]);
+        setSearchQuery('');
+        setSearchResults([]);
+        setShowResults(false);
+    };
+
+    // Dodawanie niestandardowej usługi
+    const handleAddCustomService = () => {
+        if (customServiceName.trim() === '' || !customServicePrice) return;
+
+        const price = parseFloat(customServicePrice);
+        if (isNaN(price)) return;
+
+        const newService = {
+            id: `custom-${Date.now()}`,
+            name: customServiceName.trim(),
+            price,
+            discountType: DiscountType.PERCENTAGE,
+            extendedDiscountType: ExtendedDiscountType.PERCENTAGE,
+            discountValue: 0,
+            finalPrice: price
+        };
+
+        setSelectedServices([...selectedServices, newService]);
+        setCustomServiceName('');
+        setCustomServicePrice('');
+        setCustomServiceMode(false);
+    };
+
+    // Usuwanie usługi z listy wybranych
+    const handleRemoveService = (index: number) => {
+        const updatedServices = [...selectedServices];
+        updatedServices.splice(index, 1);
+        setSelectedServices(updatedServices);
+    };
+
+    // Otwieranie modalu do dodawania notatki
+    const handleOpenNoteModal = (index: number) => {
+        setAddingServiceNote({
+            index,
+            open: true,
+            note: selectedServices[index].note || ''
+        });
+    };
+
+    // Zapisywanie notatki
+    const handleSaveNote = () => {
+        if (addingServiceNote.index >= 0) {
+            const updatedServices = [...selectedServices];
+            updatedServices[addingServiceNote.index] = {
+                ...updatedServices[addingServiceNote.index],
+                note: addingServiceNote.note
+            };
+            setSelectedServices(updatedServices);
+        }
+
+        setAddingServiceNote({ index: -1, open: false, note: '' });
+    };
+
+    // Zamykanie bez zapisywania
+    const handleCancelNote = () => {
+        setAddingServiceNote({ index: -1, open: false, note: '' });
+    };
+
+    // Otwieranie modalu do edycji rabatu
+    const handleOpenDiscountModal = (index: number) => {
+        setEditingDiscount({
+            index,
+            open: true
+        });
+    };
+
+    // Zapisywanie zmian rabatu
+    const handleChangeDiscountType = (index: number, newExtendedType: ExtendedDiscountType) => {
+        const updatedServices = [...selectedServices];
+        const service = updatedServices[index];
+        const standardType = mapToStandardDiscountType(newExtendedType);
+
+        // Konwersja wartości rabatu przy zmianie typu
+        let newDiscountValue = service.discountValue;
+
+        // Obsługa konwersji rabatu w zależności od poprzedniego i nowego typu
+        if (service.extendedDiscountType !== newExtendedType) {
+            // Dla prostoty resetujemy wartość rabatu przy zmianie typu
+            if (standardType === DiscountType.PERCENTAGE) {
+                newDiscountValue = 0; // Domyślny rabat procentowy: 0%
+            } else if (standardType === DiscountType.AMOUNT) {
+                newDiscountValue = 0; // Domyślny rabat kwotowy: 0 zł
+            } else if (standardType === DiscountType.FIXED_PRICE) {
+                // Domyślna cena końcowa: aktualna cena
+                newDiscountValue = newExtendedType === ExtendedDiscountType.FIXED_PRICE_NET
+                    ? calculateNetPrice(service.price)
+                    : service.price;
+            }
+        }
+
+        // Aktualizacja usługi
+        updatedServices[index] = {
+            ...service,
+            discountType: standardType,
+            extendedDiscountType: newExtendedType,
+            discountValue: newDiscountValue,
+            finalPrice: calculateFinalPrice(service.price, standardType, newExtendedType, newDiscountValue)
+        };
+
+        setSelectedServices(updatedServices);
+    };
+
+    // Zmiana wartości rabatu
+    const handleChangeDiscountValue = (index: number, value: number) => {
+        const updatedServices = [...selectedServices];
+        const service = updatedServices[index];
+
+        // Walidacja wartości rabatu
+        let validatedValue = value;
+
+        // Dla rabatu procentowego ograniczamy wartość do 0-100%
+        if (service.discountType === DiscountType.PERCENTAGE && validatedValue > 100) {
+            validatedValue = 100;
+        }
+
+        // Dla rabatu kwotowego i ceny końcowej wartość nie może być ujemna
+        if (validatedValue < 0) {
+            validatedValue = 0;
+        }
+
+        // Aktualizacja usługi
+        updatedServices[index] = {
+            ...service,
+            discountValue: validatedValue,
+            finalPrice: calculateFinalPrice(
+                service.price,
+                service.discountType,
+                service.extendedDiscountType,
+                validatedValue
+            )
+        };
+
+        setSelectedServices(updatedServices);
+    };
+
+    // Zapisywanie i dodawanie usług
+    const handleSubmit = () => {
         if (selectedServices.length === 0) return;
 
-        // Przygotowujemy usługi z uwzględnieniem niestandardowych cen, ilości i notatek
-        const servicesWithCustomPrices = selectedServices.map(service => ({
+        // Przygotowanie danych w odpowiednim formacie
+        const servicesData = selectedServices.map(service => ({
             id: service.id,
             name: service.name,
-            price: service.customPrice !== undefined ? service.customPrice : service.price,
+            price: service.price,
+            discountType: service.discountType,
+            discountValue: service.discountValue,
+            finalPrice: service.finalPrice,
             note: service.note
         }));
 
-        console.log('Przygotowane usługi do wysłania:', servicesWithCustomPrices);
-
         onAddServices({
-            services: servicesWithCustomPrices
+            services: servicesData
         });
     };
 
-    // Handle right click on price - open price editor
-    const handlePriceRightClick = (e: React.MouseEvent, service: SelectedServiceWithPrice) => {
-        e.preventDefault(); // Prevent default browser context menu
+    // Obliczanie sumy
+    const calculateTotals = () => {
+        const totalBasePrice = selectedServices.reduce((sum, service) => sum + service.price, 0);
+        const totalDiscount = selectedServices.reduce((sum, service) => sum + (service.price - service.finalPrice), 0);
+        const totalFinalPrice = selectedServices.reduce((sum, service) => sum + service.finalPrice, 0);
 
-        // Find parent element (service row)
-        const priceElement = e.currentTarget as HTMLElement;
-        const serviceItem = priceElement.closest('.selected-service-item');
-
-        if (serviceItem) {
-            const rect = serviceItem.getBoundingClientRect();
-
-            setEditingServiceId(service.id);
-            setEditingPrice((service.customPrice !== undefined ? service.customPrice : service.price).toString());
-
-            // Set position of the price editor - centered next to the selected service
-            setEditingPricePosition({
-                x: Math.max(10, rect.left + (rect.width / 2) - 125), // Centered, min 10px from left edge
-                y: rect.top // Aligned with top edge of row
-            });
-        } else {
-            // Fallback - use click position if we can't find the row
-            setEditingServiceId(service.id);
-            setEditingPrice((service.customPrice !== undefined ? service.customPrice : service.price).toString());
-
-            setEditingPricePosition({
-                x: Math.max(10, e.clientX - 125),
-                y: e.clientY
-            });
-        }
-    };
-
-    // Handle click on edit price icon
-    const handleEditPrice = (e: React.MouseEvent, service: SelectedServiceWithPrice) => {
-        // Find parent element (service row)
-        const priceElement = e.currentTarget as HTMLElement;
-        const serviceItem = priceElement.closest('.selected-service-item');
-
-        if (serviceItem) {
-            const rect = serviceItem.getBoundingClientRect();
-
-            setEditingServiceId(service.id);
-            setEditingPrice((service.customPrice !== undefined ? service.customPrice : service.price).toString());
-
-            // Set position of price editor - centered next to selected service
-            setEditingPricePosition({
-                x: Math.max(10, rect.left + (rect.width / 2) - 125), // Centered, min 10px from left edge
-                y: rect.top // Aligned with top edge of row
-            });
-        } else {
-            // Fallback if parent element not found
-            const rect = priceElement.getBoundingClientRect();
-
-            setEditingServiceId(service.id);
-            setEditingPrice((service.customPrice !== undefined ? service.customPrice : service.price).toString());
-
-            setEditingPricePosition({
-                x: Math.max(10, rect.left - 100),
-                y: rect.top
-            });
-        }
-    };
-
-    // Save edited price
-    const handleSavePrice = () => {
-        if (!editingServiceId) return;
-
-        const newPrice = parseFloat(editingPrice);
-        if (isNaN(newPrice) || newPrice < 0) {
-            setEditingServiceId(null);
-            return;
-        }
-
-        // Update price for selected service
-        setSelectedServices(prev => prev.map(service => {
-            if (service.id === editingServiceId) {
-                return {
-                    ...service,
-                    customPrice: newPrice
-                };
-            }
-            return service;
-        }));
-
-        setEditingServiceId(null);
-    };
-
-    // Open note modal
-    const handleOpenNoteModal = (service: SelectedServiceWithPrice) => {
-        setNoteModal({
-            visible: true,
-            serviceId: service.id,
-            serviceName: service.name,
-            currentNote: service.note || ''
-        });
-    };
-
-    // Save note
-    const handleSaveNote = (note: string) => {
-        if (!noteModal.serviceId) return;
-
-        console.log('Zapisywanie notatki dla usługi:', noteModal.serviceId);
-        console.log('Treść notatki:', note);
-
-        // Aktualizacja notatki dla wybranej usługi
-        const updatedServices = selectedServices.map(service => {
-            if (service.id === noteModal.serviceId) {
-                console.log('Znaleziono usługę do aktualizacji:', service);
-                const updatedService = {
-                    ...service,
-                    note: note
-                };
-                console.log('Zaktualizowana usługa:', updatedService);
-                return updatedService;
-            }
-            return service;
-        });
-
-        console.log('Wszystkie usługi po aktualizacji:', updatedServices);
-        setSelectedServices(updatedServices);
-        setNoteModal({...noteModal, visible: false});
-    };
-
-    // Close price editor when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (e: MouseEvent) => {
-            if (editingServiceId && !(e.target as Element).closest('.price-editor')) {
-                setEditingServiceId(null);
-            }
+        return {
+            totalBasePrice,
+            totalDiscount,
+            totalFinalPrice,
+            totalBaseNetPrice: calculateNetPrice(totalBasePrice),
+            totalFinalNetPrice: calculateNetPrice(totalFinalPrice)
         };
+    };
 
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [editingServiceId]);
-
-    // Handle Enter and Escape keys
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (!editingServiceId) return;
-
-            if (e.key === 'Enter') {
-                handleSavePrice();
-            } else if (e.key === 'Escape') {
-                setEditingServiceId(null);
-            }
-        };
-
-        document.addEventListener('keydown', handleKeyDown);
-        return () => {
-            document.removeEventListener('keydown', handleKeyDown);
-        };
-    }, [editingServiceId, editingPrice]);
-
-    // Check if entered name is a custom service (doesn't exist in available services)
-    const isCustomService = searchQuery.trim() !== '' &&
-        !filteredServices.some(s => s.name.toLowerCase() === searchQuery.trim().toLowerCase()) &&
-        !selectedServices.some(s => s.name.toLowerCase() === searchQuery.trim().toLowerCase());
+    const {
+        totalBasePrice,
+        totalDiscount,
+        totalFinalPrice,
+        totalBaseNetPrice,
+        totalFinalNetPrice
+    } = calculateTotals();
 
     if (!isOpen) return null;
 
@@ -323,219 +379,273 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         <ModalOverlay>
             <ModalContainer>
                 <ModalHeader>
-                    <ModalTitle>
-                        <ModalIcon><FaPlus /></ModalIcon>
-                        Dodaj dodatkowe usługi
-                    </ModalTitle>
+                    <ModalTitle>Dodaj usługi do zlecenia</ModalTitle>
                     <CloseButton onClick={onClose}>&times;</CloseButton>
                 </ModalHeader>
-                <ModalBody>
-                    <ModalDescription>
-                        Dodaj dodatkowe usługi do protokołu. SMS z prośbą o potwierdzenie zostanie automatycznie wysłany do klienta.
-                    </ModalDescription>
 
-                    <SectionTitle>Wybierz usługi</SectionTitle>
+                <ModalBody>
+                    {customerPhone && (
+                        <InfoMessage>
+                            Po dodaniu usług, klient otrzyma SMS z prośbą o potwierdzenie na numer <strong>{customerPhone}</strong>.
+                        </InfoMessage>
+                    )}
+
+                    {/* Wyszukiwarka usług */}
                     <SearchContainer>
-                        <SearchInputWrapper>
+                        <SearchLabel>Wyszukaj usługę</SearchLabel>
+                        <SearchInputContainer>
                             <SearchIcon><FaSearch /></SearchIcon>
                             <SearchInput
                                 type="text"
-                                placeholder="Wyszukaj usługę lub wpisz nazwę niestandardowej usługi..."
                                 value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onChange={handleSearchChange}
+                                placeholder="Wpisz nazwę usługi..."
+                                disabled={customServiceMode}
                             />
-                        </SearchInputWrapper>
+                        </SearchInputContainer>
 
-                        {isCustomService && (
-                            <CustomServiceInfo>
-                                Niestandardowa usługa - po dodaniu należy ustawić cenę
-                            </CustomServiceInfo>
+                        {/* Wyniki wyszukiwania */}
+                        {showResults && searchResults.length > 0 && (
+                            <SearchResultsContainer>
+                                {searchResults.map(service => (
+                                    <SearchResultItem
+                                        key={service.id}
+                                        onClick={() => handleAddServiceFromSearch(service)}
+                                    >
+                                        <SearchResultName>{service.name}</SearchResultName>
+                                        <SearchResultPrices>
+                                            <PriceValue>{service.price.toFixed(2)} zł</PriceValue>
+                                            <PriceType>brutto</PriceType>
+                                            <PriceValue>{calculateNetPrice(service.price).toFixed(2)} zł</PriceValue>
+                                            <PriceType>netto</PriceType>
+                                        </SearchResultPrices>
+                                    </SearchResultItem>
+                                ))}
+                            </SearchResultsContainer>
                         )}
 
-                        <AddCustomButton
-                            onClick={handleAddCustomService}
-                            disabled={!searchQuery.trim() || selectedServices.some(s => s.name.toLowerCase() === searchQuery.trim().toLowerCase())}
-                        >
-                            <FaPlus /> {isCustomService ? "Dodaj niestandardową usługę" : "Dodaj do listy"}
-                        </AddCustomButton>
+                        {showResults && searchResults.length === 0 && searchQuery.trim() !== '' && (
+                            <NoResultsMessage>
+                                Nie znaleziono usług. Możesz dodać nową usługę.
+                            </NoResultsMessage>
+                        )}
                     </SearchContainer>
 
-                    <ServicesList>
-                        {filteredServices.length === 0 && !isCustomService ? (
-                            <EmptySearchResults>
-                                Nie znaleziono usług spełniających kryteria wyszukiwania
-                            </EmptySearchResults>
+                    {/* Przycisk przełączający do trybu dodawania niestandardowej usługi */}
+                    <ToggleButtonContainer>
+                        {!customServiceMode ? (
+                            <ToggleButton onClick={() => setCustomServiceMode(true)}>
+                                <FaPlus /> Dodaj niestandardową usługę
+                            </ToggleButton>
                         ) : (
-                            filteredServices.map(service => (
-                                <ServiceItem
-                                    key={service.id}
-                                    selected={selectedServices.some(s => s.id === service.id)}
-                                    onClick={() => toggleServiceSelection(service)}
-                                >
-                                    <ServiceName>{service.name}</ServiceName>
-                                    <ServicePrice>{service.price.toFixed(2)} zł</ServicePrice>
-                                    {selectedServices.some(s => s.id === service.id) && (
-                                        <ServiceSelectedIcon><FaCheck /></ServiceSelectedIcon>
-                                    )}
-                                </ServiceItem>
-                            ))
+                            <ToggleButton onClick={() => setCustomServiceMode(false)}>
+                                <FaTimes /> Anuluj dodawanie niestandardowej usługi
+                            </ToggleButton>
                         )}
-                    </ServicesList>
+                    </ToggleButtonContainer>
 
+                    {/* Formularz dodawania niestandardowej usługi */}
+                    {customServiceMode && (
+                        <CustomServiceForm>
+                            <FormGroup>
+                                <Label>Nazwa usługi</Label>
+                                <Input
+                                    type="text"
+                                    value={customServiceName}
+                                    onChange={e => setCustomServiceName(e.target.value)}
+                                    placeholder="Wprowadź nazwę usługi"
+                                />
+                            </FormGroup>
+                            <FormGroup>
+                                <Label>Cena (brutto)</Label>
+                                <Input
+                                    type="number"
+                                    value={customServicePrice}
+                                    onChange={e => setCustomServicePrice(e.target.value)}
+                                    placeholder="Wprowadź cenę brutto"
+                                    min="0"
+                                    step="0.01"
+                                />
+                                {customServicePrice && !isNaN(parseFloat(customServicePrice)) && (
+                                    <PriceInfo>
+                                        Netto: {calculateNetPrice(parseFloat(customServicePrice)).toFixed(2)} zł
+                                    </PriceInfo>
+                                )}
+                            </FormGroup>
+                            <AddCustomButton
+                                onClick={handleAddCustomService}
+                                disabled={customServiceName.trim() === '' || !customServicePrice || isNaN(parseFloat(customServicePrice))}
+                            >
+                                <FaPlus /> Dodaj usługę
+                            </AddCustomButton>
+                        </CustomServiceForm>
+                    )}
+
+                    {/* Lista wybranych usług */}
                     <SelectedServicesSection>
-                        <SelectedServicesTitle>
-                            Wybrane usługi ({selectedServices.length})
-                        </SelectedServicesTitle>
+                        <SectionTitle>Wybrane usługi</SectionTitle>
 
                         {selectedServices.length === 0 ? (
-                            <NoSelectedServices>
-                                Nie wybrano żadnych usług
-                            </NoSelectedServices>
+                            <EmptyState>
+                                Brak wybranych usług. Wyszukaj lub dodaj niestandardową usługę.
+                            </EmptyState>
                         ) : (
-                            <SelectedServicesList>
-                                {selectedServices.map(service => (
-                                    <SelectedServiceItem className="selected-service-item" key={service.id}>
-                                        <SelectedServiceNameContainer>
-                                            <SelectedServiceName>{service.name}</SelectedServiceName>
-                                            {service.note && (
-                                                <ServiceNote>{service.note}</ServiceNote>
-                                            )}
-                                        </SelectedServiceNameContainer>
+                            <ServicesTable>
+                                <TableHeader>
+                                    <HeaderCell wide>Nazwa usługi</HeaderCell>
+                                    <HeaderCell>Cena bazowa</HeaderCell>
+                                    <HeaderCell>Rabat</HeaderCell>
+                                    <HeaderCell>Cena końcowa</HeaderCell>
+                                    <HeaderCell>Akcje</HeaderCell>
+                                </TableHeader>
 
-                                        <SelectedServicePrice
-                                            onContextMenu={(e) => handlePriceRightClick(e, service)}
-                                        >
-                                            {(service.customPrice !== undefined ? service.customPrice : service.price).toFixed(2)} zł
-                                            <EditPriceIcon onClick={(e) => handleEditPrice(e, service)}>
-                                                <FaEdit />
-                                            </EditPriceIcon>
-                                        </SelectedServicePrice>
-                                        <SelectedServiceActions>
-                                            <ActionButton
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleOpenNoteModal(service);
-                                                }}
-                                                title="Dodaj notatkę"
-                                                note={!!service.note}
-                                            >
-                                                <FaStickyNote />
-                                            </ActionButton>
-                                            <ActionButton
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    toggleServiceSelection(service);
-                                                }}
-                                                title="Usuń usługę"
-                                                danger
-                                            >
-                                                <FaTimes />
-                                            </ActionButton>
-                                        </SelectedServiceActions>
-                                    </SelectedServiceItem>
+                                {selectedServices.map((service, index) => (
+                                    <TableRow key={index}>
+                                        <TableCell wide>
+                                            <ServiceNameContainer>
+                                                <ServiceName>{service.name}</ServiceName>
+                                                {service.note && (
+                                                    <ServiceNote>{service.note}</ServiceNote>
+                                                )}
+                                            </ServiceNameContainer>
+                                        </TableCell>
+                                        <TableCell>
+                                            <PriceWrapper>
+                                                <PriceValue>{service.price.toFixed(2)} zł</PriceValue>
+                                                <PriceType>brutto</PriceType>
+                                                <PriceValue>{calculateNetPrice(service.price).toFixed(2)} zł</PriceValue>
+                                                <PriceType>netto</PriceType>
+                                            </PriceWrapper>
+                                        </TableCell>
+                                        <TableCell>
+                                            <DiscountContainer>
+                                                <DiscountTypeSelect
+                                                    value={service.extendedDiscountType}
+                                                    onChange={(e) => handleChangeDiscountType(
+                                                        index,
+                                                        e.target.value as ExtendedDiscountType
+                                                    )}
+                                                >
+                                                    {Object.entries(DiscountTypeLabelsExtended).map(([value, label]) => (
+                                                        <option key={value} value={value}>
+                                                            {label}
+                                                        </option>
+                                                    ))}
+                                                </DiscountTypeSelect>
+                                                <DiscountInputGroup>
+                                                    <DiscountInput
+                                                        type="number"
+                                                        min="0"
+                                                        max={service.discountType === DiscountType.PERCENTAGE ? 100 : undefined}
+                                                        value={service.discountValue}
+                                                        onChange={(e) => handleChangeDiscountValue(
+                                                            index,
+                                                            parseFloat(e.target.value) || 0
+                                                        )}
+                                                    />
+                                                    {service.discountType === DiscountType.PERCENTAGE && (
+                                                        <DiscountPercentage>
+                                                            ({(service.price * service.discountValue / 100).toFixed(2)} zł)
+                                                        </DiscountPercentage>
+                                                    )}
+                                                </DiscountInputGroup>
+                                            </DiscountContainer>
+                                        </TableCell>
+                                        <TableCell>
+                                            <PriceWrapper>
+                                                <PriceValue>{service.finalPrice.toFixed(2)} zł</PriceValue>
+                                                <PriceType>brutto</PriceType>
+                                                <PriceValue>{calculateNetPrice(service.finalPrice).toFixed(2)} zł</PriceValue>
+                                                <PriceType>netto</PriceType>
+                                            </PriceWrapper>
+                                        </TableCell>
+                                        <TableCell>
+                                            <ActionButtons>
+                                                <ActionButton onClick={() => handleOpenNoteModal(index)} title="Dodaj notatkę">
+                                                    <FaStickyNote />
+                                                </ActionButton>
+                                                <ActionButton danger onClick={() => handleRemoveService(index)} title="Usuń usługę">
+                                                    <FaTimes />
+                                                </ActionButton>
+                                            </ActionButtons>
+                                        </TableCell>
+                                    </TableRow>
                                 ))}
-                                <TotalPriceRow>
-                                    <TotalPriceLabel>Łącznie:</TotalPriceLabel>
-                                    <TotalPriceValue>
-                                        {selectedServices.reduce((sum, s) =>
-                                                sum + (s.customPrice !== undefined ? s.customPrice : s.price),
-                                            0).toFixed(2)} zł
-                                    </TotalPriceValue>
-                                </TotalPriceRow>
-                            </SelectedServicesList>
+
+                                <TableFooter>
+                                    <FooterCell wide>Razem:</FooterCell>
+                                    <FooterCell>
+                                        <PriceWrapper>
+                                            <TotalValue>{totalBasePrice.toFixed(2)} zł</TotalValue>
+                                            <PriceType>brutto</PriceType>
+                                            <TotalValue>{totalBaseNetPrice.toFixed(2)} zł</TotalValue>
+                                            <PriceType>netto</PriceType>
+                                        </PriceWrapper>
+                                    </FooterCell>
+                                    <FooterCell>
+                                        <TotalValue>{totalDiscount.toFixed(2)} zł</TotalValue>
+                                    </FooterCell>
+                                    <FooterCell>
+                                        <PriceWrapper>
+                                            <TotalValue highlight>{totalFinalPrice.toFixed(2)} zł</TotalValue>
+                                            <PriceType>brutto</PriceType>
+                                            <TotalValue>{totalFinalNetPrice.toFixed(2)} zł</TotalValue>
+                                            <PriceType>netto</PriceType>
+                                        </PriceWrapper>
+                                    </FooterCell>
+                                    <FooterCell></FooterCell>
+                                </TableFooter>
+                            </ServicesTable>
                         )}
                     </SelectedServicesSection>
-
-                    <Divider />
-
-                    <SectionTitle>Powiadomienie SMS</SectionTitle>
-                    {canNotifyError ? (
-                        <ErrorMessage>{canNotifyError}</ErrorMessage>
-                    ) : (
-                        <SmsInfo>
-                            <SmsIcon><FaMobileAlt /></SmsIcon>
-                            <SmsDetails>
-                                <SmsTitle>Automatyczne powiadomienie SMS</SmsTitle>
-                                <SmsDescription>
-                                    Po dodaniu usług klient otrzyma SMS z prośbą o zatwierdzenie na numer: {customerPhone}
-                                </SmsDescription>
-                                <SmsNote>
-                                    Treść wiadomości zostanie wygenerowana automatycznie przez system.
-                                </SmsNote>
-                            </SmsDetails>
-                        </SmsInfo>
-                    )}
                 </ModalBody>
+
                 <ModalFooter>
                     <CancelButton onClick={onClose}>
-                        <FaTimes /> Anuluj
+                        Anuluj
                     </CancelButton>
-                    <ConfirmButton
-                        onClick={handleAddServices}
-                        disabled={selectedServices.length === 0 || (!canSendSMS && selectedServices.length > 0)}
+                    <SubmitButton
+                        onClick={handleSubmit}
+                        disabled={selectedServices.length === 0}
                     >
-                        <FaPlus /> Dodaj usługi
-                    </ConfirmButton>
+                        Dodaj {selectedServices.length} {
+                        selectedServices.length === 1 ? 'usługę' :
+                            selectedServices.length < 5 ? 'usługi' : 'usług'
+                    }
+                    </SubmitButton>
                 </ModalFooter>
+
+                {/* Modal dla notatki */}
+                {addingServiceNote.open && (
+                    <NoteModalOverlay>
+                        <NoteModalContainer>
+                            <NoteModalHeader>
+                                <NoteModalTitle>Dodaj notatkę do usługi</NoteModalTitle>
+                                <CloseButton onClick={handleCancelNote}>&times;</CloseButton>
+                            </NoteModalHeader>
+                            <NoteModalBody>
+                                <NoteTextarea
+                                    value={addingServiceNote.note}
+                                    onChange={(e) => setAddingServiceNote({
+                                        ...addingServiceNote,
+                                        note: e.target.value
+                                    })}
+                                    placeholder="Wpisz notatkę dotyczącą usługi..."
+                                    rows={5}
+                                />
+                            </NoteModalBody>
+                            <NoteModalFooter>
+                                <CancelButton onClick={handleCancelNote}>
+                                    Anuluj
+                                </CancelButton>
+                                <SubmitButton onClick={handleSaveNote}>
+                                    Zapisz notatkę
+                                </SubmitButton>
+                            </NoteModalFooter>
+                        </NoteModalContainer>
+                    </NoteModalOverlay>
+                )}
             </ModalContainer>
-
-            {/* Price editor */}
-            {editingServiceId && (
-                <EditPricePopup
-                    className="price-editor"
-                    style={{
-                        position: 'fixed',
-                        top: editingPricePosition.y,
-                        left: editingPricePosition.x
-                    }}
-                    onClick={(e) => e.stopPropagation()} // Prevent closing when clicking editor
-                >
-                    <PopupTitle>Edytuj cenę</PopupTitle>
-                    <EditPriceForm>
-                        <EditPriceInput
-                            type="text"
-                            value={editingPrice}
-                            onChange={(e) => {
-                                // Allow only digits and period/comma
-                                const value = e.target.value;
-                                if (value === '' || /^[0-9]*[.,]?[0-9]*$/.test(value)) {
-                                    setEditingPrice(value);
-                                }
-                            }}
-                            placeholder="Wprowadź nową cenę"
-                            autoFocus
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                    e.preventDefault();
-                                    handleSavePrice();
-                                } else if (e.key === 'Escape') {
-                                    e.preventDefault();
-                                    setEditingServiceId(null);
-                                }
-                            }}
-                        />
-                        <EditPriceButtons>
-                            <Button onClick={() => setEditingServiceId(null)}>
-                                Anuluj
-                            </Button>
-                            <Button primary onClick={handleSavePrice}>
-                                Zapisz
-                            </Button>
-                        </EditPriceButtons>
-                    </EditPriceForm>
-                </EditPricePopup>
-            )}
-
-            {/* Service Note Modal */}
-            {noteModal.visible && (
-                <ServiceNoteModalWrapper
-                    isOpen={noteModal.visible}
-                    onClose={() => setNoteModal({...noteModal, visible: false})}
-                    onSave={handleSaveNote}
-                    serviceName={noteModal.serviceName}
-                    initialNote={noteModal.currentNote}
-                />
-            )}
         </ModalOverlay>
     );
 };
@@ -558,10 +668,12 @@ const ModalContainer = styled.div`
     background-color: white;
     border-radius: 8px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    width: 650px;
+    width: 700px;
     max-width: 90%;
     max-height: 90vh;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     z-index: 1001;
 `;
 
@@ -577,14 +689,6 @@ const ModalTitle = styled.h2`
     margin: 0;
     font-size: 18px;
     color: #34495e;
-    display: flex;
-    align-items: center;
-`;
-
-const ModalIcon = styled.span`
-    color: #3498db;
-    margin-right: 10px;
-    font-size: 20px;
 `;
 
 const CloseButton = styled.button`
@@ -593,7 +697,7 @@ const CloseButton = styled.button`
     font-size: 22px;
     cursor: pointer;
     color: #7f8c8d;
-
+    
     &:hover {
         color: #34495e;
     }
@@ -601,40 +705,50 @@ const CloseButton = styled.button`
 
 const ModalBody = styled.div`
     padding: 20px;
+    overflow-y: auto;
+    max-height: calc(90vh - 130px);
 `;
 
-const ModalDescription = styled.p`
-    font-size: 14px;
-    line-height: 1.5;
-    color: #34495e;
-    margin-top: 0;
+const ModalFooter = styled.div`
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 15px 20px;
+    border-top: 1px solid #eee;
+`;
+
+const InfoMessage = styled.div`
+    background-color: #f0f7ff;
+    color: #3498db;
+    padding: 12px 15px;
+    border-radius: 4px;
     margin-bottom: 20px;
-`;
-
-const SectionTitle = styled.h3`
-    font-size: 16px;
-    color: #2c3e50;
-    margin: 0 0 15px 0;
+    font-size: 14px;
 `;
 
 const SearchContainer = styled.div`
-    margin-bottom: 15px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    margin-bottom: 20px;
 `;
 
-const SearchInputWrapper = styled.div`
+const SearchLabel = styled.label`
+    display: block;
+    font-weight: 500;
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: #34495e;
+`;
+
+const SearchInputContainer = styled.div`
     position: relative;
-    width: 100%;
 `;
 
-const SearchIcon = styled.span`
+const SearchIcon = styled.div`
     position: absolute;
     left: 12px;
     top: 50%;
     transform: translateY(-50%);
     color: #95a5a6;
+    font-size: 14px;
 `;
 
 const SearchInput = styled.input`
@@ -643,391 +757,410 @@ const SearchInput = styled.input`
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 14px;
-
+    
     &:focus {
         outline: none;
         border-color: #3498db;
         box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
     }
+    
+    &:disabled {
+        background-color: #f5f5f5;
+        cursor: not-allowed;
+    }
 `;
 
-const CustomServiceInfo = styled.div`
+const SearchResultsContainer = styled.div`
+    margin-top: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+`;
+
+const SearchResultItem = styled.div`
+    padding: 10px 15px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    
+    &:not(:last-child) {
+        border-bottom: 1px solid #eee;
+    }
+    
+    &:hover {
+        background-color: #f5f5f5;
+    }
+`;
+
+const SearchResultName = styled.div`
+    font-size: 14px;
+    color: #2c3e50;
+    font-weight: 500;
+`;
+
+const SearchResultPrices = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+`;
+
+const PriceValue = styled.span`
+    font-weight: 600;
+    color: #2980b9;
+`;
+
+const PriceType = styled.span`
     font-size: 12px;
     color: #7f8c8d;
-    font-style: italic;
-    margin-top: -5px;
+    text-transform: uppercase;
+`;
+
+const NoResultsMessage = styled.div`
+    color: #95a5a6;
+    text-align: center;
+    padding: 15px;
+    font-size: 14px;
+`;
+
+const ToggleButtonContainer = styled.div`
+    display: flex;
+    justify-content: center;
+    margin: 15px 0;
+`;
+
+const ToggleButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 15px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+    
+    &:hover {
+        background-color: #2980b9;
+    }
+    
+    svg {
+        font-size: 14px;
+    }
+`;
+
+const CustomServiceForm = styled.div`
+    background-color: #f9f9f9;
+    padding: 20px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+`;
+
+const FormGroup = styled.div`
+    margin-bottom: 15px;
+`;
+
+const Label = styled.label`
+    display: block;
+    margin-bottom: 6px;
+    font-size: 14px;
+    color: #34495e;
+`;
+
+const Input = styled.input`
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+`;
+
+const PriceInfo = styled.div`
+    margin-top: 5px;
+    font-size: 12px;
+    color: #7f8c8d;
 `;
 
 const AddCustomButton = styled.button`
     display: flex;
     align-items: center;
     gap: 8px;
-    background-color: #f0f7ff;
-    color: #3498db;
-    border: 1px solid #d5e9f9;
+    width: 100%;
+    padding: 12px;
+    background-color: #2ecc71;
+    color: white;
+    border: none;
     border-radius: 4px;
-    padding: 8px 15px;
-    font-size: 14px;
     cursor: pointer;
-    align-self: flex-start;
-
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+    
     &:hover:not(:disabled) {
-        background-color: #d5e9f9;
+        background-color: #27ae60;
     }
-
+    
     &:disabled {
-        background-color: #f5f5f5;
-        color: #bbb;
-        border-color: #ddd;
+        background-color: #95a5a6;
         cursor: not-allowed;
     }
-`;
-
-const ServicesList = styled.div`
-    max-height: 200px;
-    overflow-y: auto;
-    border: 1px solid #eee;
-    border-radius: 4px;
-    margin-bottom: 20px;
-`;
-
-const EmptySearchResults = styled.div`
-    padding: 15px;
-    text-align: center;
-    color: #95a5a6;
-    font-style: italic;
-`;
-
-const ServiceItem = styled.div<{ selected: boolean }>`
-    display: flex;
-    align-items: center;
-    padding: 12px 15px;
-    border-bottom: 1px solid #eee;
-    cursor: pointer;
-    background-color: ${props => props.selected ? '#eaf6fd' : 'white'};
-    position: relative;
-
-    &:last-child {
-        border-bottom: none;
+    
+    svg {
+        font-size: 14px;
     }
-
-    &:hover {
-        background-color: ${props => props.selected ? '#eaf6fd' : '#f9f9f9'};
-    }
-`;
-
-const ServiceName = styled.div`
-    flex: 1;
-    font-size: 14px;
-    color: #34495e;
-`;
-
-const ServicePrice = styled.div`
-    font-weight: 500;
-    font-size: 14px;
-    color: #2980b9;
-    margin-right: 10px;
-`;
-
-const ServiceSelectedIcon = styled.div`
-    color: #2ecc71;
-    font-size: 16px;
 `;
 
 const SelectedServicesSection = styled.div`
-    margin-bottom: 20px;
+    margin-top: 20px;
 `;
 
-const SelectedServicesTitle = styled.div`
-    font-weight: 500;
-    font-size: 14px;
+const SectionTitle = styled.h3`
+    margin-bottom: 15px;
+    font-size: 16px;
     color: #34495e;
-    margin-bottom: 10px;
 `;
 
-const NoSelectedServices = styled.div`
-    padding: 15px;
+const EmptyState = styled.div`
     text-align: center;
-    background-color: #f8f9fa;
+    color: #7f8c8d;
+    padding: 20px;
+    background-color: #f9f9f9;
     border-radius: 4px;
-    color: #95a5a6;
-    font-style: italic;
 `;
 
-const SelectedServicesList = styled.div`
-    border: 1px solid #eee;
-    border-radius: 4px;
-    overflow: hidden;
+const ServicesTable = styled.div`
+    width: 100%;
+    border-collapse: collapse;
 `;
 
-const SelectedServiceItem = styled.div`
+const TableHeader = styled.div`
     display: flex;
-    align-items: flex-start;
-    padding: 10px 15px;
-    border-bottom: 1px solid #eee;
-    background-color: #f0f7ff;
+    background-color: #f1f4f7;
+    border-bottom: 1px solid #ddd;
+    font-weight: 600;
+    color: #34495e;
 `;
 
-const SelectedServiceNameContainer = styled.div`
+const HeaderCell = styled.div<{ wide?: boolean }>`
+    flex: ${props => props.wide ? '2' : '1'};
+    padding: 12px 15px;
+    font-size: 14px;
+    text-align: left;
+`;
+
+const TableRow = styled.div`
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+    transition: background-color 0.2s ease;
+    
+    &:hover {
+        background-color: #f9f9f9;
+    }
+`;
+
+const TableCell = styled.div<{ wide?: boolean }>`
+    flex: ${props => props.wide ? '2' : '1'};
+    padding: 12px 15px;
+    font-size: 14px;
+`;
+
+const ServiceNameContainer = styled.div`
     display: flex;
     flex-direction: column;
-    flex: 1;
 `;
 
-const SelectedServiceName = styled.div`
-    font-weight: normal;
-    color: #34495e;
+const ServiceName = styled.span`
+    font-weight: 500;
+    color: #2c3e50;
 `;
 
-// New component for service note
-const ServiceNote = styled.div`
+const ServiceNote = styled.span`
     font-size: 12px;
     color: #7f8c8d;
     margin-top: 4px;
-    font-style: italic;
-    line-height: 1.4;
-    padding-top: 4px;
-    border-top: 1px dashed #eee;
-    word-break: break-word;
 `;
 
-const SelectedServicePrice = styled.div`
-    font-weight: 500;
-    font-size: 14px;
-    color: #2980b9;
-    margin: 0 10px;
-    cursor: pointer;
-    position: relative;
+const PriceWrapper = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+`;
+
+const DiscountContainer = styled.div`
     display: flex;
     align-items: center;
-    gap: 6px;
-
-    &:hover {
-        text-decoration: underline dotted;
-    }
+    gap: 10px;
 `;
 
-const EditPriceIcon = styled.span`
-    color: #3498db;
+const DiscountTypeSelect = styled.select`
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
     font-size: 13px;
-    opacity: 0.7;
-
-    &:hover {
-        opacity: 1;
-    }
 `;
 
-const SelectedServiceActions = styled.div`
+const DiscountInputGroup = styled.div`
     display: flex;
-    gap: 5px;
     align-items: center;
+    gap: 8px;
 `;
 
-const ActionButton = styled.button<{ danger?: boolean; note?: boolean }>`
+const DiscountInput = styled.input`
+    width: 80px;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+    text-align: right;
+`;
+
+const DiscountPercentage = styled.span`
+    font-size: 12px;
+    color: #7f8c8d;
+`;
+
+const ActionButtons = styled.div`
+    display: flex;
+    gap: 8px;
+`;
+
+const ActionButton = styled.button<{ danger?: boolean }>`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
-    background-color: ${props => {
-        if (props.danger) return '#fef5f5';
-        if (props.note) return '#eafaf1';
-        return '#f0f7ff';
-    }};
-    color: ${props => {
-        if (props.danger) return '#e74c3c';
-        if (props.note) return '#27ae60';
-        return '#3498db';
-    }};
-    border: 1px solid ${props => {
-        if (props.danger) return '#fde8e8';
-        if (props.note) return '#d5f5e3';
-        return '#d5e9f9';
-    }};
-    border-radius: 4px;
-    font-size: 12px;
-    cursor: pointer;
-
-    &:hover {
-        background-color: ${props => {
-            if (props.danger) return '#fde8e8';
-            if (props.note) return '#d5f5e3';
-            return '#d5e9f9';
-        }};
-    }
-`;
-
-const TotalPriceRow = styled.div`
-    display: flex;
-    justify-content: space-between;
-    padding: 12px 15px;
-    background-color: #f8f9fa;
-    border-top: 1px solid #eee;
-`;
-
-const TotalPriceLabel = styled.div`
-    font-weight: 500;
-    font-size: 14px;
-    color: #34495e;
-`;
-
-const TotalPriceValue = styled.div`
-    font-weight: 600;
-    font-size: 14px;
-    color: #2ecc71;
-`;
-
-const Divider = styled.hr`
-    border: none;
-    border-top: 1px solid #eee;
-    margin: 20px 0;
-`;
-
-const ErrorMessage = styled.div`
-    padding: 10px;
-    background-color: #fdecea;
-    border-left: 3px solid #e74c3c;
-    color: #e74c3c;
-    font-size: 13px;
-    margin-bottom: 15px;
-    border-radius: 4px;
-`;
-
-const SmsInfo = styled.div`
-    display: flex;
-    align-items: flex-start;
-    gap: 15px;
-    background-color: #f0f7ff;
-    border-radius: 4px;
-    padding: 15px;
-    margin-bottom: 15px;
-`;
-
-const SmsIcon = styled.div`
-    color: #3498db;
-    font-size: 20px;
-`;
-
-const SmsDetails = styled.div``;
-
-const SmsTitle = styled.div`
-    font-weight: 500;
-    font-size: 14px;
-    color: #34495e;
-    margin-bottom: 5px;
-`;
-
-const SmsDescription = styled.div`
-    font-size: 13px;
-    color: #7f8c8d;
-    margin-bottom: 8px;
-`;
-
-const SmsNote = styled.div`
-    font-size: 13px;
-    color: #95a5a6;
-    font-style: italic;
-`;
-
-const ModalFooter = styled.div`
-    display: flex;
-    justify-content: flex-end;
-    padding: 15px 20px;
-    border-top: 1px solid #eee;
-    gap: 10px;
-`;
-
-const Button = styled.button<{ primary?: boolean }>`
-    padding: 8px 16px;
-    border-radius: 4px;
-    font-size: 14px;
-    cursor: pointer;
-
-    ${props => props.primary ? `
-        background-color: #3498db;
-        color: white;
-        border: none;
-        
-        &:hover {
-            background-color: #2980b9;
-        }
-    ` : `
-        background-color: white;
-        color: #333;
-        border: 1px solid #ddd;
-        
-        &:hover {
-            background-color: #f5f5f5;
-        }
-    `}
-`;
-
-const CancelButton = styled(Button)`
-    background-color: white;
-    color: #7f8c8d;
-    border: 1px solid #ddd;
-
-    &:hover {
-        background-color: #f5f5f5;
-    }
-`;
-
-const ConfirmButton = styled(Button)<{ disabled: boolean }>`
-    background-color: ${props => props.disabled ? '#95a5a6' : '#3498db'};
+    width: 32px;
+    height: 32px;
+    background-color: ${props => props.danger ? '#e74c3c' : '#3498db'};
     color: white;
     border: none;
-    cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
-
-    &:hover:not(:disabled) {
-        background-color: #2980b9;
-    }
-`;
-
-// Price editor components
-const EditPricePopup = styled.div`
-    background-color: white;
     border-radius: 4px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-    padding: 15px;
-    width: 250px;
-    z-index: 1100;
-
-    // Prevent extending outside the screen
-    &.price-editor {
-        max-width: calc(100vw - 40px);
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    
+    &:hover {
+        background-color: ${props => props.danger ? '#c0392b' : '#2980b9'};
+    }
+    
+    svg {
+        font-size: 14px;
     }
 `;
 
-const PopupTitle = styled.div`
-    font-weight: 500;
-    font-size: 15px;
-    margin-bottom: 10px;
+const TableFooter = styled.div`
+    display: flex;
+    background-color: #f1f4f7;
+    border-top: 1px solid #ddd;
+    font-weight: 600;
+`;
+
+const FooterCell = styled.div<{ wide?: boolean }>`
+    flex: ${props => props.wide ? '2' : '1'};
+    padding: 12px 15px;
+    font-size: 14px;
+    text-align: left;
+`;
+
+const TotalValue = styled.span<{ highlight?: boolean }>`
+    font-weight: ${props => props.highlight ? 700 : 600};
+    color: ${props => props.highlight ? '#2c3e50' : '#2980b9'};
+`;
+
+const NoteModalOverlay = styled.div`
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1100;
+`;
+
+const NoteModalContainer = styled.div`
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    width: 500px;
+    max-width: 90%;
+    display: flex;
+    flex-direction: column;
+    z-index: 1101;
+`;
+
+const NoteModalHeader = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 20px;
+    border-bottom: 1px solid #eee;
+`;
+
+const NoteModalTitle = styled.h3`
+    margin: 0;
+    font-size: 16px;
     color: #34495e;
 `;
 
-const EditPriceForm = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
+const NoteModalBody = styled.div`
+    padding: 20px;
 `;
 
-const EditPriceInput = styled.input`
-    padding: 8px 12px;
+const NoteTextarea = styled.textarea`
+    width: 100%;
+    padding: 10px;
     border: 1px solid #ddd;
     border-radius: 4px;
+    resize: vertical;
     font-size: 14px;
-
-    &:focus {
-        outline: none;
-        border-color: #3498db;
-        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
-    }
+    min-height: 120px;
 `;
 
-const EditPriceButtons = styled.div`
+const NoteModalFooter = styled.div`
     display: flex;
     justify-content: flex-end;
     gap: 10px;
+    padding: 15px 20px;
+    border-top: 1px solid #eee;
+`;
+
+const CancelButton = styled.button`
+    padding: 10px 15px;
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+    
+    &:hover {
+        background-color: #c0392b;
+    }
+`;
+
+const SubmitButton = styled.button`
+    padding: 10px 15px;
+    background-color: #2ecc71;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+    
+    &:hover:not(:disabled) {
+        background-color: #27ae60;
+    }
+    
+    &:disabled {
+        background-color: #95a5a6;
+        cursor: not-allowed;
+    }
 `;
 
 export default AddServiceModal;
