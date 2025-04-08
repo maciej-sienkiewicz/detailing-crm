@@ -4,7 +4,6 @@ import {
     FaBell,
     FaBuilding,
     FaCarSide,
-    FaClock,
     FaEnvelope,
     FaFileInvoiceDollar,
     FaIdCard,
@@ -15,7 +14,13 @@ import {
     FaUser,
     FaTrash
 } from 'react-icons/fa';
-import {CarReceptionProtocol, ProtocolStatus, SelectedService, ServiceApprovalStatus} from '../../../../types';
+import {
+    CarReceptionProtocol,
+    DiscountType,
+    ProtocolStatus,
+    SelectedService,
+    ServiceApprovalStatus
+} from '../../../../types';
 import {fetchAvailableServices} from '../../../../api/mocks/carReceptionMocks';
 import {protocolsApi} from '../../../../api/protocolsApi';
 import AddServiceModal from "../../shared/modals/AddServiceModal";
@@ -24,6 +29,8 @@ interface ProtocolSummaryProps {
     protocol: CarReceptionProtocol;
     onProtocolUpdate?: (updatedProtocol: CarReceptionProtocol) => void;
 }
+
+const DEFAULT_VAT_RATE = 23; // Domyślna stawka VAT (23%)
 
 const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolUpdate }) => {
     const [showAddServiceModal, setShowAddServiceModal] = useState(false);
@@ -109,7 +116,15 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
 
     // Obsługa dodania nowych usług
     const handleAddServices = async (servicesData: {
-        services: Array<{ id: string; name: string; price: number; note?: string }>;
+        services: Array<{
+            id: string;
+            name: string;
+            price: number;
+            discountType?: DiscountType;
+            discountValue?: number;
+            finalPrice: number;
+            note?: string
+        }>;
     }) => {
         if (servicesData.services.length === 0) return;
 
@@ -117,18 +132,15 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
             setIsLoading(true);
             const now = new Date().toISOString();
 
-            // Wypisz dane otrzymane z modalu
-            console.log('Dane usług otrzymane z modalu:', servicesData.services);
-
-            // Utworzenie nowych usług z zachowaniem notatek i liczby sztuk
+            // Utworzenie nowych usług z zachowaniem notatek i informacji o rabatach
             const newServices: SelectedService[] = servicesData.services.map(serviceData => {
                 const newService: SelectedService = {
                     id: `service_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
                     name: serviceData.name,
                     price: serviceData.price,
-                    discountType: 'PERCENTAGE', // Domyślny typ rabatu
-                    discountValue: 0,           // Domyślna wartość rabatu
-                    finalPrice: serviceData.price, // Cena × ilość
+                    discountType: serviceData.discountType || 'PERCENTAGE',  // Użyj przekazanego typu lub domyślnego
+                    discountValue: serviceData.discountValue !== undefined ? serviceData.discountValue : 0, // Użyj przekazanej wartości lub domyślnej
+                    finalPrice: serviceData.finalPrice,  // Użyj obliczonej ceny końcowej
                     approvalStatus: ServiceApprovalStatus.PENDING,
                     addedAt: now,
                     confirmationMessage: `Wysłano SMS z prośbą o potwierdzenie usługi`
@@ -137,7 +149,6 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                 // Dodaj notatkę, jeśli istnieje
                 if (serviceData.note) {
                     newService.note = serviceData.note;
-                    console.log(`Dodano notatkę do usługi ${serviceData.name}:`, serviceData.note);
                 }
 
                 return newService;
@@ -172,15 +183,81 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
         }
     };
 
+    // Funkcje pomocnicze do obliczeń cen netto/brutto
+    const calculateNetPrice = (grossPrice: number, vatRate: number = DEFAULT_VAT_RATE): number => {
+        return grossPrice / (1 + vatRate / 100);
+    };
+
+    const calculateGrossPrice = (netPrice: number, vatRate: number = DEFAULT_VAT_RATE): number => {
+        return netPrice * (1 + vatRate / 100);
+    };
+
+    // Funkcja obliczająca wszystkie potrzebne ceny dla usługi
+    const calculateServicePrices = (service: SelectedService) => {
+        const vatRate = service.vatRate || DEFAULT_VAT_RATE;
+
+        // Cena bazowa brutto (podawana przez użytkownika)
+        const baseGrossPrice = service.price;
+        // Cena bazowa netto
+        const baseNetPrice = calculateNetPrice(baseGrossPrice, vatRate);
+
+        // Cena końcowa brutto (po uwzględnieniu rabatu)
+        const finalGrossPrice = service.finalPrice;
+        // Cena końcowa netto
+        const finalNetPrice = calculateNetPrice(finalGrossPrice, vatRate);
+
+        return {
+            baseNetPrice,
+            baseGrossPrice,
+            finalNetPrice,
+            finalGrossPrice
+        };
+    };
+
+    // Oblicz łączne sumy netto i brutto
+    const calculateNetGrossTotals = () => {
+        let totalNetValue = 0;
+        let totalGrossValue = 0;
+        let totalBaseNetValue = 0;
+        let totalBaseGrossValue = 0;
+        let totalDiscountValue = 0;
+
+        protocol.selectedServices.forEach(service => {
+            const {
+                finalNetPrice,
+                finalGrossPrice,
+                baseNetPrice,
+                baseGrossPrice,
+            } = calculateServicePrices(service);
+
+            // Obliczanie wartości rabatu
+            const discountValueGross = baseGrossPrice - finalGrossPrice;
+
+            totalNetValue += finalNetPrice;
+            totalGrossValue += finalGrossPrice;
+            totalBaseNetValue += baseNetPrice;
+            totalBaseGrossValue += baseGrossPrice;
+            totalDiscountValue += discountValueGross;
+        });
+
+        return {
+            totalNetValue,
+            totalGrossValue,
+            totalBaseNetValue,
+            totalBaseGrossValue,
+            totalDiscountValue
+        };
+    };
+
     // Obliczanie sum
     const allServices = protocol.selectedServices;
-    const approvedValue = allServices
-        .filter(service => !service.approvalStatus || service.approvalStatus === ServiceApprovalStatus.APPROVED)
-        .reduce((sum, service) => sum + service.finalPrice, 0);
-
-    const pendingValue = allServices
-        .filter(service => service.approvalStatus === ServiceApprovalStatus.PENDING)
-        .reduce((sum, service) => sum + service.finalPrice, 0);
+    const {
+        totalNetValue,
+        totalGrossValue,
+        totalBaseNetValue,
+        totalBaseGrossValue,
+        totalDiscountValue
+    } = calculateNetGrossTotals();
 
     return (
         <SummaryContainer>
@@ -308,78 +385,115 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                             </TableCell>
                         </TableRow>
                     ) : (
-                        allServices.map((service) => (
-                            <TableRow
-                                key={service.id}
-                                pending={service.approvalStatus === ServiceApprovalStatus.PENDING}
-                            >
-                                <TableCell wide>
-                                    <ServiceNameContainer>
-                                        <ServiceName>{service.name}</ServiceName>
-                                        {service.approvalStatus === ServiceApprovalStatus.PENDING && (
-                                            <PendingBadge>
-                                                <FaClock /> Oczekuje na potwierdzenie
-                                            </PendingBadge>
-                                        )}
-                                        {/* Wyświetl komentarz jeśli istnieje */}
-                                        {service.note && (
-                                            <ServiceNote>
-                                                {service.note}
-                                            </ServiceNote>
-                                        )}
-                                    </ServiceNameContainer>
-                                </TableCell>
-                                <TableCell>{service.price.toFixed(2)} zł</TableCell>
-                                <TableCell>
-                                    {service.discountValue > 0
-                                        ? `${service.discountValue.toFixed(2)}${service.discountType === 'PERCENTAGE' ? '%' : ' zł'}`
-                                        : '-'
-                                    }
-                                </TableCell>
-                                <TableCell>{service.finalPrice.toFixed(2)} zł</TableCell>
-                                <TableCell action>
-                                    <ActionButtons>
-                                        {service.approvalStatus === ServiceApprovalStatus.PENDING && (
-                                            <>
-                                                <ActionButton
-                                                    title="Wyślij ponownie SMS"
-                                                    onClick={() => handleResendNotification(service.id)}
-                                                >
-                                                    <FaBell />
-                                                </ActionButton>
-                                                <ActionButton
-                                                    title="Anuluj usługę"
-                                                    danger
-                                                    onClick={() => handleCancelService(service.id)}
-                                                >
-                                                    <FaTimesCircle />
-                                                </ActionButton>
-                                            </>
-                                        )}
-                                        <ActionButton
-                                            title="Usuń usługę"
-                                            danger
-                                            onClick={() => handleDeleteService(service.id)}
-                                        >
-                                            <FaTrash />
-                                        </ActionButton>
-                                    </ActionButtons>
-                                </TableCell>
-                            </TableRow>
-                        ))
+                        allServices.map((service) => {
+                            const prices = calculateServicePrices(service);
+
+                            return (
+                                <TableRow
+                                    key={service.id}
+                                    pending={service.approvalStatus === ServiceApprovalStatus.PENDING}
+                                >
+                                    <TableCell wide>
+                                        <ServiceNameContainer>
+                                            <ServiceName>{service.name}</ServiceName>
+                                            {service.approvalStatus === ServiceApprovalStatus.PENDING && (
+                                                <PendingBadge>
+                                                    <FaClock /> Oczekuje na potwierdzenie
+                                                </PendingBadge>
+                                            )}
+                                            {/* Wyświetl komentarz jeśli istnieje */}
+                                            {service.note && (
+                                                <ServiceNote>
+                                                    {service.note}
+                                                </ServiceNote>
+                                            )}
+                                        </ServiceNameContainer>
+                                    </TableCell>
+                                    <PriceCell>
+                                        <PriceWrapper>
+                                            <PriceValue>
+                                                {prices.baseGrossPrice.toFixed(2)} zł
+                                                <PriceType>brutto</PriceType>
+                                            </PriceValue>
+                                            <PriceValue>
+                                                {prices.baseNetPrice.toFixed(2)} zł
+                                                <PriceType>netto</PriceType>
+                                            </PriceValue>
+                                        </PriceWrapper>
+                                    </PriceCell>
+                                    <TableCell>
+                                        {service.discountValue > 0
+                                            ? `${service.discountValue.toFixed(2)}${service.discountType === 'PERCENTAGE' ? '%' : ' zł'}`
+                                            : '-'
+                                        }
+                                    </TableCell>
+                                    <PriceCell>
+                                        <PriceWrapper>
+                                            <PriceValue>
+                                                {prices.finalGrossPrice.toFixed(2)} zł
+                                                <PriceType>brutto</PriceType>
+                                            </PriceValue>
+                                            <PriceValue>
+                                                {prices.finalNetPrice.toFixed(2)} zł
+                                                <PriceType>netto</PriceType>
+                                            </PriceValue>
+                                        </PriceWrapper>
+                                    </PriceCell>
+                                    <TableCell action>
+                                        <ActionButtons>
+                                            {service.approvalStatus === ServiceApprovalStatus.PENDING && (
+                                                <>
+                                                    <ActionButton
+                                                        title="Wyślij ponownie SMS"
+                                                        onClick={() => handleResendNotification(service.id)}
+                                                    >
+                                                        <FaBell />
+                                                    </ActionButton>
+                                                    <ActionButton
+                                                        title="Anuluj usługę"
+                                                        danger
+                                                        onClick={() => handleCancelService(service.id)}
+                                                    >
+                                                        <FaTimesCircle />
+                                                    </ActionButton>
+                                                </>
+                                            )}
+                                            <ActionButton
+                                                title="Usuń usługę"
+                                                danger
+                                                onClick={() => handleDeleteService(service.id)}
+                                            >
+                                                <FaTrash />
+                                            </ActionButton>
+                                        </ActionButtons>
+                                    </TableCell>
+                                </TableRow>
+                            );
+                        })
                     )}
 
                     <TableFooter>
                         <FooterCell wide>Razem</FooterCell>
-                        <FooterCell>{allServices.reduce((sum, s) => sum + s.price, 0).toFixed(2)} zł</FooterCell>
                         <FooterCell>
-                            {(allServices.reduce((sum, s) => sum + s.price, 0) - (approvedValue + pendingValue)).toFixed(2)} zł
+                            <PriceWrapper>
+                                <TotalValue>{totalBaseGrossValue.toFixed(2)} zł</TotalValue>
+                                <PriceType>brutto</PriceType>
+                                <TotalValue>{totalBaseNetValue.toFixed(2)} zł</TotalValue>
+                                <PriceType>netto</PriceType>
+                            </PriceWrapper>
                         </FooterCell>
                         <FooterCell>
-                            <TotalValue highlight>{approvedValue.toFixed(2)} zł</TotalValue>
-                            {pendingValue > 0 && (
-                                <PendingValue>+ {pendingValue.toFixed(2)} zł oczekuje</PendingValue>
-                            )}
+                            <PriceWrapper>
+                                <TotalValue>{totalDiscountValue.toFixed(2)} zł</TotalValue>
+                            </PriceWrapper>
+                        </FooterCell>
+                        <FooterCell>
+                            <PriceWrapper>
+                                <TotalValue highlight>{totalGrossValue.toFixed(2)} zł</TotalValue>
+                                <PriceType>brutto</PriceType>
+                                <TotalValue>{totalNetValue.toFixed(2)} zł</TotalValue>
+                                <PriceType>netto</PriceType>
+                            </PriceWrapper>
                         </FooterCell>
                         <FooterCell action></FooterCell>
                     </TableFooter>
@@ -551,11 +665,11 @@ const ServiceNameContainer = styled.div`
 `;
 
 const ServiceName = styled.div`
-    font-weight: 500;
+    font-weight: normal;
     color: #34495e;
 `;
 
-// Nowy komponent dla notatki do usługi
+// Komponent dla notatki do usługi
 const ServiceNote = styled.div`
     font-size: 12px;
     color: #7f8c8d;
@@ -635,6 +749,43 @@ const NotesContent = styled.div`
     font-size: 14px;
     color: #34495e;
     white-space: pre-line;
+`;
+
+// Komponent FaClock został zadeklarowany inline
+const FaClock = styled.span`
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    margin-right: 4px;
+    position: relative;
+    
+    &:before {
+        content: "⏱";
+        position: absolute;
+        top: -2px;
+        left: 0;
+    }
+`;
+
+// Nowe komponenty dla wyświetlania cen brutto/netto
+const PriceCell = styled(TableCell)`
+    min-width: 120px;
+`;
+
+const PriceWrapper = styled.div`
+    display: flex;
+    flex-direction: column;
+`;
+
+const PriceValue = styled.div`
+    font-size: 14px;
+    color: #34495e;
+`;
+
+const PriceType = styled.div`
+    font-size: 10px;
+    color: #7f8c8d;
+    margin-top: 2px;
 `;
 
 export default ProtocolSummary;

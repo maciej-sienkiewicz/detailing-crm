@@ -49,6 +49,11 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
         }
     };
 
+    // Funkcja do obliczania ceny netto na podstawie ceny brutto
+    const calculateNetPrice = (grossPrice: number): number => {
+        return grossPrice / 1.23; // Zakładamy standardową stawkę VAT 23%
+    };
+
     return (
         <Container>
             <Title>{appointment.title}</Title>
@@ -95,13 +100,35 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
                         Usługi:
                     </ServicesTitle>
                     {appointment.services.map((service, index) => (
-                        <ServiceItem key={index}>
+                        <ServiceItem
+                            key={index}
+                            isLast={index === appointment.services.length - 1}
+                        >
                             <ServiceName>{service.name}</ServiceName>
-                            <ServicePrice>{service.finalPrice.toFixed(2)} zł</ServicePrice>
+                            <ServicePriceContainer>
+                                <ServicePrice>
+                                    <PriceValue>{service.finalPrice.toFixed(2)} zł</PriceValue>
+                                    <PriceType>brutto</PriceType>
+                                </ServicePrice>
+                                <ServicePrice>
+                                    <PriceValue>{calculateNetPrice(service.finalPrice).toFixed(2)} zł</PriceValue>
+                                    <PriceType>netto</PriceType>
+                                </ServicePrice>
+                            </ServicePriceContainer>
                         </ServiceItem>
                     ))}
                     <TotalPrice>
-                        Razem: {appointment.services.reduce((sum, service) => sum + service.finalPrice, 0).toFixed(2)} zł
+                        <TotalPriceLabel>Razem:</TotalPriceLabel>
+                        <TotalPriceValues>
+                            <TotalPriceRow>
+                                <TotalPriceValue>{appointment.services.reduce((sum, service) => sum + service.finalPrice, 0).toFixed(2)} zł</TotalPriceValue>
+                                <PriceType>brutto</PriceType>
+                            </TotalPriceRow>
+                            <TotalPriceRow>
+                                <TotalPriceValue>{calculateNetPrice(appointment.services.reduce((sum, service) => sum + service.finalPrice, 0)).toFixed(2)} zł</TotalPriceValue>
+                                <PriceType>netto</PriceType>
+                            </TotalPriceRow>
+                        </TotalPriceValues>
                     </TotalPrice>
                 </ServicesList>
             )}
@@ -194,34 +221,72 @@ const ServicesTitle = styled.div`
     align-items: center;
 `;
 
-const ServiceItem = styled.div`
+const ServiceItem = styled.div<{ isLast: boolean }>`
     display: flex;
     justify-content: space-between;
     margin-bottom: 6px;
     padding-bottom: 6px;
-    border-bottom: 1px dashed #e0e0e0;
-    
-    &:last-of-type {
-        border-bottom: none;
-    }
+    border-bottom: ${props => props.isLast ? 'none' : '1px dashed #e0e0e0'};
 `;
 
 const ServiceName = styled.div`
     font-size: 14px;
     color: #34495e;
+    flex: 1;
+`;
+
+const ServicePriceContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
 `;
 
 const ServicePrice = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 5px;
+`;
+
+const PriceValue = styled.div`
     font-size: 14px;
     color: #34495e;
     font-weight: 500;
+`;
+
+const PriceType = styled.div`
+    font-size: 12px;
+    color: #7f8c8d;
+    text-transform: uppercase;
 `;
 
 const TotalPrice = styled.div`
     margin-top: 10px;
     padding-top: 6px;
     border-top: 1px solid #e0e0e0;
-    text-align: right;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+`;
+
+const TotalPriceLabel = styled.div`
+    font-weight: bold;
+    font-size: 14px;
+    color: #34495e;
+`;
+
+const TotalPriceValues = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+`;
+
+const TotalPriceRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 5px;
+`;
+
+const TotalPriceValue = styled.div`
     font-weight: bold;
     font-size: 14px;
     color: #34495e;

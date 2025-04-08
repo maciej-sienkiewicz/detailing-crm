@@ -84,7 +84,7 @@ const AppointmentCalendar: React.FC<CalendarProps> = ({
             console.log(event.title)
             console.log(event.calendarColorId);
             const calendarColor = calendarColors[event.calendarColorId].color;
-            let opacity = 0.8;
+            let opacity = 0.95;
 
             // Specjalne formatowanie dla protokołów
             if (event.isProtocol) {
