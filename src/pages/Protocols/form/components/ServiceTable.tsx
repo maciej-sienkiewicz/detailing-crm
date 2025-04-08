@@ -1,17 +1,6 @@
 import React, { useState } from 'react';
 import { FaTrash, FaPlus, FaEdit, FaStickyNote } from 'react-icons/fa';
 import { DiscountType, DiscountTypeLabels, SelectedService } from '../../../../types';
-import {
-    ServicesTableContainer,
-    ServicesTable as Table,
-    TableHeader,
-    TableCell,
-    TableFooterCell,
-    ActionButton,
-    AddItemRow,
-    TotalAmount,
-    TotalValue
-} from '../styles';
 import styled from 'styled-components';
 import ServiceNoteModal from "../../shared/modals/SerivceNoteModal";
 
@@ -65,104 +54,208 @@ const mapFromStandardDiscountType = (standardType: DiscountType): ExtendedDiscou
 
 // Stałe
 const DEFAULT_VAT_RATE = 23; // Domyślna stawka VAT (23%)
-
-// Styl dla menu kontekstowego
-const ContextMenu = styled.div`
-    position: absolute;
-    z-index: 100;
+// Główne style dla tabeli usług
+export const ServicesTableContainer = styled.div`
     background-color: white;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    padding: 5px 0;
-    min-width: 200px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    overflow-x: auto;
 `;
 
-const MenuItem = styled.div`
-    padding: 8px 15px;
+export const Table = styled.table`
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+`;
+
+export const TableHeader = styled.th`
+    background-color: #f8f9fa;
+    color: #2c3e50;
+    font-weight: 600;
+    text-align: left;
+    padding: 12px 15px;
+    border-bottom: 2px solid #e9ecef;
+`;
+
+export const TableCell = styled.td`
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+    vertical-align: middle;
+`;
+
+export const TableFooterCell = styled(TableCell)`
+    font-weight: 600;
+    background-color: #f8f9fa;
+`;
+
+// Style dla nazwy usługi
+export const ServiceNameContainer = styled.div`
     display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    font-size: 14px;
-
-    &:hover {
-        background-color: #f5f5f5;
-    }
+    flex-direction: column;
+    line-height: 1.4;
 `;
 
-// Styl dla komórki tabeli z ceną bazową (edytowalna)
-const EditablePriceCell = styled(TableCell)`
-    cursor: pointer;
-    position: relative;
-    height: 100%;
 
-    &:hover {
-        background-color: #f5f5f5;
-    }
+export const ServiceName = styled.div`
+    font-weight: 500;
+    color: #2c3e50;
 `;
 
-const PriceContainer = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 100%;
+export const ServiceNote = styled.div`
+    font-size: 12px;
+    color: #7f8c8d;
+    font-style: italic;
+    margin-top: 4px;
+    word-break: break-word;
 `;
 
-const PriceValue = styled.span`
-    flex: 1;
-`;
-
-const EditIcon = styled.span`
-    font-size: 14px;
-    color: #3498db;
-    margin-left: 10px;
-    display: flex;
-    align-items: center;
-`;
-
-// Styl dla komórki z rabatem
-const DiscountCell = styled(TableCell)`
-    min-width: 220px;
-    width: 220px;
-
-    @media (max-width: 768px) {
-        min-width: 180px;
-        width: 180px;
-    }
-
-    @media (max-width: 576px) {
-        min-width: 160px;
-        width: 160px;
-    }
-
-    @media (max-width: 480px) {
-        min-width: 140px;
-        width: 100%;
-    }
-`;
-
-// Komponenty dla wartości ceny brutto/netto
-const PriceWrapper = styled.div`
+// Style dla ceny
+export const PriceWrapper = styled.div`
     display: flex;
     flex-direction: column;
     gap: 4px;
 `;
 
-const PriceType = styled.div`
-    font-size: 11px;
-    color: #7f8c8d;
-    margin-top: 2px;
+export const PriceValue = styled.span`
+    font-weight: 500;
+    color: #2c3e50;
 `;
 
-// Rozszerzamy tablicę usług o dodatkowe pola
-interface ServiceExtended extends SelectedService {
-    note?: string;
-    extendedDiscountType?: ExtendedDiscountType;
-}
+export const PriceType = styled.div`
+    font-size: 11px;
+    color: #7f8c8d;
+    text-transform: uppercase;
+`;
 
-// Styl dla okna edycji
-const EditPricePopup = styled.div`
+// Style dla edytowalnej komórki ceny
+export const EditablePriceCell = styled(TableCell)`
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+        background-color: #f8f9fa;
+    }
+`;
+
+export const PriceContainer = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+`;
+
+export const EditIcon = styled.span`
+    font-size: 14px;
+    color: #3498db;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+
+    ${EditablePriceCell}:hover & {
+        opacity: 1;
+    }
+`;
+
+// Style dla rabatu
+export const StyledDiscountContainer = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+`;
+
+export const DiscountTypeSelect = styled.select`
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+    height: 38px;
+`;
+
+export const DiscountInputGroup = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 5px;
+`;
+
+export const DiscountInput = styled.input`
+    width: 80px;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+    text-align: right;
+    height: 38px;
+`;
+
+export const DiscountPercentage = styled.span`
+    font-size: 12px;
+    color: #7f8c8d;
+    white-space: nowrap;
+`;
+
+export const DiscountCell = styled(TableCell)`
+    min-width: 280px;
+    width: 280px;
+
+    @media (max-width: 1200px) {
+        min-width: 250px;
+        width: 250px;
+    }
+
+    @media (max-width: 992px) {
+        min-width: 220px;
+        width: 220px;
+    }
+
+    @media (max-width: 768px) {
+        min-width: 200px;
+        width: 200px;
+    }
+
+    @media (max-width: 576px) {
+        min-width: 100%;
+        width: 100%;
+    }
+`;
+
+// Style dla przycisków akcji
+export const ActionButtonsContainer = styled.div`
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+`;
+
+export const ActionButton = styled.button<{ danger?: boolean, note?: boolean }>`
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: ${props =>
+    props.danger ? '#e74c3c' :
+        props.note ? '#f39c12' :
+            '#3498db'
+};
+    font-size: 16px;
+    padding: 6px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease, color 0.2s ease;
+
+    &:hover {
+        background-color: ${props =>
+    props.danger ? 'rgba(231, 76, 60, 0.1)' :
+        props.note ? 'rgba(243, 156, 18, 0.1)' :
+            'rgba(52, 152, 219, 0.1)'
+};
+    }
+`;
+
+// Wartości sumaryczne
+export const TotalValue = styled.span`
+    font-weight: 600;
+    color: #2c3e50;
+`;
+
+// Style dla okna edycji ceny
+export const EditPricePopup = styled.div`
     position: absolute;
     z-index: 100;
     background-color: white;
@@ -173,20 +266,20 @@ const EditPricePopup = styled.div`
     width: 300px;
 `;
 
-const PopupTitle = styled.div`
+export const PopupTitle = styled.div`
     font-weight: 500;
     font-size: 15px;
     margin-bottom: 10px;
     color: #34495e;
 `;
 
-const EditPriceForm = styled.div`
+export const EditPriceForm = styled.div`
     display: flex;
     flex-direction: column;
     gap: 15px;
 `;
 
-const EditPriceInput = styled.input`
+export const EditPriceInput = styled.input`
     padding: 8px 12px;
     border: 1px solid #ddd;
     border-radius: 4px;
@@ -199,8 +292,7 @@ const EditPriceInput = styled.input`
     }
 `;
 
-// Selektor typu ceny (brutto/netto)
-const PriceTypeSelect = styled.select`
+export const PriceTypeSelect = styled.select`
     padding: 8px 12px;
     border: 1px solid #ddd;
     border-radius: 4px;
@@ -208,14 +300,14 @@ const PriceTypeSelect = styled.select`
     width: 100%;
 `;
 
-const EditPriceButtons = styled.div`
+export const EditPriceButtons = styled.div`
     display: flex;
     justify-content: flex-end;
     gap: 10px;
     margin-top: 10px;
 `;
 
-const Button = styled.button<{ primary?: boolean }>`
+export const Button = styled.button<{ primary?: boolean }>`
     padding: 6px 12px;
     border-radius: 4px;
     font-size: 14px;
@@ -240,87 +332,36 @@ const Button = styled.button<{ primary?: boolean }>`
     `}
 `;
 
-// Nowy komponent dla zawartości komórki rabatu
-const DiscountCellContent = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    width: 100%;
-`;
-
-// Zaktualizowany komponent DiscountContainer
-const StyledDiscountContainer = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-`;
-
-// Komponenty związane z rabatem
-const DiscountContainer = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-`;
-
-const DiscountTypeSelect = styled.select`
-    flex: 1;
-    padding: 8px;
+// Style dla menu kontekstowego
+export const ContextMenu = styled.div`
+    position: absolute;
+    z-index: 100;
+    background-color: white;
     border: 1px solid #ddd;
     border-radius: 4px;
-    font-size: 13px;
-    height: 38px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    padding: 5px 0;
+    min-width: 200px;
 `;
 
-const DiscountInputGroup = styled.div`
+export const MenuItem = styled.div`
+    padding: 8px 15px;
     display: flex;
     align-items: center;
     gap: 8px;
+    cursor: pointer;
+    font-size: 14px;
+
+    &:hover {
+        background-color: #f5f5f5;
+    }
 `;
 
-const DiscountInput = styled.input`
-    width: 80px;
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 13px;
-    text-align: right;
-`;
-
-const DiscountPercentage = styled.span`
-    font-size: 12px;
-    color: #7f8c8d;
-`;
-
-// Kontener dla przycisków akcji
-const ActionButtonsContainer = styled.div`
-    display: flex;
-    gap: 5px;
-`;
-
-// Nowy komponent dla notatki
-const ServiceNote = styled.div`
-    font-size: 12px;
-    color: #7f8c8d;
-    margin-top: 4px;
-    font-style: italic;
-    line-height: 1.4;
-    padding-top: 4px;
-    border-top: 1px dashed #eee;
-    word-break: break-word;
-`;
-
-// Kontener dla nazwy usługi i notatki
-const ServiceNameContainer = styled.div`
-    display: flex;
-    flex-direction: column;
-`;
-
-const ServiceName = styled.div`
-    font-weight: normal;
-    color: #34495e;
-`;
+// Rozszerzamy tablicę usług o dodatkowe pola
+interface ServiceExtended extends SelectedService {
+    note?: string;
+    extendedDiscountType?: ExtendedDiscountType;
+}
 
 // Funkcje pomocnicze dla obliczeń kwot brutto/netto
 const calculateNetPrice = (grossPrice: number, vatRate: number = DEFAULT_VAT_RATE): number => {
@@ -604,7 +645,6 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                     </tr>
                 ) : (
                     services.map(service => {
-                        // Pobierz rozszerzony typ rabatu dla usługi
                         const extendedType = extendedDiscountTypes[service.id] ||
                             mapFromStandardDiscountType(service.discountType);
 
@@ -622,7 +662,6 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                                     id={`price-${service.id}`}
                                     onContextMenu={(e) => handlePriceRightClick(e, service)}
                                     onClick={(e) => {
-                                        // Otwórz okno edycji również po lewym kliknięciu dla lepszej dostępności
                                         const rect = e.currentTarget.getBoundingClientRect();
                                         setEditPopup({
                                             visible: true,
@@ -648,38 +687,35 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                                     </PriceContainer>
                                 </EditablePriceCell>
                                 <DiscountCell>
-                                    <DiscountCellContent>
-                                        <StyledDiscountContainer>
-                                            <DiscountTypeSelect
-                                                value={extendedType}
-                                                onChange={(e) => handleExtendedDiscountTypeChange(
+                                    <StyledDiscountContainer>
+                                        <DiscountTypeSelect
+                                            value={extendedType}
+                                            defaultValue={ExtendedDiscountType.PERCENTAGE}
+                                            onChange={(e) => handleExtendedDiscountTypeChange(
+                                                service.id,
+                                                e.target.value as ExtendedDiscountType
+                                            )}
+                                        >
+                                            {Object.entries(DiscountTypeLabelsExtended).map(([value, label]) => (
+                                                <option key={value} value={value}>{label}</option>
+                                            ))}
+                                        </DiscountTypeSelect>
+                                        <DiscountInputGroup>
+                                            <DiscountInput
+                                                type="number"
+                                                min="0"
+                                                max={service.discountType === DiscountType.PERCENTAGE ? 100 : undefined}
+                                                value={service.discountValue}
+                                                onChange={(e) => onDiscountValueChange(
                                                     service.id,
-                                                    e.target.value as ExtendedDiscountType
+                                                    parseFloat(e.target.value) || 0
                                                 )}
-                                            >
-                                                {Object.entries(DiscountTypeLabelsExtended).map(([value, label]) => (
-                                                    <option key={value} value={value}>{label}</option>
-                                                ))}
-                                            </DiscountTypeSelect>
-                                            <DiscountInputGroup>
-                                                <DiscountInput
-                                                    type="number"
-                                                    min="0"
-                                                    max={service.discountType === DiscountType.PERCENTAGE ? 100 : undefined}
-                                                    value={service.discountValue}
-                                                    onChange={(e) => onDiscountValueChange(
-                                                        service.id,
-                                                        parseFloat(e.target.value) || 0
-                                                    )}
-                                                />
-                                                {service.discountType === DiscountType.PERCENTAGE && (
-                                                    <DiscountPercentage>
-                                                        ({(service.price * service.discountValue / 100).toFixed(2)} zł)
-                                                    </DiscountPercentage>
-                                                )}
-                                            </DiscountInputGroup>
-                                        </StyledDiscountContainer>
-                                    </DiscountCellContent>
+                                            />
+                                                <DiscountPercentage>
+                                                    ({(service.price * service.discountValue / 100).toFixed(2)} zł)
+                                                </DiscountPercentage>
+                                        </DiscountInputGroup>
+                                    </StyledDiscountContainer>
                                 </DiscountCell>
                                 <TableCell>
                                     <PriceWrapper>
@@ -724,7 +760,12 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                         </PriceWrapper>
                     </TableFooterCell>
                     <TableFooterCell>
-                        <TotalValue>{totalDiscount.toFixed(2)} zł</TotalValue>
+                        <PriceWrapper>
+                            <TotalValue>{totalDiscount.toFixed(2)} zł</TotalValue>
+                            <PriceType>brutto</PriceType>
+                            <TotalValue>{(totalDiscount / 1.23).toFixed(2)} zł</TotalValue>
+                            <PriceType>netto</PriceType>
+                        </PriceWrapper>
                     </TableFooterCell>
                     <TableFooterCell>
                         <PriceWrapper>

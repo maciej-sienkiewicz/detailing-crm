@@ -146,6 +146,7 @@ const VisitTitleSection: React.FC<VisitTitleSectionProps> = ({
                             value={selectedColorId || ''}
                             onChange={handleColorChange}
                             disabled={colorsLoading}
+                            required={true}
                         >
                             <option value="">Wybierz kolor...</option>
                             {calendarColors.map(color => (
