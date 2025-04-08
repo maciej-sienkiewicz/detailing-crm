@@ -490,112 +490,116 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                                 Brak wybranych usług. Wyszukaj lub dodaj niestandardową usługę.
                             </EmptyState>
                         ) : (
-                            <ServicesTable>
-                                <TableHeader>
-                                    <HeaderCell wide>Nazwa usługi</HeaderCell>
-                                    <HeaderCell>Cena bazowa</HeaderCell>
-                                    <HeaderCell>Rabat</HeaderCell>
-                                    <HeaderCell>Cena końcowa</HeaderCell>
-                                    <HeaderCell>Akcje</HeaderCell>
-                                </TableHeader>
+                            <ServicesTableContainer>
+                                <ServicesTable>
+                                    <TableHeader>
+                                        <HeaderCell width="40%">Nazwa usługi</HeaderCell>
+                                        <HeaderCell width="15%">Cena bazowa</HeaderCell>
+                                        <HeaderCell width="20%">Rabat</HeaderCell>
+                                        <HeaderCell width="15%">Cena końcowa</HeaderCell>
+                                        <HeaderCell width="10%">Akcje</HeaderCell>
+                                    </TableHeader>
 
-                                {selectedServices.map((service, index) => (
-                                    <TableRow key={index}>
-                                        <TableCell wide>
-                                            <ServiceNameContainer>
-                                                <ServiceName>{service.name}</ServiceName>
-                                                {service.note && (
-                                                    <ServiceNote>{service.note}</ServiceNote>
-                                                )}
-                                            </ServiceNameContainer>
-                                        </TableCell>
-                                        <TableCell>
-                                            <PriceWrapper>
-                                                <PriceValue>{service.price.toFixed(2)} zł</PriceValue>
-                                                <PriceType>brutto</PriceType>
-                                                <PriceValue>{calculateNetPrice(service.price).toFixed(2)} zł</PriceValue>
-                                                <PriceType>netto</PriceType>
-                                            </PriceWrapper>
-                                        </TableCell>
-                                        <TableCell>
-                                            <DiscountContainer>
-                                                <DiscountTypeSelect
-                                                    value={service.extendedDiscountType}
-                                                    onChange={(e) => handleChangeDiscountType(
-                                                        index,
-                                                        e.target.value as ExtendedDiscountType
-                                                    )}
-                                                >
-                                                    {Object.entries(DiscountTypeLabelsExtended).map(([value, label]) => (
-                                                        <option key={value} value={value}>
-                                                            {label}
-                                                        </option>
-                                                    ))}
-                                                </DiscountTypeSelect>
-                                                <DiscountInputGroup>
-                                                    <DiscountInput
-                                                        type="number"
-                                                        min="0"
-                                                        max={service.discountType === DiscountType.PERCENTAGE ? 100 : undefined}
-                                                        value={service.discountValue}
-                                                        onChange={(e) => handleChangeDiscountValue(
-                                                            index,
-                                                            parseFloat(e.target.value) || 0
+                                    <TableBody>
+                                        {selectedServices.map((service, index) => (
+                                            <TableRow key={index}>
+                                                <TableCell width="40%">
+                                                    <ServiceNameContainer>
+                                                        <ServiceName>{service.name}</ServiceName>
+                                                        {service.note && (
+                                                            <ServiceNote>{service.note}</ServiceNote>
                                                         )}
-                                                    />
-                                                    {service.discountType === DiscountType.PERCENTAGE && (
-                                                        <DiscountPercentage>
-                                                            ({(service.price * service.discountValue / 100).toFixed(2)} zł)
-                                                        </DiscountPercentage>
-                                                    )}
-                                                </DiscountInputGroup>
-                                            </DiscountContainer>
-                                        </TableCell>
-                                        <TableCell>
+                                                    </ServiceNameContainer>
+                                                </TableCell>
+                                                <TableCell width="15%">
+                                                    <PriceWrapper>
+                                                        <PriceValue>{service.price.toFixed(2)} zł</PriceValue>
+                                                        <PriceType>brutto</PriceType>
+                                                        <PriceValue>{calculateNetPrice(service.price).toFixed(2)} zł</PriceValue>
+                                                        <PriceType>netto</PriceType>
+                                                    </PriceWrapper>
+                                                </TableCell>
+                                                <TableCell width="20%">
+                                                    <DiscountContainer>
+                                                        <DiscountTypeSelect
+                                                            value={service.extendedDiscountType}
+                                                            onChange={(e) => handleChangeDiscountType(
+                                                                index,
+                                                                e.target.value as ExtendedDiscountType
+                                                            )}
+                                                        >
+                                                            {Object.entries(DiscountTypeLabelsExtended).map(([value, label]) => (
+                                                                <option key={value} value={value}>
+                                                                    {label}
+                                                                </option>
+                                                            ))}
+                                                        </DiscountTypeSelect>
+                                                        <DiscountInputGroup>
+                                                            <DiscountInput
+                                                                type="number"
+                                                                min="0"
+                                                                max={service.discountType === DiscountType.PERCENTAGE ? 100 : undefined}
+                                                                value={service.discountValue}
+                                                                onChange={(e) => handleChangeDiscountValue(
+                                                                    index,
+                                                                    parseFloat(e.target.value) || 0
+                                                                )}
+                                                            />
+                                                            {service.discountType === DiscountType.PERCENTAGE && (
+                                                                <DiscountPercentage>
+                                                                    ({(service.price * service.discountValue / 100).toFixed(2)} zł)
+                                                                </DiscountPercentage>
+                                                            )}
+                                                        </DiscountInputGroup>
+                                                    </DiscountContainer>
+                                                </TableCell>
+                                                <TableCell width="15%">
+                                                    <PriceWrapper>
+                                                        <PriceValue>{service.finalPrice.toFixed(2)} zł</PriceValue>
+                                                        <PriceType>brutto</PriceType>
+                                                        <PriceValue>{calculateNetPrice(service.finalPrice).toFixed(2)} zł</PriceValue>
+                                                        <PriceType>netto</PriceType>
+                                                    </PriceWrapper>
+                                                </TableCell>
+                                                <TableCell width="10%">
+                                                    <ActionButtons>
+                                                        <ActionButton onClick={() => handleOpenNoteModal(index)} title="Dodaj notatkę">
+                                                            <FaStickyNote />
+                                                        </ActionButton>
+                                                        <ActionButton danger onClick={() => handleRemoveService(index)} title="Usuń usługę">
+                                                            <FaTimes />
+                                                        </ActionButton>
+                                                    </ActionButtons>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+
+                                    <TableFooter>
+                                        <FooterCell width="40%">Razem:</FooterCell>
+                                        <FooterCell width="15%">
                                             <PriceWrapper>
-                                                <PriceValue>{service.finalPrice.toFixed(2)} zł</PriceValue>
+                                                <TotalValue>{totalBasePrice.toFixed(2)} zł</TotalValue>
                                                 <PriceType>brutto</PriceType>
-                                                <PriceValue>{calculateNetPrice(service.finalPrice).toFixed(2)} zł</PriceValue>
+                                                <TotalValue>{totalBaseNetPrice.toFixed(2)} zł</TotalValue>
                                                 <PriceType>netto</PriceType>
                                             </PriceWrapper>
-                                        </TableCell>
-                                        <TableCell>
-                                            <ActionButtons>
-                                                <ActionButton onClick={() => handleOpenNoteModal(index)} title="Dodaj notatkę">
-                                                    <FaStickyNote />
-                                                </ActionButton>
-                                                <ActionButton danger onClick={() => handleRemoveService(index)} title="Usuń usługę">
-                                                    <FaTimes />
-                                                </ActionButton>
-                                            </ActionButtons>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-
-                                <TableFooter>
-                                    <FooterCell wide>Razem:</FooterCell>
-                                    <FooterCell>
-                                        <PriceWrapper>
-                                            <TotalValue>{totalBasePrice.toFixed(2)} zł</TotalValue>
-                                            <PriceType>brutto</PriceType>
-                                            <TotalValue>{totalBaseNetPrice.toFixed(2)} zł</TotalValue>
-                                            <PriceType>netto</PriceType>
-                                        </PriceWrapper>
-                                    </FooterCell>
-                                    <FooterCell>
-                                        <TotalValue>{totalDiscount.toFixed(2)} zł</TotalValue>
-                                    </FooterCell>
-                                    <FooterCell>
-                                        <PriceWrapper>
-                                            <TotalValue highlight>{totalFinalPrice.toFixed(2)} zł</TotalValue>
-                                            <PriceType>brutto</PriceType>
-                                            <TotalValue>{totalFinalNetPrice.toFixed(2)} zł</TotalValue>
-                                            <PriceType>netto</PriceType>
-                                        </PriceWrapper>
-                                    </FooterCell>
-                                    <FooterCell></FooterCell>
-                                </TableFooter>
-                            </ServicesTable>
+                                        </FooterCell>
+                                        <FooterCell width="20%">
+                                            <TotalValue>{totalDiscount.toFixed(2)} zł</TotalValue>
+                                        </FooterCell>
+                                        <FooterCell width="15%">
+                                            <PriceWrapper>
+                                                <TotalValue highlight>{totalFinalPrice.toFixed(2)} zł</TotalValue>
+                                                <PriceType>brutto</PriceType>
+                                                <TotalValue>{totalFinalNetPrice.toFixed(2)} zł</TotalValue>
+                                                <PriceType>netto</PriceType>
+                                            </PriceWrapper>
+                                        </FooterCell>
+                                        <FooterCell width="10%"></FooterCell>
+                                    </TableFooter>
+                                </ServicesTable>
+                            </ServicesTableContainer>
                         )}
                     </SelectedServicesSection>
                 </ModalBody>
@@ -649,8 +653,9 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         </ModalOverlay>
     );
 };
+// Wszystkie komponenty stylizowane z AddServiceModal.tsx
 
-// Styled components
+// Główny kontener modalu
 const ModalOverlay = styled.div`
     position: fixed;
     top: 0;
@@ -668,7 +673,7 @@ const ModalContainer = styled.div`
     background-color: white;
     border-radius: 8px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    width: 700px;
+    width: 800px;
     max-width: 90%;
     max-height: 90vh;
     display: flex;
@@ -717,6 +722,7 @@ const ModalFooter = styled.div`
     border-top: 1px solid #eee;
 `;
 
+// Wiadomość informacyjna
 const InfoMessage = styled.div`
     background-color: #f0f7ff;
     color: #3498db;
@@ -726,6 +732,7 @@ const InfoMessage = styled.div`
     font-size: 14px;
 `;
 
+// Komponenty wyszukiwania
 const SearchContainer = styled.div`
     margin-bottom: 20px;
 `;
@@ -806,17 +813,6 @@ const SearchResultPrices = styled.div`
     gap: 10px;
 `;
 
-const PriceValue = styled.span`
-    font-weight: 600;
-    color: #2980b9;
-`;
-
-const PriceType = styled.span`
-    font-size: 12px;
-    color: #7f8c8d;
-    text-transform: uppercase;
-`;
-
 const NoResultsMessage = styled.div`
     color: #95a5a6;
     text-align: center;
@@ -824,6 +820,7 @@ const NoResultsMessage = styled.div`
     font-size: 14px;
 `;
 
+// Przycisk przełączający dodawanie niestandardowej usługi
 const ToggleButtonContainer = styled.div`
     display: flex;
     justify-content: center;
@@ -852,6 +849,7 @@ const ToggleButton = styled.button`
     }
 `;
 
+// Komponenty formularza niestandardowej usługi
 const CustomServiceForm = styled.div`
     background-color: #f9f9f9;
     padding: 20px;
@@ -912,6 +910,7 @@ const AddCustomButton = styled.button`
     }
 `;
 
+// Komponenty sekcji wybranych usług
 const SelectedServicesSection = styled.div`
     margin-top: 20px;
 `;
@@ -930,39 +929,57 @@ const EmptyState = styled.div`
     border-radius: 4px;
 `;
 
+// Tabela z wybranymi usługami
+const ServicesTableContainer = styled.div`
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+`;
+
 const ServicesTable = styled.div`
     width: 100%;
+    display: table;
     border-collapse: collapse;
 `;
 
 const TableHeader = styled.div`
     display: flex;
     background-color: #f1f4f7;
-    border-bottom: 1px solid #ddd;
     font-weight: 600;
     color: #34495e;
 `;
 
-const HeaderCell = styled.div<{ wide?: boolean }>`
-    flex: ${props => props.wide ? '2' : '1'};
+const HeaderCell = styled.div<{ width: string }>`
+    flex: 0 0 ${props => props.width};
+    width: ${props => props.width};
     padding: 12px 15px;
     font-size: 14px;
     text-align: left;
+`;
+
+const TableBody = styled.div`
+    display: flex;
+    flex-direction: column;
 `;
 
 const TableRow = styled.div`
     display: flex;
     align-items: center;
     border-bottom: 1px solid #eee;
-    transition: background-color 0.2s ease;
+    
+    &:last-child {
+        border-bottom: none;
+    }
     
     &:hover {
         background-color: #f9f9f9;
     }
 `;
 
-const TableCell = styled.div<{ wide?: boolean }>`
-    flex: ${props => props.wide ? '2' : '1'};
+const TableCell = styled.div<{ width: string }>`
+    flex: 0 0 ${props => props.width};
+    width: ${props => props.width};
     padding: 12px 15px;
     font-size: 14px;
 `;
@@ -983,16 +1000,29 @@ const ServiceNote = styled.span`
     margin-top: 4px;
 `;
 
+// Komponenty związane z ceną
+const PriceValue = styled.span`
+    font-weight: 600;
+    color: #2980b9;
+`;
+
+const PriceType = styled.span`
+    font-size: 12px;
+    color: #7f8c8d;
+    text-transform: uppercase;
+`;
+
 const PriceWrapper = styled.div`
     display: flex;
     flex-direction: column;
     gap: 4px;
 `;
 
+// Komponenty związane z rabatem
 const DiscountContainer = styled.div`
     display: flex;
-    align-items: center;
-    gap: 10px;
+    flex-direction: column;
+    gap: 8px;
 `;
 
 const DiscountTypeSelect = styled.select`
@@ -1000,6 +1030,7 @@ const DiscountTypeSelect = styled.select`
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 13px;
+    width: 100%;
 `;
 
 const DiscountInputGroup = styled.div`
@@ -1022,9 +1053,11 @@ const DiscountPercentage = styled.span`
     color: #7f8c8d;
 `;
 
+// Komponenty przycisków akcji
 const ActionButtons = styled.div`
     display: flex;
     gap: 8px;
+    justify-content: center;
 `;
 
 const ActionButton = styled.button<{ danger?: boolean }>`
@@ -1049,15 +1082,17 @@ const ActionButton = styled.button<{ danger?: boolean }>`
     }
 `;
 
+// Komponenty stopki tabeli
 const TableFooter = styled.div`
     display: flex;
     background-color: #f1f4f7;
-    border-top: 1px solid #ddd;
     font-weight: 600;
+    border-top: 1px solid #ddd;
 `;
 
-const FooterCell = styled.div<{ wide?: boolean }>`
-    flex: ${props => props.wide ? '2' : '1'};
+const FooterCell = styled.div<{ width: string }>`
+    flex: 0 0 ${props => props.width};
+    width: ${props => props.width};
     padding: 12px 15px;
     font-size: 14px;
     text-align: left;
@@ -1068,6 +1103,7 @@ const TotalValue = styled.span<{ highlight?: boolean }>`
     color: ${props => props.highlight ? '#2c3e50' : '#2980b9'};
 `;
 
+// Komponenty modalu notatki
 const NoteModalOverlay = styled.div`
     position: fixed;
     top: 0;
@@ -1128,6 +1164,7 @@ const NoteModalFooter = styled.div`
     border-top: 1px solid #eee;
 `;
 
+// Komponenty przycisków
 const CancelButton = styled.button`
     padding: 10px 15px;
     background-color: #e74c3c;
