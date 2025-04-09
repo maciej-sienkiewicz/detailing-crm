@@ -11,7 +11,9 @@ import ReportsPage from "./pages/Reports/ReportsPage";
 import ActivityFeedPage from "./pages/ActivityFeed/ActivityFeedPage";
 import ProtocolDetailsPage from "./pages/Protocols/details/ProtocolDetailsPage";
 import StartVisitPage from "./pages/Protocols/start-visit/StartVisitPage";
-import CalendarColorsPage from "./pages/Settings/CalendarColorsPage"; // Dodajemy import
+import CalendarColorsPage from "./pages/Settings/CalendarColorsPage";
+import InvoicesPage from "./pages/Finances/InvoicesPage";
+import FinancialSummaryPage from "./pages/Finances/FinancialSummaryPage"; // Dodajemy import
 
 
 // Tymczasowe komponenty dla innych stron - do zastąpienia rzeczywistymi implementacjami
@@ -33,6 +35,11 @@ const AppRoutes: React.FC = () => {
 
             {/* Strona aktualności */}
             <Route path="/activity" element={<ActivityFeedPage />} />
+
+            <Route path="/finances" element={<Navigate to="/finances/invoices" replace />} />
+            <Route path="/finances/invoices" element={<InvoicesPage />} />
+            <Route path="/finances/payments" element={<PlaceholderPage title="Płatności" />} />
+            <Route path="/finances/reports" element={<FinancialSummaryPage />} />
 
             {/* Strony klientów */}
             <Route path="/clients/owners" element={<OwnersPage />} />

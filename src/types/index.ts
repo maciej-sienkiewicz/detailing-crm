@@ -7,3 +7,4 @@ export * from './vehicle';
 export * from './employee';
 export * from './service';
 export * from './activity';
+export * from './finance';

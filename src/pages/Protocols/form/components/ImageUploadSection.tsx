@@ -25,8 +25,8 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
     const [editModalOpen, setEditModalOpen] = useState(false);
     const [editingImageIndex, setEditingImageIndex] = useState(-1);
 
-    // Maksymalny rozmiar pliku (5MB)
-    const MAX_FILE_SIZE = 5 * 1024 * 1024;
+    // Maksymalny rozmiar pliku (25MB)
+    const MAX_FILE_SIZE = 25 * 1024 * 1024;
 
     // Funkcja do generowania URL zdjęcia
     const getImageUrl = (image: VehicleImage): string => {
