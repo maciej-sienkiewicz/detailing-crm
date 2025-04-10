@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
-import { FaPlus, FaTrash, FaFileUpload, FaFilePdf } from 'react-icons/fa';
+import { FaPlus, FaTrash, FaFileUpload, FaFilePdf, FaSpinner } from 'react-icons/fa';
 import {
     Invoice,
     InvoiceItem,
@@ -12,7 +12,10 @@ import {
     PaymentMethodLabels,
     InvoiceAttachment
 } from '../../../types';
-import {HelpText} from "../../Settings/styles/ModalStyles";
+import { HelpText } from "../../Settings/styles/ModalStyles";
+import { apiClient } from '../../../api/apiClient';
+import Modal from '../../../components/common/Modal';
+import ConfirmationDialog from '../../../components/common/ConfirmationDialog';
 
 interface InvoiceFormProps {
     invoice?: Invoice;
@@ -20,8 +23,45 @@ interface InvoiceFormProps {
     onCancel: () => void;
 }
 
+interface ExtractedInvoiceData {
+    generalInfo: {
+        title?: string;
+        issuedDate: string;
+        dueDate: string;
+    };
+    seller: {
+        name: string;
+        taxId?: string;
+        address?: string;
+    };
+    buyer: {
+        name: string;
+        taxId?: string;
+        address?: string;
+    };
+    items: {
+        name: string;
+        description?: string;
+        quantity: number;
+        unitPrice: number;
+        taxRate: number;
+        totalNet: number;
+        totalGross: number;
+    }[];
+    summary: {
+        totalNet: number;
+        totalTax: number;
+        totalGross: number;
+    };
+    notes?: string;
+}
+
+interface InvoiceDataResponse {
+    extractedInvoiceData: ExtractedInvoiceData;
+}
+
 const emptyInvoice: Partial<Invoice> = {
-    number: '(zostanie nadany automatycznie)',
+    number: '',
     title: '',
     issuedDate: new Date().toISOString().split('T')[0],
     dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -59,6 +99,9 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCancel }) 
     const [items, setItems] = useState<InvoiceItem[]>(invoice?.items || []);
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [showExtractConfirmation, setShowExtractConfirmation] = useState<boolean>(false);
+    const [isExtracting, setIsExtracting] = useState<boolean>(false);
+    const [extractionError, setExtractionError] = useState<string | null>(null);
 
     // Obsługa zmian w formularzu
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -131,29 +174,36 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCancel }) 
         }));
     };
 
-    // Obsługa przesyłania plików
+    // Obsługa przesyłania plików - limit tylko 1 plik
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (!files || files.length === 0) return;
 
-        const newAttachments: InvoiceAttachment[] = Array.from(files).map(file => ({
+        // Bierzemy tylko pierwszy plik, ignorujemy resztę
+        const file = files[0];
+
+        const newAttachment: InvoiceAttachment = {
             id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             name: file.name,
             size: file.size,
             type: file.type,
             uploadedAt: new Date().toISOString(),
             file
-        }));
+        };
 
+        // Ustawiamy nowy załącznik (nadpisujemy poprzedni, jeśli istniał)
         setFormData(prev => ({
             ...prev,
-            attachments: [...(prev.attachments || []), ...newAttachments]
+            attachments: [newAttachment]
         }));
 
         // Resetujemy input, aby można było wybrać ten sam plik ponownie
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
+
+        // Pokazujemy dialog z pytaniem o ekstrakcję danych
+        setShowExtractConfirmation(true);
     };
 
     // Obsługa usuwania załącznika
@@ -162,6 +212,73 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCancel }) 
             ...prev,
             attachments: prev.attachments?.filter(att => att.id !== attachmentId) || []
         }));
+    };
+
+    // Funkcja do ekstrakcji danych z faktury
+    const extractInvoiceData = async () => {
+        // Ukrywamy dialog potwierdzenia
+        setShowExtractConfirmation(false);
+
+        // Sprawdzamy czy mamy plik
+        const file = formData.attachments?.[0]?.file;
+        if (!file) {
+            console.error('Brak pliku do ekstrakcji');
+            return;
+        }
+
+        try {
+            setIsExtracting(true);
+            setExtractionError(null);
+
+            // Tworzymy FormData do wysłania pliku
+            const formDataToSend = new FormData();
+            formDataToSend.append('file', file);
+            formDataToSend.append('preprocess', 'true');
+
+            // Wywołanie API do ekstrakcji danych
+            const response = await apiClient.post<InvoiceDataResponse>('/invoice/extract', formDataToSend);
+
+            if (response && response.extractedInvoiceData) {
+                const extractedData = response.extractedInvoiceData;
+
+                // Mapowanie wyekstrahowanych danych na format formularza
+                const mappedItems: InvoiceItem[] = extractedData.items.map((item, index) => ({
+                    id: `extracted-${Date.now()}-${index}`,
+                    name: item.name,
+                    description: item.description || '',
+                    quantity: item.quantity,
+                    unitPrice: item.unitPrice,
+                    taxRate: item.taxRate,
+                    totalNet: item.totalNet,
+                    totalGross: item.totalGross
+                }));
+
+                // Aktualizacja formularza
+                setFormData(prev => ({
+                    ...prev,
+                    title: extractedData.generalInfo.title || '',
+                    issuedDate: new Date(extractedData.generalInfo.issuedDate).toISOString().split('T')[0],
+                    dueDate: new Date(extractedData.generalInfo.dueDate).toISOString().split('T')[0],
+                    sellerName: extractedData.seller.name,
+                    sellerTaxId: extractedData.seller.taxId || '',
+                    sellerAddress: extractedData.seller.address || '',
+                    buyerName: extractedData.buyer.name,
+                    buyerTaxId: extractedData.buyer.taxId || '',
+                    buyerAddress: extractedData.buyer.address || '',
+                    totalNet: extractedData.summary.totalNet,
+                    totalTax: extractedData.summary.totalTax,
+                    totalGross: extractedData.summary.totalGross,
+                    notes: extractedData.notes || ''
+                }));
+
+                setItems(mappedItems);
+            }
+        } catch (error) {
+            console.error('Błąd podczas ekstrakcji danych z faktury:', error);
+            setExtractionError('Nie udało się przetworzyć pliku. Sprawdź czy plik jest poprawną fakturą.');
+        } finally {
+            setIsExtracting(false);
+        }
     };
 
     // Walidacja formularza
@@ -209,8 +326,44 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCancel }) 
         return new Intl.NumberFormat('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
     };
 
+    // Obsługa anulowania ekstrakcji danych
+    const handleCancelExtraction = () => {
+        setShowExtractConfirmation(false);
+    };
+
     return (
         <FormContainer>
+            {/* Spinner podczas ekstrakcji danych */}
+            {isExtracting && (
+                <ExtractingOverlay>
+                    <ExtractingContainer>
+                        <FaSpinner className="spinner" />
+                        <ExtractingText>Przetwarzanie faktury, proszę czekać...</ExtractingText>
+                    </ExtractingContainer>
+                </ExtractingOverlay>
+            )}
+
+            {/* Dialog potwierdzenia ekstrakcji danych */}
+            <ConfirmationDialog
+                isOpen={showExtractConfirmation}
+                title="Uzupełnić formularz automatycznie?"
+                message="Czy chcesz uzupełnić formularz na podstawie wgranej faktury? Proces może potrwać kilkadziesiąt sekund."
+                confirmText="Tak, uzupełnij"
+                cancelText="Nie, dziękuję"
+                onConfirm={extractInvoiceData}
+                onCancel={handleCancelExtraction}
+            />
+
+            {/* Błąd ekstrakcji */}
+            {extractionError && (
+                <ErrorBanner>
+                    <ErrorText>{extractionError}</ErrorText>
+                    <CloseErrorButton onClick={() => setExtractionError(null)}>
+                        <FaTrash />
+                    </CloseErrorButton>
+                </ErrorBanner>
+            )}
+
             <Form onSubmit={handleSubmit}>
                 <FormSection>
                     <SectionTitle>Dane podstawowe</SectionTitle>
@@ -220,7 +373,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCancel }) 
                             <Input
                                 id="number"
                                 name="number"
-                                value={invoice?.number || '(zostanie nadany automatycznie)'}
+                                value={invoice?.number || ''}
                                 disabled
                                 readOnly
                             />
@@ -542,24 +695,24 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCancel }) 
                     <SectionTitle>Załączniki</SectionTitle>
                     <AttachmentsContainer>
                         <AttachmentsList>
-                            {formData.attachments?.map(att => (
-                                <AttachmentItem key={att.id}>
-                                    <AttachmentIcon>
-                                        <FaFilePdf />
-                                    </AttachmentIcon>
-                                    <AttachmentDetails>
-                                        <AttachmentName>{att.name}</AttachmentName>
-                                        <AttachmentSize>
-                                            {Math.round(att.size / 1024)} KB
-                                        </AttachmentSize>
-                                    </AttachmentDetails>
-                                    <RemoveAttachmentButton onClick={() => handleRemoveAttachment(att.id)}>
-                                        <FaTrash />
-                                    </RemoveAttachmentButton>
-                                </AttachmentItem>
-                            ))}
-
-                            {(!formData.attachments || formData.attachments.length === 0) && (
+                            {formData.attachments && formData.attachments.length > 0 ? (
+                                formData.attachments.map(att => (
+                                    <AttachmentItem key={att.id}>
+                                        <AttachmentIcon>
+                                            <FaFilePdf />
+                                        </AttachmentIcon>
+                                        <AttachmentDetails>
+                                            <AttachmentName>{att.name}</AttachmentName>
+                                            <AttachmentSize>
+                                                {Math.round(att.size / 1024)} KB
+                                            </AttachmentSize>
+                                        </AttachmentDetails>
+                                        <RemoveAttachmentButton onClick={() => handleRemoveAttachment(att.id)}>
+                                            <FaTrash />
+                                        </RemoveAttachmentButton>
+                                    </AttachmentItem>
+                                ))
+                            ) : (
                                 <NoAttachments>
                                     Brak załączników
                                 </NoAttachments>
@@ -567,17 +720,20 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCancel }) 
                         </AttachmentsList>
 
                         <UploadButtonContainer>
-                            <FileUploadButton htmlFor="invoice-attachment">
+                            <FileUploadButton
+                                htmlFor="invoice-attachment"
+                                disabled={formData.attachments && formData.attachments.length > 0}
+                            >
                                 <FaFileUpload />
                                 <span>Dodaj załącznik</span>
                             </FileUploadButton>
                             <FileInput
                                 id="invoice-attachment"
                                 type="file"
-                                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
+                                accept=".pdf,.jpg,.jpeg,.png"
                                 onChange={handleFileUpload}
                                 ref={fileInputRef}
-                                multiple
+                                disabled={formData.attachments && formData.attachments.length > 0}
                             />
                         </UploadButtonContainer>
                     </AttachmentsContainer>
@@ -608,16 +764,95 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCancel }) 
     );
 };
 
-// Style komponentów
+// Style dla komponentu InvoiceForm.tsx
+
 const FormContainer = styled.div`
     background-color: white;
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
     margin-bottom: 24px;
+    position: relative;
+`;
+
+const ExtractingOverlay = styled.div`
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+`;
+
+const ExtractingContainer = styled.div`
+    background-color: white;
+    border-radius: 8px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    width: 300px;
+    
+    .spinner {
+        animation: spin 1s linear infinite;
+        font-size: 36px;
+        color: #3498db;
+    }
+    
+    @keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+`;
+
+const ExtractingText = styled.div`
+    font-size: 16px;
+    font-weight: 500;
+    color: #333;
+    text-align: center;
+`;
+
+const ErrorBanner = styled.div`
+    background-color: #fef2f2;
+    color: #e74c3c;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    border-radius: 4px;
+    border-left: 4px solid #e74c3c;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+`;
+
+const ErrorText = styled.div`
+    color: #e74c3c;
+    font-size: 12px;
+    margin-top: 4px;
+`;
+
+const CloseErrorButton = styled.button`
+    background: none;
+    border: none;
+    color: #e74c3c;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 `;
 
 const Form = styled.form`
     padding: 24px;
+    position: relative;
 `;
 
 const FormSection = styled.div<{ flex?: number }>`
@@ -891,20 +1126,21 @@ const UploadButtonContainer = styled.div`
     justify-content: center;
 `;
 
-const FileUploadButton = styled.label`
+const FileUploadButton = styled.label<{ disabled?: boolean }>`
     display: flex;
     align-items: center;
     gap: 8px;
-    background-color: #f0f7ff;
-    color: #3498db;
-    border: 1px solid #d5e9f9;
+    background-color: ${props => props.disabled ? '#f8f9fa' : '#f0f7ff'};
+    color: ${props => props.disabled ? '#adb5bd' : '#3498db'};
+    border: 1px solid ${props => props.disabled ? '#dee2e6' : '#d5e9f9'};
     border-radius: 4px;
     padding: 8px 16px;
     font-size: 14px;
-    cursor: pointer;
+    cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+    opacity: ${props => props.disabled ? 0.7 : 1};
 
     &:hover {
-        background-color: #d5e9f9;
+        background-color: ${props => props.disabled ? '#f8f9fa' : '#d5e9f9'};
     }
 `;
 
@@ -952,12 +1188,6 @@ const SaveButton = styled(Button)`
     @media (max-width: 576px) {
         order: 1;
     }
-`;
-
-const ErrorText = styled.div`
-    color: #e74c3c;
-    font-size: 12px;
-    margin-top: 4px;
 `;
 
 export default InvoiceForm;
