@@ -14,7 +14,9 @@ import {
     Divider,
     Typography,
     Tooltip,
-    Paper
+    Paper,
+    useMediaQuery,
+    useTheme
 } from '@mui/material';
 import {
     Close as CloseIcon,
@@ -27,6 +29,7 @@ import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { Email, EmailDraft, ClientContact, EmailAddress } from '../../../types/mail';
 import { TEMPLATES } from '../services/config/mailConfig';
+import { styled } from '@mui/material/styles';
 
 interface EmailComposerProps {
     open: boolean;
@@ -37,7 +40,57 @@ interface EmailComposerProps {
     contactSuggestions: ClientContact[];
     onSearchContacts: (query: string) => void;
     accountEmail: string;
+    fullScreen?: boolean;
 }
+
+// Styled komponenty
+const ComposerDialogTitle = styled(DialogTitle)(({ theme }) => ({
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: theme.spacing(1, 2)
+}));
+
+const ComposerDialogContent = styled(DialogContent)<{ isMobile?: boolean }>(({ theme, isMobile }) => ({
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
+    padding: theme.spacing(isMobile ? 1 : 2),
+    overflow: 'hidden'
+}));
+
+const ComposerDialogActions = styled(DialogActions)(({ theme }) => ({
+    padding: theme.spacing(1, 2),
+    borderTop: '1px solid #e0e0e0'
+}));
+
+const EditorContainer = styled(Box)(({ theme }) => ({
+    flexGrow: 1,
+    marginTop: theme.spacing(2),
+    marginBottom: theme.spacing(2),
+    '& .ql-container': {
+        height: 'calc(100% - 42px)',
+        fontSize: '1rem'
+    },
+    '& .ql-editor': {
+        minHeight: '150px'
+    }
+}));
+
+const AttachmentsList = styled(Box)(({ theme }) => ({
+    display: 'flex',
+    gap: theme.spacing(1),
+    flexWrap: 'wrap',
+    marginTop: theme.spacing(1)
+}));
+
+const AttachmentItem = styled(Paper)(({ theme }) => ({
+    display: 'flex',
+    alignItems: 'center',
+    padding: theme.spacing(0.5, 1),
+    gap: theme.spacing(1),
+    maxWidth: '100%'
+}));
 
 /**
  * Komponent do tworzenia/edycji wiadomości email
@@ -50,8 +103,12 @@ const EmailComposer: React.FC<EmailComposerProps> = ({
                                                          forwardingEmail,
                                                          contactSuggestions,
                                                          onSearchContacts,
-                                                         accountEmail
+                                                         accountEmail,
+                                                         fullScreen = false
                                                      }) => {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm')) || fullScreen;
+
     // Stan formularza
     const [to, setTo] = useState<EmailAddress[]>([]);
     const [cc, setCc] = useState<EmailAddress[]>([]);
@@ -61,6 +118,9 @@ const EmailComposer: React.FC<EmailComposerProps> = ({
     const [files, setFiles] = useState<File[]>([]);
     const [showCc, setShowCc] = useState(false);
     const [showBcc, setShowBcc] = useState(false);
+
+    // Lokalne sugestie kontaktów - używane zamiast odpytywania API
+    const [localSuggestions, setLocalSuggestions] = useState<ClientContact[]>([]);
 
     // Ref do inputa plików
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -147,14 +207,34 @@ const EmailComposer: React.FC<EmailComposerProps> = ({
         }
     }, [draftToEdit, replyingTo, forwardingEmail, accountEmail]);
 
+    // Lokalne wyszukiwanie kontaktów - nie korzystamy z API klientów
+    const handleSearchContacts = (query: string) => {
+        if (!query || query.length < 2) {
+            setLocalSuggestions([]);
+            return;
+        }
+
+        // Filtracja z lokalnych sugestii bez odpytywania API
+        const filtered = contactSuggestions.filter(contact =>
+            contact.name.toLowerCase().includes(query.toLowerCase()) ||
+            contact.email.toLowerCase().includes(query.toLowerCase())
+        );
+
+        setLocalSuggestions(filtered);
+
+        // Nadal wywołujemy oryginalną funkcję dla kompatybilności
+        // ale w rzeczywistości nie będzie ona już odpytywać API
+        onSearchContacts(query);
+    };
+
     // Konfiguracja edytora Quill
     const modules = {
         toolbar: [
-            [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+            [{ 'header': isMobile ? [1, 2, false] : [1, 2, 3, 4, 5, 6, false] }],
             ['bold', 'italic', 'underline', 'strike'],
             [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-            [{ 'color': [] }, { 'background': [] }],
-            ['link', 'image'],
+            isMobile ? [] : [{ 'color': [] }, { 'background': [] }],
+            ['link', !isMobile && 'image'].filter(Boolean),
             ['clean']
         ],
     };
@@ -213,11 +293,12 @@ const EmailComposer: React.FC<EmailComposerProps> = ({
             onClose={onClose}
             fullWidth
             maxWidth="md"
+            fullScreen={isMobile}
             PaperProps={{
-                sx: { height: '80vh' }
+                sx: { height: isMobile ? '100%' : '80vh' }
             }}
         >
-            <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <ComposerDialogTitle>
                 <Typography variant="h6">
                     {draftToEdit ? 'Edytuj wiadomość' :
                         replyingTo ? 'Odpowiedź' :
@@ -226,15 +307,15 @@ const EmailComposer: React.FC<EmailComposerProps> = ({
                 <IconButton edge="end" onClick={onClose}>
                     <CloseIcon />
                 </IconButton>
-            </DialogTitle>
+            </ComposerDialogTitle>
 
             <Divider />
 
-            <DialogContent sx={{ display: 'flex', flexDirection: 'column', height: '100%', p: 2 }}>
+            <ComposerDialogContent isMobile={isMobile}>
                 {/* Pole "Do" */}
                 <Autocomplete
                     multiple
-                    options={contactSuggestions}
+                    options={localSuggestions.length > 0 ? localSuggestions : contactSuggestions}
                     getOptionLabel={(option) =>
                         typeof option === 'string' ? option : option.email
                     }
@@ -243,6 +324,7 @@ const EmailComposer: React.FC<EmailComposerProps> = ({
                         value.map((option, index) => (
                             <Chip
                                 variant="outlined"
+                                size={isMobile ? "small" : "medium"}
                                 label={option.name ? `${option.name} <${option.email}>` : option.email}
                                 {...getTagProps({ index })}
                             />
@@ -256,6 +338,7 @@ const EmailComposer: React.FC<EmailComposerProps> = ({
                             placeholder="Adres email odbiorcy"
                             margin="dense"
                             fullWidth
+                            size={isMobile ? "small" : "medium"}
                         />
                     )}
                     onChange={(_, newValue) => {
@@ -270,7 +353,7 @@ const EmailComposer: React.FC<EmailComposerProps> = ({
                     }}
                     onInputChange={(_, newInputValue) => {
                         if (newInputValue.length >= 2) {
-                            onSearchContacts(newInputValue);
+                            handleSearchContacts(newInputValue);
                         }
                     }}
                     value={to}
@@ -302,7 +385,7 @@ const EmailComposer: React.FC<EmailComposerProps> = ({
                 {showCc && (
                     <Autocomplete
                         multiple
-                        options={contactSuggestions}
+                        options={localSuggestions.length > 0 ? localSuggestions : contactSuggestions}
                         getOptionLabel={(option) =>
                             typeof option === 'string' ? option : option.email
                         }
@@ -311,6 +394,7 @@ const EmailComposer: React.FC<EmailComposerProps> = ({
                             value.map((option, index) => (
                                 <Chip
                                     variant="outlined"
+                                    size={isMobile ? "small" : "medium"}
                                     label={option.name ? `${option.name} <${option.email}>` : option.email}
                                     {...getTagProps({ index })}
                                 />
@@ -324,6 +408,7 @@ const EmailComposer: React.FC<EmailComposerProps> = ({
                                 placeholder="Kopia do"
                                 margin="dense"
                                 fullWidth
+                                size={isMobile ? "small" : "medium"}
                             />
                         )}
                         onChange={(_, newValue) => {
@@ -338,7 +423,7 @@ const EmailComposer: React.FC<EmailComposerProps> = ({
                         }}
                         onInputChange={(_, newInputValue) => {
                             if (newInputValue.length >= 2) {
-                                onSearchContacts(newInputValue);
+                                handleSearchContacts(newInputValue);
                             }
                         }}
                         value={cc}
@@ -348,7 +433,7 @@ const EmailComposer: React.FC<EmailComposerProps> = ({
                 {showBcc && (
                     <Autocomplete
                         multiple
-                        options={contactSuggestions}
+                        options={localSuggestions.length > 0 ? localSuggestions : contactSuggestions}
                         getOptionLabel={(option) =>
                             typeof option === 'string' ? option : option.email
                         }
@@ -357,6 +442,7 @@ const EmailComposer: React.FC<EmailComposerProps> = ({
                             value.map((option, index) => (
                                 <Chip
                                     variant="outlined"
+                                    size={isMobile ? "small" : "medium"}
                                     label={option.name ? `${option.name} <${option.email}>` : option.email}
                                     {...getTagProps({ index })}
                                 />
@@ -370,6 +456,7 @@ const EmailComposer: React.FC<EmailComposerProps> = ({
                                 placeholder="Ukryta kopia do"
                                 margin="dense"
                                 fullWidth
+                                size={isMobile ? "small" : "medium"}
                             />
                         )}
                         onChange={(_, newValue) => {
@@ -384,7 +471,7 @@ const EmailComposer: React.FC<EmailComposerProps> = ({
                         }}
                         onInputChange={(_, newInputValue) => {
                             if (newInputValue.length >= 2) {
-                                onSearchContacts(newInputValue);
+                                handleSearchContacts(newInputValue);
                             }
                         }}
                         value={bcc}
@@ -398,17 +485,18 @@ const EmailComposer: React.FC<EmailComposerProps> = ({
                     onChange={(e) => setSubject(e.target.value)}
                     margin="dense"
                     fullWidth
+                    size={isMobile ? "small" : "medium"}
                 />
 
                 {/* Edytor tekstu */}
-                <Box sx={{ flexGrow: 1, my: 2, '& .ql-container': { height: 'calc(100% - 42px)' } }}>
+                <EditorContainer>
                     <ReactQuill
                         value={body}
                         onChange={setBody}
                         modules={modules}
                         style={{ height: '100%' }}
                     />
-                </Box>
+                </EditorContainer>
 
                 {/* Załączniki */}
                 <input
@@ -424,55 +512,61 @@ const EmailComposer: React.FC<EmailComposerProps> = ({
                         <Typography variant="subtitle2" sx={{ mb: 1 }}>
                             Załączniki ({files.length})
                         </Typography>
-                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                        <AttachmentsList>
                             {files.map((file, index) => (
-                                <Paper
+                                <AttachmentItem
                                     key={index}
-                                    sx={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        p: 1,
-                                        gap: 1,
-                                        maxWidth: '100%'
-                                    }}
+                                    elevation={1}
                                 >
                                     <AttachmentIcon fontSize="small" />
-                                    <Typography noWrap sx={{ maxWidth: 150 }}>
+                                    <Typography noWrap sx={{ maxWidth: isMobile ? 100 : 150 }}>
                                         {file.name}
                                     </Typography>
                                     <Typography variant="caption" color="text.secondary">
-                                        {(file.size / 1024).toFixed(2)} KB
+                                        {(file.size / 1024).toFixed(0)} KB
                                     </Typography>
                                     <IconButton size="small" onClick={() => handleRemoveFile(index)}>
                                         <DeleteIcon fontSize="small" />
                                     </IconButton>
-                                </Paper>
+                                </AttachmentItem>
                             ))}
-                        </Box>
+                        </AttachmentsList>
                     </Box>
                 )}
-            </DialogContent>
+            </ComposerDialogContent>
 
-            <Divider />
+            <ComposerDialogActions>
+                <Box sx={{ display: 'flex', width: '100%', justifyContent: 'space-between', flexWrap: isMobile ? 'wrap' : 'nowrap', gap: 1 }}>
+                    <Button
+                        variant="outlined"
+                        startIcon={<AttachmentIcon />}
+                        onClick={handleAttachmentClick}
+                        size={isMobile ? "small" : "medium"}
+                    >
+                        Załącz plik
+                    </Button>
 
-            <DialogActions sx={{ px: 3, py: 2 }}>
-                <Button variant="outlined" startIcon={<AttachmentIcon />} onClick={handleAttachmentClick}>
-                    Załącz plik
-                </Button>
-                <Box sx={{ flexGrow: 1 }} />
-                <Button onClick={handleSaveDraft} startIcon={<SaveIcon />}>
-                    Zapisz wersję roboczą
-                </Button>
-                <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={handleSend}
-                    startIcon={<SendIcon />}
-                    disabled={to.length === 0 || !subject}
-                >
-                    Wyślij
-                </Button>
-            </DialogActions>
+                    <Box sx={{ display: 'flex', gap: 1, mt: isMobile ? 1 : 0, width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'space-between' : 'flex-end' }}>
+                        <Button
+                            onClick={handleSaveDraft}
+                            startIcon={<SaveIcon />}
+                            size={isMobile ? "small" : "medium"}
+                        >
+                            Zapisz
+                        </Button>
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            onClick={handleSend}
+                            startIcon={<SendIcon />}
+                            disabled={to.length === 0 || !subject}
+                            size={isMobile ? "small" : "medium"}
+                        >
+                            Wyślij
+                        </Button>
+                    </Box>
+                </Box>
+            </ComposerDialogActions>
         </Dialog>
     );
 };

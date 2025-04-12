@@ -7,7 +7,9 @@ import {
     IconButton,
     Box,
     Tooltip,
-    alpha
+    alpha,
+    useMediaQuery,
+    useTheme
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import {
@@ -17,7 +19,9 @@ import {
     Delete as DeleteIcon,
     Archive as ArchiveIcon,
     Label as LabelIcon,
-    MoreVert as MoreIcon
+    MoreVert as MoreIcon,
+    Menu as MenuIcon,
+    ArrowBack as ArrowBackIcon
 } from '@mui/icons-material';
 
 interface MailToolbarProps {
@@ -26,9 +30,21 @@ interface MailToolbarProps {
     onRefresh: () => void;
     selectedEmailId: string | null;
     onCompose: () => void;
+    onToggleSidebar?: () => void;
+    showMenuButton?: boolean;
+    onBackToList?: () => void;
 }
 
 // Styled komponenty
+const ToolbarContainer = styled(AppBar)(({ theme }) => ({
+    position: 'static',
+    color: 'default',
+    backgroundColor: '#fff',
+    boxShadow: 'none',
+    borderBottom: '1px solid #e0e0e0',
+    zIndex: 5
+}));
+
 const Search = styled('div')(({ theme }) => ({
     position: 'relative',
     borderRadius: theme.shape.borderRadius,
@@ -43,6 +59,8 @@ const Search = styled('div')(({ theme }) => ({
         marginLeft: theme.spacing(3),
         width: 'auto',
     },
+    border: '1px solid #e0e0e0',
+    flexGrow: 1
 }));
 
 const SearchIconWrapper = styled('div')(({ theme }) => ({
@@ -53,19 +71,17 @@ const SearchIconWrapper = styled('div')(({ theme }) => ({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    color: '#757575'
 }));
 
 const StyledInputBase = styled(InputBase)(({ theme }) => ({
     color: 'inherit',
+    width: '100%',
     '& .MuiInputBase-input': {
         padding: theme.spacing(1, 1, 1, 0),
-        // vertical padding + font size from searchIcon
         paddingLeft: `calc(1em + ${theme.spacing(4)})`,
         transition: theme.transitions.create('width'),
         width: '100%',
-        [theme.breakpoints.up('md')]: {
-            width: '40ch',
-        },
     },
 }));
 
@@ -82,24 +98,51 @@ const MailToolbar: React.FC<MailToolbarProps> = ({
                                                      onQueryChange,
                                                      onRefresh,
                                                      selectedEmailId,
-                                                     onCompose
+                                                     onCompose,
+                                                     onToggleSidebar,
+                                                     showMenuButton,
+                                                     onBackToList
                                                  }) => {
-    return (
-        <AppBar position="static" color="default" elevation={0} sx={{ borderBottom: '1px solid #e0e0e0' }}>
-            <Toolbar>
-                <Search>
-                    <SearchIconWrapper>
-                        <SearchIcon />
-                    </SearchIconWrapper>
-                    <StyledInputBase
-                        placeholder="Szukaj..."
-                        inputProps={{ 'aria-label': 'search' }}
-                        value={query}
-                        onChange={(e) => onQueryChange(e.target.value)}
-                    />
-                </Search>
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-                <Box sx={{ flexGrow: 1 }} />
+    return (
+        <ToolbarContainer>
+            <Toolbar>
+                {showMenuButton && (
+                    <IconButton
+                        edge="start"
+                        onClick={onToggleSidebar}
+                        sx={{ mr: 1 }}
+                    >
+                        <MenuIcon />
+                    </IconButton>
+                )}
+
+                {onBackToList && (
+                    <IconButton
+                        edge="start"
+                        onClick={onBackToList}
+                        sx={{ mr: 1 }}
+                    >
+                        <ArrowBackIcon />
+                    </IconButton>
+                )}
+
+                {/* Ukrywamy wyszukiwarkę na małych ekranach jeśli wyświetlamy szczegóły emaila */}
+                {(!isMobile || !selectedEmailId) && (
+                    <Search>
+                        <SearchIconWrapper>
+                            <SearchIcon />
+                        </SearchIconWrapper>
+                        <StyledInputBase
+                            placeholder="Szukaj..."
+                            inputProps={{ 'aria-label': 'search' }}
+                            value={query}
+                            onChange={(e) => onQueryChange(e.target.value)}
+                        />
+                    </Search>
+                )}
 
                 <ActionsToolbar>
                     <Tooltip title="Odśwież">
@@ -110,21 +153,25 @@ const MailToolbar: React.FC<MailToolbarProps> = ({
 
                     {selectedEmailId ? (
                         <>
-                            <Tooltip title="Archiwizuj">
-                                <IconButton>
-                                    <ArchiveIcon />
-                                </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Usuń">
-                                <IconButton>
-                                    <DeleteIcon />
-                                </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Etykiety">
-                                <IconButton>
-                                    <LabelIcon />
-                                </IconButton>
-                            </Tooltip>
+                            {!isMobile && (
+                                <>
+                                    <Tooltip title="Archiwizuj">
+                                        <IconButton>
+                                            <ArchiveIcon />
+                                        </IconButton>
+                                    </Tooltip>
+                                    <Tooltip title="Usuń">
+                                        <IconButton>
+                                            <DeleteIcon />
+                                        </IconButton>
+                                    </Tooltip>
+                                    <Tooltip title="Etykiety">
+                                        <IconButton>
+                                            <LabelIcon />
+                                        </IconButton>
+                                    </Tooltip>
+                                </>
+                            )}
                             <Tooltip title="Więcej">
                                 <IconButton>
                                     <MoreIcon />
@@ -140,7 +187,7 @@ const MailToolbar: React.FC<MailToolbarProps> = ({
                     )}
                 </ActionsToolbar>
             </Toolbar>
-        </AppBar>
+        </ToolbarContainer>
     );
 };
 

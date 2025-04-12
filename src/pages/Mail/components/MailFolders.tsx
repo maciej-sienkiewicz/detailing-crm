@@ -1,7 +1,8 @@
-// src/pages/Mail/components/MailSidebar.tsx
+// src/pages/Mail/components/MailFolders.tsx
+// Przemianowany z MailSidebar na MailFolders, aby uniknąć konfliktu nazw
+
 import React from 'react';
 import {
-    Drawer,
     List,
     ListItem,
     ListItemIcon,
@@ -30,7 +31,8 @@ import {
     Edit as EditIcon,
     AccountCircle,
     ExitToApp as LogoutIcon,
-    Mail as MailIcon
+    Mail as MailIcon,
+    Archive as ArchiveIcon
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { EmailLabel, MailAccount } from '../../../types/mail';
@@ -44,10 +46,11 @@ const labelIcons: Record<string, React.ReactNode> = {
     'spam': <SpamIcon />,
     'important': <StarIcon color="warning" />,
     'starred': <StarIcon color="warning" />,
-    'custom': <LabelIcon />
+    'custom': <LabelIcon />,
+    'archive': <ArchiveIcon />
 };
 
-interface MailSidebarProps {
+interface MailFoldersProps {
     labels: EmailLabel[];
     selectedLabelId: string | null;
     onLabelChange: (labelId: string) => void;
@@ -59,16 +62,16 @@ interface MailSidebarProps {
     loading: boolean;
 }
 
-// Styled komponenty
-const DrawerContainer = styled(Drawer)(({ theme }) => ({
-    width: 250,
-    flexShrink: 0,
-    '& .MuiDrawer-paper': {
-        width: 250,
-        boxSizing: 'border-box',
-        background: theme.palette.background.default,
-        boxShadow: theme.shadows[2]
-    },
+// Komponent musi mieć ściśle kontrolowaną szerokość
+const FoldersContainer = styled(Box)(({ theme }) => ({
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
+    width: '100%', // 100% szerokości rodzica, który ma ograniczenie
+    maxWidth: '250px', // Maksymalna szerokość
+    backgroundColor: theme.palette.background.default,
+    overflowY: 'auto',
+    overflowX: 'hidden' // Zapobiega przewijaniu w poziomie
 }));
 
 const AccountSelector = styled(Box)(({ theme }) => ({
@@ -80,19 +83,75 @@ const AccountSelector = styled(Box)(({ theme }) => ({
     '&:hover': {
         backgroundColor: theme.palette.action.hover,
         borderRadius: theme.shape.borderRadius
-    }
+    },
+    width: '100%', // Pełna szerokość
+    boxSizing: 'border-box', // Uwzględnia padding w szerokości
+    overflow: 'hidden' // Zapobiega przewijaniu
 }));
 
 const ComposeButton = styled(Button)(({ theme }) => ({
     margin: theme.spacing(2),
     boxShadow: theme.shadows[2],
-    fontWeight: 'bold'
+    fontWeight: 'bold',
+    width: 'calc(100% - 32px)', // 100% minus marginesy
+    boxSizing: 'border-box'
 }));
 
+// Dla nazwy konta i adresu email - musimy zapewnić, że tekst nie łamie układu
+const AccountName = styled(Typography)({
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    maxWidth: '100%'
+});
+
+const AccountEmail = styled(Typography)({
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    maxWidth: '100%'
+});
+
+// Poprawione style dla listy i elementów listy
+const StyledList = styled(List)({
+    width: '100%',
+    padding: 0
+});
+
+const StyledListItem = styled(ListItem)({
+    padding: 0,
+    width: '100%'
+});
+
+const StyledListItemButton = styled(ListItemButton)(({ theme }) => ({
+    width: '100%',
+    padding: theme.spacing(1, 2)
+}));
+
+// Funkcja pomocnicza do lokalizacji nazw etykiet
+const getLocalizedLabelName = (label: EmailLabel): string => {
+    if (label.name && label.name.match(/[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/)) {
+        return label.name;
+    }
+
+    const typeTranslations: Record<string, string> = {
+        'inbox': 'Odebrane',
+        'sent': 'Wysłane',
+        'draft': 'Wersje robocze',
+        'trash': 'Kosz',
+        'spam': 'Spam',
+        'important': 'Ważne',
+        'starred': 'Oznaczone gwiazdką',
+        'archive': 'Archiwum'
+    };
+
+    return typeTranslations[label.type] || label.name;
+};
+
 /**
- * Pasek boczny z folderami i kontem użytkownika
+ * Komponent wyświetlający foldery i etykiety poczty
  */
-const MailSidebar: React.FC<MailSidebarProps> = ({
+const MailFolders: React.FC<MailFoldersProps> = ({
                                                      labels,
                                                      selectedLabelId,
                                                      onLabelChange,
@@ -132,20 +191,20 @@ const MailSidebar: React.FC<MailSidebarProps> = ({
     };
 
     return (
-        <DrawerContainer variant="permanent">
-            <Box>
+        <FoldersContainer>
+            <Box sx={{ width: '100%' }}>
                 {/* Konto użytkownika */}
                 <AccountSelector onClick={handleAccountMenuOpen}>
-                    <Avatar sx={{ bgcolor: 'primary.main' }}>
+                    <Avatar sx={{ bgcolor: 'primary.main', flexShrink: 0 }}>
                         {currentAccount?.name?.[0] || 'U'}
                     </Avatar>
-                    <Box sx={{ flexGrow: 1 }}>
-                        <Typography variant="subtitle1" noWrap>
+                    <Box sx={{ flexGrow: 1, minWidth: 0, overflow: 'hidden' }}>
+                        <AccountName variant="subtitle1" noWrap>
                             {currentAccount?.name || 'Użytkownik'}
-                        </Typography>
-                        <Typography variant="caption" noWrap>
+                        </AccountName>
+                        <AccountEmail variant="caption" noWrap>
                             {currentAccount?.email || ''}
-                        </Typography>
+                        </AccountEmail>
                     </Box>
                 </AccountSelector>
 
@@ -167,6 +226,8 @@ const MailSidebar: React.FC<MailSidebarProps> = ({
                             <ListItemText
                                 primary={account.name || account.email}
                                 secondary={account.email}
+                                primaryTypographyProps={{ noWrap: true, style: { maxWidth: '180px' } }}
+                                secondaryTypographyProps={{ noWrap: true, style: { maxWidth: '180px' } }}
                             />
                         </MenuItem>
                     ))}
@@ -199,14 +260,14 @@ const MailSidebar: React.FC<MailSidebarProps> = ({
                     <CircularProgress size={24} />
                 </Box>
             ) : (
-                <List>
+                <StyledList>
                     {systemLabels.map((label) => (
-                        <ListItem key={label.id} disablePadding>
-                            <ListItemButton
+                        <StyledListItem key={label.id} disablePadding>
+                            <StyledListItemButton
                                 selected={selectedLabelId === label.id}
                                 onClick={() => onLabelChange(label.id)}
                             >
-                                <ListItemIcon>
+                                <ListItemIcon sx={{ minWidth: 35 }}>
                                     {label.type === 'inbox' ? (
                                         <Badge badgeContent={4} color="error">
                                             {labelIcons[label.type] || <MailIcon />}
@@ -215,18 +276,24 @@ const MailSidebar: React.FC<MailSidebarProps> = ({
                                         labelIcons[label.type] || <MailIcon />
                                     )}
                                 </ListItemIcon>
-                                <ListItemText primary={label.name} />
-                            </ListItemButton>
-                        </ListItem>
+                                <ListItemText
+                                    primary={getLocalizedLabelName(label)}
+                                    primaryTypographyProps={{
+                                        noWrap: true,
+                                        style: { maxWidth: '160px' }
+                                    }}
+                                />
+                            </StyledListItemButton>
+                        </StyledListItem>
                     ))}
-                </List>
+                </StyledList>
             )}
 
             <Divider />
 
             {/* Nagłówek sekcji etykiet niestandardowych */}
-            <Box sx={{ px: 2, py: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="subtitle2" color="text.secondary">
+            <Box sx={{ px: 2, py: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                <Typography variant="subtitle2" color="text.secondary" noWrap>
                     Etykiety
                 </Typography>
                 <Tooltip title="Dodaj etykietę">
@@ -240,20 +307,26 @@ const MailSidebar: React.FC<MailSidebarProps> = ({
             </Box>
 
             {/* Lista etykiet niestandardowych */}
-            <List>
+            <StyledList>
                 {customLabels.length > 0 ? (
                     customLabels.map((label) => (
-                        <ListItem key={label.id} disablePadding>
-                            <ListItemButton
+                        <StyledListItem key={label.id} disablePadding>
+                            <StyledListItemButton
                                 selected={selectedLabelId === label.id}
                                 onClick={() => onLabelChange(label.id)}
                             >
-                                <ListItemIcon>
+                                <ListItemIcon sx={{ minWidth: 35 }}>
                                     <LabelIcon sx={{ color: label.color || 'inherit' }} />
                                 </ListItemIcon>
-                                <ListItemText primary={label.name} />
-                            </ListItemButton>
-                        </ListItem>
+                                <ListItemText
+                                    primary={getLocalizedLabelName(label)}
+                                    primaryTypographyProps={{
+                                        noWrap: true,
+                                        style: { maxWidth: '160px' }
+                                    }}
+                                />
+                            </StyledListItemButton>
+                        </StyledListItem>
                     ))
                 ) : (
                     <ListItem>
@@ -262,9 +335,9 @@ const MailSidebar: React.FC<MailSidebarProps> = ({
                         </Typography>
                     </ListItem>
                 )}
-            </List>
-        </DrawerContainer>
+            </StyledList>
+        </FoldersContainer>
     );
 };
 
-export default MailSidebar;
+export default MailFolders;
