@@ -13,7 +13,8 @@ import ProtocolDetailsPage from "./pages/Protocols/details/ProtocolDetailsPage";
 import StartVisitPage from "./pages/Protocols/start-visit/StartVisitPage";
 import CalendarColorsPage from "./pages/Settings/CalendarColorsPage";
 import InvoicesPage from "./pages/Finances/InvoicesPage";
-import FinancialSummaryPage from "./pages/Finances/FinancialSummaryPage"; // Dodajemy import
+import FinancialSummaryPage from "./pages/Finances/FinancialSummaryPage";
+import MailPage from "./pages/Mail/MailPage"; // Dodajemy import
 
 
 // Tymczasowe komponenty dla innych stron - do zastąpienia rzeczywistymi implementacjami
@@ -40,6 +41,9 @@ const AppRoutes: React.FC = () => {
             <Route path="/finances/invoices" element={<InvoicesPage />} />
             <Route path="/finances/payments" element={<PlaceholderPage title="Płatności" />} />
             <Route path="/finances/reports" element={<FinancialSummaryPage />} />
+
+                {/* Strona poczty - nowy moduł */}
+                <Route path="/mail" element={<MailPage />} />
 
             {/* Strony klientów */}
             <Route path="/clients/owners" element={<OwnersPage />} />
