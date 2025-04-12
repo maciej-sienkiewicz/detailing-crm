@@ -4,7 +4,7 @@ import * as mocks from './mocks/calendarColorsMocks';
 import {CalendarColor} from "../types/calendar";
 
 // Flaga określająca, czy używamy mocków (dla trybu deweloperskiego)
-const USE_MOCKS = process.env.NODE_ENV === 'development';
+const USE_MOCKS = 'development';
 
 // Konwersja snake_case na camelCase dla odpowiedzi z API
 const convertSnakeToCamel = (data: any): any => {
