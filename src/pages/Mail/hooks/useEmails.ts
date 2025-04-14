@@ -77,14 +77,18 @@ export const useEmails = (labelId: string | null, accountId?: string) => {
     // Funkcja do oznaczania emaila jako przeczytany/nieprzeczytany
     const markAsRead = useCallback(async (emailId: string, isRead: boolean) => {
         try {
-            await mailService.markAsRead(emailId, isRead, accountId);
+            console.log(`Oznaczanie wiadomości ${emailId} jako ${isRead ? 'przeczytana' : 'nieprzeczytana'}...`);
 
-            // Aktualizacja lokalnego stanu
+            // Najpierw aktualizujemy lokalny stan dla natychmiastowej reakcji UI
             setEmails(prev =>
                 prev.map(email =>
                     email.id === emailId ? { ...email, isRead } : email
                 )
             );
+
+            // Następnie wywołujemy serwis
+            await mailService.markAsRead(emailId, isRead, accountId);
+            console.log(`Wiadomość ${emailId} oznaczona jako ${isRead ? 'przeczytana' : 'nieprzeczytana'}`);
 
             // Odświeżenie podsumowania folderów
             const summaries = await mailService.getFoldersSummary(accountId);
@@ -92,6 +96,14 @@ export const useEmails = (labelId: string | null, accountId?: string) => {
 
         } catch (err) {
             console.error(`Error marking email as ${isRead ? 'read' : 'unread'}:`, err);
+
+            // W przypadku błędu, przywracamy poprzedni stan
+            setEmails(prev =>
+                prev.map(email =>
+                    email.id === emailId ? { ...email, isRead: !isRead } : email
+                )
+            );
+
             throw err;
         }
     }, [accountId]);

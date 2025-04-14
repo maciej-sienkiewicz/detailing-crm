@@ -1,115 +1,22 @@
 // src/pages/Mail/MailPage.tsx
-// Przebudowana wersja z rozwiązanym konfliktem nazw
-
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, CircularProgress, useMediaQuery, useTheme, IconButton } from '@mui/material';
+import { Box, Typography, CircularProgress } from '@mui/material';
+import MailSidebar from './components/MailFolders';
 import EmailList from './components/EmailList';
 import EmailDetail from './components/EmailDetail';
 import EmailComposer from './components/EmailComposer';
 import MailToolbar from './components/MailToolbar';
 import MailAccountSetup from './components/MailAccountSetup';
-import MailFolders from './components/MailFolders';
 import { useMailAccount } from './hooks/useMailAccount';
 import { useMailLabels } from './hooks/useMailLabels';
 import { useEmails } from './hooks/useEmails';
 import { useMailSearch } from './hooks/useMailSearch';
 import { Email, EmailDraft } from '../../types/mail';
-import styled from 'styled-components';
-import { Menu as MenuIcon, ArrowBack as ArrowBackIcon } from '@mui/icons-material';
-
-// Główny kontener poczty
-const MailContainer = styled(Box)`
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    width: 100%;
-    background-color: #f8f9fa;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
-`;
-
-// Główny kontener treści
-const MailContent = styled(Box)`
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-    width: 100%;
-`;
-
-// Kontener dla folderów poczty
-const MailFoldersWrapper = styled(Box)<{ open: boolean, isTablet: boolean }>`
-    width: ${props => props.isTablet ? (props.open ? '250px' : '0') : '250px'};
-    min-width: ${props => props.isTablet ? (props.open ? '250px' : '0') : '250px'};
-    max-width: 250px;
-    flex-shrink: 0;
-    flex-grow: 0;
-    transition: width 0.3s ease, min-width 0.3s ease;
-    height: 100%;
-    border-right: 1px solid #e0e0e0;
-    background-color: #f8f9fa;
-    z-index: 5;
-    overflow: hidden;
-`;
-
-// Kontener dla głównej zawartości
-const MainContentWrapper = styled(Box)`
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    min-width: 0;
-`;
-
-// Kontener dla listy emaili i szczegółów
-const EmailsWrapper = styled(Box)`
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-    width: 100%;
-`;
-
-// Kontener dla listy emaili
-const EmailListWrapper = styled(Box)<{ isDetailOpen: boolean, isMobile: boolean }>`
-    width: ${props => props.isMobile
-            ? (props.isDetailOpen ? '0' : '100%')
-            : (props.isDetailOpen ? '40%' : '100%')};
-    min-width: ${props => props.isMobile
-            ? (props.isDetailOpen ? '0' : '100%')
-            : (props.isDetailOpen ? '40%' : '100%')};
-    overflow: auto;
-    transition: width 0.3s ease, min-width 0.3s ease;
-    border-right: ${props => props.isDetailOpen ? '1px solid #e0e0e0' : 'none'};
-`;
-
-// Kontener dla szczegółów emaila
-const EmailDetailWrapper = styled(Box)<{ isOpen: boolean, isMobile: boolean }>`
-    width: ${props => props.isMobile
-            ? (props.isOpen ? '100%' : '0')
-            : (props.isOpen ? '60%' : '0')};
-    min-width: ${props => props.isMobile
-            ? (props.isOpen ? '100%' : '0')
-            : (props.isOpen ? '60%' : '0')};
-    overflow: auto;
-    transition: width 0.3s ease, min-width 0.3s ease;
-`;
 
 /**
  * Główny komponent strony poczty
  */
 const MailPage: React.FC = () => {
-    const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-    const isTablet = useMediaQuery(theme.breakpoints.down('md'));
-
-    // Stan dla panelu folderów poczty
-    const [foldersOpen, setFoldersOpen] = useState(!isTablet);
-
-    // Reagowanie na zmiany rozmiaru ekranu
-    useEffect(() => {
-        setFoldersOpen(!isTablet);
-    }, [isTablet]);
-
     // Zarządzanie kontami pocztowymi
     const {
         accounts,
@@ -186,27 +93,22 @@ const MailPage: React.FC = () => {
     const handleLabelChange = (labelId: string) => {
         setSelectedLabelId(labelId);
         setSelectedEmailId(null); // Resetowanie wybranego emaila przy zmianie folderu
-
-        // Na mobilnych urządzeniach, zamykamy panel folderów po wybraniu folderu
-        if (isMobile) {
-            setFoldersOpen(false);
-        }
     };
 
     // Obsługa kliknięcia na email
-    const handleEmailClick = (emailId: string) => {
+    const handleEmailClick = async (emailId: string) => {
         setSelectedEmailId(emailId);
 
         // Oznaczenie jako przeczytany, jeśli jeszcze nie jest
         const email = emails.find(e => e.id === emailId);
         if (email && !email.isRead) {
-            markAsRead(emailId, true);
+            try {
+                await markAsRead(emailId, true);
+                console.log(`Oznaczono email ${emailId} jako przeczytany`);
+            } catch (error) {
+                console.error('Błąd podczas oznaczania emaila jako przeczytany:', error);
+            }
         }
-    };
-
-    // Obsługa powrotu z widoku szczegółów na mobilnych urządzeniach
-    const handleBackToList = () => {
-        setSelectedEmailId(null);
     };
 
     // Obsługa tworzenia nowej wiadomości
@@ -249,15 +151,10 @@ const MailPage: React.FC = () => {
         setIsComposerOpen(true);
     };
 
-    // Przełączanie panelu folderów
-    const toggleFolders = () => {
-        setFoldersOpen(prev => !prev);
-    };
-
     // Jeśli nie ma konta, pokazujemy ekran konfiguracji
     if (shouldShowAccountSetup) {
         return (
-            <Box sx={{ p: 3, height: '100%', overflowX: 'hidden' }}>
+            <Box sx={{ p: 3, height: '100%' }}>
                 <MailAccountSetup
                     onGmailAuth={authorizeGmailAccount}
                     onImapAuth={authorizeImapAccount}
@@ -269,100 +166,89 @@ const MailPage: React.FC = () => {
     }
 
     return (
-        <MailContainer>
-            <MailToolbar
-                query={query}
-                onQueryChange={handleQueryChange}
-                onRefresh={refreshEmails}
-                selectedEmailId={selectedEmailId}
+        <Box sx={{ display: 'flex', height: '100%' }}>
+            {/* Pasek boczny z folderami */}
+            <MailSidebar
+                labels={labels}
+                selectedLabelId={selectedLabelId}
+                onLabelChange={handleLabelChange}
                 onCompose={handleCompose}
-                onToggleSidebar={toggleFolders}
-                showMenuButton={isTablet}
-                onBackToList={isMobile && selectedEmailId ? handleBackToList : undefined}
+                accounts={accounts}
+                currentAccount={currentAccount}
+                onSwitchAccount={switchAccount}
+                onSignOut={signOut}
+                loading={labelsLoading}
             />
 
-            <MailContent>
-                {/* Boczny panel z folderami poczty - zmieniona nazwa z MailSidebar na MailFolders */}
-                <MailFoldersWrapper open={foldersOpen} isTablet={isTablet}>
-                    <MailFolders
-                        labels={labels}
-                        selectedLabelId={selectedLabelId}
-                        onLabelChange={handleLabelChange}
-                        onCompose={handleCompose}
-                        accounts={accounts}
-                        currentAccount={currentAccount}
-                        onSwitchAccount={switchAccount}
-                        onSignOut={signOut}
-                        loading={labelsLoading}
-                    />
-                </MailFoldersWrapper>
+            <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1, height: '100%' }}>
+                {/* Pasek narzędzi */}
+                <MailToolbar
+                    query={query}
+                    onQueryChange={handleQueryChange}
+                    onRefresh={refreshEmails}
+                    selectedEmailId={selectedEmailId}
+                    onCompose={handleCompose}
+                />
 
-                <MainContentWrapper>
-                    <EmailsWrapper>
-                        {/* Lista emaili */}
-                        <EmailListWrapper
-                            isDetailOpen={!!selectedEmailId}
-                            isMobile={isMobile}
-                        >
-                            {emailsLoading && !emails.length ? (
-                                <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-                                    <CircularProgress />
-                                </Box>
-                            ) : emailsError ? (
-                                <Typography color="error" sx={{ p: 2 }}>
-                                    {emailsError}
-                                </Typography>
-                            ) : (
-                                <EmailList
-                                    emails={query ? searchResults : emails}
-                                    selectedEmailId={selectedEmailId}
-                                    onEmailClick={handleEmailClick}
-                                    onToggleStar={toggleStar}
-                                    onMarkAsRead={markAsRead}
-                                    onDelete={moveToTrash}
-                                    hasMore={hasMore && !query}
-                                    loadMore={loadMore}
-                                    isSearching={!!query}
-                                    searchLoading={searchLoading}
-                                />
-                            )}
-                        </EmailListWrapper>
+                <Box sx={{ display: 'flex', flexGrow: 1, overflow: 'hidden' }}>
+                    {/* Lista emaili */}
+                    <Box sx={{ width: selectedEmailId ? '40%' : '100%', overflow: 'auto' }}>
+                        {emailsLoading && !emails.length ? (
+                            <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+                                <CircularProgress />
+                            </Box>
+                        ) : emailsError ? (
+                            <Typography color="error" sx={{ p: 2 }}>
+                                {emailsError}
+                            </Typography>
+                        ) : (
+                            <EmailList
+                                emails={query ? searchResults : emails}
+                                selectedEmailId={selectedEmailId}
+                                onEmailClick={handleEmailClick}
+                                onToggleStar={toggleStar}
+                                onMarkAsRead={markAsRead}
+                                onDelete={moveToTrash}
+                                hasMore={hasMore && !query}
+                                loadMore={loadMore}
+                                isSearching={!!query}
+                                searchLoading={searchLoading}
+                            />
+                        )}
+                    </Box>
 
-                        {/* Szczegóły emaila */}
-                        <EmailDetailWrapper
-                            isOpen={!!selectedEmailId}
-                            isMobile={isMobile}
-                        >
-                            {selectedEmailId && selectedEmail && (
-                                <EmailDetail
-                                    email={selectedEmail}
-                                    onReply={() => handleReply(selectedEmail)}
-                                    onForward={() => handleForward(selectedEmail)}
-                                    onDelete={() => {
-                                        moveToTrash(selectedEmail.id);
-                                        setSelectedEmailId(null);
-                                    }}
-                                    onRestore={
-                                        selectedEmail.labelIds.includes('TRASH')
-                                            ? () => restoreFromTrash(selectedEmail.id)
-                                            : undefined
-                                    }
-                                    onPermanentDelete={
-                                        selectedEmail.labelIds.includes('TRASH')
-                                            ? () => {
-                                                permanentlyDelete(selectedEmail.id);
-                                                setSelectedEmailId(null);
-                                            }
-                                            : undefined
-                                    }
-                                    onClose={() => setSelectedEmailId(null)}
-                                    isMobile={isMobile}
-                                />
-                            )}
-                        </EmailDetailWrapper>
-                    </EmailsWrapper>
-                </MainContentWrapper>
-            </MailContent>
+                    {/* Szczegóły emaila */}
+                    {selectedEmailId && selectedEmail && (
+                        <Box sx={{ width: '60%', borderLeft: 1, borderColor: 'divider', overflow: 'auto' }}>
+                            <EmailDetail
+                                email={selectedEmail}
+                                onReply={() => handleReply(selectedEmail)}
+                                onForward={() => handleForward(selectedEmail)}
+                                onDelete={() => {
+                                    moveToTrash(selectedEmail.id);
+                                    setSelectedEmailId(null);
+                                }}
+                                onRestore={
+                                    selectedEmail.labelIds.includes('TRASH')
+                                        ? () => restoreFromTrash(selectedEmail.id)
+                                        : undefined
+                                }
+                                onPermanentDelete={
+                                    selectedEmail.labelIds.includes('TRASH')
+                                        ? () => {
+                                            permanentlyDelete(selectedEmail.id);
+                                            setSelectedEmailId(null);
+                                        }
+                                        : undefined
+                                }
+                                onClose={() => setSelectedEmailId(null)}
+                                // Dodajemy funkcję do oznaczania emaila jako przeczytany
+                                onMarkAsRead={(isRead) => markAsRead(selectedEmail.id, isRead)}
+                            />
+                        </Box>
+                    )}
+                </Box>
+            </Box>
 
             {/* Komponent do kompozycji wiadomości */}
             {isComposerOpen && (
@@ -375,10 +261,9 @@ const MailPage: React.FC = () => {
                     contactSuggestions={contactSuggestions}
                     onSearchContacts={searchContacts}
                     accountEmail={currentAccount?.email || ''}
-                    fullScreen={isMobile}
                 />
             )}
-        </MailContainer>
+        </Box>
     );
 };
 
