@@ -57,7 +57,9 @@ export interface Email {
     isRead: boolean;
     isStarred: boolean;
     isImportant: boolean;
-    providerId?: string; // Identyfikator providera (dla rozróżnienia źródła emaila)
+    providerId?: string;
+    // Dodaj to pole, aby TypeScript nie zgłaszał błędu:
+    read?: boolean; // Opcjonalne pole z API
 }
 
 export interface EmailFilter {

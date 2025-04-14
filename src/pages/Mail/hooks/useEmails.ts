@@ -1,5 +1,5 @@
 // src/pages/Mail/hooks/useEmails.ts
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Email, EmailFilter, MailFolderSummary } from '../../../types/mail';
 import mailService from '../services/mailService';
 
@@ -11,14 +11,31 @@ export const useEmails = (labelId: string | null, accountId?: string) => {
     const [hasMore, setHasMore] = useState(true);
     const [folderSummaries, setFolderSummaries] = useState<MailFolderSummary[]>([]);
 
+    // Dodaj referencję, aby śledzić, czy już wykonujemy zapytanie
+    const isLoadingRef = useRef(false);
+
+    // Dodaj licznik, aby debugować liczbę zapytań
+    const requestCountRef = useRef(0);
+
     // Funkcja do pobierania emaili
     const fetchEmails = useCallback(async (refresh = false) => {
         if (!labelId) return;
 
-        try {
-            setLoading(true);
-            setError(null);
+        // Zapobiegaj równoczesnym wywołaniom
+        if (isLoadingRef.current) {
+            console.log('Już trwa ładowanie wiadomości, pomijam zapytanie');
+            return;
+        }
 
+        isLoadingRef.current = true;
+        setLoading(true);
+        setError(null);
+
+        // Inkrementuj licznik zapytań do debugowania
+        requestCountRef.current++;
+        console.log(`Fetch emails request #${requestCountRef.current}, refresh: ${refresh}, token: ${pageToken}`);
+
+        try {
             const filter: EmailFilter = {
                 labelIds: [labelId],
                 maxResults: 20
@@ -27,16 +44,50 @@ export const useEmails = (labelId: string | null, accountId?: string) => {
             // Jeśli to nie jest odświeżanie i mamy token do paginacji
             if (!refresh && pageToken) {
                 filter.pageToken = pageToken;
+                console.log('Using page token for pagination:', pageToken);
             }
 
-            const fetchedEmails = await mailService.getEmails(filter, accountId);
+            // Pobieranie emaili z API
+            const response = await mailService.getEmails(filter, accountId);
+            const fetchedEmails = response.emails;
+            const nextPageToken = response.nextPageToken;
 
-            // Jeśli odświeżamy, zastępujemy stan, w przeciwnym wypadku dołączamy
-            setEmails(prev => refresh ? fetchedEmails : [...prev, ...fetchedEmails]);
+            console.log('Received emails:', fetchedEmails.length);
+            console.log('Next page token:', nextPageToken);
 
-            // Sprawdzamy, czy są kolejne strony (w rzeczywistej implementacji
-            // API powinno zwrócić nextPageToken lub podobną informację)
-            setHasMore(fetchedEmails.length === filter.maxResults);
+            // Przetwarzanie emaili - konwersja pola read na isRead
+            const processedEmails = fetchedEmails.map(email => ({
+                ...email,
+                isRead: email.read !== undefined ? Boolean(email.read) : Boolean(email.isRead)
+            }));
+
+            // Aktualizacja tokenu paginacji
+            if (!refresh && nextPageToken) {
+                setPageToken(nextPageToken);
+            } else if (refresh) {
+                // Resetowanie tokenu przy odświeżaniu
+                setPageToken(nextPageToken);
+            }
+
+            // Aktualizacja stanu emaili
+            if (refresh) {
+                // Przy odświeżaniu zastępujemy cały stan
+                setEmails(processedEmails);
+            } else {
+                // Przy ładowaniu kolejnych stron, dodajemy tylko unikalne emaile
+                const existingIds = new Set(emails.map(e => e.id));
+                const uniqueNewEmails = processedEmails.filter(email => !existingIds.has(email.id));
+
+                console.log('Adding unique emails:', uniqueNewEmails.length);
+
+                if (uniqueNewEmails.length > 0) {
+                    setEmails(prev => [...prev, ...uniqueNewEmails]);
+                }
+            }
+
+            // Aktualizacja flagi hasMore - bardzo ważne!
+            // Musi być false jeśli nie otrzymaliśmy tokenów paginacji lub otrzymaliśmy pustą listę
+            setHasMore(fetchedEmails.length > 0 && nextPageToken !== null);
 
             // Pobranie podsumowania folderów
             const summaries = await mailService.getFoldersSummary(accountId);
@@ -47,12 +98,14 @@ export const useEmails = (labelId: string | null, accountId?: string) => {
             console.error('Error fetching emails:', err);
         } finally {
             setLoading(false);
+            isLoadingRef.current = false;
         }
-    }, [labelId, accountId, pageToken]);
+    }, [labelId, accountId, pageToken, emails]);
 
-    // Ładowanie emaili przy pierwszym renderowaniu
+    // Ładowanie emaili przy pierwszym renderowaniu i zmianie folderu
     useEffect(() => {
         if (labelId) {
+            console.log('Label changed, resetting state and fetching emails');
             // Resetowanie stanu przy zmianie folderu
             setEmails([]);
             setPageToken(null);
@@ -60,17 +113,22 @@ export const useEmails = (labelId: string | null, accountId?: string) => {
 
             fetchEmails(true);
         }
-    }, [labelId, fetchEmails]);
+    }, [labelId]); // Usuń fetchEmails z zależności, żeby uniknąć rekurencyjnych wywołań
 
     // Funkcja do pobierania kolejnej strony emaili
     const loadMore = useCallback(() => {
-        if (!loading && hasMore) {
-            fetchEmails();
+        if (loading || !hasMore || isLoadingRef.current) {
+            console.log('Skip loadMore: loading:', loading, 'hasMore:', hasMore, 'isLoading:', isLoadingRef.current);
+            return;
         }
+
+        console.log('Loading more emails...');
+        fetchEmails(false);
     }, [loading, hasMore, fetchEmails]);
 
     // Funkcja do odświeżania listy emaili
     const refreshEmails = useCallback(() => {
+        console.log('Refreshing emails...');
         fetchEmails(true);
     }, [fetchEmails]);
 
@@ -82,7 +140,7 @@ export const useEmails = (labelId: string | null, accountId?: string) => {
             // Najpierw aktualizujemy lokalny stan dla natychmiastowej reakcji UI
             setEmails(prev =>
                 prev.map(email =>
-                    email.id === emailId ? { ...email, isRead } : email
+                    email.id === emailId ? { ...email, isRead: isRead, read: isRead } : email
                 )
             );
 
@@ -100,7 +158,7 @@ export const useEmails = (labelId: string | null, accountId?: string) => {
             // W przypadku błędu, przywracamy poprzedni stan
             setEmails(prev =>
                 prev.map(email =>
-                    email.id === emailId ? { ...email, isRead: !isRead } : email
+                    email.id === emailId ? { ...email, isRead: !isRead, read: !isRead } : email
                 )
             );
 

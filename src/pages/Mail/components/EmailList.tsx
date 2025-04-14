@@ -1,5 +1,5 @@
 // src/pages/Mail/components/EmailList.tsx
-import React, { useRef, useCallback } from 'react';
+import React, {useRef, useCallback, useEffect} from 'react';
 import {
     List,
     ListItem,
@@ -43,14 +43,14 @@ interface EmailListProps {
 }
 
 // Styled komponenty z uwzględnieniem responsywności
-const EmailListItem = styled(ListItem)<{ selected?: boolean; unread?: boolean; isMobile?: boolean }>(
+const EmailListItem = styled(ListItem)<{ selected?: boolean; unread?: string; isMobile?: boolean }>(
     ({ theme, selected, unread, isMobile }) => ({
         cursor: 'pointer',
         backgroundColor: selected ? theme.palette.action.selected : 'transparent',
         '&:hover': {
             backgroundColor: theme.palette.action.hover,
         },
-        ...(unread && {
+        ...(unread === "true" && {
             fontWeight: 'bold',
             '& .MuiTypography-root': {
                 fontWeight: 'bold',
@@ -121,21 +121,53 @@ const EmailList: React.FC<EmailListProps> = ({
 
     // Referencja do obserwatora przecięcia dla nieskończonego przewijania
     const observer = useRef<IntersectionObserver | null>(null);
+    const isLoadingMoreRef = useRef(false);
 
-    // Referencja do ostatniego elementu listy
-    const lastEmailElementRef = useCallback((node: HTMLDivElement) => {
-        if (searchLoading) return;
-
-        if (observer.current) observer.current.disconnect();
-
-        observer.current = new IntersectionObserver(entries => {
-            if (entries[0].isIntersecting && hasMore) {
-                loadMore();
+    // Zmień typ referencji, aby odpowiadał typowi elementu ListItem
+    const lastEmailElementRef = useCallback(
+        (node: HTMLLIElement) => {
+            if (searchLoading || !hasMore) {
+                console.log('Skipping observer setup: searchLoading or !hasMore');
+                return;
             }
-        });
 
-        if (node) observer.current.observe(node);
-    }, [searchLoading, hasMore, loadMore]);
+            if (observer.current) {
+                console.log('Disconnecting previous observer');
+                observer.current.disconnect();
+            }
+
+            observer.current = new IntersectionObserver(entries => {
+                if (entries[0].isIntersecting && hasMore && !isLoadingMoreRef.current) {
+                    console.log('Last email is visible, loading more...');
+                    isLoadingMoreRef.current = true;
+
+                    // Dodajemy setTimeout, aby zapobiec zbyt szybkim wywołaniom
+                    setTimeout(() => {
+                        loadMore();
+                        isLoadingMoreRef.current = false;
+                    }, 300);
+                }
+            }, {
+                rootMargin: '100px' // Dodaj margines, aby załadować wcześniej
+            });
+
+            if (node) {
+                console.log('Observing new node');
+                observer.current.observe(node);
+            }
+        },
+        [searchLoading, hasMore, loadMore]
+    );
+
+    useEffect(() => {
+        return () => {
+            if (observer.current) {
+                console.log('Cleaning up observer');
+                observer.current.disconnect();
+            }
+        };
+    }, []);
+
 
     // Formatowanie daty
     const formatDate = (timestamp: number) => {
@@ -168,14 +200,19 @@ const EmailList: React.FC<EmailListProps> = ({
             {emails.map((email, index) => {
                 const isLastEmail = index === emails.length - 1;
 
+                // Używamy różnych kluczy dla każdego emaila, aby uniknąć duplikacji
+                const uniqueKey = `${email.id}-${index}`;
+
+                const refProp = isLastEmail && hasMore && !searchLoading ? { ref: lastEmailElementRef } : {};
+
                 return (
-                    <React.Fragment key={email.id}>
+                    <React.Fragment key={uniqueKey}>
                         <EmailListItem
                             selected={email.id === selectedEmailId}
-                            unread={!email.isRead}
+                            unread={!email.isRead ? "true" : "false"}
                             isMobile={isMobile}
-                            ref={isLastEmail && hasMore ? lastEmailElementRef : undefined}
                             onClick={() => onEmailClick(email.id)}
+                            {...refProp}
                             secondaryAction={
                                 <EmailActions isMobile={isMobile}>
                                     <IconButton
@@ -268,8 +305,9 @@ const EmailList: React.FC<EmailListProps> = ({
                 );
             })}
 
+
             {/* Wskaźnik wczytywania, gdy ładowane są kolejne emaile */}
-            {(hasMore || searchLoading) && (
+            {searchLoading && (
                 <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
                     <CircularProgress size={24} />
                 </Box>

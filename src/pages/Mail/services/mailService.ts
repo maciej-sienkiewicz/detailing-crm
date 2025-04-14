@@ -13,6 +13,14 @@ import {
 import { MailProvider } from './providers/MailProvider';
 import { GmailProvider } from './providers/GmailProvider';
 import { ImapProvider } from './providers/ImapProvider';
+import axios from 'axios';
+import { MAIL_API_BASE_URL } from './config/imapConfig';
+
+// Interfejs zwracany przez getEmails
+interface EmailsResponse {
+    emails: Email[];
+    nextPageToken: string | null;
+}
 
 /**
  * Główny serwis poczty - fasada obsługująca wielu dostawców
@@ -22,6 +30,7 @@ class MailService {
     private providers: Map<string, MailProvider> = new Map();
     private accounts: Map<string, MailAccount> = new Map();
     private defaultAccountId: string | null = null;
+    private nextPageTokenCache: string | null = null;
 
     // Singleton
     private constructor() {}
@@ -159,15 +168,71 @@ class MailService {
     public async getEmails(
         filter: EmailFilter,
         accountId?: string
-    ): Promise<Email[]> {
+    ): Promise<EmailsResponse> {
         const provider = this.getProviderForAccount(accountId);
 
         try {
-            return await provider.getEmails(filter);
+            // Przygotowanie parametrów API
+            const apiParams: any = {
+                maxResults: filter.maxResults || 20,
+                folders: filter.labelIds || ['INBOX']
+            };
+
+            if (filter.q) {
+                apiParams.query = filter.q;
+            }
+
+            if (filter.pageToken) {
+                apiParams.pageToken = filter.pageToken;
+            }
+
+            console.log('Sending API request with params:', apiParams);
+
+            // Pobieranie emaili
+            const fetchedEmails = await provider.getEmails(filter);
+
+            // Pobierz nextPageToken z providera jeśli to możliwe
+            let nextPageToken = null;
+
+            // Dla ImapProvider - używamy naszego tokenu paginacji
+            if (provider instanceof ImapProvider) {
+                // Ten token powinien być ustawiony przez ImapProvider
+                nextPageToken = this.nextPageTokenCache;
+            } else {
+                // Dla innych providerów, używaj ich metod
+                nextPageToken = await this.getNextPageTokenFromProvider(provider);
+            }
+
+            // Mapowanie emaili z uwzględnieniem pola 'read'
+            const mappedEmails = fetchedEmails.map(email => ({
+                ...email,
+                isRead: email.read !== undefined ? Boolean(email.read) : Boolean(email.isRead)
+            }));
+
+            return {
+                emails: mappedEmails,
+                nextPageToken: nextPageToken
+            };
         } catch (error) {
             console.error('Błąd podczas pobierania emaili:', error);
             throw error;
         }
+    }
+
+    // Metoda do ustawiania tokenu paginacji (dla ImapProvider)
+    public setNextPageToken(token: string | null): void {
+        this.nextPageTokenCache = token;
+    }
+
+    // Metoda do pobierania tokenu paginacji
+    public getNextPageToken(): string | null {
+        return this.nextPageTokenCache;
+    }
+
+    // Pomocnicza metoda do pobierania tokenu paginacji od providera
+    private async getNextPageTokenFromProvider(provider: MailProvider): Promise<string | null> {
+        // Implementacja zależna od providera
+        return null;
     }
 
     /**
@@ -480,6 +545,39 @@ class MailService {
         }
 
         return provider;
+    }
+
+    /**
+     * Metoda pomocnicza do pobierania nagłówków autoryzacji
+     */
+    private getAuthHeaders(accountId?: string): Record<string, string> {
+        // Implementacja zależna od używanego mechanizmu autoryzacji
+        return {};
+    }
+
+    /**
+     * Metoda pomocnicza do mapowania odpowiedzi API na obiekty Email
+     */
+    private mapEmailResponse(email: any): Email {
+        return {
+            id: email.id,
+            threadId: email.thread_id || email.threadId || email.id,
+            labelIds: email.label_ids || email.labelIds || [],
+            snippet: email.snippet || '',
+            internalDate: email.internal_date || email.internalDate,
+            subject: email.subject || '',
+            from: email.from || { email: '' },
+            to: email.to || [],
+            cc: email.cc || [],
+            bcc: email.bcc || [],
+            body: email.body || { plain: '', html: null },
+            attachments: email.attachments,
+            isRead: Boolean(email.read),
+            isStarred: Boolean(email.starred),
+            isImportant: Boolean(email.important),
+            providerId: email.provider_id || email.providerId || 'imap',
+            read: email.read
+        };
     }
 }
 

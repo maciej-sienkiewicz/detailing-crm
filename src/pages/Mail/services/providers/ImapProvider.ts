@@ -17,6 +17,7 @@ import {
     IMAP_FOLDER_MAPPING,
     MAIL_API_BASE_URL
 } from '../config/imapConfig';
+import mailService from "../mailService";
 
 /**
  * Implementacja MailProvider dla serwera IMAP/SMTP dostępnego przez proxy backend
@@ -178,6 +179,8 @@ export class ImapProvider implements MailProvider {
                 params.pageToken = filter.pageToken;
             }
 
+            console.log('Sending request with params:', params);
+
             // Pobieranie emaili z naszego backendu proxy
             const response = await axios.get(`${MAIL_API_BASE_URL}/emails`, {
                 params,
@@ -187,6 +190,15 @@ export class ImapProvider implements MailProvider {
             });
 
             if (response.data.success) {
+                // Zapisz token paginacji w serwisie mailService
+                if (response.data.next_page_token) {
+                    // Zakładamy, że mamy dostęp do mailService
+                    mailService.setNextPageToken(response.data.next_page_token);
+                    console.log('Set next page token:', response.data.next_page_token);
+                } else {
+                    mailService.setNextPageToken(null);
+                }
+
                 return response.data.emails.map((email: any) => this.mapBackendEmailToEmail(email));
             } else {
                 throw new Error(response.data.message || 'Błąd pobierania emaili');
@@ -650,18 +662,24 @@ export class ImapProvider implements MailProvider {
         // Domyślne wartości
         const result: Email = {
             id: email.id,
-            threadId: email.threadId || email.id, // Niektóre serwery IMAP mogą nie obsługiwać wątków
-            labelIds: email.folders || [],
+            threadId: email.thread_id || email.id, // Niektóre serwery IMAP mogą nie obsługiwać wątków
+            labelIds: email.label_ids || [],
             snippet: email.snippet || '',
-            internalDate: new Date(email.date).getTime(),
+            internalDate: new Date(email.internal_date).getTime(),
             subject: email.subject || '',
             from: email.from || { email: '' },
             to: email.to || [],
-            isRead: email.isRead || false,
-            isStarred: email.isStarred || false,
-            isImportant: email.isImportant || false,
+            // Używamy read z odpowiedzi API, jeśli istnieje
+            isRead: email.read !== undefined ? Boolean(email.read) : false,
+            isStarred: email.starred !== undefined ? Boolean(email.starred) : false,
+            isImportant: email.important !== undefined ? Boolean(email.important) : false,
             providerId: 'imap'
         };
+
+        // Zachowaj oryginalne pole read
+        if (email.read !== undefined) {
+            result.read = Boolean(email.read);
+        }
 
         // Opcjonalne pola
         if (email.cc && email.cc.length > 0) {
@@ -672,10 +690,10 @@ export class ImapProvider implements MailProvider {
             result.bcc = email.bcc;
         }
 
-        if (email.htmlBody || email.textBody) {
+        if (email.body?.plain || email.body?.html) {
             result.body = {
-                plain: email.textBody || '',
-                html: email.htmlBody
+                plain: email.body.plain || '',
+                html: email.body.html
             };
         }
 
