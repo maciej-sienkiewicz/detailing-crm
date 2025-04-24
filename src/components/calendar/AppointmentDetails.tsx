@@ -86,12 +86,6 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
                 </DetailRow>
             )}
 
-            <DetailRow>
-                <DetailIcon><FaTag /></DetailIcon>
-                <DetailText>
-                    {appointment.isProtocol ? 'Protokół przyjęcia' : appointment.serviceType}
-                </DetailText>
-            </DetailRow>
 
             {appointment.services && appointment.services.length > 0 && (
                 <ServicesList>
@@ -136,18 +130,15 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
             <Actions>
                 {(appointment.isProtocol && (appointment.status as unknown as ProtocolStatus) !== ProtocolStatus.SCHEDULED) ? (
                     <ActionButton onClick={handleGoToProtocol} primary>
-                        <FaExternalLinkAlt /> Przejdź do protokołu
+                        <FaExternalLinkAlt /> Przejdź do wizyty
                     </ActionButton>
                 ) : (
                     <>
                         <ActionButton onClick={onEdit} primary>
                             <FaEdit /> Edytuj
                         </ActionButton>
-                        <ActionButton onClick={onDelete} danger>
-                            <FaTrash /> Usuń
-                        </ActionButton>
                         <ActionButton onClick={onCreateProtocol} special>
-                            <FaClipboardCheck /> Utwórz protokół
+                            <FaClipboardCheck /> Otwórz wizytę
                         </ActionButton>
                     </>
                 )}

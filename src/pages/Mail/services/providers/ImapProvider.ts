@@ -179,6 +179,10 @@ export class ImapProvider implements MailProvider {
                 params.pageToken = filter.pageToken;
             }
 
+            if (filter.labelIds && filter.labelIds.length > 0) {
+                params.folder = filter.labelIds[0];
+            }
+
             console.log('Sending request with params:', params);
 
             // Pobieranie emaili z naszego backendu proxy

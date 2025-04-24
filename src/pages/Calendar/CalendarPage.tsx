@@ -305,7 +305,7 @@ const CalendarPage: React.FC = () => {
             )}
 
             {/* Modal edycji wizyty */}
-            {selectedAppointment && (
+            {selectedAppointment && selectedAppointment.status !== AppointmentStatus.IN_PROGRESS && (
                 <Modal
                     isOpen={showEditAppointmentModal}
                     onClose={() => setShowEditAppointmentModal(false)}

@@ -40,10 +40,11 @@ export const ProtocolList: React.FC<ProtocolListProps> = ({
         <tr>
           <TableHeader>Pojazd</TableHeader>
           <TableHeader>Data</TableHeader>
+           <TableHeader>Numer rejestracyjny</TableHeader>
+          <TableHeader>Tytuł wizyty</TableHeader>
           <TableHeader>Właściciel</TableHeader>
-          <TableHeader>Numer rejestracyjny</TableHeader>
+          <TableHeader>Wartość wizyty</TableHeader>
           <TableHeader>Status</TableHeader>
-          <TableHeader>Akcje</TableHeader>
         </tr>
         </thead>
         <tbody>

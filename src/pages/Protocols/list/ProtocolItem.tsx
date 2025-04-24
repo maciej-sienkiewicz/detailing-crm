@@ -66,6 +66,14 @@ export const ProtocolItem: React.FC<ProtocolItemProps> = ({
                 </DateRange>
             </TableCell>
             <TableCell>
+                {protocol.vehicle.licensePlate}
+            </TableCell>
+            <TableCell>
+                <DateRange>
+                    <span>{protocol.title}</span>
+                </DateRange>
+            </TableCell>
+            <TableCell>
                 <OwnerInfo>
                     <div>{protocol.owner.name}</div>
                     {protocol.owner.companyName && (
@@ -74,23 +82,10 @@ export const ProtocolItem: React.FC<ProtocolItemProps> = ({
                 </OwnerInfo>
             </TableCell>
             <TableCell>
-                {protocol.vehicle.licensePlate}
+                {protocol.totalAmount}
             </TableCell>
             <TableCell>
                 <ProtocolStatusBadge status={protocol.status} />
-            </TableCell>
-            <TableCell onClick={(e) => e.stopPropagation()}>
-                <ActionButtons>
-                    <ActionButton onClick={() => onEdit(protocol.id)}>
-                        <FaEdit />
-                    </ActionButton>
-                    <ActionButton danger onClick={() => onDelete(protocol.id)}>
-                        <FaTrash />
-                    </ActionButton>
-                    <ActionButton title="Drukuj protokół">
-                        <FaFileAlt />
-                    </ActionButton>
-                </ActionButtons>
             </TableCell>
         </TableRow>
     );

@@ -12,62 +12,6 @@ const currentMonth = currentDate.getMonth();
 
 // Mockowane dane spotkań
 export const mockAppointments: Appointment[] = [
-    {
-        id: '1',
-        title: 'Detailing podstawowy',
-        start: createDate(currentYear, currentMonth, 10, 9, 0),
-        end: createDate(currentYear, currentMonth, 10, 12, 0),
-        customerId: 'cust1',
-        vehicleId: 'veh1',
-        serviceType: 'basic_detailing',
-        status: AppointmentStatus.CONFIRMED,
-        notes: 'Pierwsza wizyta klienta',
-        statusUpdatedAt: new Date().toISOString()
-    },
-    {
-        id: '2',
-        title: 'Korekta lakieru',
-        start: createDate(currentYear, currentMonth, 15, 13, 0),
-        end: createDate(currentYear, currentMonth, 15, 17, 0),
-        customerId: 'cust2',
-        vehicleId: 'veh2',
-        serviceType: 'paint_correction',
-        status: AppointmentStatus.PENDING_APPROVAL,
-        statusUpdatedAt: new Date().toISOString()
-    },
-    {
-        id: '3',
-        title: 'Zabezpieczenie ceramiczne',
-        start: createDate(currentYear, currentMonth, 18, 10, 0),
-        end: createDate(currentYear, currentMonth, 18, 16, 0),
-        customerId: 'cust3',
-        vehicleId: 'veh3',
-        serviceType: 'ceramic_coating',
-        status: AppointmentStatus.IN_PROGRESS,
-        statusUpdatedAt: new Date().toISOString()
-    },
-    {
-        id: '4',
-        title: 'Czyszczenie wnętrza',
-        start: createDate(currentYear, currentMonth, 20, 14, 0),
-        end: createDate(currentYear, currentMonth, 20, 16, 30),
-        customerId: 'cust1',
-        vehicleId: 'veh1',
-        serviceType: 'interior_cleaning',
-        status: AppointmentStatus.READY_FOR_PICKUP,
-        statusUpdatedAt: new Date().toISOString()
-    },
-    {
-        id: '5',
-        title: 'Polerowanie reflektorów',
-        start: createDate(currentYear, currentMonth, 22, 11, 0),
-        end: createDate(currentYear, currentMonth, 22, 12, 30),
-        customerId: 'cust4',
-        vehicleId: 'veh4',
-        serviceType: 'headlight_restoration',
-        status: AppointmentStatus.COMPLETED,
-        statusUpdatedAt: new Date().toISOString()
-    }
 ];
 
 // Funkcja symulująca pobieranie danych z API

@@ -115,6 +115,7 @@ export interface ProtocolListItem {
     totalAmount: number;
     calendarColorId?: string;
     selectedServices: SelectedService[];
+    title: string;
 }
 
 export interface ClientProtocolHistory {

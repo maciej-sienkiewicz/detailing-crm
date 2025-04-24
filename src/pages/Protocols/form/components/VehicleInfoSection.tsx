@@ -19,6 +19,36 @@ import {
 import SearchField from './SearchField';
 import styled from 'styled-components';
 
+// Lista marek samochodów
+const carBrands = [
+    "Abarth", "Acura", "Aito", "Aiways", "Aixam", "Alfa Romeo", "Alpine",
+    "Arcfox", "Asia", "Aston Martin", "Audi", "Austin", "Autobianchi",
+    "AVATR", "Baic", "BAW", "Bentley", "Bestune", "Biro", "BMW",
+    "BMW-ALPINA", "Brilliance", "Bugatti", "Buick", "BYD", "Cadillac",
+    "Casalini", "Caterham", "Cenntro", "Changan", "Chatenet", "Chery",
+    "Chevrolet", "Chrysler", "Citroën", "Cupra", "Dacia", "Daewoo",
+    "Daihatsu", "DeLorean", "Denza", "DFM", "DFSK", "DKW", "Dodge",
+    "Doosan", "DR MOTOR", "DS Automobiles", "e.GO", "Elaris", "FAW",
+    "FENDT", "Ferrari", "Fiat", "Fisker", "Ford", "Forthing", "Gaz",
+    "Geely", "Genesis", "GMC", "GWM", "HiPhi", "Honda", "Hongqi",
+    "Hummer", "Hyundai", "iamelectric", "Ineos", "Infiniti", "Isuzu",
+    "Iveco", "JAC", "Jaecoo", "Jaguar", "Jeep", "Jetour", "Jinpeng",
+    "Kia", "KTM", "Lada", "Lamborghini", "Lancia", "Land Rover",
+    "Leapmotor", "LEVC", "Lexus", "Li", "Ligier", "Lincoln", "Lixiang",
+    "Lotus", "LTI", "Lucid", "Lynk & Co", "MAN", "Maserati", "MAXIMUS",
+    "Maxus", "Maybach", "Mazda", "McLaren", "Mercedes-Benz", "Mercury",
+    "MG", "Microcar", "MINI", "Mitsubishi", "Morgan", "NIO", "Nissan",
+    "Nysa", "Oldsmobile", "Omoda", "Opel", "Peugeot", "Piaggio",
+    "Plymouth", "Polestar", "Polonez", "Pontiac", "Porsche", "RAM",
+    "Renault", "Rolls-Royce", "Rover", "Saab", "SARINI", "Saturn",
+    "Seat", "Seres", "Shuanghuan", "Skoda", "Skywell", "Skyworth",
+    "Smart", "SsangYong/KGM", "Subaru", "Suzuki", "Syrena", "Tarpan",
+    "Tata", "Tesla", "Toyota", "Trabant", "Triumph", "TUATARA", "Uaz",
+    "Vauxhall", "VELEX", "Volkswagen", "Volvo", "Voyah", "WALTRA",
+    "Warszawa", "Wartburg", "Wey", "Wołga", "Xiaomi", "XPeng",
+    "Zaporożec", "Zastava", "ZEEKR", "Zefir", "Zhidou", "Żuk"
+];
+
 interface VehicleInfoSectionProps {
     formData: Partial<CarReceptionProtocol>;
     errors: FormErrors;
@@ -160,7 +190,13 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                             id="licensePlate"
                             name="licensePlate"
                             value={formData.licensePlate || ''}
-                            onChange={onChange}
+                            onChange={(e) => {
+                                const upperCaseValue = e.target.value.toUpperCase();
+                                onChange({
+                                    ...e,
+                                    target: { ...e.target, value: upperCaseValue, name: e.target.name }
+                                });
+                            }}
                             placeholder="np. WA12345"
                             onSearchClick={() => handleSearchClick('licensePlate')}
                         />
@@ -171,11 +207,17 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                         <Input
                             id="make"
                             name="make"
+                            list="carBrandsList"
                             value={formData.make || ''}
                             onChange={onChange}
-                            placeholder="np. Audi"
+                            placeholder="Wpisz lub wybierz markę"
                             required
                         />
+                        <datalist id="carBrandsList">
+                            {carBrands.map(brand => (
+                                <option key={brand.toLowerCase().replace(/[^a-z0-9]/g, '-')} value={brand} />
+                            ))}
+                        </datalist>
                         {errors.make && <ErrorText>{errors.make}</ErrorText>}
                     </FormGroup>
 

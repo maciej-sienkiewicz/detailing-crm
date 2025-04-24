@@ -41,12 +41,6 @@ const ProtocolStatusTimeline: React.FC<ProtocolStatusTimelineProps> = ({ protoco
         }
     };
 
-    // Format date for display
-    const formatDate = (dateString: string): string => {
-        if (!dateString) return '';
-        return format(new Date(dateString), 'dd MMM yyyy, HH:mm', { locale: pl });
-    };
-
     // Create a virtual status history based on the current protocol status
     // In a real app, you would track the actual status history
     const statusOrder: ProtocolStatus[] = [
@@ -81,7 +75,6 @@ const ProtocolStatusTimeline: React.FC<ProtocolStatusTimelineProps> = ({ protoco
                         </TimelineDot>
                         <TimelineContent>
                             <StatusLabel>{ProtocolStatusLabels[item.status]}</StatusLabel>
-                            <StatusDate>{formatDate(item.date)}</StatusDate>
                         </TimelineContent>
                     </TimelineItem>
                 ))}
