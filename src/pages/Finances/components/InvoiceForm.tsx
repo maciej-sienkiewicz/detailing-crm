@@ -93,34 +93,49 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCancel }) 
     };
 
     // Obsługa zmiany danych pozycji
+    // Obsługa zmiany danych pozycji
     const handleItemChange = (itemId: string, field: keyof InvoiceItem, value: any) => {
-        setItems(prev => prev.map(item => {
-            if (item.id === itemId) {
-                const updatedItem = { ...item, [field]: value };
+        setItems(prev => {
+            const updatedItems = prev.map(item => {
+                if (item.id === itemId) {
+                    const updatedItem = { ...item, [field]: value };
 
-                // Jeśli zmieniono cenę jednostkową lub ilość, przeliczamy wartości
-                if (field === 'unitPrice' || field === 'quantity' || field === 'taxRate') {
-                    const quantity = field === 'quantity' ? parseFloat(value) : item.quantity;
-                    const unitPrice = field === 'unitPrice' ? parseFloat(value) : item.unitPrice;
-                    const taxRate = field === 'taxRate' ? parseFloat(value) : item.taxRate;
+                    // Jeśli zmieniono cenę jednostkową, ilość lub stawkę VAT, przeliczamy wartości
+                    if (field === 'unitPrice' || field === 'quantity' || field === 'taxRate') {
+                        const quantity = field === 'quantity' ? parseFloat(value) : item.quantity;
+                        const unitPrice = field === 'unitPrice' ? parseFloat(value) : item.unitPrice;
+                        const taxRate = field === 'taxRate' ? parseFloat(value) : item.taxRate;
 
-                    const totalNet = quantity * unitPrice;
-                    const totalGross = totalNet * (1 + taxRate / 100);
+                        const totalNet = quantity * unitPrice;
+                        const totalGross = totalNet * (1 + taxRate / 100);
 
-                    return {
-                        ...updatedItem,
-                        totalNet,
-                        totalGross
-                    };
+                        return {
+                            ...updatedItem,
+                            totalNet,
+                            totalGross
+                        };
+                    }
+
+                    return updatedItem;
                 }
+                return item;
+            });
 
-                return updatedItem;
-            }
-            return item;
-        }));
+            // Przeliczamy sumy bezpośrednio po aktualizacji tablicy items
+            const totalNet = updatedItems.reduce((sum, item) => sum + item.totalNet, 0);
+            const totalGross = updatedItems.reduce((sum, item) => sum + item.totalGross, 0);
+            const totalTax = totalGross - totalNet;
 
-        // Po zmianie pozycji przeliczamy sumy
-        setTimeout(recalculateTotals, 0);
+            // Aktualizujemy formData z nowymi sumami
+            setFormData(prev => ({
+                ...prev,
+                totalNet,
+                totalGross,
+                totalTax
+            }));
+
+            return updatedItems;
+        });
     };
 
     // Przeliczanie sum
@@ -584,22 +599,34 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCancel }) 
                                     </td>
                                     <td>
                                         <NumberInput
-                                            value={item.quantity}
-                                            onChange={(e) => handleItemChange(item.id, 'quantity', parseFloat(e.target.value) || 0)}
+                                            value={item.quantity === 0 && document.activeElement === document.getElementById(`quantity-${item.id}`) ? '' : item.quantity}
+                                            onChange={(e) => handleItemChange(item.id, 'quantity', e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                             placeholder="Ilość"
                                             min={0.01}
                                             step={0.01}
                                             required
+                                            id={`quantity-${item.id}`}
+                                            onFocus={(e) => {
+                                                if (item.quantity === 0) {
+                                                    e.target.value = '';
+                                                }
+                                            }}
                                         />
                                     </td>
                                     <td>
                                         <NumberInput
-                                            value={item.unitPrice}
-                                            onChange={(e) => handleItemChange(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
+                                            value={item.unitPrice === 0 && document.activeElement === document.getElementById(`unitPrice-${item.id}`) ? '' : item.unitPrice}
+                                            onChange={(e) => handleItemChange(item.id, 'unitPrice', e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                             placeholder="Cena"
                                             min={0}
                                             step={0.01}
                                             required
+                                            id={`unitPrice-${item.id}`}
+                                            onFocus={(e) => {
+                                                if (item.unitPrice === 0) {
+                                                    e.target.value = '';
+                                                }
+                                            }}
                                         />
                                     </td>
                                     <td>
