@@ -22,6 +22,7 @@ const apiFetch = async <T>(endpoint: string, options: RequestInit = {}): Promise
     const url = `${API_BASE_URL}${endpoint}`;
 
     // Logowanie wywołania API do konsoli dla debugowania
+    console.log(`API request: ${options.method || 'GET'} ${url}`);
 
     // Sprawdzamy, czy mamy do czynienia z FormData
     const isFormData = options.body instanceof FormData;
@@ -31,6 +32,7 @@ const apiFetch = async <T>(endpoint: string, options: RequestInit = {}): Promise
 
     if (isFormData) {
         // Dla FormData, kopiujemy domyślne opcje, ale bez Content-Type
+        // Pozwalamy przeglądarce ustawić odpowiedni Content-Type z granicą (boundary)
         const { headers, ...restDefaultOptions } = getDefaultOptions();
         const headersWithoutContentType: Record<string, string> = { ...headers as Record<string, string> };
         delete headersWithoutContentType['Content-Type'];
@@ -55,51 +57,64 @@ const apiFetch = async <T>(endpoint: string, options: RequestInit = {}): Promise
         };
     }
 
-    const response = await fetch(url, fetchOptions);
+    // Logowanie opcji żądania dla debugowania
+    console.log('Request options:', {
+        method: fetchOptions.method,
+        headers: fetchOptions.headers,
+        bodyType: options.body ? (isFormData ? 'FormData' : typeof options.body) : null
+    });
 
-    // Logowanie statusu odpowiedzi
+    try {
+        const response = await fetch(url, fetchOptions);
 
-    if (!response.ok) {
-        // Obsługa różnych kodów błędów HTTP
-        if (response.status === 401) {
-            // Nieprawidłowe uwierzytelnienie - można przekierować do strony logowania
-            throw new Error('Unauthorized access');
+        // Logowanie statusu odpowiedzi
+        console.log(`API response status: ${response.status}`);
+
+        if (!response.ok) {
+            // Obsługa różnych kodów błędów HTTP
+            if (response.status === 401) {
+                // Nieprawidłowe uwierzytelnienie - można przekierować do strony logowania
+                throw new Error('Unauthorized access');
+            }
+
+            if (response.status === 403) {
+                throw new Error('Access forbidden');
+            }
+
+            if (response.status === 404) {
+                throw new Error('Resource not found');
+            }
+
+            // Próba uzyskania informacji o błędzie z odpowiedzi JSON
+            try {
+                const errorData = await response.json();
+                console.error('API error details:', errorData);
+                throw new Error(errorData.message || 'An error occurred');
+            } catch (e) {
+                throw new Error(`HTTP error ${response.status}`);
+            }
         }
 
-        if (response.status === 403) {
-            throw new Error('Access forbidden');
+        // Sprawdź, czy odpowiedź jest pusta
+        const contentType = response.headers.get('Content-Type');
+        const contentLength = response.headers.get('Content-Length');
+
+        // Jeśli odpowiedź jest pusta, zwracamy pusty obiekt
+        if (contentLength === '0') {
+            return {} as T;
         }
 
-        if (response.status === 404) {
-            throw new Error('Resource not found');
+        // Jeśli Content-Type to JSON, parsujemy odpowiedź jako JSON
+        if (contentType && contentType.includes('application/json')) {
+            return response.json();
         }
 
-        // Próba uzyskania informacji o błędzie z odpowiedzi JSON
-        try {
-            const errorData = await response.json();
-            console.error('API error details:', errorData);
-            throw new Error(errorData.message || 'An error occurred');
-        } catch (e) {
-            throw new Error(`HTTP error ${response.status}`);
-        }
+        // W przeciwnym razie zwracamy odpowiedź jako tekst
+        return response.text() as unknown as T;
+    } catch (error) {
+        console.error('API request failed:', error);
+        throw error;
     }
-
-    // Sprawdź, czy odpowiedź jest pusta
-    const contentType = response.headers.get('Content-Type');
-    const contentLength = response.headers.get('Content-Length');
-
-    // Jeśli odpowiedź jest pusta, zwracamy pusty obiekt
-    if (contentLength === '0') {
-        return {} as T;
-    }
-
-    // Jeśli Content-Type to JSON, parsujemy odpowiedź jako JSON
-    if (contentType && contentType.includes('application/json')) {
-        return response.json();
-    }
-
-    // W przeciwnym razie zwracamy odpowiedź jako tekst
-    return response.text() as unknown as T;
 };
 
 // Eksportowane funkcje do wykonywania różnych typów żądań HTTP

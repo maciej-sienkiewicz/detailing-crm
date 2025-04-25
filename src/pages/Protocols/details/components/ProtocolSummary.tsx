@@ -445,7 +445,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                                         </PriceWrapper>
                                     </PriceCell>
                                     <TableCell action>
-                                        <ActionButtons>
+                                        {protocol.status !== ProtocolStatus.COMPLETED && protocol.status !== ProtocolStatus.CANCELLED && (<ActionButtons>
                                             {service.approvalStatus === ServiceApprovalStatus.PENDING && (
                                                 <>
                                                     <ActionButton
@@ -471,6 +471,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                                                 <FaTrash />
                                             </ActionButton>
                                         </ActionButtons>
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             );

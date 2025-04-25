@@ -124,9 +124,6 @@ const VehicleListTable: React.FC<VehicleListTableProps> = ({
                                             <FaEdit />
                                         </ActionButton>
 
-                                        <ActionButton title="Historia usług" onClick={() => onShowHistory(vehicle)}>
-                                            <FaHistory />
-                                        </ActionButton>
 
                                         <ActionButton
                                             title="Usuń pojazd"

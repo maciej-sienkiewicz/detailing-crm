@@ -184,6 +184,8 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
                                             {service.status === ProtocolStatus.COMPLETED ? 'Zakończony' :
                                                 service.status === ProtocolStatus.SCHEDULED ? 'Zaplanowany' :
                                                     service.status === ProtocolStatus.READY_FOR_PICKUP ? 'Gotowy do odbioru' :
+                                                        service.status === ProtocolStatus.CANCELLED ? 'Porzucony' :
+                                                            service.status === ProtocolStatus.IN_PROGRESS ? 'W realizacji' :
                                                         String(service.status)}
                                         </StatusBadge>
                                     </ServiceHeader>
@@ -203,7 +205,7 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
 
                                         {service.id && (
                                             <ProtocolLink
-                                                href={`/orders/car-reception?id=${service.id}`}
+                                                href={`/orders/car-reception/${service.id}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                             >
