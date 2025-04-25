@@ -3,33 +3,24 @@
 
 // Status faktury
 export enum InvoiceStatus {
-    DRAFT = 'DRAFT',               // Szkic
-    ISSUED = 'ISSUED',             // Wystawiona
-    SENT = 'SENT',                 // Wysłana
-    PAID = 'PAID',                 // Opłacona
-    PARTIALLY_PAID = 'PARTIALLY_PAID', // Częściowo opłacona
-    OVERDUE = 'OVERDUE',           // Przeterminowana
-    CANCELLED = 'CANCELLED'        // Anulowana
+    NOT_PAID = 'NOT_PAID',
+    PAID = 'PAID',
+    OVERDUE = 'OVERDUE',
+    CANCELLED = 'CANCELLED'
 }
 
 // Etykiety dla statusów faktury
 export const InvoiceStatusLabels: Record<InvoiceStatus, string> = {
-    [InvoiceStatus.DRAFT]: 'Szkic',
-    [InvoiceStatus.ISSUED]: 'Wystawiona',
-    [InvoiceStatus.SENT]: 'Wysłana',
+    [InvoiceStatus.NOT_PAID]: 'Nieopłacona',
     [InvoiceStatus.PAID]: 'Opłacona',
-    [InvoiceStatus.PARTIALLY_PAID]: 'Częściowo opłacona',
     [InvoiceStatus.OVERDUE]: 'Przeterminowana',
     [InvoiceStatus.CANCELLED]: 'Anulowana'
 };
 
 // Kolory dla statusów faktury
 export const InvoiceStatusColors: Record<InvoiceStatus, string> = {
-    [InvoiceStatus.DRAFT]: '#7f8c8d',        // Szary
-    [InvoiceStatus.ISSUED]: '#3498db',       // Niebieski
-    [InvoiceStatus.SENT]: '#9b59b6',         // Fioletowy
+    [InvoiceStatus.NOT_PAID]: '#3498db',       // Niebieski
     [InvoiceStatus.PAID]: '#2ecc71',         // Zielony
-    [InvoiceStatus.PARTIALLY_PAID]: '#f39c12', // Pomarańczowy
     [InvoiceStatus.OVERDUE]: '#e74c3c',      // Czerwony
     [InvoiceStatus.CANCELLED]: '#95a5a6'     // Jasno szary
 };
@@ -38,8 +29,7 @@ export const InvoiceStatusColors: Record<InvoiceStatus, string> = {
 export enum PaymentMethod {
     CASH = 'CASH',                 // Gotówka
     BANK_TRANSFER = 'BANK_TRANSFER', // Przelew bankowy
-    CREDIT_CARD = 'CREDIT_CARD',   // Karta kredytowa
-    DEBIT_CARD = 'DEBIT_CARD',     // Karta debetowa
+    CARD = 'CARD',   // Karta
     MOBILE_PAYMENT = 'MOBILE_PAYMENT', // Płatność mobilna
     OTHER = 'OTHER'                // Inna
 }
@@ -48,8 +38,7 @@ export enum PaymentMethod {
 export const PaymentMethodLabels: Record<PaymentMethod, string> = {
     [PaymentMethod.CASH]: 'Gotówka',
     [PaymentMethod.BANK_TRANSFER]: 'Przelew bankowy',
-    [PaymentMethod.CREDIT_CARD]: 'Karta kredytowa',
-    [PaymentMethod.DEBIT_CARD]: 'Karta debetowa',
+    [PaymentMethod.CARD]: 'Karta',
     [PaymentMethod.MOBILE_PAYMENT]: 'Płatność mobilna',
     [PaymentMethod.OTHER]: 'Inna'
 };

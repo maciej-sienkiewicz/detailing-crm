@@ -66,7 +66,7 @@ const InvoicesPage: React.FC = () => {
             buyerAddress: type === InvoiceType.INCOME ? `ul. Przykładowa ${index + 10}, 00-${index + 100} Warszawa` : 'ul. Polerska 15, 00-123 Warszawa',
             status,
             type,
-            paymentMethod: index % 2 === 0 ? 'BANK_TRANSFER' : 'CREDIT_CARD',
+            paymentMethod: index % 2 === 0 ? 'BANK_TRANSFER' : 'CARD',
             totalNet,
             totalTax,
             totalGross,
