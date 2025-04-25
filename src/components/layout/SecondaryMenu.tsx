@@ -46,7 +46,7 @@ const secondaryMenuOptions: Record<string, SubMenuItem[]> = {
     ],
     finances: [
         { id: 'invoices', label: 'Faktury', icon: <FaRegListAlt />, path: '/finances/invoices' },
-        { id: 'payments', label: 'Płatności', icon: <FaMoneyBillWave />, path: '/finances/payments' }
+        { id: 'cash', label: 'Gotówka', icon: <FaMoneyBillWave />, path: '/finances/cash' }
     ],
     warehouse: [
         { id: 'stock', label: 'Stan magazynowy', icon: <FaClipboardList />, path: '/warehouse/stock' },
