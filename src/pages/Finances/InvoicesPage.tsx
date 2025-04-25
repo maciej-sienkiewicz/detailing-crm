@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { FaSearch, FaPlus, FaFileInvoiceDollar, FaEdit, FaFilePdf, FaEye } from 'react-icons/fa';
+import { FaSearch, FaPlus, FaFileInvoiceDollar, FaEdit, FaFilePdf, FaEye, FaTrashAlt } from 'react-icons/fa';
 import { Invoice, InvoiceStatus, InvoiceStatusLabels, InvoiceStatusColors, InvoiceFilters, InvoiceType, InvoiceTypeLabels } from '../../types';
 import InvoiceFormModal from './components/InvoiceFormModal';
 import InvoiceViewModal from './components/InvoiceViewModal';
+import { invoicesApi } from '../../api/invoicesApi';
 
 const InvoicesPage: React.FC = () => {
     const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -14,99 +15,26 @@ const InvoicesPage: React.FC = () => {
     const [showFormModal, setShowFormModal] = useState<boolean>(false);
     const [showViewModal, setShowViewModal] = useState<boolean>(false);
     const [selectedInvoice, setSelectedInvoice] = useState<Invoice | undefined>(undefined);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-    // Pobieranie danych (docelowo z API)
+    // Pobieranie danych przy pierwszym renderowaniu i przy zmianie filtrów
     useEffect(() => {
-        const fetchInvoices = async () => {
-            try {
-                setLoading(true);
-                // Tymczasowo dodajemy dane testowe
-                const mockInvoices: Invoice[] = Array.from({ length: 15 }, (_, i) => createMockInvoice(i));
-                setInvoices(mockInvoices);
-                setError(null);
-            } catch (err) {
-                console.error('Błąd podczas pobierania faktur:', err);
-                setError('Nie udało się pobrać listy faktur. Spróbuj ponownie później.');
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchInvoices();
     }, []);
 
-    // Funkcja tworząca przykładowe dane faktury
-    const createMockInvoice = (index: number): Invoice => {
-        const statuses = Object.values(InvoiceStatus);
-        const status = statuses[index % statuses.length];
-        const issuedDate = new Date();
-        issuedDate.setDate(issuedDate.getDate() - (index * 2));
-        const dueDate = new Date(issuedDate);
-        dueDate.setDate(dueDate.getDate() + 14);
-
-        // Losowe kwoty
-        const totalNet = Math.round((1000 + Math.random() * 9000) * 100) / 100;
-        const totalTax = Math.round(totalNet * 0.23 * 100) / 100;
-        const totalGross = totalNet + totalTax;
-
-        // Określenie typu faktury (co druga faktura jest kosztowa)
-        const type = index % 2 === 0 ? InvoiceType.INCOME : InvoiceType.EXPENSE;
-
-        return {
-            id: `inv-${index + 1000}`,
-            number: `FV/${new Date().getFullYear()}/${index + 101}`,
-            title: `Usługi detailingowe - ${index % 3 === 0 ? 'Kompleksowe czyszczenie' : index % 3 === 1 ? 'Polerowanie lakieru' : 'Zabezpieczenie ceramiczne'}`,
-            issuedDate: issuedDate.toISOString(),
-            dueDate: dueDate.toISOString(),
-            sellerName: type === InvoiceType.INCOME ? 'Detailing Pro Sp. z o.o.' : `Dostawca ${index % 5 + 1}`,
-            sellerTaxId: type === InvoiceType.INCOME ? '1234567890' : `${9876543210 - index}`,
-            sellerAddress: type === InvoiceType.INCOME ? 'ul. Polerska 15, 00-123 Warszawa' : `ul. Dostawcza ${index + 1}, 00-${index + 200} Warszawa`,
-            buyerName: type === InvoiceType.INCOME ? `Klient ${index + 1} ${index % 4 === 0 ? 'Sp. z o.o.' : ''}` : 'Detailing Pro Sp. z o.o.',
-            buyerTaxId: type === InvoiceType.INCOME ? (index % 4 === 0 ? '9876543210' : undefined) : '1234567890',
-            buyerAddress: type === InvoiceType.INCOME ? `ul. Przykładowa ${index + 10}, 00-${index + 100} Warszawa` : 'ul. Polerska 15, 00-123 Warszawa',
-            status,
-            type,
-            paymentMethod: index % 2 === 0 ? 'BANK_TRANSFER' : 'CARD',
-            totalNet,
-            totalTax,
-            totalGross,
-            currency: 'PLN',
-            notes: index % 5 === 0 ? 'Płatność w terminie 14 dni.' : undefined,
-            protocolId: index % 3 === 0 ? `prot-${index + 500}` : undefined,
-            protocolNumber: index % 3 === 0 ? `PR/${new Date().getFullYear()}/${index + 50}` : undefined,
-            createdAt: new Date(issuedDate).toISOString(),
-            updatedAt: new Date(issuedDate).toISOString(),
-            items: [
-                {
-                    id: `item-${index}-1`,
-                    name: 'Polerowanie lakieru',
-                    description: 'Pełne polerowanie lakieru pojazdu',
-                    quantity: 1,
-                    unitPrice: totalNet * 0.6,
-                    taxRate: 23,
-                    totalNet: totalNet * 0.6,
-                    totalGross: totalNet * 0.6 * 1.23
-                },
-                {
-                    id: `item-${index}-2`,
-                    name: 'Czyszczenie wnętrza',
-                    description: 'Kompleksowe czyszczenie wnętrza pojazdu',
-                    quantity: 1,
-                    unitPrice: totalNet * 0.4,
-                    taxRate: 23,
-                    totalNet: totalNet * 0.4,
-                    totalGross: totalNet * 0.4 * 1.23
-                }
-            ],
-            attachments: index % 3 === 0 ? [{
-                id: `att-${index}`,
-                name: `Faktura-${index + 101}.pdf`,
-                size: 1024 * 1024 * (index % 5 + 1),
-                type: 'application/pdf',
-                url: '#',
-                uploadedAt: new Date(issuedDate).toISOString()
-            }] : []
-        };
+    // Funkcja pobierająca faktury z serwera
+    const fetchInvoices = async () => {
+        try {
+            setLoading(true);
+            const fetchedInvoices = await invoicesApi.fetchInvoices(filters);
+            setInvoices(fetchedInvoices);
+            setError(null);
+        } catch (err) {
+            console.error('Błąd podczas pobierania faktur:', err);
+            setError('Nie udało się pobrać listy faktur. Spróbuj ponownie później.');
+        } finally {
+            setLoading(false);
+        }
     };
 
     // Funkcja do formatowania daty
@@ -123,41 +51,58 @@ const InvoicesPage: React.FC = () => {
     // Obsługa dodawania nowej faktury
     const handleAddInvoice = () => {
         setSelectedInvoice(undefined);
+        setSelectedFile(null);
         setShowFormModal(true);
     };
 
     // Obsługa edycji faktury
     const handleEditInvoice = (invoice: Invoice) => {
         setSelectedInvoice(invoice);
+        setSelectedFile(null);
         setShowFormModal(true);
     };
 
     // Obsługa zapisu formularza faktury
-    const handleSaveInvoice = (invoice: Partial<Invoice>) => {
-        console.log('Zapisywanie faktury:', invoice);
+    const handleSaveInvoice = async (invoice: Partial<Invoice>) => {
+        try {
+            setLoading(true);
 
-        // Tutaj będzie integracja z API
-        // Tymczasowa implementacja dla demonstracji
-        if (invoice.id) {
-            // Aktualizacja istniejącej faktury
-            setInvoices(prevInvoices =>
-                prevInvoices.map(item =>
-                    item.id === invoice.id ? { ...item, ...invoice } as Invoice : item
-                )
-            );
-        } else {
-            // Dodawanie nowej faktury
-            const newInvoice: Invoice = {
-                ...(invoice as Invoice),
-                id: `inv-${Date.now()}`,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-            };
-            setInvoices(prevInvoices => [newInvoice, ...prevInvoices]);
+            if (selectedInvoice && selectedInvoice.id) {
+                // Aktualizacja istniejącej faktury
+                const updatedInvoice = await invoicesApi.updateInvoice(
+                    selectedInvoice.id,
+                    invoice as Omit<Invoice, 'id' | 'number' | 'createdAt' | 'updatedAt'>,
+                    selectedFile || undefined
+                );
+
+                if (updatedInvoice) {
+                    setInvoices(prevInvoices =>
+                        prevInvoices.map(item =>
+                            item.id === updatedInvoice.id ? updatedInvoice : item
+                        )
+                    );
+                }
+            } else {
+                // Dodawanie nowej faktury
+                const newInvoice = await invoicesApi.createInvoice(
+                    invoice as Omit<Invoice, 'id' | 'number' | 'createdAt' | 'updatedAt'>,
+                    selectedFile || undefined
+                );
+
+                if (newInvoice) {
+                    setInvoices(prevInvoices => [newInvoice, ...prevInvoices]);
+                }
+            }
+
+            // Zamykamy modal
+            setShowFormModal(false);
+            setSelectedFile(null);
+        } catch (error) {
+            console.error('Błąd podczas zapisywania faktury:', error);
+            setError('Nie udało się zapisać faktury. Spróbuj ponownie później.');
+        } finally {
+            setLoading(false);
         }
-
-        // Zamykamy modal
-        setShowFormModal(false);
     };
 
     // Obsługa podglądu faktury
@@ -180,8 +125,64 @@ const InvoicesPage: React.FC = () => {
     // Obsługa wysyłki formularza filtrów
     const handleSubmitFilters = (e: React.FormEvent) => {
         e.preventDefault();
-        console.log('Filtrowanie z parametrami:', filters);
-        // Tutaj będzie wywołanie API z filtrami
+        fetchInvoices();
+    };
+
+    // Obsługa usuwania faktury
+    const handleDeleteInvoice = async (id: string) => {
+        if (window.confirm('Czy na pewno chcesz usunąć tę fakturę?')) {
+            try {
+                setLoading(true);
+                const success = await invoicesApi.deleteInvoice(id);
+
+                if (success) {
+                    setInvoices(prevInvoices => prevInvoices.filter(invoice => invoice.id !== id));
+                    if (showViewModal && selectedInvoice?.id === id) {
+                        setShowViewModal(false);
+                    }
+                } else {
+                    setError('Nie udało się usunąć faktury. Spróbuj ponownie później.');
+                }
+            } catch (error) {
+                console.error('Błąd podczas usuwania faktury:', error);
+                setError('Nie udało się usunąć faktury. Spróbuj ponownie później.');
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
+
+    // Obsługa zmiany statusu faktury
+    const handleStatusChange = async (id: string, status: InvoiceStatus) => {
+        try {
+            setLoading(true);
+            const success = await invoicesApi.updateInvoiceStatus(id, status);
+
+            if (success) {
+                setInvoices(prevInvoices =>
+                    prevInvoices.map(invoice =>
+                        invoice.id === id ? { ...invoice, status } : invoice
+                    )
+                );
+
+                if (showViewModal && selectedInvoice?.id === id) {
+                    setSelectedInvoice({ ...selectedInvoice, status });
+                }
+            } else {
+                setError('Nie udało się zmienić statusu faktury. Spróbuj ponownie później.');
+            }
+        } catch (error) {
+            console.error('Błąd podczas zmiany statusu faktury:', error);
+            setError('Nie udało się zmienić statusu faktury. Spróbuj ponownie później.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Obsługa pobierania załącznika faktury
+    const handleDownloadAttachment = (invoiceId: string) => {
+        const attachmentUrl = invoicesApi.getInvoiceAttachmentUrl(invoiceId);
+        window.open(attachmentUrl, '_blank');
     };
 
     return (
@@ -322,65 +323,80 @@ const InvoicesPage: React.FC = () => {
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {invoices.map(invoice => (
-                                <TableRow key={invoice.id}>
-                                    <TableCell>{invoice.number}</TableCell>
-                                    <TableCell>
-                                        <InvoiceTypeBadge type={invoice.type}>
-                                            {InvoiceTypeLabels[invoice.type]}
-                                        </InvoiceTypeBadge>
-                                    </TableCell>
-                                    <TableCell>{invoice.title}</TableCell>
-                                    <TableCell>{formatDate(invoice.issuedDate)}</TableCell>
-                                    <TableCell>{formatDate(invoice.dueDate)}</TableCell>
-                                    <TableCell>{invoice.buyerName}</TableCell>
-                                    <TableCell>
-                                        {invoice.protocolNumber ? (
-                                            <ProtocolLink href={`/orders/car-reception/${invoice.protocolId}`}>
-                                                {invoice.protocolNumber}
-                                            </ProtocolLink>
-                                        ) : (
-                                            <NoProtocol>-</NoProtocol>
-                                        )}
-                                    </TableCell>
-                                    <TableCell>{formatAmount(invoice.totalGross)} {invoice.currency}</TableCell>
-                                    <TableCell>
-                                        <StatusBadge status={invoice.status}>
-                                            {InvoiceStatusLabels[invoice.status]}
-                                        </StatusBadge>
-                                    </TableCell>
-                                    <TableCell>
-                                        {invoice.attachments.length > 0 ? (
-                                            <AttachmentsList>
-                                                {invoice.attachments.map(att => (
-                                                    <AttachmentItem key={att.id}>
-                                                        <FaFilePdf />
-                                                        <span>{att.name}</span>
-                                                    </AttachmentItem>
-                                                ))}
-                                            </AttachmentsList>
-                                        ) : (
-                                            <NoAttachments>Brak</NoAttachments>
-                                        )}
-                                    </TableCell>
-                                    <TableCell>
-                                        <ActionButtons>
-                                            <ActionButton
-                                                title="Podgląd faktury"
-                                                onClick={() => handleViewInvoice(invoice)}
-                                            >
-                                                <FaEye />
-                                            </ActionButton>
-                                            <ActionButton
-                                                title="Edytuj fakturę"
-                                                onClick={() => handleEditInvoice(invoice)}
-                                            >
-                                                <FaEdit />
-                                            </ActionButton>
-                                        </ActionButtons>
+                            {invoices.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={11} style={{ textAlign: 'center' }}>
+                                        Brak faktur spełniających kryteria wyszukiwania
                                     </TableCell>
                                 </TableRow>
-                            ))}
+                            ) : (
+                                invoices.map(invoice => (
+                                    <TableRow key={invoice.id}>
+                                        <TableCell>{invoice.number}</TableCell>
+                                        <TableCell>
+                                            <InvoiceTypeBadge type={invoice.type}>
+                                                {InvoiceTypeLabels[invoice.type]}
+                                            </InvoiceTypeBadge>
+                                        </TableCell>
+                                        <TableCell>{invoice.title}</TableCell>
+                                        <TableCell>{formatDate(invoice.issuedDate)}</TableCell>
+                                        <TableCell>{formatDate(invoice.dueDate)}</TableCell>
+                                        <TableCell>{invoice.buyerName}</TableCell>
+                                        <TableCell>
+                                            {invoice.protocolNumber ? (
+                                                <ProtocolLink href={`/orders/car-reception/${invoice.protocolId}`}>
+                                                    {invoice.protocolNumber}
+                                                </ProtocolLink>
+                                            ) : (
+                                                <NoProtocol>-</NoProtocol>
+                                            )}
+                                        </TableCell>
+                                        <TableCell>{formatAmount(invoice.totalGross)} {invoice.currency}</TableCell>
+                                        <TableCell>
+                                            <StatusBadge status={invoice.status}>
+                                                {InvoiceStatusLabels[invoice.status]}
+                                            </StatusBadge>
+                                        </TableCell>
+                                        <TableCell>
+                                            {invoice.attachments && invoice.attachments.length > 0 ? (
+                                                <AttachmentsList>
+                                                    {invoice.attachments.map(att => (
+                                                        <AttachmentItem key={att.id} onClick={() => handleDownloadAttachment(invoice.id)}>
+                                                            <FaFilePdf />
+                                                            <span>{att.name}</span>
+                                                        </AttachmentItem>
+                                                    ))}
+                                                </AttachmentsList>
+                                            ) : (
+                                                <NoAttachments>Brak</NoAttachments>
+                                            )}
+                                        </TableCell>
+                                        <TableCell>
+                                            <ActionButtons>
+                                                <ActionButton
+                                                    title="Podgląd faktury"
+                                                    onClick={() => handleViewInvoice(invoice)}
+                                                >
+                                                    <FaEye />
+                                                </ActionButton>
+                                                <ActionButton
+                                                    title="Edytuj fakturę"
+                                                    onClick={() => handleEditInvoice(invoice)}
+                                                >
+                                                    <FaEdit />
+                                                </ActionButton>
+                                                <ActionButton
+                                                    title="Usuń fakturę"
+                                                    className="delete"
+                                                    onClick={() => handleDeleteInvoice(invoice.id)}
+                                                >
+                                                    <FaTrashAlt />
+                                                </ActionButton>
+                                            </ActionButtons>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
                         </TableBody>
                     </Table>
                 </TableContainer>
@@ -407,6 +423,9 @@ const InvoicesPage: React.FC = () => {
                             setShowFormModal(true);
                         }, 100);
                     }}
+                    onStatusChange={handleStatusChange}
+                    onDelete={handleDeleteInvoice}
+                    onDownloadAttachment={handleDownloadAttachment}
                 />
             )}
         </PageContainer>
@@ -470,6 +489,14 @@ const ActionButton = styled.button`
 
     &:hover {
         background-color: rgba(52, 152, 219, 0.1);
+    }
+
+    &.delete {
+        color: #e74c3c;
+
+        &:hover {
+            background-color: rgba(231, 76, 60, 0.1);
+        }
     }
 `;
 
@@ -631,11 +658,11 @@ const TableBody = styled.tbody``;
 
 const TableRow = styled.tr`
     border-bottom: 1px solid #eef2f7;
-    
+
     &:last-child {
         border-bottom: none;
     }
-    
+
     &:hover {
         background-color: #f8f9fa;
     }
@@ -703,6 +730,11 @@ const AttachmentItem = styled.div`
     align-items: center;
     gap: 6px;
     font-size: 13px;
+    cursor: pointer;
+
+    &:hover {
+        color: #3498db;
+    }
 
     svg {
         color: #e74c3c;

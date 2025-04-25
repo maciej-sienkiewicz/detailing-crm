@@ -94,7 +94,7 @@ const CloseButton = styled.button`
     align-items: center;
     justify-content: center;
     padding: 0;
-    
+
     &:hover {
         color: #34495e;
     }

@@ -13,7 +13,7 @@ import {
     InvoiceAttachment
 } from '../../../types';
 import { HelpText } from "../../Settings/styles/ModalStyles";
-import { apiClient } from '../../../api/apiClient';
+import { invoicesApi, ExtractedInvoiceData } from '../../../api/invoicesApi';
 import Modal from '../../../components/common/Modal';
 import ConfirmationDialog from '../../../components/common/ConfirmationDialog';
 
@@ -23,45 +23,7 @@ interface InvoiceFormProps {
     onCancel: () => void;
 }
 
-interface ExtractedInvoiceData {
-    generalInfo: {
-        title?: string;
-        issuedDate: string;
-        dueDate: string;
-    };
-    seller: {
-        name: string;
-        taxId?: string;
-        address?: string;
-    };
-    buyer: {
-        name: string;
-        taxId?: string;
-        address?: string;
-    };
-    items: {
-        name: string;
-        description?: string;
-        quantity: number;
-        unitPrice: number;
-        taxRate: number;
-        totalNet: number;
-        totalGross: number;
-    }[];
-    summary: {
-        totalNet: number;
-        totalTax: number;
-        totalGross: number;
-    };
-    notes?: string;
-}
-
-interface InvoiceDataResponse {
-    extractedInvoiceData: ExtractedInvoiceData;
-}
-
 const emptyInvoice: Partial<Invoice> = {
-    number: '',
     title: '',
     issuedDate: new Date().toISOString().split('T')[0],
     dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -71,7 +33,7 @@ const emptyInvoice: Partial<Invoice> = {
     buyerName: '',
     buyerTaxId: '',
     buyerAddress: '',
-    status: InvoiceStatus.DRAFT,
+    status: InvoiceStatus.NOT_PAID,
     type: InvoiceType.INCOME,  // Domyślnie faktura przychodowa
     paymentMethod: PaymentMethod.BANK_TRANSFER,
     totalNet: 0,
@@ -102,6 +64,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCancel }) 
     const [showExtractConfirmation, setShowExtractConfirmation] = useState<boolean>(false);
     const [isExtracting, setIsExtracting] = useState<boolean>(false);
     const [extractionError, setExtractionError] = useState<string | null>(null);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
     // Obsługa zmian w formularzu
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -174,13 +137,14 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCancel }) 
         }));
     };
 
-    // Obsługa przesyłania plików - limit tylko 1 plik
+    // Obsługa przesyłania plików
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (!files || files.length === 0) return;
 
         // Bierzemy tylko pierwszy plik, ignorujemy resztę
         const file = files[0];
+        setSelectedFile(file);
 
         const newAttachment: InvoiceAttachment = {
             id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -188,7 +152,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCancel }) 
             size: file.size,
             type: file.type,
             uploadedAt: new Date().toISOString(),
-            file
+            url: URL.createObjectURL(file)
         };
 
         // Ustawiamy nowy załącznik (nadpisujemy poprzedni, jeśli istniał)
@@ -212,6 +176,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCancel }) 
             ...prev,
             attachments: prev.attachments?.filter(att => att.id !== attachmentId) || []
         }));
+        setSelectedFile(null);
     };
 
     // Funkcja do ekstrakcji danych z faktury
@@ -220,8 +185,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCancel }) 
         setShowExtractConfirmation(false);
 
         // Sprawdzamy czy mamy plik
-        const file = formData.attachments?.[0]?.file;
-        if (!file) {
+        if (!selectedFile) {
             console.error('Brak pliku do ekstrakcji');
             return;
         }
@@ -230,17 +194,10 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCancel }) 
             setIsExtracting(true);
             setExtractionError(null);
 
-            // Tworzymy FormData do wysłania pliku
-            const formDataToSend = new FormData();
-            formDataToSend.append('file', file);
-            formDataToSend.append('preprocess', 'true');
-
             // Wywołanie API do ekstrakcji danych
-            const response = await apiClient.post<InvoiceDataResponse>('/invoice/extract', formDataToSend);
+            const extractedData = await invoicesApi.extractInvoiceData(selectedFile);
 
-            if (response && response.extractedInvoiceData) {
-                const extractedData = response.extractedInvoiceData;
-
+            if (extractedData) {
                 // Mapowanie wyekstrahowanych danych na format formularza
                 const mappedItems: InvoiceItem[] = extractedData.items.map((item, index) => ({
                     id: `extracted-${Date.now()}-${index}`,
@@ -310,14 +267,20 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCancel }) 
     };
 
     // Obsługa zapisu formularza
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (validateForm()) {
-            onSave({
+            // Przygotowanie danych do wysyłki
+            const invoiceData: Partial<Invoice> = {
                 ...formData,
                 items
-            });
+            };
+
+            // Usuwamy pole attachments, bo załącznik będzie wysyłany jako plik
+            delete invoiceData.attachments;
+
+            onSave(invoiceData);
         }
     };
 
@@ -439,7 +402,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCancel }) 
                             <Select
                                 id="status"
                                 name="status"
-                                value={formData.status || InvoiceStatus.DRAFT}
+                                value={formData.status || InvoiceStatus.NOT_PAID}
                                 onChange={handleChange}
                                 required
                             >
@@ -764,8 +727,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCancel }) 
     );
 };
 
-// Style dla komponentu InvoiceForm.tsx
-
+// Style komponentów
 const FormContainer = styled.div`
     background-color: white;
     border-radius: 8px;
@@ -797,13 +759,13 @@ const ExtractingContainer = styled.div`
     justify-content: center;
     gap: 16px;
     width: 300px;
-    
+
     .spinner {
         animation: spin 1s linear infinite;
         font-size: 36px;
         color: #3498db;
     }
-    
+
     @keyframes spin {
         0% {
             transform: rotate(0deg);
@@ -863,7 +825,7 @@ const FormSection = styled.div<{ flex?: number }>`
 const FormSectionRow = styled.div`
     display: flex;
     gap: 24px;
-    
+
     @media (max-width: 768px) {
         flex-direction: column;
     }
@@ -887,7 +849,7 @@ const FormGrid = styled.div<{ columns?: number }>`
     display: grid;
     grid-template-columns: repeat(${props => props.columns || 2}, 1fr);
     gap: 16px;
-    
+
     @media (max-width: 768px) {
         grid-template-columns: 1fr;
     }
@@ -911,7 +873,7 @@ const Input = styled.input`
     border-radius: 4px;
     font-size: 14px;
     width: 100%;
-    
+
     &:focus {
         outline: none;
         border-color: #3498db;
@@ -925,7 +887,7 @@ const NumberInput = styled.input.attrs({ type: 'number' })`
     border-radius: 4px;
     font-size: 14px;
     width: 100%;
-    
+
     &:focus {
         outline: none;
         border-color: #3498db;
@@ -940,7 +902,7 @@ const Select = styled.select`
     font-size: 14px;
     background-color: white;
     width: 100%;
-    
+
     &:focus {
         outline: none;
         border-color: #3498db;
@@ -955,7 +917,7 @@ const Textarea = styled.textarea`
     font-size: 14px;
     resize: vertical;
     width: 100%;
-    
+
     &:focus {
         outline: none;
         border-color: #3498db;
@@ -981,7 +943,7 @@ const AddItemButton = styled(Button)`
     border: 1px solid #dfe6e9;
     font-size: 14px;
     padding: 8px 12px;
-    
+
     &:hover {
         background-color: #dfe6e9;
     }
@@ -997,7 +959,7 @@ const RemoveButton = styled.button`
     cursor: pointer;
     font-size: 16px;
     padding: 4px;
-    
+
     &:hover {
         color: #c0392b;
     }
@@ -1007,7 +969,7 @@ const ItemsTable = styled.table`
     width: 100%;
     border-collapse: collapse;
     font-size: 14px;
-    
+
     th {
         padding: 12px 8px;
         background-color: #f8f9fa;
@@ -1016,22 +978,22 @@ const ItemsTable = styled.table`
         color: #2c3e50;
         border-bottom: 2px solid #eef2f7;
     }
-    
+
     td {
         padding: 8px;
         border-bottom: 1px solid #eef2f7;
         vertical-align: middle;
     }
-    
+
     tbody tr:hover {
         background-color: #f8f9fa;
     }
-    
+
     tfoot {
         background-color: #f8f9fa;
         font-weight: 500;
     }
-    
+
     tfoot td {
         padding: 12px 8px;
         border-top: 2px solid #eef2f7;
@@ -1108,7 +1070,7 @@ const RemoveAttachmentButton = styled.button`
     color: #7f8c8d;
     cursor: pointer;
     font-size: 16px;
-    
+
     &:hover {
         color: #e74c3c;
     }
