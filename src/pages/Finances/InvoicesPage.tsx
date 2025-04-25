@@ -314,7 +314,7 @@ const InvoicesPage: React.FC = () => {
                                 <TableHeader>Data wystawienia</TableHeader>
                                 <TableHeader>Termin płatności</TableHeader>
                                 <TableHeader>Płatnik</TableHeader>
-                                <TableHeader>Protokół</TableHeader>
+                                <TableHeader>Wizyta</TableHeader>
                                 <TableHeader>Kwota brutto</TableHeader>
                                 <TableHeader>Status</TableHeader>
                                 <TableHeader>Załączniki</TableHeader>

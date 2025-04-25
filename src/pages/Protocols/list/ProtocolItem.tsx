@@ -82,7 +82,7 @@ export const ProtocolItem: React.FC<ProtocolItemProps> = ({
                 </OwnerInfo>
             </TableCell>
             <TableCell>
-                {protocol.totalAmount}
+                {protocol.totalAmount.toFixed(2)} PLN
             </TableCell>
             <TableCell>
                 <ProtocolStatusBadge status={protocol.status} />
