@@ -7,9 +7,10 @@ import InvoiceForm from './InvoiceForm';
 interface InvoiceFormModalProps {
     isOpen: boolean;
     invoice?: Invoice;
-    onSave: (invoice: Partial<Invoice>) => void;
+    onSave: (invoice: Partial<Invoice>, file?: File | null) => void; // Dodany drugi parametr
     onClose: () => void;
 }
+
 
 const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                                                                isOpen,
@@ -33,7 +34,7 @@ const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                 <ModalContent>
                     <InvoiceForm
                         invoice={invoice}
-                        onSave={onSave}
+                        onSave={(invoiceData, file) => onSave(invoiceData, file)} // Przekazujemy plik dalej
                         onCancel={onClose}
                     />
                 </ModalContent>

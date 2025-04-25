@@ -72,11 +72,25 @@ const convertToCamelCase = (obj: any): any => {
         return obj.map(convertToCamelCase);
     }
 
-    return Object.keys(obj).reduce((acc, key) => {
+    const result: any = {};
+
+    Object.keys(obj).forEach(key => {
         const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
-        acc[camelKey] = convertToCamelCase(obj[key]);
-        return acc;
-    }, {} as any);
+
+        // Specjalna obsługa dla załącznika - konwersja pojedynczego attachment na tablicę attachments
+        if (camelKey === 'attachment' && obj[key] !== null) {
+            // Jeśli nie ma jeszcze tablicy załączników w wyniku, utwórz ją
+            if (!result['attachments']) {
+                result['attachments'] = [];
+            }
+            // Dodaj konwertowany załącznik do tablicy
+            result['attachments'].push(convertToCamelCase(obj[key]));
+        } else {
+            result[camelKey] = convertToCamelCase(obj[key]);
+        }
+    });
+
+    return result;
 };
 
 export const invoicesApi = {
@@ -176,7 +190,7 @@ export const invoicesApi = {
             const formData = new FormData();
 
             // Dodanie danych faktury jako JSON blob
-            const invoiceBlob = new Blob([JSON.stringify(dataToSend)], {
+            const invoiceBlob = new Blob([JSON.stringify(convertToSnakeCase(dataToSend))], {
                 type: 'application/json'
             });
             formData.append('invoice', invoiceBlob);

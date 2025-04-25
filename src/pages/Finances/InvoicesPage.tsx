@@ -63,7 +63,7 @@ const InvoicesPage: React.FC = () => {
     };
 
     // Obsługa zapisu formularza faktury
-    const handleSaveInvoice = async (invoice: Partial<Invoice>) => {
+    const handleSaveInvoice = async (invoice: Partial<Invoice>, file?: File | null) => {
         try {
             setLoading(true);
 
@@ -72,7 +72,7 @@ const InvoicesPage: React.FC = () => {
                 const updatedInvoice = await invoicesApi.updateInvoice(
                     selectedInvoice.id,
                     invoice as Omit<Invoice, 'id' | 'number' | 'createdAt' | 'updatedAt'>,
-                    selectedFile || undefined
+                    file || undefined // Używamy przekazanego pliku zamiast selectedFile
                 );
 
                 if (updatedInvoice) {
@@ -86,7 +86,7 @@ const InvoicesPage: React.FC = () => {
                 // Dodawanie nowej faktury
                 const newInvoice = await invoicesApi.createInvoice(
                     invoice as Omit<Invoice, 'id' | 'number' | 'createdAt' | 'updatedAt'>,
-                    selectedFile || undefined
+                    file || undefined // Używamy przekazanego pliku zamiast selectedFile
                 );
 
                 if (newInvoice) {

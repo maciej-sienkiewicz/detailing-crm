@@ -19,7 +19,7 @@ import ConfirmationDialog from '../../../components/common/ConfirmationDialog';
 
 interface InvoiceFormProps {
     invoice?: Invoice;
-    onSave: (invoice: Partial<Invoice>) => void;
+    onSave: (invoice: Partial<Invoice>, file?: File | null) => void; // Dodany drugi parametr
     onCancel: () => void;
 }
 
@@ -295,7 +295,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCancel }) 
             // Usuwamy pole attachments, bo załącznik będzie wysyłany jako plik
             delete invoiceData.attachments;
 
-            onSave(invoiceData);
+            // Przekazujemy dane faktury oraz wybrany plik
+            onSave(invoiceData, selectedFile);
         }
     };
 
