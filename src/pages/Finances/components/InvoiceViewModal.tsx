@@ -1,21 +1,30 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import styled from 'styled-components';
-import { FaTimes, FaFilePdf, FaEdit, FaDownload, FaPrint } from 'react-icons/fa';
-import { Invoice, InvoiceStatusLabels, InvoiceStatusColors, PaymentMethodLabels } from '../../../types';
+import { FaTimes, FaFilePdf, FaEdit, FaDownload, FaPrint, FaTrashAlt } from 'react-icons/fa';
+import { Invoice, InvoiceStatus, InvoiceStatusLabels, InvoiceStatusColors, PaymentMethodLabels } from '../../../types';
+import { pdfInvoiceService } from '../../../api/pdfInvoiceService';
 
 interface InvoiceViewModalProps {
     isOpen: boolean;
     invoice: Invoice;
     onClose: () => void;
     onEdit: (invoice: Invoice) => void;
+    onStatusChange: (id: string, status: InvoiceStatus) => Promise<void>;
+    onDelete: (id: string) => Promise<void>;
+    onDownloadAttachment: (invoiceId: string) => void;
 }
 
 const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({
                                                                isOpen,
                                                                invoice,
                                                                onClose,
-                                                               onEdit
+                                                               onEdit,
+                                                               onStatusChange,
+                                                               onDelete,
+                                                               onDownloadAttachment
                                                            }) => {
+    const invoiceContentRef = useRef<HTMLDivElement>(null);
+
     if (!isOpen) return null;
 
     // Funkcja do formatowania daty
@@ -29,6 +38,26 @@ const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({
         return new Intl.NumberFormat('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
     };
 
+    // Obsługa wydruku faktury
+    const handlePrintInvoice = async () => {
+        try {
+            // Używamy serwisu do wydruku faktury
+            await pdfInvoiceService.printInvoice(invoice, 'invoice-content');
+        } catch (error) {
+            console.error('Błąd podczas drukowania faktury:', error);
+            alert('Wystąpił błąd podczas przygotowywania wydruku. Spróbuj ponownie później.');
+        }
+    };
+
+    // Obsługa zmiany statusu faktury
+    const handleStatusChange = (status: InvoiceStatus) => {
+        if (Object.values(InvoiceStatus).includes(status)) {
+            onStatusChange(invoice.id, status);
+        } else {
+            console.error('Nieprawidłowy status faktury:', status);
+        }
+    };
+
     return (
         <ModalOverlay>
             <ModalContainer>
@@ -40,11 +69,18 @@ const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({
                         <ActionButton title="Edytuj fakturę" onClick={() => onEdit(invoice)}>
                             <FaEdit />
                         </ActionButton>
-                        <ActionButton title="Pobierz fakturę" onClick={() => console.log('Pobieranie faktury')}>
+                        <ActionButton title="Pobierz fakturę" onClick={() => onDownloadAttachment(invoice.id)}>
                             <FaDownload />
                         </ActionButton>
-                        <ActionButton title="Drukuj fakturę" onClick={() => console.log('Drukowanie faktury')}>
+                        <ActionButton title="Drukuj fakturę" onClick={handlePrintInvoice}>
                             <FaPrint />
+                        </ActionButton>
+                        <ActionButton
+                            title="Usuń fakturę"
+                            className="delete"
+                            onClick={() => onDelete(invoice.id)}
+                        >
+                            <FaTrashAlt />
                         </ActionButton>
                         <CloseButton onClick={onClose}>
                             <FaTimes />
@@ -52,107 +88,114 @@ const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({
                     </ModalActions>
                 </ModalHeader>
                 <ModalContent>
-                    <InvoiceHeader>
-                        <div>
-                            <HeaderTitle>Faktura VAT</HeaderTitle>
-                            <InvoiceNumber>{invoice.number}</InvoiceNumber>
-                            <InvoiceTitle>{invoice.title}</InvoiceTitle>
-                        </div>
-                        <InvoiceStatus status={invoice.status}>
-                            {InvoiceStatusLabels[invoice.status]}
-                        </InvoiceStatus>
-                    </InvoiceHeader>
+                    {/* Zawartość faktury do wydruku - bez statusu i przycisków akcji */}
+                    <div id="invoice-content" ref={invoiceContentRef}>
+                        <InvoiceHeader>
+                            <div>
+                                <HeaderTitle>Faktura VAT</HeaderTitle>
+                                <InvoiceNumber>{invoice.number}</InvoiceNumber>
+                                <InvoiceTitle>{invoice.title}</InvoiceTitle>
+                            </div>
+                            {/* Status faktury nie jest wyświetlany w wersji do druku */}
+                        </InvoiceHeader>
 
-                    <InvoiceDetails>
-                        <DetailItem>
-                            <DetailLabel>Data wystawienia:</DetailLabel>
-                            <DetailValue>{formatDate(invoice.issuedDate)}</DetailValue>
-                        </DetailItem>
-                        <DetailItem>
-                            <DetailLabel>Termin płatności:</DetailLabel>
-                            <DetailValue>{formatDate(invoice.dueDate)}</DetailValue>
-                        </DetailItem>
-                        <DetailItem>
-                            <DetailLabel>Metoda płatności:</DetailLabel>
-                            <DetailValue>{PaymentMethodLabels[invoice.paymentMethod]}</DetailValue>
-                        </DetailItem>
-                        {invoice.protocolNumber && (
+                        <InvoiceDetails>
                             <DetailItem>
-                                <DetailLabel>Protokół:</DetailLabel>
-                                <DetailValue>
-                                    <ProtocolLink href={`/orders/car-reception/${invoice.protocolId}`}>
-                                        {invoice.protocolNumber}
-                                    </ProtocolLink>
-                                </DetailValue>
+                                <DetailLabel>Data wystawienia:</DetailLabel>
+                                <DetailValue>{formatDate(invoice.issuedDate)}</DetailValue>
                             </DetailItem>
-                        )}
-                    </InvoiceDetails>
+                            <DetailItem>
+                                <DetailLabel>Termin płatności:</DetailLabel>
+                                <DetailValue>{formatDate(invoice.dueDate)}</DetailValue>
+                            </DetailItem>
+                            <DetailItem>
+                                <DetailLabel>Metoda płatności:</DetailLabel>
+                                <DetailValue>{PaymentMethodLabels[invoice.paymentMethod]}</DetailValue>
+                            </DetailItem>
+                            {invoice.protocolNumber && (
+                                <DetailItem>
+                                    <DetailLabel>Protokół:</DetailLabel>
+                                    <DetailValue>
+                                        {invoice.protocolNumber}
+                                    </DetailValue>
+                                </DetailItem>
+                            )}
+                        </InvoiceDetails>
 
-                    <AddressSection>
-                        <AddressBlock>
-                            <AddressTitle>Sprzedawca</AddressTitle>
-                            <AddressName>{invoice.sellerName}</AddressName>
-                            {invoice.sellerTaxId && <AddressDetail>NIP: {invoice.sellerTaxId}</AddressDetail>}
-                            {invoice.sellerAddress && <AddressDetail>{invoice.sellerAddress}</AddressDetail>}
-                        </AddressBlock>
-                        <AddressBlock>
-                            <AddressTitle>Nabywca</AddressTitle>
-                            <AddressName>{invoice.buyerName}</AddressName>
-                            {invoice.buyerTaxId && <AddressDetail>NIP: {invoice.buyerTaxId}</AddressDetail>}
-                            {invoice.buyerAddress && <AddressDetail>{invoice.buyerAddress}</AddressDetail>}
-                        </AddressBlock>
-                    </AddressSection>
+                        <AddressSection>
+                            <AddressBlock>
+                                <AddressTitle>Sprzedawca</AddressTitle>
+                                <AddressName>{invoice.sellerName}</AddressName>
+                                {invoice.sellerTaxId && <AddressDetail>NIP: {invoice.sellerTaxId}</AddressDetail>}
+                                {invoice.sellerAddress && <AddressDetail>{invoice.sellerAddress}</AddressDetail>}
+                            </AddressBlock>
+                            <AddressBlock>
+                                <AddressTitle>Nabywca</AddressTitle>
+                                <AddressName>{invoice.buyerName}</AddressName>
+                                {invoice.buyerTaxId && <AddressDetail>NIP: {invoice.buyerTaxId}</AddressDetail>}
+                                {invoice.buyerAddress && <AddressDetail>{invoice.buyerAddress}</AddressDetail>}
+                            </AddressBlock>
+                        </AddressSection>
 
-                    <SectionTitle>Pozycje faktury</SectionTitle>
-                    <ItemsTable>
-                        <thead>
-                        <tr>
-                            <th>Lp.</th>
-                            <th>Nazwa</th>
-                            <th>Ilość</th>
-                            <th>Cena jedn. netto</th>
-                            <th>VAT %</th>
-                            <th>Wartość netto</th>
-                            <th>Wartość brutto</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {invoice.items.map((item, index) => (
-                            <tr key={item.id}>
-                                <td>{index + 1}</td>
-                                <td>
-                                    <ItemName>{item.name}</ItemName>
-                                    {item.description && <ItemDescription>{item.description}</ItemDescription>}
-                                </td>
-                                <td>{item.quantity}</td>
-                                <td>{formatAmount(item.unitPrice)} {invoice.currency}</td>
-                                <td>{item.taxRate}%</td>
-                                <td>{formatAmount(item.totalNet)} {invoice.currency}</td>
-                                <td>{formatAmount(item.totalGross)} {invoice.currency}</td>
+                        <SectionTitle>Pozycje faktury</SectionTitle>
+                        <ItemsTable>
+                            <thead>
+                            <tr>
+                                <th>Lp.</th>
+                                <th>Nazwa</th>
+                                <th>Ilość</th>
+                                <th>Cena jedn. netto</th>
+                                <th>VAT %</th>
+                                <th>Wartość netto</th>
+                                <th>Wartość brutto</th>
                             </tr>
-                        ))}
-                        </tbody>
-                        <tfoot>
-                        <tr>
-                            <td colSpan={5} style={{ textAlign: 'right', fontWeight: 'bold' }}>
-                                Razem:
-                            </td>
-                            <td>{formatAmount(invoice.totalNet)} {invoice.currency}</td>
-                            <td>{formatAmount(invoice.totalGross)} {invoice.currency}</td>
-                        </tr>
-                        </tfoot>
-                    </ItemsTable>
+                            </thead>
+                            <tbody>
+                            {invoice.items.map((item, index) => (
+                                <tr key={item.id}>
+                                    <td>{index + 1}</td>
+                                    <td>
+                                        <ItemName>{item.name}</ItemName>
+                                        {item.description && <ItemDescription>{item.description}</ItemDescription>}
+                                    </td>
+                                    <td>{item.quantity}</td>
+                                    <td>{formatAmount(item.unitPrice)} {invoice.currency}</td>
+                                    <td>{item.taxRate}%</td>
+                                    <td>{formatAmount(item.totalNet)} {invoice.currency}</td>
+                                    <td>{formatAmount(item.totalGross)} {invoice.currency}</td>
+                                </tr>
+                            ))}
+                            </tbody>
+                            <tfoot>
+                            <tr>
+                                <td colSpan={5} style={{ textAlign: 'right', fontWeight: 'bold' }}>
+                                    Razem:
+                                </td>
+                                <td>{formatAmount(invoice.totalNet)} {invoice.currency}</td>
+                                <td>{formatAmount(invoice.totalGross)} {invoice.currency}</td>
+                            </tr>
+                            </tfoot>
+                        </ItemsTable>
 
-                    {invoice.notes && (
-                        <>
-                            <SectionTitle>Uwagi</SectionTitle>
-                            <NotesSection>
-                                {invoice.notes}
-                            </NotesSection>
-                        </>
-                    )}
+                        {invoice.notes && (
+                            <>
+                                <SectionTitle>Uwagi</SectionTitle>
+                                <NotesSection>
+                                    {invoice.notes}
+                                </NotesSection>
+                            </>
+                        )}
+                    </div>
 
-                    {invoice.attachments.length > 0 && (
+                    {/* Status faktury - widoczny tylko w interfejsie, nie w wersji do druku */}
+                    <StatusDisplaySection>
+                        <StatusTitle>Status faktury:</StatusTitle>
+                        <StatusBadge status={invoice.status as InvoiceStatus}>
+                            {InvoiceStatusLabels[invoice.status]}
+                        </StatusBadge>
+                    </StatusDisplaySection>
+
+                    {invoice.attachments && invoice.attachments.length > 0 && (
                         <>
                             <SectionTitle>Załączniki</SectionTitle>
                             <AttachmentsList>
@@ -163,7 +206,13 @@ const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({
                                         <AttachmentSize>
                                             {Math.round(att.size / 1024)} KB
                                         </AttachmentSize>
-                                        <DownloadLink href="#" onClick={(e) => { e.preventDefault(); console.log(`Pobieranie załącznika: ${att.name}`); }}>
+                                        <DownloadLink
+                                            href="#"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                onDownloadAttachment(invoice.id);
+                                            }}
+                                        >
                                             <FaDownload />
                                         </DownloadLink>
                                     </AttachmentItem>
@@ -171,6 +220,26 @@ const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({
                             </AttachmentsList>
                         </>
                     )}
+
+                    <StatusActions>
+                        <StatusTitle>Zmień status faktury:</StatusTitle>
+                        <StatusButtons>
+                            {Object.entries(InvoiceStatusLabels).map(([key, label]) => {
+                                const status = key as InvoiceStatus;
+                                return (
+                                    <StatusButton
+                                        key={key}
+                                        status={status}
+                                        active={invoice.status === status}
+                                        onClick={() => handleStatusChange(status)}
+                                        disabled={invoice.status === status}
+                                    >
+                                        {label}
+                                    </StatusButton>
+                                );
+                            })}
+                        </StatusButtons>
+                    </StatusActions>
                 </ModalContent>
             </ModalContainer>
         </ModalOverlay>
@@ -234,9 +303,17 @@ const ActionButton = styled.button`
     align-items: center;
     justify-content: center;
     padding: 4px;
-    
+
     &:hover {
         color: #2980b9;
+    }
+
+    &.delete {
+        color: #e74c3c;
+
+        &:hover {
+            color: #c0392b;
+        }
     }
 `;
 
@@ -251,7 +328,7 @@ const CloseButton = styled.button`
     justify-content: center;
     padding: 0;
     margin-left: 8px;
-    
+
     &:hover {
         color: #34495e;
     }
@@ -287,7 +364,7 @@ const InvoiceTitle = styled.div`
     color: #7f8c8d;
 `;
 
-const InvoiceStatus = styled.div<{ status: string }>`
+const StatusBadge = styled.div<{ status: InvoiceStatus }>`
     display: inline-block;
     padding: 6px 12px;
     border-radius: 4px;
@@ -329,7 +406,7 @@ const AddressSection = styled.div`
     display: flex;
     gap: 24px;
     margin-bottom: 24px;
-    
+
     @media (max-width: 768px) {
         flex-direction: column;
     }
@@ -373,7 +450,7 @@ const ItemsTable = styled.table`
     border-collapse: collapse;
     margin-bottom: 24px;
     font-size: 14px;
-    
+
     th {
         padding: 12px 8px;
         background-color: #f8f9fa;
@@ -382,13 +459,13 @@ const ItemsTable = styled.table`
         color: #2c3e50;
         border-bottom: 2px solid #eef2f7;
     }
-    
+
     td {
         padding: 8px;
         border-bottom: 1px solid #eef2f7;
         vertical-align: middle;
     }
-    
+
     tbody tr:hover {
         background-color: #f8f9fa;
     }
@@ -432,7 +509,7 @@ const AttachmentItem = styled.div`
     border-radius: 4px;
     border: 1px solid #eef2f7;
     font-size: 14px;
-    
+
     svg {
         color: #e74c3c;
         font-size: 20px;
@@ -456,7 +533,7 @@ const DownloadLink = styled.a`
     align-items: center;
     justify-content: center;
     padding: 4px;
-    
+
     &:hover {
         color: #2980b9;
     }
@@ -466,9 +543,60 @@ const ProtocolLink = styled.a`
     color: #3498db;
     text-decoration: none;
     font-weight: 500;
-    
+
     &:hover {
         text-decoration: underline;
+    }
+`;
+
+const StatusDisplaySection = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 20px 0;
+    padding: 16px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    border: 1px solid #eef2f7;
+`;
+
+const StatusActions = styled.div`
+    margin-top: 24px;
+    border-top: 1px solid #eef2f7;
+    padding-top: 24px;
+`;
+
+const StatusTitle = styled.h4`
+    font-size: 16px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0 0 16px 0;
+`;
+
+const StatusButtons = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+`;
+
+const StatusButton = styled.button<{ status: InvoiceStatus; active: boolean }>`
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: ${props => props.active ? 'default' : 'pointer'};
+    background-color: ${props => props.active ? `${InvoiceStatusColors[props.status]}22` : 'white'};
+    color: ${props => InvoiceStatusColors[props.status]};
+    border: 1px solid ${props => `${InvoiceStatusColors[props.status]}44`};
+    opacity: ${props => props.active ? 1 : 0.7};
+    
+    &:hover:not(:disabled) {
+        opacity: 1;
+        background-color: ${props => `${InvoiceStatusColors[props.status]}11`};
+    }
+    
+    &:disabled {
+        cursor: default;
     }
 `;
 
