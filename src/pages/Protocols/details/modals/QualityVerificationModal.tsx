@@ -1,18 +1,35 @@
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { FaCheck, FaTimesCircle, FaTasks, FaClipboardCheck, FaExclamationTriangle } from 'react-icons/fa';
+import {FaCheck, FaTimesCircle, FaTasks, FaClipboardCheck, FaExclamationTriangle, FaBan} from 'react-icons/fa';
+import {CarReceptionProtocol} from "../../../../types";
 
 interface QualityVerificationModalProps {
     isOpen: boolean;
     onClose: () => void;
     onConfirm: () => void;
+    protocol: CarReceptionProtocol;
 }
 
 const QualityVerificationModal: React.FC<QualityVerificationModalProps> = ({
                                                                                isOpen,
                                                                                onClose,
-                                                                               onConfirm
+                                                                               onConfirm,
+                                                                               protocol
                                                                            }) => {
+    const [hasPendingServices, setHasPendingServices] = useState(false);
+    const [pendingServicesCount, setPendingServicesCount] = useState(0);
+
+    // Sprawdź, czy istnieją usługi w statusie "Oczekujące"
+    useEffect(() => {
+        if (protocol && protocol.selectedServices) {
+            const pendingServices = protocol.selectedServices.filter(
+                service => service.approvalStatus === 'PENDING'
+            );
+            setHasPendingServices(pendingServices.length > 0);
+            setPendingServicesCount(pendingServices.length);
+        }
+    }, [protocol]);
+
     if (!isOpen) return null;
 
     return (
@@ -30,12 +47,26 @@ const QualityVerificationModal: React.FC<QualityVerificationModalProps> = ({
                         Pracownik zgłosił zakończenie prac. Zweryfikuj jakość wykonanej pracy przed zmianą statusu zlecenia.
                     </ModalDescription>
 
-                    <AlertBox>
-                        <AlertIcon><FaExclamationTriangle /></AlertIcon>
-                        <AlertText>
-                            Potwierdzenie zmieni status zlecenia na "Oczekiwanie na odbiór". Upewnij się, że wszystkie prace zostały wykonane prawidłowo.
-                        </AlertText>
-                    </AlertBox>
+                    {hasPendingServices ? (
+                        <ErrorBox>
+                            <ErrorIcon><FaBan /></ErrorIcon>
+                            <ErrorText>
+                                <ErrorTitle>Oczekujące usługi wykryte</ErrorTitle>
+                                <ErrorDescription>
+                                    Zlecenie zawiera {pendingServicesCount} {pendingServicesCount === 1 ? 'usługę' :
+                                    pendingServicesCount < 5 ? 'usługi' : 'usług'} oczekujących na potwierdzenie.
+                                    Przed zmianą statusu należy zatwierdzić lub usunąć oczekujące usługi.
+                                </ErrorDescription>
+                            </ErrorText>
+                        </ErrorBox>
+                    ) : (
+                        <AlertBox>
+                            <AlertIcon><FaExclamationTriangle /></AlertIcon>
+                            <AlertText>
+                                Potwierdzenie zmieni status zlecenia na "Oczekiwanie na odbiór". Upewnij się, że wszystkie prace zostały wykonane prawidłowo.
+                            </AlertText>
+                        </AlertBox>
+                    )}
 
                     <ChecklistSection>
                         <ChecklistTitle>Lista kontrolna:</ChecklistTitle>
@@ -66,7 +97,8 @@ const QualityVerificationModal: React.FC<QualityVerificationModalProps> = ({
                     <RejectButton onClick={onClose}>
                         <FaTimesCircle /> Wymaga poprawek
                     </RejectButton>
-                    <ConfirmButton onClick={onConfirm}>
+
+                    <ConfirmButton onClick={onConfirm} disabled={hasPendingServices}>
                         <FaCheck /> Gotowe
                     </ConfirmButton>
                 </ModalFooter>
@@ -74,6 +106,41 @@ const QualityVerificationModal: React.FC<QualityVerificationModalProps> = ({
         </ModalOverlay>
     );
 };
+
+// Styl dla ErrorBox - ostrzeżenie o oczekujących usługach
+const ErrorBox = styled.div`
+    background-color: #fdecea;  // Jasne czerwone tło
+    border-left: 3px solid #e74c3c;  // Czerwony pasek z lewej strony
+    padding: 12px 15px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+`;
+
+const ErrorIcon = styled.div`
+    color: #e74c3c;  // Czerwona ikona
+    font-size: 16px;
+    margin-top: 2px;
+`;
+
+const ErrorText = styled.div`
+    flex: 1;
+`;
+
+const ErrorTitle = styled.div`
+    font-weight: 600;
+    color: #e74c3c;  // Czerwony tytuł błędu
+    margin-bottom: 4px;
+    font-size: 14px;
+`;
+
+const ErrorDescription = styled.div`
+    font-size: 13px;
+    color: #34495e;
+    line-height: 1.4;
+`;
 
 const ModalOverlay = styled.div`
     position: fixed;
@@ -241,13 +308,13 @@ const RejectButton = styled(Button)`
     }
 `;
 
-const ConfirmButton = styled(Button)`
-    background-color: #2ecc71;
+const ConfirmButton = styled(Button)<{ disabled?: boolean }>`
+    background-color: ${props => props.disabled ? '#bdc3c7' : '#2ecc71'};
     color: white;
     border: none;
 
     &:hover {
-        background-color: #27ae60;
+        background-color: ${props => props.disabled ? '#bdc3c7' : '#27ae60'};
     }
 `;
 

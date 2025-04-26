@@ -350,6 +350,7 @@ const ProtocolDetailsPage: React.FC = () => {
                 isOpen={showVerificationModal}
                 onClose={() => setShowVerificationModal(false)}
                 onConfirm={handleQualityVerified}
+                protocol={protocol}
             />
 
             {/* Modal powiadomienia klienta */}
