@@ -375,9 +375,9 @@ const CashPage: React.FC = () => {
                                         <TableCell>{transaction.description}</TableCell>
                                         <TableCell>{formatDate(transaction.date)}</TableCell>
                                         <TableCell>
-                                            {transaction.visitNumber ? (
-                                                <VisitLink href={`/orders/${transaction.visitId}`}>
-                                                    {transaction.visitNumber}
+                                            {transaction.visitId ? (
+                                                <VisitLink href={`/orders/car-reception/${transaction.visitId}`}>
+                                                    {`Wizyta ${transaction.visitId}`}
                                                 </VisitLink>
                                             ) : (
                                                 <NoVisit>-</NoVisit>

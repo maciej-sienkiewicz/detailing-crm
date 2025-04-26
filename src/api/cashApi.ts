@@ -22,6 +22,22 @@ const convertSnakeToCamel = (data: any): any => {
     }, {} as Record<string, any>);
 };
 
+const convertToSnakeCase = (obj: any): any => {
+    if (obj === null || typeof obj !== 'object') {
+        return obj;
+    }
+
+    if (Array.isArray(obj)) {
+        return obj.map(convertToSnakeCase);
+    }
+
+    return Object.keys(obj).reduce((acc, key) => {
+        const snakeKey = key.replace(/([A-Z])/g, "_$1").toLowerCase();
+        acc[snakeKey] = convertToSnakeCase(obj[key]);
+        return acc;
+    }, {} as any);
+};
+
 export const cashApi = {
     // Pobieranie transakcji gotówkowych z paginacją
     fetchCashTransactions: async (
@@ -43,14 +59,26 @@ export const cashApi = {
                 if (filters.dateFrom) queryParams.dateFrom = filters.dateFrom;
                 if (filters.dateTo) queryParams.dateTo = filters.dateTo;
                 if (filters.visitId) queryParams.visitId = filters.visitId;
-                if (filters.invoiceId) queryParams.invoiceId = filters.invoiceId;
                 if (filters.minAmount !== undefined) queryParams.minAmount = filters.minAmount.toString();
                 if (filters.maxAmount !== undefined) queryParams.maxAmount = filters.maxAmount.toString();
             }
 
             // Wywołanie API
-            const result =await apiClient.get<any>('/cash/transactions', queryParams);
-            return convertSnakeToCamel(result)
+            const result = await apiClient.get<any>('/cash/transactions', queryParams);
+            console.log('API Response:', result); // Logowanie odpowiedzi dla debugowania
+
+            // Konwersja odpowiedzi na oczekiwany format
+            const convertedData = convertSnakeToCamel(result.data || []);
+
+            return {
+                data: convertedData,
+                pagination: {
+                    currentPage: result.page || 0,
+                    pageSize: result.size || 10,
+                    totalItems: result.total_items || 0,
+                    totalPages: result.total_pages || 0
+                }
+            };
         } catch (error) {
             console.error('Error fetching cash transactions:', error);
             throw error;
@@ -70,7 +98,9 @@ export const cashApi = {
     // Dodawanie nowej transakcji
     createCashTransaction: async (transaction: Omit<CashTransaction, 'id' | 'createdAt' | 'createdBy'>): Promise<CashTransaction> => {
         try {
-            return await apiClient.post<CashTransaction>('/cash/transactions', transaction);
+            console.log('Creating cash transaction');
+            console.log(transaction);
+            return await apiClient.post<CashTransaction>('/cash/transactions', convertToSnakeCase(transaction));
         } catch (error) {
             console.error('Error creating cash transaction:', error);
             throw error;

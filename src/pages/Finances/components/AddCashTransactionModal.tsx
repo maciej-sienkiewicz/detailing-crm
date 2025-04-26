@@ -21,10 +21,7 @@ const AddCashTransactionModal: React.FC<AddCashTransactionModalProps> = ({
         description: '',
         date: new Date().toISOString().split('T')[0],
         amount: 0,
-        visitId: undefined,
-        visitNumber: undefined,
-        invoiceId: undefined,
-        invoiceNumber: undefined
+        visitId: undefined
     });
 
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -37,10 +34,7 @@ const AddCashTransactionModal: React.FC<AddCashTransactionModalProps> = ({
                 description: transaction.description,
                 date: transaction.date.split('T')[0], // Upewniamy się, że mamy tylko datę bez części czasowej
                 amount: transaction.amount,
-                visitId: transaction.visitId,
-                visitNumber: transaction.visitNumber,
-                invoiceId: transaction.invoiceId,
-                invoiceNumber: transaction.invoiceNumber
+                visitId: transaction.visitId
             });
         } else {
             // Reset formularza dla nowej transakcji
@@ -49,10 +43,7 @@ const AddCashTransactionModal: React.FC<AddCashTransactionModalProps> = ({
                 description: '',
                 date: new Date().toISOString().split('T')[0],
                 amount: 0,
-                visitId: undefined,
-                visitNumber: undefined,
-                invoiceId: undefined,
-                invoiceNumber: undefined
+                visitId: undefined
             });
         }
     }, [transaction]);
@@ -67,6 +58,11 @@ const AddCashTransactionModal: React.FC<AddCashTransactionModalProps> = ({
             setFormData(prev => ({
                 ...prev,
                 [name]: isNaN(numericValue) ? 0 : numericValue
+            }));
+        } else if (name === 'visitId') {
+            setFormData(prev => ({
+                ...prev,
+                [name]: value.trim() === '' ? undefined : value
             }));
         } else {
             setFormData(prev => ({ ...prev, [name]: value }));
@@ -103,6 +99,7 @@ const AddCashTransactionModal: React.FC<AddCashTransactionModalProps> = ({
         e.preventDefault();
 
         if (validateForm()) {
+            console.log(formData)
             onSave(formData);
         }
     };
@@ -192,53 +189,16 @@ const AddCashTransactionModal: React.FC<AddCashTransactionModalProps> = ({
                                 </FormGroup>
                             </FormGroupRow>
 
-                            <FormGroupRow>
-                                <FormGroup>
-                                    <Label htmlFor="visitId">ID wizyty (opcjonalnie)</Label>
-                                    <Input
-                                        id="visitId"
-                                        name="visitId"
-                                        value={formData.visitId || ''}
-                                        onChange={handleChange}
-                                        placeholder="ID powiązanej wizyty"
-                                    />
-                                </FormGroup>
-
-                                <FormGroup>
-                                    <Label htmlFor="visitNumber">Numer wizyty (opcjonalnie)</Label>
-                                    <Input
-                                        id="visitNumber"
-                                        name="visitNumber"
-                                        value={formData.visitNumber || ''}
-                                        onChange={handleChange}
-                                        placeholder="Np. WIZ/2024/123"
-                                    />
-                                </FormGroup>
-                            </FormGroupRow>
-
-                            <FormGroupRow>
-                                <FormGroup>
-                                    <Label htmlFor="invoiceId">ID faktury (opcjonalnie)</Label>
-                                    <Input
-                                        id="invoiceId"
-                                        name="invoiceId"
-                                        value={formData.invoiceId || ''}
-                                        onChange={handleChange}
-                                        placeholder="ID powiązanej faktury"
-                                    />
-                                </FormGroup>
-
-                                <FormGroup>
-                                    <Label htmlFor="invoiceNumber">Numer faktury (opcjonalnie)</Label>
-                                    <Input
-                                        id="invoiceNumber"
-                                        name="invoiceNumber"
-                                        value={formData.invoiceNumber || ''}
-                                        onChange={handleChange}
-                                        placeholder="Np. FV/2024/123"
-                                    />
-                                </FormGroup>
-                            </FormGroupRow>
+                            <FormGroup>
+                                <Label htmlFor="visitId">ID wizyty (opcjonalnie)</Label>
+                                <Input
+                                    id="visitId"
+                                    name="visitId"
+                                    value={formData.visitId || ''}
+                                    onChange={handleChange}
+                                    placeholder="ID powiązanej wizyty"
+                                />
+                            </FormGroup>
 
                             <HelpText>
                                 Pola oznaczone * są wymagane.

@@ -26,9 +26,6 @@ export interface CashTransaction {
     description: string;
     date: string;
     visitId?: string;      // Powiązana wizyta (opcjonalne)
-    visitNumber?: string;  // Numer wizyty (opcjonalne)
-    invoiceId?: string;    // Powiązana faktura (opcjonalne)
-    invoiceNumber?: string; // Numer faktury (opcjonalne)
     amount: number;
     createdAt: string;
     createdBy: string;     // ID użytkownika, który wprowadził transakcję
@@ -41,7 +38,6 @@ export interface CashTransactionFilters {
     dateFrom?: string;
     dateTo?: string;
     visitId?: string;
-    invoiceId?: string;
     minAmount?: number;
     maxAmount?: number;
 }
