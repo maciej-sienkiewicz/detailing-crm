@@ -5,7 +5,7 @@ import { FaEdit, FaTimes, FaCheck, FaPlus, FaTag } from 'react-icons/fa';
 interface ImageEditModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (name: string, tags: string[]) => void;
+    onSave: (name: string, tags: string[], e?: React.MouseEvent) => void;
     initialName: string;
     initialTags: string[];
     imageUrl: string;
@@ -31,34 +31,57 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({
 
     if (!isOpen) return null;
 
-    const handleAddTag = () => {
+    const handleAddTag = (e: React.MouseEvent) => {
+        // Prevent form submission
+        e.preventDefault();
+        e.stopPropagation();
+
         if (newTag.trim() && !tags.includes(newTag.trim())) {
             setTags([...tags, newTag.trim()]);
             setNewTag('');
         }
     };
 
-    const handleRemoveTag = (tagToRemove: string) => {
+    const handleRemoveTag = (tagToRemove: string, e: React.MouseEvent) => {
+        // Prevent form submission
+        e.preventDefault();
+        e.stopPropagation();
+
         setTags(tags.filter(tag => tag !== tagToRemove));
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
             e.preventDefault();
-            handleAddTag();
+            if (newTag.trim() && !tags.includes(newTag.trim())) {
+                setTags([...tags, newTag.trim()]);
+                setNewTag('');
+            }
         }
     };
 
-    const handleSave = () => {
-        onSave(name, tags);
+    const handleSave = (e: React.MouseEvent) => {
+        // Prevent form submission
+        e.preventDefault();
+        e.stopPropagation();
+
+        onSave(name, tags, e);
+    };
+
+    const handleCloseModal = (e: React.MouseEvent) => {
+        // Prevent form submission
+        e.preventDefault();
+        e.stopPropagation();
+
+        onClose();
     };
 
     return (
-        <ModalOverlay>
-            <ModalContainer>
+        <ModalOverlay onClick={(e) => e.stopPropagation()}>
+            <ModalContainer onClick={(e) => e.stopPropagation()}>
                 <ModalHeader>
                     <ModalTitle><FaEdit /> Edytuj informacje o zdjęciu</ModalTitle>
-                    <CloseButton onClick={onClose}><FaTimes /></CloseButton>
+                    <CloseButton type="button" onClick={handleCloseModal}><FaTimes /></CloseButton>
                 </ModalHeader>
                 <ModalBody>
                     <ImagePreview src={imageUrl} alt="Podgląd zdjęcia" />
@@ -83,7 +106,7 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({
                                 onKeyDown={handleKeyDown}
                                 placeholder="Dodaj tagi (np. przód, lewy bok)"
                             />
-                            <AddTagButton onClick={handleAddTag} disabled={!newTag.trim()}>
+                            <AddTagButton type="button" onClick={handleAddTag} disabled={!newTag.trim()}>
                                 <FaPlus />
                             </AddTagButton>
                         </TagInput>
@@ -97,7 +120,7 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({
                                 <TagBadge key={index}>
                                     <TagIcon><FaTag /></TagIcon>
                                     <TagText>{tag}</TagText>
-                                    <RemoveTagButton onClick={() => handleRemoveTag(tag)}>
+                                    <RemoveTagButton type="button" onClick={(e) => handleRemoveTag(tag, e)}>
                                         <FaTimes />
                                     </RemoveTagButton>
                                 </TagBadge>
@@ -106,10 +129,10 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({
                     </FormGroup>
                 </ModalBody>
                 <ModalFooter>
-                    <CancelButton onClick={onClose}>
+                    <CancelButton type="button" onClick={handleCloseModal}>
                         <FaTimes /> Anuluj
                     </CancelButton>
-                    <SaveButton onClick={handleSave}>
+                    <SaveButton type="button" onClick={handleSave}>
                         <FaCheck /> Zapisz zmiany
                     </SaveButton>
                 </ModalFooter>
@@ -166,7 +189,7 @@ const CloseButton = styled.button`
     font-size: 20px;
     cursor: pointer;
     color: #7f8c8d;
-    
+
     &:hover {
         color: #34495e;
     }
@@ -196,7 +219,7 @@ const ImagePreview = styled.img`
 
 const FormGroup = styled.div`
     margin-bottom: 20px;
-    
+
     &:last-child {
         margin-bottom: 0;
     }
@@ -216,7 +239,7 @@ const Input = styled.input`
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 14px;
-    
+
     &:focus {
         outline: none;
         border-color: #3498db;
@@ -240,11 +263,11 @@ const AddTagButton = styled.button`
     border-radius: 4px;
     width: 36px;
     cursor: pointer;
-    
+
     &:hover:not(:disabled) {
         background-color: #2980b9;
     }
-    
+
     &:disabled {
         background-color: #95a5a6;
         cursor: not-allowed;
@@ -296,7 +319,7 @@ const RemoveTagButton = styled.button`
     display: flex;
     align-items: center;
     opacity: 0.7;
-    
+
     &:hover {
         opacity: 1;
     }
@@ -313,7 +336,7 @@ const CancelButton = styled.button`
     border-radius: 4px;
     font-size: 14px;
     cursor: pointer;
-    
+
     &:hover {
         background-color: #f5f5f5;
     }
@@ -330,7 +353,7 @@ const SaveButton = styled.button`
     border-radius: 4px;
     font-size: 14px;
     cursor: pointer;
-    
+
     &:hover {
         background-color: #2980b9;
     }

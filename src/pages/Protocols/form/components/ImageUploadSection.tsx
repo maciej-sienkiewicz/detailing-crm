@@ -114,7 +114,13 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
     };
 
     // Obsługuje usuwanie zdjęcia
-    const handleRemoveImage = (imageId: string) => {
+    const handleRemoveImage = (imageId: string, e?: React.MouseEvent) => {
+        // Prevent default if the event is provided
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
         const imageToRemove = images.find(img => img.id === imageId);
 
         // Jeśli to jest blobURL, zwalniamy zasoby przeglądarki
@@ -149,7 +155,9 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
     };
 
     // Obsługuje otwieranie podglądu zdjęcia
-    const handleOpenPreview = (index: number) => {
+    const handleOpenPreview = (index: number, e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
         setPreviewImageIndex(index);
         setPreviewModalOpen(true);
     };
@@ -157,6 +165,7 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
     // Obsługuje otwieranie modalu edycji informacji o zdjęciu
     const handleEditImage = (index: number, e: React.MouseEvent) => {
         e.stopPropagation(); // Zatrzymuje propagację, żeby nie otworzyć modalu podglądu
+        e.preventDefault(); // Zatrzymaj domyślną akcję formularza
         setEditingImageIndex(index);
         setEditModalOpen(true);
     };
@@ -269,7 +278,7 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
                 <ImagesList>
                     {images.map((image, index) => (
                         <ImageItem key={image.id}>
-                            <ImageThumbnail onClick={() => handleOpenPreview(index)}>
+                            <ImageThumbnail onClick={(e) => handleOpenPreview(index, e)}>
                                 <img src={getImageUrl(image)} alt={image.name || 'Zdjęcie'} />
                                 <ViewOverlay>
                                     <FaEye />
@@ -278,7 +287,7 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
                             <ImageInfo>
                                 <ImageNameContainer>
                                     <ImageName>{image.name || 'Bez nazwy'}</ImageName>
-                                    <EditButton onClick={(e) => handleEditImage(index, e)}>
+                                    <EditButton type="button" onClick={(e) => handleEditImage(index, e)}>
                                         <FaEdit />
                                     </EditButton>
                                 </ImageNameContainer>
@@ -300,7 +309,7 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
                                     </TagsList>
                                 )}
                             </ImageInfo>
-                            <RemoveButton onClick={() => handleRemoveImage(image.id)}>
+                            <RemoveButton type="button" onClick={(e) => handleRemoveImage(image.id, e)}>
                                 <FaTrash />
                             </RemoveButton>
                         </ImageItem>
