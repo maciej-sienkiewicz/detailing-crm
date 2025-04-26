@@ -45,6 +45,22 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
     const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
     const [serviceToEdit, setServiceToEdit] = useState<(Service & { isNew?: boolean }) | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [allServices, setAllServices] = useState<Array<{ id: string; name: string; price: number }>>([]);
+    const [isInputFocused, setIsInputFocused] = useState(false);
+
+    // Pobierz wszystkie usługi przy inicjalizacji komponentu
+    useEffect(() => {
+        const fetchAllServices = async () => {
+            try {
+                const services = await servicesApi.fetchServices();
+                setAllServices(services);
+            } catch (error) {
+                console.error('Błąd podczas pobierania wszystkich usług:', error);
+            }
+        };
+
+        fetchAllServices();
+    }, []);
 
     // Sprawdzenie, czy to niestandardowa usługa
     const isCustomService = searchQuery.trim() !== '' &&
@@ -187,6 +203,26 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
         }
     };
 
+    // Obsługa focus i blur na polu wyszukiwania
+    const handleInputFocus = () => {
+        setIsInputFocused(true);
+
+        // Wyświetl wszystkie usługi, gdy pole jest puste i otrzyma focus
+        if (searchQuery.trim() === '') {
+            onSearchChange({ target: { value: '' } } as React.ChangeEvent<HTMLInputElement>);
+        }
+    };
+
+    const handleInputBlur = () => {
+        // Opóźnij ukrycie wyników, aby umożliwić kliknięcie na nich
+        setTimeout(() => {
+            setIsInputFocused(false);
+        }, 200);
+    };
+
+    // Ustal, czy pokazać wyniki wyszukiwania
+    const shouldShowResults = isInputFocused && (showResults || searchQuery.trim() === '');
+
     return (
         <SearchContainer>
             <SearchInputGroup>
@@ -199,20 +235,48 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
                         placeholder="Wyszukaj usługę..."
                         value={searchQuery}
                         onChange={onSearchChange}
+                        onFocus={handleInputFocus}
+                        onBlur={handleInputBlur}
                     />
                 </SearchInputWrapper>
 
-                {showResults && searchResults.length > 0 && (
+                {shouldShowResults && (
                     <SearchResultsList>
-                        {searchResults.map(service => (
-                            <SearchResultItem
-                                key={service.id}
-                                onClick={() => handleServiceClick(service)}
-                            >
-                                <div>{service.name}</div>
-                                <SearchResultPrice>{service.price.toFixed(2)} zł</SearchResultPrice>
+                        {searchQuery.trim() === '' ? (
+                            // Pokaż wszystkie dostępne usługi, gdy pole jest puste
+                            allServices.length > 0 ? (
+                                allServices
+                                    .filter(service => !selectedServiceToAdd || service.id !== selectedServiceToAdd.id)
+                                    .map(service => (
+                                        <SearchResultItem
+                                            key={service.id}
+                                            onClick={() => handleServiceClick(service)}
+                                        >
+                                            <div>{service.name}</div>
+                                            <SearchResultPrice>{service.price.toFixed(2)} zł</SearchResultPrice>
+                                        </SearchResultItem>
+                                    ))
+                            ) : (
+                                <SearchResultItem>
+                                    <div>Brak dostępnych usług</div>
+                                </SearchResultItem>
+                            )
+                        ) : searchResults.length > 0 ? (
+                            // Pokaż wyniki wyszukiwania, gdy pole nie jest puste
+                            searchResults.map(service => (
+                                <SearchResultItem
+                                    key={service.id}
+                                    onClick={() => handleServiceClick(service)}
+                                >
+                                    <div>{service.name}</div>
+                                    <SearchResultPrice>{service.price.toFixed(2)} zł</SearchResultPrice>
+                                </SearchResultItem>
+                            ))
+                        ) : (
+                            <SearchResultItem>
+                                <div>Brak wyników dla "{searchQuery}"</div>
                             </SearchResultItem>
-                        ))}
+                        )}
                     </SearchResultsList>
                 )}
 
