@@ -483,7 +483,6 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                         <FooterCell>
                             <PriceWrapper>
                                 <TotalValue>{totalBaseGrossValue.toFixed(2)} zł</TotalValue>
-                                <PriceType>brutto</PriceType>
                                 {allServices.filter(s => s.approvalStatus === ServiceApprovalStatus.PENDING).length > 0 && (
                                     <PendingValue>
                                         + {allServices
@@ -491,6 +490,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                                         .reduce((sum, s) => sum + s.price, 0).toFixed(2)} zł
                                     </PendingValue>
                                 )}
+                                <PriceType>brutto</PriceType>
                                 <TotalValue>{totalBaseNetValue.toFixed(2)} zł</TotalValue>
                                 <PendingValue>
                                     + {calculateNetPrice(allServices
