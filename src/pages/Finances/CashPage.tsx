@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { FaSearch, FaPlus, FaMoneyBillWave, FaEdit, FaTrashAlt, FaCalendarAlt, FaArrowUp, FaArrowDown, FaFilter, FaTimes } from 'react-icons/fa';
-import { CashTransaction, TransactionType, TransactionTypeLabels, TransactionTypeColors, CashTransactionFilters, Pagination as PaginationType } from '../../types/cash';
+import { CashTransaction, TransactionType, TransactionTypeLabels, TransactionTypeColors, CashTransactionFilters } from '../../types/cash';
 import { cashApi } from '../../api/cashApi';
 import AddCashTransactionModal from './components/AddCashTransactionModal';
 import ConfirmationDialog from '../../components/common/ConfirmationDialog';
@@ -22,19 +22,19 @@ const CashPage: React.FC = () => {
     const [monthlyExpense, setMonthlyExpense] = useState<number>(0);
 
     // Stan dla paginacji
-    const [pagination, setPagination] = useState<PaginationType>({
-        page: 1,
+    const [pagination, setPagination] = useState({
+        currentPage: 0,
         pageSize: 10,
         totalItems: 0,
         totalPages: 0
     });
 
-    // Pobieranie danych przy pierwszym renderowaniu i przy zmianie filtrów lub strony
+    // Pobieranie danych przy pierwszym renderowaniu i przy zmianie strony
     useEffect(() => {
         fetchTransactions();
         fetchCashBalance();
         fetchMonthlyStatistics();
-    }, [pagination.page]); // Wywołanie przy zmianie strony
+    }, [pagination.currentPage]); // Wywołanie przy zmianie strony
 
     // Funkcja pobierająca statystyki miesięczne
     const fetchMonthlyStatistics = async () => {
@@ -53,12 +53,18 @@ const CashPage: React.FC = () => {
             setLoading(true);
             const response = await cashApi.fetchCashTransactions(
                 filters,
-                pagination.page,
+                pagination.currentPage,
                 pagination.pageSize
             );
 
             setTransactions(response.data);
-            setPagination(response.pagination);
+            setPagination({
+                currentPage: response.pagination.currentPage,
+                pageSize: response.pagination.pageSize,
+                totalItems: response.pagination.totalItems,
+                totalPages: response.pagination.totalPages
+            });
+
             setError(null);
         } catch (err) {
             console.error('Błąd podczas pobierania transakcji:', err);
@@ -83,7 +89,7 @@ const CashPage: React.FC = () => {
     const handlePageChange = (newPage: number) => {
         setPagination(prev => ({
             ...prev,
-            page: newPage
+            page: newPage - 1 // API używa indeksowania od 0, a komponent paginacji od 1
         }));
     };
 
@@ -120,34 +126,20 @@ const CashPage: React.FC = () => {
         try {
             setLoading(true);
 
-            const newTransaction = await cashApi.createCashTransaction(transaction);
-
-            // Jeśli jesteśmy na pierwszej stronie, dodajemy nową transakcję na początku listy
-            if (pagination.page === 1) {
-                setTransactions(prevTransactions => {
-                    const updatedTransactions = [newTransaction, ...prevTransactions];
-
-                    // Jeśli lista jest dłuższa niż rozmiar strony, usuwamy ostatni element
-                    if (updatedTransactions.length > pagination.pageSize) {
-                        updatedTransactions.pop();
-                    }
-
-                    return updatedTransactions;
-                });
+            // Jeśli mamy selectedTransaction, to aktualizujemy istniejącą transakcję
+            if (selectedTransaction) {
+                await cashApi.updateCashTransaction(selectedTransaction.id, transaction);
+            } else {
+                // W przeciwnym razie tworzymy nową
+                await cashApi.createCashTransaction(transaction);
             }
 
-            // Aktualizacja całkowitej liczby elementów
-            setPagination(prev => ({
-                ...prev,
-                totalItems: prev.totalItems + 1,
-                totalPages: Math.ceil((prev.totalItems + 1) / prev.pageSize)
-            }));
-
-            // Aktualizacja stanu kasy i statystyk
+            // Odświeżamy dane
+            await fetchTransactions();
             await fetchCashBalance();
             await fetchMonthlyStatistics();
 
-            // Zamknięcie modalu
+            // Zamykamy modal
             setShowAddModal(false);
 
         } catch (error) {
@@ -172,32 +164,8 @@ const CashPage: React.FC = () => {
             const success = await cashApi.deleteCashTransaction(transactionToDelete);
 
             if (success) {
-                // Usunięcie transakcji z listy
-                setTransactions(prevTransactions =>
-                    prevTransactions.filter(t => t.id !== transactionToDelete)
-                );
-
-                // Aktualizacja całkowitej liczby elementów
-                setPagination(prev => {
-                    const newTotalItems = Math.max(0, prev.totalItems - 1);
-                    const newTotalPages = Math.max(1, Math.ceil(newTotalItems / prev.pageSize));
-
-                    // Jeśli usunęliśmy ostatni element na stronie, a nie jesteśmy na pierwszej stronie,
-                    // przechodzimy do poprzedniej strony
-                    let newPage = prev.page;
-                    if (transactions.length === 1 && prev.page > 1) {
-                        newPage = prev.page - 1;
-                    }
-
-                    return {
-                        ...prev,
-                        page: newPage,
-                        totalItems: newTotalItems,
-                        totalPages: newTotalPages
-                    };
-                });
-
-                // Aktualizacja stanu kasy i statystyk
+                // Odświeżamy dane
+                await fetchTransactions();
                 await fetchCashBalance();
                 await fetchMonthlyStatistics();
             } else {
@@ -227,10 +195,10 @@ const CashPage: React.FC = () => {
     // Obsługa wysyłki formularza filtrów
     const handleSubmitFilters = (e: React.FormEvent) => {
         e.preventDefault();
-        // Resetuj stronę na 1 przy zmianie filtrów
+        // Resetowanie strony przy zmianie filtrów
         setPagination(prev => ({
             ...prev,
-            page: 1
+            page: 0
         }));
         fetchTransactions();
     };
@@ -446,7 +414,7 @@ const CashPage: React.FC = () => {
                     {/* Komponent paginacji */}
                     {transactions.length > 0 && (
                         <Pagination
-                            currentPage={pagination.page}
+                            currentPage={pagination.currentPage + 1} // Konwersja z indeksowania od 0 do indeksowania od 1
                             totalPages={pagination.totalPages}
                             onPageChange={handlePageChange}
                             totalItems={pagination.totalItems}

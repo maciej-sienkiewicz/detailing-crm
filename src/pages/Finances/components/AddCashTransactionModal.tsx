@@ -21,6 +21,10 @@ const AddCashTransactionModal: React.FC<AddCashTransactionModalProps> = ({
         description: '',
         date: new Date().toISOString().split('T')[0],
         amount: 0,
+        visitId: undefined,
+        visitNumber: undefined,
+        invoiceId: undefined,
+        invoiceNumber: undefined
     });
 
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -31,10 +35,12 @@ const AddCashTransactionModal: React.FC<AddCashTransactionModalProps> = ({
             setFormData({
                 type: transaction.type,
                 description: transaction.description,
-                date: new Date(transaction.date).toISOString().split('T')[0],
+                date: transaction.date.split('T')[0], // Upewniamy się, że mamy tylko datę bez części czasowej
+                amount: transaction.amount,
                 visitId: transaction.visitId,
                 visitNumber: transaction.visitNumber,
-                amount: transaction.amount,
+                invoiceId: transaction.invoiceId,
+                invoiceNumber: transaction.invoiceNumber
             });
         } else {
             // Reset formularza dla nowej transakcji
@@ -43,6 +49,10 @@ const AddCashTransactionModal: React.FC<AddCashTransactionModalProps> = ({
                 description: '',
                 date: new Date().toISOString().split('T')[0],
                 amount: 0,
+                visitId: undefined,
+                visitNumber: undefined,
+                invoiceId: undefined,
+                invoiceNumber: undefined
             });
         }
     }, [transaction]);
@@ -182,17 +192,57 @@ const AddCashTransactionModal: React.FC<AddCashTransactionModalProps> = ({
                                 </FormGroup>
                             </FormGroupRow>
 
-                            <FormGroup>
-                                <Label htmlFor="visitNumber">Powiązana wizyta (opcjonalnie)</Label>
-                                <Input
-                                    id="visitNumber"
-                                    name="visitNumber"
-                                    value={formData.visitNumber || ''}
-                                    onChange={handleChange}
-                                    placeholder="Np. WIZ/2024/123"
-                                />
-                                <HelpText>Wprowadź numer wizyty, jeśli transakcja jest powiązana z konkretną wizytą.</HelpText>
-                            </FormGroup>
+                            <FormGroupRow>
+                                <FormGroup>
+                                    <Label htmlFor="visitId">ID wizyty (opcjonalnie)</Label>
+                                    <Input
+                                        id="visitId"
+                                        name="visitId"
+                                        value={formData.visitId || ''}
+                                        onChange={handleChange}
+                                        placeholder="ID powiązanej wizyty"
+                                    />
+                                </FormGroup>
+
+                                <FormGroup>
+                                    <Label htmlFor="visitNumber">Numer wizyty (opcjonalnie)</Label>
+                                    <Input
+                                        id="visitNumber"
+                                        name="visitNumber"
+                                        value={formData.visitNumber || ''}
+                                        onChange={handleChange}
+                                        placeholder="Np. WIZ/2024/123"
+                                    />
+                                </FormGroup>
+                            </FormGroupRow>
+
+                            <FormGroupRow>
+                                <FormGroup>
+                                    <Label htmlFor="invoiceId">ID faktury (opcjonalnie)</Label>
+                                    <Input
+                                        id="invoiceId"
+                                        name="invoiceId"
+                                        value={formData.invoiceId || ''}
+                                        onChange={handleChange}
+                                        placeholder="ID powiązanej faktury"
+                                    />
+                                </FormGroup>
+
+                                <FormGroup>
+                                    <Label htmlFor="invoiceNumber">Numer faktury (opcjonalnie)</Label>
+                                    <Input
+                                        id="invoiceNumber"
+                                        name="invoiceNumber"
+                                        value={formData.invoiceNumber || ''}
+                                        onChange={handleChange}
+                                        placeholder="Np. FV/2024/123"
+                                    />
+                                </FormGroup>
+                            </FormGroupRow>
+
+                            <HelpText>
+                                Pola oznaczone * są wymagane.
+                            </HelpText>
                         </FormSection>
 
                         <FormActions>
@@ -292,7 +342,7 @@ const FormGroupRow = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 16px;
-    
+
     @media (max-width: 576px) {
         grid-template-columns: 1fr;
     }
@@ -308,7 +358,7 @@ const TypeSelector = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
-    
+
     @media (max-width: 576px) {
         grid-template-columns: 1fr;
     }
@@ -327,11 +377,11 @@ const TypeOption = styled.div<{ type: TransactionType; isSelected: boolean }>`
     color: ${props => props.isSelected ? (props.type === TransactionType.INCOME ? '#2ecc71' : '#e74c3c') : '#34495e'};
     font-weight: ${props => props.isSelected ? '600' : '400'};
     transition: all 0.2s ease;
-    
+
     &:hover {
         background-color: ${props => props.type === TransactionType.INCOME ? '#2ecc7122' : '#e74c3c22'};
     }
-    
+
     svg {
         font-size: 16px;
     }
@@ -393,14 +443,15 @@ const ErrorText = styled.div`
 const HelpText = styled.div`
     color: #7f8c8d;
     font-size: 12px;
-    margin-top: 4px;
+    margin-top: 8px;
+    font-style: italic;
 `;
 
 const FormActions = styled.div`
     display: flex;
     justify-content: flex-end;
     gap: 12px;
-    
+
     @media (max-width: 576px) {
         flex-direction: column-reverse;
     }
@@ -416,7 +467,7 @@ const Button = styled.button`
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
-    
+
     @media (max-width: 576px) {
         width: 100%;
     }

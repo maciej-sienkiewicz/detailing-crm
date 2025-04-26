@@ -27,6 +27,8 @@ export interface CashTransaction {
     date: string;
     visitId?: string;      // Powiązana wizyta (opcjonalne)
     visitNumber?: string;  // Numer wizyty (opcjonalne)
+    invoiceId?: string;    // Powiązana faktura (opcjonalne)
+    invoiceNumber?: string; // Numer faktury (opcjonalne)
     amount: number;
     createdAt: string;
     createdBy: string;     // ID użytkownika, który wprowadził transakcję
@@ -34,25 +36,26 @@ export interface CashTransaction {
 
 // Typ dla filtrów wyszukiwania transakcji
 export interface CashTransactionFilters {
-    type?: TransactionType;
+    type?: TransactionType | string;
     description?: string;
     dateFrom?: string;
     dateTo?: string;
     visitId?: string;
+    invoiceId?: string;
     minAmount?: number;
     maxAmount?: number;
 }
 
-// Informacje o paginacji
-export interface Pagination {
-    page: number;
-    pageSize: number;
+// Informacje o paginacji (dostosowane do odpowiedzi z backendu)
+export interface PaginationInfo {
     totalItems: number;
     totalPages: number;
+    currentPage: number;
+    pageSize: number;
 }
 
 // Odpowiedź API z paginacją
 export interface PaginatedResponse<T> {
     data: T[];
-    pagination: Pagination;
+    pagination: PaginationInfo;
 }
