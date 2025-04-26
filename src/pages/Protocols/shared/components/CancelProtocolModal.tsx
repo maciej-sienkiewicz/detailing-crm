@@ -77,7 +77,7 @@ const CancelProtocolModal: React.FC<CancelProtocolModalProps> = ({
                             onClick={() => setSelectedReason('NOT_RELEVANT')}
                         >
                             <RadioButton selected={selectedReason === 'NOT_RELEVANT'} />
-                            <ReasonText>Nieistotne</ReasonText>
+                            <ReasonText>Inny powód (nieistotny) </ReasonText>
                         </ReasonOption>
                     </FormGroup>
                 </ModalBody>
