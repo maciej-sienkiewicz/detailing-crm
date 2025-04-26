@@ -11,8 +11,8 @@ import {
     FaPlus,
     FaTags,
     FaTimesCircle,
-    FaUser,
-    FaTrash
+    FaTrash,
+    FaUser
 } from 'react-icons/fa';
 import {
     CarReceptionProtocol,
@@ -223,7 +223,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
         let totalDiscountGrossValue = 0;
         let totalDiscountNetValue = 0;
 
-        protocol.selectedServices.forEach(service => {
+        protocol.selectedServices.filter(s => s.approvalStatus === ServiceApprovalStatus.APPROVED).forEach(service => {
             const {
                 finalNetPrice,
                 finalGrossPrice,
@@ -484,7 +484,19 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                             <PriceWrapper>
                                 <TotalValue>{totalBaseGrossValue.toFixed(2)} zł</TotalValue>
                                 <PriceType>brutto</PriceType>
+                                {allServices.filter(s => s.approvalStatus === ServiceApprovalStatus.PENDING).length > 0 && (
+                                    <PendingValue>
+                                        + {allServices
+                                        .filter(s => s.approvalStatus === ServiceApprovalStatus.PENDING)
+                                        .reduce((sum, s) => sum + s.price, 0).toFixed(2)} zł
+                                    </PendingValue>
+                                )}
                                 <TotalValue>{totalBaseNetValue.toFixed(2)} zł</TotalValue>
+                                <PendingValue>
+                                    + {calculateNetPrice(allServices
+                                    .filter(s => s.approvalStatus === ServiceApprovalStatus.PENDING)
+                                    .reduce((sum, s) => sum + s.price, 0)).toFixed(2)} zł
+                                </PendingValue>
                                 <PriceType>netto</PriceType>
                             </PriceWrapper>
                         </FooterCell>
@@ -499,8 +511,20 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                         <FooterCell>
                             <PriceWrapper>
                                 <TotalValue highlight>{totalGrossValue.toFixed(2)} zł</TotalValue>
+                                {allServices.filter(s => s.approvalStatus === ServiceApprovalStatus.PENDING).length > 0 && (
+                                    <PendingValue>
+                                        + {allServices
+                                        .filter(s => s.approvalStatus === ServiceApprovalStatus.PENDING)
+                                        .reduce((sum, s) => sum + s.finalPrice, 0).toFixed(2)} zł
+                                    </PendingValue>
+                                )}
                                 <PriceType>brutto</PriceType>
                                 <TotalValue>{totalNetValue.toFixed(2)} zł</TotalValue>
+                                <PendingValue>
+                                    + {calculateNetPrice(allServices
+                                    .filter(s => s.approvalStatus === ServiceApprovalStatus.PENDING)
+                                    .reduce((sum, s) => sum + s.finalPrice, 0)).toFixed(2)} zł
+                                </PendingValue>
                                 <PriceType>netto</PriceType>
                             </PriceWrapper>
                         </FooterCell>
