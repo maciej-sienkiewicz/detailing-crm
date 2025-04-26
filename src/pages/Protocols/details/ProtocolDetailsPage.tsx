@@ -200,30 +200,35 @@ const ProtocolDetailsPage: React.FC = () => {
     };
 
     // Funkcja wywoływana po potwierdzeniu płatności i wydaniu pojazdu
+// Funkcja wywoływana po potwierdzeniu płatności i wydaniu pojazdu
     const handlePaymentConfirm = async (paymentData: {
         paymentMethod: 'cash' | 'card';
         documentType: 'invoice' | 'receipt' | 'other';
     }) => {
-        // Zamykamy modal płatności
-        setShowPaymentModal(false);
-
-        // Zmieniamy status lokalnie na "Wydano"
-        handleStatusChange(ProtocolStatus.COMPLETED);
-
-        // W tle aktualizujemy status w API
         try {
-            await protocolsApi.updateProtocolStatus(protocol!.id, ProtocolStatus.COMPLETED);
+            // Zamykamy modal płatności
+            setShowPaymentModal(false);
+
+            // Wywołujemy nowe API do wydania pojazdu
+            const result = await protocolsApi.releaseVehicle(protocol!.id, paymentData);
+
+            if (result) {
+                // Aktualizujemy lokalny stan na podstawie odpowiedzi z serwera
+                setProtocol(result);
+            } else {
+                // W przypadku błędu zmieniamy status lokalnie
+                handleStatusChange(ProtocolStatus.COMPLETED);
+
+                // W tle aktualizujemy status w API
+                await protocolsApi.updateProtocolStatus(protocol!.id, ProtocolStatus.COMPLETED);
+            }
+
+            // Wyświetlamy powiadomienie o sukcesie
+            alert('Pojazd został wydany klientowi');
         } catch (error) {
-            console.error('Błąd podczas aktualizacji statusu w API:', error);
+            console.error('Błąd podczas wydawania pojazdu:', error);
+            alert('Wystąpił błąd podczas wydawania pojazdu');
         }
-
-        // W rzeczywistej aplikacji tutaj moglibyśmy:
-        // 1. Rejestrować płatność w systemie
-        // 2. Generować wybrany dokument (faktura/paragon)
-        // 3. Dodawać informację o wydaniu pojazdu do historii
-
-        console.log('Zarejestrowano płatność:', paymentData.paymentMethod);
-        console.log('Wystawiono dokument:', paymentData.documentType);
     };
 
     // Render the component based on active tab

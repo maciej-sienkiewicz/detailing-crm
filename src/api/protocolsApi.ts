@@ -101,6 +101,27 @@ export const protocolsApi = {
         }
     },
 
+    releaseVehicle: async (id: string, data: {
+        paymentMethod: 'cash' | 'card';
+        documentType: 'invoice' | 'receipt' | 'other';
+    }): Promise<CarReceptionProtocol | null> => {
+        try {
+            // Konwersja danych na snake_case (dla API)
+            const paymentData = convertCamelToSnake(data);
+
+            // Wyślij dane do API
+            const rawResponse = await apiClient.post<any>(`/receptions/${id}/release`, paymentData);
+
+            // Przekształć odpowiedź ze snake_case na camelCase
+            const transformedResponse = enrichProtocolData(rawResponse);
+
+            return transformedResponse;
+        } catch (error) {
+            console.error(`Error releasing vehicle (ID: ${id}):`, error);
+            return null;
+        }
+    },
+
     /**
      * Pobiera szczegóły protokołu
      */
