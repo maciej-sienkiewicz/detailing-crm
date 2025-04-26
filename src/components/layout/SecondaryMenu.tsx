@@ -15,7 +15,7 @@ import {
     FaEye,
     FaWrench,
     FaWindowClose,
-    FaTimes
+    FaTimes, FaCalendar
 } from 'react-icons/fa';
 
 interface SecondaryMenuProps {
@@ -35,8 +35,7 @@ interface SubMenuItem {
 // Mapowanie opcji menu drugiego poziomu dla różnych elementów menu głównego
 const secondaryMenuOptions: Record<string, SubMenuItem[]> = {
     settings: [
-        { id: 'general', label: 'Ogólne', icon: <FaCog />, path: '/settings/general' },
-        { id: 'employees', label: 'Pracownicy', icon: <FaUsers />, path: '/settings/employees' },
+        { id: 'general', label: 'Kalendarz', icon: <FaCalendarCheck />, path: '/settings/calendar' },
         { id: 'taxes', label: 'Podatki', icon: <FaMoneyBillWave />, path: '/settings/taxes' },
         { id: 'services', label: 'Lista usług i prac', icon: <FaClipboardList />, path: '/settings/services' }
     ],

@@ -81,10 +81,11 @@ const mainMenuItems: MainMenuItem[] = [
         hasSubmenu: true
     },
     {
-        id: 'pricing',
-        label: 'Ceny i rabaty',
-        icon: <FaPercentage />,
-        hasSubmenu: true
+        id: 'team',
+        label: 'Zespół',
+        icon: <FaUsers />,
+        path: '/team',
+        hasSubmenu: false
     },
     {
         id: 'settings',

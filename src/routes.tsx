@@ -60,12 +60,13 @@ const AppRoutes: React.FC = () => {
             <Route path="/warehouse" element={<PlaceholderPage title="Magazyn" />} />
             {/* Strony ustawień */}
             <Route path="/settings/general" element={<CalendarColorsPage />} />
-            <Route path="/settings/employees" element={<EmployeesPage />} />
             <Route path="/settings/taxes" element={<TaxesPage />} />
             <Route path="/settings/services" element={<ServicesPage />} />
             <Route path="/settings" element={<Navigate to="/settings/general" replace />} />
 
-            {/* Wizyty i protokoły */}
+            <Route path="/team" element={<EmployeesPage/>} />
+
+                {/* Wizyty i protokoły */}
             <Route path="/orders" element={<CarReceptionPage />} />
             <Route path="/orders/car-reception/:id" element={<ProtocolDetailsPage />} />
             <Route path="/orders/start-visit/:id" element={<StartVisitPage />} /> {/* Dodajemy nową ścieżkę */}
