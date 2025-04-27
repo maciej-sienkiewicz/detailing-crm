@@ -59,7 +59,7 @@ const AppRoutes: React.FC = () => {
 
             <Route path="/warehouse" element={<PlaceholderPage title="Magazyn" />} />
             {/* Strony ustawień */}
-            <Route path="/settings/general" element={<CalendarColorsPage />} />
+            <Route path="/settings/calendar" element={<CalendarColorsPage />} />
             <Route path="/settings/taxes" element={<TaxesPage />} />
             <Route path="/settings/services" element={<ServicesPage />} />
             <Route path="/settings" element={<Navigate to="/settings/general" replace />} />
