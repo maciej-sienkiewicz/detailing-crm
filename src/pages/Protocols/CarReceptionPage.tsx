@@ -37,7 +37,9 @@ const CarReceptionPage: React.FC = () => {
         error,
         activeFilter,
         setActiveFilter,
-        refreshProtocolsList
+        refreshProtocolsList,
+        pagination,
+        handlePageChange
     } = useProtocolList();
 
     const {
@@ -206,7 +208,7 @@ const CarReceptionPage: React.FC = () => {
                 />
             )}
 
-            {loading ? (
+            {loading && filteredProtocols.length === 0 ? (
                 <LoadingMessage>Ładowanie danych...</LoadingMessage>
             ) : error ? (
                 <ErrorMessage>{error}</ErrorMessage>
@@ -236,6 +238,8 @@ const CarReceptionPage: React.FC = () => {
                             onViewProtocol={handleViewProtocol}
                             onEditProtocol={handleEditProtocol}
                             onDeleteProtocol={handleDeleteProtocol}
+                            pagination={pagination}
+                            onPageChange={handlePageChange}
                         />
                     )}
                 </>

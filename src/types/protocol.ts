@@ -3,6 +3,19 @@
 
 import { SelectedService } from './common';
 
+export interface PaginationInfo {
+    totalItems: number;
+    totalPages: number;
+    currentPage: number;
+    pageSize: number;
+}
+
+// Odpowiedź API z paginacją
+export interface PaginatedResponse<T> {
+    data: T[];
+    pagination: PaginationInfo;
+}
+
 // Statusy protokołu
 export enum ProtocolStatus {
     SCHEDULED = 'SCHEDULED',                  // Zaplanowano

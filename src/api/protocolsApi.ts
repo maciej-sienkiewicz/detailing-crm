@@ -1,5 +1,5 @@
 import { apiClient } from './apiClient';
-import { ProtocolListItem, ProtocolStatus } from '../types/protocol';
+import { ProtocolListItem, ProtocolStatus, PaginatedResponse } from '../types/protocol';
 import { CarReceptionProtocol } from '../types';
 
 // Funkcja pomocnicza do konwersji ze snake_case na camelCase
@@ -50,6 +50,8 @@ interface ProtocolFilterParams {
     status?: ProtocolStatus;
     startDate?: string;
     endDate?: string;
+    page?: number;
+    size?: number;
 }
 
 /**
@@ -57,9 +59,9 @@ interface ProtocolFilterParams {
  */
 export const protocolsApi = {
     /**
-     * Pobiera listę protokołów (tylko podstawowe dane)
+     * Pobiera listę protokołów (tylko podstawowe dane) z paginacją
      */
-    getProtocolsList: async (filters: ProtocolFilterParams = {}): Promise<ProtocolListItem[]> => {
+    getProtocolsList: async (filters: ProtocolFilterParams = {}): Promise<PaginatedResponse<ProtocolListItem>> => {
         try {
             // Budowanie parametrów zapytania
             const queryParams: Record<string, string> = {};
@@ -70,26 +72,62 @@ export const protocolsApi = {
             if (filters.startDate) queryParams.startDate = filters.startDate;
             if (filters.endDate) queryParams.endDate = filters.endDate;
 
+            // Parametry paginacji
+            queryParams.page = String(filters.page !== undefined ? filters.page : 0);
+            queryParams.size = String(filters.size !== undefined ? filters.size : 10);
+
             // Pobierz dane z API
-            const rawData = await apiClient.get<any[]>('/receptions/list', queryParams);
+            const response = await apiClient.get<any>('/receptions/list', queryParams);
 
-            // Przekształć dane ze snake_case na camelCase
-            const transformedData = convertSnakeToCamel(rawData) as ProtocolListItem[];
+            // Sprawdzamy, czy odpowiedź zawiera już strukturę paginacji
+            // Jeśli tak, konwertujemy dane
+            let transformedData: ProtocolListItem[] = [];
+            let paginationInfo = {
+                currentPage: Number(queryParams.page),
+                pageSize: Number(queryParams.size),
+                totalItems: 0,
+                totalPages: 0
+            };
 
-            return transformedData;
+            if (response.data && Array.isArray(response.data)) {
+                // Odpowiedź w starym formacie (tylko tablica)
+                transformedData = convertSnakeToCamel(response.data) as ProtocolListItem[];
+                paginationInfo.totalItems = transformedData.length;
+                paginationInfo.totalPages = 1;
+            } else {
+                // Odpowiedź w nowym formacie (z paginacją)
+                transformedData = convertSnakeToCamel(response.data || []) as ProtocolListItem[];
+                paginationInfo = {
+                    currentPage: response.page || 0,
+                    pageSize: response.size || 10,
+                    totalItems: response.total_items || 0,
+                    totalPages: response.total_pages || 0
+                };
+            }
+
+            return {
+                data: transformedData,
+                pagination: paginationInfo
+            };
         } catch (error) {
             console.error('Error fetching protocols list:', error);
-            return [];
+            // W przypadku błędu zwracamy pustą listę z minimalnymi informacjami o paginacji
+            return {
+                data: [],
+                pagination: {
+                    currentPage: Number(filters.page || 0),
+                    pageSize: Number(filters.size || 10),
+                    totalItems: 0,
+                    totalPages: 0
+                }
+            };
         }
     },
 
     getProtocolsByClientId: async (clientId: string): Promise<ProtocolListItem[]> => {
         try {
-            // Budowanie parametrów zapytania
-            const queryParams: Record<string, string> = {};
-
             // Pobierz dane z API
-            const rawData = await apiClient.get<any[]>(`/receptions/${clientId}/protocols`, queryParams);
+            const rawData = await apiClient.get<any[]>(`/receptions/${clientId}/protocols`, {});
 
             // Przekształć dane ze snake_case na camelCase
             const transformedData = convertSnakeToCamel(rawData) as ProtocolListItem[];
