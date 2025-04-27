@@ -7,16 +7,17 @@ import InvoiceForm from './InvoiceForm';
 interface InvoiceFormModalProps {
     isOpen: boolean;
     invoice?: Invoice;
-    onSave: (invoice: Partial<Invoice>, file?: File | null) => void; // Dodany drugi parametr
+    onSave: (invoice: Partial<Invoice>, file?: File | null) => void;
     onClose: () => void;
+    initialData?: Partial<Invoice>; // Nowe pole dla wstępnie wypełnionych danych
 }
-
 
 const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                                                                isOpen,
                                                                invoice,
                                                                onSave,
-                                                               onClose
+                                                               onClose,
+                                                               initialData = {} // Domyślnie pusty obiekt
                                                            }) => {
     if (!isOpen) return null;
 
@@ -34,7 +35,8 @@ const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                 <ModalContent>
                     <InvoiceForm
                         invoice={invoice}
-                        onSave={(invoiceData, file) => onSave(invoiceData, file)} // Przekazujemy plik dalej
+                        initialData={initialData} // Przekazujemy initialData do formularza
+                        onSave={(invoiceData, file) => onSave(invoiceData, file)}
                         onCancel={onClose}
                     />
                 </ModalContent>

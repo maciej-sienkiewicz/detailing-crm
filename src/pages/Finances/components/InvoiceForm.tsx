@@ -19,7 +19,8 @@ import ConfirmationDialog from '../../../components/common/ConfirmationDialog';
 
 interface InvoiceFormProps {
     invoice?: Invoice;
-    onSave: (invoice: Partial<Invoice>, file?: File | null) => void; // Dodany drugi parametr
+    initialData?: Partial<Invoice>; // Nowe pole
+    onSave: (invoice: Partial<Invoice>, file?: File | null) => void;
     onCancel: () => void;
 }
 
@@ -34,7 +35,7 @@ const emptyInvoice: Partial<Invoice> = {
     buyerTaxId: '',
     buyerAddress: '',
     status: InvoiceStatus.NOT_PAID,
-    type: InvoiceType.INCOME,  // Domyślnie faktura przychodowa
+    type: InvoiceType.INCOME,
     paymentMethod: PaymentMethod.BANK_TRANSFER,
     totalNet: 0,
     totalTax: 0,
@@ -56,8 +57,10 @@ const emptyItem: InvoiceItem = {
     totalGross: 0
 };
 
-const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCancel }) => {
-    const [formData, setFormData] = useState<Partial<Invoice>>(invoice || emptyInvoice);
+const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, initialData = {}, onSave, onCancel }) => {
+    const mergedData = { ...emptyInvoice, ...initialData, ...(invoice || {}) };
+    const [formData, setFormData] = useState<Partial<Invoice>>(mergedData);
+
     const [items, setItems] = useState<InvoiceItem[]>(invoice?.items || []);
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -366,7 +369,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCancel }) 
                                 name="title"
                                 value={formData.title || ''}
                                 onChange={handleChange}
-                                placeholder="Np. Usługi detailingowe"
+                                placeholder="Np. Zakup materiałów do detailingu"
                                 required
                             />
                             {formErrors.title && <ErrorText>{formErrors.title}</ErrorText>}
@@ -380,6 +383,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCancel }) 
                                 value={formData.type || InvoiceType.INCOME}
                                 onChange={handleChange}
                                 required
+                                disabled={initialData.type !== undefined} // Wyłącz edycję jeśli typ był wstępnie ustawiony
                             >
                                 {Object.entries(InvoiceTypeLabels).map(([key, label]) => (
                                     <option key={key} value={key}>{label}</option>
@@ -460,14 +464,17 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onSave, onCancel }) 
                         </FormGroup>
 
                         <FormGroup>
-                            <Label htmlFor="protocolNumber">Numer protokołu</Label>
+                            <Label htmlFor="protocolId">Protokół</Label>
                             <Input
-                                id="protocolNumber"
-                                name="protocolNumber"
-                                value={formData.protocolNumber || ''}
-                                onChange={handleChange}
-                                placeholder="Opcjonalnie"
+                                id="protocolId"
+                                name="protocolId"
+                                value={initialData.protocolId ? `Protokół #${initialData.protocolId}` : formData.protocolNumber || ''}
+                                disabled={initialData.protocolId !== undefined}
+                                readOnly={initialData.protocolId !== undefined}
                             />
+                            {initialData.protocolId && (
+                                <HelpText>Faktura jest powiązana z aktualnie przeglądanym zleceniem</HelpText>
+                            )}
                         </FormGroup>
                     </FormGrid>
                 </FormSection>

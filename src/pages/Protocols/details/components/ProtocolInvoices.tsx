@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
+import { useNavigate } from 'react-router-dom';
 import {
     FaPlus,
     FaFileInvoiceDollar,
@@ -10,31 +11,20 @@ import {
     FaTag,
     FaMoneyBillWave,
     FaTrashAlt,
-    FaFileDownload
+    FaFileDownload,
+    FaEye,
+    FaExternalLinkAlt,
+    FaPercent,
+    FaSitemap, FaEdit
 } from 'react-icons/fa';
-import { CarReceptionProtocol } from '../../../../types';
-import { updateCarReceptionProtocol } from '../../../../api/mocks/carReceptionMocks';
-
-// Purchase invoice interface
-interface PurchaseInvoice {
-    id: string;
-    invoiceNumber: string;
-    supplier: string;
-    date: string;
-    items: PurchaseInvoiceItem[];
-    totalAmount: number;
-    notes?: string;
-}
-
-// Invoice item interface
-interface PurchaseInvoiceItem {
-    id: string;
-    name: string;
-    category: string;
-    quantity: number;
-    unitPrice: number;
-    totalPrice: number;
-}
+import {
+    CarReceptionProtocol,
+    InvoiceType,
+    Invoice
+} from '../../../../types';
+import { invoicesApi } from '../../../../api/invoicesApi';
+import InvoiceFormModal from '../../../Finances/components/InvoiceFormModal';
+import InvoiceViewModal from '../../../Finances/components/InvoiceViewModal';
 
 interface ProtocolInvoicesProps {
     protocol: CarReceptionProtocol;
@@ -42,23 +32,38 @@ interface ProtocolInvoicesProps {
 }
 
 const ProtocolInvoices: React.FC<ProtocolInvoicesProps> = ({ protocol, onProtocolUpdate }) => {
-    // Get purchase invoices from protocol or initialize empty array
-    const [invoices, setInvoices] = useState<PurchaseInvoice[]>(protocol.purchaseInvoices || []);
-    const [showAddForm, setShowAddForm] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const navigate = useNavigate();
+    const [invoices, setInvoices] = useState<Invoice[]>([]);
+    const [showFormModal, setShowFormModal] = useState(false);
+    const [showViewModal, setShowViewModal] = useState(false);
+    const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
 
-    // Form state for new invoice
-    const [newInvoice, setNewInvoice] = useState<Omit<PurchaseInvoice, 'id' | 'totalAmount' | 'items'>>({
-        invoiceNumber: '',
-        supplier: '',
-        date: new Date().toISOString().split('T')[0],
-        notes: ''
-    });
+    // Pobierz faktury powiązane z tym protokołem
+    useEffect(() => {
+        const fetchInvoices = async () => {
+            try {
+                setIsLoading(true);
+                // Wywołaj API do pobrania faktur związanych z protokołem
+                const invoicesForProtocol = await invoicesApi.fetchInvoices({
+                    protocolId: protocol.id
+                });
 
-    // Form state for invoice items
-    const [invoiceItems, setInvoiceItems] = useState<Omit<PurchaseInvoiceItem, 'id' | 'totalPrice'>[]>([
-        { name: '', category: 'parts', quantity: 1, unitPrice: 0 }
-    ]);
+                // Filtrujemy tylko faktury kosztowe
+                const purchaseInvoices = invoicesForProtocol.filter(
+                    invoice => invoice.type === InvoiceType.EXPENSE
+                );
+
+                setInvoices(purchaseInvoices);
+            } catch (error) {
+                console.error('Błąd podczas pobierania faktur dla protokołu:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchInvoices();
+    }, [protocol.id]);
 
     // Format date for display
     const formatDate = (dateString: string): string => {
@@ -68,132 +73,134 @@ const ProtocolInvoices: React.FC<ProtocolInvoicesProps> = ({ protocol, onProtoco
 
     // Format currency
     const formatCurrency = (amount: number): string => {
-        return amount.toFixed(2) + ' zł';
+        return new Intl.NumberFormat('pl-PL', {
+            style: 'currency',
+            currency: 'PLN',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(amount);
     };
 
-    // Calculate total for an invoice
-    const calculateTotal = (items: PurchaseInvoiceItem[]): number => {
-        return items.reduce((sum, item) => sum + item.totalPrice, 0);
-    };
-
-    // Calculate total for all invoices
-    const calculateGrandTotal = (): number => {
-        return invoices.reduce((sum, invoice) => sum + invoice.totalAmount, 0);
-    };
-
-    // Calculate total for current form items
-    const calculateFormTotal = (): number => {
-        return invoiceItems.reduce(
-            (sum, item) => sum + (item.quantity * item.unitPrice),
-            0
-        );
-    };
-
-    // Add another item row
-    const handleAddItemRow = () => {
-        setInvoiceItems([
-            ...invoiceItems,
-            { name: '', category: 'parts', quantity: 1, unitPrice: 0 }
-        ]);
-    };
-
-    // Remove an item row
-    const handleRemoveItemRow = (index: number) => {
-        if (invoiceItems.length <= 1) return;
-        setInvoiceItems(invoiceItems.filter((_, i) => i !== index));
-    };
-
-    // Update item data
-    const handleItemChange = (index: number, field: keyof Omit<PurchaseInvoiceItem, 'id' | 'totalPrice'>, value: any) => {
-        const updatedItems = [...invoiceItems];
-        updatedItems[index] = { ...updatedItems[index], [field]: value };
-        setInvoiceItems(updatedItems);
-    };
-
-    // Handle invoice form submission
-    const handleSubmitInvoice = async () => {
-        if (!newInvoice.invoiceNumber.trim() || !newInvoice.supplier.trim() || !newInvoice.date) {
-            return;
-        }
-
-        // Make sure there's at least one valid item
-        if (invoiceItems.length === 0 || !invoiceItems[0].name.trim()) {
-            return;
-        }
-
-        setIsSubmitting(true);
+    // Obsługa zapisu faktury
+    const handleSaveInvoice = async (invoiceData: any, file?: File | null) => {
         try {
-            // Calculate total prices for each item
-            const itemsWithTotals: PurchaseInvoiceItem[] = invoiceItems.map(item => ({
-                id: `item_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-                ...item,
-                totalPrice: item.quantity * item.unitPrice
-            }));
+            setIsLoading(true);
 
-            // Create new invoice
-            const invoice: PurchaseInvoice = {
-                id: `invoice_${Date.now()}`,
-                ...newInvoice,
-                items: itemsWithTotals,
-                totalAmount: itemsWithTotals.reduce((sum, item) => sum + item.totalPrice, 0)
+            // Dodaj ID protokołu i ustaw typ faktury jako kosztowa
+            const invoiceWithProtocolData = {
+                ...invoiceData,
+                protocolId: protocol.id,
+                protocolNumber: `Protokół #${protocol.id}`,
+                type: InvoiceType.EXPENSE,
             };
 
-            // Add to local state
-            const updatedInvoices = [...invoices, invoice];
-            setInvoices(updatedInvoices);
+            if (selectedInvoice && selectedInvoice.id) {
+                // Aktualizacja istniejącej faktury
+                const updatedInvoice = await invoicesApi.updateInvoice(
+                    selectedInvoice.id,
+                    invoiceWithProtocolData,
+                    file
+                );
 
-            // Update protocol with new invoice
-            const updatedProtocol = {
-                ...protocol,
-                purchaseInvoices: updatedInvoices,
-                updatedAt: new Date().toISOString()
-            };
+                if (updatedInvoice) {
+                    setInvoices(prevInvoices =>
+                        prevInvoices.map(item =>
+                            item.id === updatedInvoice.id ? updatedInvoice : item
+                        )
+                    );
+                }
+            } else {
+                // Dodawanie nowej faktury
+                const newInvoice = await invoicesApi.createInvoice(invoiceWithProtocolData, file);
 
-            // Save to backend
-            const savedProtocol = await updateCarReceptionProtocol(updatedProtocol);
-            onProtocolUpdate(savedProtocol);
+                if (newInvoice) {
+                    setInvoices(prevInvoices => [...prevInvoices, newInvoice]);
+                }
+            }
 
-            // Reset form
-            setNewInvoice({
-                invoiceNumber: '',
-                supplier: '',
-                date: new Date().toISOString().split('T')[0],
-                notes: ''
-            });
-            setInvoiceItems([
-                { name: '', category: 'parts', quantity: 1, unitPrice: 0 }
-            ]);
-            setShowAddForm(false);
+            // Zamknij modal
+            setShowFormModal(false);
+            setSelectedInvoice(null);
         } catch (error) {
-            console.error('Error adding invoice:', error);
+            console.error('Błąd podczas zapisywania faktury:', error);
+            alert('Wystąpił błąd podczas zapisywania faktury. Spróbuj ponownie.');
         } finally {
-            setIsSubmitting(false);
+            setIsLoading(false);
         }
     };
 
-    // Handle delete invoice
+    // Obsługa usuwania faktury
     const handleDeleteInvoice = async (invoiceId: string) => {
         if (!window.confirm('Czy na pewno chcesz usunąć tę fakturę?')) {
             return;
         }
 
         try {
-            // Remove from local state
-            const updatedInvoices = invoices.filter(inv => inv.id !== invoiceId);
-            setInvoices(updatedInvoices);
+            setIsLoading(true);
+            // Wywołaj API do usunięcia faktury
+            const success = await invoicesApi.deleteInvoice(invoiceId);
 
-            // Update protocol
-            const updatedProtocol = {
-                ...protocol,
-                purchaseInvoices: updatedInvoices,
-                updatedAt: new Date().toISOString()
-            };
+            if (success) {
+                // Usuń fakturę z lokalnego stanu
+                setInvoices(prevInvoices => prevInvoices.filter(inv => inv.id !== invoiceId));
 
-            // Save to backend
-            const savedProtocol = await updateCarReceptionProtocol(updatedProtocol);
-            onProtocolUpdate(savedProtocol);
+                // Jeśli to była wyświetlana faktura, zamknij podgląd
+                if (showViewModal && selectedInvoice?.id === invoiceId) {
+                    setShowViewModal(false);
+                    setSelectedInvoice(null);
+                }
+            } else {
+                alert('Nie udało się usunąć faktury. Spróbuj ponownie później.');
+            }
         } catch (error) {
-            console.error('Error deleting invoice:', error);
+            console.error('Błąd podczas usuwania faktury:', error);
+            alert('Wystąpił błąd podczas usuwania faktury.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Obsługa pobierania załącznika faktury
+    const handleDownloadAttachment = (invoiceId: string) => {
+        const attachmentUrl = invoicesApi.getInvoiceAttachmentUrl(invoiceId);
+        window.open(attachmentUrl, '_blank');
+    };
+
+    // Obsługa podglądu faktury
+    const handleViewInvoice = (invoice: Invoice) => {
+        setSelectedInvoice(invoice);
+        setShowViewModal(true);
+    };
+
+    const handleEditInvoice = (invoice: Invoice) => {
+        setSelectedInvoice(invoice);
+        setShowFormModal(true);
+    };
+
+    // Obsługa zmiany statusu faktury
+    const handleStatusChange = async (id: string, status: string) => {
+        try {
+            setIsLoading(true);
+            // Aktualizuj status faktury
+            const success = await invoicesApi.updateInvoiceStatus(id, status);
+
+            if (success) {
+                // Aktualizuj stan lokalny
+                setInvoices(prevInvoices =>
+                    prevInvoices.map(invoice =>
+                        invoice.id === id ? { ...invoice, status } : invoice
+                    )
+                );
+
+                // Aktualizuj wybraną fakturę, jeśli jest aktualnie wyświetlana
+                if (selectedInvoice?.id === id) {
+                    setSelectedInvoice({ ...selectedInvoice, status });
+                }
+            }
+        } catch (error) {
+            console.error('Błąd podczas aktualizacji statusu faktury:', error);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -201,584 +208,334 @@ const ProtocolInvoices: React.FC<ProtocolInvoicesProps> = ({ protocol, onProtoco
         <InvoicesContainer>
             <SectionTitleWithAction>
                 <SectionTitle>Faktury zakupowe</SectionTitle>
-                {!showAddForm && (
-                    <AddInvoiceButton onClick={() => setShowAddForm(true)}>
-                        <FaPlus /> Dodaj fakturę
-                    </AddInvoiceButton>
-                )}
+                <AddInvoiceButton onClick={() => setShowFormModal(true)} disabled={isLoading}>
+                    <FaPlus /> {isLoading ? 'Ładowanie...' : 'Dodaj fakturę'}
+                </AddInvoiceButton>
             </SectionTitleWithAction>
 
-            {showAddForm && (
-                <AddInvoiceForm>
-                    <FormTitle>Nowa faktura zakupowa</FormTitle>
-
-                    <FormRow>
-                        <FormGroup>
-                            <Label>Numer faktury*</Label>
-                            <Input
-                                value={newInvoice.invoiceNumber}
-                                onChange={(e) => setNewInvoice({...newInvoice, invoiceNumber: e.target.value})}
-                                placeholder="np. FV/2025/03/123"
-                            />
-                        </FormGroup>
-
-                        <FormGroup>
-                            <Label>Dostawca*</Label>
-                            <Input
-                                value={newInvoice.supplier}
-                                onChange={(e) => setNewInvoice({...newInvoice, supplier: e.target.value})}
-                                placeholder="np. Auto Parts Sp. z o.o."
-                            />
-                        </FormGroup>
-
-                        <FormGroup>
-                            <Label>Data faktury*</Label>
-                            <Input
-                                type="date"
-                                value={newInvoice.date}
-                                onChange={(e) => setNewInvoice({...newInvoice, date: e.target.value})}
-                            />
-                        </FormGroup>
-                    </FormRow>
-
-                    <FormTitle>Pozycje faktury*</FormTitle>
-                    <ItemsTable>
-                        <TableHeader>
-                            <HeaderCell wide>Nazwa produktu/usługi</HeaderCell>
-                            <HeaderCell>Kategoria</HeaderCell>
-                            <HeaderCell narrow>Ilość</HeaderCell>
-                            <HeaderCell>Cena jedn.</HeaderCell>
-                            <HeaderCell>Wartość</HeaderCell>
-                            <HeaderCell action></HeaderCell>
-                        </TableHeader>
-
-                        {invoiceItems.map((item, index) => (
-                            <TableRow key={index}>
-                                <TableCell wide>
-                                    <Input
-                                        value={item.name}
-                                        onChange={(e) => handleItemChange(index, 'name', e.target.value)}
-                                        placeholder="Nazwa towaru lub usługi"
-                                    />
-                                </TableCell>
-                                <TableCell>
-                                    <Select
-                                        value={item.category}
-                                        onChange={(e) => handleItemChange(index, 'category', e.target.value)}
-                                    >
-                                        <option value="parts">Części</option>
-                                        <option value="materials">Materiały</option>
-                                        <option value="consumables">Środki</option>
-                                        <option value="outsourcing">Usługi zewnętrzne</option>
-                                        <option value="tools">Narzędzia</option>
-                                        <option value="other">Inne</option>
-                                    </Select>
-                                </TableCell>
-                                <TableCell narrow>
-                                    <NumberInput
-                                        type="number"
-                                        min="1"
-                                        step="1"
-                                        value={item.quantity}
-                                        onChange={(e) => handleItemChange(index, 'quantity', Number(e.target.value))}
-                                    />
-                                </TableCell>
-                                <TableCell>
-                                    <PriceInput
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        value={item.unitPrice}
-                                        onChange={(e) => handleItemChange(index, 'unitPrice', Number(e.target.value))}
-                                    />
-                                    <PriceCurrency>zł</PriceCurrency>
-                                </TableCell>
-                                <TableCell>
-                                    {formatCurrency(item.quantity * item.unitPrice)}
-                                </TableCell>
-                                <TableCell action>
-                                    <RemoveItemButton
-                                        onClick={() => handleRemoveItemRow(index)}
-                                        disabled={invoiceItems.length <= 1}
-                                    >
-                                        <FaTrashAlt />
-                                    </RemoveItemButton>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-
-                        <AddItemRow>
-                            <AddItemButton onClick={handleAddItemRow}>
-                                <FaPlus /> Dodaj pozycję
-                            </AddItemButton>
-                            <TotalAmount>
-                                Suma: <TotalValue>{formatCurrency(calculateFormTotal())}</TotalValue>
-                            </TotalAmount>
-                        </AddItemRow>
-                    </ItemsTable>
-
-                    <FormGroup>
-                        <Label>Uwagi</Label>
-                        <Textarea
-                            value={newInvoice.notes || ''}
-                            onChange={(e) => setNewInvoice({...newInvoice, notes: e.target.value})}
-                            placeholder="Dodatkowe informacje o fakturze..."
-                            rows={2}
-                        />
-                    </FormGroup>
-
-                    <FormActions>
-                        <CancelButton onClick={() => setShowAddForm(false)}>
-                            Anuluj
-                        </CancelButton>
-                        <SaveButton
-                            onClick={handleSubmitInvoice}
-                            disabled={isSubmitting || !newInvoice.invoiceNumber.trim() || !newInvoice.supplier.trim() || invoiceItems.some(item => !item.name.trim())}
-                        >
-                            <FaPlus /> {isSubmitting ? 'Dodawanie...' : 'Dodaj fakturę'}
-                        </SaveButton>
-                    </FormActions>
-                </AddInvoiceForm>
-            )}
-
-            {invoices.length === 0 && !showAddForm && (
+            {isLoading && invoices.length === 0 ? (
+                <LoadingContainer>Ładowanie faktur...</LoadingContainer>
+            ) : invoices.length === 0 ? (
                 <EmptyState>
-                    Brak faktur zakupowych dla tego zlecenia. Faktury zakupowe pozwalają śledzić koszty materiałów i usług zewnętrznych poniesionych podczas realizacji zlecenia.
+                    <EmptyIcon><FaFileInvoiceDollar /></EmptyIcon>
+                    <EmptyText>
+                        Brak faktur zakupowych dla tego zlecenia. Faktury zakupowe pozwalają śledzić koszty materiałów i usług zewnętrznych poniesionych podczas realizacji zlecenia.
+                    </EmptyText>
+                    <AddFirstButton onClick={() => setShowFormModal(true)}>
+                        <FaPlus /> Dodaj pierwszą fakturę
+                    </AddFirstButton>
                 </EmptyState>
-            )}
-
-            {invoices.length > 0 && (
+            ) : (
                 <>
                     <InvoicesList>
                         {invoices.map(invoice => (
-                            <InvoiceItem key={invoice.id}>
-                                <InvoiceHeader>
-                                    <InvoiceIcon><FaFileInvoiceDollar /></InvoiceIcon>
+                            <InvoiceCard key={invoice.id}>
+                                <InvoiceCardHeader>
+                                    <InvoiceIconContainer>
+                                        <FaFileInvoiceDollar />
+                                    </InvoiceIconContainer>
                                     <InvoiceHeaderContent>
-                                        <InvoiceNumber>{invoice.invoiceNumber}</InvoiceNumber>
-                                        <InvoiceSupplier>
-                                            <FaBuilding /> {invoice.supplier}
-                                        </InvoiceSupplier>
+                                        <InvoiceMetaInfo>
+                                            <InvoiceNumber>{invoice.number}</InvoiceNumber>
+                                            <InvoiceDate>
+                                                <FaCalendarAlt /> {formatDate(invoice.issuedDate)}
+                                            </InvoiceDate>
+                                        </InvoiceMetaInfo>
+                                        <InvoiceTitle>{invoice.title}</InvoiceTitle>
                                     </InvoiceHeaderContent>
-                                    <InvoiceHeaderRight>
-                                        <InvoiceDate>
-                                            <FaCalendarAlt /> {formatDate(invoice.date)}
-                                        </InvoiceDate>
-                                        <InvoiceAmount>{formatCurrency(invoice.totalAmount)}</InvoiceAmount>
-                                    </InvoiceHeaderRight>
-                                </InvoiceHeader>
+                                    <InvoiceAmount expense>{formatCurrency(invoice.totalGross)}</InvoiceAmount>
+                                </InvoiceCardHeader>
 
-                                <InvoiceItemsList>
-                                    {invoice.items.map(item => (
-                                        <InvoiceItemRow key={item.id}>
-                                            <ItemName>{item.name}</ItemName>
-                                            <ItemCategory>
-                                                <FaTag /> {getCategoryName(item.category)}
-                                            </ItemCategory>
-                                            <ItemQuantity>{item.quantity} x {formatCurrency(item.unitPrice)}</ItemQuantity>
-                                            <ItemTotal>{formatCurrency(item.totalPrice)}</ItemTotal>
-                                        </InvoiceItemRow>
-                                    ))}
-                                </InvoiceItemsList>
+                                <InvoiceCardBody>
+                                    <InvoiceDetailsGrid>
+                                        <InvoiceDetailItem>
+                                            <DetailLabel><FaBuilding /> Dostawca</DetailLabel>
+                                            <DetailValue>{invoice.sellerName}</DetailValue>
+                                        </InvoiceDetailItem>
 
-                                {invoice.notes && (
-                                    <InvoiceNotes>{invoice.notes}</InvoiceNotes>
-                                )}
+                                        <InvoiceDetailItem>
+                                            <DetailLabel><FaCalendarAlt /> Termin płatności</DetailLabel>
+                                            <DetailValue>{formatDate(invoice.dueDate)}</DetailValue>
+                                        </InvoiceDetailItem>
 
-                                <InvoiceActions>
-                                    <InvoiceActionButton title="Pobierz fakturę">
-                                        <FaFileDownload /> Pobierz
-                                    </InvoiceActionButton>
-                                    <InvoiceActionButton
-                                        danger
-                                        title="Usuń fakturę"
-                                        onClick={() => handleDeleteInvoice(invoice.id)}
-                                    >
-                                        <FaTrashAlt /> Usuń
-                                    </InvoiceActionButton>
-                                </InvoiceActions>
-                            </InvoiceItem>
+                                        <InvoiceDetailItem>
+                                            <DetailLabel><FaSitemap /> Wartość netto</DetailLabel>
+                                            <DetailValue expense>{formatCurrency(invoice.totalNet)}</DetailValue>
+                                        </InvoiceDetailItem>
+
+                                        <InvoiceDetailItem>
+                                            <DetailLabel><FaPercent /> Podatek VAT</DetailLabel>
+                                            <DetailValue expense>{formatCurrency(invoice.totalTax)}</DetailValue>
+                                        </InvoiceDetailItem>
+                                    </InvoiceDetailsGrid>
+
+                                    {invoice.items.length > 0 && (
+                                        <ItemsSummary>
+                                            <ItemsCount>{invoice.items.length} {invoice.items.length === 1 ? 'pozycja' : invoice.items.length < 5 ? 'pozycje' : 'pozycji'}</ItemsCount>
+                                            <ItemsList>
+                                                {invoice.items.slice(0, 2).map((item, index) => (
+                                                    <ItemSummary key={item.id || index}>
+                                                        {item.name} {item.quantity > 1 ? `(${item.quantity} szt.)` : ''}
+                                                    </ItemSummary>
+                                                ))}
+                                                {invoice.items.length > 2 && (
+                                                    <ItemSummary>... i {invoice.items.length - 2} {(invoice.items.length - 2) === 1 ? 'więcej' : 'więcej'}</ItemSummary>
+                                                )}
+                                            </ItemsList>
+                                        </ItemsSummary>
+                                    )}
+                                </InvoiceCardBody>
+
+                                <InvoiceCardFooter>
+                                    <InvoiceStatusBadge status={invoice.status}>
+                                        {invoice.status === 'PAID'
+                                            ? 'Opłacona'
+                                            : invoice.status === 'NOT_PAID'
+                                                ? 'Nieopłacona'
+                                                : invoice.status === 'OVERDUE'
+                                                    ? 'Przeterminowana'
+                                                    : 'Anulowana'}
+                                    </InvoiceStatusBadge>
+                                    <InvoiceActions>
+                                        <ActionButton title="Podgląd faktury" onClick={() => handleViewInvoice(invoice)}>
+                                            <FaEye />
+                                        </ActionButton>
+                                        <ActionButton title="Edytuj fakturę" onClick={() => handleEditInvoice(invoice)}>
+                                            <FaEdit />
+                                        </ActionButton>
+                                        {invoice.attachments && invoice.attachments.length > 0 && (
+                                            <ActionButton title="Pobierz załącznik" onClick={() => handleDownloadAttachment(invoice.id)}>
+                                                <FaFileDownload />
+                                            </ActionButton>
+                                        )}
+                                        <ActionButton
+                                            title="Usuń fakturę"
+                                            className="delete"
+                                            onClick={() => handleDeleteInvoice(invoice.id)}
+                                        >
+                                            <FaTrashAlt />
+                                        </ActionButton>
+                                    </InvoiceActions>
+                                </InvoiceCardFooter>
+                            </InvoiceCard>
                         ))}
                     </InvoicesList>
 
                     <SummarySection>
                         <SummaryTitle>Podsumowanie kosztów</SummaryTitle>
-                        <SummaryAmount>
-                            <FaMoneyBillWave /> Łączna kwota faktur zakupowych: {formatCurrency(calculateGrandTotal())}
-                        </SummaryAmount>
+                        <SummaryDetails>
+                            <SummaryStat>
+                                <StatLabel>Faktury</StatLabel>
+                                <StatValue>{invoices.length}</StatValue>
+                            </SummaryStat>
+                            <SummaryStat>
+                                <StatLabel>Wartość netto</StatLabel>
+                                <StatValue expense>{formatCurrency(invoices.reduce((sum, inv) => sum + inv.totalNet, 0))}</StatValue>
+                            </SummaryStat>
+                            <SummaryStat>
+                                <StatLabel>Podatek VAT</StatLabel>
+                                <StatValue expense>{formatCurrency(invoices.reduce((sum, inv) => sum + inv.totalTax, 0))}</StatValue>
+                            </SummaryStat>
+                            <SummaryStat primary>
+                                <StatLabel>Łączna wartość</StatLabel>
+                                <StatValue expense>{formatCurrency(invoices.reduce((sum, inv) => sum + inv.totalGross, 0))}</StatValue>
+                            </SummaryStat>
+                        </SummaryDetails>
                     </SummarySection>
                 </>
+            )}
+
+            {/* Modal formularza faktury */}
+            <InvoiceFormModal
+                isOpen={showFormModal}
+                invoice={selectedInvoice || undefined}
+                onSave={handleSaveInvoice}
+                onClose={() => {
+                    setShowFormModal(false);
+                    setSelectedInvoice(null);
+                }}
+                initialData={{
+                    protocolId: protocol.id,
+                    protocolNumber: `Protokół #${protocol.id}`,
+                    type: InvoiceType.EXPENSE,
+                }}
+            />
+
+            {/* Modal podglądu faktury */}
+            {selectedInvoice && (
+                <InvoiceViewModal
+                    isOpen={showViewModal}
+                    invoice={selectedInvoice}
+                    onClose={() => setShowViewModal(false)}
+                    onEdit={() => {
+                        setShowViewModal(false);
+                    }}
+                    onStatusChange={handleStatusChange}
+                    onDelete={handleDeleteInvoice}
+                    onDownloadAttachment={handleDownloadAttachment}
+                />
             )}
         </InvoicesContainer>
     );
 };
 
-// Helper function to get category name
-const getCategoryName = (category: string): string => {
-    const categories: Record<string, string> = {
-        'parts': 'Części',
-        'materials': 'Materiały',
-        'consumables': 'Środki',
-        'outsourcing': 'Usługi zewnętrzne',
-        'tools': 'Narzędzia',
-        'other': 'Inne'
-    };
-
-    return categories[category] || category;
-};
-
-// Styled components
-const InvoicesContainer = styled.div``;
-
-const SectionTitle = styled.h3`
-    font-size: 16px;
-    margin: 0;
-    color: #2c3e50;
+// Nowe style komponentów
+const InvoicesContainer = styled.div`
+    margin-bottom: 30px;
 `;
 
 const SectionTitleWithAction = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
+`;
+
+const SectionTitle = styled.h3`
+    font-size: 16px;
+    margin: 0;
     padding-bottom: 8px;
     border-bottom: 1px solid #eee;
+    color: #2c3e50;
 `;
 
 const AddInvoiceButton = styled.button`
     display: flex;
     align-items: center;
     gap: 6px;
-    background-color: #f0f7ff;
-    color: #3498db;
-    border: 1px solid #d5e9f9;
-    border-radius: 4px;
-    padding: 6px 12px;
-    font-size: 13px;
-    cursor: pointer;
-    
-    &:hover {
-        background-color: #d5e9f9;
-    }
-`;
-
-const AddInvoiceForm = styled.div`
-    background-color: #f9f9f9;
-    border-radius: 4px;
-    padding: 15px;
-    margin-bottom: 20px;
-`;
-
-const FormTitle = styled.h4`
-    font-size: 15px;
-    margin: 10px 0;
-    color: #34495e;
-    
-    &:first-child {
-        margin-top: 0;
-    }
-`;
-
-const FormRow = styled.div`
-    display: flex;
-    gap: 15px;
-    margin-bottom: 15px;
-    
-    @media (max-width: 768px) {
-        flex-direction: column;
-    }
-`;
-
-const FormGroup = styled.div`
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-`;
-
-const Label = styled.label`
-    font-size: 14px;
-    color: #34495e;
-    margin-bottom: 5px;
-`;
-
-const Input = styled.input`
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
-    
-    &:focus {
-        outline: none;
-        border-color: #3498db;
-        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
-    }
-`;
-
-const NumberInput = styled(Input)`
-    width: 60px;
-`;
-
-const PriceInput = styled(Input)`
-    padding-right: 30px;
-`;
-
-const PriceCurrency = styled.span`
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #7f8c8d;
-    font-size: 14px;
-`;
-
-const Select = styled.select`
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
-    background-color: white;
-    
-    &:focus {
-        outline: none;
-        border-color: #3498db;
-        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
-    }
-`;
-
-const Textarea = styled.textarea`
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
-    resize: vertical;
-    font-family: inherit;
-    
-    &:focus {
-        outline: none;
-        border-color: #3498db;
-        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
-    }
-`;
-
-const FormActions = styled.div`
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 15px;
-    
-    @media (max-width: 768px) {
-        flex-direction: column;
-    }
-`;
-
-const CancelButton = styled.button`
-    padding: 8px 16px;
-    background-color: white;
-    color: #7f8c8d;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
-    cursor: pointer;
-    
-    &:hover {
-        background-color: #f5f5f5;
-    }
-    
-    @media (max-width: 768px) {
-        order: 2;
-    }
-`;
-
-const SaveButton = styled.button`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 8px 16px;
+    padding: 8px 14px;
     background-color: #3498db;
     color: white;
     border: none;
     border-radius: 4px;
-    font-size: 14px;
+    font-size: 13px;
+    font-weight: 500;
     cursor: pointer;
+    transition: all 0.2s;
     
     &:hover:not(:disabled) {
         background-color: #2980b9;
     }
     
     &:disabled {
-        background-color: #95a5a6;
+        background-color: #bdc3c7;
         cursor: not-allowed;
     }
-    
-    @media (max-width: 768px) {
-        order: 1;
-        margin-bottom: 10px;
-    }
 `;
 
-const ItemsTable = styled.div`
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    overflow: hidden;
-    margin-bottom: 15px;
-    background-color: white;
-`;
-
-const TableHeader = styled.div`
+const LoadingContainer = styled.div`
     display: flex;
-    background-color: #f5f5f5;
-    border-bottom: 1px solid #ddd;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    color: #3498db;
     font-weight: 500;
 `;
 
-const HeaderCell = styled.div<{ wide?: boolean; narrow?: boolean; action?: boolean }>`
-    padding: 10px;
-    font-size: 13px;
-    color: #7f8c8d;
-    flex: ${props => props.wide ? 2 : props.narrow ? 0.5 : props.action ? 0.3 : 1};
-`;
-
-const TableRow = styled.div`
+const EmptyState = styled.div`
     display: flex;
-    border-bottom: 1px solid #eee;
-    
-    &:last-child {
-        border-bottom: none;
-    }
-`;
-
-const TableCell = styled.div<{ wide?: boolean; narrow?: boolean; action?: boolean }>`
-    padding: 10px;
-    font-size: 14px;
-    color: #34495e;
-    flex: ${props => props.wide ? 2 : props.narrow ? 0.5 : props.action ? 0.3 : 1};
-    position: relative;
-    
-    ${Input}, ${Select} {
-        width: 100%;
-    }
-`;
-
-const RemoveItemButton = styled.button`
-    display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
-    background-color: ${props => props.disabled ? '#f5f5f5' : '#fef5f5'};
-    color: ${props => props.disabled ? '#bdc3c7' : '#e74c3c'};
-    border: 1px solid ${props => props.disabled ? '#eee' : '#fde8e8'};
-    border-radius: 4px;
-    cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
-    
-    &:hover:not(:disabled) {
-        background-color: #fde8e8;
-    }
-`;
-
-const AddItemRow = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px;
-    background-color: #f9f9f9;
-    border-top: 1px solid #eee;
-`;
-
-const AddItemButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background-color: #f0f7ff;
-    color: #3498db;
-    border: 1px solid #d5e9f9;
-    border-radius: 4px;
-    padding: 6px 12px;
-    font-size: 13px;
-    cursor: pointer;
-    
-    &:hover {
-        background-color: #d5e9f9;
-    }
-`;
-
-const TotalAmount = styled.div`
-    font-size: 14px;
-    color: #34495e;
-`;
-
-const TotalValue = styled.span`
-    font-weight: 600;
-    color: #27ae60;
-`;
-
-const EmptyState = styled.div`
-    padding: 20px;
+    padding: 40px 20px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     text-align: center;
-    background-color: #f9f9f9;
-    border-radius: 4px;
+`;
+
+const EmptyIcon = styled.div`
+    font-size: 48px;
+    color: #bdc3c7;
+    margin-bottom: 20px;
+`;
+
+const EmptyText = styled.p`
     color: #7f8c8d;
     font-size: 14px;
+    max-width: 600px;
+    margin: 0 0 20px 0;
+    line-height: 1.5;
+`;
+
+const AddFirstButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    
+    &:hover {
+        background-color: #2980b9;
+    }
 `;
 
 const InvoicesList = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 15px;
-    margin-bottom: 20px;
+    gap: 16px;
+    margin-bottom: 24px;
 `;
 
-const InvoiceItem = styled.div`
+const InvoiceCard = styled.div`
     background-color: white;
-    border-radius: 4px;
+    border-radius: 8px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     overflow: hidden;
+    transition: all 0.2s;
+    
+    &:hover {
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    }
 `;
 
-const InvoiceHeader = styled.div`
+const InvoiceCardHeader = styled.div`
     display: flex;
-    padding: 15px;
+    align-items: center;
+    padding: 16px;
     background-color: #f9f9f9;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid #f0f0f0;
 `;
 
-const InvoiceIcon = styled.div`
+const InvoiceIconContainer = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
     width: 40px;
     height: 40px;
-    background-color: #e7f3ff;
-    color: #3498db;
-    font-size: 18px;
-    border-radius: 4px;
-    margin-right: 15px;
+    border-radius: 8px;
+    background-color: #fcecec;
+    color: #e74c3c;
+    font-size: 20px;
+    margin-right: 16px;
+    flex-shrink: 0;
 `;
 
 const InvoiceHeaderContent = styled.div`
-    flex: 1;
+    flex-grow: 1;
+`;
+
+const InvoiceMetaInfo = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 4px;
 `;
 
 const InvoiceNumber = styled.div`
     font-weight: 600;
-    font-size: 15px;
+    font-size: 14px;
     color: #34495e;
-    margin-bottom: 3px;
-`;
-
-const InvoiceSupplier = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 13px;
-    color: #7f8c8d;
-`;
-
-const InvoiceHeaderRight = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
 `;
 
 const InvoiceDate = styled.div`
@@ -787,116 +544,204 @@ const InvoiceDate = styled.div`
     gap: 5px;
     font-size: 13px;
     color: #7f8c8d;
-    margin-bottom: 3px;
 `;
 
-const InvoiceAmount = styled.div`
-    font-weight: 600;
+const InvoiceTitle = styled.div`
     font-size: 15px;
-    color: #27ae60;
+    color: #34495e;
 `;
 
-const InvoiceItemsList = styled.div`
-    padding: 15px;
+const InvoiceAmount = styled.div<{ expense?: boolean }>`
+    font-size: 18px;
+    font-weight: 600;
+    color: ${props => props.expense ? '#e74c3c' : '#27ae60'};
+    text-align: right;
+    white-space: nowrap;
+    flex-shrink: 0;
 `;
 
-const InvoiceItemRow = styled.div`
-    display: flex;
-    align-items: center;
-    padding: 8px 0;
-    border-bottom: 1px solid #eee;
+const InvoiceCardBody = styled.div`
+    padding: 16px;
+`;
+
+const InvoiceDetailsGrid = styled.div`
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 16px;
     
-    &:last-child {
-        border-bottom: none;
+    @media (max-width: 768px) {
+        grid-template-columns: 1fr;
     }
 `;
 
-const ItemName = styled.div`
-    flex: 2;
-    font-size: 14px;
-    color: #34495e;
+const InvoiceDetailItem = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 `;
 
-const ItemCategory = styled.div`
-    flex: 1;
+const DetailLabel = styled.div`
     display: flex;
     align-items: center;
-    gap: 5px;
-    font-size: 13px;
+    gap: 6px;
+    font-size: 12px;
     color: #7f8c8d;
+    
+    svg {
+        font-size: 12px;
+    }
 `;
 
-const ItemQuantity = styled.div`
-    flex: 1;
-    font-size: 13px;
-    color: #7f8c8d;
-    text-align: right;
-`;
-
-const ItemTotal = styled.div`
-    flex: 0.7;
-    font-weight: 500;
+const DetailValue = styled.div<{ expense?: boolean }>`
     font-size: 14px;
-    color: #34495e;
-    text-align: right;
+    color: ${props => props.expense ? '#e74c3c' : '#34495e'};
+    font-weight: ${props => props.expense ? '500' : 'normal'};
 `;
 
-const InvoiceNotes = styled.div`
-    padding: 0 15px 15px;
+const ItemsSummary = styled.div`
+    background-color: #f9f9f9;
+    border-radius: 6px;
+    padding: 12px;
+`;
+
+const ItemsCount = styled.div`
+    font-size: 13px;
+    font-weight: 500;
+    color: #34495e;
+    margin-bottom: 6px;
+`;
+
+const ItemsList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+`;
+
+const ItemSummary = styled.div`
     font-size: 13px;
     color: #7f8c8d;
-    font-style: italic;
+`;
+
+const InvoiceCardFooter = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background-color: #f9f9f9;
+    border-top: 1px solid #f0f0f0;
+`;
+
+const InvoiceStatusBadge = styled.div<{ status: string }>`
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    background-color: ${props => {
+    switch (props.status) {
+        case 'PAID': return '#eafaf1';
+        case 'NOT_PAID': return '#eaf6fd';
+        case 'OVERDUE': return '#fef2f2';
+        default: return '#f5f5f5';
+    }
+}};
+    color: ${props => {
+    switch (props.status) {
+        case 'PAID': return '#27ae60';
+        case 'NOT_PAID': return '#3498db';
+        case 'OVERDUE': return '#e74c3c';
+        default: return '#7f8c8d';
+    }
+}};
+    border: 1px solid ${props => {
+    switch (props.status) {
+        case 'PAID': return '#d1f5ea';
+        case 'NOT_PAID': return '#d5e9f9';
+        case 'OVERDUE': return '#fde8e8';
+        default: return '#eee';
+    }
+}};
 `;
 
 const InvoiceActions = styled.div`
     display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    padding: 10px 15px;
-    background-color: #f9f9f9;
-    border-top: 1px solid #eee;
+    gap: 8px;
 `;
 
-const InvoiceActionButton = styled.button<{ danger?: boolean }>`
+const ActionButton = styled.button`
+    background: none;
+    border: none;
+    color: #3498db;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 4px;
     display: flex;
     align-items: center;
-    gap: 5px;
-    background-color: ${props => props.danger ? '#fef5f5' : '#f0f7ff'};
-    color: ${props => props.danger ? '#e74c3c' : '#3498db'};
-    border: 1px solid ${props => props.danger ? '#fde8e8' : '#d5e9f9'};
-    border-radius: 4px;
-    padding: 6px 12px;
-    font-size: 13px;
-    cursor: pointer;
-    
+    justify-content: center;
+    transition: all 0.2s;
+
     &:hover {
-        background-color: ${props => props.danger ? '#fde8e8' : '#d5e9f9'};
+        background-color: rgba(52, 152, 219, 0.1);
+    }
+
+    &.delete {
+        color: #e74c3c;
+
+        &:hover {
+            background-color: rgba(231, 76, 60, 0.1);
+        }
     }
 `;
 
 const SummarySection = styled.div`
-    background-color: #f0f7ff;
-    border: 1px solid #d5e9f9;
-    border-radius: 4px;
-    padding: 15px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 16px;
 `;
 
 const SummaryTitle = styled.div`
-    font-weight: 500;
     font-size: 15px;
-    color: #3498db;
+    font-weight: 600;
+    color: #34495e;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #eee;
 `;
 
-const SummaryAmount = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
+const SummaryDetails = styled.div`
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    
+    @media (max-width: 992px) {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    @media (max-width: 576px) {
+        grid-template-columns: 1fr;
+    }
+`;
+
+const SummaryStat = styled.div<{ primary?: boolean }>`
+    background-color: ${props => props.primary ? '#fcecec' : '#f9f9f9'};
+    border-radius: 6px;
+    padding: 12px;
+    text-align: center;
+`;
+
+const StatLabel = styled.div`
+    font-size: 13px;
+    color: #7f8c8d;
+    margin-bottom: 6px;
+`;
+
+const StatValue = styled.div<{ expense?: boolean }>`
+    font-size: 18px;
     font-weight: 600;
-    font-size: 16px;
-    color: #27ae60;
+    color: ${props => props.expense ? '#e74c3c' : '#34495e'};
 `;
 
 export default ProtocolInvoices;
