@@ -73,14 +73,19 @@ export const protocolsApi = {
             if (filters.endDate) queryParams.endDate = filters.endDate;
 
             // Parametry paginacji
-            queryParams.page = String(filters.page !== undefined ? filters.page : 0);
+            // Upewniamy się, że page jest przekazywany jako parametr page, a nie jako p lub page_index
+            const pageIndex = filters.page !== undefined ? filters.page : 0;
+            queryParams.page = String(pageIndex);
             queryParams.size = String(filters.size !== undefined ? filters.size : 10);
+
+            console.log("Parametry paginacji wysyłane do API:", { page: queryParams.page, size: queryParams.size });
 
             // Pobierz dane z API
             const response = await apiClient.get<any>('/receptions/list', queryParams);
 
-            // Sprawdzamy, czy odpowiedź zawiera już strukturę paginacji
-            // Jeśli tak, konwertujemy dane
+            console.log("Odpowiedź z API:", response);
+
+            // Przetwarzamy odpowiedź z API zależnie od formatu
             let transformedData: ProtocolListItem[] = [];
             let paginationInfo = {
                 currentPage: Number(queryParams.page),
@@ -89,20 +94,33 @@ export const protocolsApi = {
                 totalPages: 0
             };
 
-            if (response.data && Array.isArray(response.data)) {
-                // Odpowiedź w starym formacie (tylko tablica)
-                transformedData = convertSnakeToCamel(response.data) as ProtocolListItem[];
+            // Sprawdzamy format odpowiedzi
+            if (Array.isArray(response)) {
+                // Format 1: Odpowiedź jest tablicą - brak paginacji
+                transformedData = convertSnakeToCamel(response) as ProtocolListItem[];
                 paginationInfo.totalItems = transformedData.length;
                 paginationInfo.totalPages = 1;
-            } else {
-                // Odpowiedź w nowym formacie (z paginacją)
+            } else if (response.pagination) {
+                // Format 2: Odpowiedź zawiera obiekt pagination
                 transformedData = convertSnakeToCamel(response.data || []) as ProtocolListItem[];
+                paginationInfo = {
+                    currentPage: response.pagination.currentPage,
+                    pageSize: response.pagination.pageSize,
+                    totalItems: response.pagination.totalItems,
+                    totalPages: response.pagination.totalPages
+                };
+            } else if (response.data && Array.isArray(response.data)) {
+                // Format 3: Odpowiedź zawiera pola paginacji bezpośrednio w głównym obiekcie
+                transformedData = convertSnakeToCamel(response.data) as ProtocolListItem[];
                 paginationInfo = {
                     currentPage: response.page || 0,
                     pageSize: response.size || 10,
                     totalItems: response.total_items || 0,
                     totalPages: response.total_pages || 0
                 };
+            } else {
+                // Nierozpoznany format - zwróć puste dane
+                console.error('Nierozpoznany format odpowiedzi API:', response);
             }
 
             return {

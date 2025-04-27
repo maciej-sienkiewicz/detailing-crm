@@ -79,14 +79,16 @@ export const ProtocolList: React.FC<ProtocolListProps> = ({
                 </tbody>
             </ProtocolsTable>
 
-            <Pagination
-                currentPage={pagination.currentPage + 1} // Konwersja z indeksowania od 0 do indeksowania od 1
-                totalPages={pagination.totalPages}
-                onPageChange={onPageChange}
-                totalItems={pagination.totalItems}
-                pageSize={pagination.pageSize}
-                showTotalItems={true}
-            />
+            {pagination && pagination.totalPages > 1 && (
+                <Pagination
+                    currentPage={pagination.currentPage + 1} // Konwersja z indeksowania od 0 do indeksowania od 1
+                    totalPages={pagination.totalPages}
+                    onPageChange={onPageChange}
+                    totalItems={pagination.totalItems}
+                    pageSize={pagination.pageSize}
+                    showTotalItems={true}
+                />
+            )}
         </div>
     );
 };
