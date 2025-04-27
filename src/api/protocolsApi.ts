@@ -142,6 +142,30 @@ export const protocolsApi = {
         }
     },
 
+    getProtocolsListWithoutPagination: async (filters: ProtocolFilterParams = {}): Promise<ProtocolListItem[]> => {
+        try {
+            // Budowanie parametrów zapytania
+            const queryParams: Record<string, string> = {};
+
+            if (filters.clientName) queryParams.clientName = filters.clientName;
+            if (filters.licensePlate) queryParams.licensePlate = filters.licensePlate;
+            if (filters.status) queryParams.status = filters.status;
+            if (filters.startDate) queryParams.startDate = filters.startDate;
+            if (filters.endDate) queryParams.endDate = filters.endDate;
+
+            // Pobierz dane z API
+            const rawData = await apiClient.get<any[]>('/receptions/not-paginated', queryParams);
+
+            // Przekształć dane ze snake_case na camelCase
+            const transformedData = convertSnakeToCamel(rawData) as ProtocolListItem[];
+
+            return transformedData;
+        } catch (error) {
+            console.error('Error fetching protocols list:', error);
+            return [];
+        }
+    },
+
     getProtocolsByClientId: async (clientId: string): Promise<ProtocolListItem[]> => {
         try {
             // Pobierz dane z API

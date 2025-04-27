@@ -66,7 +66,7 @@ export const mapProtocolListItemToAppointment = (protocolItem: ProtocolListItem)
 export const fetchProtocolsAsAppointments = async (): Promise<Appointment[]> => {
     try {
         // Pobieramy listę protokołów z API
-        const protocols = await protocolsApi.getProtocolsList();
+        const protocols = await protocolsApi.getProtocolsListWithoutPagination();
         console.log('Pobrano protokoły z API:', protocols);
 
         // Konwertujemy każdy element listy na wizytę w kalendarzu
