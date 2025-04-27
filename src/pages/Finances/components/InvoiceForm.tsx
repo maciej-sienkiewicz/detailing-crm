@@ -292,8 +292,11 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, initialData = {}, on
             // Przygotowanie danych do wysyłki
             const invoiceData: Partial<Invoice> = {
                 ...formData,
-                items
+                items,
+                protocolId: initialData.protocolId !== undefined ? initialData.protocolId : formData.protocolId
             };
+
+            console.log(formData);
 
             // Usuwamy pole attachments, bo załącznik będzie wysyłany jako plik
             delete invoiceData.attachments;
@@ -471,6 +474,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, initialData = {}, on
                                 value={initialData.protocolId ? `Protokół #${initialData.protocolId}` : formData.protocolNumber || ''}
                                 disabled={initialData.protocolId !== undefined}
                                 readOnly={initialData.protocolId !== undefined}
+                                onChange={handleChange}
                             />
                             {initialData.protocolId && (
                                 <HelpText>Faktura jest powiązana z aktualnie przeglądanym zleceniem</HelpText>
