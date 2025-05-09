@@ -6,6 +6,7 @@ import { BrowserRouter as Router } from 'react-router-dom';
 import { createGlobalStyle } from 'styled-components';
 import Layout from './components/layout/Layout';
 import AppRoutes from './routes';
+import {ToastProvider} from "./components/common/Toast/Toast";
 
 // Globalne style dla całej aplikacji
 const GlobalStyle = createGlobalStyle`
@@ -96,12 +97,14 @@ const GlobalStyle = createGlobalStyle`
 
 const App: React.FC = () => {
     return (
-        <Router>
-            <GlobalStyle />
-            <Layout>
-                <AppRoutes />
-            </Layout>
-        </Router>
+        <ToastProvider>
+            <Router>
+                <GlobalStyle />
+                <Layout>
+                    <AppRoutes />
+                </Layout>
+            </Router>
+        </ToastProvider>
     );
 };
 

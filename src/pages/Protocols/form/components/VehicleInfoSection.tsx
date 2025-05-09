@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+// src/pages/Protocols/form/components/VehicleInfoSection.tsx
+import React, { useState, useEffect } from 'react';
 import { CarReceptionProtocol } from '../../../../types';
 import { FormErrors } from '../hooks/useFormValidation';
 import {
@@ -15,11 +16,12 @@ import {
     DateTimeContainer
 } from '../styles';
 
-// Import komponentu pola wyszukiwania
+// Import our LicensePlateField component
 import SearchField from './SearchField';
-import styled from 'styled-components';
+import {useToast} from "../../../../components/common/Toast/Toast";
+import LicensePlateField from "../../../../components/common/LicensePlateField";
 
-// Lista marek samochodów
+// List of car brands
 const carBrands = [
     "Abarth", "Acura", "Aito", "Aiways", "Aixam", "Alfa Romeo", "Alpine",
     "Arcfox", "Asia", "Aston Martin", "Audi", "Austin", "Autobianchi",
@@ -55,7 +57,7 @@ interface VehicleInfoSectionProps {
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
     onSearchByField?: (field: 'licensePlate') => void;
     isFullProtocol?: boolean;
-    readOnly?: boolean; // Dodajemy opcjonalną właściwość readOnly
+    readOnly?: boolean;
 }
 
 const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
@@ -64,11 +66,63 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                                                                    onChange,
                                                                    onSearchByField,
                                                                    isFullProtocol = true,
-                                                                   readOnly = false // Dodajemy z wartością domyślną false
+                                                                   readOnly = false
                                                                }) => {
+    const { showToast } = useToast();
+    const [dateError, setDateError] = useState<string | null>(null);
+
     const handleSearchClick = (field: 'licensePlate') => {
         if (onSearchByField && !readOnly) {
             onSearchByField(field);
+        }
+    };
+
+    // Handle date change with validation
+    const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+
+        // For end date, add validation
+        if (name === 'endDate') {
+            if (value) {
+                const newDateTime = `${value}T23:59:59`;
+                const syntheticEvent = {
+                    target: {
+                        name: 'endDate',
+                        value: newDateTime,
+                        type: 'text'
+                    }
+                } as React.ChangeEvent<HTMLInputElement>;
+
+                // Check if end date is valid compared to start date
+                if (formData.startDate) {
+                    const startDateObj = new Date(formData.startDate);
+                    const endDateObj = new Date(newDateTime);
+
+                    if (endDateObj < startDateObj) {
+                        setDateError('Data zakończenia nie może być wcześniejsza niż data rozpoczęcia');
+                        showToast('error', 'Data zakończenia nie może być wcześniejsza niż data rozpoczęcia', 3000);
+                    } else {
+                        setDateError(null);
+                    }
+                }
+
+                onChange(syntheticEvent);
+            } else {
+                // If value is empty, just pass an empty string
+                const syntheticEvent = {
+                    target: {
+                        name: 'endDate',
+                        value: '',
+                        type: 'text'
+                    }
+                } as React.ChangeEvent<HTMLInputElement>;
+
+                onChange(syntheticEvent);
+                setDateError(null);
+            }
+        } else {
+            // For other inputs, just pass the event as is
+            onChange(e);
         }
     };
 
@@ -151,32 +205,12 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                             name="endDate"
                             type="date"
                             value={formData.endDate ? formData.endDate.split('T')[0] : ''}
-                            onChange={(e) => {
-                                const newValue = e.target.value;
-                                if (newValue) {
-                                    const newDateTime = `${newValue}T23:59:59`;
-                                    const syntheticEvent = {
-                                        target: {
-                                            name: 'endDate',
-                                            value: newDateTime,
-                                            type: 'text'
-                                        }
-                                    } as React.ChangeEvent<HTMLInputElement>;
-                                    onChange(syntheticEvent);
-                                } else {
-                                    const syntheticEvent = {
-                                        target: {
-                                            name: 'endDate',
-                                            value: '',
-                                            type: 'text'
-                                        }
-                                    } as React.ChangeEvent<HTMLInputElement>;
-                                    onChange(syntheticEvent);
-                                }
-                            }}
+                            onChange={handleDateChange}
                             required
+                            style={{ borderColor: dateError ? '#e74c3c' : undefined }}
                         />
                         {errors.endDate && <ErrorText>{errors.endDate}</ErrorText>}
+                        {dateError && <ErrorText>{dateError}</ErrorText>}
                     </FormGroup>
                 </FormRow>
             </FormSection>
@@ -186,20 +220,28 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                 <FormRow className="responsive-row">
                     <FormGroup>
                         <Label htmlFor="licensePlate">Tablica rejestracyjna</Label>
-                        <SearchField
-                            id="licensePlate"
-                            name="licensePlate"
-                            value={formData.licensePlate || ''}
-                            onChange={(e) => {
-                                const upperCaseValue = e.target.value.toUpperCase();
-                                onChange({
-                                    ...e,
-                                    target: { ...e.target, value: upperCaseValue, name: e.target.name }
-                                });
-                            }}
-                            placeholder="np. WA12345"
-                            onSearchClick={() => handleSearchClick('licensePlate')}
-                        />
+                        {readOnly ? (
+                            <Input
+                                id="licensePlate"
+                                name="licensePlate"
+                                value={formData.licensePlate || ''}
+                                placeholder="np. WA12345"
+                                readOnly={true}
+                                style={{ backgroundColor: '#f9f9f9', cursor: 'not-allowed' }}
+                            />
+                        ) : (
+                            <LicensePlateField
+                                id="licensePlate"
+                                name="licensePlate"
+                                value={formData.licensePlate || ''}
+                                onChange={onChange}
+                                placeholder="np. WA12345"
+                                onSearchClick={() => handleSearchClick('licensePlate')}
+                                error={errors.licensePlate || "Tablica rejestracyjna nie może zawierać spacji"}
+                                readOnly={readOnly}
+                                required
+                            />
+                        )}
                     </FormGroup>
 
                     <FormGroup>
