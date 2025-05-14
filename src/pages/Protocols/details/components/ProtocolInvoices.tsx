@@ -25,6 +25,7 @@ import {
 import { invoicesApi } from '../../../../api/invoicesApi';
 import InvoiceFormModal from '../../../Finances/components/InvoiceFormModal';
 import InvoiceViewModal from '../../../Finances/components/InvoiceViewModal';
+import { useToast } from '../../../../components/common/Toast/Toast';
 
 interface ProtocolInvoicesProps {
     protocol: CarReceptionProtocol;
@@ -38,6 +39,7 @@ const ProtocolInvoices: React.FC<ProtocolInvoicesProps> = ({ protocol, onProtoco
     const [showViewModal, setShowViewModal] = useState(false);
     const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const { showToast } = useToast();
 
     // Pobierz faktury powiązane z tym protokołem
     useEffect(() => {
@@ -115,6 +117,9 @@ const ProtocolInvoices: React.FC<ProtocolInvoicesProps> = ({ protocol, onProtoco
 
                 if (newInvoice) {
                     setInvoices(prevInvoices => [...prevInvoices, newInvoice]);
+
+                    // Wyświetl powiadomienie o dodaniu nowej faktury
+                    showToast('info', 'Dodano nową pozycję w archiwum faktur', 3000);
                 }
             }
 
@@ -379,7 +384,7 @@ const ProtocolInvoices: React.FC<ProtocolInvoicesProps> = ({ protocol, onProtoco
     );
 };
 
-// Nowe style komponentów
+// Nowe komponenty stylizowane z AddServiceModal.tsx
 const InvoicesContainer = styled.div`
     margin-bottom: 30px;
 `;
@@ -412,11 +417,11 @@ const AddInvoiceButton = styled.button`
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
-    
+
     &:hover:not(:disabled) {
         background-color: #2980b9;
     }
-    
+
     &:disabled {
         background-color: #bdc3c7;
         cursor: not-allowed;
@@ -426,7 +431,6 @@ const AddInvoiceButton = styled.button`
 const LoadingContainer = styled.div`
     display: flex;
     justify-content: center;
-    align-items: center;
     padding: 40px;
     background-color: white;
     border-radius: 8px;
@@ -445,6 +449,7 @@ const EmptyState = styled.div`
     border-radius: 8px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     text-align: center;
+    color: #7f8c8d;
 `;
 
 const EmptyIcon = styled.div`
@@ -474,7 +479,7 @@ const AddFirstButton = styled.button`
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
-    
+
     &:hover {
         background-color: #2980b9;
     }
@@ -493,7 +498,7 @@ const InvoiceCard = styled.div`
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     overflow: hidden;
     transition: all 0.2s;
-    
+
     &:hover {
         box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
     }
@@ -569,7 +574,7 @@ const InvoiceDetailsGrid = styled.div`
     grid-template-columns: repeat(2, 1fr);
     gap: 16px;
     margin-bottom: 16px;
-    
+
     @media (max-width: 768px) {
         grid-template-columns: 1fr;
     }
@@ -587,7 +592,7 @@ const DetailLabel = styled.div`
     gap: 6px;
     font-size: 12px;
     color: #7f8c8d;
-    
+
     svg {
         font-size: 12px;
     }
@@ -639,29 +644,29 @@ const InvoiceStatusBadge = styled.div<{ status: string }>`
     font-size: 12px;
     font-weight: 500;
     background-color: ${props => {
-    switch (props.status) {
-        case 'PAID': return '#eafaf1';
-        case 'NOT_PAID': return '#eaf6fd';
-        case 'OVERDUE': return '#fef2f2';
-        default: return '#f5f5f5';
-    }
-}};
+        switch (props.status) {
+            case 'PAID': return '#eafaf1';
+            case 'NOT_PAID': return '#eaf6fd';
+            case 'OVERDUE': return '#fef2f2';
+            default: return '#f5f5f5';
+        }
+    }};
     color: ${props => {
-    switch (props.status) {
-        case 'PAID': return '#27ae60';
-        case 'NOT_PAID': return '#3498db';
-        case 'OVERDUE': return '#e74c3c';
-        default: return '#7f8c8d';
-    }
-}};
+        switch (props.status) {
+            case 'PAID': return '#27ae60';
+            case 'NOT_PAID': return '#3498db';
+            case 'OVERDUE': return '#e74c3c';
+            default: return '#7f8c8d';
+        }
+    }};
     border: 1px solid ${props => {
-    switch (props.status) {
-        case 'PAID': return '#d1f5ea';
-        case 'NOT_PAID': return '#d5e9f9';
-        case 'OVERDUE': return '#fde8e8';
-        default: return '#eee';
-    }
-}};
+        switch (props.status) {
+            case 'PAID': return '#d1f5ea';
+            case 'NOT_PAID': return '#d5e9f9';
+            case 'OVERDUE': return '#fde8e8';
+            default: return '#eee';
+        }
+    }};
 `;
 
 const InvoiceActions = styled.div`
@@ -715,11 +720,11 @@ const SummaryDetails = styled.div`
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 16px;
-    
+
     @media (max-width: 992px) {
         grid-template-columns: repeat(2, 1fr);
     }
-    
+
     @media (max-width: 576px) {
         grid-template-columns: 1fr;
     }

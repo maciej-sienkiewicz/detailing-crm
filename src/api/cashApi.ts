@@ -1,43 +1,10 @@
 // src/api/cashApi.ts
-import { apiClient } from './apiClient';
-import { CashTransaction, CashTransactionFilters, TransactionType, PaginatedResponse } from '../types/cash';
+import { apiClient, PaginatedResponse } from './apiClient';
+import { CashTransaction, CashTransactionFilters, TransactionType } from '../types/cash';
 
-const convertSnakeToCamel = (data: any): any => {
-    if (data === null || data === undefined || typeof data !== 'object') {
-        return data;
-    }
-
-    if (Array.isArray(data)) {
-        return data.map(item => convertSnakeToCamel(item));
-    }
-
-    return Object.keys(data).reduce((result, key) => {
-        // Konwertuj klucz ze snake_case na camelCase
-        const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
-
-        // Rekurencyjnie konwertuj wartość jeśli jest obiektem
-        result[camelKey] = convertSnakeToCamel(data[key]);
-
-        return result;
-    }, {} as Record<string, any>);
-};
-
-const convertToSnakeCase = (obj: any): any => {
-    if (obj === null || typeof obj !== 'object') {
-        return obj;
-    }
-
-    if (Array.isArray(obj)) {
-        return obj.map(convertToSnakeCase);
-    }
-
-    return Object.keys(obj).reduce((acc, key) => {
-        const snakeKey = key.replace(/([A-Z])/g, "_$1").toLowerCase();
-        acc[snakeKey] = convertToSnakeCase(obj[key]);
-        return acc;
-    }, {} as any);
-};
-
+/**
+ * API do zarządzania transakcjami gotówkowymi
+ */
 export const cashApi = {
     // Pobieranie transakcji gotówkowych z paginacją
     fetchCashTransactions: async (
@@ -46,39 +13,11 @@ export const cashApi = {
         size: number = 10
     ): Promise<PaginatedResponse<CashTransaction>> => {
         try {
-            // Przygotowanie parametrów zapytania
-            const queryParams: Record<string, string> = {
-                page: page.toString(),
-                size: size.toString()
-            };
-
-            // Dodanie filtrów do parametrów zapytania
-            if (filters) {
-                if (filters.type) queryParams.type = filters.type;
-                if (filters.description) queryParams.description = filters.description;
-                if (filters.dateFrom) queryParams.dateFrom = filters.dateFrom;
-                if (filters.dateTo) queryParams.dateTo = filters.dateTo;
-                if (filters.visitId) queryParams.visitId = filters.visitId;
-                if (filters.minAmount !== undefined) queryParams.minAmount = filters.minAmount.toString();
-                if (filters.maxAmount !== undefined) queryParams.maxAmount = filters.maxAmount.toString();
-            }
-
-            // Wywołanie API
-            const result = await apiClient.get<any>('/cash/transactions', queryParams);
-            console.log('API Response:', result); // Logowanie odpowiedzi dla debugowania
-
-            // Konwersja odpowiedzi na oczekiwany format
-            const convertedData = convertSnakeToCamel(result.data || []);
-
-            return {
-                data: convertedData,
-                pagination: {
-                    currentPage: result.page || 0,
-                    pageSize: result.size || 10,
-                    totalItems: result.total_items || 0,
-                    totalPages: result.total_pages || 0
-                }
-            };
+            return await apiClient.getWithPagination<CashTransaction>(
+                '/cash/transactions',
+                filters || {},  // Przekazujemy filtry jako query params
+                { page, size }  // Opcje paginacji
+            );
         } catch (error) {
             console.error('Error fetching cash transactions:', error);
             throw error;
@@ -98,9 +37,7 @@ export const cashApi = {
     // Dodawanie nowej transakcji
     createCashTransaction: async (transaction: Omit<CashTransaction, 'id' | 'createdAt' | 'createdBy'>): Promise<CashTransaction> => {
         try {
-            console.log('Creating cash transaction');
-            console.log(transaction);
-            return await apiClient.post<CashTransaction>('/cash/transactions', convertToSnakeCase(transaction));
+            return await apiClient.post<CashTransaction>('/cash/transactions', transaction);
         } catch (error) {
             console.error('Error creating cash transaction:', error);
             throw error;
@@ -142,11 +79,7 @@ export const cashApi = {
     // Pobieranie statystyk dla bieżącego miesiąca
     getMonthlyStatistics: async (): Promise<{income: number, expense: number}> => {
         try {
-            const response = await apiClient.get<any>('/cash/statistics/current-month');
-            return {
-                income: response.income,
-                expense: response.expense
-            };
+            return await apiClient.get<{income: number, expense: number}>('/cash/statistics/current-month');
         } catch (error) {
             console.error('Error fetching monthly statistics:', error);
             throw error;
@@ -156,10 +89,7 @@ export const cashApi = {
     // Pobieranie statystyk dla określonego okresu
     getStatisticsForPeriod: async (startDate: string, endDate: string): Promise<any> => {
         try {
-            return await apiClient.get<any>('/cash/statistics', {
-                startDate,
-                endDate
-            });
+            return await apiClient.get<any>('/cash/statistics', { startDate, endDate });
         } catch (error) {
             console.error('Error fetching statistics for period:', error);
             throw error;

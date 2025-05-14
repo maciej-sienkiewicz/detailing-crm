@@ -1,6 +1,28 @@
 // Konfiguracja klienta API dla integracji z backendem Kotlin/Spring
 
-// Funkcja do pobierania tokenu autoryzacyjnego (później zostanie zaimplementowana z prawdziwym backendem)
+/**
+ * ApiClient - główny moduł do komunikacji z API
+ * Zawiera podstawowe metody oraz narzędzia pomocnicze do obsługi żądań HTTP
+ */
+
+// Interfejs dla opcji paginacji
+export interface PaginationOptions {
+    page?: number;
+    size?: number;
+}
+
+// Uniwersalny interfejs dla odpowiedzi z paginacją
+export interface PaginatedResponse<T> {
+    data: T[];
+    pagination: {
+        currentPage: number;
+        pageSize: number;
+        totalItems: number;
+        totalPages: number;
+    };
+}
+
+// Funkcja do pobierania tokenu autoryzacyjnego
 const getAuthToken = (): string | null => {
     return localStorage.getItem('auth_token');
 };
@@ -16,6 +38,79 @@ const getDefaultOptions = (): RequestInit => ({
         ...(getAuthToken() ? { 'Authorization': `Bearer ${getAuthToken()}` } : {})
     }
 });
+
+/**
+ * Konwersja obiektu ze snake_case na camelCase
+ * @param data - Dane do konwersji
+ * @returns Skonwertowane dane
+ */
+export const convertSnakeToCamel = (data: any): any => {
+    if (data === null || data === undefined || typeof data !== 'object') {
+        return data;
+    }
+
+    if (Array.isArray(data)) {
+        return data.map(item => convertSnakeToCamel(item));
+    }
+
+    return Object.keys(data).reduce((result, key) => {
+        // Konwertuj klucz ze snake_case na camelCase
+        const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+
+        // Rekurencyjnie konwertuj wartość jeśli jest obiektem
+        result[camelKey] = convertSnakeToCamel(data[key]);
+
+        return result;
+    }, {} as Record<string, any>);
+};
+
+/**
+ * Konwersja obiektu z camelCase na snake_case
+ * @param data - Dane do konwersji
+ * @returns Skonwertowane dane
+ */
+export const convertCamelToSnake = (data: any): any => {
+    if (data === null || data === undefined || typeof data !== 'object') {
+        return data;
+    }
+
+    if (Array.isArray(data)) {
+        return data.map(item => convertCamelToSnake(item));
+    }
+
+    return Object.keys(data).reduce((result, key) => {
+        // Konwertuj klucz z camelCase na snake_case
+        const snakeKey = key.replace(/([A-Z])/g, (_, letter) => `_${letter.toLowerCase()}`);
+
+        // Rekurencyjnie konwertuj wartość jeśli jest obiektem
+        result[snakeKey] = convertCamelToSnake(data[key]);
+
+        return result;
+    }, {} as Record<string, any>);
+};
+
+/**
+ * Przygotowanie parametrów zapytania jako string
+ * @param params - Obiekt z parametrami
+ * @returns String parametrów URL lub pusty string
+ */
+export const prepareQueryParams = (params: Record<string, any> = {}): string => {
+    const filteredParams = Object.entries(params)
+        .filter(([_, value]) => value !== undefined && value !== null && value !== '')
+        .reduce((obj, [key, value]) => {
+            obj[key] = String(value);
+            return obj;
+        }, {} as Record<string, string>);
+
+    const queryString = new URLSearchParams(filteredParams).toString();
+    return queryString ? `?${queryString}` : '';
+};
+
+// Uniwersalna funkcja do obsługi błędów HTTP
+export const handleApiError = (error: any, context: string): never => {
+    console.error(`API error (${context}):`, error);
+    throw error;
+};
 
 // Podstawowa funkcja fetch API z obsługą błędów
 const apiFetch = async <T>(endpoint: string, options: RequestInit = {}): Promise<T> => {
@@ -57,12 +152,14 @@ const apiFetch = async <T>(endpoint: string, options: RequestInit = {}): Promise
         };
     }
 
-    // Logowanie opcji żądania dla debugowania
-    console.log('Request options:', {
-        method: fetchOptions.method,
-        headers: fetchOptions.headers,
-        bodyType: options.body ? (isFormData ? 'FormData' : typeof options.body) : null
-    });
+    // Logowanie opcji żądania dla debugowania w trybie deweloperskim
+    if (process.env.NODE_ENV === 'development') {
+        console.log('Request options:', {
+            method: fetchOptions.method,
+            headers: fetchOptions.headers,
+            bodyType: options.body ? (isFormData ? 'FormData' : typeof options.body) : null
+        });
+    }
 
     try {
         const response = await fetch(url, fetchOptions);
@@ -89,7 +186,7 @@ const apiFetch = async <T>(endpoint: string, options: RequestInit = {}): Promise
             try {
                 const errorData = await response.json();
                 console.error('API error details:', errorData);
-                throw new Error(errorData.message || 'An error occurred');
+                throw new Error(errorData.message || `HTTP error ${response.status}`);
             } catch (e) {
                 throw new Error(`HTTP error ${response.status}`);
             }
@@ -106,7 +203,8 @@ const apiFetch = async <T>(endpoint: string, options: RequestInit = {}): Promise
 
         // Jeśli Content-Type to JSON, parsujemy odpowiedź jako JSON
         if (contentType && contentType.includes('application/json')) {
-            return response.json();
+            const jsonData = await response.json();
+            return jsonData as T;
         }
 
         // W przeciwnym razie zwracamy odpowiedź jako tekst
@@ -122,59 +220,187 @@ export const apiClient = {
     // Metoda do uzyskania bazowego URL API
     getBaseUrl: () => API_BASE_URL,
 
-    get: <T>(endpoint: string, queryParams: Record<string, string> = {}): Promise<T> => {
-        // Konstruowanie parametrów zapytania
-        const queryString = new URLSearchParams(queryParams).toString();
-        const url = queryString ? `${endpoint}?${queryString}` : endpoint;
+    // Metody konwersji formatów danych
+    convertSnakeToCamel,
+    convertCamelToSnake,
 
-        return apiFetch<T>(url);
+    // Pomocnicza metoda do konwersji formatu odpowiedzi
+    parseResponse: <T>(response: any): T => {
+        return convertSnakeToCamel(response) as T;
     },
 
-    post: <T>(endpoint: string, data: any, options: RequestInit = {}): Promise<T> => {
-        // Sprawdzamy, czy wysyłamy FormData
-        const isFormData = data instanceof FormData;
+    // Metoda do pobierania danych z API
+    get: async <T>(endpoint: string, queryParams: Record<string, any> = {}): Promise<T> => {
+        try {
+            // Konstruowanie parametrów zapytania
+            const queryString = prepareQueryParams(queryParams);
+            const url = `${endpoint}${queryString}`;
 
-        // Jeśli nie jest to FormData, konwertujemy na JSON string
-        const body = isFormData ? data : JSON.stringify(data);
-
-        return apiFetch<T>(endpoint, {
-            method: 'POST',
-            body,
-            ...options
-        });
+            const response = await apiFetch<any>(url);
+            return convertSnakeToCamel(response) as T;
+        } catch (error) {
+            return handleApiError(error, `GET ${endpoint}`);
+        }
     },
 
-    patch: <T>(endpoint: string, data: any, options: RequestInit = {}): Promise<T> => {
-        // Sprawdzamy, czy wysyłamy FormData
-        const isFormData = data instanceof FormData;
+    // Metoda do pobierania danych z paginacją
+    getWithPagination: async <T>(
+        endpoint: string,
+        queryParams: Record<string, any> = {},
+        paginationOptions: PaginationOptions = {}
+    ): Promise<PaginatedResponse<T>> => {
+        try {
+            // Dodajemy parametry paginacji do queryParams
+            const paramsWithPagination = {
+                ...queryParams,
+                page: paginationOptions.page !== undefined ? paginationOptions.page : 0,
+                size: paginationOptions.size !== undefined ? paginationOptions.size : 10
+            };
 
-        // Jeśli nie jest to FormData, konwertujemy na JSON string
-        const body = isFormData ? data : JSON.stringify(data);
+            const queryString = prepareQueryParams(paramsWithPagination);
+            const url = `${endpoint}${queryString}`;
 
-        return apiFetch<T>(endpoint, {
-            method: 'PATCH',
-            body,
-            ...options
-        });
+            const response = await apiFetch<any>(url);
+
+            // Przetwarzamy odpowiedź z paginacją
+            let data: T[] = [];
+            let pagination = {
+                currentPage: paramsWithPagination.page,
+                pageSize: paramsWithPagination.size,
+                totalItems: 0,
+                totalPages: 0
+            };
+
+            // Obsługa różnych formatów odpowiedzi z paginacją
+            if (Array.isArray(response)) {
+                // Prosta tablica bez metadanych paginacji
+                data = convertSnakeToCamel(response) as T[];
+                pagination.totalItems = data.length;
+                pagination.totalPages = 1;
+            } else if (response.pagination) {
+                // Format z obiektem pagination
+                data = convertSnakeToCamel(response.data || []) as T[];
+                pagination = convertSnakeToCamel(response.pagination);
+            } else if (response.data && Array.isArray(response.data)) {
+                // Format z polami paginacji bezpośrednio w głównym obiekcie
+                data = convertSnakeToCamel(response.data) as T[];
+                pagination = {
+                    currentPage: response.page || 0,
+                    pageSize: response.size || 10,
+                    totalItems: response.total_items || 0,
+                    totalPages: response.total_pages || 0
+                };
+            }
+
+            return {
+                data,
+                pagination
+            };
+        } catch (error) {
+            return handleApiError(error, `GET with pagination ${endpoint}`);
+        }
     },
 
-    put: <T>(endpoint: string, data: any, options: RequestInit = {}): Promise<T> => {
-        // Sprawdzamy, czy wysyłamy FormData
-        const isFormData = data instanceof FormData;
+    // Metoda do wysyłania danych do API (POST)
+    post: async <T>(endpoint: string, data: any, options: RequestInit = {}): Promise<T> => {
+        try {
+            // Sprawdzamy, czy wysyłamy FormData
+            const isFormData = data instanceof FormData;
 
-        // Jeśli nie jest to FormData, konwertujemy na JSON string
-        const body = isFormData ? data : JSON.stringify(data);
+            // Jeśli nie jest to FormData, konwertujemy na JSON string
+            const body = isFormData ? data : JSON.stringify(convertCamelToSnake(data));
 
-        return apiFetch<T>(endpoint, {
-            method: 'PUT',
-            body,
-            ...options
-        });
+            const response = await apiFetch<any>(endpoint, {
+                method: 'POST',
+                body,
+                ...options
+            });
+
+            return convertSnakeToCamel(response) as T;
+        } catch (error) {
+            return handleApiError(error, `POST ${endpoint}`);
+        }
     },
 
-    delete: <T>(endpoint: string): Promise<T> => {
-        return apiFetch<T>(endpoint, {
-            method: 'DELETE'
+    // Metoda do częściowej aktualizacji danych (PATCH)
+    patch: async <T>(endpoint: string, data: any, options: RequestInit = {}): Promise<T> => {
+        try {
+            // Sprawdzamy, czy wysyłamy FormData
+            const isFormData = data instanceof FormData;
+
+            // Jeśli nie jest to FormData, konwertujemy na JSON string
+            const body = isFormData ? data : JSON.stringify(convertCamelToSnake(data));
+
+            const response = await apiFetch<any>(endpoint, {
+                method: 'PATCH',
+                body,
+                ...options
+            });
+
+            return convertSnakeToCamel(response) as T;
+        } catch (error) {
+            return handleApiError(error, `PATCH ${endpoint}`);
+        }
+    },
+
+    // Metoda do pełnej aktualizacji danych (PUT)
+    put: async <T>(endpoint: string, data: any, options: RequestInit = {}): Promise<T> => {
+        try {
+            // Sprawdzamy, czy wysyłamy FormData
+            const isFormData = data instanceof FormData;
+
+            // Jeśli nie jest to FormData, konwertujemy na JSON string
+            const body = isFormData ? data : JSON.stringify(convertCamelToSnake(data));
+
+            const response = await apiFetch<any>(endpoint, {
+                method: 'PUT',
+                body,
+                ...options
+            });
+
+            return convertSnakeToCamel(response) as T;
+        } catch (error) {
+            return handleApiError(error, `PUT ${endpoint}`);
+        }
+    },
+
+    // Metoda do usuwania danych (DELETE)
+    delete: async <T = void>(endpoint: string, options: RequestInit = {}): Promise<T> => {
+        try {
+            const response = await apiFetch<any>(endpoint, {
+                method: 'DELETE',
+                ...options
+            });
+
+            return convertSnakeToCamel(response) as T;
+        } catch (error) {
+            return handleApiError(error, `DELETE ${endpoint}`);
+        }
+    },
+
+    // Metoda pomocnicza do tworzenia FormData z obiektem JSON
+    createFormDataWithJson: (jsonData: any, jsonFieldName: string = 'data', files?: Record<string, File | File[]>): FormData => {
+        const formData = new FormData();
+
+        // Dodajemy dane JSON jako blob
+        const jsonBlob = new Blob([JSON.stringify(convertCamelToSnake(jsonData))], {
+            type: 'application/json'
         });
+        formData.append(jsonFieldName, jsonBlob);
+
+        // Dodajemy pliki, jeśli zostały podane
+        if (files) {
+            Object.entries(files).forEach(([fieldName, fileOrFiles]) => {
+                if (Array.isArray(fileOrFiles)) {
+                    fileOrFiles.forEach((file, index) => {
+                        formData.append(`${fieldName}[${index}]`, file);
+                    });
+                } else {
+                    formData.append(fieldName, fileOrFiles);
+                }
+            });
+        }
+
+        return formData;
     }
 };

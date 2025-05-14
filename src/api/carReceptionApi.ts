@@ -1,56 +1,18 @@
 import { CarReceptionProtocol, ClientProtocolHistory, ProtocolListItem, VehicleImage } from '../types';
 import { apiClient } from './apiClient';
 
-// Interfejs dla odpowiedzi z serwera
-interface CarReceptionResponse {
-    id: string;
-    created_at: string;
-    updated_at: string;
-    status_updated_at: string;
-    status: string;
-    vehicle_images?: any[];
-}
-
-// Konwersja camelCase na snake_case dla API
-const convertToSnakeCase = (obj: any): any => {
-    if (obj === null || typeof obj !== 'object') {
-        return obj;
-    }
-
-    if (Array.isArray(obj)) {
-        return obj.map(convertToSnakeCase);
-    }
-
-    return Object.keys(obj).reduce((acc, key) => {
-        const snakeKey = key.replace(/([A-Z])/g, "_$1").toLowerCase();
-        acc[snakeKey] = convertToSnakeCase(obj[key]);
-        return acc;
-    }, {} as any);
-};
-
-// Konwersja snake_case na camelCase dla aplikacji frontendowej
-const convertToCamelCase = (obj: any): any => {
-    if (obj === null || typeof obj !== 'object') {
-        return obj;
-    }
-
-    if (Array.isArray(obj)) {
-        return obj.map(convertToCamelCase);
-    }
-
-    return Object.keys(obj).reduce((acc, key) => {
-        const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
-        acc[camelKey] = convertToCamelCase(obj[key]);
-        return acc;
-    }, {} as any);
-};
-
-// Funkcja do mapowania obrazów z serwera na format aplikacji
+/**
+ * Funkcja do mapowania obrazów z serwera na format aplikacji
+ * @param serverImages - Tablica obrazów z serwera
+ * @param protocolId - Opcjonalne ID protokołu dla uzupełnienia URL
+ * @returns Tablica obrazów przygotowanych do wyświetlenia
+ */
 const mapServerImagesToDisplayImages = (serverImages: any[], protocolId?: string): VehicleImage[] => {
     if (!serverImages || !Array.isArray(serverImages)) return [];
 
     return serverImages.map(serverImage => {
-        const camelCaseImage = convertToCamelCase(serverImage);
+        // Używamy funkcji z apiClient do konwersji
+        const camelCaseImage = apiClient.parseResponse<VehicleImage>(serverImage);
 
         // Dodajemy ID protokołu do obiektu obrazu (potrzebne do budowania URL)
         if (protocolId) {
@@ -62,15 +24,24 @@ const mapServerImagesToDisplayImages = (serverImages: any[], protocolId?: string
             camelCaseImage.url = `${apiClient.getBaseUrl()}/image/${serverImage.id}`;
         }
 
-        return camelCaseImage as VehicleImage;
+        return camelCaseImage;
     });
 };
 
+/**
+ * API do zarządzania protokołami przyjęcia samochodu
+ * Obsługuje protokoły, zdjęcia i inne załączniki
+ */
 export const carReceptionApi = {
-    // Tworzenie nowego protokołu przyjęcia
-    createCarReceptionProtocol: async (protocol: Omit<CarReceptionProtocol, 'id' | 'createdAt' | 'updatedAt' | 'statusUpdatedAt'>): Promise<CarReceptionProtocol> => {
+    /**
+     * Tworzy nowy protokół przyjęcia
+     * @param protocol - Dane protokołu bez ID i innych pól generowanych przez serwer
+     * @returns Utworzony protokół z ID i datami
+     */
+    createCarReceptionProtocol: async (
+        protocol: Omit<CarReceptionProtocol, 'id' | 'createdAt' | 'updatedAt' | 'statusUpdatedAt'>
+    ): Promise<CarReceptionProtocol> => {
         try {
-
             // Sprawdzamy czy mamy zdjęcia z plikami do wysłania
             const hasImages = protocol.vehicleImages && protocol.vehicleImages.length > 0;
             const hasFileImages = hasImages && protocol.vehicleImages!.some(img => img.file);
@@ -82,21 +53,22 @@ export const carReceptionApi = {
                 endDate: protocol.endDate       // Format ISO: "YYYY-MM-DDTHH:MM:SS" (zawsze 23:59:59)
             };
 
+            let response;
+
             // Jeśli mamy zdjęcia z plikami, używamy FormData
             if (hasFileImages) {
-                const formData = new FormData();
-
-                // Usuwamy pliki z obiektu protokołu i dodajemy je do FormData
+                // Usuwamy pliki z obiektu protokołu i przygotowujemy je osobno
                 const protocolWithoutFiles = { ...protocolData };
+                const files: Record<string, File> = {};
 
                 if (protocolWithoutFiles.vehicleImages) {
                     // Przekształcamy zdjęcia do prostej struktury bez pól File
                     const simplifiedImages = protocolWithoutFiles.vehicleImages.map((img, index) => {
                         const { file, ...imageWithoutFile } = img;
 
-                        // Jeśli mamy plik, dodajemy go do formData
+                        // Jeśli mamy plik, dodajemy go do kolekcji plików
                         if (file) {
-                            formData.append(`images[${index}]`, file, file.name);
+                            files[`images[${index}]`] = file;
                         }
 
                         return {
@@ -108,97 +80,82 @@ export const carReceptionApi = {
                     protocolWithoutFiles.vehicleImages = simplifiedImages;
                 }
 
-                // Konwersja protokołu na snake_case i dodanie do formData jako JSON
-                const jsonData = JSON.stringify(convertToSnakeCase(protocolWithoutFiles));
-                formData.append('protocol', jsonData);
+                // Tworzymy formData z obiektem protokołu i plikami
+                const formDataWithFiles = apiClient.createFormDataWithJson(
+                    protocolWithoutFiles,
+                    'protocol',
+                    files
+                );
 
                 // Wysyłanie żądania POST z FormData
-                const response = await apiClient.post<CarReceptionResponse>('/receptions/with-files', formData);
-
-                // Konwertuj odpowiedź na format używany w aplikacji
-                const convertedResponse = convertToCamelCase(response);
-
-                // Połącz dane protokołu z odpowiedzią serwera
-                const result: CarReceptionProtocol = {
-                    ...protocolData,
-                    id: convertedResponse.id,
-                    createdAt: convertedResponse.createdAt,
-                    updatedAt: convertedResponse.updatedAt,
-                    statusUpdatedAt: convertedResponse.statusUpdatedAt
-                } as CarReceptionProtocol;
-
-                // Przetwarzamy obrazy z odpowiedzi serwera jeśli istnieją
-                if (convertedResponse.vehicleImages) {
-                    result.vehicleImages = mapServerImagesToDisplayImages(convertedResponse.vehicleImages);
-                }
-
-                return result;
+                response = await apiClient.post<any>('/receptions/with-files', formDataWithFiles);
             } else {
                 // Jeśli nie mamy zdjęć z plikami, używamy standardowego JSON
-                const requestData = convertToSnakeCase(protocolData);
-
-                // Wysyłanie żądania POST z JSON
-                const response = await apiClient.post<CarReceptionResponse>('/receptions', requestData);
-
-                // Konwertuj odpowiedź na format używany w aplikacji
-                const convertedResponse = convertToCamelCase(response);
-
-                // Połącz dane protokołu z odpowiedzią serwera
-                const result: CarReceptionProtocol = {
-                    ...protocolData,
-                    id: convertedResponse.id,
-                    createdAt: convertedResponse.createdAt,
-                    updatedAt: convertedResponse.updatedAt,
-                    statusUpdatedAt: convertedResponse.statusUpdatedAt
-                } as CarReceptionProtocol;
-
-                // Przetwarzamy obrazy z odpowiedzi serwera jeśli istnieją
-                if (convertedResponse.vehicleImages) {
-                    result.vehicleImages = mapServerImagesToDisplayImages(convertedResponse.vehicleImages);
-                }
-
-                return result;
+                response = await apiClient.post<any>('/receptions', protocolData);
             }
+
+            // Połącz dane protokołu z odpowiedzią serwera
+            const result: CarReceptionProtocol = {
+                ...protocolData,
+                id: response.id,
+                createdAt: response.createdAt,
+                updatedAt: response.updatedAt,
+                statusUpdatedAt: response.statusUpdatedAt
+            } as CarReceptionProtocol;
+
+            // Przetwarzamy obrazy z odpowiedzi serwera jeśli istnieją
+            if (response.vehicleImages) {
+                result.vehicleImages = mapServerImagesToDisplayImages(response.vehicleImages);
+            }
+
+            return result;
         } catch (error) {
             console.error('Error creating protocol:', error);
             throw error;
         }
     },
 
+    /**
+     * Pobiera listę protokołów dla klienta
+     * @param clientId - ID klienta
+     * @returns Lista protokołów dla klienta
+     */
     getProtocolsByClientId: async (clientId: string): Promise<ClientProtocolHistory[]> => {
         try {
-            // Pobierz dane z API
-            const rawData = await apiClient.get<any[]>(`/receptions/${clientId}/protocols`);
-
-            return convertToCamelCase(rawData) as ClientProtocolHistory[];
+            return await apiClient.get<ClientProtocolHistory[]>(`/receptions/${clientId}/protocols`);
         } catch (error) {
             console.error('Error fetching protocols list:', error);
             return [];
         }
     },
 
-    // Aktualizacja istniejącego protokołu
+    /**
+     * Aktualizuje istniejący protokół
+     * @param protocol - Pełne dane protokołu do aktualizacji
+     * @returns Zaktualizowany protokół
+     */
     updateCarReceptionProtocol: async (protocol: CarReceptionProtocol): Promise<CarReceptionProtocol> => {
         try {
             // Sprawdzamy czy mamy nowe zdjęcia z plikami do wysłania
             const hasImages = protocol.vehicleImages && protocol.vehicleImages.length > 0;
             const hasFileImages = hasImages && protocol.vehicleImages!.some(img => img.file);
 
+            let response;
+
             // Jeśli mamy zdjęcia z plikami, używamy FormData
             if (hasFileImages) {
-                const formData = new FormData();
-
-                // Usuwamy pliki z obiektu protokołu i dodajemy je do FormData
+                // Usuwamy pliki z obiektu protokołu i przygotowujemy je osobno
                 const protocolWithoutFiles = { ...protocol };
+                const files: Record<string, File> = {};
 
                 if (protocolWithoutFiles.vehicleImages) {
                     // Przekształcamy zdjęcia do prostej struktury bez pól File
                     const simplifiedImages = protocolWithoutFiles.vehicleImages.map((img, index) => {
                         const { file, ...imageWithoutFile } = img;
 
-                        // Jeśli mamy plik, dodajemy go do formData
+                        // Jeśli mamy plik, dodajemy go do kolekcji plików
                         if (file) {
-                            formData.append(`images[${index}]`, file, file.name);
+                            files[`images[${index}]`] = file;
                         }
 
                         return {
@@ -210,93 +167,84 @@ export const carReceptionApi = {
                     protocolWithoutFiles.vehicleImages = simplifiedImages;
                 }
 
-                // Konwersja protokołu na snake_case i dodanie do formData jako JSON
-                const jsonData = JSON.stringify(convertToSnakeCase(protocolWithoutFiles));
-                formData.append('protocol', jsonData);
+                // Tworzymy formData z obiektem protokołu i plikami
+                const formDataWithFiles = apiClient.createFormDataWithJson(
+                    protocolWithoutFiles,
+                    'protocol',
+                    files
+                );
 
                 // Wysyłanie żądania PUT z FormData
-                const response = await apiClient.put<CarReceptionResponse>(`/receptions/${protocol.id}/with-files`, formData);
-
-                // Konwertuj odpowiedź na format używany w aplikacji
-                const convertedResponse = convertToCamelCase(response);
-
-                // Połącz dane protokołu z odpowiedzią serwera
-                const result: CarReceptionProtocol = {
-                    ...protocol,
-                    updatedAt: convertedResponse.updatedAt,
-                    statusUpdatedAt: convertedResponse.statusUpdatedAt
-                } as CarReceptionProtocol;
-
-                // Przetwarzamy obrazy z odpowiedzi serwera jeśli istnieją
-                if (convertedResponse.vehicleImages) {
-                    result.vehicleImages = mapServerImagesToDisplayImages(convertedResponse.vehicleImages);
-                }
-
-                return result;
+                response = await apiClient.put<any>(`/receptions/${protocol.id}/with-files`, formDataWithFiles);
             } else {
                 // Jeśli nie mamy zdjęć z plikami, używamy standardowego JSON
-                const requestData = convertToSnakeCase(protocol);
-
-                // Wysyłanie żądania PUT
-                const response = await apiClient.put<CarReceptionResponse>(`/receptions/${protocol.id}`, requestData);
-
-                // Konwertuj odpowiedź na format używany w aplikacji
-                const convertedResponse = convertToCamelCase(response);
-
-                // Połącz dane protokołu z odpowiedzią serwera
-                const result: CarReceptionProtocol = {
-                    ...protocol,
-                    updatedAt: convertedResponse.updatedAt,
-                    statusUpdatedAt: convertedResponse.statusUpdatedAt
-                } as CarReceptionProtocol;
-
-                // Przetwarzamy obrazy z odpowiedzi serwera jeśli istnieją
-                if (convertedResponse.vehicleImages) {
-                    result.vehicleImages = mapServerImagesToDisplayImages(convertedResponse.vehicleImages);
-                }
-
-                return result;
+                response = await apiClient.put<any>(`/receptions/${protocol.id}`, protocol);
             }
+
+            // Połącz dane protokołu z odpowiedzią serwera
+            const result: CarReceptionProtocol = {
+                ...protocol,
+                updatedAt: response.updatedAt,
+                statusUpdatedAt: response.statusUpdatedAt
+            } as CarReceptionProtocol;
+
+            // Przetwarzamy obrazy z odpowiedzi serwera jeśli istnieją
+            if (response.vehicleImages) {
+                result.vehicleImages = mapServerImagesToDisplayImages(response.vehicleImages);
+            }
+
+            return result;
         } catch (error) {
             console.error('Error updating protocol:', error);
             throw error;
         }
     },
 
-    // Pobieranie protokołów
+    /**
+     * Pobiera wszystkie protokoły
+     * @returns Lista wszystkich protokołów
+     */
     fetchCarReceptionProtocols: async (): Promise<CarReceptionProtocol[]> => {
         try {
             const response = await apiClient.get<any[]>('/receptions');
 
-            // Konwertuj odpowiedź na format używany w aplikacji
+            // Konwertuj odpowiedź i przetwarzamy zdjęcia dla każdego protokołu
             return response.map(item => {
-                const protocol = convertToCamelCase(item) as CarReceptionProtocol;
+                const protocol = apiClient.parseResponse<CarReceptionProtocol>(item);
 
                 // Jeśli protokół zawiera zdjęcia, przetwarzamy je
                 if (protocol.vehicleImages) {
-                    protocol.vehicleImages = mapServerImagesToDisplayImages(protocol.vehicleImages);
+                    protocol.vehicleImages = mapServerImagesToDisplayImages(
+                        protocol.vehicleImages,
+                        protocol.id
+                    );
                 }
 
                 return protocol;
             });
         } catch (error) {
             console.error('Error fetching protocols:', error);
-            // W przypadku błędu zwracamy puste dane (można też rzucić wyjątek)
+            // W przypadku błędu zwracamy puste dane
             return [];
         }
     },
 
-    // Pobieranie pojedynczego protokołu
+    /**
+     * Pobiera pojedynczy protokół po ID
+     * @param id - ID protokołu
+     * @returns Protokół lub null jeśli nie znaleziono
+     */
     fetchCarReceptionProtocol: async (id: string): Promise<CarReceptionProtocol | null> => {
         try {
             const response = await apiClient.get<any>(`/receptions/${id}`);
-
-            // Konwertuj odpowiedź na format używany w aplikacji
-            const protocol = convertToCamelCase(response) as CarReceptionProtocol;
+            const protocol = apiClient.parseResponse<CarReceptionProtocol>(response);
 
             // Jeśli protokół zawiera zdjęcia, przetwarzamy je
             if (protocol.vehicleImages) {
-                protocol.vehicleImages = mapServerImagesToDisplayImages(protocol.vehicleImages);
+                protocol.vehicleImages = mapServerImagesToDisplayImages(
+                    protocol.vehicleImages,
+                    protocol.id
+                );
             }
 
             return protocol;
@@ -306,7 +254,11 @@ export const carReceptionApi = {
         }
     },
 
-    // Usuwanie protokołu
+    /**
+     * Usuwa protokół
+     * @param id - ID protokołu do usunięcia
+     * @returns true jeśli usunięto pomyślnie, false w przypadku błędu
+     */
     deleteCarReceptionProtocol: async (id: string): Promise<boolean> => {
         try {
             await apiClient.delete(`/receptions/${id}`);
@@ -317,7 +269,12 @@ export const carReceptionApi = {
         }
     },
 
-    // Usuwanie zdjęcia z protokołu
+    /**
+     * Usuwa zdjęcie z protokołu
+     * @param protocolId - ID protokołu
+     * @param imageId - ID zdjęcia do usunięcia
+     * @returns true jeśli usunięto pomyślnie, false w przypadku błędu
+     */
     deleteVehicleImage: async (protocolId: string, imageId: string): Promise<boolean> => {
         try {
             await apiClient.delete(`/receptions/${protocolId}/image/${imageId}`);
@@ -328,11 +285,14 @@ export const carReceptionApi = {
         }
     },
 
+    /**
+     * Pobiera wszystkie zdjęcia dla danego protokołu
+     * @param protocolId - ID protokołu
+     * @returns Lista zdjęć protokołu
+     */
     fetchVehicleImages: async (protocolId: string): Promise<VehicleImage[]> => {
         try {
             const response = await apiClient.get<any[]>(`/receptions/receptions/${protocolId}/images`);
-
-            // Konwertuj odpowiedź na format używany w aplikacji
             return mapServerImagesToDisplayImages(response, protocolId);
         } catch (error) {
             console.error(`Error fetching images for protocol ${protocolId}:`, error);
@@ -340,9 +300,15 @@ export const carReceptionApi = {
         }
     },
 
+    /**
+     * Dodaje wiele zdjęć do protokołu
+     * @param protocolId - ID protokołu
+     * @param files - Tablica plików do dodania
+     * @returns Lista dodanych zdjęć
+     */
     addVehicleImages: async (protocolId: string, files: File[]): Promise<VehicleImage[]> => {
         try {
-            // Utwórz FormData dla plików
+            // Tworzymy FormData dla plików
             const formData = new FormData();
 
             // Dodaj każdy plik do FormData
@@ -361,60 +327,39 @@ export const carReceptionApi = {
         }
     },
 
+    /**
+     * Wysyła pojedyncze zdjęcie do protokołu
+     * @param protocolId - ID protokołu
+     * @param image - Dane zdjęcia do wysłania
+     * @returns Dane dodanego zdjęcia z serwera
+     */
     uploadVehicleImage: async (
         protocolId: string,
         image: VehicleImage
     ): Promise<VehicleImage> => {
         try {
-            console.log('Uploading vehicle image to protocol:', protocolId, image);
-
             // Sprawdzamy czy mamy plik do wysłania
             if (!image.file) {
                 throw new Error('No file provided for upload');
             }
 
-            // Tworzymy FormData do przesłania pliku
-            const formData = new FormData();
-
-            // Dodajemy plik do FormData
-            formData.append('images[0]', image.file, image.file.name);
-
             // Wyłuskujemy nazwę pliku bez rozszerzenia jako domyślną nazwę
             const defaultName = image.file.name.replace(/\.[^/.]+$/, "");
 
             // Przygotowujemy podstawowe dane obrazu
-            const imageDataRaw = {
+            const imageData = {
                 id: image.id && image.id.startsWith('temp_') ? undefined : image.id,
                 name: image.name || defaultName,
                 size: image.size,
                 type: image.type,
                 tags: Array.isArray(image.tags) ? image.tags : [],
-                has_file: true
+                hasFile: true
             };
 
-            // Konwertujemy camelCase na snake_case ręcznie dla pewności
-            const imageData = {
-                id: imageDataRaw.id,
-                name: imageDataRaw.name,
-                size: imageDataRaw.size,
-                type: imageDataRaw.type,
-                tags: imageDataRaw.tags,
-                has_file: true
-            };
-
-            console.log('Image data to be sent:', imageData);
-
-            // Dodajemy dane obrazu jako parametr 'image' w formacie JSON
-            formData.append('image', JSON.stringify(imageData));
-
-            // Debug - sprawdzamy zawartość formData
-            for (let [key, value] of formData.entries()) {
-                if (key !== 'images[0]') {
-                    console.log(`FormData entry - ${key}:`, value);
-                } else {
-                    console.log(`FormData entry - ${key}: [file]`);
-                }
-            }
+            // Tworzymy FormData i dodajemy plik oraz metadane
+            const formData = new FormData();
+            formData.append('images[0]', image.file, image.file.name);
+            formData.append('image', JSON.stringify(apiClient.convertCamelToSnake(imageData)));
 
             // Wysyłamy żądanie POST z FormData
             const response = await apiClient.post<{ id: string }>(
@@ -422,17 +367,13 @@ export const carReceptionApi = {
                 formData
             );
 
-            console.log('Server response for image upload:', response);
-
             // Tworzymy zaktualizowany obiekt obrazu z odpowiedzią z serwera
             const updatedImage: VehicleImage = {
                 ...image,
                 id: response.id,
                 protocolId: protocolId,
-                // Zachowujemy metadane
-                name: imageDataRaw.name,
-                tags: imageDataRaw.tags,
-                // Dodajemy timestamp utworzenia
+                name: imageData.name,
+                tags: imageData.tags,
                 createdAt: new Date().toISOString()
             };
 
@@ -443,6 +384,13 @@ export const carReceptionApi = {
         }
     },
 
+    /**
+     * Aktualizuje metadane zdjęcia
+     * @param protocolId - ID protokołu
+     * @param imageId - ID zdjęcia
+     * @param metadata - Nowe metadane zdjęcia
+     * @returns Zaktualizowane dane zdjęcia lub null w przypadku błędu
+     */
     updateVehicleImage: async (protocolId: string, imageId: string, metadata: {
         description?: string,
         location?: string,
@@ -450,18 +398,11 @@ export const carReceptionApi = {
         tags?: string[]
     }): Promise<VehicleImage | null> => {
         try {
-            console.log(`Updating image ${imageId} metadata:`, metadata);
-
-            // Przekształć dane z camelCase na snake_case
-            const requestData = convertToSnakeCase(metadata);
-            console.log('Request data after conversion:', requestData);
-
             // Wysyłanie żądania PATCH
-            const response = await apiClient.patch<any>(`/receptions/${protocolId}/image/${imageId}`, requestData);
-            console.log('Image update response:', response);
+            const response = await apiClient.patch<any>(`/receptions/${protocolId}/image/${imageId}`, metadata);
 
             // Konwertuj odpowiedź na format używany w aplikacji
-            const updatedImage = convertToCamelCase(response) as VehicleImage;
+            const updatedImage = apiClient.parseResponse<VehicleImage>(response);
 
             // Dodaj URL do obrazu
             updatedImage.url = `${apiClient.getBaseUrl()}/receptions/image/${imageId}`;

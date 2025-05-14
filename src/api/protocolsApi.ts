@@ -1,47 +1,6 @@
-import { apiClient } from './apiClient';
-import { ProtocolListItem, ProtocolStatus, PaginatedResponse } from '../types/protocol';
+import { apiClient, PaginatedResponse } from './apiClient';
+import { ProtocolListItem, ProtocolStatus } from '../types/protocol';
 import { CarReceptionProtocol } from '../types';
-
-// Funkcja pomocnicza do konwersji ze snake_case na camelCase
-const convertSnakeToCamel = (data: any): any => {
-    if (data === null || data === undefined || typeof data !== 'object') {
-        return data;
-    }
-
-    if (Array.isArray(data)) {
-        return data.map(item => convertSnakeToCamel(item));
-    }
-
-    return Object.keys(data).reduce((result, key) => {
-        // Konwertuj klucz ze snake_case na camelCase
-        const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
-
-        // Rekurencyjnie konwertuj wartość jeśli jest obiektem
-        result[camelKey] = convertSnakeToCamel(data[key]);
-
-        return result;
-    }, {} as Record<string, any>);
-};
-
-// Funkcja pomocnicza do wzbogacania danych protokołu
-const enrichProtocolData = (protocolData: any): CarReceptionProtocol => {
-    // Najpierw konwertujemy nazwy pól ze snake_case na camelCase
-    const camelCaseProtocol = convertSnakeToCamel(protocolData);
-
-    // Zapewniamy, że wszystkie wymagane pola istnieją
-    return {
-        ...camelCaseProtocol,
-        // Konwertujemy ID właściciela z formatu API (może być przekazywane jako string)
-        ownerId: camelCaseProtocol.ownerId !== undefined ? camelCaseProtocol.ownerId :
-            protocolData.owner_id !== undefined ? protocolData.owner_id : null,
-        // Domyślne wartości dla pól, których może brakować
-        selectedServices: camelCaseProtocol.selectedServices || [],
-        vehicleImages: camelCaseProtocol.vehicleImages || [],
-        vehicleIssues: camelCaseProtocol.vehicleIssues || [],
-        purchaseInvoices: camelCaseProtocol.purchaseInvoices || [],
-        comments: camelCaseProtocol.comments || []
-    };
-};
 
 // Interfejs dla parametrów filtrowania
 interface ProtocolFilterParams {
@@ -55,7 +14,7 @@ interface ProtocolFilterParams {
 }
 
 /**
- * Serwis do komunikacji z API dla protokołów przyjęcia pojazdów
+ * API do zarządzania protokołami przyjęcia pojazdów
  */
 export const protocolsApi = {
     /**
@@ -63,70 +22,13 @@ export const protocolsApi = {
      */
     getProtocolsList: async (filters: ProtocolFilterParams = {}): Promise<PaginatedResponse<ProtocolListItem>> => {
         try {
-            // Budowanie parametrów zapytania
-            const queryParams: Record<string, string> = {};
+            const { page = 0, size = 10, ...otherFilters } = filters;
 
-            if (filters.clientName) queryParams.clientName = filters.clientName;
-            if (filters.licensePlate) queryParams.licensePlate = filters.licensePlate;
-            if (filters.status) queryParams.status = filters.status;
-            if (filters.startDate) queryParams.startDate = filters.startDate;
-            if (filters.endDate) queryParams.endDate = filters.endDate;
-
-            // Parametry paginacji
-            // Upewniamy się, że page jest przekazywany jako parametr page, a nie jako p lub page_index
-            const pageIndex = filters.page !== undefined ? filters.page : 0;
-            queryParams.page = String(pageIndex);
-            queryParams.size = String(filters.size !== undefined ? filters.size : 10);
-
-            console.log("Parametry paginacji wysyłane do API:", { page: queryParams.page, size: queryParams.size });
-
-            // Pobierz dane z API
-            const response = await apiClient.get<any>('/receptions/list', queryParams);
-
-            console.log("Odpowiedź z API:", response);
-
-            // Przetwarzamy odpowiedź z API zależnie od formatu
-            let transformedData: ProtocolListItem[] = [];
-            let paginationInfo = {
-                currentPage: Number(queryParams.page),
-                pageSize: Number(queryParams.size),
-                totalItems: 0,
-                totalPages: 0
-            };
-
-            // Sprawdzamy format odpowiedzi
-            if (Array.isArray(response)) {
-                // Format 1: Odpowiedź jest tablicą - brak paginacji
-                transformedData = convertSnakeToCamel(response) as ProtocolListItem[];
-                paginationInfo.totalItems = transformedData.length;
-                paginationInfo.totalPages = 1;
-            } else if (response.pagination) {
-                // Format 2: Odpowiedź zawiera obiekt pagination
-                transformedData = convertSnakeToCamel(response.data || []) as ProtocolListItem[];
-                paginationInfo = {
-                    currentPage: response.pagination.currentPage,
-                    pageSize: response.pagination.pageSize,
-                    totalItems: response.pagination.totalItems,
-                    totalPages: response.pagination.totalPages
-                };
-            } else if (response.data && Array.isArray(response.data)) {
-                // Format 3: Odpowiedź zawiera pola paginacji bezpośrednio w głównym obiekcie
-                transformedData = convertSnakeToCamel(response.data) as ProtocolListItem[];
-                paginationInfo = {
-                    currentPage: response.page || 0,
-                    pageSize: response.size || 10,
-                    totalItems: response.total_items || 0,
-                    totalPages: response.total_pages || 0
-                };
-            } else {
-                // Nierozpoznany format - zwróć puste dane
-                console.error('Nierozpoznany format odpowiedzi API:', response);
-            }
-
-            return {
-                data: transformedData,
-                pagination: paginationInfo
-            };
+            return await apiClient.getWithPagination<ProtocolListItem>(
+                '/receptions/list',
+                otherFilters,
+                { page, size }
+            );
         } catch (error) {
             console.error('Error fetching protocols list:', error);
             // W przypadku błędu zwracamy pustą listę z minimalnymi informacjami o paginacji
@@ -142,60 +44,39 @@ export const protocolsApi = {
         }
     },
 
-    getProtocolsListWithoutPagination: async (filters: ProtocolFilterParams = {}): Promise<ProtocolListItem[]> => {
+    /**
+     * Pobiera listę protokołów bez paginacji
+     */
+    getProtocolsListWithoutPagination: async (filters: Omit<ProtocolFilterParams, 'page' | 'size'> = {}): Promise<ProtocolListItem[]> => {
         try {
-            // Budowanie parametrów zapytania
-            const queryParams: Record<string, string> = {};
-
-            if (filters.clientName) queryParams.clientName = filters.clientName;
-            if (filters.licensePlate) queryParams.licensePlate = filters.licensePlate;
-            if (filters.status) queryParams.status = filters.status;
-            if (filters.startDate) queryParams.startDate = filters.startDate;
-            if (filters.endDate) queryParams.endDate = filters.endDate;
-
-            // Pobierz dane z API
-            const rawData = await apiClient.get<any[]>('/receptions/not-paginated', queryParams);
-
-            // Przekształć dane ze snake_case na camelCase
-            const transformedData = convertSnakeToCamel(rawData) as ProtocolListItem[];
-
-            return transformedData;
+            return await apiClient.get<ProtocolListItem[]>('/receptions/not-paginated', filters);
         } catch (error) {
             console.error('Error fetching protocols list:', error);
             return [];
         }
     },
 
+    /**
+     * Pobiera protokoły dla określonego klienta
+     */
     getProtocolsByClientId: async (clientId: string): Promise<ProtocolListItem[]> => {
         try {
-            // Pobierz dane z API
-            const rawData = await apiClient.get<any[]>(`/receptions/${clientId}/protocols`, {});
-
-            // Przekształć dane ze snake_case na camelCase
-            const transformedData = convertSnakeToCamel(rawData) as ProtocolListItem[];
-
-            return transformedData;
+            return await apiClient.get<ProtocolListItem[]>(`/receptions/${clientId}/protocols`);
         } catch (error) {
             console.error('Error fetching protocols list:', error);
             return [];
         }
     },
 
+    /**
+     * Zwalnia (wydaje) pojazd
+     */
     releaseVehicle: async (id: string, data: {
         paymentMethod: 'cash' | 'card';
         documentType: 'invoice' | 'receipt' | 'other';
     }): Promise<CarReceptionProtocol | null> => {
         try {
-            // Konwersja danych na snake_case (dla API)
-            const paymentData = convertCamelToSnake(data);
-
-            // Wyślij dane do API
-            const rawResponse = await apiClient.post<any>(`/receptions/${id}/release`, paymentData);
-
-            // Przekształć odpowiedź ze snake_case na camelCase
-            const transformedResponse = enrichProtocolData(rawResponse);
-
-            return transformedResponse;
+            return await apiClient.post<CarReceptionProtocol>(`/receptions/${id}/release`, data);
         } catch (error) {
             console.error(`Error releasing vehicle (ID: ${id}):`, error);
             return null;
@@ -207,13 +88,7 @@ export const protocolsApi = {
      */
     getProtocolDetails: async (id: string): Promise<CarReceptionProtocol | null> => {
         try {
-            // Pobierz dane z API
-            const rawData = await apiClient.get<any>(`/receptions/${id}`);
-
-            // Przekształć dane ze snake_case na camelCase i wzbogać o brakujące pola
-            const transformedData = enrichProtocolData(rawData);
-
-            return transformedData;
+            return await apiClient.get<CarReceptionProtocol>(`/receptions/${id}`);
         } catch (error) {
             console.error(`Error fetching protocol details (ID: ${id}):`, error);
             return null;
@@ -225,16 +100,7 @@ export const protocolsApi = {
      */
     createProtocol: async (protocol: Omit<CarReceptionProtocol, 'id'>): Promise<CarReceptionProtocol | null> => {
         try {
-            // Przekształć dane z camelCase na snake_case (dla API)
-            const protocolToSnakeCase = convertCamelToSnake(protocol);
-
-            // Wyślij dane do API
-            const rawResponse = await apiClient.post<any>('/receptions', protocolToSnakeCase);
-
-            // Przekształć odpowiedź ze snake_case na camelCase
-            const transformedResponse = enrichProtocolData(rawResponse);
-
-            return transformedResponse;
+            return await apiClient.post<CarReceptionProtocol>('/receptions', protocol);
         } catch (error) {
             console.error('Error creating protocol:', error);
             return null;
@@ -246,16 +112,7 @@ export const protocolsApi = {
      */
     updateProtocol: async (protocol: CarReceptionProtocol): Promise<CarReceptionProtocol | null> => {
         try {
-            // Przekształć dane z camelCase na snake_case (dla API)
-            const protocolToSnakeCase = convertCamelToSnake(protocol);
-
-            // Wyślij dane do API
-            const rawResponse = await apiClient.put<any>(`/receptions/${protocol.id}`, protocolToSnakeCase);
-
-            // Przekształć odpowiedź ze snake_case na camelCase
-            const transformedResponse = enrichProtocolData(rawResponse);
-
-            return transformedResponse;
+            return await apiClient.put<CarReceptionProtocol>(`/receptions/${protocol.id}`, protocol);
         } catch (error) {
             console.error(`Error updating protocol (ID: ${protocol.id}):`, error);
             return null;
@@ -267,17 +124,7 @@ export const protocolsApi = {
      */
     updateProtocolStatus: async (id: string, status: ProtocolStatus, reason?: string): Promise<CarReceptionProtocol | null> => {
         try {
-            // Przekształć dane z camelCase na snake_case (dla API)
-            const statusData = { status };
-            const statusToSnakeCase = convertCamelToSnake(statusData);
-
-            // Wyślij dane do API
-            const rawResponse = await apiClient.patch<any>(`/receptions/${id}/status`, statusToSnakeCase);
-
-            // Przekształć odpowiedź ze snake_case na camelCase
-            const transformedResponse = enrichProtocolData(rawResponse);
-
-            return transformedResponse;
+            return await apiClient.patch<CarReceptionProtocol>(`/receptions/${id}/status`, { status });
         } catch (error) {
             console.error(`Error updating protocol status (ID: ${id}):`, error);
             return null;
@@ -296,25 +143,4 @@ export const protocolsApi = {
             return false;
         }
     }
-};
-
-// Funkcja pomocnicza do konwersji z camelCase na snake_case (dla wysyłania danych do API)
-const convertCamelToSnake = (data: any): any => {
-    if (data === null || data === undefined || typeof data !== 'object') {
-        return data;
-    }
-
-    if (Array.isArray(data)) {
-        return data.map(item => convertCamelToSnake(item));
-    }
-
-    return Object.keys(data).reduce((result, key) => {
-        // Konwertuj klucz z camelCase na snake_case
-        const snakeKey = key.replace(/([A-Z])/g, (_, letter) => `_${letter.toLowerCase()}`);
-
-        // Rekurencyjnie konwertuj wartość jeśli jest obiektem
-        result[snakeKey] = convertCamelToSnake(data[key]);
-
-        return result;
-    }, {} as Record<string, any>);
 };
