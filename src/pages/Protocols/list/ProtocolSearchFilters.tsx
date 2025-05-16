@@ -22,7 +22,6 @@ export interface SearchCriteria {
     licensePlate?: string;
     make?: string;
     model?: string;
-    status?: ProtocolStatus;
     dateFrom?: Date | null;
     dateTo?: Date | null;
     serviceName?: string;
@@ -30,7 +29,7 @@ export interface SearchCriteria {
         min?: number;
         max?: number;
     };
-    [key: string]: string | Date | null | ProtocolStatus | { min?: number; max?: number; } | undefined;
+    [key: string]: string | Date | null | { min?: number; max?: number; } | undefined;
 }
 
 type DateRangeState = {
@@ -197,22 +196,6 @@ export const ProtocolSearchFilters: React.FC<ProtocolSearchFiltersProps> = ({
             {isExpanded && (
                 <AdvancedFilters>
                     <FilterRow>
-                        <FilterColumn>
-                            <FilterLabel>Status wizyty</FilterLabel>
-                            <SelectInput
-                                name="status"
-                                value={searchCriteria.status || ''}
-                                onChange={handleInputChange}
-                            >
-                                <option value="">Wszystkie statusy</option>
-                                {Object.entries(ProtocolStatusLabels).map(([status, label]) => (
-                                    <option key={status} value={status}>
-                                        {label}
-                                    </option>
-                                ))}
-                            </SelectInput>
-                        </FilterColumn>
-
                         <FilterColumn>
                             <FilterLabel>Nr rejestracyjny</FilterLabel>
                             <LicensePlateWrapper>
