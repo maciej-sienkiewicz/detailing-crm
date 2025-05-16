@@ -2,11 +2,14 @@
 // Aktualizacja globalnych stylów w aplikacji, aby zapewnić lepszą responsywność
 
 import React from 'react';
-import { BrowserRouter as Router } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { createGlobalStyle } from 'styled-components';
+import { AuthProvider } from './context/AuthContext';
 import Layout from './components/layout/Layout';
 import AppRoutes from './routes';
-import {ToastProvider} from "./components/common/Toast/Toast";
+import { ToastProvider } from "./components/common/Toast/Toast";
+import LoginPage from './pages/Auth/LoginPage';
+import ProtectedRoute from './components/ProtectedRoute';
 
 // Globalne style dla całej aplikacji
 const GlobalStyle = createGlobalStyle`
@@ -97,14 +100,32 @@ const GlobalStyle = createGlobalStyle`
 
 const App: React.FC = () => {
     return (
-        <ToastProvider>
-            <Router>
-                <GlobalStyle />
-                <Layout>
-                    <AppRoutes />
-                </Layout>
-            </Router>
-        </ToastProvider>
+        <AuthProvider>
+            <ToastProvider>
+                <Router>
+                    <GlobalStyle />
+                    <Routes>
+                        {/* Strona logowania dostępna dla niezalogowanych użytkowników */}
+                        <Route path="/login" element={<LoginPage />} />
+
+                        {/* Przekierowanie z głównej strony do strony logowania lub aplikacji */}
+                        <Route path="/" element={<Navigate to="/calendar" replace />} />
+
+                        {/* Wszystkie pozostałe ścieżki są chronione i wymagają logowania */}
+                        <Route
+                            path="/*"
+                            element={
+                                <ProtectedRoute>
+                                    <Layout>
+                                        <AppRoutes />
+                                    </Layout>
+                                </ProtectedRoute>
+                            }
+                        />
+                    </Routes>
+                </Router>
+            </ToastProvider>
+        </AuthProvider>
     );
 };
 

@@ -23,6 +23,7 @@ import {
     FaRss,
     FaTimes
 } from 'react-icons/fa';
+import UserProfileSection from './UserProfileSection';
 
 // Dane menu głównego
 interface MainMenuItem {
@@ -151,6 +152,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                 )}
             </SidebarHeader>
 
+            {/* Sekcja profilu użytkownika */}
+            <UserProfileSection />
+
             <SidebarMenu>
                 {mainMenuItems.map(item => (
                     <MenuItemContainer
@@ -180,6 +184,10 @@ const Sidebar: React.FC<SidebarProps> = ({
                     </MenuItemContainer>
                 ))}
             </SidebarMenu>
+
+            <SidebarFooter>
+                <Version>Wersja 1.0.5</Version>
+            </SidebarFooter>
         </SidebarContainer>
     );
 };
@@ -241,6 +249,7 @@ const SidebarMenu = styled.div`
     flex-direction: column;
     padding: 20px 0;
     overflow-y: auto;
+    flex: 1;
 `;
 
 const MenuItemContainer = styled.div<{ active: boolean }>`
@@ -275,6 +284,17 @@ const MenuIcon = styled.div`
 
 const MenuLabel = styled.div`
     font-size: 14px;
+`;
+
+const SidebarFooter = styled.div`
+    padding: 15px 20px;
+    border-top: 1px solid #34495e;
+    text-align: center;
+`;
+
+const Version = styled.div`
+    font-size: 12px;
+    color: #7f8c8d;
 `;
 
 export default Sidebar;
