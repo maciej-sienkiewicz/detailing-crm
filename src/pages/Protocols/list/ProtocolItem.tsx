@@ -56,8 +56,11 @@ export const ProtocolItem: React.FC<ProtocolItemProps> = ({
             <TableCell>
                 <CarInfo>
                     <strong>{protocol.vehicle.make} {protocol.vehicle.model}</strong>
-                    <span>Rok: {protocol.vehicle.productionYear}</span>
-                </CarInfo>
+                    {protocol.vehicle.productionYear > 0 ? (
+                        <span>Rok: {protocol.vehicle.productionYear}</span>
+                    ) : (
+                        <span>Rok: Brak informacji</span>
+                    )}                </CarInfo>
             </TableCell>
             <TableCell>
                 <DateRange>
