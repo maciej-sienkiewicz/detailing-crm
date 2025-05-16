@@ -1,3 +1,4 @@
+// src/pages/Protocols/CarReceptionPage.tsx
 import React, { useState, useEffect } from 'react';
 import { FaArrowLeft, FaPlus } from 'react-icons/fa';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -17,13 +18,16 @@ import { ProtocolFilters } from "./list/ProtocolFilters";
 import { ProtocolList } from "./list/ProtocolList";
 import ProtocolConfirmationModal from "./shared/modals/ProtocolConfirmationModal";
 import { ProtocolStatus } from '../../types';
-import {EditProtocolForm} from "./form/components/EditProtocolForm";
+import { EditProtocolForm } from "./form/components/EditProtocolForm";
+import ProtocolSearchFilters, { SearchCriteria } from './list/ProtocolSearchFilters';
+import ActiveFiltersDisplay from './list/ActiveFiltersDisplay';
 
 const CarReceptionPage: React.FC = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const [showForm, setShowForm] = useState(false);
     const [availableServices, setAvailableServices] = useState<any[]>([]);
+    const [searchCriteria, setSearchCriteria] = useState<SearchCriteria>({});
 
     // Stan do śledzenia, czy mamy wyświetlić modal we flow po nawigacji
     const [showModalPostNavigation, setShowModalPostNavigation] = useState(false);
@@ -39,7 +43,8 @@ const CarReceptionPage: React.FC = () => {
         setActiveFilter,
         refreshProtocolsList,
         pagination,
-        handlePageChange
+        handlePageChange,
+        searchProtocols
     } = useProtocolList();
 
     const {
@@ -178,6 +183,31 @@ const CarReceptionPage: React.FC = () => {
         handleRedirectData();
     }, [protocolDataFromAppointment, editProtocolId, startDateFromCalendar]);
 
+    // Obsługa wyszukiwania z komponentu filtrów
+    const handleSearch = (criteria: SearchCriteria) => {
+        setSearchCriteria(criteria);
+        searchProtocols(criteria);
+    };
+
+    // Usunięcie pojedynczego filtru
+    const handleRemoveFilter = (key: keyof SearchCriteria) => {
+        const updatedCriteria = { ...searchCriteria };
+        delete updatedCriteria[key];
+        setSearchCriteria(updatedCriteria);
+        searchProtocols(updatedCriteria);
+    };
+
+    // Wyczyszczenie wszystkich filtrów
+    const handleClearAllFilters = () => {
+        setSearchCriteria({});
+        searchProtocols({});
+    };
+
+    // Przygotowanie listy dostępnych usług dla filtra
+    const availableServiceNames = availableServices
+        .map(service => service.name)
+        .filter((value, index, self) => self.indexOf(value) === index); // usunięcie duplikatów
+
     return (
         <PageContainer>
             <PageHeader>
@@ -202,10 +232,25 @@ const CarReceptionPage: React.FC = () => {
 
             {/* Filtry protokołów - ukrywane podczas wyświetlania formularza */}
             {!showForm && (
-                <ProtocolFilters
-                    activeFilter={activeFilter}
-                    onFilterChange={setActiveFilter}
-                />
+                <>
+                    <ProtocolFilters
+                        activeFilter={activeFilter}
+                        onFilterChange={setActiveFilter}
+                    />
+
+                    {/* Nowy komponent wyszukiwania */}
+                    <ProtocolSearchFilters
+                        onSearch={handleSearch}
+                        availableServices={availableServiceNames}
+                    />
+
+                    {/* Wyświetlanie aktywnych filtrów */}
+                    <ActiveFiltersDisplay
+                        searchCriteria={searchCriteria}
+                        onRemoveFilter={handleRemoveFilter}
+                        onClearAll={handleClearAllFilters}
+                    />
+                </>
             )}
 
             {loading && filteredProtocols.length === 0 ? (

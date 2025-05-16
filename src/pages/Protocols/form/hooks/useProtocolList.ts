@@ -1,11 +1,28 @@
-// src/pages/Protocols/form/hooks/useProtocolList.ts
 import { useState, useEffect, useCallback } from 'react';
+import { FilterType } from '../../list/ProtocolFilters';
 import { ProtocolListItem, ProtocolStatus } from '../../../../types';
 import { protocolsApi } from '../../../../api/protocolsApi';
-import { FilterType } from '../../list/ProtocolFilters';
+import { SearchCriteria } from '../../list/ProtocolSearchFilters';
 
-// Funkcja pomocnicza do mapowania filtru na status protokołu
-const mapFilterToStatus = (filter: FilterType): ProtocolStatus | null => {
+interface UseProtocolListReturn {
+    protocols: ProtocolListItem[];
+    filteredProtocols: ProtocolListItem[];
+    loading: boolean;
+    error: string | null;
+    activeFilter: FilterType;
+    setActiveFilter: (filter: FilterType) => void;
+    refreshProtocolsList: () => Promise<void>;
+    pagination: {
+        currentPage: number;
+        pageSize: number;
+        totalItems: number;
+        totalPages: number;
+    };
+    handlePageChange: (page: number) => void;
+    searchProtocols: (criteria: SearchCriteria) => Promise<void>;
+}
+
+const mapFilterToStatus = (filter: FilterType): ProtocolStatus | undefined => {
     switch (filter) {
         case 'Zaplanowane':
             return ProtocolStatus.SCHEDULED;
@@ -17,9 +34,8 @@ const mapFilterToStatus = (filter: FilterType): ProtocolStatus | null => {
             return ProtocolStatus.COMPLETED;
         case 'Porzucone':
             return ProtocolStatus.CANCELLED;
-        case 'Wszystkie':
         default:
-            return null;
+            return undefined;
     }
 };
 
@@ -30,7 +46,6 @@ export const useProtocolList = () => {
     const [error, setError] = useState<string | null>(null);
     const [activeFilter, setActiveFilter] = useState<FilterType>('W realizacji');
 
-    // Stan paginacji
     const [pagination, setPagination] = useState({
         currentPage: 0,  // Indeksowanie od 0 dla API
         pageSize: 10,
@@ -38,13 +53,10 @@ export const useProtocolList = () => {
         totalPages: 0
     });
 
-    // Funkcja do odświeżania listy protokołów
-    const refreshProtocolsList = useCallback(async () => {
+    const fetchProtocols = useCallback(async () => {
         setLoading(true);
-        setError(null);
-
         try {
-            // Mapowanie filtru na status protokołu
+            // Określenie statusu na podstawie aktywnego filtra
             const status = mapFilterToStatus(activeFilter);
 
             // Przygotowanie parametrów filtrowania
@@ -68,11 +80,10 @@ export const useProtocolList = () => {
                 pagination: response.pagination
             });
 
-            // Aktualizacja stanu
             setProtocols(response.data);
             setFilteredProtocols(response.data);
 
-            // Aktualizacja informacji o paginacji
+            // Aktualizacja informacji o paginacji z odpowiedzi API
             setPagination({
                 currentPage: response.pagination.currentPage,
                 pageSize: response.pagination.pageSize,
@@ -80,16 +91,10 @@ export const useProtocolList = () => {
                 totalPages: response.pagination.totalPages
             });
 
-            // Dodatkowe sprawdzenie wartości paginacji
-            console.log('Zaktualizowane dane paginacji:', {
-                currentPage: response.pagination.currentPage,
-                totalPages: response.pagination.totalPages,
-                shouldShowPagination: response.pagination.totalPages > 1
-            });
-
+            setError(null);
         } catch (err) {
-            console.error('Błąd podczas pobierania protokołów:', err);
-            setError('Nie udało się pobrać listy protokołów. Spróbuj ponownie później.');
+            console.error('Error fetching protocols:', err);
+            setError('Wystąpił błąd podczas pobierania danych. Spróbuj ponownie później.');
             setProtocols([]);
             setFilteredProtocols([]);
         } finally {
@@ -97,12 +102,17 @@ export const useProtocolList = () => {
         }
     }, [activeFilter, pagination.currentPage, pagination.pageSize]);
 
-    // Efekt pobierający dane przy inicjalizacji i zmianie filtra lub strony
+    // Efekt pobierający dane przy inicjalizacji i zmianie zależności
     useEffect(() => {
-        refreshProtocolsList();
-    }, [refreshProtocolsList]);
+        fetchProtocols();
+    }, [fetchProtocols]);
 
-    // Obsługa zmiany strony
+    // Funkcja pomocnicza do odświeżenia listy
+    const refreshProtocolsList = useCallback(async () => {
+        await fetchProtocols();
+    }, [fetchProtocols]);
+
+    // Obsługa zmiany strony - upraszczamy tę funkcję
     const handlePageChange = (page: number) => {
         console.log(`Zmiana strony z ${pagination.currentPage + 1} na ${page}`);
 

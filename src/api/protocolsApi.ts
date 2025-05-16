@@ -1,3 +1,4 @@
+// src/api/protocolsApi.ts
 import { apiClient, PaginatedResponse } from './apiClient';
 import { ProtocolListItem, ProtocolStatus } from '../types/protocol';
 import { CarReceptionProtocol } from '../types';
@@ -9,6 +10,11 @@ interface ProtocolFilterParams {
     status?: ProtocolStatus;
     startDate?: string;
     endDate?: string;
+    make?: string;
+    model?: string;
+    serviceName?: string;
+    minPrice?: number;
+    maxPrice?: number;
     page?: number;
     size?: number;
 }
