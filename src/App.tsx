@@ -8,7 +8,7 @@ import { AuthProvider } from './context/AuthContext';
 import Layout from './components/layout/Layout';
 import AppRoutes from './routes';
 import { ToastProvider } from "./components/common/Toast/Toast";
-import LoginPage from './pages/Auth/LoginPage';
+import ModernLoginPage from './pages/Auth/LoginPage'; // Importujemy nową stronę logowania
 import ProtectedRoute from './components/ProtectedRoute';
 
 // Globalne style dla całej aplikacji
@@ -105,8 +105,8 @@ const App: React.FC = () => {
                 <Router>
                     <GlobalStyle />
                     <Routes>
-                        {/* Strona logowania dostępna dla niezalogowanych użytkowników */}
-                        <Route path="/login" element={<LoginPage />} />
+                        {/* Strona logowania dostępna dla niezalogowanych użytkowników - używamy nowej wersji */}
+                        <Route path="/login" element={<ModernLoginPage />} />
 
                         {/* Przekierowanie z głównej strony do strony logowania lub aplikacji */}
                         <Route path="/" element={<Navigate to="/calendar" replace />} />

@@ -17,7 +17,6 @@ import InvoicesPage from "./pages/Finances/InvoicesPage";
 import FinancialSummaryPage from "./pages/Finances/FinancialSummaryPage";
 import MailPage from "./pages/Mail/MailPage";
 import CashPage from "./pages/Finances/CashPage";
-import OnboardingPage from './pages/Auth/OnboardingPage';
 
 // Tymczasowe komponenty dla innych stron - do zastąpienia rzeczywistymi implementacjami
 const PlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
@@ -30,11 +29,7 @@ const PlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
 const AppRoutes: React.FC = () => {
         return (
             <Routes>
-                    {/* Strona startowa - bez przekierowania, żeby obsłużyć w App.tsx */}
                     <Route path="/" element={<Navigate to="/calendar" replace />} />
-
-                    {/* Strona onboardingowa - dostępna dla niezalogowanych */}
-                    <Route path="/welcome" element={<OnboardingPage />} />
 
                     {/* Strona kalendarza */}
                     <Route path="/calendar" element={<CalendarPage />} />
