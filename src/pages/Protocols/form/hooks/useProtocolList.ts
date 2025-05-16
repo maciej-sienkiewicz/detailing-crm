@@ -39,12 +39,13 @@ const mapFilterToStatus = (filter: FilterType): ProtocolStatus | undefined => {
     }
 };
 
-export const useProtocolList = () => {
+export const useProtocolList = (): UseProtocolListReturn => {
     const [protocols, setProtocols] = useState<ProtocolListItem[]>([]);
     const [filteredProtocols, setFilteredProtocols] = useState<ProtocolListItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [activeFilter, setActiveFilter] = useState<FilterType>('W realizacji');
+    const [searchParams, setSearchParams] = useState<SearchCriteria>({});
 
     const [pagination, setPagination] = useState({
         currentPage: 0,  // Indeksowanie od 0 dla API
@@ -60,20 +61,33 @@ export const useProtocolList = () => {
             const status = mapFilterToStatus(activeFilter);
 
             // Przygotowanie parametrów filtrowania
-            const filters: any = {
-                page: pagination.currentPage,  // Używamy indeksowania od 0 dla API
+            const queryParams: any = {
+                page: pagination.currentPage,  // Używamy currentPage z obiektu pagination
                 size: pagination.pageSize
             };
 
-            // Dodaj status jeśli określony
-            if (status) {
-                filters.status = status;
+            // Dodanie statusu tylko jeśli nie jest to filtr "Wszystkie"
+            if (activeFilter !== 'Wszystkie' && status) {
+                queryParams.status = status;
             }
 
-            console.log('Pobieranie protokołów z parametrami:', filters);
+            // Dodanie parametrów wyszukiwania, jeśli są dostępne
+            if (Object.keys(searchParams).length > 0) {
+                if (searchParams.clientName) queryParams.clientName = searchParams.clientName;
+                if (searchParams.licensePlate) queryParams.licensePlate = searchParams.licensePlate;
+                if (searchParams.make) queryParams.make = searchParams.make;
+                if (searchParams.model) queryParams.model = searchParams.model;
+                if (searchParams.dateFrom) queryParams.startDate = searchParams.dateFrom?.toISOString();
+                if (searchParams.dateTo) queryParams.endDate = searchParams.dateTo?.toISOString();
+                if (searchParams.serviceName) queryParams.serviceName = searchParams.serviceName;
+                if (searchParams.price?.min) queryParams.minPrice = searchParams.price.min;
+                if (searchParams.price?.max) queryParams.maxPrice = searchParams.price.max;
+            }
 
-            // Pobranie danych z API
-            const response = await protocolsApi.getProtocolsList(filters);
+            console.log('Pobieranie protokołów z parametrami:', queryParams);
+
+            // Wywołanie API z paginacją
+            const response = await protocolsApi.getProtocolsList(queryParams);
 
             console.log('Odpowiedź z API po przetworzeniu:', {
                 dataLength: response.data.length,
@@ -100,7 +114,7 @@ export const useProtocolList = () => {
         } finally {
             setLoading(false);
         }
-    }, [activeFilter, pagination.currentPage, pagination.pageSize]);
+    }, [activeFilter, pagination.currentPage, pagination.pageSize, searchParams]);
 
     // Efekt pobierający dane przy inicjalizacji i zmianie zależności
     useEffect(() => {
@@ -122,7 +136,8 @@ export const useProtocolList = () => {
             currentPage: page - 1  // Konwersja z indeksowania od 1 (UI) na indeksowanie od 0 (API)
         }));
 
-        // refreshProtocolsList zostanie wywołane przez useEffect dzięki zależności
+        // Nie wywołujemy fetchProtocols() bezpośrednio -
+        // useEffect zrobi to za nas po zmianie pagination.currentPage
     };
 
     // Obsługa zmiany filtra
@@ -137,7 +152,13 @@ export const useProtocolList = () => {
             currentPage: 0
         }));
 
-        // refreshProtocolsList zostanie wywołane przez useEffect
+        // Nie wywołujemy fetchProtocols() bezpośrednio -
+        // useEffect zrobi to za nas po zmianie activeFilter i pagination.currentPage
+    };
+
+    // Obsługa wyszukiwania protokołów
+    const searchProtocols = async (criteria: SearchCriteria) => {
+
     };
 
     return {
@@ -148,7 +169,13 @@ export const useProtocolList = () => {
         activeFilter,
         setActiveFilter: handleFilterChange,
         refreshProtocolsList,
-        pagination,
-        handlePageChange
+        pagination: {
+            currentPage: pagination.currentPage, // W UI strony są liczone od 1
+            pageSize: pagination.pageSize,
+            totalItems: pagination.totalItems,
+            totalPages: pagination.totalPages
+        },
+        handlePageChange,
+        searchProtocols
     };
 };
