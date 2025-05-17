@@ -19,6 +19,15 @@ interface ProtocolFilterParams {
     size?: number;
 }
 
+export interface ProtocolCounters {
+    scheduled: number;
+    in_progress: number;
+    ready_for_pickup: number;
+    completed: number;
+    cancelled: number;
+    all: number;
+}
+
 /**
  * API do zarządzania protokołami przyjęcia pojazdów
  */
@@ -147,6 +156,23 @@ export const protocolsApi = {
         } catch (error) {
             console.error(`Error deleting protocol (ID: ${id}):`, error);
             return false;
+        }
+    },
+
+    getProtocolCounters: async (): Promise<ProtocolCounters> => {
+        try {
+            return await apiClient.get<ProtocolCounters>('/receptions/counters');
+        } catch (error) {
+            console.error('Error fetching protocol counters:', error);
+            // Zwracamy domyślne wartości w przypadku błędu
+            return {
+                scheduled: 0,
+                in_progress: 0,
+                ready_for_pickup: 0,
+                completed: 0,
+                cancelled: 0,
+                all: 0
+            };
         }
     }
 };
