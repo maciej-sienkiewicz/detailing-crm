@@ -407,7 +407,6 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({
             isOpen={isOpen}
             onClose={onClose}
             title={isEditing ? 'Edytuj szablon SMS' : 'Nowy szablon SMS'}
-            size="lg"
         >
             <ModalContent>
                 <EditorLayout>
@@ -595,3 +594,386 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({
         </Modal>
     );
 };
+
+// src/pages/SMS/components/modals/TemplateEditorModal.tsx - Brakujące styled-components
+
+// Brakujące styled-components
+const ModalContent = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+`;
+
+const EditorLayout = styled.div`
+    display: flex;
+    gap: 24px;
+
+    @media (max-width: 992px) {
+        flex-direction: column;
+    }
+`;
+
+const EditorMainSection = styled.div`
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+`;
+
+const EditorSidebar = styled.div`
+    width: 280px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    border: 1px solid #e9ecef;
+    padding: 16px;
+    max-height: 600px;
+    overflow-y: auto;
+
+    @media (max-width: 992px) {
+        width: 100%;
+        max-height: 400px;
+    }
+`;
+
+const FormGroup = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+`;
+
+const FormLabel = styled.label`
+    font-size: 14px;
+    font-weight: 500;
+    color: #495057;
+`;
+
+const FormInput = styled.input`
+    padding: 10px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+    
+    &:focus {
+        outline: none;
+        border-color: #3498db;
+        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+    }
+`;
+
+const FormSelect = styled.select`
+    padding: 10px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    font-size: 14px;
+    background-color: white;
+    transition: border-color 0.2s;
+    
+    &:focus {
+        outline: none;
+        border-color: #3498db;
+        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+    }
+`;
+
+const FormTextarea = styled.textarea`
+    padding: 10px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+    resize: vertical;
+    min-height: 120px;
+    
+    &:focus {
+        outline: none;
+        border-color: #3498db;
+        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+    }
+`;
+
+const FormHelp = styled.div`
+    font-size: 12px;
+    color: #6c757d;
+`;
+
+const FormCheckboxWrapper = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+`;
+
+const FormCheckbox = styled.input`
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+`;
+
+const FormCheckboxLabel = styled.label`
+    font-size: 14px;
+    color: #495057;
+    cursor: pointer;
+`;
+
+const EditorToolbar = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+`;
+
+const ToolbarTitle = styled.div`
+    font-size: 14px;
+    font-weight: 500;
+    color: #495057;
+`;
+
+const EditorActions = styled.div`
+    display: flex;
+    gap: 8px;
+`;
+
+const ActionToggle = styled.button<{ active?: boolean }>`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background-color: ${props => props.active ? '#e3f2fd' : '#f8f9fa'};
+    border: 1px solid ${props => props.active ? '#90cdf4' : '#dee2e6'};
+    border-radius: 4px;
+    color: ${props => props.active ? '#3498db' : '#6c757d'};
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    
+    &:hover {
+        background-color: ${props => props.active ? '#e3f2fd' : '#f1f3f5'};
+        color: ${props => props.active ? '#3498db' : '#495057'};
+    }
+`;
+
+const PreviewBox = styled.div`
+    padding: 10px 12px;
+    border: 1px solid #bee3f8;
+    border-radius: 5px;
+    background-color: #f0f9ff;
+    min-height: 120px;
+`;
+
+const PreviewContent = styled.div`
+    font-size: 14px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    color: #2c3e50;
+`;
+
+const CharacterCounter = styled.div`
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #6c757d;
+    margin-top: 8px;
+`;
+
+const SidebarTitle = styled.h4`
+    font-size: 14px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0 0 12px 0;
+    display: flex;
+    align-items: center;
+`;
+
+const VariablesHelp = styled.div`
+    font-size: 12px;
+    color: #6c757d;
+    margin-bottom: 16px;
+    line-height: 1.5;
+`;
+
+const VariableGroupsContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+`;
+
+const VariableGroup = styled.div`
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid #e9ecef;
+    padding-bottom: 10px;
+    
+    &:last-child {
+        border-bottom: none;
+    }
+`;
+
+const GroupHeader = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    cursor: pointer;
+    
+    &:hover {
+        color: #3498db;
+    }
+`;
+
+const GroupIcon = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background-color: #e3f2fd;
+    border-radius: 4px;
+    color: #3498db;
+`;
+
+const GroupName = styled.div`
+    font-size: 14px;
+    font-weight: 500;
+    color: #2c3e50;
+    flex: 1;
+`;
+
+const GroupToggle = styled.div<{ expanded: boolean }>`
+    transform: ${props => props.expanded ? 'rotate(90deg)' : 'rotate(0)'};
+    transition: transform 0.2s;
+    color: #6c757d;
+`;
+
+const GroupVariables = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-left: 34px;
+    margin-bottom: 8px;
+`;
+
+const VariableButton = styled.button`
+    text-align: left;
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    padding: 8px 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    
+    &:hover {
+        background-color: #f0f9ff;
+        border-color: #bee3f8;
+    }
+`;
+
+const VariableName = styled.div`
+    font-family: monospace;
+    font-size: 12px;
+    color: #e74c3c;
+    margin-bottom: 2px;
+`;
+
+const VariableDesc = styled.div`
+    font-size: 12px;
+    color: #6c757d;
+`;
+
+const VariableUsageInfo = styled.div`
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #e9ecef;
+`;
+
+const UsageTitle = styled.div`
+    font-size: 13px;
+    font-weight: 500;
+    color: #495057;
+    margin-bottom: 10px;
+`;
+
+const UsedVariablesList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+`;
+
+const UsedVariable = styled.div`
+    display: flex;
+    align-items: center;
+    font-family: monospace;
+    font-size: 12px;
+    color: #2c3e50;
+`;
+
+const NoVariablesMessage = styled.div`
+    font-size: 12px;
+    color: #6c757d;
+    font-style: italic;
+`;
+
+const ModalActions = styled.div`
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 8px;
+`;
+
+const Button = styled.button`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: 5px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+`;
+
+const PrimaryButton = styled(Button)`
+    background-color: #3498db;
+    border-color: #3498db;
+    color: white;
+
+    &:hover:not(:disabled) {
+        background-color: #2980b9;
+        border-color: #2980b9;
+    }
+`;
+
+const SecondaryButton = styled(Button)`
+    background-color: #f8f9fa;
+    border-color: #dee2e6;
+    color: #6c757d;
+
+    &:hover:not(:disabled) {
+        background-color: #e9ecef;
+    }
+`;
+
+const LoadingSpinner = styled.div`
+    width: 16px;
+    height: 16px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+`;
+
+// Brakujące uzupełnienie importu
+const FaLink = styled(FaCaretRight)`
+    transform: rotate(-45deg);
+`;
+
+export default TemplateEditorModal;

@@ -13,7 +13,7 @@ import {
     FaUser,
     FaPhone,
     FaCar,
-    FaHistory
+    FaHistory, FaPlus
 } from 'react-icons/fa';
 import Modal from '../../../../components/common/Modal';
 import { smsApi } from '../../../../api/smsApi';
@@ -312,7 +312,6 @@ const NewSmsMessageModal: React.FC<NewSmsMessageModalProps> = ({
             isOpen={isOpen}
             onClose={onClose}
             title="Nowa wiadomość SMS"
-            size="lg"
         >
             <ModalContent>
                 <FormSection>
