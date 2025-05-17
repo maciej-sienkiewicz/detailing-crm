@@ -7,7 +7,7 @@ import {
     SmsCampaign,
     SmsAutomation,
     SmsFilters,
-    SmsStatistics, SmsAutomationTrigger, SmsStatus
+    SmsStatistics, SmsAutomationTrigger, SmsStatus, SmsTemplateCategory
 } from '../types/sms';
 import { apiClient, PaginatedResponse } from './apiClient';
 
@@ -181,7 +181,65 @@ export const smsApi = {
             return await apiClient.get<SmsTemplate[]>('/sms/templates');
         } catch (error) {
             console.error('Error fetching SMS templates:', error);
-            throw error;
+            const mockSmsTemplates: SmsTemplate[] = [
+                {
+                    id: '1',
+                    name: 'Potwierdzenie zamówienia',
+                    content: 'Dziękujemy za zamówienie, {{customerName}}! Numer zamówienia: {{orderNumber}}.',
+                    category: SmsTemplateCategory.APPOINTMENT_REMINDER,
+                    createdAt: '2025-01-15T10:00:00Z',
+                    updatedAt: '2025-01-15T10:00:00Z',
+                    usageCount: 124,
+                    isActive: true,
+                    variables: ['customerName', 'orderNumber'],
+                },
+                {
+                    id: '2',
+                    name: 'Przypomnienie o wizycie',
+                    content: 'Cześć {{clientName}}, przypominamy o wizycie dnia {{appointmentDate}} o godzinie {{appointmentTime}}.',
+                    category: SmsTemplateCategory.APPOINTMENT_REMINDER,
+                    createdAt: '2025-02-20T08:30:00Z',
+                    updatedAt: '2025-04-10T09:45:00Z',
+                    usageCount: 89,
+                    isActive: true,
+                    variables: ['clientName', 'appointmentDate', 'appointmentTime'],
+                },
+                {
+                    id: '3',
+                    name: 'Promocja sezonowa',
+                    content: 'Tylko teraz {{discount}}% zniżki na wybrane produkty! Oferta ważna do {{expirationDate}}.',
+                    category: SmsTemplateCategory.APPOINTMENT_REMINDER,
+                    createdAt: '2024-12-01T12:00:00Z',
+                    updatedAt: '2025-03-01T15:20:00Z',
+                    usageCount: 305,
+                    isActive: false,
+                    variables: ['discount', 'expirationDate'],
+                },
+                {
+                    id: '4',
+                    name: 'Zmiana hasła',
+                    content: 'Aby zresetować hasło, użyj tego kodu: {{resetCode}}. Kod ważny przez 15 minut.',
+                    category: SmsTemplateCategory.APPOINTMENT_REMINDER,
+                    createdAt: '2025-03-12T11:11:00Z',
+                    updatedAt: '2025-03-12T11:11:00Z',
+                    usageCount: 50,
+                    isActive: true,
+                    variables: ['resetCode'],
+                },
+                {
+                    id: '5',
+                    name: 'Podziękowanie za rejestrację',
+                    content: 'Witaj {{userName}}! Dziękujemy za dołączenie do naszej społeczności.',
+                    category: SmsTemplateCategory.APPOINTMENT_REMINDER,
+                    createdAt: '2025-04-05T07:25:00Z',
+                    updatedAt: '2025-04-05T07:25:00Z',
+                    usageCount: 73,
+                    isActive: true,
+                    variables: ['userName'],
+                }
+            ];
+
+            return mockSmsTemplates;
         }
     },
 

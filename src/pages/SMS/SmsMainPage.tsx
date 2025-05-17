@@ -17,6 +17,8 @@ import { SmsMessagesList } from './components/SmsMessagesList';
 import { SmsAutomationsList } from './components/SmsAutomationsList';
 import { SmsStats } from './components/SmsStats';
 import { SmsSettings } from './components/SmsSettings';
+import SmsTemplatesList from "./components/SmsTemplatesList";
+import SmsCampaignsList from "./components/SmsCampaignsList";
 
 // Typ opcji nawigacji
 type NavOption = 'dashboard' | 'messages' | 'templates' | 'campaigns' | 'automations' | 'stats' | 'settings';
@@ -53,6 +55,10 @@ const SmsMainPage: React.FC = () => {
                 return <SmsStats />;
             case 'settings':
                 return <SmsSettings />;
+            case "templates":
+                return <SmsTemplatesList/>;
+            case 'campaigns':
+                    return <SmsCampaignsList />;
             default:
                 return <SmsDashboard />;
         }
