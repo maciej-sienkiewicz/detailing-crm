@@ -136,20 +136,21 @@ export const ProtocolList: React.FC<ProtocolListProps> = ({
                                                           }) => {
     // Domyślna konfiguracja kolumn
     const defaultColumns: TableColumn[] = [
-        { id: 'vehicle', label: 'Pojazd', width: '20%' },
-        { id: 'date', label: 'Data', width: '15%' },
+        { id: 'vehicle', label: 'Pojazd', width: '15%' },
+        { id: 'date', label: 'Data', width: '10%' },
         { id: 'licensePlate', label: 'Numer rejestracyjny', width: '15%' },
         { id: 'title', label: 'Tytuł wizyty', width: '15%' },
         { id: 'owner', label: 'Właściciel', width: '15%' },
         { id: 'value', label: 'Wartość wizyty', width: '10%' },
-        { id: 'status', label: 'Status', width: '10%' }
+        { id: 'status', label: 'Status', width: '10%' },
+        { id: 'lastUpdate', label: 'Ostatnia aktualizacja', width: '10%' },
     ];
 
     // Stan kolumn z zapisaną konfiguracją lub domyślnymi wartościami
     const [columns, setColumns] = useState<TableColumn[]>(() => {
         try {
             const savedOrder = localStorage.getItem(COLUMN_ORDER_KEY);
-            return savedOrder ? JSON.parse(savedOrder) : defaultColumns;
+            return defaultColumns;
         } catch (e) {
             console.error("Error loading saved column order:", e);
             return defaultColumns;

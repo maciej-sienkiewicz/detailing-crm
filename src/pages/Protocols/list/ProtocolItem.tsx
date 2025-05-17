@@ -109,6 +109,11 @@ export const ProtocolItem: React.FC<ProtocolItemProps> = ({
                 <ProtocolStatusBadge status={protocol.status} />
             );
 
+        case 'lastUpdate':
+            return (
+                <div>{protocol.lastUpdate}</div>
+            );
+
         default:
             return null;
     }

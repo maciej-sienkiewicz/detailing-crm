@@ -129,6 +129,7 @@ export interface ProtocolListItem {
     calendarColorId?: string;
     selectedServices: SelectedService[];
     title: string;
+    lastUpdate: string;
 }
 
 export interface ClientProtocolHistory {
