@@ -1,10 +1,11 @@
 // src/components/ProtectedRoute.tsx
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Layout from './layout/Layout';
 
 interface ProtectedRouteProps {
-    children: React.ReactNode;
+    children?: React.ReactNode;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
@@ -49,8 +50,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
         return <Navigate to="/login" replace />;
     }
 
-    // Jeśli użytkownik jest zalogowany, renderuj dzieci (chronioną zawartość)
-    return <>{children}</>;
+    // Jeśli użytkownik jest zalogowany, renderuj dzieci (chronioną zawartość) wewnątrz Layout
+    return (
+        <Layout>
+            {children || <Outlet />}
+        </Layout>
+    );
 };
 
 export default ProtectedRoute;

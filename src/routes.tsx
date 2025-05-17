@@ -17,63 +17,73 @@ import InvoicesPage from "./pages/Finances/InvoicesPage";
 import FinancialSummaryPage from "./pages/Finances/FinancialSummaryPage";
 import MailPage from "./pages/Mail/MailPage";
 import CashPage from "./pages/Finances/CashPage";
+import ModernLoginPage from './pages/Auth/LoginPage';
+import OnboardingPage from './pages/Auth/OnboardingPage';
+import ProtectedRoute from './components/ProtectedRoute';
 
 // Tymczasowe komponenty dla innych stron - do zastąpienia rzeczywistymi implementacjami
 const PlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
     <div style={{ padding: "20px" }}>
-            <h1>{title}</h1>
-            <p>Ta strona jest w trakcie implementacji</p>
+        <h1>{title}</h1>
+        <p>Ta strona jest w trakcie implementacji</p>
     </div>
 );
 
 const AppRoutes: React.FC = () => {
-        return (
-            <Routes>
-                    <Route path="/" element={<Navigate to="/calendar" replace />} />
+    return (
+        <Routes>
+            {/* Publiczne ścieżki - bez layoutu */}
+            <Route path="/login" element={<ModernLoginPage />} />
+            <Route path="/welcome" element={<OnboardingPage />} />
 
-                    {/* Strona kalendarza */}
-                    <Route path="/calendar" element={<CalendarPage />} />
+            {/* Wszystkie chronione ścieżki z layoutem */}
+            <Route element={<ProtectedRoute />}>
+                {/* Przekierowanie z głównej strony do kalendarza */}
+                <Route path="/" element={<Navigate to="/calendar" replace />} />
 
-                    {/* Strona aktualności */}
-                    <Route path="/activity" element={<ActivityFeedPage />} />
+                {/* Strona kalendarza */}
+                <Route path="/calendar" element={<CalendarPage />} />
 
-                    <Route path="/finances" element={<Navigate to="/finances/invoices" replace />} />
-                    <Route path="/finances/invoices" element={<InvoicesPage />} />
-                    <Route path="/finances/cash" element={<CashPage/>} />
-                    <Route path="/finances/reports" element={<FinancialSummaryPage />} />
+                {/* Strona aktualności */}
+                <Route path="/activity" element={<ActivityFeedPage />} />
 
-                    {/* Strona poczty - nowy moduł */}
-                    <Route path="/mail" element={<MailPage />} />
+                {/* Ścieżki finansowe */}
+                <Route path="/finances" element={<Navigate to="/finances/invoices" replace />} />
+                <Route path="/finances/invoices" element={<InvoicesPage />} />
+                <Route path="/finances/cash" element={<CashPage />} />
+                <Route path="/finances/reports" element={<FinancialSummaryPage />} />
 
-                    {/* Strony klientów */}
-                    <Route path="/clients/owners" element={<OwnersPage />} />
-                    <Route path="/clients/vehicles" element={<VehiclesPage />} />
+                {/* Strona poczty - nowy moduł */}
+                <Route path="/mail" element={<MailPage />} />
 
-                    {/* Inne strony */}
-                    <Route path="/finances" element={<PlaceholderPage title="Finanse" />} />
+                {/* Strony klientów */}
+                <Route path="/clients/owners" element={<OwnersPage />} />
+                <Route path="/clients/vehicles" element={<VehiclesPage />} />
 
-                    {/* Raporty */}
-                    <Route path="/reports" element={<ReportsPage />} />
+                {/* Inne strony */}
+                <Route path="/warehouse" element={<PlaceholderPage title="Magazyn" />} />
 
-                    <Route path="/warehouse" element={<PlaceholderPage title="Magazyn" />} />
+                {/* Raporty */}
+                <Route path="/reports" element={<ReportsPage />} />
 
-                    {/* Strony ustawień */}
-                    <Route path="/settings/calendar" element={<CalendarColorsPage />} />
-                    <Route path="/settings/taxes" element={<TaxesPage />} />
-                    <Route path="/settings/services" element={<ServicesPage />} />
-                    <Route path="/settings" element={<Navigate to="/settings/general" replace />} />
+                {/* Strony ustawień */}
+                <Route path="/settings/calendar" element={<CalendarColorsPage />} />
+                <Route path="/settings/taxes" element={<TaxesPage />} />
+                <Route path="/settings/services" element={<ServicesPage />} />
+                <Route path="/settings" element={<Navigate to="/settings/calendar" replace />} />
 
-                    <Route path="/team" element={<EmployeesPage/>} />
+                <Route path="/team" element={<EmployeesPage />} />
 
-                    {/* Wizyty i protokoły */}
-                    <Route path="/orders" element={<CarReceptionPage />} />
-                    <Route path="/orders/car-reception/:id" element={<ProtocolDetailsPage />} />
-                    <Route path="/orders/start-visit/:id" element={<StartVisitPage />} /> {/* Dodajemy nową ścieżkę */}
+                {/* Wizyty i protokoły */}
+                <Route path="/orders" element={<CarReceptionPage />} />
+                <Route path="/orders/car-reception/:id" element={<ProtocolDetailsPage />} />
+                <Route path="/orders/start-visit/:id" element={<StartVisitPage />} />
+            </Route>
 
-                    {/* Strona 404 - nieistniejąca ścieżka */}
-                    <Route path="*" element={<div>Strona nie istnieje</div>} />
-            </Routes>
-        );
+            {/* Strona 404 - nieistniejąca ścieżka */}
+            <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+    );
 };
 
 export default AppRoutes;

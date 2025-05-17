@@ -1,39 +1,44 @@
-// src/context/AuthContext.tsx
-import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { authApi } from '../api/authApi';
 
-// Typ dla użytkownika
+// Definicja typu danych użytkownika
 export interface User {
-    id: string;
+    userId: number;
+    username: string;
+    email: string;
     firstName: string;
     lastName: string;
-    email: string;
-    companyName: string;
-    role: string;
-    avatar?: string;
+    companyId: number;
+    companyName?: string;
+    role?: string;
+    roles: string[];
+    avatar?: string; // Opcjonalny URL do avatara
 }
 
-// Typ dla kontekstu autoryzacji
+// Interfejs kontekstu autentykacji
 interface AuthContextType {
     user: User | null;
+    token: string | null;
+    isAuthenticated: boolean;
     loading: boolean;
     error: string | null;
     login: (email: string, password: string) => Promise<void>;
     logout: () => void;
-    isAuthenticated: boolean;
+    clearError: () => void;
 }
 
-// Wartości domyślne kontekstu
-const AuthContext = createContext<AuthContextType>({
-    user: null,
-    loading: false,
-    error: null,
-    login: async () => {},
-    logout: () => {},
-    isAuthenticated: false,
-});
+// Utworzenie kontekstu autentykacji
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Własny hook do użycia kontekstu autoryzacji
-export const useAuth = () => useContext(AuthContext);
+// Własny hook do łatwego używania kontekstu autentykacji
+export const useAuth = () => {
+    const context = useContext(AuthContext);
+    if (!context) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
+};
 
 interface AuthProviderProps {
     children: ReactNode;
@@ -41,60 +46,81 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
+    const [token, setToken] = useState<string | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
+    const navigate = useNavigate();
 
-    // Sprawdzanie, czy użytkownik jest zalogowany przy ładowaniu aplikacji
+    // Sprawdzanie czy użytkownik jest zalogowany przy ładowaniu strony
     useEffect(() => {
-        const checkLoggedIn = async () => {
+        const checkLoginStatus = async () => {
             try {
-                // Pobierz dane użytkownika z localStorage
-                const storedUser = localStorage.getItem('user');
+                const storedToken = localStorage.getItem('auth_token');
 
-                if (storedUser) {
-                    setUser(JSON.parse(storedUser));
+                if (storedToken) {
+                    // Próba pobrania zapisanego użytkownika
+                    const storedUser = localStorage.getItem('auth_user');
+
+                    if (storedUser) {
+                        setUser(JSON.parse(storedUser));
+                        setToken(storedToken);
+                    } else {
+                        // Jeśli mamy token, ale nie mamy danych użytkownika, wyloguj
+                        localStorage.removeItem('auth_token');
+                    }
                 }
             } catch (err) {
-                console.error('Error checking authentication:', err);
+                console.error('Error checking authentication status:', err);
+                // W przypadku błędu, wyczyść dane logowania
+                setUser(null);
+                setToken(null);
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('auth_user');
             } finally {
                 setLoading(false);
             }
         };
 
-        checkLoggedIn();
+        checkLoginStatus();
     }, []);
 
     // Funkcja logowania
     const login = async (email: string, password: string) => {
-        setLoading(true);
-        setError(null);
-
         try {
-            // W rzeczywistej aplikacji, tutaj byłoby zapytanie do backendu
-            // Dla demonstracji używam symulowanego logowania
+            setLoading(true);
+            setError(null);
 
-            // Symulacja opóźnienia zapytania sieciowego
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Wywołaj API logowania
+            const response = await authApi.login(email, password);
 
-            // Prosty warunek logowania dla demonstracji
-            if (email === 'demo@example.com' && password === 'password') {
+            if (response) {
+                // Zapisz token i dane użytkownika
+                localStorage.setItem('auth_token', response.token);
+
+                // Tworzenie obiektu użytkownika na podstawie odpowiedzi z serwera
                 const userData: User = {
-                    id: '1',
-                    firstName: 'Jan',
-                    lastName: 'Kowalski',
-                    email: 'demo@example.com',
-                    companyName: 'Auto Detailing Sp. z o.o.',
-                    role: 'Admin'
+                    userId: response.userId,
+                    username: response.username,
+                    email: response.email,
+                    firstName: response.firstName,
+                    lastName: response.lastName,
+                    companyId: response.companyId,
+                    companyName: response.companyName || 'Detailing Studio',
+                    roles: response.roles || []
                 };
 
-                // Zapisz dane użytkownika do localStorage
-                localStorage.setItem('user', JSON.stringify(userData));
+                localStorage.setItem('auth_user', JSON.stringify(userData));
+
                 setUser(userData);
-            } else {
-                throw new Error('Nieprawidłowy email lub hasło');
+                setToken(response.token);
             }
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Wystąpił błąd podczas logowania');
+        } catch (err: any) {
+            console.error('Login error:', err);
+
+            const errorMessage = err.message || 'Nieprawidłowy login lub hasło';
+            setError(errorMessage);
+
+            throw err; // Re-throw the error to be caught by the component
         } finally {
             setLoading(false);
         }
@@ -102,19 +128,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // Funkcja wylogowania
     const logout = () => {
-        localStorage.removeItem('user');
         setUser(null);
+        setToken(null);
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_user');
+        navigate('/login');
     };
 
-    const isAuthenticated = !!user;
+    // Funkcja czyszczenia błędów
+    const clearError = () => {
+        setError(null);
+    };
 
-    const value = {
+    // Wartości dostarczane przez kontekst
+    const value: AuthContextType = {
         user,
+        token,
+        isAuthenticated: !!user,
         loading,
         error,
         login,
         logout,
-        isAuthenticated,
+        clearError
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

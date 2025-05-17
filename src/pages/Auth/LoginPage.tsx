@@ -14,10 +14,12 @@ import { useAuth } from '../../context/AuthContext';
 import AnimatedBackground from '../../components/common/AnimatedBackground';
 import AnimatedGradientBackground from '../../components/common/AnimatedGradientBackground';
 import ParticlesNetwork from '../../components/common/ParticlesNetwork';
+import { useToast } from '../../components/common/Toast/Toast';
 
-const ModernLoginPage: React.FC = () => {
+const LoginPage: React.FC = () => {
     const navigate = useNavigate();
-    const { login, error, loading } = useAuth();
+    const { login, error, loading, isAuthenticated, clearError } = useAuth();
+    const { showToast } = useToast();
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -31,6 +33,22 @@ const ModernLoginPage: React.FC = () => {
         setPageLoaded(true);
     }, []);
 
+    // Sprawdzanie czy użytkownik jest już zalogowany
+    useEffect(() => {
+        if (isAuthenticated) {
+            navigate('/calendar');
+        }
+    }, [isAuthenticated, navigate]);
+
+    // Obsługa błędów logowania
+    useEffect(() => {
+        if (error) {
+            showToast('error', error, 5000);
+            // Wyczyść błąd po wyświetleniu
+            clearError();
+        }
+    }, [error, showToast, clearError]);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -39,7 +57,14 @@ const ModernLoginPage: React.FC = () => {
             navigate('/calendar');
         } catch (err) {
             console.error('Login error:', err);
+            // Błędy są już obsługiwane przez useEffect
         }
+    };
+
+    // Obsługa konta demo
+    const handleDemoLogin = () => {
+        setEmail('demo@example.com');
+        setPassword('password');
     };
 
     // Lista korzyści z użycia systemu
@@ -129,20 +154,14 @@ const ModernLoginPage: React.FC = () => {
                                 <SubtitleText>Zaloguj się do swojego konta</SubtitleText>
                             </LoginHeader>
 
-                            {error && (
-                                <ErrorContainer>
-                                    <ErrorMessage>{error}</ErrorMessage>
-                                </ErrorContainer>
-                            )}
-
                             <LoginForm onSubmit={handleSubmit}>
                                 <FormGroup $focused={isEmailFocused}>
                                     <InputIcon $focused={isEmailFocused}>
                                         <FaUserAlt />
                                     </InputIcon>
                                     <Input
-                                        type="email"
-                                        placeholder="Adres email"
+                                        type="text"
+                                        placeholder="Login (email)"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                         onFocus={() => setIsEmailFocused(true)}
@@ -198,10 +217,7 @@ const ModernLoginPage: React.FC = () => {
                                 <DemoTitle>Konto demonstracyjne</DemoTitle>
                                 <DemoCredentials>demo@example.com / password</DemoCredentials>
                                 <DemoAction>
-                                    <DemoButton onClick={() => {
-                                        setEmail('demo@example.com');
-                                        setPassword('password');
-                                    }}>
+                                    <DemoButton onClick={handleDemoLogin}>
                                         Wypełnij danymi demo <FaChevronRight className="arrow" />
                                     </DemoButton>
                                 </DemoAction>
@@ -486,27 +502,6 @@ const SubtitleText = styled.p`
     margin: 0;
 `;
 
-const ErrorContainer = styled.div`
-    background-color: #fdecea;
-    border-left: 4px solid #e74c3c;
-    color: #c0392b;
-    padding: 12px 16px;
-    border-radius: 4px;
-    margin-bottom: 24px;
-    font-size: 14px;
-    animation: ${fadeIn} 0.3s forwards;
-`;
-
-const ErrorMessage = styled.div`
-    display: flex;
-    align-items: center;
-
-    &::before {
-        content: '⚠️';
-        margin-right: 8px;
-    }
-`;
-
 const LoginForm = styled.form`
     opacity: 0;
     animation: ${fadeInUp} 0.6s 0.4s forwards;
@@ -751,4 +746,4 @@ const SupportLink = styled.a`
     }
 `;
 
-export default ModernLoginPage;
+export default LoginPage;

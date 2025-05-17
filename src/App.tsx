@@ -2,14 +2,11 @@
 // Aktualizacja globalnych stylów w aplikacji, aby zapewnić lepszą responsywność
 
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router } from 'react-router-dom';
 import { createGlobalStyle } from 'styled-components';
-import { AuthProvider } from './context/AuthContext';
-import Layout from './components/layout/Layout';
-import AppRoutes from './routes';
 import { ToastProvider } from "./components/common/Toast/Toast";
-import ModernLoginPage from './pages/Auth/LoginPage'; // Importujemy nową stronę logowania
-import ProtectedRoute from './components/ProtectedRoute';
+import { AuthProvider } from './context/AuthContext';
+import AppRoutes from './routes';
 
 // Globalne style dla całej aplikacji
 const GlobalStyle = createGlobalStyle`
@@ -100,32 +97,14 @@ const GlobalStyle = createGlobalStyle`
 
 const App: React.FC = () => {
     return (
-        <AuthProvider>
+        <Router>
             <ToastProvider>
-                <Router>
-                    <GlobalStyle />
-                    <Routes>
-                        {/* Strona logowania dostępna dla niezalogowanych użytkowników - używamy nowej wersji */}
-                        <Route path="/login" element={<ModernLoginPage />} />
-
-                        {/* Przekierowanie z głównej strony do strony logowania lub aplikacji */}
-                        <Route path="/" element={<Navigate to="/calendar" replace />} />
-
-                        {/* Wszystkie pozostałe ścieżki są chronione i wymagają logowania */}
-                        <Route
-                            path="/*"
-                            element={
-                                <ProtectedRoute>
-                                    <Layout>
-                                        <AppRoutes />
-                                    </Layout>
-                                </ProtectedRoute>
-                            }
-                        />
-                    </Routes>
-                </Router>
+                <GlobalStyle />
+                <AuthProvider>
+                    <AppRoutes />
+                </AuthProvider>
             </ToastProvider>
-        </AuthProvider>
+        </Router>
     );
 };
 
