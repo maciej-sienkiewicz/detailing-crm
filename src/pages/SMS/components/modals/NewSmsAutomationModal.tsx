@@ -567,7 +567,9 @@ const NewSmsAutomationModal: React.FC<NewSmsAutomationModalProps> = ({
                 </StepActions>
             </StepContainer>
         );
-    };return (
+    };
+
+    return (
         <Modal
             isOpen={isOpen}
             onClose={onClose}
@@ -1008,4 +1010,4 @@ const LoadingSpinner = styled.div`
     }
 `;
 
-export default NewSmsAutomationModal;
+    export default NewSmsAutomationModal;
