@@ -20,6 +20,7 @@ import CashPage from "./pages/Finances/CashPage";
 import ModernLoginPage from './pages/Auth/LoginPage';
 import OnboardingPage from './pages/Auth/OnboardingPage';
 import ProtectedRoute from './components/ProtectedRoute';
+import SmsMainPage from "./pages/SMS/SmsMainPage";
 
 // Tymczasowe komponenty dla innych stron - do zastąpienia rzeczywistymi implementacjami
 const PlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
@@ -78,6 +79,15 @@ const AppRoutes: React.FC = () => {
                 <Route path="/orders" element={<CarReceptionPage />} />
                 <Route path="/orders/car-reception/:id" element={<ProtocolDetailsPage />} />
                 <Route path="/orders/start-visit/:id" element={<StartVisitPage />} />
+
+                <Route path="/sms" element={<SmsMainPage />} />
+                <Route path="/sms/dashboard" element={<Navigate to="/sms" replace />} />
+                <Route path="/sms/messages" element={<SmsMainPage />} />
+                <Route path="/sms/templates" element={<SmsMainPage />} />
+                <Route path="/sms/campaigns" element={<SmsMainPage />} />
+                <Route path="/sms/automations" element={<SmsMainPage />} />
+                <Route path="/sms/stats" element={<SmsMainPage />} />
+                <Route path="/sms/settings" element={<SmsMainPage />} />
             </Route>
 
             {/* Strona 404 - nieistniejąca ścieżka */}

@@ -389,7 +389,7 @@ export const SmsAutomationsList: React.FC = () => {
                             <AutomationHeader>
                                 <AutomationLeft>
                                     <AutomationStatus $isActive={automation.isActive}>
-                                        {automation.isActive ? (
+                                          {automation.isActive ? (
                                             <>
                                                 <FaToggleOn style={{ marginRight: '5px' }} />
                                                 Aktywna

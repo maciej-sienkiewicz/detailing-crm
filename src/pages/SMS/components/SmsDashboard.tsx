@@ -619,3 +619,5 @@ const ErrorButton = styled.button`
         background-color: #2980b9;
     }
 `;
+
+export default SmsDashboard;

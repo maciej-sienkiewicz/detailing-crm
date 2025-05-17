@@ -7,7 +7,7 @@ import {
     SmsCampaign,
     SmsAutomation,
     SmsFilters,
-    SmsStatistics
+    SmsStatistics, SmsAutomationTrigger, SmsStatus
 } from '../types/sms';
 import { apiClient, PaginatedResponse } from './apiClient';
 
@@ -28,8 +28,90 @@ export const smsApi = {
                 { page, size }
             );
         } catch (error) {
-            console.error('Error fetching SMS messages:', error);
-            throw error;
+
+            const mockSmsMessages: SmsMessage[] = [
+                {
+                    id: 'sms-001',
+                    recipientId: 'client-001',
+                    recipientName: 'Jan Kowalski',
+                    recipientPhone: '+48123456789',
+                    content: 'Twoja wizyta została potwierdzona.',
+                    status: SmsStatus.DELIVERED,
+                    statusUpdatedAt: '2025-05-17T10:15:00Z',
+                    sentDate: '2025-05-17T10:00:00Z',
+                    deliveredDate: '2025-05-17T10:10:00Z',
+                    createdAt: '2025-05-17T09:50:00Z',
+                    createdBy: 'user-001',
+                    templateId: 'template-visit-confirmation',
+                    campaignId: 'campaign-2025-01',
+                    relatedEntityType: 'appointment',
+                    relatedEntityId: 'appt-12345'
+                },
+                {
+                    id: 'sms-002',
+                    recipientId: 'client-002',
+                    recipientName: 'Anna Nowak',
+                    recipientPhone: '+48123456780',
+                    content: 'Przypomnienie o wizycie jutro o 12:00.',
+                    status: SmsStatus.SENT,
+                    statusUpdatedAt: '2025-05-17T11:00:00Z',
+                    sentDate: '2025-05-17T10:59:00Z',
+                    createdAt: '2025-05-17T10:45:00Z',
+                    createdBy: 'user-002',
+                    automationId: 'auto-reminder-01',
+                    relatedEntityType: 'appointment',
+                    relatedEntityId: 'appt-12346'
+                },
+                {
+                    id: 'sms-003',
+                    recipientId: 'client-003',
+                    recipientName: 'Tomasz Zieliński',
+                    recipientPhone: '+48123456781',
+                    content: 'Nie udało się wysłać wiadomości.',
+                    status: SmsStatus.FAILED,
+                    statusUpdatedAt: '2025-05-17T12:05:00Z',
+                    failedReason: 'Błąd po stronie operatora',
+                    createdAt: '2025-05-17T11:50:00Z',
+                    createdBy: 'user-003',
+                    relatedEntityType: 'protocol',
+                    relatedEntityId: 'protocol-9876'
+                },
+                {
+                    id: 'sms-004',
+                    recipientId: 'client-004',
+                    recipientName: 'Katarzyna Wiśniewska',
+                    recipientPhone: '+48123456782',
+                    content: 'Wiadomość została zaplanowana.',
+                    status: SmsStatus.SCHEDULED,
+                    statusUpdatedAt: '2025-05-17T08:00:00Z',
+                    scheduledDate: '2025-05-18T09:00:00Z',
+                    createdAt: '2025-05-17T07:55:00Z',
+                    createdBy: 'user-004',
+                    templateId: 'template-scheduled-msg'
+                },
+                {
+                    id: 'sms-005',
+                    recipientId: 'client-005',
+                    recipientName: 'Piotr Kaczmarek',
+                    recipientPhone: '+48123456783',
+                    content: 'Wiadomość oczekuje na wysłanie.',
+                    status: SmsStatus.PENDING,
+                    statusUpdatedAt: '2025-05-17T13:00:00Z',
+                    createdAt: '2025-05-17T12:58:00Z',
+                    createdBy: 'user-005',
+                    automationId: 'auto-msg-02'
+                }
+            ];
+            const paginatedSmsMessages: PaginatedResponse<SmsMessage> = {
+                data: mockSmsMessages,
+                pagination: {
+                    currentPage: 1,      // Przykład - aktualna strona
+                    pageSize: 5,         // Liczba elementów na stronę
+                    totalItems: mockSmsMessages.length,  // Całkowita liczba elementów
+                    totalPages: Math.ceil(mockSmsMessages.length / 5),  // Całkowita liczba stron (zaokrąglone w górę)
+                }
+            };
+            return paginatedSmsMessages;
         }
     },
 
@@ -247,7 +329,52 @@ export const smsApi = {
             return await apiClient.get<SmsAutomation[]>('/sms/automations');
         } catch (error) {
             console.error('Error fetching SMS automations:', error);
-            throw error;
+            const mockSmsAutomations: SmsAutomation[] = [
+                {
+                    id: 'auto-001',
+                    name: 'Przypomnienie o wizycie',
+                    description: 'Wysyła SMS dzień przed wizytą',
+                    isActive: true,
+                    trigger: SmsAutomationTrigger.CLIENT_BIRTHDAY,
+                    triggerParameters: { daysBeforeAppointment: 1 },
+                    templateId: 'tpl-visit-01',
+                    createdAt: '2025-04-01T10:00:00Z',
+                    updatedAt: '2025-05-10T12:30:00Z',
+                    createdBy: 'user-123',
+                    lastRun: '2025-05-16T09:00:00Z',
+                    nextScheduledRun: '2025-05-17T09:00:00Z',
+                    messagesSent: 150
+                },
+                {
+                    id: 'auto-002',
+                    name: 'Urodzinowe życzenia',
+                    description: 'Automatyczne życzenia urodzinowe dla klientów',
+                    isActive: false,
+                    trigger: SmsAutomationTrigger.CLIENT_BIRTHDAY,
+                    triggerParameters: { time: '09:00' },
+                    templateId: 'tpl-birthday-01',
+                    createdAt: '2025-01-15T08:00:00Z',
+                    updatedAt: '2025-03-20T14:45:00Z',
+                    createdBy: 'user-456',
+                    messagesSent: 320
+                },
+                {
+                    id: 'auto-003',
+                    name: 'Ankieta po wizycie',
+                    isActive: true,
+                    trigger: SmsAutomationTrigger.CLIENT_BIRTHDAY,
+                    triggerParameters: { delayHours: 2 },
+                    templateId: 'tpl-survey-01',
+                    createdAt: '2025-02-10T11:20:00Z',
+                    updatedAt: '2025-04-05T16:10:00Z',
+                    createdBy: 'user-789',
+                    lastRun: '2025-05-16T18:00:00Z',
+                    nextScheduledRun: '2025-05-17T18:00:00Z',
+                    messagesSent: 75
+                }
+            ];
+
+            return mockSmsAutomations;
         }
     },
 
@@ -333,7 +460,35 @@ export const smsApi = {
             return await apiClient.get<SmsStatistics>('/sms/statistics', params);
         } catch (error) {
             console.error('Error fetching SMS statistics:', error);
-            throw error;
+            const smsStatisticsMock: SmsStatistics = {
+                totalSent: 15000,
+                totalDelivered: 14800,
+                totalFailed: 200,
+                deliveryRate: 98.67,
+                averageDailyCount: 500,
+                monthlyCounts: [
+                    { month: 'January', count: 4500 },
+                    { month: 'February', count: 4800 },
+                    { month: 'March', count: 4500 },
+                    { month: 'April', count: 1200 }, // Zdecydowanie mniej, np. w związku z jakimś problemem
+                ],
+                byStatus: {
+                    'DELIVERED': 14800,
+                    'FAILED': 200,
+                },
+                byTemplate: [
+                    { templateId: 'TEMPL-001', templateName: 'Welcome SMS', count: 5000 },
+                    { templateId: 'TEMPL-002', templateName: 'Promotion', count: 7000 },
+                    { templateId: 'TEMPL-003', templateName: 'Reminder', count: 3000 },
+                ],
+                byCampaign: [
+                    { campaignId: 'CAMPAIGN-001', campaignName: 'Summer Sale', count: 7000, deliveryRate: 99.0 },
+                    { campaignId: 'CAMPAIGN-002', campaignName: 'Black Friday', count: 5000, deliveryRate: 98.5 },
+                    { campaignId: 'CAMPAIGN-003', campaignName: 'New Year Offer', count: 3000, deliveryRate: 98.0 },
+                ],
+            };
+
+            return smsStatisticsMock;
         }
     },
 
@@ -342,8 +497,11 @@ export const smsApi = {
         try {
             return await apiClient.get<{ balance: number, usedThisMonth: number, limit: number }>('/sms/balance');
         } catch (error) {
-            console.error('Error fetching SMS balance:', error);
-            throw error;
+            return {
+                balance: 5000,            // Aktualne saldo
+                usedThisMonth: 1200,      // Użyte w tym miesiącu
+                limit: 10000,             // Limit SMS-ów
+            };
         }
     }
 };

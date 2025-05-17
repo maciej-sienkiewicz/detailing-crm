@@ -2,20 +2,18 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { 
-    FaSms, 
-    FaEnvelope, 
-    FaUserFriends, 
-    FaChartLine, 
-    FaCog, 
-    FaListAlt, 
-    FaRobot, 
+import {
+    FaSms,
+    FaEnvelope,
+    FaUserFriends,
+    FaChartLine,
+    FaCog,
+    FaListAlt,
+    FaRobot,
     FaPlus
 } from 'react-icons/fa';
 import { SmsDashboard } from './components/SmsDashboard';
 import { SmsMessagesList } from './components/SmsMessagesList';
-import { SmsTemplatesList } from './components/SmsTemplatesList';
-import { SmsCampaignsList } from './components/SmsCampaignsList';
 import { SmsAutomationsList } from './components/SmsAutomationsList';
 import { SmsStats } from './components/SmsStats';
 import { SmsSettings } from './components/SmsSettings';
@@ -49,10 +47,6 @@ const SmsMainPage: React.FC = () => {
                 return <SmsDashboard />;
             case 'messages':
                 return <SmsMessagesList />;
-            case 'templates':
-                return <SmsTemplatesList />;
-            case 'campaigns':
-                return <SmsCampaignsList />;
             case 'automations':
                 return <SmsAutomationsList />;
             case 'stats':
@@ -93,56 +87,56 @@ const SmsMainPage: React.FC = () => {
 
             <ContentContainer>
                 <NavSidebar>
-                    <NavItem 
-                        active={activeTab === 'dashboard'} 
+                    <NavItem
+                        active={activeTab === 'dashboard'}
                         onClick={() => handleTabChange('dashboard')}
                     >
                         <NavIcon><FaChartLine /></NavIcon>
                         <NavText>Dashboard</NavText>
                     </NavItem>
-                    
-                    <NavItem 
-                        active={activeTab === 'messages'} 
+
+                    <NavItem
+                        active={activeTab === 'messages'}
                         onClick={() => handleTabChange('messages')}
                     >
                         <NavIcon><FaEnvelope /></NavIcon>
                         <NavText>Wiadomości</NavText>
                     </NavItem>
-                    
-                    <NavItem 
-                        active={activeTab === 'templates'} 
+
+                    <NavItem
+                        active={activeTab === 'templates'}
                         onClick={() => handleTabChange('templates')}
                     >
                         <NavIcon><FaListAlt /></NavIcon>
                         <NavText>Szablony</NavText>
                     </NavItem>
-                    
-                    <NavItem 
-                        active={activeTab === 'campaigns'} 
+
+                    <NavItem
+                        active={activeTab === 'campaigns'}
                         onClick={() => handleTabChange('campaigns')}
                     >
                         <NavIcon><FaUserFriends /></NavIcon>
                         <NavText>Kampanie</NavText>
                     </NavItem>
-                    
-                    <NavItem 
-                        active={activeTab === 'automations'} 
+
+                    <NavItem
+                        active={activeTab === 'automations'}
                         onClick={() => handleTabChange('automations')}
                     >
                         <NavIcon><FaRobot /></NavIcon>
                         <NavText>Automatyzacje</NavText>
                     </NavItem>
-                    
-                    <NavItem 
-                        active={activeTab === 'stats'} 
+
+                    <NavItem
+                        active={activeTab === 'stats'}
                         onClick={() => handleTabChange('stats')}
                     >
                         <NavIcon><FaChartLine /></NavIcon>
                         <NavText>Statystyki</NavText>
                     </NavItem>
-                    
-                    <NavItem 
-                        active={activeTab === 'settings'} 
+
+                    <NavItem
+                        active={activeTab === 'settings'}
                         onClick={() => handleTabChange('settings')}
                     >
                         <NavIcon><FaCog /></NavIcon>
