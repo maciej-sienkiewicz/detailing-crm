@@ -1,4 +1,4 @@
-// src/pages/SMS/SmsMainPage.tsx
+// src/pages/SMS/SmsMainPage.tsx - zmodyfikowany
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -19,6 +19,7 @@ import { SmsStats } from './components/SmsStats';
 import { SmsSettings } from './components/SmsSettings';
 import SmsTemplatesList from "./components/SmsTemplatesList";
 import SmsCampaignsList from "./components/SmsCampaignsList";
+import useSmsContext from "./components/hooks/useSmsContext";
 
 // Typ opcji nawigacji
 type NavOption = 'dashboard' | 'messages' | 'templates' | 'campaigns' | 'automations' | 'stats' | 'settings';
@@ -27,6 +28,14 @@ const SmsMainPage: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const [activeTab, setActiveTab] = useState<NavOption>('dashboard');
+
+    // Pobieramy funkcje otwierające modale z kontekstu SMS
+    const {
+        openSmsMessageModal,
+        openSmsCampaignModal,
+        openSmsTemplateModal,
+        openSmsAutomationModal
+    } = useSmsContext();
 
     // Ustawienie aktywnej zakładki na podstawie URL
     useEffect(() => {
@@ -58,7 +67,7 @@ const SmsMainPage: React.FC = () => {
             case "templates":
                 return <SmsTemplatesList/>;
             case 'campaigns':
-                    return <SmsCampaignsList />;
+                return <SmsCampaignsList />;
             default:
                 return <SmsDashboard />;
         }
@@ -66,12 +75,14 @@ const SmsMainPage: React.FC = () => {
 
     // Funkcja pomocnicza do otwarcia modalu nowej wiadomości
     const handleNewMessage = () => {
-        navigate('/sms/messages/new');
+        // Używamy funkcji z kontekstu SMS do otwarcia modalu
+        openSmsMessageModal();
     };
 
     // Funkcja pomocnicza do otwarcia modalu nowej kampanii
     const handleNewCampaign = () => {
-        navigate('/sms/campaigns/new');
+        // Używamy funkcji z kontekstu SMS do otwarcia modalu
+        openSmsCampaignModal();
     };
 
     return (
