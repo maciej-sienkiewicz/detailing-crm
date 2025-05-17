@@ -899,3 +899,723 @@ export const SmsCampaignsList: React.FC = () => {
         </Container>
     );
 };
+
+// Styled components dla SmsCampaignsList.tsx
+// Kontenery i nagłówki
+export const Container = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+`;
+
+export const PageHeader = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+`;
+
+export const PageTitle = styled.h1`
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    color: #2c3e50;
+    margin: 0;
+`;
+
+export const HeaderActions = styled.div`
+    display: flex;
+    gap: 12px;
+`;
+
+// Przyciski
+export const Button = styled.button`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: 5px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+`;
+
+export const PrimaryButton = styled(Button)`
+    background-color: #3498db;
+    border-color: #3498db;
+    color: white;
+
+    &:hover:not(:disabled) {
+        background-color: #2980b9;
+        border-color: #2980b9;
+    }
+`;
+
+export const SecondaryButton = styled(Button)`
+    background-color: #f8f9fa;
+    border-color: #dee2e6;
+    color: #6c757d;
+
+    &:hover:not(:disabled) {
+        background-color: #e9ecef;
+    }
+`;
+
+export const DangerButton = styled(Button)`
+    background-color: #e74c3c;
+    border-color: #e74c3c;
+    color: white;
+
+    &:hover:not(:disabled) {
+        background-color: #c0392b;
+        border-color: #c0392b;
+    }
+`;
+
+export const ActionButton = styled.button<{ primary?: boolean; danger?: boolean; disabled?: boolean }>`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    background-color: transparent;
+    border: none;
+    color: ${props => {
+    if (props.danger) return '#e74c3c';
+    if (props.primary) return '#3498db';
+    return '#6c757d';
+}};
+    cursor: ${props => (props.disabled ? 'not-allowed' : 'pointer')};
+    opacity: ${props => (props.disabled ? 0.5 : 1)};
+    transition: all 0.2s;
+
+    &:hover:not(:disabled) {
+        background-color: ${props => {
+    if (props.danger) return '#fff5f5';
+    if (props.primary) return '#e3f2fd';
+    return '#f8f9fa';
+}};
+    }
+`;
+
+// Panel filtrów
+export const FiltersPanel = styled.div`
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid #e9ecef;
+`;
+
+export const FiltersGrid = styled.div`
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 16px;
+`;
+
+export const FilterGroup = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+`;
+
+export const FilterLabel = styled.label`
+    font-size: 13px;
+    font-weight: 500;
+    color: #495057;
+`;
+
+export const FilterInput = styled.input`
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    font-size: 14px;
+    
+    &:focus {
+        border-color: #3498db;
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.25);
+    }
+`;
+
+export const FilterSelect = styled.select`
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    font-size: 14px;
+    background-color: white;
+    
+    &:focus {
+        border-color: #3498db;
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.25);
+    }
+`;
+
+export const FiltersActions = styled.div`
+    display: flex;
+    justify-content: flex-end;
+`;
+
+// Informacje i błędy
+export const ResultInfo = styled.div`
+    color: #6c757d;
+    font-size: 14px;
+    margin-bottom: 16px;
+`;
+
+export const ErrorMessage = styled.div`
+    background-color: #fff5f5;
+    border: 1px solid #fed7d7;
+    border-radius: 6px;
+    color: #e53e3e;
+    padding: 16px;
+    margin-bottom: 16px;
+`;
+
+// Ładowanie
+export const LoadingContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 0;
+`;
+
+export const LoadingSpinner = styled.div`
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+`;
+
+export const LoadingText = styled.div`
+    color: #6c757d;
+    font-size: 16px;
+`;
+
+// Pusty stan
+export const EmptyState = styled.div`
+    background-color: #f8f9fa;
+    border: 1px dashed #dee2e6;
+    border-radius: 6px;
+    padding: 40px;
+    text-align: center;
+    color: #6c757d;
+`;
+
+// Lista kampanii
+export const CampaignsList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+`;
+
+export const CampaignCard = styled.div`
+    background-color: white;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    overflow: hidden;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    
+    &:hover {
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        transform: translateY(-2px);
+    }
+`;
+
+export const CampaignHeader = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    border-bottom: 1px solid #f1f3f5;
+    background-color: #f8f9fa;
+`;
+
+export const CampaignNameSection = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+`;
+
+export const CampaignName = styled.h3`
+    font-size: 16px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0;
+    cursor: pointer;
+    
+    &:hover {
+        color: #3498db;
+    }
+`;
+
+export const CampaignActions = styled.div`
+    display: flex;
+    gap: 8px;
+`;
+
+export const CampaignDescription = styled.div`
+    padding: 16px;
+    color: #4a5568;
+    font-size: 14px;
+    line-height: 1.6;
+`;
+
+export const CampaignStats = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 8px 16px;
+    background-color: #f8f9fa;
+    border-top: 1px solid #f1f3f5;
+`;
+
+export const StatsItem = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+`;
+
+export const StatsLabel = styled.div`
+    font-size: 12px;
+    color: #6c757d;
+`;
+
+export const StatsValue = styled.div<{ success?: boolean; error?: boolean }>`
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    font-weight: 500;
+    color: ${props => {
+    if (props.success) return '#2ecc71';
+    if (props.error) return '#e74c3c';
+    return '#2c3e50';
+}};
+`;
+
+export const CampaignProgressSection = styled.div`
+    padding: 8px 16px 16px;
+    background-color: #f8f9fa;
+`;
+
+export const ProgressLabel = styled.div`
+    font-size: 13px;
+    color: #6c757d;
+    margin-bottom: 8px;
+`;
+
+export const ProgressBar = styled.div`
+    height: 8px;
+    background-color: #edf2f7;
+    border-radius: 4px;
+    overflow: hidden;
+`;
+
+export const ProgressFill = styled.div<{ width: number }>`
+    height: 100%;
+    width: ${props => `${props.width}%`};
+    background-color: #3498db;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+`;
+
+export const CampaignFooter = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: #718096;
+    border-top: 1px solid #f1f3f5;
+`;
+
+export const CampaignDate = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 5px;
+`;
+
+export const TemplateBadge = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    background-color: #e3f2fd;
+    color: #3498db;
+`;
+
+export const CustomContentBadge = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    background-color: #e8f5e9;
+    color: #2ecc71;
+`;
+
+export const CampaignStatus = styled.div<{ color: string }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 500;
+    background-color: ${props => `${props.color}20`};
+    color: ${props => props.color};
+`;
+
+// Szczegóły kampanii
+export const CampaignDetailsContent = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+`;
+
+export const CampaignDetailHeader = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+`;
+
+export const CampaignDetailTitle = styled.h2`
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0;
+`;
+
+export const DetailSection = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+`;
+
+export const DetailLabel = styled.div`
+    font-size: 14px;
+    font-weight: 500;
+    color: #4a5568;
+`;
+
+export const DetailText = styled.div`
+    padding: 12px 16px;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #2c3e50;
+`;
+
+export const StatsGrid = styled.div`
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
+`;
+
+export const StatCard = styled.div`
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 16px;
+    border: 1px solid #e9ecef;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+`;
+
+export const StatIconContainer = styled.div<{ success?: boolean; error?: boolean }>`
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: ${props => {
+    if (props.success) return '#e8f5e9';
+    if (props.error) return '#fff5f5';
+    return '#e3f2fd';
+}};
+    color: ${props => {
+    if (props.success) return '#2ecc71';
+    if (props.error) return '#e74c3c';
+    return '#3498db';
+}};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+`;
+
+export const StatContent = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+`;
+
+export const StatValue = styled.div`
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
+`;
+
+export const StatLabel = styled.div`
+    font-size: 12px;
+    color: #6c757d;
+`;
+
+export const ProgressSection = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+`;
+
+export const DetailProgressBar = styled.div`
+    height: 10px;
+    background-color: #edf2f7;
+    border-radius: 5px;
+    overflow: hidden;
+`;
+
+export const DetailProgressFill = styled.div<{ width: number }>`
+    height: 100%;
+    width: ${props => `${props.width}%`};
+    background-color: #3498db;
+    border-radius: 5px;
+    transition: width 0.3s ease;
+`;
+
+export const DetailProgressLabel = styled.div`
+    font-size: 13px;
+    color: #6c757d;
+    text-align: center;
+`;
+
+export const ContentSection = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+`;
+
+export const ContentBox = styled.div`
+    padding: 16px;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+    font-size: 14px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    color: #2c3e50;
+`;
+
+export const TimingSection = styled.div`
+    margin-top: 10px;
+`;
+
+export const TwoColumnGrid = styled.div`
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
+`;
+
+export const TimingItem = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+`;
+
+export const TimingLabel = styled.div`
+    font-size: 12px;
+    color: #6c757d;
+`;
+
+export const TimingValue = styled.div`
+    font-size: 14px;
+    color: #2c3e50;
+`;
+
+export const TabSection = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 10px;
+`;
+
+export const TabHeader = styled.div`
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #e9ecef;
+    padding-bottom: 10px;
+`;
+
+export const TabTitle = styled.h3`
+    font-size: 16px;
+    font-weight: 500;
+    color: #2c3e50;
+    margin: 0;
+`;
+
+export const RecipientsList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+`;
+
+export const MessagesList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+`;
+
+export const RecipientsTable = styled.table`
+    width: 100%;
+    border-collapse: collapse;
+`;
+
+export const MessagesTable = styled.table`
+    width: 100%;
+    border-collapse: collapse;
+`;
+
+export const TableHeader = styled.th`
+    text-align: left;
+    padding: 10px 16px;
+    font-size: 12px;
+    color: #6c757d;
+    font-weight: 600;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+`;
+
+export const TableRow = styled.tr`
+    border-bottom: 1px solid #f1f3f5;
+    
+    &:last-child {
+        border-bottom: none;
+    }
+`;
+
+export const TableCell = styled.td`
+    padding: 12px 16px;
+    font-size: 14px;
+    color: #2c3e50;
+`;
+
+export const MessageStatusBadge = styled.div<{ color: string }>`
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    background-color: ${props => `${props.color}20`};
+    color: ${props => props.color};
+`;
+
+export const EmptyMessage = styled.div`
+    padding: 20px;
+    text-align: center;
+    color: #6c757d;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+    border: 1px dashed #e9ecef;
+`;
+
+export const DetailLoadingContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 0;
+`;
+
+export const DetailActions = styled.div`
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 20px;
+`;
+
+// Modały potwierdzenia
+export const ConfirmContent = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    
+    p {
+        margin: 0;
+        line-height: 1.6;
+        color: #2c3e50;
+    }
+`;
+
+export const ConfirmActions = styled.div`
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 16px;
+`;
+
+export const WarningMessage = styled.div`
+    background-color: #fff8e6;
+    border: 1px solid #ffeeba;
+    padding: 12px 16px;
+    border-radius: 6px;
+    color: #856404;
+    margin: 8px 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+`;
+
+export const InfoMessage = styled.div`
+    background-color: #e3f2fd;
+    border: 1px solid #b3e0ff;
+    padding: 12px 16px;
+    border-radius: 6px;
+    color: #0c5d9e;
+    margin: 8px 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+`;
+
+export const MessageCount = styled.div`
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 10px;
+`;
+
+export const DeliveryRate = styled.div<{ rate: number, color: string }>`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    background-color: ${props => `${props.color}20`};
+    color: ${props => props.color};
+`;
+
+export default SmsCampaignsList;
