@@ -1,14 +1,8 @@
-// src/pages/Protocols/list/ProtocolSearchFilters.tsx
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { FaSearch, FaFilter, FaCalendarAlt, FaTimes, FaChevronDown, FaChevronUp } from 'react-icons/fa';
-import { ProtocolStatus, ProtocolStatusLabels } from '../../../types';
-import { DateRangePicker, RangeKeyDict } from 'react-date-range';
-import 'react-date-range/dist/styles.css';
-import 'react-date-range/dist/theme/default.css';
-import { pl } from 'date-fns/locale';
-import { format, isValid } from 'date-fns';
-import LicensePlateField from '../../../components/common/LicensePlateField';
+import { FaSearch, FaFilter, FaTimes, FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import { ProtocolStatus } from '../../../types';
+import { format, isValid, parseISO } from 'date-fns';
 import { useToast } from '../../../components/common/Toast/Toast';
 
 interface ProtocolSearchFiltersProps {
@@ -22,6 +16,7 @@ export interface SearchCriteria {
     licensePlate?: string;
     make?: string;
     model?: string;
+    title?: string;  // Pole title do szukania po tytule wizyty
     dateFrom?: Date | null;
     dateTo?: Date | null;
     serviceName?: string;
@@ -32,24 +27,12 @@ export interface SearchCriteria {
     [key: string]: string | Date | null | { min?: number; max?: number; } | undefined;
 }
 
-type DateRangeState = {
-    startDate: Date | null;
-    endDate: Date | null;
-    key: string;
-};
-
 export const ProtocolSearchFilters: React.FC<ProtocolSearchFiltersProps> = ({
                                                                                 onSearch,
                                                                                 availableServices = []
                                                                             }) => {
     const [isExpanded, setIsExpanded] = useState(false);
-    const [showDatePicker, setShowDatePicker] = useState(false);
     const [searchCriteria, setSearchCriteria] = useState<SearchCriteria>({});
-    const [dateRange, setDateRange] = useState<DateRangeState>({
-        startDate: null,
-        endDate: null,
-        key: 'selection',
-    });
     const { showToast } = useToast();
 
     // Handle search query submission
@@ -81,25 +64,9 @@ export const ProtocolSearchFilters: React.FC<ProtocolSearchFiltersProps> = ({
         onSearch(filteredCriteria);
     };
 
-    // Update date range in search criteria
-    useEffect(() => {
-        if (dateRange.startDate || dateRange.endDate) {
-            setSearchCriteria(prev => ({
-                ...prev,
-                dateFrom: dateRange.startDate,
-                dateTo: dateRange.endDate
-            }));
-        }
-    }, [dateRange]);
-
     // Reset all search criteria
     const handleReset = () => {
         setSearchCriteria({});
-        setDateRange({
-            startDate: null,
-            endDate: null,
-            key: 'selection',
-        });
         onSearch({});
     };
 
@@ -123,42 +90,34 @@ export const ProtocolSearchFilters: React.FC<ProtocolSearchFiltersProps> = ({
         }));
     };
 
-    // Format date for display
-    const formatDate = (date: Date | null | undefined): string => {
-        if (!date || !isValid(date)) return '';
-        return format(date, 'dd.MM.yyyy', { locale: pl });
+    // Handle date inputs (type="date")
+    const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+
+        // Jeśli wartość jest pusta, ustaw null
+        if (!value) {
+            setSearchCriteria(prev => ({
+                ...prev,
+                [name]: null
+            }));
+            return;
+        }
+
+        // Konwertuj string na Date
+        const date = parseISO(value);
+
+        // Sprawdź czy data jest prawidłowa
+        if (isValid(date)) {
+            setSearchCriteria(prev => ({
+                ...prev,
+                [name]: date
+            }));
+        }
     };
 
     // Toggle expanded/collapsed state of filters
     const toggleExpanded = () => {
         setIsExpanded(!isExpanded);
-        if (showDatePicker) {
-            setShowDatePicker(false);
-        }
-    };
-
-    // Open date picker
-    const handleOpenDatePicker = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        setShowDatePicker(!showDatePicker);
-    };
-
-    // Close date picker when clicking outside
-    const handleDatePickerOutsideClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        setShowDatePicker(false);
-    };
-
-    // Handle date range selection
-    const handleDateRangeChange = (ranges: RangeKeyDict) => {
-        const selection = ranges.selection;
-        if (selection) {
-            setDateRange({
-                startDate: selection.startDate,
-                endDate: selection.endDate,
-                key: 'selection'
-            });
-        }
     };
 
     // Handle license plate field change
@@ -167,453 +126,445 @@ export const ProtocolSearchFilters: React.FC<ProtocolSearchFiltersProps> = ({
         setSearchCriteria(prev => ({ ...prev, licensePlate: value }));
     };
 
+    // Format date for HTML date input (YYYY-MM-DD)
+    const formatDateForInput = (date: Date | null | undefined): string => {
+        if (!date || !isValid(date)) return '';
+        return format(date, 'yyyy-MM-dd');
+    };
+
     return (
-        <SearchContainer>
-            <BasicSearch onSubmit={handleSubmit}>
-                <InputGroup>
-                    <SearchIcon><FaSearch /></SearchIcon>
-                    <SearchInput
-                        type="text"
-                        name="clientName"
-                        value={searchCriteria.clientName || ''}
-                        onChange={handleInputChange}
-                        placeholder="Szukaj po nazwie klienta lub firmie..."
-                    />
-                </InputGroup>
-
-                <ExpandButton type="button" onClick={toggleExpanded}>
-                    <FaFilter />
-                    <ButtonText>{isExpanded ? 'Zwiń filtry' : 'Filtry zaawansowane'}</ButtonText>
+        <FiltersContainer expanded={isExpanded}>
+            <FiltersHeader onClick={toggleExpanded}>
+                <FilterTitle>
+                    <FilterIcon><FaFilter /></FilterIcon>
+                    Filtry zaawansowane
+                </FilterTitle>
+                <FilterExpandIcon>
                     {isExpanded ? <FaChevronUp /> : <FaChevronDown />}
-                </ExpandButton>
-
-                <SearchButton type="submit">Szukaj</SearchButton>
-                <ResetButton type="button" onClick={handleReset}>
-                    <FaTimes />
-                </ResetButton>
-            </BasicSearch>
+                </FilterExpandIcon>
+            </FiltersHeader>
 
             {isExpanded && (
-                <AdvancedFilters>
-                    <FilterRow>
-                        <FilterColumn>
-                            <FilterLabel>Nr rejestracyjny</FilterLabel>
-                            <LicensePlateWrapper>
-                                <LicensePlateField
-                                    id="licensePlateFilter"
-                                    name="licensePlate"
-                                    value={searchCriteria.licensePlate || ''}
-                                    onChange={handleLicensePlateChange}
-                                    placeholder="Podaj nr rejestracyjny"
-                                    onSearchClick={() => {}}
-                                />
-                            </LicensePlateWrapper>
-                        </FilterColumn>
+                <FiltersContent>
+                    <Form onSubmit={handleSubmit}>
+                        <FilterRow>
+                            <FilterColumn>
+                                <FormGroup>
+                                    <Label htmlFor="clientName">Klient</Label>
+                                    <StyledInput
+                                        id="clientName"
+                                        type="text"
+                                        name="clientName"
+                                        value={searchCriteria.clientName || ''}
+                                        onChange={handleInputChange}
+                                        placeholder="Imię, nazwisko lub firma"
+                                    />
+                                </FormGroup>
+                            </FilterColumn>
 
-                        <FilterColumn>
-                            <FilterLabel>Okres wizyty</FilterLabel>
-                            <DateRangeInputGroup onClick={handleOpenDatePicker}>
-                                <DateRangeIcon><FaCalendarAlt /></DateRangeIcon>
-                                <DateRangeText>
-                                    {searchCriteria.dateFrom || searchCriteria.dateTo
-                                        ? `${formatDate(searchCriteria.dateFrom)} - ${formatDate(searchCriteria.dateTo)}`
-                                        : 'Wybierz zakres dat'}
-                                </DateRangeText>
-                            </DateRangeInputGroup>
-                            {showDatePicker && (
-                                <DatePickerWrapper onClick={handleDatePickerOutsideClick}>
-                                    <DatePickerContent onClick={(e) => e.stopPropagation()}>
-                                        <DateRangePicker
-                                            ranges={[dateRange as any]}
-                                            onChange={handleDateRangeChange}
-                                            months={2}
-                                            direction="horizontal"
-                                            locale={pl}
-                                            weekStartsOn={1}
+                            <FilterColumn>
+                                <FormGroup>
+                                    <Label htmlFor="make">Marka pojazdu</Label>
+                                    <StyledInput
+                                        id="make"
+                                        type="text"
+                                        name="make"
+                                        value={searchCriteria.make || ''}
+                                        onChange={handleInputChange}
+                                        placeholder="np. BMW, Audi"
+                                    />
+                                </FormGroup>
+                            </FilterColumn>
+
+                            <FilterColumn>
+                                <FormGroup>
+                                    <Label htmlFor="title">Tytuł wizyty</Label>
+                                    <StyledInput
+                                        id="title"
+                                        type="text"
+                                        name="title"
+                                        value={searchCriteria.title || ''}
+                                        onChange={handleInputChange}
+                                        placeholder="Tytuł wizyty"
+                                    />
+                                </FormGroup>
+                            </FilterColumn>
+
+                            <FilterColumn>
+                                <FormGroup>
+                                    <Label>Od daty</Label>
+                                        <DateInputWrapper>
+                                            <DateInputField
+                                                type="date"
+                                                name="dateFrom"
+                                                value={formatDateForInput(searchCriteria.dateFrom)}
+                                                onChange={handleDateChange}
+                                                max={formatDateForInput(searchCriteria.dateTo)}
+                                            />
+                                        </DateInputWrapper>
+                                </FormGroup>
+                            </FilterColumn>
+
+                            <FilterColumn>
+                                <FormGroup>
+                                    <DateInputWrapper>
+                                        <Label>Do daty</Label>
+                                        <DateInputField
+                                            type="date"
+                                            name="dateTo"
+                                            value={formatDateForInput(searchCriteria.dateTo)}
+                                            onChange={handleDateChange}
+                                            min={formatDateForInput(searchCriteria.dateFrom)}
                                         />
-                                        <DatePickerButtons>
-                                            <DatePickerButton
-                                                type="button"
-                                                onClick={() => setShowDatePicker(false)}
-                                            >
-                                                Zastosuj
-                                            </DatePickerButton>
-                                            <DatePickerClearButton
-                                                type="button"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setDateRange({
-                                                        startDate: null,
-                                                        endDate: null,
-                                                        key: 'selection',
-                                                    });
-                                                    setSearchCriteria(prev => ({
-                                                        ...prev,
-                                                        dateFrom: null,
-                                                        dateTo: null
-                                                    }));
-                                                    setShowDatePicker(false);
-                                                }}
-                                            >
-                                                Wyczyść
-                                            </DatePickerClearButton>
-                                        </DatePickerButtons>
-                                    </DatePickerContent>
-                                </DatePickerWrapper>
-                            )}
-                        </FilterColumn>
-                    </FilterRow>
+                                    </DateInputWrapper>
 
-                    <FilterRow>
-                        <FilterColumn>
-                            <FilterLabel>Marka pojazdu</FilterLabel>
-                            <Input
-                                type="text"
-                                name="make"
-                                value={searchCriteria.make || ''}
-                                onChange={handleInputChange}
-                                placeholder="np. BMW, Audi, Mercedes"
-                            />
-                        </FilterColumn>
+                                </FormGroup>
+                            </FilterColumn>
+                        </FilterRow>
 
-                        <FilterColumn>
-                            <FilterLabel>Model pojazdu</FilterLabel>
-                            <Input
-                                type="text"
-                                name="model"
-                                value={searchCriteria.model || ''}
-                                onChange={handleInputChange}
-                                placeholder="np. X5, A4, E-Class"
-                            />
-                        </FilterColumn>
+                        <FilterRow>
+                            <FilterColumn>
+                                <FormGroup>
+                                    <Label htmlFor="licensePlate">Nr rejestracyjny</Label>
+                                    <StyledInput
+                                        id="licensePlate"
+                                        type="text"
+                                        name="licensePlate"
+                                        value={searchCriteria.licensePlate || ''}
+                                        onChange={handleLicensePlateChange}
+                                        placeholder="Pełny lub częściowy"
+                                    />
+                                </FormGroup>
+                            </FilterColumn>
 
-                        <FilterColumn>
-                            <FilterLabel>Rodzaj usługi</FilterLabel>
-                            <SelectInput
-                                name="serviceName"
-                                value={searchCriteria.serviceName || ''}
-                                onChange={handleInputChange}
-                            >
-                                <option value="">Wszystkie usługi</option>
-                                {availableServices.map((service, index) => (
-                                    <option key={index} value={service}>
-                                        {service}
-                                    </option>
-                                ))}
-                            </SelectInput>
-                        </FilterColumn>
-                    </FilterRow>
+                            <FilterColumn>
+                                <FormGroup>
+                                    <Label htmlFor="model">Model pojazdu</Label>
+                                    <StyledInput
+                                        id="model"
+                                        type="text"
+                                        name="model"
+                                        value={searchCriteria.model || ''}
+                                        onChange={handleInputChange}
+                                        placeholder="np. 5, A4"
+                                    />
+                                </FormGroup>
+                            </FilterColumn>
 
-                    <FilterRow>
-                        <FilterColumn>
-                            <FilterLabel>Cena (od)</FilterLabel>
-                            <Input
-                                type="number"
-                                name="minPrice"
-                                value={searchCriteria.price?.min || ''}
-                                onChange={handlePriceChange}
-                                placeholder="Minimalna kwota"
-                                min="0"
-                                step="0.01"
-                            />
-                        </FilterColumn>
+                            <FilterColumn>
+                                <FormGroup>
+                                    <Label htmlFor="serviceName">Rodzaj usługi</Label>
+                                    <StyledSelect
+                                        id="serviceName"
+                                        name="serviceName"
+                                        value={searchCriteria.serviceName || ''}
+                                        onChange={handleInputChange}
+                                    >
+                                        <option value="">Wszystkie usługi</option>
+                                        {availableServices.map((service, index) => (
+                                            <option key={index} value={service}>
+                                                {service}
+                                            </option>
+                                        ))}
+                                    </StyledSelect>
+                                </FormGroup>
+                            </FilterColumn>
 
-                        <FilterColumn>
-                            <FilterLabel>Cena (do)</FilterLabel>
-                            <Input
-                                type="number"
-                                name="maxPrice"
-                                value={searchCriteria.price?.max || ''}
-                                onChange={handlePriceChange}
-                                placeholder="Maksymalna kwota"
-                                min="0"
-                                step="0.01"
-                            />
-                        </FilterColumn>
+                            <FilterColumn>
+                                <FormGroup>
+                                    <PriceInputsContainer>
+                                        <PriceInputWrapper>
+                                            <PriceLabelContainer>
+                                                <Label>Od ceny</Label>
+                                            </PriceLabelContainer>
+                                            <PriceInputField
+                                                type="number"
+                                                name="minPrice"
+                                                value={searchCriteria.price?.min || ''}
+                                                onChange={handlePriceChange}
+                                                min="0"
+                                                step="0.01"
+                                            />
+                                        </PriceInputWrapper>
+                                    </PriceInputsContainer>
+                                </FormGroup>
+                            </FilterColumn>
 
-                        <FilterColumn />
-                    </FilterRow>
-                </AdvancedFilters>
+                            <FilterColumn>
+                                <FormGroup>
+                                    <PriceInputsContainer>
+                                        <PriceInputWrapper>
+                                            <PriceLabelContainer>
+                                                <Label>Do ceny</Label>
+                                            </PriceLabelContainer>
+                                            <PriceInputField
+                                                type="number"
+                                                name="maxPrice"
+                                                value={searchCriteria.price?.max || ''}
+                                                onChange={handlePriceChange}
+                                                min="0"
+                                                step="0.01"
+                                            />
+                                        </PriceInputWrapper>
+                                    </PriceInputsContainer>
+                                </FormGroup>
+                            </FilterColumn>
+                        </FilterRow>
+
+                        <ButtonContainer>
+                            <ResetButton type="button" onClick={handleReset}>
+                                <FaTimes /> Wyczyść filtry
+                            </ResetButton>
+                            <SearchButton type="submit">
+                                <FaSearch /> Szukaj
+                            </SearchButton>
+                        </ButtonContainer>
+                    </Form>
+                </FiltersContent>
             )}
-        </SearchContainer>
+        </FiltersContainer>
     );
 };
 
 // Styled components
-const SearchContainer = styled.div`
+const FiltersContainer = styled.div<{ expanded: boolean }>`
     margin-bottom: 20px;
     background-color: white;
-    border-radius: 8px;
+    border-radius: 6px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     overflow: hidden;
+    transition: all 0.3s ease;
 `;
 
-const BasicSearch = styled.form`
+const FiltersHeader = styled.div`
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    padding: 15px 20px;
-    gap: 10px;
-
-    @media (max-width: 768px) {
-        flex-wrap: wrap;
-    }
-`;
-
-const InputGroup = styled.div`
-    position: relative;
-    flex: 1;
-    min-width: 200px;
-
-    @media (max-width: 768px) {
-        width: 100%;
-    }
-`;
-
-const SearchIcon = styled.div`
-    position: absolute;
-    left: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #95a5a6;
-    font-size: 14px;
-`;
-
-const SearchInput = styled.input`
-    width: 100%;
-    padding: 10px 10px 10px 36px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
-    transition: border-color 0.2s;
-
-    &:focus {
-        outline: none;
-        border-color: #3498db;
-        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
-    }
-`;
-
-const ExpandButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 15px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    background-color: #f8f9fa;
-    color: #34495e;
-    font-size: 14px;
+    padding: 12px 16px;
     cursor: pointer;
-    transition: background-color 0.2s;
-    white-space: nowrap;
-
-    &:hover {
-        background-color: #f1f1f1;
-    }
-
-    @media (max-width: 768px) {
-        flex: 1;
-        justify-content: center;
-    }
-`;
-
-const ButtonText = styled.span`
-    @media (max-width: 576px) {
-        display: none;
-    }
-`;
-
-const SearchButton = styled.button`
-    padding: 10px 15px;
-    background-color: #3498db;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-size: 14px;
-    cursor: pointer;
-    white-space: nowrap;
-
-    &:hover {
-        background-color: #2980b9;
-    }
-
-    @media (max-width: 768px) {
-        flex: 1;
-    }
-`;
-
-const ResetButton = styled.button`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 38px;
-    height: 38px;
-    background-color: #f8f9fa;
-    color: #7f8c8d;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
-    cursor: pointer;
-
-    &:hover {
-        background-color: #f1f1f1;
-        color: #e74c3c;
-    }
-`;
-
-const AdvancedFilters = styled.div`
-    padding: 20px;
-    border-top: 1px solid #eee;
     background-color: #f9f9f9;
+    user-select: none;
+
+    &:hover {
+        background-color: #f0f0f0;
+    }
+`;
+
+const FilterTitle = styled.div`
+    font-weight: 500;
+    font-size: 14px;
+    color: #34495e;
+    display: flex;
+    align-items: center;
+`;
+
+const FilterIcon = styled.span`
+    margin-right: 8px;
+    color: #3498db;
+    font-size: 14px;
+`;
+
+const FilterExpandIcon = styled.span`
+    color: #7f8c8d;
+    font-size: 12px;
+`;
+
+const FiltersContent = styled.div`
+    padding: 16px;
+`;
+
+const Form = styled.form`
+    width: 100%;
 `;
 
 const FilterRow = styled.div`
     display: flex;
-    gap: 20px;
-    margin-bottom: 15px;
+    gap: 16px;
+    margin-bottom: 16px;
 
-    &:last-child {
-        margin-bottom: 0;
-    }
-
-    @media (max-width: 992px) {
-        flex-direction: column;
-        gap: 15px;
+    @media (max-width: 1200px) {
+        flex-wrap: wrap;
     }
 `;
 
 const FilterColumn = styled.div`
     flex: 1;
-`;
+    min-width: 200px;
 
-const FilterLabel = styled.label`
-    display: block;
-    margin-bottom: 6px;
-    font-size: 13px;
-    font-weight: 500;
-    color: #34495e;
-`;
-
-const Input = styled.input`
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
-
-    &:focus {
-        outline: none;
-        border-color: #3498db;
-        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+    @media (max-width: 1200px) {
+        min-width: calc(50% - 8px);
     }
-`;
-
-const SelectInput = styled.select`
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
-    background-color: white;
-
-    &:focus {
-        outline: none;
-        border-color: #3498db;
-        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
-    }
-`;
-
-const DateRangeInputGroup = styled.div`
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-    padding: 10px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    background-color: white;
-    transition: border-color 0.2s;
-
-    &:hover {
-        border-color: #bbdefb;
-    }
-`;
-
-const DateRangeIcon = styled.div`
-    color: #7f8c8d;
-    font-size: 14px;
-    margin-right: 10px;
-`;
-
-const DateRangeText = styled.div`
-    font-size: 14px;
-    color: #34495e;
-`;
-
-const DatePickerWrapper = styled.div`
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.3);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-`;
-
-const DatePickerContent = styled.div`
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    overflow: hidden;
 
     @media (max-width: 768px) {
-        width: 90%;
-        max-height: 90vh;
-        overflow-y: auto;
+        min-width: 100%;
     }
 `;
 
-const DatePickerButtons = styled.div`
+const FormGroup = styled.div`
     display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    padding: 10px 20px;
-    background-color: #f8f9fa;
-    border-top: 1px solid #eee;
+    flex-direction: column;
+    width: 100%;
 `;
 
-const DatePickerButton = styled.button`
+const Label = styled.label`
+    font-size: 14px;
+    font-weight: 500;
+    color: #34495e;
+    margin-bottom: 6px;
+`;
+
+const StyledInput = styled.input`
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    height: 38px;
+
+    &:focus {
+        outline: none;
+        border-color: #3498db;
+    }
+
+    &::placeholder {
+        color: #bbb;
+    }
+`;
+
+const StyledSelect = styled.select`
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    background-color: white;
+    height: 38px;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%237f8c8d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 12px;
+
+    &:focus {
+        outline: none;
+        border-color: #3498db;
+    }
+`;
+
+// Nowo zoptymalizowane komponenty dla pól daty
+const DateInputsContainer = styled.div`
+    display: flex;
+    gap: 8px;
+    width: 100%;
+`;
+
+const DateInputWrapper = styled.div`
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+`;
+
+const DateLabelContainer = styled.div`
+    margin-bottom: 0px;
+`;
+
+const DateLabel = styled.span`
+    font-size: 12px;
+    color: #7f8c8d;
+`;
+
+const DateInputField = styled.input`
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    height: 38px;
+
+    &:focus {
+        outline: none;
+        border-color: #3498db;
+    }
+
+    &::-webkit-calendar-picker-indicator {
+        cursor: pointer;
+        opacity: 0.6;
+    }
+`;
+
+// Nowo zoptymalizowane komponenty dla pól ceny
+const PriceInputsContainer = styled.div`
+    display: flex;
+    gap: 8px;
+    width: 100%;
+`;
+
+const PriceInputWrapper = styled.div`
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+`;
+
+const PriceLabelContainer = styled.div`
+    margin-bottom: 0px;
+`;
+
+const PriceLabel = styled.span`
+    font-size: 12px;
+    color: #7f8c8d;
+`;
+
+const PriceInputField = styled.input`
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    height: 38px;
+
+    &:focus {
+        outline: none;
+        border-color: #3498db;
+    }
+`;
+
+const ButtonContainer = styled.div`
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+`;
+
+const Button = styled.button`
+    display: flex;
+    align-items: center;
+    gap: 8px;
     padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    height: 38px;
+`;
+
+const SearchButton = styled(Button)`
     background-color: #3498db;
     color: white;
     border: none;
-    border-radius: 4px;
-    font-size: 14px;
-    cursor: pointer;
 
     &:hover {
         background-color: #2980b9;
     }
 `;
 
-const DatePickerClearButton = styled.button`
-    padding: 8px 16px;
-    background-color: white;
-    color: #34495e;
+const ResetButton = styled(Button)`
+    background-color: #f8f9fa;
+    color: #7f8c8d;
     border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
-    cursor: pointer;
 
     &:hover {
-        background-color: #f5f5f5;
+        background-color: #f1f1f1;
+        color: #e74c3c;
     }
-`;
-
-const LicensePlateWrapper = styled.div`
-    // Może potrzebować dodatkowych stylów dla ładnego wyświetlania
 `;
 
 export default ProtocolSearchFilters;

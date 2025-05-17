@@ -1,4 +1,3 @@
-// src/pages/Protocols/list/ActiveFiltersDisplay.tsx
 import React from 'react';
 import styled from 'styled-components';
 import { FaTimes } from 'react-icons/fa';
@@ -38,6 +37,7 @@ const ActiveFiltersDisplay: React.FC<ActiveFiltersDisplayProps> = ({
             licensePlate: 'Nr rejestracyjny',
             make: 'Marka',
             model: 'Model',
+            title: 'Tytuł wizyty',  // Dodane dla nowego pola
             status: 'Status',
             dateFrom: 'Od daty',
             dateTo: 'Do daty',
@@ -83,7 +83,7 @@ const ActiveFiltersDisplay: React.FC<ActiveFiltersDisplayProps> = ({
     return (
         <FiltersContainer>
             <FiltersHeader>
-                <FiltersTitle>Aktywne filtry:</FiltersTitle>
+                <FiltersTitle>Aktywne filtry</FiltersTitle>
                 <ClearAllButton onClick={onClearAll}>
                     Wyczyść wszystkie
                 </ClearAllButton>
@@ -103,7 +103,7 @@ const ActiveFiltersDisplay: React.FC<ActiveFiltersDisplayProps> = ({
 
                     return (
                         <FilterTag key={key} data-key={key}>
-                            <FilterTagLabel>{getFilterLabel(key)}:</FilterTagLabel>
+                            <FilterTagLabel>{getFilterLabel(key)}</FilterTagLabel>
                             <FilterTagValue>{getFilterValue(key, value)}</FilterTagValue>
                             <RemoveFilterButton
                                 onClick={() => onRemoveFilter(key as keyof SearchCriteria)}
@@ -121,11 +121,9 @@ const ActiveFiltersDisplay: React.FC<ActiveFiltersDisplayProps> = ({
 
 // Styled components
 const FiltersContainer = styled.div`
-    margin: 15px 0;
-    padding: 10px 15px;
-    background-color: #f8f9fa;
-    border-radius: 4px;
-    border: 1px solid #eee;
+    margin: 0 0 16px 0;
+    padding: 0;
+    background: none;
 `;
 
 const FiltersHeader = styled.div`
@@ -146,6 +144,7 @@ const ClearAllButton = styled.button`
     border: none;
     color: #3498db;
     font-size: 13px;
+    font-weight: 500;
     cursor: pointer;
     padding: 0;
 
@@ -164,12 +163,18 @@ const FilterTags = styled.div`
 const FilterTag = styled.div`
     display: flex;
     align-items: center;
-    background-color: #eaf2fd;
+    background-color: #f0f7ff;
     border: 1px solid #d5e9f9;
     color: #2980b9;
-    border-radius: 16px;
-    padding: 4px 8px 4px 12px;
+    border-radius: 4px;
+    padding: 6px 10px;
     font-size: 13px;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background-color: #e3f2fd;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
 `;
 
 const FilterTagLabel = styled.span`
