@@ -34,6 +34,27 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
+    const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
+
+    useEffect(() => {
+        // Dla każdego obrazu z serwera, który nie jest tymczasowy
+        images
+            .filter(img => !img.id.startsWith('temp_') && !img.url)
+            .forEach(async (image) => {
+                try {
+                    // Użyj nowej funkcji z API do pobrania URL obrazu
+                    const imageUrl = await carReceptionApi.fetchVehicleImageAsUrl(image.id);
+
+                    // Zaktualizuj stan imageUrls
+                    setImageUrls(prev => ({
+                        ...prev,
+                        [image.id]: imageUrl
+                    }));
+                } catch (error) {
+                    console.error(`Błąd podczas pobierania URL dla obrazu ${image.id}:`, error);
+                }
+            });
+    }, [images]);
 
     // Fetch images when component mounts
     useEffect(() => {
@@ -188,6 +209,17 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
             setIsLoading(false);
         }
     };
+
+    useEffect(() => {
+        // Funkcja czyszcząca URL-e podczas odmontowywania komponentu
+        return () => {
+            Object.values(imageUrls).forEach(url => {
+                if (url.startsWith('blob:')) {
+                    URL.revokeObjectURL(url);
+                }
+            });
+        };
+    }, [imageUrls]);
 
     const handleSaveImageInfo = (newName: string, newTags: string[]) => {
         if (editingImageIndex >= 0 && editingImageIndex < images.length) {
@@ -373,22 +405,14 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
     };
 
     const getImageUrl = (image: VehicleImage): string => {
-        // If the image has a URL (for example, from a temporary ObjectURL), use it
+        // Jeśli obraz ma już URL (np. tymczasowy), użyj go
         if (image.url) return image.url;
 
-        // Otherwise, construct URL from the API
-        if (image.id) {
-            const token = apiClient.getAuthToken();
+        // Jeśli mamy pobrany URL dla tego obrazu, użyj go
+        if (imageUrls[image.id]) return imageUrls[image.id];
 
-            // Jeśli token jest dostępny, dodaj go do nagłówków
-            const headers = {
-                'Authorization': token ? `Bearer ${token}` : ''
-            };
-
-            return `${apiClient.getBaseUrl()}/receptions/image/${image.id}?${new URLSearchParams(headers).toString()}`;
-        }
-
-        return ''; // Fallback
+        // Bez URL zwracamy pusty string lub placeholder
+        return '';
     };
 
     const handleUploadClick = (e: React.MouseEvent) => {
@@ -468,7 +492,16 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                     {images.map((image, index) => (
                         <GalleryItem key={image.id || index} className={image.id.startsWith('temp_') ? 'temp-image' : ''}>
                             <ImageContainer onClick={() => handleImageClick(index)}>
-                                <StyledImage src={getImageUrl(image)} alt={image.name || `Zdjęcie ${index + 1}`} />
+                                {imageUrls[image.id] || image.url ? (
+                                    <StyledImage
+                                        src={getImageUrl(image)}
+                                        alt={image.name || `Zdjęcie ${index + 1}`}
+                                    />
+                                ) : (
+                                    <ImagePlaceholder>
+                                        <FaImage size={24} />
+                                    </ImagePlaceholder>
+                                )}
                                 {image.id.startsWith('temp_') && (
                                     <TempBadge>Przygotowywanie</TempBadge>
                                 )}
@@ -866,6 +899,16 @@ const FaSpinner = styled.div`
     @keyframes spin {
         to { transform: rotate(360deg); }
     }
+`;
+
+const ImagePlaceholder = styled.div`
+    width: 100%;
+    height: 100%;
+    background-color: #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #999;
 `;
 
 export default ProtocolGallery;

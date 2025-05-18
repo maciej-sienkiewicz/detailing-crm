@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { FaTimes, FaChevronLeft, FaChevronRight, FaTrash } from 'react-icons/fa';
+import { FaTimes, FaTrash, FaArrowLeft, FaArrowRight, FaSpinner, FaImage } from 'react-icons/fa';
 import { VehicleImage } from '../../../../types';
-import { apiClient } from '../../../../api/apiClient';
+import { carReceptionApi } from '../../../../api/carReceptionApi';
 
 interface ImagePreviewModalProps {
     isOpen: boolean;
@@ -20,298 +20,440 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
                                                                  onDelete
                                                              }) => {
     const [activeIndex, setActiveIndex] = useState(currentImageIndex);
+    const [loading, setLoading] = useState(false);
+    // Nowy stan do przechowywania URL-i obrazów
+    const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
 
-    if (!isOpen || images.length === 0) return null;
+    // Ustaw początkowy indeks obrazu przy otwarciu
+    useEffect(() => {
+        setActiveIndex(currentImageIndex);
+    }, [currentImageIndex, isOpen]);
+
+    // Pobieranie obrazów z autoryzacją
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const fetchImages = async () => {
+            setLoading(true);
+
+            try {
+                // Pobieramy tylko obrazy, które nie są tymczasowe i nie są jeszcze załadowane
+                const imagesToFetch = images
+                    .filter(img => !img.id.startsWith('temp_') && !imageUrls[img.id]);
+
+                if (imagesToFetch.length === 0) {
+                    setLoading(false);
+                    return;
+                }
+
+                const fetchPromises = imagesToFetch.map(async (image) => {
+                    try {
+                        // Używamy funkcji z API do pobrania URL obrazu z autoryzacją
+                        const imageUrl = await carReceptionApi.fetchVehicleImageAsUrl(image.id);
+                        return { id: image.id, url: imageUrl };
+                    } catch (error) {
+                        console.error(`Błąd podczas pobierania URL dla obrazu ${image.id}:`, error);
+                        return { id: image.id, url: '' };
+                    }
+                });
+
+                const results = await Promise.all(fetchPromises);
+
+                // Aktualizujemy stan tylko raz po pobraniu wszystkich obrazów
+                const newUrls = results.reduce((acc, { id, url }) => {
+                    if (url) acc[id] = url;
+                    return acc;
+                }, {} as Record<string, string>);
+
+                setImageUrls(prev => ({
+                    ...prev,
+                    ...newUrls
+                }));
+            } catch (error) {
+                console.error('Błąd podczas pobierania obrazów:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchImages();
+    }, [isOpen, images]);
+
+    // Zwolnienie zasobów przy zamknięciu modalu
+    useEffect(() => {
+        // Funkcja czyszcząca URL-e podczas odmontowywania komponentu
+        return () => {
+            Object.values(imageUrls).forEach(url => {
+                if (url && url.startsWith('blob:')) {
+                    URL.revokeObjectURL(url);
+                }
+            });
+        };
+    }, []);
+
+    // Funkcja do pobierania prawidłowego URL obrazu
+    const getImageUrl = (image: VehicleImage): string => {
+        // Jeśli obraz ma lokalny URL (np. tymczasowy), użyj go
+        if (image.url && image.id.startsWith('temp_')) return image.url;
+
+        // Jeśli mamy pobrany URL dla tego obrazu, użyj go
+        if (imageUrls[image.id]) return imageUrls[image.id];
+
+        // Bez URL zwracamy pusty string
+        return '';
+    };
+
+    if (!isOpen) return null;
+
+    // Sprawdzamy, czy mamy obrazy do wyświetlenia
+    if (images.length === 0) {
+        return (
+            <ModalOverlay>
+                <ModalContainer>
+                    <CloseButton onClick={onClose}>
+                        <FaTimes />
+                    </CloseButton>
+                    <EmptyMessage>Brak zdjęć do wyświetlenia</EmptyMessage>
+                </ModalContainer>
+            </ModalOverlay>
+        );
+    }
 
     const currentImage = images[activeIndex];
 
-    // Helper function to get the image URL
-    const getImageUrl = (image: VehicleImage): string => {
-        // Dla lokalnych zdjęć (blobURL)
-        if (image.url && image.url.startsWith('blob:')) {
-            return image.url;
-        }
-
-        // Dla zdjęć z serwera
-        if (image.id) {
-            if (image.url && !image.url.startsWith('blob:')) {
-                return image.url; // Jeśli url jest już prawidłowo ustawiony
-            }
-
-            // Konstruujemy URL do API
-            const baseUrl = apiClient.getBaseUrl();
-            return `${baseUrl}/receptions/image/${image.id}`;
-        }
-
-        return ''; // Fallback dla nieprawidłowych danych
+    // Funkcje nawigacyjne
+    const goToPrevious = () => {
+        setActiveIndex((prevIndex) => (prevIndex > 0 ? prevIndex - 1 : images.length - 1));
     };
 
-    const handlePrevious = () => {
-        setActiveIndex((prevIndex) => (prevIndex === 0 ? images.length - 1 : prevIndex - 1));
+    const goToNext = () => {
+        setActiveIndex((prevIndex) => (prevIndex < images.length - 1 ? prevIndex + 1 : 0));
     };
 
-    const handleNext = () => {
-        setActiveIndex((prevIndex) => (prevIndex === images.length - 1 ? 0 : prevIndex + 1));
-    };
-
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'ArrowLeft') {
-            handlePrevious();
-        } else if (e.key === 'ArrowRight') {
-            handleNext();
-        } else if (e.key === 'Escape') {
-            onClose();
-        }
-    };
-
-    const handleDelete = () => {
+    const handleDeleteImage = () => {
         if (onDelete && currentImage) {
             onDelete(currentImage.id);
-
-            // Jeśli usuwamy ostatni element, zamykamy modal
-            if (images.length === 1) {
-                onClose();
-            } else {
-                // W przeciwnym razie przechodzimy do następnego obrazu
-                setActiveIndex(activeIndex === images.length - 1 ? activeIndex - 1 : activeIndex);
+            // Po usunięciu przejdź do następnego obrazu, jeśli to był ostatni, przejdź do poprzedniego
+            if (activeIndex === images.length - 1 && activeIndex > 0) {
+                setActiveIndex(activeIndex - 1);
             }
         }
     };
 
     return (
-        <ModalOverlay tabIndex={0} onKeyDown={handleKeyDown}>
-            <CloseButton onClick={onClose}>
-                <FaTimes />
-            </CloseButton>
+        <ModalOverlay>
+            <ModalContainer>
+                <CloseButton onClick={onClose}>
+                    <FaTimes />
+                </CloseButton>
 
-            {images.length > 1 && (
-                <>
-                    <NavigationButton onClick={handlePrevious} position="left">
-                        <FaChevronLeft />
-                    </NavigationButton>
-                    <NavigationButton onClick={handleNext} position="right">
-                        <FaChevronRight />
-                    </NavigationButton>
-                </>
-            )}
+                <ModalContent>
+                    <ImageControls>
+                        <NavigationButton onClick={goToPrevious} disabled={images.length <= 1}>
+                            <FaArrowLeft />
+                        </NavigationButton>
 
-            <ModalContent>
-                <ImageContainer>
-                    <ImageElement src={getImageUrl(currentImage)} alt={currentImage.name} />
-                </ImageContainer>
+                        <ImageContainer>
+                            {loading ? (
+                                <LoadingContainer>
+                                    <FaSpinner />
+                                    <span>Ładowanie...</span>
+                                </LoadingContainer>
+                            ) : getImageUrl(currentImage) ? (
+                                <LargeImage
+                                    src={getImageUrl(currentImage)}
+                                    alt={currentImage.name || `Zdjęcie ${activeIndex + 1}`}
+                                />
+                            ) : (
+                                <ImagePlaceholder>
+                                    <FaImage size={48} />
+                                    <span>Nie można załadować obrazu</span>
+                                </ImagePlaceholder>
+                            )}
+                        </ImageContainer>
 
-                <ImageInfo>
-                    <ImageDetailsContainer>
-                        <ImageName>{currentImage.name}</ImageName>
-                        <ImageMeta>
-                            {formatFileSize(currentImage.size)}
-                            {currentImage.description && ` • ${currentImage.description}`}
-                        </ImageMeta>
-                    </ImageDetailsContainer>
+                        <NavigationButton onClick={goToNext} disabled={images.length <= 1}>
+                            <FaArrowRight />
+                        </NavigationButton>
+                    </ImageControls>
 
-                    {onDelete && (
-                        <DeleteButton onClick={handleDelete}>
-                            <FaTrash /> Usuń zdjęcie
-                        </DeleteButton>
-                    )}
-                </ImageInfo>
+                    <ImageInfo>
+                        <ImageName>{currentImage.name || `Zdjęcie ${activeIndex + 1}`}</ImageName>
+                        <ImageCounter>
+                            {activeIndex + 1} / {images.length}
+                        </ImageCounter>
+                        {currentImage.tags && currentImage.tags.length > 0 && (
+                            <TagsContainer>
+                                {currentImage.tags.map(tag => (
+                                    <TagBadge key={tag}>{tag}</TagBadge>
+                                ))}
+                            </TagsContainer>
+                        )}
 
+                        {onDelete && !currentImage.id.startsWith('temp_') && (
+                            <DeleteButton onClick={handleDeleteImage}>
+                                <FaTrash /> Usuń zdjęcie
+                            </DeleteButton>
+                        )}
+                    </ImageInfo>
+                </ModalContent>
+
+                {/* Miniatury */}
                 {images.length > 1 && (
                     <ThumbnailsContainer>
                         {images.map((image, index) => (
                             <Thumbnail
-                                key={image.id}
-                                selected={index === activeIndex}
+                                key={image.id || index}
+                                active={index === activeIndex}
                                 onClick={() => setActiveIndex(index)}
                             >
-                                <img src={getImageUrl(image)} alt={`Miniatura ${index + 1}`} />
+                                {getImageUrl(image) ? (
+                                    <ThumbnailImage
+                                        src={getImageUrl(image)}
+                                        alt={image.name || `Zdjęcie ${index + 1}`}
+                                    />
+                                ) : (
+                                    <ThumbnailPlaceholder>
+                                        <FaImage size={16} />
+                                    </ThumbnailPlaceholder>
+                                )}
                             </Thumbnail>
                         ))}
                     </ThumbnailsContainer>
                 )}
-            </ModalContent>
+            </ModalContainer>
         </ModalOverlay>
     );
 };
 
-// Pomocnicza funkcja do formatowania rozmiaru pliku
-const formatFileSize = (bytes: number): string => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-};
-
-// Stylizacja komponentów
+// Style dla komponentów modalnych
 const ModalOverlay = styled.div`
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.9);
+    background-color: rgba(0, 0, 0, 0.85);
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    z-index: 1500;
-    padding: 20px;
-    outline: none;
+    z-index: 1000;
+`;
+
+const ModalContainer = styled.div`
+    background-color: #fff;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 1200px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
 `;
 
 const CloseButton = styled.button`
     position: absolute;
-    top: 20px;
-    right: 20px;
-    background: none;
-    border: none;
+    top: 15px;
+    right: 15px;
+    background-color: rgba(0, 0, 0, 0.6);
     color: white;
-    font-size: 24px;
-    cursor: pointer;
-    z-index: 1600;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    &:hover {
-        color: #ddd;
-    }
-`;
-
-const NavigationButton = styled.button<{ position: 'left' | 'right' }>`
-    position: absolute;
-    top: 50%;
-    ${props => props.position === 'left' ? 'left: 20px;' : 'right: 20px;'}
-    transform: translateY(-50%);
-    background: rgba(0, 0, 0, 0.5);
     border: none;
-    color: white;
-    font-size: 20px;
-    width: 50px;
-    height: 50px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    z-index: 1600;
+    z-index: 10;
 
     &:hover {
-        background: rgba(0, 0, 0, 0.8);
-    }
-
-    @media (max-width: 768px) {
-        width: 40px;
-        height: 40px;
-        font-size: 16px;
+        background-color: rgba(0, 0, 0, 0.8);
     }
 `;
 
 const ModalContent = styled.div`
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    overflow: hidden;
+`;
+
+const ImageControls = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex: 1;
+    min-height: 0;
+`;
+
+const NavigationButton = styled.button`
+    background-color: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 5;
+    margin: 0 15px;
+
+    &:hover:not(:disabled) {
+        background-color: rgba(0, 0, 0, 0.8);
+    }
+
+    &:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+`;
+
+const ImageContainer = styled.div`
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    max-height: 70vh;
+    overflow: hidden;
+`;
+
+const LargeImage = styled.img`
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+`;
+
+const ImagePlaceholder = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     width: 100%;
     height: 100%;
-    max-width: 1200px;
+    min-height: 300px;
+    background-color: #f0f0f0;
+    color: #999;
+    gap: 15px;
 `;
 
-const ImageContainer = styled.div`
+const ThumbnailsContainer = styled.div`
+    display: flex;
+    overflow-x: auto;
+    padding: 10px 20px;
+    background-color: #f0f0f0;
+    gap: 10px;
+`;
+
+const Thumbnail = styled.div<{ active: boolean }>`
+    width: 60px;
+    height: 60px;
+    border-radius: 4px;
+    overflow: hidden;
+    cursor: pointer;
+    border: 2px solid ${props => props.active ? '#3498db' : 'transparent'};
+    flex-shrink: 0;
+
+    &:hover {
+        border-color: ${props => props.active ? '#3498db' : '#ddd'};
+    }
+`;
+
+const ThumbnailImage = styled.img`
     width: 100%;
-    height: calc(100% - 150px);
+    height: 100%;
+    object-fit: cover;
+`;
+
+const ThumbnailPlaceholder = styled.div`
+    width: 100%;
+    height: 100%;
+    background-color: #e0e0e0;
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
-`;
-
-const ImageElement = styled.img`
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
+    color: #999;
 `;
 
 const ImageInfo = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
     padding: 15px 0;
-    color: white;
+    border-top: 1px solid #eee;
+    margin-top: 15px;
 `;
 
-const ImageDetailsContainer = styled.div``;
-
-const ImageName = styled.div`
+const ImageName = styled.h3`
+    margin: 0;
     font-size: 16px;
-    font-weight: 500;
-    margin-bottom: 5px;
+    color: #2c3e50;
 `;
 
-const ImageMeta = styled.div`
+const ImageCounter = styled.div`
     font-size: 14px;
-    color: #ccc;
+    color: #7f8c8d;
+    margin-top: 4px;
+`;
+
+const TagsContainer = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+`;
+
+const TagBadge = styled.div`
+    background-color: #f0f7ff;
+    color: #3498db;
+    padding: 4px 8px;
+    border-radius: 20px;
+    font-size: 12px;
+    border: 1px solid #d5e9f9;
 `;
 
 const DeleteButton = styled.button`
     display: flex;
     align-items: center;
     gap: 8px;
-    background-color: rgba(231, 76, 60, 0.8);
-    color: white;
-    border: none;
-    border-radius: 4px;
     padding: 8px 12px;
-    font-size: 14px;
+    background-color: #fdf1f0;
+    color: #e74c3c;
+    border: 1px solid #fbdbd9;
+    border-radius: 4px;
+    font-size: 13px;
     cursor: pointer;
-
+    margin-top: 15px;
+    
     &:hover {
-        background-color: rgba(231, 76, 60, 1);
+        background-color: #fbdbd9;
     }
 `;
 
-const ThumbnailsContainer = styled.div`
+const EmptyMessage = styled.div`
+    padding: 40px;
+    text-align: center;
+    color: #7f8c8d;
+    font-size: 16px;
+`;
+
+const LoadingContainer = styled.div`
     display: flex;
-    gap: 10px;
-    overflow-x: auto;
-    width: 100%;
-    max-width: 100%;
-    padding: 10px 0;
-
-    &::-webkit-scrollbar {
-        height: 6px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    color: #3498db;
+    
+    svg {
+        animation: spin 1s linear infinite;
     }
-
-    &::-webkit-scrollbar-track {
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 10px;
-    }
-
-    &::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.3);
-        border-radius: 10px;
-    }
-`;
-
-const Thumbnail = styled.div<{ selected: boolean }>`
-    width: 80px;
-    height: 60px;
-    cursor: pointer;
-    border: 2px solid ${props => props.selected ? 'white' : 'transparent'};
-    opacity: ${props => props.selected ? 1 : 0.6};
-    transition: all 0.2s;
-    flex-shrink: 0;
-
-    &:hover {
-        opacity: 1;
-    }
-
-    img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
+    
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
     }
 `;
 

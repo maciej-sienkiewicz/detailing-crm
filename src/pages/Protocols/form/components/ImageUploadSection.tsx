@@ -31,6 +31,7 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
     // Funkcja do generowania URL zdjęcia
     const getImageUrl = (image: VehicleImage): string => {
         // Dla lokalnych zdjęć (blobURL)
+
         if (image.url && image.url.startsWith('blob:')) {
             return image.url;
         }

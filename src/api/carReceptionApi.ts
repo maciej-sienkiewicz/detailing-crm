@@ -413,5 +413,40 @@ export const carReceptionApi = {
             console.error(`Error updating image ${imageId} metadata:`, error);
             return null;
         }
-    }
+    },
+
+    /**
+     * Pobiera zawartość obrazu jako URL data lub Blob URL
+     * @param imageId - ID obrazu
+     * @returns Promise z URL do obrazu
+     */
+    fetchVehicleImageAsUrl: async (imageId: string): Promise<string> => {
+        try {
+            // Konstruujemy URL
+            const url = `${apiClient.getBaseUrl()}/receptions/image/${imageId}`;
+
+            // Pobieramy obraz z użyciem funkcji fetch z ręcznie dodanymi nagłówkami autoryzacyjnymi
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'image/*',
+                    ...(apiClient.getAuthToken() ? { 'Authorization': `Bearer ${apiClient.getAuthToken()}` } : {})
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Błąd podczas pobierania obrazu: ${response.status}`);
+            }
+
+            // Konwertujemy odpowiedź na blob
+            const blob = await response.blob();
+
+            // Tworzymy URL dla blobu
+            return URL.createObjectURL(blob);
+        } catch (error) {
+            console.error(`Error fetching image ${imageId}:`, error);
+            return ''; // Zwracamy pusty string w przypadku błędu
+        }
+    },
+
 };
