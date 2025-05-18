@@ -21,7 +21,7 @@ import {
     FaClipboardCheck,
     FaChartBar,
     FaRss,
-    FaTimes
+    FaTimes, FaSms
 } from 'react-icons/fa';
 import UserProfileSection from './UserProfileSection';
 
@@ -86,6 +86,13 @@ const mainMenuItems: MainMenuItem[] = [
         label: 'Zespół',
         icon: <FaUsers />,
         path: '/team',
+        hasSubmenu: false
+    },
+    {
+        id: 'sms',
+        label: 'Wysyłka SMS',
+        icon: <FaSms />,
+        path: '/sms',
         hasSubmenu: false
     },
     {

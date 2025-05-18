@@ -281,9 +281,6 @@ export const SmsMessagesList: React.FC = () => {
                     <Button onClick={() => setShowFilters(!showFilters)}>
                         <FaFilter /> {showFilters ? 'Ukryj filtry' : 'Pokaż filtry'}
                     </Button>
-                    <PrimaryButton onClick={handleNewMessage}>
-                        <FaPlus /> Nowa wiadomość
-                    </PrimaryButton>
                 </HeaderActions>
             </PageHeader>
 

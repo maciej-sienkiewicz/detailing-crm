@@ -64,21 +64,12 @@ const StepIndicatorNumber = styled.div`
     border-radius: 50%;
     font-size: 14px;
     color: #6c757d;
-
-    ${props => (props.active || props.completed) && `
-        background-color: #3498db;
-        color: white;
-    `}
 `;
 
 const StepIndicatorLabel = styled.div`
     font-size: 12px;
     color: #6c757d;
     white-space: nowrap;
-    
-    ${({ active }) => active && `
-        color: #2c3e50;
-    `}
 `;
 
 const StepConnector = styled.div<{ completed?: boolean }>`

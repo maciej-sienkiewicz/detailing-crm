@@ -113,14 +113,6 @@ const SmsMainPage: React.FC = () => {
                     <FaSms style={{ marginRight: '10px' }} />
                     Moduł SMS
                 </PageTitle>
-                <HeaderActions>
-                    <ActionButton onClick={handleNewMessage}>
-                        <FaEnvelope /> Nowa wiadomość
-                    </ActionButton>
-                    <ActionButton onClick={handleNewCampaign}>
-                        <FaUserFriends /> Nowa kampania
-                    </ActionButton>
-                </HeaderActions>
             </PageHeader>
 
             <ContentContainer>
