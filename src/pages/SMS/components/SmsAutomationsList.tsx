@@ -33,6 +33,7 @@ import {
 } from '../../../types/sms';
 import Modal from '../../../components/common/Modal';
 import { useToast } from '../../../components/common/Toast/Toast';
+import NewSmsAutomationModal from '../components/modals/NewSmsAutomationModal';
 
 export const SmsAutomationsList: React.FC = () => {
     const navigate = useNavigate();
@@ -56,6 +57,9 @@ export const SmsAutomationsList: React.FC = () => {
     const [showHistoryModal, setShowHistoryModal] = useState(false);
     const [automationMessages, setAutomationMessages] = useState<any[]>([]);
     const [loadingMessages, setLoadingMessages] = useState(false);
+
+    // Stan dla modalu nowej automatyzacji
+    const [showNewAutomationModal, setShowNewAutomationModal] = useState(false);
 
     // Pobierz automatyzacje przy pierwszym renderowaniu
     useEffect(() => {
@@ -118,9 +122,24 @@ export const SmsAutomationsList: React.FC = () => {
         setActiveFilter('');
     };
 
-    // Przejdź do strony nowej automatyzacji
+    // Otwórz modal nowej automatyzacji
     const handleNewAutomation = () => {
-        navigate('/sms/automations/new');
+        setShowNewAutomationModal(true);
+    };
+
+    // Obsługa zapisania nowej automatyzacji
+    const handleSaveAutomation = (automation: SmsAutomation) => {
+        // W rzeczywistej implementacji ID zostałoby przydzielone przez backend
+        const newAutomation: SmsAutomation = {
+            ...automation,
+            id: `auto-${Date.now()}`, // Tymczasowe ID
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+
+        // Aktualizacja lokalnego stanu
+        setAutomations(prev => [newAutomation, ...prev]);
+        showToast('success', 'Automatyzacja została utworzona', 3000);
     };
 
     // Podgląd szczegółów automatyzacji
@@ -389,7 +408,7 @@ export const SmsAutomationsList: React.FC = () => {
                             <AutomationHeader>
                                 <AutomationLeft>
                                     <AutomationStatus $isActive={automation.isActive}>
-                                          {automation.isActive ? (
+                                        {automation.isActive ? (
                                             <>
                                                 <FaToggleOn style={{ marginRight: '5px' }} />
                                                 Aktywna
@@ -746,6 +765,13 @@ export const SmsAutomationsList: React.FC = () => {
                     </ConfirmContent>
                 </Modal>
             )}
+
+            {/* Modal nowej automatyzacji */}
+            <NewSmsAutomationModal
+                isOpen={showNewAutomationModal}
+                onClose={() => setShowNewAutomationModal(false)}
+                onSave={handleSaveAutomation}
+            />
         </Container>
     );
 };
