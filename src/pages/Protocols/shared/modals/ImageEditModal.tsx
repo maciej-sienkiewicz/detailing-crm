@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { FaTimes, FaPlus, FaTags } from 'react-icons/fa';
 import { carReceptionApi } from '../../../../api/carReceptionApi';
+import {apiClient} from "../../../../api/apiClient";
 
 interface ImageEditModalProps {
     isOpen: boolean;
@@ -47,6 +48,10 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({
             return;
         }
 
+        // Dodajmy logowanie dla debugowania
+        console.log('ImageEditModal - Parsing image URL:', imageUrl);
+        console.log('Auth token present:', !!apiClient.getAuthToken());
+
         // Parsuj URL, aby wyodrębnić ID obrazu
         const fetchImage = async () => {
             setLoading(true);
@@ -56,6 +61,7 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({
                 const imageId = urlParts[urlParts.length - 1].split('?')[0]; // Usuń ewentualne parametry zapytania
 
                 if (imageId) {
+                    // Zamiast używać bezpośredniego URL, użyj funkcji fetchVehicleImageAsUrl
                     const authUrl = await carReceptionApi.fetchVehicleImageAsUrl(imageId);
                     setImageUrlWithAuth(authUrl);
                 } else {

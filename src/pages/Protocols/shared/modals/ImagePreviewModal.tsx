@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { FaTimes, FaTrash, FaArrowLeft, FaArrowRight, FaSpinner, FaImage } from 'react-icons/fa';
 import { VehicleImage } from '../../../../types';
 import { carReceptionApi } from '../../../../api/carReceptionApi';
+import {apiClient} from "../../../../api/apiClient";
 
 interface ImagePreviewModalProps {
     isOpen: boolean;
@@ -23,6 +24,37 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
     const [loading, setLoading] = useState(false);
     // Nowy stan do przechowywania URL-i obrazów
     const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const fetchImages = async () => {
+            console.log('ImagePreviewModal - Fetching images, count:',
+                images.filter(img => !img.id.startsWith('temp_') && !imageUrls[img.id]).length);
+            console.log('Auth token present:', !!apiClient.getAuthToken());
+
+            setLoading(true);
+
+            try {
+                // Pobieramy tylko obrazy, które nie są tymczasowe i nie są jeszcze załadowane
+                const imagesToFetch = images
+                    .filter(img => !img.id.startsWith('temp_') && !imageUrls[img.id]);
+
+                if (imagesToFetch.length === 0) {
+                    setLoading(false);
+                    return;
+                }
+
+                // Reszta kodu bez zmian...
+            } catch (error) {
+                console.error('Błąd podczas pobierania obrazów:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchImages();
+    }, [isOpen, images]);
 
     // Ustaw początkowy indeks obrazu przy otwarciu
     useEffect(() => {

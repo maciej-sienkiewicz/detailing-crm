@@ -38,6 +38,48 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
 
     useEffect(() => {
         // Dla każdego obrazu z serwera, który nie jest tymczasowy
+        const fetchImages = async () => {
+            // Dodajmy logowanie dla debugowania
+            console.log('ProtocolGallery - Fetching images, count:',
+                images.filter(img => !img.id.startsWith('temp_') && !imageUrls[img.id]).length);
+            console.log('Auth token present:', !!apiClient.getAuthToken());
+
+            const imagesToFetch = images
+                .filter(img => !img.id.startsWith('temp_') && !imageUrls[img.id]);
+
+            if (imagesToFetch.length === 0) return;
+
+            const fetchPromises = imagesToFetch.map(async (image) => {
+                try {
+                    // Użyj nowej funkcji z API do pobrania URL obrazu
+                    const imageUrl = await carReceptionApi.fetchVehicleImageAsUrl(image.id);
+                    return { id: image.id, url: imageUrl };
+                } catch (error) {
+                    console.error(`Błąd podczas pobierania URL dla obrazu ${image.id}:`, error);
+                    return { id: image.id, url: '' };
+                }
+            });
+
+            const results = await Promise.all(fetchPromises);
+
+            // Aktualizuj stan imageUrls
+            const newUrls = results.reduce((acc, { id, url }) => {
+                if (url) acc[id] = url;
+                return acc;
+            }, {} as Record<string, string>);
+
+            setImageUrls(prev => ({
+                ...prev,
+                ...newUrls
+            }));
+        };
+
+        fetchImages();
+    }, [images]);
+
+
+    useEffect(() => {
+        // Dla każdego obrazu z serwera, który nie jest tymczasowy
         images
             .filter(img => !img.id.startsWith('temp_') && !img.url)
             .forEach(async (image) => {
@@ -405,13 +447,13 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
     };
 
     const getImageUrl = (image: VehicleImage): string => {
-        // Jeśli obraz ma już URL (np. tymczasowy), użyj go
-        if (image.url) return image.url;
+        // Jeśli obraz ma lokalny URL (np. tymczasowy), użyj go
+        if (image.url && image.id.startsWith('temp_')) return image.url;
 
         // Jeśli mamy pobrany URL dla tego obrazu, użyj go
         if (imageUrls[image.id]) return imageUrls[image.id];
 
-        // Bez URL zwracamy pusty string lub placeholder
+        // Bez URL zwracamy pusty string
         return '';
     };
 

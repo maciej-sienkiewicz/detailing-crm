@@ -422,8 +422,11 @@ export const carReceptionApi = {
      */
     fetchVehicleImageAsUrl: async (imageId: string): Promise<string> => {
         try {
-            // Konstruujemy URL
+            // Konstruujemy URL z wykorzystaniem naszej funkcji getVehicleImageUrl
             const url = `${apiClient.getBaseUrl()}/receptions/image/${imageId}`;
+
+            console.log('Fetching image with URL:', url); // Dodajemy logging dla debugowania
+            console.log('Auth token present:', !!apiClient.getAuthToken()); // Sprawdzamy czy token jest dostępny
 
             // Pobieramy obraz z użyciem funkcji fetch z ręcznie dodanymi nagłówkami autoryzacyjnymi
             const response = await fetch(url, {
@@ -431,7 +434,9 @@ export const carReceptionApi = {
                 headers: {
                     'Accept': 'image/*',
                     ...(apiClient.getAuthToken() ? { 'Authorization': `Bearer ${apiClient.getAuthToken()}` } : {})
-                }
+                },
+                // Dodajemy credentials, aby zapewnić, że ciasteczka są przesyłane
+                credentials: 'include'
             });
 
             if (!response.ok) {
