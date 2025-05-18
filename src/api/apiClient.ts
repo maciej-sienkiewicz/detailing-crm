@@ -220,6 +220,8 @@ export const apiClient = {
     // Metoda do uzyskania bazowego URL API
     getBaseUrl: () => API_BASE_URL,
 
+    getAuthToken: () => getAuthToken(),
+
     // Metody konwersji formatów danych
     convertSnakeToCamel,
     convertCamelToSnake,

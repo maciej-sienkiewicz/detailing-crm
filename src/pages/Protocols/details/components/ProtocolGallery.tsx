@@ -378,7 +378,14 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
 
         // Otherwise, construct URL from the API
         if (image.id) {
-            return `${apiClient.getBaseUrl()}/receptions/image/${image.id}`;
+            const token = apiClient.getAuthToken();
+
+            // Jeśli token jest dostępny, dodaj go do nagłówków
+            const headers = {
+                'Authorization': token ? `Bearer ${token}` : ''
+            };
+
+            return `${apiClient.getBaseUrl()}/receptions/image/${image.id}?${new URLSearchParams(headers).toString()}`;
         }
 
         return ''; // Fallback

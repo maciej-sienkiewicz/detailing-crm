@@ -19,6 +19,10 @@ import { SmsStats } from './components/SmsStats';
 import { SmsSettings } from './components/SmsSettings';
 import SmsTemplatesList from "./components/SmsTemplatesList";
 import SmsCampaignsList from "./components/SmsCampaignsList";
+import NewSmsMessageModal from './components/modals/NewSmsMessageModal';
+import NewSmsCampaignModal from './components/modals/NewSmsCampaignModal';
+import { SmsMessage, SmsCampaign } from '../../types/sms';
+import { useToast } from '../../components/common/Toast/Toast';
 
 // Typ opcji nawigacji
 type NavOption = 'dashboard' | 'messages' | 'templates' | 'campaigns' | 'automations' | 'stats' | 'settings';
@@ -26,7 +30,12 @@ type NavOption = 'dashboard' | 'messages' | 'templates' | 'campaigns' | 'automat
 const SmsMainPage: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const { showToast } = useToast();
     const [activeTab, setActiveTab] = useState<NavOption>('dashboard');
+
+    // Stany dla modali
+    const [showNewMessageModal, setShowNewMessageModal] = useState(false);
+    const [showNewCampaignModal, setShowNewCampaignModal] = useState(false);
 
     // Ustawienie aktywnej zakładki na podstawie URL
     useEffect(() => {
@@ -58,7 +67,7 @@ const SmsMainPage: React.FC = () => {
             case "templates":
                 return <SmsTemplatesList/>;
             case 'campaigns':
-                    return <SmsCampaignsList />;
+                return <SmsCampaignsList />;
             default:
                 return <SmsDashboard />;
         }
@@ -66,12 +75,35 @@ const SmsMainPage: React.FC = () => {
 
     // Funkcja pomocnicza do otwarcia modalu nowej wiadomości
     const handleNewMessage = () => {
-        navigate('/sms/messages/new');
+        setShowNewMessageModal(true);
     };
 
     // Funkcja pomocnicza do otwarcia modalu nowej kampanii
     const handleNewCampaign = () => {
-        navigate('/sms/campaigns/new');
+        setShowNewCampaignModal(true);
+    };
+
+    // Obsługa wysłania nowej wiadomości
+    const handleSendMessage = (message: SmsMessage) => {
+        // Tutaj możesz dodać dodatkową logikę, np. odświeżenie listy wiadomości
+        showToast('success', 'Wiadomość została wysłana pomyślnie', 3000);
+        // Jeśli aktualnie jesteśmy na liście wiadomości, możemy odświeżyć listę
+        if (activeTab === 'messages') {
+            // Tutaj możesz wywołać funkcję odświeżającą listę wiadomości
+        }
+    };
+
+    // Obsługa zapisania nowej kampanii
+    const handleSaveCampaign = (campaign: SmsCampaign) => {
+        // Tutaj możesz dodać dodatkową logikę, np. odświeżenie listy kampanii
+        showToast('success', campaign.status === 'PENDING'
+            ? 'Kampania została uruchomiona pomyślnie'
+            : 'Kampania została zaplanowana pomyślnie', 3000);
+
+        // Jeśli aktualnie jesteśmy na liście kampanii, możemy odświeżyć listę
+        if (activeTab === 'campaigns') {
+            // Tutaj możesz wywołać funkcję odświeżającą listę kampanii
+        }
     };
 
     return (
@@ -154,6 +186,20 @@ const SmsMainPage: React.FC = () => {
                     {renderContent()}
                 </MainContent>
             </ContentContainer>
+
+            {/* Modal nowej wiadomości */}
+            <NewSmsMessageModal
+                isOpen={showNewMessageModal}
+                onClose={() => setShowNewMessageModal(false)}
+                onSend={handleSendMessage}
+            />
+
+            {/* Modal nowej kampanii */}
+            <NewSmsCampaignModal
+                isOpen={showNewCampaignModal}
+                onClose={() => setShowNewCampaignModal(false)}
+                onSave={handleSaveCampaign}
+            />
         </PageContainer>
     );
 };

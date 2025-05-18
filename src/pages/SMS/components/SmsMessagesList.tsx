@@ -26,6 +26,7 @@ import { SmsMessage, SmsStatus, SmsStatusColors, SmsStatusLabels } from '../../.
 import { useToast } from '../../../components/common/Toast/Toast';
 import Modal from '../../../components/common/Modal';
 import Pagination from '../../../components/common/Pagination';
+import NewSmsMessageModal from './modals/NewSmsMessageModal';
 
 export const SmsMessagesList: React.FC = () => {
     const navigate = useNavigate();
@@ -61,6 +62,7 @@ export const SmsMessagesList: React.FC = () => {
     const [showMessageDetails, setShowMessageDetails] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+    const [showNewMessageModal, setShowNewMessageModal] = useState(false);
 
     // Pobieranie wiadomości przy pierwszym renderowaniu i zmianie filtrów/paginacji
     useEffect(() => {
@@ -185,6 +187,32 @@ export const SmsMessagesList: React.FC = () => {
         setShowDeleteConfirm(true);
     };
 
+    // Obsługa wysłania nowej wiadomości
+    const handleSendMessage = (message: SmsMessage) => {
+        showToast('success', 'Wiadomość została wysłana pomyślnie', 3000);
+        fetchMessages(); // Odśwież listę wiadomości
+    };
+
+    // Potwierdzenie usunięcia wiadomości
+    const confirmDeleteMessage = async () => {
+        if (!selectedMessage) return;
+
+        try {
+            // W prawdziwej implementacji byłaby tu rzeczywista akcja usuwania
+            // Jako że nie mamy endpointu do usuwania, tylko symulujemy
+            showToast('success', 'Wiadomość została usunięta', 3000);
+            setShowDeleteConfirm(false);
+
+            // Symulacja usunięcia z lokalnej listy
+            setMessages(prevMessages =>
+                prevMessages.filter(message => message.id !== selectedMessage.id)
+            );
+        } catch (err) {
+            console.error('Error deleting message:', err);
+            showToast('error', 'Nie udało się usunąć wiadomości', 3000);
+        }
+    };
+
     // Formatowanie daty
     const formatDate = (dateString: string): string => {
         if (!dateString) return '—';
@@ -213,7 +241,7 @@ export const SmsMessagesList: React.FC = () => {
 
     // Nowa wiadomość
     const handleNewMessage = () => {
-        navigate('/sms/messages/new');
+        setShowNewMessageModal(true);
     };
 
     // Zmiana strony paginacji
@@ -222,6 +250,24 @@ export const SmsMessagesList: React.FC = () => {
             ...prev,
             currentPage: page - 1 // API jest 0-based, interfejs 1-based
         }));
+    };
+
+    // Pomocnicza funkcja do renderowania ikon statusu
+    const getStatusIcon = (status: SmsStatus) => {
+        switch (status) {
+            case SmsStatus.PENDING:
+                return <FaSpinner style={{ marginRight: '5px' }} />;
+            case SmsStatus.SENT:
+                return <FaEnvelope style={{ marginRight: '5px' }} />;
+            case SmsStatus.DELIVERED:
+                return <FaCheckCircle style={{ marginRight: '5px' }} />;
+            case SmsStatus.FAILED:
+                return <FaExclamationTriangle style={{ marginRight: '5px' }} />;
+            case SmsStatus.SCHEDULED:
+                return <FaCalendarAlt style={{ marginRight: '5px' }} />;
+            default:
+                return <FaInfoCircle style={{ marginRight: '5px' }} />;
+        }
     };
 
     return (
@@ -667,39 +713,22 @@ export const SmsMessagesList: React.FC = () => {
                             <SecondaryButton onClick={() => setShowDeleteConfirm(false)}>
                                 Anuluj
                             </SecondaryButton>
-                            <DangerButton onClick={() => {
-                                // W prawdziwej implementacji byłaby tu rzeczywista akcja usuwania
-                                // Jako że nie mamy endpointu do usuwania, tylko symulujemy
-                                showToast('success', 'Wiadomość została usunięta', 3000);
-                                setShowDeleteConfirm(false);
-                                // W rzeczywistej implementacji odświeżalibyśmy tutaj listę
-                            }}>
+                            <DangerButton onClick={confirmDeleteMessage}>
                                 Usuń wiadomość
                             </DangerButton>
                         </ConfirmActions>
                     </ConfirmContent>
                 </Modal>
             )}
+
+            {/* Modal nowej wiadomości */}
+            <NewSmsMessageModal
+                isOpen={showNewMessageModal}
+                onClose={() => setShowNewMessageModal(false)}
+                onSend={handleSendMessage}
+            />
         </Container>
     );
-};
-
-// Pomocnicza funkcja do renderowania ikon statusu
-const getStatusIcon = (status: SmsStatus) => {
-    switch (status) {
-        case SmsStatus.PENDING:
-            return <FaSpinner style={{ marginRight: '5px' }} />;
-        case SmsStatus.SENT:
-            return <FaEnvelope style={{ marginRight: '5px' }} />;
-        case SmsStatus.DELIVERED:
-            return <FaCheckCircle style={{ marginRight: '5px' }} />;
-        case SmsStatus.FAILED:
-            return <FaExclamationTriangle style={{ marginRight: '5px' }} />;
-        case SmsStatus.SCHEDULED:
-            return <FaCalendarAlt style={{ marginRight: '5px' }} />;
-        default:
-            return <FaInfoCircle style={{ marginRight: '5px' }} />;
-    }
 };
 
 // Styled components

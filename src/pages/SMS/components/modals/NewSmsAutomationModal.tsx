@@ -30,6 +30,8 @@ import {
     SmsTemplate
 } from '../../../../types/sms';
 import { useToast } from '../../../../components/common/Toast/Toast';
+import NewSmsAutomationModal from './modals/NewSmsAutomationModal';
+
 
 // Interfejs props dla modalu
 interface NewSmsAutomationModalProps {
@@ -64,6 +66,7 @@ const NewSmsAutomationModal: React.FC<NewSmsAutomationModalProps> = ({
     // Stan dla kroków formularza
     const [currentStep, setCurrentStep] = useState(1);
     const [loading, setLoading] = useState(false);
+    const [showNewAutomationModal, setShowNewAutomationModal] = useState(false);
 
     // Stan dla szablonów
     const [templates, setTemplates] = useState<SmsTemplate[]>([]);
@@ -130,6 +133,10 @@ const NewSmsAutomationModal: React.FC<NewSmsAutomationModalProps> = ({
             console.error('Error fetching templates:', error);
             setLoadingTemplates(false);
         }
+    };
+
+    const handleNewAutomation = () => {
+        setShowNewAutomationModal(true);
     };
 
     // Obsługa zmiany pól formularza
@@ -288,6 +295,27 @@ const NewSmsAutomationModal: React.FC<NewSmsAutomationModalProps> = ({
         return true;
     };
 
+    const handleSaveAutomation = (automation: SmsAutomation) => {
+        // Dodaj nową automatyzację do stanu lub zaktualizuj istniejącą
+        if (automation.id) {
+            // Aktualizacja istniejącej automatyzacji
+            setAutomations(prev =>
+                prev.map(item => item.id === automation.id ? automation : item)
+            );
+        } else {
+            // Dodawanie nowej automatyzacji
+            // (w rzeczywistej implementacji API zwróciłoby nowy obiekt z ID)
+            const newAutomation: SmsAutomation = {
+                ...automation,
+                id: `temp-${Date.now()}`, // Tymczasowe ID
+                createdAt: new Date().toISOString()
+            };
+            setAutomations(prev => [newAutomation, ...prev]);
+        }
+
+        showToast('success', 'Automatyzacja została utworzona', 3000);
+    };
+
     // Obsługa powrotu do poprzedniego kroku
     const goToPreviousStep = () => {
         if (currentStep > 1) {
@@ -438,6 +466,242 @@ const NewSmsAutomationModal: React.FC<NewSmsAutomationModalProps> = ({
             </StepContainer>
         );
     };// Renderowanie kroku 3 - Wybór szablonu i podsumowanie
+    // Dodaj tę funkcję do komponentu NewSmsAutomationModal przed renderStep3:
+
+// Renderowanie kroku 2 - Ustawienia wyzwalacza
+    const renderStep2 = () => {
+        return (
+            <StepContainer>
+                <StepTitle>
+                    <StepNumber>1</StepNumber>
+                    <StepNumber active>2</StepNumber>
+                    Ustawienia wyzwalacza
+                </StepTitle>
+
+                <FormSection>
+                    <SectionTitle>Wybierz typ wyzwalacza</SectionTitle>
+                    <TriggersGrid>
+                        {Object.values(SmsAutomationTrigger).map(trigger => (
+                            <TriggerOption
+                                key={trigger}
+                                selected={automation.trigger === trigger}
+                                onClick={() => handleInputChange({
+                                    target: { name: 'trigger', value: trigger }
+                                } as React.ChangeEvent<HTMLSelectElement>)}
+                            >
+                                <TriggerIcon>
+                                    {renderTriggerIcon(trigger)}
+                                </TriggerIcon>
+                                <TriggerLabel>
+                                    {SmsAutomationTriggerLabels[trigger]}
+                                </TriggerLabel>
+                            </TriggerOption>
+                        ))}
+                    </TriggersGrid>
+                </FormSection>
+
+                <FormSection>
+                    <SectionTitle>Parametry wyzwalacza</SectionTitle>
+                    <TriggerDescription>
+                        <FaInfoCircle style={{ marginRight: '8px' }} />
+                        {getTriggerDescription(automation.trigger as SmsAutomationTrigger)}
+                    </TriggerDescription>
+
+                    <ParametersGroup>
+                        {automation.trigger === SmsAutomationTrigger.BEFORE_APPOINTMENT && (
+                            <FormGroup>
+                                <FormLabel>Liczba dni przed wizytą</FormLabel>
+                                <FormInput
+                                    type="number"
+                                    name="days"
+                                    value={automation.triggerParameters?.days || 1}
+                                    onChange={handleTriggerParameterChange}
+                                    min="1"
+                                    max="30"
+                                />
+                                <FormHelp>
+                                    Wiadomość zostanie wysłana określoną liczbę dni przed zaplanowaną wizytą.
+                                </FormHelp>
+                            </FormGroup>
+                        )}
+
+                        {automation.trigger === SmsAutomationTrigger.AFTER_APPOINTMENT && (
+                            <FormGroup>
+                                <FormLabel>Liczba dni po wizycie</FormLabel>
+                                <FormInput
+                                    type="number"
+                                    name="days"
+                                    value={automation.triggerParameters?.days || 1}
+                                    onChange={handleTriggerParameterChange}
+                                    min="1"
+                                    max="30"
+                                />
+                                <FormHelp>
+                                    Wiadomość zostanie wysłana określoną liczbę dni po zakończonej wizycie.
+                                </FormHelp>
+                            </FormGroup>
+                        )}
+
+                        {automation.trigger === SmsAutomationTrigger.STATUS_CHANGE && (
+                            <FormGroup>
+                                <FormLabel>Status zlecenia</FormLabel>
+                                <FormSelect
+                                    name="status"
+                                    value={automation.triggerParameters?.status || ''}
+                                    onChange={handleTriggerParameterChange}
+                                >
+                                    <option value="pending">Oczekujące</option>
+                                    <option value="in_progress">W realizacji</option>
+                                    <option value="completed">Zakończone</option>
+                                    <option value="cancelled">Anulowane</option>
+                                </FormSelect>
+                                <FormHelp>
+                                    Wiadomość zostanie wysłana gdy status zlecenia zmieni się na wybrany.
+                                </FormHelp>
+                            </FormGroup>
+                        )}
+
+                        {automation.trigger === SmsAutomationTrigger.CLIENT_BIRTHDAY && (
+                            <>
+                                <FormGroup>
+                                    <FormLabel>Godzina wysyłki</FormLabel>
+                                    <FormInput
+                                        type="time"
+                                        name="time"
+                                        value={automation.triggerParameters?.time || '09:00'}
+                                        onChange={handleTriggerParameterChange}
+                                    />
+                                    <FormHelp>
+                                        Godzina o której zostanie wysłana wiadomość urodzinowa.
+                                    </FormHelp>
+                                </FormGroup>
+
+                                <FormGroup>
+                                    <FormCheckboxWrapper>
+                                        <FormCheckbox
+                                            type="checkbox"
+                                            id="withDiscount"
+                                            name="triggerParameters.withDiscount"
+                                            checked={automation.triggerParameters?.withDiscount || false}
+                                            onChange={handleCheckboxChange}
+                                        />
+                                        <FormCheckboxLabel htmlFor="withDiscount">
+                                            Dodaj kod rabatowy do wiadomości
+                                        </FormCheckboxLabel>
+                                    </FormCheckboxWrapper>
+                                </FormGroup>
+
+                                {automation.triggerParameters?.withDiscount && (
+                                    <>
+                                        <FormGroup>
+                                            <FormLabel>Kod rabatowy</FormLabel>
+                                            <FormInput
+                                                type="text"
+                                                name="discountCode"
+                                                value={automation.triggerParameters?.discountCode || ''}
+                                                onChange={handleTriggerParameterChange}
+                                                placeholder="np. URODZINY2023"
+                                            />
+                                        </FormGroup>
+
+                                        <FormGroup>
+                                            <FormLabel>Wartość rabatu (%)</FormLabel>
+                                            <FormInput
+                                                type="number"
+                                                name="discountValue"
+                                                value={automation.triggerParameters?.discountValue || 10}
+                                                onChange={handleTriggerParameterChange}
+                                                min="1"
+                                                max="100"
+                                            />
+                                        </FormGroup>
+                                    </>
+                                )}
+                            </>
+                        )}
+
+                        {automation.trigger === SmsAutomationTrigger.NO_VISIT_PERIOD && (
+                            <FormGroup>
+                                <FormLabel>Liczba miesięcy bez wizyty</FormLabel>
+                                <FormInput
+                                    type="number"
+                                    name="months"
+                                    value={automation.triggerParameters?.months || 3}
+                                    onChange={handleTriggerParameterChange}
+                                    min="1"
+                                    max="24"
+                                />
+                                <FormHelp>
+                                    Wiadomość zostanie wysłana, gdy klient nie odwiedzi warsztatu przez określoną liczbę miesięcy.
+                                </FormHelp>
+                            </FormGroup>
+                        )}
+
+                        {automation.trigger === SmsAutomationTrigger.INVOICE_STATUS_CHANGE && (
+                            <FormGroup>
+                                <FormLabel>Status faktury</FormLabel>
+                                <FormSelect
+                                    name="status"
+                                    value={automation.triggerParameters?.status || ''}
+                                    onChange={handleTriggerParameterChange}
+                                >
+                                    <option value="issued">Wystawiona</option>
+                                    <option value="paid">Opłacona</option>
+                                    <option value="overdue">Przeterminowana</option>
+                                </FormSelect>
+                                <FormHelp>
+                                    Wiadomość zostanie wysłana gdy status faktury zmieni się na wybrany.
+                                </FormHelp>
+                            </FormGroup>
+                        )}
+
+                        {automation.trigger === SmsAutomationTrigger.VEHICLE_ANNIVERSARY && (
+                            <FormGroup>
+                                <FormLabel>Rocznica (lata)</FormLabel>
+                                <FormInput
+                                    type="number"
+                                    name="years"
+                                    value={automation.triggerParameters?.years || 1}
+                                    onChange={handleTriggerParameterChange}
+                                    min="1"
+                                    max="10"
+                                />
+                                <FormHelp>
+                                    Wiadomość zostanie wysłana w rocznicę pierwszej wizyty pojazdu w warsztacie.
+                                </FormHelp>
+                            </FormGroup>
+                        )}
+
+                        {automation.trigger === SmsAutomationTrigger.VEHICLE_MILEAGE && (
+                            <FormGroup>
+                                <FormLabel>Przebieg (km)</FormLabel>
+                                <FormInput
+                                    type="number"
+                                    name="mileage"
+                                    value={automation.triggerParameters?.mileage || 10000}
+                                    onChange={handleTriggerParameterChange}
+                                    min="1000"
+                                    step="1000"
+                                />
+                                <FormHelp>
+                                    Wiadomość zostanie wysłana, gdy przebieg pojazdu przekroczy określoną wartość.
+                                </FormHelp>
+                            </FormGroup>
+                        )}
+                    </ParametersGroup>
+                </FormSection>
+
+                <StepActions>
+                    <SecondaryButton onClick={goToPreviousStep}>
+                        <FaArrowLeft /> Wstecz
+                    </SecondaryButton>
+                    <PrimaryButton onClick={goToNextStep}>
+                        Dalej <FaArrowRight />
+                    </PrimaryButton>
+                </StepActions>
+            </StepContainer>
+        );
+    };
     const renderStep3 = () => {
         return (
             <StepContainer>
@@ -601,6 +865,11 @@ const NewSmsAutomationModal: React.FC<NewSmsAutomationModalProps> = ({
                 {currentStep === 2 && renderStep2()}
                 {currentStep === 3 && renderStep3()}
             </ModalContent>
+            <NewSmsAutomationModal
+                isOpen={showNewAutomationModal}
+                onClose={() => setShowNewAutomationModal(false)}
+                onSave={handleSaveAutomation}
+            />
         </Modal>
     );
 };
