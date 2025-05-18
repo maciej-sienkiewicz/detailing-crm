@@ -184,8 +184,8 @@ export const smsApi = {
             const mockSmsTemplates: SmsTemplate[] = [
                 {
                     id: '1',
-                    name: 'Potwierdzenie zamówienia',
-                    content: 'Dziękujemy za zamówienie, {{customerName}}! Numer zamówienia: {{orderNumber}}.',
+                    name: 'Informacja o nowej promocji',
+                    content: 'Cześć {{klient.imie}}! Pojawiła się u nas nowa promocja na samochody marki: {{pojazd.marka}}. Ostatni raz byłeś u nas: {{wizyta.data}} - może czas zobaczyć się ponownie?',
                     category: SmsTemplateCategory.APPOINTMENT_REMINDER,
                     createdAt: '2025-01-15T10:00:00Z',
                     updatedAt: '2025-01-15T10:00:00Z',
