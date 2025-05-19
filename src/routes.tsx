@@ -107,7 +107,8 @@ const AppRoutes: React.FC = () => {
                 <Route path="/fleet/vehicles/:id/fuel/new" element={<FleetMaintenanceFormPage fuel />} />
 
                 {/* Zarządzanie wypożyczeniami */}
-                <Route path="/fleet/rentals" element={<FleetCalendarPage />} />
+                <Route path="/fleet/calendar" element={<FleetCalendarPage />} />
+                <Route path="/fleet/rentals" element={<FleetRentalsPage />} />
                 <Route path="/fleet/rentals/:id" element={<FleetRentalDetailsPage />} />
                 <Route path="/fleet/rentals/new" element={<FleetRentalFormPage />} />
 

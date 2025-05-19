@@ -36,17 +36,17 @@ interface MainMenuItem {
 
 const mainMenuItems: MainMenuItem[] = [
     {
-        id: 'calendar',
-        label: 'Kalendarz',
-        icon: <FaCalendarAlt />,
-        path: '/calendar',
-        hasSubmenu: false
-    },
-    {
         id: 'activity',
         label: 'Aktualności',
         icon: <FaRss />,
         path: '/activity',
+        hasSubmenu: false
+    },
+    {
+        id: 'calendar',
+        label: 'Kalendarz',
+        icon: <FaCalendarAlt />,
+        path: '/calendar',
         hasSubmenu: false
     },
     {
@@ -57,17 +57,17 @@ const mainMenuItems: MainMenuItem[] = [
         hasSubmenu: false
     },
     {
+        id: 'fleet',
+        label: 'Flota',
+        icon: <FaCar />,
+        path: '/fleet',
+        hasSubmenu: true
+    },
+    {
         id: 'clients',
         label: 'Klienci',
         icon: <FaUsers />,
         hasSubmenu: true
-    },
-    {
-        id: 'reports',
-        label: 'Raporty',
-        icon: <FaChartBar />,
-        path: '/reports',
-        hasSubmenu: false
     },
     {
         id: 'finances',
@@ -82,18 +82,18 @@ const mainMenuItems: MainMenuItem[] = [
         hasSubmenu: true
     },
     {
+        id: 'reports',
+        label: 'Raporty',
+        icon: <FaChartBar />,
+        path: '/reports',
+        hasSubmenu: false
+    },
+    {
         id: 'team',
         label: 'Zespół',
         icon: <FaUsers />,
         path: '/team',
         hasSubmenu: false
-    },
-    {
-        id: 'fleet',
-        label: 'Flota',
-        icon: <FaCar />,
-        path: '/fleet',
-        hasSubmenu: true
     },
     {
         id: 'sms',

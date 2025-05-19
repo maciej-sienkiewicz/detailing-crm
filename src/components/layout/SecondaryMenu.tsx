@@ -15,7 +15,7 @@ import {
     FaEye,
     FaWrench,
     FaWindowClose,
-    FaTimes, FaCalendar, FaCalendarDay
+    FaTimes, FaCalendar, FaCalendarDay, FaCalendarAlt, FaArchive
 } from 'react-icons/fa';
 import {FaCarRear} from "react-icons/fa6";
 
@@ -53,8 +53,9 @@ const secondaryMenuOptions: Record<string, SubMenuItem[]> = {
         { id: 'products', label: 'Produkty', icon: <FaTags />, path: '/warehouse/products' }
     ],
     fleet: [
-        { id: 'vehicles', label: 'Pojazdy', icon: <FaCarRear />, path: '/fleet/vehicles' },
-        { id: 'rent', label: 'Wypożyczenia', icon: <FaCalendarDay />, path: '/fleet/rentals' },
+        { id: 'calendar', label: 'Kalendarz', icon: <FaCalendarAlt />, path: '/fleet/calendar' },
+        { id: 'vehicles', label: 'Dostępna flota', icon: <FaCarRear />, path: '/fleet/vehicles' },
+        { id: 'rent', label: 'Historia', icon: <FaArchive />, path: '/fleet/rentals' },
 
     ],
     pricing: [
