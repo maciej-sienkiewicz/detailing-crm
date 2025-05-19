@@ -31,6 +31,7 @@ const CalendarPage: React.FC = () => {
     const [showEditAppointmentModal, setShowEditAppointmentModal] = useState(false);
     const [showNewVisitConfirmation, setShowNewVisitConfirmation] = useState(false);
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+    const [selectedEndDate, setSelectedEndDate] = useState<Date>(new Date());
 
     // Pobieranie danych przy montowaniu komponentu
     useEffect(() => {
@@ -115,21 +116,37 @@ const CalendarPage: React.FC = () => {
     // Obsługa tworzenia nowej wizyty
     const handleAppointmentCreate = (start: Date, end: Date) => {
         setSelectedDate(start);
+
+        const correctedEndDate = new Date(end);
+        correctedEndDate.setDate(correctedEndDate.getDate() - 1);
+
+        setSelectedEndDate(correctedEndDate);
         setShowNewVisitConfirmation(true);
+
+        console.log('Zakres dat:', {
+            start: start.toISOString(),
+            originalEnd: end.toISOString(),
+            correctedEnd: correctedEndDate.toISOString()
+        });
     };
 
     // Obsługa potwierdzenia tworzenia nowej wizyty
     const handleConfirmNewVisit = () => {
         setShowNewVisitConfirmation(false);
 
-        // Tworzymy datę w lokalnej strefie czasowej z przesunięciem o 12:00
+        // Tworzymy datę początkową w lokalnej strefie czasowej,
         // aby uniknąć problemów ze strefami czasowymi
-        const localDate = new Date(selectedDate);
-        localDate.setHours(12, 0, 0, 0); // Ustawiamy godzinę na 12:00
+        const localStartDate = new Date(selectedDate);
+        localStartDate.setHours(12, 0, 0, 0); // Ustawiamy godzinę na 12:00
+
+        // Tworzymy datę końcową w lokalnej strefie czasowej
+        const localEndDate = new Date(selectedEndDate);
+        localEndDate.setHours(23, 59, 0, 0); // Ustawiamy na koniec dnia
 
         navigate('/orders', {
             state: {
-                startDate: localDate.toISOString(), // Przekazujemy datę ISO z godziną 12:00
+                startDate: localStartDate.toISOString(), // Przekazujemy datę ISO z godziną 12:00
+                endDate: localEndDate.toISOString(), // Przekazujemy datę ISO z godziną 23:59
                 isFullProtocol: false
             }
         });

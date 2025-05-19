@@ -97,6 +97,7 @@ const CarReceptionPage: React.FC = () => {
     const appointmentId = location.state?.appointmentId;
     const editProtocolId = location.state?.editProtocolId;
     const startDateFromCalendar = location.state?.startDate;
+    const endDateFromCalendar = location.state?.endDate; // Dodana obsługa daty końcowej z kalendarza
     const isFullProtocolFromNav = location.state?.isFullProtocol !== undefined
         ? location.state.isFullProtocol
         : true; // domyślnie true, jeśli nie określono
@@ -107,7 +108,11 @@ const CarReceptionPage: React.FC = () => {
     useEffect(() => {
         if (startDateFromCalendar) {
             setShowForm(true);
-            console.log('Data z kalendarza:', startDateFromCalendar);
+            console.log('Data z kalendarza początkowa:', startDateFromCalendar);
+        }
+
+        if (endDateFromCalendar) {
+            console.log('Data z kalendarza końcowa:', endDateFromCalendar);
         }
 
         const fetchServices = async () => {
@@ -151,6 +156,7 @@ const CarReceptionPage: React.FC = () => {
             console.log('Obsługa przekierowania z innych widoków');
             console.log('protocolDataFromAppointment:', !!protocolDataFromAppointment);
             console.log('startDateFromCalendar:', !!startDateFromCalendar);
+            console.log('endDateFromCalendar:', !!endDateFromCalendar);
             console.log('editProtocolId:', editProtocolId);
 
             // Jeśli mamy dane z wizyty, automatycznie otworzymy formularz
@@ -181,7 +187,7 @@ const CarReceptionPage: React.FC = () => {
         };
 
         handleRedirectData();
-    }, [protocolDataFromAppointment, editProtocolId, startDateFromCalendar]);
+    }, [protocolDataFromAppointment, editProtocolId, startDateFromCalendar, endDateFromCalendar]);
 
     // Obsługa wyszukiwania z komponentu filtrów
     const handleSearch = (criteria: SearchCriteria) => {
@@ -267,7 +273,8 @@ const CarReceptionPage: React.FC = () => {
                                 protocolDataFromAppointment ||
                                 (startDateFromCalendar ? {
                                     ...formData,
-                                    startDate: startDateFromCalendar
+                                    startDate: startDateFromCalendar,
+                                    endDate: endDateFromCalendar // Dodajemy datę końcową
                                 } : formData)
                             }
                             appointmentId={appointmentId}
