@@ -1,33 +1,46 @@
+// src/pages/Finances/InvoicesPage.tsx
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { FaSearch, FaPlus, FaFileInvoiceDollar, FaEdit, FaFilePdf, FaEye, FaTrashAlt } from 'react-icons/fa';
 import { Invoice, InvoiceStatus, InvoiceStatusLabels, InvoiceStatusColors, InvoiceFilters, InvoiceType, InvoiceTypeLabels } from '../../types';
 import InvoiceFormModal from './components/InvoiceFormModal';
 import InvoiceViewModal from './components/InvoiceViewModal';
+import InvoiceAdvancedFilters from './components/InvoiceAdvancedFilters';
+import ActiveFiltersDisplay from './components/ActiveFiltersDisplay';
 import { invoicesApi } from '../../api/invoicesApi';
+import InvoiceFiltersComponent from './components/InvoiceFiltersComponent';
+
 
 const InvoicesPage: React.FC = () => {
     const [invoices, setInvoices] = useState<Invoice[]>([]);
+    const [filteredInvoices, setFilteredInvoices] = useState<Invoice[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [filters, setFilters] = useState<InvoiceFilters>({});
-    const [showFilters, setShowFilters] = useState<boolean>(false);
+    const [showAdvancedFilters, setShowAdvancedFilters] = useState<boolean>(false);
+    const [activeStatusFilter, setActiveStatusFilter] = useState<InvoiceStatus | 'ALL'>('ALL');
     const [showFormModal, setShowFormModal] = useState<boolean>(false);
     const [showViewModal, setShowViewModal] = useState<boolean>(false);
     const [selectedInvoice, setSelectedInvoice] = useState<Invoice | undefined>(undefined);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-    // Pobieranie danych przy pierwszym renderowaniu i przy zmianie filtrów
+    // Pobieranie danych przy pierwszym renderowaniu
     useEffect(() => {
         fetchInvoices();
     }, []);
+
+    // Obsługa filtrowania po zmianie filtrów
+    useEffect(() => {
+        applyFilters();
+    }, [invoices, activeStatusFilter, filters]);
 
     // Funkcja pobierająca faktury z serwera
     const fetchInvoices = async () => {
         try {
             setLoading(true);
-            const fetchedInvoices = await invoicesApi.fetchInvoices(filters);
+            const fetchedInvoices = await invoicesApi.fetchInvoices({});
             setInvoices(fetchedInvoices);
+            setFilteredInvoices(fetchedInvoices);
             setError(null);
         } catch (err) {
             console.error('Błąd podczas pobierania faktur:', err);
@@ -111,21 +124,110 @@ const InvoicesPage: React.FC = () => {
         setShowViewModal(true);
     };
 
-    // Obsługa zmiany filtrów
-    const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        setFilters(prev => ({ ...prev, [name]: value }));
+    // Obsługa zmiany filtra statusu
+    const handleStatusFilterChange = (status: InvoiceStatus | 'ALL') => {
+        setActiveStatusFilter(status);
     };
 
-    // Obsługa czyszczenia filtrów
-    const handleClearFilters = () => {
+    // Obsługa zmiany zaawansowanych filtrów
+    const handleAdvancedSearch = (advancedFilters: InvoiceFilters) => {
+        setFilters(advancedFilters);
+    };
+
+    // Usunięcie pojedynczego filtra
+    const handleRemoveFilter = (key: keyof InvoiceFilters) => {
+        const updatedFilters = { ...filters };
+        delete updatedFilters[key];
+        setFilters(updatedFilters);
+    };
+
+    // Wyczyszczenie wszystkich filtrów
+    const handleClearAllFilters = () => {
         setFilters({});
     };
 
-    // Obsługa wysyłki formularza filtrów
-    const handleSubmitFilters = (e: React.FormEvent) => {
-        e.preventDefault();
-        fetchInvoices();
+    // Przełączanie widoku filtrów zaawansowanych
+    const toggleAdvancedFilters = () => {
+        setShowAdvancedFilters(!showAdvancedFilters);
+    };
+
+    // Funkcja aplikująca filtry do listy faktur
+    const applyFilters = () => {
+        if (!invoices.length) return;
+
+        let result = [...invoices];
+
+        // Filtrowanie po statusie
+        if (activeStatusFilter !== 'ALL') {
+            result = result.filter(invoice => invoice.status === activeStatusFilter);
+        }
+
+        // Filtrowanie po zaawansowanych filtrach
+        if (Object.keys(filters).length > 0) {
+            // Filtrowanie po numerze faktury
+            if (filters.number) {
+                result = result.filter(invoice =>
+                    invoice.number.toLowerCase().includes(filters.number!.toLowerCase())
+                );
+            }
+
+            // Filtrowanie po tytule faktury
+            if (filters.title) {
+                result = result.filter(invoice =>
+                    invoice.title.toLowerCase().includes(filters.title!.toLowerCase())
+                );
+            }
+
+            // Filtrowanie po płatniku
+            if (filters.buyerName) {
+                result = result.filter(invoice =>
+                    invoice.buyerName.toLowerCase().includes(filters.buyerName!.toLowerCase())
+                );
+            }
+
+            // Filtrowanie po statusie (z zaawansowanych filtrów)
+            if (filters.status) {
+                result = result.filter(invoice => invoice.status === filters.status);
+            }
+
+            // Filtrowanie po typie faktury
+            if (filters.type) {
+                result = result.filter(invoice => invoice.type === filters.type);
+            }
+
+            // Filtrowanie po ID protokołu
+            if (filters.protocolId) {
+                result = result.filter(invoice =>
+                    invoice.protocolId === filters.protocolId ||
+                    (invoice.protocolNumber && invoice.protocolNumber.includes(filters.protocolId!))
+                );
+            }
+
+            // Filtrowanie po dacie od
+            if (filters.dateFrom) {
+                const fromDate = new Date(filters.dateFrom);
+                result = result.filter(invoice => new Date(invoice.issuedDate) >= fromDate);
+            }
+
+            // Filtrowanie po dacie do
+            if (filters.dateTo) {
+                const toDate = new Date(filters.dateTo);
+                toDate.setHours(23, 59, 59, 999); // Koniec dnia
+                result = result.filter(invoice => new Date(invoice.issuedDate) <= toDate);
+            }
+
+            // Filtrowanie po minimalnej kwocie
+            if (filters.minAmount) {
+                result = result.filter(invoice => invoice.totalGross >= filters.minAmount!);
+            }
+
+            // Filtrowanie po maksymalnej kwocie
+            if (filters.maxAmount) {
+                result = result.filter(invoice => invoice.totalGross <= filters.maxAmount!);
+            }
+        }
+
+        setFilteredInvoices(result);
     };
 
     // Obsługa usuwania faktury
@@ -193,9 +295,9 @@ const InvoicesPage: React.FC = () => {
                     <span>Faktury</span>
                 </Title>
                 <Actions>
-                    <SearchButton onClick={() => setShowFilters(!showFilters)}>
+                    <SearchButton onClick={toggleAdvancedFilters}>
                         <FaSearch />
-                        <span>Wyszukaj</span>
+                        <span>{showAdvancedFilters ? 'Ukryj filtry' : 'Wyszukaj'}</span>
                     </SearchButton>
                     <AddButton onClick={handleAddInvoice}>
                         <FaPlus />
@@ -204,101 +306,23 @@ const InvoicesPage: React.FC = () => {
                 </Actions>
             </Header>
 
-            {showFilters && (
-                <FiltersContainer>
-                    <FiltersForm onSubmit={handleSubmitFilters}>
-                        <FiltersTitle>Filtry wyszukiwania</FiltersTitle>
-                        <FiltersGrid>
-                            <FormGroup>
-                                <Label htmlFor="number">Numer faktury</Label>
-                                <Input
-                                    id="number"
-                                    name="number"
-                                    value={filters.number || ''}
-                                    onChange={handleFilterChange}
-                                    placeholder="Np. FV/2024/101"
-                                />
-                            </FormGroup>
-                            <FormGroup>
-                                <Label htmlFor="title">Nazwa faktury</Label>
-                                <Input
-                                    id="title"
-                                    name="title"
-                                    value={filters.title || ''}
-                                    onChange={handleFilterChange}
-                                    placeholder="Np. Usługi detailingowe"
-                                />
-                            </FormGroup>
-                            <FormGroup>
-                                <Label htmlFor="buyerName">Płatnik</Label>
-                                <Input
-                                    id="buyerName"
-                                    name="buyerName"
-                                    value={filters.buyerName || ''}
-                                    onChange={handleFilterChange}
-                                    placeholder="Nazwa klienta"
-                                />
-                            </FormGroup>
-                            <FormGroup>
-                                <Label htmlFor="status">Status</Label>
-                                <Select
-                                    id="status"
-                                    name="status"
-                                    value={filters.status || ''}
-                                    onChange={handleFilterChange as any}
-                                >
-                                    <option value="">Wszystkie statusy</option>
-                                    {Object.entries(InvoiceStatusLabels).map(([key, label]) => (
-                                        <option key={key} value={key}>{label}</option>
-                                    ))}
-                                </Select>
-                            </FormGroup>
-                            <FormGroup>
-                                <Label htmlFor="type">Typ faktury</Label>
-                                <Select
-                                    id="type"
-                                    name="type"
-                                    value={filters.type || ''}
-                                    onChange={handleFilterChange as any}
-                                >
-                                    <option value="">Wszystkie typy</option>
-                                    {Object.entries(InvoiceTypeLabels).map(([key, label]) => (
-                                        <option key={key} value={key}>{label}</option>
-                                    ))}
-                                </Select>
-                            </FormGroup>
-                            <FormGroup>
-                                <Label htmlFor="dateFrom">Data od</Label>
-                                <Input
-                                    id="dateFrom"
-                                    name="dateFrom"
-                                    type="date"
-                                    value={filters.dateFrom || ''}
-                                    onChange={handleFilterChange}
-                                />
-                            </FormGroup>
-                            <FormGroup>
-                                <Label htmlFor="dateTo">Data do</Label>
-                                <Input
-                                    id="dateTo"
-                                    name="dateTo"
-                                    type="date"
-                                    value={filters.dateTo || ''}
-                                    onChange={handleFilterChange}
-                                />
-                            </FormGroup>
-                        </FiltersGrid>
-                        <FiltersActions>
-                            <ButtonSecondary type="button" onClick={handleClearFilters}>
-                                Wyczyść filtry
-                            </ButtonSecondary>
-                            <ButtonPrimary type="submit">
-                                Zastosuj filtry
-                            </ButtonPrimary>
-                        </FiltersActions>
-                    </FiltersForm>
-                </FiltersContainer>
+            {/* Filtry statusu */}
+            <InvoiceFiltersComponent
+                activeFilter={activeStatusFilter}
+                onFilterChange={handleStatusFilterChange}
+            />
+
+            {/* Filtry zaawansowane */}
+            {showAdvancedFilters && (
+                <InvoiceAdvancedFilters onSearch={handleAdvancedSearch} />
             )}
+
+            {/* Wyświetlanie aktywnych filtrów */}
+            <ActiveFiltersDisplay
+                filters={filters}
+                onRemoveFilter={handleRemoveFilter}
+                onClearAll={handleClearAllFilters}
+            />
 
             {loading ? (
                 <LoadingIndicator>Ładowanie faktur...</LoadingIndicator>
@@ -323,14 +347,14 @@ const InvoicesPage: React.FC = () => {
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {invoices.length === 0 ? (
+                            {filteredInvoices.length === 0 ? (
                                 <TableRow>
                                     <TableCell colSpan={11} style={{ textAlign: 'center' }}>
                                         Brak faktur spełniających kryteria wyszukiwania
                                     </TableCell>
                                 </TableRow>
                             ) : (
-                                invoices.map(invoice => (
+                                filteredInvoices.map(invoice => (
                                     <TableRow key={invoice.id}>
                                         <TableCell>{invoice.number}</TableCell>
                                         <TableCell>
@@ -533,107 +557,6 @@ const AddButton = styled(Button)`
 
     &:hover {
         background-color: #2980b9;
-    }
-`;
-
-const FiltersContainer = styled.div`
-    margin-bottom: 24px;
-`;
-
-const FiltersForm = styled.form`
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-    padding: 20px;
-`;
-
-const FiltersTitle = styled.h3`
-    margin: 0 0 16px 0;
-    font-size: 18px;
-    color: #2c3e50;
-`;
-
-const FiltersGrid = styled.div`
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-
-    @media (max-width: 992px) {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    @media (max-width: 576px) {
-        grid-template-columns: 1fr;
-    }
-`;
-
-const FormGroup = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-`;
-
-const Label = styled.label`
-    font-size: 14px;
-    color: #34495e;
-    font-weight: 500;
-`;
-
-const Input = styled.input`
-    padding: 8px 12px;
-    border: 1px solid #dfe6e9;
-    border-radius: 4px;
-    font-size: 14px;
-
-    &:focus {
-        outline: none;
-        border-color: #3498db;
-        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
-    }
-`;
-
-const Select = styled.select`
-    padding: 8px 12px;
-    border: 1px solid #dfe6e9;
-    border-radius: 4px;
-    font-size: 14px;
-    background-color: white;
-
-    &:focus {
-        outline: none;
-        border-color: #3498db;
-        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
-    }
-`;
-
-const FiltersActions = styled.div`
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    margin-top: 20px;
-
-    @media (max-width: 576px) {
-        flex-direction: column;
-    }
-`;
-
-const ButtonPrimary = styled(Button)`
-    background-color: #3498db;
-    color: white;
-    border: none;
-
-    &:hover {
-        background-color: #2980b9;
-    }
-`;
-
-const ButtonSecondary = styled(Button)`
-    background-color: white;
-    color: #2c3e50;
-    border: 1px solid #dfe6e9;
-
-    &:hover {
-        background-color: #f8f9fa;
     }
 `;
 
