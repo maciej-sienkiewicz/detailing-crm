@@ -310,14 +310,14 @@ export const CarReceptionForm: React.FC<CarReceptionFormProps> = ({
                     allowCustomService={true}
                 />
 
-                <ImageUploadSection
-                    images={formData.vehicleImages || []}
-                    onImagesChange={handleImagesChange}
-                />
-
                 <NotesSection
                     notes={formData.notes || ''}
                     onChange={handleChange}
+                />
+
+                <ImageUploadSection
+                    images={formData.vehicleImages || []}
+                    onImagesChange={handleImagesChange}
                 />
 
                 <FormActions

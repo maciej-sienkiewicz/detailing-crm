@@ -85,7 +85,7 @@ export const TableCell = styled.td`
 
 export const TableFooterCell = styled(TableCell)`
     font-weight: 600;
-    background-color: #f8f9fa;
+    background-color: rgba(192, 215, 241, 0.49);
 `;
 
 // Style dla nazwy usługi

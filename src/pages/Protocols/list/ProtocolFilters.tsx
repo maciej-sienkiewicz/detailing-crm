@@ -4,7 +4,7 @@ import { FilterButtons, FilterButton } from '../styles';
 import { protocolsApi } from '../../../api/protocolsApi';
 import { ProtocolStatus } from '../../../types';
 
-export type FilterType = 'Zaplanowane' | 'W realizacji' | 'Oczekujące na odbiór' | 'Archiwum' | 'Wszystkie' | 'Porzucone';
+export type FilterType = 'Zaplanowane' | 'W realizacji' | 'Oczekujące na odbiór' | 'Archiwum' | 'Porzucone';
 
 interface ProtocolFiltersProps {
     activeFilter: FilterType;
@@ -17,7 +17,6 @@ const filterToStatusMap: Record<FilterType, string> = {
     'W realizacji': 'in_progress',
     'Oczekujące na odbiór': 'ready_for_pickup',
     'Archiwum': 'completed',
-    'Wszystkie': 'all',
     'Porzucone': 'cancelled'
 };
 
@@ -27,7 +26,6 @@ export const ProtocolFilters: React.FC<ProtocolFiltersProps> = ({ activeFilter, 
         'W realizacji': 0,
         'Oczekujące na odbiór': 0,
         'Archiwum': 0,
-        'Wszystkie': 0,
         'Porzucone': 0
     });
     const [loading, setLoading] = useState(true);
@@ -44,7 +42,6 @@ export const ProtocolFilters: React.FC<ProtocolFiltersProps> = ({ activeFilter, 
                     'W realizacji': data.in_progress || 0,
                     'Oczekujące na odbiór': data.ready_for_pickup || 0,
                     'Archiwum': data.completed || 0,
-                    'Wszystkie': data.all || 0,
                     'Porzucone': data.cancelled || 0
                 });
             } catch (error) {
@@ -84,15 +81,6 @@ export const ProtocolFilters: React.FC<ProtocolFiltersProps> = ({ activeFilter, 
                 Zaplanowane
                 <Counter active={activeFilter === 'Zaplanowane'}>
                     {loading ? <CounterLoader /> : counters['Zaplanowane']}
-                </Counter>
-            </FilterButton>
-            <FilterButton
-                active={activeFilter === 'Wszystkie'}
-                onClick={() => onFilterChange('Wszystkie')}
-            >
-                Wszystkie
-                <Counter active={activeFilter === 'Wszystkie'}>
-                    {loading ? <CounterLoader /> : counters['Wszystkie']}
                 </Counter>
             </FilterButton>
             <FilterButton

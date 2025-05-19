@@ -291,14 +291,14 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
                     onServiceAdded={onServiceAdded}
                 />
 
-                <ImageUploadSection
-                    images={formData.vehicleImages || []}
-                    onImagesChange={handleImagesChange}
-                />
-
                 <NotesSection
                     notes={formData.notes || ''}
                     onChange={handleChange}
+                />
+
+                <ImageUploadSection
+                    images={formData.vehicleImages || []}
+                    onImagesChange={handleImagesChange}
                 />
 
                 <FormActions
