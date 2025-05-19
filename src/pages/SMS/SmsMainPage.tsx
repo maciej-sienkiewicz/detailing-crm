@@ -67,7 +67,7 @@ const SmsMainPage: React.FC = () => {
             case "templates":
                 return <SmsTemplatesList/>;
             case 'campaigns':
-                return <SmsCampaignsList />;
+                return <SmsCampaignsList onOpenNewCampaignModal={() => setShowNewCampaignModal(true)} />;
             default:
                 return <SmsDashboard />;
         }

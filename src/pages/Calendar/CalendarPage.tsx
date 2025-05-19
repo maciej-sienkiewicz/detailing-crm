@@ -1,7 +1,8 @@
+// src/pages/Calendar/CalendarPage.tsx
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import AppointmentCalendar from '../../components/calendar/Calendar';
+import AppointmentCalendar from '../../components/calendar/Calendar'; // Nowy komponent kalendarza
 import Modal from '../../components/common/Modal';
 import AppointmentForm from '../../components/calendar/AppointmentForm';
 import AppointmentDetails from '../../components/calendar/AppointmentDetails';
@@ -106,7 +107,7 @@ const CalendarPage: React.FC = () => {
     };
 
     // Obsługa zmiany zakresu kalendarza
-    const handleRangeChange = (range: Date[] | { start: Date; end: Date }) => {
+    const handleRangeChange = (range: { start: Date; end: Date }) => {
         // Tutaj można by pobrać nowe dane na podstawie wybranego zakresu dat
         console.log('Range changed:', range);
     };
@@ -259,6 +260,11 @@ const CalendarPage: React.FC = () => {
         <CalendarPageContainer>
             <CalendarHeader>
                 <h1>Kalendarz</h1>
+                <CalendarActions>
+                    <Button primary onClick={handleNewAppointmentClick}>
+                        Nowa wizyta
+                    </Button>
+                </CalendarActions>
             </CalendarHeader>
 
             {loading && <LoadingIndicator>Ładowanie danych...</LoadingIndicator>}

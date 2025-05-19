@@ -30,7 +30,11 @@ import { SmsCampaign, SmsStatus, SmsStatusColors, SmsStatusLabels } from '../../
 import Modal from '../../../components/common/Modal';
 import { useToast } from '../../../components/common/Toast/Toast';
 
-export const SmsCampaignsList: React.FC = () => {
+interface SmsCampaignsListProps {
+    onOpenNewCampaignModal: () => void;
+}
+
+export const SmsCampaignsList: React.FC<SmsCampaignsListProps> = ({ onOpenNewCampaignModal }) => {
     const navigate = useNavigate();
     const { showToast } = useToast();
 
@@ -166,9 +170,10 @@ export const SmsCampaignsList: React.FC = () => {
         setDateToFilter('');
     };
 
-    // Przejdź do strony nowej kampanii
     const handleNewCampaign = () => {
-        navigate('/sms/campaigns/new');
+        // Zamiast przekierowania do nowej strony, wywołujemy funkcję z SmsMainPage
+        // która została przekazana jako props
+        onOpenNewCampaignModal();
     };
 
     // Edycja kampanii
