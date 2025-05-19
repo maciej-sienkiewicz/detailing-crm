@@ -1,7 +1,7 @@
 // src/api/fleetMaintenanceApi.ts
 
 import { apiClient } from './apiClient';
-import { FleetMaintenance, FleetFuelEntry } from '../types/fleetMaintenance';
+import {FleetMaintenance, FleetFuelEntry, FleetFuelStatus} from '../types/fleetMaintenance';
 
 export const fleetMaintenanceApi = {
     // Pobieranie historii serwisowej pojazdu
@@ -61,6 +61,27 @@ export const fleetMaintenanceApi = {
             return await apiClient.post<FleetFuelEntry>(`/fleet/vehicles/${vehicleId}/fuel`, entry);
         } catch (error) {
             console.error(`Error adding fuel entry to vehicle ${vehicleId}:`, error);
+            throw error;
+        }
+    },
+    fetchFuelStatus: async (vehicleId: string): Promise<FleetFuelStatus | null> => {
+        try {
+            return await apiClient.get<FleetFuelStatus>(`/fleet/vehicles/${vehicleId}/fuel-status`);
+        } catch (error) {
+            console.error(`Error fetching fuel status for vehicle ${vehicleId}:`, error);
+            return null;
+        }
+    },
+
+// Aktualizacja stanu paliwa pojazdu
+    updateFuelStatus: async (vehicleId: string, fuelLevel: number): Promise<FleetFuelStatus> => {
+        try {
+            return await apiClient.patch<FleetFuelStatus>(`/fleet/vehicles/${vehicleId}/fuel-status`, {
+                fuelLevel,
+                source: 'MANUAL_UPDATE'
+            });
+        } catch (error) {
+            console.error(`Error updating fuel status for vehicle ${vehicleId}:`, error);
             throw error;
         }
     }

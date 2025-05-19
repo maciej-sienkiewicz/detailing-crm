@@ -52,3 +52,21 @@ export interface FleetFuelEntry {
     createdBy: string;
     notes?: string;
 }
+
+export interface FleetFuelStatus {
+    vehicleId: string;
+    currentFuelLevel: number; // 0-1 (procent)
+    estimatedRange?: number;  // Szacowany zasięg w km
+    lastUpdated: string;
+    source: 'RENTAL_END' | 'FUEL_ENTRY' | 'MANUAL_UPDATE';
+}
+
+// Funkcja do pobierania opisu poziomu paliwa
+export const getFuelLevelDescription = (level: number): string => {
+    if (level < 0.1) return 'Pusty';
+    if (level < 0.25) return 'Rezerwa';
+    if (level < 0.5) return 'Ćwierć';
+    if (level < 0.75) return 'Połowa';
+    if (level < 0.9) return 'Trzy czwarte';
+    return 'Pełny';
+};

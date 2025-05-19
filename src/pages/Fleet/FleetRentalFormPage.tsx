@@ -34,12 +34,15 @@ const FleetRentalFormPage: React.FC = () => {
     const [isSaving, setIsSaving] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
 
+    const startDateParam = queryParams.get('startDate');
+    const endDateParam = queryParams.get('endDate');
+
     // Domyślne dane wypożyczenia
     const initialRentalData = {
         vehicleId: vehicleIdParam || '',
         status: FleetRentalStatus.SCHEDULED,
-        startDate: new Date().toISOString().split('T')[0],
-        plannedEndDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        startDate: startDateParam ? new Date(startDateParam).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        plannedEndDate: endDateParam ? new Date(endDateParam).toISOString().split('T')[0] : new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         startMileage: 0,
         fuelLevelStart: 1,
         startConditionNotes: '',

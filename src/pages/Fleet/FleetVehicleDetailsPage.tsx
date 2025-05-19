@@ -18,6 +18,8 @@ import { fleetImageApi } from '../../api/fleetImageApi';
 import FleetStatusBadge from '../../components/fleet/common/FleetStatusBadge';
 import ConfirmationDialog from '../../components/common/ConfirmationDialog';
 import { useToast } from '../../components/common/Toast/Toast';
+import EnhancedFuelLevelIndicator from '../../components/fleet/common/EnhancedFuelLevelIndicator';
+
 import {
     FaCar,
     FaEdit,
@@ -193,6 +195,22 @@ const FleetVehicleDetailsPage: React.FC = () => {
                                 </InfoLabel>
                                 <InfoValue>{vehicle.currentMileage.toLocaleString()} km</InfoValue>
                             </InfoItem>
+
+                            {/* Dodajemy nowy element dla poziomu paliwa */}
+                            <InfoItem>
+                                <InfoLabel>
+                                    <FaGasPump />
+                                    Poziom paliwa
+                                </InfoLabel>
+                                <InfoValue>
+                                    <EnhancedFuelLevelIndicator
+                                        vehicleId={vehicle.id}
+                                        size="medium"
+                                        showUpdatedAt={true}
+                                    />
+                                </InfoValue>
+                            </InfoItem>
+
                             <InfoItem>
                                 <InfoLabel>
                                     <FaCar />

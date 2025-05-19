@@ -9,6 +9,7 @@ import { FaCar, FaTachometerAlt, FaGasPump, FaCamera, FaExclamationTriangle } fr
 import { fleetVehicleApi } from '../../../api/fleetApi';
 import { fleetImageApi } from '../../../api/fleetImageApi';
 import { useToast } from '../../../components/common/Toast/Toast';
+import {fleetMaintenanceApi} from "../../../api/fleetMaintenanceApi";
 
 interface MobileVehicleUpdateProps {
     vehicle: FleetVehicle;
@@ -71,6 +72,10 @@ const MobileVehicleUpdate: React.FC<MobileVehicleUpdateProps> = ({ vehicle, onUp
         setPreviewUrls(prev => prev.filter((_, i) => i !== index));
     };
 
+    // src/components/fleet/mobile/MobileVehicleUpdate.tsx
+// Zmodyfikujmy istniejący komponent, aby aktualizował poziom paliwa w API
+
+// W handleSubmit dodajemy aktualizację poziomu paliwa
     const handleSubmit = async () => {
         if (mileage < vehicle.currentMileage) {
             showToast('error', 'Nowy przebieg nie może być mniejszy niż aktualny!', 3000);
@@ -82,6 +87,9 @@ const MobileVehicleUpdate: React.FC<MobileVehicleUpdateProps> = ({ vehicle, onUp
 
             // Aktualizacja przebiegu
             await fleetVehicleApi.updateVehicleMileage(vehicle.id, mileage);
+
+            // Aktualizacja poziomu paliwa
+            await fleetMaintenanceApi.updateFuelStatus(vehicle.id, fuelLevel);
 
             // Jeśli zgłoszono usterkę
             if (isReportingIssue && issueDescription.trim()) {

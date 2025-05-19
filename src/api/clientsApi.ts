@@ -175,5 +175,15 @@ export const clientApi = {
             console.error(`Error deleting client ${id}:`, error);
             throw error;
         }
+    },
+
+    searchClients: async (query: string): Promise<ClientExpanded[]> => {
+        try {
+            const data = await apiClient.get<any[]>(`/clients/search`, { query });
+            return data.map(client => enrichClientData(client));
+        } catch (error) {
+            console.error('Error searching clients:', error);
+            return [];
+        }
     }
 };

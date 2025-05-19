@@ -30,6 +30,7 @@ import FleetMaintenanceFormPage from "./pages/Fleet/FleetMaintenanceFormPage";
 import FleetRentalsPage from "./pages/Fleet/FleetRentalsPage";
 import FleetRentalDetailsPage from "./pages/Fleet/FleetRentalDetailsPage";
 import FleetRentalFormPage from "./pages/Fleet/FleetRentalFormPage";
+import FleetCalendarPage from "./pages/Fleet/FleetCalendarPage";
 
 // Tymczasowe komponenty dla innych stron - do zastąpienia rzeczywistymi implementacjami
 const PlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
@@ -106,7 +107,7 @@ const AppRoutes: React.FC = () => {
                 <Route path="/fleet/vehicles/:id/fuel/new" element={<FleetMaintenanceFormPage fuel />} />
 
                 {/* Zarządzanie wypożyczeniami */}
-                <Route path="/fleet/rentals" element={<FleetRentalsPage />} />
+                <Route path="/fleet/rentals" element={<FleetCalendarPage />} />
                 <Route path="/fleet/rentals/:id" element={<FleetRentalDetailsPage />} />
                 <Route path="/fleet/rentals/new" element={<FleetRentalFormPage />} />
 

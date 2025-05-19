@@ -1,4 +1,5 @@
 // src/components/fleet/common/FleetVehicleCard.tsx
+// Modyfikacja istniejącego komponentu, dodajemy import EnhancedFuelLevelIndicator i używamy go w komponencie
 
 import React from 'react';
 import styled from 'styled-components';
@@ -9,6 +10,7 @@ import {
     FleetVehicleUsageTypeLabels
 } from '../../../types/fleet';
 import FleetStatusBadge from './FleetStatusBadge';
+import EnhancedFuelLevelIndicator from './EnhancedFuelLevelIndicator';
 import { FaCar, FaGasPump, FaRoad, FaCalendarAlt } from 'react-icons/fa';
 
 interface FleetVehicleCardProps {
@@ -44,6 +46,10 @@ const FleetVehicleCard: React.FC<FleetVehicleCardProps> = ({ vehicle }) => {
                     <InfoItem>
                         <Icon><FaRoad /></Icon>
                         <InfoText>{vehicle.currentMileage.toLocaleString()} km</InfoText>
+                    </InfoItem>
+                    <InfoItem>
+                        <EnhancedFuelLevelIndicator vehicleId={vehicle.id} onlyIcon={true} />
+                        <InfoText>Paliwo</InfoText>
                     </InfoItem>
                 </VehicleInfo>
 
