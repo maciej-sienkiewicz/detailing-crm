@@ -89,6 +89,13 @@ const mainMenuItems: MainMenuItem[] = [
         hasSubmenu: false
     },
     {
+        id: 'fleet',
+        label: 'Flota',
+        icon: <FaCar />,
+        path: '/fleet',
+        hasSubmenu: true
+    },
+    {
         id: 'sms',
         label: 'Wysyłka SMS',
         icon: <FaSms />,

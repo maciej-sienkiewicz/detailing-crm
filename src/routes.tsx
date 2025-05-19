@@ -21,6 +21,15 @@ import ModernLoginPage from './pages/Auth/LoginPage';
 import OnboardingPage from './pages/Auth/OnboardingPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import SmsMainPage from "./pages/SMS/SmsMainPage";
+import FleetVehiclesPage from "./pages/Fleet/FleetVehiclesPage";
+import FleetVehicleDetailsPage from './pages/Fleet/FleetVehicleDetailsPage';
+import FleetVehicleFormPage from './pages/Fleet/FleetVehicleFormPage';
+import FleetMobileUpdatePage from "./pages/Fleet/FleetMobileUpdatePage";
+import FleetMobileRentalReturnPage from "./pages/Fleet/FleetMobileRentalReturnPage";
+import FleetMaintenanceFormPage from "./pages/Fleet/FleetMaintenanceFormPage";
+import FleetRentalsPage from "./pages/Fleet/FleetRentalsPage";
+import FleetRentalDetailsPage from "./pages/Fleet/FleetRentalDetailsPage";
+import FleetRentalFormPage from "./pages/Fleet/FleetRentalFormPage";
 
 // Tymczasowe komponenty dla innych stron - do zastąpienia rzeczywistymi implementacjami
 const PlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
@@ -88,6 +97,22 @@ const AppRoutes: React.FC = () => {
                 <Route path="/sms/automations" element={<SmsMainPage />} />
                 <Route path="/sms/stats" element={<SmsMainPage />} />
                 <Route path="/sms/settings" element={<SmsMainPage />} />
+
+                <Route path="/fleet/vehicles" element={<FleetVehiclesPage />} />
+                <Route path="/fleet/vehicles/:id" element={<FleetVehicleDetailsPage />} />
+                <Route path="/fleet/vehicles/new" element={<FleetVehicleFormPage />} />
+                <Route path="/fleet/vehicles/edit/:id" element={<FleetVehicleFormPage />} />
+                <Route path="/fleet/vehicles/:id/maintenance/new" element={<FleetMaintenanceFormPage />} />
+                <Route path="/fleet/vehicles/:id/fuel/new" element={<FleetMaintenanceFormPage fuel />} />
+
+                {/* Zarządzanie wypożyczeniami */}
+                <Route path="/fleet/rentals" element={<FleetRentalsPage />} />
+                <Route path="/fleet/rentals/:id" element={<FleetRentalDetailsPage />} />
+                <Route path="/fleet/rentals/new" element={<FleetRentalFormPage />} />
+
+                {/* Interfejs mobilny */}
+                <Route path="/fleet/mobile/vehicle/:id" element={<FleetMobileUpdatePage />} />
+                <Route path="/fleet/mobile/rental/:id/return" element={<FleetMobileRentalReturnPage />} />
             </Route>
 
             {/* Strona 404 - nieistniejąca ścieżka */}

@@ -15,8 +15,9 @@ import {
     FaEye,
     FaWrench,
     FaWindowClose,
-    FaTimes, FaCalendar
+    FaTimes, FaCalendar, FaCalendarDay
 } from 'react-icons/fa';
+import {FaCarRear} from "react-icons/fa6";
 
 interface SecondaryMenuProps {
     activeMenuItem: string | null;
@@ -50,6 +51,11 @@ const secondaryMenuOptions: Record<string, SubMenuItem[]> = {
     warehouse: [
         { id: 'stock', label: 'Stan magazynowy', icon: <FaClipboardList />, path: '/warehouse/stock' },
         { id: 'products', label: 'Produkty', icon: <FaTags />, path: '/warehouse/products' }
+    ],
+    fleet: [
+        { id: 'vehicles', label: 'Pojazdy', icon: <FaCarRear />, path: '/fleet/vehicles' },
+        { id: 'rent', label: 'Wypożyczenia', icon: <FaCalendarDay />, path: '/fleet/rentals' },
+
     ],
     pricing: [
         { id: 'prices', label: 'Ceny', icon: <FaMoneyBillWave />, path: '/pricing/prices' },
