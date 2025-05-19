@@ -1,7 +1,6 @@
-// src/pages/Finances/InvoicesPage.tsx
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { FaSearch, FaPlus, FaFileInvoiceDollar, FaEdit, FaFilePdf, FaEye, FaTrashAlt } from 'react-icons/fa';
+import { FaSearch, FaPlus, FaFileInvoiceDollar, FaEdit, FaFilePdf, FaEye, FaTrashAlt, FaFilter, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import { Invoice, InvoiceStatus, InvoiceStatusLabels, InvoiceStatusColors, InvoiceFilters, InvoiceType, InvoiceTypeLabels } from '../../types';
 import InvoiceFormModal from './components/InvoiceFormModal';
 import InvoiceViewModal from './components/InvoiceViewModal';
@@ -295,10 +294,6 @@ const InvoicesPage: React.FC = () => {
                     <span>Faktury</span>
                 </Title>
                 <Actions>
-                    <SearchButton onClick={toggleAdvancedFilters}>
-                        <FaSearch />
-                        <span>{showAdvancedFilters ? 'Ukryj filtry' : 'Wyszukaj'}</span>
-                    </SearchButton>
                     <AddButton onClick={handleAddInvoice}>
                         <FaPlus />
                         <span>Dodaj fakturę</span>
@@ -312,10 +307,23 @@ const InvoicesPage: React.FC = () => {
                 onFilterChange={handleStatusFilterChange}
             />
 
+            {/* Nagłówek filtrów zaawansowanych */}
+            <FiltersHeader onClick={toggleAdvancedFilters}>
+                <FilterTitle>
+                    <FilterIcon><FaFilter /></FilterIcon>
+                    Filtry zaawansowane
+                </FilterTitle>
+                <FilterExpandIcon>
+                    {showAdvancedFilters ? <FaChevronUp /> : <FaChevronDown />}
+                </FilterExpandIcon>
+            </FiltersHeader>
+
             {/* Filtry zaawansowane */}
-            {showAdvancedFilters && (
-                <InvoiceAdvancedFilters onSearch={handleAdvancedSearch} />
-            )}
+            <FiltersContainer expanded={showAdvancedFilters}>
+                {showAdvancedFilters && (
+                    <InvoiceAdvancedFilters onSearch={handleAdvancedSearch} />
+                )}
+            </FiltersContainer>
 
             {/* Wyświetlanie aktywnych filtrów */}
             <ActiveFiltersDisplay
@@ -338,7 +346,7 @@ const InvoicesPage: React.FC = () => {
                                 <TableHeader>Nazwa faktury</TableHeader>
                                 <TableHeader>Data wystawienia</TableHeader>
                                 <TableHeader>Termin płatności</TableHeader>
-                                <TableHeader>Płatnik</TableHeader>
+                                <TableHeader>Identyfikator</TableHeader>
                                 <TableHeader>Wizyta</TableHeader>
                                 <TableHeader>Kwota brutto</TableHeader>
                                 <TableHeader>Status</TableHeader>
@@ -540,14 +548,50 @@ const Button = styled.button`
     }
 `;
 
-const SearchButton = styled(Button)`
-    background-color: #ecf0f1;
-    color: #2c3e50;
-    border: 1px solid #dfe6e9;
+const FiltersHeader = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    cursor: pointer;
+    background-color: white;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-bottom: ${props => (props.expanded ? '0' : '20px')};
+    user-select: none;
 
     &:hover {
-        background-color: #dfe6e9;
+        background-color: #f0f0f0;
     }
+`;
+
+const FilterTitle = styled.div`
+    font-weight: 500;
+    font-size: 14px;
+    color: #34495e;
+    display: flex;
+    align-items: center;
+`;
+
+const FilterIcon = styled.span`
+    margin-right: 8px;
+    color: #3498db;
+    font-size: 14px;
+`;
+
+const FilterExpandIcon = styled.span`
+    color: #7f8c8d;
+    font-size: 12px;
+`;
+
+const FiltersContainer = styled.div<{ expanded: boolean }>`
+    margin-bottom: ${props => props.expanded ? '20px' : '0'};
+    transition: all 0.3s ease;
+    background-color: white;
+    border-radius: 0 0 6px 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    display: ${props => props.expanded ? 'block' : 'none'};
 `;
 
 const AddButton = styled(Button)`
