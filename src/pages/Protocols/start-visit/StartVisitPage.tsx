@@ -32,6 +32,9 @@ const StartVisitPage: React.FC = () => {
     const [showConfirmationModal, setShowConfirmationModal] = useState(false);
     const [savedProtocol, setSavedProtocol] = useState<CarReceptionProtocol | null>(null);
 
+    // Sprawdzanie, czy strona została wywołana dla anulowanego protokołu w celu przywrócenia
+    const isRestoringCancelled = location.search.includes('restoreFromCancelled=true');
+
     // Pobieranie protokołu
     useEffect(() => {
         const fetchProtocol = async () => {
@@ -50,13 +53,31 @@ const StartVisitPage: React.FC = () => {
                     return;
                 }
 
-                // Sprawdzamy, czy protokół jest w statusie SCHEDULED
-                if (fetchedProtocol.status !== ProtocolStatus.SCHEDULED) {
-                    setError('Tylko protokoły w statusie "Zaplanowano" mogą być rozpoczęte');
+                // Sprawdzamy, czy protokół jest w statusie SCHEDULED lub CANCELLED
+                if (fetchedProtocol.status !== ProtocolStatus.SCHEDULED &&
+                    !(fetchedProtocol.status === ProtocolStatus.CANCELLED && isRestoringCancelled)) {
+
+                    if (fetchedProtocol.status === ProtocolStatus.CANCELLED && !isRestoringCancelled) {
+                        setError('Anulowane wizyty można przywrócić tylko przez opcję przywracania');
+                    } else {
+                        setError('Tylko protokoły w statusie "Zaplanowano" mogą być rozpoczęte');
+                    }
                     return;
                 }
 
-                setProtocol(fetchedProtocol);
+                // Jeśli przywracamy anulowany protokół, aktualizujemy status na IN_PROGRESS
+                if (fetchedProtocol.status === ProtocolStatus.CANCELLED && isRestoringCancelled) {
+                    // Aktualizacja statusu na IN_PROGRESS
+                    const updatedProtocol = {
+                        ...fetchedProtocol,
+                        status: ProtocolStatus.IN_PROGRESS,
+                        statusUpdatedAt: new Date().toISOString()
+                    };
+                    setProtocol(updatedProtocol);
+                } else {
+                    setProtocol(fetchedProtocol);
+                }
+
                 setError(null);
 
                 // Pobierz dostępne usługi
@@ -75,7 +96,7 @@ const StartVisitPage: React.FC = () => {
         };
 
         fetchProtocol();
-    }, [id]);
+    }, [id, isRestoringCancelled]);
 
     // Obsługa powrotu
     const handleGoBack = () => {
@@ -133,7 +154,7 @@ const StartVisitPage: React.FC = () => {
                     <BackButton onClick={handleGoBack}>
                         <FaArrowLeft />
                     </BackButton>
-                    <h1>Rozpocznij wizytę</h1>
+                    <h1>{isRestoringCancelled ? 'Przywracanie anulowanej wizyty' : 'Rozpocznij wizytę'}</h1>
                 </HeaderLeft>
             </PageHeader>
 
@@ -142,6 +163,7 @@ const StartVisitPage: React.FC = () => {
                 availableServices={availableServices}
                 onSave={handleSaveProtocol}
                 onCancel={handleGoBack}
+                isRestoringCancelled={isRestoringCancelled}
             />
 
             {/* Modal potwierdzenia protokołu */}

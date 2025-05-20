@@ -139,9 +139,28 @@ export const protocolsApi = {
      */
     updateProtocolStatus: async (id: string, status: ProtocolStatus, reason?: string): Promise<CarReceptionProtocol | null> => {
         try {
-            return await apiClient.patch<CarReceptionProtocol>(`/receptions/${id}/status`, { status });
+            return await apiClient.patch<CarReceptionProtocol>(`/receptions/${id}/status`, { status, reason });
         } catch (error) {
             console.error(`Error updating protocol status (ID: ${id}):`, error);
+            return null;
+        }
+    },
+
+    /**
+     * Przywraca anulowany protokół
+     */
+    restoreProtocol: async (id: string, options: {
+        newStatus: ProtocolStatus;
+        newStartDate?: string;
+        newEndDate?: string;
+    }): Promise<CarReceptionProtocol | null> => {
+        try {
+            return await apiClient.patch<CarReceptionProtocol>(
+                `/receptions/${id}/restore`,
+                options
+            );
+        } catch (error) {
+            console.error(`Error restoring protocol (ID: ${id}):`, error);
             return null;
         }
     },

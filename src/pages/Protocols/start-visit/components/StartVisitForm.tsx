@@ -28,13 +28,15 @@ interface StartVisitFormProps {
     availableServices: Array<{ id: string; name: string; price: number }>;
     onSave: (protocol: CarReceptionProtocol) => void;
     onCancel: () => void;
+    isRestoringCancelled?: boolean; // Nowa właściwość wskazująca, czy przywracamy anulowaną wizytę
 }
 
 const StartVisitForm: React.FC<StartVisitFormProps> = ({
                                                            protocol,
                                                            availableServices,
                                                            onSave,
-                                                           onCancel
+                                                           onCancel,
+                                                           isRestoringCancelled = false
                                                        }) => {
     const [formData, setFormData] = useState<CarReceptionProtocol>({...protocol});
     const [loading, setLoading] = useState(false);
@@ -58,6 +60,14 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
         updateDiscountValue,
         updateServiceNote
     } = useServiceCalculations(formData.selectedServices || []);
+
+    // Ustawienie początkowego statusu w zależności od kontekstu
+    useEffect(() => {
+        setFormData(prev => ({
+            ...prev,
+            status: ProtocolStatus.IN_PROGRESS
+        }));
+    }, []);
 
     // Synchronizacja usług z formularzem
     useEffect(() => {
@@ -162,7 +172,24 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
                 statusUpdatedAt: new Date().toISOString()
             };
 
-            const savedProtocol = await protocolsApi.updateProtocol(updatedProtocol);
+            let savedProtocol;
+
+            if (isRestoringCancelled) {
+                // Jeśli przywracamy anulowany protokół, użyjmy dedykowanej metody restore
+                savedProtocol = await protocolsApi.restoreProtocol(updatedProtocol.id, {
+                    newStatus: ProtocolStatus.IN_PROGRESS,
+                    newStartDate: updatedProtocol.startDate,
+                    newEndDate: updatedProtocol.endDate
+                });
+
+                // Jeśli restore API nie zwróciło protokołu, użyjmy standardowej aktualizacji
+                if (!savedProtocol) {
+                    savedProtocol = await protocolsApi.updateProtocol(updatedProtocol);
+                }
+            } else {
+                // Standardowa aktualizacja
+                savedProtocol = await protocolsApi.updateProtocol(updatedProtocol);
+            }
 
             if (!savedProtocol) {
                 throw new Error('Nie udało się zaktualizować protokołu');
@@ -182,7 +209,7 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
             <FormHeader
                 isEditing={true}
                 isFullProtocol={true}
-                title="Rozpoczęcie wizyty"
+                title={isRestoringCancelled ? "Przywracanie anulowanej wizyty" : "Rozpoczęcie wizyty"}
             />
 
             {error && <ErrorMessage>{error}</ErrorMessage>}
@@ -245,7 +272,7 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
                         Anuluj
                     </Button>
                     <Button type="submit" primary disabled={loading}>
-                        {loading ? 'Zapisywanie...' : 'Rozpocznij wizytę'}
+                        {loading ? 'Zapisywanie...' : isRestoringCancelled ? 'Przywróć wizytę' : 'Rozpocznij wizytę'}
                     </Button>
                 </FormActions>
             </Form>

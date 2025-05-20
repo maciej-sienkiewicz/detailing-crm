@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import {useNavigate, useParams} from 'react-router-dom';
 import styled from 'styled-components';
-import {FaArrowLeft, FaBan, FaCheckSquare, FaEdit, FaFilePdf, FaKey} from 'react-icons/fa';
+import { FaArrowLeft, FaBan, FaCheckSquare, FaEdit, FaFilePdf, FaKey, FaRedo } from 'react-icons/fa';
 import {protocolsApi} from "../../../api/protocolsApi";
 import {Comment, commentsApi} from "../../../api/commentsApi";
 import {CarReceptionProtocol, ProtocolStatus} from "../../../types";
@@ -20,6 +20,9 @@ import ClientCommentsModal from "./modals/ClientCommentsModal";
 import PaymentModal from "./modals/PaymentModal";
 import PDFViewer from "../../../components/PdfViewer";
 import CancelProtocolModal, {CancellationReason} from "../shared/components/CancelProtocolModal";
+import RestoreProtocolModal, { RestoreOption } from "../shared/components/RestoreProtocolModal";
+import RescheduleProtocolModal from "../shared/components/RescheduleProtocolModal";
+
 
 
 // Define tab types
@@ -35,7 +38,9 @@ const ProtocolDetailsPage: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<TabType>('summary');
     const [showCancelModal, setShowCancelModal] = useState(false);
-
+    const [showRestoreModal, setShowRestoreModal] = useState(false);
+    const isCancelled = protocol?.status === ProtocolStatus.CANCELLED;
+    const [showRescheduleModal, setShowRescheduleModal] = useState(false);
 
     // Stany dla modali
     const [showVerificationModal, setShowVerificationModal] = useState(false);
@@ -47,6 +52,65 @@ const ProtocolDetailsPage: React.FC = () => {
 
     // Stan do obsługi podglądu PDF
     const [showPdfPreview, setShowPdfPreview] = useState(false);
+
+    const handleRestoreProtocol = (option: RestoreOption) => {
+        setShowRestoreModal(false);
+
+        if (!protocol) return;
+
+        if (option === 'SCHEDULED') {
+            // Pokaż modal do wyboru nowej daty
+            setShowRescheduleModal(true);
+        } else if (option === 'REALTIME') {
+            // Przywracamy wizytę w czasie rzeczywistym (status IN_PROGRESS)
+            // Przekieruj do strony rozpoczęcia wizyty
+            navigate(`/orders/start-visit/${protocol.id}?restoreFromCancelled=true`);
+        }
+    };
+
+    const handleRescheduleConfirm = async (dates: { startDate: string; endDate: string }) => {
+        try {
+            setShowRescheduleModal(false);
+
+            if (!protocol) return;
+
+            // Aktualizuj protokół ze statusem SCHEDULED i nowymi datami
+            const updatedProtocol = {
+                ...protocol,
+                status: ProtocolStatus.SCHEDULED,
+                startDate: dates.startDate,
+                endDate: dates.endDate,
+                statusUpdatedAt: new Date().toISOString()
+            };
+
+            // Wywołaj API do przywrócenia protokołu
+            const result = await protocolsApi.restoreProtocol(protocol.id, {
+                newStatus: ProtocolStatus.SCHEDULED,
+                newStartDate: dates.startDate,
+                newEndDate: dates.endDate
+            });
+
+            if (result) {
+                // Aktualizuj stan lokalny
+                setProtocol(result);
+                alert('Wizyta została przywrócona i zaplanowana na nowy termin');
+            } else {
+                // Jeśli API restore nie zadziałało, użyj standardowego API update
+                const updatedResult = await protocolsApi.updateProtocol(updatedProtocol);
+
+                if (updatedResult) {
+                    setProtocol(updatedResult);
+                    alert('Wizyta została przywrócona i zaplanowana na nowy termin');
+                } else {
+                    throw new Error('Nie udało się przywrócić wizyty');
+                }
+            }
+        } catch (error) {
+            console.error('Błąd podczas przywracania protokołu z nową datą:', error);
+            alert('Wystąpił błąd podczas przywracania wizyty');
+        }
+    };
+
 
     const handleCancelProtocol = async (reason: CancellationReason) => {
         try {
@@ -322,13 +386,25 @@ const ProtocolDetailsPage: React.FC = () => {
                         </ActionButton>
                     )}
 
-                    <ActionButton
-                        title="Anuluj wizytę"
-                        danger="true"
-                        onClick={() => setShowCancelModal(true)}
-                    >
-                        <FaBan /> Anuluj wizytę
-                    </ActionButton>
+                    {!isCancelled && (
+                        <ActionButton
+                            title="Anuluj wizytę"
+                            danger="true"
+                            onClick={() => setShowCancelModal(true)}
+                        >
+                            <FaBan /> Anuluj wizytę
+                        </ActionButton>
+                    )}
+                    {isCancelled && (
+                        <ActionButton
+                            title="Przywróć wizytę"
+                            primary="true"
+                            restore="true"
+                            onClick={() => setShowRestoreModal(true)}
+                        >
+                            <FaRedo /> Przywróć wizytę
+                        </ActionButton>
+                    )}
                 </HeaderActions>
             </PageHeader>
 
@@ -393,6 +469,25 @@ const ProtocolDetailsPage: React.FC = () => {
                     protocolId={protocol.id}
                 />
             )}
+
+            {showRestoreModal && (
+                <RestoreProtocolModal
+                    isOpen={showRestoreModal}
+                    onClose={() => setShowRestoreModal(false)}
+                    onRestore={handleRestoreProtocol}
+                    protocolId={protocol.id}
+                />
+            )}
+
+            {showRescheduleModal && (
+                <RescheduleProtocolModal
+                    isOpen={showRescheduleModal}
+                    onClose={() => setShowRescheduleModal(false)}
+                    onConfirm={handleRescheduleConfirm}
+                    protocolId={protocol.id}
+                />
+            )}
+
         </PageContainer>
     );
 };
@@ -466,7 +561,13 @@ const HeaderSubtitle = styled.div`
     margin-top: 4px;
 `;
 
-const ActionButton = styled.button<{ primary?: string; special?: string; release?: string; danger?: string }>`
+const ActionButton = styled.button<{
+    primary?: string;
+    special?: string;
+    release?: string;
+    danger?: string;
+    restore?: string;
+}>`
     display: flex;
     align-items: center;
     gap: 8px;
@@ -475,13 +576,15 @@ const ActionButton = styled.button<{ primary?: string; special?: string; release
         if (props.special) return '#2ecc71';
         if (props.release) return '#f39c12';
         if (props.danger) return '#e74c3c';
+        if (props.restore) return '#3498db';
         return props.primary ? '#3498db' : '#f9f9f9';
     }};
-    color: ${props => props.primary || props.special || props.release || props.danger ? 'white' : '#34495e'};
+    color: ${props => props.primary || props.special || props.release || props.danger || props.restore ? 'white' : '#34495e'};
     border: 1px solid ${props => {
         if (props.special) return '#2ecc71';
         if (props.release) return '#f39c12';
         if (props.danger) return '#e74c3c';
+        if (props.restore) return '#3498db';
         return props.primary ? '#3498db' : '#eee';
     }};
     border-radius: 4px;
@@ -493,17 +596,18 @@ const ActionButton = styled.button<{ primary?: string; special?: string; release
             if (props.special) return '#27ae60';
             if (props.release) return '#e67e22';
             if (props.danger) return '#c0392b';
+            if (props.restore) return '#2980b9';
             return props.primary ? '#2980b9' : '#f0f0f0';
         }};
         border-color: ${props => {
             if (props.special) return '#27ae60';
             if (props.release) return '#e67e22';
             if (props.danger) return '#c0392b';
+            if (props.restore) return '#2980b9';
             return props.primary ? '#2980b9' : '#ddd';
         }};
     }
 `;
-
 const HeaderActions = styled.div`
     display: flex;
     gap: 10px;
