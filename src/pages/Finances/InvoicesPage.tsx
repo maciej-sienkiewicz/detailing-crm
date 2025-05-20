@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { FaSearch, FaPlus, FaFileInvoiceDollar, FaEdit, FaFilePdf, FaEye, FaTrashAlt, FaFilter, FaChevronDown, FaChevronUp } from 'react-icons/fa';
-import { Invoice, InvoiceStatus, InvoiceStatusLabels, InvoiceStatusColors, InvoiceFilters, InvoiceType, InvoiceTypeLabels } from '../../types';
+import { Invoice, InvoiceStatus, InvoiceStatusLabels, InvoiceStatusColors, InvoiceFilters, InvoiceType, InvoiceTypeLabels, PaymentMethod, PaymentMethodLabels } from '../../types';
 import InvoiceFormModal from './components/InvoiceFormModal';
 import InvoiceViewModal from './components/InvoiceViewModal';
 import InvoiceAdvancedFilters from './components/InvoiceAdvancedFilters';
@@ -346,9 +346,10 @@ const InvoicesPage: React.FC = () => {
                                 <TableHeader>Nazwa faktury</TableHeader>
                                 <TableHeader>Data wystawienia</TableHeader>
                                 <TableHeader>Termin płatności</TableHeader>
-                                <TableHeader>Identyfikator</TableHeader>
+                                <TableHeader>Płatnik</TableHeader>
                                 <TableHeader>Wizyta</TableHeader>
                                 <TableHeader>Kwota brutto</TableHeader>
+                                <TableHeader>Metoda płatności</TableHeader>
                                 <TableHeader>Status</TableHeader>
                                 <TableHeader>Załączniki</TableHeader>
                                 <TableHeader>Akcje</TableHeader>
@@ -357,7 +358,7 @@ const InvoicesPage: React.FC = () => {
                         <TableBody>
                             {filteredInvoices.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={11} style={{ textAlign: 'center' }}>
+                                    <TableCell colSpan={12} style={{ textAlign: 'center' }}>
                                         Brak faktur spełniających kryteria wyszukiwania
                                     </TableCell>
                                 </TableRow>
@@ -384,6 +385,9 @@ const InvoicesPage: React.FC = () => {
                                             )}
                                         </TableCell>
                                         <TableCell>{formatAmount(invoice.totalGross)} {invoice.currency}</TableCell>
+                                        <TableCell>
+                                            {PaymentMethodLabels[invoice.paymentMethod]}
+                                        </TableCell>
                                         <TableCell>
                                             <StatusBadge status={invoice.status}>
                                                 {InvoiceStatusLabels[invoice.status]}
