@@ -31,6 +31,7 @@ import FleetRentalsPage from "./pages/Fleet/FleetRentalsPage";
 import FleetRentalDetailsPage from "./pages/Fleet/FleetRentalDetailsPage";
 import FleetRentalFormPage from "./pages/Fleet/FleetRentalFormPage";
 import FleetCalendarPage from "./pages/Fleet/FleetCalendarPage";
+import FinancialFlowPage from "./pages/Finances/FinancialFlowPage";
 
 // Tymczasowe komponenty dla innych stron - do zastąpienia rzeczywistymi implementacjami
 const PlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
@@ -60,7 +61,7 @@ const AppRoutes: React.FC = () => {
 
                 {/* Ścieżki finansowe */}
                 <Route path="/finances" element={<Navigate to="/finances/invoices" replace />} />
-                <Route path="/finances/invoices" element={<InvoicesPage />} />
+                <Route path="/finances/invoices" element={<FinancialFlowPage />} />
                 <Route path="/finances/cash" element={<CashPage />} />
                 <Route path="/finances/reports" element={<FinancialSummaryPage />} />
 
