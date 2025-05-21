@@ -1,9 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
-import { FaTimes, FaCheck, FaPlus, FaPencilAlt, FaTrash, FaLayerGroup, FaEdit } from 'react-icons/fa';
-import { DiscountType, SelectedService } from '../../../../types';
+// Modyfikacja komponentu InvoiceItemsModal.tsx
 
-// Importujemy ExtendedDiscountType i funkcje pomocnicze z ServiceTable.tsx
+import React, {useEffect, useState} from 'react';
+import styled from 'styled-components';
+import {FaCheck, FaTimesCircle, FaTimes, FaPencilAlt, FaTrash, FaLayerGroup} from 'react-icons/fa';
+import {DiscountType, SelectedService} from '../../../../types';
+import {protocolsApi} from '../../../../api/protocolsApi';
+import {useToast} from "../../../../components/common/Toast/Toast";
+
+// Importujemy ExtendedDiscountType i funkcje pomocnicze
 enum ExtendedDiscountType {
     PERCENTAGE = 'PERCENTAGE',
     AMOUNT_GROSS = 'AMOUNT_GROSS',
@@ -80,19 +84,25 @@ interface InvoiceItemsModalProps {
     onClose: () => void;
     onSave: (items: SelectedService[]) => void;
     services: SelectedService[];
+    protocolId: string; // Dodany parametr ID protokołu, aby umożliwić bezpośrednią aktualizację
 }
 
 const InvoiceItemsModal: React.FC<InvoiceItemsModalProps> = ({
                                                                  isOpen,
                                                                  onClose,
                                                                  onSave,
-                                                                 services
+                                                                 services,
+                                                                 protocolId
                                                              }) => {
     const [editedServices, setEditedServices] = useState<ServiceExtended[]>([]);
     const [isEditing, setIsEditing] = useState<number | null>(null);
     const [editName, setEditName] = useState('');
     const [editPrice, setEditPrice] = useState('');
     const [isPriceGross, setIsPriceGross] = useState(true); // Domyślnie edytujemy cenę brutto
+    const [isLoading, setIsLoading] = useState(false); // Stan ładowania podczas zapisywania
+
+    // Używamy komponentu Toast dla powiadomień
+    const { showToast } = useToast();
 
     // Stan do przechowywania rozszerzonych typów rabatów dla każdej usługi
     const [extendedDiscountTypes, setExtendedDiscountTypes] = useState<Record<string, ExtendedDiscountType>>({});
@@ -138,8 +148,6 @@ const InvoiceItemsModal: React.FC<InvoiceItemsModalProps> = ({
             setEditPrice(calculateNetPrice(service.price).toFixed(2));
         }
     };
-
-
 
     // Zapisz edytowaną pozycję
     const handleSaveEdit = () => {
@@ -340,8 +348,44 @@ const InvoiceItemsModal: React.FC<InvoiceItemsModalProps> = ({
         });
     };
 
+    // Funkcja do aktualizacji protokołu na serwerze
+    const updateProtocol = async (newServices: SelectedService[]) => {
+        setIsLoading(true);
+        try {
+            // Pobierz szczegóły protokołu
+            const protocolDetails = await protocolsApi.getProtocolDetails(protocolId);
+
+            if (!protocolDetails) {
+                throw new Error('Nie udało się pobrać danych protokołu');
+            }
+
+            // Aktualizuj usługi w protokole
+            const updatedProtocol = {
+                ...protocolDetails,
+                selectedServices: newServices,
+                updatedAt: new Date().toISOString()
+            };
+
+            // Zapisz zaktualizowany protokół
+            const result = await protocolsApi.updateProtocol(updatedProtocol);
+
+            if (result) {
+                showToast('success', 'Pozycje faktury zostały zaktualizowane', 3000);
+                return true;
+            } else {
+                throw new Error('Nie udało się zaktualizować protokołu');
+            }
+        } catch (error) {
+            console.error('Błąd podczas aktualizacji protokołu:', error);
+            showToast('error', 'Wystąpił błąd podczas aktualizacji protokołu', 3000);
+            return false;
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     // Zapisz zmiany i zamknij modal
-    const handleSave = () => {
+    const handleSave = async () => {
         // Przygotowanie danych do zapisu
         // Usuwamy dodatkowe pola, które dodaliśmy tylko na potrzeby edycji
         const itemsToSave = editedServices.map(service => {
@@ -361,8 +405,28 @@ const InvoiceItemsModal: React.FC<InvoiceItemsModalProps> = ({
             return serviceData as SelectedService;
         });
 
-        onSave(itemsToSave);
-        onClose();
+        // Oblicz sumę
+        const newTotal = itemsToSave.reduce((sum, item) => sum + item.finalPrice, 0);
+        const originalTotal = services.reduce((sum, item) => sum + item.finalPrice, 0);
+
+        // Jeśli suma się zmieniła znacząco, pokaż potwierdzenie
+        if (Math.abs(newTotal - originalTotal) > 0.01) {
+            const confirmed = window.confirm(
+                `Suma po modyfikacji (${newTotal.toFixed(2)} zł) różni się od oryginalnej kwoty (${originalTotal.toFixed(2)} zł). Czy na pewno chcesz zapisać zmiany?`
+            );
+
+            if (!confirmed) {
+                return;
+            }
+        }
+
+        // Zapisz zmiany w protokole i wywołaj callback
+        const success = await updateProtocol(itemsToSave);
+
+        if (success) {
+            onSave(itemsToSave);
+            onClose();
+        }
     };
 
     // Obliczanie sum
@@ -607,8 +671,15 @@ const InvoiceItemsModal: React.FC<InvoiceItemsModalProps> = ({
                     <CancelButton onClick={onClose}>
                         Anuluj
                     </CancelButton>
-                    <SaveButton onClick={handleSave} disabled={editedServices.length === 0}>
-                        <FaCheck /> Zastosuj zmiany
+                    <SaveButton
+                        onClick={handleSave}
+                        disabled={editedServices.length === 0 || isLoading}
+                    >
+                        {isLoading ? (
+                            <>Zapisywanie...</>
+                        ) : (
+                            <><FaCheck /> Zastosuj zmiany</>
+                        )}
                     </SaveButton>
                 </ModalFooter>
             </ModalContainer>
