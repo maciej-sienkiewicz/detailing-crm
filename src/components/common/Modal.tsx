@@ -77,14 +77,14 @@ const ModalOverlay = styled.div`
 `;
 
 const ModalContainer = styled.div`
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-  width: 500px;
-  max-width: 90%;
-  max-height: 90vh;
-  overflow-y: auto;
-  z-index: 1001;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    width: 90%; /* Zwiększamy szerokość modalu */
+    max-width: 1200px; /* Zwiększamy maksymalną szerokość modalu */
+    max-height: 90vh;
+    overflow-y: auto;
+    z-index: 1001;
 `;
 
 const ModalHeader = styled.div`

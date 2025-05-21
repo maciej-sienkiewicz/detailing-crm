@@ -175,9 +175,35 @@ const createMockOperation = (index: number): FinancialOperation => {
     const dueDate = new Date(date);
     dueDate.setDate(dueDate.getDate() + 14);
 
+    let items = undefined;
+    if (type === FinancialOperationType.INVOICE) {
+        // Generujemy od 1 do 3 pozycji
+        const itemsCount = 1 + Math.floor(Math.random() * 3);
+
+        items = Array.from({ length: itemsCount }, (_, itemIndex) => {
+            const itemQuantity = 1 + Math.floor(Math.random() * 5);
+            const itemUnitPrice = Math.round((50 + Math.random() * 500) * 100) / 100;
+            const itemTaxRate = [0, 5, 8, 23][Math.floor(Math.random() * 4)];
+            const itemTotalNet = itemQuantity * itemUnitPrice;
+            const itemTotalGross = itemTotalNet * (1 + itemTaxRate / 100);
+
+            return {
+                id: `item-${1000 + index}-${itemIndex}`,
+                name: `Pozycja ${itemIndex + 1} - ${type === FinancialOperationType.INVOICE ? (isIncome ? 'Usługa' : 'Materiał') : 'Produkt'}`,
+                description: itemIndex % 2 === 0 ? `Opis pozycji ${itemIndex + 1}` : undefined,
+                quantity: itemQuantity,
+                unitPrice: itemUnitPrice,
+                taxRate: itemTaxRate,
+                totalNet: Math.round(itemTotalNet * 100) / 100,
+                totalGross: Math.round(itemTotalGross * 100) / 100
+            };
+        });
+    }
+
     return {
         id: `op-${1000 + index}`,
         type,
+        items,
         documentNumber,
         title,
         description: index % 3 === 0 ? `Dodatkowy opis dla operacji #${index + 1}` : undefined,

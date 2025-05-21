@@ -56,7 +56,7 @@ export interface InvoiceAttachment {
 
 // Pozycja na fakturze
 export interface InvoiceItem {
-    id: string;
+    id?: string;
     name: string;
     description?: string;
     quantity: number;
@@ -128,7 +128,7 @@ export interface InvoiceFilters {
 export enum FinancialOperationType {
     INVOICE = 'INVOICE',       // Faktura
     RECEIPT = 'RECEIPT',       // Paragon
-    OTHER = 'OTHER'            // Inna operacja
+    OTHER = 'OTHER'            // Inna operacja,
 }
 
 // Etykiety dla typów operacji
@@ -213,6 +213,7 @@ export interface FinancialOperation {
     createdAt: string;               // Data utworzenia
     updatedAt: string;               // Data aktualizacji
     attachments?: any[];             // Załączniki (opcjonalne)
+    items?: InvoiceItem[]; // Dodajemy pozycje faktury jako opcjonalne pole
 }
 
 // Filtry operacji finansowych
