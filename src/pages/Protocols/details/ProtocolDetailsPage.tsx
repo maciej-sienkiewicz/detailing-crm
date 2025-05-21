@@ -4,7 +4,7 @@ import styled from 'styled-components';
 import { FaArrowLeft, FaBan, FaCheckSquare, FaEdit, FaFilePdf, FaKey, FaRedo } from 'react-icons/fa';
 import {protocolsApi} from "../../../api/protocolsApi";
 import {Comment, commentsApi} from "../../../api/commentsApi";
-import {CarReceptionProtocol, ProtocolStatus} from "../../../types";
+import {CarReceptionProtocol, ProtocolStatus, SelectedService} from "../../../types";
 import ProtocolSummary from "./components/ProtocolSummary";
 import ProtocolComments from "./components/ProtocolComments";
 import ProtocolInvoices from "./components/ProtocolInvoices";
@@ -22,7 +22,6 @@ import PDFViewer from "../../../components/PdfViewer";
 import CancelProtocolModal, {CancellationReason} from "../shared/components/CancelProtocolModal";
 import RestoreProtocolModal, { RestoreOption } from "../shared/components/RestoreProtocolModal";
 import RescheduleProtocolModal from "../shared/components/RescheduleProtocolModal";
-
 
 
 // Define tab types
@@ -263,18 +262,32 @@ const ProtocolDetailsPage: React.FC = () => {
         setShowPaymentModal(true);
     };
 
-    // Funkcja wywoływana po potwierdzeniu płatności i wydaniu pojazdu
-// Funkcja wywoływana po potwierdzeniu płatności i wydaniu pojazdu
+// Zmodyfikuj funkcję handlePaymentConfirm, aby obsługiwała customInvoiceItems
     const handlePaymentConfirm = async (paymentData: {
         paymentMethod: 'cash' | 'card';
         documentType: 'invoice' | 'receipt' | 'other';
+        customInvoiceItems?: SelectedService[]; // Dodane pole
     }) => {
         try {
             // Zamykamy modal płatności
             setShowPaymentModal(false);
 
-            // Wywołujemy nowe API do wydania pojazdu
-            const result = await protocolsApi.releaseVehicle(protocol!.id, paymentData);
+            // Jeśli mamy niestandardowe pozycje faktury, zapisujemy je dla protokołu
+            if (paymentData.customInvoiceItems && protocol) {
+                // W rzeczywistej implementacji musielibyśmy dodać API do zapisywania tych pozycji
+                console.log("Zapisuję zmodyfikowane pozycje faktury:", paymentData.customInvoiceItems);
+
+                // Przykładowa implementacja:
+                // await customInvoiceApi.saveCustomItems(protocol.id, paymentData.customInvoiceItems);
+            }
+
+            // Istniejąca implementacja wywołania API wydania pojazdu
+            const result = await protocolsApi.releaseVehicle(protocol!.id, {
+                paymentMethod: paymentData.paymentMethod,
+                documentType: paymentData.documentType,
+                // Możemy dodać nowy parametr, jeśli API go obsługuje
+                // customInvoiceItems: paymentData.customInvoiceItems
+            });
 
             if (result) {
                 // Aktualizujemy lokalny stan na podstawie odpowiedzi z serwera
@@ -450,6 +463,7 @@ const ProtocolDetailsPage: React.FC = () => {
                 onClose={() => setShowPaymentModal(false)}
                 onConfirm={handlePaymentConfirm}
                 totalAmount={protocol?.selectedServices.reduce((sum, s) => sum + s.finalPrice, 0) || 0}
+                services={protocol?.selectedServices || []} // Dodane przekazywanie usług do modalu
             />
 
             {/* PDF Preview Modal */}

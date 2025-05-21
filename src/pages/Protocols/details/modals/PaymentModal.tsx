@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { FaMoneyBill, FaCreditCard, FaFileInvoice, FaReceipt, FaFileAlt, FaCheck } from 'react-icons/fa';
-import {useToast} from "../../../../components/common/Toast/Toast";
+import { FaMoneyBill, FaCreditCard, FaFileInvoice, FaReceipt, FaFileAlt, FaCheck, FaEdit } from 'react-icons/fa';
+import { useToast } from "../../../../components/common/Toast/Toast";
+import { SelectedService } from "../../../../types"; // Dodany import
+import InvoiceItemsModal from "./InvoiceItemsModal"; // Dodany import nowego komponentu
 
 interface PaymentModalProps {
     isOpen: boolean;
@@ -9,27 +11,66 @@ interface PaymentModalProps {
     onConfirm: (paymentData: {
         paymentMethod: 'cash' | 'card';
         documentType: 'invoice' | 'receipt' | 'other';
+        customInvoiceItems?: SelectedService[]; // Nowe pole do przekazania zmodyfikowanych pozycji
     }) => void;
     totalAmount: number;
+    services: SelectedService[]; // Nowy prop z listą usług do faktury
 }
 
 const PaymentModal: React.FC<PaymentModalProps> = ({
                                                        isOpen,
                                                        onClose,
                                                        onConfirm,
-                                                       totalAmount
+                                                       totalAmount,
+                                                       services
                                                    }) => {
     const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card'>('cash');
     const [documentType, setDocumentType] = useState<'invoice' | 'receipt' | 'other'>('receipt');
+    const [overrideInvoiceItems, setOverrideInvoiceItems] = useState(false); // Nowy stan dla checkboxa
+    const [showInvoiceItemsModal, setShowInvoiceItemsModal] = useState(false); // Stan kontrolujący wyświetlanie modalu
+    const [customInvoiceItems, setCustomInvoiceItems] = useState<SelectedService[] | null>(null); // Niestandardowe pozycje faktury
     const { showToast } = useToast(); // Hook do wyświetlania powiadomień
 
     if (!isOpen) return null;
+
+    // Funkcja obsługująca checkbox "Nadpisz pozycje faktury"
+    const handleOverrideChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setOverrideInvoiceItems(e.target.checked);
+        if (e.target.checked) {
+            // Jeśli checkbox został zaznaczony, otwieramy modal edycji pozycji
+            setShowInvoiceItemsModal(true);
+        } else {
+            // Jeśli checkbox został odznaczony, resetujemy niestandardowe pozycje
+            setCustomInvoiceItems(null);
+        }
+    };
+
+    // Funkcja obsługująca zapisanie niestandardowych pozycji faktury
+    const handleInvoiceItemsSave = (items: SelectedService[]) => {
+        setCustomInvoiceItems(items);
+        setShowInvoiceItemsModal(false);
+
+        // Obliczamy sumę cen zmodyfikowanych pozycji
+        const newTotal = items.reduce((sum, item) => sum + item.finalPrice, 0);
+
+        // Sprawdzamy czy suma się zgadza z oryginalną
+        if (Math.abs(newTotal - totalAmount) > 0.01) {
+            showToast('info', `Uwaga: Suma zmodyfikowanych pozycji (${newTotal.toFixed(2)} zł) różni się od oryginalnej kwoty (${totalAmount.toFixed(2)} zł).`, 5000);
+        }
+    };
+
+    // Funkcja ponownie otwierająca modal edycji pozycji
+    const handleEditInvoiceItems = () => {
+        setShowInvoiceItemsModal(true);
+    };
 
     const handleConfirm = () => {
         // Przygotuj dane płatności
         const paymentData = {
             paymentMethod,
-            documentType
+            documentType,
+            // Dodaj niestandardowe pozycje faktury, jeśli są dostępne i checkbox jest zaznaczony
+            customInvoiceItems: overrideInvoiceItems && customInvoiceItems ? customInvoiceItems : undefined
         };
 
         // Wyświetl odpowiednie powiadomienia w zależności od wyborów
@@ -109,21 +150,60 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                             <OptionLabel>Inny dokument</OptionLabel>
                         </OptionCard>
                     </OptionsContainer>
+
+                    {/* Dodatkowe opcje dla faktury */}
+                    {documentType === 'invoice' && (
+                        <InvoiceOptionsContainer>
+                            <CheckboxContainer>
+                                <CheckboxInput
+                                    type="checkbox"
+                                    id="overrideInvoiceItems"
+                                    checked={overrideInvoiceItems}
+                                    onChange={handleOverrideChange}
+                                />
+                                <CheckboxLabel htmlFor="overrideInvoiceItems">
+                                    Nadpisz pozycje faktury
+                                </CheckboxLabel>
+                            </CheckboxContainer>
+
+                            {overrideInvoiceItems && customInvoiceItems && (
+                                <CustomItemsSummary>
+                                    <CustomItemsInfo>
+                                        Zmodyfikowano {customInvoiceItems.length} {
+                                        customInvoiceItems.length === 1 ? 'pozycję' :
+                                            customInvoiceItems.length < 5 ? 'pozycje' : 'pozycji'
+                                    }
+                                    </CustomItemsInfo>
+                                    <EditButton onClick={handleEditInvoiceItems}>
+                                        <FaEdit /> Edytuj
+                                    </EditButton>
+                                </CustomItemsSummary>
+                            )}
+                        </InvoiceOptionsContainer>
+                    )}
                 </ModalBody>
                 <ModalFooter>
-                    <CancelButton onClick={onClose}>
-                        Anuluj
-                    </CancelButton>
+                    <CancelButton onClick={onClose}>Anuluj</CancelButton>
                     <ConfirmButton onClick={handleConfirm}>
                         <FaCheck /> Zatwierdź i wydaj pojazd
                     </ConfirmButton>
                 </ModalFooter>
             </ModalContainer>
+
+            {/* Modal do edycji pozycji faktury */}
+            {showInvoiceItemsModal && (
+                <InvoiceItemsModal
+                    isOpen={showInvoiceItemsModal}
+                    onClose={() => setShowInvoiceItemsModal(false)}
+                    onSave={handleInvoiceItemsSave}
+                    services={customInvoiceItems || services}
+                />
+            )}
         </ModalOverlay>
     );
 };
 
-// Styled components pozostają bez zmian
+// Style komponentów (zachowujemy istniejące style)
 const ModalOverlay = styled.div`
     position: fixed;
     top: 0;
@@ -299,6 +379,61 @@ const ConfirmButton = styled.button`
 
     &:hover {
         background-color: #27ae60;
+    }
+`;
+
+// Nowe komponenty do obsługi edycji pozycji faktury
+const InvoiceOptionsContainer = styled.div`
+    margin-top: 5px;
+    padding-top: 15px;
+    border-top: 1px dashed #eee;
+`;
+
+const CheckboxContainer = styled.div`
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+`;
+
+const CheckboxInput = styled.input`
+    margin-right: 8px;
+`;
+
+const CheckboxLabel = styled.label`
+    font-size: 14px;
+    color: #34495e;
+    cursor: pointer;
+`;
+
+const CustomItemsSummary = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #eafaf1;
+    border-radius: 4px;
+    padding: 10px 12px;
+    margin-top: 10px;
+`;
+
+const CustomItemsInfo = styled.div`
+    font-size: 13px;
+    color: #27ae60;
+`;
+
+const EditButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    color: #2980b9;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 5px 8px;
+    border-radius: 4px;
+    
+    &:hover {
+        background-color: rgba(52, 152, 219, 0.1);
     }
 `;
 
