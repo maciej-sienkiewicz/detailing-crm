@@ -266,35 +266,33 @@ const ProtocolDetailsPage: React.FC = () => {
     const handlePaymentConfirm = async (paymentData: {
         paymentMethod: 'cash' | 'card';
         documentType: 'invoice' | 'receipt' | 'other';
-        customInvoiceItems?: SelectedService[]; // Dodane pole
+        invoiceItems?: SelectedService[];
     }) => {
         try {
             // Zamykamy modal płatności
             setShowPaymentModal(false);
 
-            // Jeśli mamy niestandardowe pozycje faktury, zapisujemy je dla protokołu
-            if (paymentData.customInvoiceItems && protocol) {
-                // W rzeczywistej implementacji musielibyśmy dodać API do zapisywania tych pozycji
-                console.log("Zapisuję zmodyfikowane pozycje faktury:", paymentData.customInvoiceItems);
-
-                // Przykładowa implementacja:
-                // await customInvoiceApi.saveCustomItems(protocol.id, paymentData.customInvoiceItems);
-            }
-
-            // Istniejąca implementacja wywołania API wydania pojazdu
-            const result = await protocolsApi.releaseVehicle(protocol!.id, {
+            // Przygotuj dane do wysłania - nie modyfikujemy już protokołu,
+            // ponieważ został już zaktualizowany przez handleServiceItemsChange
+            const releaseData = {
                 paymentMethod: paymentData.paymentMethod,
                 documentType: paymentData.documentType,
-                // Możemy dodać nowy parametr, jeśli API go obsługuje
-                // customInvoiceItems: paymentData.customInvoiceItems
-            });
+                // Nie musimy już przekazywać invoiceItems, ponieważ protokół
+                // już zawiera zaktualizowane usługi
+            };
+
+            // Wywołaj API do wydania pojazdu
+            const result = await protocolsApi.releaseVehicle(protocol!.id, releaseData);
 
             if (result) {
                 // Aktualizujemy lokalny stan na podstawie odpowiedzi z serwera
                 setProtocol(result);
             } else {
-                // W przypadku błędu zmieniamy status lokalnie
-                handleStatusChange(ProtocolStatus.COMPLETED);
+                // W przypadku błędu zmieniamy tylko status lokalnie
+                const updatedProtocol = { ...protocol! };
+                updatedProtocol.status = ProtocolStatus.COMPLETED;
+                updatedProtocol.statusUpdatedAt = new Date().toISOString();
+                setProtocol(updatedProtocol);
 
                 // W tle aktualizujemy status w API
                 await protocolsApi.updateProtocolStatus(protocol!.id, ProtocolStatus.COMPLETED);
@@ -305,6 +303,38 @@ const ProtocolDetailsPage: React.FC = () => {
         } catch (error) {
             console.error('Błąd podczas wydawania pojazdu:', error);
             alert('Wystąpił błąd podczas wydawania pojazdu');
+        }
+    };
+
+    const handleServiceItemsChange = async (services: SelectedService[]) => {
+        if (!protocol) return;
+
+        try {
+            // Tworzymy kopię protokołu z nowymi usługami
+            const updatedProtocol: CarReceptionProtocol = {
+                ...protocol,
+                selectedServices: services
+            };
+
+            // Aktualizujemy lokalny stan
+            setProtocol(updatedProtocol);
+
+            // Zapisujemy zmiany na serwerze
+            const result = await protocolsApi.updateProtocol(updatedProtocol);
+
+            if (result) {
+                // Jeśli aktualizacja się powiodła, zaktualizuj stan lokalny odpowiedzią z serwera
+                setProtocol(result);
+
+                // Opcjonalnie pokaż powiadomienie o sukcesie
+                showToast?.('success', 'Zapisano zmiany w pozycjach faktury', 3000);
+            }
+        } catch (error) {
+            console.error('Błąd podczas aktualizacji protokołu:', error);
+            showToast?.('error', 'Wystąpił błąd podczas zapisywania zmian', 3000);
+
+            // Przywracamy poprzedni stan w przypadku błędu
+            setProtocol(protocol);
         }
     };
 
@@ -463,7 +493,8 @@ const ProtocolDetailsPage: React.FC = () => {
                 onClose={() => setShowPaymentModal(false)}
                 onConfirm={handlePaymentConfirm}
                 totalAmount={protocol?.selectedServices.reduce((sum, s) => sum + s.finalPrice, 0) || 0}
-                services={protocol?.selectedServices || []} // Dodane przekazywanie usług do modalu
+                services={protocol?.selectedServices || []}
+                onServicesChange={handleServiceItemsChange} // Nowy prop
             />
 
             {/* PDF Preview Modal */}

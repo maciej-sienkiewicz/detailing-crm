@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+// PaymentModal.tsx - główne zmiany w tym komponencie
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { FaMoneyBill, FaCreditCard, FaFileInvoice, FaReceipt, FaFileAlt, FaCheck, FaEdit } from 'react-icons/fa';
+import { FaMoneyBill, FaCreditCard, FaFileInvoice, FaReceipt, FaFileAlt, FaCheck, FaEdit, FaListAlt } from 'react-icons/fa';
 import { useToast } from "../../../../components/common/Toast/Toast";
-import { SelectedService } from "../../../../types"; // Dodany import
-import InvoiceItemsModal from "./InvoiceItemsModal"; // Dodany import nowego komponentu
+import { SelectedService } from "../../../../types";
+import InvoiceItemsModal from "./InvoiceItemsModal";
 
 interface PaymentModalProps {
     isOpen: boolean;
@@ -11,57 +12,60 @@ interface PaymentModalProps {
     onConfirm: (paymentData: {
         paymentMethod: 'cash' | 'card';
         documentType: 'invoice' | 'receipt' | 'other';
-        customInvoiceItems?: SelectedService[]; // Nowe pole do przekazania zmodyfikowanych pozycji
+        invoiceItems?: SelectedService[];
     }) => void;
     totalAmount: number;
-    services: SelectedService[]; // Nowy prop z listą usług do faktury
+    services: SelectedService[];
 }
 
 const PaymentModal: React.FC<PaymentModalProps> = ({
                                                        isOpen,
                                                        onClose,
                                                        onConfirm,
-                                                       totalAmount,
+                                                       totalAmount: initialTotalAmount,
                                                        services
                                                    }) => {
     const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card'>('cash');
     const [documentType, setDocumentType] = useState<'invoice' | 'receipt' | 'other'>('receipt');
-    const [overrideInvoiceItems, setOverrideInvoiceItems] = useState(false); // Nowy stan dla checkboxa
-    const [showInvoiceItemsModal, setShowInvoiceItemsModal] = useState(false); // Stan kontrolujący wyświetlanie modalu
-    const [customInvoiceItems, setCustomInvoiceItems] = useState<SelectedService[] | null>(null); // Niestandardowe pozycje faktury
-    const { showToast } = useToast(); // Hook do wyświetlania powiadomień
+    const [showInvoiceItemsModal, setShowInvoiceItemsModal] = useState(false);
+    const [customInvoiceItems, setCustomInvoiceItems] = useState<SelectedService[] | null>(null);
+    const [modifiedTotalAmount, setModifiedTotalAmount] = useState<number | null>(null);
+    const { showToast } = useToast();
+
+    // Resetuj stan przy otwarciu modalu
+    useEffect(() => {
+        if (isOpen) {
+            setPaymentMethod('cash');
+            setDocumentType('receipt');
+            setCustomInvoiceItems(null);
+            setModifiedTotalAmount(null);
+        }
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
-    // Funkcja obsługująca checkbox "Nadpisz pozycje faktury"
-    const handleOverrideChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setOverrideInvoiceItems(e.target.checked);
-        if (e.target.checked) {
-            // Jeśli checkbox został zaznaczony, otwieramy modal edycji pozycji
-            setShowInvoiceItemsModal(true);
-        } else {
-            // Jeśli checkbox został odznaczony, resetujemy niestandardowe pozycje
-            setCustomInvoiceItems(null);
-        }
+    // Aktualna kwota do zapłaty - użyj zmodyfikowanej lub oryginalnej
+    const currentTotalAmount = modifiedTotalAmount !== null ? modifiedTotalAmount : initialTotalAmount;
+
+    // Funkcja otwierająca modal edycji pozycji faktury
+    const handleEditInvoiceItems = () => {
+        setShowInvoiceItemsModal(true);
     };
 
     // Funkcja obsługująca zapisanie niestandardowych pozycji faktury
     const handleInvoiceItemsSave = (items: SelectedService[]) => {
         setCustomInvoiceItems(items);
+
+        // Obliczamy sumę cen zmodyfikowanych pozycji i aktualizujemy kwotę do zapłaty
+        const newTotal = items.reduce((sum, item) => sum + item.finalPrice, 0);
+        setModifiedTotalAmount(newTotal);
+
         setShowInvoiceItemsModal(false);
 
-        // Obliczamy sumę cen zmodyfikowanych pozycji
-        const newTotal = items.reduce((sum, item) => sum + item.finalPrice, 0);
-
-        // Sprawdzamy czy suma się zgadza z oryginalną
-        if (Math.abs(newTotal - totalAmount) > 0.01) {
-            showToast('info', `Uwaga: Suma zmodyfikowanych pozycji (${newTotal.toFixed(2)} zł) różni się od oryginalnej kwoty (${totalAmount.toFixed(2)} zł).`, 5000);
+        // Jeśli suma różni się od oryginalnej kwoty, pokaż informacyjną wiadomość
+        if (Math.abs(newTotal - initialTotalAmount) > 0.01) {
+            showToast('info', `Suma po modyfikacji pozycji: ${newTotal.toFixed(2)} zł (oryginalna kwota: ${initialTotalAmount.toFixed(2)} zł)`, 5000);
         }
-    };
-
-    // Funkcja ponownie otwierająca modal edycji pozycji
-    const handleEditInvoiceItems = () => {
-        setShowInvoiceItemsModal(true);
     };
 
     const handleConfirm = () => {
@@ -69,9 +73,29 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         const paymentData = {
             paymentMethod,
             documentType,
-            // Dodaj niestandardowe pozycje faktury, jeśli są dostępne i checkbox jest zaznaczony
-            customInvoiceItems: overrideInvoiceItems && customInvoiceItems ? customInvoiceItems : undefined
+            // Dodaj niestandardowe pozycje faktury, jeśli są dostępne i typ dokumentu to faktura
+            invoiceItems: documentType === 'invoice' && customInvoiceItems ? customInvoiceItems : undefined
         };
+
+        // Dodaj dodatkowe walidacje, jeśli potrzebne
+        if (documentType === 'invoice' && customInvoiceItems) {
+            // Sprawdź, czy suma się zgadza
+            const originalTotal = initialTotalAmount;
+            const customTotal = customInvoiceItems.reduce((sum, item) => sum + item.finalPrice, 0);
+
+            // Jeśli różnica jest większa niż 1 grosz, wyświetl ostrzeżenie
+            if (Math.abs(originalTotal - customTotal) > 0.01) {
+                const confirmed = window.confirm(
+                    `Uwaga: Suma zmodyfikowanych pozycji (${customTotal.toFixed(2)} zł) ` +
+                    `różni się od oryginalnej kwoty (${originalTotal.toFixed(2)} zł). ` +
+                    `Czy na pewno chcesz kontynuować?`
+                );
+
+                if (!confirmed) {
+                    return; // Anuluj jeśli użytkownik nie potwierdzi
+                }
+            }
+        }
 
         // Wyświetl odpowiednie powiadomienia w zależności od wyborów
         if (paymentMethod === 'cash') {
@@ -100,9 +124,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                         Wybierz metodę płatności oraz rodzaj dokumentu, który ma zostać wystawiony.
                     </ModalDescription>
 
-                    <AmountInfo>
+                    <AmountInfo modified={modifiedTotalAmount !== null}>
                         <AmountLabel>Do zapłaty:</AmountLabel>
-                        <AmountValue>{totalAmount.toFixed(2)} zł</AmountValue>
+                        <AmountValue>{currentTotalAmount.toFixed(2)} zł</AmountValue>
+                        {modifiedTotalAmount !== null && (
+                            <ModifiedAmountHint>(zmodyfikowano)</ModifiedAmountHint>
+                        )}
                     </AmountInfo>
 
                     <SectionTitle>Metoda płatności</SectionTitle>
@@ -154,19 +181,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                     {/* Dodatkowe opcje dla faktury */}
                     {documentType === 'invoice' && (
                         <InvoiceOptionsContainer>
-                            <CheckboxContainer>
-                                <CheckboxInput
-                                    type="checkbox"
-                                    id="overrideInvoiceItems"
-                                    checked={overrideInvoiceItems}
-                                    onChange={handleOverrideChange}
-                                />
-                                <CheckboxLabel htmlFor="overrideInvoiceItems">
-                                    Nadpisz pozycje faktury
-                                </CheckboxLabel>
-                            </CheckboxContainer>
-
-                            {overrideInvoiceItems && customInvoiceItems && (
+                            {customInvoiceItems ? (
                                 <CustomItemsSummary>
                                     <CustomItemsInfo>
                                         Zmodyfikowano {customInvoiceItems.length} {
@@ -178,6 +193,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                                         <FaEdit /> Edytuj
                                     </EditButton>
                                 </CustomItemsSummary>
+                            ) : (
+                                <EditInvoiceItemsButton onClick={handleEditInvoiceItems}>
+                                    <FaListAlt /> Edytuj pozycje faktury
+                                </EditInvoiceItemsButton>
                             )}
                         </InvoiceOptionsContainer>
                     )}
@@ -191,17 +210,46 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             </ModalContainer>
 
             {/* Modal do edycji pozycji faktury */}
-            {showInvoiceItemsModal && (
-                <InvoiceItemsModal
-                    isOpen={showInvoiceItemsModal}
-                    onClose={() => setShowInvoiceItemsModal(false)}
-                    onSave={handleInvoiceItemsSave}
-                    services={customInvoiceItems || services}
-                />
-            )}
+            <InvoiceItemsModal
+                isOpen={showInvoiceItemsModal}
+                onClose={() => setShowInvoiceItemsModal(false)}
+                onSave={handleInvoiceItemsSave}
+                services={customInvoiceItems || services}
+            />
         </ModalOverlay>
     );
 };
+
+const ModifiedAmountHint = styled.div`
+    position: absolute;
+    bottom: 5px;
+    right: 15px;
+    font-size: 11px;
+    color: #3498db;
+    font-style: italic;
+`;
+
+const EditInvoiceItemsButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 15px;
+    background-color: #f0f7ff;
+    color: #3498db;
+    border: 1px solid #d5e9f9;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    width: 100%;
+    justify-content: center;
+    
+    &:hover {
+        background-color: #d5e9f9;
+    }
+`;
+
+// Pozostawiamy wszystkie style bez zmian
 
 // Style komponentów (zachowujemy istniejące style)
 const ModalOverlay = styled.div`
@@ -274,14 +322,16 @@ const ModalDescription = styled.p`
     margin-bottom: 15px;
 `;
 
-const AmountInfo = styled.div`
+const AmountInfo = styled.div<{ modified?: boolean }>`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: #f0f7ff;
+    background-color: ${props => props.modified ? '#f0f7ff' : '#f0f7ff'};
     border-radius: 6px;
     padding: 15px;
     margin-bottom: 20px;
+    border-left: 3px solid ${props => props.modified ? '#3498db' : '#3498db'};
+    position: relative;
 `;
 
 const AmountLabel = styled.div`
