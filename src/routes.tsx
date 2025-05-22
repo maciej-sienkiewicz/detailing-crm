@@ -60,10 +60,7 @@ const AppRoutes: React.FC = () => {
                 <Route path="/activity" element={<ActivityFeedPage />} />
 
                 {/* Ścieżki finansowe */}
-                <Route path="/finances" element={<Navigate to="/finances/invoices" replace />} />
-                <Route path="/finances/invoices" element={<FinancialFlowPage />} />
-                <Route path="/finances/cash" element={<CashPage />} />
-                <Route path="/finances/reports" element={<FinancialSummaryPage />} />
+                <Route path="/finances" element={<FinancialFlowPage />} />
 
                 {/* Strona poczty - nowy moduł */}
                 <Route path="/mail" element={<MailPage />} />

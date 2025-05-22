@@ -73,7 +73,8 @@ const mainMenuItems: MainMenuItem[] = [
         id: 'finances',
         label: 'Finanse',
         icon: <FaMoneyBillWave />,
-        hasSubmenu: true
+        path: '/finances',
+        hasSubmenu: false
     },
     {
         id: 'warehouse',

@@ -1,7 +1,3 @@
-// src/types/finance.ts
-// Typy danych związane z modułem finansów
-
-// Status faktury
 export enum InvoiceStatus {
     NOT_PAID = 'NOT_PAID',
     PAID = 'PAID',
@@ -9,7 +5,6 @@ export enum InvoiceStatus {
     CANCELLED = 'CANCELLED'
 }
 
-// Etykiety dla statusów faktury
 export const InvoiceStatusLabels: Record<InvoiceStatus, string> = {
     [InvoiceStatus.NOT_PAID]: 'Nieopłacona',
     [InvoiceStatus.PAID]: 'Opłacona',
@@ -17,24 +12,21 @@ export const InvoiceStatusLabels: Record<InvoiceStatus, string> = {
     [InvoiceStatus.CANCELLED]: 'Anulowana'
 };
 
-// Kolory dla statusów faktury
 export const InvoiceStatusColors: Record<InvoiceStatus, string> = {
-    [InvoiceStatus.NOT_PAID]: '#3498db',       // Niebieski
-    [InvoiceStatus.PAID]: '#2ecc71',         // Zielony
-    [InvoiceStatus.OVERDUE]: '#e74c3c',      // Czerwony
-    [InvoiceStatus.CANCELLED]: '#95a5a6'     // Jasno szary
+    [InvoiceStatus.NOT_PAID]: '#3498db',
+    [InvoiceStatus.PAID]: '#2ecc71',
+    [InvoiceStatus.OVERDUE]: '#e74c3c',
+    [InvoiceStatus.CANCELLED]: '#95a5a6'
 };
 
-// Typ płatności
 export enum PaymentMethod {
-    CASH = 'CASH',                 // Gotówka
-    BANK_TRANSFER = 'BANK_TRANSFER', // Przelew bankowy
-    CARD = 'CARD',   // Karta
-    MOBILE_PAYMENT = 'MOBILE_PAYMENT', // Płatność mobilna
-    OTHER = 'OTHER'                // Inna
+    CASH = 'CASH',
+    BANK_TRANSFER = 'BANK_TRANSFER',
+    CARD = 'CARD',
+    MOBILE_PAYMENT = 'MOBILE_PAYMENT',
+    OTHER = 'OTHER'
 }
 
-// Etykiety dla typów płatności
 export const PaymentMethodLabels: Record<PaymentMethod, string> = {
     [PaymentMethod.CASH]: 'Gotówka',
     [PaymentMethod.BANK_TRANSFER]: 'Przelew bankowy',
@@ -43,7 +35,6 @@ export const PaymentMethodLabels: Record<PaymentMethod, string> = {
     [PaymentMethod.OTHER]: 'Inna'
 };
 
-// Definicja załącznika faktury (np. plik PDF)
 export interface InvoiceAttachment {
     id: string;
     name: string;
@@ -51,10 +42,9 @@ export interface InvoiceAttachment {
     type: string;
     url?: string;
     uploadedAt: string;
-    file?: File; // Tylko po stronie klienta, nie przesyłane do API
+    file?: File;
 }
 
-// Pozycja na fakturze
 export interface InvoiceItem {
     id?: string;
     name: string;
@@ -66,19 +56,16 @@ export interface InvoiceItem {
     totalGross: number;
 }
 
-// Typ faktury
 export enum InvoiceType {
-    INCOME = 'INCOME',           // Przychodowa
-    EXPENSE = 'EXPENSE'          // Kosztowa
+    INCOME = 'INCOME',
+    EXPENSE = 'EXPENSE'
 }
 
-// Etykiety dla typów faktury
 export const InvoiceTypeLabels: Record<InvoiceType, string> = {
     [InvoiceType.INCOME]: 'Przychodowa',
     [InvoiceType.EXPENSE]: 'Kosztowa'
 };
 
-// Główny interfejs faktury
 export interface Invoice {
     id: string;
     number: string;
@@ -105,10 +92,9 @@ export interface Invoice {
     updatedAt: string;
     items: InvoiceItem[];
     attachments: InvoiceAttachment[];
-    paid?: number; // Kwota już zapłacona
+    paid?: number;
 }
 
-// Typ dla filtrów wyszukiwania faktur
 export interface InvoiceFilters {
     number?: string;
     title?: string;
@@ -122,56 +108,46 @@ export interface InvoiceFilters {
     maxAmount?: number;
 }
 
-// Dodajemy nowe typy do istniejącego pliku finance.ts
-
-// Typ operacji finansowej
 export enum FinancialOperationType {
-    INVOICE = 'INVOICE',       // Faktura
-    RECEIPT = 'RECEIPT',       // Paragon
-    OTHER = 'OTHER'            // Inna operacja,
+    INVOICE = 'INVOICE',
+    RECEIPT = 'RECEIPT',
+    OTHER = 'OTHER'
 }
 
-// Etykiety dla typów operacji
 export const FinancialOperationTypeLabels: Record<FinancialOperationType, string> = {
     [FinancialOperationType.INVOICE]: 'Faktura',
     [FinancialOperationType.RECEIPT]: 'Paragon',
     [FinancialOperationType.OTHER]: 'Inna operacja'
 };
 
-// Ikony dla typów operacji (kody ikon z react-icons/fa)
 export const FinancialOperationTypeIcons: Record<FinancialOperationType, string> = {
     [FinancialOperationType.INVOICE]: 'FaFileInvoiceDollar',
     [FinancialOperationType.RECEIPT]: 'FaReceipt',
     [FinancialOperationType.OTHER]: 'FaExchangeAlt'
 };
 
-// Kierunek transakcji
 export enum TransactionDirection {
-    INCOME = 'INCOME',         // Przychód
-    EXPENSE = 'EXPENSE'        // Wydatek
+    INCOME = 'INCOME',
+    EXPENSE = 'EXPENSE'
 }
 
-// Etykiety dla kierunków transakcji
 export const TransactionDirectionLabels: Record<TransactionDirection, string> = {
     [TransactionDirection.INCOME]: 'Przychód',
     [TransactionDirection.EXPENSE]: 'Wydatek'
 };
 
-// Kolory dla kierunków transakcji
 export const TransactionDirectionColors: Record<TransactionDirection, string> = {
-    [TransactionDirection.INCOME]: '#2ecc71',   // Zielony
-    [TransactionDirection.EXPENSE]: '#e74c3c'   // Czerwony
+    [TransactionDirection.INCOME]: '#2ecc71',
+    [TransactionDirection.EXPENSE]: '#e74c3c'
 };
 
-// Status płatności
 export enum PaymentStatus {
-    PAID = 'PAID',                   // Opłacone
-    UNPAID = 'UNPAID',               // Nieopłacone
-    PARTIALLY_PAID = 'PARTIALLY_PAID', // Częściowo opłacone
-    OVERDUE = 'OVERDUE'              // Przeterminowane
+    PAID = 'PAID',
+    UNPAID = 'UNPAID',
+    PARTIALLY_PAID = 'PARTIALLY_PAID',
+    OVERDUE = 'OVERDUE'
 }
 
-// Etykiety dla statusów płatności
 export const PaymentStatusLabels: Record<PaymentStatus, string> = {
     [PaymentStatus.PAID]: 'Opłacone',
     [PaymentStatus.UNPAID]: 'Nieopłacone',
@@ -179,44 +155,41 @@ export const PaymentStatusLabels: Record<PaymentStatus, string> = {
     [PaymentStatus.OVERDUE]: 'Przeterminowane'
 };
 
-// Kolory dla statusów płatności
 export const PaymentStatusColors: Record<PaymentStatus, string> = {
-    [PaymentStatus.PAID]: '#2ecc71',         // Zielony
-    [PaymentStatus.UNPAID]: '#3498db',       // Niebieski
-    [PaymentStatus.PARTIALLY_PAID]: '#f39c12', // Pomarańczowy
-    [PaymentStatus.OVERDUE]: '#e74c3c'       // Czerwony
+    [PaymentStatus.PAID]: '#2ecc71',
+    [PaymentStatus.UNPAID]: '#3498db',
+    [PaymentStatus.PARTIALLY_PAID]: '#f39c12',
+    [PaymentStatus.OVERDUE]: '#e74c3c'
 };
 
-// Główny interfejs operacji finansowej
 export interface FinancialOperation {
     id: string;
-    type: FinancialOperationType;    // Typ operacji
-    documentNumber?: string;         // Numer dokumentu (opcjonalny dla operacji gotówkowych)
-    title: string;                   // Tytuł/nazwa operacji
-    description?: string;            // Dodatkowy opis (opcjonalny)
-    date: string;                    // Data operacji
-    dueDate?: string;                // Termin płatności (opcjonalny)
-    direction: TransactionDirection; // Kierunek: przychód/wydatek
-    paymentMethod: PaymentMethod;    // Metoda płatności
-    counterpartyName: string;        // Nazwa kontrahenta
-    counterpartyId?: string;         // ID kontrahenta (opcjonalny)
-    amount: number;                  // Kwota brutto
-    netAmount?: number;              // Kwota netto (opcjonalna)
-    taxAmount?: number;              // Kwota podatku (opcjonalna)
-    paidAmount?: number;             // Zapłacona kwota (opcjonalna)
-    status: PaymentStatus;           // Status płatności
-    currency: string;                // Waluta
-    protocolId?: string;             // Powiązany protokół (opcjonalny)
-    visitId?: string;                // Powiązana wizyta (opcjonalny)
-    sourceId: string;                // ID oryginalnego dokumentu
-    sourceType: FinancialOperationType; // Typ oryginalnego dokumentu
-    createdAt: string;               // Data utworzenia
-    updatedAt: string;               // Data aktualizacji
-    attachments?: any[];             // Załączniki (opcjonalne)
-    items?: InvoiceItem[]; // Dodajemy pozycje faktury jako opcjonalne pole
+    type: FinancialOperationType;
+    documentNumber?: string;
+    title: string;
+    description?: string;
+    date: string;
+    dueDate?: string;
+    direction: TransactionDirection;
+    paymentMethod: PaymentMethod;
+    counterpartyName: string;
+    counterpartyId?: string;
+    amount: number;
+    netAmount?: number;
+    taxAmount?: number;
+    paidAmount?: number;
+    status: PaymentStatus;
+    currency: string;
+    protocolId?: string;
+    visitId?: string;
+    sourceId: string;
+    sourceType: FinancialOperationType;
+    createdAt: string;
+    updatedAt: string;
+    attachments?: any[];
+    items?: InvoiceItem[];
 }
 
-// Filtry operacji finansowych
 export interface FinancialOperationFilters {
     type?: FinancialOperationType;
     direction?: TransactionDirection;
@@ -232,32 +205,31 @@ export interface FinancialOperationFilters {
     visitId?: string;
 }
 
-// Dane podsumowania finansowego
 export interface FinancialSummary {
-    cashBalance: number;              // Aktualny stan kasy
-    totalIncome: number;              // Całkowite przychody
-    totalExpense: number;             // Całkowite wydatki
-    bankAccountBalance: number;       // Stan konta bankowego
-    receivables: number;              // Należności do otrzymania
-    receivablesOverdue: number;       // Przeterminowane należności
-    liabilities: number;              // Zobowiązania do zapłaty
-    liabilitiesOverdue: number;       // Przeterminowane zobowiązania
-    profit: number;                   // Zysk (przychody - koszty)
-    cashFlow: number;                 // Przepływ pieniędzy
-    incomeByMethod: Record<PaymentMethod, number>; // Przychody wg metody płatności
-    expenseByMethod: Record<PaymentMethod, number>; // Wydatki wg metody płatności
-    receivablesByTimeframe: {         // Należności wg terminów
-        current: number;                // Bieżące
-        within30Days: number;           // Do 30 dni
-        within60Days: number;           // 30-60 dni
-        within90Days: number;           // 60-90 dni
-        over90Days: number;             // Ponad 90 dni
+    cashBalance: number;
+    totalIncome: number;
+    totalExpense: number;
+    bankAccountBalance: number;
+    receivables: number;
+    receivablesOverdue: number;
+    liabilities: number;
+    liabilitiesOverdue: number;
+    profit: number;
+    cashFlow: number;
+    incomeByMethod: Record<PaymentMethod, number>;
+    expenseByMethod: Record<PaymentMethod, number>;
+    receivablesByTimeframe: {
+        current: number;
+        within30Days: number;
+        within60Days: number;
+        within90Days: number;
+        over90Days: number;
     };
-    liabilitiesByTimeframe: {         // Zobowiązania wg terminów
-        current: number;                // Bieżące
-        within30Days: number;           // Do 30 dni
-        within60Days: number;           // 30-60 dni
-        within90Days: number;           // 60-90 dni
-        over90Days: number;             // Ponad 90 dni
+    liabilitiesByTimeframe: {
+        current: number;
+        within30Days: number;
+        within60Days: number;
+        within90Days: number;
+        over90Days: number;
     };
 }

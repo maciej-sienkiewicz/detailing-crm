@@ -44,10 +44,6 @@ const secondaryMenuOptions: Record<string, SubMenuItem[]> = {
         { id: 'owners', label: 'Właściciele pojazdów', icon: <FaUsers />, path: '/clients/owners' },
         { id: 'vehicles', label: 'Pojazdy', icon: <FaCog />, path: '/clients/vehicles' }
     ],
-    finances: [
-        { id: 'invoices', label: 'Faktury', icon: <FaRegListAlt />, path: '/finances/invoices' },
-        { id: 'cash', label: 'Gotówka', icon: <FaMoneyBillWave />, path: '/finances/cash' }
-    ],
     warehouse: [
         { id: 'stock', label: 'Stan magazynowy', icon: <FaClipboardList />, path: '/warehouse/stock' },
         { id: 'products', label: 'Produkty', icon: <FaTags />, path: '/warehouse/products' }
