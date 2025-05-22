@@ -3,7 +3,7 @@
 import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
 import {FaCheck, FaTimesCircle, FaTimes, FaPencilAlt, FaTrash, FaLayerGroup} from 'react-icons/fa';
-import {DiscountType, SelectedService} from '../../../../types';
+import {DiscountType, SelectedService, ServiceApprovalStatus} from '../../../../types';
 import {protocolsApi} from '../../../../api/protocolsApi';
 import {useToast} from "../../../../components/common/Toast/Toast";
 
@@ -337,7 +337,8 @@ const InvoiceItemsModal: React.FC<InvoiceItemsModalProps> = ({
             // Zachowujemy referencję do oryginalnych usług
             mergedFrom: originalServices,
             // Pusta notatka zgodnie z wymaganiem
-            note: ''
+            note: '',
+            approvalStatus: ServiceApprovalStatus.APPROVED, // Dodane - od razu zatwierdzona
         };
 
         setEditedServices([mergedService]);

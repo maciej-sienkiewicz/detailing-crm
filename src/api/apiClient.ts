@@ -384,11 +384,9 @@ export const apiClient = {
     createFormDataWithJson: (jsonData: any, jsonFieldName: string = 'data', files?: Record<string, File | File[]>): FormData => {
         const formData = new FormData();
 
-        // Dodajemy dane JSON jako blob
-        const jsonBlob = new Blob([JSON.stringify(convertCamelToSnake(jsonData))], {
-            type: 'application/json'
-        });
-        formData.append(jsonFieldName, jsonBlob);
+        // Zamiast dodawać jako Blob, dodaj jako zwykły string
+        const jsonString = JSON.stringify(convertCamelToSnake(jsonData));
+        formData.append(jsonFieldName, jsonString);
 
         // Dodajemy pliki, jeśli zostały podane
         if (files) {
