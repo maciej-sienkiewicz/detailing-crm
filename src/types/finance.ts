@@ -1,22 +1,26 @@
-export enum InvoiceStatus {
+// src/types/finance.ts - Zaktualizowana wersja
+export enum DocumentStatus {
     NOT_PAID = 'NOT_PAID',
     PAID = 'PAID',
+    PARTIALLY_PAID = 'PARTIALLY_PAID',
     OVERDUE = 'OVERDUE',
     CANCELLED = 'CANCELLED'
 }
 
-export const InvoiceStatusLabels: Record<InvoiceStatus, string> = {
-    [InvoiceStatus.NOT_PAID]: 'Nieopłacona',
-    [InvoiceStatus.PAID]: 'Opłacona',
-    [InvoiceStatus.OVERDUE]: 'Przeterminowana',
-    [InvoiceStatus.CANCELLED]: 'Anulowana'
+export const DocumentStatusLabels: Record<DocumentStatus, string> = {
+    [DocumentStatus.NOT_PAID]: 'Nieopłacone',
+    [DocumentStatus.PAID]: 'Opłacone',
+    [DocumentStatus.PARTIALLY_PAID]: 'Częściowo opłacone',
+    [DocumentStatus.OVERDUE]: 'Przeterminowane',
+    [DocumentStatus.CANCELLED]: 'Anulowane'
 };
 
-export const InvoiceStatusColors: Record<InvoiceStatus, string> = {
-    [InvoiceStatus.NOT_PAID]: '#3498db',
-    [InvoiceStatus.PAID]: '#2ecc71',
-    [InvoiceStatus.OVERDUE]: '#e74c3c',
-    [InvoiceStatus.CANCELLED]: '#95a5a6'
+export const DocumentStatusColors: Record<DocumentStatus, string> = {
+    [DocumentStatus.NOT_PAID]: '#3498db',
+    [DocumentStatus.PAID]: '#2ecc71',
+    [DocumentStatus.PARTIALLY_PAID]: '#f39c12',
+    [DocumentStatus.OVERDUE]: '#e74c3c',
+    [DocumentStatus.CANCELLED]: '#95a5a6'
 };
 
 export enum PaymentMethod {
@@ -35,7 +39,7 @@ export const PaymentMethodLabels: Record<PaymentMethod, string> = {
     [PaymentMethod.OTHER]: 'Inna'
 };
 
-export interface InvoiceAttachment {
+export interface DocumentAttachment {
     id: string;
     name: string;
     size: number;
@@ -45,7 +49,7 @@ export interface InvoiceAttachment {
     file?: File;
 }
 
-export interface InvoiceItem {
+export interface DocumentItem {
     id?: string;
     name: string;
     description?: string;
@@ -56,74 +60,16 @@ export interface InvoiceItem {
     totalGross: number;
 }
 
-export enum InvoiceType {
-    INCOME = 'INCOME',
-    EXPENSE = 'EXPENSE'
-}
-
-export const InvoiceTypeLabels: Record<InvoiceType, string> = {
-    [InvoiceType.INCOME]: 'Przychodowa',
-    [InvoiceType.EXPENSE]: 'Kosztowa'
-};
-
-export interface Invoice {
-    id: string;
-    number: string;
-    title: string;
-    issuedDate: string;
-    dueDate: string;
-    sellerName: string;
-    sellerTaxId?: string;
-    sellerAddress?: string;
-    buyerName: string;
-    buyerTaxId?: string;
-    buyerAddress?: string;
-    status: InvoiceStatus;
-    type: InvoiceType;
-    paymentMethod: PaymentMethod;
-    totalNet: number;
-    totalTax: number;
-    totalGross: number;
-    currency: string;
-    notes?: string;
-    protocolId?: string;
-    protocolNumber?: string;
-    createdAt: string;
-    updatedAt: string;
-    items: InvoiceItem[];
-    attachments: InvoiceAttachment[];
-    paid?: number;
-}
-
-export interface InvoiceFilters {
-    number?: string;
-    title?: string;
-    buyerName?: string;
-    status?: InvoiceStatus;
-    type?: InvoiceType;
-    dateFrom?: string;
-    dateTo?: string;
-    protocolId?: string;
-    minAmount?: number;
-    maxAmount?: number;
-}
-
-export enum FinancialOperationType {
+export enum DocumentType {
     INVOICE = 'INVOICE',
     RECEIPT = 'RECEIPT',
     OTHER = 'OTHER'
 }
 
-export const FinancialOperationTypeLabels: Record<FinancialOperationType, string> = {
-    [FinancialOperationType.INVOICE]: 'Faktura',
-    [FinancialOperationType.RECEIPT]: 'Paragon',
-    [FinancialOperationType.OTHER]: 'Inna operacja'
-};
-
-export const FinancialOperationTypeIcons: Record<FinancialOperationType, string> = {
-    [FinancialOperationType.INVOICE]: 'FaFileInvoiceDollar',
-    [FinancialOperationType.RECEIPT]: 'FaReceipt',
-    [FinancialOperationType.OTHER]: 'FaExchangeAlt'
+export const DocumentTypeLabels: Record<DocumentType, string> = {
+    [DocumentType.INVOICE]: 'Faktura',
+    [DocumentType.RECEIPT]: 'Paragon',
+    [DocumentType.OTHER]: 'Inna operacja'
 };
 
 export enum TransactionDirection {
@@ -141,71 +87,87 @@ export const TransactionDirectionColors: Record<TransactionDirection, string> = 
     [TransactionDirection.EXPENSE]: '#e74c3c'
 };
 
-export enum PaymentStatus {
-    PAID = 'PAID',
-    UNPAID = 'UNPAID',
-    PARTIALLY_PAID = 'PARTIALLY_PAID',
-    OVERDUE = 'OVERDUE'
-}
-
-export const PaymentStatusLabels: Record<PaymentStatus, string> = {
-    [PaymentStatus.PAID]: 'Opłacone',
-    [PaymentStatus.UNPAID]: 'Nieopłacone',
-    [PaymentStatus.PARTIALLY_PAID]: 'Częściowo opłacone',
-    [PaymentStatus.OVERDUE]: 'Przeterminowane'
-};
-
-export const PaymentStatusColors: Record<PaymentStatus, string> = {
-    [PaymentStatus.PAID]: '#2ecc71',
-    [PaymentStatus.UNPAID]: '#3498db',
-    [PaymentStatus.PARTIALLY_PAID]: '#f39c12',
-    [PaymentStatus.OVERDUE]: '#e74c3c'
-};
-
-export interface FinancialOperation {
+// Główny interfejs - zunifikowany dokument finansowy
+export interface UnifiedFinancialDocument {
     id: string;
-    type: FinancialOperationType;
-    documentNumber?: string;
+    number: string; // Numer dokumentu (faktury/paragonu/etc)
+    type: DocumentType; // Typ dokumentu
     title: string;
-    description?: string;
-    date: string;
-    dueDate?: string;
-    direction: TransactionDirection;
+
+    // Daty
+    issuedDate: string; // Data wystawienia
+    dueDate?: string; // Termin płatności (głównie dla faktur)
+
+    // Kontrahenci
+    sellerName: string;
+    sellerTaxId?: string;
+    sellerAddress?: string;
+    buyerName: string;
+    buyerTaxId?: string;
+    buyerAddress?: string;
+
+    // Status i płatność
+    status: DocumentStatus;
+    direction: TransactionDirection; // Przychód/Wydatek
     paymentMethod: PaymentMethod;
-    counterpartyName: string;
-    counterpartyId?: string;
-    amount: number;
-    netAmount?: number;
-    taxAmount?: number;
-    paidAmount?: number;
-    status: PaymentStatus;
+
+    // Kwoty
+    totalNet: number;
+    totalTax: number;
+    totalGross: number;
+    paidAmount?: number; // Kwota zapłacona
     currency: string;
+
+    // Dodatkowe informacje
+    description?: string; // Dodatkowy opis
+    notes?: string; // Uwagi
+
+    // Powiązania
     protocolId?: string;
+    protocolNumber?: string;
     visitId?: string;
-    sourceId: string;
-    sourceType: FinancialOperationType;
+
+    // Metadane
     createdAt: string;
     updatedAt: string;
-    attachments?: any[];
-    items?: InvoiceItem[];
+
+    // Pozycje i załączniki
+    items: DocumentItem[];
+    attachments: DocumentAttachment[];
 }
 
-export interface FinancialOperationFilters {
-    type?: FinancialOperationType;
+export interface UnifiedDocumentFilters {
+    number?: string;
+    title?: string;
+    buyerName?: string;
+    sellerName?: string;
+    status?: DocumentStatus;
+    type?: DocumentType;
     direction?: TransactionDirection;
-    status?: PaymentStatus;
     paymentMethod?: PaymentMethod;
     dateFrom?: string;
     dateTo?: string;
-    minAmount?: number;
-    maxAmount?: number;
-    counterpartyName?: string;
-    documentNumber?: string;
     protocolId?: string;
     visitId?: string;
+    minAmount?: number;
+    maxAmount?: number;
 }
 
-export interface FinancialSummary {
+// Dla kompatybilności wstecznej - aliasy
+export type Invoice = UnifiedFinancialDocument;
+export type InvoiceStatus = DocumentStatus;
+export const InvoiceStatus = DocumentStatus;
+export const InvoiceStatusLabels = DocumentStatusLabels;
+export const InvoiceStatusColors = DocumentStatusColors;
+export type InvoiceType = TransactionDirection;
+export const InvoiceType = TransactionDirection;
+export const InvoiceTypeLabels = TransactionDirectionLabels;
+export type InvoiceItem = DocumentItem;
+export type InvoiceAttachment = DocumentAttachment;
+export type InvoiceFilters = UnifiedDocumentFilters;
+
+// Typy dla API
+export interface UnifiedDocumentSummary {
     cashBalance: number;
     totalIncome: number;
     totalExpense: number;
@@ -233,3 +195,6 @@ export interface FinancialSummary {
         over90Days: number;
     };
 }
+
+// Dla kompatybilności wstecznej
+export type FinancialSummary = UnifiedDocumentSummary;

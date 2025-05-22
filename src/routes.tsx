@@ -13,10 +13,7 @@ import ActivityFeedPage from "./pages/ActivityFeed/ActivityFeedPage";
 import ProtocolDetailsPage from "./pages/Protocols/details/ProtocolDetailsPage";
 import StartVisitPage from "./pages/Protocols/start-visit/StartVisitPage";
 import CalendarColorsPage from "./pages/Settings/CalendarColorsPage";
-import InvoicesPage from "./pages/Finances/InvoicesPage";
-import FinancialSummaryPage from "./pages/Finances/FinancialSummaryPage";
 import MailPage from "./pages/Mail/MailPage";
-import CashPage from "./pages/Finances/CashPage";
 import ModernLoginPage from './pages/Auth/LoginPage';
 import OnboardingPage from './pages/Auth/OnboardingPage';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -32,6 +29,7 @@ import FleetRentalDetailsPage from "./pages/Fleet/FleetRentalDetailsPage";
 import FleetRentalFormPage from "./pages/Fleet/FleetRentalFormPage";
 import FleetCalendarPage from "./pages/Fleet/FleetCalendarPage";
 import FinancialFlowPage from "./pages/Finances/FinancialFlowPage";
+import UnifiedFinancialPage from "./pages/Finances/UnifiedFinancialPage";
 
 // Tymczasowe komponenty dla innych stron - do zastąpienia rzeczywistymi implementacjami
 const PlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
@@ -60,7 +58,7 @@ const AppRoutes: React.FC = () => {
                 <Route path="/activity" element={<ActivityFeedPage />} />
 
                 {/* Ścieżki finansowe */}
-                <Route path="/finances" element={<FinancialFlowPage />} />
+                <Route path="/finances" element={<UnifiedFinancialPage />} />
 
                 {/* Strona poczty - nowy moduł */}
                 <Route path="/mail" element={<MailPage />} />
