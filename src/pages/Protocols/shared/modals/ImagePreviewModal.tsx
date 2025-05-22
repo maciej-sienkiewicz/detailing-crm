@@ -22,65 +22,37 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
                                                              }) => {
     const [activeIndex, setActiveIndex] = useState(currentImageIndex);
     const [loading, setLoading] = useState(false);
-    // Nowy stan do przechowywania URL-i obrazów
-    const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
-
-    useEffect(() => {
-        if (!isOpen) return;
-
-        const fetchImages = async () => {
-            console.log('ImagePreviewModal - Fetching images, count:',
-                images.filter(img => !img.id.startsWith('temp_') && !imageUrls[img.id]).length);
-            console.log('Auth token present:', !!apiClient.getAuthToken());
-
-            setLoading(true);
-
-            try {
-                // Pobieramy tylko obrazy, które nie są tymczasowe i nie są jeszcze załadowane
-                const imagesToFetch = images
-                    .filter(img => !img.id.startsWith('temp_') && !imageUrls[img.id]);
-
-                if (imagesToFetch.length === 0) {
-                    setLoading(false);
-                    return;
-                }
-
-                // Reszta kodu bez zmian...
-            } catch (error) {
-                console.error('Błąd podczas pobierania obrazów:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchImages();
-    }, [isOpen, images]);
+    // Nowy stan do przechowywania URL-i obrazów - tylko dla obrazów z serwera
+    const [serverImageUrls, setServerImageUrls] = useState<Record<string, string>>({});
 
     // Ustaw początkowy indeks obrazu przy otwarciu
     useEffect(() => {
         setActiveIndex(currentImageIndex);
     }, [currentImageIndex, isOpen]);
 
-    // Pobieranie obrazów z autoryzacją
+    // Pobieranie obrazów z autoryzacją - TYLKO dla obrazów z serwera
     useEffect(() => {
         if (!isOpen) return;
 
-        const fetchImages = async () => {
+        const fetchServerImages = async () => {
             setLoading(true);
 
             try {
-                // Pobieramy tylko obrazy, które nie są tymczasowe i nie są jeszcze załadowane
-                const imagesToFetch = images
-                    .filter(img => !img.id.startsWith('temp_') && !imageUrls[img.id]);
+                // Pobieramy tylko obrazy z serwera (nie lokalne blob/temp)
+                const serverImages = images.filter(img =>
+                    !img.id.startsWith('temp_') &&
+                    !img.id.startsWith('img_') &&
+                    !serverImageUrls[img.id] &&
+                    (!img.url || !img.url.startsWith('blob:'))
+                );
 
-                if (imagesToFetch.length === 0) {
+                if (serverImages.length === 0) {
                     setLoading(false);
                     return;
                 }
 
-                const fetchPromises = imagesToFetch.map(async (image) => {
+                const fetchPromises = serverImages.map(async (image) => {
                     try {
-                        // Używamy funkcji z API do pobrania URL obrazu z autoryzacją
                         const imageUrl = await carReceptionApi.fetchVehicleImageAsUrl(image.id);
                         return { id: image.id, url: imageUrl };
                     } catch (error) {
@@ -97,7 +69,7 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
                     return acc;
                 }, {} as Record<string, string>);
 
-                setImageUrls(prev => ({
+                setServerImageUrls(prev => ({
                     ...prev,
                     ...newUrls
                 }));
@@ -108,14 +80,13 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
             }
         };
 
-        fetchImages();
+        fetchServerImages();
     }, [isOpen, images]);
 
-    // Zwolnienie zasobów przy zamknięciu modalu
+    // Zwolnienie zasobów przy zamknięciu modalu - TYLKO dla URL-i pobranych z serwera
     useEffect(() => {
-        // Funkcja czyszcząca URL-e podczas odmontowywania komponentu
         return () => {
-            Object.values(imageUrls).forEach(url => {
+            Object.values(serverImageUrls).forEach(url => {
                 if (url && url.startsWith('blob:')) {
                     URL.revokeObjectURL(url);
                 }
@@ -125,11 +96,20 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
 
     // Funkcja do pobierania prawidłowego URL obrazu
     const getImageUrl = (image: VehicleImage): string => {
-        // Jeśli obraz ma lokalny URL (np. tymczasowy), użyj go
-        if (image.url && image.id.startsWith('temp_')) return image.url;
+        // Jeśli obraz ma lokalny URL (np. tymczasowy), użyj go bezpośrednio
+        if (image.url && (
+            image.url.startsWith('blob:') ||
+            image.url.startsWith('data:') ||
+            image.id.startsWith('temp_') ||
+            image.id.startsWith('img_')
+        )) {
+            return image.url;
+        }
 
-        // Jeśli mamy pobrany URL dla tego obrazu, użyj go
-        if (imageUrls[image.id]) return imageUrls[image.id];
+        // Jeśli mamy pobrany URL dla tego obrazu z serwera, użyj go
+        if (serverImageUrls[image.id]) {
+            return serverImageUrls[image.id];
+        }
 
         // Bez URL zwracamy pusty string
         return '';
@@ -172,6 +152,9 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
         }
     };
 
+    const currentImageUrl = getImageUrl(currentImage);
+    const isLoadingCurrentImage = !currentImageUrl && loading;
+
     return (
         <ModalOverlay>
             <ModalContainer>
@@ -186,14 +169,14 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
                         </NavigationButton>
 
                         <ImageContainer>
-                            {loading ? (
+                            {isLoadingCurrentImage ? (
                                 <LoadingContainer>
                                     <FaSpinner />
                                     <span>Ładowanie...</span>
                                 </LoadingContainer>
-                            ) : getImageUrl(currentImage) ? (
+                            ) : currentImageUrl ? (
                                 <LargeImage
-                                    src={getImageUrl(currentImage)}
+                                    src={currentImageUrl}
                                     alt={currentImage.name || `Zdjęcie ${activeIndex + 1}`}
                                 />
                             ) : (
@@ -222,7 +205,7 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
                             </TagsContainer>
                         )}
 
-                        {onDelete && !currentImage.id.startsWith('temp_') && (
+                        {onDelete && !currentImage.id.startsWith('temp_') && !currentImage.id.startsWith('img_') && (
                             <DeleteButton onClick={handleDeleteImage}>
                                 <FaTrash /> Usuń zdjęcie
                             </DeleteButton>
@@ -233,24 +216,27 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
                 {/* Miniatury */}
                 {images.length > 1 && (
                     <ThumbnailsContainer>
-                        {images.map((image, index) => (
-                            <Thumbnail
-                                key={image.id || index}
-                                active={index === activeIndex}
-                                onClick={() => setActiveIndex(index)}
-                            >
-                                {getImageUrl(image) ? (
-                                    <ThumbnailImage
-                                        src={getImageUrl(image)}
-                                        alt={image.name || `Zdjęcie ${index + 1}`}
-                                    />
-                                ) : (
-                                    <ThumbnailPlaceholder>
-                                        <FaImage size={16} />
-                                    </ThumbnailPlaceholder>
-                                )}
-                            </Thumbnail>
-                        ))}
+                        {images.map((image, index) => {
+                            const thumbnailUrl = getImageUrl(image);
+                            return (
+                                <Thumbnail
+                                    key={image.id || index}
+                                    active={index === activeIndex}
+                                    onClick={() => setActiveIndex(index)}
+                                >
+                                    {thumbnailUrl ? (
+                                        <ThumbnailImage
+                                            src={thumbnailUrl}
+                                            alt={image.name || `Zdjęcie ${index + 1}`}
+                                        />
+                                    ) : (
+                                        <ThumbnailPlaceholder>
+                                            <FaImage size={16} />
+                                        </ThumbnailPlaceholder>
+                                    )}
+                                </Thumbnail>
+                            );
+                        })}
                     </ThumbnailsContainer>
                 )}
             </ModalContainer>
@@ -458,7 +444,7 @@ const DeleteButton = styled.button`
     font-size: 13px;
     cursor: pointer;
     margin-top: 15px;
-    
+
     &:hover {
         background-color: #fbdbd9;
     }
@@ -478,11 +464,11 @@ const LoadingContainer = styled.div`
     justify-content: center;
     gap: 15px;
     color: #3498db;
-    
+
     svg {
         animation: spin 1s linear infinite;
     }
-    
+
     @keyframes spin {
         from { transform: rotate(0deg); }
         to { transform: rotate(360deg); }

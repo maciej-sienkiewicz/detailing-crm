@@ -25,26 +25,33 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
     const [editModalOpen, setEditModalOpen] = useState(false);
     const [editingImageIndex, setEditingImageIndex] = useState(-1);
 
+    // Mapa do przechowywania URL-i blob dla każdego zdjęcia
+    const [blobUrls, setBlobUrls] = useState<Map<string, string>>(new Map());
+
     // Maksymalny rozmiar pliku (25MB)
     const MAX_FILE_SIZE = 25 * 1024 * 1024;
 
-    // Funkcja do generowania URL zdjęcia
+    // Funkcja do generowania URL zdjęcia z lepszym zarządzaniem blob URLs
     const getImageUrl = (image: VehicleImage): string => {
-        // Dla lokalnych zdjęć (blobURL)
-
-        if (image.url && image.url.startsWith('blob:')) {
-            return image.url;
-        }
-
         // Dla zdjęć z serwera
-        if (image.id) {
+        if (image.id && !image.id.startsWith('temp_') && !image.id.startsWith('img_')) {
             if (image.url && !image.url.startsWith('blob:')) {
                 return image.url; // Jeśli url jest już prawidłowo ustawiony
             }
-
             // Konstruujemy URL do API
             const baseUrl = apiClient.getBaseUrl();
             return `${baseUrl}/receptions/image/${image.id}`;
+        }
+
+        // Dla lokalnych zdjęć sprawdź czy mamy zapisany blob URL
+        if (blobUrls.has(image.id)) {
+            return blobUrls.get(image.id)!;
+        }
+
+        // Jeśli jest to lokalny blob URL w image.url, użyj go i zapisz w mapie
+        if (image.url && image.url.startsWith('blob:')) {
+            setBlobUrls(prev => new Map(prev).set(image.id, image.url!));
+            return image.url;
         }
 
         return ''; // Fallback dla nieprawidłowych danych
@@ -54,7 +61,7 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
     const handleAddImages = (event: React.ChangeEvent<HTMLInputElement> | React.DragEvent<HTMLDivElement>) => {
         // Zapobiega domyślnej akcji przeglądarki, która może powodować przesłanie formularza
         event.preventDefault();
-        event.stopPropagation(); // Dodane, aby powstrzymać zdarzenie przed propagacją do formularza
+        event.stopPropagation();
 
         // Pobierz pliki z odpowiedniego źródła zdarzenia
         const files = event instanceof DragEvent
@@ -82,26 +89,34 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
 
         // Konwertuje pliki na obiekt VehicleImage
         const newImages: VehicleImage[] = [];
+        const newBlobUrls = new Map(blobUrls);
 
         filesArray.forEach(file => {
             // Tworzy URL do podglądu obrazu
             const imageUrl = URL.createObjectURL(file);
+            const imageId = `img_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
+            // Zapisz blob URL w mapie
+            newBlobUrls.set(imageId, imageUrl);
 
             // Przygotuj nazwę - usunięcie rozszerzenia pliku
             const fileNameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
 
             // Dodaje nowy obraz do tablicy
             newImages.push({
-                id: `img_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+                id: imageId,
                 url: imageUrl,
-                name: fileNameWithoutExt, // Użyj nazwy bez rozszerzenia jako początkowej nazwy
+                name: fileNameWithoutExt,
                 size: file.size,
                 type: file.type,
                 createdAt: new Date().toISOString(),
-                tags: [], // Inicjalizuj pustą tablicę tagów
-                file: file // Dodajemy referencję do oryginalnego pliku
+                tags: [],
+                file: file
             });
         });
+
+        // Aktualizuj mapy blob URLs
+        setBlobUrls(newBlobUrls);
 
         // Otwórz modal edycji informacji dla pierwszego nowo dodanego zdjęcia
         if (newImages.length > 0) {
@@ -124,7 +139,18 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
 
         const imageToRemove = images.find(img => img.id === imageId);
 
-        // Jeśli to jest blobURL, zwalniamy zasoby przeglądarki
+        // Zwolnij blob URL jeśli istnieje w mapie
+        if (blobUrls.has(imageId)) {
+            const blobUrl = blobUrls.get(imageId)!;
+            URL.revokeObjectURL(blobUrl);
+            setBlobUrls(prev => {
+                const newMap = new Map(prev);
+                newMap.delete(imageId);
+                return newMap;
+            });
+        }
+
+        // Jeśli to jest blobURL w image.url, również go zwolnij
         if (imageToRemove && imageToRemove.url && imageToRemove.url.startsWith('blob:')) {
             URL.revokeObjectURL(imageToRemove.url);
         }
@@ -135,7 +161,6 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
 
     // Obsługuje kliknięcie w przycisk "Dodaj zdjęcie"
     const handleUploadClick = (e: React.MouseEvent) => {
-        // Zapobiega domyślnej akcji przeglądarki
         e.preventDefault();
         e.stopPropagation();
 
@@ -146,7 +171,6 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
 
     // Obsługuje kliknięcie w przycisk "Zrób zdjęcie"
     const handleCameraClick = (e: React.MouseEvent) => {
-        // Zapobiega domyślnej akcji przeglądarki
         e.preventDefault();
         e.stopPropagation();
 
@@ -165,15 +189,14 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
 
     // Obsługuje otwieranie modalu edycji informacji o zdjęciu
     const handleEditImage = (index: number, e: React.MouseEvent) => {
-        e.stopPropagation(); // Zatrzymuje propagację, żeby nie otworzyć modalu podglądu
-        e.preventDefault(); // Zatrzymaj domyślną akcję formularza
+        e.stopPropagation();
+        e.preventDefault();
         setEditingImageIndex(index);
         setEditModalOpen(true);
     };
 
     // Obsługuje zapisanie zmienionych informacji o zdjęciu
     const handleSaveImageInfo = (newName: string, newTags: string[], e?: React.MouseEvent) => {
-        // Zatrzymaj zdarzenie, jeśli zostało przekazane
         if (e) {
             e.preventDefault();
             e.stopPropagation();
@@ -188,7 +211,6 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
             };
             onImagesChange(updatedImages);
 
-            // Wyraźnie zamykamy modal edycji po zapisaniu
             setEditModalOpen(false);
             setEditingImageIndex(-1);
         }
@@ -227,6 +249,16 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
         e.stopPropagation();
         handleAddImages(e);
     };
+
+    // Czyszczenie blob URLs przy unmount komponentu
+    React.useEffect(() => {
+        return () => {
+            // Zwolnij wszystkie blob URLs przy odmontowywaniu komponentu
+            blobUrls.forEach(url => {
+                URL.revokeObjectURL(url);
+            });
+        };
+    }, []);
 
     return (
         <SectionContainer>
@@ -329,7 +361,7 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
             <ImagePreviewModal
                 isOpen={previewModalOpen}
                 onClose={() => setPreviewModalOpen(false)}
-                images={images}
+                images={images.map(img => ({ ...img, url: getImageUrl(img) }))} // Zapewniamy aktualne URL-e
                 currentImageIndex={previewImageIndex}
                 onDelete={handleRemoveImage}
             />
@@ -338,7 +370,10 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
             {editingImageIndex >= 0 && editingImageIndex < images.length && (
                 <ImageEditModal
                     isOpen={editModalOpen}
-                    onClose={() => setEditModalOpen(false)}
+                    onClose={() => {
+                        setEditModalOpen(false);
+                        setEditingImageIndex(-1);
+                    }}
                     onSave={handleSaveImageInfo}
                     initialName={images[editingImageIndex].name || ''}
                     initialTags={images[editingImageIndex].tags || []}

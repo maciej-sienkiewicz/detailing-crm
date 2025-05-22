@@ -26,6 +26,7 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({
     const [newTag, setNewTag] = useState('');
     const [loading, setLoading] = useState(false);
     const [imageUrlWithAuth, setImageUrlWithAuth] = useState<string>('');
+    const [temporaryBlobUrl, setTemporaryBlobUrl] = useState<string | null>(null);
 
     // Ustaw początkowe wartości przy otwarciu
     useEffect(() => {
@@ -43,14 +44,11 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({
         // Sprawdź, czy URL jest już lokalnym blobem, data URL lub jeśli jest to temp_
         if (imageUrl.startsWith('blob:') ||
             imageUrl.startsWith('data:') ||
-            imageUrl.includes('temp_')) {
+            imageUrl.includes('temp_') ||
+            imageUrl.includes('img_')) {
             setImageUrlWithAuth(imageUrl);
             return;
         }
-
-        // Dodajmy logowanie dla debugowania
-        console.log('ImageEditModal - Parsing image URL:', imageUrl);
-        console.log('Auth token present:', !!apiClient.getAuthToken());
 
         // Parsuj URL, aby wyodrębnić ID obrazu
         const fetchImage = async () => {
@@ -64,6 +62,7 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({
                     // Zamiast używać bezpośredniego URL, użyj funkcji fetchVehicleImageAsUrl
                     const authUrl = await carReceptionApi.fetchVehicleImageAsUrl(imageId);
                     setImageUrlWithAuth(authUrl);
+                    setTemporaryBlobUrl(authUrl); // Zapisz jako tymczasowy blob URL
                 } else {
                     // Jeśli nie można wyodrębnić ID, użyj oryginalnego URL
                     console.warn('Nie można wyodrębnić ID obrazu z URL:', imageUrl);
@@ -80,14 +79,26 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({
         fetchImage();
     }, [isOpen, imageUrl]);
 
-    // Zwolnij zasoby przy zamknięciu modalu
+    // Zwolnij zasoby TYLKO dla tymczasowych blob URLs stworzonych w tym komponencie
     useEffect(() => {
         return () => {
-            if (imageUrlWithAuth && imageUrlWithAuth.startsWith('blob:')) {
-                URL.revokeObjectURL(imageUrlWithAuth);
+            // Zwolnij TYLKO tymczasowe blob URL stworzone w tym komponencie
+            if (temporaryBlobUrl && temporaryBlobUrl.startsWith('blob:')) {
+                URL.revokeObjectURL(temporaryBlobUrl);
             }
         };
-    }, [imageUrlWithAuth]);
+    }, [temporaryBlobUrl]);
+
+    // Resetuj stan przy zamknięciu modalu
+    useEffect(() => {
+        if (!isOpen) {
+            setImageUrlWithAuth('');
+            if (temporaryBlobUrl && temporaryBlobUrl.startsWith('blob:')) {
+                URL.revokeObjectURL(temporaryBlobUrl);
+                setTemporaryBlobUrl(null);
+            }
+        }
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
@@ -108,6 +119,7 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
+            e.preventDefault(); // Zapobiega wysłaniu formularza
             handleAddTag();
         }
     };
@@ -155,7 +167,7 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({
                                 onKeyDown={handleKeyDown}
                                 placeholder="Dodaj tag i naciśnij Enter"
                             />
-                            <AddTagButton onClick={handleAddTag}>
+                            <AddTagButton type="button" onClick={handleAddTag}>
                                 <FaPlus />
                             </AddTagButton>
                         </TagInputContainer>
@@ -395,7 +407,7 @@ const SaveButton = styled(Button)`
     background-color: #3498db;
     color: white;
     border: 1px solid #3498db;
-    
+
     &:hover {
         background-color: #2980b9;
         border-color: #2980b9;

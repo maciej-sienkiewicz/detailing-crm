@@ -20,15 +20,18 @@ export const pdfService = {
      */
     fetchPdfAsBlob: async (protocolId: string): Promise<string> => {
         try {
-            const pdfUrl = pdfService.getProtocolPdfUrl(protocolId);
+            const endpoint = `/printer/protocol/${protocolId}/pdf`;
 
             // Dodajemy timestamp jako query param, aby uniknąć cachowania
-            const urlWithTimestamp = `${pdfUrl}?t=${new Date().getTime()}`;
+            const queryParams = { t: new Date().getTime().toString() };
 
-            const response = await fetch(urlWithTimestamp, {
+            // Używamy apiClient do wykonania żądania z automatyczną autoryzacją
+            const response = await fetch(`${apiClient.getBaseUrl()}${endpoint}?t=${queryParams.t}`, {
                 method: 'GET',
-                headers: {},
-                // Ustawiamy credentials, aby ciasteczka sesyjne były przesyłane
+                headers: {
+                    'Accept': 'application/pdf',
+                    ...(apiClient.getAuthToken() ? { 'Authorization': `Bearer ${apiClient.getAuthToken()}` } : {})
+                },
                 credentials: 'include'
             });
 
@@ -52,10 +55,17 @@ export const pdfService = {
      *
      * @param protocolId - ID protokołu
      */
-    openPdfInNewTab: (protocolId: string): void => {
-        const pdfUrl = pdfService.getProtocolPdfUrl(protocolId);
-        const urlWithTimestamp = `${pdfUrl}?t=${new Date().getTime()}`;
-        window.open(urlWithTimestamp, '_blank');
+    openPdfInNewTab: async (protocolId: string): Promise<void> => {
+        try {
+            // Najpierw pobierz PDF jako Blob z autoryzacją
+            const blobUrl = await pdfService.fetchPdfAsBlob(protocolId);
+
+            // Otwórz PDF w nowej karcie
+            window.open(blobUrl, '_blank');
+        } catch (error) {
+            console.error('Błąd podczas otwierania PDF w nowej karcie:', error);
+            throw error;
+        }
     },
 
     /**
@@ -65,7 +75,7 @@ export const pdfService = {
      */
     printProtocolPdf: async (protocolId: string): Promise<void> => {
         try {
-            // Najpierw pobierz PDF jako Blob
+            // Najpierw pobierz PDF jako Blob z autoryzacją
             const blobUrl = await pdfService.fetchPdfAsBlob(protocolId);
 
             // Otwórz okno z PDF i wydrukuj
@@ -83,6 +93,65 @@ export const pdfService = {
             }
         } catch (error) {
             console.error('Błąd podczas drukowania:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Alternatywna metoda pobierania PDF używająca apiClient bezpośrednio
+     * (dla przypadków gdy potrzebujemy bardziej zaawansowanej obsługi błędów)
+     *
+     * @param protocolId - ID protokołu
+     * @returns Promise z URL do podglądu PDF-a
+     */
+    fetchPdfWithApiClient: async (protocolId: string): Promise<string> => {
+        try {
+            const endpoint = `/printer/protocol/${protocolId}/pdf`;
+
+            // Używamy bezpośrednio fetch z konfiguracją apiClient
+            const response = await fetch(`${apiClient.getBaseUrl()}${endpoint}?t=${new Date().getTime()}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/pdf',
+                    'Content-Type': 'application/json',
+                    ...(apiClient.getAuthToken() ? { 'Authorization': `Bearer ${apiClient.getAuthToken()}` } : {})
+                },
+                credentials: 'include'
+            });
+
+            // Używamy tej samej obsługi błędów co w apiClient
+            if (!response.ok) {
+                if (response.status === 401) {
+                    throw new Error('Unauthorized access - brak autoryzacji');
+                }
+                if (response.status === 403) {
+                    throw new Error('Access forbidden - brak uprawnień');
+                }
+                if (response.status === 404) {
+                    throw new Error('Protokół nie został znaleziony');
+                }
+
+                // Próba uzyskania informacji o błędzie z odpowiedzi JSON
+                try {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || `HTTP error ${response.status}`);
+                } catch (e) {
+                    throw new Error(`HTTP error ${response.status}`);
+                }
+            }
+
+            // Pobieramy odpowiedź jako Blob
+            const blob = await response.blob();
+
+            // Sprawdzamy czy rzeczywiście otrzymaliśmy PDF
+            if (blob.type !== 'application/pdf' && !blob.type.includes('pdf')) {
+                console.warn('Otrzymano blob o typie:', blob.type);
+            }
+
+            // Tworzymy tymczasowy URL dla Bloba
+            return URL.createObjectURL(blob);
+        } catch (error) {
+            console.error('Błąd podczas pobierania PDF przez apiClient:', error);
             throw error;
         }
     }
