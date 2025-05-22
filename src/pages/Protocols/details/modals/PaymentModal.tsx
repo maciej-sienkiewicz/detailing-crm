@@ -16,6 +16,8 @@ interface PaymentModalProps {
     }) => void;
     totalAmount: number;
     services: SelectedService[];
+    onServicesChange: (services: SelectedService[]) => void; // Callback do aktualizacji usług
+    protocolId: string; // Dodany parametr ID protokołu
 }
 
 const PaymentModal: React.FC<PaymentModalProps> = ({
@@ -23,7 +25,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                                                        onClose,
                                                        onConfirm,
                                                        totalAmount: initialTotalAmount,
-                                                       services
+                                                       services,
+                                                       onServicesChange,
+                                                       protocolId
                                                    }) => {
     const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card'>('cash');
     const [documentType, setDocumentType] = useState<'invoice' | 'receipt' | 'other'>('receipt');
@@ -61,6 +65,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         setModifiedTotalAmount(newTotal);
 
         setShowInvoiceItemsModal(false);
+
+        // Wywołujemy callback do aktualizacji usług w protokole
+        onServicesChange(items);
 
         // Jeśli suma różni się od oryginalnej kwoty, pokaż informacyjną wiadomość
         if (Math.abs(newTotal - initialTotalAmount) > 0.01) {
@@ -209,12 +216,13 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 </ModalFooter>
             </ModalContainer>
 
-            {/* Modal do edycji pozycji faktury */}
+            {/* Modal do edycji pozycji faktury - przekazujemy protocolId */}
             <InvoiceItemsModal
                 isOpen={showInvoiceItemsModal}
                 onClose={() => setShowInvoiceItemsModal(false)}
                 onSave={handleInvoiceItemsSave}
                 services={customInvoiceItems || services}
+                protocolId={protocolId}
             />
         </ModalOverlay>
     );

@@ -327,11 +327,9 @@ const ProtocolDetailsPage: React.FC = () => {
                 setProtocol(result);
 
                 // Opcjonalnie pokaż powiadomienie o sukcesie
-                showToast?.('success', 'Zapisano zmiany w pozycjach faktury', 3000);
             }
         } catch (error) {
             console.error('Błąd podczas aktualizacji protokołu:', error);
-            showToast?.('error', 'Wystąpił błąd podczas zapisywania zmian', 3000);
 
             // Przywracamy poprzedni stan w przypadku błędu
             setProtocol(protocol);
@@ -494,7 +492,8 @@ const ProtocolDetailsPage: React.FC = () => {
                 onConfirm={handlePaymentConfirm}
                 totalAmount={protocol?.selectedServices.reduce((sum, s) => sum + s.finalPrice, 0) || 0}
                 services={protocol?.selectedServices || []}
-                onServicesChange={handleServiceItemsChange} // Nowy prop
+                onServicesChange={handleServiceItemsChange}
+                protocolId={protocol.id} // Dodajemy ID protokołu
             />
 
             {/* PDF Preview Modal */}
