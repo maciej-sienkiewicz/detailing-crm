@@ -28,7 +28,6 @@ import FleetRentalsPage from "./pages/Fleet/FleetRentalsPage";
 import FleetRentalDetailsPage from "./pages/Fleet/FleetRentalDetailsPage";
 import FleetRentalFormPage from "./pages/Fleet/FleetRentalFormPage";
 import FleetCalendarPage from "./pages/Fleet/FleetCalendarPage";
-import FinancialFlowPage from "./pages/Finances/FinancialFlowPage";
 import UnifiedFinancialPage from "./pages/Finances/UnifiedFinancialPage";
 
 // Tymczasowe komponenty dla innych stron - do zastąpienia rzeczywistymi implementacjami
