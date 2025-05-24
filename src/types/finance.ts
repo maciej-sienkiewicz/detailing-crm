@@ -2,23 +2,20 @@
 export enum DocumentStatus {
     NOT_PAID = 'NOT_PAID',
     PAID = 'PAID',
-    PARTIALLY_PAID = 'PARTIALLY_PAID',
     OVERDUE = 'OVERDUE',
     CANCELLED = 'CANCELLED'
 }
 
 export const DocumentStatusLabels: Record<DocumentStatus, string> = {
-    [DocumentStatus.NOT_PAID]: 'Nieopłacone',
-    [DocumentStatus.PAID]: 'Opłacone',
-    [DocumentStatus.PARTIALLY_PAID]: 'Częściowo opłacone',
-    [DocumentStatus.OVERDUE]: 'Przeterminowane',
-    [DocumentStatus.CANCELLED]: 'Anulowane'
+    [DocumentStatus.NOT_PAID]: 'Nieopłacona',
+    [DocumentStatus.PAID]: 'Opłacona',
+    [DocumentStatus.OVERDUE]: 'Przeterminowana',
+    [DocumentStatus.CANCELLED]: 'Anulowana'
 };
 
 export const DocumentStatusColors: Record<DocumentStatus, string> = {
     [DocumentStatus.NOT_PAID]: '#3498db',
     [DocumentStatus.PAID]: '#2ecc71',
-    [DocumentStatus.PARTIALLY_PAID]: '#f39c12',
     [DocumentStatus.OVERDUE]: '#e74c3c',
     [DocumentStatus.CANCELLED]: '#95a5a6'
 };
@@ -115,7 +112,6 @@ export interface UnifiedFinancialDocument {
     totalNet: number;
     totalTax: number;
     totalGross: number;
-    paidAmount?: number; // Kwota zapłacona
     currency: string;
 
     // Dodatkowe informacje

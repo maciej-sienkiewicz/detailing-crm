@@ -110,6 +110,15 @@ const UnifiedDocumentForm: React.FC<UnifiedDocumentFormProps> = ({
 
             return updated;
         });
+
+        // Jeśli nie ma jeszcze pozycji, dodaj jedną domyślną
+        if (items.length === 0) {
+            const newItem = {
+                ...emptyItem,
+                id: `temp-${Date.now()}`
+            };
+            setItems([newItem]);
+        }
     };
 
     // Obsługa dodawania nowej pozycji
@@ -297,9 +306,9 @@ const UnifiedDocumentForm: React.FC<UnifiedDocumentFormProps> = ({
             errors.buyerName = 'Nazwa kontrahenta jest wymagana';
         }
 
-        // Dla faktur wymagamy pozycji
-        if (formData.type === DocumentType.INVOICE && items.length === 0) {
-            errors.items = 'Faktura musi zawierać co najmniej jedną pozycję';
+        // Wszystkie typy dokumentów muszą mieć pozycje
+        if (items.length === 0) {
+            errors.items = 'Dokument musi zawierać co najmniej jedną pozycję';
         }
 
         // Sprawdzamy pozycje
@@ -365,6 +374,17 @@ const UnifiedDocumentForm: React.FC<UnifiedDocumentFormProps> = ({
                 return <FaFileInvoiceDollar />;
         }
     };
+
+    // Inicjalizacja pozycji przy pierwszym renderowaniu
+    React.useEffect(() => {
+        if (items.length === 0 && !document) {
+            const newItem = {
+                ...emptyItem,
+                id: `temp-${Date.now()}`
+            };
+            setItems([newItem]);
+        }
+    }, []);
 
     return (
         <FormContainer>
@@ -555,43 +575,6 @@ const UnifiedDocumentForm: React.FC<UnifiedDocumentFormProps> = ({
 
                 <FormSectionRow>
                     <FormSection flex={1}>
-                        <SectionTitle>Sprzedawca</SectionTitle>
-                        <FormGrid columns={1}>
-                            <FormGroup>
-                                <Label htmlFor="sellerName">Nazwa sprzedawcy*</Label>
-                                <Input
-                                    id="sellerName"
-                                    name="sellerName"
-                                    value={formData.sellerName || ''}
-                                    onChange={handleChange}
-                                    required
-                                />
-                            </FormGroup>
-
-                            <FormGroup>
-                                <Label htmlFor="sellerTaxId">NIP</Label>
-                                <Input
-                                    id="sellerTaxId"
-                                    name="sellerTaxId"
-                                    value={formData.sellerTaxId || ''}
-                                    onChange={handleChange}
-                                />
-                            </FormGroup>
-
-                            <FormGroup>
-                                <Label htmlFor="sellerAddress">Adres</Label>
-                                <Textarea
-                                    id="sellerAddress"
-                                    name="sellerAddress"
-                                    value={formData.sellerAddress || ''}
-                                    onChange={handleChange}
-                                    rows={3}
-                                />
-                            </FormGroup>
-                        </FormGrid>
-                    </FormSection>
-
-                    <FormSection flex={1}>
                         <SectionTitle>Nabywca</SectionTitle>
                         <FormGrid columns={1}>
                             <FormGroup>
@@ -630,131 +613,129 @@ const UnifiedDocumentForm: React.FC<UnifiedDocumentFormProps> = ({
                     </FormSection>
                 </FormSectionRow>
 
-                {/* Pozycje - tylko dla faktur */}
-                {formData.type === DocumentType.INVOICE && (
-                    <FormSection>
-                        <SectionTitleRow>
-                            <SectionTitle>Pozycje dokumentu</SectionTitle>
-                            <AddItemButton type="button" onClick={handleAddItem}>
-                                <FaPlus />
-                                <span>Dodaj pozycję</span>
-                            </AddItemButton>
-                        </SectionTitleRow>
+                {/* Pozycje - dla wszystkich typów dokumentów */}
+                <FormSection>
+                    <SectionTitleRow>
+                        <SectionTitle>Pozycje dokumentu</SectionTitle>
+                        <AddItemButton type="button" onClick={handleAddItem}>
+                            <FaPlus />
+                            <span>Dodaj pozycję</span>
+                        </AddItemButton>
+                    </SectionTitleRow>
 
-                        {formErrors.items && <ErrorText>{formErrors.items}</ErrorText>}
+                    {formErrors.items && <ErrorText>{formErrors.items}</ErrorText>}
 
-                        <ItemsTable>
-                            <thead>
+                    <ItemsTable>
+                        <thead>
+                        <tr>
+                            <th>Nazwa</th>
+                            <th>Opis</th>
+                            <th>Ilość</th>
+                            <th>Cena jedn. netto</th>
+                            <th>VAT %</th>
+                            <th>Wartość netto</th>
+                            <th>Wartość brutto</th>
+                            <th></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {items.length === 0 ? (
                             <tr>
-                                <th>Nazwa</th>
-                                <th>Opis</th>
-                                <th>Ilość</th>
-                                <th>Cena jedn. netto</th>
-                                <th>VAT %</th>
-                                <th>Wartość netto</th>
-                                <th>Wartość brutto</th>
-                                <th></th>
+                                <td colSpan={8}>
+                                    <NoItems>Brak pozycji. Kliknij "Dodaj pozycję", aby dodać pierwszą pozycję do dokumentu.</NoItems>
+                                </td>
                             </tr>
-                            </thead>
-                            <tbody>
-                            {items.length === 0 ? (
-                                <tr>
-                                    <td colSpan={8}>
-                                        <NoItems>Brak pozycji. Kliknij "Dodaj pozycję", aby dodać pierwszą pozycję do dokumentu.</NoItems>
-                                    </td>
-                                </tr>
-                            ) : (
-                                items.map((item) => (
-                                    <tr key={item.id}>
-                                        <td>
-                                            <Input
-                                                value={item.name}
-                                                onChange={(e) => handleItemChange(item.id!, 'name', e.target.value)}
-                                                placeholder="Nazwa"
-                                                required
-                                            />
-                                        </td>
-                                        <td>
-                                            <Input
-                                                value={item.description || ''}
-                                                onChange={(e) => handleItemChange(item.id!, 'description', e.target.value)}
-                                                placeholder="Opis (opcjonalnie)"
-                                            />
-                                        </td>
-                                        <td>
-                                            <NumberInput
-                                                value={item.quantity}
-                                                onChange={(e) => handleItemChange(item.id!, 'quantity', parseFloat(e.target.value) || 0)}
-                                                placeholder="Ilość"
-                                                min={0.01}
-                                                step={0.01}
-                                                required
-                                            />
-                                        </td>
-                                        <td>
-                                            <NumberInput
-                                                value={item.unitPrice}
-                                                onChange={(e) => handleItemChange(item.id!, 'unitPrice', parseFloat(e.target.value) || 0)}
-                                                placeholder="Cena"
-                                                min={0}
-                                                step={0.01}
-                                                required
-                                            />
-                                        </td>
-                                        <td>
-                                            <Select
-                                                value={item.taxRate}
-                                                onChange={(e) => handleItemChange(item.id!, 'taxRate', parseFloat(e.target.value))}
-                                                required
-                                            >
-                                                <option value="0">0%</option>
-                                                <option value="5">5%</option>
-                                                <option value="8">8%</option>
-                                                <option value="23">23%</option>
-                                            </Select>
-                                        </td>
-                                        <td>
-                                            <AmountDisplay>
-                                                {formatAmount(item.totalNet)}
-                                            </AmountDisplay>
-                                        </td>
-                                        <td>
-                                            <AmountDisplay>
-                                                {formatAmount(item.totalGross)}
-                                            </AmountDisplay>
-                                        </td>
-                                        <td>
-                                            <RemoveButton type="button" onClick={() => handleRemoveItem(item.id!)}>
-                                                <FaTrash />
-                                            </RemoveButton>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                            </tbody>
-                            {items.length > 0 && (
-                                <tfoot>
-                                <tr>
-                                    <td colSpan={5} style={{ textAlign: 'right', fontWeight: 'bold' }}>
-                                        Razem:
+                        ) : (
+                            items.map((item) => (
+                                <tr key={item.id}>
+                                    <td>
+                                        <Input
+                                            value={item.name}
+                                            onChange={(e) => handleItemChange(item.id!, 'name', e.target.value)}
+                                            placeholder="Nazwa"
+                                            required
+                                        />
                                     </td>
                                     <td>
-                                        <AmountDisplay bold>
-                                            {formatAmount(formData.totalNet || 0)}
+                                        <Input
+                                            value={item.description || ''}
+                                            onChange={(e) => handleItemChange(item.id!, 'description', e.target.value)}
+                                            placeholder="Opis (opcjonalnie)"
+                                        />
+                                    </td>
+                                    <td>
+                                        <NumberInput
+                                            value={item.quantity}
+                                            onChange={(e) => handleItemChange(item.id!, 'quantity', parseFloat(e.target.value) || 0)}
+                                            placeholder="Ilość"
+                                            min={0.01}
+                                            step={0.01}
+                                            required
+                                        />
+                                    </td>
+                                    <td>
+                                        <NumberInput
+                                            value={item.unitPrice}
+                                            onChange={(e) => handleItemChange(item.id!, 'unitPrice', parseFloat(e.target.value) || 0)}
+                                            placeholder="Cena"
+                                            min={0}
+                                            step={0.01}
+                                            required
+                                        />
+                                    </td>
+                                    <td>
+                                        <Select
+                                            value={item.taxRate}
+                                            onChange={(e) => handleItemChange(item.id!, 'taxRate', parseFloat(e.target.value))}
+                                            required
+                                        >
+                                            <option value="0">0%</option>
+                                            <option value="5">5%</option>
+                                            <option value="8">8%</option>
+                                            <option value="23">23%</option>
+                                        </Select>
+                                    </td>
+                                    <td>
+                                        <AmountDisplay>
+                                            {formatAmount(item.totalNet)}
                                         </AmountDisplay>
                                     </td>
                                     <td>
-                                        <AmountDisplay bold>
-                                            {formatAmount(formData.totalGross || 0)}
+                                        <AmountDisplay>
+                                            {formatAmount(item.totalGross)}
                                         </AmountDisplay>
                                     </td>
-                                    <td></td>
+                                    <td>
+                                        <RemoveButton type="button" onClick={() => handleRemoveItem(item.id!)}>
+                                            <FaTrash />
+                                        </RemoveButton>
+                                    </td>
                                 </tr>
-                                </tfoot>
-                            )}
-                        </ItemsTable>
-                    </FormSection>
-                )}
+                            ))
+                        )}
+                        </tbody>
+                        {items.length > 0 && (
+                            <tfoot>
+                            <tr>
+                                <td colSpan={5} style={{ textAlign: 'right', fontWeight: 'bold' }}>
+                                    Razem:
+                                </td>
+                                <td>
+                                    <AmountDisplay bold>
+                                        {formatAmount(formData.totalNet || 0)}
+                                    </AmountDisplay>
+                                </td>
+                                <td>
+                                    <AmountDisplay bold>
+                                        {formatAmount(formData.totalGross || 0)}
+                                    </AmountDisplay>
+                                </td>
+                                <td></td>
+                            </tr>
+                            </tfoot>
+                        )}
+                    </ItemsTable>
+                </FormSection>
 
                 {/* Sekcja załączników */}
                 <FormSection>
@@ -955,29 +936,29 @@ const DocumentTypeIcon = styled.div<DocumentTypeIconProps>`
     justify-content: center;
     font-size: 24px;
     background-color: ${props => {
-    switch (props.type) {
-        case DocumentType.INVOICE:
-            return '#ebf5fb';
-        case DocumentType.RECEIPT:
-            return '#eafaf1';
-        case DocumentType.OTHER:
-            return '#f4f6f7';
-        default:
-            return '#f4f6f7';
-    }
-}};
+        switch (props.type) {
+            case DocumentType.INVOICE:
+                return '#ebf5fb';
+            case DocumentType.RECEIPT:
+                return '#eafaf1';
+            case DocumentType.OTHER:
+                return '#f4f6f7';
+            default:
+                return '#f4f6f7';
+        }
+    }};
     color: ${props => {
-    switch (props.type) {
-        case DocumentType.INVOICE:
-            return '#3498db';
-        case DocumentType.RECEIPT:
-            return '#2ecc71';
-        case DocumentType.OTHER:
-            return '#95a5a6';
-        default:
-            return '#95a5a6';
-    }
-}};
+        switch (props.type) {
+            case DocumentType.INVOICE:
+                return '#3498db';
+            case DocumentType.RECEIPT:
+                return '#2ecc71';
+            case DocumentType.OTHER:
+                return '#95a5a6';
+            default:
+                return '#95a5a6';
+        }
+    }};
 `;
 
 const DocumentTypeSelect = styled.div`

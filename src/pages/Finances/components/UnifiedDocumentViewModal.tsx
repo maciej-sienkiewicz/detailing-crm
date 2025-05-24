@@ -351,12 +351,6 @@ const UnifiedDocumentViewModal: React.FC<UnifiedDocumentViewModalProps> = ({
                                                 </SummaryItem>
                                             </>
                                         )}
-                                        {document.paidAmount !== undefined && document.paidAmount > 0 && (
-                                            <SummaryItem>
-                                                <SummaryLabel>Kwota zapłacona:</SummaryLabel>
-                                                <SummaryValue>{formatAmount(document.paidAmount)} {document.currency}</SummaryValue>
-                                            </SummaryItem>
-                                        )}
                                     </SummaryGrid>
                                 </SummarySection>
                             </>
@@ -379,11 +373,6 @@ const UnifiedDocumentViewModal: React.FC<UnifiedDocumentViewModalProps> = ({
                             <StatusBadge status={document.status as DocumentStatus}>
                                 {DocumentStatusLabels[document.status]}
                             </StatusBadge>
-                            {document.paidAmount !== undefined && document.paidAmount < document.totalGross && (
-                                <PaidAmountInfo>
-                                    Zapłacono: {formatAmount(document.paidAmount)} {document.currency} z {formatAmount(document.totalGross)} {document.currency}
-                                </PaidAmountInfo>
-                            )}
                         </StatusInfo>
                     </StatusDisplaySection>
 

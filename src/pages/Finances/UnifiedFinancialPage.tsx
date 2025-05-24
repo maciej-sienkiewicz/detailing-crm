@@ -123,7 +123,7 @@ const UnifiedFinancialPage: React.FC = () => {
         return date.toLocaleDateString('pl-PL');
     };
 
-    // Funkcja formatująca kwotę
+    // Funkcja formatająca kwotę
     const formatAmount = (amount: number): string => {
         return new Intl.NumberFormat('pl-PL', {
             minimumFractionDigits: 2,
@@ -483,11 +483,6 @@ const UnifiedFinancialPage: React.FC = () => {
                                         <TableCell>
                                             <AmountCell direction={document.direction}>
                                                 {formatAmount(document.totalGross)} {document.currency}
-                                                {document.paidAmount !== undefined && document.paidAmount < document.totalGross && (
-                                                    <PaidAmount>
-                                                        Zapłacono: {formatAmount(document.paidAmount)}
-                                                    </PaidAmount>
-                                                )}
                                             </AmountCell>
                                         </TableCell>
                                         <TableCell>
@@ -690,7 +685,7 @@ const AdvancedFilters: React.FC<{
     );
 };
 
-// Style komponentów
+// Style komponentów (pozostają bez zmian)
 const PageContainer = styled.div`
     padding: 20px;
     background-color: #f8f9fa;
@@ -788,83 +783,83 @@ const TypeFilterButton = styled.button<{
     font-weight: ${props => props.active ? '600' : '400'};
     cursor: pointer;
     background-color: ${props => {
-    if (props.active) {
-        if (props.documentType) {
-            switch (props.documentType) {
-                case DocumentType.INVOICE:
-                    return '#3498db22';
-                case DocumentType.RECEIPT:
-                    return '#2ecc7122';
-                case DocumentType.OTHER:
-                    return '#95a5a622';
-                default:
-                    return '#3498db';
-            }
-        } else {
-            return '#3498db';
-        }
-    } else {
-        return 'white';
-    }
-}};
-    color: ${props => {
-    if (props.active) {
-        if (props.documentType) {
-            switch (props.documentType) {
-                case DocumentType.INVOICE:
-                    return '#3498db';
-                case DocumentType.RECEIPT:
-                    return '#2ecc71';
-                case DocumentType.OTHER:
-                    return '#95a5a6';
-                default:
-                    return 'white';
+        if (props.active) {
+            if (props.documentType) {
+                switch (props.documentType) {
+                    case DocumentType.INVOICE:
+                        return '#3498db22';
+                    case DocumentType.RECEIPT:
+                        return '#2ecc7122';
+                    case DocumentType.OTHER:
+                        return '#95a5a622';
+                    default:
+                        return '#3498db';
+                }
+            } else {
+                return '#3498db';
             }
         } else {
             return 'white';
         }
-    } else {
-        return '#2c3e50';
-    }
-}};
-    border: 1px solid ${props => {
-    if (props.active) {
-        if (props.documentType) {
-            switch (props.documentType) {
-                case DocumentType.INVOICE:
-                    return '#3498db';
-                case DocumentType.RECEIPT:
-                    return '#2ecc71';
-                case DocumentType.OTHER:
-                    return '#95a5a6';
-                default:
-                    return '#3498db';
+    }};
+    color: ${props => {
+        if (props.active) {
+            if (props.documentType) {
+                switch (props.documentType) {
+                    case DocumentType.INVOICE:
+                        return '#3498db';
+                    case DocumentType.RECEIPT:
+                        return '#2ecc71';
+                    case DocumentType.OTHER:
+                        return '#95a5a6';
+                    default:
+                        return 'white';
+                }
+            } else {
+                return 'white';
             }
         } else {
-            return '#3498db';
+            return '#2c3e50';
         }
-    } else {
-        return '#dfe6e9';
-    }
-}};
+    }};
+    border: 1px solid ${props => {
+        if (props.active) {
+            if (props.documentType) {
+                switch (props.documentType) {
+                    case DocumentType.INVOICE:
+                        return '#3498db';
+                    case DocumentType.RECEIPT:
+                        return '#2ecc71';
+                    case DocumentType.OTHER:
+                        return '#95a5a6';
+                    default:
+                        return '#3498db';
+                }
+            } else {
+                return '#3498db';
+            }
+        } else {
+            return '#dfe6e9';
+        }
+    }};
 
     &:hover {
         background-color: ${props => props.active ? (
-    props.documentType ? (
-        (() => {
-            switch (props.documentType) {
-                case DocumentType.INVOICE:
-                    return '#3498db22';
-                case DocumentType.RECEIPT:
-                    return '#2ecc7122';
-                case DocumentType.OTHER:
-                    return '#95a5a622';
-                default:
-                    return '#2980b9';
-            }
-        })()
-    ) : '#2980b9'
-) : '#f5f6fa'};
+                props.documentType ? (
+                        (() => {
+                            switch (props.documentType) {
+                                case DocumentType.INVOICE:
+                                    return '#3498db22';
+                                case DocumentType.RECEIPT:
+                                    return '#2ecc7122';
+                                case DocumentType.OTHER:
+                                    return '#95a5a622';
+                                default:
+                                    return '#2980b9';
+                            }
+                        })()
+                ) : '#2980b9'
+        ) : '#f5f6fa'};
     }
 
     @media (max-width: 576px) {
@@ -1027,35 +1022,35 @@ const DocumentTypeBadge = styled.span<{ type: DocumentType }>`
     font-size: 12px;
     font-weight: 500;
     background-color: ${props => {
-    switch (props.type) {
-        case DocumentType.INVOICE:
-            return 'rgba(52, 152, 219, 0.15)';
-        case DocumentType.RECEIPT:
-            return 'rgba(46, 204, 113, 0.15)';
-        case DocumentType.OTHER:
-            return 'rgba(149, 165, 166, 0.15)';
-    }
-}};
+        switch (props.type) {
+            case DocumentType.INVOICE:
+                return 'rgba(52, 152, 219, 0.15)';
+            case DocumentType.RECEIPT:
+                return 'rgba(46, 204, 113, 0.15)';
+            case DocumentType.OTHER:
+                return 'rgba(149, 165, 166, 0.15)';
+        }
+    }};
     color: ${props => {
-    switch (props.type) {
-        case DocumentType.INVOICE:
-            return '#3498db';
-        case DocumentType.RECEIPT:
-            return '#2ecc71';
-        case DocumentType.OTHER:
-            return '#95a5a6';
-    }
-}};
+        switch (props.type) {
+            case DocumentType.INVOICE:
+                return '#3498db';
+            case DocumentType.RECEIPT:
+                return '#2ecc71';
+            case DocumentType.OTHER:
+                return '#95a5a6';
+        }
+    }};
     border: 1px solid ${props => {
-    switch (props.type) {
-        case DocumentType.INVOICE:
-            return 'rgba(52, 152, 219, 0.3)';
-        case DocumentType.RECEIPT:
-            return 'rgba(46, 204, 113, 0.3)';
-        case DocumentType.OTHER:
-            return 'rgba(149, 165, 166, 0.3)';
-    }
-}};
+        switch (props.type) {
+            case DocumentType.INVOICE:
+                return 'rgba(52, 152, 219, 0.3)';
+            case DocumentType.RECEIPT:
+                return 'rgba(46, 204, 113, 0.3)';
+            case DocumentType.OTHER:
+                return 'rgba(149, 165, 166, 0.3)';
+        }
+    }};
 `;
 
 const DocumentTitleCell = styled.div`
@@ -1091,13 +1086,6 @@ const DirectionBadge = styled.span<{ direction: TransactionDirection }>`
 const AmountCell = styled.div<{ direction: TransactionDirection }>`
     font-weight: 600;
     color: ${props => TransactionDirectionColors[props.direction]};
-`;
-
-const PaidAmount = styled.div`
-    font-size: 12px;
-    color: #7f8c8d;
-    font-weight: normal;
-    margin-top: 2px;
 `;
 
 const StatusBadge = styled.span<{ status: DocumentStatus }>`
@@ -1157,33 +1145,33 @@ const ActionButton = styled.button`
 `;
 
 const LoadingIndicator = styled.div`
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 40px;
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-    color: #3498db;
-    font-weight: 500;
+   display: flex;
+   justify-content: center;
+   align-items: center;
+   padding: 40px;
+   background-color: white;
+   border-radius: 8px;
+   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+   color: #3498db;
+   font-weight: 500;
 `;
 
 const ErrorMessage = styled.div`
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 40px;
-    background-color: #fef2f2;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-    color: #e74c3c;
-    font-weight: 500;
+   display: flex;
+   justify-content: center;
+   align-items: center;
+   padding: 40px;
+   background-color: #fef2f2;
+   border-radius: 8px;
+   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+   color: #e74c3c;
+   font-weight: 500;
 `;
 
 const PaginationContainer = styled.div`
-    margin: 24px 0;
-    display: flex;
-    justify-content: center;
+   margin: 24px 0;
+   display: flex;
+   justify-content: center;
 `;
 
 export default UnifiedFinancialPage;
