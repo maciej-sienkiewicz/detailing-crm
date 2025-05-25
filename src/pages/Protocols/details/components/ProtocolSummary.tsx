@@ -24,6 +24,7 @@ import {
 import {fetchAvailableServices} from '../../../../api/mocks/carReceptionMocks';
 import {protocolsApi} from '../../../../api/protocolsApi';
 import AddServiceModal from "../../shared/modals/AddServiceModal";
+import {servicesApi} from "../../../../api/servicesApi";
 
 interface ProtocolSummaryProps {
     protocol: CarReceptionProtocol;
@@ -41,7 +42,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
     const handleOpenAddServiceModal = async () => {
         setIsLoading(true);
         try {
-            const services = await fetchAvailableServices();
+            const services = await servicesApi.fetchServices();
             setAvailableServices(services);
         } catch (error) {
             console.error('Błąd podczas pobierania listy usług', error);
