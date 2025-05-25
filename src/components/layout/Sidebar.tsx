@@ -21,7 +21,7 @@ import {
     FaClipboardCheck,
     FaChartBar,
     FaRss,
-    FaTimes, FaSms
+    FaTimes, FaSms, FaImages
 } from 'react-icons/fa';
 import UserProfileSection from './UserProfileSection';
 
@@ -102,6 +102,13 @@ const mainMenuItems: MainMenuItem[] = [
         label: 'Ustawienia',
         icon: <FaCog />,
         hasSubmenu: true
+    },
+    {
+        id: 'gallery',
+        label: 'Galeria',
+        icon: <FaImages />,
+        path: '/gallery',
+        hasSubmenu: false
     }
 ];
 

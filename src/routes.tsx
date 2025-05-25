@@ -29,6 +29,7 @@ import FleetRentalDetailsPage from "./pages/Fleet/FleetRentalDetailsPage";
 import FleetRentalFormPage from "./pages/Fleet/FleetRentalFormPage";
 import FleetCalendarPage from "./pages/Fleet/FleetCalendarPage";
 import UnifiedFinancialPage from "./pages/Finances/UnifiedFinancialPage";
+import GalleryPage from "./pages/Gallery/GalleryPage";
 
 // Tymczasowe komponenty dla innych stron - do zastąpienia rzeczywistymi implementacjami
 const PlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
@@ -110,6 +111,9 @@ const AppRoutes: React.FC = () => {
                 {/* Interfejs mobilny */}
                 <Route path="/fleet/mobile/vehicle/:id" element={<FleetMobileUpdatePage />} />
                 <Route path="/fleet/mobile/rental/:id/return" element={<FleetMobileRentalReturnPage />} />
+
+                <Route path="/gallery" element={<GalleryPage />} />
+
             </Route>
 
             {/* Strona 404 - nieistniejąca ścieżka */}
