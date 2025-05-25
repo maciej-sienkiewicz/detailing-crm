@@ -21,8 +21,8 @@ interface ProtocolFilterParams {
 
 export interface ProtocolCounters {
     scheduled: number;
-    in_progress: number;
-    ready_for_pickup: number;
+    inProgress: number;
+    readyForPickup: number;
     completed: number;
     cancelled: number;
     all: number;
@@ -186,8 +186,8 @@ export const protocolsApi = {
             // Zwracamy domyślne wartości w przypadku błędu
             return {
                 scheduled: 0,
-                in_progress: 0,
-                ready_for_pickup: 0,
+                inProgress: 0,
+                readyForPickup: 0,
                 completed: 0,
                 cancelled: 0,
                 all: 0

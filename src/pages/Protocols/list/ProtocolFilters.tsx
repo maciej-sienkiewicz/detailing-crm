@@ -35,12 +35,11 @@ export const ProtocolFilters: React.FC<ProtocolFiltersProps> = ({ activeFilter, 
             setLoading(true);
             try {
                 const data = await protocolsApi.getProtocolCounters();
-
                 // Mapowanie liczników na filtry - używamy nazw pól, jakie faktycznie przychodzą z serwera
                 setCounters({
                     'Zaplanowane': data.scheduled || 0,
-                    'W realizacji': data.in_progress || 0,
-                    'Oczekujące na odbiór': data.ready_for_pickup || 0,
+                    'W realizacji': data.inProgress || 0,
+                    'Oczekujące na odbiór': data.readyForPickup || 0,
                     'Archiwum': data.completed || 0,
                     'Porzucone': data.cancelled || 0
                 });
