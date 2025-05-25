@@ -15,14 +15,19 @@ import {
     FaEye,
     FaExternalLinkAlt,
     FaPercent,
-    FaSitemap, FaEdit
+    FaSitemap,
+    FaEdit
 } from 'react-icons/fa';
 import {
-    CarReceptionProtocol,
-    InvoiceType,
-    Invoice
+    CarReceptionProtocol
 } from '../../../../types';
-import { invoicesApi } from '../../../../api/invoicesApi';
+import {
+    UnifiedFinancialDocument,
+    DocumentType,
+    TransactionDirection,
+    DocumentStatus
+} from '../../../../types/finance';
+import { unifiedFinancialApi } from '../../../../api/unifiedFinancialApi';
 import InvoiceFormModal from '../../../Finances/components/InvoiceFormModal';
 import InvoiceViewModal from '../../../Finances/components/InvoiceViewModal';
 import { useToast } from '../../../../components/common/Toast/Toast';
@@ -34,10 +39,10 @@ interface ProtocolInvoicesProps {
 
 const ProtocolInvoices: React.FC<ProtocolInvoicesProps> = ({ protocol, onProtocolUpdate }) => {
     const navigate = useNavigate();
-    const [invoices, setInvoices] = useState<Invoice[]>([]);
+    const [invoices, setInvoices] = useState<UnifiedFinancialDocument[]>([]);
     const [showFormModal, setShowFormModal] = useState(false);
     const [showViewModal, setShowViewModal] = useState(false);
-    const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+    const [selectedInvoice, setSelectedInvoice] = useState<UnifiedFinancialDocument | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const { showToast } = useToast();
 
@@ -46,17 +51,16 @@ const ProtocolInvoices: React.FC<ProtocolInvoicesProps> = ({ protocol, onProtoco
         const fetchInvoices = async () => {
             try {
                 setIsLoading(true);
-                // Wywołaj API do pobrania faktur związanych z protokołem
-                const invoicesForProtocol = await invoicesApi.fetchInvoices({
-                    protocolId: protocol.id
+                // Wywołaj API do pobrania dokumentów związanych z protokołem
+                const documentsResponse = await unifiedFinancialApi.fetchDocuments({
+                    protocolId: protocol.id,
+                    direction: TransactionDirection.EXPENSE // Filtrujemy tylko wydatki (faktury kosztowe)
                 });
 
-                // Filtrujemy tylko faktury kosztowe
-                const purchaseInvoices = invoicesForProtocol.filter(
-                    invoice => invoice.type === InvoiceType.EXPENSE
-                );
+                // Wyciągnij dokumenty z odpowiedzi paginowanej
+                const expenseDocuments = documentsResponse.data || [];
 
-                setInvoices(purchaseInvoices);
+                setInvoices(expenseDocuments);
             } catch (error) {
                 console.error('Błąd podczas pobierania faktur dla protokołu:', error);
             } finally {
@@ -88,17 +92,18 @@ const ProtocolInvoices: React.FC<ProtocolInvoicesProps> = ({ protocol, onProtoco
         try {
             setIsLoading(true);
 
-            // Dodaj ID protokołu i ustaw typ faktury jako kosztowa
+            // Dodaj ID protokołu i ustaw typ dokumentu jako faktura oraz kierunek jako wydatek
             const invoiceWithProtocolData = {
                 ...invoiceData,
                 protocolId: protocol.id,
                 protocolNumber: `Protokół #${protocol.id}`,
-                type: InvoiceType.EXPENSE,
+                type: DocumentType.INVOICE,
+                direction: TransactionDirection.EXPENSE,
             };
 
             if (selectedInvoice && selectedInvoice.id) {
-                // Aktualizacja istniejącej faktury
-                const updatedInvoice = await invoicesApi.updateInvoice(
+                // Aktualizacja istniejącego dokumentu
+                const updatedInvoice = await unifiedFinancialApi.updateDocument(
                     selectedInvoice.id,
                     invoiceWithProtocolData,
                     file
@@ -112,8 +117,8 @@ const ProtocolInvoices: React.FC<ProtocolInvoicesProps> = ({ protocol, onProtoco
                     );
                 }
             } else {
-                // Dodawanie nowej faktury
-                const newInvoice = await invoicesApi.createInvoice(invoiceWithProtocolData, file);
+                // Dodawanie nowego dokumentu
+                const newInvoice = await unifiedFinancialApi.createDocument(invoiceWithProtocolData, file);
 
                 if (newInvoice) {
                     setInvoices(prevInvoices => [...prevInvoices, newInvoice]);
@@ -142,8 +147,8 @@ const ProtocolInvoices: React.FC<ProtocolInvoicesProps> = ({ protocol, onProtoco
 
         try {
             setIsLoading(true);
-            // Wywołaj API do usunięcia faktury
-            const success = await invoicesApi.deleteInvoice(invoiceId);
+            // Wywołaj API do usunięcia dokumentu
+            const success = await unifiedFinancialApi.deleteDocument(invoiceId);
 
             if (success) {
                 // Usuń fakturę z lokalnego stanu
@@ -167,27 +172,27 @@ const ProtocolInvoices: React.FC<ProtocolInvoicesProps> = ({ protocol, onProtoco
 
     // Obsługa pobierania załącznika faktury
     const handleDownloadAttachment = (invoiceId: string) => {
-        const attachmentUrl = invoicesApi.getInvoiceAttachmentUrl(invoiceId);
+        const attachmentUrl = unifiedFinancialApi.getDocumentAttachmentUrl(invoiceId);
         window.open(attachmentUrl, '_blank');
     };
 
     // Obsługa podglądu faktury
-    const handleViewInvoice = (invoice: Invoice) => {
+    const handleViewInvoice = (invoice: UnifiedFinancialDocument) => {
         setSelectedInvoice(invoice);
         setShowViewModal(true);
     };
 
-    const handleEditInvoice = (invoice: Invoice) => {
+    const handleEditInvoice = (invoice: UnifiedFinancialDocument) => {
         setSelectedInvoice(invoice);
         setShowFormModal(true);
     };
 
     // Obsługa zmiany statusu faktury
-    const handleStatusChange = async (id: string, status: string) => {
+    const handleStatusChange = async (id: string, status: DocumentStatus) => {
         try {
             setIsLoading(true);
-            // Aktualizuj status faktury
-            const success = await invoicesApi.updateInvoiceStatus(id, status);
+            // Aktualizuj status dokumentu
+            const success = await unifiedFinancialApi.updateDocumentStatus(id, status);
 
             if (success) {
                 // Aktualizuj stan lokalny
@@ -260,7 +265,7 @@ const ProtocolInvoices: React.FC<ProtocolInvoicesProps> = ({ protocol, onProtoco
 
                                         <InvoiceDetailItem>
                                             <DetailLabel><FaCalendarAlt /> Termin płatności</DetailLabel>
-                                            <DetailValue>{formatDate(invoice.dueDate)}</DetailValue>
+                                            <DetailValue>{invoice.dueDate ? formatDate(invoice.dueDate) : '-'}</DetailValue>
                                         </InvoiceDetailItem>
 
                                         <InvoiceDetailItem>
@@ -293,11 +298,11 @@ const ProtocolInvoices: React.FC<ProtocolInvoicesProps> = ({ protocol, onProtoco
 
                                 <InvoiceCardFooter>
                                     <InvoiceStatusBadge status={invoice.status}>
-                                        {invoice.status === 'PAID'
+                                        {invoice.status === DocumentStatus.PAID
                                             ? 'Opłacona'
-                                            : invoice.status === 'NOT_PAID'
+                                            : invoice.status === DocumentStatus.NOT_PAID
                                                 ? 'Nieopłacona'
-                                                : invoice.status === 'OVERDUE'
+                                                : invoice.status === DocumentStatus.OVERDUE
                                                     ? 'Przeterminowana'
                                                     : 'Anulowana'}
                                     </InvoiceStatusBadge>
@@ -362,7 +367,8 @@ const ProtocolInvoices: React.FC<ProtocolInvoicesProps> = ({ protocol, onProtoco
                 initialData={{
                     protocolId: protocol.id,
                     protocolNumber: `Protokół #${protocol.id}`,
-                    type: InvoiceType.EXPENSE,
+                    type: DocumentType.INVOICE,
+                    direction: TransactionDirection.EXPENSE,
                 }}
             />
 
@@ -384,7 +390,7 @@ const ProtocolInvoices: React.FC<ProtocolInvoicesProps> = ({ protocol, onProtoco
     );
 };
 
-// Nowe komponenty stylizowane z AddServiceModal.tsx
+// Styled components pozostają bez zmian
 const InvoicesContainer = styled.div`
     margin-bottom: 30px;
 `;
@@ -637,36 +643,36 @@ const InvoiceCardFooter = styled.div`
     border-top: 1px solid #f0f0f0;
 `;
 
-const InvoiceStatusBadge = styled.div<{ status: string }>`
+const InvoiceStatusBadge = styled.div<{ status: DocumentStatus }>`
     display: inline-block;
     padding: 4px 10px;
     border-radius: 4px;
     font-size: 12px;
     font-weight: 500;
     background-color: ${props => {
-        switch (props.status) {
-            case 'PAID': return '#eafaf1';
-            case 'NOT_PAID': return '#eaf6fd';
-            case 'OVERDUE': return '#fef2f2';
-            default: return '#f5f5f5';
-        }
-    }};
+    switch (props.status) {
+        case DocumentStatus.PAID: return '#eafaf1';
+        case DocumentStatus.NOT_PAID: return '#eaf6fd';
+        case DocumentStatus.OVERDUE: return '#fef2f2';
+        default: return '#f5f5f5';
+    }
+}};
     color: ${props => {
-        switch (props.status) {
-            case 'PAID': return '#27ae60';
-            case 'NOT_PAID': return '#3498db';
-            case 'OVERDUE': return '#e74c3c';
-            default: return '#7f8c8d';
-        }
-    }};
+    switch (props.status) {
+        case DocumentStatus.PAID: return '#27ae60';
+        case DocumentStatus.NOT_PAID: return '#3498db';
+        case DocumentStatus.OVERDUE: return '#e74c3c';
+        default: return '#7f8c8d';
+    }
+}};
     border: 1px solid ${props => {
-        switch (props.status) {
-            case 'PAID': return '#d1f5ea';
-            case 'NOT_PAID': return '#d5e9f9';
-            case 'OVERDUE': return '#fde8e8';
-            default: return '#eee';
-        }
-    }};
+    switch (props.status) {
+        case DocumentStatus.PAID: return '#d1f5ea';
+        case DocumentStatus.NOT_PAID: return '#d5e9f9';
+        case DocumentStatus.OVERDUE: return '#fde8e8';
+        default: return '#eee';
+    }
+}};
 `;
 
 const InvoiceActions = styled.div`

@@ -77,12 +77,6 @@ const mainMenuItems: MainMenuItem[] = [
         hasSubmenu: false
     },
     {
-        id: 'warehouse',
-        label: 'Magazyn',
-        icon: <FaWarehouse />,
-        hasSubmenu: true
-    },
-    {
         id: 'reports',
         label: 'Raporty',
         icon: <FaChartBar />,

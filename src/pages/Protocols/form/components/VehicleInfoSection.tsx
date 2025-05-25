@@ -311,7 +311,7 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                             <CheckboxLabel>
                                 <Checkbox
                                     name="keysProvided"
-                                    checked={formData.keysProvided || false}
+                                    checked={formData.keysProvided !== undefined ? formData.keysProvided : true}
                                     onChange={onChange}
                                     type="checkbox"
                                 />
@@ -323,7 +323,7 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                             <CheckboxLabel>
                                 <Checkbox
                                     name="documentsProvided"
-                                    checked={formData.documentsProvided || false}
+                                    checked={formData.documentsProvided !== undefined ? formData.documentsProvided : false}
                                     onChange={onChange}
                                     type="checkbox"
                                 />
