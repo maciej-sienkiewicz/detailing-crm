@@ -23,6 +23,7 @@ import {
     TransactionDirectionColors,
     PaymentMethodLabels
 } from '../../../types/finance';
+import UnifiedDocumentPrintView from "./UnifiedDocumentPrintView";
 
 interface UnifiedDocumentViewModalProps {
     isOpen: boolean;
@@ -43,8 +44,6 @@ const UnifiedDocumentViewModal: React.FC<UnifiedDocumentViewModalProps> = ({
                                                                                onDelete,
                                                                                onDownloadAttachment
                                                                            }) => {
-    const documentContentRef = useRef<HTMLDivElement>(null);
-
     if (!isOpen) return null;
 
     // Funkcja do formatowania daty
@@ -78,74 +77,26 @@ const UnifiedDocumentViewModal: React.FC<UnifiedDocumentViewModalProps> = ({
 
     // Obsługa wydruku dokumentu
     const handlePrintDocument = () => {
-        const printContent = documentContentRef.current;
-        if (printContent) {
-            const printWindow = window.open('', '_blank');
-            if (printWindow) {
-                printWindow.document.write(`
-                    <html>
-                        <head>
-                            <title>${DocumentTypeLabels[document.type]} ${document.number}</title>
-                            <style>
-                                body {
-                                    font-family: Arial, sans-serif;
-                                    margin: 20px;
-                                    color: #333;
-                                }
-                                .no-print {
-                                    display: none !important;
-                                }
-                                table {
-                                    width: 100%;
-                                    border-collapse: collapse;
-                                    margin: 20px 0;
-                                }
-                                th, td {
-                                    border: 1px solid #ddd;
-                                    padding: 8px;
-                                    text-align: left;
-                                }
-                                th {
-                                    background-color: #f5f5f5;
-                                }
-                                .document-header {
-                                    display: flex;
-                                    justify-content: space-between;
-                                    margin-bottom: 20px;
-                                }
-                                .address-section {
-                                    display: flex;
-                                    gap: 20px;
-                                    margin: 20px 0;
-                                }
-                                .address-block {
-                                    flex: 1;
-                                    border: 1px solid #ddd;
-                                    padding: 15px;
-                                }
-                                .section-title {
-                                    font-size: 16px;
-                                    font-weight: bold;
-                                    margin: 20px 0 10px 0;
-                                }
-                                .detail-grid {
-                                    display: grid;
-                                    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-                                    gap: 15px;
-                                    margin: 20px 0;
-                                    padding: 15px;
-                                    background-color: #f9f9f9;
-                                }
-                            </style>
-                        </head>
-                        <body>
-                            ${printContent.innerHTML}
-                        </body>
-                    </html>
-                `);
-                printWindow.document.close();
-                printWindow.print();
-                printWindow.close();
+        // Używamy osobnego komponentu do wydruku
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>${DocumentTypeLabels[document.type]} ${document.number}</title>
+                    </head>
+                    <body>
+                        <div id="print-root"></div>
+                    </body>
+                </html>
+            `);
+            printWindow.document.close();
+
+            // Renderujemy komponent do wydruku w nowym oknie
+            const printRoot = printWindow.document.getElementById('print-root');
+            if (printRoot) {
+                // Tu będziemy używać UnifiedDocumentPrintView
+                UnifiedDocumentPrintView.render(document, printWindow);
             }
         }
     };
@@ -154,8 +105,6 @@ const UnifiedDocumentViewModal: React.FC<UnifiedDocumentViewModalProps> = ({
     const handleStatusChange = (status: DocumentStatus) => {
         if (Object.values(DocumentStatus).includes(status)) {
             onStatusChange(document.id, status);
-        } else {
-            console.error('Nieprawidłowy status dokumentu:', status);
         }
     };
 
@@ -203,171 +152,171 @@ const UnifiedDocumentViewModal: React.FC<UnifiedDocumentViewModalProps> = ({
                 </ModalHeader>
 
                 <ModalContent>
-                    {/* Zawartość dokumentu do wydruku */}
-                    <DocumentContent id="document-content" ref={documentContentRef}>
-                        <DocumentHeader>
-                            <HeaderLeft>
-                                <DocumentTypeDisplay>
-                                    {getDocumentIcon(document.type)}
-                                    <TypeText>{DocumentTypeLabels[document.type]}</TypeText>
-                                </DocumentTypeDisplay>
-                                <DocumentNumberDisplay>{document.number}</DocumentNumberDisplay>
-                                <DocumentTitle>{document.title}</DocumentTitle>
-                                {document.description && (
-                                    <DocumentDescription>{document.description}</DocumentDescription>
-                                )}
-                            </HeaderLeft>
-                            <HeaderRight>
-                                <DirectionBadge direction={document.direction}>
-                                    {TransactionDirectionLabels[document.direction]}
-                                </DirectionBadge>
-                            </HeaderRight>
-                        </DocumentHeader>
-
-                        <DocumentDetails>
-                            <DetailItem>
-                                <DetailLabel>Data wystawienia:</DetailLabel>
-                                <DetailValue>{formatDate(document.issuedDate)}</DetailValue>
-                            </DetailItem>
-                            {document.dueDate && (
-                                <DetailItem>
-                                    <DetailLabel>Termin płatności:</DetailLabel>
-                                    <DetailValue>{formatDate(document.dueDate)}</DetailValue>
-                                </DetailItem>
+                    {/* Nagłówek dokumentu */}
+                    <DocumentHeader>
+                        <HeaderLeft>
+                            <DocumentTypeDisplay>
+                                {getDocumentIcon(document.type)}
+                                <TypeText>{DocumentTypeLabels[document.type]}</TypeText>
+                            </DocumentTypeDisplay>
+                            <DocumentNumberDisplay>{document.number}</DocumentNumberDisplay>
+                            <DocumentTitle>{document.title}</DocumentTitle>
+                            {document.description && (
+                                <DocumentDescription>{document.description}</DocumentDescription>
                             )}
-                            <DetailItem>
-                                <DetailLabel>Metoda płatności:</DetailLabel>
-                                <DetailValue>{PaymentMethodLabels[document.paymentMethod]}</DetailValue>
-                            </DetailItem>
-                            <DetailItem>
-                                <DetailLabel>Waluta:</DetailLabel>
-                                <DetailValue>{document.currency}</DetailValue>
-                            </DetailItem>
-                            {document.protocolNumber && (
-                                <DetailItem>
-                                    <DetailLabel>Powiązany protokół:</DetailLabel>
-                                    <DetailValue>
-                                        <ProtocolLink href={`/orders/car-reception/${document.protocolId}`}>
-                                            {document.protocolNumber}
-                                        </ProtocolLink>
-                                    </DetailValue>
-                                </DetailItem>
-                            )}
-                            {document.visitId && (
-                                <DetailItem>
-                                    <DetailLabel>Powiązana wizyta:</DetailLabel>
-                                    <DetailValue>
-                                        <ProtocolLink href={`/appointments/${document.visitId}`}>
-                                            Wizyta #{document.visitId}
-                                        </ProtocolLink>
-                                    </DetailValue>
-                                </DetailItem>
-                            )}
-                        </DocumentDetails>
+                        </HeaderLeft>
+                        <HeaderRight>
+                            <DirectionBadge direction={document.direction}>
+                                {TransactionDirectionLabels[document.direction]}
+                            </DirectionBadge>
+                        </HeaderRight>
+                    </DocumentHeader>
 
-                        <AddressSection>
-                            <AddressBlock>
-                                <AddressTitle>Sprzedawca</AddressTitle>
-                                <AddressName>{document.sellerName}</AddressName>
-                                {document.sellerTaxId && <AddressDetail>NIP: {document.sellerTaxId}</AddressDetail>}
-                                {document.sellerAddress && <AddressDetail>{document.sellerAddress}</AddressDetail>}
-                            </AddressBlock>
-                            <AddressBlock>
-                                <AddressTitle>Nabywca</AddressTitle>
-                                <AddressName>{document.buyerName}</AddressName>
-                                {document.buyerTaxId && <AddressDetail>NIP: {document.buyerTaxId}</AddressDetail>}
-                                {document.buyerAddress && <AddressDetail>{document.buyerAddress}</AddressDetail>}
-                            </AddressBlock>
-                        </AddressSection>
+                    {/* Szczegóły dokumentu */}
+                    <DocumentDetails>
+                        <DetailItem>
+                            <DetailLabel>Data wystawienia:</DetailLabel>
+                            <DetailValue>{formatDate(document.issuedDate)}</DetailValue>
+                        </DetailItem>
+                        {document.dueDate && (
+                            <DetailItem>
+                                <DetailLabel>Termin płatności:</DetailLabel>
+                                <DetailValue>{formatDate(document.dueDate)}</DetailValue>
+                            </DetailItem>
+                        )}
+                        <DetailItem>
+                            <DetailLabel>Metoda płatności:</DetailLabel>
+                            <DetailValue>{PaymentMethodLabels[document.paymentMethod]}</DetailValue>
+                        </DetailItem>
+                        <DetailItem>
+                            <DetailLabel>Waluta:</DetailLabel>
+                            <DetailValue>{document.currency}</DetailValue>
+                        </DetailItem>
+                        {document.protocolNumber && (
+                            <DetailItem>
+                                <DetailLabel>Powiązany protokół:</DetailLabel>
+                                <DetailValue>
+                                    <ProtocolLink href={`/orders/car-reception/${document.protocolId}`}>
+                                        {document.protocolNumber}
+                                    </ProtocolLink>
+                                </DetailValue>
+                            </DetailItem>
+                        )}
+                        {document.visitId && (
+                            <DetailItem>
+                                <DetailLabel>Powiązana wizyta:</DetailLabel>
+                                <DetailValue>
+                                    <ProtocolLink href={`/appointments/${document.visitId}`}>
+                                        Wizyta #{document.visitId}
+                                    </ProtocolLink>
+                                </DetailValue>
+                            </DetailItem>
+                        )}
+                    </DocumentDetails>
 
-                        {/* Pozycje - tylko dla faktur z pozycjami */}
-                        {document.type === DocumentType.INVOICE && document.items && document.items.length > 0 && (
-                            <>
-                                <SectionTitle>Pozycje dokumentu</SectionTitle>
-                                <ItemsTable>
-                                    <thead>
-                                    <tr>
-                                        <th>Lp.</th>
-                                        <th>Nazwa towaru/usługi</th>
-                                        <th>Ilość</th>
-                                        <th>Cena jedn. netto</th>
-                                        <th>VAT %</th>
-                                        <th>Wartość netto</th>
-                                        <th>Wartość brutto</th>
+                    {/* Sekcja adresowa */}
+                    <AddressSection>
+                        <AddressBlock>
+                            <AddressTitle>Sprzedawca</AddressTitle>
+                            <AddressName>{document.sellerName}</AddressName>
+                            {document.sellerTaxId && <AddressDetail>NIP: {document.sellerTaxId}</AddressDetail>}
+                            {document.sellerAddress && <AddressDetail>{document.sellerAddress}</AddressDetail>}
+                        </AddressBlock>
+                        <AddressBlock>
+                            <AddressTitle>Nabywca</AddressTitle>
+                            <AddressName>{document.buyerName}</AddressName>
+                            {document.buyerTaxId && <AddressDetail>NIP: {document.buyerTaxId}</AddressDetail>}
+                            {document.buyerAddress && <AddressDetail>{document.buyerAddress}</AddressDetail>}
+                        </AddressBlock>
+                    </AddressSection>
+
+                    {/* Pozycje - tylko dla faktur z pozycjami */}
+                    {document.type === DocumentType.INVOICE && document.items && document.items.length > 0 && (
+                        <>
+                            <SectionTitle>Pozycje dokumentu</SectionTitle>
+                            <ItemsTable>
+                                <thead>
+                                <tr>
+                                    <th>Lp.</th>
+                                    <th>Nazwa towaru/usługi</th>
+                                    <th>Ilość</th>
+                                    <th>Cena jedn. netto</th>
+                                    <th>VAT %</th>
+                                    <th>Wartość netto</th>
+                                    <th>Wartość brutto</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {document.items.map((item, index) => (
+                                    <tr key={item.id || index}>
+                                        <td>{index + 1}</td>
+                                        <td>
+                                            <ItemName>{item.name}</ItemName>
+                                            {item.description && <ItemDescription>{item.description}</ItemDescription>}
+                                        </td>
+                                        <td>{item.quantity}</td>
+                                        <td>{formatAmount(item.unitPrice)} {document.currency}</td>
+                                        <td>{item.taxRate}%</td>
+                                        <td>{formatAmount(item.totalNet)} {document.currency}</td>
+                                        <td>{formatAmount(item.totalGross)} {document.currency}</td>
                                     </tr>
-                                    </thead>
-                                    <tbody>
-                                    {document.items.map((item, index) => (
-                                        <tr key={item.id || index}>
-                                            <td>{index + 1}</td>
-                                            <td>
-                                                <ItemName>{item.name}</ItemName>
-                                                {item.description && <ItemDescription>{item.description}</ItemDescription>}
-                                            </td>
-                                            <td>{item.quantity}</td>
-                                            <td>{formatAmount(item.unitPrice)} {document.currency}</td>
-                                            <td>{item.taxRate}%</td>
-                                            <td>{formatAmount(item.totalNet)} {document.currency}</td>
-                                            <td>{formatAmount(item.totalGross)} {document.currency}</td>
-                                        </tr>
-                                    ))}
-                                    </tbody>
-                                    <tfoot>
-                                    <tr>
-                                        <td colSpan={5} style={{ textAlign: 'right', fontWeight: 'bold' }}>
-                                            Razem:
-                                        </td>
-                                        <td style={{ fontWeight: 'bold' }}>
-                                            {formatAmount(document.totalNet)} {document.currency}
-                                        </td>
-                                        <td style={{ fontWeight: 'bold' }}>
-                                            {formatAmount(document.totalGross)} {document.currency}
-                                        </td>
-                                    </tr>
-                                    </tfoot>
-                                </ItemsTable>
-                            </>
-                        )}
+                                ))}
+                                </tbody>
+                                <tfoot>
+                                <tr>
+                                    <td colSpan={5} style={{ textAlign: 'right', fontWeight: 'bold' }}>
+                                        Razem:
+                                    </td>
+                                    <td style={{ fontWeight: 'bold' }}>
+                                        {formatAmount(document.totalNet)} {document.currency}
+                                    </td>
+                                    <td style={{ fontWeight: 'bold' }}>
+                                        {formatAmount(document.totalGross)} {document.currency}
+                                    </td>
+                                </tr>
+                                </tfoot>
+                            </ItemsTable>
+                        </>
+                    )}
 
-                        {/* Podsumowanie kwot - dla dokumentów bez szczegółowych pozycji */}
-                        {(document.type !== DocumentType.INVOICE || !document.items || document.items.length === 0) && (
-                            <>
-                                <SectionTitle>Podsumowanie finansowe</SectionTitle>
-                                <SummarySection>
-                                    <SummaryGrid>
-                                        <SummaryItem>
-                                            <SummaryLabel>Kwota brutto:</SummaryLabel>
-                                            <SummaryValue emphasis>{formatAmount(document.totalGross)} {document.currency}</SummaryValue>
-                                        </SummaryItem>
-                                        {document.totalNet > 0 && (
-                                            <>
-                                                <SummaryItem>
-                                                    <SummaryLabel>Kwota netto:</SummaryLabel>
-                                                    <SummaryValue>{formatAmount(document.totalNet)} {document.currency}</SummaryValue>
-                                                </SummaryItem>
-                                                <SummaryItem>
-                                                    <SummaryLabel>Kwota VAT:</SummaryLabel>
-                                                    <SummaryValue>{formatAmount(document.totalTax)} {document.currency}</SummaryValue>
-                                                </SummaryItem>
-                                            </>
-                                        )}
-                                    </SummaryGrid>
-                                </SummarySection>
-                            </>
-                        )}
+                    {/* Podsumowanie kwot - dla dokumentów bez szczegółowych pozycji */}
+                    {(document.type !== DocumentType.INVOICE || !document.items || document.items.length === 0) && (
+                        <>
+                            <SectionTitle>Podsumowanie finansowe</SectionTitle>
+                            <SummarySection>
+                                <SummaryGrid>
+                                    <SummaryItem>
+                                        <SummaryLabel>Kwota brutto:</SummaryLabel>
+                                        <SummaryValue emphasis>{formatAmount(document.totalGross)} {document.currency}</SummaryValue>
+                                    </SummaryItem>
+                                    {document.totalNet > 0 && (
+                                        <>
+                                            <SummaryItem>
+                                                <SummaryLabel>Kwota netto:</SummaryLabel>
+                                                <SummaryValue>{formatAmount(document.totalNet)} {document.currency}</SummaryValue>
+                                            </SummaryItem>
+                                            <SummaryItem>
+                                                <SummaryLabel>Kwota VAT:</SummaryLabel>
+                                                <SummaryValue>{formatAmount(document.totalTax)} {document.currency}</SummaryValue>
+                                            </SummaryItem>
+                                        </>
+                                    )}
+                                </SummaryGrid>
+                            </SummarySection>
+                        </>
+                    )}
 
-                        {document.notes && (
-                            <>
-                                <SectionTitle>Uwagi</SectionTitle>
-                                <NotesSection>
-                                    {document.notes}
-                                </NotesSection>
-                            </>
-                        )}
-                    </DocumentContent>
+                    {document.notes && (
+                        <>
+                            <SectionTitle>Uwagi</SectionTitle>
+                            <NotesSection>
+                                {document.notes}
+                            </NotesSection>
+                        </>
+                    )}
 
-                    {/* Sekcja statusu - widoczna tylko w interfejsie, nie w wersji do druku */}
-                    <StatusDisplaySection className="no-print">
+                    {/* Status dokumentu */}
+                    <StatusDisplaySection>
                         <StatusTitle>Status dokumentu:</StatusTitle>
                         <StatusInfo>
                             <StatusBadge status={document.status as DocumentStatus}>
@@ -376,9 +325,9 @@ const UnifiedDocumentViewModal: React.FC<UnifiedDocumentViewModalProps> = ({
                         </StatusInfo>
                     </StatusDisplaySection>
 
-                    {/* Załączniki - widoczne tylko w interfejsie */}
+                    {/* Załączniki */}
                     {document.attachments && document.attachments.length > 0 && (
-                        <AttachmentsSection className="no-print">
+                        <>
                             <SectionTitle>Załączniki</SectionTitle>
                             <AttachmentsList>
                                 {document.attachments.map(att => (
@@ -405,11 +354,11 @@ const UnifiedDocumentViewModal: React.FC<UnifiedDocumentViewModalProps> = ({
                                     </AttachmentItem>
                                 ))}
                             </AttachmentsList>
-                        </AttachmentsSection>
+                        </>
                     )}
 
-                    {/* Akcje na statusie - widoczne tylko w interfejsie */}
-                    <StatusActions className="no-print">
+                    {/* Akcje na statusie */}
+                    <StatusActions>
                         <StatusTitle>Zmień status dokumentu:</StatusTitle>
                         <StatusButtons>
                             {Object.entries(DocumentStatusLabels).map(([key, label]) => {
@@ -434,7 +383,7 @@ const UnifiedDocumentViewModal: React.FC<UnifiedDocumentViewModalProps> = ({
     );
 };
 
-// Style komponentów
+// Style komponentów dla modala
 const ModalOverlay = styled.div`
     position: fixed;
     top: 0;
@@ -474,7 +423,7 @@ const ModalTitle = styled.div`
     display: flex;
     align-items: center;
     gap: 12px;
-    
+
     svg {
         font-size: 24px;
         color: #3498db;
@@ -485,7 +434,7 @@ const TitleText = styled.div`
     display: flex;
     flex-direction: column;
     gap: 2px;
-    
+
     span {
         font-size: 18px;
         font-weight: 600;
@@ -555,15 +504,6 @@ const CloseButton = styled.button`
 const ModalContent = styled.div`
     overflow-y: auto;
     padding: 24px;
-`;
-
-const DocumentContent = styled.div`
-    /* Style dla wersji drukowanej */
-    @media print {
-        .no-print {
-            display: none !important;
-        }
-    }
 `;
 
 const DocumentHeader = styled.div`
@@ -707,19 +647,9 @@ const AddressDetail = styled.div`
     color: #34495e;
     line-height: 1.5;
     margin-bottom: 4px;
-    
+
     &:last-child {
         margin-bottom: 0;
-    }
-`;
-
-const ProtocolLink = styled.a`
-    color: #3498db;
-    text-decoration: none;
-    font-weight: 500;
-
-    &:hover {
-        text-decoration: underline;
     }
 `;
 
@@ -731,11 +661,11 @@ const SectionTitle = styled.h3`
     display: flex;
     align-items: center;
     gap: 8px;
-    
+
     &:first-of-type {
         margin-top: 0;
     }
-    
+
     &::before {
         content: '';
         width: 4px;
@@ -818,7 +748,7 @@ const SummaryItem = styled.div`
     align-items: center;
     padding: 12px 0;
     border-bottom: 1px solid #eef2f7;
-    
+
     &:last-child {
         border-bottom: none;
     }
@@ -872,126 +802,127 @@ const StatusBadge = styled.div<{ status: DocumentStatus }>`
     font-size: 14px;
     font-weight: 600;
     background-color: ${props => `${DocumentStatusColors[props.status]}22`};
-color: ${props => DocumentStatusColors[props.status]};
-   border: 1px solid ${props => `${DocumentStatusColors[props.status]}44`};
+    color: ${props => DocumentStatusColors[props.status]};
+    border: 1px solid ${props => `${DocumentStatusColors[props.status]}44`};
 `;
 
-const PaidAmountInfo = styled.div`
-   font-size: 14px;
-   color: #7f8c8d;
-   background-color: white;
-   padding: 6px 12px;
-   border-radius: 4px;
-   border: 1px solid #eef2f7;
-`;
+const ProtocolLink = styled.a`
+    color: #3498db;
+    text-decoration: none;
+    font-weight: 500;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
 
-const AttachmentsSection = styled.div`
-   margin: 24px 0;
+    &:hover {
+        background-color: rgba(52, 152, 219, 0.1);
+        text-decoration: underline;
+    }
 `;
 
 const AttachmentsList = styled.div`
-   display: flex;
-   flex-direction: column;
-   gap: 8px;
-   margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
 `;
 
 const AttachmentItem = styled.div`
-   display: flex;
-   align-items: center;
-   gap: 12px;
-   padding: 12px;
-   background-color: #f8f9fa;
-   border-radius: 4px;
-   border: 1px solid #eef2f7;
-   font-size: 14px;
-   transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    border: 1px solid #eef2f7;
+    font-size: 14px;
+    transition: all 0.2s;
 
-   &:hover {
-       background-color: #e8f4fd;
-       border-color: #3498db;
-   }
+    &:hover {
+        background-color: #e8f4fd;
+        border-color: #3498db;
+    }
 `;
 
 const AttachmentIcon = styled.div`
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   width: 40px;
-   height: 40px;
-   border-radius: 6px;
-   background-color: #fdf2f2;
-   color: #e74c3c;
-   font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    background-color: #fdf2f2;
+    color: #e74c3c;
+    font-size: 20px;
 `;
 
 const AttachmentInfo = styled.div`
-   flex: 1;
+    flex: 1;
 `;
 
 const AttachmentName = styled.div`
-   font-weight: 500;
-   color: #2c3e50;
-   margin-bottom: 2px;
+    font-weight: 500;
+    color: #2c3e50;
+    margin-bottom: 2px;
 `;
 
 const AttachmentSize = styled.div`
-   color: #7f8c8d;
-   font-size: 12px;
+    color: #7f8c8d;
+    font-size: 12px;
 `;
 
 const DownloadLink = styled.a`
-   color: #3498db;
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   padding: 8px;
-   border-radius: 4px;
-   transition: all 0.2s;
-   text-decoration: none;
+    color: #3498db;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    text-decoration: none;
 
-   &:hover {
-       background-color: #3498db;
-       color: white;
-   }
+    &:hover {
+        background-color: #3498db;
+        color: white;
+    }
 `;
 
 const StatusActions = styled.div`
-   margin-top: 32px;
-   border-top: 2px solid #eef2f7;
-   padding-top: 24px;
+    margin-top: 32px;
+    border-top: 2px solid #eef2f7;
+    padding-top: 24px;
 `;
 
 const StatusTitle = styled.h4`
-   font-size: 16px;
-   font-weight: 600;
-   color: #2c3e50;
-   margin: 0 0 16px 0;
-   display: flex;
-   align-items: center;
-   gap: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0 0 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 
-   &::before {
-       content: '';
-       width: 3px;
-       height: 16px;
-       background-color: #3498db;
-       border-radius: 2px;
-   }
+    &::before {
+        content: '';
+        width: 3px;
+        height: 16px;
+        background-color: #3498db;
+        border-radius: 2px;
+    }
 `;
 
 const StatusButtons = styled.div`
-   display: flex;
-   flex-wrap: wrap;
-   gap: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
 `;
 
 const StatusButton = styled.button<{ status: DocumentStatus; active: boolean }>`
-   padding: 10px 16px;
-   border-radius: 4px;
-   font-size: 14px;
-   font-weight: 500;
-   cursor: ${props => props.active ? 'default' : 'pointer'};
+    padding: 10px 16px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+cursor: ${props => props.active ? 'default' : 'pointer'};
    background-color: ${props => props.active ? `${DocumentStatusColors[props.status]}22` : 'white'};
    color: ${props => DocumentStatusColors[props.status]};
    border: 2px solid ${props => props.active ? DocumentStatusColors[props.status] : `${DocumentStatusColors[props.status]}44`};
