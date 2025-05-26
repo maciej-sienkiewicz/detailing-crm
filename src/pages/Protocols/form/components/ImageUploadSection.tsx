@@ -1,8 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import { FaCamera, FaUpload, FaTrash, FaImage, FaExclamationCircle, FaEye, FaEdit, FaTags } from 'react-icons/fa';
 import { VehicleImage } from '../../../../types';
 import { apiClient } from '../../../../api/apiClient';
+import { carReceptionApi } from '../../../../api/carReceptionApi';
 import ImagePreviewModal from "../../shared/modals/ImagePreviewModal";
 import ImageEditModal from "../../shared/modals/ImageEditModal";
 
@@ -28,19 +29,87 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
     // Mapa do przechowywania URL-i blob dla każdego zdjęcia
     const [blobUrls, setBlobUrls] = useState<Map<string, string>>(new Map());
 
+    // Stan ładowania obrazów z serwera
+    const [loadingImages, setLoadingImages] = useState<Set<string>>(new Set());
+
     // Maksymalny rozmiar pliku (25MB)
     const MAX_FILE_SIZE = 25 * 1024 * 1024;
 
+    // Automatyczne ładowanie obrazów z serwera przy montowaniu komponentu
+    useEffect(() => {
+        const loadServerImages = async () => {
+            // Znajdź obrazy z serwera (nie lokalne/tymczasowe)
+            const serverImages = images.filter(img =>
+                !img.id.startsWith('temp_') &&
+                !img.id.startsWith('img_') &&
+                !blobUrls.has(img.id) &&
+                (!img.url || !img.url.startsWith('blob:'))
+            );
+
+            if (serverImages.length === 0) return;
+
+            // Oznacz obrazy jako ładowane
+            setLoadingImages(prev => {
+                const newSet = new Set(prev);
+                serverImages.forEach(img => newSet.add(img.id));
+                return newSet;
+            });
+
+            try {
+                // Pobierz wszystkie obrazy równolegle
+                const imagePromises = serverImages.map(async (image) => {
+                    try {
+                        const imageUrl = await carReceptionApi.fetchVehicleImageAsUrl(image.id);
+                        return { id: image.id, url: imageUrl };
+                    } catch (error) {
+                        console.error(`Błąd podczas pobierania URL dla obrazu ${image.id}:`, error);
+                        return { id: image.id, url: '' };
+                    }
+                });
+
+                const results = await Promise.all(imagePromises);
+
+                // Aktualizuj mapę URL-i
+                setBlobUrls(prev => {
+                    const newMap = new Map(prev);
+                    results.forEach(({ id, url }) => {
+                        if (url) {
+                            newMap.set(id, url);
+                        }
+                    });
+                    return newMap;
+                });
+            } catch (error) {
+                console.error('Błąd podczas ładowania obrazów z serwera:', error);
+                setError('Błąd podczas ładowania niektórych zdjęć');
+            } finally {
+                // Usuń obrazy z listy ładowanych
+                setLoadingImages(prev => {
+                    const newSet = new Set(prev);
+                    serverImages.forEach(img => newSet.delete(img.id));
+                    return newSet;
+                });
+            }
+        };
+
+        if (images.length > 0) {
+            loadServerImages();
+        }
+    }, [images]);
+
     // Funkcja do generowania URL zdjęcia z lepszym zarządzaniem blob URLs
     const getImageUrl = (image: VehicleImage): string => {
-        // Dla zdjęć z serwera
-        if (image.id && !image.id.startsWith('temp_') && !image.id.startsWith('img_')) {
-            if (image.url && !image.url.startsWith('blob:')) {
-                return image.url; // Jeśli url jest już prawidłowo ustawiony
+        // Dla zdjęć z serwera sprawdź czy mamy zapisany blob URL
+        if (!image.id.startsWith('temp_') && !image.id.startsWith('img_')) {
+            if (blobUrls.has(image.id)) {
+                return blobUrls.get(image.id)!;
             }
-            // Konstruujemy URL do API
-            const baseUrl = apiClient.getBaseUrl();
-            return `${baseUrl}/receptions/image/${image.id}`;
+            // Jeśli obraz ma URL ale nie jest to blob, znaczy że został już pobrany wcześniej
+            if (image.url && !image.url.startsWith('blob:')) {
+                return image.url;
+            }
+            // W przeciwnym razie czekamy na załadowanie
+            return '';
         }
 
         // Dla lokalnych zdjęć sprawdź czy mamy zapisany blob URL
@@ -55,6 +124,11 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
         }
 
         return ''; // Fallback dla nieprawidłowych danych
+    };
+
+    // Sprawdza czy obraz jest w trakcie ładowania
+    const isImageLoading = (imageId: string): boolean => {
+        return loadingImages.has(imageId);
     };
 
     // Obsługuje dodawanie nowych zdjęć
@@ -309,44 +383,63 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
 
             {images.length > 0 && (
                 <ImagesList>
-                    {images.map((image, index) => (
-                        <ImageItem key={image.id}>
-                            <ImageThumbnail onClick={(e) => handleOpenPreview(index, e)}>
-                                <img src={getImageUrl(image)} alt={image.name || 'Zdjęcie'} />
-                                <ViewOverlay>
-                                    <FaEye />
-                                </ViewOverlay>
-                            </ImageThumbnail>
-                            <ImageInfo>
-                                <ImageNameContainer>
-                                    <ImageName>{image.name || 'Bez nazwy'}</ImageName>
-                                    <EditButton type="button" onClick={(e) => handleEditImage(index, e)}>
-                                        <FaEdit />
-                                    </EditButton>
-                                </ImageNameContainer>
-                                <ImageMetaContainer>
-                                    <ImageSize>{formatFileSize(image.size)}</ImageSize>
-                                    {image.tags && image.tags.length > 0 && (
-                                        <TagsContainer>
-                                            <TagsIcon><FaTags /></TagsIcon>
-                                            <TagsCount>{image.tags.length}</TagsCount>
-                                        </TagsContainer>
-                                    )}
-                                </ImageMetaContainer>
+                    {images.map((image, index) => {
+                        const imageUrl = getImageUrl(image);
+                        const isLoading = isImageLoading(image.id);
 
-                                {image.tags && image.tags.length > 0 && (
-                                    <TagsList>
-                                        {image.tags.map(tag => (
-                                            <TagBadge key={tag}>{tag}</TagBadge>
-                                        ))}
-                                    </TagsList>
-                                )}
-                            </ImageInfo>
-                            <RemoveButton type="button" onClick={(e) => handleRemoveImage(image.id, e)}>
-                                <FaTrash />
-                            </RemoveButton>
-                        </ImageItem>
-                    ))}
+                        return (
+                            <ImageItem key={image.id}>
+                                <ImageThumbnail onClick={(e) => handleOpenPreview(index, e)}>
+                                    {isLoading ? (
+                                        <LoadingIndicator>
+                                            <div className="spinner"></div>
+                                            <span>Ładowanie...</span>
+                                        </LoadingIndicator>
+                                    ) : imageUrl ? (
+                                        <>
+                                            <img src={imageUrl} alt={image.name || 'Zdjęcie'} />
+                                            <ViewOverlay>
+                                                <FaEye />
+                                            </ViewOverlay>
+                                        </>
+                                    ) : (
+                                        <ImagePlaceholder>
+                                            <FaImage />
+                                            <span>Błąd ładowania</span>
+                                        </ImagePlaceholder>
+                                    )}
+                                </ImageThumbnail>
+                                <ImageInfo>
+                                    <ImageNameContainer>
+                                        <ImageName>{image.name || 'Bez nazwy'}</ImageName>
+                                        <EditButton type="button" onClick={(e) => handleEditImage(index, e)}>
+                                            <FaEdit />
+                                        </EditButton>
+                                    </ImageNameContainer>
+                                    <ImageMetaContainer>
+                                        <ImageSize>{formatFileSize(image.size)}</ImageSize>
+                                        {image.tags && image.tags.length > 0 && (
+                                            <TagsContainer>
+                                                <TagsIcon><FaTags /></TagsIcon>
+                                                <TagsCount>{image.tags.length}</TagsCount>
+                                            </TagsContainer>
+                                        )}
+                                    </ImageMetaContainer>
+
+                                    {image.tags && image.tags.length > 0 && (
+                                        <TagsList>
+                                            {image.tags.map(tag => (
+                                                <TagBadge key={tag}>{tag}</TagBadge>
+                                            ))}
+                                        </TagsList>
+                                    )}
+                                </ImageInfo>
+                                <RemoveButton type="button" onClick={(e) => handleRemoveImage(image.id, e)}>
+                                    <FaTrash />
+                                </RemoveButton>
+                            </ImageItem>
+                        );
+                    })}
                 </ImagesList>
             )}
 
@@ -384,7 +477,7 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
     );
 };
 
-// Stylowanie komponentów pozostaje bez zmian
+// Stylowanie komponentów - dodane style dla ładowania
 const SectionContainer = styled.div`
     margin-bottom: 30px;
 `;
@@ -522,6 +615,52 @@ const ViewOverlay = styled.div`
 
     ${ImageThumbnail}:hover & {
         opacity: 1;
+    }
+`;
+
+const LoadingIndicator = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #3498db;
+    gap: 10px;
+
+    .spinner {
+        width: 24px;
+        height: 24px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #3498db;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    span {
+        font-size: 12px;
+    }
+`;
+
+const ImagePlaceholder = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #95a5a6;
+    gap: 8px;
+
+    svg {
+        font-size: 24px;
+    }
+
+    span {
+        font-size: 12px;
     }
 `;
 
