@@ -575,6 +575,43 @@ const UnifiedDocumentForm: React.FC<UnifiedDocumentFormProps> = ({
 
                 <FormSectionRow>
                     <FormSection flex={1}>
+                        <SectionTitle>Sprzedawca</SectionTitle>
+                        <FormGrid columns={1}>
+                            <FormGroup>
+                                <Label htmlFor="sellerName">Nazwa sprzedawcy*</Label>
+                                <Input
+                                    id="sellerName"
+                                    name="sellerName"
+                                    value={formData.sellerName || ''}
+                                    onChange={handleChange}
+                                    required
+                                />
+                            </FormGroup>
+
+                            <FormGroup>
+                                <Label htmlFor="sellerTaxId">NIP</Label>
+                                <Input
+                                    id="sellerTaxId"
+                                    name="sellerTaxId"
+                                    value={formData.sellerTaxId || ''}
+                                    onChange={handleChange}
+                                />
+                            </FormGroup>
+
+                            <FormGroup>
+                                <Label htmlFor="sellerAddress">Adres</Label>
+                                <Textarea
+                                    id="sellerAddress"
+                                    name="sellerAddress"
+                                    value={formData.sellerAddress || ''}
+                                    onChange={handleChange}
+                                    rows={3}
+                                />
+                            </FormGroup>
+                        </FormGrid>
+                    </FormSection>
+
+                    <FormSection flex={1}>
                         <SectionTitle>Nabywca</SectionTitle>
                         <FormGrid columns={1}>
                             <FormGroup>

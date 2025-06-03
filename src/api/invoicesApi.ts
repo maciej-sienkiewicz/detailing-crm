@@ -44,7 +44,7 @@ export interface ExtractedInvoiceData {
 
 // Typ odpowiedzi z serwera dla ekstrahowanych danych
 export interface InvoiceDataResponse {
-    extractedInvoiceData: ExtractedInvoiceData;
+    extractedDocumentData: ExtractedInvoiceData;
 }
 
 /**
@@ -247,8 +247,8 @@ export const invoicesApi = {
             const formData = new FormData();
             formData.append('file', file);
 
-            const response = await apiClient.post<InvoiceDataResponse>('/invoices/extract', formData);
-            return response.extractedInvoiceData;
+            const response = await apiClient.post<InvoiceDataResponse>('/invoice/extract', formData);
+            return response.extractedDocumentData;
         } catch (error) {
             console.error('Error extracting invoice data:', error);
             return null;

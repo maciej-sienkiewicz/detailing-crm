@@ -57,6 +57,13 @@ const mainMenuItems: MainMenuItem[] = [
         hasSubmenu: false
     },
     {
+        id: 'gallery',
+        label: 'Galeria',
+        icon: <FaImages />,
+        path: '/gallery',
+        hasSubmenu: false
+    },
+    {
         id: 'fleet',
         label: 'Flota',
         icon: <FaCar />,
@@ -102,13 +109,6 @@ const mainMenuItems: MainMenuItem[] = [
         label: 'Ustawienia',
         icon: <FaCog />,
         hasSubmenu: true
-    },
-    {
-        id: 'gallery',
-        label: 'Galeria',
-        icon: <FaImages />,
-        path: '/gallery',
-        hasSubmenu: false
     }
 ];
 

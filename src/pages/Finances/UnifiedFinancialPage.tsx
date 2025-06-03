@@ -496,7 +496,7 @@ const UnifiedFinancialPage: React.FC = () => {
                                         <TableCell>
                                             {document.protocolNumber ? (
                                                 <ProtocolLink href={`/orders/car-reception/${document.protocolId}`}>
-                                                    {document.protocolNumber}
+                                                    Wizyta #{document.protocolNumber}
                                                 </ProtocolLink>
                                             ) : document.visitId ? (
                                                 <ProtocolLink href={`/appointments/${document.visitId}`}>

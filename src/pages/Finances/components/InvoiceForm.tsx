@@ -214,6 +214,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, initialData = {}, on
 
             // Wywołanie API do ekstrakcji danych
             const extractedData = await invoicesApi.extractInvoiceData(selectedFile);
+            console.log(extractedData);
 
             if (extractedData) {
                 // Mapowanie wyekstrahowanych danych na format formularza
