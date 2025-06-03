@@ -80,50 +80,88 @@ const WebSocketManager: React.FC<WebSocketManagerProps> = ({
     const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
     const maxReconnectAttempts = 10;
     const reconnectInterval = 3000;
+    const connectionAttemptRef = useRef<boolean>(false);
 
     const connect = useCallback(() => {
-        if (wsRef.current?.readyState === WebSocket.OPEN) {
+        // Zapobiegnij wielokrotnym próbom połączenia
+        if (connectionAttemptRef.current || wsRef.current?.readyState === WebSocket.OPEN) {
             return;
         }
 
+        connectionAttemptRef.current = true;
         setConnectionStatus(prev => ({ ...prev, status: 'connecting' }));
 
-        // Używamy SockJS zamiast czystego WebSocket - zgodnie z konfiguracją backendu
-        const workstationId = `workstation-${Date.now()}`;
-        const wsUrl = `ws://localhost:8080/ws/workstation/${workstationId}`;
-
         try {
+            // Generuj unikalny workstationId
+            const workstationId = `workstation-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+            // Używaj czystego WebSocket bez SockJS
+            const wsUrl = `ws://localhost:8080/ws/workstation/${workstationId}`;
+
+            console.log('Attempting WebSocket connection to:', wsUrl);
+
             wsRef.current = new WebSocket(wsUrl);
 
+            // Dodaj headers autentykacji jeśli dostępne
+            const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
+            if (token) {
+                // Note: WebSocket nie obsługuje custom headers w przeglądarce
+                // Będziemy musieli przesłać token przez query params lub po nawiązaniu połączenia
+                console.log('Auth token available for WebSocket connection');
+            }
+
             wsRef.current.onopen = () => {
-                console.log('WebSocket connected');
+                console.log('WebSocket connected successfully to:', wsUrl);
+                connectionAttemptRef.current = false;
+
                 setConnectionStatus({
                     status: 'connected',
                     lastConnected: new Date(),
                     reconnectAttempts: 0
                 });
 
-                // Send authentication message with proper headers expected by backend
-                const authMessage: WebSocketMessage = {
-                    type: 'connection',
-                    payload: {
-                        tenantId,
-                        userType: 'workstation',
-                        workstationId: workstationId,
+                // Wyślij autentykację natychmiast po połączeniu
+                if (token) {
+                    const authMessage: WebSocketMessage = {
+                        type: 'authentication',
+                        payload: {
+                            token: token,
+                            tenantId,
+                            userType: 'workstation',
+                            workstationId: workstationId,
+                            timestamp: new Date().toISOString()
+                        },
                         timestamp: new Date().toISOString()
-                    },
-                    timestamp: new Date().toISOString()
-                };
+                    };
 
-                wsRef.current?.send(JSON.stringify(authMessage));
+                    console.log('Sending authentication message:', authMessage);
+                    wsRef.current?.send(JSON.stringify(authMessage));
+                } else {
+                    console.warn('No auth token available - connection may be rejected');
+
+                    // Wyślij wiadomość connection bez tokenu
+                    const connectionMessage: WebSocketMessage = {
+                        type: 'connection',
+                        payload: {
+                            tenantId,
+                            userType: 'workstation',
+                            workstationId: workstationId,
+                            timestamp: new Date().toISOString()
+                        },
+                        timestamp: new Date().toISOString()
+                    };
+
+                    wsRef.current?.send(JSON.stringify(connectionMessage));
+                }
             };
 
             wsRef.current.onmessage = (event) => {
                 try {
                     const message: WebSocketMessage = JSON.parse(event.data);
+                    console.log('WebSocket message received:', message);
                     handleMessage(message);
 
-                    // Add to recent activity (keep last 50 messages)
+                    // Dodaj do ostatniej aktywności (zachowaj ostatnie 50 wiadomości)
                     setRecentActivity(prev => {
                         const updated = [message, ...prev].slice(0, 50);
                         return updated;
@@ -135,14 +173,21 @@ const WebSocketManager: React.FC<WebSocketManagerProps> = ({
 
             wsRef.current.onclose = (event) => {
                 console.log('WebSocket disconnected:', event.code, event.reason);
+                connectionAttemptRef.current = false;
+
                 setConnectionStatus(prev => ({
                     ...prev,
                     status: 'disconnected'
                 }));
 
-                // Tylko reconnect jeśli nie było to celowe zamknięcie
+                // Tylko reconnect jeśli nie było to celowe zamknięcie (kod 1000)
                 if (event.code !== 1000 && connectionStatus.reconnectAttempts < maxReconnectAttempts) {
-                    const delay = reconnectInterval * Math.pow(1.5, connectionStatus.reconnectAttempts);
+                    const delay = Math.min(
+                        reconnectInterval * Math.pow(1.5, connectionStatus.reconnectAttempts),
+                        30000 // Max 30 sekund delay
+                    );
+
+                    console.log(`Scheduling reconnection in ${delay}ms (attempt ${connectionStatus.reconnectAttempts + 1})`);
 
                     reconnectTimeoutRef.current = setTimeout(() => {
                         setConnectionStatus(prev => ({
@@ -150,26 +195,32 @@ const WebSocketManager: React.FC<WebSocketManagerProps> = ({
                             reconnectAttempts: prev.reconnectAttempts + 1
                         }));
                         connect();
-                    }, Math.min(delay, 30000)); // Max 30 sekund delay
+                    }, delay);
                 }
             };
 
             wsRef.current.onerror = (error) => {
                 console.error('WebSocket error:', error);
+                connectionAttemptRef.current = false;
                 setConnectionStatus(prev => ({ ...prev, status: 'error' }));
             };
 
         } catch (error) {
             console.error('Failed to create WebSocket connection:', error);
+            connectionAttemptRef.current = false;
             setConnectionStatus(prev => ({ ...prev, status: 'error' }));
         }
     }, [tenantId, connectionStatus.reconnectAttempts]);
 
     const disconnect = useCallback(() => {
+        console.log('Disconnecting WebSocket...');
+
         if (reconnectTimeoutRef.current) {
             clearTimeout(reconnectTimeoutRef.current);
             reconnectTimeoutRef.current = undefined;
         }
+
+        connectionAttemptRef.current = false;
 
         if (wsRef.current && wsRef.current.readyState !== WebSocket.CLOSED) {
             wsRef.current.close(1000, 'Component unmounting'); // Normal closure
@@ -184,6 +235,24 @@ const WebSocketManager: React.FC<WebSocketManagerProps> = ({
 
     const handleMessage = useCallback((message: WebSocketMessage) => {
         switch (message.type) {
+            case 'authentication':
+                console.log('Authentication response:', message.payload);
+                if (message.payload.status === 'authenticated') {
+                    console.log('Successfully authenticated with WebSocket server');
+                    console.log('User roles:', message.payload.roles);
+                    console.log('User permissions:', message.payload.permissions);
+                } else {
+                    console.error('Authentication failed:', message.payload);
+                }
+                break;
+
+            case 'connection':
+                console.log('Connection status received:', message.payload);
+                if (message.payload.status === 'connected' && !message.payload.authenticated) {
+                    console.log('Connected to WebSocket, but not yet authenticated');
+                }
+                break;
+
             case 'tablet_connected':
                 const connectEvent: TabletConnectionEvent = {
                     ...message.payload,
@@ -266,10 +335,24 @@ const WebSocketManager: React.FC<WebSocketManagerProps> = ({
                 // Handle heartbeat - no action needed
                 break;
 
+            case 'error':
+                console.error('WebSocket error message received:', message.payload);
+
+                // Jeśli błąd dotyczy autentykacji, zatrzymaj reconnect
+                if (message.payload.error && message.payload.error.includes('Authentication failed')) {
+                    console.error('Authentication failed - stopping reconnection attempts');
+                    setConnectionStatus(prev => ({
+                        ...prev,
+                        status: 'error',
+                        reconnectAttempts: maxReconnectAttempts // Zatrzymaj próby ponownego łączenia
+                    }));
+                }
+                break;
+
             default:
-                console.log('Unknown message type:', message.type);
+                console.log('Unknown message type:', message.type, message);
         }
-    }, [onTabletConnectionChange, onSignatureUpdate]);
+    }, [onTabletConnectionChange, onSignatureUpdate, maxReconnectAttempts]);
 
     const addNotification = useCallback((notification: NotificationEvent) => {
         setNotifications(prev => [notification, ...prev].slice(0, 20)); // Keep last 20 notifications
@@ -302,12 +385,14 @@ const WebSocketManager: React.FC<WebSocketManagerProps> = ({
                 ...message,
                 timestamp: new Date().toISOString()
             }));
+        } else {
+            console.warn('Cannot send message - WebSocket not connected');
         }
     }, []);
 
     // Request notification permission on mount
     useEffect(() => {
-        if (Notification.permission === 'default') {
+        if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
             Notification.requestPermission();
         }
     }, []);
@@ -315,19 +400,20 @@ const WebSocketManager: React.FC<WebSocketManagerProps> = ({
     // Auto-connect on mount z proper cleanup
     useEffect(() => {
         let isMounted = true;
+        let connectTimer: NodeJS.Timeout;
 
         const connectIfMounted = () => {
-            if (isMounted) {
+            if (isMounted && !connectionAttemptRef.current) {
                 connect();
             }
         };
 
-        // Delay initial connection to avoid React strict mode double mounting
-        const initialConnectionTimeout = setTimeout(connectIfMounted, 100);
+        // Opóźnij początkowe połączenie aby uniknąć React strict mode double mounting
+        connectTimer = setTimeout(connectIfMounted, 500);
 
         return () => {
             isMounted = false;
-            clearTimeout(initialConnectionTimeout);
+            clearTimeout(connectTimer);
             disconnect();
         };
     }, [tenantId]); // Tylko tenantId jako dependency
@@ -448,7 +534,7 @@ const WebSocketManager: React.FC<WebSocketManagerProps> = ({
                                 >
                                     <NotificationIcon type={notification.type}>
                                         {notification.type === 'tablet_connected' && <FaCheckCircle />}
-                                        {notification.type === 'tablet_disconnected' && <FaWifiSlash />}
+                                        {notification.type === 'tablet_disconnected' && <FaExclamationTriangle />}
                                         {notification.type === 'signature_completed' && <FaSignature />}
                                         {notification.type === 'signature_expired' && <FaExclamationTriangle />}
                                         {notification.type === 'system_alert' && <FaBell />}
@@ -469,20 +555,20 @@ const WebSocketManager: React.FC<WebSocketManagerProps> = ({
             )}
 
             <style>{`
-        .spin {
-          animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
+                .spin {
+                    animation: spin 1s linear infinite;
+                }
+                
+                @keyframes spin {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+            `}</style>
         </ManagerContainer>
     );
 };
 
-// Styled Components
+// Styled Components (pozostają bez zmian)
 const ManagerContainer = styled.div`
     position: relative;
 `;

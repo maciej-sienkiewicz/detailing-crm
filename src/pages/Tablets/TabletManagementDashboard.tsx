@@ -227,182 +227,144 @@ const TabletManagementDashboard: React.FC = () => {
 
     return (
         <DashboardContainer>
-            <Header>
-                <HeaderLeft>
-                    <Title>
-                        <FaTabletAlt />
-                        Zarządzanie Tabletami
-                    </Title>
-                    <Stats>
-                        <StatCard>
-                            <StatNumber>{tablets.filter(t => t.isOnline).length}</StatNumber>
-                            <StatLabel>Online</StatLabel>
-                        </StatCard>
-                        <StatCard>
-                            <StatNumber>{sessions.filter(s => s.status === 'SENT_TO_TABLET').length}</StatNumber>
-                            <StatLabel>Oczekujące</StatLabel>
-                        </StatCard>
-                        <StatCard>
-                            <StatNumber>{sessions.filter(s => s.status === 'SIGNED' && new Date(s.signedAt!).toDateString() === new Date().toDateString()).length}</StatNumber>
-                            <StatLabel>Dziś podpisane</StatLabel>
-                        </StatCard>
-                    </Stats>
-                </HeaderLeft>
-                <HeaderActions>
-                    <ActionButton
-                        onClick={generatePairingCode}
-                        disabled={isLoading}
-                        primary
+            <DashboardCard>
+                <TabNavigation>
+                    <TabButton
+                        active={activeTab === 'tablets'}
+                        onClick={() => setActiveTab('tablets')}
                     >
-                        {isLoading ? <FaSpinner className="spin" /> : <FaPlus />}
-                        Sparuj Tablet
-                    </ActionButton>
-                    <ActionButton
-                        onClick={() => setShowSignatureModal(true)}
-                        disabled={tablets.filter(t => t.isOnline).length === 0}
+                        <FaTabletAlt />
+                        Tablety ({tablets.length})
+                    </TabButton>
+                    <TabButton
+                        active={activeTab === 'sessions'}
+                        onClick={() => setActiveTab('sessions')}
                     >
                         <FaSignature />
-                        Nowy Podpis
-                    </ActionButton>
-                </HeaderActions>
-            </Header>
+                        Sesje Podpisów ({sessions.length})
+                    </TabButton>
+                </TabNavigation>
 
-            <TabNavigation>
-                <TabButton
-                    active={activeTab === 'tablets'}
-                    onClick={() => setActiveTab('tablets')}
-                >
-                    <FaTabletAlt />
-                    Tablety ({tablets.length})
-                </TabButton>
-                <TabButton
-                    active={activeTab === 'sessions'}
-                    onClick={() => setActiveTab('sessions')}
-                >
-                    <FaSignature />
-                    Sesje Podpisów ({sessions.length})
-                </TabButton>
-            </TabNavigation>
+                <ContentArea>
+                    {activeTab === 'tablets' ? (
+                        <TabletsGrid>
+                            {tablets.map(tablet => (
+                                <TabletCard key={tablet.id} status={tablet.status} isOnline={tablet.isOnline}>
+                                    <TabletHeader>
+                                        <TabletName>{tablet.friendlyName}</TabletName>
+                                        <StatusIndicator color={getStatusColor(tablet.status, tablet.isOnline)}>
+                                            {tablet.isOnline ? <FaWifi /> : <FaWifi />}
+                                            {tablet.isOnline ? 'Online' : 'Offline'}
+                                        </StatusIndicator>
+                                    </TabletHeader>
 
-            <ContentArea>
-                {activeTab === 'tablets' ? (
-                    <TabletsGrid>
-                        {tablets.map(tablet => (
-                            <TabletCard key={tablet.id} status={tablet.status} isOnline={tablet.isOnline}>
-                                <TabletHeader>
-                                    <TabletName>{tablet.friendlyName}</TabletName>
-                                    <StatusIndicator color={getStatusColor(tablet.status, tablet.isOnline)}>
-                                        {tablet.isOnline ? <FaWifi /> : <FaWifi />}
-                                        {tablet.isOnline ? 'Online' : 'Offline'}
-                                    </StatusIndicator>
-                                </TabletHeader>
-
-                                <TabletInfo>
-                                    <InfoRow>
-                                        <InfoLabel>Status:</InfoLabel>
-                                        <InfoValue>{tablet.status}</InfoValue>
-                                    </InfoRow>
-                                    <InfoRow>
-                                        <InfoLabel>Ostatnia aktywność:</InfoLabel>
-                                        <InfoValue>{formatLastSeen(tablet.lastSeen)}</InfoValue>
-                                    </InfoRow>
-                                    {tablet.workstationId && (
+                                    <TabletInfo>
                                         <InfoRow>
-                                            <InfoLabel>Stanowisko:</InfoLabel>
-                                            <InfoValue>#{tablet.workstationId}</InfoValue>
+                                            <InfoLabel>Status:</InfoLabel>
+                                            <InfoValue>{tablet.status}</InfoValue>
                                         </InfoRow>
-                                    )}
-                                    <InfoRow>
-                                        <InfoLabel>
-                                            <FaMapMarkerAlt />
-                                            Lokalizacja:
-                                        </InfoLabel>
-                                        <InfoValue>Sala główna</InfoValue>
-                                    </InfoRow>
-                                </TabletInfo>
-
-                                <TabletActions>
-                                    <TabletActionButton
-                                        onClick={() => {
-                                            setSelectedTablet(tablet);
-                                            setShowSignatureModal(true);
-                                        }}
-                                        disabled={!tablet.isOnline}
-                                        title="Wyślij żądanie podpisu"
-                                    >
-                                        <FaPaperPlane />
-                                    </TabletActionButton>
-                                    <TabletActionButton title="Szczegóły">
-                                        <FaEye />
-                                    </TabletActionButton>
-                                    <TabletActionButton title="Edytuj">
-                                        <FaEdit />
-                                    </TabletActionButton>
-                                    <TabletActionButton danger title="Usuń">
-                                        <FaTrash />
-                                    </TabletActionButton>
-                                </TabletActions>
-                            </TabletCard>
-                        ))}
-                    </TabletsGrid>
-                ) : (
-                    <SessionsTable>
-                        <TableHeader>
-                            <HeaderCell>Klient</HeaderCell>
-                            <HeaderCell>Pojazd</HeaderCell>
-                            <HeaderCell>Usługa</HeaderCell>
-                            <HeaderCell>Status</HeaderCell>
-                            <HeaderCell>Tablet</HeaderCell>
-                            <HeaderCell>Utworzono</HeaderCell>
-                            <HeaderCell>Akcje</HeaderCell>
-                        </TableHeader>
-                        {sessions.map(session => (
-                            <TableRow key={session.id}>
-                                <Cell>
-                                    <CustomerInfo>
-                                        <CustomerName>{session.customerName}</CustomerName>
-                                        <DocumentType>{session.documentType}</DocumentType>
-                                    </CustomerInfo>
-                                </Cell>
-                                <Cell>
-                                    <VehicleInfo>
-                                        <VehicleName>{session.vehicleInfo.make} {session.vehicleInfo.model}</VehicleName>
-                                        <LicensePlate>{session.vehicleInfo.licensePlate}</LicensePlate>
-                                    </VehicleInfo>
-                                </Cell>
-                                <Cell>{session.serviceType}</Cell>
-                                <Cell>
-                                    <StatusBadge color={getSessionStatusColor(session.status)}>
-                                        {session.status === 'SIGNED' && <FaCheckCircle />}
-                                        {session.status === 'EXPIRED' && <FaTimesCircle />}
-                                        {session.status === 'SENT_TO_TABLET' && <FaClock />}
-                                        {session.status === 'CANCELLED' && <FaExclamationTriangle />}
-                                        {session.status}
-                                    </StatusBadge>
-                                </Cell>
-                                <Cell>
-                                    {session.assignedTabletId ?
-                                        tablets.find(t => t.id === session.assignedTabletId)?.friendlyName || 'Nieznany'
-                                        : '-'}
-                                </Cell>
-                                <Cell>{new Date(session.createdAt).toLocaleString('pl-PL')}</Cell>
-                                <Cell>
-                                    <SessionActions>
-                                        <SessionActionButton title="Szczegóły">
-                                            <FaEye />
-                                        </SessionActionButton>
-                                        {session.status === 'PENDING' && (
-                                            <SessionActionButton danger title="Anuluj">
-                                                <FaTimesCircle />
-                                            </SessionActionButton>
+                                        <InfoRow>
+                                            <InfoLabel>Ostatnia aktywność:</InfoLabel>
+                                            <InfoValue>{formatLastSeen(tablet.lastSeen)}</InfoValue>
+                                        </InfoRow>
+                                        {tablet.workstationId && (
+                                            <InfoRow>
+                                                <InfoLabel>Stanowisko:</InfoLabel>
+                                                <InfoValue>#{tablet.workstationId}</InfoValue>
+                                            </InfoRow>
                                         )}
-                                    </SessionActions>
-                                </Cell>
-                            </TableRow>
-                        ))}
-                    </SessionsTable>
-                )}
-            </ContentArea>
+                                        <InfoRow>
+                                            <InfoLabel>
+                                                <FaMapMarkerAlt />
+                                                Lokalizacja:
+                                            </InfoLabel>
+                                            <InfoValue>Sala główna</InfoValue>
+                                        </InfoRow>
+                                    </TabletInfo>
+
+                                    <TabletActions>
+                                        <TabletActionButton
+                                            onClick={() => {
+                                                setSelectedTablet(tablet);
+                                                setShowSignatureModal(true);
+                                            }}
+                                            disabled={!tablet.isOnline}
+                                            title="Wyślij żądanie podpisu"
+                                        >
+                                            <FaPaperPlane />
+                                        </TabletActionButton>
+                                        <TabletActionButton title="Szczegóły">
+                                            <FaEye />
+                                        </TabletActionButton>
+                                        <TabletActionButton title="Edytuj">
+                                            <FaEdit />
+                                        </TabletActionButton>
+                                        <TabletActionButton danger title="Usuń">
+                                            <FaTrash />
+                                        </TabletActionButton>
+                                    </TabletActions>
+                                </TabletCard>
+                            ))}
+                        </TabletsGrid>
+                    ) : (
+                        <SessionsTable>
+                            <TableHeader>
+                                <HeaderCell>Klient</HeaderCell>
+                                <HeaderCell>Pojazd</HeaderCell>
+                                <HeaderCell>Usługa</HeaderCell>
+                                <HeaderCell>Status</HeaderCell>
+                                <HeaderCell>Tablet</HeaderCell>
+                                <HeaderCell>Utworzono</HeaderCell>
+                                <HeaderCell>Akcje</HeaderCell>
+                            </TableHeader>
+                            {sessions.map(session => (
+                                <TableRow key={session.id}>
+                                    <Cell>
+                                        <CustomerInfo>
+                                            <CustomerName>{session.customerName}</CustomerName>
+                                            <DocumentType>{session.documentType}</DocumentType>
+                                        </CustomerInfo>
+                                    </Cell>
+                                    <Cell>
+                                        <VehicleInfo>
+                                            <VehicleName>{session.vehicleInfo.make} {session.vehicleInfo.model}</VehicleName>
+                                            <LicensePlate>{session.vehicleInfo.licensePlate}</LicensePlate>
+                                        </VehicleInfo>
+                                    </Cell>
+                                    <Cell>{session.serviceType}</Cell>
+                                    <Cell>
+                                        <StatusBadge color={getSessionStatusColor(session.status)}>
+                                            {session.status === 'SIGNED' && <FaCheckCircle />}
+                                            {session.status === 'EXPIRED' && <FaTimesCircle />}
+                                            {session.status === 'SENT_TO_TABLET' && <FaClock />}
+                                            {session.status === 'CANCELLED' && <FaExclamationTriangle />}
+                                            {session.status}
+                                        </StatusBadge>
+                                    </Cell>
+                                    <Cell>
+                                        {session.assignedTabletId ?
+                                            tablets.find(t => t.id === session.assignedTabletId)?.friendlyName || 'Nieznany'
+                                            : '-'}
+                                    </Cell>
+                                    <Cell>{new Date(session.createdAt).toLocaleString('pl-PL')}</Cell>
+                                    <Cell>
+                                        <SessionActions>
+                                            <SessionActionButton title="Szczegóły">
+                                                <FaEye />
+                                            </SessionActionButton>
+                                            {session.status === 'PENDING' && (
+                                                <SessionActionButton danger title="Anuluj">
+                                                    <FaTimesCircle />
+                                                </SessionActionButton>
+                                            )}
+                                        </SessionActions>
+                                    </Cell>
+                                </TableRow>
+                            ))}
+                        </SessionsTable>
+                    )}
+                </ContentArea>
+            </DashboardCard>
 
             {/* Pairing Modal */}
             {showPairingModal && pairingCode && (
@@ -536,625 +498,591 @@ const TabletManagementDashboard: React.FC = () => {
     );
 };
 
-// Styled Components
+// Styled Components - Spójny design
 const DashboardContainer = styled.div`
-  min-height: 100vh;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-  padding: 24px;
+    padding: 0; // Usunięto padding
+    margin: 0;  // Usunięto margin
 `;
 
-const Header = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 32px;
-  background: white;
-  padding: 24px;
-  border-radius: 16px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-`;
-
-const HeaderLeft = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-`;
-
-const Title = styled.h1`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 28px;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0;
-
-  svg {
-    color: #3b82f6;
-  }
-`;
-
-const Stats = styled.div`
-  display: flex;
-  gap: 24px;
-`;
-
-const StatCard = styled.div`
-  text-align: center;
-`;
-
-const StatNumber = styled.div`
-  font-size: 24px;
-  font-weight: 700;
-  color: #3b82f6;
-`;
-
-const StatLabel = styled.div`
-  font-size: 14px;
-  color: #64748b;
-  font-weight: 500;
-`;
-
-const HeaderActions = styled.div`
-  display: flex;
-  gap: 12px;
-`;
-
-const ActionButton = styled.button<{ primary?: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
-  border: none;
-  border-radius: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  
-  ${props => props.primary ? `
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-    color: white;
-    box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);
-    
-    &:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px 0 rgba(59, 130, 246, 0.5);
-    }
-  ` : `
-    background: white;
-    color: #475569;
-    border: 2px solid #e2e8f0;
-    
-    &:hover:not(:disabled) {
-      border-color: #3b82f6;
-      color: #3b82f6;
-    }
-  `}
-  
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .spin {
-    animation: spin 1s linear infinite;
-  }
-
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
+const DashboardCard = styled.div`
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 24px;
+    box-shadow:
+            0 20px 25px -5px rgba(0, 0, 0, 0.1),
+            0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    overflow: hidden;
 `;
 
 const TabNavigation = styled.div`
-  display: flex;
-  gap: 4px;
-  margin-bottom: 24px;
-  background: white;
-  padding: 6px;
-  border-radius: 12px;
-  box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+    display: flex;
+    gap: 8px;
+    padding: 24px 24px 0 24px; // Padding tylko wewnętrzny
+    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
 `;
 
 const TabButton = styled.button<{ active: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  
-  ${props => props.active ? `
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-    color: white;
-    box-shadow: 0 2px 4px 0 rgba(59, 130, 246, 0.3);
-  ` : `
-    background: transparent;
-    color: #64748b;
-    
-    &:hover {
-      background: #f1f5f9;
-      color: #3b82f6;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 24px;
+    border: none;
+    border-radius: 16px;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    ${props => props.active ? `
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        color: white;
+        box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+        transform: translateY(-2px);
+    ` : `
+        background: rgba(255, 255, 255, 0.8);
+        color: #64748b;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        
+        &:hover {
+            background: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+        }
+    `}
+
+    svg {
+        font-size: 18px;
     }
-  `}
 `;
 
 const ContentArea = styled.div`
-  background: white;
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    padding: 32px; // Jednolity padding wewnętrzny
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
 `;
 
 const TabletsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 24px; // Zwiększone odstępy między kartami
 `;
 
 const TabletCard = styled.div<{ status: string; isOnline: boolean }>`
-  background: white;
-  border: 2px solid ${props => props.isOnline ? '#10b981' : '#e2e8f0'};
-  border-radius: 16px;
-  padding: 20px;
-  transition: all 0.3s;
-  position: relative;
-  overflow: hidden;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border: 2px solid ${props => props.isOnline ? '#10b981' : 'rgba(226, 232, 240, 0.8)'};
+    border-radius: 20px;
+    padding: 24px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
 
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: ${props => props.isOnline ?
-    'linear-gradient(90deg, #10b981 0%, #059669 100%)' :
-    'linear-gradient(90deg, #e2e8f0 0%, #cbd5e1 100%)'
-};
-  }
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: ${props => props.isOnline ?
+                'linear-gradient(90deg, #10b981 0%, #059669 100%)' :
+                'linear-gradient(90deg, #e2e8f0 0%, #cbd5e1 100%)'
+        };
+    }
 
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 24px -4px rgba(0, 0, 0, 0.15);
-  }
+    &:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.15);
+        border-color: ${props => props.isOnline ? '#059669' : '#3b82f6'};
+    }
 `;
 
 const TabletHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
 `;
 
 const TabletName = styled.h3`
-  font-size: 18px;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+    letter-spacing: -0.01em;
 `;
 
 const StatusIndicator = styled.div<{ color: string }>`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  background: ${props => props.color}20;
-  color: ${props => props.color};
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: ${props => props.color}20;
+    color: ${props => props.color};
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 `;
 
 const TabletInfo = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
 `;
 
 const InfoRow = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
 `;
 
 const InfoLabel = styled.span`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  color: #64748b;
-  font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #64748b;
+    font-weight: 500;
 `;
 
 const InfoValue = styled.span`
-  font-size: 14px;
-  color: #1e293b;
-  font-weight: 600;
+    font-size: 14px;
+    color: #1e293b;
+    font-weight: 600;
 `;
 
 const TabletActions = styled.div`
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
 `;
 
 const TabletActionButton = styled.button<{ danger?: boolean }>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-  
-  ${props => props.danger ? `
-    background: #fef2f2;
-    color: #ef4444;
-    
-    &:hover:not(:disabled) {
-      background: #ef4444;
-      color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    ${props => props.danger ? `
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+        
+        &:hover:not(:disabled) {
+            background: #ef4444;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
+        }
+    ` : `
+        background: rgba(59, 130, 246, 0.1);
+        color: #3b82f6;
+        
+        &:hover:not(:disabled) {
+            background: #3b82f6;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+        }
+    `}
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
     }
-  ` : `
-    background: #f1f5f9;
-    color: #64748b;
-    
-    &:hover:not(:disabled) {
-      background: #3b82f6;
-      color: white;
-    }
-  `}
-  
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
 `;
 
 const SessionsTable = styled.div`
-  display: flex;
-  flex-direction: column;
+    display: flex;
+    flex-direction: column;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 16px;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
 `;
 
 const TableHeader = styled.div`
-  display: grid;
-  grid-template-columns: 1.5fr 1.5fr 1fr 0.8fr 1fr 1fr 0.8fr;
-  gap: 16px;
-  padding: 16px 0;
-  border-bottom: 2px solid #e2e8f0;
-  margin-bottom: 16px;
+    display: grid;
+    grid-template-columns: 1.5fr 1.5fr 1fr 0.8fr 1fr 1fr 0.8fr;
+    gap: 16px;
+    padding: 20px 24px;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border-bottom: 2px solid rgba(226, 232, 240, 0.8);
 `;
 
 const HeaderCell = styled.div`
-  font-size: 14px;
-  font-weight: 700;
-  color: #475569;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+    font-size: 14px;
+    font-weight: 700;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 `;
 
 const TableRow = styled.div`
-  display: grid;
-  grid-template-columns: 1.5fr 1.5fr 1fr 0.8fr 1fr 1fr 0.8fr;
-  gap: 16px;
-  padding: 16px 0;
-  border-bottom: 1px solid #f1f5f9;
-  transition: all 0.2s;
+    display: grid;
+    grid-template-columns: 1.5fr 1.5fr 1fr 0.8fr 1fr 1fr 0.8fr;
+    gap: 16px;
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(241, 245, 249, 0.8);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
-  &:hover {
-    background: #f8fafc;
-    border-radius: 8px;
-    padding: 16px 12px;
-    margin: 0 -12px;
-  }
+    &:hover {
+        background: rgba(59, 130, 246, 0.05);
+        transform: translateX(4px);
+    }
+
+    &:last-child {
+        border-bottom: none;
+    }
 `;
 
 const Cell = styled.div`
-  display: flex;
-  align-items: center;
-  font-size: 14px;
-  color: #1e293b;
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    color: #1e293b;
 `;
 
 const CustomerInfo = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 `;
 
 const CustomerName = styled.div`
-  font-weight: 600;
-  color: #1e293b;
+    font-weight: 600;
+    color: #1e293b;
 `;
 
 const DocumentType = styled.div`
-  font-size: 12px;
-  color: #64748b;
+    font-size: 12px;
+    color: #64748b;
 `;
 
 const VehicleInfo = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 `;
 
 const VehicleName = styled.div`
-  font-weight: 600;
-  color: #1e293b;
+    font-weight: 600;
+    color: #1e293b;
 `;
 
 const LicensePlate = styled.div`
-  font-size: 12px;
-  color: #64748b;
-  font-family: monospace;
-  background: #f1f5f9;
-  padding: 2px 6px;
-  border-radius: 4px;
-  width: fit-content;
+    font-size: 12px;
+    color: #64748b;
+    font-family: 'Courier New', monospace;
+    background: rgba(241, 245, 249, 0.8);
+    padding: 4px 8px;
+    border-radius: 8px;
+    width: fit-content;
+    font-weight: 600;
+    letter-spacing: 0.05em;
 `;
 
 const StatusBadge = styled.div<{ color: string }>`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background: ${props => props.color}20;
-  color: ${props => props.color};
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  width: fit-content;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: ${props => props.color}20;
+    color: ${props => props.color};
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    width: fit-content;
+    letter-spacing: 0.05em;
+    border: 1px solid ${props => props.color}30;
 `;
 
 const SessionActions = styled.div`
-  display: flex;
-  gap: 8px;
+    display: flex;
+    gap: 8px;
 `;
 
 const SessionActionButton = styled.button<{ danger?: boolean }>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s;
-  
-  ${props => props.danger ? `
-    background: #fef2f2;
-    color: #ef4444;
-    
-    &:hover {
-      background: #ef4444;
-      color: white;
-    }
-  ` : `
-    background: #f1f5f9;
-    color: #64748b;
-    
-    &:hover {
-      background: #3b82f6;
-      color: white;
-    }
-  `}
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    ${props => props.danger ? `
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+        
+        &:hover {
+            background: #ef4444;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(239, 68, 68, 0.3);
+        }
+    ` : `
+        background: rgba(59, 130, 246, 0.1);
+        color: #3b82f6;
+        
+        &:hover {
+            background: #3b82f6;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(59, 130, 246, 0.3);
+        }
+    `}
 `;
 
 const ModalOverlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  backdrop-filter: blur(4px);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(12px);
 `;
 
 const Modal = styled.div`
-  background: white;
-  border-radius: 20px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  max-width: 500px;
-  width: 90%;
-  max-height: 90vh;
-  overflow-y: auto;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border-radius: 24px;
+    box-shadow:
+            0 25px 50px -12px rgba(0, 0, 0, 0.25),
+            0 0 0 1px rgba(255, 255, 255, 0.8);
+    max-width: 600px;
+    width: 90%;
+    max-height: 90vh;
+    overflow: hidden;
+    backdrop-filter: blur(20px);
 `;
 
 const ModalHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 24px 24px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 32px 32px 0;
+    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
 `;
 
 const ModalTitle = styled.h2`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 24px;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 28px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+    letter-spacing: -0.01em;
 
-  svg {
-    color: #3b82f6;
-  }
+    svg {
+        color: #3b82f6;
+        font-size: 32px;
+    }
 `;
 
 const CloseButton = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border: none;
-  border-radius: 50%;
-  background: #f1f5f9;
-  color: #64748b;
-  font-size: 20px;
-  cursor: pointer;
-  transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(241, 245, 249, 0.8);
+    color: #64748b;
+    font-size: 24px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
-  &:hover {
-    background: #ef4444;
-    color: white;
-  }
+    &:hover {
+        background: #ef4444;
+        color: white;
+        transform: scale(1.1);
+        box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
+    }
 `;
 
 const ModalContent = styled.div`
-  padding: 24px;
+    padding: 32px;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
 `;
 
 const PairingCodeDisplay = styled.div`
-  text-align: center;
-  margin-bottom: 24px;
+    text-align: center;
+    margin-bottom: 32px;
+    padding: 32px;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-radius: 20px;
+    border: 2px dashed #3b82f6;
 `;
 
 const CodeNumber = styled.div`
-  font-size: 48px;
-  font-weight: 700;
-  color: #3b82f6;
-  font-family: monospace;
-  letter-spacing: 8px;
-  margin-bottom: 16px;
-  padding: 20px;
-  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-  border-radius: 16px;
-  border: 2px dashed #3b82f6;
+    font-size: 56px;
+    font-weight: 800;
+    color: #3b82f6;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 12px;
+    margin-bottom: 16px;
+    text-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
 `;
 
 const CodeInstructions = styled.div`
-  font-size: 16px;
-  color: #64748b;
-  line-height: 1.5;
+    font-size: 16px;
+    color: #64748b;
+    line-height: 1.6;
 `;
 
 const QRCodePlaceholder = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 200px;
-  height: 200px;
-  background: #f1f5f9;
-  border: 2px dashed #cbd5e1;
-  border-radius: 16px;
-  color: #94a3b8;
-  font-weight: 600;
-  margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 200px;
+    height: 200px;
+    background: rgba(241, 245, 249, 0.8);
+    border: 2px dashed #cbd5e1;
+    border-radius: 20px;
+    color: #94a3b8;
+    font-weight: 600;
+    margin: 0 auto;
+    font-size: 18px;
 `;
 
 const SignatureForm = styled.form`
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
 `;
 
 const FormGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 `;
 
 const FormRow = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
 `;
 
 const Label = styled.label`
-  font-size: 14px;
-  font-weight: 600;
-  color: #374151;
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 4px;
 `;
 
 const Input = styled.input`
-  padding: 12px 16px;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 16px;
-  transition: all 0.2s;
+    padding: 16px 20px;
+    border: 2px solid rgba(226, 232, 240, 0.8);
+    border-radius: 12px;
+    font-size: 16px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
 
-  &:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
+    &:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        background: rgba(255, 255, 255, 1);
+    }
+
+    &::placeholder {
+        color: #94a3b8;
+    }
 `;
 
 const Select = styled.select`
-  padding: 12px 16px;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 16px;
-  background: white;
-  cursor: pointer;
-  transition: all 0.2s;
+    padding: 16px 20px;
+    border: 2px solid rgba(226, 232, 240, 0.8);
+    border-radius: 12px;
+    font-size: 16px;
+    background: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(10px);
 
-  &:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
+    &:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        background: rgba(255, 255, 255, 1);
+    }
 `;
 
 const ModalActions = styled.div`
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-  margin-top: 24px;
+    display: flex;
+    gap: 16px;
+    justify-content: flex-end;
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(226, 232, 240, 0.8);
 `;
 
 const Button = styled.button<{ primary?: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  
-  ${props => props.primary ? `
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-    color: white;
-    
-    &:hover:not(:disabled) {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
-    }
-  ` : `
-    background: #f1f5f9;
-    color: #64748b;
-    
-    &:hover {
-      background: #e2e8f0;
-      color: #475569;
-    }
-  `}
-  
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 32px;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
-  .spin {
-    animation: spin 1s linear infinite;
-  }
+    ${props => props.primary ? `
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        color: white;
+        box-shadow: 0 4px 14px rgba(59, 130, 246, 0.39);
+        
+        &:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.5);
+        }
+    ` : `
+        background: rgba(241, 245, 249, 0.8);
+        color: #64748b;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        
+        &:hover {
+            background: rgba(226, 232, 240, 0.8);
+            color: #475569;
+            transform: translateY(-1px);
+        }
+    `}
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .spin {
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
 `;
 
 export default TabletManagementDashboard;
