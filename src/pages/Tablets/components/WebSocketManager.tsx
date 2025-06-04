@@ -1,3 +1,4 @@
+// src/pages/Tablets/components/WebSocketManager.tsx
 import React, { useState, useCallback } from 'react';
 import styled from 'styled-components';
 import { useWebSocket } from '../../../hooks/useWebSocket';
@@ -17,7 +18,7 @@ import {
 interface TabletConnectionEvent {
     deviceId: string;
     deviceName: string;
-    tenantId: string;
+    companyId: number;          // Changed from tenantId to companyId
     locationId: string;
     action: 'connected' | 'disconnected';
     timestamp: string;
@@ -43,20 +44,26 @@ interface NotificationEvent {
 }
 
 interface WebSocketManagerProps {
-    tenantId: string;
+    companyId?: number;         // Changed from tenantId to companyId
     onTabletConnectionChange?: (event: TabletConnectionEvent) => void;
     onSignatureUpdate?: (event: SignatureRequestEvent) => void;
     onNotification?: (notification: NotificationEvent) => void;
 }
 
 const WebSocketManager: React.FC<WebSocketManagerProps> = ({
-                                                               tenantId,
+                                                               companyId,
                                                                onTabletConnectionChange,
                                                                onSignatureUpdate,
                                                                onNotification
                                                            }) => {
     const [notifications, setNotifications] = useState<NotificationEvent[]>([]);
     const [showNotifications, setShowNotifications] = useState(false);
+
+    // Get company ID from props or localStorage
+    const currentCompanyId = companyId || (() => {
+        const stored = localStorage.getItem('companyId');
+        return stored ? parseInt(stored, 10) : undefined;
+    })();
 
     const handleTabletConnectionChange = useCallback((event: TabletConnectionEvent) => {
         console.log('Tablet connection changed:', event);
@@ -122,7 +129,7 @@ const WebSocketManager: React.FC<WebSocketManagerProps> = ({
         connect,
         disconnect
     } = useWebSocket({
-        tenantId,
+        companyId: currentCompanyId,
         onTabletConnectionChange: handleTabletConnectionChange,
         onSignatureUpdate: handleSignatureUpdate,
         onNotification: handleNotificationReceived,
@@ -180,13 +187,31 @@ const WebSocketManager: React.FC<WebSocketManagerProps> = ({
             case 'connecting':
                 return 'Łączenie...';
             case 'error':
-                return 'Błąd połączenia';
+                return `Błąd połączenia${connectionStatus.error ? `: ${connectionStatus.error}` : ''}`;
             default:
                 return 'Rozłączono';
         }
     };
 
     const unreadCount = notifications.filter(n => !n.read).length;
+
+    // Don't render if no company ID is available
+    if (!currentCompanyId) {
+        return (
+            <ManagerContainer>
+                <StatusBar>
+                    <ConnectionStatus>
+                        <StatusIcon>
+                            <FaExclamationTriangle style={{ color: '#ef4444' }} />
+                        </StatusIcon>
+                        <StatusText status="error">
+                            Brak ID firmy - nie można połączyć
+                        </StatusText>
+                    </ConnectionStatus>
+                </StatusBar>
+            </ManagerContainer>
+        );
+    }
 
     return (
         <ManagerContainer>
@@ -205,6 +230,11 @@ const WebSocketManager: React.FC<WebSocketManagerProps> = ({
                         <ReconnectAttempts>
                             Próba {connectionStatus.reconnectAttempts}/10
                         </ReconnectAttempts>
+                    )}
+                    {currentCompanyId && (
+                        <CompanyInfo>
+                            Firma ID: {currentCompanyId}
+                        </CompanyInfo>
                     )}
                 </ConnectionStatus>
 
@@ -332,6 +362,7 @@ const ConnectionStatus = styled.div`
     @media (max-width: 768px) {
         width: 100%;
         justify-content: center;
+        flex-wrap: wrap;
     }
 `;
 
@@ -364,6 +395,18 @@ const ReconnectAttempts = styled.span`
     font-size: 12px;
     color: #ef4444;
     font-weight: 500;
+`;
+
+const CompanyInfo = styled.span`
+    font-size: 12px;
+    color: #64748b;
+    padding: 4px 8px;
+    background: #f1f5f9;
+    border-radius: 6px;
+
+    @media (max-width: 768px) {
+        display: none;
+    }
 `;
 
 const StatusActions = styled.div`

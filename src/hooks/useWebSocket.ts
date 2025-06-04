@@ -1,23 +1,11 @@
 // src/hooks/useWebSocket.ts
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 // Types for WebSocket messages
-interface WebSocketMessage {
-    type: string;
-    payload: any;
-    timestamp?: string;
-}
-
-interface ConnectionStatus {
-    status: 'disconnected' | 'connecting' | 'connected' | 'error';
-    lastConnected?: Date;
-    reconnectAttempts: number;
-}
-
 interface TabletConnectionEvent {
     deviceId: string;
     deviceName: string;
-    tenantId: string;
+    companyId: number;          // Changed from tenantId to companyId
     locationId: string;
     action: 'connected' | 'disconnected';
     timestamp: string;
@@ -42,181 +30,315 @@ interface NotificationEvent {
     sessionId?: string;
 }
 
-interface UseWebSocketProps {
-    tenantId: string;
+interface ConnectionStatus {
+    status: 'disconnected' | 'connecting' | 'connected' | 'error';
+    lastConnected?: Date;
+    reconnectAttempts: number;
+    error?: string;
+}
+
+interface UseWebSocketOptions {
+    companyId?: number;                    // Changed from tenantId to companyId
     onTabletConnectionChange?: (event: TabletConnectionEvent) => void;
     onSignatureUpdate?: (event: SignatureRequestEvent) => void;
     onNotification?: (notification: NotificationEvent) => void;
     autoConnect?: boolean;
+    reconnectInterval?: number;
+    maxReconnectAttempts?: number;
 }
 
-interface UseWebSocketReturn {
+interface UseWebSocketResult {
     connectionStatus: ConnectionStatus;
     connectedDevices: Set<string>;
-    recentActivity: WebSocketMessage[];
     connect: () => void;
     disconnect: () => void;
-    sendMessage: (message: WebSocketMessage) => boolean;
+    sendMessage: (message: any) => void;
 }
 
-export const useWebSocket = ({
-                                 tenantId,
-                                 onTabletConnectionChange,
-                                 onSignatureUpdate,
-                                 onNotification,
-                                 autoConnect = true
-                             }: UseWebSocketProps): UseWebSocketReturn => {
+const getAuthToken = (): string | null => {
+    return localStorage.getItem('auth_token') || localStorage.getItem('authToken');
+};
+
+const getCompanyId = (): number | null => {
+    const companyId = localStorage.getItem('companyId');
+    return companyId ? parseInt(companyId, 10) : null;
+};
+
+const getWorkstationId = (): string => {
+    // Generate or get workstation ID for WebSocket connection
+    let workstationId = localStorage.getItem('workstationId');
+    if (!workstationId) {
+        workstationId = `ws-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        localStorage.setItem('workstationId', workstationId);
+    }
+    return workstationId;
+};
+
+export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketResult => {
+    const {
+        companyId: optionsCompanyId,
+        onTabletConnectionChange,
+        onSignatureUpdate,
+        onNotification,
+        autoConnect = true,
+        reconnectInterval = 5000,
+        maxReconnectAttempts = 10
+    } = options;
+
     const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>({
         status: 'disconnected',
         reconnectAttempts: 0
     });
 
     const [connectedDevices, setConnectedDevices] = useState<Set<string>>(new Set());
-    const [recentActivity, setRecentActivity] = useState<WebSocketMessage[]>([]);
 
     const wsRef = useRef<WebSocket | null>(null);
-    const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
-    const maxReconnectAttempts = 10;
-    const reconnectInterval = 3000;
-    const connectionAttemptRef = useRef<boolean>(false);
+    const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Get company ID from options or localStorage
+    const companyId = optionsCompanyId || getCompanyId();
+
+    const clearTimeouts = useCallback(() => {
+        if (reconnectTimeoutRef.current) {
+            clearTimeout(reconnectTimeoutRef.current);
+            reconnectTimeoutRef.current = null;
+        }
+        if (heartbeatIntervalRef.current) {
+            clearInterval(heartbeatIntervalRef.current);
+            heartbeatIntervalRef.current = null;
+        }
+    }, []);
+
+    const startHeartbeat = useCallback(() => {
+        clearTimeouts();
+
+        heartbeatIntervalRef.current = setInterval(() => {
+            if (wsRef.current?.readyState === WebSocket.OPEN) {
+                wsRef.current.send(JSON.stringify({
+                    type: 'heartbeat',
+                    payload: {
+                        timestamp: new Date().toISOString(),
+                        companyId
+                    }
+                }));
+            }
+        }, 30000); // Send heartbeat every 30 seconds
+    }, [companyId, clearTimeouts]);
+
+    const handleMessage = useCallback((event: MessageEvent) => {
+        try {
+            const message = JSON.parse(event.data);
+            console.log('📨 WebSocket message received:', message);
+
+            switch (message.type) {
+                case 'tablet_connection':
+                    const tabletEvent: TabletConnectionEvent = {
+                        deviceId: message.payload.deviceId,
+                        deviceName: message.payload.deviceName || message.payload.deviceId,
+                        companyId: message.payload.companyId,
+                        locationId: message.payload.locationId,
+                        action: message.payload.action,
+                        timestamp: message.payload.timestamp || new Date().toISOString()
+                    };
+
+                    // Update connected devices
+                    setConnectedDevices(prev => {
+                        const newSet = new Set(prev);
+                        if (tabletEvent.action === 'connected') {
+                            newSet.add(tabletEvent.deviceId);
+                        } else {
+                            newSet.delete(tabletEvent.deviceId);
+                        }
+                        return newSet;
+                    });
+
+                    onTabletConnectionChange?.(tabletEvent);
+                    break;
+
+                case 'signature_update':
+                    const signatureEvent: SignatureRequestEvent = {
+                        sessionId: message.payload.sessionId,
+                        deviceId: message.payload.deviceId,
+                        customerName: message.payload.customerName,
+                        status: message.payload.status,
+                        timestamp: message.payload.timestamp || new Date().toISOString()
+                    };
+
+                    onSignatureUpdate?.(signatureEvent);
+                    break;
+
+                case 'notification':
+                    const notification: NotificationEvent = {
+                        id: message.payload.id || `notif-${Date.now()}`,
+                        type: message.payload.type,
+                        title: message.payload.title,
+                        message: message.payload.message,
+                        timestamp: message.payload.timestamp || new Date().toISOString(),
+                        read: false,
+                        deviceId: message.payload.deviceId,
+                        sessionId: message.payload.sessionId
+                    };
+
+                    onNotification?.(notification);
+                    break;
+
+                case 'heartbeat':
+                    // Response to heartbeat - connection is healthy
+                    console.log('💓 Heartbeat response received');
+                    break;
+
+                case 'connection':
+                    if (message.payload.status === 'authenticated') {
+                        console.log('✅ WebSocket authentication successful');
+                        setConnectionStatus(prev => ({
+                            ...prev,
+                            status: 'connected',
+                            lastConnected: new Date(),
+                            reconnectAttempts: 0,
+                            error: undefined
+                        }));
+                        startHeartbeat();
+                    }
+                    break;
+
+                case 'error':
+                    console.error('❌ WebSocket error message:', message.payload);
+                    setConnectionStatus(prev => ({
+                        ...prev,
+                        error: message.payload.error || 'Unknown error'
+                    }));
+                    break;
+
+                default:
+                    console.log('🤷 Unknown WebSocket message type:', message.type);
+            }
+        } catch (error) {
+            console.error('❌ Error parsing WebSocket message:', error, event.data);
+        }
+    }, [onTabletConnectionChange, onSignatureUpdate, onNotification, startHeartbeat]);
 
     const connect = useCallback(() => {
-        // Prevent multiple connection attempts
-        if (connectionAttemptRef.current || wsRef.current?.readyState === WebSocket.OPEN) {
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+            console.log('🔗 WebSocket already connected');
             return;
         }
 
-        connectionAttemptRef.current = true;
-        setConnectionStatus(prev => ({ ...prev, status: 'connecting' }));
+        if (!companyId) {
+            console.error('❌ Cannot connect: No company ID available');
+            setConnectionStatus(prev => ({
+                ...prev,
+                status: 'error',
+                error: 'No company ID available'
+            }));
+            return;
+        }
+
+        const token = getAuthToken();
+        if (!token) {
+            console.error('❌ Cannot connect: No auth token available');
+            setConnectionStatus(prev => ({
+                ...prev,
+                status: 'error',
+                error: 'No authentication token available'
+            }));
+            return;
+        }
+
+        const workstationId = getWorkstationId();
+        const wsUrl = `ws://localhost:8080/ws/workstation/${workstationId}`;
+
+        console.log('🔗 Connecting to WebSocket...', {
+            url: wsUrl,
+            companyId,
+            workstationId: workstationId.substring(0, 20) + '...'
+        });
+
+        setConnectionStatus(prev => ({
+            ...prev,
+            status: 'connecting'
+        }));
 
         try {
-            // Generate unique workstation ID
-            const workstationId = `workstation-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-            // Use pure WebSocket without SockJS
-            const wsUrl = `ws://localhost:8080/ws/workstation/${workstationId}`;
-
-            console.log('Attempting WebSocket connection to:', wsUrl);
-
             wsRef.current = new WebSocket(wsUrl);
 
-            // Get auth token
-            const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
-
             wsRef.current.onopen = () => {
-                console.log('WebSocket connected successfully to:', wsUrl);
-                connectionAttemptRef.current = false;
+                console.log('🔗 WebSocket connection opened');
 
-                setConnectionStatus({
-                    status: 'connected',
-                    lastConnected: new Date(),
-                    reconnectAttempts: 0
-                });
-
-                // Send authentication immediately after connection
-                if (token) {
-                    const authMessage: WebSocketMessage = {
-                        type: 'authentication',
-                        payload: {
-                            token: token,
-                            tenantId,
-                            userType: 'workstation',
-                            workstationId: workstationId,
-                            timestamp: new Date().toISOString()
-                        },
+                // Send authentication message
+                const authMessage = {
+                    type: 'authentication',
+                    payload: {
+                        token,
+                        workstationId,
+                        companyId,
                         timestamp: new Date().toISOString()
-                    };
+                    }
+                };
 
-                    console.log('Sending authentication message');
-                    wsRef.current?.send(JSON.stringify(authMessage));
-                } else {
-                    console.warn('No auth token available - connection may be rejected');
-
-                    // Send connection message without token
-                    const connectionMessage: WebSocketMessage = {
-                        type: 'connection',
-                        payload: {
-                            tenantId,
-                            userType: 'workstation',
-                            workstationId: workstationId,
-                            timestamp: new Date().toISOString()
-                        },
-                        timestamp: new Date().toISOString()
-                    };
-
-                    wsRef.current?.send(JSON.stringify(connectionMessage));
-                }
+                wsRef.current?.send(JSON.stringify(authMessage));
+                console.log('🔐 Authentication message sent');
             };
 
-            wsRef.current.onmessage = (event) => {
-                try {
-                    const message: WebSocketMessage = JSON.parse(event.data);
-                    console.log('WebSocket message received:', message);
-                    handleMessage(message);
+            wsRef.current.onmessage = handleMessage;
 
-                    // Add to recent activity (keep last 50 messages)
-                    setRecentActivity(prev => {
-                        const updated = [message, ...prev].slice(0, 50);
-                        return updated;
-                    });
-                } catch (error) {
-                    console.error('Error parsing WebSocket message:', error);
-                }
+            wsRef.current.onerror = (error) => {
+                console.error('❌ WebSocket error:', error);
+                setConnectionStatus(prev => ({
+                    ...prev,
+                    status: 'error',
+                    error: 'Connection error'
+                }));
             };
 
             wsRef.current.onclose = (event) => {
-                console.log('WebSocket disconnected:', event.code, event.reason);
-                connectionAttemptRef.current = false;
+                console.log('🔗 WebSocket connection closed:', event.code, event.reason);
+                clearTimeouts();
 
                 setConnectionStatus(prev => ({
                     ...prev,
                     status: 'disconnected'
                 }));
 
-                // Only reconnect if it wasn't intentional closure (code 1000)
-                if (event.code !== 1000 && connectionStatus.reconnectAttempts < maxReconnectAttempts) {
-                    const delay = Math.min(
-                        reconnectInterval * Math.pow(1.5, connectionStatus.reconnectAttempts),
-                        30000 // Max 30 seconds delay
-                    );
+                setConnectedDevices(new Set());
 
-                    console.log(`Scheduling reconnection in ${delay}ms (attempt ${connectionStatus.reconnectAttempts + 1})`);
+                // Auto-reconnect if not manually disconnected
+                if (event.code !== 1000 && connectionStatus.reconnectAttempts < maxReconnectAttempts) {
+                    console.log(`🔄 Attempting to reconnect in ${reconnectInterval}ms... (attempt ${connectionStatus.reconnectAttempts + 1}/${maxReconnectAttempts})`);
+
+                    setConnectionStatus(prev => ({
+                        ...prev,
+                        reconnectAttempts: prev.reconnectAttempts + 1
+                    }));
 
                     reconnectTimeoutRef.current = setTimeout(() => {
-                        setConnectionStatus(prev => ({
-                            ...prev,
-                            reconnectAttempts: prev.reconnectAttempts + 1
-                        }));
                         connect();
-                    }, delay);
+                    }, reconnectInterval);
+                } else if (connectionStatus.reconnectAttempts >= maxReconnectAttempts) {
+                    console.error('❌ Max reconnection attempts reached');
+                    setConnectionStatus(prev => ({
+                        ...prev,
+                        status: 'error',
+                        error: 'Max reconnection attempts reached'
+                    }));
                 }
             };
-
-            wsRef.current.onerror = (error) => {
-                console.error('WebSocket error:', error);
-                connectionAttemptRef.current = false;
-                setConnectionStatus(prev => ({ ...prev, status: 'error' }));
-            };
-
         } catch (error) {
-            console.error('Failed to create WebSocket connection:', error);
-            connectionAttemptRef.current = false;
-            setConnectionStatus(prev => ({ ...prev, status: 'error' }));
+            console.error('❌ Error creating WebSocket connection:', error);
+            setConnectionStatus(prev => ({
+                ...prev,
+                status: 'error',
+                error: 'Failed to create connection'
+            }));
         }
-    }, [tenantId, connectionStatus.reconnectAttempts]);
+    }, [companyId, connectionStatus.reconnectAttempts, maxReconnectAttempts, reconnectInterval, handleMessage, clearTimeouts]);
 
     const disconnect = useCallback(() => {
-        console.log('Disconnecting WebSocket...');
+        console.log('🔗 Disconnecting WebSocket...');
+        clearTimeouts();
 
-        if (reconnectTimeoutRef.current) {
-            clearTimeout(reconnectTimeoutRef.current);
-            reconnectTimeoutRef.current = undefined;
-        }
-
-        connectionAttemptRef.current = false;
-
-        if (wsRef.current && wsRef.current.readyState !== WebSocket.CLOSED) {
-            wsRef.current.close(1000, 'Component unmounting'); // Normal closure
+        if (wsRef.current) {
+            wsRef.current.close(1000, 'Manual disconnect');
             wsRef.current = null;
         }
 
@@ -224,146 +346,49 @@ export const useWebSocket = ({
             status: 'disconnected',
             reconnectAttempts: 0
         });
-    }, []);
 
-    const handleMessage = useCallback((message: WebSocketMessage) => {
-        switch (message.type) {
-            case 'authentication':
-                console.log('Authentication response:', message.payload);
-                if (message.payload.status === 'authenticated') {
-                    console.log('Successfully authenticated with WebSocket server');
-                    console.log('User roles:', message.payload.roles);
-                    console.log('User permissions:', message.payload.permissions);
-                } else {
-                    console.error('Authentication failed:', message.payload);
-                }
-                break;
+        setConnectedDevices(new Set());
+    }, [clearTimeouts]);
 
-            case 'connection':
-                console.log('Connection status received:', message.payload);
-                if (message.payload.status === 'connected' && !message.payload.authenticated) {
-                    console.log('Connected to WebSocket, but not yet authenticated');
-                }
-                break;
-
-            case 'tablet_connected':
-                const connectEvent: TabletConnectionEvent = {
-                    ...message.payload,
-                    action: 'connected'
-                };
-                setConnectedDevices(prev => new Set([...prev, message.payload.deviceId]));
-                onTabletConnectionChange?.(connectEvent);
-                break;
-
-            case 'tablet_disconnected':
-                const disconnectEvent: TabletConnectionEvent = {
-                    ...message.payload,
-                    action: 'disconnected'
-                };
-                setConnectedDevices(prev => {
-                    const updated = new Set(prev);
-                    updated.delete(message.payload.deviceId);
-                    return updated;
-                });
-                onTabletConnectionChange?.(disconnectEvent);
-                break;
-
-            case 'signature_completed':
-                const signatureEvent: SignatureRequestEvent = {
-                    ...message.payload,
-                    status: 'signed'
-                };
-                onSignatureUpdate?.(signatureEvent);
-                break;
-
-            case 'signature_expired':
-                const expiredEvent: SignatureRequestEvent = {
-                    ...message.payload,
-                    status: 'expired'
-                };
-                onSignatureUpdate?.(expiredEvent);
-                break;
-
-            case 'heartbeat':
-                // Handle heartbeat - no action needed
-                break;
-
-            case 'error':
-                console.error('WebSocket error message received:', message.payload);
-
-                // If authentication error, stop reconnect attempts
-                if (message.payload.error && message.payload.error.includes('Authentication failed')) {
-                    console.error('Authentication failed - stopping reconnection attempts');
-                    setConnectionStatus(prev => ({
-                        ...prev,
-                        status: 'error',
-                        reconnectAttempts: maxReconnectAttempts // Stop reconnection attempts
-                    }));
-                }
-                break;
-
-            default:
-                console.log('Unknown message type:', message.type, message);
-        }
-    }, [onTabletConnectionChange, onSignatureUpdate, maxReconnectAttempts]);
-
-    const sendMessage = useCallback((message: WebSocketMessage): boolean => {
+    const sendMessage = useCallback((message: any) => {
         if (wsRef.current?.readyState === WebSocket.OPEN) {
-            try {
-                wsRef.current.send(JSON.stringify({
-                    ...message,
-                    timestamp: new Date().toISOString()
-                }));
-                return true;
-            } catch (error) {
-                console.error('Error sending WebSocket message:', error);
-                return false;
-            }
+            const messageWithCompany = {
+                ...message,
+                companyId,
+                timestamp: new Date().toISOString()
+            };
+
+            wsRef.current.send(JSON.stringify(messageWithCompany));
+            console.log('📤 WebSocket message sent:', messageWithCompany);
         } else {
-            console.warn('Cannot send message - WebSocket not connected');
-            return false;
+            console.warn('⚠️ Cannot send message: WebSocket not connected');
         }
-    }, []);
+    }, [companyId]);
 
-    // Auto-connect on mount with proper cleanup
+    // Auto-connect on mount if enabled
     useEffect(() => {
-        let isMounted = true;
-        let connectTimer: NodeJS.Timeout;
-
-        const connectIfMounted = () => {
-            if (isMounted && !connectionAttemptRef.current && autoConnect) {
-                connect();
-            }
-        };
-
-        // Delay initial connection to avoid React strict mode double mounting
-        connectTimer = setTimeout(connectIfMounted, 500);
+        if (autoConnect && companyId) {
+            connect();
+        }
 
         return () => {
-            isMounted = false;
-            clearTimeout(connectTimer);
             disconnect();
         };
-    }, [tenantId, autoConnect, connect, disconnect]);
+    }, [autoConnect, companyId]); // Don't include connect/disconnect to avoid loops
 
-    // Heartbeat
+    // Cleanup on unmount
     useEffect(() => {
-        if (connectionStatus.status === 'connected') {
-            const interval = setInterval(() => {
-                sendMessage({
-                    type: 'heartbeat',
-                    payload: { timestamp: new Date().toISOString() }
-                });
-            }, 30000); // Send heartbeat every 30 seconds
-
-            return () => clearInterval(interval);
-        }
-    }, [connectionStatus.status, sendMessage]);
+        return () => {
+            clearTimeouts();
+            if (wsRef.current) {
+                wsRef.current.close();
+            }
+        };
+    }, [clearTimeouts]);
 
     return {
         connectionStatus,
         connectedDevices,
-        recentActivity,
         connect,
         disconnect,
         sendMessage

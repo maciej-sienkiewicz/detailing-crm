@@ -185,19 +185,6 @@ const TabletManagementDashboard: React.FC<TabletManagementDashboardProps> = ({
                                                 <InfoLabel>Ostatnia aktywność:</InfoLabel>
                                                 <InfoValue>{formatLastSeen(tablet.lastSeen)}</InfoValue>
                                             </InfoRow>
-                                            {tablet.workstationId && (
-                                                <InfoRow>
-                                                    <InfoLabel>Stanowisko:</InfoLabel>
-                                                    <InfoValue>#{tablet.workstationId}</InfoValue>
-                                                </InfoRow>
-                                            )}
-                                            <InfoRow>
-                                                <InfoLabel>
-                                                    <FaMapMarkerAlt />
-                                                    Lokalizacja:
-                                                </InfoLabel>
-                                                <InfoValue>{tablet.locationId}</InfoValue>
-                                            </InfoRow>
                                         </TabletInfo>
 
                                         <TabletActions>

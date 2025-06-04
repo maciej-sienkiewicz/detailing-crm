@@ -1,10 +1,10 @@
 // src/api/tabletsApi.ts
 import { apiClient } from './apiClient';
 
-// Types
+// Updated Types to match backend
 export interface TabletDevice {
     id: string;
-    tenantId: string;
+    companyId: number;           // Changed from tenantId to companyId
     locationId: string;
     friendlyName: string;
     workstationId?: string;
@@ -12,26 +12,35 @@ export interface TabletDevice {
     lastSeen: string;
     createdAt: string;
     isOnline: boolean;
+    connectionInfo?: TabletConnectionInfo;
+}
+
+export interface TabletConnectionInfo {
+    connectedAt?: string;
+    lastHeartbeat?: string;
+    isAuthenticated: boolean;
+    sessionOpen: boolean;
+    uptimeMinutes?: number;
 }
 
 export interface SignatureSession {
     id: string;
     sessionId: string;
-    tenantId: string;
+    companyId: number;           // Changed from tenantId to companyId
     workstationId: string;
     customerName: string;
     customerEmail?: string;
     customerPhone?: string;
     vehicleInfo: {
-        make: string;
-        model: string;
-        licensePlate: string;
+        make?: string;
+        model?: string;
+        licensePlate?: string;
         vin?: string;
         year?: number;
         color?: string;
     };
-    serviceType: string;
-    documentType: string;
+    serviceType?: string;
+    documentType?: string;
     status: 'PENDING' | 'SENT_TO_TABLET' | 'SIGNED' | 'EXPIRED' | 'CANCELLED';
     expiresAt: string;
     createdAt: string;
@@ -47,12 +56,7 @@ export interface SignatureSession {
     };
 }
 
-export interface TabletRegistrationRequest {
-    tenantId: string;    // UUID as string
-    locationId: string;  // UUID as string
-    workstationId?: string; // UUID as string (optional)
-}
-
+// Updated request interfaces to match backend DTOs
 export interface PairingCodeResponse {
     code: string;
     expiresIn: number;
@@ -65,12 +69,12 @@ export interface TabletPairingRequest {
 
 export interface TabletCredentials {
     deviceId: string;
-    deviceToken: string;
+    deviceToken: string;        // This will be JWT token from backend
     websocketUrl: string;
 }
 
 export interface CreateSignatureSessionRequest {
-    workstationId: string;
+    workstationId: string;      // UUID as string
     customerName: string;
     vehicleInfo?: {
         make?: string;
@@ -93,6 +97,26 @@ export interface SignatureSessionResponse {
     estimatedCompletionTime?: string;
 }
 
+export interface TabletListResponse {
+    success: boolean;
+    tablets: TabletDevice[];
+    totalCount: number;
+    onlineCount: number;
+    timestamp: string;
+}
+
+export interface TabletStatsResponse {
+    total: number;
+    online: number;
+    offline: number;
+    active: number;
+    inactive: number;
+    maintenance: number;
+    error: number;
+    connectedTablets: number;
+    lastUpdated: string;
+}
+
 // Debug helper
 const debugAuthToken = () => {
     const token = localStorage.getItem('auth_token') || localStorage.getItem('authToken');
@@ -105,16 +129,31 @@ const debugAuthToken = () => {
     return token;
 };
 
-// API Functions
+// Updated API Functions
 export const tabletsApi = {
-    // Get all tablets for current user/company
+    // Get all tablets for current company
     async getTablets(): Promise<TabletDevice[]> {
         try {
-            const response = await apiClient.get<{ tablets: TabletDevice[] }>('/tablets');
+            console.log('🔧 Fetching tablets for company...');
+            debugAuthToken();
+
+            const response = await apiClient.get<TabletListResponse>('/tablets');
+            console.log('✅ Tablets response:', response);
+
             return response.tablets || [];
         } catch (error) {
-            console.error('Error fetching tablets:', error);
+            console.error('❌ Error fetching tablets:', error);
             return [];
+        }
+    },
+
+    // Get tablet statistics
+    async getTabletStats(): Promise<TabletStatsResponse> {
+        try {
+            return await apiClient.get<TabletStatsResponse>('/tablets/stats');
+        } catch (error) {
+            console.error('Error fetching tablet stats:', error);
+            throw error;
         }
     },
 
@@ -129,30 +168,47 @@ export const tabletsApi = {
         }
     },
 
-    // Initiate tablet registration (generates pairing code)
-    async initiateTabletRegistration(request: TabletRegistrationRequest): Promise<PairingCodeResponse> {
-        console.log('🔧 Attempting tablet registration...');
-        console.log('📤 Request payload:', JSON.stringify(request, null, 2));
+    // Generate pairing code (no longer needs request body)
+    async generatePairingCode(): Promise<PairingCodeResponse> {
+        console.log('🔧 Generating pairing code...');
         debugAuthToken();
 
         try {
-            const response = await apiClient.post<PairingCodeResponse>('/tablets/register', request);
-            console.log('✅ Registration successful:', response);
+            const response = await apiClient.post<PairingCodeResponse>('/tablets/generate-pairing-code', {});
+            console.log('✅ Pairing code generated:', response);
             return response;
         } catch (error) {
-            console.error('❌ Registration failed:', error);
+            console.error('❌ Failed to generate pairing code:', error);
             throw error;
         }
     },
 
     // Complete tablet pairing
     async completeTabletPairing(request: TabletPairingRequest): Promise<TabletCredentials> {
-        return await apiClient.post<TabletCredentials>('/tablets/pair', request);
+        console.log('🔧 Completing tablet pairing...', request);
+
+        try {
+            const response = await apiClient.post<TabletCredentials>('/tablets/pair', request);
+            console.log('✅ Tablet pairing completed:', response);
+            return response;
+        } catch (error) {
+            console.error('❌ Tablet pairing failed:', error);
+            throw error;
+        }
     },
 
     // Create signature session
     async createSignatureSession(request: CreateSignatureSessionRequest): Promise<SignatureSessionResponse> {
-        return await apiClient.post<SignatureSessionResponse>('/signatures/request', request);
+        console.log('🔧 Creating signature session...', request);
+
+        try {
+            const response = await apiClient.post<SignatureSessionResponse>('/signatures/request', request);
+            console.log('✅ Signature session created:', response);
+            return response;
+        } catch (error) {
+            console.error('❌ Failed to create signature session:', error);
+            throw error;
+        }
     },
 
     // Get signature session details
@@ -187,8 +243,6 @@ export const tabletsApi = {
 
     // Retry signature session
     async retrySignatureSession(sessionId: string): Promise<SignatureSessionResponse> {
-        // This would need to be implemented on the backend
-        // For now, we can get the session and create a new one
         const session = await this.getSignatureSession(sessionId);
         if (!session) {
             throw new Error('Session not found');
@@ -206,7 +260,7 @@ export const tabletsApi = {
     // Test tablet connection
     async testTablet(tabletId: string): Promise<{ success: boolean; message: string }> {
         try {
-            return await apiClient.post<{ success: boolean; message: string }>(`/admin/tablets/${tabletId}/test`, {});
+            return await apiClient.post<{ success: boolean; message: string }>(`/tablets/${tabletId}/test`, {});
         } catch (error) {
             console.error('Error testing tablet:', error);
             return { success: false, message: 'Failed to test tablet' };
@@ -214,12 +268,48 @@ export const tabletsApi = {
     },
 
     // Get tablet status
-    async getTabletStatus(tabletId: string): Promise<{ tabletId: string; isOnline: boolean; timestamp: string }> {
+    async getTabletStatus(tabletId: string): Promise<{ tabletId: string; isOnline: boolean; timestamp: string; connectionStats: any }> {
         try {
-            return await apiClient.get<{ tabletId: string; isOnline: boolean; timestamp: string }>(`/admin/tablets/${tabletId}/status`);
+            return await apiClient.get<{ tabletId: string; isOnline: boolean; timestamp: string; connectionStats: any }>(`/tablets/${tabletId}/status`);
         } catch (error) {
             console.error('Error getting tablet status:', error);
-            return { tabletId, isOnline: false, timestamp: new Date().toISOString() };
+            return {
+                tabletId,
+                isOnline: false,
+                timestamp: new Date().toISOString(),
+                connectionStats: {}
+            };
+        }
+    },
+
+    // Get tablet details
+    async getTabletDetails(tabletId: string): Promise<TabletDevice | null> {
+        try {
+            const response = await apiClient.get<{ success: boolean; data: TabletDevice }>(`/tablets/${tabletId}`);
+            return response.data;
+        } catch (error) {
+            console.error('Error getting tablet details:', error);
+            return null;
+        }
+    },
+
+    // Disconnect tablet
+    async disconnectTablet(tabletId: string): Promise<{ success: boolean; message: string }> {
+        try {
+            return await apiClient.post<{ success: boolean; message: string }>(`/tablets/${tabletId}/disconnect`, {});
+        } catch (error) {
+            console.error('Error disconnecting tablet:', error);
+            return { success: false, message: 'Failed to disconnect tablet' };
+        }
+    },
+
+    // Unpair tablet
+    async unpairTablet(tabletId: string): Promise<{ success: boolean; message: string }> {
+        try {
+            return await apiClient.delete<{ success: boolean; message: string }>(`/tablets/${tabletId}`);
+        } catch (error) {
+            console.error('Error unpairing tablet:', error);
+            return { success: false, message: 'Failed to unpair tablet' };
         }
     }
 };

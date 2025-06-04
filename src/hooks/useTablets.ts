@@ -1,262 +1,314 @@
 // src/hooks/useTablets.ts
 import { useState, useEffect, useCallback } from 'react';
-import { tabletsApi, TabletDevice, SignatureSession, PairingCodeResponse, TabletCredentials, CreateSignatureSessionRequest, SignatureSessionResponse } from '../api/tabletsApi';
-import { getTenantUUID, getLocationUUID, generateWorkstationUUID, debugUUIDs } from '../utils/uuidHelper';
+import {
+    tabletsApi,
+    TabletDevice,
+    SignatureSession,
+    CreateSignatureSessionRequest,
+    PairingCodeResponse,
+    TabletStatsResponse
+} from '../api/tabletsApi';
 
-interface UseTabletsState {
+interface RealtimeStats {
+    connectedTablets: number;
+    pendingSessions: number;
+    completedToday: number;
+    successRate: number;
+}
+
+interface UseTabletsResult {
     tablets: TabletDevice[];
     sessions: SignatureSession[];
+    realtimeStats: RealtimeStats;
     loading: boolean;
     error: string | null;
-    realtimeStats: {
-        connectedTablets: number;
-        pendingSessions: number;
-        completedToday: number;
-        successRate: number;
-    };
-}
 
-interface PairingState {
-    isGenerating: boolean;
+    // Pairing state
     pairingCode: PairingCodeResponse | null;
-    error: string | null;
+    isPairingCodeGenerating: boolean;
+    pairingError: string | null;
+
+    // Actions
+    refreshData: () => Promise<void>;
+    generatePairingCode: () => Promise<PairingCodeResponse>;
+    clearPairingState: () => void;
+    createSignatureSession: (request: CreateSignatureSessionRequest) => Promise<any>;
+    retrySignatureSession: (sessionId: string) => Promise<void>;
+    cancelSignatureSession: (sessionId: string) => Promise<void>;
+    testTablet: (tabletId: string) => Promise<{ success: boolean; message: string }>;
+    getTabletStatus: (tabletId: string) => Promise<any>;
+    disconnectTablet: (tabletId: string) => Promise<{ success: boolean; message: string }>;
+    unpairTablet: (tabletId: string) => Promise<{ success: boolean; message: string }>;
 }
 
-export const useTablets = () => {
-    const [state, setState] = useState<UseTabletsState>({
-        tablets: [],
-        sessions: [],
-        loading: true,
-        error: null,
-        realtimeStats: {
-            connectedTablets: 0,
-            pendingSessions: 0,
-            completedToday: 0,
-            successRate: 0
-        }
+export const useTablets = (): UseTabletsResult => {
+    const [tablets, setTablets] = useState<TabletDevice[]>([]);
+    const [sessions, setSessions] = useState<SignatureSession[]>([]);
+    const [realtimeStats, setRealtimeStats] = useState<RealtimeStats>({
+        connectedTablets: 0,
+        pendingSessions: 0,
+        completedToday: 0,
+        successRate: 0
     });
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    const [pairingState, setPairingState] = useState<PairingState>({
-        isGenerating: false,
-        pairingCode: null,
-        error: null
-    });
+    // Pairing state
+    const [pairingCode, setPairingCode] = useState<PairingCodeResponse | null>(null);
+    const [isPairingCodeGenerating, setIsPairingCodeGenerating] = useState(false);
+    const [pairingError, setPairingError] = useState<string | null>(null);
 
-    // Load initial data
-    const loadData = useCallback(async () => {
+    // Calculate realtime stats from current data
+    const calculateRealtimeStats = useCallback((tabletsData: TabletDevice[], sessionsData: SignatureSession[]): RealtimeStats => {
+        const connectedTablets = tabletsData.filter(t => t.isOnline).length;
+        const pendingSessions = sessionsData.filter(s => s.status === 'PENDING' || s.status === 'SENT_TO_TABLET').length;
+
+        // Calculate today's completed sessions
+        const today = new Date().toDateString();
+        const completedToday = sessionsData.filter(s =>
+            s.status === 'SIGNED' &&
+            s.signedAt &&
+            new Date(s.signedAt).toDateString() === today
+        ).length;
+
+        // Calculate success rate (signed vs total sessions)
+        const totalSessions = sessionsData.length;
+        const signedSessions = sessionsData.filter(s => s.status === 'SIGNED').length;
+        const successRate = totalSessions > 0 ? (signedSessions / totalSessions) * 100 : 0;
+
+        return {
+            connectedTablets,
+            pendingSessions,
+            completedToday,
+            successRate: Math.round(successRate * 100) / 100
+        };
+    }, []);
+
+    // Fetch all data
+    const refreshData = useCallback(async () => {
         try {
-            setState(prev => ({ ...prev, loading: true, error: null }));
+            setLoading(true);
+            setError(null);
 
-            const [tablets, sessions] = await Promise.all([
+            console.log('🔄 Refreshing tablets data...');
+
+            // Fetch tablets and sessions in parallel
+            const [tabletsData, sessionsData] = await Promise.all([
                 tabletsApi.getTablets(),
                 tabletsApi.getSignatureSessions()
             ]);
 
-            // Calculate realtime stats
-            const connectedTablets = tablets.filter(t => t.isOnline).length;
-            const pendingSessions = sessions.filter(s => s.status === 'PENDING' || s.status === 'SENT_TO_TABLET').length;
-
-            const today = new Date().toDateString();
-            const completedToday = sessions.filter(s =>
-                s.status === 'SIGNED' && s.signedAt &&
-                new Date(s.signedAt).toDateString() === today
-            ).length;
-
-            const totalCompletedSessions = sessions.filter(s => s.status === 'SIGNED' || s.status === 'EXPIRED').length;
-            const successfulSessions = sessions.filter(s => s.status === 'SIGNED').length;
-            const successRate = totalCompletedSessions > 0 ? (successfulSessions / totalCompletedSessions) * 100 : 0;
-
-            setState({
-                tablets,
-                sessions,
-                loading: false,
-                error: null,
-                realtimeStats: {
-                    connectedTablets,
-                    pendingSessions,
-                    completedToday,
-                    successRate: Math.round(successRate * 10) / 10
-                }
+            console.log('📊 Fetched data:', {
+                tablets: tabletsData.length,
+                sessions: sessionsData.length
             });
-        } catch (error) {
-            console.error('Error loading tablets data:', error);
-            setState(prev => ({
-                ...prev,
-                loading: false,
-                error: error instanceof Error ? error.message : 'Failed to load data'
-            }));
+
+            setTablets(tabletsData);
+            setSessions(sessionsData);
+
+            // Calculate and set realtime stats
+            const stats = calculateRealtimeStats(tabletsData, sessionsData);
+            setRealtimeStats(stats);
+
+            console.log('📈 Updated stats:', stats);
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Failed to fetch data';
+            console.error('❌ Error refreshing data:', err);
+            setError(errorMessage);
+        } finally {
+            setLoading(false);
         }
-    }, []);
+    }, [calculateRealtimeStats]);
 
     // Generate pairing code
-    const generatePairingCode = useCallback(async (tenantId?: string, locationId?: string, workstationId?: string) => {
+    const generatePairingCode = useCallback(async (): Promise<PairingCodeResponse> => {
         try {
-            setPairingState({ isGenerating: true, pairingCode: null, error: null });
+            setIsPairingCodeGenerating(true);
+            setPairingError(null);
 
             console.log('🔧 Generating pairing code...');
-            debugUUIDs();
 
-            // Use proper UUIDs instead of hardcoded strings
-            const finalTenantId = tenantId || getTenantUUID();
-            const finalLocationId = locationId || getLocationUUID();
-            const finalWorkstationId = workstationId || undefined; // Optional
+            const response = await tabletsApi.generatePairingCode();
 
-            const request = {
-                tenantId: finalTenantId,
-                locationId: finalLocationId,
-                workstationId: finalWorkstationId
-            };
-
-            console.log('📤 Pairing request:', request);
-
-            const pairingCode = await tabletsApi.initiateTabletRegistration(request);
-
-            setPairingState({
-                isGenerating: false,
-                pairingCode,
-                error: null
-            });
-
-            console.log('✅ Pairing code generated:', pairingCode);
-            return pairingCode;
-        } catch (error) {
-            console.error('❌ Error generating pairing code:', error);
-            const errorMessage = error instanceof Error ? error.message : 'Failed to generate pairing code';
-            setPairingState({
-                isGenerating: false,
-                pairingCode: null,
-                error: errorMessage
-            });
-            throw new Error(errorMessage);
-        }
-    }, []);
-
-    // Complete pairing
-    const completePairing = useCallback(async (code: string, deviceName: string): Promise<TabletCredentials> => {
-        try {
-            const credentials = await tabletsApi.completeTabletPairing({ code, deviceName });
-
-            // Refresh data after successful pairing
-            await loadData();
-
-            // Clear pairing state
-            setPairingState({
-                isGenerating: false,
-                pairingCode: null,
-                error: null
-            });
-
-            return credentials;
-        } catch (error) {
-            console.error('Error completing pairing:', error);
-            const errorMessage = error instanceof Error ? error.message : 'Failed to complete pairing';
-            setPairingState(prev => ({
-                ...prev,
-                error: errorMessage
-            }));
-            throw new Error(errorMessage);
-        }
-    }, [loadData]);
-
-    // Create signature session
-    const createSignatureSession = useCallback(async (request: CreateSignatureSessionRequest): Promise<SignatureSessionResponse> => {
-        try {
-            const response = await tabletsApi.createSignatureSession(request);
-
-            // Refresh data after creating session
-            await loadData();
+            console.log('✅ Pairing code generated:', response);
+            setPairingCode(response);
 
             return response;
-        } catch (error) {
-            console.error('Error creating signature session:', error);
-            throw error;
-        }
-    }, [loadData]);
-
-    // Retry signature session
-    const retrySignatureSession = useCallback(async (sessionId: string): Promise<SignatureSessionResponse> => {
-        try {
-            const response = await tabletsApi.retrySignatureSession(sessionId);
-
-            // Refresh data after retry
-            await loadData();
-
-            return response;
-        } catch (error) {
-            console.error('Error retrying signature session:', error);
-            throw error;
-        }
-    }, [loadData]);
-
-    // Cancel signature session
-    const cancelSignatureSession = useCallback(async (sessionId: string) => {
-        try {
-            const response = await tabletsApi.cancelSignatureSession(sessionId);
-
-            if (response.success) {
-                // Refresh data after cancellation
-                await loadData();
-            }
-
-            return response;
-        } catch (error) {
-            console.error('Error cancelling signature session:', error);
-            throw error;
-        }
-    }, [loadData]);
-
-    // Test tablet
-    const testTablet = useCallback(async (tabletId: string) => {
-        try {
-            const response = await tabletsApi.testTablet(tabletId);
-            return response;
-        } catch (error) {
-            console.error('Error testing tablet:', error);
-            throw error;
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Failed to generate pairing code';
+            console.error('❌ Error generating pairing code:', err);
+            setPairingError(errorMessage);
+            throw err;
+        } finally {
+            setIsPairingCodeGenerating(false);
         }
     }, []);
 
     // Clear pairing state
     const clearPairingState = useCallback(() => {
-        setPairingState({
-            isGenerating: false,
-            pairingCode: null,
-            error: null
-        });
+        setPairingCode(null);
+        setPairingError(null);
+        setIsPairingCodeGenerating(false);
     }, []);
 
-    // Refresh data
-    const refresh = useCallback(() => {
-        return loadData();
-    }, [loadData]);
+    // Create signature session
+    const createSignatureSession = useCallback(async (request: CreateSignatureSessionRequest) => {
+        try {
+            console.log('🔧 Creating signature session...', request);
 
-    // Load data on mount
+            const response = await tabletsApi.createSignatureSession(request);
+
+            console.log('✅ Signature session created:', response);
+
+            // Refresh sessions after creating new one
+            const updatedSessions = await tabletsApi.getSignatureSessions();
+            setSessions(updatedSessions);
+
+            // Update stats
+            const stats = calculateRealtimeStats(tablets, updatedSessions);
+            setRealtimeStats(stats);
+
+            return response;
+        } catch (err) {
+            console.error('❌ Error creating signature session:', err);
+            throw err;
+        }
+    }, [tablets, calculateRealtimeStats]);
+
+    // Retry signature session
+    const retrySignatureSession = useCallback(async (sessionId: string) => {
+        try {
+            console.log('🔄 Retrying signature session:', sessionId);
+
+            await tabletsApi.retrySignatureSession(sessionId);
+
+            // Refresh data after retry
+            await refreshData();
+
+            console.log('✅ Signature session retried successfully');
+        } catch (err) {
+            console.error('❌ Error retrying signature session:', err);
+            throw err;
+        }
+    }, [refreshData]);
+
+    // Cancel signature session
+    const cancelSignatureSession = useCallback(async (sessionId: string) => {
+        try {
+            console.log('❌ Cancelling signature session:', sessionId);
+
+            await tabletsApi.cancelSignatureSession(sessionId);
+
+            // Refresh data after cancellation
+            await refreshData();
+
+            console.log('✅ Signature session cancelled successfully');
+        } catch (err) {
+            console.error('❌ Error cancelling signature session:', err);
+            throw err;
+        }
+    }, [refreshData]);
+
+    // Test tablet
+    const testTablet = useCallback(async (tabletId: string) => {
+        try {
+            console.log('🧪 Testing tablet:', tabletId);
+
+            const result = await tabletsApi.testTablet(tabletId);
+
+            console.log('📊 Tablet test result:', result);
+
+            return result;
+        } catch (err) {
+            console.error('❌ Error testing tablet:', err);
+            return { success: false, message: 'Failed to test tablet' };
+        }
+    }, []);
+
+    // Get tablet status
+    const getTabletStatus = useCallback(async (tabletId: string) => {
+        try {
+            return await tabletsApi.getTabletStatus(tabletId);
+        } catch (err) {
+            console.error('❌ Error getting tablet status:', err);
+            throw err;
+        }
+    }, []);
+
+    // Disconnect tablet
+    const disconnectTablet = useCallback(async (tabletId: string) => {
+        try {
+            console.log('🔌 Disconnecting tablet:', tabletId);
+
+            const result = await tabletsApi.disconnectTablet(tabletId);
+
+            // Refresh data after disconnection
+            await refreshData();
+
+            console.log('✅ Tablet disconnected:', result);
+
+            return result;
+        } catch (err) {
+            console.error('❌ Error disconnecting tablet:', err);
+            return { success: false, message: 'Failed to disconnect tablet' };
+        }
+    }, [refreshData]);
+
+    // Unpair tablet
+    const unpairTablet = useCallback(async (tabletId: string) => {
+        try {
+            console.log('🔗 Unpairing tablet:', tabletId);
+
+            const result = await tabletsApi.unpairTablet(tabletId);
+
+            // Refresh data after unpairing
+            await refreshData();
+
+            console.log('✅ Tablet unpaired:', result);
+
+            return result;
+        } catch (err) {
+            console.error('❌ Error unpairing tablet:', err);
+            return { success: false, message: 'Failed to unpair tablet' };
+        }
+    }, [refreshData]);
+
+    // Initial data load
     useEffect(() => {
-        loadData();
-    }, [loadData]);
+        refreshData();
+    }, [refreshData]);
+
+    // Auto-refresh data every 30 seconds
+    useEffect(() => {
+        const interval = setInterval(() => {
+            refreshData();
+        }, 30000);
+
+        return () => clearInterval(interval);
+    }, [refreshData]);
 
     return {
-        // Data
-        tablets: state.tablets,
-        sessions: state.sessions,
-        realtimeStats: state.realtimeStats,
-        loading: state.loading,
-        error: state.error,
+        tablets,
+        sessions,
+        realtimeStats,
+        loading,
+        error,
 
-        // Pairing
-        pairingCode: pairingState.pairingCode,
-        isPairingCodeGenerating: pairingState.isGenerating,
-        pairingError: pairingState.error,
+        // Pairing state
+        pairingCode,
+        isPairingCodeGenerating,
+        pairingError,
 
         // Actions
+        refreshData,
         generatePairingCode,
-        completePairing,
         clearPairingState,
         createSignatureSession,
         retrySignatureSession,
         cancelSignatureSession,
         testTablet,
-        refresh,
-        loadData
+        getTabletStatus,
+        disconnectTablet,
+        unpairTablet
     };
 };

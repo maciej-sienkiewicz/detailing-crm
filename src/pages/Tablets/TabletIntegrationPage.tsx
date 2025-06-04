@@ -1,3 +1,4 @@
+// src/pages/Tablets/TabletIntegrationPage.tsx
 import React, { useState, useCallback } from 'react';
 import styled from 'styled-components';
 import TabletManagementDashboard from './TabletManagementDashboard';
@@ -13,6 +14,12 @@ import {
     FaExclamationTriangle,
     FaCheckCircle
 } from 'react-icons/fa';
+
+// Get company ID from localStorage
+const getCompanyId = (): number | null => {
+    const companyId = localStorage.getItem('companyId');
+    return companyId ? parseInt(companyId, 10) : null;
+};
 
 // Main integration page that combines all components
 const TabletIntegrationPage: React.FC = () => {
@@ -36,6 +43,8 @@ const TabletIntegrationPage: React.FC = () => {
     const [showPairingModal, setShowPairingModal] = useState(false);
     const [pairingCodeTimer, setPairingCodeTimer] = useState<number>(0);
     const [pairingCodeInterval, setPairingCodeInterval] = useState<NodeJS.Timeout | null>(null);
+
+    const companyId = 10;
 
     // WebSocket event handlers
     const handleTabletConnectionChange = useCallback((event: any) => {
@@ -102,10 +111,8 @@ const TabletIntegrationPage: React.FC = () => {
 
     const handlePairTablet = async () => {
         try {
-            // DEBUG: Sprawdź token przed wywołaniem
             console.log('🔧 Starting tablet pairing process...');
 
-            // Use proper UUID generation instead of hardcoded strings
             const pairingCodeResponse = await generatePairingCode();
 
             setShowPairingModal(true);
@@ -157,6 +164,20 @@ const TabletIntegrationPage: React.FC = () => {
         const remainingSeconds = seconds % 60;
         return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
     };
+
+    // Show error if no company ID is available
+    if (!companyId) {
+        return (
+            <PageContainer>
+                <ErrorContainer>
+                    <FaExclamationTriangle />
+                    <ErrorText>
+                        Brak ID firmy. Proszę się zalogować ponownie.
+                    </ErrorText>
+                </ErrorContainer>
+            </PageContainer>
+        );
+    }
 
     if (loading && tablets.length === 0) {
         return (
@@ -222,7 +243,7 @@ const TabletIntegrationPage: React.FC = () => {
             {/* WebSocket connection manager */}
             <ConnectionSection>
                 <WebSocketManager
-                    tenantId="tenant-1" // TODO: Get from auth context
+                    companyId={companyId}
                     onTabletConnectionChange={handleTabletConnectionChange}
                     onSignatureUpdate={handleSignatureUpdate}
                     onNotification={handleNotification}
@@ -494,6 +515,7 @@ const HeaderActions = styled.div`
     @media (max-width: 768px) {
         width: 100%;
         justify-content: space-between;
+        flex-wrap: wrap;
     }
 `;
 
@@ -531,6 +553,37 @@ const DeviceLabel = styled.div`
     color: #0369a1;
     font-weight: 500;
     margin-top: 2px;
+`;
+
+const CompanyIndicator = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 2px solid #f59e0b;
+    border-radius: 16px;
+    box-shadow: 0 4px 6px -1px rgba(245, 158, 11, 0.1);
+
+    @media (max-width: 768px) {
+        display: none;
+    }
+`;
+
+const CompanyLabel = styled.div`
+    font-size: 12px;
+    color: #92400e;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+`;
+
+const CompanyId = styled.div`
+    font-size: 20px;
+    font-weight: 700;
+    color: #78350f;
+    line-height: 1;
 `;
 
 const PairTabletButton = styled.button`
@@ -623,7 +676,7 @@ const StatusTimestamp = styled.div`
     }
 `;
 
-// Pairing Modal Styles
+// Pairing Modal Styles (same as before)
 const PairingModalOverlay = styled.div`
     position: fixed;
     top: 0;

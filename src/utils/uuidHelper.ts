@@ -37,21 +37,21 @@ export const createDeterministicUUID = (input: string): string => {
 };
 
 /**
- * Get or create tenant UUID for current company
+ * Get or create company UUID for current company
  */
-export const getTenantUUID = (): string => {
+export const getCompanyUUID = (): string => {
     // Try to get from localStorage first
-    let tenantId = localStorage.getItem('tenantId');
+    let companyUuid = localStorage.getItem('companyUuid');
 
-    if (!tenantId || !isValidUUID(tenantId)) {
-        // Create deterministic UUID based on company or generate new one
+    if (!companyUuid || !isValidUUID(companyUuid)) {
+        // Create deterministic UUID based on company ID or generate new one
         const companyId = localStorage.getItem('companyId') || 'default-company';
-        tenantId = createDeterministicUUID(`tenant-${companyId}`);
-        localStorage.setItem('tenantId', tenantId);
-        console.log('🆔 Generated new tenant UUID:', tenantId);
+        companyUuid = createDeterministicUUID(`company-${companyId}`);
+        localStorage.setItem('companyUuid', companyUuid);
+        console.log('🏢 Generated new company UUID:', companyUuid);
     }
 
-    return tenantId;
+    return companyUuid;
 };
 
 /**
@@ -78,10 +78,38 @@ export const generateWorkstationUUID = (): string => {
     return generateUUID();
 };
 
-// Log current UUIDs for debugging
-export const debugUUIDs = () => {
-    console.group('🆔 UUID Debug Info');
-    console.log('Tenant UUID:', getTenantUUID());
+/**
+ * Get company ID as number from localStorage
+ */
+export const getCompanyId = (): number | null => {
+    const companyId = localStorage.getItem('companyId');
+    return companyId ? parseInt(companyId, 10) : null;
+};
+
+/**
+ * Set company ID in localStorage
+ */
+export const setCompanyId = (companyId: number): void => {
+    localStorage.setItem('companyId', companyId.toString());
+    console.log('🏢 Set company ID:', companyId);
+};
+
+/**
+ * Clear all company-related data
+ */
+export const clearCompanyData = (): void => {
+    localStorage.removeItem('companyId');
+    localStorage.removeItem('companyUuid');
+    localStorage.removeItem('locationId');
+    localStorage.removeItem('workstationId');
+    console.log('🧹 Cleared all company data');
+};
+
+// Log current UUIDs and IDs for debugging
+export const debugCompanyInfo = () => {
+    console.group('🏢 Company Debug Info');
+    console.log('Company ID (number):', getCompanyId());
+    console.log('Company UUID:', getCompanyUUID());
     console.log('Location UUID:', getLocationUUID());
     console.log('Sample Workstation UUID:', generateWorkstationUUID());
     console.groupEnd();
