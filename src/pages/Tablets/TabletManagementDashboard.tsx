@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
+import { useTablets } from '../../hooks/useTablets';
+import { TabletDevice, SignatureSession } from '../../api/tabletsApi';
 import {
     FaTabletAlt,
-    FaPlus,
     FaWifi,
     FaMapMarkerAlt,
-    FaUsers,
     FaEdit,
     FaTrash,
     FaEye,
@@ -14,183 +14,33 @@ import {
     FaCheckCircle,
     FaTimesCircle,
     FaExclamationTriangle,
-    FaQrcode,
     FaPaperPlane,
     FaSpinner
 } from 'react-icons/fa';
 
-// Types based on backend structure
-interface TabletDevice {
-    id: string;
-    tenantId: string;
-    locationId: string;
-    friendlyName: string;
-    workstationId?: string;
-    status: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE' | 'ERROR';
-    lastSeen: string;
-    createdAt: string;
-    isOnline: boolean;
-}
-
-interface SignatureSession {
-    id: string;
-    tenantId: string;
-    workstationId: string;
-    customerName: string;
-    vehicleInfo: {
-        make: string;
-        model: string;
-        licensePlate: string;
-        vin?: string;
+interface TabletManagementDashboardProps {
+    tablets: TabletDevice[];
+    sessions: SignatureSession[];
+    onSessionClick: (session: SignatureSession) => void;
+    realtimeStats: {
+        connectedTablets: number;
+        pendingSessions: number;
+        completedToday: number;
+        successRate: number;
     };
-    serviceType: string;
-    documentType: string;
-    status: 'PENDING' | 'SENT_TO_TABLET' | 'SIGNED' | 'EXPIRED' | 'CANCELLED';
-    expiresAt: string;
-    createdAt: string;
-    signedAt?: string;
-    assignedTabletId?: string;
 }
 
-interface PairingCode {
-    code: string;
-    expiresIn: number;
-    tenantId: string;
-    locationId: string;
-    workstationId?: string;
-}
-
-const TabletManagementDashboard: React.FC = () => {
-    const [tablets, setTablets] = useState<TabletDevice[]>([]);
-    const [sessions, setSessions] = useState<SignatureSession[]>([]);
+const TabletManagementDashboard: React.FC<TabletManagementDashboardProps> = ({
+                                                                                 tablets,
+                                                                                 sessions,
+                                                                                 onSessionClick,
+                                                                                 realtimeStats
+                                                                             }) => {
+    const { createSignatureSession, testTablet, loading } = useTablets();
     const [activeTab, setActiveTab] = useState<'tablets' | 'sessions'>('tablets');
-    const [showPairingModal, setShowPairingModal] = useState(false);
     const [showSignatureModal, setShowSignatureModal] = useState(false);
-    const [pairingCode, setPairingCode] = useState<PairingCode | null>(null);
     const [selectedTablet, setSelectedTablet] = useState<TabletDevice | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
-
-    // Mock data for demo
-    useEffect(() => {
-        const mockTablets: TabletDevice[] = [
-            {
-                id: '1',
-                tenantId: 'tenant-1',
-                locationId: 'location-1',
-                friendlyName: 'Tablet Recepcja #1',
-                workstationId: 'workstation-1',
-                status: 'ACTIVE',
-                lastSeen: new Date().toISOString(),
-                createdAt: new Date().toISOString(),
-                isOnline: true
-            },
-            {
-                id: '2',
-                tenantId: 'tenant-1',
-                locationId: 'location-1',
-                friendlyName: 'Tablet Warsztat #1',
-                status: 'ACTIVE',
-                lastSeen: new Date(Date.now() - 300000).toISOString(), // 5 minutes ago
-                createdAt: new Date().toISOString(),
-                isOnline: false
-            },
-            {
-                id: '3',
-                tenantId: 'tenant-1',
-                locationId: 'location-2',
-                friendlyName: 'Tablet Mobilny #1',
-                status: 'MAINTENANCE',
-                lastSeen: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-                createdAt: new Date().toISOString(),
-                isOnline: false
-            }
-        ];
-
-        const mockSessions: SignatureSession[] = [
-            {
-                id: 'session-1',
-                tenantId: 'tenant-1',
-                workstationId: 'workstation-1',
-                customerName: 'Jan Kowalski',
-                vehicleInfo: {
-                    make: 'BMW',
-                    model: 'X5',
-                    licensePlate: 'WA 12345',
-                    vin: 'WBAFR9C50ED123456'
-                },
-                serviceType: 'Detailing Premium',
-                documentType: 'Protokół Przyjęcia',
-                status: 'SENT_TO_TABLET',
-                expiresAt: new Date(Date.now() + 1800000).toISOString(), // 30 minutes from now
-                createdAt: new Date().toISOString(),
-                assignedTabletId: '1'
-            },
-            {
-                id: 'session-2',
-                tenantId: 'tenant-1',
-                workstationId: 'workstation-2',
-                customerName: 'Anna Nowak',
-                vehicleInfo: {
-                    make: 'Mercedes',
-                    model: 'C-Class',
-                    licensePlate: 'KR 67890'
-                },
-                serviceType: 'Mycie + Wosk',
-                documentType: 'Protokół Wydania',
-                status: 'SIGNED',
-                expiresAt: new Date().toISOString(),
-                createdAt: new Date(Date.now() - 3600000).toISOString(),
-                signedAt: new Date(Date.now() - 1800000).toISOString(),
-                assignedTabletId: '1'
-            }
-        ];
-
-        setTablets(mockTablets);
-        setSessions(mockSessions);
-    }, []);
-
-    const generatePairingCode = async () => {
-        setIsLoading(true);
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        const code: PairingCode = {
-            code: Math.random().toString().slice(2, 8),
-            expiresIn: 300, // 5 minutes
-            tenantId: 'tenant-1',
-            locationId: 'location-1',
-            workstationId: 'workstation-1'
-        };
-
-        setPairingCode(code);
-        setShowPairingModal(true);
-        setIsLoading(false);
-    };
-
-    const sendSignatureRequest = async (sessionData: Partial<SignatureSession>) => {
-        setIsLoading(true);
-        // Simulate API call to create signature session
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
-        const newSession: SignatureSession = {
-            id: `session-${Date.now()}`,
-            tenantId: 'tenant-1',
-            workstationId: sessionData.workstationId || 'workstation-1',
-            customerName: sessionData.customerName || '',
-            vehicleInfo: sessionData.vehicleInfo || { make: '', model: '', licensePlate: '' },
-            serviceType: sessionData.serviceType || '',
-            documentType: sessionData.documentType || '',
-            status: 'SENT_TO_TABLET',
-            expiresAt: new Date(Date.now() + 1800000).toISOString(),
-            createdAt: new Date().toISOString(),
-            assignedTabletId: selectedTablet?.id
-        };
-
-        setSessions(prev => [newSession, ...prev]);
-        setShowSignatureModal(false);
-        setSelectedTablet(null);
-        setIsLoading(false);
-    };
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const getStatusColor = (status: string, isOnline?: boolean) => {
         if (status === 'ACTIVE' && isOnline) return '#10b981'; // green
@@ -225,6 +75,65 @@ const TabletManagementDashboard: React.FC = () => {
         return `${Math.floor(diffHours / 24)}d temu`;
     };
 
+    const handleTestTablet = async (tabletId: string) => {
+        try {
+            const result = await testTablet(tabletId);
+            if (result.success) {
+                alert('Test request sent successfully');
+            } else {
+                alert(`Test failed: ${result.message}`);
+            }
+        } catch (error) {
+            alert('Failed to test tablet');
+            console.error('Error testing tablet:', error);
+        }
+    };
+
+    const handleSendSignatureRequest = (tablet: TabletDevice) => {
+        setSelectedTablet(tablet);
+        setShowSignatureModal(true);
+    };
+
+    const handleSubmitSignatureRequest = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        if (!selectedTablet) return;
+
+        setIsSubmitting(true);
+        try {
+            const formData = new FormData(event.currentTarget);
+
+            const request = {
+                workstationId: selectedTablet.workstationId || 'default-workstation',
+                customerName: formData.get('customerName') as string,
+                vehicleInfo: {
+                    make: formData.get('make') as string,
+                    model: formData.get('model') as string,
+                    licensePlate: formData.get('licensePlate') as string,
+                    vin: formData.get('vin') as string || undefined,
+                    year: formData.get('year') ? parseInt(formData.get('year') as string) : undefined
+                },
+                serviceType: formData.get('serviceType') as string,
+                documentType: formData.get('documentType') as string,
+                additionalNotes: formData.get('notes') as string || undefined
+            };
+
+            const response = await createSignatureSession(request);
+
+            if (response.success) {
+                alert(`Signature request sent successfully! Session ID: ${response.sessionId}`);
+                setShowSignatureModal(false);
+                setSelectedTablet(null);
+            } else {
+                alert(`Failed to send signature request: ${response.message}`);
+            }
+        } catch (error) {
+            alert('Failed to send signature request');
+            console.error('Error sending signature request:', error);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     return (
         <DashboardContainer>
             <DashboardCard>
@@ -248,63 +157,74 @@ const TabletManagementDashboard: React.FC = () => {
                 <ContentArea>
                     {activeTab === 'tablets' ? (
                         <TabletsGrid>
-                            {tablets.map(tablet => (
-                                <TabletCard key={tablet.id} status={tablet.status} isOnline={tablet.isOnline}>
-                                    <TabletHeader>
-                                        <TabletName>{tablet.friendlyName}</TabletName>
-                                        <StatusIndicator color={getStatusColor(tablet.status, tablet.isOnline)}>
-                                            {tablet.isOnline ? <FaWifi /> : <FaWifi />}
-                                            {tablet.isOnline ? 'Online' : 'Offline'}
-                                        </StatusIndicator>
-                                    </TabletHeader>
+                            {tablets.length === 0 ? (
+                                <EmptyState>
+                                    <FaTabletAlt />
+                                    <EmptyStateText>
+                                        <h3>Brak podłączonych tabletów</h3>
+                                        <p>Użyj przycisku "Sparuj Tablet" aby dodać nowy tablet</p>
+                                    </EmptyStateText>
+                                </EmptyState>
+                            ) : (
+                                tablets.map(tablet => (
+                                    <TabletCard key={tablet.id} status={tablet.status} isOnline={tablet.isOnline}>
+                                        <TabletHeader>
+                                            <TabletName>{tablet.friendlyName}</TabletName>
+                                            <StatusIndicator color={getStatusColor(tablet.status, tablet.isOnline)}>
+                                                <FaWifi />
+                                                {tablet.isOnline ? 'Online' : 'Offline'}
+                                            </StatusIndicator>
+                                        </TabletHeader>
 
-                                    <TabletInfo>
-                                        <InfoRow>
-                                            <InfoLabel>Status:</InfoLabel>
-                                            <InfoValue>{tablet.status}</InfoValue>
-                                        </InfoRow>
-                                        <InfoRow>
-                                            <InfoLabel>Ostatnia aktywność:</InfoLabel>
-                                            <InfoValue>{formatLastSeen(tablet.lastSeen)}</InfoValue>
-                                        </InfoRow>
-                                        {tablet.workstationId && (
+                                        <TabletInfo>
                                             <InfoRow>
-                                                <InfoLabel>Stanowisko:</InfoLabel>
-                                                <InfoValue>#{tablet.workstationId}</InfoValue>
+                                                <InfoLabel>Status:</InfoLabel>
+                                                <InfoValue>{tablet.status}</InfoValue>
                                             </InfoRow>
-                                        )}
-                                        <InfoRow>
-                                            <InfoLabel>
-                                                <FaMapMarkerAlt />
-                                                Lokalizacja:
-                                            </InfoLabel>
-                                            <InfoValue>Sala główna</InfoValue>
-                                        </InfoRow>
-                                    </TabletInfo>
+                                            <InfoRow>
+                                                <InfoLabel>Ostatnia aktywność:</InfoLabel>
+                                                <InfoValue>{formatLastSeen(tablet.lastSeen)}</InfoValue>
+                                            </InfoRow>
+                                            {tablet.workstationId && (
+                                                <InfoRow>
+                                                    <InfoLabel>Stanowisko:</InfoLabel>
+                                                    <InfoValue>#{tablet.workstationId}</InfoValue>
+                                                </InfoRow>
+                                            )}
+                                            <InfoRow>
+                                                <InfoLabel>
+                                                    <FaMapMarkerAlt />
+                                                    Lokalizacja:
+                                                </InfoLabel>
+                                                <InfoValue>{tablet.locationId}</InfoValue>
+                                            </InfoRow>
+                                        </TabletInfo>
 
-                                    <TabletActions>
-                                        <TabletActionButton
-                                            onClick={() => {
-                                                setSelectedTablet(tablet);
-                                                setShowSignatureModal(true);
-                                            }}
-                                            disabled={!tablet.isOnline}
-                                            title="Wyślij żądanie podpisu"
-                                        >
-                                            <FaPaperPlane />
-                                        </TabletActionButton>
-                                        <TabletActionButton title="Szczegóły">
-                                            <FaEye />
-                                        </TabletActionButton>
-                                        <TabletActionButton title="Edytuj">
-                                            <FaEdit />
-                                        </TabletActionButton>
-                                        <TabletActionButton danger title="Usuń">
-                                            <FaTrash />
-                                        </TabletActionButton>
-                                    </TabletActions>
-                                </TabletCard>
-                            ))}
+                                        <TabletActions>
+                                            <TabletActionButton
+                                                onClick={() => handleSendSignatureRequest(tablet)}
+                                                disabled={!tablet.isOnline}
+                                                title="Wyślij żądanie podpisu"
+                                            >
+                                                <FaPaperPlane />
+                                            </TabletActionButton>
+                                            <TabletActionButton
+                                                onClick={() => handleTestTablet(tablet.id)}
+                                                disabled={!tablet.isOnline}
+                                                title="Test tabletu"
+                                            >
+                                                <FaEye />
+                                            </TabletActionButton>
+                                            <TabletActionButton title="Edytuj" disabled>
+                                                <FaEdit />
+                                            </TabletActionButton>
+                                            <TabletActionButton danger title="Usuń" disabled>
+                                                <FaTrash />
+                                            </TabletActionButton>
+                                        </TabletActions>
+                                    </TabletCard>
+                                ))
+                            )}
                         </TabletsGrid>
                     ) : (
                         <SessionsTable>
@@ -317,85 +237,73 @@ const TabletManagementDashboard: React.FC = () => {
                                 <HeaderCell>Utworzono</HeaderCell>
                                 <HeaderCell>Akcje</HeaderCell>
                             </TableHeader>
-                            {sessions.map(session => (
-                                <TableRow key={session.id}>
-                                    <Cell>
-                                        <CustomerInfo>
-                                            <CustomerName>{session.customerName}</CustomerName>
-                                            <DocumentType>{session.documentType}</DocumentType>
-                                        </CustomerInfo>
-                                    </Cell>
-                                    <Cell>
-                                        <VehicleInfo>
-                                            <VehicleName>{session.vehicleInfo.make} {session.vehicleInfo.model}</VehicleName>
-                                            <LicensePlate>{session.vehicleInfo.licensePlate}</LicensePlate>
-                                        </VehicleInfo>
-                                    </Cell>
-                                    <Cell>{session.serviceType}</Cell>
-                                    <Cell>
-                                        <StatusBadge color={getSessionStatusColor(session.status)}>
-                                            {session.status === 'SIGNED' && <FaCheckCircle />}
-                                            {session.status === 'EXPIRED' && <FaTimesCircle />}
-                                            {session.status === 'SENT_TO_TABLET' && <FaClock />}
-                                            {session.status === 'CANCELLED' && <FaExclamationTriangle />}
-                                            {session.status}
-                                        </StatusBadge>
-                                    </Cell>
-                                    <Cell>
-                                        {session.assignedTabletId ?
-                                            tablets.find(t => t.id === session.assignedTabletId)?.friendlyName || 'Nieznany'
-                                            : '-'}
-                                    </Cell>
-                                    <Cell>{new Date(session.createdAt).toLocaleString('pl-PL')}</Cell>
-                                    <Cell>
-                                        <SessionActions>
-                                            <SessionActionButton title="Szczegóły">
-                                                <FaEye />
-                                            </SessionActionButton>
-                                            {session.status === 'PENDING' && (
-                                                <SessionActionButton danger title="Anuluj">
-                                                    <FaTimesCircle />
+                            {sessions.length === 0 ? (
+                                <EmptySessionsState>
+                                    <FaSignature />
+                                    <EmptyStateText>
+                                        <h3>Brak sesji podpisów</h3>
+                                        <p>Sesje pojawią się tutaj po wysłaniu żądań podpisu do tabletów</p>
+                                    </EmptyStateText>
+                                </EmptySessionsState>
+                            ) : (
+                                sessions.map(session => (
+                                    <TableRow key={session.id} onClick={() => onSessionClick(session)}>
+                                        <Cell>
+                                            <CustomerInfo>
+                                                <CustomerName>{session.customerName}</CustomerName>
+                                                <DocumentType>{session.documentType}</DocumentType>
+                                            </CustomerInfo>
+                                        </Cell>
+                                        <Cell>
+                                            <VehicleInfo>
+                                                <VehicleName>{session.vehicleInfo.make} {session.vehicleInfo.model}</VehicleName>
+                                                <LicensePlate>{session.vehicleInfo.licensePlate}</LicensePlate>
+                                            </VehicleInfo>
+                                        </Cell>
+                                        <Cell>{session.serviceType}</Cell>
+                                        <Cell>
+                                            <StatusBadge color={getSessionStatusColor(session.status)}>
+                                                {session.status === 'SIGNED' && <FaCheckCircle />}
+                                                {session.status === 'EXPIRED' && <FaTimesCircle />}
+                                                {session.status === 'SENT_TO_TABLET' && <FaClock />}
+                                                {session.status === 'CANCELLED' && <FaExclamationTriangle />}
+                                                {session.status}
+                                            </StatusBadge>
+                                        </Cell>
+                                        <Cell>
+                                            {session.assignedTabletId ?
+                                                tablets.find(t => t.id === session.assignedTabletId)?.friendlyName || 'Nieznany'
+                                                : '-'}
+                                        </Cell>
+                                        <Cell>{new Date(session.createdAt).toLocaleString('pl-PL')}</Cell>
+                                        <Cell>
+                                            <SessionActions>
+                                                <SessionActionButton title="Szczegóły" onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onSessionClick(session);
+                                                }}>
+                                                    <FaEye />
                                                 </SessionActionButton>
-                                            )}
-                                        </SessionActions>
-                                    </Cell>
-                                </TableRow>
-                            ))}
+                                                {(session.status === 'PENDING' || session.status === 'SENT_TO_TABLET') && (
+                                                    <SessionActionButton danger title="Anuluj" onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        // Handle cancel
+                                                    }}>
+                                                        <FaTimesCircle />
+                                                    </SessionActionButton>
+                                                )}
+                                            </SessionActions>
+                                        </Cell>
+                                    </TableRow>
+                                ))
+                            )}
                         </SessionsTable>
                     )}
                 </ContentArea>
             </DashboardCard>
 
-            {/* Pairing Modal */}
-            {showPairingModal && pairingCode && (
-                <ModalOverlay onClick={() => setShowPairingModal(false)}>
-                    <Modal onClick={e => e.stopPropagation()}>
-                        <ModalHeader>
-                            <ModalTitle>
-                                <FaQrcode />
-                                Kod Parowania
-                            </ModalTitle>
-                            <CloseButton onClick={() => setShowPairingModal(false)}>×</CloseButton>
-                        </ModalHeader>
-                        <ModalContent>
-                            <PairingCodeDisplay>
-                                <CodeNumber>{pairingCode.code}</CodeNumber>
-                                <CodeInstructions>
-                                    Wprowadź ten kod na tablecie, aby go sparować z systemem.
-                                    <br />
-                                    Kod wygaśnie za {Math.floor(pairingCode.expiresIn / 60)} minut.
-                                </CodeInstructions>
-                            </PairingCodeDisplay>
-                            <QRCodePlaceholder>
-                                [QR Code]
-                            </QRCodePlaceholder>
-                        </ModalContent>
-                    </Modal>
-                </ModalOverlay>
-            )}
-
             {/* Signature Request Modal */}
-            {showSignatureModal && (
+            {showSignatureModal && selectedTablet && (
                 <ModalOverlay onClick={() => setShowSignatureModal(false)}>
                     <Modal onClick={e => e.stopPropagation()}>
                         <ModalHeader>
@@ -406,87 +314,82 @@ const TabletManagementDashboard: React.FC = () => {
                             <CloseButton onClick={() => setShowSignatureModal(false)}>×</CloseButton>
                         </ModalHeader>
                         <ModalContent>
-                            <SignatureForm onSubmit={e => {
-                                e.preventDefault();
-                                const formData = new FormData(e.currentTarget);
-                                sendSignatureRequest({
-                                    customerName: formData.get('customerName') as string,
-                                    vehicleInfo: {
-                                        make: formData.get('make') as string,
-                                        model: formData.get('model') as string,
-                                        licensePlate: formData.get('licensePlate') as string
-                                    },
-                                    serviceType: formData.get('serviceType') as string,
-                                    documentType: formData.get('documentType') as string
-                                });
-                            }}>
+                            <SignatureForm onSubmit={handleSubmitSignatureRequest}>
                                 <FormGroup>
                                     <Label>Tablet</Label>
-                                    <Select>
-                                        {selectedTablet ? (
-                                            <option value={selectedTablet.id}>{selectedTablet.friendlyName}</option>
-                                        ) : (
-                                            <>
-                                                <option value="">Wybierz tablet</option>
-                                                {tablets.filter(t => t.isOnline).map(tablet => (
-                                                    <option key={tablet.id} value={tablet.id}>
-                                                        {tablet.friendlyName}
-                                                    </option>
-                                                ))}
-                                            </>
-                                        )}
+                                    <Select disabled>
+                                        <option value={selectedTablet.id}>{selectedTablet.friendlyName}</option>
                                     </Select>
                                 </FormGroup>
 
                                 <FormGroup>
-                                    <Label>Imię i nazwisko klienta</Label>
+                                    <Label>Imię i nazwisko klienta *</Label>
                                     <Input name="customerName" required />
                                 </FormGroup>
 
                                 <FormRow>
                                     <FormGroup>
-                                        <Label>Marka</Label>
+                                        <Label>Marka *</Label>
                                         <Input name="make" required />
                                     </FormGroup>
                                     <FormGroup>
-                                        <Label>Model</Label>
+                                        <Label>Model *</Label>
                                         <Input name="model" required />
                                     </FormGroup>
                                 </FormRow>
 
                                 <FormGroup>
-                                    <Label>Numer rejestracyjny</Label>
+                                    <Label>Numer rejestracyjny *</Label>
                                     <Input name="licensePlate" required />
                                 </FormGroup>
 
+                                <FormRow>
+                                    <FormGroup>
+                                        <Label>VIN</Label>
+                                        <Input name="vin" />
+                                    </FormGroup>
+                                    <FormGroup>
+                                        <Label>Rok produkcji</Label>
+                                        <Input name="year" type="number" min="1900" max={new Date().getFullYear()} />
+                                    </FormGroup>
+                                </FormRow>
+
                                 <FormGroup>
-                                    <Label>Rodzaj usługi</Label>
+                                    <Label>Rodzaj usługi *</Label>
                                     <Select name="serviceType" required>
                                         <option value="">Wybierz usługę</option>
                                         <option value="Detailing Premium">Detailing Premium</option>
                                         <option value="Mycie + Wosk">Mycie + Wosk</option>
                                         <option value="Korekta Lakieru">Korekta Lakieru</option>
                                         <option value="Ochrona Ceramiczna">Ochrona Ceramiczna</option>
+                                        <option value="Serwis Podstawowy">Serwis Podstawowy</option>
+                                        <option value="Serwis Rozszerzony">Serwis Rozszerzony</option>
                                     </Select>
                                 </FormGroup>
 
                                 <FormGroup>
-                                    <Label>Typ dokumentu</Label>
+                                    <Label>Typ dokumentu *</Label>
                                     <Select name="documentType" required>
                                         <option value="">Wybierz typ</option>
                                         <option value="Protokół Przyjęcia">Protokół Przyjęcia</option>
                                         <option value="Protokół Wydania">Protokół Wydania</option>
                                         <option value="Umowa Serwisowa">Umowa Serwisowa</option>
+                                        <option value="Zgoda na Naprawę">Zgoda na Naprawę</option>
                                     </Select>
+                                </FormGroup>
+
+                                <FormGroup>
+                                    <Label>Dodatkowe uwagi</Label>
+                                    <TextArea name="notes" rows={3} placeholder="Opcjonalne uwagi lub instrukcje specjalne..." />
                                 </FormGroup>
 
                                 <ModalActions>
                                     <Button type="button" onClick={() => setShowSignatureModal(false)}>
                                         Anuluj
                                     </Button>
-                                    <Button type="submit" primary disabled={isLoading}>
-                                        {isLoading ? <FaSpinner className="spin" /> : <FaPaperPlane />}
-                                        Wyślij żądanie
+                                    <Button type="submit" primary disabled={isSubmitting}>
+                                        {isSubmitting ? <FaSpinner className="spin" /> : <FaPaperPlane />}
+                                        {isSubmitting ? 'Wysyłanie...' : 'Wyślij żądanie'}
                                     </Button>
                                 </ModalActions>
                             </SignatureForm>
@@ -498,10 +401,10 @@ const TabletManagementDashboard: React.FC = () => {
     );
 };
 
-// Styled Components - Spójny design
+// Styled Components
 const DashboardContainer = styled.div`
-    padding: 0; // Usunięto padding
-    margin: 0;  // Usunięto margin
+    padding: 0;
+    margin: 0;
 `;
 
 const DashboardCard = styled.div`
@@ -518,7 +421,7 @@ const DashboardCard = styled.div`
 const TabNavigation = styled.div`
     display: flex;
     gap: 8px;
-    padding: 24px 24px 0 24px; // Padding tylko wewnętrzny
+    padding: 24px 24px 0 24px;
     background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
 `;
 
@@ -558,14 +461,62 @@ const TabButton = styled.button<{ active: boolean }>`
 `;
 
 const ContentArea = styled.div`
-    padding: 32px; // Jednolity padding wewnętrzny
+    padding: 32px;
     background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+`;
+
+const EmptyState = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 40px;
+    text-align: center;
+    color: #64748b;
+
+    svg {
+        font-size: 64px;
+        margin-bottom: 24px;
+        opacity: 0.5;
+    }
+`;
+
+const EmptySessionsState = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 40px;
+    text-align: center;
+    color: #64748b;
+    grid-column: 1 / -1;
+
+    svg {
+        font-size: 64px;
+        margin-bottom: 24px;
+        opacity: 0.5;
+    }
+`;
+
+const EmptyStateText = styled.div`
+    h3 {
+        font-size: 24px;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 8px;
+    }
+
+    p {
+        font-size: 16px;
+        color: #6b7280;
+        margin: 0;
+    }
 `;
 
 const TabletsGrid = styled.div`
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 24px; // Zwiększone odstępy między kartami
+    gap: 24px;
 `;
 
 const TabletCard = styled.div<{ status: string; isOnline: boolean }>`
@@ -586,9 +537,9 @@ const TabletCard = styled.div<{ status: string; isOnline: boolean }>`
         right: 0;
         height: 4px;
         background: ${props => props.isOnline ?
-                'linear-gradient(90deg, #10b981 0%, #059669 100%)' :
-                'linear-gradient(90deg, #e2e8f0 0%, #cbd5e1 100%)'
-        };
+    'linear-gradient(90deg, #10b981 0%, #059669 100%)' :
+    'linear-gradient(90deg, #e2e8f0 0%, #cbd5e1 100%)'
+};
     }
 
     &:hover {
@@ -698,12 +649,14 @@ const TabletActionButton = styled.button<{ danger?: boolean }>`
     &:disabled {
         opacity: 0.5;
         cursor: not-allowed;
+        transform: none !important;
+        box-shadow: none !important;
     }
 `;
 
 const SessionsTable = styled.div`
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1.5fr 1.5fr 1fr 0.8fr 1fr 1fr 0.8fr;
     background: rgba(255, 255, 255, 0.8);
     border-radius: 16px;
     overflow: hidden;
@@ -711,36 +664,37 @@ const SessionsTable = styled.div`
 `;
 
 const TableHeader = styled.div`
-    display: grid;
-    grid-template-columns: 1.5fr 1.5fr 1fr 0.8fr 1fr 1fr 0.8fr;
-    gap: 16px;
-    padding: 20px 24px;
-    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-    border-bottom: 2px solid rgba(226, 232, 240, 0.8);
+    display: contents;
+
+    > div {
+        padding: 20px 24px;
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        border-bottom: 2px solid rgba(226, 232, 240, 0.8);
+        font-size: 14px;
+        font-weight: 700;
+        color: #475569;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
 `;
 
-const HeaderCell = styled.div`
-    font-size: 14px;
-    font-weight: 700;
-    color: #475569;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-`;
+const HeaderCell = styled.div``;
 
 const TableRow = styled.div`
-    display: grid;
-    grid-template-columns: 1.5fr 1.5fr 1fr 0.8fr 1fr 1fr 0.8fr;
-    gap: 16px;
-    padding: 20px 24px;
-    border-bottom: 1px solid rgba(241, 245, 249, 0.8);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: contents;
+    cursor: pointer;
 
-    &:hover {
-        background: rgba(59, 130, 246, 0.05);
-        transform: translateX(4px);
+    > div {
+        padding: 20px 24px;
+        border-bottom: 1px solid rgba(241, 245, 249, 0.8);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    &:last-child {
+    &:hover > div {
+        background: rgba(59, 130, 246, 0.05);
+    }
+
+    &:last-child > div {
         border-bottom: none;
     }
 `;
@@ -846,6 +800,7 @@ const SessionActionButton = styled.button<{ danger?: boolean }>`
     `}
 `;
 
+// Modal Styles
 const ModalOverlay = styled.div`
     position: fixed;
     top: 0;
@@ -866,10 +821,10 @@ const Modal = styled.div`
     box-shadow:
             0 25px 50px -12px rgba(0, 0, 0, 0.25),
             0 0 0 1px rgba(255, 255, 255, 0.8);
-    max-width: 600px;
+    max-width: 700px;
     width: 90%;
     max-height: 90vh;
-    overflow: hidden;
+    overflow-y: auto;
     backdrop-filter: blur(20px);
 `;
 
@@ -924,46 +879,6 @@ const ModalContent = styled.div`
     background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
 `;
 
-const PairingCodeDisplay = styled.div`
-    text-align: center;
-    margin-bottom: 32px;
-    padding: 32px;
-    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-    border-radius: 20px;
-    border: 2px dashed #3b82f6;
-`;
-
-const CodeNumber = styled.div`
-    font-size: 56px;
-    font-weight: 800;
-    color: #3b82f6;
-    font-family: 'Courier New', monospace;
-    letter-spacing: 12px;
-    margin-bottom: 16px;
-    text-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
-`;
-
-const CodeInstructions = styled.div`
-    font-size: 16px;
-    color: #64748b;
-    line-height: 1.6;
-`;
-
-const QRCodePlaceholder = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 200px;
-    height: 200px;
-    background: rgba(241, 245, 249, 0.8);
-    border: 2px dashed #cbd5e1;
-    border-radius: 20px;
-    color: #94a3b8;
-    font-weight: 600;
-    margin: 0 auto;
-    font-size: 18px;
-`;
-
 const SignatureForm = styled.form`
     display: flex;
     flex-direction: column;
@@ -980,6 +895,10 @@ const FormRow = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 20px;
+
+    @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+    }
 `;
 
 const Label = styled.label`
@@ -1025,6 +944,35 @@ const Select = styled.select`
         border-color: #3b82f6;
         box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
         background: rgba(255, 255, 255, 1);
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+`;
+
+const TextArea = styled.textarea`
+    padding: 16px 20px;
+    border: 2px solid rgba(226, 232, 240, 0.8);
+    border-radius: 12px;
+    font-size: 16px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    resize: vertical;
+    min-height: 100px;
+    font-family: inherit;
+
+    &:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        background: rgba(255, 255, 255, 1);
+    }
+
+    &::placeholder {
+        color: #94a3b8;
     }
 `;
 
@@ -1073,6 +1021,7 @@ const Button = styled.button<{ primary?: boolean }>`
     &:disabled {
         opacity: 0.5;
         cursor: not-allowed;
+        transform: none !important;
     }
 
     .spin {

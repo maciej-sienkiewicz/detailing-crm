@@ -1,51 +1,45 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import styled from 'styled-components';
 import TabletManagementDashboard from './TabletManagementDashboard';
 import SessionDetailsModal from './components/SessionDetailsModal';
 import WebSocketManager from './components/WebSocketManager';
+import { useTablets } from '../../hooks/useTablets';
 import {
     FaTabletAlt,
-    FaSignature,
-    FaChartLine,
-    FaCog,
-    FaUsers,
-    FaExclamationTriangle,
-    FaCheckCircle,
-    FaClock,
     FaWifi,
-    FaPlus
+    FaPlus,
+    FaTimes,
+    FaSpinner,
+    FaExclamationTriangle,
+    FaCheckCircle
 } from 'react-icons/fa';
 
 // Main integration page that combines all components
 const TabletIntegrationPage: React.FC = () => {
+    const {
+        tablets,
+        sessions,
+        realtimeStats,
+        loading,
+        error,
+        pairingCode,
+        isPairingCodeGenerating,
+        pairingError,
+        generatePairingCode,
+        clearPairingState,
+        retrySignatureSession,
+        cancelSignatureSession
+    } = useTablets();
+
     const [selectedSession, setSelectedSession] = useState<any>(null);
     const [showSessionDetails, setShowSessionDetails] = useState(false);
     const [showPairingModal, setShowPairingModal] = useState(false);
-    const [realtimeStats, setRealtimeStats] = useState({
-        connectedTablets: 0,
-        pendingSessions: 0,
-        completedToday: 0,
-        successRate: 0
-    });
-
-    // Mock data - in real app this would come from API/WebSocket
-    const [dashboardData, setDashboardData] = useState({
-        tablets: [],
-        sessions: [],
-        notifications: []
-    });
+    const [pairingCodeTimer, setPairingCodeTimer] = useState<number>(0);
+    const [pairingCodeInterval, setPairingCodeInterval] = useState<NodeJS.Timeout | null>(null);
 
     // WebSocket event handlers
     const handleTabletConnectionChange = useCallback((event: any) => {
         console.log('Tablet connection changed:', event);
-
-        // Update realtime stats
-        setRealtimeStats(prev => ({
-            ...prev,
-            connectedTablets: event.action === 'connected'
-                ? prev.connectedTablets + 1
-                : Math.max(0, prev.connectedTablets - 1)
-        }));
 
         // Show toast notification
         showToast(
@@ -57,30 +51,6 @@ const TabletIntegrationPage: React.FC = () => {
     const handleSignatureUpdate = useCallback((event: any) => {
         console.log('Signature update:', event);
 
-        // Update session status in dashboard
-        setDashboardData(prev => ({
-            ...prev,
-            sessions: prev.sessions.map((session: any) =>
-                session.id === event.sessionId
-                    ? { ...session, status: event.status.toUpperCase(), signedAt: event.timestamp }
-                    : session
-            )
-        }));
-
-        // Update stats if completed today
-        if (event.status === 'signed') {
-            const today = new Date().toDateString();
-            const eventDate = new Date(event.timestamp).toDateString();
-
-            if (today === eventDate) {
-                setRealtimeStats(prev => ({
-                    ...prev,
-                    completedToday: prev.completedToday + 1,
-                    pendingSessions: Math.max(0, prev.pendingSessions - 1)
-                }));
-            }
-        }
-
         showToast(
             event.status === 'signed' ? 'success' : 'warning',
             `Podpis ${event.status === 'signed' ? 'złożony' : 'wygasł'} dla ${event.customerName}`
@@ -89,18 +59,15 @@ const TabletIntegrationPage: React.FC = () => {
 
     const handleNotification = useCallback((notification: any) => {
         console.log('New notification:', notification);
-
-        // Add to notifications list
-        setDashboardData(prev => ({
-            ...prev,
-            notifications: [notification, ...prev.notifications.slice(0, 19)]
-        }));
     }, []);
 
     // Toast notification system (simplified)
-    const showToast = (type: 'success' | 'warning' | 'info', message: string) => {
-        // In real app, this would use a proper toast library
+    const showToast = (type: 'success' | 'warning' | 'info' | 'error', message: string) => {
+        // In real app, this would use a proper toast library like react-hot-toast
         console.log(`${type.toUpperCase()}: ${message}`);
+
+        // You can integrate with a toast library here
+        // toast[type](message);
     };
 
     // Session details modal handlers
@@ -110,31 +77,108 @@ const TabletIntegrationPage: React.FC = () => {
     };
 
     const handleRetrySession = async (sessionId: string) => {
-        console.log('Retrying session:', sessionId);
-        showToast('info', 'Ponowne wysyłanie żądania podpisu...');
-        setShowSessionDetails(false);
+        try {
+            showToast('info', 'Ponowne wysyłanie żądania podpisu...');
+            await retrySignatureSession(sessionId);
+            showToast('success', 'Żądanie podpisu zostało ponownie wysłane');
+            setShowSessionDetails(false);
+        } catch (error) {
+            showToast('error', 'Nie udało się ponownie wysłać żądania podpisu');
+            console.error('Error retrying session:', error);
+        }
     };
 
     const handleCancelSession = async (sessionId: string) => {
-        console.log('Cancelling session:', sessionId);
-        showToast('info', 'Anulowanie sesji...');
-        setShowSessionDetails(false);
+        try {
+            showToast('info', 'Anulowanie sesji...');
+            await cancelSignatureSession(sessionId);
+            showToast('success', 'Sesja została anulowana');
+            setShowSessionDetails(false);
+        } catch (error) {
+            showToast('error', 'Nie udało się anulować sesji');
+            console.error('Error cancelling session:', error);
+        }
     };
 
-    const handlePairTablet = () => {
-        setShowPairingModal(true);
+    const handlePairTablet = async () => {
+        try {
+            // DEBUG: Sprawdź token przed wywołaniem
+            console.log('🔧 Starting tablet pairing process...');
+
+            // Use proper UUID generation instead of hardcoded strings
+            const pairingCodeResponse = await generatePairingCode();
+
+            setShowPairingModal(true);
+
+            // Start countdown timer
+            setPairingCodeTimer(pairingCodeResponse.expiresIn);
+            const interval = setInterval(() => {
+                setPairingCodeTimer(prev => {
+                    if (prev <= 1) {
+                        clearInterval(interval);
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+            setPairingCodeInterval(interval);
+
+        } catch (error) {
+            showToast('error', 'Nie udało się wygenerować kodu parowania');
+            console.error('Error generating pairing code:', error);
+        }
     };
 
-    // Load initial data
-    useEffect(() => {
-        // Mock initial stats
-        setRealtimeStats({
-            connectedTablets: 2,
-            pendingSessions: 3,
-            completedToday: 8,
-            successRate: 95.2
-        });
-    }, []);
+    const handleClosePairingModal = () => {
+        setShowPairingModal(false);
+        clearPairingState();
+        if (pairingCodeInterval) {
+            clearInterval(pairingCodeInterval);
+            setPairingCodeInterval(null);
+        }
+        setPairingCodeTimer(0);
+    };
+
+    const handleGenerateNewCode = async () => {
+        try {
+            if (pairingCodeInterval) {
+                clearInterval(pairingCodeInterval);
+            }
+
+            // Generate new code
+            await handlePairTablet();
+        } catch (error) {
+            showToast('error', 'Nie udało się wygenerować nowego kodu');
+        }
+    };
+
+    const formatTime = (seconds: number): string => {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    };
+
+    if (loading && tablets.length === 0) {
+        return (
+            <PageContainer>
+                <LoadingContainer>
+                    <FaSpinner className="spin" />
+                    <LoadingText>Ładowanie danych tabletów...</LoadingText>
+                </LoadingContainer>
+            </PageContainer>
+        );
+    }
+
+    if (error && tablets.length === 0) {
+        return (
+            <PageContainer>
+                <ErrorContainer>
+                    <FaExclamationTriangle />
+                    <ErrorText>Nie udało się załadować danych: {error}</ErrorText>
+                </ErrorContainer>
+            </PageContainer>
+        );
+    }
 
     return (
         <PageContainer>
@@ -165,9 +209,12 @@ const TabletIntegrationPage: React.FC = () => {
                         </DeviceStatusInfo>
                     </ConnectedDevicesIndicator>
 
-                    <PairTabletButton onClick={handlePairTablet}>
-                        <FaPlus />
-                        Sparuj Tablet
+                    <PairTabletButton
+                        onClick={handlePairTablet}
+                        disabled={isPairingCodeGenerating}
+                    >
+                        {isPairingCodeGenerating ? <FaSpinner className="spin" /> : <FaPlus />}
+                        {isPairingCodeGenerating ? 'Generowanie...' : 'Sparuj Tablet'}
                     </PairTabletButton>
                 </HeaderActions>
             </PageHeader>
@@ -175,18 +222,20 @@ const TabletIntegrationPage: React.FC = () => {
             {/* WebSocket connection manager */}
             <ConnectionSection>
                 <WebSocketManager
-                    tenantId="tenant-1"
+                    tenantId="tenant-1" // TODO: Get from auth context
                     onTabletConnectionChange={handleTabletConnectionChange}
                     onSignatureUpdate={handleSignatureUpdate}
                     onNotification={handleNotification}
                 />
             </ConnectionSection>
 
-            {/* Main dashboard - now takes full width */}
+            {/* Main dashboard */}
             <DashboardSection>
                 <TabletManagementDashboard
+                    tablets={tablets}
+                    sessions={sessions}
                     onSessionClick={handleSessionClick}
-                    realtimeData={dashboardData}
+                    realtimeStats={realtimeStats}
                 />
             </DashboardSection>
 
@@ -194,6 +243,7 @@ const TabletIntegrationPage: React.FC = () => {
             {showSessionDetails && selectedSession && (
                 <SessionDetailsModal
                     session={selectedSession}
+                    tablet={tablets.find(t => t.id === selectedSession.assignedTabletId)}
                     onClose={() => setShowSessionDetails(false)}
                     onRetry={handleRetrySession}
                     onCancel={handleCancelSession}
@@ -202,40 +252,74 @@ const TabletIntegrationPage: React.FC = () => {
 
             {/* Pairing Modal */}
             {showPairingModal && (
-                <PairingModalOverlay onClick={() => setShowPairingModal(false)}>
+                <PairingModalOverlay onClick={handleClosePairingModal}>
                     <PairingModal onClick={e => e.stopPropagation()}>
                         <PairingModalHeader>
                             <PairingModalTitle>
                                 <FaTabletAlt />
                                 Parowanie nowego tabletu
                             </PairingModalTitle>
-                            <CloseButton onClick={() => setShowPairingModal(false)}>×</CloseButton>
+                            <CloseButton onClick={handleClosePairingModal}>×</CloseButton>
                         </PairingModalHeader>
+
                         <PairingModalContent>
-                            <PairingInstructions>
-                                <h3>Instrukcje parowania:</h3>
-                                <ol>
-                                    <li>Upewnij się, że tablet jest połączony z internetem</li>
-                                    <li>Otwórz aplikację CRM na tablecie</li>
-                                    <li>Wprowadź poniższy kod parowania</li>
-                                    <li>Poczekaj na potwierdzenie połączenia</li>
-                                </ol>
-                            </PairingInstructions>
+                            {pairingError && (
+                                <ErrorMessage>
+                                    <FaExclamationTriangle />
+                                    {pairingError}
+                                </ErrorMessage>
+                            )}
 
-                            <PairingCodeSection>
-                                <PairingCodeLabel>Kod parowania:</PairingCodeLabel>
-                                <PairingCode>123456</PairingCode>
-                                <PairingCodeNote>Kod wygaśnie za 4:32</PairingCodeNote>
-                            </PairingCodeSection>
+                            {isPairingCodeGenerating ? (
+                                <LoadingSection>
+                                    <FaSpinner className="spin" />
+                                    <LoadingText>Generowanie kodu parowania...</LoadingText>
+                                </LoadingSection>
+                            ) : pairingCode ? (
+                                <>
+                                    <PairingInstructions>
+                                        <h3>Instrukcje parowania:</h3>
+                                        <ol>
+                                            <li>Upewnij się, że tablet jest połączony z internetem</li>
+                                            <li>Otwórz aplikację CRM na tablecie</li>
+                                            <li>Wprowadź poniższy kod parowania</li>
+                                            <li>Poczekaj na potwierdzenie połączenia</li>
+                                        </ol>
+                                    </PairingInstructions>
 
-                            <PairingActions>
-                                <CancelPairingButton onClick={() => setShowPairingModal(false)}>
-                                    Anuluj
-                                </CancelPairingButton>
-                                <GenerateNewCodeButton>
-                                    Wygeneruj nowy kod
-                                </GenerateNewCodeButton>
-                            </PairingActions>
+                                    <PairingCodeSection>
+                                        <PairingCodeLabel>Kod parowania:</PairingCodeLabel>
+                                        <PairingCode>{pairingCode.code}</PairingCode>
+                                        <PairingCodeNote>
+                                            {pairingCodeTimer > 0 ? (
+                                                <>Kod wygaśnie za {formatTime(pairingCodeTimer)}</>
+                                            ) : (
+                                                <ExpiredCodeNote>
+                                                    <FaExclamationTriangle />
+                                                    Kod wygasł
+                                                </ExpiredCodeNote>
+                                            )}
+                                        </PairingCodeNote>
+                                    </PairingCodeSection>
+
+                                    <PairingActions>
+                                        <CancelPairingButton onClick={handleClosePairingModal}>
+                                            Anuluj
+                                        </CancelPairingButton>
+                                        <GenerateNewCodeButton
+                                            onClick={handleGenerateNewCode}
+                                            disabled={isPairingCodeGenerating}
+                                        >
+                                            {isPairingCodeGenerating ? <FaSpinner className="spin" /> : 'Wygeneruj nowy kod'}
+                                        </GenerateNewCodeButton>
+                                    </PairingActions>
+                                </>
+                            ) : (
+                                <ErrorMessage>
+                                    <FaExclamationTriangle />
+                                    Nie udało się wygenerować kodu parowania
+                                </ErrorMessage>
+                            )}
                         </PairingModalContent>
                     </PairingModal>
                 </PairingModalOverlay>
@@ -262,11 +346,22 @@ const TabletIntegrationPage: React.FC = () => {
                     Ostatnia aktualizacja: {new Date().toLocaleTimeString('pl-PL')}
                 </StatusTimestamp>
             </SystemStatusBar>
+
+            <style>{`
+                .spin {
+                    animation: spin 1s linear infinite;
+                }
+                
+                @keyframes spin {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+            `}</style>
         </PageContainer>
     );
 };
 
-// Styled Components
+// Styled Components (existing ones remain the same, adding new ones)
 const PageContainer = styled.div`
     min-height: 100vh;
     background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
@@ -279,6 +374,48 @@ const PageContainer = styled.div`
     grid-template-rows: auto auto 1fr auto;
     gap: 24px;
     padding: 24px;
+`;
+
+const LoadingContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 60vh;
+    gap: 16px;
+
+    svg {
+        font-size: 48px;
+        color: #3b82f6;
+    }
+`;
+
+const LoadingText = styled.div`
+    font-size: 18px;
+    color: #64748b;
+    font-weight: 500;
+`;
+
+const ErrorContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 60vh;
+    gap: 16px;
+
+    svg {
+        font-size: 48px;
+        color: #ef4444;
+    }
+`;
+
+const ErrorText = styled.div`
+    font-size: 18px;
+    color: #ef4444;
+    font-weight: 500;
+    text-align: center;
+    max-width: 600px;
 `;
 
 const PageHeader = styled.div`
@@ -353,7 +490,7 @@ const HeaderActions = styled.div`
     display: flex;
     align-items: center;
     gap: 24px;
-    
+
     @media (max-width: 768px) {
         width: 100%;
         justify-content: space-between;
@@ -411,7 +548,7 @@ const PairTabletButton = styled.button`
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.39);
 
-    &:hover {
+    &:hover:not(:disabled) {
         transform: translateY(-2px);
         box-shadow: 0 8px 25px 0 rgba(16, 185, 129, 0.5);
         background: linear-gradient(135deg, #059669 0%, #047857 100%);
@@ -419,6 +556,13 @@ const PairTabletButton = styled.button`
 
     &:active {
         transform: translateY(0);
+    }
+
+    &:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.2);
     }
 `;
 
@@ -551,6 +695,37 @@ const PairingModalContent = styled.div`
     padding: 32px;
 `;
 
+const LoadingSection = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 60px;
+
+    svg {
+        font-size: 48px;
+        color: #3b82f6;
+    }
+`;
+
+const ErrorMessage = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    border: 1px solid #fecaca;
+    border-radius: 12px;
+    color: #dc2626;
+    font-weight: 500;
+    margin-bottom: 24px;
+
+    svg {
+        color: #dc2626;
+        font-size: 18px;
+    }
+`;
+
 const PairingInstructions = styled.div`
     margin-bottom: 32px;
 
@@ -604,6 +779,19 @@ const PairingCodeNote = styled.div`
     font-weight: 500;
 `;
 
+const ExpiredCodeNote = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #dc2626;
+    font-weight: 600;
+
+    svg {
+        font-size: 16px;
+    }
+`;
+
 const PairingActions = styled.div`
     display: flex;
     gap: 16px;
@@ -628,6 +816,9 @@ const CancelPairingButton = styled.button`
 `;
 
 const GenerateNewCodeButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: 8px;
     padding: 12px 24px;
     background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
     color: white;
@@ -637,9 +828,15 @@ const GenerateNewCodeButton = styled.button`
     cursor: pointer;
     transition: all 0.2s;
 
-    &:hover {
+    &:hover:not(:disabled) {
         transform: translateY(-1px);
         box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    }
+
+    &:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none;
     }
 `;
 

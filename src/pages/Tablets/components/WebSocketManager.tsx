@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import styled from 'styled-components';
+import { useWebSocket } from '../../../hooks/useWebSocket';
 import {
     FaWifi,
     FaExclamationTriangle,
     FaCheckCircle,
     FaSpinner,
     FaTabletAlt,
-    FaDesktop,
     FaBell,
     FaSignature,
     FaTimes,
@@ -14,18 +14,6 @@ import {
 } from 'react-icons/fa';
 
 // Types for WebSocket messages
-interface WebSocketMessage {
-    type: string;
-    payload: any;
-    timestamp?: string;
-}
-
-interface ConnectionStatus {
-    status: 'disconnected' | 'connecting' | 'connected' | 'error';
-    lastConnected?: Date;
-    reconnectAttempts: number;
-}
-
 interface TabletConnectionEvent {
     deviceId: string;
     deviceName: string;
@@ -67,305 +55,91 @@ const WebSocketManager: React.FC<WebSocketManagerProps> = ({
                                                                onSignatureUpdate,
                                                                onNotification
                                                            }) => {
-    const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>({
-        status: 'disconnected',
-        reconnectAttempts: 0
-    });
     const [notifications, setNotifications] = useState<NotificationEvent[]>([]);
     const [showNotifications, setShowNotifications] = useState(false);
-    const [connectedDevices, setConnectedDevices] = useState<Set<string>>(new Set());
-    const [recentActivity, setRecentActivity] = useState<WebSocketMessage[]>([]);
 
-    const wsRef = useRef<WebSocket | null>(null);
-    const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
-    const maxReconnectAttempts = 10;
-    const reconnectInterval = 3000;
-    const connectionAttemptRef = useRef<boolean>(false);
+    const handleTabletConnectionChange = useCallback((event: TabletConnectionEvent) => {
+        console.log('Tablet connection changed:', event);
+        onTabletConnectionChange?.(event);
 
-    const connect = useCallback(() => {
-        // Zapobiegnij wielokrotnym próbom połączenia
-        if (connectionAttemptRef.current || wsRef.current?.readyState === WebSocket.OPEN) {
-            return;
-        }
+        // Create notification
+        const notification: NotificationEvent = {
+            id: `tablet-${event.action}-${Date.now()}`,
+            type: event.action === 'connected' ? 'tablet_connected' : 'tablet_disconnected',
+            title: event.action === 'connected' ? 'Tablet połączony' : 'Tablet rozłączony',
+            message: `${event.deviceName || event.deviceId} jest teraz ${event.action === 'connected' ? 'online' : 'offline'}`,
+            timestamp: new Date().toISOString(),
+            read: false,
+            deviceId: event.deviceId
+        };
 
-        connectionAttemptRef.current = true;
-        setConnectionStatus(prev => ({ ...prev, status: 'connecting' }));
+        addNotification(notification);
+    }, [onTabletConnectionChange]);
 
-        try {
-            // Generuj unikalny workstationId
-            const workstationId = `workstation-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const handleSignatureUpdate = useCallback((event: SignatureRequestEvent) => {
+        console.log('Signature update:', event);
+        onSignatureUpdate?.(event);
 
-            // Używaj czystego WebSocket bez SockJS
-            const wsUrl = `ws://localhost:8080/ws/workstation/${workstationId}`;
+        // Create notification based on status
+        let notification: NotificationEvent;
 
-            console.log('Attempting WebSocket connection to:', wsUrl);
-
-            wsRef.current = new WebSocket(wsUrl);
-
-            // Dodaj headers autentykacji jeśli dostępne
-            const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
-            if (token) {
-                // Note: WebSocket nie obsługuje custom headers w przeglądarce
-                // Będziemy musieli przesłać token przez query params lub po nawiązaniu połączenia
-                console.log('Auth token available for WebSocket connection');
-            }
-
-            wsRef.current.onopen = () => {
-                console.log('WebSocket connected successfully to:', wsUrl);
-                connectionAttemptRef.current = false;
-
-                setConnectionStatus({
-                    status: 'connected',
-                    lastConnected: new Date(),
-                    reconnectAttempts: 0
-                });
-
-                // Wyślij autentykację natychmiast po połączeniu
-                if (token) {
-                    const authMessage: WebSocketMessage = {
-                        type: 'authentication',
-                        payload: {
-                            token: token,
-                            tenantId,
-                            userType: 'workstation',
-                            workstationId: workstationId,
-                            timestamp: new Date().toISOString()
-                        },
-                        timestamp: new Date().toISOString()
-                    };
-
-                    console.log('Sending authentication message:', authMessage);
-                    wsRef.current?.send(JSON.stringify(authMessage));
-                } else {
-                    console.warn('No auth token available - connection may be rejected');
-
-                    // Wyślij wiadomość connection bez tokenu
-                    const connectionMessage: WebSocketMessage = {
-                        type: 'connection',
-                        payload: {
-                            tenantId,
-                            userType: 'workstation',
-                            workstationId: workstationId,
-                            timestamp: new Date().toISOString()
-                        },
-                        timestamp: new Date().toISOString()
-                    };
-
-                    wsRef.current?.send(JSON.stringify(connectionMessage));
-                }
+        if (event.status === 'signed') {
+            notification = {
+                id: `signature-complete-${Date.now()}`,
+                type: 'signature_completed',
+                title: 'Podpis złożony',
+                message: `${event.customerName} złożył podpis cyfrowy`,
+                timestamp: new Date().toISOString(),
+                read: false,
+                sessionId: event.sessionId
             };
-
-            wsRef.current.onmessage = (event) => {
-                try {
-                    const message: WebSocketMessage = JSON.parse(event.data);
-                    console.log('WebSocket message received:', message);
-                    handleMessage(message);
-
-                    // Dodaj do ostatniej aktywności (zachowaj ostatnie 50 wiadomości)
-                    setRecentActivity(prev => {
-                        const updated = [message, ...prev].slice(0, 50);
-                        return updated;
-                    });
-                } catch (error) {
-                    console.error('Error parsing WebSocket message:', error);
-                }
+        } else if (event.status === 'expired') {
+            notification = {
+                id: `signature-expired-${Date.now()}`,
+                type: 'signature_expired',
+                title: 'Sesja wygasła',
+                message: `Sesja podpisu dla ${event.customerName} wygasła`,
+                timestamp: new Date().toISOString(),
+                read: false,
+                sessionId: event.sessionId
             };
-
-            wsRef.current.onclose = (event) => {
-                console.log('WebSocket disconnected:', event.code, event.reason);
-                connectionAttemptRef.current = false;
-
-                setConnectionStatus(prev => ({
-                    ...prev,
-                    status: 'disconnected'
-                }));
-
-                // Tylko reconnect jeśli nie było to celowe zamknięcie (kod 1000)
-                if (event.code !== 1000 && connectionStatus.reconnectAttempts < maxReconnectAttempts) {
-                    const delay = Math.min(
-                        reconnectInterval * Math.pow(1.5, connectionStatus.reconnectAttempts),
-                        30000 // Max 30 sekund delay
-                    );
-
-                    console.log(`Scheduling reconnection in ${delay}ms (attempt ${connectionStatus.reconnectAttempts + 1})`);
-
-                    reconnectTimeoutRef.current = setTimeout(() => {
-                        setConnectionStatus(prev => ({
-                            ...prev,
-                            reconnectAttempts: prev.reconnectAttempts + 1
-                        }));
-                        connect();
-                    }, delay);
-                }
-            };
-
-            wsRef.current.onerror = (error) => {
-                console.error('WebSocket error:', error);
-                connectionAttemptRef.current = false;
-                setConnectionStatus(prev => ({ ...prev, status: 'error' }));
-            };
-
-        } catch (error) {
-            console.error('Failed to create WebSocket connection:', error);
-            connectionAttemptRef.current = false;
-            setConnectionStatus(prev => ({ ...prev, status: 'error' }));
-        }
-    }, [tenantId, connectionStatus.reconnectAttempts]);
-
-    const disconnect = useCallback(() => {
-        console.log('Disconnecting WebSocket...');
-
-        if (reconnectTimeoutRef.current) {
-            clearTimeout(reconnectTimeoutRef.current);
-            reconnectTimeoutRef.current = undefined;
+        } else {
+            return; // Don't create notification for other statuses
         }
 
-        connectionAttemptRef.current = false;
+        addNotification(notification);
+    }, [onSignatureUpdate]);
 
-        if (wsRef.current && wsRef.current.readyState !== WebSocket.CLOSED) {
-            wsRef.current.close(1000, 'Component unmounting'); // Normal closure
-            wsRef.current = null;
-        }
+    const handleNotificationReceived = useCallback((notification: NotificationEvent) => {
+        console.log('New notification:', notification);
+        addNotification(notification);
+        onNotification?.(notification);
+    }, [onNotification]);
 
-        setConnectionStatus({
-            status: 'disconnected',
-            reconnectAttempts: 0
-        });
-    }, []);
-
-    const handleMessage = useCallback((message: WebSocketMessage) => {
-        switch (message.type) {
-            case 'authentication':
-                console.log('Authentication response:', message.payload);
-                if (message.payload.status === 'authenticated') {
-                    console.log('Successfully authenticated with WebSocket server');
-                    console.log('User roles:', message.payload.roles);
-                    console.log('User permissions:', message.payload.permissions);
-                } else {
-                    console.error('Authentication failed:', message.payload);
-                }
-                break;
-
-            case 'connection':
-                console.log('Connection status received:', message.payload);
-                if (message.payload.status === 'connected' && !message.payload.authenticated) {
-                    console.log('Connected to WebSocket, but not yet authenticated');
-                }
-                break;
-
-            case 'tablet_connected':
-                const connectEvent: TabletConnectionEvent = {
-                    ...message.payload,
-                    action: 'connected'
-                };
-                setConnectedDevices(prev => new Set([...prev, message.payload.deviceId]));
-                onTabletConnectionChange?.(connectEvent);
-
-                addNotification({
-                    id: `tablet-connect-${Date.now()}`,
-                    type: 'tablet_connected',
-                    title: 'Tablet połączony',
-                    message: `${message.payload.deviceName} jest teraz online`,
-                    timestamp: new Date().toISOString(),
-                    read: false,
-                    deviceId: message.payload.deviceId
-                });
-                break;
-
-            case 'tablet_disconnected':
-                const disconnectEvent: TabletConnectionEvent = {
-                    ...message.payload,
-                    action: 'disconnected'
-                };
-                setConnectedDevices(prev => {
-                    const updated = new Set(prev);
-                    updated.delete(message.payload.deviceId);
-                    return updated;
-                });
-                onTabletConnectionChange?.(disconnectEvent);
-
-                addNotification({
-                    id: `tablet-disconnect-${Date.now()}`,
-                    type: 'tablet_disconnected',
-                    title: 'Tablet rozłączony',
-                    message: `${message.payload.deviceName} przeszedł offline`,
-                    timestamp: new Date().toISOString(),
-                    read: false,
-                    deviceId: message.payload.deviceId
-                });
-                break;
-
-            case 'signature_completed':
-                const signatureEvent: SignatureRequestEvent = {
-                    ...message.payload,
-                    status: 'signed'
-                };
-                onSignatureUpdate?.(signatureEvent);
-
-                addNotification({
-                    id: `signature-complete-${Date.now()}`,
-                    type: 'signature_completed',
-                    title: 'Podpis złożony',
-                    message: `${message.payload.customerName} złożył podpis cyfrowy`,
-                    timestamp: new Date().toISOString(),
-                    read: false,
-                    sessionId: message.payload.sessionId
-                });
-                break;
-
-            case 'signature_expired':
-                const expiredEvent: SignatureRequestEvent = {
-                    ...message.payload,
-                    status: 'expired'
-                };
-                onSignatureUpdate?.(expiredEvent);
-
-                addNotification({
-                    id: `signature-expired-${Date.now()}`,
-                    type: 'signature_expired',
-                    title: 'Sesja wygasła',
-                    message: `Sesja podpisu dla ${message.payload.customerName} wygasła`,
-                    timestamp: new Date().toISOString(),
-                    read: false,
-                    sessionId: message.payload.sessionId
-                });
-                break;
-
-            case 'heartbeat':
-                // Handle heartbeat - no action needed
-                break;
-
-            case 'error':
-                console.error('WebSocket error message received:', message.payload);
-
-                // Jeśli błąd dotyczy autentykacji, zatrzymaj reconnect
-                if (message.payload.error && message.payload.error.includes('Authentication failed')) {
-                    console.error('Authentication failed - stopping reconnection attempts');
-                    setConnectionStatus(prev => ({
-                        ...prev,
-                        status: 'error',
-                        reconnectAttempts: maxReconnectAttempts // Zatrzymaj próby ponownego łączenia
-                    }));
-                }
-                break;
-
-            default:
-                console.log('Unknown message type:', message.type, message);
-        }
-    }, [onTabletConnectionChange, onSignatureUpdate, maxReconnectAttempts]);
+    const {
+        connectionStatus,
+        connectedDevices,
+        connect,
+        disconnect
+    } = useWebSocket({
+        tenantId,
+        onTabletConnectionChange: handleTabletConnectionChange,
+        onSignatureUpdate: handleSignatureUpdate,
+        onNotification: handleNotificationReceived,
+        autoConnect: true
+    });
 
     const addNotification = useCallback((notification: NotificationEvent) => {
         setNotifications(prev => [notification, ...prev].slice(0, 20)); // Keep last 20 notifications
-        onNotification?.(notification);
 
         // Show browser notification if permission granted
-        if (Notification.permission === 'granted') {
+        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
             new Notification(notification.title, {
                 body: notification.message,
                 icon: '/favicon.ico'
             });
         }
-    }, [onNotification]);
+    }, []);
 
     const markNotificationAsRead = useCallback((id: string) => {
         setNotifications(prev =>
@@ -379,58 +153,12 @@ const WebSocketManager: React.FC<WebSocketManagerProps> = ({
         setNotifications([]);
     }, []);
 
-    const sendMessage = useCallback((message: WebSocketMessage) => {
-        if (wsRef.current?.readyState === WebSocket.OPEN) {
-            wsRef.current.send(JSON.stringify({
-                ...message,
-                timestamp: new Date().toISOString()
-            }));
-        } else {
-            console.warn('Cannot send message - WebSocket not connected');
-        }
-    }, []);
-
     // Request notification permission on mount
-    useEffect(() => {
+    React.useEffect(() => {
         if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
             Notification.requestPermission();
         }
     }, []);
-
-    // Auto-connect on mount z proper cleanup
-    useEffect(() => {
-        let isMounted = true;
-        let connectTimer: NodeJS.Timeout;
-
-        const connectIfMounted = () => {
-            if (isMounted && !connectionAttemptRef.current) {
-                connect();
-            }
-        };
-
-        // Opóźnij początkowe połączenie aby uniknąć React strict mode double mounting
-        connectTimer = setTimeout(connectIfMounted, 500);
-
-        return () => {
-            isMounted = false;
-            clearTimeout(connectTimer);
-            disconnect();
-        };
-    }, [tenantId]); // Tylko tenantId jako dependency
-
-    // Heartbeat
-    useEffect(() => {
-        if (connectionStatus.status === 'connected') {
-            const interval = setInterval(() => {
-                sendMessage({
-                    type: 'heartbeat',
-                    payload: { timestamp: new Date().toISOString() }
-                });
-            }, 30000); // Send heartbeat every 30 seconds
-
-            return () => clearInterval(interval);
-        }
-    }, [connectionStatus.status, sendMessage]);
 
     const getStatusIcon = () => {
         switch (connectionStatus.status) {
@@ -475,7 +203,7 @@ const WebSocketManager: React.FC<WebSocketManagerProps> = ({
                     )}
                     {connectionStatus.reconnectAttempts > 0 && connectionStatus.status !== 'connected' && (
                         <ReconnectAttempts>
-                            Próba {connectionStatus.reconnectAttempts}/{maxReconnectAttempts}
+                            Próba {connectionStatus.reconnectAttempts}/10
                         </ReconnectAttempts>
                     )}
                 </ConnectionStatus>
@@ -499,6 +227,13 @@ const WebSocketManager: React.FC<WebSocketManagerProps> = ({
                             <FaRedo />
                             Połącz
                         </ReconnectButton>
+                    )}
+
+                    {connectionStatus.status === 'connected' && (
+                        <DisconnectButton onClick={disconnect}>
+                            <FaTimes />
+                            Rozłącz
+                        </DisconnectButton>
                     )}
                 </StatusActions>
             </StatusBar>
@@ -543,7 +278,7 @@ const WebSocketManager: React.FC<WebSocketManagerProps> = ({
                                         <NotificationTitle>{notification.title}</NotificationTitle>
                                         <NotificationMessage>{notification.message}</NotificationMessage>
                                         <NotificationTime>
-                                            {new Date(notification.timestamp).toLocaleTimeString()}
+                                            {new Date(notification.timestamp).toLocaleTimeString('pl-PL')}
                                         </NotificationTime>
                                     </NotificationContent>
                                     {!notification.read && <UnreadIndicator />}
@@ -568,7 +303,7 @@ const WebSocketManager: React.FC<WebSocketManagerProps> = ({
     );
 };
 
-// Styled Components (pozostają bez zmian)
+// Styled Components
 const ManagerContainer = styled.div`
     position: relative;
 `;
@@ -582,12 +317,22 @@ const StatusBar = styled.div`
     border-radius: 12px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     border: 1px solid #e2e8f0;
+
+    @media (max-width: 768px) {
+        flex-direction: column;
+        gap: 12px;
+    }
 `;
 
 const ConnectionStatus = styled.div`
     display: flex;
     align-items: center;
     gap: 12px;
+
+    @media (max-width: 768px) {
+        width: 100%;
+        justify-content: center;
+    }
 `;
 
 const StatusIcon = styled.div`
@@ -597,18 +342,22 @@ const StatusIcon = styled.div`
 const StatusText = styled.span<{ status: string }>`
     font-weight: 600;
     color: ${props => {
-        switch (props.status) {
-            case 'connected': return '#10b981';
-            case 'connecting': return '#f59e0b';
-            case 'error': return '#ef4444';
-            default: return '#6b7280';
-        }
-    }};
+    switch (props.status) {
+        case 'connected': return '#10b981';
+        case 'connecting': return '#f59e0b';
+        case 'error': return '#ef4444';
+        default: return '#6b7280';
+    }
+}};
 `;
 
 const LastConnected = styled.span`
     font-size: 12px;
     color: #64748b;
+
+    @media (max-width: 768px) {
+        display: none;
+    }
 `;
 
 const ReconnectAttempts = styled.span`
@@ -621,6 +370,11 @@ const StatusActions = styled.div`
     display: flex;
     align-items: center;
     gap: 16px;
+
+    @media (max-width: 768px) {
+        width: 100%;
+        justify-content: space-between;
+    }
 `;
 
 const DeviceCounter = styled.div`
@@ -655,6 +409,7 @@ const NotificationButton = styled.button<{ hasUnread: boolean }>`
 
     &:hover {
         background: ${props => props.hasUnread ? '#2563eb' : '#e2e8f0'};
+        transform: scale(1.05);
     }
 `;
 
@@ -687,6 +442,27 @@ const ReconnectButton = styled.button`
 
     &:hover {
         background: #2563eb;
+        transform: translateY(-1px);
+    }
+`;
+
+const DisconnectButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: white;
+    color: #64748b;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+        color: #475569;
     }
 `;
 
@@ -702,6 +478,11 @@ const NotificationsPanel = styled.div`
     border: 1px solid #e2e8f0;
     z-index: 1000;
     overflow: hidden;
+
+    @media (max-width: 768px) {
+        width: 350px;
+        right: -20px;
+    }
 `;
 
 const NotificationsHeader = styled.div`
@@ -733,6 +514,7 @@ const ClearButton = styled.button`
     color: #64748b;
     font-size: 12px;
     cursor: pointer;
+    transition: color 0.2s;
 
     &:hover {
         color: #ef4444;
@@ -750,6 +532,7 @@ const CloseButton = styled.button`
     background: #e2e8f0;
     color: #64748b;
     cursor: pointer;
+    transition: all 0.2s;
 
     &:hover {
         background: #ef4444;
@@ -807,15 +590,15 @@ const NotificationIcon = styled.div<{ type: string }>`
     color: white;
     flex-shrink: 0;
     background: ${props => {
-        switch (props.type) {
-            case 'tablet_connected': return '#10b981';
-            case 'tablet_disconnected': return '#6b7280';
-            case 'signature_completed': return '#3b82f6';
-            case 'signature_expired': return '#f59e0b';
-            case 'system_alert': return '#ef4444';
-            default: return '#64748b';
-        }
-    }};
+    switch (props.type) {
+        case 'tablet_connected': return '#10b981';
+        case 'tablet_disconnected': return '#6b7280';
+        case 'signature_completed': return '#3b82f6';
+        case 'signature_expired': return '#f59e0b';
+        case 'system_alert': return '#ef4444';
+        default: return '#64748b';
+    }
+}};
 `;
 
 const NotificationContent = styled.div`
