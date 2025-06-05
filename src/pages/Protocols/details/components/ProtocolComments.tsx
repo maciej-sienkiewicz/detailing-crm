@@ -28,21 +28,21 @@ const enterprise = {
     border: '#e2e8f0',
     borderLight: '#f1f5f9',
 
-    // Communication Types - Using Brand Colors
+    // Communication Types - Professional Automotive Grade
     internal: {
         primary: 'var(--brand-primary, #2563eb)',
-        background: 'var(--brand-primary-ghost, rgba(37, 99, 235, 0.08))',
-        border: 'var(--brand-primary-light, #bfdbfe)',
-        light: 'var(--brand-primary-ghost, rgba(37, 99, 235, 0.04))'
+        background: '#fafbfc',
+        border: '#e2e8f0',
+        light: '#f8fafc'
     },
     external: {
-        primary: '#0f766e',
-        background: '#f0fdfa',
-        border: '#99f6e4',
-        light: '#ccfbf1'
+        primary: '#334155',
+        background: '#f8fafc',
+        border: '#cbd5e1',
+        light: '#f1f5f9'
     },
     system: {
-        primary: '#6b7280',
+        primary: '#64748b',
         background: '#f9fafb',
         border: '#d1d5db',
         light: '#f3f4f6'
@@ -93,6 +93,7 @@ const ProtocolComments: React.FC<ProtocolCommentsProps> = ({ protocol, onProtoco
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [recentlyAddedId, setRecentlyAddedId] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchComments = async () => {
@@ -110,6 +111,16 @@ const ProtocolComments: React.FC<ProtocolCommentsProps> = ({ protocol, onProtoco
         };
         fetchComments();
     }, [protocol.id]);
+
+    // Clear recently added highlight after 3 seconds
+    useEffect(() => {
+        if (recentlyAddedId) {
+            const timer = setTimeout(() => {
+                setRecentlyAddedId(null);
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [recentlyAddedId]);
 
     const formatDateTime = (dateString: string): string => {
         if (!dateString) return '';
@@ -133,7 +144,8 @@ const ProtocolComments: React.FC<ProtocolCommentsProps> = ({ protocol, onProtoco
             const savedComment = await commentsApi.addComment(commentData);
 
             if (savedComment) {
-                setComments(prevComments => [...prevComments, savedComment]);
+                setComments(prevComments => [savedComment, ...prevComments]); // Add to top for immediate visibility
+                setRecentlyAddedId(savedComment.id); // Highlight the new comment
                 setNewComment('');
             } else {
                 setError('Nie udało się dodać wpisu.');
@@ -146,9 +158,14 @@ const ProtocolComments: React.FC<ProtocolCommentsProps> = ({ protocol, onProtoco
         }
     };
 
-    const internalComments = comments.filter(c => c.type === 'internal');
-    const customerComments = comments.filter(c => c.type === 'customer');
-    const systemComments = comments.filter(c => c.type === 'system');
+    // Sort comments by timestamp (newest first) for better UX
+    const sortedComments = [...comments].sort((a, b) =>
+        new Date(b.timestamp || '').getTime() - new Date(a.timestamp || '').getTime()
+    );
+
+    const internalComments = sortedComments.filter(c => c.type === 'internal');
+    const customerComments = sortedComments.filter(c => c.type === 'customer');
+    const systemComments = sortedComments.filter(c => c.type === 'system');
 
     return (
         <CommunicationPanel>
@@ -242,84 +259,60 @@ const ProtocolComments: React.FC<ProtocolCommentsProps> = ({ protocol, onProtoco
                     </EmptyState>
                 ) : (
                     <Timeline>
-                        {/* Customer Communications */}
-                        {customerComments.length > 0 && (
-                            <TimelineSection>
-                                <SectionHeader $type="external">
-                                    <SectionTitle>Komunikacja z klientem</SectionTitle>
-                                    <SectionCount>{customerComments.length}</SectionCount>
-                                </SectionHeader>
-                                <CommentsList>
-                                    {customerComments.map(comment => (
-                                        <CommentEntry key={comment.id} $type="external">
+                        {/* Always show ALL comments in chronological order for better UX */}
+                        <UnifiedTimeline>
+                            <SectionHeader>
+                                <SectionTitle>Wszystkie wpisy</SectionTitle>
+                                <SectionCount>{sortedComments.length}</SectionCount>
+                            </SectionHeader>
+                            <CommentsList>
+                                {sortedComments.map(comment => {
+                                    const isRecent = comment.id === recentlyAddedId;
+
+                                    if (comment.type === 'system') {
+                                        return (
+                                            <SystemEntry key={comment.id} $isRecent={isRecent}>
+                                                <SystemIcon>
+                                                    <FaCalendarAlt />
+                                                </SystemIcon>
+                                                <SystemContent>
+                                                    <SystemText>{comment.content}</SystemText>
+                                                    <SystemTime>{formatDateTime(comment.timestamp || '')}</SystemTime>
+                                                </SystemContent>
+                                                {isRecent && <NewIndicator>Nowy wpis</NewIndicator>}
+                                            </SystemEntry>
+                                        );
+                                    }
+
+                                    return (
+                                        <CommentEntry
+                                            key={comment.id}
+                                            $type={comment.type === 'customer' ? 'external' : 'internal'}
+                                            $isRecent={isRecent}
+                                        >
                                             <CommentMeta>
                                                 <AuthorInfo>
-                                                    <Avatar $type="external">
+                                                    <Avatar $type={comment.type === 'customer' ? 'external' : 'internal'}>
                                                         <FaUser />
                                                     </Avatar>
                                                     <AuthorDetails>
-                                                        <AuthorName>{comment.author}</AuthorName>
+                                                        <AuthorName>
+                                                            {comment.author}
+                                                            <CommentTypeLabel $type={comment.type}>
+                                                                {comment.type === 'customer' ? 'Komunikacja z klientem' : 'Zespół wewnętrzny'}
+                                                            </CommentTypeLabel>
+                                                        </AuthorName>
                                                         <Timestamp>{formatDateTime(comment.timestamp || '')}</Timestamp>
                                                     </AuthorDetails>
                                                 </AuthorInfo>
+                                                {isRecent && <NewIndicator>Nowy wpis</NewIndicator>}
                                             </CommentMeta>
                                             <CommentContent>{comment.content}</CommentContent>
                                         </CommentEntry>
-                                    ))}
-                                </CommentsList>
-                            </TimelineSection>
-                        )}
-
-                        {/* Internal Communications */}
-                        {internalComments.length > 0 && (
-                            <TimelineSection>
-                                <SectionHeader $type="internal">
-                                    <SectionTitle>Notatki zespołu</SectionTitle>
-                                    <SectionCount>{internalComments.length}</SectionCount>
-                                </SectionHeader>
-                                <CommentsList>
-                                    {internalComments.map(comment => (
-                                        <CommentEntry key={comment.id} $type="internal">
-                                            <CommentMeta>
-                                                <AuthorInfo>
-                                                    <Avatar $type="internal">
-                                                        <FaUser />
-                                                    </Avatar>
-                                                    <AuthorDetails>
-                                                        <AuthorName>{comment.author}</AuthorName>
-                                                        <Timestamp>{formatDateTime(comment.timestamp || '')}</Timestamp>
-                                                    </AuthorDetails>
-                                                </AuthorInfo>
-                                            </CommentMeta>
-                                            <CommentContent>{comment.content}</CommentContent>
-                                        </CommentEntry>
-                                    ))}
-                                </CommentsList>
-                            </TimelineSection>
-                        )}
-
-                        {/* System Events */}
-                        {systemComments.length > 0 && (
-                            <TimelineSection>
-                                <SectionHeader $type="system">
-                                    <SectionTitle>Wydarzenia systemowe</SectionTitle>
-                                    <SectionCount>{systemComments.length}</SectionCount>
-                                </SectionHeader>
-                                <CommentsList>
-                                    {systemComments.map(comment => (
-                                        <SystemEntry key={comment.id}>
-                                            <SystemIcon>
-                                                <FaCalendarAlt />
-                                            </SystemIcon>
-                                            <SystemContent>
-                                                <SystemText>{comment.content}</SystemText>
-                                                <SystemTime>{formatDateTime(comment.timestamp || '')}</SystemTime>
-                                            </SystemContent>
-                                        </SystemEntry>
-                                    ))}
-                                </CommentsList>
-                            </TimelineSection>
-                        )}
+                                    );
+                                })}
+                            </CommentsList>
+                        </UnifiedTimeline>
                     </Timeline>
                 )}
             </TimelineSection>
@@ -379,7 +372,12 @@ const TypeOption = styled.button<{ $active: boolean }>`
     transition: all 0.2s ease;
 
     &:hover:not(:disabled) {
-        background: ${props => props.$active ? enterprise.primaryDark : enterprise.surfaceTertiary};
+        ${props => !props.$active && `
+            background: ${enterprise.surfaceSecondary};
+            border-color: ${enterprise.textTertiary};
+            transform: translateY(-1px);
+            box-shadow: ${enterprise.shadow.sm};
+        `}
     }
 
     &:disabled {
@@ -400,9 +398,10 @@ const CommentInput = styled.textarea<{ $type: 'internal' | 'customer' }>`
     width: 100%;
     min-height: 120px;
     padding: ${enterprise.space.md};
-    border: 2px solid ${props => props.$type === 'customer' ? enterprise.external.border : enterprise.internal.border};
+    border: 1px solid ${enterprise.border};
+    border-left: 3px solid ${props => props.$type === 'customer' ? enterprise.external.primary : enterprise.primary};
     border-radius: ${enterprise.radius.md};
-    background: ${props => props.$type === 'customer' ? enterprise.external.background : enterprise.internal.background};
+    background: ${enterprise.surface};
     font-size: ${enterprise.fontSize.sm};
     font-family: inherit;
     line-height: 1.5;
@@ -411,7 +410,8 @@ const CommentInput = styled.textarea<{ $type: 'internal' | 'customer' }>`
 
     &:focus {
         outline: none;
-        border-color: ${props => props.$type === 'customer' ? enterprise.external.primary : enterprise.internal.primary};
+        border-color: ${props => props.$type === 'customer' ? enterprise.external.primary : enterprise.primary};
+        box-shadow: 0 0 0 3px ${props => props.$type === 'customer' ? 'rgba(51, 65, 85, 0.1)' : 'rgba(37, 99, 235, 0.1)'};
     }
 
     &::placeholder {
@@ -444,10 +444,12 @@ const SubmitButton = styled.button<{ $type: 'internal' | 'customer' }>`
     font-size: ${enterprise.fontSize.sm};
     font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    transition: all 0.2s ease;
 
     &:hover:not(:disabled) {
-        background: ${props => props.$type === 'customer' ? '#0d9488' : enterprise.primaryDark};
+        background: ${props => props.$type === 'customer' ? '#1e293b' : enterprise.primaryDark};
+        transform: translateY(-1px);
+        box-shadow: ${enterprise.shadow.md};
     }
 
     &:disabled {
@@ -540,30 +542,22 @@ const EmptyDescription = styled.p`
 
 const Timeline = styled.div`
     padding: ${enterprise.space.xl};
-    display: flex;
-    flex-direction: column;
-    gap: ${enterprise.space.xl};
 `;
 
-const SectionHeader = styled.div<{ $type: 'internal' | 'external' | 'system' }>`
+// Unified Timeline for better UX
+const UnifiedTimeline = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${enterprise.space.md};
+`;
+
+const SectionHeader = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: ${enterprise.space.md} ${enterprise.space.lg};
-    background: ${props => {
-        switch (props.$type) {
-            case 'external': return enterprise.external.light;
-            case 'system': return enterprise.system.light;
-            default: return enterprise.internal.light;
-        }
-    }};
-    border: 1px solid ${props => {
-        switch (props.$type) {
-            case 'external': return enterprise.external.border;
-            case 'system': return enterprise.system.border;
-            default: return enterprise.internal.border;
-        }
-    }};
+    background: ${enterprise.surfaceSecondary};
+    border: 1px solid ${enterprise.border};
     border-radius: ${enterprise.radius.md};
     margin-bottom: ${enterprise.space.md};
 `;
@@ -594,11 +588,35 @@ const CommentsList = styled.div`
     gap: ${enterprise.space.md};
 `;
 
-const CommentEntry = styled.div<{ $type: 'internal' | 'external' }>`
-    background: ${props => props.$type === 'external' ? enterprise.external.background : enterprise.internal.background};
-    border: 1px solid ${props => props.$type === 'external' ? enterprise.external.border : enterprise.internal.border};
+const CommentEntry = styled.div<{ $type: 'internal' | 'external'; $isRecent?: boolean }>`
+    background: ${enterprise.surface};
+    border: 1px solid ${props => props.$isRecent ? (props.$type === 'external' ? enterprise.external.primary : enterprise.primary) : enterprise.border};
+    border-left: 3px solid ${props => props.$type === 'external' ? enterprise.external.primary : enterprise.primary};
     border-radius: ${enterprise.radius.md};
     padding: ${enterprise.space.lg};
+    transition: all 0.3s ease;
+    position: relative;
+
+    ${props => props.$isRecent && `
+        animation: highlightNew 0.6s ease-out;
+        box-shadow: 0 0 0 3px ${props.$type === 'external' ? 'rgba(51, 65, 85, 0.1)' : 'rgba(37, 99, 235, 0.1)'};
+    `}
+
+    &:hover {
+        box-shadow: ${enterprise.shadow.sm};
+        border-color: ${props => props.$type === 'external' ? enterprise.external.primary : enterprise.primary};
+    }
+
+    @keyframes highlightNew {
+        0% {
+            background: ${props => props.$type === 'external' ? 'rgba(51, 65, 85, 0.05)' : 'rgba(37, 99, 235, 0.05)'};
+            transform: translateY(-2px);
+        }
+        100% {
+            background: ${enterprise.surface};
+            transform: translateY(0);
+        }
+    }
 `;
 
 const CommentMeta = styled.div`
@@ -640,6 +658,44 @@ const Timestamp = styled.div`
     color: ${enterprise.textTertiary};
 `;
 
+const CommentTypeLabel = styled.div<{ $type: 'internal' | 'customer' }>`
+    display: inline-flex;
+    align-items: center;
+    margin-left: ${enterprise.space.sm};
+    padding: 2px ${enterprise.space.sm};
+    background: ${props => props.$type === 'customer' ? enterprise.external.primary : enterprise.primary};
+    color: white;
+    border-radius: ${enterprise.radius.sm};
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+`;
+
+const NewIndicator = styled.div`
+    position: absolute;
+    top: ${enterprise.space.md};
+    right: ${enterprise.space.md};
+    padding: ${enterprise.space.xs} ${enterprise.space.sm};
+    background: #10b981;
+    color: white;
+    border-radius: ${enterprise.radius.sm};
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    animation: fadeInOut 3s ease-out;
+
+    @keyframes fadeInOut {
+        0%, 80% {
+            opacity: 1;
+        }
+        100% {
+            opacity: 0;
+        }
+    }
+`;
+
 const CommentContent = styled.div`
     font-size: ${enterprise.fontSize.sm};
     color: ${enterprise.textSecondary};
@@ -647,15 +703,37 @@ const CommentContent = styled.div`
     white-space: pre-line;
 `;
 
-// System Events
-const SystemEntry = styled.div`
+const SystemEntry = styled.div<{ $isRecent?: boolean }>`
     display: flex;
     align-items: flex-start;
     gap: ${enterprise.space.md};
-    background: ${enterprise.system.background};
-    border: 1px solid ${enterprise.system.border};
+    background: ${enterprise.surface};
+    border: 1px solid ${props => props.$isRecent ? enterprise.system.primary : enterprise.border};
+    border-left: 3px solid ${enterprise.system.primary};
     border-radius: ${enterprise.radius.md};
     padding: ${enterprise.space.lg};
+    transition: all 0.3s ease;
+    position: relative;
+
+    ${props => props.$isRecent && `
+        animation: highlightNew 0.6s ease-out;
+        box-shadow: 0 0 0 3px rgba(107, 114, 128, 0.1);
+    `}
+
+    &:hover {
+        box-shadow: ${enterprise.shadow.sm};
+    }
+
+    @keyframes highlightNew {
+        0% {
+            background: rgba(107, 114, 128, 0.05);
+            transform: translateY(-2px);
+        }
+        100% {
+            background: ${enterprise.surface};
+            transform: translateY(0);
+        }
+    }
 `;
 
 const SystemIcon = styled.div`

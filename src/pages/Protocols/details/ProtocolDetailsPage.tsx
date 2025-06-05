@@ -47,7 +47,7 @@ const brandTheme = {
     divider: '#e5e7eb',
 
     // Status Colors
-    success: '#10b981',
+    success: '#059669',
     successLight: '#d1fae5',
     warning: '#f59e0b',
     warningLight: '#fef3c7',

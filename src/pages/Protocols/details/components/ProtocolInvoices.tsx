@@ -31,11 +31,22 @@ import { unifiedFinancialApi } from '../../../../api/unifiedFinancialApi';
 import InvoiceFormModal from '../../../Finances/components/InvoiceFormModal';
 import InvoiceViewModal from '../../../Finances/components/InvoiceViewModal';
 import { useToast } from '../../../../components/common/Toast/Toast';
+import {dark} from "@mui/material/styles/createPalette";
 
 interface ProtocolInvoicesProps {
     protocol: CarReceptionProtocol;
     onProtocolUpdate: (updatedProtocol: CarReceptionProtocol) => void;
 }
+
+const brandTheme = {
+    primary: 'var(--brand-primary, #2563eb)',
+    primaryLight: 'var(--brand-primary-light, #3b82f6)',
+    primaryGhost: 'var(--brand-primary-ghost, rgba(37, 99, 235, 0.08))',
+    surface: '#ffffff',
+    surfaceAlt: '#f8fafc',
+    neutral: '#64748b',
+    border: '#e2e8f0'
+};
 
 const ProtocolInvoices: React.FC<ProtocolInvoicesProps> = ({ protocol, onProtocolUpdate }) => {
     const navigate = useNavigate();
@@ -400,37 +411,63 @@ const SectionTitleWithAction = styled.div`
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e2e8f0;
 `;
 
 const SectionTitle = styled.h3`
-    font-size: 16px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #0f172a;
     margin: 0;
-    padding-bottom: 8px;
-    border-bottom: 1px solid #eee;
-    color: #2c3e50;
+    letter-spacing: -0.025em;
 `;
 
 const AddInvoiceButton = styled.button`
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 14px;
-    background-color: #3498db;
+    gap: 8px;
+    padding: 12px 20px;
+    background: ${brandTheme.primary};
     color: white;
     border: none;
-    border-radius: 4px;
-    font-size: 13px;
-    font-weight: 500;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 
     &:hover:not(:disabled) {
-        background-color: #2980b9;
+        background: ${brandTheme.primary-dark};
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    &:active:not(:disabled) {
+        transform: translateY(0);
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     }
 
     &:disabled {
-        background-color: #bdc3c7;
+        background: #94a3b8;
         cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+
+    svg {
+        font-size: 13px;
+    }
+
+    /* Professional loading state */
+    &:disabled svg {
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
     }
 `;
 

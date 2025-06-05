@@ -8,13 +8,81 @@ import {
     FaExclamationCircle,
     FaEye,
     FaEdit,
-    FaTags, FaPlus, FaTimes
+    FaTags,
+    FaPlus,
+    FaTimes,
+    FaFileImage
 } from 'react-icons/fa';
 import { CarReceptionProtocol, VehicleImage } from '../../../../types';
 import { apiClient } from '../../../../api/apiClient';
 import { carReceptionApi } from '../../../../api/carReceptionApi';
 import ImagePreviewModal from "../../shared/modals/ImagePreviewModal";
 import ImageEditModal from "../../shared/modals/ImageEditModal";
+
+// Enterprise Design System - Professional Automotive Gallery
+const enterprise = {
+    // Brand Color System
+    primary: 'var(--brand-primary, #2563eb)',
+    primaryDark: 'var(--brand-primary-dark, #1d4ed8)',
+    primaryLight: 'var(--brand-primary-light, #3b82f6)',
+
+    // Professional Surfaces
+    surface: '#ffffff',
+    surfaceSecondary: '#f8fafc',
+    surfaceTertiary: '#f1f5f9',
+
+    // Executive Typography
+    textPrimary: '#0f172a',
+    textSecondary: '#334155',
+    textTertiary: '#64748b',
+    textMuted: '#94a3b8',
+
+    // Professional Borders & States
+    border: '#e2e8f0',
+    borderLight: '#f1f5f9',
+
+    // Status Colors
+    success: '#059669',
+    successBg: '#ecfdf5',
+    warning: '#d97706',
+    warningBg: '#fffbeb',
+    error: '#dc2626',
+    errorBg: '#fef2f2',
+
+    // Enterprise Spacing
+    space: {
+        xs: '4px',
+        sm: '8px',
+        md: '16px',
+        lg: '24px',
+        xl: '32px',
+        xxl: '48px'
+    },
+
+    // Professional Typography Scale
+    fontSize: {
+        xs: '12px',
+        sm: '14px',
+        base: '16px',
+        lg: '18px',
+        xl: '20px'
+    },
+
+    // Enterprise Shadows
+    shadow: {
+        sm: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+        md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+    },
+
+    radius: {
+        sm: '4px',
+        md: '8px',
+        lg: '12px',
+        xl: '16px'
+    }
+};
 
 interface ProtocolGalleryProps {
     protocol: CarReceptionProtocol;
@@ -37,9 +105,7 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
     const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
 
     useEffect(() => {
-        // Dla każdego obrazu z serwera, który nie jest tymczasowy
         const fetchImages = async () => {
-            // Dodajmy logowanie dla debugowania
             console.log('ProtocolGallery - Fetching images, count:',
                 images.filter(img => !img.id.startsWith('temp_') && !imageUrls[img.id]).length);
             console.log('Auth token present:', !!apiClient.getAuthToken());
@@ -51,7 +117,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
 
             const fetchPromises = imagesToFetch.map(async (image) => {
                 try {
-                    // Użyj nowej funkcji z API do pobrania URL obrazu
                     const imageUrl = await carReceptionApi.fetchVehicleImageAsUrl(image.id);
                     return { id: image.id, url: imageUrl };
                 } catch (error) {
@@ -62,7 +127,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
 
             const results = await Promise.all(fetchPromises);
 
-            // Aktualizuj stan imageUrls
             const newUrls = results.reduce((acc, { id, url }) => {
                 if (url) acc[id] = url;
                 return acc;
@@ -77,28 +141,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
         fetchImages();
     }, [images]);
 
-
-    useEffect(() => {
-        // Dla każdego obrazu z serwera, który nie jest tymczasowy
-        images
-            .filter(img => !img.id.startsWith('temp_') && !img.url)
-            .forEach(async (image) => {
-                try {
-                    // Użyj nowej funkcji z API do pobrania URL obrazu
-                    const imageUrl = await carReceptionApi.fetchVehicleImageAsUrl(image.id);
-
-                    // Zaktualizuj stan imageUrls
-                    setImageUrls(prev => ({
-                        ...prev,
-                        [image.id]: imageUrl
-                    }));
-                } catch (error) {
-                    console.error(`Błąd podczas pobierania URL dla obrazu ${image.id}:`, error);
-                }
-            });
-    }, [images]);
-
-    // Fetch images when component mounts
     useEffect(() => {
         if (!protocol.vehicleImages || protocol.vehicleImages.length === 0) {
             fetchImages();
@@ -107,7 +149,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
         }
     }, [protocol.id, protocol.vehicleImages]);
 
-    // Fetch images from API
     const fetchImages = async () => {
         setIsLoading(true);
         setError(null);
@@ -116,7 +157,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
             const fetchedImages = await carReceptionApi.fetchVehicleImages(protocol.id);
             setImages(fetchedImages);
 
-            // Update protocol with fetched images
             if (fetchedImages.length > 0 && (!protocol.vehicleImages || protocol.vehicleImages.length === 0)) {
                 const updatedProtocol = {
                     ...protocol,
@@ -126,13 +166,12 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
             }
         } catch (err) {
             console.error('Error fetching images:', err);
-            setError('Wystąpił błąd podczas pobierania zdjęć. Spróbuj odświeżyć stronę.');
+            setError('Wystąpił błąd podczas pobierania dokumentacji. Spróbuj odświeżyć stronę.');
         } finally {
             setIsLoading(false);
         }
     };
 
-    // Handlers
     const handleImageClick = (index: number) => {
         setSelectedImageIndex(index);
         setShowPreviewModal(true);
@@ -141,15 +180,12 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
     const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files && event.target.files.length > 0) {
             handleAddImages(event);
-
-            // Reset input so the same file can be selected again if needed
             if (event.target) {
                 event.target.value = '';
             }
         }
     };
 
-    // Function to handle adding new images
     const handleAddImages = (event: React.ChangeEvent<HTMLInputElement>) => {
         event.preventDefault();
 
@@ -158,13 +194,9 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
 
         setError(null);
 
-        // Convert FileList to array for easier processing
         const filesArray = Array.from(files);
-
-        // Maximum file size (5MB)
         const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
-        // Check if all files are images and don't exceed size limit
         const invalidFiles = filesArray.filter(file =>
             !file.type.startsWith('image/') || file.size > MAX_FILE_SIZE
         );
@@ -176,14 +208,12 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
             return;
         }
 
-        // Obsługujemy tylko jeden plik na raz, zgodnie z API
         const file = filesArray[0];
 
-        // Create temp image for preview with unique ID
         const tempImage: VehicleImage = {
             id: `temp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
             url: URL.createObjectURL(file),
-            name: file.name.replace(/\.[^/.]+$/, ""), // Remove file extension
+            name: file.name.replace(/\.[^/.]+$/, ""),
             size: file.size,
             type: file.type,
             createdAt: new Date().toISOString(),
@@ -191,18 +221,13 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
             file: file
         };
 
-        // Set as current upload and add to images array
         setCurrentUploadImage(tempImage);
         setImages([...images, tempImage]);
 
-        // Open modal to edit image info
         setEditingImageIndex(images.length);
         setEditModalOpen(true);
     };
 
-    // Handle uploading the current image after editing
-// Handle uploading the current image after editing
-// Handle uploading the current image after editing
     const handleUploadCurrentImage = async () => {
         if (!currentUploadImage || !currentUploadImage.file) return;
 
@@ -210,42 +235,31 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
         setError(null);
 
         try {
-            console.log('Przesyłanie obrazu z metadanymi:', currentUploadImage);
-
-            // Upewniamy się, że wszystkie potrzebne metadane są ustawione
             const imageToUpload = {
                 ...currentUploadImage,
-                // Upewnij się, że nazwa i tagi są zdefiniowane
                 name: currentUploadImage.name || currentUploadImage.file.name.replace(/\.[^/.]+$/, ""),
                 tags: currentUploadImage.tags || []
             };
 
-            // Użyj naszej nowej funkcji do przesyłania pojedynczego obrazu
             const uploadedImage = await carReceptionApi.uploadVehicleImage(protocol.id, imageToUpload);
 
-            // Usuń tymczasowy obraz i dodaj nowy z serwera
             const updatedImages = [
                 ...images.filter(img => !img.id.startsWith('temp_')),
                 uploadedImage
             ];
 
-            // Aktualizuj stan lokalny
             setImages(updatedImages);
 
-            // Aktualizuj protokół w komponencie nadrzędnym
             const updatedProtocol = {
                 ...protocol,
                 vehicleImages: updatedImages
             };
             onProtocolUpdate(updatedProtocol);
 
-            // Wyczyść bieżący obraz
             setCurrentUploadImage(null);
         } catch (err) {
             console.error('Error uploading image:', err);
-            setError('Wystąpił błąd podczas przesyłania zdjęcia. Spróbuj ponownie.');
-
-            // Usuń tymczasowy obraz ze stanu
+            setError('Wystąpił błąd podczas przesyłania dokumentu. Spróbuj ponownie.');
             setImages(images.filter(img => !img.id.startsWith('temp_')));
         } finally {
             setIsLoading(false);
@@ -253,7 +267,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
     };
 
     useEffect(() => {
-        // Funkcja czyszcząca URL-e podczas odmontowywania komponentu
         return () => {
             Object.values(imageUrls).forEach(url => {
                 if (url.startsWith('blob:')) {
@@ -265,13 +278,7 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
 
     const handleSaveImageInfo = (newName: string, newTags: string[]) => {
         if (editingImageIndex >= 0 && editingImageIndex < images.length) {
-            console.log('Zapisywanie informacji o obrazie:', { newName, newTags });
-
-            // Pobierz obecny obraz
             const currentImage = images[editingImageIndex];
-            console.log('Obecny obraz:', currentImage);
-
-            // Tworzymy lokalne kopie obrazów do aktualizacji stanu
             const updatedImages = [...images];
             updatedImages[editingImageIndex] = {
                 ...currentImage,
@@ -279,38 +286,25 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                 tags: newTags
             };
 
-            // Aktualizujemy kolekcję obrazów w stanie lokalnym
             setImages(updatedImages);
 
-            // Obsługa w zależności od tego, czy to tymczasowy czy istniejący obraz
             if (currentImage.id.startsWith('temp_') && currentUploadImage) {
-                // Dla tymczasowych obrazów, które jeszcze nie zostały przesłane na serwer
-
-                // Tworzymy kopię aktualnego obiektu z nowymi danymi
                 const updatedUploadImage = {
                     ...currentUploadImage,
                     name: newName,
                     tags: newTags
                 };
 
-                console.log('Zaktualizowany obraz przed przesłaniem:', updatedUploadImage);
                 setCurrentUploadImage(updatedUploadImage);
-
-                // Zamykamy modal
                 setEditModalOpen(false);
                 setEditingImageIndex(-1);
 
-                // Przesyłamy obraz z nowymi metadanymi
                 setIsLoading(true);
                 setError(null);
 
-                // Używamy opóźnienia, aby mieć pewność, że stan został zaktualizowany
                 setTimeout(() => {
                     carReceptionApi.uploadVehicleImage(protocol.id, updatedUploadImage)
                         .then(uploadedImage => {
-                            console.log('Obraz przesłany pomyślnie:', uploadedImage);
-
-                            // Aktualizujemy kolekcję obrazów, usuwając tymczasowy i dodając nowy
                             const finalImages = [
                                 ...images.filter(img => !img.id.startsWith('temp_')),
                                 uploadedImage
@@ -318,21 +312,17 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
 
                             setImages(finalImages);
 
-                            // Aktualizujemy protokół w komponencie nadrzędnym
                             const updatedProtocol = {
                                 ...protocol,
                                 vehicleImages: finalImages
                             };
                             onProtocolUpdate(updatedProtocol);
 
-                            // Czyszczenie
                             setCurrentUploadImage(null);
                         })
                         .catch(err => {
                             console.error('Błąd podczas przesyłania obrazu:', err);
-                            setError('Wystąpił błąd podczas przesyłania zdjęcia. Spróbuj ponownie.');
-
-                            // Usuwamy tymczasowy obraz w przypadku błędu
+                            setError('Wystąpił błąd podczas przesyłania dokumentu. Spróbuj ponownie.');
                             setImages(images.filter(img => !img.id.startsWith('temp_')));
                             setCurrentUploadImage(null);
                         })
@@ -341,13 +331,9 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                         });
                 }, 100);
             } else if (!currentImage.id.startsWith('temp_')) {
-                // Dla istniejących obrazów, które już są na serwerze
-
-                // Zamykamy modal
                 setEditModalOpen(false);
                 setEditingImageIndex(-1);
 
-                // Wywołanie API do aktualizacji metadanych
                 setIsLoading(true);
 
                 carReceptionApi.updateVehicleImage(protocol.id, currentImage.id, {
@@ -356,18 +342,13 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                 })
                     .then(updatedImage => {
                         if (updatedImage) {
-                            console.log('Metadane obrazu zaktualizowane pomyślnie:', updatedImage);
-
-                            // Znajdź index obrazu w kolekcji i zaktualizuj
                             const imageIndex = images.findIndex(img => img.id === updatedImage.id);
                             if (imageIndex !== -1) {
                                 const finalImages = [...images];
                                 finalImages[imageIndex] = updatedImage;
 
-                                // Aktualizujemy stan lokalny
                                 setImages(finalImages);
 
-                                // Aktualizujemy protokół w komponencie nadrzędnym
                                 const updatedProtocol = {
                                     ...protocol,
                                     vehicleImages: finalImages
@@ -375,8 +356,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                                 onProtocolUpdate(updatedProtocol);
                             }
                         } else {
-                            // W przypadku braku odpowiedzi, pozostaw zaktualizowany stan lokalny
-                            console.warn('Brak odpowiedzi z serwera, zachowuję tylko stan lokalny');
                             onProtocolUpdate({
                                 ...protocol,
                                 vehicleImages: updatedImages
@@ -385,9 +364,7 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                     })
                     .catch(err => {
                         console.error('Błąd podczas aktualizacji metadanych obrazu:', err);
-                        setError('Wystąpił błąd podczas aktualizacji informacji o zdjęciu.');
-
-                        // Przywróć poprzedni stan w przypadku błędu
+                        setError('Wystąpił błąd podczas aktualizacji informacji o dokumencie.');
                         setImages([...images]);
                     })
                     .finally(() => {
@@ -397,19 +374,17 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
         }
     }
 
-
     const handleEditImage = (index: number, e: React.MouseEvent) => {
-        e.stopPropagation(); // Prevent opening preview modal
+        e.stopPropagation();
         setEditingImageIndex(index);
         setEditModalOpen(true);
     };
 
     const handleDeleteImage = async (imageId: string) => {
-        if (!window.confirm('Czy na pewno chcesz usunąć to zdjęcie?')) {
+        if (!window.confirm('Czy na pewno chcesz usunąć ten dokument?')) {
             return;
         }
 
-        // Don't attempt to delete temporary images from the server
         if (imageId.startsWith('temp_')) {
             setImages(images.filter(img => img.id !== imageId));
             setCurrentUploadImage(null);
@@ -420,15 +395,12 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
         setError(null);
 
         try {
-            // API call to delete the image
             const success = await carReceptionApi.deleteVehicleImage(protocol.id, imageId);
 
             if (success) {
-                // Remove from local state
                 const updatedImages = images.filter(img => img.id !== imageId);
                 setImages(updatedImages);
 
-                // Update the protocol
                 const updatedProtocol = {
                     ...protocol,
                     vehicleImages: updatedImages
@@ -436,24 +408,19 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
 
                 onProtocolUpdate(updatedProtocol);
             } else {
-                setError('Nie udało się usunąć zdjęcia. Spróbuj ponownie.');
+                setError('Nie udało się usunąć dokumentu. Spróbuj ponownie.');
             }
         } catch (err) {
             console.error('Error deleting image:', err);
-            setError('Wystąpił błąd podczas usuwania zdjęcia.');
+            setError('Wystąpił błąd podczas usuwania dokumentu.');
         } finally {
             setIsLoading(false);
         }
     };
 
     const getImageUrl = (image: VehicleImage): string => {
-        // Jeśli obraz ma lokalny URL (np. tymczasowy), użyj go
         if (image.url && image.id.startsWith('temp_')) return image.url;
-
-        // Jeśli mamy pobrany URL dla tego obrazu, użyj go
         if (imageUrls[image.id]) return imageUrls[image.id];
-
-        // Bez URL zwracamy pusty string
         return '';
     };
 
@@ -475,7 +442,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
         }
     };
 
-    // Format file size to readable format
     const formatFileSize = (bytes: number): string => {
         if (bytes < 1024) return bytes + ' B';
         if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
@@ -483,20 +449,31 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
     };
 
     return (
-        <GalleryContainer>
-            <GalleryHeader>
-                <GalleryTitle>
-                    <FaCamera /> Zdjęcia pojazdu
-                </GalleryTitle>
-                <GalleryActions>
+        <DocumentationPanel>
+            {/* Professional Header */}
+            <DocumentationHeader>
+                <HeaderContent>
+                    <HeaderIcon>
+                        <FaFileImage />
+                    </HeaderIcon>
+                    <HeaderText>
+                        <HeaderTitle>Dokumentacja pojazdu</HeaderTitle>
+                        <HeaderSubtitle>
+                            {images.length} {images.length === 1 ? 'dokument' : images.length < 5 ? 'dokumenty' : 'dokumentów'}
+                        </HeaderSubtitle>
+                    </HeaderText>
+                </HeaderContent>
+
+                <ActionGroup>
                     <UploadButton onClick={handleUploadClick} disabled={isLoading || disabled}>
-                        <FaUpload /> Dodaj zdjęcie
+                        <FaUpload />
+                        <span>Dodaj plik</span>
                     </UploadButton>
                     <CameraButton onClick={handleCameraClick} disabled={isLoading || disabled}>
-                        <FaCamera /> Zrób zdjęcie
+                        <FaCamera />
+                        <span>Zrób zdjęcie</span>
                     </CameraButton>
                     <input
-                        id="file-upload"
                         type="file"
                         ref={fileInputRef}
                         onChange={handleFileSelect}
@@ -504,7 +481,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                         style={{ display: 'none' }}
                     />
                     <input
-                        id="camera-upload"
                         type="file"
                         ref={cameraInputRef}
                         onChange={handleFileSelect}
@@ -512,84 +488,127 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                         capture="environment"
                         style={{ display: 'none' }}
                     />
-                </GalleryActions>
-            </GalleryHeader>
+                </ActionGroup>
+            </DocumentationHeader>
 
-            {error && <ErrorMessage><FaExclamationCircle /> {error}</ErrorMessage>}
+            {/* Error State */}
+            {error && (
+                <ErrorAlert>
+                    <FaExclamationCircle />
+                    <span>{error}</span>
+                </ErrorAlert>
+            )}
 
-            {/* Upload progress */}
+            {/* Loading State */}
             {isLoading && currentUploadImage && (
-                <UploadingMessage>
-                    <FaSpinner /> Przesyłanie zdjęcia...
-                </UploadingMessage>
+                <LoadingAlert>
+                    <LoadingSpinner />
+                    <span>Przesyłanie dokumentu...</span>
+                </LoadingAlert>
             )}
 
-            {/* Gallery section */}
-            {isLoading && images.length === 0 ? (
-                <LoadingContainer>
-                    <FaSpinner /> Ładowanie zdjęć...
-                </LoadingContainer>
-            ) : images.length > 0 ? (
-                <GalleryGrid>
-                    {images.map((image, index) => (
-                        <GalleryItem key={image.id || index} className={image.id.startsWith('temp_') ? 'temp-image' : ''}>
-                            <ImageContainer onClick={() => handleImageClick(index)}>
-                                {imageUrls[image.id] || image.url ? (
-                                    <StyledImage
-                                        src={getImageUrl(image)}
-                                        alt={image.name || `Zdjęcie ${index + 1}`}
-                                    />
-                                ) : (
-                                    <ImagePlaceholder>
-                                        <FaImage size={24} />
-                                    </ImagePlaceholder>
-                                )}
-                                {image.id.startsWith('temp_') && (
-                                    <TempBadge>Przygotowywanie</TempBadge>
-                                )}
-                            </ImageContainer>
-                            <ImageInfo>
-                                <ImageNameContainer>
-                                    <ImageName>{image.name || `Zdjęcie ${index + 1}`}</ImageName>
-                                    <EditButton onClick={(e) => handleEditImage(index, e)}>
-                                        <FaEdit />
-                                    </EditButton>
-                                </ImageNameContainer>
-                                <ImageMetaContainer>
-                                    <ImageSize>{formatFileSize(image.size)}</ImageSize>
-                                    {image.tags && image.tags.length > 0 && (
-                                        <TagsContainer>
-                                            <TagsIcon><FaTags /></TagsIcon>
-                                            <TagsCount>{image.tags.length}</TagsCount>
-                                        </TagsContainer>
+            {/* Gallery Content */}
+            <GalleryContent>
+                {isLoading && images.length === 0 ? (
+                    <LoadingState>
+                        <LoadingSpinner />
+                        <span>Ładowanie dokumentacji...</span>
+                    </LoadingState>
+                ) : images.length > 0 ? (
+                    <DocumentGrid>
+                        {images.map((image, index) => (
+                            <DocumentCard
+                                key={image.id || index}
+                                $isTemp={image.id.startsWith('temp_')}
+                                onClick={() => handleImageClick(index)}
+                            >
+                                <DocumentPreview>
+                                    {imageUrls[image.id] || image.url ? (
+                                        <DocumentImage
+                                            src={getImageUrl(image)}
+                                            alt={image.name || `Dokument ${index + 1}`}
+                                        />
+                                    ) : (
+                                        <DocumentPlaceholder>
+                                            <FaImage />
+                                        </DocumentPlaceholder>
                                     )}
-                                </ImageMetaContainer>
+                                    {image.id.startsWith('temp_') && (
+                                        <ProcessingBadge>Przetwarzanie</ProcessingBadge>
+                                    )}
+                                </DocumentPreview>
 
-                                {image.tags && image.tags.length > 0 && (
-                                    <TagsList>
-                                        {image.tags.map(tag => (
-                                            <TagBadge key={tag}>{tag}</TagBadge>
-                                        ))}
-                                    </TagsList>
-                                )}
-                            </ImageInfo>
-                            <RemoveButton onClick={() => handleDeleteImage(image.id)}>
-                                <FaTrash />
-                            </RemoveButton>
-                        </GalleryItem>
-                    ))}
-                </GalleryGrid>
-            ) : (
-                <EmptyGallery>
-                    <EmptyGalleryIcon><FaCamera /></EmptyGalleryIcon>
-                    <EmptyGalleryMessage>Brak zdjęć dla tego pojazdu</EmptyGalleryMessage>
-                    <EmptyGalleryAction onClick={handleUploadClick} disabled={disabled}>
-                        <FaPlus /> Dodaj pierwsze zdjęcie
-                    </EmptyGalleryAction>
-                </EmptyGallery>
-            )}
+                                <DocumentInfo>
+                                    <DocumentHeader>
+                                        <DocumentName>
+                                            {image.name || `Dokument ${index + 1}`}
+                                        </DocumentName>
+                                        <DocumentActions>
+                                            <ActionButton
+                                                onClick={(e) => handleEditImage(index, e)}
+                                                title="Edytuj"
+                                            >
+                                                <FaEdit />
+                                            </ActionButton>
+                                            <ActionButton
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDeleteImage(image.id);
+                                                }}
+                                                title="Usuń"
+                                                $variant="danger"
+                                            >
+                                                <FaTrash />
+                                            </ActionButton>
+                                        </DocumentActions>
+                                    </DocumentHeader>
 
-            {/* Image preview modal */}
+                                    <DocumentMeta>
+                                        <MetaItem>
+                                            <MetaLabel>Rozmiar</MetaLabel>
+                                            <MetaValue>{formatFileSize(image.size)}</MetaValue>
+                                        </MetaItem>
+                                        {image.tags && image.tags.length > 0 && (
+                                            <MetaItem>
+                                                <MetaLabel>Tagi</MetaLabel>
+                                                <TagsDisplay>
+                                                    <FaTags />
+                                                    <TagCount>{image.tags.length}</TagCount>
+                                                </TagsDisplay>
+                                            </MetaItem>
+                                        )}
+                                    </DocumentMeta>
+
+                                    {image.tags && image.tags.length > 0 && (
+                                        <TagsList>
+                                            {image.tags.slice(0, 3).map(tag => (
+                                                <TagBadge key={tag}>{tag}</TagBadge>
+                                            ))}
+                                            {image.tags.length > 3 && (
+                                                <TagBadge>+{image.tags.length - 3}</TagBadge>
+                                            )}
+                                        </TagsList>
+                                    )}
+                                </DocumentInfo>
+                            </DocumentCard>
+                        ))}
+                    </DocumentGrid>
+                ) : (
+                    <EmptyState>
+                        <EmptyIcon>
+                            <FaFileImage />
+                        </EmptyIcon>
+                        <EmptyTitle>Brak dokumentacji</EmptyTitle>
+                        <EmptySubtitle>Dodaj zdjęcia i dokumenty związane z tym pojazdem</EmptySubtitle>
+                        <EmptyAction onClick={handleUploadClick} disabled={disabled}>
+                            <FaPlus />
+                            <span>Dodaj pierwszy dokument</span>
+                        </EmptyAction>
+                    </EmptyState>
+                )}
+            </GalleryContent>
+
+            {/* Modals */}
             <ImagePreviewModal
                 isOpen={showPreviewModal}
                 onClose={() => setShowPreviewModal(false)}
@@ -598,7 +617,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                 onDelete={handleDeleteImage}
             />
 
-            {/* Image edit modal */}
             {editingImageIndex >= 0 && editingImageIndex < images.length && (
                 <ImageEditModal
                     isOpen={editModalOpen}
@@ -606,7 +624,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                         setEditModalOpen(false);
                         setEditingImageIndex(-1);
 
-                        // When the user closes the modal, abort the operation for temp images
                         if (currentUploadImage) {
                             setImages(images.filter(img => !img.id.startsWith('temp_')));
                             setCurrentUploadImage(null);
@@ -618,332 +635,247 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                     imageUrl={getImageUrl(images[editingImageIndex])}
                 />
             )}
-        </GalleryContainer>
+        </DocumentationPanel>
     );
 };
 
-// Stylowanie komponentów
-const GalleryContainer = styled.div`
-    margin-bottom: 30px;
+// Enterprise-Grade Styled Components
+const DocumentationPanel = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${enterprise.space.lg};
 `;
 
-const GalleryHeader = styled.div`
+// Professional Header
+const DocumentationHeader = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    padding: ${enterprise.space.lg} ${enterprise.space.xl};
+    background: ${enterprise.surface};
+    border: 1px solid ${enterprise.border};
+    border-radius: ${enterprise.radius.lg};
+    box-shadow: ${enterprise.shadow.sm};
 `;
 
-const GalleryTitle = styled.h3`
-    font-size: 16px;
-    margin: 0 0 15px 0;
-    padding-bottom: 8px;
-    border-bottom: 1px solid #eee;
-    color: #3498db;
-`;
-
-const GalleryActions = styled.div`
+const HeaderContent = styled.div`
     display: flex;
-    gap: 10px;
+    align-items: center;
+    gap: ${enterprise.space.lg};
+`;
+
+const HeaderIcon = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background: ${enterprise.primary}15;
+    color: ${enterprise.primary};
+    border-radius: ${enterprise.radius.lg};
+    font-size: 20px;
+`;
+
+const HeaderText = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${enterprise.space.xs};
+`;
+
+const HeaderTitle = styled.h2`
+    font-size: ${enterprise.fontSize.xl};
+    font-weight: 700;
+    color: ${enterprise.textPrimary};
+    margin: 0;
+`;
+
+const HeaderSubtitle = styled.div`
+    font-size: ${enterprise.fontSize.sm};
+    color: ${enterprise.textTertiary};
+    font-weight: 500;
+`;
+
+const ActionGroup = styled.div`
+    display: flex;
+    gap: ${enterprise.space.md};
+    align-items: center;
 `;
 
 const UploadButton = styled.button`
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 12px;
-    background-color: #f0f7ff;
-    color: #3498db;
-    border: 1px solid #d5e9f9;
-    border-radius: 4px;
-    font-size: 13px;
+    gap: ${enterprise.space.sm};
+    padding: ${enterprise.space.md} ${enterprise.space.lg};
+    background: ${enterprise.primary};
+    color: white;
+    border: none;
+    border-radius: ${enterprise.radius.md};
+    font-size: ${enterprise.fontSize.sm};
+    font-weight: 600;
     cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: ${enterprise.shadow.sm};
 
     &:hover:not(:disabled) {
-        background-color: #d5e9f9;
+        background: ${enterprise.primaryDark};
+        transform: translateY(-1px);
+        box-shadow: ${enterprise.shadow.md};
     }
 
     &:disabled {
-        opacity: 0.6;
+        background: ${enterprise.textMuted};
         cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+
+    svg {
+        font-size: ${enterprise.fontSize.xs};
     }
 `;
 
-const CameraButton = styled(UploadButton)`
-    background-color: #f4f9f0;
-    color: #27ae60;
-    border-color: #c8e6c9;
-
-    &:hover:not(:disabled) {
-        background-color: #c8e6c9;
-    }
-`;
-
-const ErrorMessage = styled.div`
+const CameraButton = styled.button`
     display: flex;
     align-items: center;
-    gap: 8px;
-    background-color: #fdecea;
-    color: #e74c3c;
-    padding: 10px;
-    border-radius: 4px;
-    margin-bottom: 10px;
-    font-size: 14px;
-`;
-
-const UploadingMessage = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background-color: #e1f5fe;
-    color: #0288d1;
-    padding: 10px;
-    border-radius: 4px;
-    margin-bottom: 10px;
-    font-size: 14px;
-`;
-
-const LoadingContainer = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 40px 0;
-    color: #7f8c8d;
-    gap: 8px;
-`;
-
-const GalleryGrid = styled.div`
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 20px;
-
-    .temp-image {
-        opacity: 0.8;
-        border-color: #3498db;
-        box-shadow: 0 0 0 1px #3498db;
-    }
-`;
-
-const GalleryItem = styled.div`
-    border: 1px solid #eee;
-    border-radius: 4px;
-    overflow: hidden;
-    position: relative;
-    background-color: white;
+    gap: ${enterprise.space.sm};
+    padding: ${enterprise.space.md} ${enterprise.space.lg};
+    background: ${enterprise.surface};
+    color: ${enterprise.textSecondary};
+    border: 1px solid ${enterprise.border};
+    border-radius: ${enterprise.radius.md};
+    font-size: ${enterprise.fontSize.sm};
+    font-weight: 500;
+    cursor: pointer;
     transition: all 0.2s ease;
 
-    &:hover {
-        border-color: #3498db;
+    &:hover:not(:disabled) {
+        background: ${enterprise.surfaceSecondary};
+        border-color: ${enterprise.textTertiary};
+        transform: translateY(-1px);
+        box-shadow: ${enterprise.shadow.sm};
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    svg {
+        font-size: ${enterprise.fontSize.xs};
     }
 `;
 
-const ImageContainer = styled.div`
-    height: 150px;
-    overflow: hidden;
-    position: relative;
-    cursor: pointer;
+// Alert Components
+const ErrorAlert = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${enterprise.space.sm};
+    padding: ${enterprise.space.md} ${enterprise.space.lg};
+    background: ${enterprise.errorBg};
+    border: 1px solid #fecaca;
+    border-radius: ${enterprise.radius.md};
+    color: ${enterprise.error};
+    font-size: ${enterprise.fontSize.sm};
 
-    img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        transition: transform 0.3s;
-    }
-
-    &:hover {
-        img {
-            transform: scale(1.05);
-        }
+    svg {
+        font-size: ${enterprise.fontSize.base};
     }
 `;
 
-const TempBadge = styled.div`
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background-color: rgba(52, 152, 219, 0.8);
-    color: white;
-    padding: 4px 8px;
-    font-size: 11px;
-    text-align: center;
-`;
-
-const StyledImage = styled.img`
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-`;
-
-const ImageInfo = styled.div`
-    padding: 10px;
-`;
-
-const ImageNameContainer = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 3px;
-`;
-
-const ImageName = styled.div`
-    font-size: 13px;
-    color: #34495e;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-right: 5px;
-    flex: 1;
-`;
-
-const EditButton = styled.button`
-    background: none;
-    border: none;
-    color: #3498db;
-    font-size: 12px;
-    cursor: pointer;
-    padding: 2px;
+const LoadingAlert = styled.div`
     display: flex;
     align-items: center;
-    justify-content: center;
-    opacity: 0.6;
-
-    &:hover {
-        opacity: 1;
-        color: #2980b9;
-    }
+    gap: ${enterprise.space.sm};
+    padding: ${enterprise.space.md} ${enterprise.space.lg};
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: ${enterprise.radius.md};
+    color: ${enterprise.primary};
+    font-size: ${enterprise.fontSize.sm};
 `;
 
-const ImageMetaContainer = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 6px;
-`;
-
-const ImageSize = styled.div`
-    font-size: 12px;
-    color: #7f8c8d;
-`;
-
-const TagsContainer = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 3px;
-`;
-
-const TagsIcon = styled.span`
-    color: #3498db;
-    font-size: 10px;
-    display: flex;
-    align-items: center;
-`;
-
-const TagsCount = styled.span`
-    font-size: 12px;
-    color: #3498db;
-    font-weight: 500;
-`;
-
-const TagsList = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    margin-top: 3px;
-`;
-
-const TagBadge = styled.div`
-    background-color: #f0f7ff;
-    color: #3498db;
-    padding: 2px 6px;
-    border-radius: 10px;
-    font-size: 10px;
-    border: 1px solid #d5e9f9;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-`;
-
-const RemoveButton = styled.button`
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    width: 30px;
-    height: 30px;
+const LoadingSpinner = styled.div`
+    width: 16px;
+    height: 16px;
+    border: 2px solid transparent;
+    border-top: 2px solid currentColor;
     border-radius: 50%;
-    background-color: rgba(0, 0, 0, 0.6);
-    color: white;
-    border: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    opacity: 0.7;
-    z-index: 10;
+    animation: spin 1s linear infinite;
 
-    &:hover {
-        opacity: 1;
-        background-color: rgba(231, 76, 60, 0.8);
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
     }
 `;
 
-const EmptyGallery = styled.div`
+// Gallery Content
+const GalleryContent = styled.div`
+    background: ${enterprise.surface};
+    border: 1px solid ${enterprise.border};
+    border-radius: ${enterprise.radius.lg};
+    box-shadow: ${enterprise.shadow.sm};
+    overflow: hidden;
+`;
+
+const LoadingState = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 30px;
-    background-color: #f9f9f9;
-    border-radius: 8px;
-    color: #95a5a6;
-    text-align: center;
+    gap: ${enterprise.space.lg};
+    padding: ${enterprise.space.xxl};
+    color: ${enterprise.textTertiary};
+
+    span {
+        font-size: ${enterprise.fontSize.base};
+        font-weight: 500;
+    }
 `;
 
-const EmptyGalleryIcon = styled.div`
-    font-size: 32px;
-    margin-bottom: 10px;
-    opacity: 0.5;
+const DocumentGrid = styled.div`
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: ${enterprise.space.lg};
+    padding: ${enterprise.space.xl};
+
+    @media (max-width: 768px) {
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: ${enterprise.space.md};
+        padding: ${enterprise.space.lg};
+    }
 `;
 
-const EmptyGalleryMessage = styled.div`
-    margin: 0;
-    font-size: 14px;
-`;
-
-const EmptyGalleryAction = styled.button`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
-    background-color: #3498db;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-size: 14px;
+const DocumentCard = styled.div<{ $isTemp?: boolean }>`
+    background: ${enterprise.surface};
+    border: 1px solid ${enterprise.border};
+    border-radius: ${enterprise.radius.lg};
+    overflow: hidden;
     cursor: pointer;
-    margin-top: 15px;
+    transition: all 0.3s ease;
+    box-shadow: ${enterprise.shadow.sm};
+
+    ${props => props.$isTemp && `
+        opacity: 0.8;
+        border-color: ${enterprise.primary};
+        box-shadow: 0 0 0 1px ${enterprise.primary}40;
+    `}
 
     &:hover {
-        background-color: #2980b9;
+        transform: translateY(-2px);
+        box-shadow: ${enterprise.shadow.lg};
+        border-color: ${enterprise.primary}60;
     }
 `;
 
-const FaSpinner = styled.div`
-    display: inline-block;
-    width: 1em;
-    height: 1em;
-    border: 2px solid rgba(255,255,255,0.3);
-    border-radius: 50%;
-    border-top-color: #3498db;
-    animation: spin 1s ease-in-out infinite;
-
-    @keyframes spin {
-        to { transform: rotate(360deg); }
-    }
+const DocumentPreview = styled.div`
+    position: relative;
+    height: 200px;
+    overflow: hidden;
+    background: ${enterprise.surfaceTertiary};
 `;
 
-const ImagePlaceholder = styled.div`
+const DocumentImage = styled.img`
     width: 100%;
     height: 100%;
     background-color: #f0f0f0;

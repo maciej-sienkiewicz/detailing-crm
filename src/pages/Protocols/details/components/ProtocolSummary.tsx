@@ -60,7 +60,7 @@ const executive = {
 
     // Status Colors - refined
     success: '#059669',
-    successBg: '#ecfdf5',
+    successBg: '#05966915',
     warning: '#d97706',
     warningBg: '#fffbeb',
     error: '#dc2626',
