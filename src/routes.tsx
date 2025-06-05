@@ -31,6 +31,7 @@ import FleetCalendarPage from "./pages/Fleet/FleetCalendarPage";
 import UnifiedFinancialPage from "./pages/Finances/UnifiedFinancialPage";
 import GalleryPage from "./pages/Gallery/GalleryPage";
 import TabletIntegrationPage from "./pages/Tablets/TabletIntegrationPage";
+import BrandThemeSettingsPage from "./pages/Settings/BrandThemeSettingsPage";
 
 // Tymczasowe komponenty dla innych stron - do zastąpienia rzeczywistymi implementacjami
 const PlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
@@ -79,6 +80,7 @@ const AppRoutes: React.FC = () => {
                 <Route path="/settings/taxes" element={<TaxesPage />} />
                 <Route path="/settings/services" element={<ServicesPage />} />
                 <Route path="/settings" element={<Navigate to="/settings/calendar" replace />} />
+                <Route path="/settings/brand-theme" element={<BrandThemeSettingsPage />} />
 
                 <Route path="/team" element={<EmployeesPage />} />
 

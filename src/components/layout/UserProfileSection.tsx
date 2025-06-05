@@ -1,9 +1,20 @@
 // src/components/layout/UserProfileSection.tsx
 import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
-import { FaUser, FaSignOutAlt, FaCog, FaEnvelope } from 'react-icons/fa';
+import { FaUser, FaSignOutAlt, FaCog, FaEnvelope, FaBell, FaChevronDown } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+
+// Brand Theme System
+const brandTheme = {
+    primary: 'var(--brand-primary, #2563eb)',
+    primaryLight: 'var(--brand-primary-light, #3b82f6)',
+    primaryGhost: 'var(--brand-primary-ghost, rgba(37, 99, 235, 0.1))',
+    surface: '#ffffff',
+    surfaceAlt: '#f8fafc',
+    neutral: '#64748b',
+    border: '#e2e8f0'
+};
 
 const UserProfileSection: React.FC = () => {
     const { user, logout } = useAuth();
@@ -11,7 +22,6 @@ const UserProfileSection: React.FC = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
-    // Obsługa kliknięcia poza menu
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -25,22 +35,25 @@ const UserProfileSection: React.FC = () => {
         };
     }, []);
 
-    // Generowanie inicjałów użytkownika
     const getInitials = () => {
         if (!user) return '';
         return `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`;
     };
 
-    // Losowy kolor na podstawie ID użytkownika
     const getUserColor = () => {
-        if (!user) return '#7f8c8d';
+        if (!user) return brandTheme.primary;
 
         const colors = [
-            '#3498db', '#2ecc71', '#e74c3c', '#f39c12', '#9b59b6',
-            '#1abc9c', '#d35400', '#c0392b', '#16a085', '#8e44ad'
+            '#3b82f6', // Blue
+            '#10b981', // Emerald
+            '#f59e0b', // Amber
+            '#ef4444', // Red
+            '#8b5cf6', // Purple
+            '#06b6d4', // Cyan
+            '#84cc16', // Lime
+            '#f97316'  // Orange
         ];
 
-        // Proste hashowanie ID użytkownika
         const hash = String(user.userId).split('').reduce((a, b) => {
             a = ((a << 5) - a) + b.charCodeAt(0);
             return a & a;
@@ -58,189 +71,302 @@ const UserProfileSection: React.FC = () => {
     if (!user) return null;
 
     return (
-        <UserContainer ref={menuRef}>
-            <UserInfoTrigger onClick={() => setIsMenuOpen(!isMenuOpen)}>
-                {user.avatar ? (
-                    <UserAvatar src={user.avatar} alt={`${user.firstName} ${user.lastName}`} />
-                ) : (
-                    <UserInitials color={getUserColor()}>
-                        {getInitials()}
-                    </UserInitials>
-                )}
+        <ProfileContainer ref={menuRef}>
+            <ProfileTrigger onClick={() => setIsMenuOpen(!isMenuOpen)} $isOpen={isMenuOpen}>
+                <Avatar>
+                    {user.avatar ? (
+                        <AvatarImage src={user.avatar} alt={`${user.firstName} ${user.lastName}`} />
+                    ) : (
+                        <AvatarInitials $color={getUserColor()}>
+                            {getInitials()}
+                        </AvatarInitials>
+                    )}
+                    <OnlineStatus />
+                </Avatar>
+
                 <UserInfo>
                     <UserName>{`${user.firstName} ${user.lastName}`}</UserName>
-                    <CompanyName>{user.companyName || 'Detailing Studio'}</CompanyName>
+                    <UserRole>{user.roles?.[0] || 'Administrator'}</UserRole>
                 </UserInfo>
-            </UserInfoTrigger>
+
+                <DropdownIcon $isOpen={isMenuOpen}>
+                    <FaChevronDown />
+                </DropdownIcon>
+            </ProfileTrigger>
 
             {isMenuOpen && (
-                <UserMenu>
-                    <UserMenuHeader>
-                        <UserFullDetails>
-                            <strong>{`${user.firstName} ${user.lastName}`}</strong>
-                            <UserEmail>{user.email}</UserEmail>
-                            <UserRole>{user.roles?.[0] || 'Użytkownik'}</UserRole>
-                        </UserFullDetails>
-                    </UserMenuHeader>
+                <DropdownMenu>
+                    <MenuHeader>
+                        <HeaderAvatar>
+                            {user.avatar ? (
+                                <img src={user.avatar} alt="Avatar" />
+                            ) : (
+                                <HeaderInitials $color={getUserColor()}>
+                                    {getInitials()}
+                                </HeaderInitials>
+                            )}
+                        </HeaderAvatar>
+                        <HeaderInfo>
+                            <HeaderName>{`${user.firstName} ${user.lastName}`}</HeaderName>
+                            <HeaderEmail>{user.email}</HeaderEmail>
+                            <HeaderCompany>{user.companyName || 'Detailing Studio'}</HeaderCompany>
+                        </HeaderInfo>
+                    </MenuHeader>
 
                     <MenuDivider />
 
-                    <MenuItem>
-                        <MenuIcon><FaUser /></MenuIcon>
-                        <MenuText>Profil</MenuText>
-                    </MenuItem>
+                    <MenuItems>
+                        <MenuItem>
+                            <MenuItemIcon><FaUser /></MenuItemIcon>
+                            <MenuItemText>Profil</MenuItemText>
+                        </MenuItem>
 
-                    <MenuItem>
-                        <MenuIcon><FaCog /></MenuIcon>
-                        <MenuText>Ustawienia konta</MenuText>
-                    </MenuItem>
+                        <MenuItem>
+                            <MenuItemIcon><FaCog /></MenuItemIcon>
+                            <MenuItemText>Ustawienia</MenuItemText>
+                        </MenuItem>
 
-                    <MenuItem>
-                        <MenuIcon><FaEnvelope /></MenuIcon>
-                        <MenuText>Wiadomości</MenuText>
-                    </MenuItem>
+                        <MenuItem>
+                            <MenuItemIcon><FaEnvelope /></MenuItemIcon>
+                            <MenuItemText>Wiadomości</MenuItemText>
+                            <NotificationBadge>3</NotificationBadge>
+                        </MenuItem>
+
+                        <MenuItem>
+                            <MenuItemIcon><FaBell /></MenuItemIcon>
+                            <MenuItemText>Powiadomienia</MenuItemText>
+                            <NotificationBadge>7</NotificationBadge>
+                        </MenuItem>
+                    </MenuItems>
 
                     <MenuDivider />
 
-                    <MenuItem onClick={handleLogout} isLogout>
-                        <MenuIcon><FaSignOutAlt /></MenuIcon>
-                        <MenuText>Wyloguj się</MenuText>
+                    <MenuItem onClick={handleLogout} $isLogout>
+                        <MenuItemIcon><FaSignOutAlt /></MenuItemIcon>
+                        <MenuItemText>Wyloguj się</MenuItemText>
                     </MenuItem>
-                </UserMenu>
+                </DropdownMenu>
             )}
-        </UserContainer>
+        </ProfileContainer>
     );
 };
 
-// Styled components
-const UserContainer = styled.div`
+// Styled Components - Clean & Minimal
+const ProfileContainer = styled.div`
     position: relative;
-    margin: 20px 0;
-    padding: 10px 20px;
-    border-top: 1px solid #34495e;
-    border-bottom: 1px solid #34495e;
+    padding: 16px 20px;
+    border-bottom: 1px solid ${brandTheme.border};
 `;
 
-const UserInfoTrigger = styled.div`
+const ProfileTrigger = styled.div<{ $isOpen: boolean }>`
     display: flex;
     align-items: center;
+    gap: 12px;
     cursor: pointer;
-    padding: 5px 0;
+    padding: 8px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+
+    ${({ $isOpen }) => $isOpen && `
+        background: ${brandTheme.surfaceAlt};
+    `}
+
+    &:hover {
+        background: ${brandTheme.surfaceAlt};
+    }
 `;
 
-const UserAvatar = styled.img`
-    width: 40px;
-    height: 40px;
+const Avatar = styled.div`
+    position: relative;
+    flex-shrink: 0;
+`;
+
+const AvatarImage = styled.img`
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
-    margin-right: 12px;
     object-fit: cover;
+    border: 2px solid ${brandTheme.border};
 `;
 
-const UserInitials = styled.div<{ color: string }>`
-    width: 40px;
-    height: 40px;
+const AvatarInitials = styled.div<{ $color: string }>`
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
-    background-color: ${props => props.color};
+    background: ${({ $color }) => $color};
     color: white;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: bold;
-    font-size: 16px;
-    margin-right: 12px;
+    font-weight: 600;
+    font-size: 14px;
+    border: 2px solid ${brandTheme.border};
+`;
+
+const OnlineStatus = styled.div`
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 10px;
+    height: 10px;
+    background: #10b981;
+    border: 2px solid white;
+    border-radius: 50%;
 `;
 
 const UserInfo = styled.div`
-    display: flex;
-    flex-direction: column;
+    flex: 1;
+    min-width: 0;
 `;
 
 const UserName = styled.div`
-    color: #ecf0f1;
+    font-size: 14px;
     font-weight: 500;
-    font-size: 14px;
-`;
-
-const CompanyName = styled.div`
-    color: #bdc3c7;
-    font-size: 12px;
-    margin-top: 2px;
-`;
-
-const UserMenu = styled.div`
-    position: absolute;
-    top: 100%;
-    left: 0;
-    width: 100%;
-    background-color: #fff;
-    border-radius: 4px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 100;
-    margin-top: 10px;
+    color: #1e293b;
+    white-space: nowrap;
     overflow: hidden;
-`;
-
-const UserMenuHeader = styled.div`
-    padding: 15px;
-    background-color: #f8f9fa;
-`;
-
-const UserFullDetails = styled.div`
-    display: flex;
-    flex-direction: column;
-    font-size: 14px;
-    color: #2c3e50;
-`;
-
-const UserEmail = styled.div`
-    color: #7f8c8d;
-    font-size: 12px;
-    margin-top: 4px;
+    text-overflow: ellipsis;
 `;
 
 const UserRole = styled.div`
-    display: inline-block;
-    margin-top: 8px;
-    padding: 2px 8px;
-    background-color: #e8f4fd;
-    color: #3498db;
-    border-radius: 12px;
+    font-size: 12px;
+    color: ${brandTheme.neutral};
+    margin-top: 2px;
+`;
+
+const DropdownIcon = styled.div<{ $isOpen: boolean }>`
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${brandTheme.neutral};
+    font-size: 10px;
+    transform: rotate(${({ $isOpen }) => $isOpen ? '180deg' : '0deg'});
+    transition: transform 0.2s;
+`;
+
+const DropdownMenu = styled.div`
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 20px;
+    right: 20px;
+    background: white;
+    border: 1px solid ${brandTheme.border};
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    overflow: hidden;
+`;
+
+const MenuHeader = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: ${brandTheme.surfaceAlt};
+`;
+
+const HeaderAvatar = styled.div`
+    img {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+`;
+
+const HeaderInitials = styled.div<{ $color: string }>`
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: ${({ $color }) => $color};
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 16px;
+`;
+
+const HeaderInfo = styled.div`
+    flex: 1;
+    min-width: 0;
+`;
+
+const HeaderName = styled.div`
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+`;
+
+const HeaderEmail = styled.div`
+    font-size: 12px;
+    color: ${brandTheme.neutral};
+    margin-top: 2px;
+`;
+
+const HeaderCompany = styled.div`
     font-size: 11px;
-    font-weight: 500;
+    color: #94a3b8;
+    margin-top: 2px;
 `;
 
 const MenuDivider = styled.div`
     height: 1px;
-    background-color: #eee;
+    background: ${brandTheme.border};
 `;
 
-const MenuItem = styled.div<{ isLogout?: boolean }>`
+const MenuItems = styled.div`
+    padding: 8px;
+`;
+
+const MenuItem = styled.div<{ $isLogout?: boolean }>`
     display: flex;
     align-items: center;
-    padding: 12px 15px;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 6px;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: all 0.2s;
 
     &:hover {
-        background-color: ${props => props.isLogout ? '#fdecea' : '#f5f5f5'};
+        background: ${({ $isLogout }) =>
+                $isLogout ? 'rgba(239, 68, 68, 0.1)' : brandTheme.surfaceAlt
+        };
     }
 
-    ${props => props.isLogout && `
-    color: #e74c3c;
-  `}
+    ${({ $isLogout }) => $isLogout && `
+        color: #dc2626;
+    `}
 `;
 
-const MenuIcon = styled.span`
+const MenuItemIcon = styled.div`
+    width: 16px;
+    height: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 16px;
-    margin-right: 10px;
     font-size: 14px;
+    color: ${brandTheme.neutral};
 `;
 
-const MenuText = styled.span`
-    font-size: 14px;
+const MenuItemText = styled.span`
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+    flex: 1;
+`;
+
+const NotificationBadge = styled.span`
+    background: #ef4444;
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 8px;
+    min-width: 16px;
+    text-align: center;
 `;
 
 export default UserProfileSection;

@@ -21,9 +21,25 @@ import {
     FaClipboardCheck,
     FaChartBar,
     FaRss,
-    FaTimes, FaSms, FaImages
+    FaTimes,
+    FaSms,
+    FaImages,
+    FaTabletAlt,
+    FaChevronRight
 } from 'react-icons/fa';
 import UserProfileSection from './UserProfileSection';
+
+// Brand Theme System - możliwość konfiguracji przez klienta
+const brandTheme = {
+    primary: 'var(--brand-primary, #2563eb)', // Domyślny niebieski, konfigurowalny
+    primaryLight: 'var(--brand-primary-light, #3b82f6)',
+    primaryDark: 'var(--brand-primary-dark, #1d4ed8)',
+    primaryGhost: 'var(--brand-primary-ghost, rgba(37, 99, 235, 0.1))',
+    accent: '#f8fafc',
+    neutral: '#64748b',
+    surface: '#ffffff',
+    surfaceAlt: '#f1f5f9'
+};
 
 // Dane menu głównego
 interface MainMenuItem {
@@ -32,83 +48,111 @@ interface MainMenuItem {
     icon: React.ReactElement;
     path?: string;
     hasSubmenu: boolean;
+    badge?: string;
+    isNew?: boolean;
+    category: 'daily' | 'business' | 'admin';
 }
 
 const mainMenuItems: MainMenuItem[] = [
-    {
-        id: 'activity',
-        label: 'Aktualności',
-        icon: <FaRss />,
-        path: '/activity',
-        hasSubmenu: false
-    },
+    // Codzienne operacje
     {
         id: 'calendar',
         label: 'Kalendarz',
         icon: <FaCalendarAlt />,
         path: '/calendar',
-        hasSubmenu: false
+        hasSubmenu: false,
+        category: 'daily'
     },
     {
         id: 'orders',
         label: 'Wizyty',
         icon: <FaClipboardCheck />,
         path: '/orders',
-        hasSubmenu: false
+        hasSubmenu: false,
+        category: 'daily'
     },
     {
-        id: 'gallery',
-        label: 'Galeria',
-        icon: <FaImages />,
-        path: '/gallery',
-        hasSubmenu: false
+        id: 'activity',
+        label: 'Aktualności',
+        icon: <FaRss />,
+        path: '/activity',
+        hasSubmenu: false,
+        category: 'daily'
+    },
+
+    // Zarządzanie biznesem
+    {
+        id: 'clients',
+        label: 'Klienci',
+        icon: <FaUsers />,
+        hasSubmenu: true,
+        category: 'business'
     },
     {
         id: 'fleet',
         label: 'Flota',
         icon: <FaCar />,
         path: '/fleet',
-        hasSubmenu: true
-    },
-    {
-        id: 'clients',
-        label: 'Klienci',
-        icon: <FaUsers />,
-        hasSubmenu: true
+        hasSubmenu: true,
+        category: 'business'
     },
     {
         id: 'finances',
         label: 'Finanse',
         icon: <FaMoneyBillWave />,
         path: '/finances',
-        hasSubmenu: false
+        hasSubmenu: false,
+        category: 'business'
     },
     {
         id: 'reports',
         label: 'Raporty',
         icon: <FaChartBar />,
         path: '/reports',
-        hasSubmenu: false
+        hasSubmenu: false,
+        category: 'business'
+    },
+
+    // Narzędzia i administracja
+    {
+        id: 'gallery',
+        label: 'Galeria',
+        icon: <FaImages />,
+        path: '/gallery',
+        hasSubmenu: false,
+        category: 'admin'
+    },
+    {
+        id: 'tablets',
+        label: 'Tablety',
+        icon: <FaTabletAlt />,
+        path: '/tablets',
+        hasSubmenu: false,
+        isNew: true,
+        category: 'admin'
     },
     {
         id: 'team',
         label: 'Zespół',
         icon: <FaUsers />,
         path: '/team',
-        hasSubmenu: false
+        hasSubmenu: false,
+        category: 'admin'
     },
     {
         id: 'sms',
-        label: 'Wysyłka SMS',
+        label: 'SMS',
         icon: <FaSms />,
         path: '/sms',
-        hasSubmenu: false
+        hasSubmenu: false,
+        category: 'admin'
     },
     {
         id: 'settings',
         label: 'Ustawienia',
         icon: <FaCog />,
-        hasSubmenu: true
+        hasSubmenu: true,
+        category: 'admin'
     }
 ];
 
@@ -134,100 +178,174 @@ const Sidebar: React.FC<SidebarProps> = ({
         if (item.hasSubmenu) {
             onMenuItemClick(item.id === activeMenuItem ? null : item.id);
         } else if (item.path) {
-            // Jeśli element menu nie ma submenu, przechodzimy do określonej ścieżki
             onMenuItemClick(null);
-
-            // Zawsze nawiguj do ścieżki, co spowoduje przeładowanie komponentu
-            // i zamknięcie formularza jeśli jest otwarty
             navigate(item.path);
         }
     };
 
     const isItemActive = (item: MainMenuItem): boolean => {
-        // Dla elementów z submenu
-        if (item.id === activeMenuItem) {
-            return true;
-        }
-
-        // Dla elementów bez submenu
-        if (item.path && location.pathname.startsWith(item.path)) {
-            return true;
-        }
-
+        if (item.id === activeMenuItem) return true;
+        if (item.path && location.pathname.startsWith(item.path)) return true;
         return false;
     };
 
+    const dailyItems = mainMenuItems.filter(item => item.category === 'daily');
+    const businessItems = mainMenuItems.filter(item => item.category === 'business');
+    const adminItems = mainMenuItems.filter(item => item.category === 'admin');
+
     return (
-        <SidebarContainer isOpen={isOpen} isMobile={isMobile}>
-            <SidebarHeader>
-                <Logo>Detailing CRM</Logo>
-                {isMobile && (
-                    <CloseButton onClick={toggleSidebar}>
-                        <FaTimes />
-                    </CloseButton>
-                )}
-            </SidebarHeader>
+        <>
+            <SidebarContainer isOpen={isOpen} isMobile={isMobile}>
+                {/* Header z logo */}
+                <SidebarHeader>
+                    <LogoContainer>
+                        <LogoIcon>
+                            <FaCarSide />
+                        </LogoIcon>
+                        <LogoText>
+                            <CompanyName>DetailingPro</CompanyName>
+                        </LogoText>
+                    </LogoContainer>
+                    {isMobile && (
+                        <CloseButton onClick={toggleSidebar}>
+                            <FaTimes />
+                        </CloseButton>
+                    )}
+                </SidebarHeader>
 
-            {/* Sekcja profilu użytkownika */}
-            <UserProfileSection />
+                {/* Profil użytkownika */}
+                <UserProfileSection />
 
-            <SidebarMenu>
-                {mainMenuItems.map(item => (
-                    <MenuItemContainer
-                        key={item.id}
-                        onClick={() => handleMenuItemClick(item)}
-                        active={isItemActive(item)}
-                    >
-                        {item.path && !item.hasSubmenu ? (
-                            <MenuItemLink
-                                to={item.path}
-                                $active={location.pathname.startsWith(item.path)}
-                                onClick={(e) => {
-                                    // Zatrzymaj domyślną nawigację Link
-                                    // żeby obsłużyć ją w handleMenuItemClick
-                                    e.preventDefault();
-                                }}
-                            >
-                                <MenuIcon>{item.icon}</MenuIcon>
-                                <MenuLabel>{item.label}</MenuLabel>
-                            </MenuItemLink>
-                        ) : (
-                            <>
-                                <MenuIcon>{item.icon}</MenuIcon>
-                                <MenuLabel>{item.label}</MenuLabel>
-                            </>
-                        )}
-                    </MenuItemContainer>
-                ))}
-            </SidebarMenu>
+                {/* Navigation */}
+                <Navigation>
+                    {/* Codzienne operacje */}
+                    <NavSection>
+                        <SectionHeader>Dziś</SectionHeader>
+                        <MenuList>
+                            {dailyItems.map(item => (
+                                <MenuItem
+                                    key={item.id}
+                                    onClick={() => handleMenuItemClick(item)}
+                                    $active={isItemActive(item)}
+                                    $hasSubmenu={item.hasSubmenu}
+                                >
+                                    <MenuItemContent>
+                                        <IconContainer $active={isItemActive(item)}>
+                                            {item.icon}
+                                        </IconContainer>
+                                        <Label>{item.label}</Label>
+                                        {item.isNew && <NewBadge>Nowe</NewBadge>}
+                                        {item.badge && <CountBadge>{item.badge}</CountBadge>}
+                                        {item.hasSubmenu && (
+                                            <SubmenuArrow $expanded={item.id === activeMenuItem}>
+                                                <FaChevronRight />
+                                            </SubmenuArrow>
+                                        )}
+                                    </MenuItemContent>
+                                </MenuItem>
+                            ))}
+                        </MenuList>
+                    </NavSection>
 
-            <SidebarFooter>
-                <Version>Wersja 1.0.5</Version>
-            </SidebarFooter>
-        </SidebarContainer>
+                    {/* Zarządzanie biznesem */}
+                    <NavSection>
+                        <SectionHeader>Biznes</SectionHeader>
+                        <MenuList>
+                            {businessItems.map(item => (
+                                <MenuItem
+                                    key={item.id}
+                                    onClick={() => handleMenuItemClick(item)}
+                                    $active={isItemActive(item)}
+                                    $hasSubmenu={item.hasSubmenu}
+                                >
+                                    <MenuItemContent>
+                                        <IconContainer $active={isItemActive(item)}>
+                                            {item.icon}
+                                        </IconContainer>
+                                        <Label>{item.label}</Label>
+                                        {item.badge && <CountBadge>{item.badge}</CountBadge>}
+                                        {item.hasSubmenu && (
+                                            <SubmenuArrow $expanded={item.id === activeMenuItem}>
+                                                <FaChevronRight />
+                                            </SubmenuArrow>
+                                        )}
+                                    </MenuItemContent>
+                                </MenuItem>
+                            ))}
+                        </MenuList>
+                    </NavSection>
+
+                    {/* Narzędzia */}
+                    <NavSection>
+                        <SectionHeader>Narzędzia</SectionHeader>
+                        <MenuList>
+                            {adminItems.map(item => (
+                                <MenuItem
+                                    key={item.id}
+                                    onClick={() => handleMenuItemClick(item)}
+                                    $active={isItemActive(item)}
+                                    $hasSubmenu={item.hasSubmenu}
+                                >
+                                    <MenuItemContent>
+                                        <IconContainer $active={isItemActive(item)}>
+                                            {item.icon}
+                                        </IconContainer>
+                                        <Label>{item.label}</Label>
+                                        {item.isNew && <NewBadge>Nowe</NewBadge>}
+                                        {item.badge && <CountBadge>{item.badge}</CountBadge>}
+                                        {item.hasSubmenu && (
+                                            <SubmenuArrow $expanded={item.id === activeMenuItem}>
+                                                <FaChevronRight />
+                                            </SubmenuArrow>
+                                        )}
+                                    </MenuItemContent>
+                                </MenuItem>
+                            ))}
+                        </MenuList>
+                    </NavSection>
+                </Navigation>
+
+                {/* Footer */}
+                <SidebarFooter>
+                    <StatusLine>
+                        <StatusDot />
+                        <StatusText>Wszystko działa</StatusText>
+                    </StatusLine>
+                    <VersionInfo>v2.1.0</VersionInfo>
+                </SidebarFooter>
+            </SidebarContainer>
+
+            {/* Overlay dla mobile */}
+            {isMobile && isOpen && <Overlay onClick={toggleSidebar} />}
+        </>
     );
 };
 
-const SidebarContainer = styled.div<{ isOpen: boolean, isMobile: boolean }>`
+// Styled Components - Clean & Professional
+const SidebarContainer = styled.div<{ isOpen: boolean; isMobile: boolean }>`
     position: fixed;
     top: 0;
     left: 0;
-    height: 100%;
-    width: 250px;
-    background-color: #2c3e50;
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-    z-index: 100;
-    transform: ${({ isOpen, isMobile }) => {
-        // Na urządzeniach mobilnych, całkowicie ukrywamy menu
-        if (isMobile) {
-            return isOpen ? 'translateX(0)' : 'translateX(-100%)';
-        }
-        // Na desktopie, pozostawiamy standardowe zachowanie
-        return isOpen ? 'translateX(0)' : 'translateX(-100%)';
-    }};
-    transition: transform 0.3s ease-in-out;
+    height: 100vh;
+    width: 260px;
+    background: ${brandTheme.surface};
+    border-right: 1px solid #e2e8f0;
+    z-index: 1000;
     display: flex;
     flex-direction: column;
+    transform: translateX(${({ isOpen }) => isOpen ? '0' : '-100%'});
+    transition: transform 0.3s ease;
+    box-shadow: ${({ isOpen }) => isOpen ? '0 0 20px rgba(0,0,0,0.1)' : 'none'};
+`;
+
+const Overlay = styled.div`
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
 `;
 
 const SidebarHeader = styled.div`
@@ -235,82 +353,218 @@ const SidebarHeader = styled.div`
     align-items: center;
     justify-content: space-between;
     padding: 20px;
-    border-bottom: 1px solid #34495e;
+    border-bottom: 1px solid #f1f5f9;
 `;
 
-const Logo = styled.div`
-    font-size: 18px;
-    font-weight: bold;
-    color: white;
+const LogoContainer = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 12px;
 `;
 
-const CloseButton = styled.button`
-    background: none;
-    border: none;
-    color: white;
-    font-size: 18px;
-    cursor: pointer;
+const LogoIcon = styled.div`
+    width: 36px;
+    height: 36px;
+    background: ${brandTheme.primary};
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0;
+    color: white;
+    font-size: 18px;
+`;
+
+const LogoText = styled.div``;
+
+const CompanyName = styled.div`
+    font-size: 18px;
+    font-weight: 700;
+    color: #1e293b;
+    letter-spacing: -0.5px;
+`;
+
+const CloseButton = styled.button`
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: none;
+    color: ${brandTheme.neutral};
+    cursor: pointer;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
 
     &:hover {
-        color: #ecf0f1;
+        background: #f1f5f9;
+        color: #1e293b;
     }
 `;
 
-const SidebarMenu = styled.div`
+const Navigation = styled.nav`
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 0;
+
+    /* Clean scrollbar */
+    &::-webkit-scrollbar {
+        width: 4px;
+    }
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    &::-webkit-scrollbar-thumb {
+        background: #e2e8f0;
+        border-radius: 2px;
+    }
+`;
+
+const NavSection = styled.div`
+    margin-bottom: 32px;
+
+    &:last-child {
+        margin-bottom: 16px;
+    }
+`;
+
+const SectionHeader = styled.div`
+    font-size: 11px;
+    font-weight: 600;
+    color: ${brandTheme.neutral};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0 20px 12px;
+`;
+
+const MenuList = styled.div`
     display: flex;
     flex-direction: column;
-    padding: 20px 0;
-    overflow-y: auto;
+    gap: 2px;
+    padding: 0 12px;
+`;
+
+const MenuItem = styled.div<{ $active: boolean; $hasSubmenu: boolean }>`
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    position: relative;
+
+    ${({ $active }) => $active && `
+        background: ${brandTheme.primaryGhost};
+        
+        &::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 20px;
+            background: ${brandTheme.primary};
+            border-radius: 0 2px 2px 0;
+        }
+    `}
+
+    &:hover:not([data-active="true"]) {
+        background: ${brandTheme.surfaceAlt};
+    }
+`;
+
+const MenuItemContent = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    min-height: 44px;
+`;
+
+const IconContainer = styled.div<{ $active: boolean }>`
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${({ $active }) => $active ? brandTheme.primary : brandTheme.neutral};
+    font-size: 16px;
+    transition: color 0.2s;
+
+    ${MenuItem}:hover & {
+        color: ${brandTheme.primary};
+    }
+`;
+
+const Label = styled.span`
+    font-size: 14px;
+    font-weight: 500;
+    color: #334155;
     flex: 1;
 `;
 
-const MenuItemContainer = styled.div<{ active: boolean }>`
-    display: flex;
-    align-items: center;
-    padding: 12px 20px;
-    cursor: pointer;
-    color: ${({ active }) => (active ? 'white' : '#ecf0f1')};
-    background-color: ${({ active }) => (active ? '#34495e' : 'transparent')};
-    font-weight: ${({ active }) => (active ? 'bold' : 'normal')};
-    transition: background-color 0.2s;
-
-    &:hover {
-        background-color: #34495e;
-    }
+const NewBadge = styled.span`
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 `;
 
-const MenuItemLink = styled(Link)<{ $active: boolean }>`
-    display: flex;
-    align-items: center;
-    width: 100%;
-    text-decoration: none;
-    color: inherit;
-`;
-
-const MenuIcon = styled.div`
-    margin-right: 15px;
-    font-size: 16px;
-    width: 16px;
+const CountBadge = styled.span`
+    background: #ef4444;
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 10px;
+    min-width: 18px;
     text-align: center;
 `;
 
-const MenuLabel = styled.div`
-    font-size: 14px;
+const SubmenuArrow = styled.div<{ $expanded: boolean }>`
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${brandTheme.neutral};
+    font-size: 10px;
+    transform: rotate(${({ $expanded }) => $expanded ? '90deg' : '0deg'});
+    transition: transform 0.2s;
 `;
 
 const SidebarFooter = styled.div`
-    padding: 15px 20px;
-    border-top: 1px solid #34495e;
-    text-align: center;
+    padding: 16px 20px;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 `;
 
-const Version = styled.div`
+const StatusLine = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+`;
+
+const StatusDot = styled.div`
+    width: 6px;
+    height: 6px;
+    background: #10b981;
+    border-radius: 50%;
+`;
+
+const StatusText = styled.span`
     font-size: 12px;
-    color: #7f8c8d;
+    color: ${brandTheme.neutral};
+`;
+
+const VersionInfo = styled.span`
+    font-size: 11px;
+    color: #94a3b8;
+    font-weight: 500;
 `;
 
 export default Sidebar;

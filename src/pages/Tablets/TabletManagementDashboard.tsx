@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { useTablets } from '../../hooks/useTablets';
-import { TabletDevice, SignatureSession } from '../../api/tabletsApi';
+import { TabletDevice, SignatureSession, CreateSignatureSessionRequest, tabletsApi } from '../../api/tabletsApi';
+import { generateUUID } from '../../utils/uuidHelper';
 import {
     FaTabletAlt,
     FaWifi,
@@ -41,6 +42,10 @@ const TabletManagementDashboard: React.FC<TabletManagementDashboardProps> = ({
     const [showSignatureModal, setShowSignatureModal] = useState(false);
     const [selectedTablet, setSelectedTablet] = useState<TabletDevice | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const generateWorkstationId = () => {
+        return generateUUID();
+    };
 
     const getStatusColor = (status: string, isOnline?: boolean) => {
         if (status === 'ACTIVE' && isOnline) return '#10b981'; // green
@@ -89,6 +94,11 @@ const TabletManagementDashboard: React.FC<TabletManagementDashboardProps> = ({
         }
     };
 
+    const handleRequestSignature = (tablet: TabletDevice) => {
+        setSelectedTablet(tablet);
+        setShowSignatureModal(true);
+    };
+
     const handleSendSignatureRequest = (tablet: TabletDevice) => {
         setSelectedTablet(tablet);
         setShowSignatureModal(true);
@@ -102,8 +112,8 @@ const TabletManagementDashboard: React.FC<TabletManagementDashboardProps> = ({
         try {
             const formData = new FormData(event.currentTarget);
 
-            const request = {
-                workstationId: selectedTablet.workstationId || 'default-workstation',
+            const request: CreateSignatureSessionRequest = {
+                workstationId: selectedTablet.workstationId || generateWorkstationId(),
                 customerName: formData.get('customerName') as string,
                 vehicleInfo: {
                     make: formData.get('make') as string,
@@ -117,7 +127,8 @@ const TabletManagementDashboard: React.FC<TabletManagementDashboardProps> = ({
                 additionalNotes: formData.get('notes') as string || undefined
             };
 
-            const response = await createSignatureSession(request);
+            // Używamy nowego endpointu /api/signatures/request
+            const response = await tabletsApi.createSignatureSessionDirect(request);
 
             if (response.success) {
                 alert(`Signature request sent successfully! Session ID: ${response.sessionId}`);
@@ -188,6 +199,13 @@ const TabletManagementDashboard: React.FC<TabletManagementDashboardProps> = ({
                                         </TabletInfo>
 
                                         <TabletActions>
+                                            <TabletActionButton
+                                                onClick={() => handleRequestSignature(tablet)}
+                                                disabled={!tablet.isOnline}
+                                                title="Poproś o podpis"
+                                            >
+                                                <FaSignature />
+                                            </TabletActionButton>
                                             <TabletActionButton
                                                 onClick={() => handleSendSignatureRequest(tablet)}
                                                 disabled={!tablet.isOnline}
@@ -296,7 +314,7 @@ const TabletManagementDashboard: React.FC<TabletManagementDashboardProps> = ({
                         <ModalHeader>
                             <ModalTitle>
                                 <FaSignature />
-                                Nowe Żądanie Podpisu
+                                Poproś o Podpis Cyfrowy
                             </ModalTitle>
                             <CloseButton onClick={() => setShowSignatureModal(false)}>×</CloseButton>
                         </ModalHeader>
@@ -304,9 +322,17 @@ const TabletManagementDashboard: React.FC<TabletManagementDashboardProps> = ({
                             <SignatureForm onSubmit={handleSubmitSignatureRequest}>
                                 <FormGroup>
                                     <Label>Tablet</Label>
-                                    <Select disabled>
-                                        <option value={selectedTablet.id}>{selectedTablet.friendlyName}</option>
-                                    </Select>
+                                    <TabletInfoDisplay>
+                                        <TabletIcon>
+                                            <FaTabletAlt />
+                                        </TabletIcon>
+                                        <TabletDetails>
+                                            <TabletName>{selectedTablet.friendlyName}</TabletName>
+                                            <TabletStatus online={selectedTablet.isOnline}>
+                                                {selectedTablet.isOnline ? 'Online' : 'Offline'}
+                                            </TabletStatus>
+                                        </TabletDetails>
+                                    </TabletInfoDisplay>
                                 </FormGroup>
 
                                 <FormGroup>
@@ -375,8 +401,8 @@ const TabletManagementDashboard: React.FC<TabletManagementDashboardProps> = ({
                                         Anuluj
                                     </Button>
                                     <Button type="submit" primary disabled={isSubmitting}>
-                                        {isSubmitting ? <FaSpinner className="spin" /> : <FaPaperPlane />}
-                                        {isSubmitting ? 'Wysyłanie...' : 'Wyślij żądanie'}
+                                        {isSubmitting ? <FaSpinner className="spin" /> : <FaSignature />}
+                                        {isSubmitting ? 'Wysyłanie...' : 'Poproś o podpis'}
                                     </Button>
                                 </ModalActions>
                             </SignatureForm>
@@ -524,9 +550,9 @@ const TabletCard = styled.div<{ status: string; isOnline: boolean }>`
         right: 0;
         height: 4px;
         background: ${props => props.isOnline ?
-    'linear-gradient(90deg, #10b981 0%, #059669 100%)' :
-    'linear-gradient(90deg, #e2e8f0 0%, #cbd5e1 100%)'
-};
+                'linear-gradient(90deg, #10b981 0%, #059669 100%)' :
+                'linear-gradient(90deg, #e2e8f0 0%, #cbd5e1 100%)'
+        };
     }
 
     &:hover {
@@ -893,6 +919,42 @@ const Label = styled.label`
     font-weight: 600;
     color: #374151;
     margin-bottom: 4px;
+`;
+
+const TabletInfoDisplay = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    background: rgba(59, 130, 246, 0.05);
+    border: 2px solid rgba(59, 130, 246, 0.2);
+    border-radius: 12px;
+`;
+
+const TabletIcon = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    border-radius: 12px;
+    color: white;
+    font-size: 20px;
+`;
+
+const TabletDetails = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+`;
+
+const TabletStatus = styled.div<{ online: boolean }>`
+    font-size: 12px;
+    font-weight: 500;
+    color: ${props => props.online ? '#059669' : '#dc2626'};
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 `;
 
 const Input = styled.input`

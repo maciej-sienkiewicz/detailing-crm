@@ -73,6 +73,15 @@ export interface TabletCredentials {
     websocketUrl: string;
 }
 
+export interface SignatureRequestResponse {
+    success: boolean;
+    sessionId?: string;
+    message: string;
+    tabletId?: string;
+    workstationId?: string;
+    estimatedCompletionTime?: string;
+}
+
 export interface CreateSignatureSessionRequest {
     workstationId: string;      // UUID as string
     customerName: string;
@@ -193,6 +202,20 @@ export const tabletsApi = {
             return response;
         } catch (error) {
             console.error('❌ Tablet pairing failed:', error);
+            throw error;
+        }
+    },
+
+    // Create signature session using /api/signatures/request
+    async createSignatureSessionDirect(request: CreateSignatureSessionRequest): Promise<SignatureRequestResponse> {
+        console.log('🔧 Creating signature session directly...', request);
+
+        try {
+            const response = await apiClient.postNot<SignatureRequestResponse>('/signatures/request', request);
+            console.log('✅ Signature session created:', response);
+            return response;
+        } catch (error) {
+            console.error('❌ Failed to create signature session:', error);
             throw error;
         }
     },
