@@ -878,11 +878,218 @@ const DocumentPreview = styled.div`
 const DocumentImage = styled.img`
     width: 100%;
     height: 100%;
-    background-color: #f0f0f0;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+
+    ${DocumentCard}:hover & {
+        transform: scale(1.05);
+    }
+`;
+
+const DocumentPlaceholder = styled.div`
+    width: 100%;
+    height: 100%;
+    background: ${enterprise.surfaceSecondary};
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #999;
+    color: ${enterprise.textMuted};
+    font-size: 32px;
+`;
+
+const ProcessingBadge = styled.div`
+    position: absolute;
+    top: ${enterprise.space.md};
+    left: ${enterprise.space.md};
+    padding: ${enterprise.space.xs} ${enterprise.space.sm};
+    background: ${enterprise.primary};
+    color: white;
+    border-radius: ${enterprise.radius.sm};
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+`;
+
+const DocumentInfo = styled.div`
+    padding: ${enterprise.space.lg};
+`;
+
+const DocumentHeader = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: ${enterprise.space.md};
+`;
+
+const DocumentName = styled.h4`
+    font-size: ${enterprise.fontSize.base};
+    font-weight: 600;
+    color: ${enterprise.textPrimary};
+    margin: 0;
+    line-height: 1.4;
+    flex: 1;
+    margin-right: ${enterprise.space.md};
+`;
+
+const DocumentActions = styled.div`
+    display: flex;
+    gap: ${enterprise.space.xs};
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+
+    ${DocumentCard}:hover & {
+        opacity: 1;
+    }
+`;
+
+const ActionButton = styled.button<{ $variant?: 'danger' }>`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: ${props => props.$variant === 'danger' ? enterprise.error + '20' : enterprise.surfaceSecondary};
+    color: ${props => props.$variant === 'danger' ? enterprise.error : enterprise.textSecondary};
+    border: none;
+    border-radius: ${enterprise.radius.md};
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: ${enterprise.fontSize.xs};
+
+    &:hover {
+        background: ${props => props.$variant === 'danger' ? enterprise.error : enterprise.primary};
+        color: white;
+        transform: translateY(-1px);
+        box-shadow: ${enterprise.shadow.sm};
+    }
+`;
+
+const DocumentMeta = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: ${enterprise.space.md};
+`;
+
+const MetaItem = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${enterprise.space.xs};
+`;
+
+const MetaLabel = styled.div`
+    font-size: 11px;
+    color: ${enterprise.textTertiary};
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+`;
+
+const MetaValue = styled.div`
+    font-size: ${enterprise.fontSize.sm};
+    color: ${enterprise.textSecondary};
+    font-weight: 500;
+`;
+
+const TagsDisplay = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${enterprise.space.xs};
+    color: ${enterprise.primary};
+`;
+
+const TagCount = styled.div`
+    font-size: ${enterprise.fontSize.sm};
+    font-weight: 600;
+`;
+
+const TagsList = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: ${enterprise.space.xs};
+`;
+
+const TagBadge = styled.div`
+    padding: 2px ${enterprise.space.sm};
+    background: ${enterprise.primary}15;
+    color: ${enterprise.primary};
+    border: 1px solid ${enterprise.primary}30;
+    border-radius: ${enterprise.radius.sm};
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+`;
+
+// Empty State
+const EmptyState = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: ${enterprise.space.xxl} ${enterprise.space.xl};
+    text-align: center;
+`;
+
+const EmptyIcon = styled.div`
+    width: 80px;
+    height: 80px;
+    background: ${enterprise.surfaceSecondary};
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${enterprise.textMuted};
+    font-size: 32px;
+    margin-bottom: ${enterprise.space.xl};
+`;
+
+const EmptyTitle = styled.h3`
+    font-size: ${enterprise.fontSize.lg};
+    font-weight: 600;
+    color: ${enterprise.textSecondary};
+    margin: 0 0 ${enterprise.space.sm} 0;
+`;
+
+const EmptySubtitle = styled.p`
+    font-size: ${enterprise.fontSize.sm};
+    color: ${enterprise.textTertiary};
+    margin: 0 0 ${enterprise.space.xl} 0;
+    line-height: 1.5;
+`;
+
+const EmptyAction = styled.button`
+    display: flex;
+    align-items: center;
+    gap: ${enterprise.space.sm};
+    padding: ${enterprise.space.md} ${enterprise.space.xl};
+    background: ${enterprise.primary};
+    color: white;
+    border: none;
+    border-radius: ${enterprise.radius.md};
+    font-size: ${enterprise.fontSize.sm};
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: ${enterprise.shadow.sm};
+
+    &:hover:not(:disabled) {
+        background: ${enterprise.primaryDark};
+        transform: translateY(-1px);
+        box-shadow: ${enterprise.shadow.md};
+    }
+
+    &:disabled {
+        background: ${enterprise.textMuted};
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+
+    svg {
+        font-size: ${enterprise.fontSize.xs};
+    }
 `;
 
 export default ProtocolGallery;
