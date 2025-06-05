@@ -23,6 +23,62 @@ import CancelProtocolModal, {CancellationReason} from "../shared/components/Canc
 import RestoreProtocolModal, { RestoreOption } from "../shared/components/RestoreProtocolModal";
 import RescheduleProtocolModal from "../shared/components/RescheduleProtocolModal";
 
+// Brand Theme System - Automotive Premium
+const brandTheme = {
+    primary: 'var(--brand-primary, #2563eb)',
+    primaryLight: 'var(--brand-primary-light, #3b82f6)',
+    primaryDark: 'var(--brand-primary-dark, #1d4ed8)',
+    primaryGhost: 'var(--brand-primary-ghost, rgba(37, 99, 235, 0.06))',
+
+    // Professional Color Palette
+    surface: '#ffffff',
+    surfaceElevated: '#fafbfc',
+    surfaceHover: '#f8fafc',
+
+    // Typography
+    textPrimary: '#0f172a',
+    textSecondary: '#475569',
+    textTertiary: '#64748b',
+    textMuted: '#94a3b8',
+
+    // Borders & Dividers
+    border: '#e2e8f0',
+    borderLight: '#f1f5f9',
+    divider: '#e5e7eb',
+
+    // Status Colors
+    success: '#10b981',
+    successLight: '#d1fae5',
+    warning: '#f59e0b',
+    warningLight: '#fef3c7',
+    error: '#ef4444',
+    errorLight: '#fee2e2',
+
+    // Shadows
+    shadowSm: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+    shadowMd: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+    shadowLg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+    shadowXl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+
+    // Spacing
+    spacing: {
+        xs: '4px',
+        sm: '8px',
+        md: '16px',
+        lg: '24px',
+        xl: '32px',
+        xxl: '48px'
+    },
+
+    // Border Radius
+    radius: {
+        sm: '6px',
+        md: '8px',
+        lg: '12px',
+        xl: '16px',
+        full: '9999px'
+    }
+};
 
 // Define tab types
 type TabType = 'summary' | 'comments' | 'invoices' | 'client' | 'vehicle' | 'gallery';
@@ -58,11 +114,8 @@ const ProtocolDetailsPage: React.FC = () => {
         if (!protocol) return;
 
         if (option === 'SCHEDULED') {
-            // Pokaż modal do wyboru nowej daty
             setShowRescheduleModal(true);
         } else if (option === 'REALTIME') {
-            // Przywracamy wizytę w czasie rzeczywistym (status IN_PROGRESS)
-            // Przekieruj do strony rozpoczęcia wizyty
             navigate(`/orders/start-visit/${protocol.id}?restoreFromCancelled=true`);
         }
     };
@@ -73,7 +126,6 @@ const ProtocolDetailsPage: React.FC = () => {
 
             if (!protocol) return;
 
-            // Aktualizuj protokół ze statusem SCHEDULED i nowymi datami
             const updatedProtocol = {
                 ...protocol,
                 status: ProtocolStatus.SCHEDULED,
@@ -82,7 +134,6 @@ const ProtocolDetailsPage: React.FC = () => {
                 statusUpdatedAt: new Date().toISOString()
             };
 
-            // Wywołaj API do przywrócenia protokołu
             const result = await protocolsApi.restoreProtocol(protocol.id, {
                 newStatus: ProtocolStatus.SCHEDULED,
                 newStartDate: dates.startDate,
@@ -90,11 +141,9 @@ const ProtocolDetailsPage: React.FC = () => {
             });
 
             if (result) {
-                // Aktualizuj stan lokalny
                 setProtocol(result);
                 alert('Wizyta została przywrócona i zaplanowana na nowy termin');
             } else {
-                // Jeśli API restore nie zadziałało, użyj standardowego API update
                 const updatedResult = await protocolsApi.updateProtocol(updatedProtocol);
 
                 if (updatedResult) {
@@ -110,30 +159,23 @@ const ProtocolDetailsPage: React.FC = () => {
         }
     };
 
-
     const handleCancelProtocol = async (reason: CancellationReason) => {
         try {
-            // Wykorzystujemy istniejącą metodę updateProtocolStatus do zmiany statusu na CANCELLED
             await protocolsApi.updateProtocolStatus(protocol.id, ProtocolStatus.CANCELLED, reason);
 
-            // Aktualizuj lokalny stan
             setProtocol({
                 ...protocol,
                 status: ProtocolStatus.CANCELLED,
                 statusUpdatedAt: new Date().toISOString()
             });
 
-            // Zamknij modal
             setShowCancelModal(false);
-
-            // Opcjonalnie: pokazujemy powiadomienie o sukcesie
             alert('Protokół został anulowany');
         } catch (error) {
             console.error('Błąd podczas anulowania protokołu:', error);
             alert('Wystąpił błąd podczas anulowania protokołu');
         }
     };
-
 
     // Load protocol data
     useEffect(() => {
@@ -164,15 +206,14 @@ const ProtocolDetailsPage: React.FC = () => {
         loadProtocol();
     }, [id]);
 
-    // Handle status change - ta funkcja aktualizuje tylko lokalny stan
+    // Handle status change
     const handleStatusChange = (newStatus: ProtocolStatus) => {
         if (!protocol) return;
 
-        // Aktualizujemy lokalnie tylko status, reszta danych protokołu pozostaje bez zmian
         setProtocol({
             ...protocol,
             status: newStatus,
-            statusUpdatedAt: new Date().toISOString(),  // Aktualizujemy datę zmiany statusu lokalnie
+            statusUpdatedAt: new Date().toISOString(),
         });
     };
 
@@ -187,68 +228,51 @@ const ProtocolDetailsPage: React.FC = () => {
         setProtocol(updatedProtocol);
     };
 
-    // Nowa funkcja do obsługi przycisku "Zakończ zlecenie"
+    // Handle finish order
     const handleFinishOrder = () => {
-        // Pokazujemy modal weryfikacji jakości
         setShowVerificationModal(true);
     };
 
-    // Funkcja wywoływana po zatwierdzeniu w modalu weryfikacji
+    // Handle quality verified
     const handleQualityVerified = () => {
-        // Zamykamy modal weryfikacji
         setShowVerificationModal(false);
-        // Otwieramy modal powiadomień
         setShowNotificationModal(true);
     };
 
-    // Funkcja wywoływana po wyborze opcji powiadomienia klienta
+    // Handle notification selection
     const handleNotificationSelection = async (notificationOptions: {
         sendSms: boolean;
         sendEmail: boolean;
     }) => {
-        // Zamykamy modal powiadomień
         setShowNotificationModal(false);
-
-        // Zmieniamy status na "Oczekiwanie na odbiór"
         handleStatusChange(ProtocolStatus.READY_FOR_PICKUP);
 
-        // W tle aktualizujemy status w API
         try {
             await protocolsApi.updateProtocolStatus(protocol!.id, ProtocolStatus.READY_FOR_PICKUP);
         } catch (error) {
             console.error('Błąd podczas aktualizacji statusu w API:', error);
         }
 
-        // Tutaj moglibyśmy zaimplementować faktyczne wysyłanie powiadomień
         if (notificationOptions.sendSms) {
             console.log('Wysyłanie SMS do klienta:', protocol?.phone);
-            // W rzeczywistej aplikacji: sendSmsNotification(protocol.phone);
         }
 
         if (notificationOptions.sendEmail) {
             console.log('Wysyłanie e-mail do klienta:', protocol?.email);
-            // W rzeczywistej aplikacji: sendEmailNotification(protocol.email);
         }
 
-        // Możemy dodać komentarz o wysłanym powiadomieniu
         if (notificationOptions.sendSms || notificationOptions.sendEmail) {
-            // Dodanie komentarza systemowego o powiadomieniu
-            // W rzeczywistej implementacji dodalibyśmy to do protokołu
             console.log('Dodanie informacji o powiadomieniu do historii protokołu');
         }
     };
 
-    // Sprawdzenie czy przycisk "Zakończ zlecenie" powinien być dostępny
+    // Check if finish order button should be available
     const canFinishOrder = protocol?.status === ProtocolStatus.IN_PROGRESS;
-
-    // Sprawdzenie czy przycisk "Wydaj samochód" powinien być dostępny
     const canReleaseVehicle = protocol?.status === ProtocolStatus.READY_FOR_PICKUP;
-
     const isScheduled = protocol?.status === ProtocolStatus.SCHEDULED;
 
-    // Obsługa procesu wydania samochodu
+    // Handle vehicle release
     const handleReleaseVehicle = () => {
-        // Rozpoczynamy proces wydania samochodu od sprawdzenia komentarzy dla klienta
         if(comments != null && comments.filter(c => c.type === 'customer').length > 0) {
             setShowClientCommentsModal(true);
         } else {
@@ -256,49 +280,39 @@ const ProtocolDetailsPage: React.FC = () => {
         }
     };
 
-    // Funkcja wywoływana po zamknięciu modalu komentarzy dla klienta
+    // Handle client comments modal close
     const handleClientCommentsModalClose = () => {
         setShowClientCommentsModal(false);
         setShowPaymentModal(true);
     };
 
-// Zmodyfikuj funkcję handlePaymentConfirm, aby obsługiwała customInvoiceItems
+    // Handle payment confirm
     const handlePaymentConfirm = async (paymentData: {
         paymentMethod: 'cash' | 'card';
         documentType: 'invoice' | 'receipt' | 'other';
         invoiceItems?: SelectedService[];
     }) => {
         try {
-            // Zamykamy modal płatności
             setShowPaymentModal(false);
 
-            // Przygotuj dane do wysłania - nie modyfikujemy już protokołu,
-            // ponieważ został już zaktualizowany przez handleServiceItemsChange
             const releaseData = {
                 paymentMethod: paymentData.paymentMethod,
                 documentType: paymentData.documentType,
-                // Nie musimy już przekazywać invoiceItems, ponieważ protokół
-                // już zawiera zaktualizowane usługi
             };
 
-            // Wywołaj API do wydania pojazdu
             const result = await protocolsApi.releaseVehicle(protocol!.id, releaseData);
 
             if (result) {
-                // Aktualizujemy lokalny stan na podstawie odpowiedzi z serwera
                 setProtocol(result);
             } else {
-                // W przypadku błędu zmieniamy tylko status lokalnie
                 const updatedProtocol = { ...protocol! };
                 updatedProtocol.status = ProtocolStatus.COMPLETED;
                 updatedProtocol.statusUpdatedAt = new Date().toISOString();
                 setProtocol(updatedProtocol);
 
-                // W tle aktualizujemy status w API
                 await protocolsApi.updateProtocolStatus(protocol!.id, ProtocolStatus.COMPLETED);
             }
 
-            // Wyświetlamy powiadomienie o sukcesie
             alert('Pojazd został wydany klientowi');
         } catch (error) {
             console.error('Błąd podczas wydawania pojazdu:', error);
@@ -310,36 +324,28 @@ const ProtocolDetailsPage: React.FC = () => {
         if (!protocol) return;
 
         try {
-            // Tworzymy kopię protokołu z nowymi usługami
             const updatedProtocol: CarReceptionProtocol = {
                 ...protocol,
                 selectedServices: services
             };
 
-            // Aktualizujemy lokalny stan
             setProtocol(updatedProtocol);
 
-            // Zapisujemy zmiany na serwerze
             const result = await protocolsApi.updateProtocol(updatedProtocol);
 
             if (result) {
-                // Jeśli aktualizacja się powiodła, zaktualizuj stan lokalny odpowiedzią z serwera
                 setProtocol(result);
-
-                // Opcjonalnie pokaż powiadomienie o sukcesie
             }
         } catch (error) {
             console.error('Błąd podczas aktualizacji protokołu:', error);
-
-            // Przywracamy poprzedni stan w przypadku błędu
             setProtocol(protocol);
         }
     };
 
-    // Render the component based on active tab
+    // Render tab content
     const renderTabContent = () => {
         if (!protocol) {
-            return <div>Brak danych protokołu</div>;
+            return <EmptyTabContent>Brak danych protokołu</EmptyTabContent>;
         }
 
         switch (activeTab) {
@@ -361,16 +367,25 @@ const ProtocolDetailsPage: React.FC = () => {
     };
 
     if (loading) {
-        return <LoadingContainer>Ładowanie protokołu...</LoadingContainer>;
+        return (
+            <LoadingContainer>
+                <LoadingSpinner />
+                <LoadingText>Ładowanie danych wizyty...</LoadingText>
+            </LoadingContainer>
+        );
     }
 
     if (error || !protocol) {
         return (
             <ErrorContainer>
-                <ErrorMessage>{error || 'Nie znaleziono protokołu.'}</ErrorMessage>
-                <BackButton onClick={handleGoBack}>
-                    <FaArrowLeft /> Wróć do listy protokołów
-                </BackButton>
+                <ErrorCard>
+                    <ErrorIcon>⚠️</ErrorIcon>
+                    <ErrorMessage>{error || 'Nie znaleziono protokołu.'}</ErrorMessage>
+                    <BackButton onClick={handleGoBack}>
+                        <FaArrowLeft />
+                        <span>Wróć do listy wizyt</span>
+                    </BackButton>
+                </ErrorCard>
             </ErrorContainer>
         );
     }
@@ -382,87 +397,76 @@ const ProtocolDetailsPage: React.FC = () => {
                     <BackButton onClick={handleGoBack}>
                         <FaArrowLeft />
                     </BackButton>
-                    <HeaderTitle>
-                        <h1>Wizyta #{protocol.id}</h1>
-                        <HeaderSubtitle>{protocol.make} {protocol.model} ({protocol.licensePlate})</HeaderSubtitle>
-                    </HeaderTitle>
+                    <HeaderContent>
+                        <HeaderTitle>Wizyta #{protocol.id}</HeaderTitle>
+                        <HeaderSubtitle>{protocol.make} {protocol.model} • {protocol.licensePlate}</HeaderSubtitle>
+                    </HeaderContent>
                 </HeaderLeft>
-                <HeaderActions>
 
+                <HeaderActions>
                     {canFinishOrder && (
-                        <ActionButton title="Zakończ wizytę" primary="true" special="true" onClick={handleFinishOrder}>
-                            <FaCheckSquare /> Zakończ wizytę
-                        </ActionButton>
+                        <PrimaryActionButton onClick={handleFinishOrder} variant="success">
+                            <FaCheckSquare />
+                            <span>Zakończ wizytę</span>
+                        </PrimaryActionButton>
                     )}
 
                     {canReleaseVehicle && (
-                        <ActionButton title="Wydaj samochód" primary="true" release="true" onClick={handleReleaseVehicle}>
-                            <FaKey /> Wydaj samochód
-                        </ActionButton>
+                        <PrimaryActionButton onClick={handleReleaseVehicle} variant="warning">
+                            <FaKey />
+                            <span>Wydaj samochód</span>
+                        </PrimaryActionButton>
                     )}
 
                     {protocol.status == ProtocolStatus.SCHEDULED && (
-                        <ActionButton title="Edytuj protokół" onClick={() => navigate(`/orders`, {
-                            state: {
-                                editProtocolId: protocol.id
-                            }
+                        <SecondaryActionButton onClick={() => navigate(`/orders`, {
+                            state: { editProtocolId: protocol.id }
                         })}>
-                            <FaEdit /> Edytuj
-                        </ActionButton>
+                            <FaEdit />
+                            <span>Edytuj</span>
+                        </SecondaryActionButton>
                     )}
 
                     {isScheduled && (
-                        <ActionButton title="Rozpocznij wizytę" primary="true" onClick={() => navigate(`/orders/start-visit/${protocol.id}`)}>
-                            <FaEdit /> Rozpocznij wizytę
-                        </ActionButton>
+                        <PrimaryActionButton onClick={() => navigate(`/orders/start-visit/${protocol.id}`)} variant="primary">
+                            <FaEdit />
+                            <span>Rozpocznij wizytę</span>
+                        </PrimaryActionButton>
                     )}
 
                     {!isScheduled && (
-                        <ActionButton
-                            title="Drukuj protokół"
-                            primary="true"
-                            onClick={() => setShowPdfPreview(true)}
-                        >
-                            <FaFilePdf /> Drukuj protokół
-                        </ActionButton>
+                        <SecondaryActionButton onClick={() => setShowPdfPreview(true)}>
+                            <FaFilePdf />
+                            <span>Drukuj protokół</span>
+                        </SecondaryActionButton>
                     )}
 
                     {!isCancelled && (
-                        <ActionButton
-                            title="Anuluj wizytę"
-                            danger="true"
-                            onClick={() => setShowCancelModal(true)}
-                        >
-                            <FaBan /> Anuluj wizytę
-                        </ActionButton>
+                        <DangerActionButton onClick={() => setShowCancelModal(true)}>
+                            <FaBan />
+                            <span>Anuluj wizytę</span>
+                        </DangerActionButton>
                     )}
+
                     {isCancelled && (
-                        <ActionButton
-                            title="Przywróć wizytę"
-                            primary="true"
-                            restore="true"
-                            onClick={() => setShowRestoreModal(true)}
-                        >
-                            <FaRedo /> Przywróć wizytę
-                        </ActionButton>
+                        <RestoreActionButton onClick={() => setShowRestoreModal(true)}>
+                            <FaRedo />
+                            <span>Przywróć wizytę</span>
+                        </RestoreActionButton>
                     )}
                 </HeaderActions>
             </PageHeader>
 
             <MainContent>
-                <LeftSidebar>
-                    <ProtocolHeader protocol={protocol} onStatusChange={handleStatusChange} />
-                    <ProtocolStatusTimeline protocol={protocol} />
-                </LeftSidebar>
-                <ContentArea>
+                <ContentSection>
                     <ProtocolTabs activeTab={activeTab} onChange={setActiveTab} />
-                    <TabContent>
+                    <TabContentContainer>
                         {renderTabContent()}
-                    </TabContent>
-                </ContentArea>
+                    </TabContentContainer>
+                </ContentSection>
             </MainContent>
 
-            {/* Modal weryfikacji jakości */}
+            {/* Modals */}
             <QualityVerificationModal
                 isOpen={showVerificationModal}
                 onClose={() => setShowVerificationModal(false)}
@@ -470,7 +474,6 @@ const ProtocolDetailsPage: React.FC = () => {
                 protocol={protocol}
             />
 
-            {/* Modal powiadomienia klienta */}
             <CustomerNotificationModal
                 isOpen={showNotificationModal}
                 onClose={() => setShowNotificationModal(false)}
@@ -479,7 +482,6 @@ const ProtocolDetailsPage: React.FC = () => {
                 customerEmail={protocol?.email}
             />
 
-            {/* Modele procesu wydania samochodu */}
             <ClientCommentsModal
                 isOpen={showClientCommentsModal}
                 onClose={handleClientCommentsModalClose}
@@ -493,10 +495,9 @@ const ProtocolDetailsPage: React.FC = () => {
                 totalAmount={protocol?.selectedServices.reduce((sum, s) => sum + s.finalPrice, 0) || 0}
                 services={protocol?.selectedServices || []}
                 onServicesChange={handleServiceItemsChange}
-                protocolId={protocol.id} // Dodajemy ID protokołu
+                protocolId={protocol.id}
             />
 
-            {/* PDF Preview Modal */}
             {showPdfPreview && protocol && (
                 <PDFViewer
                     protocolId={protocol.id}
@@ -531,232 +532,348 @@ const ProtocolDetailsPage: React.FC = () => {
                     protocolId={protocol.id}
                 />
             )}
-
         </PageContainer>
     );
 };
 
-// Styled components
+// Professional Styled Components
 const PageContainer = styled.div`
-    padding: 20px;
-    max-width: 100%;
-    overflow-x: hidden;
+    min-height: 100vh;
+    background: ${brandTheme.surfaceElevated};
 `;
 
-const PageHeader = styled.div`
+const PageHeader = styled.header`
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: ${brandTheme.surface};
+    border-bottom: 1px solid ${brandTheme.border};
+    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
+    backdrop-filter: blur(8px);
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: ${brandTheme.shadowSm};
+
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-`;
+    gap: ${brandTheme.spacing.lg};
 
-
-const BackButton = styled.button`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    background-color: #f9f9f9;
-    border: 1px solid #eee;
-    border-radius: 50%;
-    margin-right: 15px;
-    cursor: pointer;
-    color: #34495e;
-
-    &:hover {
-        background-color: #f0f0f0;
+    @media (max-width: 1024px) {
+        padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+        flex-direction: column;
+        align-items: flex-start;
+        gap: ${brandTheme.spacing.md};
     }
 
-    @media (max-width: 480px) {
-        margin-right: 0;
+    @media (max-width: 768px) {
+        padding: ${brandTheme.spacing.md};
     }
 `;
 
 const HeaderLeft = styled.div`
     display: flex;
     align-items: center;
+    gap: ${brandTheme.spacing.md};
+    min-width: 0;
+    flex: 1;
+`;
 
-    @media (max-width: 480px) {
-        flex-direction: column;
-        align-items: flex-start;
+const BackButton = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    background: ${brandTheme.surfaceHover};
+    border: 1px solid ${brandTheme.borderLight};
+    border-radius: ${brandTheme.radius.md};
+    color: ${brandTheme.textSecondary};
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
 
-        ${BackButton} {
-            margin-bottom: 10px;
+    &:hover {
+        background: ${brandTheme.primaryGhost};
+        border-color: ${brandTheme.primary};
+        color: ${brandTheme.primary};
+        transform: translateY(-1px);
+        box-shadow: ${brandTheme.shadowMd};
+    }
+
+    &:active {
+        transform: translateY(0);
+    }
+
+    span {
+        margin-left: ${brandTheme.spacing.sm};
+        font-weight: 500;
+        font-size: 14px;
+
+        @media (max-width: 768px) {
+            display: none;
         }
     }
 `;
 
-const HeaderTitle = styled.div`
-    h1 {
-        font-size: 24px;
-        margin: 0;
-        color: #2c3e50;
+const HeaderContent = styled.div`
+    min-width: 0;
+    flex: 1;
+`;
 
-        @media (max-width: 768px) {
-            font-size: 20px;
-        }
+const HeaderTitle = styled.h1`
+    font-size: 28px;
+    font-weight: 700;
+    color: ${brandTheme.textPrimary};
+    margin: 0;
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+
+    @media (max-width: 768px) {
+        font-size: 24px;
     }
 `;
 
 const HeaderSubtitle = styled.div`
-    font-size: 14px;
-    color: #7f8c8d;
-    margin-top: 4px;
-`;
-
-const ActionButton = styled.button<{
-    primary?: string;
-    special?: string;
-    release?: string;
-    danger?: string;
-    restore?: string;
-}>`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    background-color: ${props => {
-        if (props.special) return '#2ecc71';
-        if (props.release) return '#f39c12';
-        if (props.danger) return '#e74c3c';
-        if (props.restore) return '#3498db';
-        return props.primary ? '#3498db' : '#f9f9f9';
-    }};
-    color: ${props => props.primary || props.special || props.release || props.danger || props.restore ? 'white' : '#34495e'};
-    border: 1px solid ${props => {
-        if (props.special) return '#2ecc71';
-        if (props.release) return '#f39c12';
-        if (props.danger) return '#e74c3c';
-        if (props.restore) return '#3498db';
-        return props.primary ? '#3498db' : '#eee';
-    }};
-    border-radius: 4px;
+    font-size: 16px;
+    color: ${brandTheme.textSecondary};
+    margin-top: ${brandTheme.spacing.xs};
     font-weight: 500;
-    cursor: pointer;
-
-    &:hover {
-        background-color: ${props => {
-            if (props.special) return '#27ae60';
-            if (props.release) return '#e67e22';
-            if (props.danger) return '#c0392b';
-            if (props.restore) return '#2980b9';
-            return props.primary ? '#2980b9' : '#f0f0f0';
-        }};
-        border-color: ${props => {
-            if (props.special) return '#27ae60';
-            if (props.release) return '#e67e22';
-            if (props.danger) return '#c0392b';
-            if (props.restore) return '#2980b9';
-            return props.primary ? '#2980b9' : '#ddd';
-        }};
-    }
-`;
-const HeaderActions = styled.div`
-    display: flex;
-    gap: 10px;
 
     @media (max-width: 768px) {
+        font-size: 14px;
+    }
+`;
+
+const HeaderActions = styled.div`
+    display: flex;
+    gap: ${brandTheme.spacing.sm};
+    align-items: center;
+    flex-wrap: wrap;
+
+    @media (max-width: 1024px) {
         width: 100%;
-        justify-content: flex-end;
+        justify-content: flex-start;
     }
 
-    @media (max-width: 480px) {
+    @media (max-width: 768px) {
         flex-direction: column;
-        width: 100%;
+        gap: ${brandTheme.spacing.xs};
 
-        ${ActionButton} {
+        > * {
             width: 100%;
-            justify-content: center;
         }
     }
 `;
 
-const MainContent = styled.div`
+const BaseActionButton = styled.button`
     display: flex;
-    gap: 20px;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+    border-radius: ${brandTheme.radius.md};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid transparent;
+    white-space: nowrap;
+    min-height: 44px;
 
-    @media (max-width: 992px) {
-        flex-direction: column;
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow: ${brandTheme.shadowMd};
+    }
+
+    &:active {
+        transform: translateY(0);
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+
+    span {
+        @media (max-width: 480px) {
+            display: none;
+        }
     }
 `;
 
-const LeftSidebar = styled.div`
-    width: 300px;
-    flex-shrink: 0;
+const PrimaryActionButton = styled(BaseActionButton)<{ variant?: 'primary' | 'success' | 'warning' }>`
+    background: ${props => {
+        switch (props.variant) {
+            case 'success': return brandTheme.success;
+            case 'warning': return brandTheme.warning;
+            default: return brandTheme.primary;
+        }
+    }};
+    color: white;
+    border-color: ${props => {
+        switch (props.variant) {
+            case 'success': return brandTheme.success;
+            case 'warning': return brandTheme.warning;
+            default: return brandTheme.primary;
+        }
+    }};
 
-    @media (max-width: 992px) {
-        width: 100%;
+    &:hover {
+        background: ${props => {
+            switch (props.variant) {
+                case 'success': return '#0d9668';
+                case 'warning': return '#d97706';
+                default: return brandTheme.primaryDark;
+            }
+        }};
     }
 `;
 
-const ContentArea = styled.div`
-    flex: 1;
-    min-width: 0;
+const SecondaryActionButton = styled(BaseActionButton)`
+    background: ${brandTheme.surface};
+    color: ${brandTheme.textSecondary};
+    border-color: ${brandTheme.border};
 
-    @media (max-width: 992px) {
-        margin-top: 20px;
+    &:hover {
+        background: ${brandTheme.surfaceHover};
+        color: ${brandTheme.textPrimary};
+        border-color: ${brandTheme.primary};
     }
 `;
 
-const TabContent = styled.div`
-    background-color: white;
-    border-radius: 0 0 8px 8px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    padding: 20px;
+const DangerActionButton = styled(BaseActionButton)`
+    background: ${brandTheme.surface};
+    color: ${brandTheme.error};
+    border-color: ${brandTheme.error};
+
+    &:hover {
+        background: ${brandTheme.errorLight};
+        color: #dc2626;
+    }
+`;
+
+const RestoreActionButton = styled(BaseActionButton)`
+    background: ${brandTheme.primaryGhost};
+    color: ${brandTheme.primary};
+    border-color: ${brandTheme.primary};
+
+    &:hover {
+        background: ${brandTheme.primary};
+        color: white;
+    }
+`;
+
+const MainContent = styled.main`
+    padding: ${brandTheme.spacing.xl};
+    max-width: 1600px;
+    margin: 0 auto;
+
+    @media (max-width: 1024px) {
+        padding: ${brandTheme.spacing.lg};
+    }
 
     @media (max-width: 768px) {
-        padding: 15px;
+        padding: ${brandTheme.spacing.md};
+    }
+`;
+
+const ContentSection = styled.section`
+    min-width: 0;
+`;
+
+const TabContentContainer = styled.div`
+    background: ${brandTheme.surface};
+    border-radius: 0 0 ${brandTheme.radius.lg} ${brandTheme.radius.lg};
+    box-shadow: ${brandTheme.shadowMd};
+    padding: ${brandTheme.spacing.xl};
+    border: 1px solid ${brandTheme.border};
+    border-top: none;
+
+    @media (max-width: 768px) {
+        padding: ${brandTheme.spacing.lg};
+        border-radius: 0 0 ${brandTheme.radius.md} ${brandTheme.radius.md};
     }
 
     @media (max-width: 480px) {
-        padding: 12px;
+        padding: ${brandTheme.spacing.md};
     }
+`;
+
+const EmptyTabContent = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: ${brandTheme.spacing.xxl};
+    color: ${brandTheme.textMuted};
+    font-size: 16px;
+    text-align: center;
+    background: ${brandTheme.surfaceElevated};
+    border-radius: ${brandTheme.radius.md};
+    border: 2px dashed ${brandTheme.borderLight};
 `;
 
 const LoadingContainer = styled.div`
     display: flex;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
-    padding: 50px;
-    font-size: 16px;
-    color: #7f8c8d;
+    justify-content: center;
+    min-height: 60vh;
+    padding: ${brandTheme.spacing.xxl};
+    background: ${brandTheme.surfaceElevated};
+`;
 
-    @media (max-width: 768px) {
-        padding: 30px;
+const LoadingSpinner = styled.div`
+    width: 48px;
+    height: 48px;
+    border: 3px solid ${brandTheme.borderLight};
+    border-top: 3px solid ${brandTheme.primary};
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: ${brandTheme.spacing.lg};
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
     }
+`;
+
+const LoadingText = styled.div`
+    font-size: 16px;
+    color: ${brandTheme.textSecondary};
+    font-weight: 500;
 `;
 
 const ErrorContainer = styled.div`
     display: flex;
-    flex-direction: column;
     align-items: center;
-    padding: 50px;
+    justify-content: center;
+    min-height: 60vh;
+    padding: ${brandTheme.spacing.xxl};
+    background: ${brandTheme.surfaceElevated};
+`;
+
+const ErrorCard = styled.div`
+    background: ${brandTheme.surface};
+    border-radius: ${brandTheme.radius.xl};
+    padding: ${brandTheme.spacing.xxl};
+    box-shadow: ${brandTheme.shadowLg};
+    border: 1px solid ${brandTheme.border};
     text-align: center;
+    max-width: 500px;
+    width: 100%;
+`;
 
-    @media (max-width: 768px) {
-        padding: 30px;
-    }
-
-    @media (max-width: 480px) {
-        padding: 20px;
-    }
+const ErrorIcon = styled.div`
+    font-size: 64px;
+    margin-bottom: ${brandTheme.spacing.lg};
 `;
 
 const ErrorMessage = styled.div`
-    padding: 15px 20px;
-    background-color: #fdecea;
-    color: #e74c3c;
-    border-radius: 4px;
-    margin-bottom: 20px;
-    font-size: 16px;
-    width: 100%;
-    max-width: 500px;
-
-    @media (max-width: 480px) {
-        padding: 12px 15px;
-        font-size: 14px;
-    }
+    font-size: 18px;
+    color: ${brandTheme.textSecondary};
+    margin-bottom: ${brandTheme.spacing.xl};
+    line-height: 1.5;
 `;
 
 export default ProtocolDetailsPage;

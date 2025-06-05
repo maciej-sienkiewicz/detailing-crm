@@ -2,43 +2,105 @@ import React, {useState} from 'react';
 import styled from 'styled-components';
 import {
     FaBell,
-    FaBuilding,
     FaCarSide,
-    FaEnvelope,
-    FaFileInvoiceDollar,
-    FaIdCard,
-    FaPhone,
     FaPlus,
-    FaTags,
     FaTimesCircle,
     FaTrash,
-    FaUser
+    FaClock,
+    FaCheckCircle,
+    FaKey,
+    FaFileAlt,
+    FaUser,
+    FaPhone,
+    FaEnvelope,
+    FaBuilding,
+    FaIdCard,
+    FaExclamationTriangle,
+    FaChartLine,
+    FaTachometerAlt,
+    FaCalendarCheck,
+    FaTools,
+    FaCarCrash
 } from 'react-icons/fa';
 import {
     CarReceptionProtocol,
     DiscountType,
     ProtocolStatus,
+    ProtocolStatusLabels,
     SelectedService,
     ServiceApprovalStatus
 } from '../../../../types';
-import {fetchAvailableServices} from '../../../../api/mocks/carReceptionMocks';
 import {protocolsApi} from '../../../../api/protocolsApi';
 import AddServiceModal from "../../shared/modals/AddServiceModal";
 import {servicesApi} from "../../../../api/servicesApi";
+
+// Executive Design System
+const executive = {
+    // Premium Brand Colors
+    primary: 'var(--brand-primary, #2563eb)',
+    primaryDark: '#1d4ed8',
+
+    // Executive Surface Colors
+    surface: '#ffffff',
+    surfaceElevated: '#fafbfc',
+    surfaceHover: '#f8fafc',
+
+    // Professional Typography
+    textPrimary: '#0f172a',
+    textSecondary: '#475569',
+    textMuted: '#64748b',
+    textSuccess: '#059669',
+    textWarning: '#d97706',
+    textError: '#dc2626',
+
+    // Executive Borders
+    border: '#e2e8f0',
+    borderLight: '#f1f5f9',
+
+    // Status Colors
+    success: '#059669',
+    successBg: '#ecfdf5',
+    warning: '#d97706',
+    warningBg: '#fffbeb',
+    error: '#dc2626',
+    errorBg: '#fef2f2',
+    pending: '#0891b2',
+    pendingBg: '#f0f9ff',
+
+    // Executive Spacing
+    spacing: {
+        xs: '4px',
+        sm: '8px',
+        md: '12px',
+        lg: '16px',
+        xl: '20px',
+        xxl: '24px'
+    },
+
+    // Professional Radius
+    radius: {
+        sm: '4px',
+        md: '6px',
+        lg: '8px'
+    },
+
+    // Executive Shadows
+    shadowCard: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+    shadowHover: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+};
 
 interface ProtocolSummaryProps {
     protocol: CarReceptionProtocol;
     onProtocolUpdate?: (updatedProtocol: CarReceptionProtocol) => void;
 }
 
-const DEFAULT_VAT_RATE = 23; // Domyślna stawka VAT (23%)
+const DEFAULT_VAT_RATE = 23;
 
 const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolUpdate }) => {
     const [showAddServiceModal, setShowAddServiceModal] = useState(false);
     const [availableServices, setAvailableServices] = useState<Array<{id: string; name: string; price: number;}>>([]);
     const [isLoading, setIsLoading] = useState(false);
 
-    // Pobierz dostępne usługi podczas otwierania modalu
     const handleOpenAddServiceModal = async () => {
         setIsLoading(true);
         try {
@@ -52,11 +114,9 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
         }
     };
 
-    // Obsługa anulowania usługi w oczekiwaniu
     const handleCancelService = async (serviceId: string) => {
         if (!window.confirm('Czy na pewno chcesz anulować tę usługę?')) return;
 
-        // Filtrujemy usługi, usuwając anulowaną
         const updatedServices = protocol.selectedServices.filter(service => service.id !== serviceId);
         const updatedProtocol = {
             ...protocol,
@@ -66,23 +126,17 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
 
         try {
             const savedProtocol = await protocolsApi.updateProtocol(updatedProtocol);
-
             if (onProtocolUpdate) {
-                console.log('Wywołanie onProtocolUpdate po anulowaniu usługi:', savedProtocol);
                 onProtocolUpdate(savedProtocol);
-            } else {
-                console.warn('onProtocolUpdate nie jest dostępna, brak aktualizacji UI');
             }
         } catch (error) {
             console.error('Błąd podczas anulowania usługi', error);
         }
     };
 
-    // Obsługa usuwania usługi (dla wszystkich usług, nie tylko oczekujących)
     const handleDeleteService = async (serviceId: string) => {
         if (!window.confirm('Czy na pewno chcesz usunąć tę usługę?')) return;
 
-        // Filtrujemy usługi, usuwając wybraną
         const updatedServices = protocol.selectedServices.filter(service => service.id !== serviceId);
         const updatedProtocol = {
             ...protocol,
@@ -92,30 +146,20 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
 
         try {
             const savedProtocol = await protocolsApi.updateProtocol(updatedProtocol);
-
             if (onProtocolUpdate) {
-                console.log('Wywołanie onProtocolUpdate po usunięciu usługi:', savedProtocol);
                 onProtocolUpdate(savedProtocol);
-            } else {
-                console.warn('onProtocolUpdate nie jest dostępna, brak aktualizacji UI');
             }
         } catch (error) {
             console.error('Błąd podczas usuwania usługi', error);
         }
     };
 
-    // Obsługa ponownego wysłania powiadomienia
     const handleResendNotification = async (serviceId: string) => {
-        // Znajdujemy usługę, dla której wysyłamy ponownie powiadomienie
         const service = protocol.selectedServices.find(s => s.id === serviceId);
         if (!service) return;
-
-        // W rzeczywistym systemie tutaj wysyłalibyśmy żądanie do backendu
-        // aby ponownie wysłał SMS do klienta
         alert(`Ponowne wysłanie SMS z prośbą o potwierdzenie usługi: ${service.name}`);
     };
 
-    // Obsługa dodania nowych usług
     const handleAddServices = async (servicesData: {
         services: Array<{
             id: string;
@@ -133,21 +177,19 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
             setIsLoading(true);
             const now = new Date().toISOString();
 
-            // Utworzenie nowych usług z zachowaniem notatek i informacji o rabatach
             const newServices: SelectedService[] = servicesData.services.map(serviceData => {
                 const newService: SelectedService = {
                     id: `service_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
                     name: serviceData.name,
                     price: serviceData.price,
-                    discountType: serviceData.discountType || 'PERCENTAGE',  // Użyj przekazanego typu lub domyślnego
-                    discountValue: serviceData.discountValue !== undefined ? serviceData.discountValue : 0, // Użyj przekazanej wartości lub domyślnej
-                    finalPrice: serviceData.finalPrice,  // Użyj obliczonej ceny końcowej
+                    discountType: serviceData.discountType || 'PERCENTAGE',
+                    discountValue: serviceData.discountValue !== undefined ? serviceData.discountValue : 0,
+                    finalPrice: serviceData.finalPrice,
                     approvalStatus: ServiceApprovalStatus.PENDING,
                     addedAt: now,
                     confirmationMessage: `Wysłano SMS z prośbą o potwierdzenie usługi`
                 };
 
-                // Dodaj notatkę, jeśli istnieje
                 if (serviceData.note) {
                     newService.note = serviceData.note;
                 }
@@ -155,9 +197,6 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                 return newService;
             });
 
-            console.log('Przygotowane usługi do dodania do protokołu:', newServices);
-
-            // Dodanie usług do protokołu
             const updatedServices = [...protocol.selectedServices, ...newServices];
             const updatedProtocol = {
                 ...protocol,
@@ -165,16 +204,10 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                 updatedAt: now
             };
 
-            // Zapisz do API
             const savedProtocol = await protocolsApi.updateProtocol(updatedProtocol);
-
-            // Zaktualizuj UI
             onProtocolUpdate(savedProtocol);
-
-            // Zamknij modal
             setShowAddServiceModal(false);
 
-            // Informacja dla użytkownika
             alert(`Dodano ${newServices.length} ${newServices.length === 1 ? 'usługę' : newServices.length < 5 ? 'usługi' : 'usług'}. SMS zostanie wysłany na numer ${protocol.phone}.`);
         } catch (error) {
             console.error('Błąd podczas dodawania nowych usług:', error);
@@ -184,27 +217,16 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
         }
     };
 
-    // Funkcje pomocnicze do obliczeń cen netto/brutto
+    // Business Logic Calculations
     const calculateNetPrice = (grossPrice: number, vatRate: number = DEFAULT_VAT_RATE): number => {
         return grossPrice / (1 + vatRate / 100);
     };
 
-    const calculateGrossPrice = (netPrice: number, vatRate: number = DEFAULT_VAT_RATE): number => {
-        return netPrice * (1 + vatRate / 100);
-    };
-
-    // Funkcja obliczająca wszystkie potrzebne ceny dla usługi
     const calculateServicePrices = (service: SelectedService) => {
-        const vatRate =  DEFAULT_VAT_RATE;
-
-        // Cena bazowa brutto (podawana przez użytkownika)
+        const vatRate = DEFAULT_VAT_RATE;
         const baseGrossPrice = service.price;
-        // Cena bazowa netto
         const baseNetPrice = calculateNetPrice(baseGrossPrice, vatRate);
-
-        // Cena końcowa brutto (po uwzględnieniu rabatu)
         const finalGrossPrice = service.finalPrice;
-        // Cena końcowa netto
         const finalNetPrice = calculateNetPrice(finalGrossPrice, vatRate);
 
         return {
@@ -215,333 +237,371 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
         };
     };
 
-    // Oblicz łączne sumy netto i brutto
-    const calculateNetGrossTotals = () => {
-        let totalNetValue = 0;
-        let totalGrossValue = 0;
-        let totalBaseNetValue = 0;
-        let totalBaseGrossValue = 0;
-        let totalDiscountGrossValue = 0;
-        let totalDiscountNetValue = 0;
+    const calculateBusinessMetrics = () => {
+        const allServices = protocol.selectedServices;
+        const approvedServices = allServices.filter(s => s.approvalStatus === ServiceApprovalStatus.APPROVED);
+        const pendingServices = allServices.filter(s => s.approvalStatus === ServiceApprovalStatus.PENDING);
 
-        protocol.selectedServices.filter(s => s.approvalStatus === ServiceApprovalStatus.APPROVED).forEach(service => {
-            const {
-                finalNetPrice,
-                finalGrossPrice,
-                baseNetPrice,
-                baseGrossPrice,
-            } = calculateServicePrices(service);
+        let approvedTotal = 0;
+        let pendingTotal = 0;
+        let totalDiscount = 0;
+        let totalBase = 0;
 
-            // Obliczanie wartości rabatu
-            const discountValueGross = baseGrossPrice - finalGrossPrice;
-            const discountValueNet = baseNetPrice - finalNetPrice;
-
-            totalNetValue += finalNetPrice;
-            totalGrossValue += finalGrossPrice;
-            totalBaseNetValue += baseNetPrice;
-            totalBaseGrossValue += baseGrossPrice;
-            totalDiscountGrossValue += discountValueGross;
-            totalDiscountNetValue += discountValueNet;
+        approvedServices.forEach(service => {
+            const prices = calculateServicePrices(service);
+            approvedTotal += prices.finalGrossPrice;
+            totalBase += prices.baseGrossPrice;
+            totalDiscount += (prices.baseGrossPrice - prices.finalGrossPrice);
         });
 
+        pendingServices.forEach(service => {
+            pendingTotal += service.finalPrice;
+        });
+
+        const discountPercentage = totalBase > 0 ? (totalDiscount / totalBase) * 100 : 0;
+
         return {
-            totalNetValue,
-            totalGrossValue,
-            totalBaseNetValue,
-            totalBaseGrossValue,
-            totalDiscountGrossValue,
-            totalDiscountNetValue
+            approvedTotal,
+            pendingTotal,
+            totalRevenue: approvedTotal + pendingTotal,
+            totalDiscount,
+            discountPercentage,
+            servicesCount: allServices.length,
+            pendingCount: pendingServices.length
         };
     };
 
-    // Obliczanie sum
-    const allServices = protocol.selectedServices;
-    const {
-        totalNetValue,
-        totalGrossValue,
-        totalBaseNetValue,
-        totalBaseGrossValue,
-        totalDiscountGrossValue,
-        totalDiscountNetValue
-    } = calculateNetGrossTotals();
+    // Car Logo API Helper
+    const getCarLogoUrl = (make: string): string => {
+        // Using CarQueryAPI's logo service - free service for car logos
+        const cleanMake = make.toLowerCase().replace(/\s+/g, '');
+        return `https://cdn.imagin.studio/getImage?customer=hrjavascript-mastery&make=${cleanMake}&modelFamily=suv&zoomType=fullscreen&zoomLevel=1&angle=01&size=400`;
+    };
+
+    const metrics = calculateBusinessMetrics();
 
     return (
-        <SummaryContainer>
-            <Section>
-                <SectionTitle>Informacje o pojeździe</SectionTitle>
-                <TwoColumnGrid>
-                    <InfoItem>
-                        <InfoIcon><FaCarSide /></InfoIcon>
-                        <InfoContent>
-                            <InfoLabel>Marka i model</InfoLabel>
-                            <InfoValue>{protocol.make} {protocol.model}</InfoValue>
-                        </InfoContent>
-                    </InfoItem>
+        <ExecutiveDashboard>
+            {/* Status Timeline - Executive Style */}
+            <StatusTimelineSection>
+                <TimelineHeader>
+                    <TimelineTitle>Status realizacji</TimelineTitle>
+                    <StatusProgress>
+                        {protocol.status === ProtocolStatus.SCHEDULED && '1/4'}
+                        {protocol.status === ProtocolStatus.IN_PROGRESS && '2/4'}
+                        {protocol.status === ProtocolStatus.READY_FOR_PICKUP && '3/4'}
+                        {protocol.status === ProtocolStatus.COMPLETED && '4/4'}
+                        {protocol.status === ProtocolStatus.CANCELLED && 'Anulowane'}
+                    </StatusProgress>
+                </TimelineHeader>
+                <StatusSteps>
+                    <StatusStep $active={protocol.status !== ProtocolStatus.CANCELLED} $completed={protocol.status !== ProtocolStatus.SCHEDULED}>
+                        <StepIcon $active={protocol.status === ProtocolStatus.SCHEDULED} $completed={protocol.status !== ProtocolStatus.SCHEDULED && protocol.status !== ProtocolStatus.CANCELLED}>
+                            <FaCalendarCheck />
+                        </StepIcon>
+                        <StepLabel>Zaplanowane</StepLabel>
+                    </StatusStep>
+                    <StatusConnector $active={protocol.status !== ProtocolStatus.SCHEDULED && protocol.status !== ProtocolStatus.CANCELLED} />
+                    <StatusStep $active={protocol.status !== ProtocolStatus.CANCELLED} $completed={[ProtocolStatus.READY_FOR_PICKUP, ProtocolStatus.COMPLETED].includes(protocol.status)}>
+                        <StepIcon $active={protocol.status === ProtocolStatus.IN_PROGRESS} $completed={[ProtocolStatus.READY_FOR_PICKUP, ProtocolStatus.COMPLETED].includes(protocol.status)}>
+                            <FaTools />
+                        </StepIcon>
+                        <StepLabel>W realizacji</StepLabel>
+                    </StatusStep>
+                    <StatusConnector $active={[ProtocolStatus.READY_FOR_PICKUP, ProtocolStatus.COMPLETED].includes(protocol.status)} />
+                    <StatusStep $active={protocol.status !== ProtocolStatus.CANCELLED} $completed={protocol.status === ProtocolStatus.COMPLETED}>
+                        <StepIcon $active={protocol.status === ProtocolStatus.READY_FOR_PICKUP} $completed={protocol.status === ProtocolStatus.COMPLETED}>
+                            <FaClock />
+                        </StepIcon>
+                        <StepLabel>Gotowe</StepLabel>
+                    </StatusStep>
+                    <StatusConnector $active={protocol.status === ProtocolStatus.COMPLETED} />
+                    <StatusStep $active={protocol.status !== ProtocolStatus.CANCELLED} $completed={protocol.status === ProtocolStatus.COMPLETED}>
+                        <StepIcon $active={protocol.status === ProtocolStatus.COMPLETED} $completed={protocol.status === ProtocolStatus.COMPLETED}>
+                            <FaCarSide />
+                        </StepIcon>
+                        <StepLabel>Wydane</StepLabel>
+                    </StatusStep>
+                </StatusSteps>
+                <CurrentStatusBadge $status={protocol.status}>
+                    {ProtocolStatusLabels[protocol.status]}
+                </CurrentStatusBadge>
+            </StatusTimelineSection>
 
-                    <InfoItem>
-                        <InfoIcon><FaTags /></InfoIcon>
-                        <InfoContent>
-                            <InfoLabel>Numer rejestracyjny</InfoLabel>
-                            <InfoValue>{protocol.licensePlate}</InfoValue>
-                        </InfoContent>
-                    </InfoItem>
+            {/* KPI Metrics Row */}
+            <MetricsRow>
+                <KPICard>
+                    <KPIIcon $color={executive.success}>
+                        <FaChartLine />
+                    </KPIIcon>
+                    <KPIContent>
+                        <KPIValue>{metrics.totalRevenue.toFixed(0)} zł</KPIValue>
+                        <KPILabel>Wartość zlecenia</KPILabel>
+                    </KPIContent>
+                </KPICard>
 
-                    <InfoItem>
-                        <InfoIcon><FaFileInvoiceDollar /></InfoIcon>
-                        <InfoContent>
-                            <InfoLabel>Rok produkcji</InfoLabel>
-                            <InfoValue>{protocol.productionYear}</InfoValue>
-                        </InfoContent>
-                    </InfoItem>
+                <KPICard>
+                    <KPIIcon $color={executive.primary}>
+                        <FaFileAlt />
+                    </KPIIcon>
+                    <KPIContent>
+                        <KPIValue>{metrics.servicesCount}</KPIValue>
+                        <KPILabel>Usługi</KPILabel>
+                    </KPIContent>
+                </KPICard>
 
-                    <InfoItem>
-                        <InfoIcon><FaFileInvoiceDollar /></InfoIcon>
-                        <InfoContent>
-                            <InfoLabel>Przebieg</InfoLabel>
-                            <InfoValue>{protocol.mileage} km</InfoValue>
-                        </InfoContent>
-                    </InfoItem>
-                </TwoColumnGrid>
+                {metrics.pendingCount > 0 && (
+                    <KPICard $alert>
+                        <KPIIcon $color={executive.warning}>
+                            <FaExclamationTriangle />
+                        </KPIIcon>
+                        <KPIContent>
+                            <KPIValue>{metrics.pendingCount}</KPIValue>
+                            <KPILabel>Oczekuje</KPILabel>
+                        </KPIContent>
+                    </KPICard>
+                )}
 
-                <AdditionalInfo>
-                    <CheckItem>
-                        <Checkbox checked={protocol.keysProvided} readOnly />
-                        <CheckboxLabel>Przekazano kluczyk</CheckboxLabel>
-                    </CheckItem>
+                {metrics.discountPercentage > 0 && (
+                    <KPICard>
+                        <KPIIcon $color={executive.error}>
+                            <FaPercent />
+                        </KPIIcon>
+                        <KPIContent>
+                            <KPIValue>{metrics.discountPercentage.toFixed(1)}%</KPIValue>
+                            <KPILabel>Rabat</KPILabel>
+                        </KPIContent>
+                    </KPICard>
+                )}
+            </MetricsRow>
 
-                    <CheckItem>
-                        <Checkbox checked={protocol.documentsProvided} readOnly />
-                        <CheckboxLabel>Przekazano dokumenty</CheckboxLabel>
-                    </CheckItem>
-                </AdditionalInfo>
-            </Section>
+            {/* Vehicle & Client Info Row */}
+            <InfoRow>
+                <InfoCard>
+                    <InfoCardHeader>
+                        <InfoCardIcon><FaCarSide /></InfoCardIcon>
+                        <InfoCardTitle>Pojazd</InfoCardTitle>
+                    </InfoCardHeader>
+                    <InfoCardContent>
+                        <PrimaryInfo>
+                            <VehicleModelWithLogo>
+                                <CarLogo
+                                    src={getCarLogoUrl(protocol.make)}
+                                    alt={`${protocol.make} logo`}
+                                    onError={(e) => {
+                                        // Fallback if logo fails to load
+                                        (e.target as HTMLImageElement).style.display = 'none';
+                                    }}
+                                />
+                                <VehicleModel>{protocol.make} {protocol.model}</VehicleModel>
+                            </VehicleModelWithLogo>
+                            <VehiclePlate>{protocol.licensePlate}</VehiclePlate>
+                        </PrimaryInfo>
+                        <SecondaryInfo>
+                            <InfoPair>
+                                <InfoLabel>Właściciel</InfoLabel>
+                                <InfoValue>{protocol.ownerName}</InfoValue>
+                            </InfoPair>
+                            <InfoPair>
+                                <InfoLabel>Rok</InfoLabel>
+                                <InfoValue>{protocol.productionYear}</InfoValue>
+                            </InfoPair>
+                            <InfoPair>
+                                <InfoLabel>Przebieg</InfoLabel>
+                                <InfoValue>{protocol.mileage} km</InfoValue>
+                            </InfoPair>
+                        </SecondaryInfo>
+                        <StatusRow>
+                            <StatusIndicator $status={protocol.keysProvided ? 'completed' : 'pending'}>
+                                {protocol.keysProvided ? <FaCheckCircle /> : <FaKey />}
+                                <span>Kluczyki</span>
+                            </StatusIndicator>
+                            <StatusIndicator $status={protocol.documentsProvided ? 'completed' : 'pending'}>
+                                {protocol.documentsProvided ? <FaCheckCircle /> : <FaFileAlt />}
+                                <span>Dokumenty</span>
+                            </StatusIndicator>
+                        </StatusRow>
+                    </InfoCardContent>
+                </InfoCard>
 
-            <Section>
-                <SectionTitle>Dane klienta</SectionTitle>
-                <TwoColumnGrid>
-                    <InfoItem>
-                        <InfoIcon><FaUser /></InfoIcon>
-                        <InfoContent>
-                            <InfoLabel>Imię i nazwisko</InfoLabel>
-                            <InfoValue>{protocol.ownerName}</InfoValue>
-                        </InfoContent>
-                    </InfoItem>
+                <InfoCard>
+                    <InfoCardHeader>
+                        <InfoCardIcon><FaUser /></InfoCardIcon>
+                        <InfoCardTitle>Kontakt</InfoCardTitle>
+                    </InfoCardHeader>
+                    <InfoCardContent>
+                        <ContactGrid>
+                            <ContactItem>
+                                <FaPhone />
+                                <span>{protocol.phone}</span>
+                            </ContactItem>
+                            <ContactItem>
+                                <FaEnvelope />
+                                <span>{protocol.email}</span>
+                            </ContactItem>
+                            {protocol.companyName && (
+                                <ContactItem>
+                                    <FaBuilding />
+                                    <span>{protocol.companyName}</span>
+                                </ContactItem>
+                            )}
+                            {protocol.taxId && (
+                                <ContactItem>
+                                    <FaIdCard />
+                                    <span>{protocol.taxId}</span>
+                                </ContactItem>
+                            )}
+                        </ContactGrid>
+                    </InfoCardContent>
+                </InfoCard>
+            </InfoRow>
 
-                    <InfoItem>
-                        <InfoIcon><FaPhone /></InfoIcon>
-                        <InfoContent>
-                            <InfoLabel>Telefon</InfoLabel>
-                            <InfoValue>{protocol.phone}</InfoValue>
-                        </InfoContent>
-                    </InfoItem>
-
-                    <InfoItem>
-                        <InfoIcon><FaEnvelope /></InfoIcon>
-                        <InfoContent>
-                            <InfoLabel>Email</InfoLabel>
-                            <InfoValue>{protocol.email}</InfoValue>
-                        </InfoContent>
-                    </InfoItem>
-
-                    {protocol.companyName && (
-                        <InfoItem>
-                            <InfoIcon><FaBuilding /></InfoIcon>
-                            <InfoContent>
-                                <InfoLabel>Firma</InfoLabel>
-                                <InfoValue>{protocol.companyName}</InfoValue>
-                            </InfoContent>
-                        </InfoItem>
-                    )}
-
-                    {protocol.taxId && (
-                        <InfoItem>
-                            <InfoIcon><FaIdCard /></InfoIcon>
-                            <InfoContent>
-                                <InfoLabel>NIP</InfoLabel>
-                                <InfoValue>{protocol.taxId}</InfoValue>
-                            </InfoContent>
-                        </InfoItem>
-                    )}
-                </TwoColumnGrid>
-            </Section>
-
-            <Section>
-                <SectionTitleWithAction>
-                    <SectionTitle>Usługi</SectionTitle>
+            {/* Services Table */}
+            <ServicesSection>
+                <SectionHeader>
+                    <SectionTitle>Wykaz usług</SectionTitle>
                     {protocol.status == ProtocolStatus.IN_PROGRESS && (
-                        <AddButton onClick={handleOpenAddServiceModal} disabled={isLoading}>
-                            <FaPlus /> {isLoading ? 'Ładowanie...' : 'Dodaj usługę'}
-                        </AddButton>
+                        <AddServiceBtn onClick={handleOpenAddServiceModal} disabled={isLoading}>
+                            <FaPlus />
+                            <span>Dodaj usługę</span>
+                        </AddServiceBtn>
                     )}
-                </SectionTitleWithAction>
+                </SectionHeader>
 
-                <ServicesTable>
-                    <TableHeader>
-                        <HeaderCell wide>Nazwa usługi</HeaderCell>
-                        <HeaderCell>Cena bazowa</HeaderCell>
-                        <HeaderCell>Rabat</HeaderCell>
-                        <HeaderCell>Cena końcowa</HeaderCell>
-                        <HeaderCell action>Akcje</HeaderCell>
-                    </TableHeader>
+                {protocol.selectedServices.length === 0 ? (
+                    <EmptyServicesState>
+                        <EmptyStateContent>
+                            <EmptyIcon><FaFileAlt /></EmptyIcon>
+                            <EmptyTitle>Brak usług w protokole</EmptyTitle>
+                            <EmptySubtitle>Dodaj usługi aby rozpocząć wycenę</EmptySubtitle>
+                        </EmptyStateContent>
+                    </EmptyServicesState>
+                ) : (
+                    <ServicesTable>
+                        <TableHeader>
+                            <th style={{ width: '40%' }}>Usługa</th>
+                            <th style={{ width: '15%' }}>Cena bazowa</th>
+                            <th style={{ width: '15%' }}>Rabat</th>
+                            <th style={{ width: '15%' }}>Cena końcowa</th>
+                            <th style={{ width: '10%' }}>Status</th>
+                            <th style={{ width: '5%' }}></th>
+                        </TableHeader>
+                        <TableBody>
+                            {protocol.selectedServices.map((service) => {
+                                const prices = calculateServicePrices(service);
+                                const isPending = service.approvalStatus === ServiceApprovalStatus.PENDING;
 
-                    {allServices.length === 0 ? (
-                        <TableRow>
-                            <TableCell colSpan={6} style={{ textAlign: 'center' }}>
-                                Brak usług. Kliknij "Dodaj usługę", aby dodać pierwszą.
-                            </TableCell>
-                        </TableRow>
-                    ) : (
-                        allServices.map((service) => {
-                            const prices = calculateServicePrices(service);
-
-                            return (
-                                <TableRow
-                                    key={service.id}
-                                    pending={service.approvalStatus === ServiceApprovalStatus.PENDING}
-                                >
-                                    <TableCell wide>
-                                        <ServiceNameContainer>
-                                            <ServiceName>{service.name}</ServiceName>
-                                            {service.approvalStatus === ServiceApprovalStatus.PENDING && (
-                                                <PendingBadge>
-                                                    <FaClock /> Oczekuje na potwierdzenie
-                                                </PendingBadge>
+                                return (
+                                    <TableRow key={service.id} $pending={isPending}>
+                                        <td>
+                                            <ServiceDetails>
+                                                <ServiceName>{service.name}</ServiceName>
+                                                {service.note && (
+                                                    <ServiceNote>{service.note}</ServiceNote>
+                                                )}
+                                            </ServiceDetails>
+                                        </td>
+                                        <td>
+                                            <PriceDisplay>
+                                                <PriceAmount>{prices.baseGrossPrice.toFixed(2)} zł</PriceAmount>
+                                            </PriceDisplay>
+                                        </td>
+                                        <td>
+                                            {service.discountValue > 0 ? (
+                                                <DiscountDisplay>
+                                                    <DiscountAmount>
+                                                        -{service.discountValue.toFixed(2)}
+                                                        {service.discountType === 'PERCENTAGE' ? '%' : 'zł'}
+                                                    </DiscountAmount>
+                                                    <SavingsAmount>
+                                                        (-{(prices.baseGrossPrice - prices.finalGrossPrice).toFixed(2)} zł)
+                                                    </SavingsAmount>
+                                                </DiscountDisplay>
+                                            ) : (
+                                                <NoDiscount>—</NoDiscount>
                                             )}
-                                            {/* Wyświetl komentarz jeśli istnieje */}
-                                            {service.note && (
-                                                <ServiceNote>
-                                                    {service.note}
-                                                </ServiceNote>
-                                            )}
-                                        </ServiceNameContainer>
-                                    </TableCell>
-                                    <PriceCell>
-                                        <PriceWrapper>
-                                            <PriceValue>
-                                                {prices.baseGrossPrice.toFixed(2)} zł
-                                                <PriceType>brutto</PriceType>
-                                            </PriceValue>
-                                            <PriceValue>
-                                                {prices.baseNetPrice.toFixed(2)} zł
-                                                <PriceType>netto</PriceType>
-                                            </PriceValue>
-                                        </PriceWrapper>
-                                    </PriceCell>
-                                    <TableCell>
-                                        {service.discountValue > 0
-                                            ? `${service.discountValue.toFixed(2)}${service.discountType === 'PERCENTAGE' ? '%' : ' zł'}`
-                                            : '-'
-                                        }
-                                    </TableCell>
-                                    <PriceCell>
-                                        <PriceWrapper>
-                                            <PriceValue>
-                                                {prices.finalGrossPrice.toFixed(2)} zł
-                                                <PriceType>brutto</PriceType>
-                                            </PriceValue>
-                                            <PriceValue>
-                                                {prices.finalNetPrice.toFixed(2)} zł
-                                                <PriceType>netto</PriceType>
-                                            </PriceValue>
-                                        </PriceWrapper>
-                                    </PriceCell>
-                                    <TableCell action>
-                                        {protocol.status !== ProtocolStatus.COMPLETED && protocol.status !== ProtocolStatus.CANCELLED && (<ActionButtons>
-                                            {service.approvalStatus === ServiceApprovalStatus.PENDING && (
-                                                <>
+                                        </td>
+                                        <td>
+                                            <PriceDisplay>
+                                                <FinalPriceAmount>{prices.finalGrossPrice.toFixed(2)} zł</FinalPriceAmount>
+                                            </PriceDisplay>
+                                        </td>
+                                        <td>
+                                            <ServiceStatusBadge $status={isPending ? 'pending' : 'approved'}>
+                                                {isPending ? (
+                                                    <>
+                                                        <FaClock />
+                                                        <span>Oczekuje</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <FaCheckCircle />
+                                                        <span>Zatwierdzona</span>
+                                                    </>
+                                                )}
+                                            </ServiceStatusBadge>
+                                        </td>
+                                        <td>
+                                            {protocol.status !== ProtocolStatus.COMPLETED && protocol.status !== ProtocolStatus.CANCELLED && (
+                                                <ActionsMenu>
+                                                    {isPending && (
+                                                        <>
+                                                            <ActionButton
+                                                                onClick={() => handleResendNotification(service.id)}
+                                                                title="Wyślij ponownie SMS"
+                                                                $variant="primary"
+                                                            >
+                                                                <FaBell />
+                                                            </ActionButton>
+                                                            <ActionButton
+                                                                onClick={() => handleCancelService(service.id)}
+                                                                title="Anuluj usługę"
+                                                                $variant="warning"
+                                                            >
+                                                                <FaTimesCircle />
+                                                            </ActionButton>
+                                                        </>
+                                                    )}
                                                     <ActionButton
-                                                        title="Wyślij ponownie SMS"
-                                                        onClick={() => handleResendNotification(service.id)}
+                                                        onClick={() => handleDeleteService(service.id)}
+                                                        title="Usuń usługę"
+                                                        $variant="danger"
                                                     >
-                                                        <FaBell />
+                                                        <FaTrash />
                                                     </ActionButton>
-                                                    <ActionButton
-                                                        title="Anuluj usługę"
-                                                        danger
-                                                        onClick={() => handleCancelService(service.id)}
-                                                    >
-                                                        <FaTimesCircle />
-                                                    </ActionButton>
-                                                </>
+                                                </ActionsMenu>
                                             )}
-                                            <ActionButton
-                                                title="Usuń usługę"
-                                                danger
-                                                onClick={() => handleDeleteService(service.id)}
-                                            >
-                                                <FaTrash />
-                                            </ActionButton>
-                                        </ActionButtons>
-                                        )}
-                                    </TableCell>
-                                </TableRow>
-                            );
-                        })
-                    )}
+                                        </td>
+                                    </TableRow>
+                                );
+                            })}
+                        </TableBody>
 
-                    <TableFooter>
-                        <FooterCell wide>Razem</FooterCell>
-                        <FooterCell>
-                            <PriceWrapper>
-                                <TotalValue>{totalBaseGrossValue.toFixed(2)} zł</TotalValue>
-                                {allServices.filter(s => s.approvalStatus === ServiceApprovalStatus.PENDING).length > 0 && (
-                                    <PendingValue>
-                                        + {allServices
-                                        .filter(s => s.approvalStatus === ServiceApprovalStatus.PENDING)
-                                        .reduce((sum, s) => sum + s.price, 0).toFixed(2)} zł
-                                    </PendingValue>
-                                )}
-                                <PriceType>brutto</PriceType>
-                                <TotalValue>{totalBaseNetValue.toFixed(2)} zł</TotalValue>
-                                <PendingValue>
-                                    + {calculateNetPrice(allServices
-                                    .filter(s => s.approvalStatus === ServiceApprovalStatus.PENDING)
-                                    .reduce((sum, s) => sum + s.price, 0)).toFixed(2)} zł
-                                </PendingValue>
-                                <PriceType>netto</PriceType>
-                            </PriceWrapper>
-                        </FooterCell>
-                        <FooterCell>
-                            <PriceWrapper>
-                                <TotalValue>{totalDiscountGrossValue.toFixed(2)} zł</TotalValue>
-                                <PriceType>brutto</PriceType>
-                                <TotalValue>{totalDiscountNetValue.toFixed(2)} zł</TotalValue>
-                                <PriceType>netto</PriceType>
-                            </PriceWrapper>
-                        </FooterCell>
-                        <FooterCell>
-                            <PriceWrapper>
-                                <TotalValue highlight>{totalGrossValue.toFixed(2)} zł</TotalValue>
-                                {allServices.filter(s => s.approvalStatus === ServiceApprovalStatus.PENDING).length > 0 && (
-                                    <PendingValue>
-                                        + {allServices
-                                        .filter(s => s.approvalStatus === ServiceApprovalStatus.PENDING)
-                                        .reduce((sum, s) => sum + s.finalPrice, 0).toFixed(2)} zł
-                                    </PendingValue>
-                                )}
-                                <PriceType>brutto</PriceType>
-                                <TotalValue>{totalNetValue.toFixed(2)} zł</TotalValue>
-                                <PendingValue>
-                                    + {calculateNetPrice(allServices
-                                    .filter(s => s.approvalStatus === ServiceApprovalStatus.PENDING)
-                                    .reduce((sum, s) => sum + s.finalPrice, 0)).toFixed(2)} zł
-                                </PendingValue>
-                                <PriceType>netto</PriceType>
-                            </PriceWrapper>
-                        </FooterCell>
-                        <FooterCell action></FooterCell>
-                    </TableFooter>
-                </ServicesTable>
-            </Section>
+                        <TableFooter>
+                            <tr>
+                                <td><TotalLabel>ŁĄCZNIE</TotalLabel></td>
+                                <td><TotalAmount>{metrics.approvedTotal + metrics.pendingTotal - metrics.totalDiscount + (protocol.selectedServices.reduce((sum, s) => sum + s.price, 0) - (metrics.approvedTotal + metrics.pendingTotal)).toFixed(2)} zł</TotalAmount></td>
+                                <td><TotalAmount>-{metrics.totalDiscount.toFixed(2)} zł</TotalAmount></td>
+                                <td><FinalTotalAmount>{metrics.totalRevenue.toFixed(2)} zł</FinalTotalAmount></td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                        </TableFooter>
+                    </ServicesTable>
+                )}
+            </ServicesSection>
 
+            {/* Notes Section */}
             {protocol.notes && (
-                <Section>
-                    <SectionTitle>Uwagi</SectionTitle>
+                <NotesSection>
+                    <SectionHeader>
+                        <SectionTitle>Uwagi do zlecenia</SectionTitle>
+                    </SectionHeader>
                     <NotesContent>{protocol.notes}</NotesContent>
-                </Section>
+                </NotesSection>
             )}
 
-            {/* Modal dodawania usługi */}
+            {/* Add Service Modal */}
             <AddServiceModal
                 isOpen={showAddServiceModal}
                 onClose={() => setShowAddServiceModal(false)}
@@ -549,277 +609,684 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                 availableServices={availableServices}
                 customerPhone={protocol.phone}
             />
-        </SummaryContainer>
+        </ExecutiveDashboard>
     );
 };
 
-// Styled components
-const SummaryContainer = styled.div``;
-
-const Section = styled.div`
-    margin-bottom: 30px;
-
-    &:last-child {
-        margin-bottom: 0;
-    }
+// Executive Styled Components
+const ExecutiveDashboard = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${executive.spacing.xxl};
+    max-width: 100%;
 `;
 
-const SectionTitleWithAction = styled.div`
+// Status Timeline Styles
+const StatusTimelineSection = styled.div`
+    background: ${executive.surface};
+    border: 1px solid ${executive.border};
+    border-radius: ${executive.radius.lg};
+    box-shadow: ${executive.shadowCard};
+    padding: ${executive.spacing.xl};
+`;
+
+const TimelineHeader = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 15px;
+    margin-bottom: ${executive.spacing.xl};
 `;
 
-const SectionTitle = styled.h3`
+const TimelineTitle = styled.h3`
     font-size: 16px;
-    margin: 0 0 15px 0;
-    padding-bottom: 8px;
-    border-bottom: 1px solid #eee;
-    color: #2c3e50;
+    font-weight: 600;
+    color: ${executive.textPrimary};
+    margin: 0;
 `;
 
-const AddButton = styled.button<{ disabled?: boolean }>`
+const StatusProgress = styled.div`
+    font-size: 14px;
+    font-weight: 500;
+    color: ${executive.textMuted};
+    padding: ${executive.spacing.sm} ${executive.spacing.md};
+    background: ${executive.surfaceElevated};
+    border-radius: ${executive.radius.md};
+`;
+
+const StatusSteps = styled.div`
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    background-color: ${props => props.disabled ? '#e0e0e0' : '#f0f7ff'};
-    color: ${props => props.disabled ? '#95a5a6' : '#3498db'};
-    border: 1px solid ${props => props.disabled ? '#d5d5d5' : '#d5e9f9'};
-    border-radius: 4px;
-    font-size: 13px;
-    cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
-
-    &:hover:not(:disabled) {
-        background-color: #d5e9f9;
-    }
+    margin-bottom: ${executive.spacing.xl};
 `;
 
-const TwoColumnGrid = styled.div`
+const StatusStep = styled.div<{ $active: boolean; $completed: boolean }>`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: ${executive.spacing.sm};
+    opacity: ${props => props.$active ? 1 : 0.4};
+`;
+
+const StepIcon = styled.div<{ $active: boolean; $completed: boolean }>`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: ${props => {
+    if (props.$completed) return executive.success;
+    if (props.$active) return executive.primary;
+    return executive.surfaceElevated;
+}};
+    color: ${props => {
+    if (props.$completed || props.$active) return 'white';
+    return executive.textMuted;
+}};
+    border: 3px solid ${props => {
+    if (props.$completed) return executive.success;
+    if (props.$active) return executive.primary;
+    return executive.border;
+}};
+    font-size: 18px;
+    transition: all 0.3s ease;
+`;
+
+const StepLabel = styled.div`
+    font-size: 13px;
+    font-weight: 500;
+    color: ${executive.textSecondary};
+    text-align: center;
+`;
+
+const StatusConnector = styled.div<{ $active: boolean }>`
+    flex: 1;
+    height: 2px;
+    background: ${props => props.$active ? executive.success : executive.border};
+    margin: 0 ${executive.spacing.md};
+    transition: background 0.3s ease;
+`;
+
+const CurrentStatusBadge = styled.div<{ $status: ProtocolStatus }>`
+    display: inline-flex;
+    align-items: center;
+    padding: ${executive.spacing.sm} ${executive.spacing.lg};
+    background: ${props => {
+    switch (props.$status) {
+        case ProtocolStatus.SCHEDULED: return executive.primary + '15';
+        case ProtocolStatus.IN_PROGRESS: return executive.warning + '15';
+        case ProtocolStatus.READY_FOR_PICKUP: return executive.success + '15';
+        case ProtocolStatus.COMPLETED: return executive.surfaceElevated;
+        case ProtocolStatus.CANCELLED: return executive.errorBg;
+        default: return executive.surfaceElevated;
+    }
+}};
+    color: ${props => {
+    switch (props.$status) {
+        case ProtocolStatus.SCHEDULED: return executive.primary;
+        case ProtocolStatus.IN_PROGRESS: return executive.warning;
+        case ProtocolStatus.READY_FOR_PICKUP: return executive.success;
+        case ProtocolStatus.COMPLETED: return executive.textMuted;
+        case ProtocolStatus.CANCELLED: return executive.error;
+        default: return executive.textMuted;
+    }
+}};
+    border: 1px solid ${props => {
+    switch (props.$status) {
+        case ProtocolStatus.SCHEDULED: return executive.primary + '30';
+        case ProtocolStatus.IN_PROGRESS: return executive.warning + '30';
+        case ProtocolStatus.READY_FOR_PICKUP: return executive.success + '30';
+        case ProtocolStatus.COMPLETED: return executive.border;
+        case ProtocolStatus.CANCELLED: return executive.error + '30';
+        default: return executive.border;
+    }
+}};
+    border-radius: ${executive.radius.md};
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+`;
+
+const MetricsRow = styled.div`
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: ${executive.spacing.lg};
+`;
+
+const KPICard = styled.div<{ $alert?: boolean }>`
+    display: flex;
+    align-items: center;
+    gap: ${executive.spacing.lg};
+    padding: ${executive.spacing.lg} ${executive.spacing.xl};
+    background: ${executive.surface};
+    border: 1px solid ${props => props.$alert ? executive.warning + '40' : executive.border};
+    border-radius: ${executive.radius.lg};
+    box-shadow: ${executive.shadowCard};
+    transition: all 0.2s ease;
+
+    &:hover {
+        box-shadow: ${executive.shadowHover};
+        transform: translateY(-1px);
+    }
+
+    ${props => props.$alert && `
+        background: ${executive.warningBg};
+    `}
+`;
+
+const KPIIcon = styled.div<{ $color: string }>`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background: ${props => props.$color}15;
+    color: ${props => props.$color};
+    border-radius: ${executive.radius.lg};
+    font-size: 20px;
+`;
+
+const KPIContent = styled.div`
+    display: flex;
+    flex-direction: column;
+`;
+
+const KPIValue = styled.div`
+    font-size: 24px;
+    font-weight: 700;
+    color: ${executive.textPrimary};
+    line-height: 1.2;
+`;
+
+const KPILabel = styled.div`
+    font-size: 13px;
+    color: ${executive.textMuted};
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+`;
+
+const InfoRow = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 15px;
+    gap: ${executive.spacing.xxl};
 
     @media (max-width: 768px) {
         grid-template-columns: 1fr;
     }
 `;
 
-const InfoItem = styled.div`
+const InfoCard = styled.div`
+    background: ${executive.surface};
+    border: 1px solid ${executive.border};
+    border-radius: ${executive.radius.lg};
+    box-shadow: ${executive.shadowCard};
+    overflow: hidden;
+`;
+
+const InfoCardHeader = styled.div`
     display: flex;
-    align-items: flex-start;
+    align-items: center;
+    gap: ${executive.spacing.md};
+    padding: ${executive.spacing.lg} ${executive.spacing.xl};
+    background: ${executive.surfaceElevated};
+    border-bottom: 1px solid ${executive.borderLight};
 `;
 
-const InfoIcon = styled.div`
-    width: 20px;
-    margin-right: 10px;
-    color: #7f8c8d;
-    padding-top: 2px;
+const InfoCardIcon = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: ${executive.primary}15;
+    color: ${executive.primary};
+    border-radius: ${executive.radius.md};
+    font-size: 16px;
 `;
 
-const InfoContent = styled.div`
-    flex: 1;
+const InfoCardTitle = styled.h3`
+    font-size: 16px;
+    font-weight: 600;
+    color: ${executive.textPrimary};
+    margin: 0;
+`;
+
+const InfoCardContent = styled.div`
+    padding: ${executive.spacing.xl};
+`;
+
+const PrimaryInfo = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: ${executive.spacing.lg};
+    padding-bottom: ${executive.spacing.lg};
+    border-bottom: 1px solid ${executive.borderLight};
+`;
+
+const VehicleModelWithLogo = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${executive.spacing.md};
+`;
+
+const CarLogo = styled.img`
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    border-radius: ${executive.radius.sm};
+    background: ${executive.surfaceElevated};
+    padding: 2px;
+`;
+
+const VehicleModel = styled.div`
+    font-size: 18px;
+    font-weight: 600;
+    color: ${executive.textPrimary};
+`;
+
+const VehiclePlate = styled.div`
+    padding: ${executive.spacing.sm} ${executive.spacing.md};
+    background: ${executive.primary}10;
+    border: 2px solid ${executive.primary}30;
+    border-radius: ${executive.radius.md};
+    font-weight: 700;
+    color: ${executive.primary};
+    font-family: monospace;
+    letter-spacing: 1px;
+`;
+
+const SecondaryInfo = styled.div`
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: ${executive.spacing.lg};
+    margin-bottom: ${executive.spacing.lg};
+`;
+
+const InfoPair = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${executive.spacing.xs};
 `;
 
 const InfoLabel = styled.div`
     font-size: 12px;
-    color: #7f8c8d;
-    margin-bottom: 2px;
+    color: ${executive.textMuted};
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 `;
 
 const InfoValue = styled.div`
     font-size: 14px;
-    color: #34495e;
+    font-weight: 600;
+    color: ${executive.textPrimary};
 `;
 
-const AdditionalInfo = styled.div`
+const StatusRow = styled.div`
     display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-    margin-top: 15px;
+    gap: ${executive.spacing.lg};
 `;
 
-const CheckItem = styled.div`
+const StatusIndicator = styled.div<{ $status: 'completed' | 'pending' }>`
     display: flex;
     align-items: center;
+    gap: ${executive.spacing.sm};
+    padding: ${executive.spacing.sm} ${executive.spacing.md};
+    background: ${props => props.$status === 'completed' ? executive.successBg : executive.surfaceElevated};
+    border: 1px solid ${props => props.$status === 'completed' ? executive.success + '30' : executive.borderLight};
+    border-radius: ${executive.radius.md};
+    color: ${props => props.$status === 'completed' ? executive.success : executive.textMuted};
+    font-size: 13px;
+    font-weight: 500;
+    flex: 1;
 `;
 
-const Checkbox = styled.input.attrs({ type: 'checkbox' })`
-    margin-right: 8px;
+const ContactGrid = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${executive.spacing.lg};
 `;
 
-const CheckboxLabel = styled.div`
+const ContactItem = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${executive.spacing.md};
     font-size: 14px;
-    color: #34495e;
+    color: ${executive.textSecondary};
+
+    svg {
+        color: ${executive.textMuted};
+        width: 16px;
+    }
 `;
 
-const ServicesTable = styled.div`
-    border: 1px solid #eee;
-    border-radius: 4px;
+const ServicesSection = styled.div`
+    background: ${executive.surface};
+    border: 1px solid ${executive.border};
+    border-radius: ${executive.radius.lg};
+    box-shadow: ${executive.shadowCard};
     overflow: hidden;
 `;
 
-const TableHeader = styled.div`
+const SectionHeader = styled.div`
     display: flex;
-    background-color: #f9f9f9;
-    border-bottom: 1px solid #eee;
+    justify-content: space-between;
+    align-items: center;
+    padding: ${executive.spacing.lg} ${executive.spacing.xl};
+    background: ${executive.surfaceElevated};
+    border-bottom: 1px solid ${executive.borderLight};
+`;
+
+const SectionTitle = styled.h3`
+    font-size: 16px;
+    font-weight: 600;
+    color: ${executive.textPrimary};
+    margin: 0;
+`;
+
+const AddServiceBtn = styled.button`
+    display: flex;
+    align-items: center;
+    gap: ${executive.spacing.sm};
+    padding: ${executive.spacing.sm} ${executive.spacing.lg};
+    background: ${executive.primary};
+    color: white;
+    border: none;
+    border-radius: ${executive.radius.md};
+    font-size: 14px;
     font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover:not(:disabled) {
+        background: ${executive.primaryDark};
+        transform: translateY(-1px);
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
 `;
 
-const HeaderCell = styled.div<{ wide?: boolean; action?: boolean }>`
-    padding: 12px 16px;
-    font-size: 13px;
-    color: #7f8c8d;
-    flex: ${props => props.wide ? 2 : props.action ? 0.7 : 1};
+const EmptyServicesState = styled.div`
+    padding: ${executive.spacing.xxl} ${executive.spacing.xl};
 `;
 
-const TableRow = styled.div<{ pending?: boolean }>`
+const EmptyStateContent = styled.div`
     display: flex;
-    border-bottom: 1px solid #eee;
-    background-color: ${props => props.pending ? '#f8f9fa' : 'white'};
-    opacity: ${props => props.pending ? 0.7 : 1};
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: ${executive.spacing.xxl};
+`;
+
+const EmptyIcon = styled.div`
+    width: 64px;
+    height: 64px;
+    background: ${executive.surfaceElevated};
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${executive.textMuted};
+    font-size: 24px;
+    margin-bottom: ${executive.spacing.lg};
+`;
+
+const EmptyTitle = styled.div`
+    font-size: 18px;
+    font-weight: 600;
+    color: ${executive.textSecondary};
+    margin-bottom: ${executive.spacing.sm};
+`;
+
+const EmptySubtitle = styled.div`
+    font-size: 14px;
+    color: ${executive.textMuted};
+`;
+
+const ServicesTable = styled.table`
+    width: 100%;
+    border-collapse: collapse;
+`;
+
+const TableHeader = styled.thead`
+    th {
+        padding: ${executive.spacing.lg} ${executive.spacing.xl};
+        text-align: left;
+        font-size: 12px;
+        font-weight: 600;
+        color: ${executive.textMuted};
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        background: ${executive.surfaceElevated};
+        border-bottom: 1px solid ${executive.borderLight};
+    }
+`;
+
+const TableBody = styled.tbody``;
+
+const TableRow = styled.tr<{ $pending?: boolean }>`
+    border-bottom: 1px solid ${executive.borderLight};
+    transition: background-color 0.2s ease;
+    
+    ${props => props.$pending && `
+        background: ${executive.pendingBg};
+    `}
+
+    &:hover {
+        background: ${executive.surfaceHover};
+    }
 
     &:last-child {
         border-bottom: none;
     }
+
+    td {
+        padding: ${executive.spacing.lg} ${executive.spacing.xl};
+        vertical-align: top;
+    }
 `;
 
-const TableCell = styled.div<{ wide?: boolean; colSpan?: number; action?: boolean }>`
-    padding: 12px 16px;
-    font-size: 14px;
-    color: #34495e;
-    flex: ${props => props.wide ? 2 : props.action ? 0.7 : props.colSpan ? props.colSpan : 1};
-`;
-
-const ServiceNameContainer = styled.div`
+const ServiceDetails = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: ${executive.spacing.sm};
 `;
 
 const ServiceName = styled.div`
-    font-weight: normal;
-    color: #34495e;
+    font-size: 15px;
+    font-weight: 500;
+    color: ${executive.textPrimary};
+    line-height: 1.4;
 `;
 
-// Komponent dla notatki do usługi
 const ServiceNote = styled.div`
-    font-size: 12px;
-    color: #7f8c8d;
-    margin-top: 4px;
+    font-size: 13px;
+    color: ${executive.textMuted};
     font-style: italic;
     line-height: 1.4;
-    padding-top: 4px;
-    border-top: 1px dashed #eee;
-    word-break: break-word;
 `;
 
-const PendingBadge = styled.div`
+const PriceDisplay = styled.div`
+    display: flex;
+    flex-direction: column;
+`;
+
+const PriceAmount = styled.div`
+    font-size: 15px;
+    font-weight: 500;
+    color: ${executive.textPrimary};
+`;
+
+const FinalPriceAmount = styled.div`
+    font-size: 16px;
+    font-weight: 700;
+    color: ${executive.primary};
+`;
+
+const DiscountDisplay = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+`;
+
+const DiscountAmount = styled.div`
+    font-size: 14px;
+    font-weight: 600;
+    color: ${executive.error};
+`;
+
+const SavingsAmount = styled.div`
+    font-size: 12px;
+    color: ${executive.textSuccess};
+    font-weight: 500;
+`;
+
+const NoDiscount = styled.div`
+    font-size: 15px;
+    color: ${executive.textMuted};
+    font-weight: 300;
+`;
+
+const ServiceStatusBadge = styled.div<{ $status: 'pending' | 'approved' }>`
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: ${executive.spacing.xs};
+    padding: ${executive.spacing.xs} ${executive.spacing.sm};
+    background: ${props => props.$status === 'pending' ? executive.pendingBg : executive.successBg};
+    color: ${props => props.$status === 'pending' ? executive.pending : executive.success};
+    border: 1px solid ${props => props.$status === 'pending' ? executive.pending + '30' : executive.success + '30'};
+    border-radius: ${executive.radius.sm};
     font-size: 12px;
-    color: #95a5a6;
-    background-color: #f0f0f0;
-    padding: 3px 6px;
-    border-radius: 4px;
+    font-weight: 500;
     width: fit-content;
+
+    span {
+        font-size: 11px;
+    }
 `;
 
-const ActionButtons = styled.div`
+const ActionsMenu = styled.div`
     display: flex;
-    gap: 6px;
+    gap: ${executive.spacing.xs};
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+
+    ${TableRow}:hover & {
+        opacity: 1;
+    }
 `;
 
-const ActionButton = styled.button<{ danger?: boolean }>`
+const ActionButton = styled.button<{ $variant: 'primary' | 'warning' | 'danger' }>`
     display: flex;
     align-items: center;
     justify-content: center;
     width: 28px;
     height: 28px;
-    background-color: ${props => props.danger ? '#fef5f5' : '#f0f7ff'};
-    color: ${props => props.danger ? '#e74c3c' : '#3498db'};
-    border: 1px solid ${props => props.danger ? '#fde8e8' : '#d5e9f9'};
-    border-radius: 4px;
+    border: none;
+    border-radius: ${executive.radius.sm};
     cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 11px;
 
-    &:hover {
-        background-color: ${props => props.danger ? '#fde8e8' : '#d5e9f9'};
+    ${props => {
+    switch (props.$variant) {
+        case 'primary':
+            return `
+                    background: ${executive.primary}20;
+                    color: ${executive.primary};
+                    &:hover {
+                        background: ${executive.primary};
+                        color: white;
+                        transform: translateY(-1px);
+                    }
+                `;
+        case 'warning':
+            return `
+                    background: ${executive.warning}20;
+                    color: ${executive.warning};
+                    &:hover {
+                        background: ${executive.warning};
+                        color: white;
+                        transform: translateY(-1px);
+                    }
+                `;
+        case 'danger':
+            return `
+                    background: ${executive.error}20;
+                    color: ${executive.error};
+                    &:hover {
+                        background: ${executive.error};
+                        color: white;
+                        transform: translateY(-1px);
+                    }
+                `;
+    }
+}}
+`;
+
+const TableFooter = styled.tfoot`
+    tr {
+        background: ${executive.surfaceElevated};
+        border-top: 2px solid ${executive.border};
+    }
+
+    td {
+        padding: ${executive.spacing.lg} ${executive.spacing.xl};
+        font-weight: 600;
     }
 `;
 
-const TableFooter = styled.div`
-    display: flex;
-    background-color: #f9f9fa;
-    border-top: 1px solid #eee;
-    font-weight: 500;
-`;
-
-const FooterCell = styled.div<{ wide?: boolean; highlight?: boolean; action?: boolean }>`
-    padding: 12px 16px;
+const TotalLabel = styled.div`
     font-size: 14px;
-    color: ${props => props.highlight ? '#27ae60' : '#34495e'};
-    font-weight: ${props => props.highlight ? '600' : '500'};
-    flex: ${props => props.wide ? 2 : props.action ? 0.7 : 1};
+    font-weight: 700;
+    color: ${executive.textPrimary};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 `;
 
-const TotalValue = styled.div<{ highlight?: boolean }>`
-    color: ${props => props.highlight ? '#27ae60' : '#34495e'};
+const TotalAmount = styled.div`
+    font-size: 15px;
     font-weight: 600;
+    color: ${executive.textPrimary};
 `;
 
-const PendingValue = styled.div`
-    font-size: 12px;
-    color: #95a5a6;
-    font-weight: normal;
-    margin-top: 2px;
+const FinalTotalAmount = styled.div`
+    font-size: 18px;
+    font-weight: 800;
+    color: ${executive.primary};
+`;
+
+const NotesSection = styled.div`
+    background: ${executive.surface};
+    border: 1px solid ${executive.border};
+    border-radius: ${executive.radius.lg};
+    box-shadow: ${executive.shadowCard};
+    overflow: hidden;
 `;
 
 const NotesContent = styled.div`
-    background-color: #f9f9f9;
-    border-radius: 4px;
-    padding: 15px;
-    font-size: 14px;
-    color: #34495e;
+    padding: ${executive.spacing.xl};
+    font-size: 15px;
+    color: ${executive.textSecondary};
+    line-height: 1.6;
     white-space: pre-line;
+    background: ${executive.surfaceElevated};
+    border-left: 4px solid ${executive.primary};
 `;
 
-// Komponent FaClock został zadeklarowany inline
-const FaClock = styled.span`
-    display: inline-block;
-    width: 12px;
-    height: 12px;
-    margin-right: 4px;
-    position: relative;
-    
-    &:before {
-        content: "⏱";
-        position: absolute;
-        top: -2px;
-        left: 0;
+// Missing FaPercent import fix
+const FaPercent = styled.div`
+    &::before {
+        content: '%';
+        font-weight: bold;
     }
-`;
-
-// Nowe komponenty dla wyświetlania cen brutto/netto
-const PriceCell = styled(TableCell)`
-    min-width: 120px;
-`;
-
-const PriceWrapper = styled.div`
-    display: flex;
-    flex-direction: column;
-`;
-
-const PriceValue = styled.div`
-    font-size: 14px;
-    color: #34495e;
-`;
-
-const PriceType = styled.div`
-    font-size: 10px;
-    color: #7f8c8d;
-    margin-top: 2px;
 `;
 
 export default ProtocolSummary;
