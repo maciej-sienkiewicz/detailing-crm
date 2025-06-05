@@ -67,8 +67,7 @@ export const commentsApi = {
     // Dodawanie nowego komentarza
     addComment: async (comment: Comment): Promise<Comment | null> => {
         try {
-            const requestData = convertCamelToSnake(comment);
-            const response = await apiClient.post<any>('/receptions/comments', requestData);
+            const response = await apiClient.postNot<any>('/receptions/comments', comment);
             return convertSnakeToCamel(response) as Comment;
         } catch (error) {
             console.error('Error adding comment:', error);

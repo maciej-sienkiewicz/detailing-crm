@@ -34,11 +34,12 @@ import {protocolsApi} from '../../../../api/protocolsApi';
 import AddServiceModal from "../../shared/modals/AddServiceModal";
 import {servicesApi} from "../../../../api/servicesApi";
 
-// Executive Design System
+// Executive Design System - Ultra-professional automotive grade
 const executive = {
     // Premium Brand Colors
     primary: 'var(--brand-primary, #2563eb)',
     primaryDark: '#1d4ed8',
+    primaryLight: '#3b82f6',
 
     // Executive Surface Colors
     surface: '#ffffff',
@@ -57,7 +58,7 @@ const executive = {
     border: '#e2e8f0',
     borderLight: '#f1f5f9',
 
-    // Status Colors
+    // Status Colors - refined
     success: '#059669',
     successBg: '#ecfdf5',
     warning: '#d97706',
@@ -84,9 +85,10 @@ const executive = {
         lg: '8px'
     },
 
-    // Executive Shadows
+    // Executive Shadows - refined for automotive luxury
     shadowCard: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
-    shadowHover: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+    shadowHover: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+    shadowSubtle: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
 };
 
 interface ProtocolSummaryProps {
@@ -271,19 +273,31 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
         };
     };
 
-    // Car Logo API Helper
+    // Ulepszona funkcja do pobierania logo samochodu - używamy Car Query API + Fallback
     const getCarLogoUrl = (make: string): string => {
-        // Using CarQueryAPI's logo service - free service for car logos
         const cleanMake = make.toLowerCase().replace(/\s+/g, '');
-        return `https://cdn.imagin.studio/getImage?customer=hrjavascript-mastery&make=${cleanMake}&modelFamily=suv&zoomType=fullscreen&zoomLevel=1&angle=01&size=400`;
+
+        // Próbujemy kilka różnych źródeł logo samochodów
+        const logoSources = [
+            // Car Make Logo API (darmowe)
+            `https://carmakelogos.herokuapp.com/api/v1/logos/${cleanMake}`,
+            // Fallback do Car API (jeśli dostępne)
+            `https://car-data.p.rapidapi.com/logo/${cleanMake}.png`,
+            // Logo z AutoImg
+            `https://www.carlogos.org/car-logos/${cleanMake}-logo.png`,
+            // Ostatni fallback - prostą ikonę
+            `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.22.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>`)}`
+        ];
+
+        return logoSources[0]; // Używamy pierwszego źródła jako główne
     };
 
     const metrics = calculateBusinessMetrics();
 
     return (
         <ExecutiveDashboard>
-            {/* Status Timeline - Executive Style */}
-            <StatusTimelineSection>
+            {/* Kompaktowy Status Timeline - zmniejszona szerokość */}
+            <CompactStatusTimelineSection>
                 <TimelineHeader>
                     <TimelineTitle>Status realizacji</TimelineTitle>
                     <StatusProgress>
@@ -294,39 +308,36 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                         {protocol.status === ProtocolStatus.CANCELLED && 'Anulowane'}
                     </StatusProgress>
                 </TimelineHeader>
-                <StatusSteps>
+                <CompactStatusSteps>
                     <StatusStep $active={protocol.status !== ProtocolStatus.CANCELLED} $completed={protocol.status !== ProtocolStatus.SCHEDULED}>
-                        <StepIcon $active={protocol.status === ProtocolStatus.SCHEDULED} $completed={protocol.status !== ProtocolStatus.SCHEDULED && protocol.status !== ProtocolStatus.CANCELLED}>
+                        <CompactStepIcon $active={protocol.status === ProtocolStatus.SCHEDULED} $completed={protocol.status !== ProtocolStatus.SCHEDULED && protocol.status !== ProtocolStatus.CANCELLED}>
                             <FaCalendarCheck />
-                        </StepIcon>
-                        <StepLabel>Zaplanowane</StepLabel>
+                        </CompactStepIcon>
+                        <CompactStepLabel>Zaplanowane</CompactStepLabel>
                     </StatusStep>
-                    <StatusConnector $active={protocol.status !== ProtocolStatus.SCHEDULED && protocol.status !== ProtocolStatus.CANCELLED} />
+                    <CompactStatusConnector $active={protocol.status !== ProtocolStatus.SCHEDULED && protocol.status !== ProtocolStatus.CANCELLED} />
                     <StatusStep $active={protocol.status !== ProtocolStatus.CANCELLED} $completed={[ProtocolStatus.READY_FOR_PICKUP, ProtocolStatus.COMPLETED].includes(protocol.status)}>
-                        <StepIcon $active={protocol.status === ProtocolStatus.IN_PROGRESS} $completed={[ProtocolStatus.READY_FOR_PICKUP, ProtocolStatus.COMPLETED].includes(protocol.status)}>
+                        <CompactStepIcon $active={protocol.status === ProtocolStatus.IN_PROGRESS} $completed={[ProtocolStatus.READY_FOR_PICKUP, ProtocolStatus.COMPLETED].includes(protocol.status)}>
                             <FaTools />
-                        </StepIcon>
-                        <StepLabel>W realizacji</StepLabel>
+                        </CompactStepIcon>
+                        <CompactStepLabel>W realizacji</CompactStepLabel>
                     </StatusStep>
-                    <StatusConnector $active={[ProtocolStatus.READY_FOR_PICKUP, ProtocolStatus.COMPLETED].includes(protocol.status)} />
+                    <CompactStatusConnector $active={[ProtocolStatus.READY_FOR_PICKUP, ProtocolStatus.COMPLETED].includes(protocol.status)} />
                     <StatusStep $active={protocol.status !== ProtocolStatus.CANCELLED} $completed={protocol.status === ProtocolStatus.COMPLETED}>
-                        <StepIcon $active={protocol.status === ProtocolStatus.READY_FOR_PICKUP} $completed={protocol.status === ProtocolStatus.COMPLETED}>
+                        <CompactStepIcon $active={protocol.status === ProtocolStatus.READY_FOR_PICKUP} $completed={protocol.status === ProtocolStatus.COMPLETED}>
                             <FaClock />
-                        </StepIcon>
-                        <StepLabel>Gotowe</StepLabel>
+                        </CompactStepIcon>
+                        <CompactStepLabel>Gotowe</CompactStepLabel>
                     </StatusStep>
-                    <StatusConnector $active={protocol.status === ProtocolStatus.COMPLETED} />
+                    <CompactStatusConnector $active={protocol.status === ProtocolStatus.COMPLETED} />
                     <StatusStep $active={protocol.status !== ProtocolStatus.CANCELLED} $completed={protocol.status === ProtocolStatus.COMPLETED}>
-                        <StepIcon $active={protocol.status === ProtocolStatus.COMPLETED} $completed={protocol.status === ProtocolStatus.COMPLETED}>
+                        <CompactStepIcon $active={protocol.status === ProtocolStatus.COMPLETED} $completed={protocol.status === ProtocolStatus.COMPLETED}>
                             <FaCarSide />
-                        </StepIcon>
-                        <StepLabel>Wydane</StepLabel>
+                        </CompactStepIcon>
+                        <CompactStepLabel>Wydane</CompactStepLabel>
                     </StatusStep>
-                </StatusSteps>
-                <CurrentStatusBadge $status={protocol.status}>
-                    {ProtocolStatusLabels[protocol.status]}
-                </CurrentStatusBadge>
-            </StatusTimelineSection>
+                </CompactStatusSteps>
+            </CompactStatusTimelineSection>
 
             {/* KPI Metrics Row */}
             <MetricsRow>
@@ -389,13 +400,22 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                                     src={getCarLogoUrl(protocol.make)}
                                     alt={`${protocol.make} logo`}
                                     onError={(e) => {
-                                        // Fallback if logo fails to load
-                                        (e.target as HTMLImageElement).style.display = 'none';
+                                        // Fallback hierarchy przy błędzie ładowania
+                                        const target = e.target as HTMLImageElement;
+                                        if (!target.dataset.fallbackAttempted) {
+                                            target.dataset.fallbackAttempted = 'true';
+                                            target.src = `https://www.carlogos.org/car-logos/${protocol.make.toLowerCase()}-logo.png`;
+                                        } else if (!target.dataset.fallbackAttempted2) {
+                                            target.dataset.fallbackAttempted2 = 'true';
+                                            // Ostateczny fallback - ukryj logo
+                                            target.style.display = 'none';
+                                        }
                                     }}
                                 />
                                 <VehicleModel>{protocol.make} {protocol.model}</VehicleModel>
                             </VehicleModelWithLogo>
-                            <VehiclePlate>{protocol.licensePlate}</VehiclePlate>
+                            {/* Ulepszona tablica rejestracyjna - wyeksponowana */}
+                            <EnhancedVehiclePlate>{protocol.licensePlate}</EnhancedVehiclePlate>
                         </PrimaryInfo>
                         <SecondaryInfo>
                             <InfoPair>
@@ -617,132 +637,134 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
 const ExecutiveDashboard = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${executive.spacing.xxl};
+    gap: ${executive.spacing.xl};
     max-width: 100%;
 `;
 
-// Status Timeline Styles
-const StatusTimelineSection = styled.div`
+// Kompaktowy Status Timeline - zmniejszona wysokość, pełna szerokość
+const CompactStatusTimelineSection = styled.div`
     background: ${executive.surface};
     border: 1px solid ${executive.border};
     border-radius: ${executive.radius.lg};
     box-shadow: ${executive.shadowCard};
-    padding: ${executive.spacing.xl};
+    padding: ${executive.spacing.md} ${executive.spacing.xl}; // Zmniejszone tylko góra/dół
+    width: 100%; // Pełna szerokość jak wcześniej
 `;
 
 const TimelineHeader = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: ${executive.spacing.xl};
+    margin-bottom: ${executive.spacing.md}; // Zmniejszone z lg
 `;
 
 const TimelineTitle = styled.h3`
-    font-size: 16px;
+    font-size: 15px; // Zmniejszone z 16px
     font-weight: 600;
     color: ${executive.textPrimary};
     margin: 0;
 `;
 
 const StatusProgress = styled.div`
-    font-size: 14px;
+    font-size: 13px; // Zmniejszone z 14px
     font-weight: 500;
     color: ${executive.textMuted};
-    padding: ${executive.spacing.sm} ${executive.spacing.md};
+    padding: ${executive.spacing.xs} ${executive.spacing.sm}; // Zmniejszone
     background: ${executive.surfaceElevated};
     border-radius: ${executive.radius.md};
 `;
 
-const StatusSteps = styled.div`
+const CompactStatusSteps = styled.div`
     display: flex;
     align-items: center;
-    margin-bottom: ${executive.spacing.xl};
+    margin-bottom: ${executive.spacing.md}; // Zmniejszone z lg
 `;
 
 const StatusStep = styled.div<{ $active: boolean; $completed: boolean }>`
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: ${executive.spacing.sm};
+    gap: ${executive.spacing.xs}; // Zmniejszone z sm
     opacity: ${props => props.$active ? 1 : 0.4};
 `;
 
-const StepIcon = styled.div<{ $active: boolean; $completed: boolean }>`
+const CompactStepIcon = styled.div<{ $active: boolean; $completed: boolean }>`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
+    width: 32px; // Zmniejszone z 48px dla kompaktowości
+    height: 32px;
     border-radius: 50%;
     background: ${props => {
-    if (props.$completed) return executive.success;
-    if (props.$active) return executive.primary;
-    return executive.surfaceElevated;
-}};
+        if (props.$completed) return executive.success;
+        if (props.$active) return executive.primary;
+        return executive.surfaceElevated;
+    }};
     color: ${props => {
-    if (props.$completed || props.$active) return 'white';
-    return executive.textMuted;
-}};
-    border: 3px solid ${props => {
-    if (props.$completed) return executive.success;
-    if (props.$active) return executive.primary;
-    return executive.border;
-}};
-    font-size: 18px;
+        if (props.$completed || props.$active) return 'white';
+        return executive.textMuted;
+    }};
+    border: 2px solid ${props => { // Zmniejszone z 3px
+        if (props.$completed) return executive.success;
+        if (props.$active) return executive.primary;
+        return executive.border;
+    }};
+    font-size: 12px; // Zmniejszone z 18px dla kompaktowości
     transition: all 0.3s ease;
 `;
 
-const StepLabel = styled.div`
-    font-size: 13px;
+const CompactStepLabel = styled.div`
+    font-size: 11px; // Zmniejszone z 13px
     font-weight: 500;
     color: ${executive.textSecondary};
     text-align: center;
+    max-width: 70px; // Lekko zwiększone dla czytelności
 `;
 
-const StatusConnector = styled.div<{ $active: boolean }>`
+const CompactStatusConnector = styled.div<{ $active: boolean }>`
     flex: 1;
     height: 2px;
     background: ${props => props.$active ? executive.success : executive.border};
-    margin: 0 ${executive.spacing.md};
+    margin: 0 ${executive.spacing.sm}; // Zmniejszone z md
     transition: background 0.3s ease;
 `;
 
 const CurrentStatusBadge = styled.div<{ $status: ProtocolStatus }>`
     display: inline-flex;
     align-items: center;
-    padding: ${executive.spacing.sm} ${executive.spacing.lg};
+    padding: ${executive.spacing.xs} ${executive.spacing.md}; // Zmniejszone
     background: ${props => {
-    switch (props.$status) {
-        case ProtocolStatus.SCHEDULED: return executive.primary + '15';
-        case ProtocolStatus.IN_PROGRESS: return executive.warning + '15';
-        case ProtocolStatus.READY_FOR_PICKUP: return executive.success + '15';
-        case ProtocolStatus.COMPLETED: return executive.surfaceElevated;
-        case ProtocolStatus.CANCELLED: return executive.errorBg;
-        default: return executive.surfaceElevated;
-    }
-}};
+        switch (props.$status) {
+            case ProtocolStatus.SCHEDULED: return executive.primary + '15';
+            case ProtocolStatus.IN_PROGRESS: return executive.warning + '15';
+            case ProtocolStatus.READY_FOR_PICKUP: return executive.success + '15';
+            case ProtocolStatus.COMPLETED: return executive.surfaceElevated;
+            case ProtocolStatus.CANCELLED: return executive.errorBg;
+            default: return executive.surfaceElevated;
+        }
+    }};
     color: ${props => {
-    switch (props.$status) {
-        case ProtocolStatus.SCHEDULED: return executive.primary;
-        case ProtocolStatus.IN_PROGRESS: return executive.warning;
-        case ProtocolStatus.READY_FOR_PICKUP: return executive.success;
-        case ProtocolStatus.COMPLETED: return executive.textMuted;
-        case ProtocolStatus.CANCELLED: return executive.error;
-        default: return executive.textMuted;
-    }
-}};
+        switch (props.$status) {
+            case ProtocolStatus.SCHEDULED: return executive.primary;
+            case ProtocolStatus.IN_PROGRESS: return executive.warning;
+            case ProtocolStatus.READY_FOR_PICKUP: return executive.success;
+            case ProtocolStatus.COMPLETED: return executive.textMuted;
+            case ProtocolStatus.CANCELLED: return executive.error;
+            default: return executive.textMuted;
+        }
+    }};
     border: 1px solid ${props => {
-    switch (props.$status) {
-        case ProtocolStatus.SCHEDULED: return executive.primary + '30';
-        case ProtocolStatus.IN_PROGRESS: return executive.warning + '30';
-        case ProtocolStatus.READY_FOR_PICKUP: return executive.success + '30';
-        case ProtocolStatus.COMPLETED: return executive.border;
-        case ProtocolStatus.CANCELLED: return executive.error + '30';
-        default: return executive.border;
-    }
-}};
+        switch (props.$status) {
+            case ProtocolStatus.SCHEDULED: return executive.primary + '30';
+            case ProtocolStatus.IN_PROGRESS: return executive.warning + '30';
+            case ProtocolStatus.READY_FOR_PICKUP: return executive.success + '30';
+            case ProtocolStatus.COMPLETED: return executive.border;
+            case ProtocolStatus.CANCELLED: return executive.error + '30';
+            default: return executive.border;
+        }
+    }};
     border-radius: ${executive.radius.md};
-    font-size: 14px;
+    font-size: 12px; // Zmniejszone z 14px
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -869,16 +891,26 @@ const PrimaryInfo = styled.div`
 const VehicleModelWithLogo = styled.div`
     display: flex;
     align-items: center;
-    gap: ${executive.spacing.md};
+    gap: ${executive.spacing.lg}; // Zwiększone z md dla lepszego spacingu z większym logo
 `;
 
+// Logo samochodu jako avatar - powiększone i eleganckie
 const CarLogo = styled.img`
-    width: 32px;
-    height: 32px;
+    width: 56px; // Zwiększone z 32px - rozmiar avatara
+    height: 56px;
     object-fit: contain;
-    border-radius: ${executive.radius.sm};
-    background: ${executive.surfaceElevated};
-    padding: 2px;
+    border-radius: ${executive.radius.lg}; // Większy radius dla elegancji
+    background: ${executive.surface};
+    padding: 8px; // Większy padding
+    border: 2px solid ${executive.borderLight};
+    box-shadow: ${executive.shadowSubtle}; // Dodany cień dla głębi
+    transition: all 0.3s ease;
+
+    &:hover {
+        transform: scale(1.05);
+        box-shadow: ${executive.shadowCard};
+        border-color: ${executive.primary}40;
+    }
 `;
 
 const VehicleModel = styled.div`
@@ -887,15 +919,32 @@ const VehicleModel = styled.div`
     color: ${executive.textPrimary};
 `;
 
-const VehiclePlate = styled.div`
-    padding: ${executive.spacing.sm} ${executive.spacing.md};
-    background: ${executive.primary}10;
-    border: 2px solid ${executive.primary}30;
+// Ulepszona tablica rejestracyjna - bardziej wyeksponowana
+const EnhancedVehiclePlate = styled.div`
+    padding: ${executive.spacing.sm} ${executive.spacing.lg};
+    background: linear-gradient(135deg, ${executive.primary}08 0%, ${executive.primary}15 100%);
+    border: 2px solid ${executive.primary}40;
     border-radius: ${executive.radius.md};
-    font-weight: 700;
+    font-weight: 800;
     color: ${executive.primary};
-    font-family: monospace;
-    letter-spacing: 1px;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 2px;
+    font-size: 16px; // Zwiększone z 14px
+    text-transform: uppercase;
+    box-shadow: ${executive.shadowSubtle};
+    position: relative;
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border-radius: ${executive.radius.sm};
+        background: linear-gradient(45deg, transparent 30%, ${executive.primary}05 50%, transparent 70%);
+        pointer-events: none;
+    }
 `;
 
 const SecondaryInfo = styled.div`
@@ -1074,7 +1123,7 @@ const TableBody = styled.tbody``;
 const TableRow = styled.tr<{ $pending?: boolean }>`
     border-bottom: 1px solid ${executive.borderLight};
     transition: background-color 0.2s ease;
-    
+
     ${props => props.$pending && `
         background: ${executive.pendingBg};
     `}
@@ -1196,9 +1245,9 @@ const ActionButton = styled.button<{ $variant: 'primary' | 'warning' | 'danger' 
     font-size: 11px;
 
     ${props => {
-    switch (props.$variant) {
-        case 'primary':
-            return `
+        switch (props.$variant) {
+            case 'primary':
+                return `
                     background: ${executive.primary}20;
                     color: ${executive.primary};
                     &:hover {
@@ -1207,8 +1256,8 @@ const ActionButton = styled.button<{ $variant: 'primary' | 'warning' | 'danger' 
                         transform: translateY(-1px);
                     }
                 `;
-        case 'warning':
-            return `
+            case 'warning':
+                return `
                     background: ${executive.warning}20;
                     color: ${executive.warning};
                     &:hover {
@@ -1217,8 +1266,8 @@ const ActionButton = styled.button<{ $variant: 'primary' | 'warning' | 'danger' 
                         transform: translateY(-1px);
                     }
                 `;
-        case 'danger':
-            return `
+            case 'danger':
+                return `
                     background: ${executive.error}20;
                     color: ${executive.error};
                     &:hover {
@@ -1227,8 +1276,8 @@ const ActionButton = styled.button<{ $variant: 'primary' | 'warning' | 'danger' 
                         transform: translateY(-1px);
                     }
                 `;
-    }
-}}
+        }
+    }}
 `;
 
 const TableFooter = styled.tfoot`

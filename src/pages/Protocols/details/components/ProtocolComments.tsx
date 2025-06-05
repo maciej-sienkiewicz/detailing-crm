@@ -2,9 +2,84 @@ import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
 import {format} from 'date-fns';
 import {pl} from 'date-fns/locale';
-import {FaCalendarAlt, FaClock, FaPaperPlane, FaSpinner, FaUser} from 'react-icons/fa';
+import {FaCalendarAlt, FaPaperPlane, FaSpinner, FaUser, FaExclamationTriangle, FaLock, FaShare} from 'react-icons/fa';
 import {CarReceptionProtocol, ProtocolStatus} from '../../../../types';
 import {Comment, commentsApi} from '../../../../api/commentsApi';
+
+// Enterprise Design System - Professional Automotive CRM with Brand Colors
+const enterprise = {
+    // Brand Color System - Customizable by client
+    primary: 'var(--brand-primary, #2563eb)',
+    primaryDark: 'var(--brand-primary-dark, #1d4ed8)',
+    primaryLight: 'var(--brand-primary-light, #3b82f6)',
+
+    // Professional Surfaces
+    surface: '#ffffff',
+    surfaceSecondary: '#f8fafc',
+    surfaceTertiary: '#f1f5f9',
+
+    // Professional Text Hierarchy
+    textPrimary: '#0f172a',
+    textSecondary: '#334155',
+    textTertiary: '#64748b',
+    textMuted: '#94a3b8',
+
+    // Enterprise Borders & States
+    border: '#e2e8f0',
+    borderLight: '#f1f5f9',
+
+    // Communication Types - Using Brand Colors
+    internal: {
+        primary: 'var(--brand-primary, #2563eb)',
+        background: 'var(--brand-primary-ghost, rgba(37, 99, 235, 0.08))',
+        border: 'var(--brand-primary-light, #bfdbfe)',
+        light: 'var(--brand-primary-ghost, rgba(37, 99, 235, 0.04))'
+    },
+    external: {
+        primary: '#0f766e',
+        background: '#f0fdfa',
+        border: '#99f6e4',
+        light: '#ccfbf1'
+    },
+    system: {
+        primary: '#6b7280',
+        background: '#f9fafb',
+        border: '#d1d5db',
+        light: '#f3f4f6'
+    },
+
+    // Professional Spacing
+    space: {
+        xs: '4px',
+        sm: '8px',
+        md: '16px',
+        lg: '24px',
+        xl: '32px',
+        xxl: '48px'
+    },
+
+    // Enterprise Typography
+    fontSize: {
+        xs: '12px',
+        sm: '14px',
+        base: '16px',
+        lg: '18px',
+        xl: '20px'
+    },
+
+    // Subtle Professional Effects
+    shadow: {
+        sm: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+        md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+    },
+
+    radius: {
+        sm: '4px',
+        md: '8px',
+        lg: '12px'
+    }
+};
 
 interface ProtocolCommentsProps {
     protocol: CarReceptionProtocol;
@@ -12,7 +87,6 @@ interface ProtocolCommentsProps {
 }
 
 const ProtocolComments: React.FC<ProtocolCommentsProps> = ({ protocol, onProtocolUpdate }) => {
-    // Stan lokalny komponentu
     const [comments, setComments] = useState<Comment[]>([]);
     const [newComment, setNewComment] = useState('');
     const [commentType, setCommentType] = useState<'internal' | 'customer'>('internal');
@@ -20,7 +94,6 @@ const ProtocolComments: React.FC<ProtocolCommentsProps> = ({ protocol, onProtoco
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Pobieranie komentarzy przy pierwszym renderowaniu komponentu
     useEffect(() => {
         const fetchComments = async () => {
             setIsLoading(true);
@@ -30,22 +103,19 @@ const ProtocolComments: React.FC<ProtocolCommentsProps> = ({ protocol, onProtoco
                 setComments(fetchedComments);
             } catch (err) {
                 console.error('Error fetching comments:', err);
-                setError('Nie udało się pobrać komentarzy. Spróbuj odświeżyć stronę.');
+                setError('Nie udało się pobrać komunikacji. Odśwież stronę.');
             } finally {
                 setIsLoading(false);
             }
         };
-
         fetchComments();
     }, [protocol.id]);
 
-    // Format date for display
     const formatDateTime = (dateString: string): string => {
         if (!dateString) return '';
-        return format(new Date(dateString), 'dd MMM yyyy, HH:mm', { locale: pl });
+        return format(new Date(dateString), 'dd.MM.yyyy HH:mm', { locale: pl });
     };
 
-    // Handle comment submission
     const handleSubmitComment = async () => {
         if (!newComment.trim()) return;
 
@@ -53,420 +123,582 @@ const ProtocolComments: React.FC<ProtocolCommentsProps> = ({ protocol, onProtoco
         setError(null);
 
         try {
-            // Create new comment object
             const commentData: Comment = {
                 protocolId: protocol.id,
-                author: 'Administrator', // W prawdziwej aplikacji byłby to aktualny użytkownik
+                author: 'Administrator',
                 content: newComment,
                 type: commentType
             };
 
-            // Wysyłanie do API
             const savedComment = await commentsApi.addComment(commentData);
 
             if (savedComment) {
-                // Dodaj komentarz do lokalnego stanu
                 setComments(prevComments => [...prevComments, savedComment]);
-
-                // Clear input
                 setNewComment('');
             } else {
-                setError('Nie udało się dodać komentarza. Spróbuj ponownie.');
+                setError('Nie udało się dodać wpisu.');
             }
         } catch (error) {
             console.error('Error adding comment:', error);
-            setError('Wystąpił błąd podczas dodawania komentarza.');
+            setError('Błąd podczas dodawania wpisu.');
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    // Podziel komentarze na typy dla grupowania
     const internalComments = comments.filter(c => c.type === 'internal');
     const customerComments = comments.filter(c => c.type === 'customer');
     const systemComments = comments.filter(c => c.type === 'system');
 
     return (
-        <CommentsContainer>
-            {/* Sekcja dodawania komentarzy */}
-            <AddCommentSection>
-                <CommentTypeSelector>
-                    <TypeButton
-                        active={commentType === 'internal'}
-                        onClick={() => setCommentType('internal')}
-                    >
-                        Komentarz wewnętrzny
-                    </TypeButton>
-                    <TypeButton
-                        active={commentType === 'customer'}
-                        onClick={() => setCommentType('customer')}
-                        disabled={protocol.status === ProtocolStatus.CANCELLED}
-                        customerType
-                    >
-                        Informacja dla klienta
-                    </TypeButton>
-                </CommentTypeSelector>
+        <CommunicationPanel>
 
-                <CommentInputWrapper>
+            {/* Professional Input Section */}
+            <InputSection>
+                <InputHeader>
+                    <InputTitle>Nowy wpis</InputTitle>
+                    <TypeSelector>
+                        <TypeOption
+                            $active={commentType === 'internal'}
+                            onClick={() => setCommentType('internal')}
+                        >
+                            <FaLock />
+                            Zespół wewnętrzny
+                        </TypeOption>
+                        <TypeOption
+                            $active={commentType === 'customer'}
+                            onClick={() => setCommentType('customer')}
+                            disabled={protocol.status === ProtocolStatus.CANCELLED}
+                        >
+                            <FaShare />
+                            Komunikacja z klientem
+                        </TypeOption>
+                    </TypeSelector>
+                </InputHeader>
+
+                <InputBody>
                     <CommentInput
                         value={newComment}
                         onChange={(e) => setNewComment(e.target.value)}
                         placeholder={commentType === 'internal'
-                            ? "Wpisz komentarz wewnętrzny dotyczący zlecenia (nie będzie widoczny dla klienta)..."
-                            : "Wpisz informację, która zostanie wysłana do klienta..."
+                            ? "Dodaj notatkę wewnętrzną dla zespołu..."
+                            : "Wpisz informację do przekazania klientowi..."
                         }
-                        rows={3}
-                        typeColor={commentType === 'internal' ? '#3498db' : '#27ae60'}
+                        $type={commentType}
+                        rows={4}
                     />
-                    <SubmitButton
-                        onClick={handleSubmitComment}
-                        disabled={!newComment.trim() || isSubmitting}
-                        typeColor={commentType === 'internal' ? '#3498db' : '#27ae60'}
-                    >
-                        {isSubmitting ? <FaSpinner className="spinner" /> : <FaPaperPlane />}
-                        {isSubmitting ? 'Dodawanie...' : 'Dodaj komentarz'}
-                    </SubmitButton>
-                </CommentInputWrapper>
 
-                {error && <ErrorMessage>{error}</ErrorMessage>}
-            </AddCommentSection>
+                    <InputFooter>
+                        <InputMeta>
+                            {commentType === 'customer'
+                                ? 'Informacja zostanie wysłana do klienta'
+                                : 'Wpis widoczny tylko dla zespołu'
+                            }
+                        </InputMeta>
+                        <SubmitButton
+                            onClick={handleSubmitComment}
+                            disabled={!newComment.trim() || isSubmitting}
+                            $type={commentType}
+                        >
+                            {isSubmitting ? (
+                                <>
+                                    <Spinner />
+                                    Dodawanie
+                                </>
+                            ) : (
+                                <>
+                                    <FaPaperPlane />
+                                    Dodaj wpis
+                                </>
+                            )}
+                        </SubmitButton>
+                    </InputFooter>
+                </InputBody>
 
-            {/* Całkowita historia komentarzy */}
-            <SectionTitle>Historia komentarzy</SectionTitle>
+                {error && (
+                    <ErrorNotification>
+                        <FaExclamationTriangle />
+                        {error}
+                    </ErrorNotification>
+                )}
+            </InputSection>
 
-            {isLoading ? (
-                <LoadingState>
-                    <FaSpinner className="spinner" /> Ładowanie komentarzy...
-                </LoadingState>
-            ) : comments.length === 0 ? (
-                <EmptyState>
-                    Brak komentarzy. Dodaj pierwszy komentarz dotyczący tego zlecenia.
-                </EmptyState>
-            ) : (
-                <CommentsList>
-                    {/* Sekcja komentarzy dla klienta */}
-                    {customerComments.length > 0 && (
-                        <CommentGroup>
-                            <CommentGroupHeader customerType>
-                                Informacje wysłane do klienta
-                            </CommentGroupHeader>
+            {/* Professional Timeline */}
+            <TimelineSection>
+                <TimelineHeader>
+                    <TimelineTitle>Historia komunikacji</TimelineTitle>
+                </TimelineHeader>
 
-                            {customerComments.map(comment => (
-                                <CommentItem key={comment.id} type={comment.type}>
-                                    <CommentAuthor>
-                                        <AuthorIcon customerType><FaUser /></AuthorIcon>
-                                        <AuthorInfo>
-                                            <AuthorName>{comment.author}</AuthorName>
-                                            <CommentTime>
-                                                <TimeIcon><FaCalendarAlt /></TimeIcon>
-                                                {formatDateTime(comment.timestamp || '')}
-                                            </CommentTime>
-                                        </AuthorInfo>
-                                    </CommentAuthor>
-                                    <CommentContent>{comment.content}</CommentContent>
-                                </CommentItem>
-                            ))}
-                        </CommentGroup>
-                    )}
+                {isLoading ? (
+                    <LoadingState>
+                        <Spinner />
+                        Ładowanie komunikacji
+                    </LoadingState>
+                ) : comments.length === 0 ? (
+                    <EmptyState>
+                        <EmptyIcon />
+                        <EmptyTitle>Brak wpisów</EmptyTitle>
+                        <EmptyDescription>Rozpocznij komunikację dodając pierwszy wpis</EmptyDescription>
+                    </EmptyState>
+                ) : (
+                    <Timeline>
+                        {/* Customer Communications */}
+                        {customerComments.length > 0 && (
+                            <TimelineSection>
+                                <SectionHeader $type="external">
+                                    <SectionTitle>Komunikacja z klientem</SectionTitle>
+                                    <SectionCount>{customerComments.length}</SectionCount>
+                                </SectionHeader>
+                                <CommentsList>
+                                    {customerComments.map(comment => (
+                                        <CommentEntry key={comment.id} $type="external">
+                                            <CommentMeta>
+                                                <AuthorInfo>
+                                                    <Avatar $type="external">
+                                                        <FaUser />
+                                                    </Avatar>
+                                                    <AuthorDetails>
+                                                        <AuthorName>{comment.author}</AuthorName>
+                                                        <Timestamp>{formatDateTime(comment.timestamp || '')}</Timestamp>
+                                                    </AuthorDetails>
+                                                </AuthorInfo>
+                                            </CommentMeta>
+                                            <CommentContent>{comment.content}</CommentContent>
+                                        </CommentEntry>
+                                    ))}
+                                </CommentsList>
+                            </TimelineSection>
+                        )}
 
-                    {/* Sekcja komentarzy wewnętrznych */}
-                    {internalComments.length > 0 && (
-                        <CommentGroup>
-                            <CommentGroupHeader>
-                                Komentarze wewnętrzne
-                            </CommentGroupHeader>
+                        {/* Internal Communications */}
+                        {internalComments.length > 0 && (
+                            <TimelineSection>
+                                <SectionHeader $type="internal">
+                                    <SectionTitle>Notatki zespołu</SectionTitle>
+                                    <SectionCount>{internalComments.length}</SectionCount>
+                                </SectionHeader>
+                                <CommentsList>
+                                    {internalComments.map(comment => (
+                                        <CommentEntry key={comment.id} $type="internal">
+                                            <CommentMeta>
+                                                <AuthorInfo>
+                                                    <Avatar $type="internal">
+                                                        <FaUser />
+                                                    </Avatar>
+                                                    <AuthorDetails>
+                                                        <AuthorName>{comment.author}</AuthorName>
+                                                        <Timestamp>{formatDateTime(comment.timestamp || '')}</Timestamp>
+                                                    </AuthorDetails>
+                                                </AuthorInfo>
+                                            </CommentMeta>
+                                            <CommentContent>{comment.content}</CommentContent>
+                                        </CommentEntry>
+                                    ))}
+                                </CommentsList>
+                            </TimelineSection>
+                        )}
 
-                            {internalComments.map(comment => (
-                                <CommentItem key={comment.id} type={comment.type}>
-                                    <CommentAuthor>
-                                        <AuthorIcon><FaUser /></AuthorIcon>
-                                        <AuthorInfo>
-                                            <AuthorName>{comment.author}</AuthorName>
-                                            <CommentTime>
-                                                <TimeIcon><FaCalendarAlt /></TimeIcon>
-                                                {formatDateTime(comment.timestamp || '')}
-                                            </CommentTime>
-                                        </AuthorInfo>
-                                    </CommentAuthor>
-                                    <CommentContent>{comment.content}</CommentContent>
-                                </CommentItem>
-                            ))}
-                        </CommentGroup>
-                    )}
-
-                    {/* Sekcja wpisów systemowych */}
-                    {systemComments.length > 0 && (
-                        <CommentGroup>
-                            <CommentGroupHeader systemType>
-                                Wpisy systemowe
-                            </CommentGroupHeader>
-
-                            {systemComments.map(comment => (
-                                <CommentItem key={comment.id} type={comment.type}>
-                                    <SystemCommentContent>
-                                        <SystemIcon><FaClock /></SystemIcon>
-                                        <div>
-                                            <SystemContent>{comment.content}</SystemContent>
-                                            <SystemTime>{formatDateTime(comment.timestamp || '')}</SystemTime>
-                                        </div>
-                                    </SystemCommentContent>
-                                </CommentItem>
-                            ))}
-                        </CommentGroup>
-                    )}
-                </CommentsList>
-            )}
-        </CommentsContainer>
+                        {/* System Events */}
+                        {systemComments.length > 0 && (
+                            <TimelineSection>
+                                <SectionHeader $type="system">
+                                    <SectionTitle>Wydarzenia systemowe</SectionTitle>
+                                    <SectionCount>{systemComments.length}</SectionCount>
+                                </SectionHeader>
+                                <CommentsList>
+                                    {systemComments.map(comment => (
+                                        <SystemEntry key={comment.id}>
+                                            <SystemIcon>
+                                                <FaCalendarAlt />
+                                            </SystemIcon>
+                                            <SystemContent>
+                                                <SystemText>{comment.content}</SystemText>
+                                                <SystemTime>{formatDateTime(comment.timestamp || '')}</SystemTime>
+                                            </SystemContent>
+                                        </SystemEntry>
+                                    ))}
+                                </CommentsList>
+                            </TimelineSection>
+                        )}
+                    </Timeline>
+                )}
+            </TimelineSection>
+        </CommunicationPanel>
     );
 };
 
-// Styled components
-const CommentsContainer = styled.div``;
-
-const SectionTitle = styled.h3`
-    font-size: 16px;
-    margin: 0 0 15px 0;
-    padding-bottom: 8px;
-    border-bottom: 1px solid #eee;
-    color: #2c3e50;
-`;
-
-const AddCommentSection = styled.div`
-    background-color: #f9f9f9;
-    border-radius: 4px;
-    padding: 15px;
-    margin-bottom: 25px;
-`;
-
-const CommentTypeSelector = styled.div`
-    display: flex;
-    gap: 10px;
-    margin-bottom: 15px;
-`;
-
-const TypeButton = styled.button<{ active?: boolean; customerType?: boolean }>`
-    flex: 1;
-    padding: 10px;
-    border: 1px solid ${props => props.active
-            ? (props.customerType ? '#27ae60' : '#3498db')
-            : '#ddd'};
-    background-color: ${props => props.active
-            ? (props.customerType ? '#eafaf1' : '#eaf6fd')
-            : 'white'};
-    color: ${props => props.active
-            ? (props.customerType ? '#27ae60' : '#3498db')
-            : '#7f8c8d'};
-    border-radius: 4px;
-    font-size: 14px;
-    font-weight: ${props => props.active ? '500' : 'normal'};
-    cursor: pointer;
-    transition: all 0.2s;
-
-    &:hover {
-        background-color: ${props => props.active
-                ? (props.customerType ? '#eafaf1' : '#eaf6fd')
-                : '#f5f5f5'};
-    }
-`;
-
-const CommentInputWrapper = styled.div`
+// Enterprise-Grade Styled Components
+const CommunicationPanel = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: ${enterprise.space.lg};
 `;
 
-const CommentInput = styled.textarea<{ typeColor: string }>`
-    width: 100%;
-    padding: 12px 15px;
-    border: 1px solid #ddd;
-    border-left: 3px solid ${props => props.typeColor};
-    border-radius: 4px;
-    font-size: 14px;
-    resize: vertical;
-    font-family: inherit;
-
-    &:focus {
-        outline: none;
-        border-color: ${props => props.typeColor};
-        box-shadow: 0 0 0 2px ${props => props.typeColor}20;
-    }
+// Professional Input
+const InputSection = styled.div`
+    background: ${enterprise.surface};
+    border: 1px solid ${enterprise.border};
+    border-radius: ${enterprise.radius.lg};
+    box-shadow: ${enterprise.shadow.sm};
+    overflow: hidden;
 `;
 
-const SubmitButton = styled.button<{ typeColor: string }>`
+const InputHeader = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: ${enterprise.space.lg} ${enterprise.space.xl};
+    background: ${enterprise.surfaceSecondary};
+    border-bottom: 1px solid ${enterprise.border};
+`;
+
+const InputTitle = styled.h3`
+    font-size: ${enterprise.fontSize.base};
+    font-weight: 600;
+    color: ${enterprise.textPrimary};
+    margin: 0;
+`;
+
+const TypeSelector = styled.div`
+    display: flex;
+    gap: ${enterprise.space.xs};
+`;
+
+const TypeOption = styled.button<{ $active: boolean }>`
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 10px 16px;
-    background-color: ${props => props.typeColor};
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-size: 14px;
+    gap: ${enterprise.space.sm};
+    padding: ${enterprise.space.sm} ${enterprise.space.md};
+    background: ${props => props.$active ? enterprise.primary : enterprise.surface};
+    color: ${props => props.$active ? 'white' : enterprise.textSecondary};
+    border: 1px solid ${props => props.$active ? enterprise.primary : enterprise.border};
+    border-radius: ${enterprise.radius.md};
+    font-size: ${enterprise.fontSize.sm};
     font-weight: 500;
     cursor: pointer;
-    align-self: flex-end;
+    transition: all 0.2s ease;
 
     &:hover:not(:disabled) {
-        background-color: ${props => props.typeColor}dd;
+        background: ${props => props.$active ? enterprise.primaryDark : enterprise.surfaceTertiary};
     }
 
     &:disabled {
-        background-color: #95a5a6;
+        opacity: 0.5;
         cursor: not-allowed;
     }
 
-    .spinner {
-        animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
+    svg {
+        font-size: ${enterprise.fontSize.xs};
     }
 `;
 
-const ErrorMessage = styled.div`
-    margin-top: 10px;
-    padding: 8px 12px;
-    background-color: #fdecea;
-    color: #e74c3c;
-    border-radius: 4px;
-    font-size: 13px;
+const InputBody = styled.div`
+    padding: ${enterprise.space.xl};
+`;
+
+const CommentInput = styled.textarea<{ $type: 'internal' | 'customer' }>`
+    width: 100%;
+    min-height: 120px;
+    padding: ${enterprise.space.md};
+    border: 2px solid ${props => props.$type === 'customer' ? enterprise.external.border : enterprise.internal.border};
+    border-radius: ${enterprise.radius.md};
+    background: ${props => props.$type === 'customer' ? enterprise.external.background : enterprise.internal.background};
+    font-size: ${enterprise.fontSize.sm};
+    font-family: inherit;
+    line-height: 1.5;
+    resize: vertical;
+    transition: border-color 0.2s ease;
+
+    &:focus {
+        outline: none;
+        border-color: ${props => props.$type === 'customer' ? enterprise.external.primary : enterprise.internal.primary};
+    }
+
+    &::placeholder {
+        color: ${enterprise.textMuted};
+    }
+`;
+
+const InputFooter = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: ${enterprise.space.md};
+`;
+
+const InputMeta = styled.div`
+    font-size: ${enterprise.fontSize.xs};
+    color: ${enterprise.textTertiary};
+    font-weight: 500;
+`;
+
+const SubmitButton = styled.button<{ $type: 'internal' | 'customer' }>`
+    display: flex;
+    align-items: center;
+    gap: ${enterprise.space.sm};
+    padding: ${enterprise.space.sm} ${enterprise.space.lg};
+    background: ${props => props.$type === 'customer' ? enterprise.external.primary : enterprise.primary};
+    color: white;
+    border: none;
+    border-radius: ${enterprise.radius.md};
+    font-size: ${enterprise.fontSize.sm};
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+
+    &:hover:not(:disabled) {
+        background: ${props => props.$type === 'customer' ? '#0d9488' : enterprise.primaryDark};
+    }
+
+    &:disabled {
+        background: ${enterprise.textMuted};
+        cursor: not-allowed;
+    }
+
+    svg {
+        font-size: ${enterprise.fontSize.xs};
+    }
+`;
+
+const ErrorNotification = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${enterprise.space.sm};
+    padding: ${enterprise.space.md} ${enterprise.space.xl};
+    background: #fef2f2;
+    border-top: 1px solid #fecaca;
+    color: #dc2626;
+    font-size: ${enterprise.fontSize.sm};
+
+    svg {
+        font-size: ${enterprise.fontSize.sm};
+    }
+`;
+
+// Professional Timeline
+const TimelineSection = styled.div`
+    background: ${enterprise.surface};
+    border: 1px solid ${enterprise.border};
+    border-radius: ${enterprise.radius.lg};
+    box-shadow: ${enterprise.shadow.sm};
+    overflow: hidden;
+`;
+
+const TimelineHeader = styled.div`
+    padding: ${enterprise.space.lg} ${enterprise.space.xl};
+    background: ${enterprise.surfaceSecondary};
+    border-bottom: 1px solid ${enterprise.border};
+`;
+
+const TimelineTitle = styled.h3`
+    font-size: ${enterprise.fontSize.base};
+    font-weight: 600;
+    color: ${enterprise.textPrimary};
+    margin: 0;
 `;
 
 const LoadingState = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
-    padding: 30px;
-    color: #7f8c8d;
-    
-    .spinner {
-        animation: spin 1s linear infinite;
-    }
-    
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
+    gap: ${enterprise.space.md};
+    padding: ${enterprise.space.xxl};
+    color: ${enterprise.textTertiary};
+    font-size: ${enterprise.fontSize.sm};
+    font-weight: 500;
+`;
+
+const EmptyState = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: ${enterprise.space.xxl};
+    text-align: center;
+`;
+
+const EmptyIcon = styled.div`
+    width: 48px;
+    height: 48px;
+    background: ${enterprise.surfaceTertiary};
+    border-radius: 50%;
+    margin-bottom: ${enterprise.space.lg};
+`;
+
+const EmptyTitle = styled.h4`
+    font-size: ${enterprise.fontSize.lg};
+    font-weight: 600;
+    color: ${enterprise.textSecondary};
+    margin: 0 0 ${enterprise.space.sm} 0;
+`;
+
+const EmptyDescription = styled.p`
+    font-size: ${enterprise.fontSize.sm};
+    color: ${enterprise.textTertiary};
+    margin: 0;
+`;
+
+const Timeline = styled.div`
+    padding: ${enterprise.space.xl};
+    display: flex;
+    flex-direction: column;
+    gap: ${enterprise.space.xl};
+`;
+
+const SectionHeader = styled.div<{ $type: 'internal' | 'external' | 'system' }>`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: ${enterprise.space.md} ${enterprise.space.lg};
+    background: ${props => {
+        switch (props.$type) {
+            case 'external': return enterprise.external.light;
+            case 'system': return enterprise.system.light;
+            default: return enterprise.internal.light;
+        }
+    }};
+    border: 1px solid ${props => {
+        switch (props.$type) {
+            case 'external': return enterprise.external.border;
+            case 'system': return enterprise.system.border;
+            default: return enterprise.internal.border;
+        }
+    }};
+    border-radius: ${enterprise.radius.md};
+    margin-bottom: ${enterprise.space.md};
+`;
+
+const SectionTitle = styled.h4`
+    font-size: ${enterprise.fontSize.sm};
+    font-weight: 600;
+    color: ${enterprise.textPrimary};
+    margin: 0;
+`;
+
+const SectionCount = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    background: ${enterprise.textMuted};
+    color: white;
+    border-radius: ${enterprise.radius.sm};
+    font-size: ${enterprise.fontSize.xs};
+    font-weight: 600;
 `;
 
 const CommentsList = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 25px;
+    gap: ${enterprise.space.md};
 `;
 
-const CommentGroup = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+const CommentEntry = styled.div<{ $type: 'internal' | 'external' }>`
+    background: ${props => props.$type === 'external' ? enterprise.external.background : enterprise.internal.background};
+    border: 1px solid ${props => props.$type === 'external' ? enterprise.external.border : enterprise.internal.border};
+    border-radius: ${enterprise.radius.md};
+    padding: ${enterprise.space.lg};
 `;
 
-const CommentGroupHeader = styled.div<{ customerType?: boolean; systemType?: boolean }>`
-    font-size: 14px;
-    font-weight: 500;
-    color: ${props => props.customerType
-            ? '#27ae60'
-            : props.systemType ? '#7f8c8d' : '#3498db'};
-    padding-bottom: 5px;
-    border-bottom: 1px dashed #eee;
+const CommentMeta = styled.div`
+    margin-bottom: ${enterprise.space.md};
 `;
 
-const EmptyState = styled.div`
-    padding: 20px;
-    text-align: center;
-    background-color: #f9f9f9;
-    border-radius: 4px;
-    color: #7f8c8d;
-    font-size: 14px;
-`;
-
-const CommentItem = styled.div<{ type?: string }>`
-    background-color: ${props => {
-        switch (props.type) {
-            case 'customer':
-                return '#eafaf1';
-            case 'system':
-                return '#f8f9fa';
-            default:
-                return '#eaf6fd';
-        }
-    }};
-    border-radius: 4px;
-    padding: 12px 15px;
-`;
-
-const CommentAuthor = styled.div`
+const AuthorInfo = styled.div`
     display: flex;
     align-items: center;
-    margin-bottom: 10px;
+    gap: ${enterprise.space.md};
 `;
 
-const AuthorIcon = styled.div<{ customerType?: boolean }>`
+const Avatar = styled.div<{ $type: 'internal' | 'external' }>`
     display: flex;
     align-items: center;
     justify-content: center;
     width: 32px;
     height: 32px;
-    border-radius: 50%;
-    background-color: ${props => props.customerType ? '#27ae60' : '#3498db'};
+    background: ${props => props.$type === 'external' ? enterprise.external.primary : enterprise.primary};
     color: white;
-    margin-right: 10px;
+    border-radius: 50%;
+    font-size: ${enterprise.fontSize.sm};
 `;
 
-const AuthorInfo = styled.div`
-    flex: 1;
+const AuthorDetails = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${enterprise.space.xs};
 `;
 
 const AuthorName = styled.div`
-    font-weight: 500;
-    font-size: 14px;
-    color: #34495e;
+    font-size: ${enterprise.fontSize.sm};
+    font-weight: 600;
+    color: ${enterprise.textPrimary};
 `;
 
-const CommentTime = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 12px;
-    color: #7f8c8d;
-`;
-
-const TimeIcon = styled.span`
-    font-size: 10px;
+const Timestamp = styled.div`
+    font-size: ${enterprise.fontSize.xs};
+    color: ${enterprise.textTertiary};
 `;
 
 const CommentContent = styled.div`
-    font-size: 14px;
-    color: #34495e;
+    font-size: ${enterprise.fontSize.sm};
+    color: ${enterprise.textSecondary};
+    line-height: 1.6;
     white-space: pre-line;
-    padding-left: 42px; /* Wyrównanie z ikoną autora */
 `;
 
-// Komponenty dla wpisów systemowych
-const SystemCommentContent = styled.div`
+// System Events
+const SystemEntry = styled.div`
     display: flex;
-    align-items: center;
-    gap: 12px;
+    align-items: flex-start;
+    gap: ${enterprise.space.md};
+    background: ${enterprise.system.background};
+    border: 1px solid ${enterprise.system.border};
+    border-radius: ${enterprise.radius.md};
+    padding: ${enterprise.space.lg};
 `;
 
 const SystemIcon = styled.div`
-    color: #7f8c8d;
-    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: ${enterprise.system.primary};
+    color: white;
+    border-radius: 50%;
+    font-size: ${enterprise.fontSize.xs};
+    flex-shrink: 0;
 `;
 
 const SystemContent = styled.div`
-    font-size: 14px;
-    color: #7f8c8d;
+    display: flex;
+    flex-direction: column;
+    gap: ${enterprise.space.xs};
+`;
+
+const SystemText = styled.div`
+    font-size: ${enterprise.fontSize.sm};
+    color: ${enterprise.textSecondary};
 `;
 
 const SystemTime = styled.div`
-    font-size: 12px;
-    color: #95a5a6;
-    margin-top: 3px;
+    font-size: ${enterprise.fontSize.xs};
+    color: ${enterprise.textMuted};
+`;
+
+const Spinner = styled.div`
+    width: 16px;
+    height: 16px;
+    border: 2px solid transparent;
+    border-top: 2px solid currentColor;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
 `;
 
 export default ProtocolComments;
