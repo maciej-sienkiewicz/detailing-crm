@@ -116,7 +116,7 @@ const VehicleListTable: React.FC<VehicleListTableProps> = ({
                                     )}
                                 </TableCell>
                                 <TableCell>
-                                    <Revenue>{vehicle.totalSpent.toFixed(2)} zł</Revenue>
+                                    <Revenue>{vehicle.totalSpent} zł</Revenue>
                                 </TableCell>
                                 <TableCell onClick={(e) => e.stopPropagation()}>
                                     <ActionButtons>
