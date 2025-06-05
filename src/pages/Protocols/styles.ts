@@ -1,43 +1,396 @@
+// src/pages/Protocols/styles.ts
 import styled from 'styled-components';
 import { ProtocolStatus } from '../../types';
 
-// Główne style strony
+// Brand Theme System - modern and consistent
+const brandTheme = {
+    primary: 'var(--brand-primary, #2563eb)',
+    primaryLight: 'var(--brand-primary-light, #3b82f6)',
+    primaryDark: 'var(--brand-primary-dark, #1d4ed8)',
+    primaryGhost: 'var(--brand-primary-ghost, rgba(37, 99, 235, 0.08))',
+    accent: '#f8fafc',
+    neutral: '#64748b',
+    surface: '#ffffff',
+    surfaceAlt: '#f1f5f9',
+    border: '#e2e8f0',
+    success: '#10b981',
+    warning: '#f59e0b',
+    error: '#ef4444',
+    info: '#3b82f6'
+};
+
+// Modern Status Badge with enhanced design
+export const StatusBadge = styled.div<{ status: ProtocolStatus }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.2s ease;
+
+    ${({ status }) => {
+        switch (status) {
+            case ProtocolStatus.SCHEDULED:
+                return `
+                    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
+                    color: #1d4ed8;
+                    border: 1px solid rgba(59, 130, 246, 0.3);
+                    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+                `;
+            case ProtocolStatus.IN_PROGRESS:
+                return `
+                    background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%);
+                    color: #7c3aed;
+                    border: 1px solid rgba(139, 92, 246, 0.3);
+                    box-shadow: 0 2px 4px rgba(139, 92, 246, 0.1);
+                `;
+            case ProtocolStatus.READY_FOR_PICKUP:
+                return `
+                    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
+                    color: #059669;
+                    border: 1px solid rgba(16, 185, 129, 0.3);
+                    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1);
+                `;
+            case ProtocolStatus.COMPLETED:
+                return `
+                    background: linear-gradient(135deg, rgba(107, 114, 128, 0.1) 0%, rgba(107, 114, 128, 0.05) 100%);
+                    color: #4b5563;
+                    border: 1px solid rgba(107, 114, 128, 0.3);
+                    box-shadow: 0 2px 4px rgba(107, 114, 128, 0.1);
+                `;
+            case ProtocolStatus.CANCELLED:
+                return `
+                    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%);
+                    color: #dc2626;
+                    border: 1px solid rgba(239, 68, 68, 0.3);
+                    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.1);
+                `;
+            default:
+                return `
+                    background: ${brandTheme.surfaceAlt};
+                    color: ${brandTheme.neutral};
+                    border: 1px solid ${brandTheme.border};
+                `;
+        }
+    }}
+
+    &::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+    }
+`;
+
+// Enhanced Protocol Item Components
+export const CarInfo = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+
+    strong {
+        font-size: 14px;
+        font-weight: 600;
+        color: #1e293b;
+        margin: 0;
+    }
+
+    span {
+        font-size: 13px;
+        color: ${brandTheme.neutral};
+        font-weight: 500;
+    }
+`;
+
+export const DateRange = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13px;
+    color: #374151;
+    width: 100%;
+
+    span {
+        font-weight: 500;
+
+        &:first-child {
+            color: #1e293b;
+            font-weight: 600;
+        }
+    }
+`;
+
+export const OwnerInfo = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 14px;
+    color: #1e293b;
+    width: 100%;
+
+    div:first-child {
+        font-weight: 600;
+    }
+`;
+
+export const CompanyInfo = styled.div`
+    font-size: 13px;
+    color: ${brandTheme.neutral};
+    font-weight: 500;
+    margin-top: 2px;
+`;
+
+export const LicensePlate = styled.div`
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    background: ${brandTheme.primaryGhost};
+    border: 1px solid rgba(37, 99, 235, 0.2);
+    border-radius: 6px;
+    font-weight: 700;
+    color: ${brandTheme.primary};
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+`;
+
+export const PriceDisplay = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+
+    .amount {
+        font-size: 15px;
+        font-weight: 700;
+        color: #1e293b;
+    }
+
+    .currency {
+        font-size: 12px;
+        color: ${brandTheme.neutral};
+        font-weight: 500;
+    }
+`;
+
+// Modern Action Buttons
+export const ActionButtons = styled.div`
+    display: flex;
+    gap: 6px;
+    align-items: center;
+`;
+
+export const ActionButton = styled.button<{ danger?: boolean; variant?: 'primary' | 'secondary' }>`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+
+    ${({ danger, variant }) => {
+        if (danger) {
+            return `
+                background: rgba(239, 68, 68, 0.1);
+                color: #ef4444;
+                
+                &:hover {
+                    background: #ef4444;
+                    color: white;
+                    transform: translateY(-1px);
+                    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+                }
+            `;
+        }
+
+        if (variant === 'primary') {
+            return `
+                background: ${brandTheme.primaryGhost};
+                color: ${brandTheme.primary};
+                
+                &:hover {
+                    background: ${brandTheme.primary};
+                    color: white;
+                    transform: translateY(-1px);
+                    box-shadow: 0 4px 12px ${brandTheme.primaryGhost};
+                }
+            `;
+        }
+
+        return `
+            background: ${brandTheme.surfaceAlt};
+            color: ${brandTheme.neutral};
+            
+            &:hover {
+                background: ${brandTheme.neutral};
+                color: white;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(100, 116, 139, 0.2);
+            }
+        `;
+    }}
+`;
+
+// Enhanced Loading and Error States
+export const LoadingMessage = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    background: ${brandTheme.surface};
+    border-radius: 16px;
+    border: 1px solid ${brandTheme.border};
+    
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid ${brandTheme.border};
+        border-top: 3px solid ${brandTheme.primary};
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 16px;
+    }
+    
+    .text {
+        font-size: 16px;
+        color: ${brandTheme.neutral};
+        font-weight: 500;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+`;
+
+export const ErrorMessage = styled.div`
+    background: linear-gradient(135deg, #fef2f2 0%, #fdf2f8 100%);
+    color: #dc2626;
+    padding: 16px 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    border: 1px solid #fecaca;
+    font-weight: 500;
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.1);
+
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    &::before {
+        content: '⚠️';
+        font-size: 18px;
+    }
+`;
+
+export const EmptyState = styled.div`
+    background: ${brandTheme.surface};
+    border: 2px dashed ${brandTheme.border};
+    border-radius: 16px;
+    padding: 60px 40px;
+    text-align: center;
+    color: ${brandTheme.neutral};
+
+    .icon {
+        width: 64px;
+        height: 64px;
+        background: ${brandTheme.surfaceAlt};
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px;
+        font-size: 24px;
+        color: ${brandTheme.neutral};
+    }
+
+    .title {
+        font-size: 20px;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 8px;
+    }
+
+    .description {
+        font-size: 16px;
+        line-height: 1.5;
+        margin-bottom: 16px;
+    }
+
+    .action {
+        font-size: 14px;
+        color: ${brandTheme.primary};
+        font-weight: 500;
+    }
+`;
+
+// Legacy compatibility exports (updated with modern styling)
 export const PageContainer = styled.div`
-    padding: 20px;
+    background: ${brandTheme.accent};
+    min-height: 100vh;
+    padding: 0;
 `;
 
 export const PageHeader = styled.div`
+    background: ${brandTheme.surface};
+    border-bottom: 1px solid ${brandTheme.border};
+    padding: 24px 32px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(8px);
+    background: rgba(255, 255, 255, 0.95);
+
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
 
     h1 {
-        font-size: 24px;
+        font-size: 28px;
+        font-weight: 700;
+        color: #0f172a;
         margin: 0;
+        letter-spacing: -0.5px;
     }
 `;
 
 export const HeaderLeft = styled.div`
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 16px;
 `;
 
 export const BackButton = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
-    background-color: #f9f9f9;
-    border: 1px solid #eee;
-    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    background: ${brandTheme.surfaceAlt};
+    border: 1px solid ${brandTheme.border};
+    border-radius: 8px;
     cursor: pointer;
-    color: #34495e;
+    color: ${brandTheme.neutral};
+    transition: all 0.2s ease;
 
     &:hover {
-        background-color: #f0f0f0;
+        background: ${brandTheme.primaryGhost};
+        border-color: ${brandTheme.primary};
+        color: ${brandTheme.primary};
+        transform: translateY(-1px);
     }
 `;
 
@@ -45,277 +398,164 @@ export const AddButton = styled.button`
     display: flex;
     align-items: center;
     gap: 8px;
-    background-color: #3498db;
+    background: ${brandTheme.primary};
     color: white;
     border: none;
-    border-radius: 4px;
-    padding: 8px 16px;
-    font-weight: 500;
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-weight: 600;
+    font-size: 14px;
     cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 
     &:hover {
-        background-color: #2980b9;
+        background: ${brandTheme.primaryDark};
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    &:active {
+        transform: translateY(0);
     }
 `;
 
-// Style dla wiadomości
-export const LoadingMessage = styled.div`
-    display: flex;
-    justify-content: center;
-    padding: 40px;
-    font-size: 16px;
-    color: #7f8c8d;
-`;
-
-export const ErrorMessage = styled.div`
-    background-color: #fdecea;
-    color: #e74c3c;
-    padding: 12px;
-    border-radius: 4px;
-    margin-bottom: 20px;
-`;
-
-export const EmptyState = styled.div`
-    background-color: #f9f9f9;
-    border-radius: 4px;
-    padding: 30px;
-    text-align: center;
-    color: #7f8c8d;
-`;
-
-// Style dla filtrów
+// Filter Components (updated for consistency)
 export const FilterButtons = styled.div`
     display: flex;
-    gap: 10px;
+    gap: 12px;
     margin-bottom: 20px;
     flex-wrap: wrap;
+    padding: 24px;
+    background: ${brandTheme.surface};
 `;
 
 export const FilterButton = styled.button<{ active: boolean }>`
-    padding: 8px 16px;
-    background-color: ${props => props.active ? '#3498db' : '#f8f9fa'};
-    color: ${props => props.active ? 'white' : '#333'};
-    border: 1px solid ${props => props.active ? '#2980b9' : '#ddd'};
-    border-radius: 4px;
-    font-weight: ${props => props.active ? '500' : 'normal'};
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: ${props => props.active ? brandTheme.primary : brandTheme.surface};
+    color: ${props => props.active ? 'white' : brandTheme.neutral};
+    border: 2px solid ${props => props.active ? brandTheme.primary : brandTheme.border};
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
 
     &:hover {
-        background-color: ${props => props.active ? '#2980b9' : '#f0f0f0'};
+        background: ${props => props.active ? brandTheme.primaryDark : brandTheme.primaryGhost};
+        border-color: ${brandTheme.primary};
+        color: ${props => props.active ? 'white' : brandTheme.primary};
+        transform: translateY(-1px);
     }
 `;
 
-// Style dla tabeli protokołów
+// Table Components (modern updates)
 export const TableContainer = styled.div`
     width: 100%;
-    background-color: white;
-    border-radius: 4px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    background: ${brandTheme.surface};
+    border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     overflow: hidden;
-    display: flex;
-    flex-direction: column;
+    border: 1px solid ${brandTheme.border};
 `;
 
 export const TableHeaderContainer = styled.div`
     display: flex;
     width: 100%;
-    background-color: #f5f5f5;
-    border-bottom: 1px solid #e0e0e0;
-    min-height: 48px;
+    background: ${brandTheme.surfaceAlt};
+    border-bottom: 2px solid ${brandTheme.border};
+    min-height: 56px;
 `;
 
 export const DraggableHeaderCell = styled.div<{ isDragging?: boolean, width: string }>`
     flex: 0 0 ${props => props.width};
     width: ${props => props.width};
-    text-align: left;
-    padding: 14px 16px;
-    background-color: ${props => props.isDragging ? '#e3f2fd' : '#f5f5f5'};
-    color: #34495e;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    background: ${props => props.isDragging ? brandTheme.primaryGhost : brandTheme.surfaceAlt};
+    color: #374151;
     font-weight: 600;
     font-size: 14px;
     user-select: none;
-    display: flex;
-    align-items: center;
-    box-shadow: ${props => props.isDragging ? '0 2px 8px rgba(0, 0, 0, 0.15)' : 'none'};
-    transition: all 0.15s ease;
     cursor: grab;
-    position: relative;
-    z-index: ${props => props.isDragging ? 10 : 1};
-    border-right: 1px solid #eee;
-    opacity: ${props => props.isDragging ? 0.8 : 1};
+    transition: all 0.2s ease;
+    border-right: 1px solid ${brandTheme.border};
 
-    &:last-child {
-        border-right: none;
+    &:hover {
+        background: ${brandTheme.primaryGhost};
     }
 
     &:active {
         cursor: grabbing;
     }
 
-    /* Ikona przeciągania */
-    &:after {
-        content: '⋮⋮';
-        position: absolute;
-        right: 10px;
-        top: 50%;
-        transform: translateY(-50%);
-        font-size: 12px;
-        color: #95a5a6;
-        opacity: 0;
-        transition: opacity 0.2s;
-    }
-
-    &:hover:after {
-        opacity: 0.7;
-    }
-
-    /* Hover style dla elegancji */
-    &:hover {
-        background-color: ${props => props.isDragging ? '#bbdefb' : '#edf3f8'};
+    &:last-child {
+        border-right: none;
     }
 `;
 
 export const TableBody = styled.div`
-    width: 100%;
+    background: ${brandTheme.surface};
 `;
 
 export const TableRow = styled.div`
     display: flex;
-    width: 100%;
-    border-bottom: 1px solid #eee;
-    transition: background-color 0.15s;
+    border-bottom: 1px solid ${brandTheme.border};
     cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: ${brandTheme.surfaceAlt};
+    }
 
     &:last-child {
         border-bottom: none;
     }
-
-    &:hover {
-        background-color: #f9f9f9;
-    }
 `;
 
 export const TableCell = styled.div<{ width?: string, colSpan?: number }>`
-    flex: ${props => props.colSpan ? `0 0 100%` : `0 0 ${props.width || 'auto'}`};
+    flex: ${props => props.colSpan ? '1 1 100%' : `0 0 ${props.width || 'auto'}`};
     width: ${props => props.colSpan ? '100%' : props.width || 'auto'};
-    padding: 12px 16px;
-    vertical-align: middle;
+    padding: 16px;
     display: flex;
     align-items: center;
-    text-align: ${props => props.colSpan ? 'center' : 'left'};
-    overflow: hidden;
-    text-overflow: ellipsis;
-    min-height: 52px;
-`;
+    min-height: 72px;
+    border-right: 1px solid ${brandTheme.border};
 
-export const CarInfo = styled.div`
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-
-    strong {
-        margin-bottom: 2px;
-        color: #34495e;
-    }
-
-    span {
-        font-size: 13px;
-        color: #7f8c8d;
+    &:last-child {
+        border-right: none;
     }
 `;
 
-export const DateRange = styled.div`
-    display: flex;
-    flex-direction: column;
-    font-size: 14px;
-    color: #34495e;
-    width: 100%;
-
-    span {
-        margin-bottom: 4px;
-    }
-`;
-
-export const OwnerInfo = styled.div`
-    display: flex;
-    flex-direction: column;
-    font-size: 14px;
-    color: #34495e;
-    width: 100%;
-`;
-
-export const CompanyInfo = styled.div`
-    font-size: 13px;
-    color: #7f8c8d;
-    margin-top: 2px;
-`;
-
-export const StatusBadge = styled.div<{ status: ProtocolStatus }>`
-    display: inline-block;
-    padding: 5px 10px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: 500;
-    background-color: ${props => {
-        switch (props.status) {
-            case ProtocolStatus.SCHEDULED:
-                return '#e3f2fd'; // jasny niebieski
-            case ProtocolStatus.IN_PROGRESS:
-                return '#f3e5f5'; // jasny fioletowy
-            case ProtocolStatus.READY_FOR_PICKUP:
-                return '#e8f5e9'; // jasny zielony
-            case ProtocolStatus.COMPLETED:
-                return '#f5f5f5'; // jasny szary
-            default:
-                return '#f5f5f5';
-        }
-    }};
-    color: ${props => {
-        switch (props.status) {
-            case ProtocolStatus.SCHEDULED:
-                return '#1976d2'; // ciemny niebieski
-            case ProtocolStatus.IN_PROGRESS:
-                return '#7b1fa2'; // ciemny fioletowy 
-            case ProtocolStatus.READY_FOR_PICKUP:
-                return '#2e7d32'; // ciemny zielony
-            case ProtocolStatus.COMPLETED:
-                return '#616161'; // ciemny szary
-            default:
-                return '#616161';
-        }
-    }};
-    border: 1px solid ${props => {
-        switch (props.status) {
-            case ProtocolStatus.SCHEDULED:
-                return '#bbdefb'; // jaśniejszy niebieski
-            case ProtocolStatus.IN_PROGRESS:
-                return '#e1bee7'; // jaśniejszy fioletowy
-            case ProtocolStatus.READY_FOR_PICKUP:
-                return '#c8e6c9'; // jaśniejszy zielony
-            case ProtocolStatus.COMPLETED:
-                return '#e0e0e0'; // jaśniejszy szary
-            default:
-                return '#e0e0e0';
-        }
-    }};
-`;
-
-export const ActionButtons = styled.div`
-    display: flex;
-    gap: 8px;
-`;
-
-export const ActionButton = styled.button<{ danger?: boolean }>`
-    background: none;
-    border: none;
-    color: ${props => props.danger ? '#e74c3c' : '#3498db'};
-    font-size: 16px;
-    cursor: pointer;
-    padding: 4px;
-    border-radius: 4px;
-
-    &:hover {
-        background-color: ${props => props.danger ? '#fdecea' : '#f0f7ff'};
-    }
-`;
+export default {
+    brandTheme,
+    StatusBadge,
+    CarInfo,
+    DateRange,
+    OwnerInfo,
+    CompanyInfo,
+    LicensePlate,
+    PriceDisplay,
+    ActionButtons,
+    ActionButton,
+    LoadingMessage,
+    ErrorMessage,
+    EmptyState,
+    PageContainer,
+    PageHeader,
+    HeaderLeft,
+    BackButton,
+    AddButton,
+    FilterButtons,
+    FilterButton,
+    TableContainer,
+    TableHeaderContainer,
+    DraggableHeaderCell,
+    TableBody,
+    TableRow,
+    TableCell
+};
