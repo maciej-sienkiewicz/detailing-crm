@@ -36,28 +36,28 @@ const filterToStatusMap: Record<FilterType, string> = {
 // Konfiguracja kolorów dla różnych filtrów
 const filterConfig = {
     'W realizacji': {
-        color: '#8b5cf6',
-        lightColor: 'rgba(139, 92, 246, 0.1)',
+        color: brandTheme.primary,
+        lightColor: 'rgba(107, 114, 128, 0.1)',
         darkColor: '#7c3aed'
     },
     'Oczekujące na odbiór': {
-        color: '#10b981',
-        lightColor: 'rgba(16, 185, 129, 0.1)',
+        color: brandTheme.primary,
+        lightColor: 'rgba(107, 114, 128, 0.1)',
         darkColor: '#059669'
     },
     'Zaplanowane': {
-        color: '#3b82f6',
-        lightColor: 'rgba(59, 130, 246, 0.1)',
+        color: brandTheme.primary,
+        lightColor: 'rgba(107, 114, 128, 0.1)',
         darkColor: '#2563eb'
     },
     'Archiwum': {
-        color: '#6b7280',
+        color: brandTheme.primary,
         lightColor: 'rgba(107, 114, 128, 0.1)',
         darkColor: '#4b5563'
     },
     'Porzucone': {
-        color: '#ef4444',
-        lightColor: 'rgba(239, 68, 68, 0.1)',
+        color: brandTheme.primary,
+        lightColor: 'rgba(107, 114, 128, 0.1)',
         darkColor: '#dc2626'
     }
 };
@@ -230,6 +230,6 @@ const ActiveIndicator = styled.div<{ $color: string }>`
     left: 0;
     width: 4px;
     height: 100%;
-    background: linear-gradient(180deg, ${props => props.$color} 0%, ${props => props.$color}80 100%);
+    background: linear-gradient(180deg, ${props => props.$color} 0%, ${props => props.$color} 100%);
     border-radius: 0 2px 2px 0;
 `;

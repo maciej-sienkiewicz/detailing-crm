@@ -324,7 +324,7 @@ export const MetricItem = styled.div`
 export const MetricValue = styled.div`
     font-weight: 700;
     font-size: 16px;
-    color: ${brandTheme.primary};
+    color: ${brandTheme.text.secondary};
     line-height: 1.2;
 `;
 
@@ -352,7 +352,7 @@ export const RevenueDisplay = styled.div`
 export const RevenueAmount = styled.div`
     font-weight: 700;
     font-size: 16px;
-    color: ${brandTheme.status.success};
+    color: ${brandTheme.text.secondary};
     line-height: 1.2;
 `;
 

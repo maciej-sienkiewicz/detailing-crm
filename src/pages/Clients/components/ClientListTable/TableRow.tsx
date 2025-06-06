@@ -164,14 +164,14 @@ export const TableRow: React.FC<TableRowProps> = ({
                         <ActionButton
                             onClick={(e) => onQuickAction('edit', client, e)}
                             title="Edytuj klienta"
-                            $variant="edit"
+                            $variant="secondary"
                         >
                             <FaEdit />
                         </ActionButton>
                         <ActionButton
                             onClick={(e) => onQuickAction('vehicles', client, e)}
                             title="Pojazdy klienta"
-                            $variant="info"
+                            $variant="secondary"
                         >
                             <FaCar />
                         </ActionButton>
@@ -185,7 +185,7 @@ export const TableRow: React.FC<TableRowProps> = ({
                         <ActionButton
                             onClick={(e) => onQuickAction('delete', client, e)}
                             title="Usuń klienta"
-                            $variant="delete"
+                            $variant="secondary"
                         >
                             <FaTrash />
                         </ActionButton>
