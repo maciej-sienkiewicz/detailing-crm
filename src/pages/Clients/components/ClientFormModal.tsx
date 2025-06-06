@@ -1,24 +1,77 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { FaUser, FaBuilding, FaStickyNote, FaCheck, FaTimes, FaSpinner } from 'react-icons/fa';
+import { FaUser, FaBuilding, FaStickyNote, FaCheck, FaTimes, FaSpinner, FaEnvelope, FaPhone, FaMapMarkerAlt, FaIdCard } from 'react-icons/fa';
 import { ClientExpanded } from '../../../types';
 import { ClientData, clientApi } from '../../../api/clientsApi';
 import Modal from '../../../components/common/Modal';
 
-// Brand Theme System - Automotive Premium
+// Professional Brand Theme - Premium Automotive CRM
 const brandTheme = {
-    primary: 'var(--brand-primary, #2563eb)',
-    primaryLight: 'var(--brand-primary-light, #3b82f6)',
-    primaryDark: 'var(--brand-primary-dark, #1d4ed8)',
-    primaryGhost: 'var(--brand-primary-ghost, rgba(37, 99, 235, 0.08))',
-    accent: '#f8fafc',
-    neutral: '#64748b',
+    // Primary Colors - Professional Blue Palette
+    primary: 'var(--brand-primary, #1a365d)',
+    primaryLight: 'var(--brand-primary-light, #2c5aa0)',
+    primaryDark: 'var(--brand-primary-dark, #0f2027)',
+    primaryGhost: 'var(--brand-primary-ghost, rgba(26, 54, 93, 0.04))',
+
+    // Surface Colors - Clean & Minimal
     surface: '#ffffff',
-    surfaceAlt: '#f1f5f9',
+    surfaceAlt: '#fafbfc',
+    surfaceElevated: '#f8fafc',
+    surfaceHover: '#f1f5f9',
+
+    // Typography Colors
+    text: {
+        primary: '#0f172a',
+        secondary: '#475569',
+        tertiary: '#64748b',
+        muted: '#94a3b8',
+        disabled: '#cbd5e1'
+    },
+
+    // Border Colors
     border: '#e2e8f0',
-    success: '#10b981',
-    warning: '#f59e0b',
-    error: '#ef4444'
+    borderLight: '#f1f5f9',
+    borderHover: '#cbd5e1',
+
+    // Status Colors - Automotive Grade
+    status: {
+        success: '#059669',
+        successLight: '#d1fae5',
+        warning: '#d97706',
+        warningLight: '#fef3c7',
+        error: '#dc2626',
+        errorLight: '#fee2e2',
+        info: '#0ea5e9',
+        infoLight: '#e0f2fe'
+    },
+
+    // Shadows - Professional Depth
+    shadow: {
+        xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+        sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+        md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+    },
+
+    // Spacing Scale
+    spacing: {
+        xs: '4px',
+        sm: '8px',
+        md: '16px',
+        lg: '24px',
+        xl: '32px',
+        xxl: '48px'
+    },
+
+    // Border Radius
+    radius: {
+        sm: '6px',
+        md: '8px',
+        lg: '12px',
+        xl: '16px',
+        xxl: '20px'
+    }
 };
 
 interface ClientFormModalProps {
@@ -31,27 +84,32 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ client, onSave, onCan
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const [formData, setFormData] = useState<ClientData>(
-        client ? {
-            firstName: client.firstName,
-            lastName: client.lastName,
-            email: client.email,
-            phone: client.phone,
-            address: client.address,
-            company: client.company,
-            taxId: client.taxId,
-            notes: client.notes
-        } : {
-            firstName: '',
-            lastName: '',
-            email: '',
-            phone: '',
-            address: '',
-            company: '',
-            taxId: '',
-            notes: ''
+    // Initialize form data with all required fields
+    const [formData, setFormData] = useState<ClientData>(() => {
+        if (client) {
+            return {
+                firstName: client.firstName || '',
+                lastName: client.lastName || '',
+                email: client.email || '',
+                phone: client.phone || '',
+                address: client.address || '',
+                company: client.company || '',
+                taxId: client.taxId || '',
+                notes: client.notes || ''
+            };
+        } else {
+            return {
+                firstName: '',
+                lastName: '',
+                email: '',
+                phone: '',
+                address: '',
+                company: '',
+                taxId: '',
+                notes: ''
+            };
         }
-    );
+    });
 
     const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -65,16 +123,17 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ client, onSave, onCan
 
         // Clear error when field is edited
         if (errors[name]) {
-            setErrors({
-                ...errors,
+            setErrors(prev => ({
+                ...prev,
                 [name]: ''
-            });
+            }));
         }
     };
 
     const validateForm = (): boolean => {
         const newErrors: Record<string, string> = {};
 
+        // Required fields validation
         if (!formData.firstName?.trim()) {
             newErrors.firstName = 'Imię jest wymagane';
         }
@@ -83,11 +142,28 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ client, onSave, onCan
             newErrors.lastName = 'Nazwisko jest wymagane';
         }
 
+        // At least email OR phone required
         if (!formData.email?.trim() && !formData.phone?.trim()) {
             newErrors.email = 'Podaj adres email lub numer telefonu';
             newErrors.phone = 'Podaj adres email lub numer telefonu';
-        } else if (formData.email?.trim() && !/^[^@]+@[^@]+\.[^@]+$/.test(formData.email)) {
+        }
+
+        // Email format validation
+        if (formData.email?.trim() && !/^[^@]+@[^@]+\.[^@]+$/.test(formData.email)) {
             newErrors.email = 'Podaj prawidłowy adres email';
+        }
+
+        // Phone format validation (basic)
+        if (formData.phone?.trim() && formData.phone.length < 9) {
+            newErrors.phone = 'Numer telefonu jest za krótki';
+        }
+
+        // Tax ID validation (if company provided)
+        if (formData.company?.trim() && formData.taxId?.trim()) {
+            const taxIdClean = formData.taxId.replace(/[^0-9]/g, '');
+            if (taxIdClean.length !== 10) {
+                newErrors.taxId = 'NIP musi mieć 10 cyfr';
+            }
         }
 
         setErrors(newErrors);
@@ -108,15 +184,20 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ client, onSave, onCan
             let savedClient: ClientExpanded;
 
             if (client && client.id) {
+                // Update existing client
+                console.log('Updating client:', client.id, formData);
                 savedClient = await clientApi.updateClient(client.id, formData);
             } else {
+                // Create new client
+                console.log('Creating new client:', formData);
                 savedClient = await clientApi.createClient(formData);
             }
 
+            console.log('Client saved successfully:', savedClient);
             onSave(savedClient);
         } catch (err) {
-            setError('Nie udało się zapisać klienta. Spróbuj ponownie.');
             console.error('Error saving client:', err);
+            setError('Nie udało się zapisać klienta. Spróbuj ponownie.');
         } finally {
             setLoading(false);
         }
@@ -154,10 +235,50 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ client, onSave, onCan
                                 <FormInput
                                     id="firstName"
                                     name="firstName"
-                                    value={formData.firstName || ''}
+                                    value={formData.firstName}
                                     onChange={handleChange}
                                     placeholder="Wprowadź imię"
                                     $hasError={!!errors.firstName}
+                                    $hasValue={!!formData.firstName}
+                                />
+                                {errors.firstName && (
+                                    <ErrorMessage>{errors.firstName}</ErrorMessage>
+                                )}
+                            </FormGroup>
+
+                            <FormGroup>
+                                <FormLabel htmlFor="lastName" $required>
+                                    Nazwisko
+                                </FormLabel>
+                                <FormInput
+                                    id="lastName"
+                                    name="lastName"
+                                    value={formData.lastName}
+                                    onChange={handleChange}
+                                    placeholder="Wprowadź nazwisko"
+                                    $hasError={!!errors.lastName}
+                                    $hasValue={!!formData.lastName}
+                                />
+                                {errors.lastName && (
+                                    <ErrorMessage>{errors.lastName}</ErrorMessage>
+                                )}
+                            </FormGroup>
+                        </FormRow>
+
+                        <FormRow>
+                            <FormGroup>
+                                <FormLabel htmlFor="email">
+                                    <FaEnvelope style={{ marginRight: '8px', fontSize: '12px' }} />
+                                    Adres email
+                                </FormLabel>
+                                <FormInput
+                                    id="email"
+                                    name="email"
+                                    type="email"
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                    placeholder="nazwa@domena.pl"
+                                    $hasError={!!errors.email}
                                     $hasValue={!!formData.email}
                                 />
                                 {errors.email && (
@@ -167,12 +288,14 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ client, onSave, onCan
 
                             <FormGroup>
                                 <FormLabel htmlFor="phone">
+                                    <FaPhone style={{ marginRight: '8px', fontSize: '12px' }} />
                                     Numer telefonu
                                 </FormLabel>
                                 <FormInput
                                     id="phone"
                                     name="phone"
-                                    value={formData.phone || ''}
+                                    type="tel"
+                                    value={formData.phone}
                                     onChange={handleChange}
                                     placeholder="+48 123 456 789"
                                     $hasError={!!errors.phone}
@@ -186,12 +309,13 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ client, onSave, onCan
 
                         <FormGroup>
                             <FormLabel htmlFor="address">
+                                <FaMapMarkerAlt style={{ marginRight: '8px', fontSize: '12px' }} />
                                 Adres
                             </FormLabel>
                             <FormInput
                                 id="address"
                                 name="address"
-                                value={formData.address || ''}
+                                value={formData.address}
                                 onChange={handleChange}
                                 placeholder="Ulica, numer, kod pocztowy, miasto"
                                 $hasValue={!!formData.address}
@@ -217,7 +341,7 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ client, onSave, onCan
                                 <FormInput
                                     id="company"
                                     name="company"
-                                    value={formData.company || ''}
+                                    value={formData.company}
                                     onChange={handleChange}
                                     placeholder="Nazwa firmy lub działalności"
                                     $hasValue={!!formData.company}
@@ -226,16 +350,21 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ client, onSave, onCan
 
                             <FormGroup>
                                 <FormLabel htmlFor="taxId">
+                                    <FaIdCard style={{ marginRight: '8px', fontSize: '12px' }} />
                                     NIP
                                 </FormLabel>
                                 <FormInput
                                     id="taxId"
                                     name="taxId"
-                                    value={formData.taxId || ''}
+                                    value={formData.taxId}
                                     onChange={handleChange}
                                     placeholder="0000000000"
+                                    $hasError={!!errors.taxId}
                                     $hasValue={!!formData.taxId}
                                 />
+                                {errors.taxId && (
+                                    <ErrorMessage>{errors.taxId}</ErrorMessage>
+                                )}
                             </FormGroup>
                         </FormRow>
                     </FormSection>
@@ -257,7 +386,7 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ client, onSave, onCan
                             <FormTextarea
                                 id="notes"
                                 name="notes"
-                                value={formData.notes || ''}
+                                value={formData.notes}
                                 onChange={handleChange}
                                 placeholder="Preferencje klienta, historia współpracy, specjalne uwagi..."
                                 rows={4}
@@ -270,7 +399,7 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ client, onSave, onCan
                     {client && (
                         <FormSection>
                             <SectionHeader>
-                                <SectionIcon $color={brandTheme.success}>
+                                <SectionIcon $color={brandTheme.status.success}>
                                     <FaCheck />
                                 </SectionIcon>
                                 <SectionTitle>Statystyki CRM</SectionTitle>
@@ -284,7 +413,7 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ client, onSave, onCan
                                 </StatCard>
 
                                 <StatCard>
-                                    <StatValue>{client.abandonedSales}</StatValue>
+                                    <StatValue>{client.abandonedSales || 0}</StatValue>
                                     <StatLabel>Porzucone szanse</StatLabel>
                                 </StatCard>
 
@@ -303,7 +432,7 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ client, onSave, onCan
 
                     {/* Form Actions */}
                     <FormActions>
-                        <SecondaryButton type="button" onClick={onCancel}>
+                        <SecondaryButton type="button" onClick={onCancel} disabled={loading}>
                             <FaTimes />
                             Anuluj
                         </SecondaryButton>
@@ -327,23 +456,35 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ client, onSave, onCan
     );
 };
 
-// Modern Styled Components - Premium Automotive Design
+// Professional Styled Components - Premium Automotive Design
 const FormContainer = styled.div`
-    padding: 0 16px;
+    padding: 0 ${brandTheme.spacing.md};
     max-height: 80vh;
     overflow-y: auto;
+
+    /* Custom scrollbar */
+    &::-webkit-scrollbar {
+        width: 6px;
+    }
+    &::-webkit-scrollbar-track {
+        background: ${brandTheme.surfaceAlt};
+    }
+    &::-webkit-scrollbar-thumb {
+        background: ${brandTheme.border};
+        border-radius: 3px;
+    }
 `;
 
 const ErrorContainer = styled.div`
-    background: linear-gradient(135deg, #fef2f2 0%, #fdf2f8 100%);
+    background: linear-gradient(135deg, ${brandTheme.status.errorLight} 0%, #fdf2f8 100%);
     border: 1px solid #fecaca;
-    border-radius: 12px;
-    padding: 16px 20px;
-    margin-bottom: 20px;
+    border-radius: ${brandTheme.radius.lg};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    margin-bottom: ${brandTheme.spacing.lg};
     display: flex;
     align-items: center;
-    gap: 12px;
-    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.1);
+    gap: ${brandTheme.spacing.sm};
+    box-shadow: ${brandTheme.shadow.sm};
 `;
 
 const ErrorIcon = styled.div`
@@ -351,7 +492,7 @@ const ErrorIcon = styled.div`
 `;
 
 const ErrorText = styled.div`
-    color: #dc2626;
+    color: ${brandTheme.status.error};
     font-weight: 500;
     font-size: 14px;
 `;
@@ -359,23 +500,23 @@ const ErrorText = styled.div`
 const Form = styled.form`
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: ${brandTheme.spacing.lg};
 `;
 
 const FormSection = styled.section`
     background: ${brandTheme.surface};
     border: 1px solid ${brandTheme.border};
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    border-radius: ${brandTheme.radius.lg};
+    padding: ${brandTheme.spacing.lg};
+    box-shadow: ${brandTheme.shadow.xs};
 `;
 
 const SectionHeader = styled.div`
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 20px;
-    padding-bottom: 12px;
+    gap: ${brandTheme.spacing.sm};
+    margin-bottom: ${brandTheme.spacing.lg};
+    padding-bottom: ${brandTheme.spacing.sm};
     border-bottom: 1px solid ${brandTheme.border};
 `;
 
@@ -383,36 +524,36 @@ const SectionIcon = styled.div<{ $color?: string }>`
     width: 36px;
     height: 36px;
     background: linear-gradient(135deg, ${props => props.$color || brandTheme.primary} 0%, ${props => props.$color ? `${props.$color}CC` : brandTheme.primaryLight} 100%);
-    border-radius: 8px;
+    border-radius: ${brandTheme.radius.md};
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
     font-size: 16px;
-    box-shadow: 0 2px 8px ${props => props.$color ? `${props.$color}40` : brandTheme.primaryGhost};
+    box-shadow: ${brandTheme.shadow.sm};
 `;
 
 const SectionTitle = styled.div`
     font-size: 18px;
     font-weight: 600;
-    color: #1e293b;
+    color: ${brandTheme.text.primary};
     flex: 1;
 `;
 
 const SectionSubtitle = styled.div`
     font-size: 13px;
-    color: ${brandTheme.neutral};
+    color: ${brandTheme.text.tertiary};
     font-style: italic;
 `;
 
 const FormRow = styled.div`
     display: flex;
-    gap: 16px;
-    margin-bottom: 16px;
+    gap: ${brandTheme.spacing.md};
+    margin-bottom: ${brandTheme.spacing.md};
 
     @media (max-width: 768px) {
         flex-direction: column;
-        gap: 16px;
+        gap: ${brandTheme.spacing.md};
     }
 `;
 
@@ -420,18 +561,20 @@ const FormGroup = styled.div`
     display: flex;
     flex-direction: column;
     flex: 1;
-    gap: 8px;
+    gap: ${brandTheme.spacing.sm};
 `;
 
 const FormLabel = styled.label<{ $required?: boolean }>`
     font-weight: 600;
     font-size: 14px;
-    color: #374151;
+    color: ${brandTheme.text.primary};
+    display: flex;
+    align-items: center;
 
     ${props => props.$required && `
         &::after {
             content: ' *';
-            color: ${brandTheme.error};
+            color: ${brandTheme.status.error};
             font-weight: 700;
         }
     `}
@@ -441,18 +584,18 @@ const FormInput = styled.input<{
     $hasError?: boolean;
     $hasValue?: boolean;
 }>`
-    height: 44px;
-    padding: 0 16px;
+    height: 48px;
+    padding: 0 ${brandTheme.spacing.md};
     border: 2px solid ${props =>
-            props.$hasError ? brandTheme.error :
+            props.$hasError ? brandTheme.status.error :
                     props.$hasValue ? brandTheme.primary :
                             brandTheme.border
     };
-    border-radius: 8px;
+    border-radius: ${brandTheme.radius.md};
     font-size: 14px;
     font-weight: 500;
     background: ${props => props.$hasValue ? brandTheme.primaryGhost : brandTheme.surface};
-    color: #374151;
+    color: ${brandTheme.text.primary};
     transition: all 0.2s ease;
 
     &:focus {
@@ -463,29 +606,30 @@ const FormInput = styled.input<{
     }
 
     &::placeholder {
-        color: ${brandTheme.neutral};
+        color: ${brandTheme.text.muted};
         font-weight: 400;
     }
 
     ${props => props.$hasError && `
         &:focus {
-            border-color: ${brandTheme.error};
-            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+            border-color: ${brandTheme.status.error};
+            box-shadow: 0 0 0 3px ${brandTheme.status.errorLight};
         }
     `}
 `;
 
 const FormTextarea = styled.textarea<{ $hasValue?: boolean }>`
-    padding: 12px 16px;
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
     border: 2px solid ${props => props.$hasValue ? brandTheme.primary : brandTheme.border};
-    border-radius: 8px;
+    border-radius: ${brandTheme.radius.md};
     font-size: 14px;
     font-family: inherit;
     font-weight: 500;
     background: ${props => props.$hasValue ? brandTheme.primaryGhost : brandTheme.surface};
-    color: #374151;
+    color: ${brandTheme.text.primary};
     resize: vertical;
     transition: all 0.2s ease;
+    min-height: 100px;
 
     &:focus {
         outline: none;
@@ -495,19 +639,18 @@ const FormTextarea = styled.textarea<{ $hasValue?: boolean }>`
     }
 
     &::placeholder {
-        color: ${brandTheme.neutral};
+        color: ${brandTheme.text.muted};
         font-weight: 400;
     }
 `;
 
 const ErrorMessage = styled.div`
-    color: ${brandTheme.error};
+    color: ${brandTheme.status.error};
     font-size: 12px;
     font-weight: 500;
-    margin-top: 4px;
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: ${brandTheme.spacing.xs};
 
     &::before {
         content: '⚠';
@@ -518,14 +661,14 @@ const ErrorMessage = styled.div`
 const StatsGrid = styled.div`
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 16px;
+    gap: ${brandTheme.spacing.md};
 `;
 
 const StatCard = styled.div`
     background: ${brandTheme.surfaceAlt};
     border: 1px solid ${brandTheme.border};
-    border-radius: 12px;
-    padding: 16px;
+    border-radius: ${brandTheme.radius.lg};
+    padding: ${brandTheme.spacing.md};
     text-align: center;
     transition: all 0.2s ease;
 
@@ -533,7 +676,7 @@ const StatCard = styled.div`
         background: ${brandTheme.primaryGhost};
         border-color: ${brandTheme.primary};
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        box-shadow: ${brandTheme.shadow.md};
     }
 `;
 
@@ -541,12 +684,12 @@ const StatValue = styled.div`
     font-size: 20px;
     font-weight: 700;
     color: ${brandTheme.primary};
-    margin-bottom: 4px;
+    margin-bottom: ${brandTheme.spacing.xs};
 `;
 
 const StatLabel = styled.div`
     font-size: 12px;
-    color: ${brandTheme.neutral};
+    color: ${brandTheme.text.tertiary};
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -555,59 +698,37 @@ const StatLabel = styled.div`
 const FormActions = styled.div`
     display: flex;
     justify-content: flex-end;
-    gap: 12px;
-    padding-top: 20px;
+    gap: ${brandTheme.spacing.sm};
+    padding-top: ${brandTheme.spacing.lg};
     border-top: 1px solid ${brandTheme.border};
-    margin-top: 20px;
+    margin-top: ${brandTheme.spacing.lg};
 `;
 
-const SecondaryButton = styled.button`
+const BaseButton = styled.button`
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 12px 20px;
-    background: ${brandTheme.surfaceAlt};
-    color: ${brandTheme.neutral};
-    border: 2px solid ${brandTheme.border};
-    border-radius: 8px;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.lg};
+    border-radius: ${brandTheme.radius.md};
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-        background: ${brandTheme.border};
-        color: #374151;
-        transform: translateY(-1px);
-    }
-`;
-
-const PrimaryButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 24px;
-    background: ${brandTheme.primary};
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: 44px;
+    border: 1px solid transparent;
 
     &:hover:not(:disabled) {
-        background: ${brandTheme.primaryDark};
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    &:active:not(:disabled) {
+        transform: translateY(0);
     }
 
     &:disabled {
-        background: ${brandTheme.neutral};
+        opacity: 0.6;
         cursor: not-allowed;
         transform: none;
-        box-shadow: none;
     }
 
     .spinning {
@@ -617,6 +738,28 @@ const PrimaryButton = styled.button`
     @keyframes spin {
         from { transform: rotate(0deg); }
         to { transform: rotate(360deg); }
+    }
+`;
+
+const SecondaryButton = styled(BaseButton)`
+    background: ${brandTheme.surfaceAlt};
+    color: ${brandTheme.text.secondary};
+    border-color: ${brandTheme.border};
+
+    &:hover:not(:disabled) {
+        background: ${brandTheme.borderLight};
+        color: ${brandTheme.text.primary};
+    }
+`;
+
+const PrimaryButton = styled(BaseButton)`
+    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+    color: white;
+    box-shadow: ${brandTheme.shadow.sm};
+
+    &:hover:not(:disabled) {
+        background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
+        box-shadow: ${brandTheme.shadow.md};
     }
 `;
 
