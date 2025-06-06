@@ -391,7 +391,7 @@ const UnifiedFinancialPage: React.FC = () => {
                         />
 
                         {/* Pagination */}
-                        {filteredDocuments.length > 0 && pagination.totalPages > 1 && (
+                        {filteredDocuments.length > 0 && (
                             <PaginationContainer>
                                 <Pagination
                                     currentPage={pagination.currentPage + 1}
@@ -408,16 +408,14 @@ const UnifiedFinancialPage: React.FC = () => {
             </ContentContainer>
 
             {/* Modals */}
-            {showFormModal && (
-                <UnifiedDocumentFormModal
-                    isOpen={showFormModal}
-                    document={selectedDocument}
-                    onSave={handleSaveDocument}
-                    onClose={() => setShowFormModal(false)}
-                />
-            )}
+            <UnifiedDocumentFormModal
+                isOpen={showFormModal}
+                document={selectedDocument}
+                onSave={handleSaveDocument}
+                onClose={() => setShowFormModal(false)}
+            />
 
-            {selectedDocument && showViewModal && (
+            {selectedDocument && (
                 <UnifiedDocumentViewModal
                     isOpen={showViewModal}
                     document={selectedDocument}
@@ -438,7 +436,7 @@ const UnifiedFinancialPage: React.FC = () => {
     );
 };
 
-// Professional Styled Components - Minimal & Elegant (wzorowane na OwnersPage)
+// Professional Styled Components - Minimal & Elegant
 const PageContainer = styled.div`
     min-height: 100vh;
     background: ${brandTheme.surfaceAlt};
