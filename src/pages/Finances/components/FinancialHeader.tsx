@@ -94,37 +94,29 @@ const FinancialHeader: React.FC<FinancialHeaderProps> = ({ onAddDocument }) => {
                 </HeaderLeft>
 
                 <HeaderActions>
-                    <ActionGroup>
-                        <PrimaryActionButton onClick={() => onAddDocument(DocumentType.INVOICE)}>
-                            <ActionIcon>
-                                <FaFileInvoiceDollar />
-                            </ActionIcon>
-                            <ActionContent>
-                                <ActionTitle>Faktura</ActionTitle>
-                                <ActionSubtitle>Utwórz nową fakturę</ActionSubtitle>
-                            </ActionContent>
-                        </PrimaryActionButton>
+                    <ActionButton
+                        onClick={() => onAddDocument(DocumentType.INVOICE)}
+                        $variant="primary"
+                    >
+                        <FaFileInvoiceDollar />
+                        <span>Faktura</span>
+                    </ActionButton>
 
-                        <SecondaryActionButton onClick={() => onAddDocument(DocumentType.RECEIPT)}>
-                            <ActionIcon>
-                                <FaReceipt />
-                            </ActionIcon>
-                            <ActionContent>
-                                <ActionTitle>Paragon</ActionTitle>
-                                <ActionSubtitle>Dodaj paragon</ActionSubtitle>
-                            </ActionContent>
-                        </SecondaryActionButton>
+                    <ActionButton
+                        onClick={() => onAddDocument(DocumentType.RECEIPT)}
+                        $variant="success"
+                    >
+                        <FaReceipt />
+                        <span>Paragon</span>
+                    </ActionButton>
 
-                        <TertiaryActionButton onClick={() => onAddDocument(DocumentType.OTHER)}>
-                            <ActionIcon>
-                                <FaExchangeAlt />
-                            </ActionIcon>
-                            <ActionContent>
-                                <ActionTitle>Operacja</ActionTitle>
-                                <ActionSubtitle>Inna operacja</ActionSubtitle>
-                            </ActionContent>
-                        </TertiaryActionButton>
-                    </ActionGroup>
+                    <ActionButton
+                        onClick={() => onAddDocument(DocumentType.OTHER)}
+                        $variant="warning"
+                    >
+                        <FaExchangeAlt />
+                        <span>Operacja</span>
+                    </ActionButton>
 
                     <QuickAddButton onClick={() => onAddDocument()}>
                         <FaPlus />
@@ -136,71 +128,59 @@ const FinancialHeader: React.FC<FinancialHeaderProps> = ({ onAddDocument }) => {
     );
 };
 
-// Professional Styled Components - Minimal & Elegant
+// Professional Styled Components - Minimal & Elegant (wzorowane na OwnersPage)
 const HeaderContainer = styled.header`
     background: ${brandTheme.surface};
-    border-bottom: 1px solid ${brandTheme.borderLight};
+    border-bottom: 1px solid ${brandTheme.border};
     box-shadow: ${brandTheme.shadow.sm};
     position: sticky;
     top: 0;
     z-index: 100;
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(8px);
     background: rgba(255, 255, 255, 0.95);
 `;
 
 const HeaderContent = styled.div`
     max-width: 1600px;
     margin: 0 auto;
-    padding: ${brandTheme.spacing.xl};
+    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: ${brandTheme.spacing.xl};
+    gap: ${brandTheme.spacing.lg};
 
-    @media (max-width: 1200px) {
-        padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
+    @media (max-width: 1024px) {
+        padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
         flex-direction: column;
         align-items: stretch;
-        gap: ${brandTheme.spacing.lg};
+        gap: ${brandTheme.spacing.md};
     }
 
     @media (max-width: 768px) {
         padding: ${brandTheme.spacing.md};
-        gap: ${brandTheme.spacing.md};
     }
 `;
 
 const HeaderLeft = styled.div`
     display: flex;
     align-items: center;
-    gap: ${brandTheme.spacing.lg};
+    gap: ${brandTheme.spacing.md};
     min-width: 0;
     flex: 1;
-
-    @media (max-width: 1200px) {
-        justify-content: center;
-        text-align: center;
-    }
 `;
 
 const HeaderIcon = styled.div`
-    width: 64px;
-    height: 64px;
+    width: 56px;
+    height: 56px;
     background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-    border-radius: ${brandTheme.radius.xl};
+    border-radius: ${brandTheme.radius.lg};
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 28px;
+    font-size: 24px;
     box-shadow: ${brandTheme.shadow.md};
     flex-shrink: 0;
-
-    @media (max-width: 768px) {
-        width: 56px;
-        height: 56px;
-        font-size: 24px;
-    }
 `;
 
 const HeaderTextContent = styled.div`
@@ -209,12 +189,12 @@ const HeaderTextContent = styled.div`
 `;
 
 const HeaderTitle = styled.h1`
-    font-size: 36px;
+    font-size: 32px;
     font-weight: 700;
     color: ${brandTheme.text.primary};
     margin: 0 0 ${brandTheme.spacing.xs} 0;
-    letter-spacing: -0.02em;
-    line-height: 1.1;
+    letter-spacing: -0.025em;
+    line-height: 1.2;
 
     @media (max-width: 768px) {
         font-size: 28px;
@@ -235,48 +215,49 @@ const HeaderSubtitle = styled.p`
 
 const HeaderActions = styled.div`
     display: flex;
-    flex-direction: column;
-    gap: ${brandTheme.spacing.md};
-    align-items: flex-end;
-
-    @media (max-width: 1200px) {
-        align-items: stretch;
-    }
-`;
-
-const ActionGroup = styled.div`
-    display: flex;
     gap: ${brandTheme.spacing.sm};
-    align-items: stretch;
+    align-items: center;
+    flex-wrap: wrap;
+
+    @media (max-width: 1024px) {
+        justify-content: flex-end;
+        width: 100%;
+    }
 
     @media (max-width: 768px) {
         flex-direction: column;
+        gap: ${brandTheme.spacing.xs};
+
+        > * {
+            width: 100%;
+        }
     }
 `;
 
-const BaseActionButton = styled.button`
+const ActionButton = styled.button<{
+    $variant: 'primary' | 'success' | 'warning';
+}>`
     display: flex;
     align-items: center;
     gap: ${brandTheme.spacing.sm};
-    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-    border-radius: ${brandTheme.radius.lg};
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+    border-radius: ${brandTheme.radius.md};
     font-weight: 600;
     font-size: 14px;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     border: 1px solid transparent;
     white-space: nowrap;
-    min-height: 60px;
+    min-height: 44px;
     position: relative;
     overflow: hidden;
 
     &:hover {
-        transform: translateY(-2px);
-        box-shadow: ${brandTheme.shadow.lg};
+        transform: translateY(-1px);
     }
 
     &:active {
-        transform: translateY(-1px);
+        transform: translateY(0);
     }
 
     &:disabled {
@@ -285,75 +266,51 @@ const BaseActionButton = styled.button`
         transform: none;
     }
 
-    @media (max-width: 768px) {
-        justify-content: center;
-        text-align: center;
+    ${({ $variant }) => {
+        switch ($variant) {
+            case 'primary':
+                return `
+                    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+                    color: white;
+                    box-shadow: ${brandTheme.shadow.sm};
+
+                    &:hover {
+                        background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
+                        box-shadow: ${brandTheme.shadow.md};
+                    }
+                `;
+            case 'success':
+                return `
+                    background: linear-gradient(135deg, ${brandTheme.status.success} 0%, #10b981 100%);
+                    color: white;
+                    box-shadow: ${brandTheme.shadow.sm};
+
+                    &:hover {
+                        background: linear-gradient(135deg, #059669 0%, ${brandTheme.status.success} 100%);
+                        box-shadow: ${brandTheme.shadow.md};
+                    }
+                `;
+            case 'warning':
+                return `
+                    background: linear-gradient(135deg, ${brandTheme.status.warning} 0%, #f59e0b 100%);
+                    color: white;
+                    box-shadow: ${brandTheme.shadow.sm};
+
+                    &:hover {
+                        background: linear-gradient(135deg, #b45309 0%, ${brandTheme.status.warning} 100%);
+                        box-shadow: ${brandTheme.shadow.md};
+                    }
+                `;
+            default:
+                return '';
+        }
+    }}
+
+    span {
+        @media (max-width: 480px) {
+            display: none;
+        }
     }
-`;
-
-const PrimaryActionButton = styled(BaseActionButton)`
-    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-    color: white;
-    box-shadow: ${brandTheme.shadow.md};
-
-    &:hover {
-        background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
-    }
-`;
-
-const SecondaryActionButton = styled(BaseActionButton)`
-    background: linear-gradient(135deg, ${brandTheme.status.success} 0%, #34d399 100%);
-    color: white;
-    box-shadow: ${brandTheme.shadow.md};
-
-    &:hover {
-        background: linear-gradient(135deg, #047857 0%, ${brandTheme.status.success} 100%);
-    }
-`;
-
-const TertiaryActionButton = styled(BaseActionButton)`
-    background: linear-gradient(135deg, ${brandTheme.status.warning} 0%, #fbbf24 100%);
-    color: white;
-    box-shadow: ${brandTheme.shadow.md};
-
-    &:hover {
-        background: linear-gradient(135deg, #b45309 0%, ${brandTheme.status.warning} 100%);
-    }
-`;
-
-const ActionIcon = styled.div`
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    flex-shrink: 0;
-`;
-
-const ActionContent = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
-    flex: 1;
-
-    @media (max-width: 768px) {
-        align-items: center;
-    }
-`;
-
-const ActionTitle = styled.span`
-    font-size: 14px;
-    font-weight: 600;
-    line-height: 1;
-`;
-
-const ActionSubtitle = styled.span`
-    font-size: 11px;
-    font-weight: 400;
-    opacity: 0.9;
-    line-height: 1;
 `;
 
 const QuickAddButton = styled.button`
@@ -365,16 +322,17 @@ const QuickAddButton = styled.button`
     color: ${brandTheme.text.secondary};
     border: 1px solid ${brandTheme.border};
     border-radius: ${brandTheme.radius.md};
-    font-size: 13px;
-    font-weight: 500;
+    font-size: 14px;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: ${brandTheme.shadow.xs};
+    min-height: 44px;
 
     &:hover {
         background: ${brandTheme.surfaceHover};
-        color: ${brandTheme.primary};
-        border-color: ${brandTheme.primary}40;
+        color: ${brandTheme.text.primary};
+        border-color: ${brandTheme.borderHover};
         transform: translateY(-1px);
         box-shadow: ${brandTheme.shadow.sm};
     }

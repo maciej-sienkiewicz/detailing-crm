@@ -1,87 +1,73 @@
-// src/pages/Finances/components/FinancialDocumentsList.tsx - Professional Premium Automotive CRM
+// Premium Financial Documents Table - Professional UX/UI Design for Automotive Detailing Industry
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import {
     FaFileInvoiceDollar,
     FaReceipt,
     FaExchangeAlt,
-    FaCalendarAlt,
     FaEye,
     FaEdit,
     FaTrashAlt,
-    FaBuilding,
+    FaExternalLinkAlt,
+    FaCalendarAlt,
     FaUser,
-    FaTh,
-    FaList
+    FaCreditCard,
+    FaCheckCircle,
+    FaClock,
+    FaExclamationTriangle,
+    FaTimes,
+    FaEllipsisH
 } from 'react-icons/fa';
 import {
     UnifiedFinancialDocument,
     DocumentType,
-    DocumentTypeLabels,
     DocumentStatus,
-    DocumentStatusLabels,
     TransactionDirection,
-    TransactionDirectionLabels,
     PaymentMethodLabels
 } from '../../../types/finance';
 
-// Professional Brand Theme - Premium Automotive CRM
-const brandTheme = {
-    // Primary Colors - Professional Blue Palette
-    primary: 'var(--brand-primary, #1a365d)',
-    primaryLight: 'var(--brand-primary-light, #2c5aa0)',
-    primaryDark: 'var(--brand-primary-dark, #0f2027)',
-    primaryGhost: 'var(--brand-primary-ghost, rgba(26, 54, 93, 0.04))',
+// Premium Automotive Brand Theme
+const theme = {
+    // Professional Color Palette
+    colors: {
+        primary: '#1a365d',
+        primaryLight: '#2c5aa0',
+        primaryDark: '#0f2027',
 
-    // Surface Colors - Clean & Minimal
-    surface: '#ffffff',
-    surfaceAlt: '#fafbfc',
-    surfaceElevated: '#f8fafc',
-    surfaceHover: '#f1f5f9',
+        surface: '#ffffff',
+        surfaceAlt: '#fafbfc',
+        surfaceHover: '#f1f5f9',
 
-    // Typography Colors
-    text: {
-        primary: '#0f172a',
-        secondary: '#475569',
-        tertiary: '#64748b',
-        muted: '#94a3b8',
-        disabled: '#cbd5e1'
+        text: {
+            primary: '#0f172a',
+            secondary: '#475569',
+            tertiary: '#64748b',
+            muted: '#94a3b8'
+        },
+
+        border: '#e2e8f0',
+        borderLight: '#f1f5f9',
+
+        status: {
+            success: '#059669',
+            successLight: '#ecfdf5',
+            warning: '#d97706',
+            warningLight: '#fffbeb',
+            error: '#dc2626',
+            errorLight: '#fef2f2',
+            info: '#0ea5e9',
+            infoLight: '#f0f9ff'
+        }
     },
 
-    // Border Colors
-    border: '#e2e8f0',
-    borderLight: '#f1f5f9',
-    borderHover: '#cbd5e1',
-
-    // Status Colors - Automotive Grade
-    status: {
-        success: '#059669',
-        successLight: '#d1fae5',
-        warning: '#d97706',
-        warningLight: '#fef3c7',
-        error: '#dc2626',
-        errorLight: '#fee2e2',
-        info: '#0ea5e9',
-        infoLight: '#e0f2fe'
-    },
-
-    // Shadows - Professional Depth
-    shadow: {
-        xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-        sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
-        md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-        lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-        xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
-    },
-
-    // Spacing Scale
-    spacing: {
+    // Spacing System
+    space: {
         xs: '4px',
         sm: '8px',
-        md: '16px',
-        lg: '24px',
-        xl: '32px',
-        xxl: '48px'
+        md: '12px',
+        lg: '16px',
+        xl: '20px',
+        xxl: '24px'
     },
 
     // Border Radius
@@ -89,681 +75,620 @@ const brandTheme = {
         sm: '6px',
         md: '8px',
         lg: '12px',
-        xl: '16px',
-        xxl: '20px'
+        xl: '16px'
+    },
+
+    // Shadows
+    shadow: {
+        xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+        sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+        md: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+        lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
     }
 };
 
-interface FinancialDocumentsListProps {
+interface PremiumFinancialTableProps {
     documents: UnifiedFinancialDocument[];
     onViewDocument: (document: UnifiedFinancialDocument) => void;
     onEditDocument: (document: UnifiedFinancialDocument) => void;
     onDeleteDocument: (id: string) => void;
 }
 
-const FinancialDocumentsList: React.FC<FinancialDocumentsListProps> = ({
-                                                                           documents,
-                                                                           onViewDocument,
-                                                                           onEditDocument,
-                                                                           onDeleteDocument
-                                                                       }) => {
-    const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
-
-    // Formatowanie daty
+const FinancialDocumentsList: React.FC<PremiumFinancialTableProps> = ({
+                                                                         documents,
+                                                                         onViewDocument,
+                                                                         onEditDocument,
+                                                                         onDeleteDocument
+                                                                     }) => {
+    // Helper Functions
     const formatDate = (dateString: string): string => {
-        if (!dateString) return '-';
         const date = new Date(dateString);
-        return date.toLocaleDateString('pl-PL');
+        return date.toLocaleDateString('pl-PL', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+        });
     };
 
-    // Formatowanie kwoty
-    const formatAmount = (amount: number): string => {
+    const formatAmount = (amount: number, currency: string = 'PLN'): string => {
         return new Intl.NumberFormat('pl-PL', {
-            minimumFractionDigits: 2,
+            style: 'currency',
+            currency: currency,
+            minimumFractionDigits: 0,
             maximumFractionDigits: 2
         }).format(amount);
     };
 
-    // Funkcja zwracająca ikonę dla typu dokumentu
-    const getDocumentIcon = (type: DocumentType) => {
-        switch (type) {
-            case DocumentType.INVOICE:
-                return <FaFileInvoiceDollar />;
-            case DocumentType.RECEIPT:
-                return <FaReceipt />;
-            case DocumentType.OTHER:
-                return <FaExchangeAlt />;
-            default:
-                return <FaFileInvoiceDollar />;
-        }
+    const getDocumentTypeConfig = (type: DocumentType) => {
+        const configs = {
+            [DocumentType.INVOICE]: {
+                icon: <FaFileInvoiceDollar />,
+                label: 'Faktura',
+                color: theme.colors.primary,
+                bgColor: `${theme.colors.primary}08`
+            },
+            [DocumentType.RECEIPT]: {
+                icon: <FaReceipt />,
+                label: 'Paragon',
+                color: theme.colors.status.success,
+                bgColor: theme.colors.status.successLight
+            },
+            [DocumentType.OTHER]: {
+                icon: <FaExchangeAlt />,
+                label: 'Operacja',
+                color: theme.colors.status.warning,
+                bgColor: theme.colors.status.warningLight
+            }
+        };
+        return configs[type] || configs[DocumentType.OTHER];
+    };
+
+    const getStatusConfig = (status: DocumentStatus) => {
+        const configs = {
+            PAID: {
+                icon: <FaCheckCircle />,
+                label: 'Opłacona',
+                color: theme.colors.status.success,
+                bgColor: theme.colors.status.successLight
+            },
+            NOT_PAID: {
+                icon: <FaClock />,
+                label: 'Nieopłacona',
+                color: theme.colors.status.info,
+                bgColor: theme.colors.status.infoLight
+            },
+            OVERDUE: {
+                icon: <FaExclamationTriangle />,
+                label: 'Przeterminowana',
+                color: theme.colors.status.error,
+                bgColor: theme.colors.status.errorLight
+            },
+            CANCELLED: {
+                icon: <FaTimes />,
+                label: 'Anulowana',
+                color: theme.colors.text.muted,
+                bgColor: theme.colors.surfaceAlt
+            }
+        };
+        return configs[status] || configs.NOT_PAID;
     };
 
     if (documents.length === 0) {
         return (
-            <EmptyStateContainer>
-                <EmptyStateIcon>
+            <EmptyState>
+                <EmptyIcon>
                     <FaFileInvoiceDollar />
-                </EmptyStateIcon>
-                <EmptyStateTitle>Brak dokumentów finansowych</EmptyStateTitle>
-                <EmptyStateDescription>
-                    Nie znaleziono żadnych dokumentów spełniających kryteria wyszukiwania
-                </EmptyStateDescription>
-                <EmptyStateAction>
-                    Kliknij "Dodaj dokument", aby utworzyć pierwszy wpis
-                </EmptyStateAction>
-            </EmptyStateContainer>
+                </EmptyIcon>
+                <EmptyTitle>Brak dokumentów</EmptyTitle>
+                <EmptyDescription>
+                    Nie znaleziono dokumentów finansowych spełniających kryteria
+                </EmptyDescription>
+            </EmptyState>
         );
     }
 
     return (
-        <ListContainer>
-            <ListHeader>
-                <ListHeaderLeft>
-                    <ListTitle>
-                        Lista dokumentów ({documents.length})
-                    </ListTitle>
-                    <ListSubtitle>
-                        Kliknij na dokument aby wyświetlić szczegóły
-                    </ListSubtitle>
-                </ListHeaderLeft>
+        <TableContainer>
+            <Table>
+                <TableHeader>
+                    <HeaderRow>
+                        <HeaderCell $width="12%">Dokument</HeaderCell>
+                        <HeaderCell $width="22%">Szczegóły transakcji</HeaderCell>
+                        <HeaderCell $width="16%">Kontrahent</HeaderCell>
+                        <HeaderCell $width="12%">Terminy</HeaderCell>
+                        <HeaderCell $width="14%">Kwota i płatność</HeaderCell>
+                        <HeaderCell $width="10%">Status</HeaderCell>
+                        <HeaderCell $width="10%">Wizyta</HeaderCell>
+                        <HeaderCell $width="4%">Akcje</HeaderCell>
+                    </HeaderRow>
+                </TableHeader>
 
-                <ViewModeToggle>
-                    <ViewModeButton
-                        $active={viewMode === 'table'}
-                        onClick={() => setViewMode('table')}
-                        title="Widok tabeli"
-                    >
-                        <FaList />
-                    </ViewModeButton>
-                    <ViewModeButton
-                        $active={viewMode === 'grid'}
-                        onClick={() => setViewMode('grid')}
-                        title="Widok kafelków"
-                    >
-                        <FaTh />
-                    </ViewModeButton>
-                </ViewModeToggle>
-            </ListHeader>
+                <TableBody>
+                    {documents.map((document, index) => {
+                        const typeConfig = getDocumentTypeConfig(document.type);
+                        const statusConfig = getStatusConfig(document.status);
+                        const isOverdue = document.dueDate && new Date(document.dueDate) < new Date() && document.status !== 'PAID';
 
-            {viewMode === 'table' ? (
-                <TableWrapper>
-                    <TableContent>
-                        <TableHead>
-                            <HeaderCell $width="12%">Typ</HeaderCell>
-                            <HeaderCell $width="25%">Identyfikator</HeaderCell>
-                            <HeaderCell $width="15%">Daty</HeaderCell>
-                            <HeaderCell $width="18%">Kontrahent</HeaderCell>
-                            <HeaderCell $width="8%">Kierunek</HeaderCell>
-                            <HeaderCell $width="12%">Kwota</HeaderCell>
-                            <HeaderCell $width="8%">Status</HeaderCell>
-                            <HeaderCell $width="2%">Akcje</HeaderCell>
-                        </TableHead>
+                        return (
+                            <TableRow
+                                key={document.id}
+                                onClick={() => onViewDocument(document)}
+                                $isOverdue={isOverdue}
+                            >
+                                {/* Document Type & Number */}
+                                <TableCell $width="12%">
+                                    <DocumentInfo>
+                                        <DocumentTypeWrapper>
+                                            <DocumentTypeIcon
+                                                $color={typeConfig.color}
+                                                $bgColor={typeConfig.bgColor}
+                                            >
+                                                {typeConfig.icon}
+                                            </DocumentTypeIcon>
+                                            <DocumentTypeLabel $color={typeConfig.color}>
+                                                {typeConfig.label}
+                                            </DocumentTypeLabel>
+                                        </DocumentTypeWrapper>
+                                        <DocumentNumber>{document.number}</DocumentNumber>
+                                    </DocumentInfo>
+                                </TableCell>
 
-                        <TableBody>
-                            {documents.map(document => (
-                                <StyledTableRow
-                                    key={document.id}
-                                    onClick={() => onViewDocument(document)}
-                                >
-                                    <TableCell $width="12%">
-                                        <DocumentTypeCell $type={document.type}>
-                                            {getDocumentIcon(document.type)}
-                                            {DocumentTypeLabels[document.type]}
-                                        </DocumentTypeCell>
-                                    </TableCell>
-
-                                    <TableCell $width="25%">
-                                        <DocumentIdentifier>
-                                            <DocumentNumber>{document.number}</DocumentNumber>
-                                            <DocumentTitle>{document.title}</DocumentTitle>
-                                        </DocumentIdentifier>
-                                    </TableCell>
-
-                                    <TableCell $width="15%">
-                                        <DatesCell>
-                                            <DateRow>
-                                                <DateLabel>Wyst.</DateLabel>
-                                                <DateValue>{formatDate(document.issuedDate)}</DateValue>
-                                            </DateRow>
-                                            {document.dueDate && (
-                                                <DateRow>
-                                                    <DateLabel>Term.</DateLabel>
-                                                    <DateValue>{formatDate(document.dueDate)}</DateValue>
-                                                </DateRow>
-                                            )}
-                                        </DatesCell>
-                                    </TableCell>
-
-                                    <TableCell $width="18%">
-                                        <ContractorCell>
-                                            <ContractorName>{document.buyerName}</ContractorName>
-                                            <ContractorMeta>
-                                                {document.buyerTaxId && `NIP: ${document.buyerTaxId} • `}
+                                {/* Transaction Details */}
+                                <TableCell $width="22%">
+                                    <TransactionDetails>
+                                        <TransactionTitle>{document.title}</TransactionTitle>
+                                        <TransactionMeta>
+                                            <DirectionBadge $direction={document.direction}>
+                                                {document.direction === 'INCOME' ? 'Przychód' : 'Wydatek'}
+                                            </DirectionBadge>
+                                            <PaymentMethod>
+                                                <FaCreditCard />
                                                 {PaymentMethodLabels[document.paymentMethod]}
-                                            </ContractorMeta>
-                                        </ContractorCell>
-                                    </TableCell>
+                                            </PaymentMethod>
+                                        </TransactionMeta>
+                                    </TransactionDetails>
+                                </TableCell>
 
-                                    <TableCell $width="8%">
-                                        <DirectionCell $direction={document.direction}>
-                                            {TransactionDirectionLabels[document.direction]}
-                                        </DirectionCell>
-                                    </TableCell>
-
-                                    <TableCell $width="12%">
-                                        <AmountCell>
-                                            <AmountPrimary>
-                                                {formatAmount(document.totalGross)} {document.currency}
-                                            </AmountPrimary>
-                                            {document.totalNet > 0 && document.totalNet !== document.totalGross && (
-                                                <AmountSecondary>
-                                                    netto: {formatAmount(document.totalNet)}
-                                                </AmountSecondary>
-                                            )}
-                                        </AmountCell>
-                                    </TableCell>
-
-                                    <TableCell $width="8%">
-                                        <StatusCell $status={document.status}>
-                                            {DocumentStatusLabels[document.status]}
-                                        </StatusCell>
-                                    </TableCell>
-
-                                    <TableCell $width="2%" onClick={(e) => e.stopPropagation()}>
-                                        <ActionsCell>
-                                            <ActionDropdown>
-                                                <ActionTrigger>⋯</ActionTrigger>
-                                                <ActionMenu>
-                                                    <ActionMenuItem onClick={() => onViewDocument(document)}>
-                                                        <FaEye /> Zobacz
-                                                    </ActionMenuItem>
-                                                    <ActionMenuItem onClick={() => onEditDocument(document)}>
-                                                        <FaEdit /> Edytuj
-                                                    </ActionMenuItem>
-                                                    <ActionMenuItem
-                                                        onClick={() => onDeleteDocument(document.id)}
-                                                        $danger
-                                                    >
-                                                        <FaTrashAlt /> Usuń
-                                                    </ActionMenuItem>
-                                                </ActionMenu>
-                                            </ActionDropdown>
-                                        </ActionsCell>
-                                    </TableCell>
-                                </StyledTableRow>
-                            ))}
-                        </TableBody>
-                    </TableContent>
-                </TableWrapper>
-            ) : (
-                <DocumentsGrid>
-                    {documents.map(document => (
-                        <DocumentCard
-                            key={document.id}
-                            onClick={() => onViewDocument(document)}
-                        >
-                            <CardHeader>
-                                <DocumentTypeIcon $type={document.type}>
-                                    {getDocumentIcon(document.type)}
-                                </DocumentTypeIcon>
-                                <HeaderContent>
-                                    <DocumentNumber>{document.number}</DocumentNumber>
-                                    <DocumentTypeLabel>{DocumentTypeLabels[document.type]}</DocumentTypeLabel>
-                                </HeaderContent>
-                                <CardActions onClick={(e) => e.stopPropagation()}>
-                                    <ActionButton
-                                        title="Zobacz szczegóły"
-                                        $variant="view"
-                                        onClick={() => onViewDocument(document)}
-                                    >
-                                        <FaEye />
-                                    </ActionButton>
-                                    <ActionButton
-                                        title="Edytuj dokument"
-                                        $variant="edit"
-                                        onClick={() => onEditDocument(document)}
-                                    >
-                                        <FaEdit />
-                                    </ActionButton>
-                                    <ActionButton
-                                        title="Usuń dokument"
-                                        $variant="delete"
-                                        onClick={() => onDeleteDocument(document.id)}
-                                    >
-                                        <FaTrashAlt />
-                                    </ActionButton>
-                                </CardActions>
-                            </CardHeader>
-
-                            <CardContent>
-                                <DocumentTitleCard>{document.title}</DocumentTitleCard>
-                                {document.description && (
-                                    <DocumentDescriptionCard>{document.description}</DocumentDescriptionCard>
-                                )}
-
-                                <DocumentDetailsCard>
-                                    <DetailRow>
-                                        <DetailIcon><FaCalendarAlt /></DetailIcon>
-                                        <DetailContent>
-                                            <DetailLabel>Data wystawienia</DetailLabel>
-                                            <DetailValue>{formatDate(document.issuedDate)}</DetailValue>
-                                        </DetailContent>
-                                    </DetailRow>
-
-                                    {document.dueDate && (
-                                        <DetailRow>
-                                            <DetailIcon><FaCalendarAlt /></DetailIcon>
-                                            <DetailContent>
-                                                <DetailLabel>Termin płatności</DetailLabel>
-                                                <DetailValue>{formatDate(document.dueDate)}</DetailValue>
-                                            </DetailContent>
-                                        </DetailRow>
-                                    )}
-
-                                    <DetailRow>
-                                        <DetailIcon><FaUser /></DetailIcon>
-                                        <DetailContent>
-                                            <DetailLabel>Kontrahent</DetailLabel>
-                                            <DetailValue>{document.buyerName}</DetailValue>
-                                        </DetailContent>
-                                    </DetailRow>
-                                </DocumentDetailsCard>
-                            </CardContent>
-
-                            <CardFooter>
-                                <FooterRight>
-                                    <AmountDisplay $direction={document.direction}>
-                                        <AmountValue>
-                                            {formatAmount(document.totalGross)} {document.currency}
-                                        </AmountValue>
-                                        {document.totalNet > 0 && document.totalNet !== document.totalGross && (
-                                            <AmountNet>
-                                                netto: {formatAmount(document.totalNet)} {document.currency}
-                                            </AmountNet>
+                                {/* Contractor */}
+                                <TableCell $width="16%">
+                                    <ContractorInfo>
+                                        <ContractorName>
+                                            <FaUser />
+                                            {document.buyerName}
+                                        </ContractorName>
+                                        {document.buyerTaxId && (
+                                            <ContractorTax>NIP: {document.buyerTaxId}</ContractorTax>
                                         )}
-                                    </AmountDisplay>
-                                </FooterRight>
-                            </CardFooter>
-                        </DocumentCard>
-                    ))}
-                </DocumentsGrid>
-            )}
-        </ListContainer>
+                                    </ContractorInfo>
+                                </TableCell>
+
+                                {/* Dates */}
+                                <TableCell $width="12%">
+                                    <DatesInfo>
+                                        <DateItem>
+                                            <DateLabel>Wystawiona</DateLabel>
+                                            <DateValue>{formatDate(document.issuedDate)}</DateValue>
+                                        </DateItem>
+                                        {document.dueDate && (
+                                            <DateItem $isOverdue={isOverdue}>
+                                                <DateLabel>Termin płatności</DateLabel>
+                                                <DateValue>{formatDate(document.dueDate)}</DateValue>
+                                            </DateItem>
+                                        )}
+                                    </DatesInfo>
+                                </TableCell>
+
+                                {/* Amount */}
+                                <TableCell $width="14%">
+                                    <AmountInfo>
+                                        <AmountMain $direction={document.direction}>
+                                            {formatAmount(document.totalGross, document.currency)}
+                                        </AmountMain>
+                                        {document.totalNet !== document.totalGross && (
+                                            <AmountSecondary>
+                                                netto: {formatAmount(document.totalNet, document.currency)}
+                                            </AmountSecondary>
+                                        )}
+                                    </AmountInfo>
+                                </TableCell>
+
+                                {/* Status */}
+                                <TableCell $width="10%">
+                                    <StatusBadge
+                                        $color={statusConfig.color}
+                                        $bgColor={statusConfig.bgColor}
+                                    >
+                                        {statusConfig.icon}
+                                        <StatusLabel>{statusConfig.label}</StatusLabel>
+                                    </StatusBadge>
+                                </TableCell>
+
+                                {/* Visit Link */}
+                                <TableCell $width="10%">
+                                    {document.protocolId ? (
+                                        <VisitLink
+                                            href={`/orders/car-reception/${document.protocolId}`}
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            <FaExternalLinkAlt />
+                                            <VisitLinkText>
+                                                {document.protocolNumber || document.protocolId.slice(-6)}
+                                            </VisitLinkText>
+                                        </VisitLink>
+                                    ) : (
+                                        <NoVisit>—</NoVisit>
+                                    )}
+                                </TableCell>
+
+                                {/* Actions */}
+                                <TableCell $width="4%" onClick={(e) => e.stopPropagation()}>
+                                    <ActionsMenu>
+                                        <ActionsButton>
+                                            <FaEllipsisH />
+                                        </ActionsButton>
+                                        <ActionsDropdown>
+                                            <ActionItem onClick={() => onViewDocument(document)}>
+                                                <FaEye />
+                                                Zobacz
+                                            </ActionItem>
+                                            <ActionItem onClick={() => onEditDocument(document)}>
+                                                <FaEdit />
+                                                Edytuj
+                                            </ActionItem>
+                                            <ActionItem
+                                                onClick={() => onDeleteDocument(document.id)}
+                                                $danger
+                                            >
+                                                <FaTrashAlt />
+                                                Usuń
+                                            </ActionItem>
+                                        </ActionsDropdown>
+                                    </ActionsMenu>
+                                </TableCell>
+                            </TableRow>
+                        );
+                    })}
+                </TableBody>
+            </Table>
+        </TableContainer>
     );
 };
 
-// Professional Styled Components - Minimal & Elegant
-const ListContainer = styled.div`
-    background: ${brandTheme.surface};
-    border-radius: ${brandTheme.radius.xxl};
-    border: 1px solid ${brandTheme.border};
+// Premium Styled Components
+const TableContainer = styled.div`
+    background: ${theme.colors.surface};
+    border-radius: ${theme.radius.xl};
+    border: 1px solid ${theme.colors.border};
     overflow: hidden;
-    box-shadow: ${brandTheme.shadow.sm};
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
+    box-shadow: ${theme.shadow.sm};
 `;
 
-const ListHeader = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: ${brandTheme.spacing.xl};
-    background: linear-gradient(135deg, ${brandTheme.surfaceAlt} 0%, ${brandTheme.surface} 100%);
-    border-bottom: 1px solid ${brandTheme.borderLight};
-    flex-shrink: 0;
-
-    @media (max-width: 768px) {
-        flex-direction: column;
-        align-items: stretch;
-        gap: ${brandTheme.spacing.md};
-    }
-`;
-
-const ListHeaderLeft = styled.div`
-    flex: 1;
-`;
-
-const ViewModeToggle = styled.div`
-    display: flex;
-    background: ${brandTheme.surface};
-    border: 1px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.lg};
-    overflow: hidden;
-    box-shadow: ${brandTheme.shadow.xs};
-`;
-
-const ViewModeButton = styled.button<{ $active: boolean }>`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 48px;
-    height: 40px;
-    background: ${props => props.$active ? brandTheme.primary : brandTheme.surface};
-    color: ${props => props.$active ? 'white' : brandTheme.text.muted};
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-size: 14px;
-
-    &:hover {
-        background: ${props => props.$active ? brandTheme.primaryDark : brandTheme.surfaceHover};
-        color: ${props => props.$active ? 'white' : brandTheme.primary};
-    }
-`;
-
-// Table Components
-const TableWrapper = styled.div`
-    flex: 1;
-    overflow: hidden;
+const Table = styled.div`
+    width: 100%;
     display: flex;
     flex-direction: column;
 `;
 
-const TableContent = styled.div`
-    flex: 1;
-    overflow: auto;
-    min-height: 0;
-`;
-
-const TableHead = styled.div`
-    display: flex;
-    background: ${brandTheme.surfaceAlt};
-    border-bottom: 2px solid ${brandTheme.border};
-    min-height: 56px;
+const TableHeader = styled.div`
+    background: linear-gradient(135deg, ${theme.colors.surfaceAlt} 0%, ${theme.colors.surface} 100%);
+    border-bottom: 2px solid ${theme.colors.border};
     position: sticky;
     top: 0;
     z-index: 10;
 `;
 
-const HeaderCell = styled.div<{ $width: string }>`
-    flex: 0 0 ${props => props.$width};
-    width: ${props => props.$width};
+const HeaderRow = styled.div`
     display: flex;
     align-items: center;
-    padding: 0 ${brandTheme.spacing.md};
-    font-size: 14px;
-    font-weight: 600;
-    color: ${brandTheme.text.primary};
-    border-right: 1px solid ${brandTheme.border};
+    padding: ${theme.space.lg} 0;
+`;
+
+const HeaderCell = styled.div<{ $width: string }>`
+    flex: 0 0 ${props => props.$width};
+    padding: 0 ${theme.space.lg};
+    font-size: 12px;
+    font-weight: 700;
+    color: ${theme.colors.text.primary};
     text-transform: uppercase;
     letter-spacing: 0.5px;
-
-    &:last-child {
-        border-right: none;
-    }
+    line-height: 1.2;
 `;
 
 const TableBody = styled.div`
-    background: ${brandTheme.surface};
+    background: ${theme.colors.surface};
 `;
 
-const StyledTableRow = styled.div`
+const TableRow = styled.div<{ $isOverdue?: boolean }>`
     display: flex;
-    border-bottom: 1px solid ${brandTheme.borderLight};
-    cursor: pointer;
-    transition: all 0.15s ease;
-    background: ${brandTheme.surface};
-    height: 48px; /* Fixed compact height */
     align-items: center;
+    padding: ${theme.space.xl} 0;
+    border-bottom: 1px solid ${theme.colors.borderLight};
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
 
     &:hover {
-        background: ${brandTheme.surfaceHover};
-        border-left: 3px solid ${brandTheme.primary};
+        background: ${theme.colors.surfaceHover};
+        transform: translateY(-1px);
+        box-shadow: ${theme.shadow.md};
+        
+        &::before {
+            opacity: 1;
+        }
     }
 
     &:last-child {
         border-bottom: none;
     }
+
+    &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: ${props => props.$isOverdue
+    ? `linear-gradient(180deg, ${theme.colors.status.error} 0%, ${theme.colors.status.warning} 100%)`
+    : `linear-gradient(180deg, ${theme.colors.primary} 0%, ${theme.colors.primaryLight} 100%)`
+};
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+
+    ${props => props.$isOverdue && `
+        background: ${theme.colors.status.errorLight};
+        
+        &::before {
+            opacity: 0.3;
+        }
+    `}
 `;
 
 const TableCell = styled.div<{ $width: string }>`
     flex: 0 0 ${props => props.$width};
-    width: ${props => props.$width};
-    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+    padding: 0 ${theme.space.lg};
     display: flex;
     align-items: center;
-    height: 48px;
-    border-right: 1px solid ${brandTheme.borderLight};
-    overflow: hidden;
+    min-height: 60px;
+`;
 
-    &:last-child {
-        border-right: none;
+// Document Info Components
+const DocumentInfo = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${theme.space.sm};
+`;
+
+const DocumentTypeWrapper = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${theme.space.sm};
+`;
+
+const DocumentTypeIcon = styled.div<{ $color: string; $bgColor: string }>`
+    width: 32px;
+    height: 32px;
+    border-radius: ${theme.radius.md};
+    background: ${props => props.$bgColor};
+    color: ${props => props.$color};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    border: 1px solid ${props => props.$color}20;
+`;
+
+const DocumentTypeLabel = styled.span<{ $color: string }>`
+    font-size: 11px;
+    font-weight: 600;
+    color: ${props => props.$color};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+`;
+
+const DocumentNumber = styled.div`
+    font-size: 14px;
+    font-weight: 700;
+    color: ${theme.colors.text.primary};
+    font-family: 'Monaco', 'Menlo', monospace;
+    letter-spacing: 0.5px;
+`;
+
+// Transaction Details
+const TransactionDetails = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${theme.space.sm};
+    width: 100%;
+`;
+
+const TransactionTitle = styled.div`
+    font-size: 14px;
+    font-weight: 600;
+    color: ${theme.colors.text.primary};
+    line-height: 1.3;
+    margin-bottom: ${theme.space.xs};
+`;
+
+const TransactionMeta = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${theme.space.md};
+    flex-wrap: wrap;
+`;
+
+const DirectionBadge = styled.div<{ $direction: TransactionDirection }>`
+    display: flex;
+    align-items: center;
+    padding: ${theme.space.xs} ${theme.space.sm};
+    border-radius: ${theme.radius.sm};
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: ${props => props.$direction === 'INCOME'
+    ? theme.colors.status.successLight
+    : theme.colors.status.errorLight
+};
+    color: ${props => props.$direction === 'INCOME'
+    ? theme.colors.status.success
+    : theme.colors.status.error
+};
+    border: 1px solid ${props => props.$direction === 'INCOME'
+    ? `${theme.colors.status.success}30`
+    : `${theme.colors.status.error}30`
+};
+`;
+
+const PaymentMethod = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${theme.space.xs};
+    font-size: 11px;
+    color: ${theme.colors.text.tertiary};
+    font-weight: 500;
+
+    svg {
+        font-size: 10px;
     }
 `;
 
-// Compact Document Type Cell
-const DocumentTypeCell = styled.div<{ $type: DocumentType }>`
+// Contractor Info
+const ContractorInfo = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${theme.space.xs};
+`;
+
+const ContractorName = styled.div`
     display: flex;
     align-items: center;
-    gap: ${brandTheme.spacing.xs};
-    font-size: 11px;
+    gap: ${theme.space.sm};
+    font-size: 13px;
     font-weight: 600;
-    color: ${props => {
-        switch (props.$type) {
-            case DocumentType.INVOICE:
-                return brandTheme.primary;
-            case DocumentType.RECEIPT:
-                return brandTheme.status.success;
-            case DocumentType.OTHER:
-                return brandTheme.status.warning;
-            default:
-                return brandTheme.text.secondary;
-        }
-    }};
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    color: ${theme.colors.text.primary};
+    line-height: 1.3;
 
     svg {
-        font-size: 12px;
+        font-size: 11px;
+        color: ${theme.colors.text.muted};
         flex-shrink: 0;
     }
 `;
 
-// Compact Document Identifier
-const DocumentIdentifier = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-    flex: 1;
-`;
-
-// Compact Dates Cell
-const DatesCell = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+const ContractorTax = styled.div`
     font-size: 11px;
+    color: ${theme.colors.text.muted};
+    font-weight: 500;
+    font-family: 'Monaco', 'Menlo', monospace;
+    letter-spacing: 0.5px;
 `;
 
-const DateRow = styled.div`
+// Dates Info
+const DatesInfo = styled.div`
     display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.xs};
+    flex-direction: column;
+    gap: ${theme.space.sm};
+`;
+
+const DateItem = styled.div<{ $isOverdue?: boolean }>`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    
+    ${props => props.$isOverdue && `
+        padding: ${theme.space.xs};
+        background: ${theme.colors.status.errorLight};
+        border-radius: ${theme.radius.sm};
+        border: 1px solid ${theme.colors.status.error}30;
+    `}
 `;
 
 const DateLabel = styled.span`
-    color: ${brandTheme.text.muted};
-    font-weight: 500;
-    min-width: 30px;
     font-size: 10px;
+    color: ${theme.colors.text.muted};
+    font-weight: 500;
     text-transform: uppercase;
+    letter-spacing: 0.5px;
 `;
 
 const DateValue = styled.span`
-    color: ${brandTheme.text.primary};
+    font-size: 12px;
+    color: ${theme.colors.text.secondary};
     font-weight: 600;
-    font-family: monospace;
-    font-size: 11px;
+    font-family: 'Monaco', 'Menlo', monospace;
 `;
 
-// Compact Contractor Cell
-const ContractorCell = styled.div`
+// Amount Info
+const AmountInfo = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-    flex: 1;
-`;
-
-const ContractorName = styled.div`
-    font-size: 13px;
-    font-weight: 600;
-    color: ${brandTheme.text.primary};
-    line-height: 1.2;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-`;
-
-const ContractorMeta = styled.div`
-    font-size: 10px;
-    color: ${brandTheme.text.muted};
-    font-weight: 400;
-    line-height: 1.2;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-`;
-
-// Compact Direction Cell
-const DirectionCell = styled.div<{ $direction: TransactionDirection }>`
-    font-size: 11px;
-    font-weight: 600;
-    color: ${props => props.$direction === 'INCOME' ? brandTheme.status.success : brandTheme.status.error};
-    text-align: center;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-`;
-
-// Compact Amount Cell
-const AmountCell = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
+    gap: ${theme.space.xs};
     align-items: flex-end;
 `;
 
-const AmountPrimary = styled.div`
+const AmountMain = styled.div<{ $direction: TransactionDirection }>`
+    font-size: 16px;
     font-weight: 700;
-    font-size: 13px;
-    color: ${brandTheme.text.primary};
-    line-height: 1.2;
-    font-family: monospace;
+    color: ${props => props.$direction === 'INCOME'
+    ? theme.colors.status.success
+    : theme.colors.status.error
+};
+    font-family: 'Monaco', 'Menlo', monospace;
+    letter-spacing: 0.5px;
 `;
 
 const AmountSecondary = styled.div`
-    font-size: 9px;
-    color: ${brandTheme.text.muted};
-    font-weight: 400;
-    font-family: monospace;
+    font-size: 11px;
+    color: ${theme.colors.text.muted};
+    font-weight: 500;
+    font-family: 'Monaco', 'Menlo', monospace;
 `;
 
-// Compact Status Cell
-const StatusCell = styled.div<{ $status: DocumentStatus }>`
-    font-size: 9px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    padding: 2px 6px;
-    border-radius: 4px;
-    text-align: center;
-    background: ${props => {
-        switch (props.$status) {
-            case 'PAID':
-                return brandTheme.status.successLight;
-            case 'NOT_PAID':
-                return brandTheme.status.errorLight;
-            case 'OVERDUE':
-                return brandTheme.status.warningLight;
-            default:
-                return brandTheme.surfaceAlt;
-        }
-    }};
-    color: ${props => {
-        switch (props.$status) {
-            case 'PAID':
-                return brandTheme.status.success;
-            case 'NOT_PAID':
-                return brandTheme.status.error;
-            case 'OVERDUE':
-                return brandTheme.status.warning;
-            default:
-                return brandTheme.text.secondary;
-        }
-    }};
-`;
-
-// Compact Actions Cell with Dropdown
-const ActionsCell = styled.div`
-    display: flex;
-    justify-content: center;
-    position: relative;
-`;
-
-const ActionDropdown = styled.div`
-    position: relative;
-
-    &:hover .action-menu {
-        opacity: 1;
-        visibility: visible;
-        transform: translateY(0);
-    }
-`;
-
-const ActionTrigger = styled.button`
-    background: none;
-    border: none;
-    font-size: 16px;
-    color: ${brandTheme.text.muted};
-    cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 4px;
-    transition: all 0.2s ease;
-
-    &:hover {
-        background: ${brandTheme.surfaceHover};
-        color: ${brandTheme.primary};
-    }
-`;
-
-const ActionMenu = styled.div.attrs({
-    className: 'action-menu'
-})`
-    position: absolute;
-    top: 100%;
-    right: 0;
-    background: ${brandTheme.surface};
-    border: 1px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.md};
-    box-shadow: ${brandTheme.shadow.lg};
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(-8px);
-    transition: all 0.2s ease;
-    z-index: 1000;
-    min-width: 120px;
-    overflow: hidden;
-`;
-
-const ActionMenuItem = styled.button<{ $danger?: boolean }>`
+// Status Badge
+const StatusBadge = styled.div<{ $color: string; $bgColor: string }>`
     display: flex;
     align-items: center;
-    gap: ${brandTheme.spacing.xs};
-    width: 100%;
-    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
-    background: none;
-    border: none;
-    font-size: 12px;
-    font-weight: 500;
-    color: ${props => props.$danger ? brandTheme.status.error : brandTheme.text.primary};
-    cursor: pointer;
+    gap: ${theme.space.xs};
+    padding: ${theme.space.sm} ${theme.space.md};
+    border-radius: ${theme.radius.md};
+    background: ${props => props.$bgColor};
+    color: ${props => props.$color};
+    border: 1px solid ${props => props.$color}30;
+    font-size: 11px;
+    font-weight: 600;
+
+    svg {
+        font-size: 12px;
+    }
+`;
+
+const StatusLabel = styled.span`
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+`;
+
+// Visit Link
+const VisitLink = styled.a`
+    display: flex;
+    align-items: center;
+    gap: ${theme.space.xs};
+    padding: ${theme.space.sm} ${theme.space.md};
+    border-radius: ${theme.radius.md};
+    background: ${theme.colors.primary}08;
+    color: ${theme.colors.primary};
+    text-decoration: none;
+    font-size: 11px;
+    font-weight: 600;
+    border: 1px solid ${theme.colors.primary}30;
     transition: all 0.2s ease;
 
     &:hover {
-        background: ${props => props.$danger ? brandTheme.status.errorLight : brandTheme.surfaceHover};
+        background: ${theme.colors.primary};
+        color: white;
+        transform: translateY(-1px);
+        box-shadow: ${theme.shadow.sm};
     }
 
     svg {
@@ -771,392 +696,134 @@ const ActionMenuItem = styled.button<{ $danger?: boolean }>`
     }
 `;
 
-// Rename grid-specific components
-const DocumentTitleCard = styled.h4`
-    font-size: 16px;
-    font-weight: 600;
-    color: ${brandTheme.text.primary};
-    margin: 0 0 ${brandTheme.spacing.sm} 0;
-    line-height: 1.3;
+const VisitLinkText = styled.span`
+    font-family: 'Monaco', 'Menlo', monospace;
+    text-transform: uppercase;
 `;
 
-const DocumentDescriptionCard = styled.p`
-    font-size: 13px;
-    color: ${brandTheme.text.tertiary};
-    margin: 0 0 ${brandTheme.spacing.md} 0;
-    line-height: 1.4;
-    font-style: italic;
-`;
-
-const DocumentDetailsCard = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${brandTheme.spacing.sm};
-`;
-
-const ListTitle = styled.h3`
-    font-size: 20px;
-    font-weight: 700;
-    color: ${brandTheme.text.primary};
-    margin: 0 0 ${brandTheme.spacing.xs} 0;
-    letter-spacing: -0.02em;
-`;
-
-const ListSubtitle = styled.p`
+const NoVisit = styled.div`
+    color: ${theme.colors.text.muted};
     font-size: 14px;
-    color: ${brandTheme.text.secondary};
-    margin: 0;
-    font-weight: 500;
+    text-align: center;
+    font-weight: 300;
 `;
 
-const DocumentsGrid = styled.div`
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-    gap: ${brandTheme.spacing.lg};
-    padding: ${brandTheme.spacing.xl};
-    overflow-y: auto;
+// Actions Menu
+const ActionsMenu = styled.div`
+    position: relative;
 
-    @media (max-width: 768px) {
-        grid-template-columns: 1fr;
-        gap: ${brandTheme.spacing.md};
-        padding: ${brandTheme.spacing.md};
+    &:hover .actions-dropdown {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
     }
 `;
 
-const DocumentCard = styled.div`
-    background: ${brandTheme.surface};
-    border: 1px solid ${brandTheme.borderLight};
-    border-radius: ${brandTheme.radius.xl};
-    overflow: hidden;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: ${brandTheme.shadow.xs};
-
-    &:hover {
-        transform: translateY(-4px);
-        box-shadow: ${brandTheme.shadow.lg};
-        border-color: ${brandTheme.primary}40;
-    }
-`;
-
-const CardHeader = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.md};
-    padding: ${brandTheme.spacing.lg};
-    background: ${brandTheme.surfaceAlt};
-    border-bottom: 1px solid ${brandTheme.borderLight};
-`;
-
-const DocumentTypeIcon = styled.div<{ $type: DocumentType }>`
-    width: 48px;
-    height: 48px;
-    border-radius: ${brandTheme.radius.lg};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    flex-shrink: 0;
-    background: ${props => {
-        switch (props.$type) {
-            case DocumentType.INVOICE:
-                return `linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%)`;
-            case DocumentType.RECEIPT:
-                return `linear-gradient(135deg, ${brandTheme.status.success} 0%, #34d399 100%)`;
-            case DocumentType.OTHER:
-                return `linear-gradient(135deg, ${brandTheme.status.warning} 0%, #fbbf24 100%)`;
-            default:
-                return `linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%)`;
-        }
-    }};
-    color: white;
-    box-shadow: ${brandTheme.shadow.sm};
-`;
-
-const HeaderContent = styled.div`
-    flex: 1;
-    min-width: 0;
-`;
-
-const DocumentNumber = styled.div`
-    font-size: 16px;
-    font-weight: 700;
-    color: ${brandTheme.primary};
-    margin-bottom: ${brandTheme.spacing.xs};
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-`;
-
-const DocumentTypeLabel = styled.div`
-    font-size: 12px;
-    color: ${brandTheme.text.muted};
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-`;
-
-const CardActions = styled.div`
-    display: flex;
-    gap: ${brandTheme.spacing.xs};
-    align-items: center;
-`;
-
-const ActionButton = styled.button<{
-    $variant: 'view' | 'edit' | 'delete';
-}>`
-    display: flex;
-    align-items: center;
-    justify-content: center;
+const ActionsButton = styled.button`
     width: 32px;
     height: 32px;
     border: none;
-    border-radius: ${brandTheme.radius.md};
+    background: ${theme.colors.surfaceAlt};
+    border-radius: ${theme.radius.md};
+    color: ${theme.colors.text.muted};
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     transition: all 0.2s ease;
-    font-size: 12px;
-    background: ${brandTheme.surface};
-    color: ${brandTheme.text.muted};
-    box-shadow: ${brandTheme.shadow.xs};
+    border: 1px solid ${theme.colors.border};
 
     &:hover {
+        background: ${theme.colors.primary};
+        color: white;
+        border-color: ${theme.colors.primary};
         transform: translateY(-1px);
-        box-shadow: ${brandTheme.shadow.sm};
-        
-        ${({ $variant }) => {
-    switch ($variant) {
-        case 'view':
-            return `
-                        background: ${brandTheme.primary};
-                        color: white;
-                    `;
-        case 'edit':
-            return `
-                        background: ${brandTheme.status.warning};
-                        color: white;
-                    `;
-        case 'delete':
-            return `
-                        background: ${brandTheme.status.error};
-                        color: white;
-                    `;
-        default:
-            return '';
-    }
-}}
+        box-shadow: ${theme.shadow.sm};
     }
 `;
 
-const CardContent = styled.div`
-    padding: ${brandTheme.spacing.lg};
+const ActionsDropdown = styled.div.attrs({
+    className: 'actions-dropdown'
+})`
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: ${theme.colors.surface};
+    border: 1px solid ${theme.colors.border};
+    border-radius: ${theme.radius.md};
+    box-shadow: ${theme.shadow.lg};
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px);
+    transition: all 0.2s ease;
+    z-index: 1000;
+    min-width: 140px;
+    overflow: hidden;
+    margin-top: ${theme.space.xs};
 `;
 
-const DocumentTitle = styled.h4`
-    font-size: 16px;
-    font-weight: 600;
-    color: ${brandTheme.text.primary};
-    margin: 0 0 ${brandTheme.spacing.sm} 0;
-    line-height: 1.3;
-`;
-
-const DocumentDescription = styled.p`
+const ActionItem = styled.button<{ $danger?: boolean }>`
+    display: flex;
+    align-items: center;
+    gap: ${theme.space.sm};
+    width: 100%;
+    padding: ${theme.space.md};
+    background: none;
+    border: none;
     font-size: 13px;
-    color: ${brandTheme.text.tertiary};
-    margin: 0 0 ${brandTheme.spacing.md} 0;
-    line-height: 1.4;
-    font-style: italic;
-`;
-
-const DocumentDetails = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${brandTheme.spacing.sm};
-`;
-
-const DetailRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
-`;
-
-const DetailIcon = styled.div`
-    width: 20px;
-    height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: ${brandTheme.text.muted};
-    font-size: 10px;
-    flex-shrink: 0;
-`;
-
-const DetailContent = styled.div`
-    flex: 1;
-    min-width: 0;
-`;
-
-const DetailLabel = styled.div`
-    font-size: 11px;
-    color: ${brandTheme.text.muted};
     font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 2px;
-`;
+    color: ${props => props.$danger ? theme.colors.status.error : theme.colors.text.primary};
+    cursor: pointer;
+    transition: all 0.2s ease;
 
-const DetailValue = styled.div`
-    font-size: 13px;
-    color: ${brandTheme.text.secondary};
-    font-weight: 500;
-`;
-
-const CardFooter = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: ${brandTheme.spacing.lg};
-    background: ${brandTheme.surfaceAlt};
-    border-top: 1px solid ${brandTheme.borderLight};
-`;
-
-const FooterLeft = styled.div`
-    display: flex;
-    gap: ${brandTheme.spacing.sm};
-    align-items: center;
-`;
-
-const FooterRight = styled.div`
-    text-align: right;
-`;
-
-const DirectionBadge = styled.div<{ $direction: TransactionDirection }>`
-    display: inline-flex;
-    align-items: center;
-    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
-    border-radius: ${brandTheme.radius.sm};
-    font-size: 10px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    background: ${brandTheme.surfaceElevated};
-    color: ${brandTheme.text.muted};
-    border: 1px solid ${brandTheme.border};
-`;
-
-const StatusBadge = styled.div<{ $status: DocumentStatus }>`
-    display: inline-flex;
-    align-items: center;
-    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
-    border-radius: ${brandTheme.radius.sm};
-    font-size: 10px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    background: ${props => {
-    switch (props.$status) {
-        case 'PAID':
-            return brandTheme.status.successLight;
-        case 'NOT_PAID':
-            return brandTheme.status.errorLight;
-        case 'OVERDUE':
-            return brandTheme.status.warningLight;
-        default:
-            return brandTheme.surfaceAlt;
+    &:hover {
+        background: ${props => props.$danger ? theme.colors.status.errorLight : theme.colors.surfaceHover};
     }
-}};
-    color: ${props => {
-    switch (props.$status) {
-        case 'PAID':
-            return brandTheme.status.success;
-        case 'NOT_PAID':
-            return brandTheme.status.error;
-        case 'OVERDUE':
-            return brandTheme.status.warning;
-        default:
-            return brandTheme.text.secondary;
+
+    svg {
+        font-size: 12px;
     }
-}};
-    border: 1px solid ${props => {
-    switch (props.$status) {
-        case 'PAID':
-            return `${brandTheme.status.success}30`;
-        case 'NOT_PAID':
-            return `${brandTheme.status.error}30`;
-        case 'OVERDUE':
-            return `${brandTheme.status.warning}30`;
-        default:
-            return brandTheme.border;
-    }
-}};
 `;
 
-const AmountDisplay = styled.div<{ $direction: TransactionDirection }>`
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: ${brandTheme.spacing.xs};
-`;
-
-const AmountValue = styled.div`
-    font-weight: 700;
-    font-size: 16px;
-    color: ${brandTheme.text.primary};
-    line-height: 1.2;
-`;
-
-const AmountNet = styled.div`
-    font-size: 11px;
-    color: ${brandTheme.text.muted};
-    font-weight: 400;
-`;
-
-const EmptyStateContainer = styled.div`
+// Empty State
+const EmptyState = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: ${brandTheme.spacing.xxl};
-    background: ${brandTheme.surface};
-    border-radius: ${brandTheme.radius.xxl};
-    border: 2px dashed ${brandTheme.border};
+    padding: ${theme.space.xxl} ${theme.space.xl};
+    background: ${theme.colors.surface};
+    border-radius: ${theme.radius.xl};
+    border: 2px dashed ${theme.colors.border};
     text-align: center;
     min-height: 400px;
-    margin: ${brandTheme.spacing.lg};
 `;
 
-const EmptyStateIcon = styled.div`
+const EmptyIcon = styled.div`
     width: 80px;
     height: 80px;
-    background: linear-gradient(135deg, ${brandTheme.surfaceAlt} 0%, ${brandTheme.surfaceElevated} 100%);
+    background: ${theme.colors.surfaceAlt};
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 32px;
-    color: ${brandTheme.text.muted};
-    margin-bottom: ${brandTheme.spacing.lg};
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+    color: ${theme.colors.text.muted};
+    margin-bottom: ${theme.space.xl};
 `;
 
-const EmptyStateTitle = styled.h3`
+const EmptyTitle = styled.h3`
     font-size: 24px;
     font-weight: 600;
-    color: ${brandTheme.text.primary};
-    margin: 0 0 ${brandTheme.spacing.sm} 0;
-    letter-spacing: -0.02em;
+    color: ${theme.colors.text.primary};
+    margin: 0 0 ${theme.space.md} 0;
 `;
 
-const EmptyStateDescription = styled.p`
+const EmptyDescription = styled.p`
     font-size: 16px;
-    color: ${brandTheme.text.secondary};
-    margin: 0 0 ${brandTheme.spacing.sm} 0;
-    line-height: 1.5;
-`;
-
-const EmptyStateAction = styled.p`
-    font-size: 14px;
-    color: ${brandTheme.primary};
+    color: ${theme.colors.text.secondary};
     margin: 0;
-    font-weight: 500;
+    line-height: 1.5;
 `;
 
 export default FinancialDocumentsList;
