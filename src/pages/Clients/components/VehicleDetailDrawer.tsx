@@ -1,3 +1,4 @@
+// VehicleDetailDrawer.tsx - Professional Premium Automotive CRM
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import {
@@ -8,18 +9,89 @@ import {
     FaTools,
     FaMoneyBillWave,
     FaUser,
-    FaExternalLinkAlt
+    FaExternalLinkAlt,
+    FaPalette,
+    FaBarcode,
+    FaUsers
 } from 'react-icons/fa';
 import {
     ClientProtocolHistory,
-    ProtocolListItem, ProtocolStatus,
+    ProtocolStatus,
     VehicleExpanded,
     VehicleOwner,
     VehicleStatistics
 } from '../../../types';
-import { vehicleApi, ServiceHistoryResponse } from '../../../api/vehiclesApi';
-import { clientApi } from '../../../api/clientsApi';
-import {carReceptionApi} from "../../../api/carReceptionApi";
+import { vehicleApi } from '../../../api/vehiclesApi';
+import { carReceptionApi } from '../../../api/carReceptionApi';
+
+// Professional Brand Theme - Premium Automotive CRM
+const brandTheme = {
+    // Primary Colors - Professional Blue Palette
+    primary: 'var(--brand-primary, #1a365d)',
+    primaryLight: 'var(--brand-primary-light, #2c5aa0)',
+    primaryDark: 'var(--brand-primary-dark, #0f2027)',
+    primaryGhost: 'var(--brand-primary-ghost, rgba(26, 54, 93, 0.04))',
+
+    // Surface Colors - Clean & Minimal
+    surface: '#ffffff',
+    surfaceAlt: '#fafbfc',
+    surfaceElevated: '#f8fafc',
+    surfaceHover: '#f1f5f9',
+
+    // Typography Colors
+    text: {
+        primary: '#0f172a',
+        secondary: '#475569',
+        tertiary: '#64748b',
+        muted: '#94a3b8',
+        disabled: '#cbd5e1'
+    },
+
+    // Border Colors
+    border: '#e2e8f0',
+    borderLight: '#f1f5f9',
+    borderHover: '#cbd5e1',
+
+    // Status Colors - Automotive Grade
+    status: {
+        success: '#059669',
+        successLight: '#d1fae5',
+        warning: '#d97706',
+        warningLight: '#fef3c7',
+        error: '#dc2626',
+        errorLight: '#fee2e2',
+        info: '#0ea5e9',
+        infoLight: '#e0f2fe'
+    },
+
+    // Shadows - Professional Depth
+    shadow: {
+        xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+        sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+        md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+    },
+
+    // Spacing Scale
+    spacing: {
+        xs: '4px',
+        sm: '8px',
+        md: '16px',
+        lg: '24px',
+        xl: '32px',
+        xxl: '48px'
+    },
+
+    // Border Radius
+    radius: {
+        sm: '6px',
+        md: '8px',
+        lg: '12px',
+        xl: '16px',
+        xxl: '20px'
+    }
+};
 
 interface VehicleDetailDrawerProps {
     isOpen: boolean;
@@ -45,9 +117,7 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
             if (vehicle) {
                 setLoadingOwners(true);
                 try {
-
-                    // Filter out null values (if any client failed to load)
-                    setOwners( await vehicleApi.fetchOwners(vehicle.id));
+                    setOwners(await vehicleApi.fetchOwners(vehicle.id));
                     setVehicleStats(await vehicleApi.fetchVehicleStatistics(vehicle.id));
                 } catch (error) {
                     console.error('Error loading vehicle owners:', error);
@@ -81,40 +151,98 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
         loadServiceHistory();
     }, [vehicle]);
 
-    if (!vehicle) return null;
+    const formatDate = (dateString: string): string => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('pl-PL', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        });
+    };
 
-    if(!vehicleStats) return null;
+    const formatCurrency = (amount: number): string => {
+        return new Intl.NumberFormat('pl-PL', {
+            style: 'currency',
+            currency: 'PLN'
+        }).format(amount);
+    };
+
+    const getStatusInfo = (status: ProtocolStatus) => {
+        switch (status) {
+            case ProtocolStatus.COMPLETED:
+                return { label: 'Zakończony', color: brandTheme.status.success };
+            case ProtocolStatus.SCHEDULED:
+                return { label: 'Zaplanowany', color: brandTheme.status.info };
+            case ProtocolStatus.READY_FOR_PICKUP:
+                return { label: 'Gotowy do odbioru', color: brandTheme.status.warning };
+            case ProtocolStatus.CANCELLED:
+                return { label: 'Anulowany', color: brandTheme.status.error };
+            case ProtocolStatus.IN_PROGRESS:
+                return { label: 'W realizacji', color: brandTheme.status.info };
+            default:
+                return { label: String(status), color: brandTheme.text.muted };
+        }
+    };
+
+    if (!vehicle || !vehicleStats) return null;
 
     return (
         <DrawerContainer isOpen={isOpen}>
             <DrawerHeader>
-                <h2>Szczegóły pojazdu</h2>
+                <HeaderContent>
+                    <HeaderIcon>
+                        <FaCar />
+                    </HeaderIcon>
+                    <HeaderText>
+                        <HeaderTitle>Szczegóły pojazdu</HeaderTitle>
+                        <HeaderSubtitle>{vehicle.make} {vehicle.model}</HeaderSubtitle>
+                    </HeaderText>
+                </HeaderContent>
                 <CloseButton onClick={onClose}>
                     <FaTimes />
                 </CloseButton>
             </DrawerHeader>
 
             <DrawerContent>
+                {/* Vehicle Header Section */}
                 <VehicleHeaderSection>
                     <VehicleTitle>{vehicle.make} {vehicle.model}</VehicleTitle>
                     <LicensePlate>{vehicle.licensePlate}</LicensePlate>
-                    <VehicleYear>{vehicle.year}</VehicleYear>
-
-                    {vehicle.color && <VehicleColor>Kolor: {vehicle.color}</VehicleColor>}
+                    <VehicleBasicInfo>
+                        <InfoItem>
+                            <InfoIcon><FaCalendarAlt /></InfoIcon>
+                            <InfoText>Rocznik: {vehicle.year}</InfoText>
+                        </InfoItem>
+                        {vehicle.color && (
+                            <InfoItem>
+                                <InfoIcon><FaPalette /></InfoIcon>
+                                <InfoText>Kolor: {vehicle.color}</InfoText>
+                            </InfoItem>
+                        )}
+                    </VehicleBasicInfo>
                 </VehicleHeaderSection>
 
+                {/* Vehicle Details */}
                 <SectionTitle>Dane pojazdu</SectionTitle>
-
                 <DetailSection>
                     {vehicle.vin && (
                         <DetailRow>
-                            <DetailIcon><FaIdCard /></DetailIcon>
+                            <DetailIcon><FaBarcode /></DetailIcon>
                             <DetailContent>
-                                <DetailLabel>VIN</DetailLabel>
+                                <DetailLabel>Numer VIN</DetailLabel>
                                 <DetailValue>{vehicle.vin}</DetailValue>
                             </DetailContent>
                         </DetailRow>
                     )}
+
+                    <DetailRow>
+                        <DetailIcon><FaIdCard /></DetailIcon>
+                        <DetailContent>
+                            <DetailLabel>Numer rejestracyjny</DetailLabel>
+                            <DetailValue>{vehicle.licensePlate}</DetailValue>
+                        </DetailContent>
+                    </DetailRow>
 
                     <DetailRow>
                         <DetailIcon><FaCalendarAlt /></DetailIcon>
@@ -125,306 +253,378 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
                     </DetailRow>
                 </DetailSection>
 
-                <SectionTitle>Właściciele</SectionTitle>
+                {/* Owners Section */}
+                <SectionTitle>
+                    <SectionTitleIcon><FaUsers /></SectionTitleIcon>
+                    Właściciele pojazdu
+                </SectionTitle>
 
                 {loadingOwners ? (
-                    <LoadingText>Ładowanie właścicieli...</LoadingText>
+                    <LoadingContainer>
+                        <LoadingSpinner />
+                        <LoadingText>Ładowanie właścicieli...</LoadingText>
+                    </LoadingContainer>
                 ) : owners.length === 0 ? (
-                    <EmptyMessage>Brak przypisanych właścicieli</EmptyMessage>
+                    <EmptyMessage>
+                        <EmptyIcon><FaUser /></EmptyIcon>
+                        <EmptyText>Brak przypisanych właścicieli</EmptyText>
+                    </EmptyMessage>
                 ) : (
                     <OwnersList>
                         {owners.map(owner => (
                             <OwnerItem key={owner.ownerId}>
                                 <OwnerIcon><FaUser /></OwnerIcon>
-                                <OwnerName>{owner.ownerName}</OwnerName>
+                                <OwnerInfo>
+                                    <OwnerName>{owner.ownerName}</OwnerName>
+                                </OwnerInfo>
                             </OwnerItem>
                         ))}
                     </OwnersList>
                 )}
 
-                <SectionTitle>Statystyki serwisowe</SectionTitle>
+                {/* Service Statistics */}
+                <SectionTitle>
+                    <SectionTitleIcon><FaTools /></SectionTitleIcon>
+                    Statystyki serwisowe
+                </SectionTitle>
 
                 <MetricsGrid>
                     <MetricCard>
-                        <MetricIcon $color="#3498db"><FaTools /></MetricIcon>
-                        <MetricValue>{vehicleStats.servicesNo}</MetricValue>
-                        <MetricLabel>Liczba usług</MetricLabel>
+                        <MetricIcon $color={brandTheme.status.info}>
+                            <FaTools />
+                        </MetricIcon>
+                        <MetricContent>
+                            <MetricValue>{vehicleStats.servicesNo}</MetricValue>
+                            <MetricLabel>Liczba usług</MetricLabel>
+                        </MetricContent>
                     </MetricCard>
 
                     <MetricCard>
-                        <MetricIcon $color="#2ecc71"><FaMoneyBillWave /></MetricIcon>
-                        <MetricValue>{vehicleStats?.totalRevenue.toFixed(2)} zł</MetricValue>
-                        <MetricLabel>Suma przychodów</MetricLabel>
+                        <MetricIcon $color={brandTheme.status.success}>
+                            <FaMoneyBillWave />
+                        </MetricIcon>
+                        <MetricContent>
+                            <MetricValue>{formatCurrency(vehicleStats.totalRevenue)}</MetricValue>
+                            <MetricLabel>Suma przychodów</MetricLabel>
+                        </MetricContent>
                     </MetricCard>
 
                     {vehicle.lastServiceDate && (
-                        <MetricCard full>
-                            <MetricIcon $color="#f39c12"><FaCalendarAlt /></MetricIcon>
-                            <MetricValue>{formatDate(vehicle.lastServiceDate)}</MetricValue>
-                            <MetricLabel>Ostatnia usługa</MetricLabel>
+                        <MetricCard $fullWidth>
+                            <MetricIcon $color={brandTheme.status.warning}>
+                                <FaCalendarAlt />
+                            </MetricIcon>
+                            <MetricContent>
+                                <MetricValue>{formatDate(vehicle.lastServiceDate)}</MetricValue>
+                                <MetricLabel>Ostatnia usługa</MetricLabel>
+                            </MetricContent>
                         </MetricCard>
                     )}
                 </MetricsGrid>
 
-                <SectionTitle>Historia serwisowa</SectionTitle>
+                {/* Service History */}
+                <SectionTitle>
+                    <SectionTitleIcon><FaCalendarAlt /></SectionTitleIcon>
+                    Historia serwisowa
+                </SectionTitle>
 
                 {loadingHistory ? (
-                    <LoadingText>Ładowanie historii serwisowej...</LoadingText>
+                    <LoadingContainer>
+                        <LoadingSpinner />
+                        <LoadingText>Ładowanie historii serwisowej...</LoadingText>
+                    </LoadingContainer>
                 ) : protocolHistory.length === 0 ? (
-                    <EmptyMessage>Brak historii serwisowej</EmptyMessage>
+                    <EmptyMessage>
+                        <EmptyIcon><FaTools /></EmptyIcon>
+                        <EmptyText>Brak historii serwisowej</EmptyText>
+                        <EmptySubtext>Ten pojazd nie ma jeszcze żadnych wykonanych usług</EmptySubtext>
+                    </EmptyMessage>
                 ) : (
                     <ServiceHistoryList>
                         {protocolHistory
-                            .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime()) // Sort by date, newest first
-                            .map(service => (
-                                <ServiceHistoryItem key={service.id}>
-                                    <ServiceHeader>
-                                        <ServiceDate>{formatDate(service.startDate)}</ServiceDate>
-                                        <StatusBadge status={service.status}>
-                                            {service.status === ProtocolStatus.COMPLETED ? 'Zakończony' :
-                                                service.status === ProtocolStatus.SCHEDULED ? 'Zaplanowany' :
-                                                    service.status === ProtocolStatus.READY_FOR_PICKUP ? 'Gotowy do odbioru' :
-                                                        service.status === ProtocolStatus.CANCELLED ? 'Porzucony' :
-                                                            service.status === ProtocolStatus.IN_PROGRESS ? 'W realizacji' :
-                                                        String(service.status)}
-                                        </StatusBadge>
-                                    </ServiceHeader>
+                            .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())
+                            .map(service => {
+                                const statusInfo = getStatusInfo(service.status);
+                                return (
+                                    <ServiceHistoryItem key={service.id}>
+                                        <ServiceHeader>
+                                            <ServiceDate>
+                                                <ServiceDateIcon><FaCalendarAlt /></ServiceDateIcon>
+                                                {formatDate(service.startDate)}
+                                            </ServiceDate>
+                                            <StatusBadge $color={statusInfo.color}>
+                                                {statusInfo.label}
+                                            </StatusBadge>
+                                        </ServiceHeader>
 
-                                    <ServiceInfo>
-                                        <ServiceVehicleInfo>
-                                            {service.make} {service.model}
-                                            <LicenseBadge>{service.licensePlate}</LicenseBadge>
-                                        </ServiceVehicleInfo>
-                                    </ServiceInfo>
+                                        <ServiceInfo>
+                                            <ServiceVehicleInfo>
+                                                <VehicleInfoText>
+                                                    {service.make} {service.model}
+                                                </VehicleInfoText>
+                                                <LicenseBadge>{service.licensePlate}</LicenseBadge>
+                                            </ServiceVehicleInfo>
+                                        </ServiceInfo>
 
-                                    <ServiceFooter>
-                                        <PriceTag>
-                                            <PriceLabel>Kwota:</PriceLabel>
-                                            <PriceValue>{service.totalAmount.toFixed(2)} zł</PriceValue>
-                                        </PriceTag>
+                                        <ServiceFooter>
+                                            <PriceSection>
+                                                <PriceLabel>Kwota usługi:</PriceLabel>
+                                                <PriceValue>{formatCurrency(service.totalAmount)}</PriceValue>
+                                            </PriceSection>
 
-                                        {service.id && (
-                                            <ProtocolLink
-                                                href={`/orders/car-reception/${service.id}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                            >
-                                                <FaExternalLinkAlt /> Szczegóły protokołu
-                                            </ProtocolLink>
-                                        )}
-                                    </ServiceFooter>
-                                </ServiceHistoryItem>
-                            ))
+                                            {service.id && (
+                                                <ProtocolLink
+                                                    href={`/orders/car-reception/${service.id}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                >
+                                                    <FaExternalLinkAlt />
+                                                    <span>Szczegóły protokołu</span>
+                                                </ProtocolLink>
+                                            )}
+                                        </ServiceFooter>
+                                    </ServiceHistoryItem>
+                                );
+                            })
                         }
                     </ServiceHistoryList>
+                )}
+
+                {/* Error Display */}
+                {error && (
+                    <ErrorMessage>
+                        ⚠️ {error}
+                    </ErrorMessage>
                 )}
             </DrawerContent>
         </DrawerContainer>
     );
 };
 
-// Helper functions
-const formatDate = (dateString: string): string => {
-    if (!dateString) return '';
-
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pl-PL', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-    });
-};
-
-const ServiceHeader = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-`;
-
-const StatusBadge = styled.div<{ status: ProtocolStatus }>`
-    font-size: 12px;
-    font-weight: 600;
-    padding: 4px 10px;
-    border-radius: 12px;
-    color: white;
-    background-color: ${props => {
-    switch(props.status) {
-        case ProtocolStatus.COMPLETED:
-            return '#27ae60'; // zielony
-        case ProtocolStatus.SCHEDULED:
-            return '#3498db'; // niebieski
-        case ProtocolStatus.READY_FOR_PICKUP:
-            return '#f39c12'; // pomarańczowy
-        default:
-            return '#95a5a6'; // szary
-    }
-}};
-`;
-
-const ServiceInfo = styled.div`
-    margin-bottom: 16px;
-`;
-
-const ServiceVehicleInfo = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 15px;
-    font-weight: 500;
-    color: #34495e;
-    flex-wrap: wrap;
-`;
-
-const LicenseBadge = styled.span`
-    background-color: #f0f7ff;
-    color: #3498db;
-    border: 1px solid #d5e9f9;
-    border-radius: 4px;
-    padding: 4px 8px;
-    font-weight: 600;
-    font-size: 14px;
-    display: inline-block;
-`;
-
-const PriceTag = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-`;
-
-const PriceLabel = styled.span`
-    font-size: 13px;
-    font-weight: 500;
-    color: #7f8c8d;
-`;
-
-const PriceValue = styled.span`
-    background-color: rgba(46, 204, 113, 0.15);
-    color: #27ae60;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-weight: 600;
-    font-size: 14px;
-    border: 1px solid rgba(46, 204, 113, 0.3);
-`;
-
-// Styled components
+// Professional Styled Components
 const DrawerContainer = styled.div<{ isOpen: boolean }>`
     position: fixed;
     top: 0;
     right: 0;
-    width: 450px;
+    width: 480px;
     max-width: 90vw;
     height: 100vh;
-    background-color: white;
-    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+    background: ${brandTheme.surface};
+    box-shadow: ${brandTheme.shadow.xl};
     z-index: 1000;
     transform: ${props => props.isOpen ? 'translateX(0)' : 'translateX(100%)'};
-    transition: transform 0.3s ease-in-out;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
+    border-left: 1px solid ${brandTheme.border};
 `;
 
 const DrawerHeader = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 20px;
-    border-bottom: 1px solid #eee;
+    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
+    border-bottom: 1px solid ${brandTheme.border};
+    background: linear-gradient(135deg, ${brandTheme.surfaceAlt} 0%, ${brandTheme.surface} 100%);
+    flex-shrink: 0;
+`;
 
-    h2 {
-        margin: 0;
-        font-size: 18px;
-        color: #2c3e50;
-    }
+const HeaderContent = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.md};
+    flex: 1;
+`;
+
+const HeaderIcon = styled.div`
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+    border-radius: ${brandTheme.radius.lg};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 18px;
+    box-shadow: ${brandTheme.shadow.sm};
+`;
+
+const HeaderText = styled.div`
+    flex: 1;
+`;
+
+const HeaderTitle = styled.h2`
+    margin: 0 0 ${brandTheme.spacing.xs} 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+    letter-spacing: -0.025em;
+`;
+
+const HeaderSubtitle = styled.div`
+    font-size: 14px;
+    color: ${brandTheme.text.secondary};
+    font-weight: 500;
 `;
 
 const CloseButton = styled.button`
-    background: none;
-    border: none;
-    color: #7f8c8d;
-    font-size: 16px;
+    width: 36px;
+    height: 36px;
+    background: ${brandTheme.surfaceElevated};
+    border: 1px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.md};
+    color: ${brandTheme.text.tertiary};
+    font-size: 14px;
     cursor: pointer;
-    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
 
     &:hover {
-        color: #34495e;
+        background: ${brandTheme.status.errorLight};
+        color: ${brandTheme.status.error};
+        border-color: ${brandTheme.status.error}30;
+        transform: scale(1.05);
     }
 `;
 
 const DrawerContent = styled.div`
     flex: 1;
     overflow-y: auto;
-    padding: 20px;
+    padding: ${brandTheme.spacing.xl};
+
+    /* Custom scrollbar */
+    &::-webkit-scrollbar {
+        width: 6px;
+    }
+    &::-webkit-scrollbar-track {
+        background: ${brandTheme.surfaceAlt};
+    }
+    &::-webkit-scrollbar-thumb {
+        background: ${brandTheme.border};
+        border-radius: 3px;
+    }
 `;
 
 const VehicleHeaderSection = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid #eee;
+    margin-bottom: ${brandTheme.spacing.xl};
+    padding: ${brandTheme.spacing.lg};
+    background: linear-gradient(135deg, ${brandTheme.surfaceAlt} 0%, ${brandTheme.surface} 100%);
+    border-radius: ${brandTheme.radius.xl};
+    border: 1px solid ${brandTheme.border};
+    box-shadow: ${brandTheme.shadow.xs};
 `;
 
 const VehicleTitle = styled.h2`
-    font-size: 20px;
-    color: #2c3e50;
-    margin: 0 0 8px 0;
+    font-size: 24px;
+    font-weight: 700;
+    color: ${brandTheme.text.primary};
+    margin: 0 0 ${brandTheme.spacing.md} 0;
     text-align: center;
+    letter-spacing: -0.025em;
 `;
 
 const LicensePlate = styled.div`
-    background-color: #f0f7ff;
-    color: #3498db;
-    border: 1px solid #d5e9f9;
-    border-radius: 4px;
-    padding: 6px 12px;
-    font-weight: 600;
-    font-size: 16px;
-    margin-bottom: 8px;
+    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+    color: white;
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.lg};
+    border-radius: ${brandTheme.radius.md};
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    box-shadow: ${brandTheme.shadow.md};
+    margin-bottom: ${brandTheme.spacing.md};
 `;
 
-const VehicleYear = styled.div`
-    font-size: 15px;
-    color: #7f8c8d;
-    margin-bottom: 4px;
+const VehicleBasicInfo = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.xs};
+    align-items: center;
 `;
 
-const VehicleColor = styled.div`
+const InfoItem = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
+    background: ${brandTheme.surface};
+    border-radius: ${brandTheme.radius.md};
+    border: 1px solid ${brandTheme.borderLight};
+`;
+
+const InfoIcon = styled.div`
+    color: ${brandTheme.text.muted};
+    font-size: 12px;
+`;
+
+const InfoText = styled.div`
     font-size: 14px;
-    color: #7f8c8d;
+    color: ${brandTheme.text.secondary};
+    font-weight: 500;
 `;
 
 const SectionTitle = styled.h3`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
     font-size: 16px;
-    color: #3498db;
-    margin: 20px 0 10px 0;
-    padding-bottom: 8px;
-    border-bottom: 1px solid #eee;
+    font-weight: 600;
+    color: ${brandTheme.primary};
+    margin: ${brandTheme.spacing.xl} 0 ${brandTheme.spacing.md} 0;
+    padding-bottom: ${brandTheme.spacing.sm};
+    border-bottom: 2px solid ${brandTheme.primaryGhost};
 
     &:first-of-type {
         margin-top: 0;
     }
 `;
 
+const SectionTitleIcon = styled.div`
+    color: ${brandTheme.primary};
+    font-size: 14px;
+`;
+
 const DetailSection = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: ${brandTheme.spacing.md};
+    margin-bottom: ${brandTheme.spacing.lg};
 `;
 
 const DetailRow = styled.div`
     display: flex;
     align-items: flex-start;
+    gap: ${brandTheme.spacing.md};
+    padding: ${brandTheme.spacing.md};
+    background: ${brandTheme.surfaceAlt};
+    border-radius: ${brandTheme.radius.lg};
+    border: 1px solid ${brandTheme.borderLight};
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: ${brandTheme.primaryGhost};
+        border-color: ${brandTheme.primary}30;
+    }
 `;
 
 const DetailIcon = styled.div`
-    width: 20px;
-    margin-right: 12px;
-    color: #7f8c8d;
-    margin-top: 2px;
+    width: 32px;
+    height: 32px;
+    background: ${brandTheme.surface};
+    border-radius: ${brandTheme.radius.md};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${brandTheme.text.muted};
+    font-size: 14px;
+    flex-shrink: 0;
+    box-shadow: ${brandTheme.shadow.xs};
 `;
 
 const DetailContent = styled.div`
@@ -433,148 +633,375 @@ const DetailContent = styled.div`
 
 const DetailLabel = styled.div`
     font-size: 12px;
-    color: #7f8c8d;
-    margin-bottom: 2px;
+    color: ${brandTheme.text.tertiary};
+    font-weight: 500;
+    margin-bottom: ${brandTheme.spacing.xs};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 `;
 
 const DetailValue = styled.div`
     font-size: 15px;
-    color: #34495e;
+    color: ${brandTheme.text.primary};
+    font-weight: 600;
+`;
+
+const LoadingContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: ${brandTheme.spacing.xl};
+    background: ${brandTheme.surfaceAlt};
+    border-radius: ${brandTheme.radius.lg};
+    gap: ${brandTheme.spacing.md};
+`;
+
+const LoadingSpinner = styled.div`
+    width: 32px;
+    height: 32px;
+    border: 3px solid ${brandTheme.borderLight};
+    border-top: 3px solid ${brandTheme.primary};
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
 `;
 
 const LoadingText = styled.div`
     font-size: 14px;
-    color: #7f8c8d;
-    padding: 12px 0;
+    color: ${brandTheme.text.secondary};
+    font-weight: 500;
     text-align: center;
 `;
 
 const EmptyMessage = styled.div`
-    font-size: 14px;
-    color: #7f8c8d;
-    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: ${brandTheme.spacing.xl};
+    background: ${brandTheme.surfaceAlt};
+    border-radius: ${brandTheme.radius.lg};
+    border: 2px dashed ${brandTheme.border};
     text-align: center;
-    background-color: #f9f9f9;
-    border-radius: 4px;
+`;
+
+const EmptyIcon = styled.div`
+    width: 48px;
+    height: 48px;
+    background: ${brandTheme.surface};
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: ${brandTheme.text.tertiary};
+    margin-bottom: ${brandTheme.spacing.md};
+    box-shadow: ${brandTheme.shadow.xs};
+`;
+
+const EmptyText = styled.div`
+    font-size: 16px;
+    font-weight: 600;
+    color: ${brandTheme.text.secondary};
+    margin-bottom: ${brandTheme.spacing.xs};
+`;
+
+const EmptySubtext = styled.div`
+    font-size: 14px;
+    color: ${brandTheme.text.muted};
+    font-style: italic;
 `;
 
 const OwnersList = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: ${brandTheme.spacing.sm};
 `;
 
 const OwnerItem = styled.div`
     display: flex;
     align-items: center;
-    padding: 8px 12px;
-    background-color: #f9f9f9;
-    border-radius: 4px;
+    gap: ${brandTheme.spacing.md};
+    padding: ${brandTheme.spacing.md};
+    background: ${brandTheme.surfaceAlt};
+    border-radius: ${brandTheme.radius.lg};
+    border: 1px solid ${brandTheme.borderLight};
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: ${brandTheme.primaryGhost};
+        border-color: ${brandTheme.primary}30;
+        transform: translateX(4px);
+    }
 `;
 
 const OwnerIcon = styled.div`
-    color: #3498db;
-    margin-right: 10px;
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, ${brandTheme.primary}15 0%, ${brandTheme.primary}08 100%);
+    border-radius: ${brandTheme.radius.md};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${brandTheme.primary};
+    font-size: 14px;
+    flex-shrink: 0;
+`;
+
+const OwnerInfo = styled.div`
+    flex: 1;
 `;
 
 const OwnerName = styled.div`
-    font-size: 14px;
-    color: #34495e;
+    font-size: 15px;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
 `;
 
 const MetricsGrid = styled.div`
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
+    gap: ${brandTheme.spacing.md};
+    margin-bottom: ${brandTheme.spacing.lg};
+
+    @media (max-width: 600px) {
+        grid-template-columns: 1fr;
+    }
 `;
 
-const MetricCard = styled.div<{ full?: boolean }>`
-    background-color: #f9f9f9;
-    border-radius: 8px;
-    padding: 16px;
+const MetricCard = styled.div<{ $fullWidth?: boolean }>`
+    background: ${brandTheme.surfaceAlt};
+    border: 1px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.lg};
+    padding: ${brandTheme.spacing.md};
     display: flex;
-    flex-direction: column;
     align-items: center;
-    text-align: center;
+    gap: ${brandTheme.spacing.md};
+    transition: all 0.2s ease;
 
-    ${props => props.full && `
-    grid-column: 1 / -1;
-  `}
+    ${props => props.$fullWidth && `
+        grid-column: 1 / -1;
+    `}
+
+    &:hover {
+        background: ${brandTheme.primaryGhost};
+        border-color: ${brandTheme.primary};
+        transform: translateY(-2px);
+        box-shadow: ${brandTheme.shadow.md};
+    }
 `;
 
 const MetricIcon = styled.div<{ $color: string }>`
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, ${props => props.$color}15 0%, ${props => props.$color}08 100%);
+    border-radius: ${brandTheme.radius.md};
+    display: flex;
+    align-items: center;
+    justify-content: center;
     color: ${props => props.$color};
-    font-size: 20px;
-    margin-bottom: 8px;
+    font-size: 18px;
+    flex-shrink: 0;
+    box-shadow: ${brandTheme.shadow.xs};
+`;
+
+const MetricContent = styled.div`
+    flex: 1;
+    min-width: 0;
 `;
 
 const MetricValue = styled.div`
-    font-weight: 600;
     font-size: 18px;
-    color: #34495e;
-    margin-bottom: 4px;
+    font-weight: 700;
+    color: ${brandTheme.text.primary};
+    margin-bottom: ${brandTheme.spacing.xs};
+    line-height: 1.2;
 `;
 
 const MetricLabel = styled.div`
     font-size: 12px;
-    color: #7f8c8d;
+    color: ${brandTheme.text.tertiary};
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 `;
 
 const ServiceHistoryList = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: ${brandTheme.spacing.md};
 `;
 
 const ServiceHistoryItem = styled.div`
-    background-color: #f9f9f9;
-    border-radius: 4px;
-    padding: 12px;
-    border-left: 3px solid #3498db;
+    background: ${brandTheme.surface};
+    border: 1px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.lg};
+    padding: ${brandTheme.spacing.lg};
+    border-left: 4px solid ${brandTheme.primary};
+    transition: all 0.2s ease;
+    box-shadow: ${brandTheme.shadow.xs};
+
+    &:hover {
+        background: ${brandTheme.primaryGhost};
+        border-color: ${brandTheme.primary};
+        border-left-color: ${brandTheme.primary};
+        transform: translateX(4px);
+        box-shadow: ${brandTheme.shadow.md};
+    }
+`;
+
+const ServiceHeader = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: ${brandTheme.spacing.md};
+    gap: ${brandTheme.spacing.sm};
+
+    @media (max-width: 480px) {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: ${brandTheme.spacing.sm};
+    }
 `;
 
 const ServiceDate = styled.div`
-    font-size: 13px;
-    color: #7f8c8d;
-    margin-bottom: 4px;
-`;
-
-const ServiceType = styled.div`
-    font-weight: 500;
-    font-size: 15px;
-    color: #34495e;
-    margin-bottom: 6px;
-`;
-
-const ServiceDescription = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.xs};
     font-size: 14px;
-    color: #34495e;
-    margin-bottom: 10px;
+    color: ${brandTheme.text.secondary};
+    font-weight: 500;
+`;
+
+const ServiceDateIcon = styled.div`
+    color: ${brandTheme.text.muted};
+    font-size: 12px;
+`;
+
+const StatusBadge = styled.div<{ $color: string }>`
+    display: inline-flex;
+    align-items: center;
+    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
+    border-radius: ${brandTheme.radius.lg};
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: ${props => props.$color}15;
+    color: ${props => props.$color};
+    border: 1px solid ${props => props.$color}30;
+    white-space: nowrap;
+`;
+
+const ServiceInfo = styled.div`
+    margin-bottom: ${brandTheme.spacing.md};
+`;
+
+const ServiceVehicleInfo = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.md};
+    flex-wrap: wrap;
+`;
+
+const VehicleInfoText = styled.div`
+    font-size: 15px;
+    font-weight: 500;
+    color: ${brandTheme.text.primary};
+`;
+
+const LicenseBadge = styled.span`
+    background: ${brandTheme.primaryGhost};
+    color: ${brandTheme.primary};
+    border: 1px solid ${brandTheme.primary}30;
+    border-radius: ${brandTheme.radius.sm};
+    padding: 2px 8px;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 `;
 
 const ServiceFooter = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: ${brandTheme.spacing.md};
+
+    @media (max-width: 480px) {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: ${brandTheme.spacing.sm};
+    }
 `;
 
-const ServicePrice = styled.div`
-    font-weight: 600;
-    font-size: 15px;
-    color: #2ecc71;
+const PriceSection = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+`;
+
+const PriceLabel = styled.span`
+    font-size: 13px;
+    font-weight: 500;
+    color: ${brandTheme.text.secondary};
+`;
+
+const PriceValue = styled.span`
+    background: linear-gradient(135deg, ${brandTheme.status.successLight} 0%, #ecfdf5 100%);
+    color: ${brandTheme.status.success};
+    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
+    border-radius: ${brandTheme.radius.md};
+    font-weight: 700;
+    font-size: 14px;
+    border: 1px solid ${brandTheme.status.success}30;
 `;
 
 const ProtocolLink = styled.a`
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 13px;
-    color: #3498db;
+    gap: ${brandTheme.spacing.xs};
+    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
+    background: ${brandTheme.status.infoLight};
+    color: ${brandTheme.status.info};
     text-decoration: none;
+    border-radius: ${brandTheme.radius.md};
+    font-size: 13px;
+    font-weight: 500;
+    border: 1px solid ${brandTheme.status.info}30;
+    transition: all 0.2s ease;
 
     &:hover {
-        text-decoration: underline;
+        background: ${brandTheme.status.info};
+        color: white;
+        transform: translateY(-1px);
+        box-shadow: ${brandTheme.shadow.sm};
     }
+
+    span {
+        @media (max-width: 480px) {
+            display: none;
+        }
+    }
+`;
+
+const ErrorMessage = styled.div`
+    background: linear-gradient(135deg, ${brandTheme.status.errorLight} 0%, #fef2f2 100%);
+    color: ${brandTheme.status.error};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    border-radius: ${brandTheme.radius.lg};
+    border: 1px solid ${brandTheme.status.error}30;
+    font-weight: 500;
+    margin-top: ${brandTheme.spacing.md};
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    box-shadow: ${brandTheme.shadow.xs};
 `;
 
 export default VehicleDetailDrawer;

@@ -269,7 +269,7 @@ const ProtocolClientInfo: React.FC<ProtocolClientInfoProps> = ({ protocol }) => 
                 </DashboardHeader>
                 <MetricsGrid>
                     <MetricCard $variant="revenue">
-                        <MetricIcon $color={enterprise.success}>
+                        <MetricIcon $color={enterprise.primary}>
                             <FaMoneyBillWave />
                         </MetricIcon>
                         <MetricContent>
@@ -289,7 +289,7 @@ const ProtocolClientInfo: React.FC<ProtocolClientInfoProps> = ({ protocol }) => 
                     </MetricCard>
 
                     <MetricCard $variant="vehicles">
-                        <MetricIcon $color={enterprise.info}>
+                        <MetricIcon $color={enterprise.primary}>
                             <FaCar />
                         </MetricIcon>
                         <MetricContent>
@@ -299,7 +299,7 @@ const ProtocolClientInfo: React.FC<ProtocolClientInfoProps> = ({ protocol }) => 
                     </MetricCard>
 
                     <MetricCard $variant="avg">
-                        <MetricIcon $color={enterprise.warning}>
+                        <MetricIcon $color={enterprise.primary}>
                             <FaChartLine />
                         </MetricIcon>
                         <MetricContent>

@@ -147,8 +147,7 @@ export const vehicleApi = {
     // Tworzenie nowego pojazdu
     createVehicle: async (vehicleData: VehicleData): Promise<VehicleExpanded> => {
         try {
-            const requestData = convertCamelToSnake(vehicleData);
-            const response = await apiClient.post<VehicleResponse>('/vehicles', requestData);
+            const response = await apiClient.postNot<VehicleResponse>('/vehicles', vehicleData);
             return convertSnakeToCamel(response) as VehicleExpanded;
         } catch (error) {
             console.error('Error creating vehicle:', error);
