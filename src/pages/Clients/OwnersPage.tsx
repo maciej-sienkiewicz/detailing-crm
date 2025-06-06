@@ -1,116 +1,47 @@
+// OwnersPage.tsx - Professional redesign with brand color integration
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { FaPlus, FaSms, FaCheckSquare, FaSquare, FaEye, FaEdit, FaCar, FaTrash, FaHistory, FaFilter, FaUsers, FaGripVertical } from 'react-icons/fa';
+import { FaPlus, FaSms, FaCheckSquare, FaSquare, FaUsers, FaFilter, FaDownload, FaFileExport } from 'react-icons/fa';
 import { ClientExpanded } from '../../types';
 import { clientApi } from '../../api/clientsApi';
+import ClientListTable from './components/ClientListTable';
 import ClientDetailDrawer from './components/ClientDetailDrawer';
 import ClientFilters, { ClientFilters as ClientFiltersType } from './components/ClientFilters';
 import ClientFormModal from './components/ClientFormModal';
 import ContactAttemptModal from './components/ContactAttemptModal';
 import Modal from '../../components/common/Modal';
-import { DndProvider, useDrag, useDrop } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
 
-// Brand Theme System - Automotive Premium
+// Professional Brand Theme with User Customizable Colors
 const brandTheme = {
-    primary: 'var(--brand-primary, #2563eb)',
-    primaryLight: 'var(--brand-primary-light, #3b82f6)',
-    primaryDark: 'var(--brand-primary-dark, #1d4ed8)',
-    primaryGhost: 'var(--brand-primary-ghost, rgba(37, 99, 235, 0.08))',
-    accent: '#f8fafc',
-    neutral: '#64748b',
+    // User-configurable brand colors that adapt to their business identity
+    primary: 'var(--brand-color, var(--brand-primary, #1a365d))',
+    primaryLight: 'var(--brand-color-light, var(--brand-primary-light, #2c5aa0))',
+    primaryDark: 'var(--brand-color-dark, var(--brand-primary-dark, #0f2027))',
+    primaryGhost: 'var(--brand-color-ghost, var(--brand-primary-ghost, rgba(26, 54, 93, 0.08)))',
     surface: '#ffffff',
-    surfaceAlt: '#f1f5f9',
+    surfaceAlt: '#f8fafc',
+    surfaceElevated: '#fafbfc',
+    neutral: '#64748b',
+    neutralLight: '#94a3b8',
     border: '#e2e8f0',
-    success: '#10b981',
-    warning: '#f59e0b',
-    error: '#ef4444'
-};
-
-const COLUMN_ORDER_KEY = 'clients_table_columns_order';
-const COLUMN_TYPE = 'column';
-
-// Table Column Configuration
-interface TableColumn {
-    id: string;
-    label: string;
-    width: string;
-    sortable?: boolean;
-}
-
-const defaultColumns: TableColumn[] = [
-    { id: 'selection', label: '', width: '60px', sortable: false },
-    { id: 'client', label: 'Klient', width: '25%', sortable: true },
-    { id: 'contact', label: 'Kontakt', width: '20%', sortable: true },
-    { id: 'company', label: 'Firma', width: '18%', sortable: true },
-    { id: 'stats', label: 'Statystyki', width: '15%', sortable: true },
-    { id: 'revenue', label: 'Przychody', width: '12%', sortable: true },
-    { id: 'actions', label: 'Akcje', width: '10%', sortable: false }
-];
-
-// Draggable Column Header Component
-interface ColumnHeaderProps {
-    column: TableColumn;
-    index: number;
-    moveColumn: (dragIndex: number, hoverIndex: number) => void;
-}
-
-const ColumnHeader: React.FC<ColumnHeaderProps> = ({ column, index, moveColumn }) => {
-    const ref = React.useRef<HTMLDivElement>(null);
-
-    const [{ isDragging }, drag] = useDrag({
-        type: COLUMN_TYPE,
-        item: { index },
-        collect: (monitor) => ({
-            isDragging: monitor.isDragging(),
-        }),
-    });
-
-    const [, drop] = useDrop({
-        accept: COLUMN_TYPE,
-        hover: (item: any) => {
-            if (!ref.current) return;
-            const dragIndex = item.index;
-            const hoverIndex = index;
-            if (dragIndex === hoverIndex) return;
-            moveColumn(dragIndex, hoverIndex);
-            item.index = hoverIndex;
-        },
-    });
-
-    drag(drop(ref));
-
-    if (column.id === 'selection') {
-        return (
-            <HeaderCell $width={column.width}>
-                <SelectionHeaderContent>
-                    <FaCheckSquare />
-                </SelectionHeaderContent>
-            </HeaderCell>
-        );
+    text: {
+        primary: '#1e293b',
+        secondary: '#64748b',
+        muted: '#94a3b8'
+    },
+    status: {
+        success: '#059669',
+        warning: '#d97706',
+        error: '#dc2626',
+        info: '#0ea5e9'
     }
-
-    return (
-        <HeaderCell
-            ref={ref}
-            $isDragging={isDragging}
-            $width={column.width}
-        >
-            <HeaderContent>
-                <DragHandle>
-                    <FaGripVertical />
-                </DragHandle>
-                <HeaderLabel>{column.label}</HeaderLabel>
-            </HeaderContent>
-        </HeaderCell>
-    );
 };
 
 const OwnersPage: React.FC = () => {
     const navigate = useNavigate();
 
-    // State management
+    // State
     const [clients, setClients] = useState<ClientExpanded[]>([]);
     const [filteredClients, setFilteredClients] = useState<ClientExpanded[]>([]);
     const [loading, setLoading] = useState(true);
@@ -130,16 +61,6 @@ const OwnersPage: React.FC = () => {
     const [bulkSmsText, setBulkSmsText] = useState('');
     const [selectAll, setSelectAll] = useState(false);
 
-    // Table configuration
-    const [columns, setColumns] = useState<TableColumn[]>(() => {
-        try {
-            const savedOrder = localStorage.getItem(COLUMN_ORDER_KEY);
-            return savedOrder ? JSON.parse(savedOrder) : defaultColumns;
-        } catch (e) {
-            return defaultColumns;
-        }
-    });
-
     // Filters
     const [filters, setFilters] = useState<ClientFiltersType>({
         name: '',
@@ -150,25 +71,15 @@ const OwnersPage: React.FC = () => {
         minRevenue: ''
     });
 
-    // Save column configuration
-    useEffect(() => {
-        try {
-            localStorage.setItem(COLUMN_ORDER_KEY, JSON.stringify(columns));
-        } catch (e) {
-            console.error("Error saving column order:", e);
-        }
-    }, [columns]);
+    // Statistics
+    const [stats, setStats] = useState({
+        totalClients: 0,
+        vipClients: 0,
+        totalRevenue: 0,
+        averageRevenue: 0
+    });
 
-    // Column reordering
-    const moveColumn = (dragIndex: number, hoverIndex: number) => {
-        const draggedColumn = columns[dragIndex];
-        const newColumns = [...columns];
-        newColumns.splice(dragIndex, 1);
-        newColumns.splice(hoverIndex, 0, draggedColumn);
-        setColumns(newColumns);
-    };
-
-    // Load clients
+    // Load clients on component mount
     useEffect(() => {
         const loadClients = async () => {
             try {
@@ -176,6 +87,18 @@ const OwnersPage: React.FC = () => {
                 const data = await clientApi.fetchClients();
                 setClients(data);
                 setFilteredClients(data);
+
+                // Calculate statistics
+                const totalRevenue = data.reduce((sum, client) => sum + client.totalRevenue, 0);
+                const vipCount = data.filter(client => client.totalRevenue > 50000).length;
+
+                setStats({
+                    totalClients: data.length,
+                    vipClients: vipCount,
+                    totalRevenue,
+                    averageRevenue: data.length > 0 ? totalRevenue / data.length : 0
+                });
+
                 setError(null);
             } catch (err) {
                 setError('Nie udało się załadować listy klientów');
@@ -184,10 +107,11 @@ const OwnersPage: React.FC = () => {
                 setLoading(false);
             }
         };
+
         loadClients();
     }, []);
 
-    // Filter clients
+    // Filter clients when filters change
     useEffect(() => {
         let result = [...clients];
 
@@ -233,21 +157,37 @@ const OwnersPage: React.FC = () => {
             }
         }
 
-        setFilteredClients(result);
-
-        // Update select all state
+        // Update selectAll state
         if (result.length > 0) {
-            const allSelected = result.every(client => selectedClientIds.includes(client.id));
-            setSelectAll(allSelected);
+            const allFilteredSelected = result.every(client =>
+                selectedClientIds.includes(client.id)
+            );
+            setSelectAll(allFilteredSelected);
         } else {
             setSelectAll(false);
         }
+
+        setFilteredClients(result);
     }, [clients, filters, selectedClientIds]);
+
+    // Handle selectAll effect
+    useEffect(() => {
+        if (selectAll) {
+            setSelectedClientIds(prev => {
+                const filteredIds = filteredClients.map(client => client.id);
+                const existingSelected = prev.filter(id => !filteredIds.includes(id));
+                return [...existingSelected, ...filteredIds];
+            });
+        }
+    }, [selectAll, filteredClients]);
 
     // Handlers
     const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
-        setFilters(prev => ({ ...prev, [name]: value }));
+        setFilters(prev => ({
+            ...prev,
+            [name]: value
+        }));
     };
 
     const resetFilters = () => {
@@ -259,32 +199,6 @@ const OwnersPage: React.FC = () => {
             minTransactions: '',
             minRevenue: ''
         });
-    };
-
-    const toggleClientSelection = (clientId: string) => {
-        setSelectedClientIds(current => {
-            if (current.includes(clientId)) {
-                return current.filter(id => id !== clientId);
-            } else {
-                return [...current, clientId];
-            }
-        });
-    };
-
-    const toggleSelectAll = () => {
-        const newSelectAll = !selectAll;
-        setSelectAll(newSelectAll);
-
-        if (newSelectAll) {
-            setSelectedClientIds(prev => {
-                const filteredIds = filteredClients.map(client => client.id);
-                const existingSelected = prev.filter(id => !filteredIds.includes(id));
-                return [...existingSelected, ...filteredIds];
-            });
-        } else {
-            const filteredIds = filteredClients.map(client => client.id);
-            setSelectedClientIds(prev => prev.filter(id => !filteredIds.includes(id)));
-        }
     };
 
     const handleAddClient = () => {
@@ -366,6 +280,26 @@ const OwnersPage: React.FC = () => {
         setShowDetailDrawer(true);
     };
 
+    const toggleClientSelection = (clientId: string) => {
+        setSelectedClientIds(currentSelected => {
+            if (currentSelected.includes(clientId)) {
+                return currentSelected.filter(id => id !== clientId);
+            } else {
+                return [...currentSelected, clientId];
+            }
+        });
+    };
+
+    const toggleSelectAll = () => {
+        const newSelectAll = !selectAll;
+        setSelectAll(newSelectAll);
+
+        if (!newSelectAll) {
+            const filteredIds = filteredClients.map(client => client.id);
+            setSelectedClientIds(prev => prev.filter(id => !filteredIds.includes(id)));
+        }
+    };
+
     const handleOpenBulkSmsModal = () => {
         if (selectedClientIds.length === 0) {
             alert('Zaznacz co najmniej jednego klienta, aby wysłać SMS');
@@ -394,287 +328,184 @@ const OwnersPage: React.FC = () => {
         setShowBulkSmsModal(false);
     };
 
-    const renderTableCell = (client: ClientExpanded, columnId: string) => {
-        switch (columnId) {
-            case 'selection':
-                return (
-                    <SelectionCell onClick={(e) => {
-                        e.stopPropagation();
-                        toggleClientSelection(client.id);
-                    }}>
-                        <SelectionCheckbox $selected={selectedClientIds.includes(client.id)}>
-                            {selectedClientIds.includes(client.id) ? <FaCheckSquare /> : <FaSquare />}
-                        </SelectionCheckbox>
-                    </SelectionCell>
-                );
-
-            case 'client':
-                return (
-                    <ClientInfo>
-                        <ClientName>{client.firstName} {client.lastName}</ClientName>
-                        {client.lastVisitDate && (
-                            <ClientSubInfo>
-                                Ostatnia wizyta: {formatDate(client.lastVisitDate)}
-                            </ClientSubInfo>
-                        )}
-                    </ClientInfo>
-                );
-
-            case 'contact':
-                return (
-                    <ContactInfo>
-                        <ContactItem>
-                            <ContactIcon>@</ContactIcon>
-                            <ContactText>{client.email}</ContactText>
-                        </ContactItem>
-                        <ContactItem>
-                            <ContactIcon>📞</ContactIcon>
-                            <ContactText>{client.phone}</ContactText>
-                        </ContactItem>
-                    </ContactInfo>
-                );
-
-            case 'company':
-                return (
-                    <CompanyInfo>
-                        {client.company ? (
-                            <>
-                                <CompanyName>{client.company}</CompanyName>
-                                {client.taxId && <CompanyTax>NIP: {client.taxId}</CompanyTax>}
-                            </>
-                        ) : (
-                            <EmptyField>Brak danych</EmptyField>
-                        )}
-                    </CompanyInfo>
-                );
-
-            case 'stats':
-                return (
-                    <StatsContainer>
-                        <StatItem>
-                            <StatValue>{client.totalVisits}</StatValue>
-                            <StatLabel>wizyt</StatLabel>
-                        </StatItem>
-                        <StatItem>
-                            <StatValue>{client.contactAttempts}</StatValue>
-                            <StatLabel>kontaktów</StatLabel>
-                        </StatItem>
-                    </StatsContainer>
-                );
-
-            case 'revenue':
-                return (
-                    <RevenueDisplay>
-                        <RevenueAmount>{client.totalRevenue.toFixed(2)}</RevenueAmount>
-                        <RevenueCurrency>PLN</RevenueCurrency>
-                    </RevenueDisplay>
-                );
-
-            case 'actions':
-                return (
-                    <ActionButtons onClick={(e) => e.stopPropagation()}>
-                        <ActionButton
-                            title="Zobacz szczegóły"
-                            $variant="view"
-                            onClick={() => handleSelectClient(client)}
-                        >
-                            <FaEye />
-                        </ActionButton>
-                        <ActionButton
-                            title="Edytuj klienta"
-                            $variant="edit"
-                            onClick={() => handleEditClient(client)}
-                        >
-                            <FaEdit />
-                        </ActionButton>
-                        <ActionButton
-                            title="Pojazdy klienta"
-                            $variant="secondary"
-                            onClick={() => handleShowVehicles(client.id)}
-                        >
-                            <FaCar />
-                        </ActionButton>
-                        <ActionButton
-                            title="Dodaj kontakt"
-                            $variant="secondary"
-                            onClick={() => handleAddContactAttempt(client)}
-                        >
-                            <FaHistory />
-                        </ActionButton>
-                        <ActionButton
-                            title="Wyślij SMS"
-                            $variant="secondary"
-                            onClick={() => handleSendSMS(client)}
-                        >
-                            <FaSms />
-                        </ActionButton>
-                        <ActionButton
-                            title="Usuń klienta"
-                            $variant="delete"
-                            onClick={() => handleDeleteClick(client.id)}
-                        >
-                            <FaTrash />
-                        </ActionButton>
-                    </ActionButtons>
-                );
-
-            default:
-                return null;
-        }
+    const handleExportClients = () => {
+        // Simulate export functionality
+        alert('Eksport danych klientów - funkcjonalność w przygotowaniu');
     };
 
-    const formatDate = (dateString: string): string => {
-        if (!dateString) return '';
-        const date = new Date(dateString);
-        return date.toLocaleDateString('pl-PL', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit'
-        });
+    const formatCurrency = (amount: number): string => {
+        return new Intl.NumberFormat('pl-PL', {
+            style: 'currency',
+            currency: 'PLN'
+        }).format(amount);
     };
-
-    if (loading && filteredClients.length === 0) {
-        return (
-            <PageContainer>
-                <LoadingContainer>
-                    <LoadingSpinner />
-                    <LoadingText>Ładowanie danych klientów...</LoadingText>
-                </LoadingContainer>
-            </PageContainer>
-        );
-    }
 
     return (
         <PageContainer>
+            {/* Modern Header */}
             <PageHeader>
-                <HeaderLeft>
-                    <HeaderIcon>
-                        <FaUsers />
-                    </HeaderIcon>
-                    <HeaderContent>
-                        <HeaderTitle>Klienci</HeaderTitle>
-                        <HeaderSubtitle>
-                            Zarządzanie bazą klientów detailing studio
-                        </HeaderSubtitle>
-                    </HeaderContent>
-                </HeaderLeft>
-                <HeaderActions>
-                    {selectedClientIds.length > 0 && (
-                        <BulkActionButton onClick={handleOpenBulkSmsModal}>
-                            <FaSms />
-                            SMS ({selectedClientIds.length})
-                        </BulkActionButton>
-                    )}
-                    <PrimaryButton onClick={handleAddClient}>
-                        <FaPlus />
-                        Dodaj klienta
-                    </PrimaryButton>
-                </HeaderActions>
+                <HeaderContent>
+                    <HeaderLeft>
+                        <HeaderIcon>
+                            <FaUsers />
+                        </HeaderIcon>
+                        <HeaderText>
+                            <HeaderTitle>Baza Właścicieli</HeaderTitle>
+                            <HeaderSubtitle>
+                                Zarządzaj klientami i ich pojazdami
+                            </HeaderSubtitle>
+                        </HeaderText>
+                    </HeaderLeft>
+
+                    <HeaderActions>
+                        {selectedClientIds.length > 0 && (
+                            <BulkSmsButton onClick={handleOpenBulkSmsModal}>
+                                <FaSms />
+                                SMS do zaznaczonych ({selectedClientIds.length})
+                            </BulkSmsButton>
+                        )}
+
+                        <SecondaryButton onClick={handleExportClients}>
+                            <FaFileExport />
+                            Eksport
+                        </SecondaryButton>
+
+                        <PrimaryButton onClick={handleAddClient}>
+                            <FaPlus />
+                            Nowy klient
+                        </PrimaryButton>
+                    </HeaderActions>
+                </HeaderContent>
             </PageHeader>
 
-            <ContentContainer>
-                {/* Filters Section */}
-                <FiltersSection>
-                    <FiltersToggle onClick={() => setShowFilters(!showFilters)}>
-                        <FaFilter />
-                        {showFilters ? 'Ukryj filtry' : 'Pokaż filtry'}
-                    </FiltersToggle>
-
-                    {showFilters && (
-                        <ClientFilters
-                            filters={filters}
-                            showFilters={showFilters}
-                            onToggleFilters={() => setShowFilters(!showFilters)}
-                            onFilterChange={handleFilterChange}
-                            onResetFilters={resetFilters}
-                            resultCount={filteredClients.length}
-                        />
-                    )}
-                </FiltersSection>
-
-                {error && (
-                    <ErrorContainer>
-                        <ErrorIcon>⚠️</ErrorIcon>
-                        <ErrorText>{error}</ErrorText>
-                    </ErrorContainer>
-                )}
-
-                {filteredClients.length === 0 && !loading ? (
-                    <EmptyStateContainer>
-                        <EmptyIcon>
+            {/* Statistics Dashboard */}
+            <StatsSection>
+                <StatsGrid>
+                    <StatCard>
+                        <StatIcon $color={brandTheme.primary}>
                             <FaUsers />
-                        </EmptyIcon>
-                        <EmptyTitle>
+                        </StatIcon>
+                        <StatContent>
+                            <StatValue>{stats.totalClients}</StatValue>
+                            <StatLabel>Łączna liczba klientów</StatLabel>
+                        </StatContent>
+                    </StatCard>
+
+                    <StatCard>
+                        <StatIcon $color={brandTheme.status.warning}>
+                            <FaUsers />
+                        </StatIcon>
+                        <StatContent>
+                            <StatValue>{stats.vipClients}</StatValue>
+                            <StatLabel>Klienci VIP (50k PLN)</StatLabel>
+                        </StatContent>
+                    </StatCard>
+
+                    <StatCard>
+                        <StatIcon $color={brandTheme.status.success}>
+                            <FaUsers />
+                        </StatIcon>
+                        <StatContent>
+                            <StatValue>{formatCurrency(stats.totalRevenue)}</StatValue>
+                            <StatLabel>Łączne przychody</StatLabel>
+                        </StatContent>
+                    </StatCard>
+
+                    <StatCard>
+                        <StatIcon $color={brandTheme.status.info}>
+                            <FaUsers />
+                        </StatIcon>
+                        <StatContent>
+                            <StatValue>{formatCurrency(stats.averageRevenue)}</StatValue>
+                            <StatLabel>Średni przychód na klienta</StatLabel>
+                        </StatContent>
+                    </StatCard>
+                </StatsGrid>
+            </StatsSection>
+
+            {/* Filters */}
+            <ClientFilters
+                filters={filters}
+                showFilters={showFilters}
+                onToggleFilters={() => setShowFilters(!showFilters)}
+                onFilterChange={handleFilterChange}
+                onResetFilters={resetFilters}
+                resultCount={filteredClients.length}
+            />
+
+            {/* Error Display */}
+            {error && (
+                <ErrorMessage>
+                    <FaExclamationTriangle />
+                    {error}
+                </ErrorMessage>
+            )}
+
+            {/* Main Content */}
+            <ContentContainer>
+                {loading ? (
+                    <LoadingContainer>
+                        <LoadingSpinner />
+                        <LoadingText>Ładowanie danych klientów...</LoadingText>
+                    </LoadingContainer>
+                ) : filteredClients.length === 0 ? (
+                    <EmptyStateContainer>
+                        <EmptyStateIcon>
+                            <FaUsers />
+                        </EmptyStateIcon>
+                        <EmptyStateTitle>
                             {Object.values(filters).some(val => val !== '')
-                                ? 'Brak wyników'
-                                : 'Brak klientów'
+                                ? 'Brak wyników wyszukiwania'
+                                : 'Brak klientów w bazie'
                             }
-                        </EmptyTitle>
-                        <EmptyDescription>
+                        </EmptyStateTitle>
+                        <EmptyStateDescription>
                             {Object.values(filters).some(val => val !== '')
                                 ? 'Nie znaleziono klientów spełniających kryteria filtrowania.'
-                                : 'Rozpocznij budowanie bazy klientów dla swojego detailing studio.'
-                            }
-                        </EmptyDescription>
-                        {Object.values(filters).every(val => val === '') && (
-                            <EmptyAction onClick={handleAddClient}>
+                                : 'Rozpocznij budowanie bazy klientów dodając pierwszego klienta.'}
+                        </EmptyStateDescription>
+                        {Object.values(filters).some(val => val !== '') ? (
+                            <EmptyStateButton onClick={resetFilters}>
+                                <FaFilter />
+                                Wyczyść filtry
+                            </EmptyStateButton>
+                        ) : (
+                            <EmptyStateButton onClick={handleAddClient}>
+                                <FaPlus />
                                 Dodaj pierwszego klienta
-                            </EmptyAction>
+                            </EmptyStateButton>
                         )}
                     </EmptyStateContainer>
                 ) : (
                     <>
-                        {/* Selection Bar */}
                         <SelectionBar>
-                            <SelectionLeft>
-                                <SelectAllButton onClick={toggleSelectAll}>
-                                    {selectAll ? <FaCheckSquare /> : <FaSquare />}
-                                    <span>Zaznacz wszystkich ({filteredClients.length})</span>
-                                </SelectAllButton>
-                                {selectedClientIds.length > 0 && (
-                                    <SelectionInfo>
-                                        Zaznaczono: {selectedClientIds.length} {
-                                        selectedClientIds.length === 1 ? 'klienta' :
-                                            selectedClientIds.length > 1 && selectedClientIds.length < 5 ? 'klientów' : 'klientów'
-                                    }
-                                    </SelectionInfo>
-                                )}
-                            </SelectionLeft>
+                            <SelectAllCheckbox onClick={toggleSelectAll}>
+                                {selectAll ? <FaCheckSquare /> : <FaSquare />}
+                                <span>
+                                    Zaznacz wszystkich ({filteredClients.length})
+                                </span>
+                            </SelectAllCheckbox>
+                            {selectedClientIds.length > 0 && (
+                                <SelectionInfo>
+                                    Zaznaczono: {selectedClientIds.length} {
+                                    selectedClientIds.length === 1 ? 'klienta' :
+                                        selectedClientIds.length > 1 && selectedClientIds.length < 5 ? 'klientów' : 'klientów'
+                                }
+                                </SelectionInfo>
+                            )}
                         </SelectionBar>
 
-                        {/* Clients Table */}
-                        <DndProvider backend={HTML5Backend}>
-                            <TableContainer>
-                                <TableHeader>
-                                    {columns.map((column, index) => (
-                                        <ColumnHeader
-                                            key={column.id}
-                                            column={column}
-                                            index={index}
-                                            moveColumn={moveColumn}
-                                        />
-                                    ))}
-                                </TableHeader>
-
-                                <TableBody>
-                                    {filteredClients.map(client => (
-                                        <TableRow
-                                            key={client.id}
-                                            onClick={() => handleSelectClient(client)}
-                                        >
-                                            {columns.map(column => (
-                                                <TableCell
-                                                    key={`${client.id}-${column.id}`}
-                                                    $width={column.width}
-                                                >
-                                                    {renderTableCell(client, column.id)}
-                                                </TableCell>
-                                            ))}
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </TableContainer>
-                        </DndProvider>
+                        <ClientListTable
+                            clients={filteredClients}
+                            selectedClientIds={selectedClientIds}
+                            onToggleSelection={toggleClientSelection}
+                            onSelectClient={handleSelectClient}
+                            onEditClient={handleEditClient}
+                            onDeleteClient={handleDeleteClick}
+                            onShowVehicles={handleShowVehicles}
+                            onAddContactAttempt={handleAddContactAttempt}
+                            onSendSMS={handleSendSMS}
+                        />
                     </>
                 )}
             </ContentContainer>
@@ -710,21 +541,27 @@ const OwnersPage: React.FC = () => {
                     title="Potwierdź usunięcie"
                 >
                     <DeleteConfirmContent>
-                        <DeleteMessage>
-                            Czy na pewno chcesz usunąć klienta{' '}
-                            <strong>{selectedClient.firstName} {selectedClient.lastName}</strong>?
-                        </DeleteMessage>
-                        <DeleteWarning>Ta operacja jest nieodwracalna.</DeleteWarning>
-
-                        <DeleteButtons>
-                            <SecondaryButton onClick={() => setShowDeleteConfirm(false)}>
-                                Anuluj
-                            </SecondaryButton>
-                            <DeleteButton onClick={handleConfirmDelete}>
-                                Usuń klienta
-                            </DeleteButton>
-                        </DeleteButtons>
+                        <DeleteIcon>
+                            <FaExclamationTriangle />
+                        </DeleteIcon>
+                        <DeleteText>
+                            <DeleteTitle>Czy na pewno chcesz usunąć klienta?</DeleteTitle>
+                            <DeleteSubtitle>
+                                <strong>{selectedClient.firstName} {selectedClient.lastName}</strong>
+                            </DeleteSubtitle>
+                            <DeleteWarning>Ta operacja jest nieodwracalna.</DeleteWarning>
+                        </DeleteText>
                     </DeleteConfirmContent>
+
+                    <DeleteConfirmButtons>
+                        <SecondaryButton onClick={() => setShowDeleteConfirm(false)}>
+                            Anuluj
+                        </SecondaryButton>
+                        <DangerButton onClick={handleConfirmDelete}>
+                            <FaTimes />
+                            Usuń klienta
+                        </DangerButton>
+                    </DeleteConfirmButtons>
                 </Modal>
             )}
 
@@ -732,14 +569,25 @@ const OwnersPage: React.FC = () => {
                 <Modal
                     isOpen={showBulkSmsModal}
                     onClose={() => setShowBulkSmsModal(false)}
-                    title="Wyślij SMS do zaznaczonych klientów"
+                    title="Masowe wysyłanie SMS"
                 >
                     <BulkSmsContent>
-                        <BulkSmsInfo>
-                            Wiadomość zostanie wysłana do {selectedClientIds.length}{' '}
-                            {selectedClientIds.length === 1 ? 'klienta' :
-                                selectedClientIds.length > 1 && selectedClientIds.length < 5 ? 'klientów' : 'klientów'}
-                        </BulkSmsInfo>
+                        <BulkSmsHeader>
+                            <BulkSmsIcon>
+                                <FaSms />
+                            </BulkSmsIcon>
+                            <BulkSmsInfo>
+                                <BulkSmsTitle>
+                                    Wyślij wiadomość do {selectedClientIds.length} {
+                                    selectedClientIds.length === 1 ? 'klienta' :
+                                        selectedClientIds.length > 1 && selectedClientIds.length < 5 ? 'klientów' : 'klientów'
+                                }
+                                </BulkSmsTitle>
+                                <BulkSmsSubtitle>
+                                    Wiadomość zostanie wysłana do wszystkich zaznaczonych klientów
+                                </BulkSmsSubtitle>
+                            </BulkSmsInfo>
+                        </BulkSmsHeader>
 
                         <SmsFormGroup>
                             <SmsLabel>Treść wiadomości:</SmsLabel>
@@ -750,14 +598,14 @@ const OwnersPage: React.FC = () => {
                                 rows={5}
                                 maxLength={160}
                             />
-                            <SmsCounter>
+                            <SmsCharacterCounter>
                                 {bulkSmsText.length}/160 znaków
-                            </SmsCounter>
+                            </SmsCharacterCounter>
                         </SmsFormGroup>
 
-                        <RecipientsSection>
-                            <SmsLabel>Lista odbiorców:</SmsLabel>
-                            <RecipientsList>
+                        <RecipientsList>
+                            <RecipientsLabel>Lista odbiorców:</RecipientsLabel>
+                            <RecipientsContainer>
                                 {clients
                                     .filter(client => selectedClientIds.includes(client.id))
                                     .map(client => (
@@ -769,21 +617,21 @@ const OwnersPage: React.FC = () => {
                                         </RecipientItem>
                                     ))
                                 }
-                            </RecipientsList>
-                        </RecipientsSection>
+                            </RecipientsContainer>
+                        </RecipientsList>
 
-                        <BulkSmsButtons>
+                        <BulkSmsActions>
                             <SecondaryButton onClick={() => setShowBulkSmsModal(false)}>
                                 Anuluj
                             </SecondaryButton>
-                            <SendButton
+                            <PrimaryButton
                                 onClick={handleSendBulkSms}
                                 disabled={bulkSmsText.trim() === ''}
                             >
                                 <FaSms />
                                 Wyślij SMS
-                            </SendButton>
-                        </BulkSmsButtons>
+                            </PrimaryButton>
+                        </BulkSmsActions>
                     </BulkSmsContent>
                 </Modal>
             )}
@@ -791,28 +639,32 @@ const OwnersPage: React.FC = () => {
     );
 };
 
-// Modern Styled Components - Automotive Premium Design
+// Modern Styled Components with Brand Color Integration
 const PageContainer = styled.div`
-    background: ${brandTheme.accent};
     min-height: 100vh;
+    background: ${brandTheme.surfaceAlt};
     padding: 0;
 `;
 
 const PageHeader = styled.div`
     background: ${brandTheme.surface};
     border-bottom: 1px solid ${brandTheme.border};
-    padding: 24px 32px;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    backdrop-filter: blur(8px);
-    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+`;
 
+const HeaderContent = styled.div`
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px 32px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    max-width: 1400px;
-    margin: 0 auto;
+
+    @media (max-width: 768px) {
+        flex-direction: column;
+        gap: 20px;
+        align-items: stretch;
+    }
 `;
 
 const HeaderLeft = styled.div`
@@ -824,28 +676,30 @@ const HeaderLeft = styled.div`
 const HeaderIcon = styled.div`
     width: 48px;
     height: 48px;
-    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+    background: ${brandTheme.primary};
     border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
     font-size: 20px;
-    box-shadow: 0 4px 12px ${brandTheme.primaryGhost};
+    box-shadow: 0 4px 12px ${brandTheme.primary}40;
 `;
+
+const HeaderText = styled.div``;
 
 const HeaderTitle = styled.h1`
     font-size: 28px;
     font-weight: 700;
-    color: #0f172a;
-    margin: 0;
+    color: ${brandTheme.text.primary};
+    margin: 0 0 4px 0;
     letter-spacing: -0.5px;
 `;
 
 const HeaderSubtitle = styled.p`
-    font-size: 14px;
-    color: ${brandTheme.neutral};
+    color: ${brandTheme.text.secondary};
     margin: 0;
+    font-size: 16px;
     font-weight: 500;
 `;
 
@@ -853,6 +707,10 @@ const HeaderActions = styled.div`
     display: flex;
     gap: 12px;
     align-items: center;
+
+    @media (max-width: 768px) {
+        justify-content: flex-end;
+    }
 `;
 
 const PrimaryButton = styled.button`
@@ -876,166 +734,62 @@ const PrimaryButton = styled.button`
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
 
-    &:active {
-        transform: translateY(0);
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
     }
 `;
 
-const BulkActionButton = styled.button`
+const SecondaryButton = styled.button`
     display: flex;
     align-items: center;
     gap: 8px;
-    background: ${brandTheme.success};
+    background: ${brandTheme.surface};
+    color: ${brandTheme.neutral};
+    border: 2px solid ${brandTheme.border};
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+        border-color: ${brandTheme.primary};
+        color: ${brandTheme.primary};
+        background: ${brandTheme.primaryGhost};
+        transform: translateY(-1px);
+    }
+`;
+
+const BulkSmsButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: ${brandTheme.status.success};
     color: white;
     border: none;
     border-radius: 8px;
-    padding: 12px 16px;
+    padding: 12px 20px;
     font-weight: 600;
     font-size: 14px;
     cursor: pointer;
     transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);
 
     &:hover {
-        background: #059669;
+        background: #047857;
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
     }
 `;
 
-const ContentContainer = styled.div`
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 24px 32px;
-`;
-
-const FiltersSection = styled.div`
-    background: ${brandTheme.surface};
-    border-radius: 12px;
-    border: 1px solid ${brandTheme.border};
-    margin-bottom: 24px;
-    overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-`;
-
-const FiltersToggle = styled.button`
+const DangerButton = styled.button`
     display: flex;
     align-items: center;
     gap: 8px;
-    width: 100%;
-    padding: 16px 24px;
-    background: ${brandTheme.surfaceAlt};
-    border: none;
-    border-bottom: 1px solid ${brandTheme.border};
-    color: ${brandTheme.neutral};
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-        background: ${brandTheme.primaryGhost};
-        color: ${brandTheme.primary};
-    }
-`;
-
-const LoadingContainer = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 120px 20px;
-    background: ${brandTheme.surface};
-    border-radius: 16px;
-    margin: 24px 32px;
-    border: 1px solid ${brandTheme.border};
-`;
-
-const LoadingSpinner = styled.div`
-    width: 40px;
-    height: 40px;
-    border: 3px solid ${brandTheme.border};
-    border-top: 3px solid ${brandTheme.primary};
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin-bottom: 16px;
-
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-`;
-
-const LoadingText = styled.div`
-    font-size: 16px;
-    color: ${brandTheme.neutral};
-    font-weight: 500;
-`;
-
-const ErrorContainer = styled.div`
-    background: linear-gradient(135deg, #fef2f2 0%, #fdf2f8 100%);
-    border: 1px solid #fecaca;
-    border-radius: 12px;
-    padding: 16px 20px;
-    margin-bottom: 20px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.1);
-`;
-
-const ErrorIcon = styled.div`
-    font-size: 18px;
-`;
-
-const ErrorText = styled.div`
-    color: #dc2626;
-    font-weight: 500;
-    font-size: 14px;
-`;
-
-const EmptyStateContainer = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 60px 40px;
-    background: ${brandTheme.surface};
-    border-radius: 16px;
-    border: 2px dashed ${brandTheme.border};
-    text-align: center;
-`;
-
-const EmptyIcon = styled.div`
-    width: 64px;
-    height: 64px;
-    background: ${brandTheme.surfaceAlt};
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    color: ${brandTheme.neutral};
-    margin-bottom: 20px;
-`;
-
-const EmptyTitle = styled.h3`
-    font-size: 20px;
-    font-weight: 600;
-    color: #1e293b;
-    margin: 0 0 8px 0;
-`;
-
-const EmptyDescription = styled.p`
-    font-size: 16px;
-    color: ${brandTheme.neutral};
-    margin: 0 0 20px 0;
-    line-height: 1.5;
-    max-width: 400px;
-`;
-
-const EmptyAction = styled.button`
-    background: ${brandTheme.primary};
+    background: ${brandTheme.status.error};
     color: white;
     border: none;
     border-radius: 8px;
@@ -1046,474 +800,341 @@ const EmptyAction = styled.button`
     transition: all 0.2s ease;
 
     &:hover {
+        background: #b91c1c;
+        transform: translateY(-1px);
+    }
+`;
+
+const StatsSection = styled.div`
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px 32px 0;
+`;
+
+const StatsGrid = styled.div`
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 24px;
+`;
+
+const StatCard = styled.div`
+    background: ${brandTheme.surface};
+    border: 1px solid ${brandTheme.border};
+    border-radius: 16px;
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+        border-color: ${brandTheme.primary};
+    }
+`;
+
+const StatIcon = styled.div<{ $color: string }>`
+    width: 48px;
+    height: 48px;
+    background: ${props => props.$color}15;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${props => props.$color};
+    font-size: 20px;
+`;
+
+const StatContent = styled.div`
+    flex: 1;
+`;
+
+const StatValue = styled.div`
+    font-size: 24px;
+    font-weight: 700;
+    color: ${brandTheme.text.primary};
+    margin-bottom: 4px;
+    letter-spacing: -0.5px;
+`;
+
+const StatLabel = styled.div`
+    font-size: 14px;
+    color: ${brandTheme.text.secondary};
+    font-weight: 500;
+`;
+
+const ContentContainer = styled.div`
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 32px 32px;
+`;
+
+const LoadingContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 20px;
+    gap: 16px;
+`;
+
+const LoadingSpinner = styled.div`
+    width: 40px;
+    height: 40px;
+    border: 3px solid ${brandTheme.border};
+    border-top: 3px solid ${brandTheme.primary};
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+`;
+
+const LoadingText = styled.div`
+    font-size: 16px;
+    color: ${brandTheme.text.secondary};
+    font-weight: 500;
+`;
+
+const ErrorMessage = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #fef2f2;
+    color: ${brandTheme.status.error};
+    padding: 16px 20px;
+    border-radius: 12px;
+    margin: 0 32px 24px;
+    border: 1px solid #fecaca;
+    font-weight: 500;
+    max-width: 1400px;
+    margin-left: auto;
+    margin-right: auto;
+
+    svg {
+        font-size: 18px;
+    }
+`;
+
+const EmptyStateContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 40px;
+    background: ${brandTheme.surface};
+    border: 2px dashed ${brandTheme.border};
+    border-radius: 16px;
+    text-align: center;
+`;
+
+const EmptyStateIcon = styled.div`
+    width: 80px;
+    height: 80px;
+    background: ${brandTheme.surfaceAlt};
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    color: ${brandTheme.neutral};
+    margin-bottom: 24px;
+`;
+
+const EmptyStateTitle = styled.h3`
+    font-size: 24px;
+    font-weight: 700;
+    color: ${brandTheme.text.primary};
+    margin: 0 0 8px 0;
+    letter-spacing: -0.5px;
+`;
+
+const EmptyStateDescription = styled.p`
+    font-size: 16px;
+    color: ${brandTheme.text.secondary};
+    margin: 0 0 24px 0;
+    line-height: 1.6;
+    max-width: 400px;
+`;
+
+const EmptyStateButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: ${brandTheme.primary};
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 24px;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
         background: ${brandTheme.primaryDark};
         transform: translateY(-1px);
     }
 `;
 
 const SelectionBar = styled.div`
-    background: ${brandTheme.surface};
-    border-radius: 12px;
-    border: 1px solid ${brandTheme.border};
-    padding: 16px 24px;
-    margin-bottom: 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    padding: 16px 20px;
+    background: ${brandTheme.primaryGhost};
+    border: 1px solid ${brandTheme.primary}30;
+    border-radius: 12px;
+    margin-bottom: 16px;
 `;
 
-const SelectionLeft = styled.div`
+const SelectAllCheckbox = styled.div`
     display: flex;
     align-items: center;
-    gap: 16px;
-`;
-
-const SelectAllButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: none;
-    border: none;
-    color: ${brandTheme.neutral};
-    font-weight: 500;
-    font-size: 14px;
+    gap: 12px;
     cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 6px;
+    color: ${brandTheme.text.primary};
+    font-weight: 500;
     transition: all 0.2s ease;
 
-    &:hover {
-        background: ${brandTheme.primaryGhost};
+    svg {
         color: ${brandTheme.primary};
+        font-size: 18px;
     }
 
-    svg {
-        font-size: 16px;
+    &:hover {
+        color: ${brandTheme.primary};
     }
 `;
 
 const SelectionInfo = styled.div`
     font-size: 14px;
     color: ${brandTheme.primary};
-    font-weight: 500;
-    background: ${brandTheme.primaryGhost};
-    padding: 6px 12px;
-    border-radius: 20px;
-`;
-
-// Table Components
-const TableContainer = styled.div`
-    background: ${brandTheme.surface};
-    border-radius: 16px;
-    border: 1px solid ${brandTheme.border};
-    overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-`;
-
-const TableHeader = styled.div`
-    display: flex;
-    background: ${brandTheme.surfaceAlt};
-    border-bottom: 2px solid ${brandTheme.border};
-    min-height: 56px;
-`;
-
-const HeaderCell = styled.div<{ $isDragging?: boolean; $width: string }>`
-    flex: 0 0 ${props => props.$width};
-    width: ${props => props.$width};
-    display: flex;
-    align-items: center;
-    padding: 0 16px;
-    background: ${props => props.$isDragging ? brandTheme.primaryGhost : brandTheme.surfaceAlt};
-    border-right: 1px solid ${brandTheme.border};
-    cursor: grab;
-    user-select: none;
-    transition: all 0.2s ease;
-
-    &:hover {
-        background: ${brandTheme.primaryGhost};
-    }
-
-    &:active {
-        cursor: grabbing;
-    }
-
-    &:last-child {
-        border-right: none;
-    }
-`;
-
-const HeaderContent = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-`;
-
-const DragHandle = styled.div`
-    color: ${brandTheme.neutral};
-    font-size: 12px;
-    opacity: 0.6;
-    transition: opacity 0.2s ease;
-
-    ${HeaderCell}:hover & {
-        opacity: 1;
-    }
-`;
-
-const HeaderLabel = styled.span`
-    font-size: 14px;
     font-weight: 600;
-    color: #374151;
 `;
 
-const SelectionHeaderContent = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    color: ${brandTheme.neutral};
-    font-size: 16px;
-`;
-
-const TableBody = styled.div`
-    background: ${brandTheme.surface};
-`;
-
-const TableRow = styled.div`
-    display: flex;
-    border-bottom: 1px solid ${brandTheme.border};
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-        background: ${brandTheme.surfaceAlt};
-    }
-
-    &:last-child {
-        border-bottom: none;
-    }
-`;
-
-const TableCell = styled.div<{ $width: string }>`
-    flex: 0 0 ${props => props.$width};
-    width: ${props => props.$width};
-    padding: 16px;
-    display: flex;
-    align-items: center;
-    min-height: 72px;
-    border-right: 1px solid ${brandTheme.border};
-
-    &:last-child {
-        border-right: none;
-    }
-`;
-
-// Cell Content Components
-const SelectionCell = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    cursor: pointer;
-`;
-
-const SelectionCheckbox = styled.div<{ $selected: boolean }>`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 20px;
-    border-radius: 4px;
-    transition: all 0.2s ease;
-    color: ${props => props.$selected ? brandTheme.primary : brandTheme.neutral};
-    font-size: 16px;
-
-    &:hover {
-        color: ${brandTheme.primary};
-        background: ${brandTheme.primaryGhost};
-    }
-`;
-
-const ClientInfo = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    width: 100%;
-`;
-
-const ClientName = styled.div`
-    font-size: 15px;
-    font-weight: 600;
-    color: #1e293b;
-`;
-
-const ClientSubInfo = styled.div`
-    font-size: 13px;
-    color: ${brandTheme.neutral};
-    font-weight: 500;
-`;
-
-const ContactInfo = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    width: 100%;
-`;
-
-const ContactItem = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-`;
-
-const ContactIcon = styled.div`
-    width: 16px;
-    height: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    color: ${brandTheme.neutral};
-`;
-
-const ContactText = styled.div`
-    font-size: 14px;
-    color: #374151;
-    font-weight: 500;
-`;
-
-const CompanyInfo = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    width: 100%;
-`;
-
-const CompanyName = styled.div`
-    font-size: 14px;
-    font-weight: 600;
-    color: #1e293b;
-`;
-
-const CompanyTax = styled.div`
-    font-size: 13px;
-    color: ${brandTheme.neutral};
-    font-weight: 500;
-`;
-
-const EmptyField = styled.div`
-    font-size: 14px;
-    color: ${brandTheme.neutral};
-    font-style: italic;
-`;
-
-const StatsContainer = styled.div`
+// Delete Confirmation Modal Styles
+const DeleteConfirmContent = styled.div`
     display: flex;
     gap: 16px;
-    width: 100%;
-`;
-
-const StatItem = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-`;
-
-const StatValue = styled.div`
-    font-size: 16px;
-    font-weight: 700;
-    color: ${brandTheme.primary};
-`;
-
-const StatLabel = styled.div`
-    font-size: 12px;
-    color: ${brandTheme.neutral};
-    font-weight: 500;
-`;
-
-const RevenueDisplay = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 2px;
-    width: 100%;
-`;
-
-const RevenueAmount = styled.div`
-    font-size: 16px;
-    font-weight: 700;
-    color: ${brandTheme.success};
-`;
-
-const RevenueCurrency = styled.div`
-    font-size: 12px;
-    color: ${brandTheme.neutral};
-    font-weight: 500;
-`;
-
-const ActionButtons = styled.div`
-    display: flex;
-    gap: 6px;
-    align-items: center;
-    flex-wrap: wrap;
-`;
-
-const ActionButton = styled.button<{
-    $variant: 'view' | 'edit' | 'delete' | 'secondary';
-}>`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-size: 12px;
-
-    ${({ $variant }) => {
-    switch ($variant) {
-        case 'view':
-            return `
-                    background: ${brandTheme.primaryGhost};
-                    color: ${brandTheme.primary};
-                    &:hover {
-                        background: ${brandTheme.primary};
-                        color: white;
-                        transform: translateY(-1px);
-                    }
-                `;
-        case 'edit':
-            return `
-                    background: rgba(245, 158, 11, 0.1);
-                    color: #f59e0b;
-                    &:hover {
-                        background: #f59e0b;
-                        color: white;
-                        transform: translateY(-1px);
-                    }
-                `;
-        case 'delete':
-            return `
-                    background: rgba(239, 68, 68, 0.1);
-                    color: #ef4444;
-                    &:hover {
-                        background: #ef4444;
-                        color: white;
-                        transform: translateY(-1px);
-                    }
-                `;
-        case 'secondary':
-            return `
-                    background: ${brandTheme.surfaceAlt};
-                    color: ${brandTheme.neutral};
-                    &:hover {
-                        background: ${brandTheme.neutral};
-                        color: white;
-                        transform: translateY(-1px);
-                    }
-                `;
-    }
-}}
-`;
-
-// Modal Content Components
-const DeleteConfirmContent = styled.div`
     padding: 16px 0;
 `;
 
-const DeleteMessage = styled.p`
-    font-size: 16px;
-    color: #374151;
-    margin: 0 0 8px 0;
-    line-height: 1.5;
+const DeleteIcon = styled.div`
+    width: 48px;
+    height: 48px;
+    background: #fef2f2;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${brandTheme.status.error};
+    font-size: 20px;
+    flex-shrink: 0;
 `;
 
-const DeleteWarning = styled.p`
+const DeleteText = styled.div`
+    flex: 1;
+`;
+
+const DeleteTitle = styled.div`
+    font-size: 18px;
+    font-weight: 700;
+    color: ${brandTheme.text.primary};
+    margin-bottom: 8px;
+`;
+
+const DeleteSubtitle = styled.div`
+    font-size: 16px;
+    color: ${brandTheme.text.secondary};
+    margin-bottom: 12px;
+`;
+
+const DeleteWarning = styled.div`
     font-size: 14px;
-    color: ${brandTheme.error};
-    margin: 0 0 24px 0;
+    color: ${brandTheme.status.error};
     font-weight: 500;
 `;
 
-const DeleteButtons = styled.div`
+const DeleteConfirmButtons = styled.div`
     display: flex;
     justify-content: flex-end;
     gap: 12px;
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid ${brandTheme.border};
 `;
 
-const SecondaryButton = styled.button`
-    padding: 10px 16px;
-    background: ${brandTheme.surfaceAlt};
-    color: ${brandTheme.neutral};
-    border: 1px solid ${brandTheme.border};
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-        background: ${brandTheme.border};
-        color: #374151;
-    }
-`;
-
-const DeleteButton = styled.button`
-    padding: 10px 16px;
-    background: ${brandTheme.error};
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-        background: #dc2626;
-        transform: translateY(-1px);
-    }
-`;
-
-// Bulk SMS Modal Components
+// Bulk SMS Modal Styles
 const BulkSmsContent = styled.div`
     padding: 16px 0;
 `;
 
-const BulkSmsInfo = styled.p`
-    font-size: 16px;
-    color: #374151;
-    margin: 0 0 20px 0;
-    padding: 12px 16px;
-    background: ${brandTheme.primaryGhost};
-    border-radius: 8px;
-    border: 1px solid rgba(37, 99, 235, 0.2);
+const BulkSmsHeader = styled.div`
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+`;
+
+const BulkSmsIcon = styled.div`
+    width: 48px;
+    height: 48px;
+    background: rgba(5, 150, 105, 0.15);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${brandTheme.status.success};
+    font-size: 20px;
+    flex-shrink: 0;
+`;
+
+const BulkSmsInfo = styled.div`
+    flex: 1;
+`;
+
+const BulkSmsTitle = styled.div`
+    font-size: 18px;
+    font-weight: 700;
+    color: ${brandTheme.text.primary};
+    margin-bottom: 4px;
+`;
+
+const BulkSmsSubtitle = styled.div`
+    font-size: 14px;
+    color: ${brandTheme.text.secondary};
 `;
 
 const SmsFormGroup = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
 `;
 
 const SmsLabel = styled.label`
+    display: block;
     font-weight: 600;
     font-size: 14px;
-    color: #374151;
+    color: ${brandTheme.text.primary};
+    margin-bottom: 8px;
 `;
 
 const SmsTextarea = styled.textarea`
-    padding: 12px 16px;
+    width: 100%;
+    padding: 16px;
     border: 2px solid ${brandTheme.border};
     border-radius: 8px;
-    font-size: 14px;
-    font-family: inherit;
+    font-size: 16px;
+    font-weight: 500;
+    background: ${brandTheme.surface};
+    color: ${brandTheme.text.primary};
     resize: vertical;
+    min-height: 120px;
+    font-family: inherit;
+    line-height: 1.5;
     transition: all 0.2s ease;
 
     &:focus {
@@ -1524,26 +1145,45 @@ const SmsTextarea = styled.textarea`
 
     &::placeholder {
         color: ${brandTheme.neutral};
+        font-weight: 400;
     }
 `;
 
-const SmsCounter = styled.div`
+const SmsCharacterCounter = styled.div`
     font-size: 12px;
-    color: ${brandTheme.neutral};
+    color: ${brandTheme.text.muted};
     text-align: right;
     margin-top: 4px;
 `;
 
-const RecipientsSection = styled.div`
-    margin-bottom: 20px;
+const RecipientsList = styled.div`
+    margin-bottom: 24px;
 `;
 
-const RecipientsList = styled.div`
+const RecipientsLabel = styled.div`
+    font-weight: 600;
+    font-size: 14px;
+    color: ${brandTheme.text.primary};
+    margin-bottom: 12px;
+`;
+
+const RecipientsContainer = styled.div`
     max-height: 200px;
     overflow-y: auto;
-    border: 2px solid ${brandTheme.border};
+    border: 1px solid ${brandTheme.border};
     border-radius: 8px;
     background: ${brandTheme.surfaceAlt};
+
+    &::-webkit-scrollbar {
+        width: 6px;
+    }
+    &::-webkit-scrollbar-track {
+        background: ${brandTheme.surfaceAlt};
+    }
+    &::-webkit-scrollbar-thumb {
+        background: ${brandTheme.border};
+        border-radius: 3px;
+    }
 `;
 
 const RecipientItem = styled.div`
@@ -1552,6 +1192,7 @@ const RecipientItem = styled.div`
     align-items: center;
     padding: 12px 16px;
     border-bottom: 1px solid ${brandTheme.border};
+    transition: all 0.2s ease;
 
     &:last-child {
         border-bottom: none;
@@ -1564,47 +1205,22 @@ const RecipientItem = styled.div`
 
 const RecipientName = styled.div`
     font-size: 14px;
-    font-weight: 500;
-    color: #374151;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
 `;
 
 const RecipientPhone = styled.div`
     font-size: 14px;
-    color: ${brandTheme.neutral};
+    color: ${brandTheme.text.secondary};
+    font-weight: 500;
 `;
 
-const BulkSmsButtons = styled.div`
+const BulkSmsActions = styled.div`
     display: flex;
     justify-content: flex-end;
     gap: 12px;
-    padding-top: 20px;
+    padding-top: 16px;
     border-top: 1px solid ${brandTheme.border};
-`;
-
-const SendButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 20px;
-    background: ${brandTheme.success};
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover:not(:disabled) {
-        background: #059669;
-        transform: translateY(-1px);
-    }
-
-    &:disabled {
-        background: ${brandTheme.neutral};
-        cursor: not-allowed;
-        transform: none;
-    }
 `;
 
 export default OwnersPage;
