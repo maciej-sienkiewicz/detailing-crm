@@ -1,4 +1,4 @@
-// src/pages/Finances/components/UnifiedDocumentViewModal.tsx
+// src/pages/Finances/components/UnifiedDocumentViewModal.tsx - Professional Premium Automotive CRM
 import React, { useRef } from 'react';
 import styled from 'styled-components';
 import {
@@ -10,7 +10,12 @@ import {
     FaTrashAlt,
     FaFileInvoiceDollar,
     FaReceipt,
-    FaExchangeAlt
+    FaExchangeAlt,
+    FaCalendarAlt,
+    FaUser,
+    FaBuilding,
+    FaMoneyBillWave,
+    FaExternalLinkAlt
 } from 'react-icons/fa';
 import {
     UnifiedFinancialDocument,
@@ -24,6 +29,75 @@ import {
     PaymentMethodLabels
 } from '../../../types/finance';
 import UnifiedDocumentPrintView from "./UnifiedDocumentPrintView";
+
+// Professional Brand Theme - Premium Automotive CRM (identical to VehiclesPage)
+const brandTheme = {
+    // Primary Colors - Professional Blue Palette
+    primary: 'var(--brand-primary, #1a365d)',
+    primaryLight: 'var(--brand-primary-light, #2c5aa0)',
+    primaryDark: 'var(--brand-primary-dark, #0f2027)',
+    primaryGhost: 'var(--brand-primary-ghost, rgba(26, 54, 93, 0.04))',
+
+    // Surface Colors - Clean & Minimal
+    surface: '#ffffff',
+    surfaceAlt: '#fafbfc',
+    surfaceElevated: '#f8fafc',
+    surfaceHover: '#f1f5f9',
+
+    // Typography Colors
+    text: {
+        primary: '#0f172a',
+        secondary: '#475569',
+        tertiary: '#64748b',
+        muted: '#94a3b8',
+        disabled: '#cbd5e1'
+    },
+
+    // Border Colors
+    border: '#e2e8f0',
+    borderLight: '#f1f5f9',
+    borderHover: '#cbd5e1',
+
+    // Status Colors - Automotive Grade
+    status: {
+        success: '#059669',
+        successLight: '#d1fae5',
+        warning: '#d97706',
+        warningLight: '#fef3c7',
+        error: '#dc2626',
+        errorLight: '#fee2e2',
+        info: '#0ea5e9',
+        infoLight: '#e0f2fe'
+    },
+
+    // Shadows - Professional Depth
+    shadow: {
+        xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+        sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+        md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+    },
+
+    // Spacing Scale
+    spacing: {
+        xs: '4px',
+        sm: '8px',
+        md: '16px',
+        lg: '24px',
+        xl: '32px',
+        xxl: '48px'
+    },
+
+    // Border Radius
+    radius: {
+        sm: '6px',
+        md: '8px',
+        lg: '12px',
+        xl: '16px',
+        xxl: '20px'
+    }
+};
 
 interface UnifiedDocumentViewModalProps {
     isOpen: boolean;
@@ -77,7 +151,6 @@ const UnifiedDocumentViewModal: React.FC<UnifiedDocumentViewModalProps> = ({
 
     // Obsługa wydruku dokumentu
     const handlePrintDocument = () => {
-        // Używamy osobnego komponentu do wydruku
         const printWindow = window.open('', '_blank');
         if (printWindow) {
             printWindow.document.write(`
@@ -92,10 +165,8 @@ const UnifiedDocumentViewModal: React.FC<UnifiedDocumentViewModalProps> = ({
             `);
             printWindow.document.close();
 
-            // Renderujemy komponent do wydruku w nowym oknie
             const printRoot = printWindow.document.getElementById('print-root');
             if (printRoot) {
-                // Tu będziemy używać UnifiedDocumentPrintView
                 UnifiedDocumentPrintView.render(document, printWindow);
             }
         }
@@ -120,27 +191,46 @@ const UnifiedDocumentViewModal: React.FC<UnifiedDocumentViewModalProps> = ({
             <ModalContainer>
                 <ModalHeader>
                     <ModalTitle>
-                        {getDocumentIcon(document.type)}
-                        <TitleText>
-                            <span>Podgląd {DocumentTypeLabels[document.type].toLowerCase()}</span>
-                            <DocumentNumber>{document.number}</DocumentNumber>
-                        </TitleText>
+                        <TitleIcon $type={document.type}>
+                            {getDocumentIcon(document.type)}
+                        </TitleIcon>
+                        <TitleContent>
+                            <TitleText>
+                                <span>Podgląd {DocumentTypeLabels[document.type].toLowerCase()}</span>
+                                <DocumentNumber>{document.number}</DocumentNumber>
+                            </TitleText>
+                            <TitleSubtext>
+                                {document.title}
+                            </TitleSubtext>
+                        </TitleContent>
                     </ModalTitle>
                     <ModalActions>
-                        <ActionButton title="Edytuj dokument" onClick={() => onEdit(document)}>
+                        <ActionButton
+                            title="Edytuj dokument"
+                            $variant="edit"
+                            onClick={() => onEdit(document)}
+                        >
                             <FaEdit />
                         </ActionButton>
                         {document.attachments && document.attachments.length > 0 && (
-                            <ActionButton title="Pobierz załącznik" onClick={() => onDownloadAttachment(document.id)}>
+                            <ActionButton
+                                title="Pobierz załącznik"
+                                $variant="download"
+                                onClick={() => onDownloadAttachment(document.id)}
+                            >
                                 <FaDownload />
                             </ActionButton>
                         )}
-                        <ActionButton title="Drukuj dokument" onClick={handlePrintDocument}>
+                        <ActionButton
+                            title="Drukuj dokument"
+                            $variant="print"
+                            onClick={handlePrintDocument}
+                        >
                             <FaPrint />
                         </ActionButton>
                         <ActionButton
                             title="Usuń dokument"
-                            className="delete"
+                            $variant="delete"
                             onClick={handleDeleteDocument}
                         >
                             <FaTrashAlt />
@@ -152,10 +242,10 @@ const UnifiedDocumentViewModal: React.FC<UnifiedDocumentViewModalProps> = ({
                 </ModalHeader>
 
                 <ModalContent>
-                    {/* Nagłówek dokumentu */}
+                    {/* Document Header */}
                     <DocumentHeader>
                         <HeaderLeft>
-                            <DocumentTypeDisplay>
+                            <DocumentTypeDisplay $type={document.type}>
                                 {getDocumentIcon(document.type)}
                                 <TypeText>{DocumentTypeLabels[document.type]}</TypeText>
                             </DocumentTypeDisplay>
@@ -166,128 +256,156 @@ const UnifiedDocumentViewModal: React.FC<UnifiedDocumentViewModalProps> = ({
                             )}
                         </HeaderLeft>
                         <HeaderRight>
-                            <DirectionBadge direction={document.direction}>
+                            <DirectionBadge $direction={document.direction}>
                                 {TransactionDirectionLabels[document.direction]}
                             </DirectionBadge>
+                            <StatusBadge $status={document.status}>
+                                {DocumentStatusLabels[document.status]}
+                            </StatusBadge>
                         </HeaderRight>
                     </DocumentHeader>
 
-                    {/* Szczegóły dokumentu */}
+                    {/* Document Details */}
+                    <SectionTitle>
+                        <SectionIcon><FaCalendarAlt /></SectionIcon>
+                        Szczegóły dokumentu
+                    </SectionTitle>
                     <DocumentDetails>
                         <DetailItem>
-                            <DetailLabel>Data wystawienia:</DetailLabel>
-                            <DetailValue>{formatDate(document.issuedDate)}</DetailValue>
+                            <DetailIcon><FaCalendarAlt /></DetailIcon>
+                            <DetailContent>
+                                <DetailLabel>Data wystawienia</DetailLabel>
+                                <DetailValue>{formatDate(document.issuedDate)}</DetailValue>
+                            </DetailContent>
                         </DetailItem>
                         {document.dueDate && (
                             <DetailItem>
-                                <DetailLabel>Termin płatności:</DetailLabel>
-                                <DetailValue>{formatDate(document.dueDate)}</DetailValue>
+                                <DetailIcon><FaCalendarAlt /></DetailIcon>
+                                <DetailContent>
+                                    <DetailLabel>Termin płatności</DetailLabel>
+                                    <DetailValue>{formatDate(document.dueDate)}</DetailValue>
+                                </DetailContent>
                             </DetailItem>
                         )}
                         <DetailItem>
-                            <DetailLabel>Metoda płatności:</DetailLabel>
-                            <DetailValue>{PaymentMethodLabels[document.paymentMethod]}</DetailValue>
+                            <DetailIcon><FaMoneyBillWave /></DetailIcon>
+                            <DetailContent>
+                                <DetailLabel>Metoda płatności</DetailLabel>
+                                <DetailValue>{PaymentMethodLabels[document.paymentMethod]}</DetailValue>
+                            </DetailContent>
                         </DetailItem>
                         <DetailItem>
-                            <DetailLabel>Waluta:</DetailLabel>
-                            <DetailValue>{document.currency}</DetailValue>
+                            <DetailIcon><FaMoneyBillWave /></DetailIcon>
+                            <DetailContent>
+                                <DetailLabel>Waluta</DetailLabel>
+                                <DetailValue>{document.currency}</DetailValue>
+                            </DetailContent>
                         </DetailItem>
                         {document.protocolNumber && (
                             <DetailItem>
-                                <DetailLabel>Powiązany protokół:</DetailLabel>
-                                <DetailValue>
-                                    <ProtocolLink href={`/orders/car-reception/${document.protocolId}`}>
-                                        {document.protocolNumber}
-                                    </ProtocolLink>
-                                </DetailValue>
-                            </DetailItem>
-                        )}
-                        {document.visitId && (
-                            <DetailItem>
-                                <DetailLabel>Powiązana wizyta:</DetailLabel>
-                                <DetailValue>
-                                    <ProtocolLink href={`/appointments/${document.visitId}`}>
-                                        Wizyta #{document.visitId}
-                                    </ProtocolLink>
-                                </DetailValue>
+                                <DetailIcon><FaExternalLinkAlt /></DetailIcon>
+                                <DetailContent>
+                                    <DetailLabel>Powiązany protokół</DetailLabel>
+                                    <DetailValue>
+                                        <ProtocolLink href={`/orders/car-reception/${document.protocolId}`}>
+                                            {document.protocolNumber}
+                                        </ProtocolLink>
+                                    </DetailValue>
+                                </DetailContent>
                             </DetailItem>
                         )}
                     </DocumentDetails>
 
-                    {/* Sekcja adresowa */}
+                    {/* Address Section */}
+                    <SectionTitle>
+                        <SectionIcon><FaBuilding /></SectionIcon>
+                        Dane kontrahentów
+                    </SectionTitle>
                     <AddressSection>
                         <AddressBlock>
-                            <AddressTitle>Sprzedawca</AddressTitle>
+                            <AddressHeader>
+                                <AddressIcon><FaBuilding /></AddressIcon>
+                                <AddressTitle>Sprzedawca</AddressTitle>
+                            </AddressHeader>
                             <AddressName>{document.sellerName}</AddressName>
                             {document.sellerTaxId && <AddressDetail>NIP: {document.sellerTaxId}</AddressDetail>}
                             {document.sellerAddress && <AddressDetail>{document.sellerAddress}</AddressDetail>}
                         </AddressBlock>
                         <AddressBlock>
-                            <AddressTitle>Nabywca</AddressTitle>
+                            <AddressHeader>
+                                <AddressIcon><FaUser /></AddressIcon>
+                                <AddressTitle>Nabywca</AddressTitle>
+                            </AddressHeader>
                             <AddressName>{document.buyerName}</AddressName>
                             {document.buyerTaxId && <AddressDetail>NIP: {document.buyerTaxId}</AddressDetail>}
                             {document.buyerAddress && <AddressDetail>{document.buyerAddress}</AddressDetail>}
                         </AddressBlock>
                     </AddressSection>
 
-                    {/* Pozycje - tylko dla faktur z pozycjami */}
+                    {/* Items - only for invoices with items */}
                     {document.type === DocumentType.INVOICE && document.items && document.items.length > 0 && (
                         <>
-                            <SectionTitle>Pozycje dokumentu</SectionTitle>
+                            <SectionTitle>
+                                <SectionIcon><FaFileInvoiceDollar /></SectionIcon>
+                                Pozycje dokumentu
+                            </SectionTitle>
                             <ItemsTable>
-                                <thead>
-                                <tr>
-                                    <th>Lp.</th>
-                                    <th>Nazwa towaru/usługi</th>
-                                    <th>Ilość</th>
-                                    <th>Cena jedn. netto</th>
-                                    <th>VAT %</th>
-                                    <th>Wartość netto</th>
-                                    <th>Wartość brutto</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                {document.items.map((item, index) => (
-                                    <tr key={item.id || index}>
-                                        <td>{index + 1}</td>
-                                        <td>
-                                            <ItemName>{item.name}</ItemName>
-                                            {item.description && <ItemDescription>{item.description}</ItemDescription>}
-                                        </td>
-                                        <td>{item.quantity}</td>
-                                        <td>{formatAmount(item.unitPrice)} {document.currency}</td>
-                                        <td>{item.taxRate}%</td>
-                                        <td>{formatAmount(item.totalNet)} {document.currency}</td>
-                                        <td>{formatAmount(item.totalGross)} {document.currency}</td>
-                                    </tr>
-                                ))}
-                                </tbody>
-                                <tfoot>
-                                <tr>
-                                    <td colSpan={5} style={{ textAlign: 'right', fontWeight: 'bold' }}>
-                                        Razem:
-                                    </td>
-                                    <td style={{ fontWeight: 'bold' }}>
-                                        {formatAmount(document.totalNet)} {document.currency}
-                                    </td>
-                                    <td style={{ fontWeight: 'bold' }}>
-                                        {formatAmount(document.totalGross)} {document.currency}
-                                    </td>
-                                </tr>
-                                </tfoot>
+                                <ItemsTableHead>
+                                    <ItemsTableRow>
+                                        <ItemsTableHeader>Lp.</ItemsTableHeader>
+                                        <ItemsTableHeader>Nazwa towaru/usługi</ItemsTableHeader>
+                                        <ItemsTableHeader>Ilość</ItemsTableHeader>
+                                        <ItemsTableHeader>Cena jedn. netto</ItemsTableHeader>
+                                        <ItemsTableHeader>VAT %</ItemsTableHeader>
+                                        <ItemsTableHeader>Wartość netto</ItemsTableHeader>
+                                        <ItemsTableHeader>Wartość brutto</ItemsTableHeader>
+                                    </ItemsTableRow>
+                                </ItemsTableHead>
+                                <ItemsTableBody>
+                                    {document.items.map((item, index) => (
+                                        <ItemsTableRow key={item.id || index}>
+                                            <ItemsTableCell>{index + 1}</ItemsTableCell>
+                                            <ItemsTableCell>
+                                                <ItemName>{item.name}</ItemName>
+                                                {item.description && <ItemDescription>{item.description}</ItemDescription>}
+                                            </ItemsTableCell>
+                                            <ItemsTableCell>{item.quantity}</ItemsTableCell>
+                                            <ItemsTableCell>{formatAmount(item.unitPrice)} {document.currency}</ItemsTableCell>
+                                            <ItemsTableCell>{item.taxRate}%</ItemsTableCell>
+                                            <ItemsTableCell>{formatAmount(item.totalNet)} {document.currency}</ItemsTableCell>
+                                            <ItemsTableCell>{formatAmount(item.totalGross)} {document.currency}</ItemsTableCell>
+                                        </ItemsTableRow>
+                                    ))}
+                                </ItemsTableBody>
+                                <ItemsTableFoot>
+                                    <ItemsTableRow>
+                                        <ItemsTableCell colSpan={5} style={{ textAlign: 'right', fontWeight: 'bold' }}>
+                                            Razem:
+                                        </ItemsTableCell>
+                                        <ItemsTableCell style={{ fontWeight: 'bold' }}>
+                                            {formatAmount(document.totalNet)} {document.currency}
+                                        </ItemsTableCell>
+                                        <ItemsTableCell style={{ fontWeight: 'bold' }}>
+                                            {formatAmount(document.totalGross)} {document.currency}
+                                        </ItemsTableCell>
+                                    </ItemsTableRow>
+                                </ItemsTableFoot>
                             </ItemsTable>
                         </>
                     )}
 
-                    {/* Podsumowanie kwot - dla dokumentów bez szczegółowych pozycji */}
+                    {/* Summary for documents without detailed items */}
                     {(document.type !== DocumentType.INVOICE || !document.items || document.items.length === 0) && (
                         <>
-                            <SectionTitle>Podsumowanie finansowe</SectionTitle>
+                            <SectionTitle>
+                                <SectionIcon><FaMoneyBillWave /></SectionIcon>
+                                Podsumowanie finansowe
+                            </SectionTitle>
                             <SummarySection>
                                 <SummaryGrid>
                                     <SummaryItem>
                                         <SummaryLabel>Kwota brutto:</SummaryLabel>
-                                        <SummaryValue emphasis>{formatAmount(document.totalGross)} {document.currency}</SummaryValue>
+                                        <SummaryValue $emphasis>{formatAmount(document.totalGross)} {document.currency}</SummaryValue>
                                     </SummaryItem>
                                     {document.totalNet > 0 && (
                                         <>
@@ -306,29 +424,26 @@ const UnifiedDocumentViewModal: React.FC<UnifiedDocumentViewModalProps> = ({
                         </>
                     )}
 
+                    {/* Notes */}
                     {document.notes && (
                         <>
-                            <SectionTitle>Uwagi</SectionTitle>
+                            <SectionTitle>
+                                <SectionIcon><FaFileInvoiceDollar /></SectionIcon>
+                                Uwagi
+                            </SectionTitle>
                             <NotesSection>
                                 {document.notes}
                             </NotesSection>
                         </>
                     )}
 
-                    {/* Status dokumentu */}
-                    <StatusDisplaySection>
-                        <StatusTitle>Status dokumentu:</StatusTitle>
-                        <StatusInfo>
-                            <StatusBadge status={document.status as DocumentStatus}>
-                                {DocumentStatusLabels[document.status]}
-                            </StatusBadge>
-                        </StatusInfo>
-                    </StatusDisplaySection>
-
-                    {/* Załączniki */}
+                    {/* Attachments */}
                     {document.attachments && document.attachments.length > 0 && (
                         <>
-                            <SectionTitle>Załączniki</SectionTitle>
+                            <SectionTitle>
+                                <SectionIcon><FaFilePdf /></SectionIcon>
+                                Załączniki
+                            </SectionTitle>
                             <AttachmentsList>
                                 {document.attachments.map(att => (
                                     <AttachmentItem key={att.id}>
@@ -357,17 +472,20 @@ const UnifiedDocumentViewModal: React.FC<UnifiedDocumentViewModalProps> = ({
                         </>
                     )}
 
-                    {/* Akcje na statusie */}
+                    {/* Status Actions */}
                     <StatusActions>
-                        <StatusTitle>Zmień status dokumentu:</StatusTitle>
+                        <SectionTitle>
+                            <SectionIcon><FaEdit /></SectionIcon>
+                            Zmień status dokumentu
+                        </SectionTitle>
                         <StatusButtons>
                             {Object.entries(DocumentStatusLabels).map(([key, label]) => {
                                 const status = key as DocumentStatus;
                                 return (
                                     <StatusButton
                                         key={key}
-                                        status={status}
-                                        active={document.status === status}
+                                        $status={status}
+                                        $active={document.status === status}
                                         onClick={() => handleStatusChange(status)}
                                         disabled={document.status === status}
                                     >
@@ -383,136 +501,299 @@ const UnifiedDocumentViewModal: React.FC<UnifiedDocumentViewModalProps> = ({
     );
 };
 
-// Style komponentów dla modala
+// Professional Styled Components - Premium Automotive Design
 const ModalOverlay = styled.div`
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.6) 100%);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 1000;
-    padding: 20px;
+    padding: ${brandTheme.spacing.lg};
+    backdrop-filter: blur(8px);
+    animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
 `;
 
 const ModalContainer = styled.div`
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    width: 1000px;
-    max-width: 100%;
-    max-height: 90vh;
+    background: ${brandTheme.surface};
+    border-radius: ${brandTheme.radius.xxl};
+    box-shadow: ${brandTheme.shadow.xl};
+    width: 1200px;
+    max-width: 95vw;
+    max-height: 95vh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    border: 1px solid ${brandTheme.border};
+    animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    @media (max-width: 768px) {
+        width: 100%;
+        height: 100%;
+        max-height: 100vh;
+        border-radius: 0;
+    }
 `;
 
 const ModalHeader = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 20px;
-    border-bottom: 1px solid #eee;
-    background-color: #f8f9fa;
+    padding: ${brandTheme.spacing.xl};
+    background: linear-gradient(135deg, ${brandTheme.surfaceAlt} 0%, ${brandTheme.surface} 100%);
+    border-bottom: 2px solid ${brandTheme.borderLight};
+    flex-shrink: 0;
+    position: relative;
+
+    &::before {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+        opacity: 0.6;
+    }
 `;
 
 const ModalTitle = styled.div`
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: ${brandTheme.spacing.md};
+    flex: 1;
+`;
 
-    svg {
-        font-size: 24px;
-        color: #3498db;
+const TitleIcon = styled.div<{ $type: DocumentType }>`
+    width: 56px;
+    height: 56px;
+    border-radius: ${brandTheme.radius.lg};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    box-shadow: ${brandTheme.shadow.md};
+    flex-shrink: 0;
+    background: ${props => {
+        switch (props.$type) {
+            case DocumentType.INVOICE:
+                return `linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%)`;
+            case DocumentType.RECEIPT:
+                return `linear-gradient(135deg, ${brandTheme.status.success} 0%, #34d399 100%)`;
+            case DocumentType.OTHER:
+                return `linear-gradient(135deg, ${brandTheme.status.warning} 0%, #fbbf24 100%)`;
+            default:
+                return `linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%)`;
+        }
+    }};
+    color: white;
+    transition: all 0.2s ease;
+
+    &:hover {
+        transform: scale(1.05);
+        box-shadow: ${brandTheme.shadow.lg};
     }
+`;
+
+const TitleContent = styled.div`
+    flex: 1;
+    min-width: 0;
 `;
 
 const TitleText = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: ${brandTheme.spacing.xs};
 
     span {
-        font-size: 18px;
+        font-size: 20px;
         font-weight: 600;
-        color: #2c3e50;
+        color: ${brandTheme.text.primary};
+        letter-spacing: -0.025em;
     }
 `;
 
 const DocumentNumber = styled.div`
+    font-size: 16px;
+    color: ${brandTheme.primary};
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+`;
+
+const TitleSubtext = styled.div`
     font-size: 14px;
-    color: #7f8c8d;
-    font-weight: normal;
+    color: ${brandTheme.text.secondary};
+    font-weight: 500;
+    line-height: 1.4;
+    margin-top: ${brandTheme.spacing.xs};
 `;
 
 const ModalActions = styled.div`
     display: flex;
-    gap: 8px;
+    gap: ${brandTheme.spacing.sm};
+    align-items: center;
 `;
 
-const ActionButton = styled.button`
-    background: none;
-    border: none;
-    font-size: 16px;
+const ActionButton = styled.button<{ $variant: 'edit' | 'download' | 'print' | 'delete' }>`
+    width: 44px;
+    height: 44px;
+    border: 2px solid transparent;
+    border-radius: ${brandTheme.radius.lg};
     cursor: pointer;
-    color: #3498db;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 8px;
-    border-radius: 4px;
-    transition: all 0.2s;
+    font-size: 16px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
 
-    &:hover {
-        background-color: rgba(52, 152, 219, 0.1);
-        color: #2980b9;
-    }
-
-    &.delete {
-        color: #e74c3c;
-
-        &:hover {
-            background-color: rgba(231, 76, 60, 0.1);
-            color: #c0392b;
+    ${({ $variant }) => {
+        switch ($variant) {
+            case 'edit':
+                return `
+                    background: linear-gradient(135deg, ${brandTheme.status.warningLight} 0%, #fef3c7 100%);
+                    color: ${brandTheme.status.warning};
+                    border-color: ${brandTheme.status.warning}30;
+                    &:hover {
+                        background: linear-gradient(135deg, ${brandTheme.status.warning} 0%, #d97706 100%);
+                        color: white;
+                        transform: translateY(-1px);
+                        box-shadow: ${brandTheme.shadow.md};
+                    }
+                `;
+            case 'download':
+                return `
+                    background: linear-gradient(135deg, ${brandTheme.status.infoLight} 0%, #e0f2fe 100%);
+                    color: ${brandTheme.status.info};
+                    border-color: ${brandTheme.status.info}30;
+                    &:hover {
+                        background: linear-gradient(135deg, ${brandTheme.status.info} 0%, #0284c7 100%);
+                        color: white;
+                        transform: translateY(-1px);
+                        box-shadow: ${brandTheme.shadow.md};
+                    }
+                `;
+            case 'print':
+                return `
+                    background: linear-gradient(135deg, ${brandTheme.primaryGhost} 0%, rgba(26, 54, 93, 0.02) 100%);
+                    color: ${brandTheme.primary};
+                    border-color: ${brandTheme.primary}30;
+                    &:hover {
+                        background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+                        color: white;
+                        transform: translateY(-1px);
+                        box-shadow: ${brandTheme.shadow.md};
+                    }
+                `;
+            case 'delete':
+                return `
+                    background: linear-gradient(135deg, ${brandTheme.status.errorLight} 0%, #fef2f2 100%);
+                    color: ${brandTheme.status.error};
+                    border-color: ${brandTheme.status.error}30;
+                    &:hover {
+                        background: linear-gradient(135deg, ${brandTheme.status.error} 0%, #dc2626 100%);
+                        color: white;
+                        transform: translateY(-1px);
+                        box-shadow: ${brandTheme.shadow.md};
+                    }
+                `;
+            default:
+                return '';
         }
+    }}
+
+    &:active {
+        transform: translateY(0);
     }
 `;
 
 const CloseButton = styled.button`
-    background: none;
-    border: none;
-    font-size: 20px;
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(135deg, ${brandTheme.surfaceElevated} 0%, ${brandTheme.surface} 100%);
+    border: 2px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.lg};
+    color: ${brandTheme.text.tertiary};
+    font-size: 18px;
     cursor: pointer;
-    color: #7f8c8d;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 8px;
-    border-radius: 4px;
-    margin-left: 8px;
-    transition: all 0.2s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+    margin-left: ${brandTheme.spacing.sm};
 
     &:hover {
-        background-color: rgba(127, 140, 141, 0.1);
-        color: #34495e;
+        background: linear-gradient(135deg, ${brandTheme.status.errorLight} 0%, #fef2f2 100%);
+        border-color: ${brandTheme.status.error};
+        color: ${brandTheme.status.error};
+        transform: translateY(-1px);
+        box-shadow: ${brandTheme.shadow.md};
+    }
+
+    &:active {
+        transform: translateY(0);
     }
 `;
 
 const ModalContent = styled.div`
+    flex: 1;
     overflow-y: auto;
-    padding: 24px;
+    padding: ${brandTheme.spacing.xl};
+
+    /* Custom scrollbar */
+    &::-webkit-scrollbar {
+        width: 8px;
+    }
+    &::-webkit-scrollbar-track {
+        background: ${brandTheme.surfaceAlt};
+        border-radius: 4px;
+    }
+    &::-webkit-scrollbar-thumb {
+        background: linear-gradient(135deg, ${brandTheme.border} 0%, ${brandTheme.borderHover} 100%);
+        border-radius: 4px;
+
+        &:hover {
+            background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+        }
+    }
 `;
 
 const DocumentHeader = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 24px;
-    padding-bottom: 16px;
-    border-bottom: 2px solid #eef2f7;
+    margin-bottom: ${brandTheme.spacing.xl};
+    padding: ${brandTheme.spacing.lg};
+    background: linear-gradient(135deg, ${brandTheme.surfaceAlt} 0%, ${brandTheme.surface} 100%);
+    border-radius: ${brandTheme.radius.xl};
+    border: 1px solid ${brandTheme.border};
+    box-shadow: ${brandTheme.shadow.xs};
 `;
 
 const HeaderLeft = styled.div`
@@ -523,95 +804,218 @@ const HeaderRight = styled.div`
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 8px;
+    gap: ${brandTheme.spacing.sm};
 `;
 
-const DocumentTypeDisplay = styled.div`
+const DocumentTypeDisplay = styled.div<{ $type: DocumentType }>`
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
+    gap: ${brandTheme.spacing.sm};
+    margin-bottom: ${brandTheme.spacing.md};
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+    border-radius: ${brandTheme.radius.md};
+    background: ${brandTheme.surfaceAlt};
+    color: ${brandTheme.text.secondary};
+    border: 1px solid ${brandTheme.border};
 
     svg {
-        font-size: 20px;
-        color: #3498db;
+        font-size: 16px;
     }
 `;
 
 const TypeText = styled.span`
-    font-size: 16px;
-    color: #7f8c8d;
-    font-weight: 500;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 `;
 
 const DocumentNumberDisplay = styled.div`
-    font-size: 20px;
-    font-weight: 600;
-    color: #3498db;
-    margin-bottom: 8px;
+    font-size: 24px;
+    font-weight: 700;
+    color: ${brandTheme.primary};
+    margin-bottom: ${brandTheme.spacing.sm};
+    letter-spacing: 1px;
+    text-transform: uppercase;
 `;
 
 const DocumentTitle = styled.h1`
-    font-size: 24px;
-    margin: 0 0 8px 0;
-    color: #2c3e50;
+    font-size: 28px;
+    margin: 0 0 ${brandTheme.spacing.sm} 0;
+    color: ${brandTheme.text.primary};
     line-height: 1.2;
+    font-weight: 700;
+    letter-spacing: -0.025em;
 `;
 
 const DocumentDescription = styled.div`
-    font-size: 14px;
-    color: #7f8c8d;
-    margin-bottom: 16px;
+    font-size: 16px;
+    color: ${brandTheme.text.tertiary};
+    margin-bottom: ${brandTheme.spacing.md};
     font-style: italic;
+    line-height: 1.4;
 `;
 
-const DirectionBadge = styled.div<{ direction: any }>`
+const DirectionBadge = styled.div<{ $direction: any }>`
     display: inline-flex;
     align-items: center;
-    padding: 6px 12px;
-    border-radius: 4px;
-    font-size: 14px;
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+    border-radius: ${brandTheme.radius.md};
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: ${brandTheme.surfaceAlt};
+    color: ${brandTheme.text.secondary};
+    border: 1px solid ${brandTheme.border};
+`;
+
+const StatusBadge = styled.div<{ $status: DocumentStatus }>`
+    display: inline-flex;
+    align-items: center;
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+    border-radius: ${brandTheme.radius.md};
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: ${props => {
+        switch (props.$status) {
+            case 'PAID':
+                return brandTheme.status.successLight;
+            case 'NOT_PAID':
+                return brandTheme.status.errorLight;
+            case 'PARTIALLY_PAID':
+                return brandTheme.status.warningLight;
+            default:
+                return brandTheme.surfaceAlt;
+        }
+    }};
+    color: ${props => {
+        switch (props.$status) {
+            case 'PAID':
+                return brandTheme.status.success;
+            case 'NOT_PAID':
+                return brandTheme.status.error;
+            case 'PARTIALLY_PAID':
+                return brandTheme.status.warning;
+            default:
+                return brandTheme.text.secondary;
+        }
+    }};
+    border: 1px solid ${props => {
+        switch (props.$status) {
+            case 'PAID':
+                return `${brandTheme.status.success}30`;
+            case 'NOT_PAID':
+                return `${brandTheme.status.error}30`;
+            case 'PARTIALLY_PAID':
+                return `${brandTheme.status.warning}30`;
+            default:
+                return brandTheme.border;
+        }
+    }};
+`;
+
+const SectionTitle = styled.h3`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    font-size: 18px;
+    color: ${brandTheme.primary};
+    margin: ${brandTheme.spacing.xl} 0 ${brandTheme.spacing.lg} 0;
     font-weight: 600;
-    background-color: ${props => `${TransactionDirectionColors[props.direction]}22`};
-    color: ${props => TransactionDirectionColors[props.direction]};
-    border: 1px solid ${props => `${TransactionDirectionColors[props.direction]}44`};
+    padding-bottom: ${brandTheme.spacing.sm};
+    border-bottom: 2px solid ${brandTheme.primaryGhost};
+
+    &:first-of-type {
+        margin-top: 0;
+    }
+`;
+
+const SectionIcon = styled.div`
+    color: ${brandTheme.primary};
+    font-size: 16px;
 `;
 
 const DocumentDetails = styled.div`
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 16px;
-    margin-bottom: 24px;
-    background-color: #f8f9fa;
-    padding: 20px;
-    border-radius: 6px;
-    border: 1px solid #eef2f7;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: ${brandTheme.spacing.md};
+    margin-bottom: ${brandTheme.spacing.xl};
 `;
 
 const DetailItem = styled.div`
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+    align-items: flex-start;
+    gap: ${brandTheme.spacing.md};
+    padding: ${brandTheme.spacing.md};
+    background: ${brandTheme.surfaceAlt};
+    border-radius: ${brandTheme.radius.lg};
+    border: 1px solid ${brandTheme.borderLight};
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: ${brandTheme.primaryGhost};
+        border-color: ${brandTheme.primary}30;
+    }
+`;
+
+const DetailIcon = styled.div`
+    width: 32px;
+    height: 32px;
+    background: ${brandTheme.surface};
+    border-radius: ${brandTheme.radius.md};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${brandTheme.text.muted};
+    font-size: 14px;
+    flex-shrink: 0;
+    box-shadow: ${brandTheme.shadow.xs};
+`;
+
+const DetailContent = styled.div`
+    flex: 1;
 `;
 
 const DetailLabel = styled.div`
     font-size: 12px;
-    color: #7f8c8d;
+    color: ${brandTheme.text.tertiary};
     font-weight: 500;
+    margin-bottom: ${brandTheme.spacing.xs};
     text-transform: uppercase;
     letter-spacing: 0.5px;
 `;
 
 const DetailValue = styled.div`
-    font-size: 14px;
-    font-weight: 500;
-    color: #2c3e50;
+    font-size: 15px;
+    color: ${brandTheme.text.primary};
+    font-weight: 600;
+`;
+
+const ProtocolLink = styled.a`
+    color: ${brandTheme.primary};
+    text-decoration: none;
+    font-weight: 600;
+    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
+    border-radius: ${brandTheme.radius.md};
+    background: ${brandTheme.primaryGhost};
+    border: 1px solid ${brandTheme.primary}30;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: ${brandTheme.primary};
+        color: white;
+        transform: translateY(-1px);
+        box-shadow: ${brandTheme.shadow.sm};
+    }
 `;
 
 const AddressSection = styled.div`
     display: flex;
-    gap: 24px;
-    margin-bottom: 32px;
+    gap: ${brandTheme.spacing.xl};
+    margin-bottom: ${brandTheme.spacing.xl};
 
     @media (max-width: 768px) {
         flex-direction: column;
@@ -620,16 +1024,32 @@ const AddressSection = styled.div`
 
 const AddressBlock = styled.div`
     flex: 1;
-    padding: 20px;
-    border: 1px solid #eef2f7;
-    border-radius: 6px;
-    background-color: #fdfdfd;
+    padding: ${brandTheme.spacing.lg};
+    border: 1px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.xl};
+    background: ${brandTheme.surfaceAlt};
+`;
+
+const AddressHeader = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    margin-bottom: ${brandTheme.spacing.md};
+`;
+
+const AddressIcon = styled.div`
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${brandTheme.text.muted};
+    font-size: 12px;
 `;
 
 const AddressTitle = styled.div`
     font-size: 14px;
-    color: #7f8c8d;
-    margin-bottom: 12px;
+    color: ${brandTheme.text.tertiary};
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -638,209 +1058,222 @@ const AddressTitle = styled.div`
 const AddressName = styled.div`
     font-size: 18px;
     font-weight: 600;
-    color: #2c3e50;
-    margin-bottom: 8px;
+    color: ${brandTheme.text.primary};
+    margin-bottom: ${brandTheme.spacing.sm};
+    line-height: 1.3;
 `;
 
 const AddressDetail = styled.div`
     font-size: 14px;
-    color: #34495e;
+    color: ${brandTheme.text.secondary};
     line-height: 1.5;
-    margin-bottom: 4px;
+    margin-bottom: ${brandTheme.spacing.xs};
 
     &:last-child {
         margin-bottom: 0;
     }
 `;
 
-const SectionTitle = styled.h3`
-    font-size: 18px;
-    color: #2c3e50;
-    margin: 32px 0 16px 0;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+const ItemsTable = styled.div`
+    background: ${brandTheme.surface};
+    border: 1px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.xl};
+    overflow: hidden;
+    margin-bottom: ${brandTheme.spacing.xl};
+    box-shadow: ${brandTheme.shadow.xs};
+`;
 
-    &:first-of-type {
-        margin-top: 0;
+const ItemsTableHead = styled.div`
+    background: ${brandTheme.surfaceAlt};
+    border-bottom: 2px solid ${brandTheme.border};
+`;
+
+const ItemsTableBody = styled.div`
+    background: ${brandTheme.surface};
+`;
+
+const ItemsTableFoot = styled.div`
+    background: ${brandTheme.surfaceAlt};
+    border-top: 2px solid ${brandTheme.border};
+`;
+
+const ItemsTableRow = styled.div`
+    display: flex;
+    border-bottom: 1px solid ${brandTheme.borderLight};
+
+    &:last-child {
+        border-bottom: none;
     }
 
-    &::before {
-        content: '';
-        width: 4px;
-        height: 18px;
-        background-color: #3498db;
-        border-radius: 2px;
+    ${ItemsTableBody} &:hover {
+        background: ${brandTheme.surfaceHover};
     }
 `;
 
-const ItemsTable = styled.table`
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 24px;
+const ItemsTableHeader = styled.div`
+    flex: 1;
+    padding: ${brandTheme.spacing.md};
+    font-size: 13px;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+    text-align: left;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+
+    &:first-child {
+        flex: 0 0 60px;
+        text-align: center;
+    }
+    &:nth-child(3) {
+        flex: 0 0 80px;
+        text-align: center;
+    }
+    &:nth-child(4) {
+        flex: 0 0 120px;
+        text-align: right;
+    }
+    &:nth-child(5) {
+        flex: 0 0 80px;
+        text-align: center;
+    }
+    &:nth-child(6) {
+        flex: 0 0 120px;
+        text-align: right;
+    }
+    &:nth-child(7) {
+        flex: 0 0 120px;
+        text-align: right;
+    }
+`;
+
+const ItemsTableCell = styled.div`
+    flex: 1;
+    padding: ${brandTheme.spacing.md};
     font-size: 14px;
-    border: 1px solid #eef2f7;
-    border-radius: 6px;
-    overflow: hidden;
+    color: ${brandTheme.text.secondary};
+    display: flex;
+    align-items: center;
 
-    th {
-        padding: 12px 10px;
-        background-color: #f8f9fa;
-        text-align: left;
+    &:first-child {
+        flex: 0 0 60px;
+        justify-content: center;
         font-weight: 600;
-        color: #2c3e50;
-        border-bottom: 2px solid #eef2f7;
-        font-size: 13px;
+        color: ${brandTheme.text.primary};
     }
-
-    td {
-        padding: 12px 10px;
-        border-bottom: 1px solid #eef2f7;
-        vertical-align: top;
+    &:nth-child(3) {
+        flex: 0 0 80px;
+        justify-content: center;
     }
-
-    tbody tr:hover {
-        background-color: #f8f9fa;
+    &:nth-child(4) {
+        flex: 0 0 120px;
+        justify-content: flex-end;
     }
-
-    tfoot {
-        background-color: #f1f2f6;
+    &:nth-child(5) {
+        flex: 0 0 80px;
+        justify-content: center;
+    }
+    &:nth-child(6) {
+        flex: 0 0 120px;
+        justify-content: flex-end;
         font-weight: 600;
     }
-
-    tfoot td {
-        padding: 14px 10px;
-        border-top: 2px solid #eef2f7;
-        border-bottom: none;
+    &:nth-child(7) {
+        flex: 0 0 120px;
+        justify-content: flex-end;
+        font-weight: 600;
     }
 `;
 
 const ItemName = styled.div`
-    font-weight: 500;
-    color: #2c3e50;
-    margin-bottom: 2px;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+    margin-bottom: ${brandTheme.spacing.xs};
 `;
 
 const ItemDescription = styled.div`
     font-size: 12px;
-    color: #7f8c8d;
+    color: ${brandTheme.text.muted};
     font-style: italic;
+    line-height: 1.3;
 `;
 
 const SummarySection = styled.div`
-    background-color: #f8f9fa;
-    padding: 20px;
-    border-radius: 6px;
-    margin-bottom: 24px;
-    border: 1px solid #eef2f7;
+    background: ${brandTheme.surfaceAlt};
+    padding: ${brandTheme.spacing.lg};
+    border-radius: ${brandTheme.radius.xl};
+    margin-bottom: ${brandTheme.spacing.xl};
+    border: 1px solid ${brandTheme.border};
+    box-shadow: ${brandTheme.shadow.xs};
 `;
 
 const SummaryGrid = styled.div`
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: ${brandTheme.spacing.md};
 `;
 
 const SummaryItem = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 0;
-    border-bottom: 1px solid #eef2f7;
+    padding: ${brandTheme.spacing.md} 0;
+    border-bottom: 1px solid ${brandTheme.border};
 
     &:last-child {
         border-bottom: none;
+        padding-top: ${brandTheme.spacing.lg};
+        border-top: 2px solid ${brandTheme.primary};
+        margin-top: ${brandTheme.spacing.sm};
     }
 `;
 
 const SummaryLabel = styled.div`
     font-size: 14px;
-    color: #34495e;
+    color: ${brandTheme.text.secondary};
     font-weight: 500;
 `;
 
-const SummaryValue = styled.div<{ emphasis?: boolean }>`
-    font-size: ${props => props.emphasis ? '18px' : '16px'};
-    font-weight: ${props => props.emphasis ? '700' : '600'};
-    color: ${props => props.emphasis ? '#2c3e50' : '#2c3e50'};
+const SummaryValue = styled.div<{ $emphasis?: boolean }>`
+    font-size: ${props => props.$emphasis ? '18px' : '16px'};
+    font-weight: ${props => props.$emphasis ? '700' : '600'};
+    color: ${props => props.$emphasis ? brandTheme.primary : brandTheme.text.primary};
 `;
 
 const NotesSection = styled.div`
-    padding: 20px;
-    background-color: #f8f9fa;
-    border-radius: 6px;
-    margin-bottom: 24px;
+    padding: ${brandTheme.spacing.lg};
+    background: ${brandTheme.surfaceAlt};
+    border-radius: ${brandTheme.radius.xl};
+    margin-bottom: ${brandTheme.spacing.xl};
     font-size: 14px;
-    color: #34495e;
-    border: 1px solid #eef2f7;
+    color: ${brandTheme.text.secondary};
+    border: 1px solid ${brandTheme.border};
     white-space: pre-line;
     line-height: 1.6;
-`;
-
-const StatusDisplaySection = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin: 24px 0;
-    padding: 16px;
-    background-color: #f8f9fa;
-    border-radius: 6px;
-    border: 1px solid #eef2f7;
-`;
-
-const StatusInfo = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 12px;
-`;
-
-const StatusBadge = styled.div<{ status: DocumentStatus }>`
-    display: inline-block;
-    padding: 8px 16px;
-    border-radius: 4px;
-    font-size: 14px;
-    font-weight: 600;
-    background-color: ${props => `${DocumentStatusColors[props.status]}22`};
-    color: ${props => DocumentStatusColors[props.status]};
-    border: 1px solid ${props => `${DocumentStatusColors[props.status]}44`};
-`;
-
-const ProtocolLink = styled.a`
-    color: #3498db;
-    text-decoration: none;
-    font-weight: 500;
-    padding: 4px 8px;
-    border-radius: 4px;
-    transition: all 0.2s;
-
-    &:hover {
-        background-color: rgba(52, 152, 219, 0.1);
-        text-decoration: underline;
-    }
+    border-left: 4px solid ${brandTheme.primary};
+    box-shadow: ${brandTheme.shadow.xs};
 `;
 
 const AttachmentsList = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    margin-bottom: 16px;
+    gap: ${brandTheme.spacing.sm};
+    margin-bottom: ${brandTheme.spacing.xl};
 `;
 
 const AttachmentItem = styled.div`
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px;
-    background-color: #f8f9fa;
-    border-radius: 4px;
-    border: 1px solid #eef2f7;
-    font-size: 14px;
-    transition: all 0.2s;
+    gap: ${brandTheme.spacing.md};
+    padding: ${brandTheme.spacing.md};
+    background: ${brandTheme.surfaceAlt};
+    border-radius: ${brandTheme.radius.lg};
+    border: 1px solid ${brandTheme.border};
+    transition: all 0.2s ease;
 
     &:hover {
-        background-color: #e8f4fd;
-        border-color: #3498db;
+        background: ${brandTheme.primaryGhost};
+        border-color: ${brandTheme.primary}30;
+        transform: translateX(4px);
     }
 `;
 
@@ -848,12 +1281,14 @@ const AttachmentIcon = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 6px;
-    background-color: #fdf2f2;
-    color: #e74c3c;
+    width: 48px;
+    height: 48px;
+    border-radius: ${brandTheme.radius.lg};
+    background: ${brandTheme.status.errorLight};
+    color: ${brandTheme.status.error};
     font-size: 20px;
+    flex-shrink: 0;
+    box-shadow: ${brandTheme.shadow.xs};
 `;
 
 const AttachmentInfo = styled.div`
@@ -862,89 +1297,78 @@ const AttachmentInfo = styled.div`
 
 const AttachmentName = styled.div`
     font-weight: 500;
-    color: #2c3e50;
-    margin-bottom: 2px;
+    color: ${brandTheme.text.primary};
+    margin-bottom: ${brandTheme.spacing.xs};
+    font-size: 15px;
 `;
 
 const AttachmentSize = styled.div`
-    color: #7f8c8d;
+    color: ${brandTheme.text.muted};
     font-size: 12px;
+    font-weight: 500;
 `;
 
 const DownloadLink = styled.a`
-    color: #3498db;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 8px;
-    border-radius: 4px;
-    transition: all 0.2s;
+    width: 40px;
+    height: 40px;
+    border-radius: ${brandTheme.radius.md};
+    background: ${brandTheme.status.infoLight};
+    color: ${brandTheme.status.info};
     text-decoration: none;
+    transition: all 0.2s ease;
+    border: 1px solid ${brandTheme.status.info}30;
 
     &:hover {
-        background-color: #3498db;
+        background: ${brandTheme.status.info};
         color: white;
+        transform: translateY(-1px);
+        box-shadow: ${brandTheme.shadow.sm};
     }
 `;
 
 const StatusActions = styled.div`
-    margin-top: 32px;
-    border-top: 2px solid #eef2f7;
-    padding-top: 24px;
-`;
-
-const StatusTitle = styled.h4`
-    font-size: 16px;
-    font-weight: 600;
-    color: #2c3e50;
-    margin: 0 0 16px 0;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-
-    &::before {
-        content: '';
-        width: 3px;
-        height: 16px;
-        background-color: #3498db;
-        border-radius: 2px;
-    }
+    margin-top: ${brandTheme.spacing.xl};
+    border-top: 2px solid ${brandTheme.borderLight};
+    padding-top: ${brandTheme.spacing.xl};
 `;
 
 const StatusButtons = styled.div`
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: ${brandTheme.spacing.md};
 `;
 
-const StatusButton = styled.button<{ status: DocumentStatus; active: boolean }>`
-    padding: 10px 16px;
-    border-radius: 4px;
-    font-size: 14px;
+const StatusButton = styled.button<{ $status: DocumentStatus; $active: boolean }>`
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    border-radius: ${brandTheme.radius.md};
+    font-size: 12px;
     font-weight: 500;
-cursor: ${props => props.active ? 'default' : 'pointer'};
-   background-color: ${props => props.active ? `${DocumentStatusColors[props.status]}22` : 'white'};
-   color: ${props => DocumentStatusColors[props.status]};
-   border: 2px solid ${props => props.active ? DocumentStatusColors[props.status] : `${DocumentStatusColors[props.status]}44`};
-   opacity: ${props => props.active ? 1 : 0.8};
-   transition: all 0.2s;
-   
-   &:hover:not(:disabled) {
-       opacity: 1;
-       background-color: ${props => `${DocumentStatusColors[props.status]}11`};
-       transform: translateY(-1px);
-       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-   }
-   
-   &:disabled {
-       cursor: default;
-       transform: none;
-       box-shadow: none;
-   }
+    cursor: ${props => props.$active ? 'default' : 'pointer'};
+    transition: all 0.2s ease;
+    border: 1px solid ${props => props.$active ? brandTheme.primary : brandTheme.border};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: ${props => props.$active ? brandTheme.primaryGhost : brandTheme.surface};
+    color: ${props => props.$active ? brandTheme.primary : brandTheme.text.secondary};
+    opacity: ${props => props.$active ? 1 : 0.8};
 
-   &:active:not(:disabled) {
-       transform: translateY(0);
-   }
+    &:hover:not(:disabled) {
+        opacity: 1;
+        border-color: ${brandTheme.primary};
+        color: ${brandTheme.primary};
+        background: ${brandTheme.primaryGhost};
+    }
+
+    &:disabled {
+        cursor: default;
+    }
+
+    &:active:not(:disabled) {
+        transform: none;
+    }
 `;
 
 export default UnifiedDocumentViewModal;
