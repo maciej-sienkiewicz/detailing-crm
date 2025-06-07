@@ -214,29 +214,6 @@ const CalendarColorsPage: React.FC = () => {
     return (
         <PageContainer>
             {/* Header */}
-            <HeaderContainer>
-                <HeaderContent>
-                    <HeaderLeft>
-                        <HeaderIcon>
-                            <FaPalette />
-                        </HeaderIcon>
-                        <HeaderText>
-                            <HeaderTitle>Kolory kalendarza</HeaderTitle>
-                            <HeaderSubtitle>
-                                Zarządzanie kolorami dla pracowników i usług
-                            </HeaderSubtitle>
-                        </HeaderText>
-                    </HeaderLeft>
-
-                    <HeaderActions>
-                        <PrimaryButton onClick={handleAdd}>
-                            <FaPlus />
-                            <span>Dodaj kolor</span>
-                        </PrimaryButton>
-                    </HeaderActions>
-                </HeaderContent>
-            </HeaderContainer>
-
             {/* Filters */}
             <FiltersContainer>
                 <QuickSearchSection>

@@ -241,31 +241,7 @@ const EmployeesPage: React.FC = () => {
     const uniquePositions = [...new Set(employees.map(emp => emp.position))];
 
     return (
-        <PageContainer>
-            {/* Header */}
-            <HeaderContainer>
-                <HeaderContent>
-                    <HeaderLeft>
-                        <HeaderIcon>
-                            <FaUser />
-                        </HeaderIcon>
-                        <HeaderText>
-                            <HeaderTitle>Pracownicy</HeaderTitle>
-                            <HeaderSubtitle>
-                                Zarządzanie zespołem i dokumentacją pracowniczą
-                            </HeaderSubtitle>
-                        </HeaderText>
-                    </HeaderLeft>
-
-                    <HeaderActions>
-                        <PrimaryButton onClick={handleAddEmployee}>
-                            <FaPlus />
-                            <span>Dodaj pracownika</span>
-                        </PrimaryButton>
-                    </HeaderActions>
-                </HeaderContent>
-            </HeaderContainer>
-
+        <ContentContainer>
             {/* Filters */}
             <FiltersContainer>
                 <QuickSearchSection>
@@ -328,43 +304,53 @@ const EmployeesPage: React.FC = () => {
             </FiltersContainer>
 
             {/* Content */}
-            <ContentContainer>
-                {loading ? (
-                    <LoadingContainer>
-                        <LoadingSpinner />
-                        <LoadingText>Ładowanie pracowników...</LoadingText>
-                    </LoadingContainer>
-                ) : error ? (
-                    <ErrorMessage>
-                        <ErrorIcon>⚠️</ErrorIcon>
-                        <ErrorText>{error}</ErrorText>
-                    </ErrorMessage>
-                ) : (
-                    <>
-                        {employees.length === 0 ? (
-                            <EmptyStateContainer>
-                                <EmptyStateIcon>
-                                    <FaUser />
-                                </EmptyStateIcon>
-                                <EmptyStateTitle>Brak pracowników</EmptyStateTitle>
-                                <EmptyStateDescription>
-                                    Nie masz jeszcze żadnych pracowników w systemie
-                                </EmptyStateDescription>
-                                <EmptyStateAction>
-                                    Kliknij przycisk "Dodaj pracownika", aby dodać pierwszego pracownika
-                                </EmptyStateAction>
-                            </EmptyStateContainer>
-                        ) : filteredEmployees.length === 0 && hasActiveFilters() ? (
-                            <EmptyStateContainer>
-                                <EmptyStateIcon>
-                                    <FaSearch />
-                                </EmptyStateIcon>
-                                <EmptyStateTitle>Brak wyników</EmptyStateTitle>
-                                <EmptyStateDescription>
-                                    Nie znaleziono pracowników spełniających kryteria wyszukiwania
-                                </EmptyStateDescription>
-                            </EmptyStateContainer>
-                        ) : (
+            {loading ? (
+                <LoadingContainer>
+                    <LoadingSpinner />
+                    <LoadingText>Ładowanie pracowników...</LoadingText>
+                </LoadingContainer>
+            ) : error ? (
+                <ErrorMessage>
+                    <ErrorIcon>⚠️</ErrorIcon>
+                    <ErrorText>{error}</ErrorText>
+                </ErrorMessage>
+            ) : (
+                <>
+                    {employees.length === 0 ? (
+                        <EmptyStateContainer>
+                            <EmptyStateIcon>
+                                <FaUser />
+                            </EmptyStateIcon>
+                            <EmptyStateTitle>Brak pracowników</EmptyStateTitle>
+                            <EmptyStateDescription>
+                                Nie masz jeszcze żadnych pracowników w systemie
+                            </EmptyStateDescription>
+                            <EmptyStateAction>
+                                Kliknij przycisk "Dodaj pracownika", aby dodać pierwszego pracownika
+                            </EmptyStateAction>
+                        </EmptyStateContainer>
+                    ) : filteredEmployees.length === 0 && hasActiveFilters() ? (
+                        <EmptyStateContainer>
+                            <EmptyStateIcon>
+                                <FaSearch />
+                            </EmptyStateIcon>
+                            <EmptyStateTitle>Brak wyników</EmptyStateTitle>
+                            <EmptyStateDescription>
+                                Nie znaleziono pracowników spełniających kryteria wyszukiwania
+                            </EmptyStateDescription>
+                        </EmptyStateContainer>
+                    ) : (
+                        <TableContainer>
+                            <TableHeader>
+                                <TableTitle>
+                                    Pracownicy ({filteredEmployees.length})
+                                </TableTitle>
+                                <AddEmployeeButton onClick={handleAddEmployee}>
+                                    <FaPlus />
+                                    Dodaj pracownika
+                                </AddEmployeeButton>
+                            </TableHeader>
+
                             <EmployeesGrid>
                                 {filteredEmployees.map(employee => (
                                     <EmployeeCard key={employee.id}>
@@ -424,10 +410,10 @@ const EmployeesPage: React.FC = () => {
                                     </EmployeeCard>
                                 ))}
                             </EmployeesGrid>
-                        )}
-                    </>
-                )}
-            </ContentContainer>
+                        </TableContainer>
+                    )}
+                </>
+            )}
 
             {/* Modals */}
             {showModal && editingEmployee && (
@@ -461,182 +447,46 @@ const EmployeesPage: React.FC = () => {
                     onCancel={() => setShowDocumentModal(false)}
                 />
             )}
-        </PageContainer>
+        </ContentContainer>
     );
 };
 
-// Styled Components
-const PageContainer = styled.div`
-    min-height: 100vh;
-    background: ${settingsTheme.surfaceAlt};
-    display: flex;
-    flex-direction: column;
-`;
-
-const HeaderContainer = styled.header`
-    background: ${settingsTheme.surface};
-    border-bottom: 1px solid ${settingsTheme.border};
-    box-shadow: ${settingsTheme.shadow.sm};
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    backdrop-filter: blur(8px);
-    background: rgba(255, 255, 255, 0.95);
-`;
-
-const HeaderContent = styled.div`
+// Styled Components - Based on Finance Module Style
+const ContentContainer = styled.div`
+    flex: 1;
     max-width: 1600px;
     margin: 0 auto;
-    padding: ${settingsTheme.spacing.lg} ${settingsTheme.spacing.xl};
+    padding: 0 ${settingsTheme.spacing.xl} ${settingsTheme.spacing.xl};
+    width: 100%;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
     gap: ${settingsTheme.spacing.lg};
+    min-height: 0;
 
     @media (max-width: 1024px) {
-        padding: ${settingsTheme.spacing.md} ${settingsTheme.spacing.lg};
-        flex-direction: column;
-        align-items: stretch;
+        padding: 0 ${settingsTheme.spacing.lg} ${settingsTheme.spacing.lg};
+    }
+
+    @media (max-width: 768px) {
+        padding: 0 ${settingsTheme.spacing.md} ${settingsTheme.spacing.md};
         gap: ${settingsTheme.spacing.md};
-    }
-
-    @media (max-width: 768px) {
-        padding: ${settingsTheme.spacing.md};
-    }
-`;
-
-const HeaderLeft = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${settingsTheme.spacing.md};
-    min-width: 0;
-    flex: 1;
-`;
-
-const HeaderIcon = styled.div`
-    width: 56px;
-    height: 56px;
-    background: linear-gradient(135deg, ${settingsTheme.primary} 0%, ${settingsTheme.primaryLight} 100%);
-    border-radius: ${settingsTheme.radius.lg};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 24px;
-    box-shadow: ${settingsTheme.shadow.md};
-    flex-shrink: 0;
-`;
-
-const HeaderText = styled.div`
-    min-width: 0;
-    flex: 1;
-`;
-
-const HeaderTitle = styled.h1`
-    font-size: 32px;
-    font-weight: 700;
-    color: ${settingsTheme.text.primary};
-    margin: 0 0 ${settingsTheme.spacing.xs} 0;
-    letter-spacing: -0.025em;
-    line-height: 1.2;
-
-    @media (max-width: 768px) {
-        font-size: 28px;
-    }
-`;
-
-const HeaderSubtitle = styled.p`
-    color: ${settingsTheme.text.secondary};
-    margin: 0;
-    font-size: 16px;
-    font-weight: 500;
-    line-height: 1.4;
-
-    @media (max-width: 768px) {
-        font-size: 14px;
-    }
-`;
-
-const HeaderActions = styled.div`
-    display: flex;
-    gap: ${settingsTheme.spacing.sm};
-    align-items: center;
-    flex-wrap: wrap;
-
-    @media (max-width: 1024px) {
-        justify-content: flex-end;
-        width: 100%;
-    }
-
-    @media (max-width: 768px) {
-        flex-direction: column;
-        gap: ${settingsTheme.spacing.xs};
-
-        > * {
-            width: 100%;
-        }
-    }
-`;
-
-const PrimaryButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: ${settingsTheme.spacing.sm};
-    padding: ${settingsTheme.spacing.sm} ${settingsTheme.spacing.md};
-    border-radius: ${settingsTheme.radius.md};
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 1px solid transparent;
-    white-space: nowrap;
-    min-height: 44px;
-    position: relative;
-    overflow: hidden;
-    background: linear-gradient(135deg, ${settingsTheme.primary} 0%, ${settingsTheme.primaryLight} 100%);
-    color: white;
-    box-shadow: ${settingsTheme.shadow.sm};
-
-    &:hover {
-        background: linear-gradient(135deg, ${settingsTheme.primaryDark} 0%, ${settingsTheme.primary} 100%);
-        box-shadow: ${settingsTheme.shadow.md};
-        transform: translateY(-1px);
-    }
-
-    &:active {
-        transform: translateY(0);
-    }
-
-    @media (max-width: 768px) {
-        justify-content: center;
     }
 `;
 
 const FiltersContainer = styled.div`
-    max-width: 1600px;
-    margin: 0 auto;
-    padding: ${settingsTheme.spacing.lg} ${settingsTheme.spacing.xl} 0;
-    width: 100%;
-
-    @media (max-width: 1024px) {
-        padding: ${settingsTheme.spacing.md} ${settingsTheme.spacing.lg} 0;
-    }
-
-    @media (max-width: 768px) {
-        padding: ${settingsTheme.spacing.md} ${settingsTheme.spacing.md} 0;
-    }
-`;
-
-const QuickSearchSection = styled.div`
     background: ${settingsTheme.surface};
     border-radius: ${settingsTheme.radius.xl};
     border: 1px solid ${settingsTheme.border};
+    overflow: hidden;
+    box-shadow: ${settingsTheme.shadow.sm};
+`;
+
+const QuickSearchSection = styled.div`
     padding: ${settingsTheme.spacing.lg};
     display: flex;
     align-items: center;
     gap: ${settingsTheme.spacing.md};
-    margin-bottom: ${settingsTheme.spacing.md};
-    box-shadow: ${settingsTheme.shadow.sm};
+    border-bottom: 1px solid ${settingsTheme.border};
 
     @media (max-width: 768px) {
         flex-direction: column;
@@ -734,12 +584,8 @@ const AdvancedToggle = styled.button<{ $expanded: boolean }>`
 `;
 
 const AdvancedFiltersSection = styled.div`
-    background: ${settingsTheme.surface};
-    border-radius: ${settingsTheme.radius.xl};
-    border: 1px solid ${settingsTheme.border};
     padding: ${settingsTheme.spacing.lg};
-    margin-bottom: ${settingsTheme.spacing.md};
-    box-shadow: ${settingsTheme.shadow.sm};
+    background: ${settingsTheme.surfaceAlt};
 `;
 
 const FiltersGrid = styled.div`
@@ -814,39 +660,16 @@ const ClearButton = styled.button`
 `;
 
 const ResultsCounter = styled.div`
-    background: ${settingsTheme.surface};
-    border-radius: ${settingsTheme.radius.xl};
-    border: 1px solid ${settingsTheme.border};
     padding: ${settingsTheme.spacing.md} ${settingsTheme.spacing.lg};
+    background: ${settingsTheme.primaryGhost};
     color: ${settingsTheme.primary};
     font-size: 14px;
     font-weight: 500;
     text-align: center;
-    box-shadow: ${settingsTheme.shadow.sm};
+    border-top: 1px solid ${settingsTheme.border};
 
     strong {
         font-weight: 700;
-    }
-`;
-
-const ContentContainer = styled.div`
-    flex: 1;
-    max-width: 1600px;
-    margin: 0 auto;
-    padding: 0 ${settingsTheme.spacing.xl} ${settingsTheme.spacing.xl};
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: ${settingsTheme.spacing.lg};
-    min-height: 0;
-
-    @media (max-width: 1024px) {
-        padding: 0 ${settingsTheme.spacing.lg} ${settingsTheme.spacing.lg};
-    }
-
-    @media (max-width: 768px) {
-        padding: 0 ${settingsTheme.spacing.md} ${settingsTheme.spacing.md};
-        gap: ${settingsTheme.spacing.md};
     }
 `;
 
@@ -954,14 +777,74 @@ const EmptyStateAction = styled.p`
     font-weight: 500;
 `;
 
+const TableContainer = styled.div`
+    background: ${settingsTheme.surface};
+    border-radius: ${settingsTheme.radius.xl};
+    border: 1px solid ${settingsTheme.border};
+    overflow: hidden;
+    box-shadow: ${settingsTheme.shadow.sm};
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+`;
+
+const TableHeader = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: ${settingsTheme.spacing.lg};
+    border-bottom: 1px solid ${settingsTheme.border};
+    background: ${settingsTheme.surfaceAlt};
+    flex-shrink: 0;
+`;
+
+const TableTitle = styled.h3`
+    font-size: 18px;
+    font-weight: 600;
+    color: ${settingsTheme.text.primary};
+    margin: 0;
+    letter-spacing: -0.025em;
+`;
+
+const AddEmployeeButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: ${settingsTheme.spacing.sm};
+    padding: ${settingsTheme.spacing.sm} ${settingsTheme.spacing.md};
+    border-radius: ${settingsTheme.radius.md};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid transparent;
+    white-space: nowrap;
+    min-height: 40px;
+    background: linear-gradient(135deg, ${settingsTheme.primary} 0%, ${settingsTheme.primaryLight} 100%);
+    color: white;
+    box-shadow: ${settingsTheme.shadow.sm};
+
+    &:hover {
+        background: linear-gradient(135deg, ${settingsTheme.primaryDark} 0%, ${settingsTheme.primary} 100%);
+        box-shadow: ${settingsTheme.shadow.md};
+        transform: translateY(-1px);
+    }
+
+    &:active {
+        transform: translateY(0);
+    }
+`;
+
 const EmployeesGrid = styled.div`
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
     gap: ${settingsTheme.spacing.lg};
+    padding: ${settingsTheme.spacing.lg};
 
     @media (max-width: 768px) {
         grid-template-columns: 1fr;
         gap: ${settingsTheme.spacing.md};
+        padding: ${settingsTheme.spacing.md};
     }
 `;
 
@@ -1089,9 +972,9 @@ const ActionButton = styled.button<{
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
     ${({ $variant }) => {
-    switch ($variant) {
-        case 'edit':
-            return `
+        switch ($variant) {
+            case 'edit':
+                return `
                     background: ${settingsTheme.status.warningLight};
                     color: ${settingsTheme.status.warning};
                     
@@ -1102,8 +985,8 @@ const ActionButton = styled.button<{
                         box-shadow: ${settingsTheme.shadow.md};
                     }
                 `;
-        case 'delete':
-            return `
+            case 'delete':
+                return `
                     background: ${settingsTheme.status.errorLight};
                     color: ${settingsTheme.status.error};
                     
@@ -1114,8 +997,8 @@ const ActionButton = styled.button<{
                         box-shadow: ${settingsTheme.shadow.md};
                     }
                 `;
-    }
-}}
+        }
+    }}
 `;
 
 export default EmployeesPage;

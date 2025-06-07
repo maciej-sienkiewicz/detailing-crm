@@ -2,17 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { FaPalette, FaSave, FaUndo, FaEye, FaCar, FaCheck } from 'react-icons/fa';
-
-// Brand Theme System
-const brandTheme = {
-    primary: 'var(--brand-primary, #2563eb)',
-    primaryLight: 'var(--brand-primary-light, #3b82f6)',
-    primaryGhost: 'var(--brand-primary-ghost, rgba(37, 99, 235, 0.08))',
-    surface: '#ffffff',
-    surfaceAlt: '#f8fafc',
-    neutral: '#64748b',
-    border: '#e2e8f0'
-};
+import { settingsTheme } from './styles/theme';
 
 interface BrandPreset {
     id: string;
@@ -92,10 +82,8 @@ const BrandThemeSettingsPage: React.FC = () => {
     const handlePresetSelect = (presetId: string) => {
         setCurrentTheme(presetId);
         const preset = brandPresets.find(p => p.id === presetId);
-        if (preset) {
-            if (previewMode) {
-                applyTheme(presetId, preset.color);
-            }
+        if (preset && previewMode) {
+            applyTheme(presetId, preset.color);
         }
     };
 
@@ -174,28 +162,17 @@ const BrandThemeSettingsPage: React.FC = () => {
     const selectedPreset = brandPresets.find(p => p.id === currentTheme);
 
     return (
-        <PageContainer>
-            <PageHeader>
-                <HeaderLeft>
-                    <HeaderIcon>
-                        <FaPalette />
-                    </HeaderIcon>
-                    <HeaderText>
-                        <PageTitle>Kolory marki</PageTitle>
-                        <PageSubtitle>Dostosuj wygląd aplikacji do Twojej firmy</PageSubtitle>
-                    </HeaderText>
-                </HeaderLeft>
-
-                <HeaderActions>
-                    <PreviewToggle
-                        $active={previewMode}
-                        onClick={handlePreviewToggle}
-                    >
-                        <FaEye />
-                        {previewMode ? 'Zakończ podgląd' : 'Podgląd na żywo'}
-                    </PreviewToggle>
-                </HeaderActions>
-            </PageHeader>
+        <ContentContainer>
+            {/* Header Actions */}
+            <HeaderActions>
+                <PreviewToggle
+                    $active={previewMode}
+                    onClick={handlePreviewToggle}
+                >
+                    <FaEye />
+                    {previewMode ? 'Zakończ podgląd' : 'Podgląd na żywo'}
+                </PreviewToggle>
+            </HeaderActions>
 
             {successMessage && (
                 <SuccessMessage>
@@ -394,64 +371,36 @@ const BrandThemeSettingsPage: React.FC = () => {
                     </InstructionCard>
                 </InstructionsGrid>
             </InstructionsSection>
-        </PageContainer>
+        </ContentContainer>
     );
 };
 
 // Styled Components
-const PageContainer = styled.div`
-    padding: 24px;
-    background: ${brandTheme.surfaceAlt};
-    min-height: 100vh;
-`;
-
-const PageHeader = styled.div`
+const ContentContainer = styled.div`
+    flex: 1;
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 0 ${settingsTheme.spacing.xl} ${settingsTheme.spacing.xl};
+    width: 100%;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 32px;
-    padding: 24px;
-    background: ${brandTheme.surface};
-    border-radius: 12px;
-    border: 1px solid ${brandTheme.border};
-`;
+    flex-direction: column;
+    gap: ${settingsTheme.spacing.lg};
+    min-height: 0;
 
-const HeaderLeft = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 16px;
-`;
+    @media (max-width: 1024px) {
+        padding: 0 ${settingsTheme.spacing.lg} ${settingsTheme.spacing.lg};
+    }
 
-const HeaderIcon = styled.div`
-    width: 48px;
-    height: 48px;
-    background: ${brandTheme.primary};
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 20px;
-`;
-
-const HeaderText = styled.div``;
-
-const PageTitle = styled.h1`
-    font-size: 28px;
-    font-weight: 700;
-    color: #1e293b;
-    margin: 0;
-`;
-
-const PageSubtitle = styled.p`
-    color: ${brandTheme.neutral};
-    font-size: 16px;
-    margin: 4px 0 0 0;
+    @media (max-width: 768px) {
+        padding: 0 ${settingsTheme.spacing.md} ${settingsTheme.spacing.md};
+        gap: ${settingsTheme.spacing.md};
+    }
 `;
 
 const HeaderActions = styled.div`
     display: flex;
-    gap: 12px;
+    justify-content: flex-end;
+    margin-bottom: ${settingsTheme.spacing.lg};
 `;
 
 const PreviewToggle = styled.button<{ $active: boolean }>`
@@ -459,38 +408,39 @@ const PreviewToggle = styled.button<{ $active: boolean }>`
     align-items: center;
     gap: 8px;
     padding: 12px 20px;
-    border: 2px solid ${props => props.$active ? brandTheme.primary : brandTheme.border};
-    background: ${props => props.$active ? brandTheme.primaryGhost : brandTheme.surface};
-    color: ${props => props.$active ? brandTheme.primary : brandTheme.neutral};
-    border-radius: 8px;
+    border: 2px solid ${props => props.$active ? settingsTheme.primary : settingsTheme.border};
+    background: ${props => props.$active ? settingsTheme.primaryGhost : settingsTheme.surface};
+    color: ${props => props.$active ? settingsTheme.primary : settingsTheme.text.secondary};
+    border-radius: ${settingsTheme.radius.md};
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
 
     &:hover {
-        border-color: ${brandTheme.primary};
-        color: ${brandTheme.primary};
+        border-color: ${settingsTheme.primary};
+        color: ${settingsTheme.primary};
     }
 `;
 
 const SuccessMessage = styled.div`
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 16px 20px;
-    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-    color: #166534;
-    border: 1px solid #bbf7d0;
-    border-radius: 8px;
-    margin-bottom: 24px;
+    gap: ${settingsTheme.spacing.sm};
+    background: ${settingsTheme.status.successLight};
+    color: ${settingsTheme.status.success};
+    padding: ${settingsTheme.spacing.md} ${settingsTheme.spacing.lg};
+    border-radius: ${settingsTheme.radius.lg};
+    border: 1px solid ${settingsTheme.status.success}30;
     font-weight: 500;
+    box-shadow: ${settingsTheme.shadow.xs};
+    margin-bottom: ${settingsTheme.spacing.lg};
 `;
 
 const ContentGrid = styled.div`
     display: grid;
     grid-template-columns: 1fr 400px;
-    gap: 24px;
-    margin-bottom: 32px;
+    gap: ${settingsTheme.spacing.lg};
+    margin-bottom: ${settingsTheme.spacing.lg};
 
     @media (max-width: 1200px) {
         grid-template-columns: 1fr;
@@ -498,30 +448,33 @@ const ContentGrid = styled.div`
 `;
 
 const SelectionPanel = styled.div`
-    background: ${brandTheme.surface};
-    border-radius: 12px;
-    border: 1px solid ${brandTheme.border};
-    padding: 24px;
+    background: ${settingsTheme.surface};
+    border-radius: ${settingsTheme.radius.xl};
+    border: 1px solid ${settingsTheme.border};
+    padding: ${settingsTheme.spacing.lg};
+    box-shadow: ${settingsTheme.shadow.sm};
 `;
 
 const PreviewPanel = styled.div`
-    background: ${brandTheme.surface};
-    border-radius: 12px;
-    border: 1px solid ${brandTheme.border};
-    padding: 24px;
+    background: ${settingsTheme.surface};
+    border-radius: ${settingsTheme.radius.xl};
+    border: 1px solid ${settingsTheme.border};
+    padding: ${settingsTheme.spacing.lg};
     display: flex;
     flex-direction: column;
+    box-shadow: ${settingsTheme.shadow.sm};
 `;
 
 const SectionTitle = styled.h2`
     font-size: 20px;
     font-weight: 600;
-    color: #1e293b;
-    margin: 0 0 24px 0;
+    color: ${settingsTheme.text.primary};
+    margin: 0 0 ${settingsTheme.spacing.lg} 0;
+    letter-spacing: -0.025em;
 `;
 
 const CategorySection = styled.div`
-    margin-bottom: 32px;
+    margin-bottom: ${settingsTheme.spacing.xl};
 
     &:last-child {
         margin-bottom: 0;
@@ -531,30 +484,32 @@ const CategorySection = styled.div`
 const CategoryTitle = styled.h3`
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: ${settingsTheme.spacing.sm};
     font-size: 16px;
     font-weight: 600;
-    color: #374151;
-    margin: 0 0 16px 0;
+    color: ${settingsTheme.text.primary};
+    margin: 0 0 ${settingsTheme.spacing.md} 0;
 `;
 
 const PresetGrid = styled.div`
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 12px;
+    gap: ${settingsTheme.spacing.sm};
 `;
 
 const PresetCard = styled.div<{ $active: boolean }>`
     position: relative;
-    padding: 16px;
-    border: 2px solid ${props => props.$active ? brandTheme.primary : brandTheme.border};
-    border-radius: 8px;
+    padding: ${settingsTheme.spacing.md};
+    border: 2px solid ${props => props.$active ? settingsTheme.primary : settingsTheme.border};
+    border-radius: ${settingsTheme.radius.lg};
     cursor: pointer;
-    transition: all 0.2s;
-    background: ${props => props.$active ? brandTheme.primaryGhost : brandTheme.surface};
+    transition: all 0.2s ease;
+    background: ${props => props.$active ? settingsTheme.primaryGhost : settingsTheme.surface};
 
     &:hover {
-        border-color: ${brandTheme.primary};
+        border-color: ${settingsTheme.primary};
+        transform: translateY(-1px);
+        box-shadow: ${settingsTheme.shadow.md};
     }
 `;
 
@@ -562,9 +517,10 @@ const PresetColor = styled.div<{ color: string }>`
     width: 32px;
     height: 32px;
     background: ${props => props.color};
-    border-radius: 6px;
-    margin-bottom: 12px;
-    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: ${settingsTheme.radius.sm};
+    margin-bottom: ${settingsTheme.spacing.sm};
+    border: 2px solid ${settingsTheme.border};
+    box-shadow: ${settingsTheme.shadow.xs};
 `;
 
 const PresetInfo = styled.div``;
@@ -572,13 +528,13 @@ const PresetInfo = styled.div``;
 const PresetName = styled.div`
     font-size: 14px;
     font-weight: 600;
-    color: #1e293b;
+    color: ${settingsTheme.text.primary};
     margin-bottom: 4px;
 `;
 
 const PresetDescription = styled.div`
     font-size: 12px;
-    color: ${brandTheme.neutral};
+    color: ${settingsTheme.text.muted};
 `;
 
 const ActiveIndicator = styled.div`
@@ -587,7 +543,7 @@ const ActiveIndicator = styled.div`
     right: 8px;
     width: 20px;
     height: 20px;
-    background: ${brandTheme.primary};
+    background: ${settingsTheme.primary};
     color: white;
     border-radius: 50%;
     display: flex;
@@ -600,22 +556,22 @@ const CustomColorSection = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px;
-    border: 2px solid ${brandTheme.border};
-    border-radius: 8px;
+    padding: ${settingsTheme.spacing.md};
+    border: 2px solid ${settingsTheme.border};
+    border-radius: ${settingsTheme.radius.lg};
 `;
 
 const CustomColorPicker = styled.div`
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: ${settingsTheme.spacing.md};
 `;
 
 const ColorInput = styled.input`
     width: 48px;
     height: 48px;
     border: none;
-    border-radius: 8px;
+    border-radius: ${settingsTheme.radius.sm};
     cursor: pointer;
 
     &::-webkit-color-swatch-wrapper {
@@ -623,8 +579,8 @@ const ColorInput = styled.input`
     }
 
     &::-webkit-color-swatch {
-        border: 2px solid ${brandTheme.border};
-        border-radius: 8px;
+        border: 2px solid ${settingsTheme.border};
+        border-radius: ${settingsTheme.radius.sm};
     }
 `;
 
@@ -633,13 +589,13 @@ const ColorDetails = styled.div``;
 const ColorLabel = styled.div`
     font-size: 14px;
     font-weight: 600;
-    color: #1e293b;
+    color: ${settingsTheme.text.primary};
     margin-bottom: 4px;
 `;
 
 const ColorValue = styled.div`
     font-size: 12px;
-    color: ${brandTheme.neutral};
+    color: ${settingsTheme.text.muted};
     font-family: monospace;
 `;
 
@@ -647,7 +603,7 @@ const CustomActiveIndicator = styled.div`
     display: flex;
     align-items: center;
     gap: 6px;
-    color: ${brandTheme.primary};
+    color: ${settingsTheme.primary};
     font-size: 14px;
     font-weight: 600;
 `;
@@ -657,25 +613,25 @@ const PreviewContent = styled.div`
 `;
 
 const CurrentSelectionCard = styled.div`
-    padding: 20px;
-    background: ${brandTheme.surfaceAlt};
-    border-radius: 8px;
-    margin-bottom: 24px;
+    padding: ${settingsTheme.spacing.lg};
+    background: ${settingsTheme.surfaceAlt};
+    border-radius: ${settingsTheme.radius.lg};
+    margin-bottom: ${settingsTheme.spacing.lg};
 `;
 
 const SelectionHeader = styled.div`
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: ${settingsTheme.spacing.md};
 `;
 
 const SelectionColorPreview = styled.div<{ color: string }>`
     width: 48px;
     height: 48px;
     background: ${props => props.color};
-    border-radius: 8px;
-    border: 2px solid rgba(255,255,255,0.9);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-radius: ${settingsTheme.radius.sm};
+    border: 2px solid ${settingsTheme.border};
+    box-shadow: ${settingsTheme.shadow.sm};
 `;
 
 const SelectionInfo = styled.div``;
@@ -683,13 +639,13 @@ const SelectionInfo = styled.div``;
 const SelectionName = styled.div`
     font-size: 18px;
     font-weight: 600;
-    color: #1e293b;
+    color: ${settingsTheme.text.primary};
     margin-bottom: 4px;
 `;
 
 const SelectionDescription = styled.div`
     font-size: 14px;
-    color: ${brandTheme.neutral};
+    color: ${settingsTheme.text.secondary};
 `;
 
 const DemoSection = styled.div``;
@@ -697,57 +653,57 @@ const DemoSection = styled.div``;
 const DemoTitle = styled.h3`
     font-size: 16px;
     font-weight: 600;
-    color: #374151;
-    margin: 0 0 16px 0;
+    color: ${settingsTheme.text.primary};
+    margin: 0 0 ${settingsTheme.spacing.md} 0;
 `;
 
 const DemoGroup = styled.div`
-    margin-bottom: 20px;
+    margin-bottom: ${settingsTheme.spacing.lg};
 `;
 
 const DemoSubtitle = styled.h4`
     font-size: 14px;
     font-weight: 600;
-    color: #4b5563;
-    margin: 0 0 8px 0;
+    color: ${settingsTheme.text.secondary};
+    margin: 0 0 ${settingsTheme.spacing.sm} 0;
 `;
 
 const ButtonDemo = styled.div`
     display: flex;
-    gap: 12px;
+    gap: ${settingsTheme.spacing.sm};
 `;
 
 const DemoButton = styled.button<{ $primary?: boolean; $secondary?: boolean }>`
     padding: 10px 16px;
-    border-radius: 6px;
+    border-radius: ${settingsTheme.radius.md};
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
 
     ${props => props.$primary && `
-        background: ${brandTheme.primary};
+        background: ${settingsTheme.primary};
         color: white;
         border: none;
     `}
 
     ${props => props.$secondary && `
-        background: ${brandTheme.primaryGhost};
-        color: ${brandTheme.primary};
-        border: 1px solid ${brandTheme.primary};
+        background: ${settingsTheme.primaryGhost};
+        color: ${settingsTheme.primary};
+        border: 1px solid ${settingsTheme.primary};
     `}
 `;
 
 const MenuDemo = styled.div`
-    border: 1px solid ${brandTheme.border};
-    border-radius: 6px;
+    border: 1px solid ${settingsTheme.border};
+    border-radius: ${settingsTheme.radius.md};
     overflow: hidden;
 `;
 
 const MenuDemoItem = styled.div<{ $active?: boolean }>`
-    padding: 12px 16px;
-    border-bottom: 1px solid ${brandTheme.border};
-    background: ${props => props.$active ? brandTheme.primaryGhost : brandTheme.surface};
-    color: ${props => props.$active ? brandTheme.primary : '#374151'};
+    padding: ${settingsTheme.spacing.sm} ${settingsTheme.spacing.md};
+    border-bottom: 1px solid ${settingsTheme.border};
+    background: ${props => props.$active ? settingsTheme.primaryGhost : settingsTheme.surface};
+    color: ${props => props.$active ? settingsTheme.primary : settingsTheme.text.primary};
     font-weight: ${props => props.$active ? '600' : '500'};
 
     &:last-child {
@@ -756,106 +712,109 @@ const MenuDemoItem = styled.div<{ $active?: boolean }>`
 `;
 
 const CardDemo = styled.div`
-    border: 1px solid ${brandTheme.border};
-    border-radius: 6px;
+    border: 1px solid ${settingsTheme.border};
+    border-radius: ${settingsTheme.radius.md};
     overflow: hidden;
 `;
 
 const CardDemoHeader = styled.div`
-    padding: 12px 16px;
-    background: ${brandTheme.primaryGhost};
-    color: ${brandTheme.primary};
+    padding: ${settingsTheme.spacing.sm} ${settingsTheme.spacing.md};
+    background: ${settingsTheme.primaryGhost};
+    color: ${settingsTheme.primary};
     font-weight: 600;
-    border-bottom: 1px solid ${brandTheme.border};
+    border-bottom: 1px solid ${settingsTheme.border};
 `;
 
 const CardDemoContent = styled.div`
-    padding: 12px 16px;
-    color: #374151;
+    padding: ${settingsTheme.spacing.sm} ${settingsTheme.spacing.md};
+    color: ${settingsTheme.text.secondary};
     font-size: 14px;
 `;
 
 const ActionButtons = styled.div`
     display: flex;
-    gap: 12px;
-    margin-top: 24px;
-    padding-top: 24px;
-    border-top: 1px solid ${brandTheme.border};
+    gap: ${settingsTheme.spacing.sm};
+    margin-top: ${settingsTheme.spacing.lg};
+    padding-top: ${settingsTheme.spacing.lg};
+    border-top: 1px solid ${settingsTheme.border};
 `;
 
 const ResetButton = styled.button`
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 12px 20px;
-    background: ${brandTheme.surface};
-    color: ${brandTheme.neutral};
-    border: 1px solid ${brandTheme.border};
-    border-radius: 6px;
+    gap: ${settingsTheme.spacing.sm};
+    padding: ${settingsTheme.spacing.sm} ${settingsTheme.spacing.md};
+    background: ${settingsTheme.surface};
+    color: ${settingsTheme.text.secondary};
+    border: 1px solid ${settingsTheme.border};
+    border-radius: ${settingsTheme.radius.md};
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
 
     &:hover {
-        background: ${brandTheme.surfaceAlt};
-        color: #374151;
+        background: ${settingsTheme.surfaceHover};
+        color: ${settingsTheme.text.primary};
     }
 `;
 
 const SaveButton = styled.button<{ $hasChanges: boolean }>`
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 12px 20px;
-    background: ${props => props.$hasChanges ? brandTheme.primary : '#94a3b8'};
+    gap: ${settingsTheme.spacing.sm};
+    padding: ${settingsTheme.spacing.sm} ${settingsTheme.spacing.md};
+    background: ${props => props.$hasChanges ? settingsTheme.primary : settingsTheme.text.muted};
     color: white;
     border: none;
-    border-radius: 6px;
+    border-radius: ${settingsTheme.radius.md};
     font-weight: 600;
     cursor: ${props => props.$hasChanges ? 'pointer' : 'not-allowed'};
-    transition: all 0.2s;
+    transition: all 0.2s ease;
     flex: 1;
 
     &:hover:not(:disabled) {
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        box-shadow: ${settingsTheme.shadow.md};
     }
 `;
 
 const InstructionsSection = styled.div`
-    background: linear-gradient(135deg, ${brandTheme.surfaceAlt} 0%, #e2e8f0 100%);
-    border-radius: 12px;
-    padding: 32px;
-    border: 1px solid ${brandTheme.border};
+    background: linear-gradient(135deg, ${settingsTheme.surfaceAlt} 0%, #e2e8f0 100%);
+    border-radius: ${settingsTheme.radius.xl};
+    padding: ${settingsTheme.spacing.xl};
+    border: 1px solid ${settingsTheme.border};
+    box-shadow: ${settingsTheme.shadow.sm};
 `;
 
 const InstructionsTitle = styled.h3`
     font-size: 20px;
     font-weight: 600;
-    color: #1e293b;
-    margin: 0 0 24px 0;
+    color: ${settingsTheme.text.primary};
+    margin: 0 0 ${settingsTheme.spacing.lg} 0;
+    letter-spacing: -0.025em;
 `;
 
 const InstructionsGrid = styled.div`
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
+    gap: ${settingsTheme.spacing.lg};
 `;
 
 const InstructionCard = styled.div`
     display: flex;
     align-items: flex-start;
-    gap: 16px;
-    padding: 20px;
-    background: ${brandTheme.surface};
-    border-radius: 8px;
-    border: 1px solid ${brandTheme.border};
+    gap: ${settingsTheme.spacing.md};
+    padding: ${settingsTheme.spacing.lg};
+    background: ${settingsTheme.surface};
+    border-radius: ${settingsTheme.radius.lg};
+    border: 1px solid ${settingsTheme.border};
+    box-shadow: ${settingsTheme.shadow.xs};
 `;
 
 const InstructionNumber = styled.div`
     width: 32px;
     height: 32px;
-    background: ${brandTheme.primary};
+    background: ${settingsTheme.primary};
     color: white;
     border-radius: 50%;
     display: flex;
@@ -871,13 +830,13 @@ const InstructionContent = styled.div``;
 const InstructionTitle = styled.h4`
     font-size: 16px;
     font-weight: 600;
-    color: #1e293b;
+    color: ${settingsTheme.text.primary};
     margin: 0 0 6px 0;
 `;
 
 const InstructionText = styled.p`
     font-size: 14px;
-    color: ${brandTheme.neutral};
+    color: ${settingsTheme.text.secondary};
     margin: 0;
     line-height: 1.5;
 `;

@@ -34,6 +34,7 @@ import BrandThemeSettingsPage from "./pages/Settings/BrandThemeSettingsPage";
 // Updated Financial imports
 import FinancialPageWithFixedCosts from "./pages/Finances/FinancialPageWithFixedCosts";
 import FixedCostsIntegration from "./pages/Finances/components/FixedCostsIntegration";
+import SettingsPageWithTabs from './pages/Settings/SettingsPageWithTabs';
 
 // Tymczasowe komponenty dla innych stron - do zastąpienia rzeczywistymi implementacjami
 const PlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
@@ -78,10 +79,7 @@ const AppRoutes: React.FC = () => {
                 <Route path="/reports" element={<ReportsPage />} />
 
                 {/* Strony ustawień */}
-                <Route path="/settings/calendar" element={<CalendarColorsPage />} />
-                <Route path="/settings/services" element={<ServicesPage />} />
-                <Route path="/settings" element={<Navigate to="/settings/calendar" replace />} />
-                <Route path="/settings/brand-theme" element={<BrandThemeSettingsPage />} />
+                <Route path="/settings" element={<SettingsPageWithTabs />} />
 
                 <Route path="/team" element={<EmployeesPage />} />
 
