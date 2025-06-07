@@ -1,23 +1,18 @@
-// VehicleFilters.tsx - Professional Premium Automotive CRM
+// VehicleFilters.tsx - Zaktualizowane filtry dla nowego API
 import React from 'react';
 import styled from 'styled-components';
-import { FaFilter, FaTimes, FaSearch, FaCheck, FaChevronDown, FaChevronUp, FaCar, FaCalendarAlt } from 'react-icons/fa';
+import { FaFilter, FaTimes, FaSearch, FaCheck, FaChevronDown, FaChevronUp, FaCar, FaCalendarAlt, FaUser, FaEye } from 'react-icons/fa';
 
 // Professional Brand Theme - Premium Automotive CRM
 const brandTheme = {
-    // Primary Colors - Professional Blue Palette
     primary: 'var(--brand-primary, #1a365d)',
     primaryLight: 'var(--brand-primary-light, #2c5aa0)',
     primaryDark: 'var(--brand-primary-dark, #0f2027)',
     primaryGhost: 'var(--brand-primary-ghost, rgba(26, 54, 93, 0.04))',
-
-    // Surface Colors - Clean & Minimal
     surface: '#ffffff',
     surfaceAlt: '#fafbfc',
     surfaceElevated: '#f8fafc',
     surfaceHover: '#f1f5f9',
-
-    // Typography Colors
     text: {
         primary: '#0f172a',
         secondary: '#475569',
@@ -25,13 +20,9 @@ const brandTheme = {
         muted: '#94a3b8',
         disabled: '#cbd5e1'
     },
-
-    // Border Colors
     border: '#e2e8f0',
     borderLight: '#f1f5f9',
     borderHover: '#cbd5e1',
-
-    // Status Colors - Automotive Grade
     status: {
         success: '#059669',
         successLight: '#d1fae5',
@@ -42,8 +33,6 @@ const brandTheme = {
         info: '#0ea5e9',
         infoLight: '#e0f2fe'
     },
-
-    // Shadows - Professional Depth
     shadow: {
         xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
         sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
@@ -51,8 +40,6 @@ const brandTheme = {
         lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
         xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
     },
-
-    // Spacing Scale
     spacing: {
         xs: '4px',
         sm: '8px',
@@ -61,8 +48,6 @@ const brandTheme = {
         xl: '32px',
         xxl: '48px'
     },
-
-    // Border Radius
     radius: {
         sm: '6px',
         md: '8px',
@@ -72,14 +57,14 @@ const brandTheme = {
     }
 };
 
-// Vehicle filters interface
+// Zaktualizowany interfejs filtrów - dopasowany do nowego API
 export interface VehicleFilters {
     licensePlate: string;
     make: string;
     model: string;
-    minYear: string;
-    minServices: string;
-    minSpent: string;
+    ownerName: string;       // Nowy filtr zamiast minYear
+    minServices: string;     // Teraz to minVisits w API
+    maxServices: string;     // Nowy filtr maxVisits
 }
 
 interface VehicleFiltersProps {
@@ -116,7 +101,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
                     </FilterIcon>
                     <ToggleContent>
                         <ToggleTitle>
-                            Filtry wyszukiwania pojazdów
+                            Zaawansowane filtry wyszukiwania
                             {activeFilterCount > 0 && (
                                 <ActiveFiltersBadge>{activeFilterCount}</ActiveFiltersBadge>
                             )}
@@ -124,7 +109,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
                         <ToggleSubtitle>
                             {hasActiveFilters()
                                 ? `Wyniki: ${resultCount} ${resultCount === 1 ? 'pojazd' : resultCount > 1 && resultCount < 5 ? 'pojazdy' : 'pojazdów'}`
-                                : 'Kliknij aby otworzyć opcje filtrowania pojazdów'
+                                : 'Filtruj pojazdy według marki, modelu, właściciela i aktywności'
                             }
                         </ToggleSubtitle>
                     </ToggleContent>
@@ -152,6 +137,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
             {showFilters && (
                 <FiltersContent>
                     <FiltersGrid>
+                        {/* Numer rejestracyjny */}
                         <FilterGroup>
                             <FilterLabel htmlFor="licensePlate">
                                 <FilterLabelIcon>
@@ -165,7 +151,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
                                     name="licensePlate"
                                     value={filters.licensePlate}
                                     onChange={onFilterChange}
-                                    placeholder="Wyszukaj po numerze rejestracyjnym..."
+                                    placeholder="np. ABC 123D, WZ 12345..."
                                     $hasValue={!!filters.licensePlate}
                                 />
                                 {filters.licensePlate && (
@@ -178,8 +164,10 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
                                     </ClearInputButton>
                                 )}
                             </FilterInputWrapper>
+                            <FilterHint>Wyszukuj fragmentami lub pełnym numerem</FilterHint>
                         </FilterGroup>
 
+                        {/* Marka pojazdu */}
                         <FilterGroup>
                             <FilterLabel htmlFor="make">
                                 <FilterLabelIcon>
@@ -193,7 +181,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
                                     name="make"
                                     value={filters.make}
                                     onChange={onFilterChange}
-                                    placeholder="Wyszukaj po marce..."
+                                    placeholder="np. BMW, Audi, Mercedes..."
                                     $hasValue={!!filters.make}
                                 />
                                 {filters.make && (
@@ -206,8 +194,10 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
                                     </ClearInputButton>
                                 )}
                             </FilterInputWrapper>
+                            <FilterHint>Filtruj według marki pojazdu</FilterHint>
                         </FilterGroup>
 
+                        {/* Model pojazdu */}
                         <FilterGroup>
                             <FilterLabel htmlFor="model">
                                 <FilterLabelIcon>
@@ -221,7 +211,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
                                     name="model"
                                     value={filters.model}
                                     onChange={onFilterChange}
-                                    placeholder="Wyszukaj po modelu..."
+                                    placeholder="np. X5, A4, C-Class..."
                                     $hasValue={!!filters.model}
                                 />
                                 {filters.model && (
@@ -234,45 +224,46 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
                                     </ClearInputButton>
                                 )}
                             </FilterInputWrapper>
+                            <FilterHint>Filtruj według modelu pojazdu</FilterHint>
                         </FilterGroup>
 
+                        {/* Właściciel pojazdu - NOWY FILTR */}
                         <FilterGroup>
-                            <FilterLabel htmlFor="minYear">
+                            <FilterLabel htmlFor="ownerName">
                                 <FilterLabelIcon>
-                                    <FaCalendarAlt />
+                                    <FaUser />
                                 </FilterLabelIcon>
-                                Minimalny rok produkcji
+                                Właściciel pojazdu
                             </FilterLabel>
                             <FilterInputWrapper>
                                 <FilterInput
-                                    id="minYear"
-                                    name="minYear"
-                                    type="number"
-                                    min="1900"
-                                    max={new Date().getFullYear() + 1}
-                                    value={filters.minYear}
+                                    id="ownerName"
+                                    name="ownerName"
+                                    value={filters.ownerName}
                                     onChange={onFilterChange}
-                                    placeholder="Min. rok produkcji..."
-                                    $hasValue={!!filters.minYear}
+                                    placeholder="np. Jan Kowalski, Anna..."
+                                    $hasValue={!!filters.ownerName}
                                 />
-                                {filters.minYear && (
+                                {filters.ownerName && (
                                     <ClearInputButton
                                         onClick={() => onFilterChange({
-                                            target: { name: 'minYear', value: '' }
+                                            target: { name: 'ownerName', value: '' }
                                         } as React.ChangeEvent<HTMLInputElement>)}
                                     >
                                         <FaTimes />
                                     </ClearInputButton>
                                 )}
                             </FilterInputWrapper>
+                            <FilterHint>Wyszukaj pojazdy konkretnego właściciela</FilterHint>
                         </FilterGroup>
 
+                        {/* Minimalna liczba wizyt */}
                         <FilterGroup>
                             <FilterLabel htmlFor="minServices">
                                 <FilterLabelIcon>
-                                    <FaFilter />
+                                    <FaEye />
                                 </FilterLabelIcon>
-                                Minimalna liczba usług
+                                Minimalna liczba wizyt
                             </FilterLabel>
                             <FilterInputWrapper>
                                 <FilterInput
@@ -282,7 +273,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
                                     min="0"
                                     value={filters.minServices}
                                     onChange={onFilterChange}
-                                    placeholder="Min. liczba usług..."
+                                    placeholder="np. 5, 10, 20..."
                                     $hasValue={!!filters.minServices}
                                 />
                                 {filters.minServices && (
@@ -295,39 +286,59 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
                                     </ClearInputButton>
                                 )}
                             </FilterInputWrapper>
+                            <FilterHint>Pojazdy z co najmniej taką liczbą wizyt</FilterHint>
                         </FilterGroup>
 
+                        {/* Maksymalna liczba wizyt - NOWY FILTR */}
                         <FilterGroup>
-                            <FilterLabel htmlFor="minSpent">
+                            <FilterLabel htmlFor="maxServices">
                                 <FilterLabelIcon>
-                                    <FaFilter />
+                                    <FaEye />
                                 </FilterLabelIcon>
-                                Minimalne przychody (PLN)
+                                Maksymalna liczba wizyt
                             </FilterLabel>
                             <FilterInputWrapper>
                                 <FilterInput
-                                    id="minSpent"
-                                    name="minSpent"
+                                    id="maxServices"
+                                    name="maxServices"
                                     type="number"
                                     min="0"
-                                    step="0.01"
-                                    value={filters.minSpent}
+                                    value={filters.maxServices}
                                     onChange={onFilterChange}
-                                    placeholder="Min. kwota przychodów..."
-                                    $hasValue={!!filters.minSpent}
+                                    placeholder="np. 50, 100..."
+                                    $hasValue={!!filters.maxServices}
                                 />
-                                {filters.minSpent && (
+                                {filters.maxServices && (
                                     <ClearInputButton
                                         onClick={() => onFilterChange({
-                                            target: { name: 'minSpent', value: '' }
+                                            target: { name: 'maxServices', value: '' }
                                         } as React.ChangeEvent<HTMLInputElement>)}
                                     >
                                         <FaTimes />
                                     </ClearInputButton>
                                 )}
                             </FilterInputWrapper>
+                            <FilterHint>Pojazdy z maksymalnie taką liczbą wizyt</FilterHint>
                         </FilterGroup>
                     </FiltersGrid>
+
+                    {/* Zakres wizyt - pomocnicza sekcja */}
+                    {(filters.minServices || filters.maxServices) && (
+                        <VisitRangeDisplay>
+                            <VisitRangeTitle>
+                                <FaEye />
+                                Zakres liczby wizyt:
+                            </VisitRangeTitle>
+                            <VisitRangeInfo>
+                                {filters.minServices && filters.maxServices
+                                    ? `${filters.minServices} - ${filters.maxServices} wizyt`
+                                    : filters.minServices
+                                        ? `Minimum ${filters.minServices} wizyt`
+                                        : `Maksimum ${filters.maxServices} wizyt`
+                                }
+                            </VisitRangeInfo>
+                        </VisitRangeDisplay>
+                    )}
 
                     <FiltersFooter>
                         <ResultsSection>
@@ -343,7 +354,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
                                 </ResultsWithIcon>
                             ) : (
                                 <ResultsInfo>
-                                    Skonfiguruj filtry aby zawęzić wyniki wyszukiwania pojazdów
+                                    Skonfiguruj filtry aby zawęzić wyniki wyszukiwania
                                 </ResultsInfo>
                             )}
                         </ResultsSection>
@@ -378,7 +389,7 @@ const FiltersContainer = styled.div<{ $expanded: boolean }>`
     overflow: hidden;
     box-shadow: ${brandTheme.shadow.sm};
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    
+
     ${props => props.$expanded && `
         box-shadow: ${brandTheme.shadow.md};
     `}
@@ -391,9 +402,9 @@ const FiltersToggle = styled.button<{ $hasActiveFilters: boolean }>`
     align-items: center;
     padding: ${brandTheme.spacing.lg};
     background: ${props => props.$hasActiveFilters
-    ? `linear-gradient(135deg, ${brandTheme.primaryGhost} 0%, rgba(26, 54, 93, 0.02) 100%)`
-    : brandTheme.surfaceAlt
-};
+            ? `linear-gradient(135deg, ${brandTheme.primaryGhost} 0%, rgba(26, 54, 93, 0.02) 100%)`
+            : brandTheme.surfaceAlt
+    };
     border: none;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -401,9 +412,9 @@ const FiltersToggle = styled.button<{ $hasActiveFilters: boolean }>`
 
     &:hover {
         background: ${props => props.$hasActiveFilters
-    ? `linear-gradient(135deg, ${brandTheme.primaryGhost} 0%, rgba(26, 54, 93, 0.04) 100%)`
-    : brandTheme.surfaceHover
-};
+                ? `linear-gradient(135deg, ${brandTheme.primaryGhost} 0%, rgba(26, 54, 93, 0.04) 100%)`
+                : brandTheme.surfaceHover
+        };
     }
 `;
 
@@ -419,9 +430,9 @@ const FilterIcon = styled.div<{ $active: boolean }>`
     width: 48px;
     height: 48px;
     background: ${props => props.$active
-    ? `linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%)`
-    : brandTheme.surfaceElevated
-};
+            ? `linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%)`
+            : brandTheme.surfaceElevated
+    };
     border-radius: ${brandTheme.radius.lg};
     display: flex;
     align-items: center;
@@ -525,10 +536,10 @@ const FiltersContent = styled.div`
 
 const FiltersGrid = styled.div`
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: ${brandTheme.spacing.lg};
     margin-bottom: ${brandTheme.spacing.lg};
-    
+
     @media (max-width: 768px) {
         grid-template-columns: 1fr;
         gap: ${brandTheme.spacing.md};
@@ -612,6 +623,48 @@ const ClearInputButton = styled.button`
         background: ${brandTheme.status.error};
         transform: scale(1.1);
     }
+`;
+
+const FilterHint = styled.div`
+    font-size: 12px;
+    color: ${brandTheme.text.muted};
+    font-style: italic;
+    margin-top: ${brandTheme.spacing.xs};
+`;
+
+// Nowa sekcja zakresu wizyt
+const VisitRangeDisplay = styled.div`
+    background: linear-gradient(135deg, ${brandTheme.status.infoLight} 0%, #f0f9ff 100%);
+    border: 1px solid ${brandTheme.status.info}30;
+    border-radius: ${brandTheme.radius.lg};
+    padding: ${brandTheme.spacing.md};
+    margin-bottom: ${brandTheme.spacing.lg};
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.md};
+`;
+
+const VisitRangeTitle = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.xs};
+    font-weight: 600;
+    color: ${brandTheme.status.info};
+    font-size: 14px;
+
+    svg {
+        font-size: 12px;
+    }
+`;
+
+const VisitRangeInfo = styled.div`
+    background: ${brandTheme.surface};
+    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
+    border-radius: ${brandTheme.radius.md};
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+    font-size: 14px;
+    border: 1px solid ${brandTheme.status.info}20;
 `;
 
 const FiltersFooter = styled.div`
@@ -711,17 +764,17 @@ const SecondaryButton = styled(BaseButton)`
 
 const PrimaryButton = styled(BaseButton)<{ $hasFilters: boolean }>`
     background: ${props => props.$hasFilters
-    ? `linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%)`
-    : brandTheme.surfaceElevated
-};
+            ? `linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%)`
+            : brandTheme.surfaceElevated
+    };
     color: ${props => props.$hasFilters ? 'white' : brandTheme.text.tertiary};
     box-shadow: ${props => props.$hasFilters ? brandTheme.shadow.sm : brandTheme.shadow.xs};
 
     &:hover {
         background: ${props => props.$hasFilters
-    ? `linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%)`
-    : brandTheme.surfaceHover
-};
+                ? `linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%)`
+                : brandTheme.surfaceHover
+        };
         box-shadow: ${props => props.$hasFilters ? brandTheme.shadow.md : brandTheme.shadow.sm};
     }
 `;
