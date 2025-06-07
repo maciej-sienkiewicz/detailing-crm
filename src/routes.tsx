@@ -1,4 +1,4 @@
-// src/routes.tsx
+// src/routes.tsx - Updated to include Fixed Costs
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import CalendarPage from './pages/Calendar/CalendarPage';
@@ -28,11 +28,13 @@ import FleetRentalsPage from "./pages/Fleet/FleetRentalsPage";
 import FleetRentalDetailsPage from "./pages/Fleet/FleetRentalDetailsPage";
 import FleetRentalFormPage from "./pages/Fleet/FleetRentalFormPage";
 import FleetCalendarPage from "./pages/Fleet/FleetCalendarPage";
-import UnifiedFinancialPage from "./pages/Finances/UnifiedFinancialPage";
 import GalleryPage from "./pages/Gallery/GalleryPage";
 import TabletIntegrationPage from "./pages/Tablets/TabletIntegrationPage";
 import BrandThemeSettingsPage from "./pages/Settings/BrandThemeSettingsPage";
-import FinancialPage from "./pages/Finances/FinancialPage";
+
+// Updated Financial imports
+import FinancialPageWithFixedCosts from "./pages/Finances/FinancialPageWithFixedCosts";
+import FixedCostsIntegration from "./pages/Finances/components/FixedCostsIntegration";
 
 // Tymczasowe komponenty dla innych stron - do zastąpienia rzeczywistymi implementacjami
 const PlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
@@ -60,8 +62,8 @@ const AppRoutes: React.FC = () => {
                 {/* Strona aktualności */}
                 <Route path="/activity" element={<ActivityFeedPage />} />
 
-                {/* Ścieżki finansowe */}
-                <Route path="/finances" element={<FinancialPage />} />
+                {/* Ścieżki finansowe - Updated */}
+                <Route path="/finances" element={<FinancialPageWithFixedCosts />} />
 
                 {/* Strona poczty - nowy moduł */}
                 <Route path="/mail" element={<MailPage />} />
