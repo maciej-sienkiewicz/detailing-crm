@@ -1,5 +1,5 @@
 // src/pages/Settings/SettingsPageWithTabs.tsx
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import styled from 'styled-components';
 import {
     FaCog,
@@ -9,7 +9,9 @@ import {
     FaCalendarAlt,
     FaUser,
     FaPlus,
-    FaExchangeAlt
+    FaBuilding,
+    FaExchangeAlt,
+    FaSave
 } from 'react-icons/fa';
 
 // Import existing components
@@ -17,17 +19,42 @@ import EmployeesPage from './EmployeesPage';
 import ServicesPage from './ServicesPage';
 import BrandThemeSettingsPage from './BrandThemeSettingsPage';
 import CalendarColorsPage from './CalendarColorsPage';
+import CompanySettingsPage from './CompanySettingsPage'; // Nowy komponent
 
 // Import styles and utilities
 import { settingsTheme } from './styles/theme';
 
-type ActiveTab = 'employees' | 'services' | 'brand-theme' | 'calendar-colors';
+type ActiveTab = 'company' | 'employees' | 'services' | 'brand-theme' | 'calendar-colors';
+
+// Interfejsy dla komunikacji z komponentami dziećmi
+interface ChildComponentRef {
+    // Dla CompanySettingsPage
+    handleSave?: () => void;
+    // Dla EmployeesPage
+    handleAddEmployee?: () => void;
+    // Dla ServicesPage
+    handleAddService?: () => void;
+    // Dla CalendarColorsPage
+    handleAddColor?: () => void;
+}
 
 const SettingsPageWithTabs: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<ActiveTab>('employees');
+    const [activeTab, setActiveTab] = useState<ActiveTab>('company');
 
-    // Tab configuration
+    // Referencje do komponentów dzieci
+    const companySettingsRef = useRef<ChildComponentRef>(null);
+    const employeesPageRef = useRef<ChildComponentRef>(null);
+    const servicesPageRef = useRef<ChildComponentRef>(null);
+    const calendarColorsPageRef = useRef<ChildComponentRef>(null);
+
+    // Tab configuration - dodano nową zakładkę na początku
     const tabs = [
+        {
+            id: 'company' as ActiveTab,
+            label: 'Ustawienia firmy',
+            icon: FaBuilding,
+            description: 'Dane firmy, bank, email i logo'
+        },
         {
             id: 'employees' as ActiveTab,
             label: 'Pracownicy',
@@ -59,6 +86,31 @@ const SettingsPageWithTabs: React.FC = () => {
         setActiveTab(tabId);
     };
 
+    // Akcje dla poszczególnych zakładek
+    const handleCompanySaveSettings = () => {
+        if (companySettingsRef.current?.handleSave) {
+            companySettingsRef.current.handleSave();
+        }
+    };
+
+    const handleAddEmployee = () => {
+        if (employeesPageRef.current?.handleAddEmployee) {
+            employeesPageRef.current.handleAddEmployee();
+        }
+    };
+
+    const handleAddService = () => {
+        if (servicesPageRef.current?.handleAddService) {
+            servicesPageRef.current.handleAddService();
+        }
+    };
+
+    const handleAddCalendarColor = () => {
+        if (calendarColorsPageRef.current?.handleAddColor) {
+            calendarColorsPageRef.current.handleAddColor();
+        }
+    };
+
     // Get current tab configuration
     const currentTab = tabs.find(tab => tab.id === activeTab);
 
@@ -80,22 +132,29 @@ const SettingsPageWithTabs: React.FC = () => {
                     </HeaderLeft>
 
                     <HeaderActions>
+                        {activeTab === 'company' && (
+                            <PrimaryButton onClick={handleCompanySaveSettings}>
+                                <FaSave />
+                                <span>Zapisz ustawienia</span>
+                            </PrimaryButton>
+                        )}
+
                         {activeTab === 'employees' && (
-                            <PrimaryButton onClick={() => console.log('Add employee')}>
+                            <PrimaryButton onClick={handleAddEmployee}>
                                 <FaUser />
                                 <span>Dodaj pracownika</span>
                             </PrimaryButton>
                         )}
 
                         {activeTab === 'services' && (
-                            <PrimaryButton onClick={() => console.log('Add service')}>
+                            <PrimaryButton onClick={handleAddService}>
                                 <FaWrench />
                                 <span>Dodaj usługę</span>
                             </PrimaryButton>
                         )}
 
                         {activeTab === 'calendar-colors' && (
-                            <PrimaryButton onClick={() => console.log('Add color')}>
+                            <PrimaryButton onClick={handleAddCalendarColor}>
                                 <FaPalette />
                                 <span>Dodaj kolor</span>
                             </PrimaryButton>
@@ -130,10 +189,11 @@ const SettingsPageWithTabs: React.FC = () => {
 
             {/* Tab Content */}
             <ContentContainer>
-                {activeTab === 'employees' && <EmployeesPage />}
-                {activeTab === 'services' && <ServicesPage />}
+                {activeTab === 'company' && <CompanySettingsPage ref={companySettingsRef} />}
+                {activeTab === 'employees' && <EmployeesPage ref={employeesPageRef} />}
+                {activeTab === 'services' && <ServicesPage ref={servicesPageRef} />}
                 {activeTab === 'brand-theme' && <BrandThemeSettingsPage />}
-                {activeTab === 'calendar-colors' && <CalendarColorsPage />}
+                {activeTab === 'calendar-colors' && <CalendarColorsPage ref={calendarColorsPageRef} />}
             </ContentContainer>
         </PageContainer>
     );
@@ -310,6 +370,10 @@ const TabsList = styled.div`
     &::-webkit-scrollbar {
         display: none;
     }
+
+    @media (max-width: 768px) {
+        gap: ${settingsTheme.spacing.xs};
+    }
 `;
 
 const TabButton = styled.button<{ $active: boolean }>`
@@ -324,7 +388,7 @@ const TabButton = styled.button<{ $active: boolean }>`
     cursor: pointer;
     transition: all 0.2s ease;
     position: relative;
-    min-width: 200px;
+    min-width: 180px;
     white-space: nowrap;
     border-bottom: 3px solid ${props => props.$active ? settingsTheme.primary : 'transparent'};
 
@@ -334,8 +398,9 @@ const TabButton = styled.button<{ $active: boolean }>`
     }
 
     @media (max-width: 768px) {
-        min-width: 160px;
+        min-width: 140px;
         padding: ${settingsTheme.spacing.sm} ${settingsTheme.spacing.md};
+        gap: ${settingsTheme.spacing.sm};
     }
 `;
 
@@ -347,6 +412,12 @@ const TabIcon = styled.div`
     justify-content: center;
     font-size: 16px;
     flex-shrink: 0;
+
+    @media (max-width: 768px) {
+        width: 24px;
+        height: 24px;
+        font-size: 14px;
+    }
 `;
 
 const TabContent = styled.div`
@@ -361,6 +432,10 @@ const TabLabel = styled.div`
     font-size: 14px;
     font-weight: 600;
     line-height: 1.2;
+
+    @media (max-width: 768px) {
+        font-size: 12px;
+    }
 `;
 
 const TabDescription = styled.div`
@@ -368,6 +443,10 @@ const TabDescription = styled.div`
     font-weight: 400;
     opacity: 0.8;
     line-height: 1.2;
+
+    @media (max-width: 768px) {
+        font-size: 10px;
+    }
 `;
 
 const ContentContainer = styled.div`
