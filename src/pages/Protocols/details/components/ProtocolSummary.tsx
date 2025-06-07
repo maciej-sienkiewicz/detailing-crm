@@ -341,25 +341,6 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
 
             {/* KPI Metrics Row */}
             <MetricsRow>
-                <KPICard>
-                    <KPIIcon $color={executive.success}>
-                        <FaChartLine />
-                    </KPIIcon>
-                    <KPIContent>
-                        <KPIValue>{metrics.totalRevenue.toFixed(0)} zł</KPIValue>
-                        <KPILabel>Wartość zlecenia</KPILabel>
-                    </KPIContent>
-                </KPICard>
-
-                <KPICard>
-                    <KPIIcon $color={executive.primary}>
-                        <FaFileAlt />
-                    </KPIIcon>
-                    <KPIContent>
-                        <KPIValue>{metrics.servicesCount}</KPIValue>
-                        <KPILabel>Usługi</KPILabel>
-                    </KPIContent>
-                </KPICard>
 
                 {metrics.pendingCount > 0 && (
                     <KPICard $alert>

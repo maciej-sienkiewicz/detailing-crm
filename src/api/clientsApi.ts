@@ -155,8 +155,7 @@ export const clientApi = {
     updateClient: async (id: string, clientData: ClientData): Promise<ClientExpanded> => {
         try {
             // Konwertujemy dane do snake_case przed wysłaniem do API
-            const requestData = convertCamelToSnake(clientData);
-            const response = await apiClient.put<any>(`/clients/${id}`, requestData);
+            const response = await apiClient.putNot<any>(`/clients/${id}`, clientData);
 
             // Konwertujemy odpowiedź z snake_case na camelCase
             return convertSnakeToCamel(response) as ClientExpanded;

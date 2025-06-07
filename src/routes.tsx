@@ -32,6 +32,7 @@ import UnifiedFinancialPage from "./pages/Finances/UnifiedFinancialPage";
 import GalleryPage from "./pages/Gallery/GalleryPage";
 import TabletIntegrationPage from "./pages/Tablets/TabletIntegrationPage";
 import BrandThemeSettingsPage from "./pages/Settings/BrandThemeSettingsPage";
+import FinancialPage from "./pages/Finances/FinancialPage";
 
 // Tymczasowe komponenty dla innych stron - do zastąpienia rzeczywistymi implementacjami
 const PlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
@@ -60,7 +61,7 @@ const AppRoutes: React.FC = () => {
                 <Route path="/activity" element={<ActivityFeedPage />} />
 
                 {/* Ścieżki finansowe */}
-                <Route path="/finances" element={<UnifiedFinancialPage />} />
+                <Route path="/finances" element={<FinancialPage />} />
 
                 {/* Strona poczty - nowy moduł */}
                 <Route path="/mail" element={<MailPage />} />

@@ -242,9 +242,6 @@ const ProtocolInvoices: React.FC<ProtocolInvoicesProps> = ({ protocol, onProtoco
                     <EmptyText>
                         Brak faktur zakupowych dla tego zlecenia. Faktury zakupowe pozwalają śledzić koszty materiałów i usług zewnętrznych poniesionych podczas realizacji zlecenia.
                     </EmptyText>
-                    <AddFirstButton onClick={() => setShowFormModal(true)}>
-                        <FaPlus /> Dodaj pierwszą fakturę
-                    </AddFirstButton>
                 </EmptyState>
             ) : (
                 <>

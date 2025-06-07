@@ -1,17 +1,30 @@
 // src/pages/Finances/components/FinancialSummaryCards.tsx
 import React from 'react';
 import styled from 'styled-components';
-import { FaMoneyBillWave, FaArrowUp, FaArrowDown, FaChartLine, FaExclamationTriangle, FaUniversity, FaFileInvoiceDollar } from 'react-icons/fa';
-import { FinancialSummary } from '../../../types';
+import {
+    FaMoneyBillWave,
+    FaArrowUp,
+    FaArrowDown,
+    FaChartLine,
+    FaExclamationTriangle,
+    FaUniversity,
+    FaFileInvoiceDollar
+} from 'react-icons/fa';
+import { UnifiedDocumentSummary } from '../../../types/finance';
+import { brandTheme } from '../styles/theme';
 
 interface FinancialSummaryCardsProps {
-    summary: FinancialSummary;
+    summary: UnifiedDocumentSummary;
     isLoading: boolean;
     period?: string;
 }
 
-const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({ summary, isLoading, period }) => {
-    // Formatowanie kwoty
+const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({
+                                                                         summary,
+                                                                         isLoading,
+                                                                         period
+                                                                     }) => {
+    // Format amount
     const formatAmount = (amount: number): string => {
         return new Intl.NumberFormat('pl-PL', {
             style: 'currency',
@@ -32,206 +45,282 @@ const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({ summary, 
     }
 
     return (
-        <CardsContainer>
-            <SummaryCard type="balance">
-                <CardIcon>
-                    <FaMoneyBillWave />
-                </CardIcon>
-                <CardContent>
-                    <CardLabel>Stan kasy</CardLabel>
-                    <CardValue>{formatAmount(summary.cashBalance)}</CardValue>
-                    <CardDetail>Gotówka w kasie</CardDetail>
-                </CardContent>
-            </SummaryCard>
+        <SummarySection>
+            <CardsContainer>
+                <SummaryCard $type="balance">
+                    <CardIcon $color={brandTheme.primary}>
+                        <FaMoneyBillWave />
+                    </CardIcon>
+                    <CardContent>
+                        <CardValue>{formatAmount(summary.cashBalance)}</CardValue>
+                        <CardLabel>Stan kasy</CardLabel>
+                        <CardDetail>Gotówka w kasie</CardDetail>
+                    </CardContent>
+                </SummaryCard>
 
-            <SummaryCard type="bank">
-                <CardIcon>
-                    <FaUniversity />
-                </CardIcon>
-                <CardContent>
-                    <CardLabel>Stan konta</CardLabel>
-                    <CardValue>{formatAmount(summary.bankAccountBalance)}</CardValue>
-                    <CardDetail>Środki na koncie bankowym</CardDetail>
-                </CardContent>
-            </SummaryCard>
+                <SummaryCard $type="bank">
+                    <CardIcon $color={brandTheme.primary}>
+                        <FaUniversity />
+                    </CardIcon>
+                    <CardContent>
+                        <CardValue>{formatAmount(summary.bankAccountBalance)}</CardValue>
+                        <CardLabel>Stan konta</CardLabel>
+                        <CardDetail>Środki na koncie bankowym</CardDetail>
+                    </CardContent>
+                </SummaryCard>
 
-            <SummaryCard type="income">
-                <CardIcon>
-                    <FaArrowUp />
-                </CardIcon>
-                <CardContent>
-                    <CardLabel>Przychody</CardLabel>
-                    <CardValue>{formatAmount(summary.totalIncome)}</CardValue>
-                    <CardDetail>{period ? `W okresie ${period}` : 'Całkowite przychody'}</CardDetail>
-                </CardContent>
-            </SummaryCard>
+                <SummaryCard $type="income">
+                    <CardIcon $color={brandTheme.primary}>
+                        <FaArrowUp />
+                    </CardIcon>
+                    <CardContent>
+                        <CardValue $type="income">{formatAmount(summary.totalIncome)}</CardValue>
+                        <CardLabel>Przychody</CardLabel>
+                        <CardDetail>{period ? `W okresie ${period}` : 'Całkowite przychody'}</CardDetail>
+                    </CardContent>
+                </SummaryCard>
 
-            <SummaryCard type="expense">
-                <CardIcon>
-                    <FaArrowDown />
-                </CardIcon>
-                <CardContent>
-                    <CardLabel>Wydatki</CardLabel>
-                    <CardValue>{formatAmount(summary.totalExpense)}</CardValue>
-                    <CardDetail>{period ? `W okresie ${period}` : 'Całkowite wydatki'}</CardDetail>
-                </CardContent>
-            </SummaryCard>
+                <SummaryCard $type="expense">
+                    <CardIcon $color={brandTheme.primary}>
+                        <FaArrowDown />
+                    </CardIcon>
+                    <CardContent>
+                        <CardValue $type="expense">{formatAmount(summary.totalExpense)}</CardValue>
+                        <CardLabel>Wydatki</CardLabel>
+                        <CardDetail>{period ? `W okresie ${period}` : 'Całkowite wydatki'}</CardDetail>
+                    </CardContent>
+                </SummaryCard>
 
-            <SummaryCard type="receivables">
-                <CardIcon>
-                    <FaFileInvoiceDollar />
-                </CardIcon>
-                <CardContent>
-                    <CardLabel>Należności</CardLabel>
-                    <CardValue>{formatAmount(summary.receivables)}</CardValue>
-                    <CardDetail>
-                        {summary.receivablesOverdue > 0 && (
-                            <WarningText>
-                                <FaExclamationTriangle /> Przeterminowane: {formatAmount(summary.receivablesOverdue)}
-                            </WarningText>
-                        )}
-                    </CardDetail>
-                </CardContent>
-            </SummaryCard>
+                <SummaryCard $type="receivables">
+                    <CardIcon $color={brandTheme.primary}>
+                        <FaFileInvoiceDollar />
+                    </CardIcon>
+                    <CardContent>
+                        <CardValue>{formatAmount(summary.receivables)}</CardValue>
+                        <CardLabel>Należności</CardLabel>
+                        <CardDetail>
+                            {summary.receivablesOverdue > 0 ? (
+                                <WarningText>
+                                    <FaExclamationTriangle />
+                                    Przeterminowane: {formatAmount(summary.receivablesOverdue)}
+                                </WarningText>
+                            ) : (
+                                <span>Brak przeterminowanych</span>
+                            )}
+                        </CardDetail>
+                    </CardContent>
+                </SummaryCard>
 
-            <SummaryCard type="profit">
-                <CardIcon>
-                    <FaChartLine />
-                </CardIcon>
-                <CardContent>
-                    <CardLabel>Zysk</CardLabel>
-                    <CardValue>{formatAmount(summary.profit)}</CardValue>
-                    <CardDetail>Przychody - Wydatki</CardDetail>
-                </CardContent>
-            </SummaryCard>
-        </CardsContainer>
+                <SummaryCard $type="profit">
+                    <CardIcon $color={brandTheme.primary}>
+                        <FaChartLine />
+                    </CardIcon>
+                    <CardContent>
+                        <CardValue $profit={summary.profit}>{formatAmount(summary.profit)}</CardValue>
+                        <CardLabel>Zysk</CardLabel>
+                        <CardDetail>Przychody - Wydatki</CardDetail>
+                    </CardContent>
+                </SummaryCard>
+            </CardsContainer>
+        </SummarySection>
     );
 };
 
+// Styled Components - Updated to match VehiclesPage style
+const SummarySection = styled.section`
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl} 0;
+
+    @media (max-width: 1024px) {
+        padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg} 0;
+    }
+
+    @media (max-width: 768px) {
+        padding: ${brandTheme.spacing.md} ${brandTheme.spacing.md} 0;
+    }
+`;
+
 const CardsContainer = styled.div`
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 20px;
-  margin-bottom: 24px;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: ${brandTheme.spacing.lg};
+    margin-bottom: ${brandTheme.spacing.lg};
 
-  @media (max-width: 1400px) {
-    grid-template-columns: repeat(3, 1fr);
-  }
+    @media (max-width: 1400px) {
+        grid-template-columns: repeat(3, 1fr);
+    }
 
-  @media (max-width: 768px) {
-    grid-template-columns: repeat(2, 1fr);
-  }
+    @media (max-width: 992px) {
+        grid-template-columns: repeat(2, 1fr);
+    }
 
-  @media (max-width: 576px) {
-    grid-template-columns: 1fr;
-  }
+    @media (max-width: 576px) {
+        grid-template-columns: 1fr;
+    }
 `;
 
 interface SummaryCardProps {
-    type: 'balance' | 'income' | 'expense' | 'receivables' | 'bank' | 'profit';
+    $type: 'balance' | 'income' | 'expense' | 'receivables' | 'bank' | 'profit';
 }
 
 const SummaryCard = styled.div<SummaryCardProps>`
-  background-color: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  border-top: 4px solid ${props => {
-    switch (props.type) {
-        case 'balance': return '#3498db';  // Niebieski
-        case 'income': return '#2ecc71';   // Zielony
-        case 'expense': return '#e74c3c';  // Czerwony
-        case 'receivables': return '#f39c12'; // Pomarańczowy
-        case 'bank': return '#9b59b6';     // Fioletowy
-        case 'profit': return '#1abc9c';   // Morski
-        default: return '#3498db';
-    }
-}};
+    background: ${brandTheme.surface};
+    border-radius: ${brandTheme.radius.lg};
+    border: 1px solid ${brandTheme.border};
+    overflow: hidden;
+    box-shadow: ${brandTheme.shadow.xs};
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.md};
+    padding: ${brandTheme.spacing.lg};
+    transition: all 0.2s ease;
+    position: relative;
+    min-height: 110px; /* Jednakowa wysokość wszystkich kart */
 
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  }
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow: ${brandTheme.shadow.sm};
+        border-color: ${brandTheme.borderHover};
+    }
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: ${brandTheme.primary};
+        opacity: 0.8;
+    }
 `;
 
-const CardIcon = styled.div`
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  background-color: #f8f9fa;
-  color: #3498db;
+const CardIcon = styled.div<{ $color: string }>`
+    width: 48px;
+    height: 48px;
+    background: ${brandTheme.surfaceAlt};
+    border-radius: ${brandTheme.radius.md};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${brandTheme.text.secondary};
+    font-size: 20px;
+    flex-shrink: 0;
+    border: 1px solid ${brandTheme.border};
+    transition: all 0.2s ease;
+
+    ${SummaryCard}:hover & {
+        background: ${brandTheme.primary};
+        color: white;
+        border-color: ${brandTheme.primary};
+    }
 `;
 
 const CardContent = styled.div`
-  flex: 1;
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 100%;
+`;
+
+const CardValue = styled.div<{ $profit?: number; $type?: string }>`
+    font-size: 20px;
+    font-weight: 600;
+    color: ${props => {
+        if (props.$profit !== undefined) {
+            return props.$profit >= 0 ? brandTheme.status.success : brandTheme.status.error;
+        }
+        if (props.$type === 'income') {
+            return brandTheme.status.success;
+        }
+        if (props.$type === 'expense') {
+            return brandTheme.status.error;
+        }
+        return brandTheme.text.primary;
+    }};
+    margin-bottom: ${brandTheme.spacing.xs};
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+    height: 24px; /* Stała wysokość dla wartości */
+    display: flex;
+    align-items: center;
+
+    @media (max-width: 768px) {
+        font-size: 18px;
+    }
 `;
 
 const CardLabel = styled.div`
-  font-size: 14px;
-  color: #7f8c8d;
-  margin-bottom: 4px;
-`;
-
-const CardValue = styled.div`
-  font-size: 22px;
-  font-weight: 600;
-  color: #2c3e50;
-  margin-bottom: 6px;
+    font-size: 14px;
+    color: ${brandTheme.text.primary};
+    font-weight: 600;
+    margin-bottom: ${brandTheme.spacing.xs};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    height: 17px; /* Stała wysokość dla etykiety */
+    display: flex;
+    align-items: center;
 `;
 
 const CardDetail = styled.div`
-  font-size: 12px;
-  color: #7f8c8d;
+    font-size: 12px;
+    color: ${brandTheme.text.tertiary};
+    font-weight: 500;
+    line-height: 1.3;
+    min-height: 16px; /* Minimalna wysokość dla detali */
+    display: flex;
+    align-items: center;
 `;
 
 const WarningText = styled.span`
-  color: #e74c3c;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
+    color: ${brandTheme.status.error};
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.xs};
+    font-size: 11px;
+    font-weight: 600;
+
+    svg {
+        font-size: 10px;
+    }
 `;
 
 const SkeletonCard = styled.div`
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  padding: 20px;
-  height: 110px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-  position: relative;
-  overflow: hidden;
-  
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    transform: translateX(-100%);
-    background-image: linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 0) 0,
-      rgba(255, 255, 255, 0.2) 20%,
-      rgba(255, 255, 255, 0.5) 60%,
-      rgba(255, 255, 255, 0)
-    );
-    animation: shimmer 2s infinite;
-  }
-  
-  @keyframes shimmer {
-    100% {
-      transform: translateX(100%);
+    background: ${brandTheme.surface};
+    border-radius: ${brandTheme.radius.xl};
+    border: 1px solid ${brandTheme.border};
+    padding: ${brandTheme.spacing.lg};
+    height: 110px;
+    box-shadow: ${brandTheme.shadow.sm};
+    position: relative;
+    overflow: hidden;
+
+    &::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        transform: translateX(-100%);
+        background-image: linear-gradient(
+                90deg,
+                rgba(255, 255, 255, 0) 0,
+                rgba(255, 255, 255, 0.2) 20%,
+                rgba(255, 255, 255, 0.5) 60%,
+                rgba(255, 255, 255, 0)
+        );
+        animation: shimmer 2s infinite;
     }
-  }
+
+    @keyframes shimmer {
+        100% {
+            transform: translateX(100%);
+        }
+    }
 `;
 
 export default FinancialSummaryCards;
