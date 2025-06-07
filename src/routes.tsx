@@ -2,7 +2,6 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import CalendarPage from './pages/Calendar/CalendarPage';
-import TaxesPage from './pages/Settings/TaxesPage';
 import ServicesPage from './pages/Settings/ServicesPage';
 import EmployeesPage from './pages/Settings/EmployeesPage';
 import CarReceptionPage from './pages/Protocols/CarReceptionPage';
@@ -80,7 +79,6 @@ const AppRoutes: React.FC = () => {
 
                 {/* Strony ustawień */}
                 <Route path="/settings/calendar" element={<CalendarColorsPage />} />
-                <Route path="/settings/taxes" element={<TaxesPage />} />
                 <Route path="/settings/services" element={<ServicesPage />} />
                 <Route path="/settings" element={<Navigate to="/settings/calendar" replace />} />
                 <Route path="/settings/brand-theme" element={<BrandThemeSettingsPage />} />

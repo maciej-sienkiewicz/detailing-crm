@@ -1,4 +1,6 @@
+// src/pages/Settings/EmployeesPage.tsx
 import React, { useState, useEffect } from 'react';
+import styled from 'styled-components';
 import {
     FaPlus,
     FaEdit,
@@ -6,7 +8,13 @@ import {
     FaFileAlt,
     FaCalendarAlt,
     FaEnvelope,
-    FaPhone
+    FaPhone,
+    FaUser,
+    FaSearch,
+    FaChevronDown,
+    FaChevronUp,
+    FaFilter,
+    FaTimes
 } from 'react-icons/fa';
 import { Employee, EmployeeDocument } from '../../types';
 import {
@@ -24,27 +32,7 @@ import {
 import { EmployeeFormModal } from './components/EmployeeFormModal';
 import { DocumentFormModal } from './components/DocumentFormModal';
 import { DocumentsDrawer } from './components/DocumentsDrawer';
-import {
-    PageContainer,
-    PageHeader,
-    LoadingMessage,
-    ErrorMessage,
-    EmptyState,
-    EmployeesGrid,
-    EmployeeCard,
-    ColorBadge,
-    EmployeeHeader,
-    EmployeeName,
-    DocumentsButton,
-    EmployeePosition,
-    EmployeeDetails,
-    EmployeeDetail,
-    DetailIcon,
-    DetailText,
-    EmployeeActions,
-    ActionButton,
-    AddButton
-} from './styles/EmployeesStyles';
+import { settingsTheme } from './styles/theme';
 
 // Funkcja pomocnicza do formatowania daty
 export const formatDate = (dateString: string): string => {
@@ -60,10 +48,16 @@ export const formatDate = (dateString: string): string => {
 
 const EmployeesPage: React.FC = () => {
     const [employees, setEmployees] = useState<Employee[]>([]);
+    const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showModal, setShowModal] = useState(false);
     const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+
+    // Search and filters
+    const [searchTerm, setSearchTerm] = useState('');
+    const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+    const [positionFilter, setPositionFilter] = useState('');
 
     // Stan dla panelu dokumentów
     const [showDocumentsDrawer, setShowDocumentsDrawer] = useState(false);
@@ -92,10 +86,35 @@ const EmployeesPage: React.FC = () => {
         fetchData();
     }, []);
 
+    // Filtrowanie pracowników
+    useEffect(() => {
+        let result = [...employees];
+
+        // Filtrowanie po wyszukiwanej frazie
+        if (searchTerm.trim()) {
+            const query = searchTerm.toLowerCase().trim();
+            result = result.filter(employee =>
+                employee.fullName.toLowerCase().includes(query) ||
+                employee.email.toLowerCase().includes(query) ||
+                employee.phone.includes(query) ||
+                employee.position.toLowerCase().includes(query)
+            );
+        }
+
+        // Filtrowanie po stanowisku
+        if (positionFilter.trim()) {
+            const posQuery = positionFilter.toLowerCase().trim();
+            result = result.filter(employee =>
+                employee.position.toLowerCase().includes(posQuery)
+            );
+        }
+
+        setFilteredEmployees(result);
+    }, [employees, searchTerm, positionFilter]);
+
     // Obsługa dodawania nowego pracownika
     const handleAddEmployee = () => {
-        // Przygotowanie pustego obiektu pracownika do formularza
-        const today = new Date().toISOString().split('T')[0]; // Dzisiejsza data w formacie YYYY-MM-DD
+        const today = new Date().toISOString().split('T')[0];
         setEditingEmployee({
             id: '',
             fullName: '',
@@ -104,7 +123,7 @@ const EmployeesPage: React.FC = () => {
             position: '',
             email: '',
             phone: '',
-            color: '#3498db' // Domyślny kolor
+            color: '#1a365d'
         });
         setShowModal(true);
     };
@@ -122,7 +141,6 @@ const EmployeesPage: React.FC = () => {
                 const result = await deleteEmployee(id);
 
                 if (result) {
-                    // Aktualizacja stanu lokalnego po pomyślnym usunięciu
                     setEmployees(employees.filter(employee => employee.id !== id));
                 }
             } catch (err) {
@@ -131,21 +149,17 @@ const EmployeesPage: React.FC = () => {
         }
     };
 
-    // Obsługa zapisu pracownika (dodawanie lub aktualizacja)
+    // Obsługa zapisu pracownika
     const handleSaveEmployee = async (employee: Employee) => {
         try {
             let savedEmployee: Employee;
 
             if (employee.id) {
-                // Aktualizacja istniejącego pracownika
                 savedEmployee = await updateEmployee(employee);
-                // Aktualizacja stanu lokalnego
                 setEmployees(employees.map(emp => emp.id === savedEmployee.id ? savedEmployee : emp));
             } else {
-                // Dodanie nowego pracownika
                 const { id, ...employeeWithoutId } = employee;
                 savedEmployee = await addEmployee(employeeWithoutId);
-                // Aktualizacja stanu lokalnego
                 setEmployees([...employees, savedEmployee]);
             }
 
@@ -194,7 +208,6 @@ const EmployeesPage: React.FC = () => {
                 const result = await deleteEmployeeDocument(documentId);
 
                 if (result) {
-                    // Aktualizacja stanu lokalnego po pomyślnym usunięciu
                     setEmployeeDocuments(employeeDocuments.filter(doc => doc.id !== documentId));
                 }
             } catch (err) {
@@ -214,78 +227,209 @@ const EmployeesPage: React.FC = () => {
         }
     };
 
+    // Clear filters
+    const clearAllFilters = () => {
+        setSearchTerm('');
+        setPositionFilter('');
+    };
+
+    const hasActiveFilters = () => {
+        return searchTerm.trim() !== '' || positionFilter.trim() !== '';
+    };
+
+    // Get unique positions for filter
+    const uniquePositions = [...new Set(employees.map(emp => emp.position))];
+
     return (
         <PageContainer>
-            <PageHeader>
-                <h1>Pracownicy</h1>
-                <AddButton onClick={handleAddEmployee}>
-                    <FaPlus /> Dodaj pracownika
-                </AddButton>
-            </PageHeader>
+            {/* Header */}
+            <HeaderContainer>
+                <HeaderContent>
+                    <HeaderLeft>
+                        <HeaderIcon>
+                            <FaUser />
+                        </HeaderIcon>
+                        <HeaderText>
+                            <HeaderTitle>Pracownicy</HeaderTitle>
+                            <HeaderSubtitle>
+                                Zarządzanie zespołem i dokumentacją pracowniczą
+                            </HeaderSubtitle>
+                        </HeaderText>
+                    </HeaderLeft>
 
-            {loading ? (
-                <LoadingMessage>Ładowanie danych...</LoadingMessage>
-            ) : error ? (
-                <ErrorMessage>{error}</ErrorMessage>
-            ) : (
-                <>
-                    {employees.length === 0 ? (
-                        <EmptyState>
-                            <p>Brak zdefiniowanych pracowników. Kliknij "Dodaj pracownika", aby utworzyć pierwszego.</p>
-                        </EmptyState>
-                    ) : (
-                        <EmployeesGrid>
-                            {employees.map(employee => (
-                                <EmployeeCard key={employee.id}>
-                                    <ColorBadge color={employee.color} />
-                                    <EmployeeHeader>
-                                        <EmployeeName>
-                                            {employee.fullName}
-                                            <DocumentsButton
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleOpenDocuments(employee);
-                                                }}
-                                                title="Pokaż dokumenty"
+                    <HeaderActions>
+                        <PrimaryButton onClick={handleAddEmployee}>
+                            <FaPlus />
+                            <span>Dodaj pracownika</span>
+                        </PrimaryButton>
+                    </HeaderActions>
+                </HeaderContent>
+            </HeaderContainer>
+
+            {/* Filters */}
+            <FiltersContainer>
+                <QuickSearchSection>
+                    <SearchWrapper>
+                        <SearchIcon>
+                            <FaSearch />
+                        </SearchIcon>
+                        <SearchInput
+                            type="text"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            placeholder="Szybkie wyszukiwanie - imię, nazwisko, email, telefon..."
+                        />
+                        {searchTerm && (
+                            <ClearSearchButton onClick={() => setSearchTerm('')}>
+                                <FaTimes />
+                            </ClearSearchButton>
+                        )}
+                    </SearchWrapper>
+
+                    <AdvancedToggle
+                        onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                        $expanded={showAdvancedFilters}
+                    >
+                        <FaFilter />
+                        Filtry zaawansowane
+                        {showAdvancedFilters ? <FaChevronUp /> : <FaChevronDown />}
+                    </AdvancedToggle>
+                </QuickSearchSection>
+
+                {showAdvancedFilters && (
+                    <AdvancedFiltersSection>
+                        <FiltersGrid>
+                            <FormGroup>
+                                <Label>Stanowisko</Label>
+                                <Select
+                                    value={positionFilter}
+                                    onChange={(e) => setPositionFilter(e.target.value)}
+                                >
+                                    <option value="">Wszystkie stanowiska</option>
+                                    {uniquePositions.map(position => (
+                                        <option key={position} value={position}>{position}</option>
+                                    ))}
+                                </Select>
+                            </FormGroup>
+                        </FiltersGrid>
+
+                        <FiltersActions>
+                            <ClearButton onClick={clearAllFilters}>
+                                <FaTimes />
+                                Wyczyść wszystkie
+                            </ClearButton>
+                        </FiltersActions>
+                    </AdvancedFiltersSection>
+                )}
+
+                <ResultsCounter>
+                    Znaleziono: <strong>{filteredEmployees.length}</strong> {filteredEmployees.length === 1 ? 'pracownik' : 'pracowników'}
+                </ResultsCounter>
+            </FiltersContainer>
+
+            {/* Content */}
+            <ContentContainer>
+                {loading ? (
+                    <LoadingContainer>
+                        <LoadingSpinner />
+                        <LoadingText>Ładowanie pracowników...</LoadingText>
+                    </LoadingContainer>
+                ) : error ? (
+                    <ErrorMessage>
+                        <ErrorIcon>⚠️</ErrorIcon>
+                        <ErrorText>{error}</ErrorText>
+                    </ErrorMessage>
+                ) : (
+                    <>
+                        {employees.length === 0 ? (
+                            <EmptyStateContainer>
+                                <EmptyStateIcon>
+                                    <FaUser />
+                                </EmptyStateIcon>
+                                <EmptyStateTitle>Brak pracowników</EmptyStateTitle>
+                                <EmptyStateDescription>
+                                    Nie masz jeszcze żadnych pracowników w systemie
+                                </EmptyStateDescription>
+                                <EmptyStateAction>
+                                    Kliknij przycisk "Dodaj pracownika", aby dodać pierwszego pracownika
+                                </EmptyStateAction>
+                            </EmptyStateContainer>
+                        ) : filteredEmployees.length === 0 && hasActiveFilters() ? (
+                            <EmptyStateContainer>
+                                <EmptyStateIcon>
+                                    <FaSearch />
+                                </EmptyStateIcon>
+                                <EmptyStateTitle>Brak wyników</EmptyStateTitle>
+                                <EmptyStateDescription>
+                                    Nie znaleziono pracowników spełniających kryteria wyszukiwania
+                                </EmptyStateDescription>
+                            </EmptyStateContainer>
+                        ) : (
+                            <EmployeesGrid>
+                                {filteredEmployees.map(employee => (
+                                    <EmployeeCard key={employee.id}>
+                                        <ColorBadge color={employee.color} />
+
+                                        <EmployeeHeader>
+                                            <EmployeeName>
+                                                {employee.fullName}
+                                                <DocumentsButton
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleOpenDocuments(employee);
+                                                    }}
+                                                    title="Pokaż dokumenty"
+                                                >
+                                                    <FaFileAlt />
+                                                </DocumentsButton>
+                                            </EmployeeName>
+                                            <EmployeePosition>{employee.position}</EmployeePosition>
+                                        </EmployeeHeader>
+
+                                        <EmployeeDetails>
+                                            <EmployeeDetail>
+                                                <DetailIcon><FaCalendarAlt /></DetailIcon>
+                                                <DetailText>Urodzony: {formatDate(employee.birthDate)}</DetailText>
+                                            </EmployeeDetail>
+                                            <EmployeeDetail>
+                                                <DetailIcon><FaCalendarAlt /></DetailIcon>
+                                                <DetailText>Zatrudniony: {formatDate(employee.hireDate)}</DetailText>
+                                            </EmployeeDetail>
+                                            <EmployeeDetail>
+                                                <DetailIcon><FaEnvelope /></DetailIcon>
+                                                <DetailText>{employee.email}</DetailText>
+                                            </EmployeeDetail>
+                                            <EmployeeDetail>
+                                                <DetailIcon><FaPhone /></DetailIcon>
+                                                <DetailText>{employee.phone}</DetailText>
+                                            </EmployeeDetail>
+                                        </EmployeeDetails>
+
+                                        <EmployeeActions>
+                                            <ActionButton
+                                                onClick={() => handleEditEmployee(employee)}
+                                                $variant="edit"
                                             >
-                                                <FaFileAlt />
-                                            </DocumentsButton>
-                                        </EmployeeName>
-                                        <EmployeePosition>{employee.position}</EmployeePosition>
-                                    </EmployeeHeader>
-                                    <EmployeeDetails>
-                                        <EmployeeDetail>
-                                            <DetailIcon><FaCalendarAlt /></DetailIcon>
-                                            <DetailText>Data urodzenia: {formatDate(employee.birthDate)}</DetailText>
-                                        </EmployeeDetail>
-                                        <EmployeeDetail>
-                                            <DetailIcon><FaCalendarAlt /></DetailIcon>
-                                            <DetailText>Data zatrudnienia: {formatDate(employee.hireDate)}</DetailText>
-                                        </EmployeeDetail>
-                                        <EmployeeDetail>
-                                            <DetailIcon><FaEnvelope /></DetailIcon>
-                                            <DetailText>{employee.email}</DetailText>
-                                        </EmployeeDetail>
-                                        <EmployeeDetail>
-                                            <DetailIcon><FaPhone /></DetailIcon>
-                                            <DetailText>{employee.phone}</DetailText>
-                                        </EmployeeDetail>
-                                    </EmployeeDetails>
-                                    <EmployeeActions>
-                                        <ActionButton onClick={() => handleEditEmployee(employee)}>
-                                            <FaEdit /> Edytuj
-                                        </ActionButton>
-                                        <ActionButton danger onClick={() => handleDeleteEmployee(employee.id)}>
-                                            <FaTrash /> Usuń
-                                        </ActionButton>
-                                    </EmployeeActions>
-                                </EmployeeCard>
-                            ))}
-                        </EmployeesGrid>
-                    )}
-                </>
-            )}
+                                                <FaEdit />
+                                                Edytuj
+                                            </ActionButton>
+                                            <ActionButton
+                                                onClick={() => handleDeleteEmployee(employee.id)}
+                                                $variant="delete"
+                                            >
+                                                <FaTrash />
+                                                Usuń
+                                            </ActionButton>
+                                        </EmployeeActions>
+                                    </EmployeeCard>
+                                ))}
+                            </EmployeesGrid>
+                        )}
+                    </>
+                )}
+            </ContentContainer>
 
+            {/* Modals */}
             {showModal && editingEmployee && (
                 <EmployeeFormModal
                     employee={editingEmployee}
@@ -297,7 +441,6 @@ const EmployeesPage: React.FC = () => {
                 />
             )}
 
-            {/* Panel boczny dokumentów */}
             {showDocumentsDrawer && selectedEmployee && (
                 <DocumentsDrawer
                     isOpen={showDocumentsDrawer}
@@ -311,7 +454,6 @@ const EmployeesPage: React.FC = () => {
                 />
             )}
 
-            {/* Modal dodawania dokumentu */}
             {showDocumentModal && selectedEmployee && (
                 <DocumentFormModal
                     employeeId={selectedEmployee.id}
@@ -322,5 +464,658 @@ const EmployeesPage: React.FC = () => {
         </PageContainer>
     );
 };
+
+// Styled Components
+const PageContainer = styled.div`
+    min-height: 100vh;
+    background: ${settingsTheme.surfaceAlt};
+    display: flex;
+    flex-direction: column;
+`;
+
+const HeaderContainer = styled.header`
+    background: ${settingsTheme.surface};
+    border-bottom: 1px solid ${settingsTheme.border};
+    box-shadow: ${settingsTheme.shadow.sm};
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(8px);
+    background: rgba(255, 255, 255, 0.95);
+`;
+
+const HeaderContent = styled.div`
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: ${settingsTheme.spacing.lg} ${settingsTheme.spacing.xl};
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: ${settingsTheme.spacing.lg};
+
+    @media (max-width: 1024px) {
+        padding: ${settingsTheme.spacing.md} ${settingsTheme.spacing.lg};
+        flex-direction: column;
+        align-items: stretch;
+        gap: ${settingsTheme.spacing.md};
+    }
+
+    @media (max-width: 768px) {
+        padding: ${settingsTheme.spacing.md};
+    }
+`;
+
+const HeaderLeft = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${settingsTheme.spacing.md};
+    min-width: 0;
+    flex: 1;
+`;
+
+const HeaderIcon = styled.div`
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, ${settingsTheme.primary} 0%, ${settingsTheme.primaryLight} 100%);
+    border-radius: ${settingsTheme.radius.lg};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+    box-shadow: ${settingsTheme.shadow.md};
+    flex-shrink: 0;
+`;
+
+const HeaderText = styled.div`
+    min-width: 0;
+    flex: 1;
+`;
+
+const HeaderTitle = styled.h1`
+    font-size: 32px;
+    font-weight: 700;
+    color: ${settingsTheme.text.primary};
+    margin: 0 0 ${settingsTheme.spacing.xs} 0;
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+
+    @media (max-width: 768px) {
+        font-size: 28px;
+    }
+`;
+
+const HeaderSubtitle = styled.p`
+    color: ${settingsTheme.text.secondary};
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.4;
+
+    @media (max-width: 768px) {
+        font-size: 14px;
+    }
+`;
+
+const HeaderActions = styled.div`
+    display: flex;
+    gap: ${settingsTheme.spacing.sm};
+    align-items: center;
+    flex-wrap: wrap;
+
+    @media (max-width: 1024px) {
+        justify-content: flex-end;
+        width: 100%;
+    }
+
+    @media (max-width: 768px) {
+        flex-direction: column;
+        gap: ${settingsTheme.spacing.xs};
+
+        > * {
+            width: 100%;
+        }
+    }
+`;
+
+const PrimaryButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: ${settingsTheme.spacing.sm};
+    padding: ${settingsTheme.spacing.sm} ${settingsTheme.spacing.md};
+    border-radius: ${settingsTheme.radius.md};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid transparent;
+    white-space: nowrap;
+    min-height: 44px;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, ${settingsTheme.primary} 0%, ${settingsTheme.primaryLight} 100%);
+    color: white;
+    box-shadow: ${settingsTheme.shadow.sm};
+
+    &:hover {
+        background: linear-gradient(135deg, ${settingsTheme.primaryDark} 0%, ${settingsTheme.primary} 100%);
+        box-shadow: ${settingsTheme.shadow.md};
+        transform: translateY(-1px);
+    }
+
+    &:active {
+        transform: translateY(0);
+    }
+
+    @media (max-width: 768px) {
+        justify-content: center;
+    }
+`;
+
+const FiltersContainer = styled.div`
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: ${settingsTheme.spacing.lg} ${settingsTheme.spacing.xl} 0;
+    width: 100%;
+
+    @media (max-width: 1024px) {
+        padding: ${settingsTheme.spacing.md} ${settingsTheme.spacing.lg} 0;
+    }
+
+    @media (max-width: 768px) {
+        padding: ${settingsTheme.spacing.md} ${settingsTheme.spacing.md} 0;
+    }
+`;
+
+const QuickSearchSection = styled.div`
+    background: ${settingsTheme.surface};
+    border-radius: ${settingsTheme.radius.xl};
+    border: 1px solid ${settingsTheme.border};
+    padding: ${settingsTheme.spacing.lg};
+    display: flex;
+    align-items: center;
+    gap: ${settingsTheme.spacing.md};
+    margin-bottom: ${settingsTheme.spacing.md};
+    box-shadow: ${settingsTheme.shadow.sm};
+
+    @media (max-width: 768px) {
+        flex-direction: column;
+        align-items: stretch;
+    }
+`;
+
+const SearchWrapper = styled.div`
+    position: relative;
+    flex: 1;
+    max-width: 500px;
+
+    @media (max-width: 768px) {
+        max-width: none;
+    }
+`;
+
+const SearchIcon = styled.div`
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: ${settingsTheme.text.muted};
+    font-size: 16px;
+    z-index: 2;
+`;
+
+const SearchInput = styled.input`
+    width: 100%;
+    height: 48px;
+    padding: 0 48px 0 48px;
+    border: 2px solid ${settingsTheme.border};
+    border-radius: ${settingsTheme.radius.lg};
+    font-size: 16px;
+    font-weight: 500;
+    background: ${settingsTheme.surface};
+    color: ${settingsTheme.text.primary};
+    transition: all 0.2s ease;
+
+    &:focus {
+        outline: none;
+        border-color: ${settingsTheme.primary};
+        box-shadow: 0 0 0 3px ${settingsTheme.primaryGhost};
+    }
+
+    &::placeholder {
+        color: ${settingsTheme.text.muted};
+        font-weight: 400;
+    }
+`;
+
+const ClearSearchButton = styled.button`
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: ${settingsTheme.surfaceAlt};
+    color: ${settingsTheme.text.muted};
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: ${settingsTheme.status.error};
+        color: white;
+    }
+`;
+
+const AdvancedToggle = styled.button<{ $expanded: boolean }>`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border: 2px solid ${props => props.$expanded ? settingsTheme.primary : settingsTheme.border};
+    background: ${props => props.$expanded ? settingsTheme.primaryGhost : settingsTheme.surface};
+    color: ${props => props.$expanded ? settingsTheme.primary : settingsTheme.text.secondary};
+    border-radius: ${settingsTheme.radius.md};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+
+    &:hover {
+        border-color: ${settingsTheme.primary};
+        color: ${settingsTheme.primary};
+    }
+`;
+
+const AdvancedFiltersSection = styled.div`
+    background: ${settingsTheme.surface};
+    border-radius: ${settingsTheme.radius.xl};
+    border: 1px solid ${settingsTheme.border};
+    padding: ${settingsTheme.spacing.lg};
+    margin-bottom: ${settingsTheme.spacing.md};
+    box-shadow: ${settingsTheme.shadow.sm};
+`;
+
+const FiltersGrid = styled.div`
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: ${settingsTheme.spacing.md};
+    margin-bottom: ${settingsTheme.spacing.lg};
+
+    @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+    }
+`;
+
+const FormGroup = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${settingsTheme.spacing.xs};
+`;
+
+const Label = styled.label`
+    font-size: 14px;
+    font-weight: 600;
+    color: ${settingsTheme.text.primary};
+`;
+
+const Select = styled.select`
+    height: 44px;
+    padding: 0 ${settingsTheme.spacing.md};
+    border: 2px solid ${settingsTheme.border};
+    border-radius: ${settingsTheme.radius.md};
+    font-size: 14px;
+    font-weight: 500;
+    background: ${settingsTheme.surface};
+    color: ${settingsTheme.text.primary};
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:focus {
+        outline: none;
+        border-color: ${settingsTheme.primary};
+        box-shadow: 0 0 0 3px ${settingsTheme.primaryGhost};
+    }
+`;
+
+const FiltersActions = styled.div`
+    display: flex;
+    justify-content: flex-end;
+    gap: ${settingsTheme.spacing.sm};
+    padding-top: ${settingsTheme.spacing.md};
+    border-top: 1px solid ${settingsTheme.border};
+`;
+
+const ClearButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: ${settingsTheme.spacing.xs};
+    padding: ${settingsTheme.spacing.sm} ${settingsTheme.spacing.md};
+    border: 2px solid ${settingsTheme.border};
+    background: ${settingsTheme.surface};
+    color: ${settingsTheme.text.secondary};
+    border-radius: ${settingsTheme.radius.md};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+        border-color: ${settingsTheme.status.error};
+        color: ${settingsTheme.status.error};
+        background: ${settingsTheme.status.errorLight};
+    }
+`;
+
+const ResultsCounter = styled.div`
+    background: ${settingsTheme.surface};
+    border-radius: ${settingsTheme.radius.xl};
+    border: 1px solid ${settingsTheme.border};
+    padding: ${settingsTheme.spacing.md} ${settingsTheme.spacing.lg};
+    color: ${settingsTheme.primary};
+    font-size: 14px;
+    font-weight: 500;
+    text-align: center;
+    box-shadow: ${settingsTheme.shadow.sm};
+
+    strong {
+        font-weight: 700;
+    }
+`;
+
+const ContentContainer = styled.div`
+    flex: 1;
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 0 ${settingsTheme.spacing.xl} ${settingsTheme.spacing.xl};
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: ${settingsTheme.spacing.lg};
+    min-height: 0;
+
+    @media (max-width: 1024px) {
+        padding: 0 ${settingsTheme.spacing.lg} ${settingsTheme.spacing.lg};
+    }
+
+    @media (max-width: 768px) {
+        padding: 0 ${settingsTheme.spacing.md} ${settingsTheme.spacing.md};
+        gap: ${settingsTheme.spacing.md};
+    }
+`;
+
+const LoadingContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: ${settingsTheme.spacing.xxl};
+    background: ${settingsTheme.surface};
+    border-radius: ${settingsTheme.radius.xl};
+    border: 1px solid ${settingsTheme.border};
+    gap: ${settingsTheme.spacing.md};
+    min-height: 400px;
+`;
+
+const LoadingSpinner = styled.div`
+    width: 48px;
+    height: 48px;
+    border: 3px solid ${settingsTheme.borderLight};
+    border-top: 3px solid ${settingsTheme.primary};
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+`;
+
+const LoadingText = styled.div`
+    font-size: 16px;
+    color: ${settingsTheme.text.secondary};
+    font-weight: 500;
+`;
+
+const ErrorMessage = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${settingsTheme.spacing.sm};
+    background: ${settingsTheme.status.errorLight};
+    color: ${settingsTheme.status.error};
+    padding: ${settingsTheme.spacing.md} ${settingsTheme.spacing.lg};
+    border-radius: ${settingsTheme.radius.lg};
+    border: 1px solid ${settingsTheme.status.error}30;
+    font-weight: 500;
+    box-shadow: ${settingsTheme.shadow.xs};
+`;
+
+const ErrorIcon = styled.div`
+    font-size: 18px;
+    flex-shrink: 0;
+`;
+
+const ErrorText = styled.div`
+    flex: 1;
+`;
+
+const EmptyStateContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: ${settingsTheme.spacing.xxl};
+    background: ${settingsTheme.surface};
+    border-radius: ${settingsTheme.radius.xl};
+    border: 2px dashed ${settingsTheme.border};
+    text-align: center;
+    min-height: 400px;
+`;
+
+const EmptyStateIcon = styled.div`
+    width: 64px;
+    height: 64px;
+    background: ${settingsTheme.surfaceAlt};
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: ${settingsTheme.text.tertiary};
+    margin-bottom: ${settingsTheme.spacing.lg};
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+`;
+
+const EmptyStateTitle = styled.h3`
+    font-size: 20px;
+    font-weight: 600;
+    color: ${settingsTheme.text.primary};
+    margin: 0 0 ${settingsTheme.spacing.sm} 0;
+    letter-spacing: -0.025em;
+`;
+
+const EmptyStateDescription = styled.p`
+    font-size: 16px;
+    color: ${settingsTheme.text.secondary};
+    margin: 0 0 ${settingsTheme.spacing.sm} 0;
+    line-height: 1.5;
+`;
+
+const EmptyStateAction = styled.p`
+    font-size: 14px;
+    color: ${settingsTheme.primary};
+    margin: 0;
+    font-weight: 500;
+`;
+
+const EmployeesGrid = styled.div`
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: ${settingsTheme.spacing.lg};
+
+    @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+        gap: ${settingsTheme.spacing.md};
+    }
+`;
+
+const EmployeeCard = styled.div`
+    position: relative;
+    background: ${settingsTheme.surface};
+    border-radius: ${settingsTheme.radius.xl};
+    border: 1px solid ${settingsTheme.border};
+    overflow: hidden;
+    box-shadow: ${settingsTheme.shadow.sm};
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: ${settingsTheme.shadow.lg};
+        border-color: ${settingsTheme.primary};
+    }
+`;
+
+const ColorBadge = styled.div<{ color: string }>`
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: ${props => props.color};
+`;
+
+const EmployeeHeader = styled.div`
+    padding: ${settingsTheme.spacing.lg} ${settingsTheme.spacing.lg} ${settingsTheme.spacing.md};
+    border-bottom: 1px solid ${settingsTheme.borderLight};
+`;
+
+const EmployeeName = styled.h3`
+    margin: 0 0 ${settingsTheme.spacing.xs} 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: ${settingsTheme.text.primary};
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    line-height: 1.3;
+`;
+
+const DocumentsButton = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: ${settingsTheme.radius.sm};
+    background: ${settingsTheme.primaryGhost};
+    color: ${settingsTheme.primary};
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+
+    &:hover {
+        background: ${settingsTheme.primary};
+        color: white;
+        transform: scale(1.05);
+    }
+`;
+
+const EmployeePosition = styled.div`
+    font-size: 14px;
+    color: ${settingsTheme.text.secondary};
+    font-weight: 500;
+`;
+
+const EmployeeDetails = styled.div`
+    padding: ${settingsTheme.spacing.md} ${settingsTheme.spacing.lg};
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: ${settingsTheme.spacing.sm};
+`;
+
+const EmployeeDetail = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${settingsTheme.spacing.sm};
+    font-size: 14px;
+`;
+
+const DetailIcon = styled.div`
+    width: 16px;
+    color: ${settingsTheme.text.tertiary};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+`;
+
+const DetailText = styled.div`
+    color: ${settingsTheme.text.secondary};
+    font-weight: 500;
+    line-height: 1.4;
+`;
+
+const EmployeeActions = styled.div`
+    display: flex;
+    gap: ${settingsTheme.spacing.sm};
+    padding: ${settingsTheme.spacing.md} ${settingsTheme.spacing.lg} ${settingsTheme.spacing.lg};
+    border-top: 1px solid ${settingsTheme.borderLight};
+`;
+
+const ActionButton = styled.button<{
+    $variant: 'edit' | 'delete';
+}>`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: ${settingsTheme.spacing.xs};
+    flex: 1;
+    padding: ${settingsTheme.spacing.sm} ${settingsTheme.spacing.md};
+    border: none;
+    border-radius: ${settingsTheme.radius.md};
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+    ${({ $variant }) => {
+    switch ($variant) {
+        case 'edit':
+            return `
+                    background: ${settingsTheme.status.warningLight};
+                    color: ${settingsTheme.status.warning};
+                    
+                    &:hover {
+                        background: ${settingsTheme.status.warning};
+                        color: white;
+                        transform: translateY(-1px);
+                        box-shadow: ${settingsTheme.shadow.md};
+                    }
+                `;
+        case 'delete':
+            return `
+                    background: ${settingsTheme.status.errorLight};
+                    color: ${settingsTheme.status.error};
+                    
+                    &:hover {
+                        background: ${settingsTheme.status.error};
+                        color: white;
+                        transform: translateY(-1px);
+                        box-shadow: ${settingsTheme.shadow.md};
+                    }
+                `;
+    }
+}}
+`;
 
 export default EmployeesPage;

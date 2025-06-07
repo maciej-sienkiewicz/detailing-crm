@@ -67,13 +67,6 @@ const secondaryMenuOptions: Record<string, SubMenuItem[]> = {
             description: 'Kolory i kategorie'
         },
         {
-            id: 'taxes',
-            label: 'Podatki',
-            icon: <FaMoneyBillWave />,
-            path: '/settings/taxes',
-            description: 'Stawki i rozliczenia'
-        },
-        {
             id: 'services',
             label: 'Usługi',
             icon: <FaClipboardList />,
