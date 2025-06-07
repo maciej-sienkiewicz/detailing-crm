@@ -51,29 +51,6 @@ interface SubMenuItem {
 }
 
 const secondaryMenuOptions: Record<string, SubMenuItem[]> = {
-    settings: [
-        {
-            id: 'brand-theme',
-            label: 'Kolory marki',
-            icon: <FaPalette />,
-            path: '/settings/brand-theme',
-            description: 'Dostosuj kolory do Twojej firmy'
-        },
-        {
-            id: 'calendar',
-            label: 'Kalendarz',
-            icon: <FaCalendarCheck />,
-            path: '/settings/calendar',
-            description: 'Kolory i kategorie'
-        },
-        {
-            id: 'services',
-            label: 'Usługi',
-            icon: <FaClipboardList />,
-            path: '/settings/services',
-            description: 'Katalog prac'
-        }
-    ],
     clients: [
         {
             id: 'owners',
@@ -162,7 +139,6 @@ const SecondaryMenu: React.FC<SecondaryMenuProps> = ({
 
 const getMenuTitle = (menuId: string): string => {
     const titles: Record<string, string> = {
-        settings: 'Ustawienia',
         clients: 'Klienci',
         fleet: 'Flota',
         pricing: 'Cennik'

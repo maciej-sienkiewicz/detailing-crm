@@ -409,7 +409,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                             </InfoPair>
                             <InfoPair>
                                 <InfoLabel>Przebieg</InfoLabel>
-                                <InfoValue>{protocol.mileage} km</InfoValue>
+                                <InfoValue>{(protocol.mileage && protocol.mileage > 0) ? "${protocol.mileage} km" : "---"  } km</InfoValue>`
                             </InfoPair>
                         </SecondaryInfo>
                         <StatusRow>

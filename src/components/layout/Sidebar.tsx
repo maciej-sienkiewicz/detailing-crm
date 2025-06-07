@@ -151,7 +151,8 @@ const mainMenuItems: MainMenuItem[] = [
         id: 'settings',
         label: 'Ustawienia',
         icon: <FaCog />,
-        hasSubmenu: true,
+        path: '/settings',
+        hasSubmenu: false,
         category: 'admin'
     }
 ];
