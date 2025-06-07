@@ -55,7 +55,7 @@ export const convertSnakeToCamel = (data: any): any => {
 
     return Object.keys(data).reduce((result, key) => {
         // Konwertuj klucz ze snake_case na camelCase
-        const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+        const camelKey = key.toLowerCase().replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
 
         // Rekurencyjnie konwertuj wartość jeśli jest obiektem
         result[camelKey] = convertSnakeToCamel(data[key]);

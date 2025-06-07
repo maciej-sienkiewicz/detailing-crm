@@ -289,17 +289,3 @@ export const unifiedFinancialApi = {
         }
     }
 };
-
-// Dla kompatybilności wstecznej - aliasy
-export const invoicesApi = {
-    fetchInvoices: (filters?: UnifiedDocumentFilters) =>
-        unifiedFinancialApi.fetchDocuments({ ...filters, type: DocumentType.INVOICE }),
-    fetchInvoiceById: unifiedFinancialApi.fetchDocumentById,
-    createInvoice: unifiedFinancialApi.createDocument,
-    updateInvoice: unifiedFinancialApi.updateDocument,
-    deleteInvoice: unifiedFinancialApi.deleteDocument,
-    updateInvoiceStatus: unifiedFinancialApi.updateDocumentStatus,
-    updatePaidAmount: unifiedFinancialApi.updatePaidAmount,
-    getInvoiceAttachmentUrl: unifiedFinancialApi.getDocumentAttachmentUrl,
-    extractInvoiceData: unifiedFinancialApi.extractDocumentData
-};
