@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+// src/pages/Settings/CompanySettingsPage.tsx
+import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import styled from 'styled-components';
 import {
-    FaSave,
     FaUndo,
     FaBuilding,
     FaEnvelope,
@@ -14,8 +14,17 @@ import {
     FaEye,
     FaEyeSlash,
     FaCheck,
-    FaSpinner
+    FaSpinner, FaSave
 } from 'react-icons/fa';
+
+// Import real API and types
+import {
+    companySettingsApi,
+    CompanySettingsResponse,
+    UpdateCompanySettingsRequest,
+    EmailTestResponse,
+    NipValidationResponse
+} from '../../api/companySettingsApi';
 
 // Używamy theme z istniejących styli
 const settingsTheme = {
@@ -77,152 +86,48 @@ const settingsTheme = {
     }
 };
 
-// Mock API functions - symulują wywołania do istniejącego backendu
-const companySettingsApi = {
-    async getCompanySettings() {
-        // Symuluje wywołanie GET /api/company-settings
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                resolve({
-                    id: 1,
-                    companyId: 1,
-                    basicInfo: {
-                        companyName: 'Premium Detail Studio',
-                        taxId: '123-456-78-90',
-                        address: 'ul. Motoryzacyjna 123, 00-001 Warszawa',
-                        phone: '+48 123 456 789',
-                        website: 'https://premiumdetail.pl'
-                    },
-                    bankSettings: {
-                        bankAccountNumber: '12 3456 7890 1234 5678 9012 3456',
-                        bankName: 'Bank Premium',
-                        swiftCode: 'PREMBPLPW',
-                        accountHolderName: 'Premium Detail Studio Sp. z o.o.'
-                    },
-                    emailSettings: {
-                        smtpHost: 'smtp.gmail.com',
-                        smtpPort: 587,
-                        smtpUsername: 'noreply@premiumdetail.pl',
-                        smtpPasswordConfigured: true,
-                        imapHost: 'imap.gmail.com',
-                        imapPort: 993,
-                        imapUsername: 'noreply@premiumdetail.pl',
-                        imapPasswordConfigured: true,
-                        senderEmail: 'noreply@premiumdetail.pl',
-                        senderName: 'Premium Detail Studio',
-                        useSSL: true,
-                        useTLS: true,
-                        smtpConfigured: true,
-                        imapConfigured: true
-                    },
-                    logoSettings: {
-                        hasLogo: true,
-                        logoFileName: 'logo.png',
-                        logoContentType: 'image/png',
-                        logoSize: 15240,
-                        logoUrl: '/api/company-settings/logo/abc123'
-                    },
-                    createdAt: '2024-01-15T10:30:00Z',
-                    updatedAt: '2024-06-01T14:20:00Z'
-                });
-            }, 500);
-        });
-    },
+// Interfejs dla form data
+interface FormData {
+    basicInfo: {
+        companyName: string;
+        taxId: string;
+        address: string;
+        phone: string;
+        website: string;
+    };
+    bankSettings: {
+        bankAccountNumber: string;
+        bankName: string;
+        swiftCode: string;
+        accountHolderName: string;
+    };
+    emailSettings: {
+        smtpHost: string;
+        smtpPort: number;
+        smtpUsername: string;
+        smtpPassword: string;
+        imapHost: string;
+        imapPort: number;
+        imapUsername: string;
+        imapPassword: string;
+        senderEmail: string;
+        senderName: string;
+        useSSL: boolean;
+        useTLS: boolean;
+    };
+}
 
-    async updateCompanySettings(data) {
-        // Symuluje wywołanie PUT /api/company-settings
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                resolve({
-                    ...data,
-                    updatedAt: new Date().toISOString()
-                });
-            }, 1000);
-        });
-    },
-
-    async uploadLogo(file) {
-        // Symuluje wywołanie POST /api/company-settings/logo
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                resolve({
-                    logoSettings: {
-                        hasLogo: true,
-                        logoFileName: file.name,
-                        logoContentType: file.type,
-                        logoSize: file.size,
-                        logoUrl: '/api/company-settings/logo/new123'
-                    }
-                });
-            }, 2000);
-        });
-    },
-
-    async deleteLogo() {
-        // Symuluje wywołanie DELETE /api/company-settings/logo
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                resolve({
-                    logoSettings: {
-                        hasLogo: false,
-                        logoFileName: null,
-                        logoContentType: null,
-                        logoSize: null,
-                        logoUrl: null
-                    }
-                });
-            }, 500);
-        });
-    },
-
-    async validateNIP(nip) {
-        // Symuluje wywołanie GET /api/company-settings/validation/nip/{nip}
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                const cleanNip = nip.replace(/[-\s]/g, '');
-                const isValid = cleanNip.length === 10 && /^\d{10}$/.test(cleanNip);
-                resolve({
-                    nip,
-                    valid: isValid,
-                    message: isValid ? 'Valid Polish NIP' : 'Invalid Polish NIP format or checksum'
-                });
-            }, 300);
-        });
-    },
-
-    async testEmailConnection(emailData) {
-        // Symuluje test połączenia email
-        return new Promise((resolve, reject) => {
-            setTimeout(() => {
-                // Symulujemy test - jeśli host zawiera "gmail", to sukces
-                if (emailData.smtpHost.includes('gmail')) {
-                    resolve({
-                        success: true,
-                        message: 'Połączenie z serwerem email zostało nawiązane pomyślnie'
-                    });
-                } else {
-                    reject({
-                        success: false,
-                        message: 'Nie udało się połączyć z serwerem email',
-                        errorDetails: 'Connection timeout'
-                    });
-                }
-            }, 2000);
-        });
-    }
-};
-
-const CompanySettingsPage = () => {
+const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) => {
     // Stan główny
-    const [settings, setSettings] = useState(null);
+    const [settings, setSettings] = useState<CompanySettingsResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [error, setError] = useState(null);
-    const [successMessage, setSuccessMessage] = useState(null);
+    const [error, setError] = useState<string | null>(null);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
     // Stan dla formularza
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<FormData>({
         basicInfo: {
             companyName: '',
             taxId: '',
@@ -253,8 +158,8 @@ const CompanySettingsPage = () => {
     });
 
     // Stan dla walidacji
-    const [validationErrors, setValidationErrors] = useState({});
-    const [nipValidation, setNipValidation] = useState(null);
+    const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+    const [nipValidation, setNipValidation] = useState<NipValidationResponse | null>(null);
     const [isValidatingNip, setIsValidatingNip] = useState(false);
 
     // Stan dla haseł
@@ -264,17 +169,22 @@ const CompanySettingsPage = () => {
     });
 
     // Stan dla logo
-    const [logoFile, setLogoFile] = useState(null);
-    const [logoPreview, setLogoPreview] = useState(null);
+    const [logoFile, setLogoFile] = useState<File | null>(null);
+    const [logoPreview, setLogoPreview] = useState<string | null>(null);
     const [uploadingLogo, setUploadingLogo] = useState(false);
     const [deletingLogo, setDeletingLogo] = useState(false);
 
     // Stan dla testu email
     const [testingEmail, setTestingEmail] = useState(false);
-    const [emailTestResult, setEmailTestResult] = useState(null);
+    const [emailTestResult, setEmailTestResult] = useState<EmailTestResponse | null>(null);
 
     // Referencje
-    const fileInputRef = useRef(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Expose handleSave method to parent component
+    useImperativeHandle(ref, () => ({
+        handleSave: handleSave
+    }));
 
     // Ładowanie danych przy montowaniu komponentu
     useEffect(() => {
@@ -288,15 +198,35 @@ const CompanySettingsPage = () => {
             const data = await companySettingsApi.getCompanySettings();
             setSettings(data);
             setFormData({
-                basicInfo: data.basicInfo,
-                bankSettings: data.bankSettings,
+                basicInfo: {
+                    companyName: data.basicInfo.companyName || '',
+                    taxId: data.basicInfo.taxId || '',
+                    address: data.basicInfo.address || '',
+                    phone: data.basicInfo.phone || '',
+                    website: data.basicInfo.website || ''
+                },
+                bankSettings: {
+                    bankAccountNumber: data.bankSettings.bankAccountNumber || '',
+                    bankName: data.bankSettings.bankName || '',
+                    swiftCode: data.bankSettings.swiftCode || '',
+                    accountHolderName: data.bankSettings.accountHolderName || ''
+                },
                 emailSettings: {
-                    ...data.emailSettings,
-                    smtpPassword: '',  // Nie pokazujemy rzeczywistego hasła
-                    imapPassword: ''   // Nie pokazujemy rzeczywistego hasła
+                    smtpHost: data.emailSettings.smtpHost || '',
+                    smtpPort: data.emailSettings.smtpPort || 587,
+                    smtpUsername: data.emailSettings.smtpUsername || '',
+                    smtpPassword: '', // Nie pokazujemy rzeczywistego hasła
+                    imapHost: data.emailSettings.imapHost || '',
+                    imapPort: data.emailSettings.imapPort || 993,
+                    imapUsername: data.emailSettings.imapUsername || '',
+                    imapPassword: '', // Nie pokazujemy rzeczywistego hasła
+                    senderEmail: data.emailSettings.senderEmail || '',
+                    senderName: data.emailSettings.senderName || '',
+                    useSSL: data.emailSettings.useSSL ?? true,
+                    useTLS: data.emailSettings.useTLS ?? true
                 }
             });
-            if (data.logoSettings.hasLogo) {
+            if (data.logoSettings.hasLogo && data.logoSettings.logoUrl) {
                 setLogoPreview(data.logoSettings.logoUrl);
             }
         } catch (err) {
@@ -308,7 +238,7 @@ const CompanySettingsPage = () => {
     };
 
     // Obsługa zmian w formularzu
-    const handleInputChange = (section, field, value) => {
+    const handleInputChange = (section: keyof FormData, field: string, value: string | number | boolean) => {
         setFormData(prev => ({
             ...prev,
             [section]: {
@@ -319,24 +249,25 @@ const CompanySettingsPage = () => {
         setHasUnsavedChanges(true);
 
         // Usuwanie błędów walidacji
-        if (validationErrors[`${section}.${field}`]) {
+        const errorKey = `${section}.${field}`;
+        if (validationErrors[errorKey]) {
             setValidationErrors(prev => {
                 const newErrors = { ...prev };
-                delete newErrors[`${section}.${field}`];
+                delete newErrors[errorKey];
                 return newErrors;
             });
         }
 
         // Walidacja NIP w czasie rzeczywistym
-        if (section === 'basicInfo' && field === 'taxId') {
+        if (section === 'basicInfo' && field === 'taxId' && typeof value === 'string') {
             validateNipDebounced(value);
         }
     };
 
     // Debounced walidacja NIP
     const validateNipDebounced = (() => {
-        let timeout;
-        return (nip) => {
+        let timeout: NodeJS.Timeout;
+        return (nip: string) => {
             clearTimeout(timeout);
             if (!nip.trim()) {
                 setNipValidation(null);
@@ -348,7 +279,11 @@ const CompanySettingsPage = () => {
                     const result = await companySettingsApi.validateNIP(nip);
                     setNipValidation(result);
                 } catch (err) {
-                    setNipValidation({ valid: false, message: 'Błąd walidacji NIP' });
+                    setNipValidation({
+                        nip: nip,
+                        valid: false,
+                        message: 'Błąd walidacji NIP'
+                    });
                 } finally {
                     setIsValidatingNip(false);
                 }
@@ -357,8 +292,8 @@ const CompanySettingsPage = () => {
     })();
 
     // Walidacja formularza
-    const validateForm = () => {
-        const errors = {};
+    const validateForm = (): boolean => {
+        const errors: Record<string, string> = {};
 
         // Walidacja podstawowych informacji
         if (!formData.basicInfo.companyName.trim()) {
@@ -397,7 +332,7 @@ const CompanySettingsPage = () => {
     };
 
     // Zapisywanie ustawień
-    const handleSave = async () => {
+    const handleSave = async (): Promise<void> => {
         if (!validateForm()) {
             setError('Proszę poprawić błędy w formularzu');
             return;
@@ -412,8 +347,14 @@ const CompanySettingsPage = () => {
             setSaving(true);
             setError(null);
 
-            const updatedSettings = await companySettingsApi.updateCompanySettings(formData);
-            setSettings(prev => ({ ...prev, ...updatedSettings }));
+            const requestData: UpdateCompanySettingsRequest = {
+                basicInfo: formData.basicInfo,
+                bankSettings: formData.bankSettings,
+                emailSettings: formData.emailSettings
+            };
+
+            const updatedSettings = await companySettingsApi.updateCompanySettings(requestData);
+            setSettings(prev => prev ? { ...prev, ...updatedSettings } : updatedSettings);
             setHasUnsavedChanges(false);
             setSuccessMessage('Ustawienia zostały zapisane pomyślnie');
 
@@ -430,12 +371,32 @@ const CompanySettingsPage = () => {
     const handleReset = () => {
         if (settings) {
             setFormData({
-                basicInfo: settings.basicInfo,
-                bankSettings: settings.bankSettings,
+                basicInfo: {
+                    companyName: settings.basicInfo.companyName || '',
+                    taxId: settings.basicInfo.taxId || '',
+                    address: settings.basicInfo.address || '',
+                    phone: settings.basicInfo.phone || '',
+                    website: settings.basicInfo.website || ''
+                },
+                bankSettings: {
+                    bankAccountNumber: settings.bankSettings.bankAccountNumber || '',
+                    bankName: settings.bankSettings.bankName || '',
+                    swiftCode: settings.bankSettings.swiftCode || '',
+                    accountHolderName: settings.bankSettings.accountHolderName || ''
+                },
                 emailSettings: {
-                    ...settings.emailSettings,
+                    smtpHost: settings.emailSettings.smtpHost || '',
+                    smtpPort: settings.emailSettings.smtpPort || 587,
+                    smtpUsername: settings.emailSettings.smtpUsername || '',
                     smtpPassword: '',
-                    imapPassword: ''
+                    imapHost: settings.emailSettings.imapHost || '',
+                    imapPort: settings.emailSettings.imapPort || 993,
+                    imapUsername: settings.emailSettings.imapUsername || '',
+                    imapPassword: '',
+                    senderEmail: settings.emailSettings.senderEmail || '',
+                    senderName: settings.emailSettings.senderName || '',
+                    useSSL: settings.emailSettings.useSSL ?? true,
+                    useTLS: settings.emailSettings.useTLS ?? true
                 }
             });
             setHasUnsavedChanges(false);
@@ -446,8 +407,8 @@ const CompanySettingsPage = () => {
     };
 
     // Obsługa logo
-    const handleLogoSelect = (event) => {
-        const file = event.target.files[0];
+    const handleLogoSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
         if (file) {
             // Walidacja pliku
             const maxSize = 5 * 1024 * 1024; // 5MB
@@ -468,7 +429,9 @@ const CompanySettingsPage = () => {
             // Podgląd
             const reader = new FileReader();
             reader.onload = (e) => {
-                setLogoPreview(e.target.result);
+                if (e.target?.result) {
+                    setLogoPreview(e.target.result as string);
+                }
             };
             reader.readAsDataURL(file);
         }
@@ -482,10 +445,10 @@ const CompanySettingsPage = () => {
             setError(null);
 
             const result = await companySettingsApi.uploadLogo(logoFile);
-            setSettings(prev => ({
+            setSettings(prev => prev ? {
                 ...prev,
                 logoSettings: result.logoSettings
-            }));
+            } : null);
             setLogoFile(null);
             setSuccessMessage('Logo zostało zapisane pomyślnie');
 
@@ -506,10 +469,10 @@ const CompanySettingsPage = () => {
             setError(null);
 
             const result = await companySettingsApi.deleteLogo();
-            setSettings(prev => ({
+            setSettings(prev => prev ? {
                 ...prev,
                 logoSettings: result.logoSettings
-            }));
+            } : null);
             setLogoPreview(null);
             setLogoFile(null);
             setSuccessMessage('Logo zostało usunięte');
@@ -548,7 +511,7 @@ const CompanySettingsPage = () => {
             const result = await companySettingsApi.testEmailConnection(testData);
             setEmailTestResult(result);
         } catch (err) {
-            setEmailTestResult(err);
+            setEmailTestResult(err as EmailTestResponse);
         } finally {
             setTestingEmail(false);
         }
@@ -628,7 +591,6 @@ const CompanySettingsPage = () => {
                                     value={formData.basicInfo.taxId}
                                     onChange={(e) => handleInputChange('basicInfo', 'taxId', e.target.value)}
                                     placeholder="123-456-78-90"
-                                    $hasError={!!validationErrors['basicInfo.taxId'] || (nipValidation && !nipValidation.valid)}
                                 />
                                 {validationErrors['basicInfo.taxId'] && (
                                     <ErrorText>{validationErrors['basicInfo.taxId']}</ErrorText>
@@ -1005,582 +967,546 @@ const CompanySettingsPage = () => {
                 </SectionCard>
             </ContentGrid>
 
-            {/* Action Buttons */}
-            <ActionButtonsContainer>
-                <SecondaryButton
-                    onClick={handleReset}
-                    disabled={saving || !hasUnsavedChanges}
-                >
-                    <FaUndo />
-                    Przywróć
-                </SecondaryButton>
-
-                <PrimaryButton
-                    onClick={handleSave}
-                    disabled={saving || !hasUnsavedChanges}
-                >
-                    {saving ? <FaSpinner /> : <FaSave />}
-                    {saving ? 'Zapisywanie...' : 'Zapisz ustawienia'}
-                </PrimaryButton>
-            </ActionButtonsContainer>
-
+            {/* Unsaved Changes Indicator */}
             {hasUnsavedChanges && (
                 <UnsavedChangesIndicator>
                     <FaExclamationTriangle />
                     Masz niezapisane zmiany
+                    <SecondaryButton onClick={handleReset} style={{ marginLeft: '12px', padding: '4px 8px', fontSize: '12px' }}>
+                        <FaUndo />
+                        Przywróć
+                    </SecondaryButton>
                 </UnsavedChangesIndicator>
             )}
         </ContentContainer>
     );
-};
+});
 
-// Styled Components
+// Styled Components (bez zmian - te same co wcześniej)
 const ContentContainer = styled.div`
-    flex: 1;
-    max-width: 1600px;
-    margin: 0 auto;
-    padding: 0 ${settingsTheme.spacing.xl} ${settingsTheme.spacing.xl};
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: ${settingsTheme.spacing.lg};
-    min-height: 0;
+   flex: 1;
+   max-width: 1600px;
+   margin: 0 auto;
+   padding: 0 ${settingsTheme.spacing.xl} ${settingsTheme.spacing.xl};
+   width: 100%;
+   display: flex;
+   flex-direction: column;
+   gap: ${settingsTheme.spacing.lg};
+   min-height: 0;
 
-    @media (max-width: 1024px) {
-        padding: 0 ${settingsTheme.spacing.lg} ${settingsTheme.spacing.lg};
-    }
+   @media (max-width: 1024px) {
+       padding: 0 ${settingsTheme.spacing.lg} ${settingsTheme.spacing.lg};
+   }
 
-    @media (max-width: 768px) {
-        padding: 0 ${settingsTheme.spacing.md} ${settingsTheme.spacing.md};
-        gap: ${settingsTheme.spacing.md};
-    }
+   @media (max-width: 768px) {
+       padding: 0 ${settingsTheme.spacing.md} ${settingsTheme.spacing.md};
+       gap: ${settingsTheme.spacing.md};
+   }
 `;
 
 const LoadingContainer = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: ${settingsTheme.spacing.xxl};
-    background: ${settingsTheme.surface};
-    border-radius: ${settingsTheme.radius.xl};
-    border: 1px solid ${settingsTheme.border};
-    gap: ${settingsTheme.spacing.md};
-    min-height: 400px;
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   justify-content: center;
+   padding: ${settingsTheme.spacing.xxl};
+   background: ${settingsTheme.surface};
+   border-radius: ${settingsTheme.radius.xl};
+   border: 1px solid ${settingsTheme.border};
+   gap: ${settingsTheme.spacing.md};
+   min-height: 400px;
 `;
 
 const LoadingSpinner = styled.div`
-    width: 48px;
-    height: 48px;
-    border: 3px solid ${settingsTheme.borderLight};
-    border-top: 3px solid ${settingsTheme.primary};
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
+   width: 48px;
+   height: 48px;
+   border: 3px solid ${settingsTheme.borderLight};
+   border-top: 3px solid ${settingsTheme.primary};
+   border-radius: 50%;
+   animation: spin 1s linear infinite;
 
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
+   @keyframes spin {
+       0% { transform: rotate(0deg); }
+       100% { transform: rotate(360deg); }
+   }
 `;
 
 const LoadingText = styled.div`
-    font-size: 16px;
-    color: ${settingsTheme.text.secondary};
-    font-weight: 500;
+   font-size: 16px;
+   color: ${settingsTheme.text.secondary};
+   font-weight: 500;
 `;
 
 const MessageContainer = styled.div`
-    margin-bottom: ${settingsTheme.spacing.lg};
+   margin-bottom: ${settingsTheme.spacing.lg};
 `;
 
 const SuccessMessage = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${settingsTheme.spacing.sm};
-    background: ${settingsTheme.status.successLight};
-    color: ${settingsTheme.status.success};
-    padding: ${settingsTheme.spacing.md} ${settingsTheme.spacing.lg};
-    border-radius: ${settingsTheme.radius.lg};
-    border: 1px solid ${settingsTheme.status.success}30;
-    font-weight: 500;
-    box-shadow: ${settingsTheme.shadow.xs};
+   display: flex;
+   align-items: center;
+   gap: ${settingsTheme.spacing.sm};
+   background: ${settingsTheme.status.successLight};
+   color: ${settingsTheme.status.success};
+   padding: ${settingsTheme.spacing.md} ${settingsTheme.spacing.lg};
+   border-radius: ${settingsTheme.radius.lg};
+   border: 1px solid ${settingsTheme.status.success}30;
+   font-weight: 500;
+   box-shadow: ${settingsTheme.shadow.xs};
 `;
 
 const ErrorMessage = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${settingsTheme.spacing.sm};
-    background: ${settingsTheme.status.errorLight};
-    color: ${settingsTheme.status.error};
-    padding: ${settingsTheme.spacing.md} ${settingsTheme.spacing.lg};
-    border-radius: ${settingsTheme.radius.lg};
-    border: 1px solid ${settingsTheme.status.error}30;
-    font-weight: 500;
-    box-shadow: ${settingsTheme.shadow.xs};
+   display: flex;
+   align-items: center;
+   gap: ${settingsTheme.spacing.sm};
+   background: ${settingsTheme.status.errorLight};
+   color: ${settingsTheme.status.error};
+   padding: ${settingsTheme.spacing.md} ${settingsTheme.spacing.lg};
+   border-radius: ${settingsTheme.radius.lg};
+   border: 1px solid ${settingsTheme.status.error}30;
+   font-weight: 500;
+   box-shadow: ${settingsTheme.shadow.xs};
 `;
 
 const MessageIcon = styled.div`
-    font-size: 18px;
-    flex-shrink: 0;
+   font-size: 18px;
+   flex-shrink: 0;
 `;
 
 const ContentGrid = styled.div`
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: ${settingsTheme.spacing.lg};
+   display: grid;
+   grid-template-columns: 1fr;
+   gap: ${settingsTheme.spacing.lg};
 
-    @media (min-width: 1200px) {
-        grid-template-columns: 1fr 1fr;
-    }
+   @media (min-width: 1200px) {
+       grid-template-columns: 1fr 1fr;
+   }
 `;
 
 const SectionCard = styled.div`
-    background: ${settingsTheme.surface};
-    border-radius: ${settingsTheme.radius.xl};
-    border: 1px solid ${settingsTheme.border};
-    overflow: hidden;
-    box-shadow: ${settingsTheme.shadow.sm};
-    transition: all ${settingsTheme.transitions.spring};
+   background: ${settingsTheme.surface};
+   border-radius: ${settingsTheme.radius.xl};
+   border: 1px solid ${settingsTheme.border};
+   overflow: hidden;
+   box-shadow: ${settingsTheme.shadow.sm};
+   transition: all ${settingsTheme.transitions.spring};
 
-    &:hover {
-        border-color: ${settingsTheme.borderHover};
-        box-shadow: ${settingsTheme.shadow.md};
-    }
+   &:hover {
+       border-color: ${settingsTheme.borderHover};
+       box-shadow: ${settingsTheme.shadow.md};
+   }
 `;
 
 const SectionHeader = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${settingsTheme.spacing.md};
-    padding: ${settingsTheme.spacing.lg};
-    border-bottom: 1px solid ${settingsTheme.border};
-    background: ${settingsTheme.surfaceAlt};
+   display: flex;
+   align-items: center;
+   gap: ${settingsTheme.spacing.md};
+   padding: ${settingsTheme.spacing.lg};
+   border-bottom: 1px solid ${settingsTheme.border};
+   background: ${settingsTheme.surfaceAlt};
 `;
 
 const SectionIcon = styled.div`
-    width: 40px;
-    height: 40px;
-    background: ${settingsTheme.primaryGhost};
-    border-radius: ${settingsTheme.radius.lg};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: ${settingsTheme.primary};
-    font-size: 18px;
-    flex-shrink: 0;
+   width: 40px;
+   height: 40px;
+   background: ${settingsTheme.primaryGhost};
+   border-radius: ${settingsTheme.radius.lg};
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   color: ${settingsTheme.primary};
+   font-size: 18px;
+   flex-shrink: 0;
 `;
 
 const SectionTitle = styled.h3`
-    font-size: 18px;
-    font-weight: 600;
-    color: ${settingsTheme.text.primary};
-    margin: 0;
-    letter-spacing: -0.025em;
-    flex: 1;
+   font-size: 18px;
+   font-weight: 600;
+   color: ${settingsTheme.text.primary};
+   margin: 0;
+   letter-spacing: -0.025em;
+   flex: 1;
 `;
 
 const TestEmailButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: ${settingsTheme.spacing.sm};
-    padding: ${settingsTheme.spacing.sm} ${settingsTheme.spacing.md};
-    background: ${settingsTheme.status.infoLight};
-    color: ${settingsTheme.status.info};
-    border: 1px solid ${settingsTheme.status.info}30;
-    border-radius: ${settingsTheme.radius.md};
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all ${settingsTheme.transitions.spring};
+   display: flex;
+   align-items: center;
+   gap: ${settingsTheme.spacing.sm};
+   padding: ${settingsTheme.spacing.sm} ${settingsTheme.spacing.md};
+   background: ${settingsTheme.status.infoLight};
+   color: ${settingsTheme.status.info};
+   border: 1px solid ${settingsTheme.status.info}30;
+   border-radius: ${settingsTheme.radius.md};
+   font-size: 14px;
+   font-weight: 600;
+   cursor: pointer;
+   transition: all ${settingsTheme.transitions.spring};
 
-    &:hover:not(:disabled) {
-        background: ${settingsTheme.status.info};
-        color: white;
-        transform: translateY(-1px);
-        box-shadow: ${settingsTheme.shadow.md};
-    }
+   &:hover:not(:disabled) {
+       background: ${settingsTheme.status.info};
+       color: white;
+       transform: translateY(-1px);
+       box-shadow: ${settingsTheme.shadow.md};
+   }
 
-    &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: none;
-    }
+   &:disabled {
+       opacity: 0.6;
+       cursor: not-allowed;
+       transform: none;
+   }
 
-    svg {
-        animation: ${props => props.disabled ? 'spin 1s linear infinite' : 'none'};
-    }
+   svg {
+       animation: ${props => props.disabled ? 'spin 1s linear infinite' : 'none'};
+   }
 
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
+   @keyframes spin {
+       0% { transform: rotate(0deg); }
+       100% { transform: rotate(360deg); }
+   }
 `;
 
-const TestResultContainer = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${settingsTheme.spacing.sm};
-    padding: ${settingsTheme.spacing.md} ${settingsTheme.spacing.lg};
-    background: ${props => props.$success ? settingsTheme.status.successLight : settingsTheme.status.errorLight};
-    color: ${props => props.$success ? settingsTheme.status.success : settingsTheme.status.error};
-    border-bottom: 1px solid ${settingsTheme.border};
-    font-weight: 500;
+const TestResultContainer = styled.div<{ $success: boolean }>`
+   display: flex;
+   align-items: center;
+   gap: ${settingsTheme.spacing.sm};
+   padding: ${settingsTheme.spacing.md} ${settingsTheme.spacing.lg};
+   background: ${props => props.$success ? settingsTheme.status.successLight : settingsTheme.status.errorLight};
+   color: ${props => props.$success ? settingsTheme.status.success : settingsTheme.status.error};
+   border-bottom: 1px solid ${settingsTheme.border};
+   font-weight: 500;
 `;
 
 const TestResultIcon = styled.div`
-    font-size: 16px;
-    flex-shrink: 0;
+   font-size: 16px;
+   flex-shrink: 0;
 `;
 
 const TestResultText = styled.div`
-    flex: 1;
+   flex: 1;
 `;
 
 const TestErrorDetails = styled.div`
-    font-size: 12px;
-    opacity: 0.8;
-    margin-top: 4px;
+   font-size: 12px;
+   opacity: 0.8;
+   margin-top: 4px;
 `;
 
 const SectionContent = styled.div`
-    padding: ${settingsTheme.spacing.lg};
+   padding: ${settingsTheme.spacing.lg};
 `;
 
 const SubSectionTitle = styled.h4`
-    font-size: 16px;
-    font-weight: 600;
-    color: ${settingsTheme.text.primary};
-    margin: 0 0 ${settingsTheme.spacing.md} 0;
-    padding-top: ${settingsTheme.spacing.lg};
-    border-top: 1px solid ${settingsTheme.borderLight};
+   font-size: 16px;
+   font-weight: 600;
+   color: ${settingsTheme.text.primary};
+   margin: 0 0 ${settingsTheme.spacing.md} 0;
+   padding-top: ${settingsTheme.spacing.lg};
+   border-top: 1px solid ${settingsTheme.borderLight};
 
-    &:first-child {
-        padding-top: 0;
-        border-top: none;
-    }
+   &:first-child {
+       padding-top: 0;
+       border-top: none;
+   }
 `;
 
 const FormGrid = styled.div`
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: ${settingsTheme.spacing.md};
+   display: grid;
+   grid-template-columns: 1fr 1fr;
+   gap: ${settingsTheme.spacing.md};
 
-    @media (max-width: 768px) {
-        grid-template-columns: 1fr;
-    }
+   @media (max-width: 768px) {
+       grid-template-columns: 1fr;
+   }
 `;
 
-const FormGroup = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${settingsTheme.spacing.xs};
-    ${props => props.$fullWidth && 'grid-column: 1 / -1;'}
+const FormGroup = styled.div<{ $fullWidth?: boolean }>`
+   display: flex;
+   flex-direction: column;
+   gap: ${settingsTheme.spacing.xs};
+   ${props => props.$fullWidth && 'grid-column: 1 / -1;'}
 `;
 
 const Label = styled.label`
-    font-weight: 600;
-    font-size: 14px;
-    color: ${settingsTheme.text.primary};
-    display: flex;
-    align-items: center;
-    gap: ${settingsTheme.spacing.xs};
+   font-weight: 600;
+   font-size: 14px;
+   color: ${settingsTheme.text.primary};
+   display: flex;
+   align-items: center;
+   gap: ${settingsTheme.spacing.xs};
 `;
 
 const ValidationSpinner = styled.div`
-    font-size: 12px;
-    color: ${settingsTheme.text.muted};
-    animation: spin 1s linear infinite;
+   font-size: 12px;
+   color: ${settingsTheme.text.muted};
+   animation: spin 1s linear infinite;
 
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
+   @keyframes spin {
+       0% { transform: rotate(0deg); }
+       100% { transform: rotate(360deg); }
+   }
 `;
 
-const ValidationStatus = styled.div`
-    font-size: 12px;
-    color: ${props => props.$valid ? settingsTheme.status.success : settingsTheme.status.error};
+const ValidationStatus = styled.div<{ $valid: boolean }>`
+   font-size: 12px;
+   color: ${props => props.$valid ? settingsTheme.status.success : settingsTheme.status.error};
 `;
 
-const Input = styled.input`
-    height: 44px;
-    padding: 0 ${settingsTheme.spacing.md};
-    border: 2px solid ${props => props.$hasError ? settingsTheme.status.error : settingsTheme.border};
-    border-radius: ${settingsTheme.radius.md};
-    font-size: 14px;
-    font-weight: 500;
-    background: ${settingsTheme.surface};
-    color: ${settingsTheme.text.primary};
-    transition: all ${settingsTheme.transitions.spring};
+const Input = styled.input<{ $hasError?: boolean }>`
+   height: 44px;
+   padding: 0 ${settingsTheme.spacing.md};
+   border: 2px solid ${props => props.$hasError ? settingsTheme.status.error : settingsTheme.border};
+   border-radius: ${settingsTheme.radius.md};
+   font-size: 14px;
+   font-weight: 500;
+   background: ${settingsTheme.surface};
+   color: ${settingsTheme.text.primary};
+   transition: all ${settingsTheme.transitions.spring};
 
-    &:focus {
-        outline: none;
-        border-color: ${props => props.$hasError ? settingsTheme.status.error : settingsTheme.primary};
-        box-shadow: 0 0 0 3px ${props => props.$hasError ? settingsTheme.status.error + '30' : settingsTheme.primaryGhost};
-    }
+   &:focus {
+       outline: none;
+       border-color: ${props => props.$hasError ? settingsTheme.status.error : settingsTheme.primary};
+       box-shadow: 0 0 0 3px ${props => props.$hasError ? settingsTheme.status.error + '30' : settingsTheme.primaryGhost};
+   }
 
-    &::placeholder {
-        color: ${settingsTheme.text.muted};
-        font-weight: 400;
-    }
+   &::placeholder {
+       color: ${settingsTheme.text.muted};
+       font-weight: 400;
+   }
 `;
 
 const PasswordInputContainer = styled.div`
-    position: relative;
-    display: flex;
-    align-items: center;
+   position: relative;
+   display: flex;
+   align-items: center;
 `;
 
 const PasswordToggle = styled.button`
-    position: absolute;
-    right: 12px;
-    background: none;
-    border: none;
-    color: ${settingsTheme.text.muted};
-    cursor: pointer;
-    padding: 4px;
-    border-radius: ${settingsTheme.radius.sm};
-    transition: all ${settingsTheme.transitions.fast};
+   position: absolute;
+   right: 12px;
+   background: none;
+   border: none;
+   color: ${settingsTheme.text.muted};
+   cursor: pointer;
+   padding: 4px;
+   border-radius: ${settingsTheme.radius.sm};
+   transition: all ${settingsTheme.transitions.fast};
 
-    &:hover {
-        color: ${settingsTheme.text.primary};
-        background: ${settingsTheme.surfaceAlt};
-    }
+   &:hover {
+       color: ${settingsTheme.text.primary};
+       background: ${settingsTheme.surfaceAlt};
+   }
 `;
 
 const SecurityOptionsGrid = styled.div`
-    display: flex;
-    gap: ${settingsTheme.spacing.lg};
-    flex-wrap: wrap;
+   display: flex;
+   gap: ${settingsTheme.spacing.lg};
+   flex-wrap: wrap;
 `;
 
 const CheckboxGroup = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${settingsTheme.spacing.sm};
+   display: flex;
+   align-items: center;
+   gap: ${settingsTheme.spacing.sm};
 `;
 
 const Checkbox = styled.input.attrs({ type: 'checkbox' })`
-    width: 18px;
-    height: 18px;
-    accent-color: ${settingsTheme.primary};
-    cursor: pointer;
+   width: 18px;
+   height: 18px;
+   accent-color: ${settingsTheme.primary};
+   cursor: pointer;
 `;
 
 const CheckboxLabel = styled.label`
-    font-size: 14px;
-    font-weight: 500;
-    color: ${settingsTheme.text.primary};
-    cursor: pointer;
+   font-size: 14px;
+   font-weight: 500;
+   color: ${settingsTheme.text.primary};
+   cursor: pointer;
 `;
 
 const ErrorText = styled.div`
-    color: ${settingsTheme.status.error};
-    font-size: 12px;
-    font-weight: 500;
-    margin-top: 2px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
+   color: ${settingsTheme.status.error};
+   font-size: 12px;
+   font-weight: 500;
+   margin-top: 2px;
+   display: flex;
+   align-items: center;
+   gap: 4px;
 `;
 
 const LogoContainer = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${settingsTheme.spacing.lg};
+   display: flex;
+   flex-direction: column;
+   gap: ${settingsTheme.spacing.lg};
 `;
 
 const LogoPreviewArea = styled.div`
-    display: flex;
-    justify-content: center;
-    padding: ${settingsTheme.spacing.xl};
-    border: 2px dashed ${settingsTheme.border};
-    border-radius: ${settingsTheme.radius.lg};
-    background: ${settingsTheme.surfaceAlt};
+   display: flex;
+   justify-content: center;
+   padding: ${settingsTheme.spacing.xl};
+   border: 2px dashed ${settingsTheme.border};
+   border-radius: ${settingsTheme.radius.lg};
+   background: ${settingsTheme.surfaceAlt};
 `;
 
 const LogoPreview = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: ${settingsTheme.spacing.md};
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: ${settingsTheme.spacing.md};
 `;
 
 const LogoImage = styled.img`
-    max-width: 200px;
-    max-height: 200px;
-    object-fit: contain;
-    border-radius: ${settingsTheme.radius.md};
-    box-shadow: ${settingsTheme.shadow.md};
+   max-width: 200px;
+   max-height: 200px;
+   object-fit: contain;
+   border-radius: ${settingsTheme.radius.md};
+   box-shadow: ${settingsTheme.shadow.md};
 `;
 
 const LogoInfo = styled.div`
-    text-align: center;
+   text-align: center;
 `;
 
 const LogoFileName = styled.div`
-    font-size: 14px;
-    font-weight: 600;
-    color: ${settingsTheme.text.primary};
+   font-size: 14px;
+   font-weight: 600;
+   color: ${settingsTheme.text.primary};
 `;
 
 const LogoFileSize = styled.div`
-    font-size: 12px;
-    color: ${settingsTheme.text.muted};
+   font-size: 12px;
+   color: ${settingsTheme.text.muted};
 `;
 
 const LogoPlaceholder = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: ${settingsTheme.spacing.sm};
-    color: ${settingsTheme.text.muted};
-    font-size: 16px;
-    font-weight: 500;
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: ${settingsTheme.spacing.sm};
+   color: ${settingsTheme.text.muted};
+   font-size: 16px;
+   font-weight: 500;
 
-    svg {
-        font-size: 32px;
-        opacity: 0.5;
-    }
+   svg {
+       font-size: 32px;
+       opacity: 0.5;
+   }
 `;
 
 const LogoActions = styled.div`
-    display: flex;
-    gap: ${settingsTheme.spacing.sm};
-    justify-content: center;
-    flex-wrap: wrap;
+   display: flex;
+   gap: ${settingsTheme.spacing.sm};
+   justify-content: center;
+   flex-wrap: wrap;
 `;
 
 const LogoHelpText = styled.div`
-    font-size: 12px;
-    color: ${settingsTheme.text.muted};
-    text-align: center;
-    line-height: 1.4;
-`;
-
-const ActionButtonsContainer = styled.div`
-    display: flex;
-    justify-content: flex-end;
-    gap: ${settingsTheme.spacing.sm};
-    margin-top: ${settingsTheme.spacing.lg};
-    padding-top: ${settingsTheme.spacing.lg};
-    border-top: 1px solid ${settingsTheme.border};
-
-    @media (max-width: 576px) {
-        flex-direction: column;
-    }
+   font-size: 12px;
+   color: ${settingsTheme.text.muted};
+   text-align: center;
+   line-height: 1.4;
 `;
 
 const BaseButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: ${settingsTheme.spacing.sm};
-    padding: ${settingsTheme.spacing.sm} ${settingsTheme.spacing.md};
-    border-radius: ${settingsTheme.radius.md};
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all ${settingsTheme.transitions.spring};
-    border: 1px solid transparent;
-    white-space: nowrap;
-    min-height: 44px;
-    position: relative;
-    overflow: hidden;
+   display: flex;
+   align-items: center;
+   gap: ${settingsTheme.spacing.sm};
+   padding: ${settingsTheme.spacing.sm} ${settingsTheme.spacing.md};
+   border-radius: ${settingsTheme.radius.md};
+   font-weight: 600;
+   font-size: 14px;
+   cursor: pointer;
+   transition: all ${settingsTheme.transitions.spring};
+   border: 1px solid transparent;
+   white-space: nowrap;
+   min-height: 44px;
+   position: relative;
+   overflow: hidden;
 
-    &:hover:not(:disabled) {
-        transform: translateY(-1px);
-    }
+   &:hover:not(:disabled) {
+       transform: translateY(-1px);
+   }
 
-    &:active:not(:disabled) {
-        transform: translateY(0);
-    }
+   &:active:not(:disabled) {
+       transform: translateY(0);
+   }
 
-    &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-        transform: none;
-    }
+   &:disabled {
+       opacity: 0.5;
+       cursor: not-allowed;
+       transform: none;
+   }
 
-    svg {
-        animation: ${props => props.disabled && props.children?.[0]?.type === FaSpinner ? 'spin 1s linear infinite' : 'none'};
-    }
-
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-
-    @media (max-width: 576px) {
-        justify-content: center;
-    }
+   @media (max-width: 576px) {
+       justify-content: center;
+   }
 `;
 
 const PrimaryButton = styled(BaseButton)`
-    background: linear-gradient(135deg, ${settingsTheme.primary} 0%, ${settingsTheme.primaryLight} 100%);
-    color: white;
-    box-shadow: ${settingsTheme.shadow.sm};
+   background: linear-gradient(135deg, ${settingsTheme.primary} 0%, ${settingsTheme.primaryLight} 100%);
+   color: white;
+   box-shadow: ${settingsTheme.shadow.sm};
 
-    &:hover:not(:disabled) {
-        background: linear-gradient(135deg, ${settingsTheme.primaryDark} 0%, ${settingsTheme.primary} 100%);
-        box-shadow: ${settingsTheme.shadow.md};
-    }
+   &:hover:not(:disabled) {
+       background: linear-gradient(135deg, ${settingsTheme.primaryDark} 0%, ${settingsTheme.primary} 100%);
+       box-shadow: ${settingsTheme.shadow.md};
+   }
 `;
 
 const SecondaryButton = styled(BaseButton)`
-    background: ${settingsTheme.surface};
-    color: ${settingsTheme.text.secondary};
-    border-color: ${settingsTheme.border};
-    box-shadow: ${settingsTheme.shadow.xs};
+   background: ${settingsTheme.surface};
+   color: ${settingsTheme.text.secondary};
+   border-color: ${settingsTheme.border};
+   box-shadow: ${settingsTheme.shadow.xs};
 
-    &:hover:not(:disabled) {
-        background: ${settingsTheme.surfaceHover};
-        color: ${settingsTheme.text.primary};
-        border-color: ${settingsTheme.borderHover};
-        box-shadow: ${settingsTheme.shadow.sm};
-    }
+   &:hover:not(:disabled) {
+       background: ${settingsTheme.surfaceHover};
+       color: ${settingsTheme.text.primary};
+       border-color: ${settingsTheme.borderHover};
+       box-shadow: ${settingsTheme.shadow.sm};
+   }
 `;
 
 const DangerButton = styled(BaseButton)`
-    background: ${settingsTheme.status.errorLight};
-    color: ${settingsTheme.status.error};
-    border-color: ${settingsTheme.status.error}30;
+   background: ${settingsTheme.status.errorLight};
+   color: ${settingsTheme.status.error};
+   border-color: ${settingsTheme.status.error}30;
 
-    &:hover:not(:disabled) {
-        background: ${settingsTheme.status.error};
-        color: white;
-        border-color: ${settingsTheme.status.error};
-        box-shadow: ${settingsTheme.shadow.md};
-    }
+   &:hover:not(:disabled) {
+       background: ${settingsTheme.status.error};
+       color: white;
+       border-color: ${settingsTheme.status.error};
+       box-shadow: ${settingsTheme.shadow.md};
+   }
 `;
 
 const UnsavedChangesIndicator = styled.div`
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    display: flex;
-    align-items: center;
-    gap: ${settingsTheme.spacing.sm};
-    background: ${settingsTheme.status.warningLight};
-    color: ${settingsTheme.status.warning};
-    padding: ${settingsTheme.spacing.sm} ${settingsTheme.spacing.md};
-    border-radius: ${settingsTheme.radius.lg};
-    border: 1px solid ${settingsTheme.status.warning}30;
-    font-weight: 600;
-    font-size: 14px;
-    box-shadow: ${settingsTheme.shadow.lg};
-    z-index: 1000;
-    animation: slideIn 0.3s ease;
+   position: fixed;
+   bottom: 20px;
+   right: 20px;
+   display: flex;
+   align-items: center;
+   gap: ${settingsTheme.spacing.sm};
+   background: ${settingsTheme.status.warningLight};
+   color: ${settingsTheme.status.warning};
+   padding: ${settingsTheme.spacing.sm} ${settingsTheme.spacing.md};
+   border-radius: ${settingsTheme.radius.lg};
+   border: 1px solid ${settingsTheme.status.warning}30;
+   font-weight: 600;
+   font-size: 14px;
+   box-shadow: ${settingsTheme.shadow.lg};
+   z-index: 1000;
+   animation: slideIn 0.3s ease;
 
-    @keyframes slideIn {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
+   @keyframes slideIn {
+       from {
+           transform: translateX(100%);
+           opacity: 0;
+       }
+       to {
+           transform: translateX(0);
+           opacity: 1;
+       }
+   }
 `;
 
 export default CompanySettingsPage;

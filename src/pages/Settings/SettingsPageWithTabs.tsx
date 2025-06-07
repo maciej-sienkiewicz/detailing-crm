@@ -19,35 +19,40 @@ import EmployeesPage from './EmployeesPage';
 import ServicesPage from './ServicesPage';
 import BrandThemeSettingsPage from './BrandThemeSettingsPage';
 import CalendarColorsPage from './CalendarColorsPage';
-import CompanySettingsPage from './CompanySettingsPage'; // Nowy komponent
+import CompanySettingsPage from './CompanySettingsPage';
 
 // Import styles and utilities
 import { settingsTheme } from './styles/theme';
 
 type ActiveTab = 'company' | 'employees' | 'services' | 'brand-theme' | 'calendar-colors';
 
-// Interfejsy dla komunikacji z komponentami dziećmi
-interface ChildComponentRef {
-    // Dla CompanySettingsPage
-    handleSave?: () => void;
-    // Dla EmployeesPage
-    handleAddEmployee?: () => void;
-    // Dla ServicesPage
-    handleAddService?: () => void;
-    // Dla CalendarColorsPage
-    handleAddColor?: () => void;
+// Interfejsy dla komunikacji z komponentami dziećmi - poprawione typy
+interface CompanySettingsRef {
+    handleSave: () => void;
+}
+
+interface EmployeesPageRef {
+    handleAddEmployee: () => void;
+}
+
+interface ServicesPageRef {
+    handleAddService: () => void;
+}
+
+interface CalendarColorsPageRef {
+    handleAddColor: () => void;
 }
 
 const SettingsPageWithTabs: React.FC = () => {
     const [activeTab, setActiveTab] = useState<ActiveTab>('company');
 
-    // Referencje do komponentów dzieci
-    const companySettingsRef = useRef<ChildComponentRef>(null);
-    const employeesPageRef = useRef<ChildComponentRef>(null);
-    const servicesPageRef = useRef<ChildComponentRef>(null);
-    const calendarColorsPageRef = useRef<ChildComponentRef>(null);
+    // Referencje do komponentów dzieci - poprawione typy
+    const companySettingsRef = useRef<CompanySettingsRef>(null);
+    const employeesPageRef = useRef<EmployeesPageRef>(null);
+    const servicesPageRef = useRef<ServicesPageRef>(null);
+    const calendarColorsPageRef = useRef<CalendarColorsPageRef>(null);
 
-    // Tab configuration - dodano nową zakładkę na początku
+    // Tab configuration
     const tabs = [
         {
             id: 'company' as ActiveTab,
@@ -86,29 +91,21 @@ const SettingsPageWithTabs: React.FC = () => {
         setActiveTab(tabId);
     };
 
-    // Akcje dla poszczególnych zakładek
+    // Akcje dla poszczególnych zakładek - poprawione z null checking
     const handleCompanySaveSettings = () => {
-        if (companySettingsRef.current?.handleSave) {
-            companySettingsRef.current.handleSave();
-        }
+        companySettingsRef.current?.handleSave();
     };
 
     const handleAddEmployee = () => {
-        if (employeesPageRef.current?.handleAddEmployee) {
-            employeesPageRef.current.handleAddEmployee();
-        }
+        employeesPageRef.current?.handleAddEmployee();
     };
 
     const handleAddService = () => {
-        if (servicesPageRef.current?.handleAddService) {
-            servicesPageRef.current.handleAddService();
-        }
+        servicesPageRef.current?.handleAddService();
     };
 
     const handleAddCalendarColor = () => {
-        if (calendarColorsPageRef.current?.handleAddColor) {
-            calendarColorsPageRef.current.handleAddColor();
-        }
+        calendarColorsPageRef.current?.handleAddColor();
     };
 
     // Get current tab configuration
@@ -193,13 +190,12 @@ const SettingsPageWithTabs: React.FC = () => {
                 {activeTab === 'employees' && <EmployeesPage ref={employeesPageRef} />}
                 {activeTab === 'services' && <ServicesPage ref={servicesPageRef} />}
                 {activeTab === 'brand-theme' && <BrandThemeSettingsPage />}
-                {activeTab === 'calendar-colors' && <CalendarColorsPage ref={calendarColorsPageRef} />}
             </ContentContainer>
         </PageContainer>
     );
 };
 
-// Styled Components - Based on FinancialPageWithFixedCosts
+// Styled Components - identyczne jak wcześniej
 const PageContainer = styled.div`
     min-height: 100vh;
     background: ${settingsTheme.surfaceAlt};

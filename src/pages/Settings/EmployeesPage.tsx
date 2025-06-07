@@ -1,8 +1,7 @@
 // src/pages/Settings/EmployeesPage.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import styled from 'styled-components';
 import {
-    FaPlus,
     FaEdit,
     FaTrash,
     FaFileAlt,
@@ -46,7 +45,7 @@ export const formatDate = (dateString: string): string => {
     });
 };
 
-const EmployeesPage: React.FC = () => {
+const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref) => {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
     const [loading, setLoading] = useState(true);
@@ -55,7 +54,7 @@ const EmployeesPage: React.FC = () => {
     const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
     // Search and filters
-    const [searchTerm, setSearchTerm] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
     const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
     const [positionFilter, setPositionFilter] = useState('');
 
@@ -66,6 +65,11 @@ const EmployeesPage: React.FC = () => {
     const [loadingDocuments, setLoadingDocuments] = useState(false);
     const [documentError, setDocumentError] = useState<string | null>(null);
     const [showDocumentModal, setShowDocumentModal] = useState(false);
+
+    // Expose handleAddEmployee method to parent component
+    useImperativeHandle(ref, () => ({
+        handleAddEmployee: handleAddEmployee
+    }));
 
     // Pobieranie listy pracowników
     useEffect(() => {
@@ -91,8 +95,8 @@ const EmployeesPage: React.FC = () => {
         let result = [...employees];
 
         // Filtrowanie po wyszukiwanej frazie
-        if (searchTerm.trim()) {
-            const query = searchTerm.toLowerCase().trim();
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase().trim();
             result = result.filter(employee =>
                 employee.fullName.toLowerCase().includes(query) ||
                 employee.email.toLowerCase().includes(query) ||
@@ -110,7 +114,7 @@ const EmployeesPage: React.FC = () => {
         }
 
         setFilteredEmployees(result);
-    }, [employees, searchTerm, positionFilter]);
+    }, [employees, searchQuery, positionFilter]);
 
     // Obsługa dodawania nowego pracownika
     const handleAddEmployee = () => {
@@ -229,12 +233,12 @@ const EmployeesPage: React.FC = () => {
 
     // Clear filters
     const clearAllFilters = () => {
-        setSearchTerm('');
+        setSearchQuery('');
         setPositionFilter('');
     };
 
     const hasActiveFilters = () => {
-        return searchTerm.trim() !== '' || positionFilter.trim() !== '';
+        return searchQuery.trim() !== '' || positionFilter.trim() !== '';
     };
 
     // Get unique positions for filter
@@ -251,12 +255,12 @@ const EmployeesPage: React.FC = () => {
                         </SearchIcon>
                         <SearchInput
                             type="text"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
                             placeholder="Szybkie wyszukiwanie - imię, nazwisko, email, telefon..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
                         />
-                        {searchTerm && (
-                            <ClearSearchButton onClick={() => setSearchTerm('')}>
+                        {searchQuery && (
+                            <ClearSearchButton onClick={() => setSearchQuery('')}>
                                 <FaTimes />
                             </ClearSearchButton>
                         )}
@@ -345,10 +349,6 @@ const EmployeesPage: React.FC = () => {
                                 <TableTitle>
                                     Pracownicy ({filteredEmployees.length})
                                 </TableTitle>
-                                <AddEmployeeButton onClick={handleAddEmployee}>
-                                    <FaPlus />
-                                    Dodaj pracownika
-                                </AddEmployeeButton>
                             </TableHeader>
 
                             <EmployeesGrid>
@@ -449,7 +449,7 @@ const EmployeesPage: React.FC = () => {
             )}
         </ContentContainer>
     );
-};
+});
 
 // Styled Components - Based on Finance Module Style
 const ContentContainer = styled.div`
@@ -807,34 +807,6 @@ const TableTitle = styled.h3`
     letter-spacing: -0.025em;
 `;
 
-const AddEmployeeButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: ${settingsTheme.spacing.sm};
-    padding: ${settingsTheme.spacing.sm} ${settingsTheme.spacing.md};
-    border-radius: ${settingsTheme.radius.md};
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 1px solid transparent;
-    white-space: nowrap;
-    min-height: 40px;
-    background: linear-gradient(135deg, ${settingsTheme.primary} 0%, ${settingsTheme.primaryLight} 100%);
-    color: white;
-    box-shadow: ${settingsTheme.shadow.sm};
-
-    &:hover {
-        background: linear-gradient(135deg, ${settingsTheme.primaryDark} 0%, ${settingsTheme.primary} 100%);
-        box-shadow: ${settingsTheme.shadow.md};
-        transform: translateY(-1px);
-    }
-
-    &:active {
-        transform: translateY(0);
-    }
-`;
-
 const EmployeesGrid = styled.div`
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
@@ -972,9 +944,9 @@ const ActionButton = styled.button<{
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
     ${({ $variant }) => {
-        switch ($variant) {
-            case 'edit':
-                return `
+    switch ($variant) {
+        case 'edit':
+            return `
                     background: ${settingsTheme.status.warningLight};
                     color: ${settingsTheme.status.warning};
                     
@@ -985,8 +957,8 @@ const ActionButton = styled.button<{
                         box-shadow: ${settingsTheme.shadow.md};
                     }
                 `;
-            case 'delete':
-                return `
+        case 'delete':
+            return `
                     background: ${settingsTheme.status.errorLight};
                     color: ${settingsTheme.status.error};
                     
@@ -997,8 +969,8 @@ const ActionButton = styled.button<{
                         box-shadow: ${settingsTheme.shadow.md};
                     }
                 `;
-        }
-    }}
+    }
+}}
 `;
 
 export default EmployeesPage;

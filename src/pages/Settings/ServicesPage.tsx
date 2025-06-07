@@ -1,16 +1,16 @@
 // src/pages/Settings/ServicesPage.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import styled from 'styled-components';
 import {
     FaEdit,
     FaTrash,
-    FaPlus,
     FaFilter,
     FaTimes,
     FaSearch,
     FaChevronDown,
     FaChevronUp,
-    FaWrench
+    FaWrench,
+    FaSave
 } from 'react-icons/fa';
 import { Service } from '../../types';
 import { servicesApi } from '../../api/servicesApi';
@@ -25,7 +25,7 @@ interface ServiceFilters {
     vatRate: string;
 }
 
-const ServicesPage: React.FC = () => {
+const ServicesPage = forwardRef<{ handleAddService: () => void }>((props, ref) => {
     const [services, setServices] = useState<Service[]>([]);
     const [filteredServices, setFilteredServices] = useState<Service[]>([]);
     const [filters, setFilters] = useState<ServiceFilters>({
@@ -42,6 +42,11 @@ const ServicesPage: React.FC = () => {
     const [showModal, setShowModal] = useState(false);
     const [editingService, setEditingService] = useState<Service | null>(null);
     const [defaultVatRate, setDefaultVatRate] = useState(23);
+
+    // Expose handleAddService method to parent component
+    useImperativeHandle(ref, () => ({
+        handleAddService: handleAddService
+    }));
 
     // Pobieranie listy usług i domyślnej stawki VAT
     useEffect(() => {
@@ -364,10 +369,6 @@ const ServicesPage: React.FC = () => {
                                 <TableTitle>
                                     Usługi ({filteredServices.length})
                                 </TableTitle>
-                                <AddServiceButton onClick={handleAddService}>
-                                    <FaPlus />
-                                    Dodaj usługę
-                                </AddServiceButton>
                             </TableHeader>
 
                             <TableWrapper>
@@ -446,7 +447,7 @@ const ServicesPage: React.FC = () => {
             )}
         </ContentContainer>
     );
-};
+});
 
 // Komponent modalu do dodawania/edycji usługi
 interface ServiceFormModalProps {
@@ -598,6 +599,7 @@ const ServiceFormModal: React.FC<ServiceFormModalProps> = ({
                                 Anuluj
                             </SecondaryButton>
                             <PrimaryButton type="submit">
+                                <FaSave />
                                 {service.id ? 'Zapisz zmiany' : 'Dodaj usługę'}
                             </PrimaryButton>
                         </ButtonGroup>
@@ -857,6 +859,13 @@ const ErrorIcon = styled.div`
 
 const ErrorText = styled.div`
     flex: 1;
+    color: ${settingsTheme.status.error};
+    font-size: 12px;
+    font-weight: 500;
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
 `;
 
 const LoadingContainer = styled.div`
@@ -969,34 +978,6 @@ const TableTitle = styled.h3`
     color: ${settingsTheme.text.primary};
     margin: 0;
     letter-spacing: -0.025em;
-`;
-
-const AddServiceButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: ${settingsTheme.spacing.sm};
-    padding: ${settingsTheme.spacing.sm} ${settingsTheme.spacing.md};
-    border-radius: ${settingsTheme.radius.md};
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 1px solid transparent;
-    white-space: nowrap;
-    min-height: 40px;
-    background: linear-gradient(135deg, ${settingsTheme.primary} 0%, ${settingsTheme.primaryLight} 100%);
-    color: white;
-    box-shadow: ${settingsTheme.shadow.sm};
-
-    &:hover {
-        background: linear-gradient(135deg, ${settingsTheme.primaryDark} 0%, ${settingsTheme.primary} 100%);
-        box-shadow: ${settingsTheme.shadow.md};
-        transform: translateY(-1px);
-    }
-
-    &:active {
-        transform: translateY(0);
-    }
 `;
 
 const TableWrapper = styled.div`
@@ -1124,9 +1105,9 @@ const ActionButton = styled.button<{
     overflow: hidden;
 
     ${({ $variant }) => {
-    switch ($variant) {
-        case 'edit':
-            return `
+        switch ($variant) {
+            case 'edit':
+                return `
                     background: ${settingsTheme.status.warningLight};
                     color: ${settingsTheme.status.warning};
                     &:hover {
@@ -1136,8 +1117,8 @@ const ActionButton = styled.button<{
                         box-shadow: ${settingsTheme.shadow.md};
                     }
                 `;
-        case 'delete':
-            return `
+            case 'delete':
+                return `
                     background: ${settingsTheme.status.errorLight};
                     color: ${settingsTheme.status.error};
                     &:hover {
@@ -1147,8 +1128,8 @@ const ActionButton = styled.button<{
                         box-shadow: ${settingsTheme.shadow.md};
                     }
                 `;
-    }
-}}
+        }
+    }}
 `;
 
 // Modal Styles
@@ -1162,7 +1143,7 @@ const ModalOverlay = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: ${settingsTheme.zIndex.modal};
+    z-index: 1050;
     padding: ${settingsTheme.spacing.lg};
     backdrop-filter: blur(4px);
 `;
