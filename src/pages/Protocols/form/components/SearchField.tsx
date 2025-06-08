@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { FaSearch } from 'react-icons/fa';
+import { brandTheme } from '../styles';
 
 interface SearchFieldProps {
     id: string;
@@ -44,11 +45,12 @@ const SearchField: React.FC<SearchFieldProps> = ({
                     onChange={onChange}
                     placeholder={placeholder}
                     required={required}
+                    $hasError={!!error}
                 />
                 <SearchIcon
                     onClick={handleSearchButtonClick}
-                    title="Wyszukaj w bazie"
-                    type="button" // Wyraźnie ustawiamy typ na "button", aby zapobiec wysłaniu formularza
+                    title="Wyszukaj w bazie klientów"
+                    type="button"
                 >
                     <FaSearch />
                 </SearchIcon>
@@ -67,47 +69,66 @@ const InputWithIcon = styled.div`
     width: 100%;
 `;
 
-const Input = styled.input`
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
+const Input = styled.input<{ $hasError?: boolean }>`
     width: 100%;
-    padding-right: 40px; /* Space for the icon */
+    height: 44px;
+    padding: 0 48px 0 ${brandTheme.spacing.md};
+    border: 2px solid ${props => props.$hasError ? brandTheme.status.error : brandTheme.border};
+    border-radius: ${brandTheme.radius.md};
+    font-size: 14px;
+    font-weight: 500;
+    background: ${brandTheme.surface};
+    color: ${brandTheme.text.primary};
+    transition: all ${brandTheme.transitions.normal};
 
     &:focus {
         outline: none;
-        border-color: #3498db;
-        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        border-color: ${props => props.$hasError ? brandTheme.status.error : brandTheme.primary};
+        box-shadow: 0 0 0 3px ${props => props.$hasError ? brandTheme.status.errorLight : brandTheme.primaryGhost};
+    }
+
+    &::placeholder {
+        color: ${brandTheme.text.muted};
+        font-weight: 400;
     }
 `;
 
 const SearchIcon = styled.button`
     position: absolute;
-    right: 8px;
+    right: ${brandTheme.spacing.sm};
     top: 50%;
     transform: translateY(-50%);
-    background: none;
-    border: none;
-    color: #7f8c8d;
-    font-size: 16px;
+    width: 32px;
+    height: 32px;
+    background: ${brandTheme.primaryGhost};
+    border: 1px solid ${brandTheme.primary}30;
+    color: ${brandTheme.primary};
+    border-radius: ${brandTheme.radius.sm};
     cursor: pointer;
-    padding: 5px;
-    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 14px;
+    transition: all ${brandTheme.transitions.normal};
 
     &:hover {
-        color: #3498db;
-        background-color: rgba(52, 152, 219, 0.1);
+        background: ${brandTheme.primary};
+        color: white;
+        border-color: ${brandTheme.primary};
+        transform: translateY(-50%) translateY(-1px);
+        box-shadow: ${brandTheme.shadow.sm};
+    }
+
+    &:active {
+        transform: translateY(-50%) translateY(0);
     }
 `;
 
 const ErrorText = styled.div`
-    color: #e74c3c;
+    color: ${brandTheme.status.error};
     font-size: 12px;
-    margin-top: 4px;
+    font-weight: 500;
+    margin-top: ${brandTheme.spacing.xs};
 `;
 
 export default SearchField;

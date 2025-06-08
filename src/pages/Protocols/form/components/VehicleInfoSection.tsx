@@ -158,10 +158,10 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
     return (
         <>
             <FormSection>
-                <SectionTitle>Dane usługi</SectionTitle>
+                <SectionTitle>Harmonogram wizyty</SectionTitle>
                 <FormRow className="responsive-row">
                     <FormGroup className="date-time-group">
-                        <Label htmlFor="startDate">Data rozpoczęcia*</Label>
+                        <Label htmlFor="startDate">Data i godzina rozpoczęcia*</Label>
                         <DateTimeContainer>
                             <Input
                                 id="startDate"
@@ -171,6 +171,7 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                                 onChange={onChange}
                                 required
                                 className="date-input"
+                                $hasError={!!errors.startDate}
                             />
                             <Input
                                 id="startTime"
@@ -205,7 +206,7 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                             value={formData.endDate ? formData.endDate.split('T')[0] : ''}
                             onChange={handleDateChange}
                             required
-                            style={{ borderColor: dateError ? '#e74c3c' : undefined }}
+                            $hasError={!!(errors.endDate || dateError)}
                         />
                         {errors.endDate && <ErrorText>{errors.endDate}</ErrorText>}
                         {dateError && <ErrorText>{dateError}</ErrorText>}
@@ -214,10 +215,10 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
             </FormSection>
 
             <FormSection>
-                <SectionTitle>Dane pojazdu</SectionTitle>
+                <SectionTitle>Informacje o pojeździe</SectionTitle>
                 <FormRow className="responsive-row">
                     <FormGroup>
-                        <Label htmlFor="licensePlate">Tablica rejestracyjna</Label>
+                        <Label htmlFor="licensePlate">Tablica rejestracyjna*</Label>
                         {readOnly ? (
                             <Input
                                 id="licensePlate"
@@ -235,7 +236,7 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                                 onChange={onChange}
                                 placeholder="np. WA12345"
                                 onSearchClick={() => handleSearchClick('licensePlate')}
-                                error={errors.licensePlate || "Tablica rejestracyjna nie może zawierać spacji"}
+                                error={errors.licensePlate}
                                 readOnly={readOnly}
                                 required
                             />
@@ -243,15 +244,16 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                     </FormGroup>
 
                     <FormGroup>
-                        <Label htmlFor="make">Marka*</Label>
+                        <Label htmlFor="make">Marka pojazdu*</Label>
                         <Input
                             id="make"
                             name="make"
                             list="carBrandsList"
                             value={formData.make || ''}
                             onChange={onChange}
-                            placeholder="Wpisz lub wybierz markę"
+                            placeholder="Wybierz lub wpisz markę"
                             required
+                            $hasError={!!errors.make}
                         />
                         <datalist id="carBrandsList">
                             {carBrands.map(brand => (
@@ -262,14 +264,15 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                     </FormGroup>
 
                     <FormGroup>
-                        <Label htmlFor="model">Model*</Label>
+                        <Label htmlFor="model">Model pojazdu*</Label>
                         <Input
                             id="model"
                             name="model"
                             value={formData.model || ''}
                             onChange={onChange}
-                            placeholder="np. A6"
+                            placeholder="np. A6, Golf, Corolla"
                             required
+                            $hasError={!!errors.model}
                         />
                         {errors.model && <ErrorText>{errors.model}</ErrorText>}
                     </FormGroup>
@@ -286,12 +289,13 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                             max={new Date().getFullYear() + 1}
                             value={formData.productionYear || ''}
                             onChange={onChange}
+                            placeholder="np. 2020"
                         />
                     </FormGroup>
 
                     {isFullProtocol && (
                         <FormGroup>
-                            <Label htmlFor="mileage">Przebieg (km)</Label>
+                            <Label htmlFor="mileage">Przebieg pojazdu (km)</Label>
                             <Input
                                 id="mileage"
                                 name="mileage"
@@ -299,6 +303,8 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                                 min="0"
                                 value={formData.mileage || ''}
                                 onChange={onChange}
+                                placeholder="np. 150000"
+                                $hasError={!!errors.mileage}
                             />
                             {errors.mileage && <ErrorText>{errors.mileage}</ErrorText>}
                         </FormGroup>
@@ -315,7 +321,7 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                                     onChange={onChange}
                                     type="checkbox"
                                 />
-                                Przekazano kluczyk
+                                Przekazano kluczyki pojazdu
                             </CheckboxLabel>
                         </CheckboxGroup>
 
@@ -327,7 +333,7 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                                     onChange={onChange}
                                     type="checkbox"
                                 />
-                                Przekazano dokumenty
+                                Przekazano dokumenty pojazdu
                             </CheckboxLabel>
                         </CheckboxGroup>
                     </FormRow>

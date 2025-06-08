@@ -27,7 +27,7 @@ const ClientInfoSection: React.FC<ClientInfoSectionProps> = ({
                                                                  errors,
                                                                  onChange,
                                                                  onSearchByField,
-                                                                 readOnly = false // Domyślnie false
+                                                                 readOnly = false
                                                              }) => {
     const handleSearchClick = (field: 'ownerName' | 'companyName' | 'taxId' | 'email' | 'phone') => {
         if (onSearchByField && !readOnly) {
@@ -57,6 +57,7 @@ const ClientInfoSection: React.FC<ClientInfoSectionProps> = ({
                     required={required}
                     readOnly={true}
                     style={{ backgroundColor: '#f9f9f9', cursor: 'not-allowed' }}
+                    $hasError={!!error}
                 />
             );
         }
@@ -77,10 +78,10 @@ const ClientInfoSection: React.FC<ClientInfoSectionProps> = ({
 
     return (
         <FormSection>
-            <SectionTitle>Dane właściciela</SectionTitle>
+            <SectionTitle>Dane właściciela pojazdu</SectionTitle>
             <FormRow className="responsive-row">
                 <FormGroup>
-                    <Label htmlFor="ownerName">Imię i nazwisko*</Label>
+                    <Label htmlFor="ownerName">Imię i nazwisko właściciela*</Label>
                     {renderField(
                         "ownerName",
                         "ownerName",
@@ -99,12 +100,12 @@ const ClientInfoSection: React.FC<ClientInfoSectionProps> = ({
                         "companyName",
                         "companyName",
                         formData.companyName || '',
-                        "np. AutoFirma Sp. z o.o."
+                        "np. AutoDetailing Sp. z o.o."
                     )}
                 </FormGroup>
 
                 <FormGroup>
-                    <Label htmlFor="taxId">NIP</Label>
+                    <Label htmlFor="taxId">NIP firmy</Label>
                     {renderField(
                         "taxId",
                         "taxId",
@@ -116,7 +117,7 @@ const ClientInfoSection: React.FC<ClientInfoSectionProps> = ({
 
             <FormRow className="responsive-row">
                 <FormGroup>
-                    <Label htmlFor="email">Email{!formData.phone ? '*' : ''}</Label>
+                    <Label htmlFor="email">Adres e-mail{!formData.phone ? '*' : ''}</Label>
                     {renderField(
                         "email",
                         "email",
@@ -128,7 +129,7 @@ const ClientInfoSection: React.FC<ClientInfoSectionProps> = ({
                 </FormGroup>
 
                 <FormGroup>
-                    <Label htmlFor="phone">Telefon{!formData.email ? '*' : ''}</Label>
+                    <Label htmlFor="phone">Numer telefonu{!formData.email ? '*' : ''}</Label>
                     {renderField(
                         "phone",
                         "phone",
