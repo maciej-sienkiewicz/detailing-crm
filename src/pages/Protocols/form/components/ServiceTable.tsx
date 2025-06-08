@@ -4,7 +4,65 @@ import { DiscountType, DiscountTypeLabels, SelectedService } from '../../../../t
 import styled from 'styled-components';
 import ServiceNoteModal from "../../shared/modals/SerivceNoteModal";
 
-// Rozszerzone typy rabatu - zamieniamy na enum dla zgodności
+// Professional theme matching the form design
+const formTheme = {
+    colors: {
+        primary: '#2563eb',
+        primaryHover: '#1d4ed8',
+        primaryLight: 'rgba(37, 99, 235, 0.08)',
+        primaryGhost: 'rgba(37, 99, 235, 0.04)',
+
+        success: '#059669',
+        successLight: 'rgba(5, 150, 105, 0.1)',
+        warning: '#d97706',
+        warningLight: 'rgba(217, 119, 6, 0.1)',
+        error: '#dc2626',
+        errorLight: 'rgba(220, 38, 38, 0.1)',
+
+        // Text hierarchy
+        textPrimary: '#0f172a',
+        textSecondary: '#475569',
+        textTertiary: '#64748b',
+        textMuted: '#94a3b8',
+        textDisabled: '#cbd5e1',
+
+        // Surface colors
+        surface: '#ffffff',
+        surfaceElevated: '#fafbfc',
+        surfaceHover: '#f8fafc',
+        surfaceActive: '#f1f5f9',
+        surfaceDisabled: '#f3f4f6',
+
+        // Border system
+        border: '#e2e8f0',
+        borderLight: '#f1f5f9',
+        borderHover: '#cbd5e1',
+        borderActive: '#94a3b8',
+    },
+    spacing: {
+        xs: '4px',
+        sm: '8px',
+        md: '12px',
+        lg: '16px',
+        xl: '20px',
+        xxl: '24px',
+    },
+    borderRadius: {
+        sm: '6px',
+        md: '8px',
+        lg: '12px',
+        xl: '16px',
+    },
+    shadows: {
+        xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+        sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+        md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        focus: '0 0 0 3px rgba(59, 130, 246, 0.1)',
+    }
+};
+
+// Extended discount types
 enum ExtendedDiscountType {
     PERCENTAGE = 'PERCENTAGE',
     AMOUNT_GROSS = 'AMOUNT_GROSS',
@@ -13,7 +71,6 @@ enum ExtendedDiscountType {
     FIXED_PRICE_NET = 'FIXED_PRICE_NET'
 }
 
-// Nowe wersje etykiet rabatu uwzględniające ceny netto/brutto
 const DiscountTypeLabelsExtended: Record<ExtendedDiscountType, string> = {
     [ExtendedDiscountType.PERCENTAGE]: "Procent",
     [ExtendedDiscountType.AMOUNT_GROSS]: "Kwota (brutto)",
@@ -22,7 +79,6 @@ const DiscountTypeLabelsExtended: Record<ExtendedDiscountType, string> = {
     [ExtendedDiscountType.FIXED_PRICE_NET]: "Cena końcowa (netto)"
 };
 
-// Funkcja do mapowania typów rabatu
 const mapToStandardDiscountType = (extendedType: ExtendedDiscountType): DiscountType => {
     switch (extendedType) {
         case ExtendedDiscountType.PERCENTAGE:
@@ -38,7 +94,6 @@ const mapToStandardDiscountType = (extendedType: ExtendedDiscountType): Discount
     }
 };
 
-// Mapowanie standardowego typu rabatu na rozszerzony typ
 const mapFromStandardDiscountType = (standardType: DiscountType): ExtendedDiscountType => {
     switch (standardType) {
         case DiscountType.PERCENTAGE:
@@ -52,318 +107,9 @@ const mapFromStandardDiscountType = (standardType: DiscountType): ExtendedDiscou
     }
 };
 
-// Stałe
-const DEFAULT_VAT_RATE = 23; // Domyślna stawka VAT (23%)
-// Główne style dla tabeli usług
-export const ServicesTableContainer = styled.div`
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-    overflow-x: auto;
-`;
+const DEFAULT_VAT_RATE = 23;
 
-export const Table = styled.table`
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-`;
-
-export const TableHeader = styled.th`
-    background-color: #f8f9fa;
-    color: #2c3e50;
-    font-weight: 600;
-    text-align: left;
-    padding: 12px 15px;
-    border-bottom: 2px solid #e9ecef;
-`;
-
-export const TableCell = styled.td`
-    padding: 12px 15px;
-    border-bottom: 1px solid #eee;
-    vertical-align: middle;
-`;
-
-export const TableFooterCell = styled(TableCell)`
-    font-weight: 600;
-    background-color: rgba(192, 215, 241, 0.49);
-`;
-
-// Style dla nazwy usługi
-export const ServiceNameContainer = styled.div`
-    display: flex;
-    flex-direction: column;
-    line-height: 1.4;
-`;
-
-
-export const ServiceName = styled.div`
-    font-weight: 500;
-    color: #2c3e50;
-`;
-
-export const ServiceNote = styled.div`
-    font-size: 12px;
-    color: #7f8c8d;
-    font-style: italic;
-    margin-top: 4px;
-    word-break: break-word;
-`;
-
-// Style dla ceny
-export const PriceWrapper = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-`;
-
-export const PriceValue = styled.span`
-    font-weight: 500;
-    color: #2c3e50;
-`;
-
-export const PriceType = styled.div`
-    font-size: 11px;
-    color: #7f8c8d;
-    text-transform: uppercase;
-`;
-
-// Style dla edytowalnej komórki ceny
-export const EditablePriceCell = styled(TableCell)`
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-
-    &:hover {
-        background-color: #f8f9fa;
-    }
-`;
-
-export const PriceContainer = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-`;
-
-export const EditIcon = styled.span`
-    font-size: 14px;
-    color: #3498db;
-    opacity: 0.6;
-    transition: opacity 0.2s ease;
-
-    ${EditablePriceCell}:hover & {
-        opacity: 1;
-    }
-`;
-
-// Style dla rabatu
-export const StyledDiscountContainer = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-`;
-
-export const DiscountTypeSelect = styled.select`
-    flex: 1;
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 13px;
-    height: 38px;
-`;
-
-export const DiscountInputGroup = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 5px;
-`;
-
-export const DiscountInput = styled.input`
-    width: 80px;
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 13px;
-    text-align: right;
-    height: 38px;
-`;
-
-export const DiscountPercentage = styled.span`
-    font-size: 12px;
-    color: #7f8c8d;
-    white-space: nowrap;
-`;
-
-export const DiscountCell = styled(TableCell)`
-    min-width: 280px;
-    width: 280px;
-
-    @media (max-width: 1200px) {
-        min-width: 250px;
-        width: 250px;
-    }
-
-    @media (max-width: 992px) {
-        min-width: 220px;
-        width: 220px;
-    }
-
-    @media (max-width: 768px) {
-        min-width: 200px;
-        width: 200px;
-    }
-
-    @media (max-width: 576px) {
-        min-width: 100%;
-        width: 100%;
-    }
-`;
-
-// Style dla przycisków akcji
-export const ActionButtonsContainer = styled.div`
-    display: flex;
-    gap: 8px;
-    justify-content: center;
-`;
-
-export const ActionButton = styled.button<{ danger?: boolean, note?: boolean }>`
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: ${props =>
-    props.danger ? '#e74c3c' :
-        props.note ? '#f39c12' :
-            '#3498db'
-};
-    font-size: 16px;
-    padding: 6px;
-    border-radius: 4px;
-    transition: background-color 0.2s ease, color 0.2s ease;
-
-    &:hover {
-        background-color: ${props =>
-    props.danger ? 'rgba(231, 76, 60, 0.1)' :
-        props.note ? 'rgba(243, 156, 18, 0.1)' :
-            'rgba(52, 152, 219, 0.1)'
-};
-    }
-`;
-
-// Wartości sumaryczne
-export const TotalValue = styled.span`
-    font-weight: 600;
-    color: #2c3e50;
-`;
-
-// Style dla okna edycji ceny
-export const EditPricePopup = styled.div`
-    position: absolute;
-    z-index: 100;
-    background-color: white;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    padding: 15px;
-    width: 300px;
-`;
-
-export const PopupTitle = styled.div`
-    font-weight: 500;
-    font-size: 15px;
-    margin-bottom: 10px;
-    color: #34495e;
-`;
-
-export const EditPriceForm = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-`;
-
-export const EditPriceInput = styled.input`
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
-
-    &:focus {
-        outline: none;
-        border-color: #3498db;
-        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
-    }
-`;
-
-export const PriceTypeSelect = styled.select`
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
-    width: 100%;
-`;
-
-export const EditPriceButtons = styled.div`
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 10px;
-`;
-
-export const Button = styled.button<{ primary?: boolean }>`
-    padding: 6px 12px;
-    border-radius: 4px;
-    font-size: 14px;
-    cursor: pointer;
-
-    ${props => props.primary ? `
-        background-color: #3498db;
-        color: white;
-        border: none;
-        
-        &:hover {
-            background-color: #2980b9;
-        }
-    ` : `
-        background-color: white;
-        color: #333;
-        border: 1px solid #ddd;
-        
-        &:hover {
-            background-color: #f5f5f5;
-        }
-    `}
-`;
-
-// Style dla menu kontekstowego
-export const ContextMenu = styled.div`
-    position: absolute;
-    z-index: 100;
-    background-color: white;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    padding: 5px 0;
-    min-width: 200px;
-`;
-
-export const MenuItem = styled.div`
-    padding: 8px 15px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    font-size: 14px;
-
-    &:hover {
-        background-color: #f5f5f5;
-    }
-`;
-
-// Rozszerzamy tablicę usług o dodatkowe pola
-interface ServiceExtended extends SelectedService {
-    note?: string;
-    extendedDiscountType?: ExtendedDiscountType;
-}
-
-// Funkcje pomocnicze dla obliczeń kwot brutto/netto
+// Helper functions
 const calculateNetPrice = (grossPrice: number, vatRate: number = DEFAULT_VAT_RATE): number => {
     return grossPrice / (1 + vatRate / 100);
 };
@@ -371,6 +117,11 @@ const calculateNetPrice = (grossPrice: number, vatRate: number = DEFAULT_VAT_RAT
 const calculateGrossPrice = (netPrice: number, vatRate: number = DEFAULT_VAT_RATE): number => {
     return netPrice * (1 + vatRate / 100);
 };
+
+interface ServiceExtended extends SelectedService {
+    note?: string;
+    extendedDiscountType?: ExtendedDiscountType;
+}
 
 interface ServiceTableProps {
     services: ServiceExtended[];
@@ -393,7 +144,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                                                    }) => {
     const { totalPrice, totalDiscount, totalFinalPrice } = calculateTotals();
 
-    // Stan dla menu kontekstowego
+    // State management
     const [contextMenu, setContextMenu] = useState<{
         visible: boolean;
         x: number;
@@ -406,10 +157,8 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
         serviceId: ''
     });
 
-    // Stan do przechowywania rozszerzonych typów rabatów dla każdej usługi
     const [extendedDiscountTypes, setExtendedDiscountTypes] = useState<Record<string, ExtendedDiscountType>>({});
 
-    // State dla wyskakującego okna edycji
     const [editPopup, setEditPopup] = useState<{
         visible: boolean;
         x: number;
@@ -426,7 +175,6 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
         isPriceGross: true
     });
 
-    // State dla modalu notatki
     const [noteModal, setNoteModal] = useState<{
         visible: boolean;
         serviceId: string;
@@ -439,10 +187,9 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
         currentNote: ''
     });
 
-    // State do przechowywania nowej ceny jako string, aby uniknąć problemów z zerami wiodącymi
     const [newPrice, setNewPrice] = useState<string>('');
 
-    // Inicjalizuj rozszerzone typy rabatów dla usług, które ich nie mają
+    // Initialize extended discount types
     React.useEffect(() => {
         const updatedTypes: Record<string, ExtendedDiscountType> = {...extendedDiscountTypes};
         let hasUpdates = false;
@@ -460,10 +207,9 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
         }
     }, [services]);
 
-    // Obsługa kliknięcia prawym przyciskiem na cenę
+    // Event handlers
     const handlePriceRightClick = (e: React.MouseEvent, service: ServiceExtended) => {
-        e.preventDefault(); // Zapobiegaj domyślnemu menu kontekstowemu przeglądarki
-
+        e.preventDefault();
         setContextMenu({
             visible: true,
             x: e.clientX,
@@ -472,18 +218,13 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
         });
     };
 
-    // Obsługa kliknięcia na opcję edycji w menu kontekstowym
     const handleEditPrice = () => {
-        // Znajdź usługę, której cena ma być edytowana
         const service = services.find(s => s.id === contextMenu.serviceId);
         if (!service) return;
 
-        // Ukryj menu kontekstowe
         setContextMenu({...contextMenu, visible: false});
 
-        // Pokaż okno edycji ceny
         const rect = document.getElementById(`price-${service.id}`)?.getBoundingClientRect();
-
         if (rect) {
             setEditPopup({
                 visible: true,
@@ -491,23 +232,19 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                 y: rect.bottom + window.scrollY,
                 serviceId: service.id,
                 currentPrice: service.price,
-                isPriceGross: true // Domyślnie edytujemy cenę brutto
+                isPriceGross: true
             });
-
             setNewPrice(service.price.toString());
         }
     };
 
-    // Zapisz nową cenę
     const handleSavePrice = () => {
-        // Konwertuj string na liczbę, ale tylko jeśli nie jest pusty
         const parsedPrice = newPrice.trim() === '' ? 0 : parseFloat(newPrice);
 
         if (isNaN(parsedPrice) || parsedPrice < 0) {
-            return; // Nie zapisuj nieprawidłowej ceny
+            return;
         }
 
-        // Jeśli cena jest netto, przelicz ją na brutto przed zapisaniem
         const finalPrice = editPopup.isPriceGross
             ? parsedPrice
             : calculateGrossPrice(parsedPrice);
@@ -516,60 +253,27 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
         setEditPopup({...editPopup, visible: false});
     };
 
-    // Zmiana typu ceny (brutto/netto) w oknie edycji
     const handlePriceTypeChange = (isPriceGross: boolean) => {
-        // Przelicz wartość w polu, jeśli jest liczbą
         const parsedPrice = parseFloat(newPrice);
         if (!isNaN(parsedPrice)) {
             if (editPopup.isPriceGross && !isPriceGross) {
-                // Zmiana z brutto na netto
                 setNewPrice(calculateNetPrice(parsedPrice).toFixed(2));
             } else if (!editPopup.isPriceGross && isPriceGross) {
-                // Zmiana z netto na brutto
                 setNewPrice(calculateGrossPrice(parsedPrice).toFixed(2));
             }
         }
-
         setEditPopup({...editPopup, isPriceGross});
     };
 
-    // Obsługa zmiany rozszerzonego typu rabatu
     const handleExtendedDiscountTypeChange = (serviceId: string, newExtendedType: ExtendedDiscountType) => {
         const standardType = mapToStandardDiscountType(newExtendedType);
-
-        // Aktualizuj stan lokalny
         setExtendedDiscountTypes({
             ...extendedDiscountTypes,
             [serviceId]: newExtendedType
         });
-
-        // Wywołaj funkcję do aktualizacji rabatu w głównym komponencie
         onDiscountTypeChange(serviceId, standardType);
     };
 
-    // Funkcja pomocnicza do określania wartości rabatu do wyświetlenia
-    const getDiscountDisplayValue = (service: ServiceExtended, extendedType: ExtendedDiscountType): string => {
-        if (service.discountType === DiscountType.PERCENTAGE) {
-            return `${service.discountValue}%`;
-        } else if (service.discountType === DiscountType.AMOUNT) {
-            // Dla kwotowego, sprawdź czy to brutto czy netto
-            if (extendedType === ExtendedDiscountType.AMOUNT_NET) {
-                return `${service.discountValue.toFixed(2)} zł (netto)`;
-            } else {
-                return `${service.discountValue.toFixed(2)} zł (brutto)`;
-            }
-        } else if (service.discountType === DiscountType.FIXED_PRICE) {
-            // Dla ceny finalnej, sprawdź czy to brutto czy netto
-            if (extendedType === ExtendedDiscountType.FIXED_PRICE_NET) {
-                return `${service.discountValue.toFixed(2)} zł (netto)`;
-            } else {
-                return `${service.discountValue.toFixed(2)} zł (brutto)`;
-            }
-        }
-        return `${service.discountValue}`;
-    };
-
-    // Otwórz modal dodawania/edycji notatki
     const handleOpenNoteModal = (service: ServiceExtended) => {
         setNoteModal({
             visible: true,
@@ -579,7 +283,6 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
         });
     };
 
-    // Zapisz notatkę
     const handleSaveNote = (note: string) => {
         if (onAddNote && noteModal.serviceId) {
             onAddNote(noteModal.serviceId, note);
@@ -587,201 +290,226 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
         setNoteModal({...noteModal, visible: false});
     };
 
-    // Zamknij menu kontekstowe przy kliknięciu na stronę
+    // Click outside handlers
     React.useEffect(() => {
         const handleClickOutside = () => {
             setContextMenu({...contextMenu, visible: false});
         };
-
         document.addEventListener('click', handleClickOutside);
-
-        return () => {
-            document.removeEventListener('click', handleClickOutside);
-        };
+        return () => document.removeEventListener('click', handleClickOutside);
     }, [contextMenu]);
 
-    // Zamknij okno edycji przy kliknięciu Escape
     React.useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape') {
                 setEditPopup({...editPopup, visible: false});
             }
         };
-
         document.addEventListener('keydown', handleKeyDown);
-
-        return () => {
-            document.removeEventListener('keydown', handleKeyDown);
-        };
+        return () => document.removeEventListener('keydown', handleKeyDown);
     }, [editPopup]);
 
-    // Oblicz sumę netto
-    const calculateTotalNet = () => {
-        return calculateNetPrice(totalPrice);
-    };
-
-    const calculateFinalTotalNet = () => {
-        return calculateNetPrice(totalFinalPrice);
-    };
+    const calculateTotalNet = () => calculateNetPrice(totalPrice);
+    const calculateFinalTotalNet = () => calculateNetPrice(totalFinalPrice);
 
     return (
-        <ServicesTableContainer>
-            <Table>
-                <thead>
-                <tr>
-                    <TableHeader>Nazwa</TableHeader>
-                    <TableHeader>Cena bazowa</TableHeader>
-                    <TableHeader>Rabat</TableHeader>
-                    <TableHeader>Cena końcowa</TableHeader>
-                    <TableHeader>Akcje</TableHeader>
-                </tr>
-                </thead>
-                <tbody>
-                {services.length === 0 ? (
-                    <tr>
-                        <TableCell colSpan={6} style={{ textAlign: 'center' }}>
-                            Brak wybranych usług. Użyj pola wyszukiwania, aby dodać usługi.
-                        </TableCell>
-                    </tr>
-                ) : (
-                    services.map(service => {
-                        const extendedType = extendedDiscountTypes[service.id] ||
-                            mapFromStandardDiscountType(service.discountType);
-
-                        return (
-                            <tr key={service.id}>
-                                <TableCell>
-                                    <ServiceNameContainer>
-                                        <ServiceName>{service.name}</ServiceName>
-                                        {service.note && (
-                                            <ServiceNote>{service.note}</ServiceNote>
-                                        )}
-                                    </ServiceNameContainer>
-                                </TableCell>
-                                <EditablePriceCell
-                                    id={`price-${service.id}`}
-                                    onContextMenu={(e) => handlePriceRightClick(e, service)}
-                                    onClick={(e) => {
-                                        const rect = e.currentTarget.getBoundingClientRect();
-                                        setEditPopup({
-                                            visible: true,
-                                            x: rect.left,
-                                            y: rect.bottom + window.scrollY,
-                                            serviceId: service.id,
-                                            currentPrice: service.price,
-                                            isPriceGross: true
-                                        });
-                                        setNewPrice(service.price.toString());
-                                    }}
-                                >
-                                    <PriceContainer>
-                                        <PriceWrapper>
-                                            <PriceValue>{service.price.toFixed(2)} zł</PriceValue>
-                                            <PriceType>brutto</PriceType>
-                                            <PriceValue>{calculateNetPrice(service.price).toFixed(2)} zł</PriceValue>
-                                            <PriceType>netto</PriceType>
-                                        </PriceWrapper>
-                                        <EditIcon>
-                                            <FaEdit />
-                                        </EditIcon>
-                                    </PriceContainer>
-                                </EditablePriceCell>
-                                <DiscountCell>
-                                    <StyledDiscountContainer>
-                                        <DiscountTypeSelect
-                                            value={extendedType}
-                                            defaultValue={ExtendedDiscountType.PERCENTAGE}
-                                            onChange={(e) => handleExtendedDiscountTypeChange(
-                                                service.id,
-                                                e.target.value as ExtendedDiscountType
-                                            )}
-                                        >
-                                            {Object.entries(DiscountTypeLabelsExtended).map(([value, label]) => (
-                                                <option key={value} value={value}>{label}</option>
-                                            ))}
-                                        </DiscountTypeSelect>
-                                        <DiscountInputGroup>
-                                            <DiscountInput
-                                                type="number"
-                                                min="0"
-                                                max={service.discountType === DiscountType.PERCENTAGE ? 100 : undefined}
-                                                value={service.discountValue}
-                                                onChange={(e) => onDiscountValueChange(
-                                                    service.id,
-                                                    parseFloat(e.target.value) || 0
-                                                )}
-                                            />
-                                                <DiscountPercentage>
-                                                    ({(service.price * service.discountValue / 100).toFixed(2)} zł)
-                                                </DiscountPercentage>
-                                        </DiscountInputGroup>
-                                    </StyledDiscountContainer>
-                                </DiscountCell>
-                                <TableCell>
-                                    <PriceWrapper>
-                                        <PriceValue>{service.finalPrice.toFixed(2)} zł</PriceValue>
-                                        <PriceType>brutto</PriceType>
-                                        <PriceValue>{calculateNetPrice(service.finalPrice).toFixed(2)} zł</PriceValue>
-                                        <PriceType>netto</PriceType>
-                                    </PriceWrapper>
-                                </TableCell>
-                                <TableCell>
-                                    <ActionButtonsContainer>
-                                        <ActionButton
-                                            type="button"
-                                            onClick={() => handleOpenNoteModal(service)}
-                                            title="Dodaj notatkę"
-                                            note={!!service.note}
-                                        >
-                                            <FaStickyNote />
-                                        </ActionButton>
-                                        <ActionButton
-                                            onClick={() => onRemoveService(service.id)}
-                                            title="Usuń usługę"
-                                            danger
-                                        >
-                                            <FaTrash />
-                                        </ActionButton>
-                                    </ActionButtonsContainer>
-                                </TableCell>
+        <TableContainer>
+            <TableWrapper>
+                <Table>
+                    <TableHead>
+                        <tr>
+                            <TableHeader>Nazwa usługi</TableHeader>
+                            <TableHeader>Cena bazowa</TableHeader>
+                            <TableHeader>Rabat</TableHeader>
+                            <TableHeader>Cena końcowa</TableHeader>
+                            <TableHeader>Akcje</TableHeader>
+                        </tr>
+                    </TableHead>
+                    <TableBody>
+                        {services.length === 0 ? (
+                            <tr>
+                                <EmptyStateCell colSpan={5}>
+                                    <EmptyStateContent>
+                                        <EmptyStateText>
+                                            <EmptyStateTitle>Brak wybranych usług</EmptyStateTitle>
+                                            <EmptyStateSubtitle>
+                                                Użyj pola wyszukiwania powyżej, aby dodać usługi do protokołu
+                                            </EmptyStateSubtitle>
+                                        </EmptyStateText>
+                                    </EmptyStateContent>
+                                </EmptyStateCell>
                             </tr>
-                        );
-                    })
-                )}
-                </tbody>
-                <tfoot>
-                <tr>
-                    <TableFooterCell>Suma:</TableFooterCell>
-                    <TableFooterCell>
-                        <PriceWrapper>
-                            <TotalValue>{totalPrice.toFixed(2)} zł</TotalValue>
-                            <PriceType>brutto</PriceType>
-                            <TotalValue>{calculateTotalNet().toFixed(2)} zł</TotalValue>
-                            <PriceType>netto</PriceType>
-                        </PriceWrapper>
-                    </TableFooterCell>
-                    <TableFooterCell>
-                        <PriceWrapper>
-                            <TotalValue>{totalDiscount.toFixed(2)} zł</TotalValue>
-                            <PriceType>brutto</PriceType>
-                            <TotalValue>{(totalDiscount / 1.23).toFixed(2)} zł</TotalValue>
-                            <PriceType>netto</PriceType>
-                        </PriceWrapper>
-                    </TableFooterCell>
-                    <TableFooterCell>
-                        <PriceWrapper>
-                            <TotalValue>{totalFinalPrice.toFixed(2)} zł</TotalValue>
-                            <PriceType>brutto</PriceType>
-                            <TotalValue>{calculateFinalTotalNet().toFixed(2)} zł</TotalValue>
-                            <PriceType>netto</PriceType>
-                        </PriceWrapper>
-                    </TableFooterCell>
-                    <TableFooterCell></TableFooterCell>
-                </tr>
-                </tfoot>
-            </Table>
+                        ) : (
+                            services.map(service => {
+                                const extendedType = extendedDiscountTypes[service.id] ||
+                                    mapFromStandardDiscountType(service.discountType);
 
-            {/* Menu kontekstowe */}
+                                return (
+                                    <TableRow key={service.id}>
+                                        <TableCell>
+                                            <ServiceInfo>
+                                                <ServiceName>{service.name}</ServiceName>
+                                                {service.note && (
+                                                    <ServiceNote>{service.note}</ServiceNote>
+                                                )}
+                                            </ServiceInfo>
+                                        </TableCell>
+
+                                        <PriceCell
+                                            id={`price-${service.id}`}
+                                            onContextMenu={(e) => handlePriceRightClick(e, service)}
+                                            onClick={(e) => {
+                                                const rect = e.currentTarget.getBoundingClientRect();
+                                                setEditPopup({
+                                                    visible: true,
+                                                    x: rect.left,
+                                                    y: rect.bottom + window.scrollY,
+                                                    serviceId: service.id,
+                                                    currentPrice: service.price,
+                                                    isPriceGross: true
+                                                });
+                                                setNewPrice(service.price.toString());
+                                            }}
+                                        >
+                                            <PriceContainer>
+                                                <PriceInfo>
+                                                    <PriceRow>
+                                                        <PriceValue>{service.price.toFixed(2)} zł</PriceValue>
+                                                        <PriceLabel>brutto</PriceLabel>
+                                                    </PriceRow>
+                                                    <PriceRow>
+                                                        <PriceValue secondary>
+                                                            {calculateNetPrice(service.price).toFixed(2)} zł
+                                                        </PriceValue>
+                                                        <PriceLabel>netto</PriceLabel>
+                                                    </PriceRow>
+                                                </PriceInfo>
+                                                <EditIcon>
+                                                    <FaEdit />
+                                                </EditIcon>
+                                            </PriceContainer>
+                                        </PriceCell>
+
+                                        <DiscountCell>
+                                            <DiscountContainer>
+                                                <DiscountTypeSelect
+                                                    value={extendedType}
+                                                    onChange={(e) => handleExtendedDiscountTypeChange(
+                                                        service.id,
+                                                        e.target.value as ExtendedDiscountType
+                                                    )}
+                                                >
+                                                    {Object.entries(DiscountTypeLabelsExtended).map(([value, label]) => (
+                                                        <option key={value} value={value}>{label}</option>
+                                                    ))}
+                                                </DiscountTypeSelect>
+                                                <DiscountInputGroup>
+                                                    <DiscountInput
+                                                        type="number"
+                                                        min="0"
+                                                        max={service.discountType === DiscountType.PERCENTAGE ? 100 : undefined}
+                                                        value={service.discountValue}
+                                                        onChange={(e) => onDiscountValueChange(
+                                                            service.id,
+                                                            parseFloat(e.target.value) || 0
+                                                        )}
+                                                    />
+                                                    {service.discountType === DiscountType.PERCENTAGE && (
+                                                        <DiscountCalculation>
+                                                            ({(service.price * service.discountValue / 100).toFixed(2)} zł)
+                                                        </DiscountCalculation>
+                                                    )}
+                                                </DiscountInputGroup>
+                                            </DiscountContainer>
+                                        </DiscountCell>
+
+                                        <TableCell>
+                                            <PriceInfo>
+                                                <PriceRow>
+                                                    <PriceValue>{service.finalPrice.toFixed(2)} zł</PriceValue>
+                                                    <PriceLabel>brutto</PriceLabel>
+                                                </PriceRow>
+                                                <PriceRow>
+                                                    <PriceValue secondary>
+                                                        {calculateNetPrice(service.finalPrice).toFixed(2)} zł
+                                                    </PriceValue>
+                                                    <PriceLabel>netto</PriceLabel>
+                                                </PriceRow>
+                                            </PriceInfo>
+                                        </TableCell>
+
+                                        <TableCell>
+                                            <ActionButtonsGroup>
+                                                <ActionButton
+                                                    type="button"
+                                                    onClick={() => handleOpenNoteModal(service)}
+                                                    title="Dodaj/edytuj notatkę"
+                                                    $variant={service.note ? 'warning' : 'secondary'}
+                                                >
+                                                    <FaStickyNote />
+                                                </ActionButton>
+                                                <ActionButton
+                                                    onClick={() => onRemoveService(service.id)}
+                                                    title="Usuń usługę"
+                                                    $variant="danger"
+                                                >
+                                                    <FaTrash />
+                                                </ActionButton>
+                                            </ActionButtonsGroup>
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })
+                        )}
+                    </TableBody>
+                    <TableFooter>
+                        <tr>
+                            <FooterCell>
+                                <TotalLabel>Podsumowanie:</TotalLabel>
+                            </FooterCell>
+                            <FooterCell>
+                                <PriceInfo>
+                                    <PriceRow>
+                                        <TotalValue>{totalPrice.toFixed(2)} zł</TotalValue>
+                                        <PriceLabel>brutto</PriceLabel>
+                                    </PriceRow>
+                                    <PriceRow>
+                                        <TotalValue secondary>{calculateTotalNet().toFixed(2)} zł</TotalValue>
+                                        <PriceLabel>netto</PriceLabel>
+                                    </PriceRow>
+                                </PriceInfo>
+                            </FooterCell>
+                            <FooterCell>
+                                <PriceInfo>
+                                    <PriceRow>
+                                        <TotalValue>{totalDiscount.toFixed(2)} zł</TotalValue>
+                                        <PriceLabel>brutto</PriceLabel>
+                                    </PriceRow>
+                                    <PriceRow>
+                                        <TotalValue secondary>{(totalDiscount / 1.23).toFixed(2)} zł</TotalValue>
+                                        <PriceLabel>netto</PriceLabel>
+                                    </PriceRow>
+                                </PriceInfo>
+                            </FooterCell>
+                            <FooterCell>
+                                <PriceInfo>
+                                    <PriceRow>
+                                        <TotalValue primary>{totalFinalPrice.toFixed(2)} zł</TotalValue>
+                                        <PriceLabel>brutto</PriceLabel>
+                                    </PriceRow>
+                                    <PriceRow>
+                                        <TotalValue secondary>{calculateFinalTotalNet().toFixed(2)} zł</TotalValue>
+                                        <PriceLabel>netto</PriceLabel>
+                                    </PriceRow>
+                                </PriceInfo>
+                            </FooterCell>
+                            <FooterCell></FooterCell>
+                        </tr>
+                    </TableFooter>
+                </Table>
+            </TableWrapper>
+
+            {/* Context Menu */}
             {contextMenu.visible && (
                 <ContextMenu
                     style={{
@@ -797,7 +525,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                 </ContextMenu>
             )}
 
-            {/* Okno edycji ceny */}
+            {/* Price Edit Popup */}
             {editPopup.visible && (
                 <EditPricePopup
                     style={{
@@ -807,46 +535,60 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                     }}
                     onClick={(e) => e.stopPropagation()}
                 >
-                    <PopupTitle>Edytuj cenę bazową</PopupTitle>
-                    <EditPriceForm>
-                        <PriceTypeSelect
-                            value={editPopup.isPriceGross ? "gross" : "net"}
-                            onChange={(e) => handlePriceTypeChange(e.target.value === "gross")}
+                    <PopupHeader>
+                        <PopupTitle>Edytuj cenę bazową</PopupTitle>
+                    </PopupHeader>
+                    <PopupContent>
+                        <FormGroup>
+                            <Label>Typ ceny:</Label>
+                            <PriceTypeSelect
+                                value={editPopup.isPriceGross ? "gross" : "net"}
+                                onChange={(e) => handlePriceTypeChange(e.target.value === "gross")}
+                            >
+                                <option value="gross">Cena brutto</option>
+                                <option value="net">Cena netto</option>
+                            </PriceTypeSelect>
+                        </FormGroup>
+                        <FormGroup>
+                            <Label>Nowa cena:</Label>
+                            <PriceInput
+                                type="text"
+                                value={newPrice}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    if (value === '' || /^[0-9]*[.,]?[0-9]*$/.test(value)) {
+                                        setNewPrice(value);
+                                    }
+                                }}
+                                placeholder={`Wprowadź cenę ${editPopup.isPriceGross ? 'brutto' : 'netto'}`}
+                                autoFocus
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        handleSavePrice();
+                                    }
+                                }}
+                            />
+                        </FormGroup>
+                    </PopupContent>
+                    <PopupActions>
+                        <Button
+                            type="button"
+                            onClick={() => setEditPopup({...editPopup, visible: false})}
                         >
-                            <option value="gross">Cena brutto</option>
-                            <option value="net">Cena netto</option>
-                        </PriceTypeSelect>
-                        <EditPriceInput
-                            type="text"
-                            value={newPrice}
-                            onChange={(e) => {
-                                // Pozwól na wprowadzanie tylko cyfr i kropki/przecinka
-                                const value = e.target.value;
-                                if (value === '' || /^[0-9]*[.,]?[0-9]*$/.test(value)) {
-                                    setNewPrice(value);
-                                }
-                            }}
-                            placeholder={`Wprowadź cenę ${editPopup.isPriceGross ? 'brutto' : 'netto'}`}
-                            autoFocus
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                    handleSavePrice();
-                                }
-                            }}
-                        />
-                        <EditPriceButtons>
-                            <Button onClick={() => setEditPopup({...editPopup, visible: false})}>
-                                Anuluj
-                            </Button>
-                            <Button primary onClick={handleSavePrice}>
-                                Zapisz
-                            </Button>
-                        </EditPriceButtons>
-                    </EditPriceForm>
+                            Anuluj
+                        </Button>
+                        <Button
+                            type="button"
+                            $primary
+                            onClick={handleSavePrice}
+                        >
+                            Zapisz
+                        </Button>
+                    </PopupActions>
                 </EditPricePopup>
             )}
 
-            {/* Modal notatki */}
+            {/* Service Note Modal */}
             <ServiceNoteModal
                 isOpen={noteModal.visible}
                 onClose={() => setNoteModal({...noteModal, visible: false})}
@@ -854,8 +596,530 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                 serviceName={noteModal.serviceName}
                 initialNote={noteModal.currentNote}
             />
-        </ServicesTableContainer>
+        </TableContainer>
     );
 };
+
+// Styled Components
+const TableContainer = styled.div`
+    background: ${formTheme.colors.surface};
+    border: 1px solid ${formTheme.colors.border};
+    border-radius: ${formTheme.borderRadius.lg};
+    box-shadow: ${formTheme.shadows.sm};
+    overflow: hidden;
+    margin-top: ${formTheme.spacing.lg};
+`;
+
+const TableWrapper = styled.div`
+    overflow-x: auto;
+
+    /* Custom scrollbar */
+    &::-webkit-scrollbar {
+        height: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: ${formTheme.colors.surfaceElevated};
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: ${formTheme.colors.borderHover};
+        border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+        background: ${formTheme.colors.borderActive};
+    }
+`;
+
+const Table = styled.table`
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, sans-serif;
+`;
+
+const TableHead = styled.thead`
+    background: linear-gradient(135deg, ${formTheme.colors.surfaceElevated} 0%, ${formTheme.colors.surfaceHover} 100%);
+    border-bottom: 2px solid ${formTheme.colors.border};
+`;
+
+const TableHeader = styled.th`
+    padding: ${formTheme.spacing.lg} ${formTheme.spacing.lg};
+    text-align: left;
+    font-weight: 600;
+    font-size: 14px;
+    color: ${formTheme.colors.textPrimary};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid ${formTheme.colors.border};
+    
+    &:first-child {
+        border-top-left-radius: ${formTheme.borderRadius.lg};
+    }
+    
+    &:last-child {
+        border-top-right-radius: ${formTheme.borderRadius.lg};
+    }
+`;
+
+const TableBody = styled.tbody``;
+
+const TableRow = styled.tr`
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: ${formTheme.colors.surfaceHover};
+    }
+
+    &:not(:last-child) {
+        border-bottom: 1px solid ${formTheme.colors.borderLight};
+    }
+`;
+
+const TableCell = styled.td`
+    padding: ${formTheme.spacing.lg};
+    vertical-align: middle;
+    font-size: 14px;
+    color: ${formTheme.colors.textPrimary};
+`;
+
+const EmptyStateCell = styled(TableCell)`
+    padding: ${formTheme.spacing.xxl};
+    text-align: center;
+`;
+
+const EmptyStateContent = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: ${formTheme.spacing.lg};
+    color: ${formTheme.colors.textTertiary};
+`;
+
+const EmptyStateIcon = styled.div`
+    font-size: 48px;
+    opacity: 0.5;
+`;
+
+const EmptyStateText = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${formTheme.spacing.sm};
+    text-align: center;
+`;
+
+const EmptyStateTitle = styled.div`
+    font-size: 16px;
+    font-weight: 600;
+    color: ${formTheme.colors.textSecondary};
+`;
+
+const EmptyStateSubtitle = styled.div`
+    font-size: 14px;
+    color: ${formTheme.colors.textTertiary};
+    line-height: 1.5;
+`;
+
+const ServiceInfo = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${formTheme.spacing.xs};
+`;
+
+const ServiceName = styled.div`
+    font-weight: 600;
+    color: ${formTheme.colors.textPrimary};
+    line-height: 1.4;
+`;
+
+const ServiceNote = styled.div`
+    font-size: 12px;
+    color: ${formTheme.colors.textTertiary};
+    font-style: italic;
+    line-height: 1.3;
+    padding: ${formTheme.spacing.xs} ${formTheme.spacing.sm};
+    background: ${formTheme.colors.primaryLight};
+    border-radius: ${formTheme.borderRadius.sm};
+    border-left: 3px solid ${formTheme.colors.primary};
+`;
+
+const PriceCell = styled(TableCell)`
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+
+    &:hover {
+        background: ${formTheme.colors.primaryGhost};
+        border-radius: ${formTheme.borderRadius.sm};
+    }
+`;
+
+const PriceContainer = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: ${formTheme.spacing.md};
+`;
+
+const PriceInfo = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${formTheme.spacing.xs};
+`;
+
+const PriceRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${formTheme.spacing.sm};
+`;
+
+const PriceValue = styled.span<{ secondary?: boolean; primary?: boolean }>`
+    font-weight: ${props => props.primary ? 700 : props.secondary ? 500 : 600};
+    color: ${props =>
+            props.primary ? formTheme.colors.primary :
+                    props.secondary ? formTheme.colors.textSecondary :
+                            formTheme.colors.textPrimary
+    };
+    font-size: ${props => props.secondary ? '13px' : '14px'};
+`;
+
+const PriceLabel = styled.span`
+    font-size: 11px;
+    color: ${formTheme.colors.textMuted};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: ${formTheme.colors.surfaceElevated};
+    padding: 2px 6px;
+    border-radius: ${formTheme.borderRadius.sm};
+`;
+
+const EditIcon = styled.div`
+    color: ${formTheme.colors.primary};
+    opacity: 0;
+    transition: all 0.2s ease;
+    font-size: 12px;
+
+    ${PriceCell}:hover & {
+        opacity: 1;
+    }
+`;
+
+const DiscountCell = styled(TableCell)`
+    min-width: 280px;
+    width: 280px;
+
+    @media (max-width: 1200px) {
+        min-width: 250px;
+        width: 250px;
+    }
+`;
+
+const DiscountContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${formTheme.spacing.sm};
+`;
+
+const DiscountTypeSelect = styled.select`
+    padding: ${formTheme.spacing.sm} ${formTheme.spacing.md};
+    border: 1px solid ${formTheme.colors.border};
+    border-radius: ${formTheme.borderRadius.md};
+    background: ${formTheme.colors.surface};
+    color: ${formTheme.colors.textPrimary};
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    
+    &:focus {
+        outline: none;
+        border-color: ${formTheme.colors.primary};
+        box-shadow: ${formTheme.shadows.focus};
+    }
+    
+    &:hover {
+        border-color: ${formTheme.colors.borderHover};
+    }
+`;
+
+const DiscountInputGroup = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${formTheme.spacing.sm};
+`;
+
+const DiscountInput = styled.input`
+    width: 80px;
+    padding: ${formTheme.spacing.sm};
+    border: 1px solid ${formTheme.colors.border};
+    border-radius: ${formTheme.borderRadius.sm};
+    background: ${formTheme.colors.surface};
+    color: ${formTheme.colors.textPrimary};
+    font-size: 13px;
+    font-weight: 500;
+    text-align: right;
+    transition: all 0.2s ease;
+    
+    &:focus {
+        outline: none;
+        border-color: ${formTheme.colors.primary};
+        box-shadow: ${formTheme.shadows.focus};
+    }
+    
+    &:hover {
+        border-color: ${formTheme.colors.borderHover};
+    }
+`;
+
+const DiscountCalculation = styled.span`
+    font-size: 12px;
+    color: ${formTheme.colors.textTertiary};
+    font-weight: 500;
+`;
+
+const ActionButtonsGroup = styled.div`
+    display: flex;
+    gap: ${formTheme.spacing.sm};
+    justify-content: center;
+`;
+
+const ActionButton = styled.button<{ $variant?: 'primary' | 'secondary' | 'danger' | 'warning' }>`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: ${formTheme.borderRadius.md};
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 14px;
+    
+    ${props => {
+    switch (props.$variant) {
+        case 'danger':
+            return `
+                    background: ${formTheme.colors.errorLight};
+                    color: ${formTheme.colors.error};
+                    
+                    &:hover {
+                        background: ${formTheme.colors.error};
+                        color: white;
+                        transform: translateY(-1px);
+                        box-shadow: ${formTheme.shadows.md};
+                    }
+                `;
+        case 'warning':
+            return `
+                    background: ${formTheme.colors.warningLight};
+                    color: ${formTheme.colors.warning};
+                    
+                    &:hover {
+                        background: ${formTheme.colors.warning};
+                        color: white;
+                        transform: translateY(-1px);
+                        box-shadow: ${formTheme.shadows.md};
+                    }
+                `;
+        case 'primary':
+            return `
+                    background: ${formTheme.colors.primaryLight};
+                    color: ${formTheme.colors.primary};
+                    
+                    &:hover {
+                        background: ${formTheme.colors.primary};
+                        color: white;
+                        transform: translateY(-1px);
+                        box-shadow: ${formTheme.shadows.md};
+                    }
+                `;
+        default:
+            return `
+                    background: ${formTheme.colors.surfaceElevated};
+                    color: ${formTheme.colors.textSecondary};
+                    
+                    &:hover {
+                        background: ${formTheme.colors.surfaceActive};
+                        color: ${formTheme.colors.textPrimary};
+                        transform: translateY(-1px);
+                        box-shadow: ${formTheme.shadows.sm};
+                    }
+                `;
+    }
+}}
+`;
+
+const TableFooter = styled.tfoot`
+    background: linear-gradient(135deg, ${formTheme.colors.surfaceElevated} 0%, ${formTheme.colors.surfaceHover} 100%);
+    border-top: 2px solid ${formTheme.colors.border};
+`;
+
+const FooterCell = styled(TableCell)`
+    font-weight: 600;
+    background: transparent;
+    border-top: 1px solid ${formTheme.colors.border};
+`;
+
+const TotalLabel = styled.div`
+    font-size: 16px;
+    font-weight: 700;
+    color: ${formTheme.colors.textPrimary};
+`;
+
+const TotalValue = styled.span<{ secondary?: boolean; primary?: boolean }>`
+    font-weight: ${props => props.primary ? 700 : 600};
+    color: ${props =>
+    props.primary ? formTheme.colors.primary :
+        props.secondary ? formTheme.colors.textSecondary :
+            formTheme.colors.textPrimary
+};
+    font-size: ${props => props.primary ? '16px' : props.secondary ? '13px' : '14px'};
+`;
+
+const ContextMenu = styled.div`
+    background: ${formTheme.colors.surface};
+    border: 1px solid ${formTheme.colors.border};
+    border-radius: ${formTheme.borderRadius.md};
+    box-shadow: ${formTheme.shadows.lg};
+    z-index: 1000;
+    overflow: hidden;
+    min-width: 200px;
+`;
+
+const MenuItem = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${formTheme.spacing.md};
+    padding: ${formTheme.spacing.md} ${formTheme.spacing.lg};
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: ${formTheme.colors.textPrimary};
+    transition: all 0.2s ease;
+    
+    &:hover {
+        background: ${formTheme.colors.surfaceHover};
+        color: ${formTheme.colors.primary};
+    }
+    
+    svg {
+        font-size: 12px;
+    }
+`;
+
+const EditPricePopup = styled.div`
+    background: ${formTheme.colors.surface};
+    border: 1px solid ${formTheme.colors.border};
+    border-radius: ${formTheme.borderRadius.lg};
+    box-shadow: ${formTheme.shadows.lg};
+    z-index: 1000;
+    width: 320px;
+    overflow: hidden;
+`;
+
+const PopupHeader = styled.div`
+    padding: ${formTheme.spacing.lg} ${formTheme.spacing.lg} 0;
+    border-bottom: 1px solid ${formTheme.colors.borderLight};
+`;
+
+const PopupTitle = styled.h3`
+    margin: 0 0 ${formTheme.spacing.md} 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: ${formTheme.colors.textPrimary};
+`;
+
+const PopupContent = styled.div`
+    padding: ${formTheme.spacing.lg};
+`;
+
+const FormGroup = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${formTheme.spacing.sm};
+    margin-bottom: ${formTheme.spacing.lg};
+    
+    &:last-child {
+        margin-bottom: 0;
+    }
+`;
+
+const Label = styled.label`
+    font-size: 14px;
+    font-weight: 600;
+    color: ${formTheme.colors.textPrimary};
+`;
+
+const PriceTypeSelect = styled.select`
+    padding: ${formTheme.spacing.md};
+    border: 1px solid ${formTheme.colors.border};
+    border-radius: ${formTheme.borderRadius.md};
+    background: ${formTheme.colors.surface};
+    color: ${formTheme.colors.textPrimary};
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    
+    &:focus {
+        outline: none;
+        border-color: ${formTheme.colors.primary};
+        box-shadow: ${formTheme.shadows.focus};
+    }
+`;
+
+const PriceInput = styled.input`
+    padding: ${formTheme.spacing.md};
+    border: 1px solid ${formTheme.colors.border};
+    border-radius: ${formTheme.borderRadius.md};
+    background: ${formTheme.colors.surface};
+    color: ${formTheme.colors.textPrimary};
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    
+    &:focus {
+        outline: none;
+        border-color: ${formTheme.colors.primary};
+        box-shadow: ${formTheme.shadows.focus};
+    }
+    
+    &::placeholder {
+        color: ${formTheme.colors.textTertiary};
+        font-weight: 400;
+    }
+`;
+
+const PopupActions = styled.div`
+    display: flex;
+    gap: ${formTheme.spacing.md};
+    justify-content: flex-end;
+    padding: ${formTheme.spacing.lg};
+    border-top: 1px solid ${formTheme.colors.borderLight};
+    background: ${formTheme.colors.surfaceElevated};
+`;
+
+const Button = styled.button<{ $primary?: boolean }>`
+    padding: ${formTheme.spacing.sm} ${formTheme.spacing.lg};
+    border: 1px solid ${props => props.$primary ? formTheme.colors.primary : formTheme.colors.border};
+    border-radius: ${formTheme.borderRadius.md};
+    background: ${props => props.$primary ? formTheme.colors.primary : formTheme.colors.surface};
+    color: ${props => props.$primary ? 'white' : formTheme.colors.textPrimary};
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    
+    &:hover {
+        background: ${props => props.$primary ? formTheme.colors.primaryHover : formTheme.colors.surfaceHover};
+        transform: translateY(-1px);
+        box-shadow: ${formTheme.shadows.sm};
+    }
+    
+    &:active {
+        transform: translateY(0);
+    }
+`;
 
 export default ServiceTable;
