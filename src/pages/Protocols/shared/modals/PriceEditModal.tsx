@@ -1,6 +1,66 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import Modal from '../../../../components/common/Modal';
+import { FaTimes, FaEuroSign } from 'react-icons/fa';
+
+// Professional Brand Theme
+const brandTheme = {
+    primary: 'var(--brand-primary, #1a365d)',
+    primaryLight: 'var(--brand-primary-light, #2c5aa0)',
+    primaryDark: 'var(--brand-primary-dark, #0f2027)',
+    primaryGhost: 'var(--brand-primary-ghost, rgba(26, 54, 93, 0.04))',
+    surface: '#ffffff',
+    surfaceAlt: '#fafbfc',
+    surfaceElevated: '#f8fafc',
+    surfaceHover: '#f1f5f9',
+    text: {
+        primary: '#0f172a',
+        secondary: '#475569',
+        tertiary: '#64748b',
+        muted: '#94a3b8',
+        disabled: '#cbd5e1'
+    },
+    border: '#e2e8f0',
+    borderLight: '#f1f5f9',
+    borderHover: '#cbd5e1',
+    status: {
+        success: '#059669',
+        successLight: '#d1fae5',
+        warning: '#d97706',
+        warningLight: '#fef3c7',
+        error: '#dc2626',
+        errorLight: '#fee2e2',
+        info: '#0ea5e9',
+        infoLight: '#e0f2fe'
+    },
+    shadow: {
+        xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+        sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+        md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+    },
+    spacing: {
+        xs: '4px',
+        sm: '8px',
+        md: '16px',
+        lg: '24px',
+        xl: '32px',
+        xxl: '48px'
+    },
+    radius: {
+        sm: '6px',
+        md: '8px',
+        lg: '12px',
+        xl: '16px',
+        xxl: '20px'
+    },
+    transitions: {
+        fast: '0.15s ease',
+        normal: '0.2s ease',
+        slow: '0.3s ease',
+        spring: '0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+    }
+};
 
 interface PriceEditModalProps {
     isOpen: boolean;
@@ -119,172 +179,463 @@ const PriceEditModal: React.FC<PriceEditModalProps> = ({
         return '';
     };
 
+    if (!isOpen) return null;
+
     return (
-        <Modal
-            isOpen={isOpen}
-            onClose={onClose}
-            title={isNewService ? "Dodaj nową usługę" : "Edytuj cenę usługi"}
-        >
-            <ModalContent>
-                <ServiceInfo>
-                    <InfoLabel>Nazwa usługi:</InfoLabel>
-                    <InfoValue>{serviceName}</InfoValue>
-                </ServiceInfo>
+        <ModalOverlay>
+            <ModalContainer>
+                <ModalHeader>
+                    <HeaderContent>
+                        <HeaderIcon>
+                            <FaEuroSign />
+                        </HeaderIcon>
+                        <HeaderText>
+                            <ModalTitle>
+                                {isNewService ? "Dodaj nową usługę" : "Edytuj cenę usługi"}
+                            </ModalTitle>
+                            <ModalSubtitle>
+                                Ustaw prawidłową cenę dla tej usługi
+                            </ModalSubtitle>
+                        </HeaderText>
+                    </HeaderContent>
+                    <CloseButton onClick={onClose}>
+                        <FaTimes />
+                    </CloseButton>
+                </ModalHeader>
 
-                <FormGroup>
-                    <Label htmlFor="priceType">Typ ceny</Label>
-                    <PriceTypeSelect
-                        id="priceType"
-                        value={isPriceGross ? "gross" : "net"}
-                        onChange={handlePriceTypeChange}
-                    >
-                        <option value="gross">Cena brutto</option>
-                        <option value="net">Cena netto</option>
-                    </PriceTypeSelect>
-                </FormGroup>
+                <ModalBody>
+                    <ServiceInfoSection>
+                        <ServiceInfoLabel>Nazwa usługi:</ServiceInfoLabel>
+                        <ServiceInfoValue>{serviceName}</ServiceInfoValue>
+                    </ServiceInfoSection>
 
-                <FormGroup>
-                    <Label htmlFor="price">Cena (PLN)</Label>
-                    <PriceInput
-                        id="price"
-                        type="text"
-                        value={price}
-                        onChange={handlePriceChange}
-                        onKeyDown={handleKeyDown}
-                        placeholder="0.00"
-                        autoFocus
-                    />
-                    {displayConvertedPrice() && (
-                        <ConversionInfo>{displayConvertedPrice()}</ConversionInfo>
+                    {isNewService && (
+                        <InfoMessage>
+                            Ta usługa zostanie dodana do bazy danych i będzie dostępna dla przyszłych protokołów
+                        </InfoMessage>
                     )}
-                    {error && <ErrorText>{error}</ErrorText>}
-                </FormGroup>
 
-                <ButtonGroup>
-                    <CancelButton onClick={onClose}>Anuluj</CancelButton>
-                    <SaveButton onClick={handleSave}>Zapisz</SaveButton>
-                </ButtonGroup>
-            </ModalContent>
-        </Modal>
+                    <FormSection>
+                        <FormGroup>
+                            <Label htmlFor="priceType">Typ ceny</Label>
+                            <PriceTypeSelect
+                                id="priceType"
+                                value={isPriceGross ? "gross" : "net"}
+                                onChange={handlePriceTypeChange}
+                            >
+                                <option value="gross">Cena brutto (z VAT 23%)</option>
+                                <option value="net">Cena netto (bez VAT)</option>
+                            </PriceTypeSelect>
+                        </FormGroup>
+
+                        <FormGroup>
+                            <Label htmlFor="price">
+                                Cena ({isPriceGross ? 'brutto' : 'netto'}) PLN
+                            </Label>
+                            <PriceInputContainer>
+                                <PriceInput
+                                    id="price"
+                                    type="text"
+                                    value={price}
+                                    onChange={handlePriceChange}
+                                    onKeyDown={handleKeyDown}
+                                    placeholder="0.00"
+                                    autoFocus
+                                    $hasError={!!error}
+                                />
+                                <CurrencyLabel>PLN</CurrencyLabel>
+                            </PriceInputContainer>
+                            {displayConvertedPrice() && (
+                                <ConversionInfo>
+                                    <span>Odpowiada: {displayConvertedPrice()}</span>
+                                </ConversionInfo>
+                            )}
+                            {error && <ErrorText>{error}</ErrorText>}
+                        </FormGroup>
+                    </FormSection>
+
+                    <TaxInfo>
+                        <TaxInfoIcon>ℹ️</TaxInfoIcon>
+                        <TaxInfoText>
+                            Wszystkie ceny są automatycznie przeliczane z zastosowaniem stawki VAT 23%
+                        </TaxInfoText>
+                    </TaxInfo>
+                </ModalBody>
+
+                <ModalFooter>
+                    <SecondaryButton onClick={onClose}>
+                        <FaTimes />
+                        Anuluj
+                    </SecondaryButton>
+                    <PrimaryButton onClick={handleSave}>
+                        <FaEuroSign />
+                        Zapisz cenę
+                    </PrimaryButton>
+                </ModalFooter>
+            </ModalContainer>
+        </ModalOverlay>
     );
 };
 
-// Styled components
-const ModalContent = styled.div`
+// Styled Components - Professional Automotive CRM Design
+const ModalOverlay = styled.div`
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
     display: flex;
-    flex-direction: column;
-    gap: 20px;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.2s ease;
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
 `;
 
-const ServiceInfo = styled.div`
+const ModalContainer = styled.div`
+    background: ${brandTheme.surface};
+    border-radius: ${brandTheme.radius.xl};
+    box-shadow: ${brandTheme.shadow.xl};
+    width: 500px;
+    max-width: 95%;
     display: flex;
     flex-direction: column;
-    gap: 5px;
-    margin-bottom: 10px;
+    overflow: hidden;
+    animation: slideUp 0.3s ease;
+
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
 `;
 
-const InfoLabel = styled.div`
+const ModalHeader = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
+    border-bottom: 2px solid ${brandTheme.border};
+    background: ${brandTheme.surfaceAlt};
+`;
+
+const HeaderContent = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.md};
+`;
+
+const HeaderIcon = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: ${brandTheme.status.successLight};
+    color: ${brandTheme.status.success};
+    border-radius: ${brandTheme.radius.lg};
+    font-size: 18px;
+`;
+
+const HeaderText = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+`;
+
+const ModalTitle = styled.h2`
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: ${brandTheme.text.primary};
+    letter-spacing: -0.025em;
+`;
+
+const ModalSubtitle = styled.p`
+    margin: 0;
     font-size: 14px;
-    color: #7f8c8d;
+    color: ${brandTheme.text.secondary};
+    font-weight: 500;
 `;
 
-const InfoValue = styled.div`
+const CloseButton = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: ${brandTheme.surfaceHover};
+    border: 1px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.sm};
+    color: ${brandTheme.text.muted};
+    cursor: pointer;
+    transition: all ${brandTheme.transitions.normal};
+
+    &:hover {
+        background: ${brandTheme.status.errorLight};
+        border-color: ${brandTheme.status.error};
+        color: ${brandTheme.status.error};
+        transform: translateY(-1px);
+    }
+`;
+
+const ModalBody = styled.div`
+    padding: ${brandTheme.spacing.xl};
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.lg};
+`;
+
+const ServiceInfoSection = styled.div`
+    background: ${brandTheme.surfaceAlt};
+    padding: ${brandTheme.spacing.lg};
+    border-radius: ${brandTheme.radius.lg};
+    border: 1px solid ${brandTheme.border};
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.xs};
+`;
+
+const ServiceInfoLabel = styled.div`
+    font-size: 12px;
+    color: ${brandTheme.text.muted};
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+`;
+
+const ServiceInfoValue = styled.div`
     font-size: 16px;
-    font-weight: 500;
-    color: #34495e;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
     word-break: break-word;
+    line-height: 1.4;
+`;
+
+const InfoMessage = styled.div`
+    background: linear-gradient(135deg, ${brandTheme.status.infoLight} 0%, rgba(59, 130, 246, 0.05) 100%);
+    color: ${brandTheme.status.info};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    border-radius: ${brandTheme.radius.lg};
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: ${brandTheme.shadow.xs};
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+
+    &::before {
+        content: '💡';
+        font-size: 16px;
+    }
+`;
+
+const FormSection = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.lg};
 `;
 
 const FormGroup = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: ${brandTheme.spacing.sm};
 `;
 
 const Label = styled.label`
     font-size: 14px;
-    font-weight: 500;
-    color: #333;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
 `;
 
 const PriceTypeSelect = styled.select`
-    padding: 10px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+    height: 44px;
+    padding: 0 ${brandTheme.spacing.md};
+    border: 2px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.md};
     font-size: 14px;
-    background-color: white;
+    font-weight: 500;
+    background: ${brandTheme.surface};
+    color: ${brandTheme.text.primary};
+    transition: all ${brandTheme.transitions.normal};
 
     &:focus {
         outline: none;
-        border-color: #3498db;
-        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        border-color: ${brandTheme.primary};
+        box-shadow: 0 0 0 3px ${brandTheme.primaryGhost};
     }
 `;
 
-const PriceInput = styled.input`
-  padding: 10px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 16px;
-  
-  &:focus {
-    outline: none;
-    border-color: #3498db;
-    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
-  }
+const PriceInputContainer = styled.div`
+    position: relative;
+    display: flex;
+    align-items: center;
+`;
+
+const PriceInput = styled.input<{ $hasError?: boolean }>`
+    width: 100%;
+    height: 56px;
+    padding: 0 60px 0 ${brandTheme.spacing.lg};
+    border: 2px solid ${props => props.$hasError ? brandTheme.status.error : brandTheme.border};
+    border-radius: ${brandTheme.radius.md};
+    font-size: 18px;
+    font-weight: 600;
+    background: ${brandTheme.surface};
+    color: ${brandTheme.text.primary};
+    transition: all ${brandTheme.transitions.normal};
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+
+    &:focus {
+        outline: none;
+        border-color: ${props => props.$hasError ? brandTheme.status.error : brandTheme.primary};
+        box-shadow: 0 0 0 3px ${props => props.$hasError ? brandTheme.status.errorLight : brandTheme.primaryGhost};
+    }
+
+    &::placeholder {
+        color: ${brandTheme.text.muted};
+        font-weight: 400;
+    }
+`;
+
+const CurrencyLabel = styled.div`
+    position: absolute;
+    right: ${brandTheme.spacing.lg};
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    font-weight: 600;
+    color: ${brandTheme.text.muted};
+    pointer-events: none;
 `;
 
 const ConversionInfo = styled.div`
-  font-size: 13px;
-  color: #7f8c8d;
-  margin-top: 4px;
-`;
+    background: ${brandTheme.surfaceAlt};
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+    border-radius: ${brandTheme.radius.sm};
+    border: 1px solid ${brandTheme.border};
 
-const ErrorText = styled.div`
-    color: #e74c3c;
-    font-size: 13px;
-`;
-
-const InfoText = styled.div`
-    font-size: 14px;
-    color: #3498db;
-    background-color: #eaf6fd;
-    padding: 10px;
-    border-radius: 4px;
-    border-left: 3px solid #3498db;
-`;
-
-const ButtonGroup = styled.div`
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 10px;
-`;
-
-const Button = styled.button`
-    padding: 10px 16px;
-    border-radius: 4px;
-    font-weight: 500;
-    cursor: pointer;
-`;
-
-const CancelButton = styled(Button)`
-    background-color: white;
-    color: #333;
-    border: 1px solid #ddd;
-
-    &:hover {
-        background-color: #f5f5f5;
+    span {
+        font-size: 13px;
+        color: ${brandTheme.text.secondary};
+        font-weight: 500;
     }
 `;
 
-const SaveButton = styled(Button)`
-    background-color: #3498db;
-    color: white;
-    border: none;
+const ErrorText = styled.div`
+    color: ${brandTheme.status.error};
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.xs};
+
+    &::before {
+        content: '⚠️';
+        font-size: 14px;
+    }
+`;
+
+const TaxInfo = styled.div`
+    background: ${brandTheme.status.warningLight};
+    border: 1px solid ${brandTheme.status.warning};
+    border-radius: ${brandTheme.radius.lg};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+`;
+
+const TaxInfoIcon = styled.div`
+    font-size: 16px;
+    flex-shrink: 0;
+`;
+
+const TaxInfoText = styled.div`
+    font-size: 13px;
+    color: ${brandTheme.status.warning};
+    font-weight: 500;
+    line-height: 1.4;
+`;
+
+const ModalFooter = styled.div`
+    display: flex;
+    justify-content: flex-end;
+    gap: ${brandTheme.spacing.md};
+    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
+    border-top: 2px solid ${brandTheme.border};
+    background: ${brandTheme.surfaceAlt};
+`;
+
+const SecondaryButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    background: ${brandTheme.surface};
+    color: ${brandTheme.text.secondary};
+    border: 2px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.md};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all ${brandTheme.transitions.spring};
+    min-height: 44px;
+    min-width: 120px;
 
     &:hover {
-        background-color: #2980b9;
+        background: ${brandTheme.surfaceHover};
+        color: ${brandTheme.text.primary};
+        border-color: ${brandTheme.borderHover};
+        box-shadow: ${brandTheme.shadow.sm};
+    }
+`;
+
+const PrimaryButton = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    background: linear-gradient(135deg, ${brandTheme.status.success} 0%, #059669 100%);
+    color: white;
+    border: 2px solid transparent;
+    border-radius: ${brandTheme.radius.md};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all ${brandTheme.transitions.spring};
+    box-shadow: ${brandTheme.shadow.sm};
+    min-height: 44px;
+    min-width: 120px;
+
+    &:hover:not(:disabled) {
+        background: linear-gradient(135deg, #047857 0%, ${brandTheme.status.success} 100%);
+        transform: translateY(-1px);
+        box-shadow: ${brandTheme.shadow.md};
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+        background: ${brandTheme.text.disabled};
+    }
+
+    &:active:not(:disabled) {
+        transform: translateY(0);
     }
 `;
 

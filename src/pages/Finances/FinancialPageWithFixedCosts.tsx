@@ -9,7 +9,6 @@ import {
 } from 'react-icons/fa';
 
 // Import existing components
-import FinancialHeader from './components/FinancialHeader';
 import FinancialSummaryCards from './components/FinancialSummaryCards';
 import DocumentFilters from './components/DocumentFilters';
 import DocumentTable from './components/DocumentTable';

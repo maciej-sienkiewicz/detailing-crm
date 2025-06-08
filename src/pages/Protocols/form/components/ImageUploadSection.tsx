@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
-import { FaCamera, FaUpload, FaTrash, FaImage, FaExclamationCircle, FaEye, FaEdit, FaTags } from 'react-icons/fa';
+import { FaCamera, FaUpload, FaTrash, FaImage, FaExclamationCircle, FaEye, FaEdit, FaTags, FaSpinner } from 'react-icons/fa';
 import { VehicleImage } from '../../../../types';
 import { apiClient } from '../../../../api/apiClient';
 import { carReceptionApi } from '../../../../api/carReceptionApi';
 import ImagePreviewModal from "../../shared/modals/ImagePreviewModal";
 import ImageEditModal from "../../shared/modals/ImageEditModal";
+import { brandTheme } from '../styles';
 
 interface ImageUploadSectionProps {
     images: VehicleImage[];
@@ -38,7 +39,6 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
     // Automatyczne ładowanie obrazów z serwera przy montowaniu komponentu
     useEffect(() => {
         const loadServerImages = async () => {
-            // Znajdź obrazy z serwera (nie lokalne/tymczasowe)
             const serverImages = images.filter(img =>
                 !img.id.startsWith('temp_') &&
                 !img.id.startsWith('img_') &&
@@ -48,7 +48,6 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
 
             if (serverImages.length === 0) return;
 
-            // Oznacz obrazy jako ładowane
             setLoadingImages(prev => {
                 const newSet = new Set(prev);
                 serverImages.forEach(img => newSet.add(img.id));
@@ -56,7 +55,6 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
             });
 
             try {
-                // Pobierz wszystkie obrazy równolegle
                 const imagePromises = serverImages.map(async (image) => {
                     try {
                         const imageUrl = await carReceptionApi.fetchVehicleImageAsUrl(image.id);
@@ -69,7 +67,6 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
 
                 const results = await Promise.all(imagePromises);
 
-                // Aktualizuj mapę URL-i
                 setBlobUrls(prev => {
                     const newMap = new Map(prev);
                     results.forEach(({ id, url }) => {
@@ -83,7 +80,6 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
                 console.error('Błąd podczas ładowania obrazów z serwera:', error);
                 setError('Błąd podczas ładowania niektórych zdjęć');
             } finally {
-                // Usuń obrazy z listy ładowanych
                 setLoadingImages(prev => {
                     const newSet = new Set(prev);
                     serverImages.forEach(img => newSet.delete(img.id));
@@ -99,45 +95,36 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
 
     // Funkcja do generowania URL zdjęcia z lepszym zarządzaniem blob URLs
     const getImageUrl = (image: VehicleImage): string => {
-        // Dla zdjęć z serwera sprawdź czy mamy zapisany blob URL
         if (!image.id.startsWith('temp_') && !image.id.startsWith('img_')) {
             if (blobUrls.has(image.id)) {
                 return blobUrls.get(image.id)!;
             }
-            // Jeśli obraz ma URL ale nie jest to blob, znaczy że został już pobrany wcześniej
             if (image.url && !image.url.startsWith('blob:')) {
                 return image.url;
             }
-            // W przeciwnym razie czekamy na załadowanie
             return '';
         }
 
-        // Dla lokalnych zdjęć sprawdź czy mamy zapisany blob URL
         if (blobUrls.has(image.id)) {
             return blobUrls.get(image.id)!;
         }
 
-        // Jeśli jest to lokalny blob URL w image.url, użyj go i zapisz w mapie
         if (image.url && image.url.startsWith('blob:')) {
             setBlobUrls(prev => new Map(prev).set(image.id, image.url!));
             return image.url;
         }
 
-        return ''; // Fallback dla nieprawidłowych danych
+        return '';
     };
 
-    // Sprawdza czy obraz jest w trakcie ładowania
     const isImageLoading = (imageId: string): boolean => {
         return loadingImages.has(imageId);
     };
 
-    // Obsługuje dodawanie nowych zdjęć
     const handleAddImages = (event: React.ChangeEvent<HTMLInputElement> | React.DragEvent<HTMLDivElement>) => {
-        // Zapobiega domyślnej akcji przeglądarki, która może powodować przesłanie formularza
         event.preventDefault();
         event.stopPropagation();
 
-        // Pobierz pliki z odpowiedniego źródła zdarzenia
         const files = event instanceof DragEvent
             ? (event as React.DragEvent<HTMLDivElement>).dataTransfer.files
             : (event.target as HTMLInputElement).files;
@@ -146,10 +133,8 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
 
         setError(null);
 
-        // Konwertuje FileList na array, żeby móc łatwiej go przetwarzać
         const filesArray = Array.from(files);
 
-        // Sprawdza czy wszystkie pliki to obrazy i czy nie przekraczają rozmiaru
         const invalidFiles = filesArray.filter(file =>
             !file.type.startsWith('image/') || file.size > MAX_FILE_SIZE
         );
@@ -161,22 +146,17 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
             return;
         }
 
-        // Konwertuje pliki na obiekt VehicleImage
         const newImages: VehicleImage[] = [];
         const newBlobUrls = new Map(blobUrls);
 
         filesArray.forEach(file => {
-            // Tworzy URL do podglądu obrazu
             const imageUrl = URL.createObjectURL(file);
             const imageId = `img_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
-            // Zapisz blob URL w mapie
             newBlobUrls.set(imageId, imageUrl);
 
-            // Przygotuj nazwę - usunięcie rozszerzenia pliku
             const fileNameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
 
-            // Dodaje nowy obraz do tablicy
             newImages.push({
                 id: imageId,
                 url: imageUrl,
@@ -189,23 +169,18 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
             });
         });
 
-        // Aktualizuj mapy blob URLs
         setBlobUrls(newBlobUrls);
 
-        // Otwórz modal edycji informacji dla pierwszego nowo dodanego zdjęcia
         if (newImages.length > 0) {
             const updatedImages = [...images, ...newImages];
             onImagesChange(updatedImages);
 
-            // Otwórz modal do edycji informacji pierwszego nowego zdjęcia
-            setEditingImageIndex(images.length); // Indeks pierwszego nowego zdjęcia
+            setEditingImageIndex(images.length);
             setEditModalOpen(true);
         }
     };
 
-    // Obsługuje usuwanie zdjęcia
     const handleRemoveImage = (imageId: string, e?: React.MouseEvent) => {
-        // Prevent default if the event is provided
         if (e) {
             e.preventDefault();
             e.stopPropagation();
@@ -213,7 +188,6 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
 
         const imageToRemove = images.find(img => img.id === imageId);
 
-        // Zwolnij blob URL jeśli istnieje w mapie
         if (blobUrls.has(imageId)) {
             const blobUrl = blobUrls.get(imageId)!;
             URL.revokeObjectURL(blobUrl);
@@ -224,7 +198,6 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
             });
         }
 
-        // Jeśli to jest blobURL w image.url, również go zwolnij
         if (imageToRemove && imageToRemove.url && imageToRemove.url.startsWith('blob:')) {
             URL.revokeObjectURL(imageToRemove.url);
         }
@@ -233,7 +206,6 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
         onImagesChange(updatedImages);
     };
 
-    // Obsługuje kliknięcie w przycisk "Dodaj zdjęcie"
     const handleUploadClick = (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
@@ -243,7 +215,6 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
         }
     };
 
-    // Obsługuje kliknięcie w przycisk "Zrób zdjęcie"
     const handleCameraClick = (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
@@ -253,7 +224,6 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
         }
     };
 
-    // Obsługuje otwieranie podglądu zdjęcia
     const handleOpenPreview = (index: number, e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
@@ -261,7 +231,6 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
         setPreviewModalOpen(true);
     };
 
-    // Obsługuje otwieranie modalu edycji informacji o zdjęciu
     const handleEditImage = (index: number, e: React.MouseEvent) => {
         e.stopPropagation();
         e.preventDefault();
@@ -269,7 +238,6 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
         setEditModalOpen(true);
     };
 
-    // Obsługuje zapisanie zmienionych informacji o zdjęciu
     const handleSaveImageInfo = (newName: string, newTags: string[], e?: React.MouseEvent) => {
         if (e) {
             e.preventDefault();
@@ -290,7 +258,6 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
         }
     };
 
-    // Obsługuje przeciągnięcie i upuszczenie plików
     const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         e.stopPropagation();
@@ -310,24 +277,20 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
         handleAddImages(e);
     };
 
-    // Formatuje rozmiar pliku do czytelnej postaci
     const formatFileSize = (bytes: number): string => {
         if (bytes < 1024) return bytes + ' B';
         if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
         return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
     };
 
-    // Obsługa zdarzenia zmiany pliku dla file input, zapobiegająca zatwierdzeniu formularza
     const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         e.preventDefault();
         e.stopPropagation();
         handleAddImages(e);
     };
 
-    // Czyszczenie blob URLs przy unmount komponentu
     React.useEffect(() => {
         return () => {
-            // Zwolnij wszystkie blob URLs przy odmontowywaniu komponentu
             blobUrls.forEach(url => {
                 URL.revokeObjectURL(url);
             });
@@ -336,31 +299,55 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
 
     return (
         <SectionContainer>
-            <SectionTitle>Zdjęcia</SectionTitle>
+            <SectionHeader>
+                <SectionTitle>Galeria zdjęć</SectionTitle>
+                {images.length > 0 && (
+                    <ImageCounter>
+                        {images.length} {images.length === 1 ? 'zdjęcie' : images.length < 5 ? 'zdjęcia' : 'zdjęć'}
+                    </ImageCounter>
+                )}
+            </SectionHeader>
 
             {error && (
                 <ErrorMessage>
-                    <FaExclamationCircle /> {error}
+                    <ErrorIcon>
+                        <FaExclamationCircle />
+                    </ErrorIcon>
+                    <ErrorText>{error}</ErrorText>
                 </ErrorMessage>
             )}
 
             <UploadArea
-                isDragging={isDragging}
+                $isDragging={isDragging}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
             >
-                <UploadText>Przeciągnij i upuść zdjęcia tutaj lub użyj przycisków poniżej</UploadText>
-                <UploadButtons>
-                    <UploadButton type="button" onClick={handleUploadClick}>
-                        <FaUpload /> Dodaj zdjęcie
-                    </UploadButton>
-                    <UploadButton type="button" onClick={handleCameraClick}>
-                        <FaCamera /> Zrób zdjęcie
-                    </UploadButton>
-                </UploadButtons>
+                <UploadContent>
+                    <UploadIcon>
+                        <FaImage />
+                    </UploadIcon>
+                    <UploadText>
+                        <UploadTitle>Dodaj zdjęcia pojazdu</UploadTitle>
+                        <UploadDescription>
+                            Przeciągnij i upuść pliki lub wybierz z galerii
+                        </UploadDescription>
+                    </UploadText>
+                    <UploadButtons>
+                        <UploadButton type="button" onClick={handleUploadClick} $variant="primary">
+                            <FaUpload />
+                            Wybierz pliki
+                        </UploadButton>
+                        <UploadButton type="button" onClick={handleCameraClick} $variant="secondary">
+                            <FaCamera />
+                            Aparat
+                        </UploadButton>
+                    </UploadButtons>
+                    <UploadHint>
+                        Maksymalny rozmiar pliku: {MAX_FILE_SIZE / 1024 / 1024}MB
+                    </UploadHint>
+                </UploadContent>
 
-                {/* Ukryte inputy do dodawania plików */}
                 <input
                     type="file"
                     ref={fileInputRef}
@@ -381,85 +368,112 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
                 />
             </UploadArea>
 
-            {images.length > 0 && (
-                <ImagesList>
-                    {images.map((image, index) => {
-                        const imageUrl = getImageUrl(image);
-                        const isLoading = isImageLoading(image.id);
+            {images.length > 0 ? (
+                <GalleryContainer>
+                    <GalleryGrid>
+                        {images.map((image, index) => {
+                            const imageUrl = getImageUrl(image);
+                            const isLoading = isImageLoading(image.id);
 
-                        return (
-                            <ImageItem key={image.id}>
-                                <ImageThumbnail onClick={(e) => handleOpenPreview(index, e)}>
-                                    {isLoading ? (
-                                        <LoadingIndicator>
-                                            <div className="spinner"></div>
-                                            <span>Ładowanie...</span>
-                                        </LoadingIndicator>
-                                    ) : imageUrl ? (
-                                        <>
-                                            <img src={imageUrl} alt={image.name || 'Zdjęcie'} />
-                                            <ViewOverlay>
-                                                <FaEye />
-                                            </ViewOverlay>
-                                        </>
-                                    ) : (
-                                        <ImagePlaceholder>
-                                            <FaImage />
-                                            <span>Błąd ładowania</span>
-                                        </ImagePlaceholder>
-                                    )}
-                                </ImageThumbnail>
-                                <ImageInfo>
-                                    <ImageNameContainer>
-                                        <ImageName>{image.name || 'Bez nazwy'}</ImageName>
-                                        <EditButton type="button" onClick={(e) => handleEditImage(index, e)}>
-                                            <FaEdit />
-                                        </EditButton>
-                                    </ImageNameContainer>
-                                    <ImageMetaContainer>
-                                        <ImageSize>{formatFileSize(image.size)}</ImageSize>
-                                        {image.tags && image.tags.length > 0 && (
-                                            <TagsContainer>
-                                                <TagsIcon><FaTags /></TagsIcon>
-                                                <TagsCount>{image.tags.length}</TagsCount>
-                                            </TagsContainer>
+                            return (
+                                <ImageCard key={image.id}>
+                                    <ImageThumbnail onClick={(e) => handleOpenPreview(index, e)}>
+                                        {isLoading ? (
+                                            <LoadingState>
+                                                <LoadingSpinner>
+                                                    <FaSpinner className="spinner" />
+                                                </LoadingSpinner>
+                                                <LoadingText>Ładowanie...</LoadingText>
+                                            </LoadingState>
+                                        ) : imageUrl ? (
+                                            <>
+                                                <ImagePreview src={imageUrl} alt={image.name || 'Zdjęcie'} />
+                                                <ImageOverlay>
+                                                    <OverlayIcon>
+                                                        <FaEye />
+                                                    </OverlayIcon>
+                                                </ImageOverlay>
+                                            </>
+                                        ) : (
+                                            <ErrorState>
+                                                <ErrorStateIcon>
+                                                    <FaImage />
+                                                </ErrorStateIcon>
+                                                <ErrorStateText>Błąd ładowania</ErrorStateText>
+                                            </ErrorState>
                                         )}
-                                    </ImageMetaContainer>
+                                    </ImageThumbnail>
 
-                                    {image.tags && image.tags.length > 0 && (
-                                        <TagsList>
-                                            {image.tags.map(tag => (
-                                                <TagBadge key={tag}>{tag}</TagBadge>
-                                            ))}
-                                        </TagsList>
-                                    )}
-                                </ImageInfo>
-                                <RemoveButton type="button" onClick={(e) => handleRemoveImage(image.id, e)}>
-                                    <FaTrash />
-                                </RemoveButton>
-                            </ImageItem>
-                        );
-                    })}
-                </ImagesList>
+                                    <ImageMeta>
+                                        <ImageNameRow>
+                                            <ImageName title={image.name || 'Bez nazwy'}>
+                                                {image.name || 'Bez nazwy'}
+                                            </ImageName>
+                                            <ImageActions>
+                                                <ActionButton
+                                                    type="button"
+                                                    onClick={(e) => handleEditImage(index, e)}
+                                                    title="Edytuj informacje"
+                                                >
+                                                    <FaEdit />
+                                                </ActionButton>
+                                                <ActionButton
+                                                    type="button"
+                                                    onClick={(e) => handleRemoveImage(image.id, e)}
+                                                    title="Usuń zdjęcie"
+                                                    $variant="danger"
+                                                >
+                                                    <FaTrash />
+                                                </ActionButton>
+                                            </ImageActions>
+                                        </ImageNameRow>
+
+                                        <ImageDetailsRow>
+                                            <ImageSize>{formatFileSize(image.size)}</ImageSize>
+                                            {image.tags && image.tags.length > 0 && (
+                                                <TagsIndicator>
+                                                    <FaTags />
+                                                    <TagsCount>{image.tags.length}</TagsCount>
+                                                </TagsIndicator>
+                                            )}
+                                        </ImageDetailsRow>
+
+                                        {image.tags && image.tags.length > 0 && (
+                                            <TagsRow>
+                                                {image.tags.slice(0, 3).map(tag => (
+                                                    <TagBadge key={tag}>{tag}</TagBadge>
+                                                ))}
+                                                {image.tags.length > 3 && (
+                                                    <MoreTags>+{image.tags.length - 3}</MoreTags>
+                                                )}
+                                            </TagsRow>
+                                        )}
+                                    </ImageMeta>
+                                </ImageCard>
+                            );
+                        })}
+                    </GalleryGrid>
+                </GalleryContainer>
+            ) : (
+                <EmptyGallery>
+                    <EmptyIcon>
+                        <FaImage />
+                    </EmptyIcon>
+                    <EmptyTitle>Brak zdjęć</EmptyTitle>
+                    <EmptyDescription>
+                        Dodaj zdjęcia, aby udokumentować stan pojazdu przed i po usługach
+                    </EmptyDescription>
+                </EmptyGallery>
             )}
 
-            {images.length === 0 && (
-                <EmptyImagesMessage>
-                    <FaImage />
-                    <p>Brak zdjęć. Dodaj zdjęcie, aby udokumentować stan pojazdu.</p>
-                </EmptyImagesMessage>
-            )}
-
-            {/* Modal podglądu zdjęcia */}
             <ImagePreviewModal
                 isOpen={previewModalOpen}
                 onClose={() => setPreviewModalOpen(false)}
-                images={images.map(img => ({ ...img, url: getImageUrl(img) }))} // Zapewniamy aktualne URL-e
+                images={images.map(img => ({ ...img, url: getImageUrl(img) }))}
                 currentImageIndex={previewImageIndex}
                 onDelete={handleRemoveImage}
             />
 
-            {/* Modal edycji informacji o zdjęciu */}
             {editingImageIndex >= 0 && editingImageIndex < images.length && (
                 <ImageEditModal
                     isOpen={editModalOpen}
@@ -477,327 +491,490 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ images, onImage
     );
 };
 
-// Stylowanie komponentów - dodane style dla ładowania
+// Styled Components - Professional Automotive CRM Design
 const SectionContainer = styled.div`
-    margin-bottom: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.md};
+`;
+
+const SectionHeader = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: ${brandTheme.spacing.md};
 `;
 
 const SectionTitle = styled.h3`
-    font-size: 16px;
-    margin: 0 0 15px 0;
-    padding-bottom: 8px;
-    border-bottom: 1px solid #eee;
-    color: #3498db;
+    font-size: 18px;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+
+    &::before {
+        content: '';
+        width: 4px;
+        height: 18px;
+        background: ${brandTheme.primary};
+        border-radius: 2px;
+    }
+`;
+
+const ImageCounter = styled.div`
+    background: ${brandTheme.primaryGhost};
+    color: ${brandTheme.primary};
+    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
+    border-radius: ${brandTheme.radius.xl};
+    font-size: 12px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
 `;
 
 const ErrorMessage = styled.div`
     display: flex;
     align-items: center;
-    gap: 8px;
-    background-color: #fdecea;
-    color: #e74c3c;
-    padding: 10px;
-    border-radius: 4px;
-    margin-bottom: 10px;
-    font-size: 14px;
+    gap: ${brandTheme.spacing.sm};
+    background: ${brandTheme.status.errorLight};
+    color: ${brandTheme.status.error};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    border-radius: ${brandTheme.radius.lg};
+    border: 1px solid ${brandTheme.status.error}30;
+    box-shadow: ${brandTheme.shadow.xs};
 `;
 
-const UploadArea = styled.div<{ isDragging: boolean }>`
-    border: 2px dashed ${props => props.isDragging ? '#3498db' : '#ddd'};
-    border-radius: 8px;
-    padding: 20px;
-    text-align: center;
-    background-color: ${props => props.isDragging ? '#f0f7ff' : '#f9f9f9'};
-    transition: all 0.2s;
-    margin-bottom: 20px;
+const ErrorIcon = styled.div`
+    font-size: 16px;
+    flex-shrink: 0;
+`;
+
+const ErrorText = styled.div`
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.4;
+`;
+
+const UploadArea = styled.div<{ $isDragging: boolean }>`
+    border: 2px dashed ${props => props.$isDragging ? brandTheme.primary : brandTheme.border};
+    border-radius: ${brandTheme.radius.xl};
+    background: ${props => props.$isDragging ? brandTheme.primaryGhost : brandTheme.surfaceAlt};
+    transition: all ${brandTheme.transitions.normal};
+    cursor: pointer;
 
     &:hover {
-        border-color: #3498db;
-        background-color: #f0f7ff;
+        border-color: ${brandTheme.primary};
+        background: ${brandTheme.primaryGhost};
     }
 `;
 
-const UploadText = styled.p`
-    color: #7f8c8d;
-    margin: 0 0 15px 0;
+const UploadContent = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: ${brandTheme.spacing.lg};
+    padding: ${brandTheme.spacing.xxl};
+    text-align: center;
+
+    @media (max-width: 768px) {
+        padding: ${brandTheme.spacing.xl};
+        gap: ${brandTheme.spacing.md};
+    }
+`;
+
+const UploadIcon = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    background: ${brandTheme.primaryGhost};
+    color: ${brandTheme.primary};
+    border-radius: ${brandTheme.radius.xl};
+    font-size: 24px;
+`;
+
+const UploadText = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.xs};
+`;
+
+const UploadTitle = styled.h4`
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+`;
+
+const UploadDescription = styled.p`
+    margin: 0;
     font-size: 14px;
+    color: ${brandTheme.text.secondary};
+    font-weight: 500;
 `;
 
 const UploadButtons = styled.div`
     display: flex;
-    gap: 15px;
-    justify-content: center;
-
+    gap: ${brandTheme.spacing.md};
+    
     @media (max-width: 480px) {
         flex-direction: column;
-        align-items: center;
+        width: 100%;
     }
 `;
 
-const UploadButton = styled.button`
+const UploadButton = styled.button<{ $variant: 'primary' | 'secondary' }>`
     display: flex;
     align-items: center;
-    gap: 8px;
-    background-color: #f0f7ff;
-    color: #3498db;
-    border: 1px solid #d5e9f9;
-    border-radius: 4px;
-    padding: 10px 15px;
+    justify-content: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    border-radius: ${brandTheme.radius.lg};
     font-size: 14px;
+    font-weight: 600;
     cursor: pointer;
+    transition: all ${brandTheme.transitions.spring};
+    min-height: 44px;
+    min-width: 140px;
 
-    &:hover {
-        background-color: #d5e9f9;
+    ${props => props.$variant === 'primary' ? `
+        background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+        color: white;
+        border: 2px solid transparent;
+        box-shadow: ${brandTheme.shadow.sm};
+        
+        &:hover {
+            background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
+            transform: translateY(-1px);
+            box-shadow: ${brandTheme.shadow.md};
+        }
+    ` : `
+        background: ${brandTheme.surface};
+        color: ${brandTheme.text.secondary};
+        border: 2px solid ${brandTheme.border};
+        
+        &:hover {
+            background: ${brandTheme.surfaceHover};
+            color: ${brandTheme.text.primary};
+            border-color: ${brandTheme.borderHover};
+            box-shadow: ${brandTheme.shadow.sm};
+        }
+    `}
+
+    &:active {
+        transform: translateY(0);
     }
 
     @media (max-width: 480px) {
         width: 100%;
-        justify-content: center;
     }
 `;
 
-const ImagesList = styled.div`
+const UploadHint = styled.div`
+    font-size: 12px;
+    color: ${brandTheme.text.muted};
+    font-weight: 500;
+`;
+
+const GalleryContainer = styled.div`
+    background: ${brandTheme.surface};
+    border: 1px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.xl};
+    padding: ${brandTheme.spacing.lg};
+    box-shadow: ${brandTheme.shadow.sm};
+`;
+
+const GalleryGrid = styled.div`
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 15px;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: ${brandTheme.spacing.lg};
+
+    @media (max-width: 768px) {
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: ${brandTheme.spacing.md};
+    }
 
     @media (max-width: 480px) {
         grid-template-columns: 1fr;
     }
 `;
 
-const ImageItem = styled.div`
-    border: 1px solid #eee;
-    border-radius: 4px;
+const ImageCard = styled.div`
+    background: ${brandTheme.surface};
+    border: 1px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.lg};
     overflow: hidden;
+    transition: all ${brandTheme.transitions.normal};
     position: relative;
-    background-color: white;
 
     &:hover {
-        border-color: #3498db;
+        border-color: ${brandTheme.primary};
+        transform: translateY(-2px);
+        box-shadow: ${brandTheme.shadow.lg};
     }
 `;
 
 const ImageThumbnail = styled.div`
-    height: 150px;
+    height: 200px;
     overflow: hidden;
     position: relative;
     cursor: pointer;
-
-    img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        transition: transform 0.3s;
-    }
-
-    &:hover {
-        img {
-            transform: scale(1.05);
-        }
-    }
+    background: ${brandTheme.surfaceAlt};
 `;
 
-const ViewOverlay = styled.div`
+const ImagePreview = styled.img`
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform ${brandTheme.transitions.normal};
+`;
+
+const ImageOverlay = styled.div`
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.4);
+    background: rgba(0, 0, 0, 0.5);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
-    font-size: 24px;
     opacity: 0;
-    transition: opacity 0.3s;
+    transition: opacity ${brandTheme.transitions.normal};
 
     ${ImageThumbnail}:hover & {
         opacity: 1;
     }
+
+    ${ImageThumbnail}:hover ${ImagePreview} {
+        transform: scale(1.05);
+    }
 `;
 
-const LoadingIndicator = styled.div`
+const OverlayIcon = styled.div`
+    color: white;
+    font-size: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+`;
+
+const LoadingState = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     height: 100%;
-    color: #3498db;
-    gap: 10px;
+    gap: ${brandTheme.spacing.md};
+`;
+
+const LoadingSpinner = styled.div`
+    color: ${brandTheme.primary};
+    font-size: 24px;
 
     .spinner {
-        width: 24px;
-        height: 24px;
-        border: 3px solid #f3f3f3;
-        border-top: 3px solid #3498db;
-        border-radius: 50%;
         animation: spin 1s linear infinite;
     }
 
     @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-
-    span {
-        font-size: 12px;
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
     }
 `;
 
-const ImagePlaceholder = styled.div`
+const LoadingText = styled.div`
+    font-size: 12px;
+    color: ${brandTheme.text.muted};
+    font-weight: 500;
+`;
+
+const ErrorState = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     height: 100%;
-    color: #95a5a6;
-    gap: 8px;
-
-    svg {
-        font-size: 24px;
-    }
-
-    span {
-        font-size: 12px;
-    }
+    gap: ${brandTheme.spacing.sm};
 `;
 
-const ImageInfo = styled.div`
-    padding: 10px;
+const ErrorStateIcon = styled.div`
+    color: ${brandTheme.text.muted};
+    font-size: 32px;
+    opacity: 0.6;
 `;
 
-const ImageNameContainer = styled.div`
+const ErrorStateText = styled.div`
+    font-size: 12px;
+    color: ${brandTheme.text.muted};
+    font-weight: 500;
+`;
+
+const ImageMeta = styled.div`
+    padding: ${brandTheme.spacing.md};
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.sm};
+`;
+
+const ImageNameRow = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 3px;
+    gap: ${brandTheme.spacing.sm};
 `;
 
 const ImageName = styled.div`
-    font-size: 13px;
-    color: #34495e;
+    font-size: 14px;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    margin-right: 5px;
     flex: 1;
 `;
 
-const EditButton = styled.button`
-    background: none;
-    border: none;
-    color: #3498db;
-    font-size: 12px;
-    cursor: pointer;
-    padding: 2px;
+const ImageActions = styled.div`
+    display: flex;
+    gap: ${brandTheme.spacing.xs};
+    flex-shrink: 0;
+`;
+
+const ActionButton = styled.button<{ $variant?: 'danger' }>`
     display: flex;
     align-items: center;
     justify-content: center;
-    opacity: 0.6;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: ${brandTheme.radius.sm};
+    cursor: pointer;
+    transition: all ${brandTheme.transitions.normal};
+    font-size: 12px;
 
-    &:hover {
-        opacity: 1;
-        color: #2980b9;
+    ${props => props.$variant === 'danger' ? `
+        background: ${brandTheme.status.errorLight};
+        color: ${brandTheme.status.error};
+        
+        &:hover {
+            background: ${brandTheme.status.error};
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: ${brandTheme.shadow.sm};
+        }
+    ` : `
+        background: ${brandTheme.primaryGhost};
+        color: ${brandTheme.primary};
+        
+        &:hover {
+            background: ${brandTheme.primary};
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: ${brandTheme.shadow.sm};
+        }
+    `}
+
+    &:active {
+        transform: translateY(0);
     }
 `;
 
-const ImageMetaContainer = styled.div`
+const ImageDetailsRow = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 6px;
 `;
 
 const ImageSize = styled.div`
     font-size: 12px;
-    color: #7f8c8d;
+    color: ${brandTheme.text.muted};
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
 `;
 
-const TagsContainer = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 3px;
-`;
-
-const TagsIcon = styled.span`
-    color: #3498db;
-    font-size: 10px;
-    display: flex;
-    align-items: center;
+const TagsIndicator = styled.div`
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.xs};
+   color: ${brandTheme.primary};
 `;
 
 const TagsCount = styled.span`
-    font-size: 12px;
-    color: #3498db;
-    font-weight: 500;
+   font-size: 12px;
+   font-weight: 600;
+   font-variant-numeric: tabular-nums;
 `;
 
-const TagsList = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    margin-top: 3px;
+const TagsRow = styled.div`
+   display: flex;
+   flex-wrap: wrap;
+   gap: ${brandTheme.spacing.xs};
+   align-items: center;
 `;
 
 const TagBadge = styled.div`
-    background-color: #f0f7ff;
-    color: #3498db;
-    padding: 2px 6px;
-    border-radius: 10px;
-    font-size: 10px;
-    border: 1px solid #d5e9f9;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+   background: ${brandTheme.primaryGhost};
+   color: ${brandTheme.primary};
+   padding: 2px ${brandTheme.spacing.xs};
+   border-radius: ${brandTheme.radius.xl};
+   font-size: 10px;
+   font-weight: 500;
+   border: 1px solid ${brandTheme.primary}20;
+   max-width: 80px;
+   overflow: hidden;
+   text-overflow: ellipsis;
+   white-space: nowrap;
 `;
 
-const RemoveButton = styled.button`
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background-color: rgba(0, 0, 0, 0.6);
-    color: white;
-    border: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    opacity: 0.7;
-    z-index: 10;
-
-    &:hover {
-        opacity: 1;
-        background-color: rgba(231, 76, 60, 0.8);
-    }
+const MoreTags = styled.div`
+   background: ${brandTheme.text.muted};
+   color: white;
+   padding: 2px ${brandTheme.spacing.xs};
+   border-radius: ${brandTheme.radius.xl};
+   font-size: 10px;
+   font-weight: 600;
 `;
 
-const EmptyImagesMessage = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 30px;
-    background-color: #f9f9f9;
-    border-radius: 8px;
-    color: #95a5a6;
-    text-align: center;
+const EmptyGallery = styled.div`
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   justify-content: center;
+   padding: ${brandTheme.spacing.xxl};
+   background: ${brandTheme.surfaceAlt};
+   border: 1px solid ${brandTheme.border};
+   border-radius: ${brandTheme.radius.xl};
+   text-align: center;
+   gap: ${brandTheme.spacing.lg};
+`;
 
-    svg {
-        font-size: 32px;
-        margin-bottom: 10px;
-        opacity: 0.5;
-    }
+const EmptyIcon = styled.div`
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   width: 80px;
+   height: 80px;
+   background: ${brandTheme.surfaceHover};
+   color: ${brandTheme.text.muted};
+   border-radius: ${brandTheme.radius.xl};
+   font-size: 32px;
+   opacity: 0.6;
+`;
 
-    p {
-        margin: 0;
-        font-size: 14px;
-    }
+const EmptyTitle = styled.h4`
+   margin: 0;
+   font-size: 18px;
+   font-weight: 600;
+   color: ${brandTheme.text.primary};
+`;
+
+const EmptyDescription = styled.p`
+   margin: 0;
+   font-size: 14px;
+   color: ${brandTheme.text.secondary};
+   line-height: 1.5;
+   max-width: 300px;
 `;
 
 export default ImageUploadSection;

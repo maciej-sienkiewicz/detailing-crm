@@ -1,35 +1,25 @@
 // src/pages/Calendar/CalendarPage.tsx
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { useNavigate } from 'react-router-dom';
+import {useNavigate} from 'react-router-dom';
 import AppointmentCalendar from '../../components/calendar/Calendar';
 import Modal from '../../components/common/Modal';
 import AppointmentForm from '../../components/calendar/AppointmentForm';
 import AppointmentDetails from '../../components/calendar/AppointmentDetails';
 import ConfirmationDialog from '../../components/common/ConfirmationDialog';
-import { Appointment, AppointmentStatus, ProtocolStatus } from '../../types';
+import {Appointment, AppointmentStatus, ProtocolStatus} from '../../types';
 import {
-    fetchAppointments,
     addAppointment,
-    updateAppointment,
     deleteAppointment,
+    fetchAppointments,
+    updateAppointment,
     updateAppointmentStatus
 } from '../../api/mocks/appointmentMocks';
-import { fetchProtocolsAsAppointments } from '../../services/ProtocolCalendarService';
-import { mapAppointmentToProtocol } from '../../services/ProtocolMappingService';
-import { useToast } from '../../components/common/Toast/Toast';
-import {
-    FaPlus,
-    FaCalendarAlt,
-    FaFilter,
-    FaSync,
-    FaDownload,
-    FaCog,
-    FaChartLine,
-    FaUsers,
-    FaClock,
-    FaCheckCircle
-} from 'react-icons/fa';
+import {fetchProtocolsAsAppointments} from '../../services/ProtocolCalendarService';
+import {mapAppointmentToProtocol} from '../../services/ProtocolMappingService';
+import {useToast} from '../../components/common/Toast/Toast';
+import {FaCalendarAlt, FaChartLine, FaClock, FaPlus, FaSync, FaUsers} from 'react-icons/fa';
+import {brandTheme} from "../Finances/styles/theme";
 
 // Enterprise Design System - Automotive Grade
 const enterprise = {
@@ -450,10 +440,11 @@ const CalendarPage: React.FC = () => {
 
         return {
             total: appointments.length,
-            today: todayAppointments.length,
+            today: todayAppointments.filter(a => a.status === AppointmentStatus.SCHEDULED).length,
             thisWeek: thisWeekAppointments.length,
             protocols: appointments.filter(a => a.isProtocol).length,
-            inProgress: appointments.filter(a => a.status === AppointmentStatus.IN_PROGRESS).length
+            inProgress: appointments.filter(a => a.status === AppointmentStatus.IN_PROGRESS).length,
+            done: appointments.filter(a => a.status === AppointmentStatus.READY_FOR_PICKUP).length
         };
     };
 
@@ -462,6 +453,7 @@ const CalendarPage: React.FC = () => {
     return (
         <CalendarPageContainer>
             {/* Executive Header */}
+            <HeaderContainer>
             <PageHeader>
                 <HeaderLeft>
                     <HeaderTitle>
@@ -475,31 +467,6 @@ const CalendarPage: React.FC = () => {
                     </HeaderTitle>
 
                     {/* Professional Statistics */}
-                    <StatsGrid>
-                        <StatCard>
-                            <StatIcon $color={enterprise.primary}><FaUsers /></StatIcon>
-                            <StatContent>
-                                <StatValue>{stats.today}</StatValue>
-                                <StatLabel>Dzisiaj</StatLabel>
-                            </StatContent>
-                        </StatCard>
-
-                        <StatCard>
-                            <StatIcon $color={enterprise.primary}><FaChartLine /></StatIcon>
-                            <StatContent>
-                                <StatValue>{stats.thisWeek}</StatValue>
-                                <StatLabel>Ten tydzień</StatLabel>
-                            </StatContent>
-                        </StatCard>
-
-                        <StatCard>
-                            <StatIcon $color={enterprise.primary}><FaClock /></StatIcon>
-                            <StatContent>
-                                <StatValue>{stats.inProgress}</StatValue>
-                                <StatLabel>W trakcie</StatLabel>
-                            </StatContent>
-                        </StatCard>
-                    </StatsGrid>
                 </HeaderLeft>
 
                 <HeaderActions>
@@ -509,6 +476,43 @@ const CalendarPage: React.FC = () => {
                     </PrimaryAction>
                 </HeaderActions>
             </PageHeader>
+            </HeaderContainer>
+
+            <StatsSection>
+                <StatsGrid>
+                    <StatCard>
+                        <StatIcon $color={enterprise.textPrimary}><FaUsers /></StatIcon>
+                        <StatContent>
+                            <StatValue>{stats.today}</StatValue>
+                            <StatLabel>Do przyjęcia dzisiaj</StatLabel>
+                        </StatContent>
+                    </StatCard>
+
+                    <StatCard>
+                        <StatIcon $color={enterprise.primary}><FaChartLine /></StatIcon>
+                        <StatContent>
+                            <StatValue>{stats.thisWeek}</StatValue>
+                            <StatLabel>Ten tydzień</StatLabel>
+                        </StatContent>
+                    </StatCard>
+
+                    <StatCard>
+                        <StatIcon $color={enterprise.primary}><FaClock /></StatIcon>
+                        <StatContent>
+                            <StatValue>{stats.inProgress}</StatValue>
+                            <StatLabel>W trakcie realizacji</StatLabel>
+                        </StatContent>
+                    </StatCard>
+
+                    <StatCard>
+                        <StatIcon $color={enterprise.primary}><FaClock /></StatIcon>
+                        <StatContent>
+                            <StatValue>{stats.done}</StatValue>
+                            <StatLabel>Oczekujące na odbiór</StatLabel>
+                        </StatContent>
+                    </StatCard>
+                </StatsGrid>
+            </StatsSection>
 
             {/* Loading State */}
             {loading && appointments.length === 0 && (
@@ -624,36 +628,49 @@ const CalendarPage: React.FC = () => {
 
 // Professional Styled Components
 const CalendarPageContainer = styled.div`
+    min-height: 100vh;
+    background: ${brandTheme.surfaceAlt};
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
-    background: ${enterprise.surfaceElevated};
 `;
 
-const PageHeader = styled.header`
+const HeaderContainer = styled.header`
+    background: ${brandTheme.surface};
+    border-bottom: 1px solid ${brandTheme.border};
+    box-shadow: ${brandTheme.shadow.sm};
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(8px);
+    background: rgba(255, 255, 255, 0.95);
+`;
+
+const PageHeader = styled.div`
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: ${enterprise.spacing.xxxl};
-    background: ${enterprise.surface};
-    border-bottom: 2px solid ${enterprise.borderLight};
-    box-shadow: ${enterprise.shadow.sm};
+    gap: ${brandTheme.spacing.lg};
 
     @media (max-width: 1024px) {
+        padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
         flex-direction: column;
-        align-items: flex-start;
-        gap: ${enterprise.spacing.xl};
+        align-items: stretch;
+        gap: ${brandTheme.spacing.md};
     }
 
     @media (max-width: 768px) {
-        padding: ${enterprise.spacing.xxl};
+        padding: ${brandTheme.spacing.md};
     }
 `;
 
 const HeaderLeft = styled.div`
     display: flex;
-    flex-direction: column;
-    gap: ${enterprise.spacing.xl};
+    align-items: center;
+    gap: ${brandTheme.spacing.md};
+    min-width: 0;
     flex: 1;
 `;
 
@@ -664,16 +681,17 @@ const HeaderTitle = styled.div`
 `;
 
 const TitleIcon = styled.div`
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+    border-radius: ${brandTheme.radius.lg};
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 56px;
-    height: 56px;
-    background: linear-gradient(135deg, ${enterprise.primary} 0%, ${enterprise.primaryDark} 100%);
     color: white;
-    border-radius: ${enterprise.radius.xl};
     font-size: 24px;
-    box-shadow: ${enterprise.shadow.md};
+    box-shadow: ${brandTheme.shadow.md};
+    flex-shrink: 0;
 `;
 
 const TitleContent = styled.div`
@@ -701,11 +719,25 @@ const Subtitle = styled.div`
     font-weight: 500;
 `;
 
+const StatsSection = styled.section`
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl} 0;
+
+    @media (max-width: 1024px) {
+        padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg} 0;
+    }
+
+    @media (max-width: 768px) {
+        padding: ${brandTheme.spacing.md} ${brandTheme.spacing.md} 0;
+    }
+`;
+
 const StatsGrid = styled.div`
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: ${enterprise.spacing.lg};
-    margin-bottom: ${enterprise.spacing.lg};
+    gap: ${brandTheme.spacing.lg};
+    margin-bottom: ${brandTheme.spacing.lg};
 
     /* Izolacja - upewnij się że style dotyczą tylko bezpośrednich dzieci */
     > * {
@@ -714,12 +746,12 @@ const StatsGrid = styled.div`
 
     @media (max-width: 1200px) {
         grid-template-columns: repeat(2, 1fr);
-        gap: ${enterprise.spacing.md};
+        gap: ${brandTheme.spacing.md};
     }
 
     @media (max-width: 768px) {
         grid-template-columns: 1fr;
-        gap: ${enterprise.spacing.md};
+        gap: ${brandTheme.spacing.md};
     }
 
     /* Zapewnienie że nie wpływa na inne gridy */
@@ -729,22 +761,22 @@ const StatsGrid = styled.div`
 `;
 
 const StatCard = styled.div`
-    background: ${enterprise.surface};
-    border: 1px solid ${enterprise.border};
-    border-radius: ${enterprise.radius.xl};
-    padding: ${enterprise.spacing.lg};
+    background: ${brandTheme.surface};
+    border: 1px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.xl};
+    padding: ${brandTheme.spacing.lg};
     display: flex;
     align-items: center;
-    gap: ${enterprise.spacing.md};
+    gap: ${brandTheme.spacing.md};
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: ${enterprise.shadow.sm};
+    box-shadow: ${brandTheme.shadow.xs};
     position: relative;
     overflow: hidden;
 
     &:hover {
         transform: translateY(-2px);
-        box-shadow: ${enterprise.shadow.lg};
-        border-color: ${enterprise.primary};
+        box-shadow: ${brandTheme.shadow.lg};
+        border-color: ${brandTheme.primary};
     }
 
     &::before {
@@ -754,7 +786,7 @@ const StatCard = styled.div`
         left: 0;
         right: 0;
         height: 4px;
-        background: linear-gradient(90deg, ${enterprise.primary} 0%, ${enterprise.primaryLight} 100%);
+        background: linear-gradient(90deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
         opacity: 0;
         transition: opacity 0.2s ease;
     }
@@ -768,7 +800,7 @@ const StatIcon = styled.div<{ $color: string }>`
     width: 56px;
     height: 56px;
     background: linear-gradient(135deg, ${props => props.$color}15 0%, ${props => props.$color}08 100%);
-    border-radius: ${enterprise.radius.lg};
+    border-radius: ${brandTheme.radius.lg};
     display: flex;
     align-items: center;
     justify-content: center;
@@ -786,8 +818,8 @@ const StatContent = styled.div`
 const StatValue = styled.div`
     font-size: 28px;
     font-weight: 700;
-    color: black;
-    margin-bottom: ${enterprise.spacing.xs};
+    color: ${brandTheme.text.primary};
+    margin-bottom: ${brandTheme.spacing.xs};
     letter-spacing: -0.025em;
     line-height: 1.1;
 
@@ -798,7 +830,7 @@ const StatValue = styled.div`
 
 const StatLabel = styled.div`
     font-size: 14px;
-    color: ${enterprise.secondary};
+    color: ${brandTheme.text.secondary};
     font-weight: 500;
     line-height: 1.3;
 `;
@@ -864,13 +896,55 @@ const BaseAction = styled.button`
     }
 `;
 
-const PrimaryAction = styled(BaseAction)`
-    background: linear-gradient(135deg, ${enterprise.primary} 0%, ${enterprise.primaryDark} 100%);
-    color: white;
-    border-color: ${enterprise.primary};
+const BaseButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+    border-radius: ${brandTheme.radius.md};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid transparent;
+    white-space: nowrap;
+    min-height: 44px;
+    position: relative;
+    overflow: hidden;
 
-    &:hover:not(:disabled) {
-        background: linear-gradient(135deg, ${enterprise.primaryDark} 0%, ${enterprise.primary} 100%);
+    &:hover {
+        transform: translateY(-1px);
+    }
+
+    &:active {
+        transform: translateY(0);
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    span {
+        @media (max-width: 480px) {
+            display: block;
+        }
+    }
+`;
+
+const PrimaryAction = styled(BaseButton)`
+    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+    color: white;
+    box-shadow: ${brandTheme.shadow.sm};
+
+    &:hover {
+        background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
+        box-shadow: ${brandTheme.shadow.md};
+    }
+
+    @media (max-width: 768px) {
+        justify-content: center;
     }
 `;
 
