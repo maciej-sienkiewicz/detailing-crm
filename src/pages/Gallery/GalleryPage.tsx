@@ -2,12 +2,94 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { FaImages, FaDownload, FaEye, FaTags, FaSearch } from 'react-icons/fa';
+import { FaImages, FaDownload, FaEye, FaTags, FaSearch, FaChartLine, FaDatabase, FaCubes } from 'react-icons/fa';
 import { galleryApi, GalleryImage, GalleryFilters, GalleryStats } from '../../api/galleryApi';
 import GalleryFiltersComponent from '../../components/Gallery/GalleryFilters';
 import Pagination from '../../components/common/Pagination';
 import Modal from '../../components/common/Modal';
 import { carReceptionApi } from '../../api/carReceptionApi';
+
+// Brand Theme - zgodny z systemem designu
+const brandTheme = {
+    // Primary Colors
+    primary: '#1a365d',
+    primaryLight: '#2c5aa0',
+    primaryDark: '#0f2027',
+    primaryGhost: 'rgba(26, 54, 93, 0.04)',
+
+    textPrimary: '#0f172a',
+    textSecondary: '#334155',
+    textTertiary: '#64748b',
+    textMuted: '#94a3b8',
+
+    // Surface Colors
+    surface: '#ffffff',
+    surfaceAlt: '#fafbfc',
+    surfaceElevated: '#f8fafc',
+    surfaceHover: '#f1f5f9',
+
+    // Typography Colors
+    text: {
+        primary: '#0f172a',
+        secondary: '#475569',
+        tertiary: '#64748b',
+        muted: '#94a3b8',
+        disabled: '#cbd5e1'
+    },
+
+    // Border Colors
+    border: '#e2e8f0',
+    borderLight: '#f1f5f9',
+    borderHover: '#cbd5e1',
+
+    // Status Colors
+    status: {
+        success: '#059669',
+        successLight: '#d1fae5',
+        warning: '#d97706',
+        warningLight: '#fef3c7',
+        error: '#dc2626',
+        errorLight: '#fee2e2',
+        info: '#0ea5e9',
+        infoLight: '#e0f2fe'
+    },
+
+    // Shadows
+    shadow: {
+        xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+        sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+        md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+    },
+
+    // Spacing
+    spacing: {
+        xs: '4px',
+        sm: '8px',
+        md: '16px',
+        lg: '24px',
+        xl: '32px',
+        xxl: '48px'
+    },
+
+    // Border Radius
+    radius: {
+        sm: '6px',
+        md: '8px',
+        lg: '12px',
+        xl: '16px',
+        xxl: '20px'
+    },
+
+    // Transitions
+    transitions: {
+        fast: '0.15s ease',
+        normal: '0.2s ease',
+        slow: '0.3s ease',
+        spring: '0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+    }
+};
 
 const GalleryPage: React.FC = () => {
     const navigate = useNavigate();
@@ -156,42 +238,76 @@ const GalleryPage: React.FC = () => {
 
     return (
         <GalleryContainer>
-            <GalleryHeader>
-                <HeaderContent>
-                    <Title>
-                        <FaImages/> Galeria zdjęć
-                    </Title>
-                    {stats && (
-                        <StatsContainer>
-                            <StatItem>
-                                <StatLabel>Zdjęcia:</StatLabel>
-                                <StatValue>{stats.totalImages}</StatValue>
-                            </StatItem>
-                            <StatItem>
-                                <StatLabel>Rozmiar:</StatLabel>
-                                <StatValue>{formatFileSize(stats.totalSize)}</StatValue>
-                            </StatItem>
-                            <StatItem>
-                                <StatLabel>Tagi:</StatLabel>
-                                <StatValue>{availableTags.length}</StatValue>
-                            </StatItem>
-                        </StatsContainer>
-                    )}
-                </HeaderContent>
-            </GalleryHeader>
+            {/* Professional Header */}
+            <HeaderContainer>
+                <PageHeader>
+                    <HeaderLeft>
+                        <HeaderTitle>
+                            <TitleIcon>
+                                <FaImages />
+                            </TitleIcon>
+                            <TitleContent>
+                                <MainTitle>Galeria zdjęć</MainTitle>
+                                <Subtitle>Przeglądaj i zarządzaj zdjęciami z protokołów</Subtitle>
+                            </TitleContent>
+                        </HeaderTitle>
+                    </HeaderLeft>
+                </PageHeader>
+            </HeaderContainer>
 
+            {/* Professional Statistics */}
+            {stats && (
+                <StatsSection>
+                    <StatsGrid>
+                        <StatCard>
+                            <StatIcon $color={brandTheme.primary}><FaImages /></StatIcon>
+                            <StatContent>
+                                <StatValue>{stats.totalImages}</StatValue>
+                                <StatLabel>Zdjęć w galerii</StatLabel>
+                            </StatContent>
+                        </StatCard>
+
+                        <StatCard>
+                            <StatIcon $color={brandTheme.status.info}><FaDatabase /></StatIcon>
+                            <StatContent>
+                                <StatValue>{formatFileSize(stats.totalSize)}</StatValue>
+                                <StatLabel>Rozmiar danych</StatLabel>
+                            </StatContent>
+                        </StatCard>
+
+                        <StatCard>
+                            <StatIcon $color={brandTheme.status.success}><FaTags /></StatIcon>
+                            <StatContent>
+                                <StatValue>{availableTags.length}</StatValue>
+                                <StatLabel>Dostępnych tagów</StatLabel>
+                            </StatContent>
+                        </StatCard>
+
+                        <StatCard>
+                            <StatIcon $color={brandTheme.status.warning}><FaCubes /></StatIcon>
+                            <StatContent>
+                                <StatValue>{totalItems}</StatValue>
+                                <StatLabel>Wyników wyszukiwania</StatLabel>
+                            </StatContent>
+                        </StatCard>
+                    </StatsGrid>
+                </StatsSection>
+            )}
+
+            {/* Enhanced Filters */}
             <GalleryFiltersComponent
                 availableTags={availableTags}
                 onFiltersChange={handleFiltersChange}
                 isLoading={isLoading}
             />
 
+            {/* Main Content */}
             <GalleryContent>
                 {(() => {
                     if (isLoading) {
                         return (
                             <LoadingContainer>
-                                <LoadingSpinner/>
+                                <LoadingSpinner />
                                 <LoadingText>Ładowanie zdjęć...</LoadingText>
                             </LoadingContainer>
                         );
@@ -199,12 +315,13 @@ const GalleryPage: React.FC = () => {
                         return (
                             <>
                                 <ResultsInfo>
-                                    Znaleziono {totalItems} {totalItems === 1 ? 'zdjęcie' : totalItems < 5 ? 'zdjęcia' : 'zdjęć'}
+                                    <ResultsText>
+                                        Znaleziono <strong>{totalItems}</strong> {totalItems === 1 ? 'zdjęcie' : totalItems < 5 ? 'zdjęcia' : 'zdjęć'}
+                                    </ResultsText>
                                 </ResultsInfo>
 
                                 <ImagesGrid>
                                     {images.map(image => (
-                                        // W ImagesGrid, zastąp strukturę ImageCard tą:
                                         <ImageCard key={image.id} onClick={() => handleImageClick(image)}>
                                             <ImageContainer>
                                                 <Image
@@ -288,7 +405,7 @@ const GalleryPage: React.FC = () => {
                     } else {
                         return (
                             <EmptyState>
-                                <EmptyStateIcon><FaSearch/></EmptyStateIcon>
+                                <EmptyStateIcon><FaSearch /></EmptyStateIcon>
                                 <EmptyStateTitle>Brak zdjęć</EmptyStateTitle>
                                 <EmptyStateMessage>
                                     Nie znaleziono zdjęć spełniających podane kryteria wyszukiwania.
@@ -300,7 +417,7 @@ const GalleryPage: React.FC = () => {
                 })()}
             </GalleryContent>
 
-            {/* Modal podglądu zdjęcia */}
+            {/* Professional Modal */}
             {selectedImage && (
                 <Modal
                     isOpen={showImageModal}
@@ -328,16 +445,11 @@ const GalleryPage: React.FC = () => {
                             <InfoSection>
                                 <InfoLabel>Protokół</InfoLabel>
                                 <InfoValue>
-                                    <span
+                                    <ProtocolLink
                                         onClick={(e) => handleProtocolClick(selectedImage.protocolId, e)}
-                                        style={{
-                                            color: '#3498db',
-                                            cursor: 'pointer',
-                                            textDecoration: 'underline'
-                                        }}
                                     >
                                         #{selectedImage.protocolId}
-                                    </span>
+                                    </ProtocolLink>
                                 </InfoValue>
                             </InfoSection>
 
@@ -401,88 +513,226 @@ const GalleryPage: React.FC = () => {
     );
 };
 
-// Finalne profesjonalne style dla GalleryPage.tsx
+// Professional Styled Components
 const GalleryContainer = styled.div`
-    padding: 24px;
-    max-width: 1400px;
-    margin: 0 auto;
-    background: #fafbfc;
     min-height: 100vh;
+    background: ${brandTheme.surfaceAlt};
+    display: flex;
+    flex-direction: column;
 `;
 
-const GalleryHeader = styled.div`
-    background: white;
-    border-radius: 8px;
-    padding: 28px 32px;
-    margin-bottom: 24px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    border: 1px solid #e5e9f0;
+const HeaderContainer = styled.header`
+    background: ${brandTheme.surface};
+    border-bottom: 1px solid ${brandTheme.border};
+    box-shadow: ${brandTheme.shadow.sm};
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(8px);
+    background: rgba(255, 255, 255, 0.95);
 `;
 
-const HeaderContent = styled.div`
+const PageHeader = styled.div`
+    max-width: 100%;
+    margin: 0 auto;
+    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
     display: flex;
     justify-content: space-between;
     align-items: center;
-    
-    @media (max-width: 768px) {
+    gap: ${brandTheme.spacing.lg};
+
+    @media (max-width: 1024px) {
+        padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
         flex-direction: column;
-        align-items: flex-start;
-        gap: 20px;
+        align-items: stretch;
+        gap: ${brandTheme.spacing.md};
+    }
+
+    @media (max-width: 768px) {
+        padding: ${brandTheme.spacing.md};
     }
 `;
 
-const Title = styled.h1`
+const HeaderLeft = styled.div`
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin: 0;
-    color: #1e2329;
-    font-size: 24px;
-    font-weight: 600;
-    letter-spacing: -0.3px;
+    gap: ${brandTheme.spacing.md};
+    min-width: 0;
+    flex: 1;
 `;
 
-const StatsContainer = styled.div`
+const HeaderTitle = styled.div`
     display: flex;
-    gap: 24px;
-    
+    align-items: center;
+    gap: ${brandTheme.spacing.lg};
+`;
+
+const TitleIcon = styled.div`
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+    border-radius: ${brandTheme.radius.lg};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+    box-shadow: ${brandTheme.shadow.md};
+    flex-shrink: 0;
+`;
+
+const TitleContent = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.xs};
+`;
+
+const MainTitle = styled.h1`
+    font-size: 32px;
+    font-weight: 700;
+    color: ${brandTheme.textPrimary};
+    margin: 0;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+
     @media (max-width: 768px) {
-        gap: 16px;
-        width: 100%;
-        justify-content: space-between;
+        font-size: 28px;
     }
 `;
 
-const StatItem = styled.div`
-    text-align: center;
-    padding: 12px 16px;
-    background: #f8f9fa;
-    border-radius: 6px;
-    min-width: 70px;
-    border: 1px solid #f0f2f5;
+const Subtitle = styled.div`
+    font-size: 16px;
+    color: ${brandTheme.textTertiary};
+    font-weight: 500;
 `;
 
-const StatLabel = styled.div`
-    font-size: 11px;
-    color: #6b7684;
-    margin-bottom: 4px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
+const StatsSection = styled.section`
+    max-width: 100%;
+    margin: 0 auto;
+    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl} 0;
+
+    @media (max-width: 1024px) {
+        padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg} 0;
+    }
+
+    @media (max-width: 768px) {
+        padding: ${brandTheme.spacing.md} ${brandTheme.spacing.md} 0;
+    }
+`;
+
+const StatsGrid = styled.div`
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: ${brandTheme.spacing.lg};
+    margin-bottom: ${brandTheme.spacing.lg};
+
+    @media (max-width: 1200px) {
+        grid-template-columns: repeat(2, 1fr);
+        gap: ${brandTheme.spacing.md};
+    }
+
+    @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+        gap: ${brandTheme.spacing.md};
+    }
+`;
+
+const StatCard = styled.div`
+    background: ${brandTheme.surface};
+    border: 1px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.xl};
+    padding: ${brandTheme.spacing.lg};
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.md};
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: ${brandTheme.shadow.xs};
+    position: relative;
+    overflow: hidden;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: ${brandTheme.shadow.lg};
+        border-color: ${brandTheme.primary};
+    }
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+
+    &:hover::before {
+        opacity: 1;
+    }
+`;
+
+const StatIcon = styled.div<{ $color: string }>`
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, ${props => props.$color}15 0%, ${props => props.$color}08 100%);
+    border-radius: ${brandTheme.radius.lg};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${props => props.$color};
+    font-size: 24px;
+    flex-shrink: 0;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+`;
+
+const StatContent = styled.div`
+    flex: 1;
+    min-width: 0;
 `;
 
 const StatValue = styled.div`
-    font-size: 16px;
-    font-weight: 600;
-    color: #1e2329;
+    font-size: 28px;
+    font-weight: 700;
+    color: ${brandTheme.text.primary};
+    margin-bottom: ${brandTheme.spacing.xs};
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+
+    @media (max-width: 768px) {
+        font-size: 24px;
+    }
+`;
+
+const StatLabel = styled.div`
+    font-size: 14px;
+    color: ${brandTheme.text.secondary};
+    font-weight: 500;
+    line-height: 1.3;
 `;
 
 const GalleryContent = styled.div`
-    background: white;
-    border-radius: 8px;
-    padding: 28px 32px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    border: 1px solid #e5e9f0;
+    max-width: 100%;
+    margin: 0;
+    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
+    background: ${brandTheme.surface};
+    border-radius: ${brandTheme.radius.xl};
+    border: 1px solid ${brandTheme.border};
+    box-shadow: ${brandTheme.shadow.sm};
+    margin-top: ${brandTheme.spacing.lg};
+    margin-bottom: ${brandTheme.spacing.lg};
+
+    @media (max-width: 1024px) {
+        padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+        margin: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    }
+
+    @media (max-width: 768px) {
+        padding: ${brandTheme.spacing.md};
+        margin: ${brandTheme.spacing.md};
+        border-radius: ${brandTheme.radius.lg};
+    }
 `;
 
 const LoadingContainer = styled.div`
@@ -490,18 +740,21 @@ const LoadingContainer = styled.div`
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 60px 40px;
+    min-height: 400px;
+    gap: ${brandTheme.spacing.xl};
+    background: ${brandTheme.surfaceAlt};
+    border-radius: ${brandTheme.radius.xl};
+    border: 2px dashed ${brandTheme.borderLight};
 `;
 
 const LoadingSpinner = styled.div`
-    width: 32px;
-    height: 32px;
-    border: 2px solid #e5e9f0;
-    border-top: 2px solid #4f5d75;
+    width: 48px;
+    height: 48px;
+    border: 3px solid ${brandTheme.borderLight};
+    border-top: 3px solid ${brandTheme.primary};
     border-radius: 50%;
     animation: spin 1s linear infinite;
-    margin-bottom: 16px;
-    
+
     @keyframes spin {
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
@@ -509,321 +762,360 @@ const LoadingSpinner = styled.div`
 `;
 
 const LoadingText = styled.div`
-    color: #6b7684;
-    font-size: 14px;
+    font-size: 18px;
+    color: ${brandTheme.text.tertiary};
     font-weight: 500;
 `;
 
 const ResultsInfo = styled.div`
-    margin-bottom: 24px;
-    color: #4f5d75;
-    font-size: 14px;
+    margin-bottom: ${brandTheme.spacing.xl};
+    padding: ${brandTheme.spacing.md} 0;
+    border-bottom: 1px solid ${brandTheme.borderLight};
+`;
+
+const ResultsText = styled.div`
+    color: ${brandTheme.text.secondary};
+    font-size: 16px;
     font-weight: 500;
-    padding: 0 0 16px 0;
-    border-bottom: 1px solid #f0f2f5;
+
+    strong {
+        color: ${brandTheme.text.primary};
+        font-weight: 700;
+    }
 `;
 
 const ImagesGrid = styled.div`
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 20px;
-    margin-bottom: 32px;
+   display: grid;
+   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+   gap: ${brandTheme.spacing.xl};
+   margin-bottom: ${brandTheme.spacing.xxl};
+
+   @media (max-width: 768px) {
+       grid-template-columns: 1fr;
+       gap: ${brandTheme.spacing.lg};
+   }
 `;
 
 const ImageCard = styled.div`
-    border: 1px solid #e5e9f0;
-    border-radius: 8px;
-    overflow: hidden;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    background: white;
-    
-    &:hover {
-        border-color: #d0d7de;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        transform: translateY(-1px);
-    }
+   border: 1px solid ${brandTheme.border};
+   border-radius: ${brandTheme.radius.xl};
+   overflow: hidden;
+   cursor: pointer;
+   transition: all ${brandTheme.transitions.spring};
+   background: ${brandTheme.surface};
+   box-shadow: ${brandTheme.shadow.xs};
+
+   &:hover {
+       border-color: ${brandTheme.primary};
+       box-shadow: ${brandTheme.shadow.lg};
+       transform: translateY(-4px);
+   }
 `;
 
 const ImageContainer = styled.div`
-    position: relative;
-    height: 200px;
-    overflow: hidden;
-    background: #f8f9fa;
+   position: relative;
+   height: 240px;
+   overflow: hidden;
+   background: ${brandTheme.surfaceAlt};
 `;
 
 const Image = styled.img`
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.3s ease;
-    
-    ${ImageCard}:hover & {
-        transform: scale(1.03);
-    }
+   width: 100%;
+   height: 100%;
+   object-fit: cover;
+   transition: transform ${brandTheme.transitions.slow};
+
+   ${ImageCard}:hover & {
+       transform: scale(1.05);
+   }
 `;
 
 const ImageOverlay = styled.div`
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(30, 35, 41, 0.85);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: opacity 0.25s ease;
-    
-    ${ImageCard}:hover & {
-        opacity: 1;
-    }
+   position: absolute;
+   top: 0;
+   left: 0;
+   right: 0;
+   bottom: 0;
+   background: linear-gradient(135deg, rgba(26, 54, 93, 0.9) 0%, rgba(15, 32, 39, 0.9) 100%);
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   opacity: 0;
+   transition: opacity ${brandTheme.transitions.normal};
+   backdrop-filter: blur(4px);
+
+   ${ImageCard}:hover & {
+       opacity: 1;
+   }
 `;
 
 const ImageActions = styled.div`
-    display: flex;
-    gap: 12px;
+   display: flex;
+   gap: ${brandTheme.spacing.md};
 `;
 
 const ActionButton = styled.button`
-    width: 40px;
-    height: 40px;
-    border-radius: 6px;
-    border: none;
-    background: rgba(255, 255, 255, 0.95);
-    color: #4f5d75;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    font-size: 14px;
-    
-    &:hover {
-        background: white;
-        color: #1e2329;
-        transform: translateY(-1px);
-    }
+   width: 48px;
+   height: 48px;
+   border-radius: ${brandTheme.radius.lg};
+   border: 2px solid rgba(255, 255, 255, 0.2);
+   background: rgba(255, 255, 255, 0.1);
+   color: white;
+   cursor: pointer;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   transition: all ${brandTheme.transitions.normal};
+   font-size: 18px;
+   backdrop-filter: blur(8px);
+
+   &:hover {
+       background: rgba(255, 255, 255, 0.2);
+       border-color: rgba(255, 255, 255, 0.4);
+       transform: translateY(-2px) scale(1.05);
+       box-shadow: ${brandTheme.shadow.lg};
+   }
 `;
 
 const ImageInfo = styled.div`
-    padding: 16px;
+   padding: ${brandTheme.spacing.lg};
 `;
 
 const ImageHeader = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 12px;
+   display: flex;
+   justify-content: space-between;
+   align-items: flex-start;
+   margin-bottom: ${brandTheme.spacing.md};
+   gap: ${brandTheme.spacing.sm};
 `;
 
 const ImageName = styled.div`
-    font-size: 14px;
-    font-weight: 600;
-    color: #1e2329;
-    line-height: 1.3;
-    flex: 1;
-    margin-right: 12px;
+   font-size: 16px;
+   font-weight: 600;
+   color: ${brandTheme.text.primary};
+   line-height: 1.4;
+   flex: 1;
 `;
 
 const ProtocolBadge = styled.div`
-    background: #f0f2f5;
-    color: #4f5d75;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border: 1px solid #e5e9f0;
-    
-    &:hover {
-        background: #e5e9f0;
-        color: #1e2329;
-        transform: translateY(-1px);
-    }
+   background: linear-gradient(135deg, ${brandTheme.primaryGhost} 0%, ${brandTheme.surface} 100%);
+   color: ${brandTheme.primary};
+   padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
+   border-radius: ${brandTheme.radius.sm};
+   font-size: 12px;
+   font-weight: 600;
+   cursor: pointer;
+   transition: all ${brandTheme.transitions.normal};
+   border: 1px solid ${brandTheme.primary}30;
+   flex-shrink: 0;
+
+   &:hover {
+       background: ${brandTheme.primary};
+       color: white;
+       transform: translateY(-1px);
+       box-shadow: ${brandTheme.shadow.sm};
+   }
 `;
 
 const ImageMeta = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   margin-bottom: ${brandTheme.spacing.md};
+   gap: ${brandTheme.spacing.sm};
 `;
 
 const MetaItem = styled.span`
-    font-size: 12px;
-    color: #6b7684;
-    font-weight: 500;
+   font-size: 12px;
+   color: ${brandTheme.text.muted};
+   font-weight: 500;
 `;
 
 const ImageTags = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 8px;
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.sm};
+   margin-bottom: ${brandTheme.spacing.sm};
 `;
 
 const TagsIcon = styled.div`
-    color: #6b7684;
-    font-size: 12px;
+   color: ${brandTheme.text.muted};
+   font-size: 12px;
 `;
 
 const TagsList = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
+   display: flex;
+   flex-wrap: wrap;
+   gap: ${brandTheme.spacing.xs};
 `;
 
 const Tag = styled.span`
-    background: #f8f9fa;
-    color: #4f5d75;
-    padding: 2px 6px;
-    border-radius: 3px;
-    font-size: 10px;
-    font-weight: 500;
-    border: 1px solid #e5e9f0;
+   background: ${brandTheme.surfaceAlt};
+   color: ${brandTheme.text.secondary};
+   padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
+   border-radius: ${brandTheme.radius.sm};
+   font-size: 11px;
+   font-weight: 500;
+   border: 1px solid ${brandTheme.borderLight};
 `;
 
 const ImageDescription = styled.div`
-    font-size: 12px;
-    color: #6b7684;
-    line-height: 1.4;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-top: 6px;
+   font-size: 13px;
+   color: ${brandTheme.text.tertiary};
+   line-height: 1.4;
+   white-space: nowrap;
+   overflow: hidden;
+   text-overflow: ellipsis;
 `;
 
 const EmptyState = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 60px 20px;
-    text-align: center;
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   justify-content: center;
+   padding: ${brandTheme.spacing.xxl};
+   text-align: center;
+   background: ${brandTheme.surfaceAlt};
+   border-radius: ${brandTheme.radius.xl};
+   border: 2px dashed ${brandTheme.borderLight};
 `;
 
 const EmptyStateIcon = styled.div`
-    font-size: 48px;
-    color: #d0d7de;
-    margin-bottom: 16px;
+   font-size: 64px;
+   color: ${brandTheme.text.disabled};
+   margin-bottom: ${brandTheme.spacing.lg};
 `;
 
 const EmptyStateTitle = styled.h3`
-    color: #4f5d75;
-    margin-bottom: 8px;
-    font-size: 18px;
-    font-weight: 600;
+   color: ${brandTheme.text.secondary};
+   margin-bottom: ${brandTheme.spacing.sm};
+   font-size: 20px;
+   font-weight: 600;
 `;
 
 const EmptyStateMessage = styled.p`
-    color: #6b7684;
-    max-width: 400px;
-    line-height: 1.5;
-    font-size: 14px;
-    margin: 0;
+   color: ${brandTheme.text.muted};
+   max-width: 500px;
+   line-height: 1.6;
+   font-size: 16px;
+   margin: 0;
 `;
 
-// Style dla modalu podglądu obrazu
+// Modal Preview Styles
 const ImagePreviewContainer = styled.div`
-    display: flex;
-    gap: 24px;
-    max-height: 80vh;
-    
-    @media (max-width: 768px) {
-        flex-direction: column;
-        gap: 16px;
-    }
+   display: flex;
+   gap: ${brandTheme.spacing.xl};
+   max-height: 80vh;
+   
+   @media (max-width: 768px) {
+       flex-direction: column;
+       gap: ${brandTheme.spacing.lg};
+   }
 `;
 
 const PreviewImage = styled.img`
-    flex: 1;
-    max-width: 65%;
-    max-height: 100%;
-    object-fit: contain;
-    border-radius: 6px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    
-    @media (max-width: 768px) {
-        max-width: 100%;
-        max-height: 400px;
-    }
+   flex: 1;
+   max-width: 65%;
+   max-height: 100%;
+   object-fit: contain;
+   border-radius: ${brandTheme.radius.lg};
+   box-shadow: ${brandTheme.shadow.lg};
+   
+   @media (max-width: 768px) {
+       max-width: 100%;
+       max-height: 400px;
+   }
 `;
 
 const PreviewInfo = styled.div`
-    flex: 0 0 280px;
-    
-    @media (max-width: 768px) {
-        flex: none;
-    }
+   flex: 0 0 320px;
+   
+   @media (max-width: 768px) {
+       flex: none;
+   }
 `;
 
 const InfoSection = styled.div`
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid #f0f2f5;
-    
-    &:last-child {
-        border-bottom: none;
-        margin-bottom: 0;
-    }
+   margin-bottom: ${brandTheme.spacing.lg};
+   padding-bottom: ${brandTheme.spacing.md};
+   border-bottom: 1px solid ${brandTheme.borderLight};
+   
+   &:last-child {
+       border-bottom: none;
+       margin-bottom: 0;
+   }
 `;
 
 const InfoLabel = styled.div`
-    font-size: 11px;
-    font-weight: 600;
-    color: #6b7684;
-    margin-bottom: 4px;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
+   font-size: 12px;
+   font-weight: 600;
+   color: ${brandTheme.text.muted};
+   margin-bottom: ${brandTheme.spacing.xs};
+   text-transform: uppercase;
+   letter-spacing: 0.5px;
 `;
 
 const InfoValue = styled.div`
-    color: #1e2329;
-    font-size: 14px;
-    font-weight: 500;
-    line-height: 1.4;
+   color: ${brandTheme.text.primary};
+   font-size: 15px;
+   font-weight: 500;
+   line-height: 1.5;
+`;
+
+const ProtocolLink = styled.span`
+   color: ${brandTheme.primary};
+   cursor: pointer;
+   text-decoration: underline;
+   font-weight: 600;
+   
+   &:hover {
+       color: ${brandTheme.primaryDark};
+   }
 `;
 
 const TagsContainer = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
+   display: flex;
+   flex-wrap: wrap;
+   gap: ${brandTheme.spacing.sm};
 `;
 
 const PreviewTag = styled.span`
-    background: #f8f9fa;
-    color: #4f5d75;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: 500;
-    border: 1px solid #e5e9f0;
+   background: ${brandTheme.surfaceAlt};
+   color: ${brandTheme.text.secondary};
+   padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
+   border-radius: ${brandTheme.radius.sm};
+   font-size: 12px;
+   font-weight: 500;
+   border: 1px solid ${brandTheme.borderLight};
 `;
 
 const DownloadButton = styled.button`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 10px 16px;
-    background: #1e2329;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 600;
-    width: 100%;
-    margin-top: 20px;
-    transition: all 0.2s ease;
-    
-    &:hover {
-        background: #0d1117;
-        transform: translateY(-1px);
-    }
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   gap: ${brandTheme.spacing.sm};
+   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+   background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+   color: white;
+   border: none;
+   border-radius: ${brandTheme.radius.lg};
+   cursor: pointer;
+   font-size: 14px;
+   font-weight: 600;
+   width: 100%;
+   margin-top: ${brandTheme.spacing.xl};
+   transition: all ${brandTheme.transitions.spring};
+   box-shadow: ${brandTheme.shadow.sm};
+
+   &:hover {
+       background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
+       transform: translateY(-2px);
+       box-shadow: ${brandTheme.shadow.md};
+   }
+
+   &:active {
+       transform: translateY(0);
+   }
 `;
 
 export default GalleryPage;

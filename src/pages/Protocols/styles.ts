@@ -16,7 +16,36 @@ const brandTheme = {
     success: '#10b981',
     warning: '#f59e0b',
     error: '#ef4444',
-    info: '#3b82f6'
+    info: '#3b82f6',
+
+    textPrimary: '#0f172a',
+    textSecondary: '#334155',
+    textTertiary: '#64748b',
+    textMuted: '#94a3b8',
+
+    radius: {
+        sm: '6px',
+        md: '8px',
+        lg: '12px',
+        xl: '16px'
+    },
+
+    spacing: {
+        xs: '4px',
+        sm: '8px',
+        md: '16px',
+        lg: '24px',
+        xl: '32px',
+        xxl: '48px'
+    },
+
+    shadow: {
+        xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+        sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+        md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+    },
 };
 
 // Modern Status Badge with enhanced design
@@ -342,36 +371,91 @@ export const PageContainer = styled.div`
     padding: 0;
 `;
 
-export const PageHeader = styled.div`
+export const HeaderContainer = styled.header`
     background: ${brandTheme.surface};
     border-bottom: 1px solid ${brandTheme.border};
-    padding: 24px 32px;
+    box-shadow: ${brandTheme.shadow.sm};
     position: sticky;
     top: 0;
     z-index: 100;
     backdrop-filter: blur(8px);
     background: rgba(255, 255, 255, 0.95);
+`;
 
+export const PageHeader = styled.div`
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
     display: flex;
     justify-content: space-between;
     align-items: center;
-    max-width: 1400px;
-    margin: 0 auto;
+    gap: ${brandTheme.spacing.lg};
 
-    h1 {
-        font-size: 28px;
-        font-weight: 700;
-        color: #0f172a;
-        margin: 0;
-        letter-spacing: -0.5px;
+    @media (max-width: 1024px) {
+        padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+        flex-direction: column;
+        align-items: stretch;
+        gap: ${brandTheme.spacing.md};
+    }
+
+    @media (max-width: 768px) {
+        padding: ${brandTheme.spacing.md};
     }
 `;
 
 export const HeaderLeft = styled.div`
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: ${brandTheme.spacing.md};
+    min-width: 0;
+    flex: 1;
 `;
+
+export const HeaderTitle = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.lg};
+`;
+
+export const TitleIcon = styled.div`
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+    border-radius: ${brandTheme.radius.lg};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+    box-shadow: ${brandTheme.shadow.md};
+    flex-shrink: 0;
+`;
+
+export const TitleContent = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.xs};
+`;
+
+export const MainTitle = styled.h1`
+    font-size: 32px;
+    font-weight: 700;
+    color: ${brandTheme.textPrimary};
+    margin: 0;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+
+    @media (max-width: 768px) {
+        font-size: 28px;
+    }
+`;
+
+export const Subtitle = styled.div`
+    font-size: 16px;
+    color: ${brandTheme.textTertiary};
+    font-weight: 500;
+`;
+
 
 export const BackButton = styled.button`
     display: flex;
@@ -557,5 +641,6 @@ export default {
     DraggableHeaderCell,
     TableBody,
     TableRow,
-    TableCell
+    TableCell,
+    HeaderContainer,
 };

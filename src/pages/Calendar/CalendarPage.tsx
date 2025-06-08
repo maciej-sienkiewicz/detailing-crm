@@ -18,7 +18,16 @@ import {
 import {fetchProtocolsAsAppointments} from '../../services/ProtocolCalendarService';
 import {mapAppointmentToProtocol} from '../../services/ProtocolMappingService';
 import {useToast} from '../../components/common/Toast/Toast';
-import {FaCalendarAlt, FaChartLine, FaClock, FaPlus, FaSync, FaUsers} from 'react-icons/fa';
+import {
+    FaCalendarAlt,
+    FaChartLine,
+    FaClock,
+    FaHeartBroken,
+    FaPlus,
+    FaSignOutAlt,
+    FaSync,
+    FaUsers
+} from 'react-icons/fa';
 import {brandTheme} from "../Finances/styles/theme";
 
 // Enterprise Design System - Automotive Grade
@@ -489,15 +498,15 @@ const CalendarPage: React.FC = () => {
                     </StatCard>
 
                     <StatCard>
-                        <StatIcon $color={enterprise.primary}><FaChartLine /></StatIcon>
+                        <StatIcon $color={enterprise.textPrimary}><FaChartLine /></StatIcon>
                         <StatContent>
                             <StatValue>{stats.thisWeek}</StatValue>
-                            <StatLabel>Ten tydzień</StatLabel>
+                            <StatLabel>Zaplanowane w tygodniu</StatLabel>
                         </StatContent>
                     </StatCard>
 
                     <StatCard>
-                        <StatIcon $color={enterprise.primary}><FaClock /></StatIcon>
+                        <StatIcon $color={enterprise.textPrimary}><FaClock /></StatIcon>
                         <StatContent>
                             <StatValue>{stats.inProgress}</StatValue>
                             <StatLabel>W trakcie realizacji</StatLabel>
@@ -505,10 +514,18 @@ const CalendarPage: React.FC = () => {
                     </StatCard>
 
                     <StatCard>
-                        <StatIcon $color={enterprise.primary}><FaClock /></StatIcon>
+                        <StatIcon $color={enterprise.textPrimary}><FaClock /></StatIcon>
                         <StatContent>
                             <StatValue>{stats.done}</StatValue>
                             <StatLabel>Oczekujące na odbiór</StatLabel>
+                        </StatContent>
+                    </StatCard>
+
+                    <StatCard>
+                        <StatIcon $color={enterprise.textPrimary}><FaSignOutAlt /></StatIcon>
+                        <StatContent>
+                            <StatValue>{stats.today}</StatValue>
+                            <StatLabel>Wczoraj przucono</StatLabel>
                         </StatContent>
                     </StatCard>
                 </StatsGrid>
@@ -735,16 +752,19 @@ const StatsSection = styled.section`
 
 const StatsGrid = styled.div`
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr); /* Wymuś dokładnie 5 kolumn */
     gap: ${brandTheme.spacing.lg};
     margin-bottom: ${brandTheme.spacing.lg};
 
-    /* Izolacja - upewnij się że style dotyczą tylko bezpośrednich dzieci */
-    > * {
-        /* Style tylko dla StatCard */
+    /* Alternatywnie, jeśli chcesz dynamicznie dopasowywać minimalną szerokość: */
+    /* grid-template-columns: repeat(5, minmax(180px, 1fr)); */
+
+    @media (max-width: 1400px) {
+        grid-template-columns: repeat(3, 1fr);
+        gap: ${brandTheme.spacing.md};
     }
 
-    @media (max-width: 1200px) {
+    @media (max-width: 1024px) {
         grid-template-columns: repeat(2, 1fr);
         gap: ${brandTheme.spacing.md};
     }
@@ -752,11 +772,6 @@ const StatsGrid = styled.div`
     @media (max-width: 768px) {
         grid-template-columns: 1fr;
         gap: ${brandTheme.spacing.md};
-    }
-
-    /* Zapewnienie że nie wpływa na inne gridy */
-    &:not(.stats-grid) {
-        /* Failsafe */
     }
 `;
 

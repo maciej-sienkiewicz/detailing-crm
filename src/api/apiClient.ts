@@ -245,6 +245,19 @@ export const apiClient = {
         }
     },
 
+    getNot: async <T>(endpoint: string, queryParams: Record<string, any> = {}): Promise<T> => {
+        try {
+            // Konstruowanie parametrów zapytania
+            const queryString = prepareQueryParams(queryParams);
+            const url = `${endpoint}${queryString}`;
+
+            const response = await apiFetch<any>(url);
+            return response as T;
+        } catch (error) {
+            return handleApiError(error, `GET ${endpoint}`);
+        }
+    },
+
     // Metoda do pobierania danych z paginacją
     getWithPagination: async <T>(
         endpoint: string,

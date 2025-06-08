@@ -402,7 +402,7 @@
                                 <FaCar />
                             </StatIcon>
                             <StatContent>
-                                <StatValue>{companyStats?.totalVehicles || pagination.totalItems}</StatValue>
+                                <StatValue>0</StatValue>
                                 <StatLabel>Łączna liczba pojazdów</StatLabel>
                             </StatContent>
                         </StatCard>
@@ -412,7 +412,7 @@
                                 <FaTrophy />
                             </StatIcon>
                             <StatContent>
-                                <StatValue>{companyStats?.premiumVehicles || 0}</StatValue>
+                                <StatValue>0</StatValue>
                                 <StatLabel>Pojazdy Premium</StatLabel>
                             </StatContent>
                         </StatCard>
@@ -422,7 +422,7 @@
                                 <FaMoneyBillWave />
                             </StatIcon>
                             <StatContent>
-                                <StatValue>{companyStats ? formatCurrency(companyStats.totalRevenue) : formatCurrency(0)}</StatValue>
+                                <StatValue>0</StatValue>
                                 <StatLabel>Łączne przychody</StatLabel>
                             </StatContent>
                         </StatCard>
@@ -432,7 +432,7 @@
                                 <FaEye />
                             </StatIcon>
                             <StatContent>
-                                <StatValue>{companyStats ? formatCurrency(companyStats.visitRevenueMedian) : formatCurrency(0)}</StatValue>
+                                <StatValue>0</StatValue>
                                 <StatLabel>Mediana wartości wizyt</StatLabel>
                             </StatContent>
                         </StatCard>
@@ -523,7 +523,7 @@
                                             Poprzednia
                                         </PaginationButton>
                                         <PageNumbers>
-                                            {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                                            {Array.from({length: Math.min(5, pagination.totalPages) }, (_, i) => {
                                                 const startPage = Math.max(0, pagination.currentPage - 2);
                                                 const pageNumber = startPage + i;
                                                 if (pageNumber >= pagination.totalPages) return null;

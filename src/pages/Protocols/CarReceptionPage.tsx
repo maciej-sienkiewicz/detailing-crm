@@ -1,16 +1,17 @@
 // src/pages/Protocols/CarReceptionPage.tsx
 import React, { useState, useEffect } from 'react';
-import { FaArrowLeft, FaPlus } from 'react-icons/fa';
+import {FaArrowLeft, FaClipboardCheck, FaPlus} from 'react-icons/fa';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { servicesApi } from '../../api/servicesApi';
 import {
     PageContainer,
+    HeaderContainer,
     PageHeader,
     HeaderLeft,
     BackButton,
     AddButton,
     LoadingMessage,
-    ErrorMessage
+    ErrorMessage, HeaderTitle, TitleContent, MainTitle, Subtitle, TitleIcon
 } from './styles';
 import { useProtocolList } from "./form/hooks/useProtocolList";
 import { useProtocolActions } from "./form/hooks/useProtocolActions";
@@ -216,6 +217,7 @@ const CarReceptionPage: React.FC = () => {
 
     return (
         <PageContainer>
+            <HeaderContainer>
             <PageHeader>
                 {showForm ? (
                     <>
@@ -228,13 +230,22 @@ const CarReceptionPage: React.FC = () => {
                     </>
                 ) : (
                     <>
-                        <h1>Wizyty</h1>
+                        <HeaderTitle>
+                            <TitleIcon>
+                                <FaClipboardCheck />
+                            </TitleIcon>
+                            <TitleContent>
+                                <MainTitle>Wszystkie wizyty</MainTitle>
+                                <Subtitle>Zarządzanie listą wizyt</Subtitle>
+                            </TitleContent>
+                        </HeaderTitle>
                         <AddButton onClick={handleAddProtocol}>
                             <FaPlus /> Rozpocznij wizytę
                         </AddButton>
                     </>
                 )}
             </PageHeader>
+            </HeaderContainer>
 
             {/* Filtry protokołów - ukrywane podczas wyświetlania formularza */}
             {!showForm && (

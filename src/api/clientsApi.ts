@@ -77,8 +77,8 @@ export const clientApi = {
     // Pobieranie listy klientów
     fetchClients: async (): Promise<ClientExpanded[]> => {
         try {
-            const data = await apiClient.get<any[]>('/clients');
-            return convertSnakeToCamel(data) as ClientExpanded[];
+            const data = await apiClient.getNot<ClientExpanded[]>('/clients');
+            return data;
         } catch (error) {
             console.error('Error fetching clients:', error);
             throw error;
