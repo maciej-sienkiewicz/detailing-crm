@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { FaPrint, FaEnvelope, FaCheck, FaTimes, FaSpinner, FaFileAlt, FaDownload } from 'react-icons/fa';
 import PDFViewer from "../../../../components/PdfViewer";
+import TabletSignatureRequestModal from './TabletSignatureRequestModal';
+import SignatureStatusModal from './SignatureStatusModal';
 
 // Professional Corporate Theme
 const corporateTheme = {
@@ -74,6 +76,10 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
     const [hasError, setHasError] = useState<string | null>(null);
     const [showPdfPreview, setShowPdfPreview] = useState(false);
 
+    const [showTabletSignatureModal, setShowTabletSignatureModal] = useState(false);
+    const [showSignatureStatusModal, setShowSignatureStatusModal] = useState(false);
+    const [signatureSessionId, setSignatureSessionId] = useState<string>('');
+
     const handleOptionChange = (option: 'print' | 'sendEmail') => {
         setSelectedOptions(prev => ({
             ...prev,
@@ -107,6 +113,7 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
         }
     };
 
+
     const handleConfirm = async () => {
         setHasError(null);
 
@@ -117,7 +124,9 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
             }
 
             if (selectedOptions.sendEmail && clientEmail) {
-                await handleSendEmail();
+                // Zamiast bezpośrednio wysyłać email, otwórz modal wyboru tableta
+                setShowTabletSignatureModal(true);
+                return;
             }
 
             onConfirm(selectedOptions);
@@ -125,6 +134,30 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
         } catch (error) {
             console.error('Error during confirmation actions:', error);
             setHasError('Wystąpił błąd podczas wykonywania żądanych akcji');
+        }
+    };
+
+    const handleSignatureRequested = (sessionId: string) => {
+        setSignatureSessionId(sessionId);
+        setShowTabletSignatureModal(false);
+        setShowSignatureStatusModal(true);
+    };
+
+    const handleSignatureCompleted = (signedDocumentUrl?: string) => {
+        setShowSignatureStatusModal(false);
+
+        // Jeśli też chcemy wysłać email, robimy to teraz
+        if (selectedOptions.sendEmail && clientEmail) {
+            handleSendEmail().then(() => {
+                onConfirm(selectedOptions);
+                onClose();
+            }).catch(error => {
+                console.error('Error sending email after signature:', error);
+                setHasError('Podpis został złożony, ale wystąpił błąd podczas wysyłania emaila');
+            });
+        } else {
+            onConfirm(selectedOptions);
+            onClose();
         }
     };
 
@@ -272,6 +305,27 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
                         protocolId={protocolId}
                         onClose={handlePdfPreviewClose}
                         title={`Protokół przyjęcia pojazdu #${protocolId}`}
+                    />
+                )}
+
+                {showTabletSignatureModal && (
+                    <TabletSignatureRequestModal
+                        isOpen={showTabletSignatureModal}
+                        onClose={() => setShowTabletSignatureModal(false)}
+                        protocolId={parseInt(protocolId)}
+                        customerName={clientEmail} // lub inne pole z imieniem klienta
+                        onSignatureRequested={handleSignatureRequested}
+                    />
+                )}
+
+                {/* Modal śledzenia statusu podpisu */}
+                {showSignatureStatusModal && signatureSessionId && (
+                    <SignatureStatusModal
+                        isOpen={showSignatureStatusModal}
+                        onClose={() => setShowSignatureStatusModal(false)}
+                        sessionId={signatureSessionId}
+                        protocolId={parseInt(protocolId)}
+                        onCompleted={handleSignatureCompleted}
                     />
                 )}
             </ModalContainer>
