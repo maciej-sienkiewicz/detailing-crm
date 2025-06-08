@@ -16,10 +16,9 @@ import {
     DateTimeContainer
 } from '../styles';
 
-// Import our LicensePlateField component
+// Import our SearchField component instead of LicensePlateField
 import SearchField from './SearchField';
-import {useToast} from "../../../../components/common/Toast/Toast";
-import LicensePlateField from "../../../../components/common/LicensePlateField";
+import { useToast } from "../../../../components/common/Toast/Toast";
 
 // List of car brands
 const carBrands = [
@@ -70,10 +69,59 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                                                                }) => {
     const { showToast } = useToast();
     const [dateError, setDateError] = useState<string | null>(null);
+    const [licensePlateError, setLicensePlateError] = useState<string | null>(null);
 
     const handleSearchClick = (field: 'licensePlate') => {
         if (onSearchByField && !readOnly) {
             onSearchByField(field);
+        }
+    };
+
+    // Enhanced license plate change handler with validation
+    const handleLicensePlateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const originalValue = e.target.value;
+
+        // If the field is becoming empty, clear errors
+        if (originalValue === '') {
+            setLicensePlateError(null);
+            onChange(e);
+            return;
+        }
+
+        // Check if there are spaces being added
+        const hasSpaces = originalValue.includes(' ');
+
+        // Remove spaces from license plate and convert to uppercase
+        const inputValue = originalValue.replace(/\s+/g, '').toUpperCase();
+
+        // Create a synthetic event with the modified value
+        const syntheticEvent = {
+            ...e,
+            target: { ...e.target, value: inputValue, name: e.target.name }
+        } as React.ChangeEvent<HTMLInputElement>;
+
+        // Call the original onChange function with the modified value
+        onChange(syntheticEvent);
+
+        // Handle validation
+        if (hasSpaces) {
+            setLicensePlateError('Tablica rejestracyjna nie może zawierać spacji');
+            showToast('error', 'Tablica rejestracyjna nie może zawierać spacji', 3000);
+        } else {
+            // Clear the space error if it was previously set
+            if (licensePlateError === 'Tablica rejestracyjna nie może zawierać spacji') {
+                setLicensePlateError(null);
+            }
+
+            // Perform format validation
+            if (inputValue.length > 0) {
+                const isValidFormat = /^[A-Z]{2,3}[A-Z0-9]{4,5}$/.test(inputValue);
+                if (!isValidFormat) {
+                    setLicensePlateError('Nieprawidłowy format tablicy rejestracyjnej');
+                } else {
+                    setLicensePlateError(null);
+                }
+            }
         }
     };
 
@@ -229,15 +277,14 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                                 style={{ backgroundColor: '#f9f9f9', cursor: 'not-allowed' }}
                             />
                         ) : (
-                            <LicensePlateField
+                            <SearchField
                                 id="licensePlate"
                                 name="licensePlate"
                                 value={formData.licensePlate || ''}
-                                onChange={onChange}
+                                onChange={handleLicensePlateChange}
                                 placeholder="np. WA12345"
                                 onSearchClick={() => handleSearchClick('licensePlate')}
-                                error={errors.licensePlate}
-                                readOnly={readOnly}
+                                error={errors.licensePlate || licensePlateError || undefined}
                                 required
                             />
                         )}
