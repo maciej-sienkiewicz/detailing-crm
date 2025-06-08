@@ -409,7 +409,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                             </InfoPair>
                             <InfoPair>
                                 <InfoLabel>Przebieg</InfoLabel>
-                                <InfoValue>{(protocol.mileage && protocol.mileage > 0) ? protocol.mileage : "---"  } km</InfoValue>`
+                                <InfoValue>{(protocol.mileage && protocol.mileage > 0) ? protocol.mileage : "---"  } km</InfoValue>
                             </InfoPair>
                         </SecondaryInfo>
                         <StatusRow>
@@ -504,7 +504,16 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                                         </td>
                                         <td>
                                             <PriceDisplay>
-                                                <PriceAmount>{prices.baseGrossPrice.toFixed(2)} zł</PriceAmount>
+                                                <PriceRow>
+                                                    <PriceAmount>{prices.baseGrossPrice.toFixed(2)} zł</PriceAmount>
+                                                    <PriceLabel>brutto</PriceLabel>
+                                                </PriceRow>
+                                                <PriceRow>
+                                                    <PriceAmount $secondary>
+                                                        {prices.baseNetPrice.toFixed(2)} zł
+                                                    </PriceAmount>
+                                                    <PriceLabel>netto</PriceLabel>
+                                                </PriceRow>
                                             </PriceDisplay>
                                         </td>
                                         <td>
@@ -524,7 +533,16 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                                         </td>
                                         <td>
                                             <PriceDisplay>
-                                                <FinalPriceAmount>{prices.finalGrossPrice.toFixed(2)} zł</FinalPriceAmount>
+                                                <PriceRow>
+                                                    <FinalPriceAmount>{prices.finalGrossPrice.toFixed(2)} zł</FinalPriceAmount>
+                                                    <PriceLabel>brutto</PriceLabel>
+                                                </PriceRow>
+                                                <PriceRow>
+                                                    <FinalPriceAmount $secondary>
+                                                        {prices.finalNetPrice.toFixed(2)} zł
+                                                    </FinalPriceAmount>
+                                                    <PriceLabel>netto</PriceLabel>
+                                                </PriceRow>
                                             </PriceDisplay>
                                         </td>
                                         <td>
@@ -581,9 +599,48 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                         <TableFooter>
                             <tr>
                                 <td><TotalLabel>ŁĄCZNIE</TotalLabel></td>
-                                <td><TotalAmount>{metrics.approvedTotal + metrics.pendingTotal - metrics.totalDiscount + (protocol.selectedServices.reduce((sum, s) => sum + s.price, 0) - (metrics.approvedTotal + metrics.pendingTotal)).toFixed(2)} zł</TotalAmount></td>
-                                <td><TotalAmount>-{metrics.totalDiscount.toFixed(2)} zł</TotalAmount></td>
-                                <td><FinalTotalAmount>{metrics.totalRevenue.toFixed(2)} zł</FinalTotalAmount></td>
+                                <td>
+                                    <PriceDisplay>
+                                        <PriceRow>
+                                            <TotalAmount>
+                                                {protocol.selectedServices.reduce((sum, s) => sum + s.price, 0).toFixed(2)} zł
+                                            </TotalAmount>
+                                            <PriceLabel>brutto</PriceLabel>
+                                        </PriceRow>
+                                        <PriceRow>
+                                            <TotalAmount $secondary>
+                                                {calculateNetPrice(protocol.selectedServices.reduce((sum, s) => sum + s.price, 0)).toFixed(2)} zł
+                                            </TotalAmount>
+                                            <PriceLabel>netto</PriceLabel>
+                                        </PriceRow>
+                                    </PriceDisplay>
+                                </td>
+                                <td>
+                                    <PriceDisplay>
+                                        <PriceRow>
+                                            <TotalAmount>-{metrics.totalDiscount.toFixed(2)} zł</TotalAmount>
+                                            <PriceLabel>brutto</PriceLabel>
+                                        </PriceRow>
+                                        <PriceRow>
+                                            <TotalAmount $secondary>-{calculateNetPrice(metrics.totalDiscount).toFixed(2)} zł</TotalAmount>
+                                            <PriceLabel>netto</PriceLabel>
+                                        </PriceRow>
+                                    </PriceDisplay>
+                                </td>
+                                <td>
+                                    <PriceDisplay>
+                                        <PriceRow>
+                                            <FinalTotalAmount>{metrics.totalRevenue.toFixed(2)} zł</FinalTotalAmount>
+                                            <PriceLabel>brutto</PriceLabel>
+                                        </PriceRow>
+                                        <PriceRow>
+                                            <FinalTotalAmount $secondary>
+                                                {calculateNetPrice(metrics.totalRevenue).toFixed(2)} zł
+                                            </FinalTotalAmount>
+                                            <PriceLabel>netto</PriceLabel>
+                                        </PriceRow>
+                                    </PriceDisplay>
+                                </td>
                                 <td></td>
                                 <td></td>
                             </tr>
@@ -708,47 +765,6 @@ const CompactStatusConnector = styled.div<{ $active: boolean }>`
     background: ${props => props.$active ? executive.success : executive.border};
     margin: 0 ${executive.spacing.sm}; // Zmniejszone z md
     transition: background 0.3s ease;
-`;
-
-const CurrentStatusBadge = styled.div<{ $status: ProtocolStatus }>`
-    display: inline-flex;
-    align-items: center;
-    padding: ${executive.spacing.xs} ${executive.spacing.md}; // Zmniejszone
-    background: ${props => {
-        switch (props.$status) {
-            case ProtocolStatus.SCHEDULED: return executive.primary + '15';
-            case ProtocolStatus.IN_PROGRESS: return executive.warning + '15';
-            case ProtocolStatus.READY_FOR_PICKUP: return executive.success + '15';
-            case ProtocolStatus.COMPLETED: return executive.surfaceElevated;
-            case ProtocolStatus.CANCELLED: return executive.errorBg;
-            default: return executive.surfaceElevated;
-        }
-    }};
-    color: ${props => {
-        switch (props.$status) {
-            case ProtocolStatus.SCHEDULED: return executive.primary;
-            case ProtocolStatus.IN_PROGRESS: return executive.warning;
-            case ProtocolStatus.READY_FOR_PICKUP: return executive.success;
-            case ProtocolStatus.COMPLETED: return executive.textMuted;
-            case ProtocolStatus.CANCELLED: return executive.error;
-            default: return executive.textMuted;
-        }
-    }};
-    border: 1px solid ${props => {
-        switch (props.$status) {
-            case ProtocolStatus.SCHEDULED: return executive.primary + '30';
-            case ProtocolStatus.IN_PROGRESS: return executive.warning + '30';
-            case ProtocolStatus.READY_FOR_PICKUP: return executive.success + '30';
-            case ProtocolStatus.COMPLETED: return executive.border;
-            case ProtocolStatus.CANCELLED: return executive.error + '30';
-            default: return executive.border;
-        }
-    }};
-    border-radius: ${executive.radius.md};
-    font-size: 12px; // Zmniejszone z 14px
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
 `;
 
 const MetricsRow = styled.div`
@@ -1146,18 +1162,35 @@ const ServiceNote = styled.div`
 const PriceDisplay = styled.div`
     display: flex;
     flex-direction: column;
+    gap: ${executive.spacing.xs};
 `;
 
-const PriceAmount = styled.div`
+const PriceRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${executive.spacing.sm};
+`;
+
+const PriceAmount = styled.div<{ $secondary?: boolean }>`
     font-size: 15px;
-    font-weight: 500;
-    color: ${executive.textPrimary};
+    font-weight: ${props => props.$secondary ? 500 : 600};
+    color: ${props => props.$secondary ? executive.textSecondary : executive.textPrimary};
 `;
 
-const FinalPriceAmount = styled.div`
+const PriceLabel = styled.span`
+    font-size: 11px;
+    color: ${executive.textMuted};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: ${executive.surfaceElevated};
+    padding: 2px 6px;
+    border-radius: ${executive.radius.sm};
+`;
+
+const FinalPriceAmount = styled.div<{ $secondary?: boolean }>`
     font-size: 16px;
-    font-weight: 700;
-    color: ${executive.primary};
+    font-weight: ${props => props.$secondary ? 600 : 700};
+    color: ${props => props.$secondary ? executive.textSecondary : executive.primary};
 `;
 
 const DiscountDisplay = styled.div`
@@ -1281,16 +1314,16 @@ const TotalLabel = styled.div`
     letter-spacing: 0.5px;
 `;
 
-const TotalAmount = styled.div`
+const TotalAmount = styled.div<{ $secondary?: boolean }>`
     font-size: 15px;
     font-weight: 600;
-    color: ${executive.textPrimary};
+    color: ${props => props.$secondary ? executive.textSecondary : executive.textPrimary};
 `;
 
-const FinalTotalAmount = styled.div`
+const FinalTotalAmount = styled.div<{ $secondary?: boolean }>`
     font-size: 18px;
     font-weight: 800;
-    color: ${executive.primary};
+    color: ${props => props.$secondary ? executive.textSecondary : executive.primary};
 `;
 
 const NotesSection = styled.div`

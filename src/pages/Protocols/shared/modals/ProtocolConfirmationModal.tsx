@@ -1,65 +1,52 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { FaPrint, FaEnvelope, FaCheck, FaTimes, FaSpinner, FaCheckCircle } from 'react-icons/fa';
+import { FaPrint, FaEnvelope, FaCheck, FaTimes, FaSpinner, FaFileAlt, FaDownload } from 'react-icons/fa';
 import PDFViewer from "../../../../components/PdfViewer";
 
-// Professional Brand Theme
-const brandTheme = {
-    primary: 'var(--brand-primary, #1a365d)',
-    primaryLight: 'var(--brand-primary-light, #2c5aa0)',
-    primaryDark: 'var(--brand-primary-dark, #0f2027)',
-    primaryGhost: 'var(--brand-primary-ghost, rgba(26, 54, 93, 0.04))',
+// Professional Corporate Theme
+const corporateTheme = {
+    primary: '#1a365d',
+    primaryLight: '#2c5aa0',
+    primaryDark: '#0f2027',
     surface: '#ffffff',
-    surfaceAlt: '#fafbfc',
-    surfaceElevated: '#f8fafc',
-    surfaceHover: '#f1f5f9',
+    surfaceElevated: '#fafbfc',
+    surfaceHover: '#f8fafc',
     text: {
         primary: '#0f172a',
         secondary: '#475569',
         tertiary: '#64748b',
-        muted: '#94a3b8',
-        disabled: '#cbd5e1'
+        muted: '#94a3b8'
     },
     border: '#e2e8f0',
     borderLight: '#f1f5f9',
-    borderHover: '#cbd5e1',
     status: {
         success: '#059669',
-        successLight: '#d1fae5',
-        warning: '#d97706',
-        warningLight: '#fef3c7',
+        successLight: '#f0fdf4',
+        successBorder: '#bbf7d0',
+        info: '#0369a1',
+        infoLight: '#f0f9ff',
+        infoBorder: '#bae6fd',
         error: '#dc2626',
-        errorLight: '#fee2e2',
-        info: '#0ea5e9',
-        infoLight: '#e0f2fe'
+        errorLight: '#fef2f2',
+        warning: '#d97706',
+        warningLight: '#fffbeb'
     },
     shadow: {
-        xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-        sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
-        md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-        lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-        xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+        card: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+        elevated: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        focus: '0 0 0 3px rgba(59, 130, 246, 0.1)'
     },
     spacing: {
         xs: '4px',
         sm: '8px',
         md: '16px',
         lg: '24px',
-        xl: '32px',
-        xxl: '48px'
+        xl: '32px'
     },
     radius: {
         sm: '6px',
         md: '8px',
-        lg: '12px',
-        xl: '16px',
-        xxl: '20px'
-    },
-    transitions: {
-        fast: '0.15s ease',
-        normal: '0.2s ease',
-        slow: '0.3s ease',
-        spring: '0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+        lg: '12px'
     }
 };
 
@@ -97,7 +84,6 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
     const handlePrintProtocol = async () => {
         try {
             setIsPrinting(true);
-            // Zamiast drukować od razu, pokazujemy podgląd
             setShowPdfPreview(true);
             setIsPrinting(false);
         } catch (error) {
@@ -125,18 +111,15 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
         setHasError(null);
 
         try {
-            // Jeśli wybrano drukowanie, pokaż podgląd PDF
             if (selectedOptions.print) {
                 handlePrintProtocol();
-                return; // Nie zamykaj modalu, będzie obsłużone po zamknięciu podglądu
+                return;
             }
 
-            // Jeśli wybrano tylko email, wyślij go
             if (selectedOptions.sendEmail && clientEmail) {
                 await handleSendEmail();
             }
 
-            // Poinformuj komponenty nadrzędne o potwierdzeniu
             onConfirm(selectedOptions);
             onClose();
         } catch (error) {
@@ -148,10 +131,8 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
     const handlePdfPreviewClose = () => {
         setShowPdfPreview(false);
 
-        // Jeśli wybrano też email, wyślij go teraz
         if (selectedOptions.sendEmail && clientEmail) {
             handleSendEmail().then(() => {
-                // Poinformuj komponenty nadrzędne o potwierdzeniu po zamknięciu podglądu
                 onConfirm(selectedOptions);
                 onClose();
             }).catch(error => {
@@ -159,7 +140,6 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
                 setHasError('Wystąpił błąd podczas wysyłania emaila');
             });
         } else {
-            // Jeśli nie wybrano emaila, po prostu zamknij
             onConfirm(selectedOptions);
             onClose();
         }
@@ -177,120 +157,116 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
             <ModalContainer>
                 <ModalHeader>
                     <HeaderContent>
-                        <HeaderIcon>
-                            <FaCheckCircle />
-                        </HeaderIcon>
+                        <DocumentIcon>
+                            <FaFileAlt />
+                        </DocumentIcon>
                         <HeaderText>
-                            <ModalTitle>Protokół utworzony pomyślnie</ModalTitle>
-                            <ModalSubtitle>Wybierz sposób udostępnienia klientowi</ModalSubtitle>
+                            <ModalTitle>Protokół #{protocolId} utworzony</ModalTitle>
+                            <ModalSubtitle>Wybierz opcje udostępnienia dokumentu</ModalSubtitle>
                         </HeaderText>
                     </HeaderContent>
                 </ModalHeader>
 
                 <ModalBody>
-                    <SuccessMessage>
-                        <SuccessContent>
-                            <SuccessTitle>✅ Protokół #{protocolId} został utworzony</SuccessTitle>
-                            <SuccessDescription>
-                                Dokument został zapisany w systemie. Wybierz jak chcesz go udostępnić klientowi:
-                            </SuccessDescription>
-                        </SuccessContent>
-                    </SuccessMessage>
+                    <StatusSection>
+                        <StatusIndicator>
+                            <StatusIcon>
+                                <FaCheck />
+                            </StatusIcon>
+                            <StatusMessage>Protokół został pomyślnie zapisany w systemie</StatusMessage>
+                        </StatusIndicator>
+                    </StatusSection>
 
                     {hasError && (
-                        <ErrorMessage>
-                            <ErrorIcon>⚠️</ErrorIcon>
-                            <ErrorText>{hasError}</ErrorText>
-                        </ErrorMessage>
+                        <ErrorSection>
+                            <ErrorMessage>{hasError}</ErrorMessage>
+                        </ErrorSection>
                     )}
 
-                    <OptionsContainer>
-                        <OptionCard
-                            selected={selectedOptions.print}
-                            onClick={() => handleOptionChange('print')}
-                            disabled={isPrinting}
-                        >
-                            <OptionHeader>
-                                <OptionIconBox selected={selectedOptions.print}>
-                                    {isPrinting ? <FaSpinner className="spinner" /> : <FaPrint />}
-                                </OptionIconBox>
-                                <OptionContent>
-                                    <OptionTitle>Wydrukuj protokół</OptionTitle>
-                                    <OptionDescription>
-                                        Otwiera protokół w podglądzie PDF gotowym do wydruku
-                                    </OptionDescription>
-                                </OptionContent>
-                                <Checkbox selected={selectedOptions.print}>
-                                    <FaCheck />
-                                </Checkbox>
-                            </OptionHeader>
-                            {selectedOptions.print && (
-                                <OptionDetails>
-                                    Dokument zostanie otwarty w nowym oknie z możliwością wydruku
-                                </OptionDetails>
-                            )}
-                        </OptionCard>
+                    <OptionsSection>
+                        <SectionTitle>Opcje udostępnienia</SectionTitle>
 
-                        <OptionCard
-                            selected={selectedOptions.sendEmail}
-                            onClick={() => handleOptionChange('sendEmail')}
-                            disabled={!clientEmail || isSendingEmail}
-                        >
-                            <OptionHeader>
-                                <OptionIconBox selected={selectedOptions.sendEmail && !!clientEmail}>
-                                    {isSendingEmail ? <FaSpinner className="spinner" /> : <FaEnvelope />}
-                                </OptionIconBox>
+                        <OptionsList>
+                            <OptionItem>
+                                <OptionCheckbox
+                                    type="checkbox"
+                                    checked={selectedOptions.print}
+                                    onChange={() => handleOptionChange('print')}
+                                    disabled={isPrinting}
+                                />
                                 <OptionContent>
-                                    <OptionTitle>Wyślij na email</OptionTitle>
-                                    <OptionDescription>
-                                        {clientEmail
-                                            ? `Wyślij kopię protokołu na adres klienta`
-                                            : 'Brak adresu email w danych klienta'}
-                                    </OptionDescription>
+                                    <OptionHeader>
+                                        <OptionIcon $primary>
+                                            {isPrinting ? <FaSpinner className="spinner" /> : <FaPrint />}
+                                        </OptionIcon>
+                                        <OptionDetails>
+                                            <OptionTitle>Podgląd i druk</OptionTitle>
+                                            <OptionDescription>
+                                                Otwórz dokument w formacie PDF do wydruku lub pobrania
+                                            </OptionDescription>
+                                        </OptionDetails>
+                                    </OptionHeader>
                                 </OptionContent>
-                                <Checkbox selected={selectedOptions.sendEmail && !!clientEmail}>
-                                    <FaCheck />
-                                </Checkbox>
-                            </OptionHeader>
-                            {selectedOptions.sendEmail && clientEmail && (
-                                <OptionDetails>
-                                    <EmailBadge>
-                                        <FaEnvelope />
-                                        <span>{clientEmail}</span>
-                                    </EmailBadge>
-                                </OptionDetails>
-                            )}
-                            {!clientEmail && (
-                                <DisabledNote>
-                                    Aby wysłać email, uzupełnij adres email w danych klienta
-                                </DisabledNote>
-                            )}
-                        </OptionCard>
-                    </OptionsContainer>
+                            </OptionItem>
 
-                    <QuickTip>
-                        <TipIcon>💡</TipIcon>
-                        <TipText>
-                            Możesz wybrać oba sposoby lub pominąć ten krok - protokół zostanie zapisany w systemie
-                        </TipText>
-                    </QuickTip>
+                            <OptionItem>
+                                <OptionCheckbox
+                                    type="checkbox"
+                                    checked={selectedOptions.sendEmail}
+                                    onChange={() => handleOptionChange('sendEmail')}
+                                    disabled={!clientEmail || isSendingEmail}
+                                />
+                                <OptionContent>
+                                    <OptionHeader>
+                                        <OptionIcon $secondary={!clientEmail}>
+                                            {isSendingEmail ? <FaSpinner className="spinner" /> : <FaEnvelope />}
+                                        </OptionIcon>
+                                        <OptionDetails>
+                                            <OptionTitle>Wysyłka emailem</OptionTitle>
+                                            <OptionDescription>
+                                                {clientEmail
+                                                    ? `Wyślij kopię protokołu na adres: ${clientEmail}`
+                                                    : 'Nie można wysłać - brak adresu email w danych klienta'
+                                                }
+                                            </OptionDescription>
+                                        </OptionDetails>
+                                    </OptionHeader>
+                                </OptionContent>
+                            </OptionItem>
+                        </OptionsList>
+                    </OptionsSection>
+
+                    <InfoSection>
+                        <InfoMessage>
+                            Możesz wybrać jedną lub obie opcje. Protokół zostanie zachowany w systemie niezależnie od wyboru.
+                        </InfoMessage>
+                    </InfoSection>
                 </ModalBody>
 
                 <ModalFooter>
-                    <SecondaryButton onClick={handleSkip}>
-                        <FaTimes />
-                        Pomiń
-                    </SecondaryButton>
-                    <PrimaryButton
-                        onClick={handleConfirm}
-                        disabled={isPrinting || isSendingEmail || (!selectedOptions.print && !selectedOptions.sendEmail)}
-                    >
-                        <FaCheck />
-                        {isPrinting || isSendingEmail ? 'Przetwarzanie...' : 'Zatwierdź wybór'}
-                    </PrimaryButton>
+                    <ButtonGroup>
+                        <SecondaryButton onClick={handleSkip}>
+                            Pomiń
+                        </SecondaryButton>
+                        <PrimaryButton
+                            onClick={handleConfirm}
+                            disabled={isPrinting || isSendingEmail || (!selectedOptions.print && !selectedOptions.sendEmail)}
+                        >
+                            {isPrinting || isSendingEmail ? (
+                                <>
+                                    <FaSpinner className="spinner" />
+                                    Przetwarzanie...
+                                </>
+                            ) : (
+                                <>
+                                    <FaCheck />
+                                    Wykonaj
+                                </>
+                            )}
+                        </PrimaryButton>
+                    </ButtonGroup>
                 </ModalFooter>
 
-                {/* Podgląd PDF */}
                 {showPdfPreview && (
                     <PDFViewer
                         protocolId={protocolId}
@@ -303,379 +279,370 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
     );
 };
 
-// Styled Components - Professional Automotive CRM Design
+// Professional Styled Components
 const ModalOverlay = styled.div`
-   position: fixed;
-   top: 0;
-   left: 0;
-   right: 0;
-   bottom: 0;
-   background: rgba(0, 0, 0, 0.6);
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   z-index: 1000;
-   backdrop-filter: blur(4px);
-   animation: fadeIn 0.2s ease;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.15s ease-out;
 
-   @keyframes fadeIn {
-       from { opacity: 0; }
-       to { opacity: 1; }
-   }
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
 `;
 
 const ModalContainer = styled.div`
-   background: ${brandTheme.surface};
-   border-radius: ${brandTheme.radius.xl};
-   box-shadow: ${brandTheme.shadow.xl};
-   width: 600px;
-   max-width: 95%;
-   display: flex;
-   flex-direction: column;
-   overflow: hidden;
-   animation: slideUp 0.3s ease;
+    background: ${corporateTheme.surface};
+    border-radius: ${corporateTheme.radius.lg};
+    box-shadow: ${corporateTheme.shadow.elevated};
+    width: 580px;
+    max-width: 95%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid ${corporateTheme.border};
+    animation: slideUp 0.2s ease-out;
 
-   @keyframes slideUp {
-       from {
-           opacity: 0;
-           transform: translateY(20px) scale(0.95);
-       }
-       to {
-           opacity: 1;
-           transform: translateY(0) scale(1);
-       }
-   }
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(10px) scale(0.98);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
 `;
 
 const ModalHeader = styled.div`
-   padding: ${brandTheme.spacing.xl};
-   border-bottom: 2px solid ${brandTheme.border};
-   background: linear-gradient(135deg, ${brandTheme.status.successLight} 0%, ${brandTheme.surfaceAlt} 100%);
+    padding: ${corporateTheme.spacing.lg} ${corporateTheme.spacing.xl};
+    border-bottom: 1px solid ${corporateTheme.border};
+    background: ${corporateTheme.surfaceElevated};
 `;
 
 const HeaderContent = styled.div`
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.lg};
+    display: flex;
+    align-items: center;
+    gap: ${corporateTheme.spacing.md};
 `;
 
-const HeaderIcon = styled.div`
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   width: 56px;
-   height: 56px;
-   background: ${brandTheme.status.success};
-   color: white;
-   border-radius: ${brandTheme.radius.xl};
-   font-size: 24px;
-   box-shadow: ${brandTheme.shadow.md};
+const DocumentIcon = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: ${corporateTheme.primary};
+    color: white;
+    border-radius: ${corporateTheme.radius.md};
+    font-size: 18px;
+    flex-shrink: 0;
 `;
 
 const HeaderText = styled.div`
-   display: flex;
-   flex-direction: column;
-   gap: ${brandTheme.spacing.xs};
+    display: flex;
+    flex-direction: column;
+    gap: ${corporateTheme.spacing.xs};
 `;
 
 const ModalTitle = styled.h2`
-   margin: 0;
-   font-size: 22px;
-   font-weight: 700;
-   color: ${brandTheme.text.primary};
-   letter-spacing: -0.025em;
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: ${corporateTheme.text.primary};
+    letter-spacing: -0.01em;
 `;
 
 const ModalSubtitle = styled.p`
-   margin: 0;
-   font-size: 15px;
-   color: ${brandTheme.text.secondary};
-   font-weight: 500;
+    margin: 0;
+    font-size: 14px;
+    color: ${corporateTheme.text.secondary};
+    font-weight: 400;
 `;
 
 const ModalBody = styled.div`
-   padding: ${brandTheme.spacing.xl};
-   display: flex;
-   flex-direction: column;
-   gap: ${brandTheme.spacing.xl};
+    padding: ${corporateTheme.spacing.xl};
+    display: flex;
+    flex-direction: column;
+    gap: ${corporateTheme.spacing.lg};
 `;
 
-const SuccessMessage = styled.div`
-   background: linear-gradient(135deg, ${brandTheme.status.successLight} 0%, rgba(5, 150, 105, 0.05) 100%);
-   border: 1px solid ${brandTheme.status.success};
-   border-radius: ${brandTheme.radius.lg};
-   padding: ${brandTheme.spacing.lg};
-   box-shadow: ${brandTheme.shadow.xs};
+const StatusSection = styled.div`
+    background: ${corporateTheme.status.successLight};
+    border: 1px solid ${corporateTheme.status.successBorder};
+    border-radius: ${corporateTheme.radius.md};
+    padding: ${corporateTheme.spacing.md};
 `;
 
-const SuccessContent = styled.div`
-   display: flex;
-   flex-direction: column;
-   gap: ${brandTheme.spacing.sm};
+const StatusIndicator = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${corporateTheme.spacing.sm};
 `;
 
-const SuccessTitle = styled.h3`
-   margin: 0;
-   font-size: 16px;
-   font-weight: 600;
-   color: ${brandTheme.status.success};
+const StatusIcon = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    background: ${corporateTheme.status.success};
+    color: white;
+    border-radius: 50%;
+    font-size: 11px;
+    flex-shrink: 0;
 `;
 
-const SuccessDescription = styled.p`
-   margin: 0;
-   font-size: 14px;
-   color: ${brandTheme.text.secondary};
-   line-height: 1.5;
+const StatusMessage = styled.span`
+    font-size: 14px;
+    color: ${corporateTheme.status.success};
+    font-weight: 500;
+`;
+
+const ErrorSection = styled.div`
+    background: ${corporateTheme.status.errorLight};
+    border: 1px solid ${corporateTheme.status.error};
+    border-radius: ${corporateTheme.radius.md};
+    padding: ${corporateTheme.spacing.md};
 `;
 
 const ErrorMessage = styled.div`
-   background: ${brandTheme.status.errorLight};
-   border: 1px solid ${brandTheme.status.error};
-   border-radius: ${brandTheme.radius.lg};
-   padding: ${brandTheme.spacing.lg};
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.md};
+    color: ${corporateTheme.status.error};
+    font-size: 14px;
+    font-weight: 500;
 `;
 
-const ErrorIcon = styled.div`
-   font-size: 20px;
-   flex-shrink: 0;
+const OptionsSection = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${corporateTheme.spacing.md};
 `;
 
-const ErrorText = styled.div`
-   color: ${brandTheme.status.error};
-   font-size: 14px;
-   font-weight: 500;
+const SectionTitle = styled.h3`
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: ${corporateTheme.text.primary};
 `;
 
-const OptionsContainer = styled.div`
-   display: flex;
-   flex-direction: column;
-   gap: ${brandTheme.spacing.md};
+const OptionsList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${corporateTheme.spacing.sm};
 `;
 
-const OptionCard = styled.div<{ selected: boolean; disabled?: boolean }>`
-   background: ${props => props.selected ? brandTheme.primaryGhost : brandTheme.surface};
-   border: 2px solid ${props => props.selected ? brandTheme.primary : brandTheme.border};
-   border-radius: ${brandTheme.radius.lg};
-   padding: ${brandTheme.spacing.lg};
-   cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
-   transition: all ${brandTheme.transitions.normal};
-   opacity: ${props => props.disabled ? 0.6 : 1};
-   position: relative;
-   overflow: hidden;
+const OptionItem = styled.label`
+    display: flex;
+    align-items: flex-start;
+    gap: ${corporateTheme.spacing.md};
+    padding: ${corporateTheme.spacing.md};
+    border: 1px solid ${corporateTheme.borderLight};
+    border-radius: ${corporateTheme.radius.md};
+    cursor: pointer;
+    transition: all 0.15s ease;
 
-   &:hover:not([disabled]) {
-       border-color: ${brandTheme.primary};
-       box-shadow: ${brandTheme.shadow.md};
-       transform: translateY(-1px);
-   }
+    &:hover {
+        border-color: ${corporateTheme.primary};
+        background: ${corporateTheme.surfaceHover};
+    }
 
-   ${props => props.selected && `
-       &::before {
-           content: '';
-           position: absolute;
-           left: 0;
-           top: 0;
-           bottom: 0;
-           width: 4px;
-           background: ${brandTheme.primary};
-       }
-   `}
+    &:has(input:checked) {
+        border-color: ${corporateTheme.primary};
+        background: rgba(26, 54, 93, 0.02);
+    }
+
+    &:has(input:disabled) {
+        opacity: 0.6;
+        cursor: not-allowed;
+        
+        &:hover {
+            border-color: ${corporateTheme.borderLight};
+            background: transparent;
+        }
+    }
 `;
 
-const OptionHeader = styled.div`
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.md};
-`;
+const OptionCheckbox = styled.input`
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    accent-color: ${corporateTheme.primary};
+    cursor: pointer;
+    flex-shrink: 0;
 
-const OptionIconBox = styled.div<{ selected: boolean }>`
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   width: 48px;
-   height: 48px;
-   background: ${props => props.selected ? brandTheme.primary : brandTheme.surfaceAlt};
-   color: ${props => props.selected ? 'white' : brandTheme.text.muted};
-   border-radius: ${brandTheme.radius.lg};
-   font-size: 20px;
-   transition: all ${brandTheme.transitions.normal};
-   flex-shrink: 0;
-
-   .spinner {
-       animation: spin 1s linear infinite;
-   }
-
-   @keyframes spin {
-       from { transform: rotate(0deg); }
-       to { transform: rotate(360deg); }
-   }
+    &:disabled {
+        cursor: not-allowed;
+    }
 `;
 
 const OptionContent = styled.div`
-   flex: 1;
-   display: flex;
-   flex-direction: column;
-   gap: ${brandTheme.spacing.xs};
+    flex: 1;
+    min-width: 0;
 `;
 
-const OptionTitle = styled.h4`
-   margin: 0;
-   font-size: 16px;
-   font-weight: 600;
-   color: ${brandTheme.text.primary};
+const OptionHeader = styled.div`
+    display: flex;
+    align-items: flex-start;
+    gap: ${corporateTheme.spacing.sm};
 `;
 
-const OptionDescription = styled.p`
-   margin: 0;
-   font-size: 14px;
-   color: ${brandTheme.text.secondary};
-   line-height: 1.4;
-`;
+const OptionIcon = styled.div<{ $primary?: boolean; $secondary?: boolean }>`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: ${props =>
+            props.$secondary
+                    ? corporateTheme.text.muted + '20'
+                    : corporateTheme.primary + '15'
+    };
+    color: ${props =>
+            props.$secondary
+                    ? corporateTheme.text.muted
+                    : corporateTheme.primary
+    };
+    border-radius: ${corporateTheme.radius.sm};
+    font-size: 14px;
+    flex-shrink: 0;
+    margin-top: 2px;
 
-const Checkbox = styled.div<{ selected: boolean }>`
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   width: 24px;
-   height: 24px;
-   border-radius: ${brandTheme.radius.sm};
-   background: ${props => props.selected ? brandTheme.primary : 'transparent'};
-   border: 2px solid ${props => props.selected ? brandTheme.primary : brandTheme.border};
-   color: white;
-   font-size: 12px;
-   transition: all ${brandTheme.transitions.normal};
-   flex-shrink: 0;
-   opacity: ${props => props.selected ? 1 : 0.6};
+    .spinner {
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
 `;
 
 const OptionDetails = styled.div`
-   margin-top: ${brandTheme.spacing.md};
-   padding-top: ${brandTheme.spacing.md};
-   border-top: 1px solid ${brandTheme.borderLight};
-   font-size: 13px;
-   color: ${brandTheme.text.tertiary};
+    display: flex;
+    flex-direction: column;
+    gap: ${corporateTheme.spacing.xs};
 `;
 
-const EmailBadge = styled.div`
-   display: inline-flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.xs};
-   padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
-   background: ${brandTheme.surfaceAlt};
-   border: 1px solid ${brandTheme.border};
-   border-radius: ${brandTheme.radius.sm};
-   font-size: 13px;
-   font-weight: 500;
-   color: ${brandTheme.text.secondary};
-
-   span {
-       font-family: monospace;
-   }
+const OptionTitle = styled.h4`
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: ${corporateTheme.text.primary};
+    line-height: 1.3;
 `;
 
-const DisabledNote = styled.div`
-   margin-top: ${brandTheme.spacing.md};
-   padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
-   background: ${brandTheme.status.warningLight};
-   border: 1px solid ${brandTheme.status.warning};
-   border-radius: ${brandTheme.radius.sm};
-   font-size: 13px;
-   color: ${brandTheme.status.warning};
-   font-weight: 500;
+const OptionDescription = styled.p`
+    margin: 0;
+    font-size: 13px;
+    color: ${corporateTheme.text.secondary};
+    line-height: 1.4;
 `;
 
-const QuickTip = styled.div`
-   background: ${brandTheme.surfaceAlt};
-   border: 1px solid ${brandTheme.border};
-   border-radius: ${brandTheme.radius.lg};
-   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.sm};
+const InfoSection = styled.div`
+    background: ${corporateTheme.status.infoLight};
+    border: 1px solid ${corporateTheme.status.infoBorder};
+    border-radius: ${corporateTheme.radius.md};
+    padding: ${corporateTheme.spacing.md};
 `;
 
-const TipIcon = styled.div`
-   font-size: 16px;
-   flex-shrink: 0;
-`;
-
-const TipText = styled.div`
-   font-size: 13px;
-   color: ${brandTheme.text.secondary};
-   font-weight: 500;
-   line-height: 1.4;
+const InfoMessage = styled.div`
+    font-size: 13px;
+    color: ${corporateTheme.status.info};
+    font-weight: 500;
+    line-height: 1.4;
 `;
 
 const ModalFooter = styled.div`
-   display: flex;
-   justify-content: flex-end;
-   gap: ${brandTheme.spacing.md};
-   padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
-   border-top: 2px solid ${brandTheme.border};
-   background: ${brandTheme.surfaceAlt};
+    padding: ${corporateTheme.spacing.lg} ${corporateTheme.spacing.xl};
+    border-top: 1px solid ${corporateTheme.border};
+    background: ${corporateTheme.surfaceElevated};
+`;
+
+const ButtonGroup = styled.div`
+    display: flex;
+    justify-content: flex-end;
+    gap: ${corporateTheme.spacing.sm};
 `;
 
 const SecondaryButton = styled.button`
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.sm};
-   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-   background: ${brandTheme.surface};
-   color: ${brandTheme.text.secondary};
-   border: 2px solid ${brandTheme.border};
-   border-radius: ${brandTheme.radius.md};
-   font-weight: 600;
-   font-size: 14px;
-   cursor: pointer;
-   transition: all ${brandTheme.transitions.spring};
-   min-height: 44px;
-   min-width: 120px;
+    display: flex;
+    align-items: center;
+    gap: ${corporateTheme.spacing.sm};
+    padding: ${corporateTheme.spacing.sm} ${corporateTheme.spacing.md};
+    background: ${corporateTheme.surface};
+    color: ${corporateTheme.text.secondary};
+    border: 1px solid ${corporateTheme.border};
+    border-radius: ${corporateTheme.radius.sm};
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    min-height: 40px;
+    min-width: 80px;
 
-   &:hover {
-       background: ${brandTheme.surfaceHover};
-       color: ${brandTheme.text.primary};
-       border-color: ${brandTheme.borderHover};
-       box-shadow: ${brandTheme.shadow.sm};
-   }
+    &:hover {
+        background: ${corporateTheme.surfaceHover};
+        border-color: ${corporateTheme.text.muted};
+    }
+
+    &:focus {
+        outline: none;
+        box-shadow: ${corporateTheme.shadow.focus};
+    }
 `;
 
 const PrimaryButton = styled.button`
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   gap: ${brandTheme.spacing.sm};
-   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-   background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-   color: white;
-   border: 2px solid transparent;
-   border-radius: ${brandTheme.radius.md};
-   font-weight: 600;
-   font-size: 14px;
-   cursor: pointer;
-   transition: all ${brandTheme.transitions.spring};
-   box-shadow: ${brandTheme.shadow.sm};
-   min-height: 44px;
-   min-width: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: ${corporateTheme.spacing.sm};
+    padding: ${corporateTheme.spacing.sm} ${corporateTheme.spacing.lg};
+    background: ${corporateTheme.primary};
+    color: white;
+    border: 1px solid ${corporateTheme.primary};
+    border-radius: ${corporateTheme.radius.sm};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    min-height: 40px;
+    min-width: 120px;
 
-   &:hover:not(:disabled) {
-       background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
-       transform: translateY(-1px);
-       box-shadow: ${brandTheme.shadow.md};
-   }
+    &:hover:not(:disabled) {
+        background: ${corporateTheme.primaryDark};
+        border-color: ${corporateTheme.primaryDark};
+    }
 
-   &:disabled {
-       opacity: 0.6;
-       cursor: not-allowed;
-       transform: none;
-       background: ${brandTheme.text.disabled};
-   }
+    &:focus {
+        outline: none;
+        box-shadow: ${corporateTheme.shadow.focus};
+    }
 
-   &:active:not(:disabled) {
-       transform: translateY(0);
-   }
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        background: ${corporateTheme.text.muted};
+        border-color: ${corporateTheme.text.muted};
+    }
+
+    .spinner {
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
 `;
 
 export default ProtocolConfirmationModal;

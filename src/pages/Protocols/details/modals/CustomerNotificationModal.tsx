@@ -2,63 +2,46 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { FaPaperPlane, FaMobileAlt, FaEnvelope, FaTimes, FaCheck, FaExclamationCircle, FaBell } from 'react-icons/fa';
 
-// Professional Brand Theme
-const brandTheme = {
-    primary: 'var(--brand-primary, #1a365d)',
-    primaryLight: 'var(--brand-primary-light, #2c5aa0)',
-    primaryDark: 'var(--brand-primary-dark, #0f2027)',
-    primaryGhost: 'var(--brand-primary-ghost, rgba(26, 54, 93, 0.04))',
+// Professional Corporate Theme
+const corporateTheme = {
+    primary: '#1a365d',
+    primaryLight: '#2c5aa0',
     surface: '#ffffff',
-    surfaceAlt: '#fafbfc',
-    surfaceElevated: '#f8fafc',
-    surfaceHover: '#f1f5f9',
+    surfaceElevated: '#fafbfc',
+    surfaceHover: '#f8fafc',
     text: {
         primary: '#0f172a',
         secondary: '#475569',
         tertiary: '#64748b',
-        muted: '#94a3b8',
-        disabled: '#cbd5e1'
+        muted: '#94a3b8'
     },
     border: '#e2e8f0',
     borderLight: '#f1f5f9',
-    borderHover: '#cbd5e1',
     status: {
         success: '#059669',
-        successLight: '#d1fae5',
+        successLight: '#f0fdf4',
+        successBorder: '#bbf7d0',
+        info: '#0369a1',
+        infoLight: '#f0f9ff',
+        infoBorder: '#bae6fd',
         warning: '#d97706',
-        warningLight: '#fef3c7',
-        error: '#dc2626',
-        errorLight: '#fee2e2',
-        info: '#0ea5e9',
-        infoLight: '#e0f2fe'
+        warningLight: '#fffbeb'
     },
     shadow: {
-        xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-        sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
-        md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-        lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-        xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+        card: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+        elevated: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
     },
     spacing: {
         xs: '4px',
         sm: '8px',
         md: '16px',
         lg: '24px',
-        xl: '32px',
-        xxl: '48px'
+        xl: '32px'
     },
     radius: {
         sm: '6px',
         md: '8px',
-        lg: '12px',
-        xl: '16px',
-        xxl: '20px'
-    },
-    transitions: {
-        fast: '0.15s ease',
-        normal: '0.2s ease',
-        slow: '0.3s ease',
-        spring: '0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+        lg: '12px'
     }
 };
 
@@ -86,17 +69,11 @@ const CustomerNotificationModal: React.FC<CustomerNotificationModalProps> = ({
     if (!isOpen) return null;
 
     const handleConfirm = () => {
-        onConfirm({
-            sendSms,
-            sendEmail
-        });
+        onConfirm({ sendSms, sendEmail });
     };
 
     const handleSkip = () => {
-        onConfirm({
-            sendSms: false,
-            sendEmail: false
-        });
+        onConfirm({ sendSms: false, sendEmail: false });
     };
 
     const hasAnyContactMethod = !!customerPhone || !!customerEmail;
@@ -107,12 +84,12 @@ const CustomerNotificationModal: React.FC<CustomerNotificationModalProps> = ({
             <ModalContainer>
                 <ModalHeader>
                     <HeaderContent>
-                        <HeaderIcon>
-                            <FaPaperPlane />
-                        </HeaderIcon>
+                        <DocumentIcon>
+                            <FaBell />
+                        </DocumentIcon>
                         <HeaderText>
-                            <ModalTitle>Powiadom klienta o gotowym zleceniu</ModalTitle>
-                            <ModalSubtitle>Automatyczne powiadomienie o możliwości odbioru pojazdu</ModalSubtitle>
+                            <ModalTitle>Powiadomienie klienta</ModalTitle>
+                            <ModalSubtitle>Automatyczne powiadomienie o gotowości pojazdu</ModalSubtitle>
                         </HeaderText>
                     </HeaderContent>
                     <CloseButton onClick={onClose}>
@@ -121,153 +98,123 @@ const CustomerNotificationModal: React.FC<CustomerNotificationModalProps> = ({
                 </ModalHeader>
 
                 <ModalBody>
-                    <StatusInfo>
-                        <StatusIcon>
-                            <FaCheck />
-                        </StatusIcon>
-                        <StatusText>
-                            Zlecenie zostało oznaczone jako gotowe do odbioru.
-                            Wybierz sposób powiadomienia klienta o możliwości odbioru pojazdu.
-                        </StatusText>
-                    </StatusInfo>
+                    <StatusSection>
+                        <StatusIndicator>
+                            <StatusIcon>
+                                <FaCheck />
+                            </StatusIcon>
+                            <StatusMessage>
+                                Zlecenie oznaczono jako gotowe do odbioru. Wybierz sposób powiadomienia klienta.
+                            </StatusMessage>
+                        </StatusIndicator>
+                    </StatusSection>
 
                     {!hasAnyContactMethod && (
-                        <WarningMessage>
-                            <WarningIcon>
-                                <FaExclamationCircle />
-                            </WarningIcon>
-                            <WarningText>
-                                <WarningTitle>Brak danych kontaktowych</WarningTitle>
-                                <WarningDescription>
-                                    Klient nie posiada zapisanych danych kontaktowych.
-                                    Skontaktuj się z nim telefonicznie lub osobiście.
-                                </WarningDescription>
-                            </WarningText>
-                        </WarningMessage>
+                        <ErrorSection>
+                            <ErrorMessage>
+                                Brak danych kontaktowych. Skontaktuj się z klientem bezpośrednio.
+                            </ErrorMessage>
+                        </ErrorSection>
                     )}
 
-                    <NotificationSection>
-                        <SectionTitle>
-                            <FaBell />
-                            Wybierz sposób powiadomienia
-                        </SectionTitle>
+                    <OptionsSection>
+                        <SectionTitle>Opcje powiadomienia</SectionTitle>
 
-                        <NotificationOptions>
-                            <NotificationOption $available={!!customerPhone}>
+                        <OptionsList>
+                            <OptionItem>
                                 <OptionCheckbox
                                     type="checkbox"
-                                    id="sms-notification"
                                     checked={sendSms}
                                     onChange={() => setSendSms(!sendSms)}
                                     disabled={!customerPhone}
                                 />
-                                <OptionContent htmlFor="sms-notification">
-                                    <OptionIcon $available={!!customerPhone}>
-                                        <FaMobileAlt />
-                                    </OptionIcon>
-                                    <OptionDetails>
-                                        <OptionTitle>Powiadomienie SMS</OptionTitle>
-                                        {customerPhone ? (
-                                            <OptionInfo>
-                                                <ContactValue>📱 {customerPhone}</ContactValue>
-                                                <OptionDescription>
-                                                    Szybkie powiadomienie tekstowe
-                                                </OptionDescription>
-                                            </OptionInfo>
-                                        ) : (
-                                            <OptionUnavailable>
-                                                Brak numeru telefonu w danych klienta
-                                            </OptionUnavailable>
-                                        )}
-                                    </OptionDetails>
-                                    {!!customerPhone && (
-                                        <OptionStatus $selected={sendSms}>
-                                            {sendSms ? <FaCheck /> : <div />}
-                                        </OptionStatus>
-                                    )}
+                                <OptionContent>
+                                    <OptionHeader>
+                                        <OptionIcon $disabled={!customerPhone}>
+                                            <FaMobileAlt />
+                                        </OptionIcon>
+                                        <OptionDetails>
+                                            <OptionTitle>Powiadomienie SMS</OptionTitle>
+                                            <OptionDescription>
+                                                {customerPhone
+                                                    ? `Wyślij SMS na numer: ${customerPhone}`
+                                                    : 'Brak numeru telefonu w danych klienta'
+                                                }
+                                            </OptionDescription>
+                                        </OptionDetails>
+                                    </OptionHeader>
                                 </OptionContent>
-                            </NotificationOption>
+                            </OptionItem>
 
-                            <NotificationOption $available={!!customerEmail}>
+                            <OptionItem>
                                 <OptionCheckbox
                                     type="checkbox"
-                                    id="email-notification"
                                     checked={sendEmail}
                                     onChange={() => setSendEmail(!sendEmail)}
                                     disabled={!customerEmail}
                                 />
-                                <OptionContent htmlFor="email-notification">
-                                    <OptionIcon $available={!!customerEmail}>
-                                        <FaEnvelope />
-                                    </OptionIcon>
-                                    <OptionDetails>
-                                        <OptionTitle>Powiadomienie e-mail</OptionTitle>
-                                        {customerEmail ? (
-                                            <OptionInfo>
-                                                <ContactValue>📧 {customerEmail}</ContactValue>
-                                                <OptionDescription>
-                                                    Szczegółowe powiadomienie z informacjami
-                                                </OptionDescription>
-                                            </OptionInfo>
-                                        ) : (
-                                            <OptionUnavailable>
-                                                Brak adresu e-mail w danych klienta
-                                            </OptionUnavailable>
-                                        )}
-                                    </OptionDetails>
-                                    {!!customerEmail && (
-                                        <OptionStatus $selected={sendEmail}>
-                                            {sendEmail ? <FaCheck /> : <div />}
-                                        </OptionStatus>
-                                    )}
+                                <OptionContent>
+                                    <OptionHeader>
+                                        <OptionIcon $disabled={!customerEmail}>
+                                            <FaEnvelope />
+                                        </OptionIcon>
+                                        <OptionDetails>
+                                            <OptionTitle>Powiadomienie email</OptionTitle>
+                                            <OptionDescription>
+                                                {customerEmail
+                                                    ? `Wyślij email na adres: ${customerEmail}`
+                                                    : 'Brak adresu email w danych klienta'
+                                                }
+                                            </OptionDescription>
+                                        </OptionDetails>
+                                    </OptionHeader>
                                 </OptionContent>
-                            </NotificationOption>
-                        </NotificationOptions>
-                    </NotificationSection>
+                            </OptionItem>
+                        </OptionsList>
+                    </OptionsSection>
 
                     {hasSelection && (
-                        <SelectedActionsInfo>
-                            <InfoIcon>💡</InfoIcon>
-                            <InfoText>
+                        <InfoSection>
+                            <InfoMessage>
                                 Klient otrzyma powiadomienie automatycznie po zatwierdzeniu.
-                                Powiadomienie zawiera informacje o gotowości pojazdu do odbioru.
-                            </InfoText>
-                        </SelectedActionsInfo>
+                            </InfoMessage>
+                        </InfoSection>
                     )}
                 </ModalBody>
 
                 <ModalFooter>
-                    <SecondaryButton onClick={handleSkip}>
-                        <FaTimes />
-                        Nie wysyłaj powiadomienia
-                    </SecondaryButton>
-                    <PrimaryButton
-                        onClick={handleConfirm}
-                        disabled={!hasSelection && hasAnyContactMethod}
-                    >
-                        <FaCheck />
-                        {hasSelection ? 'Wyślij powiadomienie' : 'Kontynuuj bez powiadomienia'}
-                    </PrimaryButton>
+                    <ButtonGroup>
+                        <SecondaryButton onClick={handleSkip}>
+                            Pomiń
+                        </SecondaryButton>
+                        <PrimaryButton
+                            onClick={handleConfirm}
+                            disabled={!hasSelection && hasAnyContactMethod}
+                        >
+                            <FaCheck />
+                            {hasSelection ? 'Wyślij powiadomienie' : 'Kontynuuj'}
+                        </PrimaryButton>
+                    </ButtonGroup>
                 </ModalFooter>
             </ModalContainer>
         </ModalOverlay>
     );
 };
 
-// Styled Components - Professional Automotive CRM Design
+// Styled Components
 const ModalOverlay = styled.div`
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(15, 23, 42, 0.6);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 1000;
     backdrop-filter: blur(4px);
-    animation: fadeIn 0.2s ease;
+    animation: fadeIn 0.15s ease-out;
 
     @keyframes fadeIn {
         from { opacity: 0; }
@@ -276,411 +223,347 @@ const ModalOverlay = styled.div`
 `;
 
 const ModalContainer = styled.div`
-    background: ${brandTheme.surface};
-    border-radius: ${brandTheme.radius.xl};
-box-shadow: ${brandTheme.shadow.xl};
-   width: 600px;
-   max-width: 95%;
-   max-height: 90vh;
-   display: flex;
-   flex-direction: column;
-   overflow: hidden;
-   animation: slideUp 0.3s ease;
+    background: ${corporateTheme.surface};
+    border-radius: ${corporateTheme.radius.lg};
+    box-shadow: ${corporateTheme.shadow.elevated};
+    width: 580px;
+    max-width: 95%;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid ${corporateTheme.border};
+    animation: slideUp 0.2s ease-out;
 
-   @keyframes slideUp {
-       from {
-           opacity: 0;
-           transform: translateY(20px) scale(0.95);
-       }
-       to {
-           opacity: 1;
-           transform: translateY(0) scale(1);
-       }
-   }
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(10px) scale(0.98);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
 `;
 
 const ModalHeader = styled.div`
-   display: flex;
-   align-items: center;
-   justify-content: space-between;
-   padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
-   border-bottom: 2px solid ${brandTheme.border};
-   background: ${brandTheme.surfaceAlt};
+    padding: ${corporateTheme.spacing.lg} ${corporateTheme.spacing.xl};
+    border-bottom: 1px solid ${corporateTheme.border};
+    background: ${corporateTheme.surfaceElevated};
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 `;
 
 const HeaderContent = styled.div`
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.md};
+    display: flex;
+    align-items: center;
+    gap: ${corporateTheme.spacing.md};
 `;
 
-const HeaderIcon = styled.div`
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   width: 40px;
-   height: 40px;
-   background: ${brandTheme.primaryGhost};
-   color: ${brandTheme.primary};
-   border-radius: ${brandTheme.radius.lg};
-   font-size: 18px;
+const DocumentIcon = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: ${corporateTheme.primary}15;
+    color: ${corporateTheme.primary};
+    border-radius: ${corporateTheme.radius.md};
+    font-size: 18px;
+    flex-shrink: 0;
 `;
 
 const HeaderText = styled.div`
-   display: flex;
-   flex-direction: column;
-   gap: 2px;
+    display: flex;
+    flex-direction: column;
+    gap: ${corporateTheme.spacing.xs};
 `;
 
-const ModalTitle = styled.h3`
-   margin: 0;
-   font-size: 20px;
-   font-weight: 700;
-   color: ${brandTheme.text.primary};
-   letter-spacing: -0.025em;
+const ModalTitle = styled.h2`
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: ${corporateTheme.text.primary};
+    letter-spacing: -0.01em;
 `;
 
 const ModalSubtitle = styled.p`
-   margin: 0;
-   font-size: 14px;
-   color: ${brandTheme.text.secondary};
-   font-weight: 500;
+    margin: 0;
+    font-size: 14px;
+    color: ${corporateTheme.text.secondary};
+    font-weight: 400;
 `;
 
 const CloseButton = styled.button`
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   width: 32px;
-   height: 32px;
-   background: ${brandTheme.surfaceHover};
-   border: 1px solid ${brandTheme.border};
-   border-radius: ${brandTheme.radius.sm};
-   color: ${brandTheme.text.muted};
-   cursor: pointer;
-   transition: all ${brandTheme.transitions.normal};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: ${corporateTheme.surfaceHover};
+    border: 1px solid ${corporateTheme.border};
+    border-radius: ${corporateTheme.radius.sm};
+    color: ${corporateTheme.text.muted};
+    cursor: pointer;
+    transition: all 0.15s ease;
 
-   &:hover {
-       background: ${brandTheme.status.errorLight};
-       border-color: ${brandTheme.status.error};
-       color: ${brandTheme.status.error};
-       transform: translateY(-1px);
-   }
+    &:hover {
+        background: #fef2f2;
+        border-color: #dc2626;
+        color: #dc2626;
+    }
 `;
 
 const ModalBody = styled.div`
-   padding: ${brandTheme.spacing.xl};
-   overflow-y: auto;
-   flex: 1;
-   display: flex;
-   flex-direction: column;
-   gap: ${brandTheme.spacing.xl};
-
-   /* Custom scrollbar */
-   &::-webkit-scrollbar {
-       width: 6px;
-   }
-
-   &::-webkit-scrollbar-track {
-       background: ${brandTheme.surfaceAlt};
-   }
-
-   &::-webkit-scrollbar-thumb {
-       background: ${brandTheme.border};
-       border-radius: 3px;
-   }
+    padding: ${corporateTheme.spacing.xl};
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: ${corporateTheme.spacing.lg};
 `;
 
-const StatusInfo = styled.div`
-   background: ${brandTheme.status.successLight};
-   border: 1px solid ${brandTheme.status.success};
-   border-radius: ${brandTheme.radius.lg};
-   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.sm};
+const StatusSection = styled.div`
+    background: ${corporateTheme.status.successLight};
+    border: 1px solid ${corporateTheme.status.successBorder};
+    border-radius: ${corporateTheme.radius.md};
+    padding: ${corporateTheme.spacing.md};
+`;
+
+const StatusIndicator = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${corporateTheme.spacing.sm};
 `;
 
 const StatusIcon = styled.div`
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   width: 24px;
-   height: 24px;
-   background: ${brandTheme.status.success};
-   color: white;
-   border-radius: 50%;
-   font-size: 12px;
-   flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    background: ${corporateTheme.status.success};
+    color: white;
+    border-radius: 50%;
+    font-size: 11px;
+    flex-shrink: 0;
 `;
 
-const StatusText = styled.div`
-   font-size: 14px;
-   color: ${brandTheme.status.success};
-   font-weight: 500;
-   line-height: 1.4;
+const StatusMessage = styled.span`
+    font-size: 14px;
+    color: ${corporateTheme.status.success};
+    font-weight: 500;
 `;
 
-const WarningMessage = styled.div`
-   background: ${brandTheme.status.warningLight};
-   border: 1px solid ${brandTheme.status.warning};
-   border-radius: ${brandTheme.radius.lg};
-   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-   display: flex;
-   align-items: flex-start;
-   gap: ${brandTheme.spacing.sm};
+const ErrorSection = styled.div`
+    background: ${corporateTheme.status.warningLight};
+    border: 1px solid ${corporateTheme.status.warning};
+    border-radius: ${corporateTheme.radius.md};
+    padding: ${corporateTheme.spacing.md};
 `;
 
-const WarningIcon = styled.div`
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   width: 24px;
-   height: 24px;
-   color: ${brandTheme.status.warning};
-   font-size: 16px;
-   flex-shrink: 0;
-   margin-top: 2px;
+const ErrorMessage = styled.div`
+    color: ${corporateTheme.status.warning};
+    font-size: 14px;
+    font-weight: 500;
 `;
 
-const WarningText = styled.div`
-   display: flex;
-   flex-direction: column;
-   gap: ${brandTheme.spacing.xs};
+const OptionsSection = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${corporateTheme.spacing.md};
 `;
 
-const WarningTitle = styled.div`
-   font-size: 14px;
-   font-weight: 600;
-   color: ${brandTheme.status.warning};
+const SectionTitle = styled.h3`
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: ${corporateTheme.text.primary};
 `;
 
-const WarningDescription = styled.div`
-   font-size: 13px;
-   color: ${brandTheme.text.secondary};
-   line-height: 1.4;
+const OptionsList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${corporateTheme.spacing.sm};
 `;
 
-const NotificationSection = styled.div`
-   display: flex;
-   flex-direction: column;
-   gap: ${brandTheme.spacing.lg};
-`;
+const OptionItem = styled.label`
+    display: flex;
+    align-items: flex-start;
+    gap: ${corporateTheme.spacing.md};
+    padding: ${corporateTheme.spacing.md};
+    border: 1px solid ${corporateTheme.borderLight};
+    border-radius: ${corporateTheme.radius.md};
+    cursor: pointer;
+    transition: all 0.15s ease;
 
-const SectionTitle = styled.h4`
-   margin: 0;
-   font-size: 16px;
-   font-weight: 600;
-   color: ${brandTheme.text.primary};
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.sm};
+    &:hover {
+        border-color: ${corporateTheme.primary};
+        background: ${corporateTheme.surfaceHover};
+    }
 
-   svg {
-       color: ${brandTheme.primary};
-       font-size: 16px;
-   }
-`;
+    &:has(input:checked) {
+        border-color: ${corporateTheme.primary};
+        background: rgba(26, 54, 93, 0.02);
+    }
 
-const NotificationOptions = styled.div`
-   display: flex;
-   flex-direction: column;
-   gap: ${brandTheme.spacing.md};
-`;
-
-const NotificationOption = styled.div<{ $available: boolean }>`
-   background: ${props => props.$available ? brandTheme.surface : brandTheme.surfaceAlt};
-   border: 2px solid ${props => props.$available ? brandTheme.border : brandTheme.borderLight};
-   border-radius: ${brandTheme.radius.lg};
-   padding: ${brandTheme.spacing.lg};
-   transition: all ${brandTheme.transitions.normal};
-   opacity: ${props => props.$available ? 1 : 0.6};
-
-   &:hover {
-       border-color: ${props => props.$available ? brandTheme.primary : brandTheme.border};
-       transform: ${props => props.$available ? 'translateY(-1px)' : 'none'};
-       box-shadow: ${props => props.$available ? brandTheme.shadow.sm : 'none'};
-   }
+    &:has(input:disabled) {
+        opacity: 0.6;
+        cursor: not-allowed;
+        
+        &:hover {
+            border-color: ${corporateTheme.borderLight};
+            background: transparent;
+        }
+    }
 `;
 
 const OptionCheckbox = styled.input`
-   position: absolute;
-   opacity: 0;
-   width: 0;
-   height: 0;
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    accent-color: ${corporateTheme.primary};
+    cursor: pointer;
+    flex-shrink: 0;
 
-   &:disabled {
-       cursor: not-allowed;
-   }
+    &:disabled {
+        cursor: not-allowed;
+        opacity: 0.5;
+    }
 `;
 
-const OptionContent = styled.label`
-   display: flex;
-   align-items: flex-start;
-   gap: ${brandTheme.spacing.md};
-   cursor: pointer;
-   width: 100%;
-
-   input:disabled + & {
-       cursor: not-allowed;
-   }
+const OptionContent = styled.div`
+    flex: 1;
+    min-width: 0;
 `;
 
-const OptionIcon = styled.div<{ $available: boolean }>`
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   width: 40px;
-   height: 40px;
-   background: ${props => props.$available ? brandTheme.primaryGhost : brandTheme.surfaceHover};
-   color: ${props => props.$available ? brandTheme.primary : brandTheme.text.disabled};
-   border-radius: ${brandTheme.radius.lg};
-   font-size: 18px;
-   flex-shrink: 0;
+const OptionHeader = styled.div`
+    display: flex;
+    align-items: flex-start;
+    gap: ${corporateTheme.spacing.sm};
+`;
+
+const OptionIcon = styled.div<{ $disabled?: boolean }>`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: ${props =>
+            props.$disabled
+                    ? corporateTheme.text.muted + '20'
+                    : corporateTheme.primary + '15'
+    };
+    color: ${props =>
+            props.$disabled
+                    ? corporateTheme.text.muted
+                    : corporateTheme.primary
+    };
+    border-radius: ${corporateTheme.radius.sm};
+    font-size: 14px;
+    flex-shrink: 0;
+    margin-top: 2px;
 `;
 
 const OptionDetails = styled.div`
-   flex: 1;
-   display: flex;
-   flex-direction: column;
-   gap: ${brandTheme.spacing.xs};
+    display: flex;
+    flex-direction: column;
+    gap: ${corporateTheme.spacing.xs};
 `;
 
-const OptionTitle = styled.div`
-   font-weight: 600;
-   font-size: 16px;
-   color: ${brandTheme.text.primary};
+const OptionTitle = styled.h4`
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: ${corporateTheme.text.primary};
+    line-height: 1.3;
 `;
 
-const OptionInfo = styled.div`
-   display: flex;
-   flex-direction: column;
-   gap: ${brandTheme.spacing.xs};
+const OptionDescription = styled.p`
+    margin: 0;
+    font-size: 13px;
+    color: ${corporateTheme.text.secondary};
+    line-height: 1.4;
 `;
 
-const ContactValue = styled.div`
-   font-size: 14px;
-   color: ${brandTheme.text.secondary};
-   font-weight: 500;
-   font-family: 'Monaco', 'Menlo', monospace;
+const InfoSection = styled.div`
+    background: ${corporateTheme.status.infoLight};
+    border: 1px solid ${corporateTheme.status.infoBorder};
+    border-radius: ${corporateTheme.radius.md};
+    padding: ${corporateTheme.spacing.md};
 `;
 
-const OptionDescription = styled.div`
-   font-size: 13px;
-   color: ${brandTheme.text.muted};
-   line-height: 1.4;
-`;
-
-const OptionUnavailable = styled.div`
-   font-size: 13px;
-   color: ${brandTheme.status.error};
-   font-style: italic;
-   line-height: 1.4;
-`;
-
-const OptionStatus = styled.div<{ $selected: boolean }>`
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   width: 24px;
-   height: 24px;
-   background: ${props => props.$selected ? brandTheme.status.success : brandTheme.border};
-   color: white;
-   border-radius: 50%;
-   font-size: 12px;
-   flex-shrink: 0;
-   transition: all ${brandTheme.transitions.normal};
-`;
-
-const SelectedActionsInfo = styled.div`
-   background: ${brandTheme.status.infoLight};
-   border: 1px solid ${brandTheme.status.info};
-   border-radius: ${brandTheme.radius.lg};
-   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.sm};
-`;
-
-const InfoIcon = styled.div`
-   font-size: 16px;
-   flex-shrink: 0;
-`;
-
-const InfoText = styled.div`
-   font-size: 13px;
-   color: ${brandTheme.status.info};
-   font-weight: 500;
-   line-height: 1.4;
+const InfoMessage = styled.div`
+    font-size: 13px;
+    color: ${corporateTheme.status.info};
+    font-weight: 500;
+    line-height: 1.4;
 `;
 
 const ModalFooter = styled.div`
-   display: flex;
-   justify-content: flex-end;
-   gap: ${brandTheme.spacing.md};
-   padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
-   border-top: 2px solid ${brandTheme.border};
-   background: ${brandTheme.surfaceAlt};
+    padding: ${corporateTheme.spacing.lg} ${corporateTheme.spacing.xl};
+    border-top: 1px solid ${corporateTheme.border};
+    background: ${corporateTheme.surfaceElevated};
+`;
+
+const ButtonGroup = styled.div`
+    display: flex;
+    justify-content: flex-end;
+    gap: ${corporateTheme.spacing.sm};
 `;
 
 const SecondaryButton = styled.button`
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.sm};
-   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-   background: ${brandTheme.surface};
-   color: ${brandTheme.text.secondary};
-   border: 2px solid ${brandTheme.border};
-   border-radius: ${brandTheme.radius.md};
-   font-weight: 600;
-   font-size: 14px;
-   cursor: pointer;
-   transition: all ${brandTheme.transitions.spring};
-   min-height: 44px;
-   min-width: 140px;
+    display: flex;
+    align-items: center;
+    gap: ${corporateTheme.spacing.sm};
+    padding: ${corporateTheme.spacing.sm} ${corporateTheme.spacing.md};
+    background: ${corporateTheme.surface};
+    color: ${corporateTheme.text.secondary};
+    border: 1px solid ${corporateTheme.border};
+    border-radius: ${corporateTheme.radius.sm};
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    min-height: 40px;
+    min-width: 80px;
 
-   &:hover {
-       background: ${brandTheme.surfaceHover};
-       color: ${brandTheme.text.primary};
-       border-color: ${brandTheme.borderHover};
-       box-shadow: ${brandTheme.shadow.sm};
-   }
+    &:hover {
+        background: ${corporateTheme.surfaceHover};
+        border-color: ${corporateTheme.text.muted};
+    }
 `;
 
 const PrimaryButton = styled.button`
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   gap: ${brandTheme.spacing.sm};
-   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-   background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-   color: white;
-   border: 2px solid transparent;
-   border-radius: ${brandTheme.radius.md};
-   font-weight: 600;
-   font-size: 14px;
-   cursor: pointer;
-   transition: all ${brandTheme.transitions.spring};
-   box-shadow: ${brandTheme.shadow.sm};
-   min-height: 44px;
-   min-width: 160px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: ${corporateTheme.spacing.sm};
+    padding: ${corporateTheme.spacing.sm} ${corporateTheme.spacing.lg};
+    background: ${corporateTheme.primary};
+    color: white;
+    border: 1px solid ${corporateTheme.primary};
+    border-radius: ${corporateTheme.radius.sm};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    min-height: 40px;
+    min-width: 120px;
 
-   &:hover:not(:disabled) {
-       background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
-       transform: translateY(-1px);
-       box-shadow: ${brandTheme.shadow.md};
-   }
+    &:hover:not(:disabled) {
+        background: ${corporateTheme.primaryLight};
+        border-color: ${corporateTheme.primaryLight};
+    }
 
-   &:disabled {
-       opacity: 0.6;
-       cursor: not-allowed;
-       transform: none;
-       background: ${brandTheme.text.disabled};
-   }
-
-   &:active:not(:disabled) {
-       transform: translateY(0);
-   }
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        background: ${corporateTheme.text.muted};
+        border-color: ${corporateTheme.text.muted};
+    }
 `;
 
 export default CustomerNotificationModal;

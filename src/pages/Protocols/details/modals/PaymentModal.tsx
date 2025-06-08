@@ -651,7 +651,7 @@ const SelectionIndicator = styled.div<{ $selected: boolean }>`
    opacity: ${props => props.$selected ? 1 : 0.3};
 `;
 
-const InvoiceOptionsSection = styled.div<{ $isVisible: boolean }>`
+const InvoiceOptionsSection = styled.div`
     background: ${brandTheme.surfaceAlt};
     border: 1px solid ${brandTheme.border};
     border-radius: ${brandTheme.radius.lg};
@@ -660,11 +660,18 @@ const InvoiceOptionsSection = styled.div<{ $isVisible: boolean }>`
     flex-direction: column;
     gap: ${brandTheme.spacing.md};
     margin-top: ${brandTheme.spacing.md};
-    opacity: ${props => props.$isVisible ? 1 : 0};
-    max-height: ${props => props.$isVisible ? '200px' : '0'};
-    overflow: hidden;
-    transition: all ${brandTheme.transitions.normal};
-    transform: ${props => props.$isVisible ? 'translateY(0)' : 'translateY(-10px)'};
+    animation: slideIn 0.3s ease;
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
 `;
 
 const InvoiceOptionsTitle = styled.h5`
