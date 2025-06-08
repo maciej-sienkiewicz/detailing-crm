@@ -357,6 +357,26 @@ export const apiClient = {
         }
     },
 
+    postNotCamel: async <T>(endpoint: string, data: any, options: RequestInit = {}): Promise<T> => {
+        try {
+            // Sprawdzamy, czy wysyłamy FormData
+            const isFormData = data instanceof FormData;
+
+            // Jeśli nie jest to FormData, konwertujemy na JSON string
+            const body = isFormData ? data : JSON.stringify(data);
+
+            const response = await apiFetch<any>(endpoint, {
+                method: 'POST',
+                body,
+                ...options
+            });
+
+            return response as T;
+        } catch (error) {
+            return handleApiError(error, `POST ${endpoint}`);
+        }
+    },
+
     // Metoda do częściowej aktualizacji danych (PATCH)
     patch: async <T>(endpoint: string, data: any, options: RequestInit = {}): Promise<T> => {
         try {

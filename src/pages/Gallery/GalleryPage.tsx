@@ -8,6 +8,7 @@ import GalleryFiltersComponent from '../../components/Gallery/GalleryFilters';
 import Pagination from '../../components/common/Pagination';
 import Modal from '../../components/common/Modal';
 import { carReceptionApi } from '../../api/carReceptionApi';
+import {apiClient} from "../../api/apiClient";
 
 // Brand Theme - zgodny z systemem designu
 const brandTheme = {
@@ -215,9 +216,95 @@ const GalleryPage: React.FC = () => {
         navigate(`/orders/car-reception/${protocolId}`);
     };
 
-    const handleDownloadImage = (image: GalleryImage, e: React.MouseEvent) => {
-        e.stopPropagation();
-        window.open(galleryApi.getDownloadUrl(image.id), '_blank');
+    const getFileNameWithExtension = (image: GalleryImage): string => {
+        // Jeśli nazwa już ma rozszerzenie, użyj jej
+        if (image.name && image.name.includes('.')) {
+            return image.name;
+        }
+
+        // W przeciwnym razie dodaj rozszerzenie na podstawie contentType
+        const extension = getFileExtension(image.contentType);
+        const baseName = image.name || `image_${image.id}`;
+
+        return `${baseName}.${extension}`;
+    };
+
+// Pomocnicza funkcja do określenia rozszerzenia pliku
+    const getFileExtension = (contentType: string): string => {
+        const mimeToExt: Record<string, string> = {
+            'image/jpeg': 'jpg',
+            'image/jpg': 'jpg',
+            'image/png': 'png',
+            'image/gif': 'gif',
+            'image/webp': 'webp',
+            'image/bmp': 'bmp',
+            'image/svg+xml': 'svg',
+            'image/tiff': 'tiff'
+        };
+
+        return mimeToExt[contentType?.toLowerCase()] || 'jpg';
+    };
+
+    const handleDownloadImage = async (image: GalleryImage, e?: React.MouseEvent) => {
+        // Sprawdź czy event istnieje przed wywołaniem stopPropagation
+        if (e) {
+            e.stopPropagation();
+        }
+
+        try {
+            console.log('🔽 Downloading image:', image.id, image.name);
+
+            // Pobierz token autoryzacyjny
+            const authToken = apiClient.getAuthToken();
+            if (!authToken) {
+                console.error('❌ No auth token available');
+                return;
+            }
+
+            // Utwórz URL do pobrania
+            const downloadUrl = galleryApi.getDownloadUrl(image.id);
+            console.log('📥 Download URL:', downloadUrl);
+
+            // Wykonaj żądanie z headerem autoryzacyjnym
+            const response = await fetch(downloadUrl, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Accept': '*/*'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            // Pobierz dane jako blob
+            const blob = await response.blob();
+            console.log('📦 Downloaded blob size:', blob.size);
+
+            // Określ nazwę pliku z rozszerzeniem
+            const fileName = getFileNameWithExtension(image);
+
+            // Utwórz URL do pobrania i rozpocznij pobieranie
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fileName;
+            link.style.display = 'none';
+
+            // Dodaj do DOM, kliknij i usuń
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            // Cleanup URL
+            setTimeout(() => URL.revokeObjectURL(url), 100);
+
+            console.log('✅ Download completed:', fileName);
+
+        } catch (error) {
+            console.error('❌ Download failed:', error);
+        }
     };
 
     const formatFileSize = (bytes: number): string => {
@@ -502,7 +589,7 @@ const GalleryPage: React.FC = () => {
                                 </InfoSection>
                             )}
 
-                            <DownloadButton onClick={() => handleDownloadImage(selectedImage, {} as React.MouseEvent)}>
+                            <DownloadButton onClick={() => handleDownloadImage(selectedImage)}>
                                 <FaDownload /> Pobierz zdjęcie
                             </DownloadButton>
                         </PreviewInfo>

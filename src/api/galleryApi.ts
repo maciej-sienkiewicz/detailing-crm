@@ -142,5 +142,31 @@ export const galleryApi = {
     // Generowanie URL do miniaturki
     getThumbnailUrl: (imageId: string): string => {
         return `${apiClient.getBaseUrl()}/gallery/images/${imageId}/thumbnail`;
-    }
+    },
+
+    downloadImage: async (imageId: string): Promise<Blob> => {
+        try {
+            const authToken = apiClient.getAuthToken();
+            if (!authToken) {
+                throw new Error('No authentication token available');
+            }
+
+            const response = await fetch(`${apiClient.getBaseUrl()}/gallery/images/${imageId}/download`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Accept': '*/*'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            return await response.blob();
+        } catch (error) {
+            console.error('Error downloading image:', error);
+            throw error;
+        }
+    },
 };

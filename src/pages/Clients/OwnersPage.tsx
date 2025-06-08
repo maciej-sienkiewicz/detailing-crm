@@ -262,6 +262,12 @@ const OwnersPage: React.FC = () => {
             setClients(prev => [...prev, client]);
         }
         setShowAddModal(false);
+        setStats(prevStats => ({
+            ...prevStats,
+            totalClients: prevStats.totalClients + 1,
+            totalRevenue: prevStats.totalRevenue,
+            averageRevenue: prevStats.totalRevenue
+        }));
     };
 
     const handleDeleteClick = (clientId: string) => {

@@ -141,10 +141,9 @@ export const clientApi = {
     createClient: async (clientData: ClientData): Promise<ClientData> => {
         try {
             const requestData = convertCamelToSnake(clientData);
-            const response = await apiClient.post<any>('/clients', requestData);
+            const response = await apiClient.postNotCamel<any>('/clients', requestData);
 
-            // Konwertujemy odpowiedź z snake_case na camelCase
-            return convertSnakeToCamel(response) as ClientData;
+            return response as ClientData;
         } catch (error) {
             console.error('Error creating client:', error);
             throw error;

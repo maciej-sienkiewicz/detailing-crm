@@ -91,7 +91,7 @@ interface ProtocolGalleryProps {
 }
 
 const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolUpdate, disabled = false }) => {
-    const [images, setImages] = useState<VehicleImage[]>(protocol.vehicleImages || []);
+    const [images, setImages] = useState<VehicleImage[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [currentUploadImage, setCurrentUploadImage] = useState<VehicleImage | null>(null);
@@ -104,60 +104,96 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
     const cameraInputRef = useRef<HTMLInputElement>(null);
     const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
 
+    // 1. Synchronizuj images z protocol.vehicleImages
     useEffect(() => {
-        const fetchImages = async () => {
-            console.log('ProtocolGallery - Fetching images, count:',
-                images.filter(img => !img.id.startsWith('temp_') && !imageUrls[img.id]).length);
-            console.log('Auth token present:', !!apiClient.getAuthToken());
+        console.log('🔄 Synchronizing images with protocol.vehicleImages:', protocol.vehicleImages?.length || 0);
 
-            const imagesToFetch = images
-                .filter(img => !img.id.startsWith('temp_') && !imageUrls[img.id]);
+        if (protocol.vehicleImages && protocol.vehicleImages.length > 0) {
+            setImages(protocol.vehicleImages);
+        } else {
+            // Tylko jeśli protocol nie ma żadnych obrazów, pobierz z API
+            fetchImagesFromApi();
+        }
+    }, [protocol.id]); // Tylko przy zmianie protocol.id
+
+    // 2. Osobny effect dla pobierania URL-i obrazów z serwera
+    useEffect(() => {
+        const fetchImageUrls = async () => {
+            console.log('🖼️ Fetching image URLs for', images.length, 'images');
+
+            // Znajdź obrazy które potrzebują URL-i z serwera
+            const imagesToFetch = images.filter(img =>
+                !img.id.startsWith('temp_') && // Nie tymczasowe
+                !imageUrls[img.id] && // Nie mają jeszcze URL
+                !img.url // Lub nie mają bezpośredniego URL
+            );
+
+            console.log('🔍 Images to fetch URLs for:', imagesToFetch.length);
 
             if (imagesToFetch.length === 0) return;
 
-            const fetchPromises = imagesToFetch.map(async (image) => {
-                try {
-                    const imageUrl = await carReceptionApi.fetchVehicleImageAsUrl(image.id);
-                    return { id: image.id, url: imageUrl };
-                } catch (error) {
-                    console.error(`Błąd podczas pobierania URL dla obrazu ${image.id}:`, error);
-                    return { id: image.id, url: '' };
+            try {
+                const fetchPromises = imagesToFetch.map(async (image) => {
+                    try {
+                        const imageUrl = await carReceptionApi.fetchVehicleImageAsUrl(image.id);
+                        return { id: image.id, url: imageUrl };
+                    } catch (error) {
+                        console.error(`❌ Error fetching URL for image ${image.id}:`, error);
+                        return { id: image.id, url: '' };
+                    }
+                });
+
+                const results = await Promise.all(fetchPromises);
+
+                const newUrls = results.reduce((acc, { id, url }) => {
+                    if (url) acc[id] = url;
+                    return acc;
+                }, {} as Record<string, string>);
+
+                if (Object.keys(newUrls).length > 0) {
+                    console.log('✅ Fetched URLs for', Object.keys(newUrls).length, 'images');
+                    setImageUrls(prev => ({
+                        ...prev,
+                        ...newUrls
+                    }));
                 }
-            });
-
-            const results = await Promise.all(fetchPromises);
-
-            const newUrls = results.reduce((acc, { id, url }) => {
-                if (url) acc[id] = url;
-                return acc;
-            }, {} as Record<string, string>);
-
-            setImageUrls(prev => ({
-                ...prev,
-                ...newUrls
-            }));
+            } catch (error) {
+                console.error('❌ Error in fetchImageUrls:', error);
+            }
         };
 
-        fetchImages();
-    }, [images]);
-
-    useEffect(() => {
-        if (!protocol.vehicleImages || protocol.vehicleImages.length === 0) {
-            fetchImages();
-        } else {
-            setImages(protocol.vehicleImages);
+        if (images.length > 0) {
+            fetchImageUrls();
         }
-    }, [protocol.id, protocol.vehicleImages]);
+    }, [images]); // Uruchom gdy images się zmieni
 
-    const fetchImages = async () => {
+    // 3. Cleanup effect dla URL-i
+    useEffect(() => {
+        return () => {
+            Object.values(imageUrls).forEach(url => {
+                if (url.startsWith('blob:')) {
+                    URL.revokeObjectURL(url);
+                }
+            });
+        };
+    }, [imageUrls]);
+
+    // 4. Funkcja do pobierania obrazów z API (tylko gdy protocol nie ma vehicleImages)
+    const fetchImagesFromApi = async () => {
+        if (isLoading) return; // Zapobiegnij wielokrotnym wywołaniom
+
+        console.log('📥 Fetching images from API for protocol:', protocol.id);
         setIsLoading(true);
         setError(null);
 
         try {
             const fetchedImages = await carReceptionApi.fetchVehicleImages(protocol.id);
+            console.log('✅ Fetched images from API:', fetchedImages.length);
+
             setImages(fetchedImages);
 
-            if (fetchedImages.length > 0 && (!protocol.vehicleImages || protocol.vehicleImages.length === 0)) {
+            // Aktualizuj protocol tylko jeśli nie ma vehicleImages
+            if (!protocol.vehicleImages || protocol.vehicleImages.length === 0) {
                 const updatedProtocol = {
                     ...protocol,
                     vehicleImages: fetchedImages
@@ -165,18 +201,50 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                 onProtocolUpdate(updatedProtocol);
             }
         } catch (err) {
-            console.error('Error fetching images:', err);
+            console.error('❌ Error fetching images from API:', err);
             setError('Wystąpił błąd podczas pobierania dokumentacji. Spróbuj odświeżyć stronę.');
         } finally {
             setIsLoading(false);
         }
     };
 
+    // 5. Funkcja pobierania URL obrazu
+    const getImageUrl = (image: VehicleImage): string => {
+        console.log(`🔍 Getting URL for image ${image.id}:`, {
+            hasDirectUrl: !!image.url,
+            hasCachedUrl: !!imageUrls[image.id],
+            isTemp: image.id.startsWith('temp_')
+        });
+
+        // Dla tymczasowych obrazów zawsze używaj image.url
+        if (image.id.startsWith('temp_') && image.url) {
+            console.log(`✅ Using temp URL for ${image.id}`);
+            return image.url;
+        }
+
+        // Dla obrazów z serwera sprawdź cache
+        if (imageUrls[image.id]) {
+            console.log(`✅ Using cached URL for ${image.id}`);
+            return imageUrls[image.id];
+        }
+
+        // Fallback na bezpośredni URL
+        if (image.url) {
+            console.log(`✅ Using direct URL for ${image.id}`);
+            return image.url;
+        }
+
+        console.log(`❌ No URL found for ${image.id}`);
+        return '';
+    };
+
+    // 6. Obsługa kliknięcia w obraz
     const handleImageClick = (index: number) => {
         setSelectedImageIndex(index);
         setShowPreviewModal(true);
     };
 
+    // 7. Obsługa wyboru pliku
     const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files && event.target.files.length > 0) {
             handleAddImages(event);
@@ -186,6 +254,41 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
         }
     };
 
+    // 8. Obsługa kliknięcia w przycisk upload
+    const handleUploadClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (fileInputRef.current) {
+            fileInputRef.current.click();
+        }
+    };
+
+    // 9. Obsługa kliknięcia w przycisk aparatu
+    const handleCameraClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (cameraInputRef.current) {
+            cameraInputRef.current.click();
+        }
+    };
+
+    // 10. Obsługa edycji obrazu
+    const handleEditImage = (index: number, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setEditingImageIndex(index);
+        setEditModalOpen(true);
+    };
+
+    // 11. Formatowanie rozmiaru pliku
+    const formatFileSize = (bytes: number): string => {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    };
+
+    // 12. Poprawiona funkcja dodawania obrazów
     const handleAddImages = (event: React.ChangeEvent<HTMLInputElement>) => {
         event.preventDefault();
 
@@ -221,95 +324,95 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
             file: file
         };
 
-        setCurrentUploadImage(tempImage);
-        setImages([...images, tempImage]);
+        console.log('➕ Adding temporary image:', tempImage.id);
 
-        setEditingImageIndex(images.length);
+        // Dodaj tymczasowy obraz do stanu
+        const updatedImages = [...images, tempImage];
+        setImages(updatedImages);
+
+        setCurrentUploadImage(tempImage);
+        setEditingImageIndex(updatedImages.length - 1);
         setEditModalOpen(true);
     };
 
-    const handleUploadCurrentImage = async () => {
-        if (!currentUploadImage || !currentUploadImage.file) return;
-
-        setIsLoading(true);
-        setError(null);
-
-        try {
-            const imageToUpload = {
-                ...currentUploadImage,
-                name: currentUploadImage.name || currentUploadImage.file.name.replace(/\.[^/.]+$/, ""),
-                tags: currentUploadImage.tags || []
-            };
-
-            const uploadedImage = await carReceptionApi.uploadVehicleImage(protocol.id, imageToUpload);
-
-            const updatedImages = [
-                ...images.filter(img => !img.id.startsWith('temp_')),
-                uploadedImage
-            ];
-
-            setImages(updatedImages);
-
-            const updatedProtocol = {
-                ...protocol,
-                vehicleImages: updatedImages
-            };
-            onProtocolUpdate(updatedProtocol);
-
-            setCurrentUploadImage(null);
-        } catch (err) {
-            console.error('Error uploading image:', err);
-            setError('Wystąpił błąd podczas przesyłania dokumentu. Spróbuj ponownie.');
-            setImages(images.filter(img => !img.id.startsWith('temp_')));
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        return () => {
-            Object.values(imageUrls).forEach(url => {
-                if (url.startsWith('blob:')) {
-                    URL.revokeObjectURL(url);
-                }
-            });
-        };
-    }, [imageUrls]);
-
-    const handleSaveImageInfo = (newName: string, newTags: string[]) => {
+    // 13. Poprawiona funkcja zapisywania informacji o obrazie
+    const handleSaveImageInfo = async (newName: string, newTags: string[]) => {
         if (editingImageIndex >= 0 && editingImageIndex < images.length) {
             const currentImage = images[editingImageIndex];
-            const updatedImages = [...images];
-            updatedImages[editingImageIndex] = {
-                ...currentImage,
-                name: newName,
-                tags: newTags
-            };
 
-            setImages(updatedImages);
+            console.log('💾 Saving image info for:', currentImage.id);
 
             if (currentImage.id.startsWith('temp_') && currentUploadImage) {
-                const updatedUploadImage = {
-                    ...currentUploadImage,
+                // To jest nowy obraz - uploaduj go
+                setEditModalOpen(false);
+                setEditingImageIndex(-1);
+                setIsLoading(true);
+                setError(null);
+
+                try {
+                    const updatedUploadImage = {
+                        ...currentUploadImage,
+                        name: newName,
+                        tags: newTags
+                    };
+
+                    console.log('⬆️ Uploading new image:', updatedUploadImage.name);
+                    const uploadedImage = await carReceptionApi.uploadVehicleImage(protocol.id, updatedUploadImage);
+
+                    console.log('✅ Image uploaded successfully:', uploadedImage.id);
+
+                    // Usuń tymczasowy obraz i dodaj uploadowany
+                    const finalImages = [
+                        ...images.filter(img => !img.id.startsWith('temp_')),
+                        uploadedImage
+                    ];
+
+                    setImages(finalImages);
+                    setCurrentUploadImage(null);
+
+                    // Aktualizuj protocol
+                    const updatedProtocol = {
+                        ...protocol,
+                        vehicleImages: finalImages
+                    };
+                    onProtocolUpdate(updatedProtocol);
+
+                } catch (err) {
+                    console.error('❌ Error uploading image:', err);
+                    setError('Wystąpił błąd podczas przesyłania dokumentu. Spróbuj ponownie.');
+
+                    // Usuń tymczasowy obraz przy błędzie
+                    setImages(images.filter(img => !img.id.startsWith('temp_')));
+                    setCurrentUploadImage(null);
+                } finally {
+                    setIsLoading(false);
+                }
+            } else {
+                // To jest edycja istniejącego obrazu
+                const updatedImages = [...images];
+                updatedImages[editingImageIndex] = {
+                    ...currentImage,
                     name: newName,
                     tags: newTags
                 };
 
-                setCurrentUploadImage(updatedUploadImage);
+                setImages(updatedImages);
                 setEditModalOpen(false);
                 setEditingImageIndex(-1);
-
                 setIsLoading(true);
-                setError(null);
 
-                setTimeout(() => {
-                    carReceptionApi.uploadVehicleImage(protocol.id, updatedUploadImage)
-                        .then(uploadedImage => {
-                            const finalImages = [
-                                ...images.filter(img => !img.id.startsWith('temp_')),
-                                uploadedImage
-                            ];
+                try {
+                    console.log('📝 Updating existing image metadata:', currentImage.id);
+                    const updatedImage = await carReceptionApi.updateVehicleImage(protocol.id, currentImage.id, {
+                        name: newName,
+                        tags: newTags
+                    });
 
+                    if (updatedImage) {
+                        const imageIndex = images.findIndex(img => img.id === updatedImage.id);
+                        if (imageIndex !== -1) {
+                            const finalImages = [...updatedImages];
+                            finalImages[imageIndex] = updatedImage;
                             setImages(finalImages);
 
                             const updatedProtocol = {
@@ -317,76 +420,31 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                                 vehicleImages: finalImages
                             };
                             onProtocolUpdate(updatedProtocol);
-
-                            setCurrentUploadImage(null);
-                        })
-                        .catch(err => {
-                            console.error('Błąd podczas przesyłania obrazu:', err);
-                            setError('Wystąpił błąd podczas przesyłania dokumentu. Spróbuj ponownie.');
-                            setImages(images.filter(img => !img.id.startsWith('temp_')));
-                            setCurrentUploadImage(null);
-                        })
-                        .finally(() => {
-                            setIsLoading(false);
-                        });
-                }, 100);
-            } else if (!currentImage.id.startsWith('temp_')) {
-                setEditModalOpen(false);
-                setEditingImageIndex(-1);
-
-                setIsLoading(true);
-
-                carReceptionApi.updateVehicleImage(protocol.id, currentImage.id, {
-                    name: newName,
-                    tags: newTags
-                })
-                    .then(updatedImage => {
-                        if (updatedImage) {
-                            const imageIndex = images.findIndex(img => img.id === updatedImage.id);
-                            if (imageIndex !== -1) {
-                                const finalImages = [...images];
-                                finalImages[imageIndex] = updatedImage;
-
-                                setImages(finalImages);
-
-                                const updatedProtocol = {
-                                    ...protocol,
-                                    vehicleImages: finalImages
-                                };
-                                onProtocolUpdate(updatedProtocol);
-                            }
-                        } else {
-                            onProtocolUpdate({
-                                ...protocol,
-                                vehicleImages: updatedImages
-                            });
                         }
-                    })
-                    .catch(err => {
-                        console.error('Błąd podczas aktualizacji metadanych obrazu:', err);
-                        setError('Wystąpił błąd podczas aktualizacji informacji o dokumencie.');
-                        setImages([...images]);
-                    })
-                    .finally(() => {
-                        setIsLoading(false);
-                    });
+                    }
+                } catch (err) {
+                    console.error('❌ Error updating image metadata:', err);
+                    setError('Wystąpił błąd podczas aktualizacji informacji o dokumencie.');
+                    setImages([...images]); // Przywróć poprzedni stan
+                } finally {
+                    setIsLoading(false);
+                }
             }
         }
-    }
-
-    const handleEditImage = (index: number, e: React.MouseEvent) => {
-        e.stopPropagation();
-        setEditingImageIndex(index);
-        setEditModalOpen(true);
     };
 
+    // 14. Poprawiona funkcja usuwania obrazu
     const handleDeleteImage = async (imageId: string) => {
         if (!window.confirm('Czy na pewno chcesz usunąć ten dokument?')) {
             return;
         }
 
+        console.log('🗑️ Deleting image:', imageId);
+
         if (imageId.startsWith('temp_')) {
-            setImages(images.filter(img => img.id !== imageId));
+            // Usuń tymczasowy obraz
+            const updatedImages = images.filter(img => img.id !== imageId);
+            setImages(updatedImages);
             setCurrentUploadImage(null);
             return;
         }
@@ -398,54 +456,32 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
             const success = await carReceptionApi.deleteVehicleImage(protocol.id, imageId);
 
             if (success) {
+                console.log('✅ Image deleted successfully');
+
                 const updatedImages = images.filter(img => img.id !== imageId);
                 setImages(updatedImages);
+
+                // Usuń URL z cache
+                setImageUrls(prev => {
+                    const newUrls = { ...prev };
+                    delete newUrls[imageId];
+                    return newUrls;
+                });
 
                 const updatedProtocol = {
                     ...protocol,
                     vehicleImages: updatedImages
                 };
-
                 onProtocolUpdate(updatedProtocol);
             } else {
                 setError('Nie udało się usunąć dokumentu. Spróbuj ponownie.');
             }
         } catch (err) {
-            console.error('Error deleting image:', err);
+            console.error('❌ Error deleting image:', err);
             setError('Wystąpił błąd podczas usuwania dokumentu.');
         } finally {
             setIsLoading(false);
         }
-    };
-
-    const getImageUrl = (image: VehicleImage): string => {
-        if (image.url && image.id.startsWith('temp_')) return image.url;
-        if (imageUrls[image.id]) return imageUrls[image.id];
-        return '';
-    };
-
-    const handleUploadClick = (e: React.MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        if (fileInputRef.current) {
-            fileInputRef.current.click();
-        }
-    };
-
-    const handleCameraClick = (e: React.MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        if (cameraInputRef.current) {
-            cameraInputRef.current.click();
-        }
-    };
-
-    const formatFileSize = (bytes: number): string => {
-        if (bytes < 1024) return bytes + ' B';
-        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
     };
 
     return (
@@ -639,7 +675,7 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
     );
 };
 
-// Enterprise-Grade Styled Components
+// Enterprise-Grade Styled Components (pozostają bez zmian)
 const DocumentationPanel = styled.div`
     display: flex;
     flex-direction: column;
