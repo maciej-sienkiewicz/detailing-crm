@@ -204,7 +204,7 @@ const FilterCounter = styled.div<{ $active: boolean; $color: string }>`
     font-weight: 700;
     border-radius: 8px;
     background: ${props => props.$active ? props.$color : brandTheme.surfaceAlt};
-    color: ${props => props.$active ? 'white' : props.$color};
+    color: ${props => props.$active ? 'white' : 'black'};
     transition: all 0.2s ease;
     box-shadow: ${props => props.$active ? `0 2px 8px ${props.$color}40` : 'none'};
 `;
