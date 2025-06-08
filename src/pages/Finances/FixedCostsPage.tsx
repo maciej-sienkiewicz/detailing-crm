@@ -371,7 +371,7 @@ const FixedCostsPage: React.FC<FixedCostsPageProps> = ({
                                 <FaChartPie />
                             </CardIcon>
                             <CardContent>
-                                <CardValue>{categorySummary.activeCostsCount}</CardValue>
+                                <CardValue>{categorySummary.activeCostsCount.toFixed(2)} zł</CardValue>
                                 <CardLabel>Aktywne koszty</CardLabel>
                                 <CardDetail>Obecnie aktywnych pozycji</CardDetail>
                             </CardContent>
@@ -382,7 +382,7 @@ const FixedCostsPage: React.FC<FixedCostsPageProps> = ({
                                 <FaClock />
                             </CardIcon>
                             <CardContent>
-                                <CardValue>{upcomingPayments?.paymentsCount || 0}</CardValue>
+                                <CardValue>{upcomingPayments?.paymentsCount.toFixed(2) || 0.00} zł</CardValue>
                                 <CardLabel>Nadchodzące płatności</CardLabel>
                                 <CardDetail>W ciągu najbliższych 30 dni</CardDetail>
                             </CardContent>

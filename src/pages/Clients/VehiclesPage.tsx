@@ -402,7 +402,7 @@
                                 <FaCar />
                             </StatIcon>
                             <StatContent>
-                                <StatValue>0</StatValue>
+                                <StatValue>{companyStats?.totalVehicles}</StatValue>
                                 <StatLabel>Łączna liczba pojazdów</StatLabel>
                             </StatContent>
                         </StatCard>
@@ -412,7 +412,7 @@
                                 <FaTrophy />
                             </StatIcon>
                             <StatContent>
-                                <StatValue>0</StatValue>
+                                <StatValue>{companyStats?.premiumVehicles}</StatValue>
                                 <StatLabel>Pojazdy Premium</StatLabel>
                             </StatContent>
                         </StatCard>
@@ -422,7 +422,7 @@
                                 <FaMoneyBillWave />
                             </StatIcon>
                             <StatContent>
-                                <StatValue>0</StatValue>
+                                <StatValue>{companyStats?.totalRevenue}</StatValue>
                                 <StatLabel>Łączne przychody</StatLabel>
                             </StatContent>
                         </StatCard>
@@ -432,7 +432,7 @@
                                 <FaEye />
                             </StatIcon>
                             <StatContent>
-                                <StatValue>0</StatValue>
+                                <StatValue>{companyStats?.visitRevenueMedian}</StatValue>
                                 <StatLabel>Mediana wartości wizyt</StatLabel>
                             </StatContent>
                         </StatCard>

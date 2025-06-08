@@ -238,7 +238,7 @@ export const fixedCostsApi = {
                 });
             }
 
-            const response = await apiClient.get<any>(
+            const response = await apiClient.getNot<any>(
                 `/fixed-costs?${params.toString()}`
             );
 
@@ -346,7 +346,7 @@ export const fixedCostsApi = {
     getCategorySummary: async (period?: string): Promise<CategorySummary> => {
         try {
             const params = period ? `?period=${period}` : '';
-            return await apiClient.get<CategorySummary>(`/fixed-costs/categories/summary${params}`);
+            return await apiClient.getNot<CategorySummary>(`/fixed-costs/categories/summary${params}`);
         } catch (error) {
             console.error('Error fetching category summary:', error);
             throw error;
@@ -356,7 +356,7 @@ export const fixedCostsApi = {
     // Get upcoming payments
     getUpcomingPayments: async (days: number = 30): Promise<UpcomingPayments> => {
         try {
-            return await apiClient.get<UpcomingPayments>(`/fixed-costs/payments/upcoming?days=${days}`);
+            return await apiClient.getNot<UpcomingPayments>(`/fixed-costs/payments/upcoming?days=${days}`);
         } catch (error) {
             console.error('Error fetching upcoming payments:', error);
             throw error;

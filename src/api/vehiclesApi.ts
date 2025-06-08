@@ -179,7 +179,7 @@ export const vehicleApi = {
 
             // Wywołanie API bezpośrednio bez użycia apiClient.getWithPagination
             // bo mamy inny format odpowiedzi niż oczekiwany przez getWithPagination
-            const response = await apiClient.get<SpringPageResponse<VehicleTableResponse>>(
+            const response = await apiClient.getNot<SpringPageResponse<VehicleTableResponse>>(
                 '/vehicles/table',
                 queryParams
             );
@@ -209,7 +209,7 @@ export const vehicleApi = {
     // Nowa funkcja do pobierania statystyk firmowych
     fetchCompanyStatistics: async (): Promise<VehicleCompanyStatisticsResponse> => {
         try {
-            return await apiClient.get<VehicleCompanyStatisticsResponse>('/vehicles/company-statistics');
+            return await apiClient.getNot<VehicleCompanyStatisticsResponse>('/vehicles/company-statistics');
         } catch (error) {
             console.error('Error fetching company statistics:', error);
             throw error;

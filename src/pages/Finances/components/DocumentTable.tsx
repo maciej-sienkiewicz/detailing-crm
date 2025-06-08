@@ -260,9 +260,9 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
                                         </DirectionBadge>
                                     </TableCell>
                                     <TableCell>
-                                        <AmountCell direction={document.direction}>
+                                        <TableCell>
                                             {formatAmount(document.totalGross, document.currency)}
-                                        </AmountCell>
+                                        </TableCell>
                                     </TableCell>
                                     <TableCell>
                                         <StatusBadge status={document.status}>
@@ -610,7 +610,7 @@ const DirectionBadge = styled.span<{ direction: TransactionDirection }>`
 
 const AmountCell = styled.div<{ direction: TransactionDirection }>`
     font-weight: 600;
-    color: ${props => TransactionDirectionColors[props.direction]};
+    color: ${brandTheme.text.tertiary};
 `;
 
 const StatusBadge = styled.span<{ status: DocumentStatus; $small?: boolean }>`
