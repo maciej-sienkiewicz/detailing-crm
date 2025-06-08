@@ -190,6 +190,7 @@ const SettingsPageWithTabs: React.FC = () => {
                 {activeTab === 'employees' && <EmployeesPage ref={employeesPageRef} />}
                 {activeTab === 'services' && <ServicesPage ref={servicesPageRef} />}
                 {activeTab === 'brand-theme' && <BrandThemeSettingsPage />}
+                {activeTab === 'calendar-colors' && <CalendarColorsPage ref={calendarColorsPageRef} />}
             </ContentContainer>
         </PageContainer>
     );

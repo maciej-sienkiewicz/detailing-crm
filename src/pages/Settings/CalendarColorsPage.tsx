@@ -1,5 +1,5 @@
 // src/pages/Settings/CalendarColorsPage.tsx
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import styled from 'styled-components';
 import {
     FaPlus,
@@ -20,7 +20,8 @@ import Modal from '../../components/common/Modal';
 import { CalendarColor } from "../../types/calendar";
 import { settingsTheme } from './styles/theme';
 
-const CalendarColorsPage: React.FC = () => {
+// Poprawna składnia forwardRef z TypeScript
+const CalendarColorsPage = forwardRef<{ handleAddColor: () => void }, {}>((props, ref) => {
     const [colors, setColors] = useState<CalendarColor[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -42,6 +43,11 @@ const CalendarColorsPage: React.FC = () => {
     // Stan dla potwierdzenia usunięcia
     const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
     const [colorToDelete, setColorToDelete] = useState<string | null>(null);
+
+    // Expose handleAddColor method to parent component
+    useImperativeHandle(ref, () => ({
+        handleAddColor: handleAdd
+    }));
 
     // Pobieranie kolorów z API
     const fetchColors = useCallback(async () => {
@@ -85,18 +91,18 @@ const CalendarColorsPage: React.FC = () => {
         setEditingColor(null);
     };
 
+    // Obsługa dodawania nowego koloru
+    const handleAdd = () => {
+        resetForm();
+        setShowModal(true);
+    };
+
     // Obsługa rozpoczęcia edycji
     const handleEdit = (color: CalendarColor) => {
         setEditingColor(color);
         setFormName(color.name);
         setFormColor(color.color);
         setFormErrors({});
-        setShowModal(true);
-    };
-
-    // Obsługa rozpoczęcia dodawania
-    const handleAdd = () => {
-        resetForm();
         setShowModal(true);
     };
 
@@ -411,7 +417,7 @@ const CalendarColorsPage: React.FC = () => {
             />
         </PageContainer>
     );
-};
+});
 
 // Styled Components
 const PageContainer = styled.div`
@@ -702,17 +708,19 @@ const ResultsCounter = styled.div`
 `;
 
 const MessageContainer = styled.div`
-    max-width: 1600px;
-    margin: 0 auto;
-    padding: 0 ${settingsTheme.spacing.xl};
-    width: 100%;
-
-    @media (max-width: 1024px) {
-        padding: 0 ${settingsTheme.spacing.lg};
-    }
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    max-width: 400px;
+    width: auto;
+    padding: 0;
 
     @media (max-width: 768px) {
-        padding: 0 ${settingsTheme.spacing.md};
+        bottom: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
     }
 `;
 
@@ -726,8 +734,25 @@ const SuccessMessage = styled.div`
     border-radius: ${settingsTheme.radius.lg};
     border: 1px solid ${settingsTheme.status.success}30;
     font-weight: 500;
-    box-shadow: ${settingsTheme.shadow.xs};
-    margin-bottom: ${settingsTheme.spacing.lg};
+    box-shadow: ${settingsTheme.shadow.lg};
+    animation: slideInFromRight 0.3s ease-out;
+    min-width: 300px;
+
+    @keyframes slideInFromRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    @media (max-width: 768px) {
+        min-width: auto;
+        width: 100%;
+    }
 `;
 
 const ErrorMessage = styled.div`

@@ -199,36 +199,33 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
             setSettings(data);
             setFormData({
                 basicInfo: {
-                    companyName: data.basicInfo.companyName || '',
-                    taxId: data.basicInfo.taxId || '',
-                    address: data.basicInfo.address || '',
-                    phone: data.basicInfo.phone || '',
-                    website: data.basicInfo.website || ''
+                    companyName: '' || '',
+                    taxId: '',
+                    address: '' || '',
+                    phone: '',
+                    website: '' || ''
                 },
                 bankSettings: {
-                    bankAccountNumber: data.bankSettings.bankAccountNumber || '',
-                    bankName: data.bankSettings.bankName || '',
-                    swiftCode: data.bankSettings.swiftCode || '',
-                    accountHolderName: data.bankSettings.accountHolderName || ''
+                    bankAccountNumber: '' || '',
+                    bankName: '',
+                    swiftCode: '' || '',
+                    accountHolderName: '' || ''
                 },
                 emailSettings: {
-                    smtpHost: data.emailSettings.smtpHost || '',
-                    smtpPort: data.emailSettings.smtpPort || 587,
-                    smtpUsername: data.emailSettings.smtpUsername || '',
+                    smtpHost: '' || '',
+                    smtpPort: 123 || 587,
+                    smtpUsername: '' || '',
                     smtpPassword: '', // Nie pokazujemy rzeczywistego hasła
-                    imapHost: data.emailSettings.imapHost || '',
-                    imapPort: data.emailSettings.imapPort || 993,
-                    imapUsername: data.emailSettings.imapUsername || '',
+                    imapHost: '' || '',
+                    imapPort: 1 || 993,
+                    imapUsername: '' || '',
                     imapPassword: '', // Nie pokazujemy rzeczywistego hasła
-                    senderEmail: data.emailSettings.senderEmail || '',
-                    senderName: data.emailSettings.senderName || '',
-                    useSSL: data.emailSettings.useSSL ?? true,
-                    useTLS: data.emailSettings.useTLS ?? true
+                    senderEmail: '' || '',
+                    senderName: '' || '',
+                    useSSL: true ?? true,
+                    useTLS: true ?? true
                 }
             });
-            if (data.logoSettings.hasLogo && data.logoSettings.logoUrl) {
-                setLogoPreview(data.logoSettings.logoUrl);
-            }
         } catch (err) {
             setError('Nie udało się załadować ustawień firmy');
             console.error('Error loading settings:', err);
@@ -796,7 +793,7 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                                         type={showPasswords.smtp ? 'text' : 'password'}
                                         value={formData.emailSettings.smtpPassword}
                                         onChange={(e) => handleInputChange('emailSettings', 'smtpPassword', e.target.value)}
-                                        placeholder={settings?.emailSettings.smtpPasswordConfigured ? 'Hasło jest skonfigurowane' : 'Hasło SMTP'}
+                                        placeholder={false ? 'Hasło jest skonfigurowane' : 'Hasło SMTP'}
                                     />
                                     <PasswordToggle
                                         onClick={() => setShowPasswords(prev => ({ ...prev, smtp: !prev.smtp }))}
@@ -857,7 +854,7 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                                         type={showPasswords.imap ? 'text' : 'password'}
                                         value={formData.emailSettings.imapPassword}
                                         onChange={(e) => handleInputChange('emailSettings', 'imapPassword', e.target.value)}
-                                        placeholder={settings?.emailSettings.imapPasswordConfigured ? 'Hasło jest skonfigurowane' : 'Hasło IMAP'}
+                                        placeholder={false ? 'Hasło jest skonfigurowane' : 'Hasło IMAP'}
                                     />
                                     <PasswordToggle
                                         onClick={() => setShowPasswords(prev => ({ ...prev, imap: !prev.imap }))}
