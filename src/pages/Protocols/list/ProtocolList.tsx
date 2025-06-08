@@ -215,7 +215,7 @@ export const ProtocolList: React.FC<ProtocolListProps> = ({
             {/* Header with view controls */}
             <ListHeader>
                 <ListTitle>
-                    Lista protokołów ({pagination.totalItems})
+                   Wizyty ({pagination.totalItems})
                 </ListTitle>
                 <ViewControls>
                     <ViewButton
