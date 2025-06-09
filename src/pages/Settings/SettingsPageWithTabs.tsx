@@ -129,12 +129,6 @@ const SettingsPageWithTabs: React.FC = () => {
                     </HeaderLeft>
 
                     <HeaderActions>
-                        {activeTab === 'company' && (
-                            <PrimaryButton onClick={handleCompanySaveSettings}>
-                                <FaSave />
-                                <span>Zapisz ustawienia</span>
-                            </PrimaryButton>
-                        )}
 
                         {activeTab === 'employees' && (
                             <PrimaryButton onClick={handleAddEmployee}>

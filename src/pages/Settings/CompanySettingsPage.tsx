@@ -1,41 +1,41 @@
-// src/pages/Settings/CompanySettingsPage.tsx
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import styled from 'styled-components';
 import {
-    FaUndo,
     FaBuilding,
     FaEnvelope,
-    FaServer,
     FaImage,
-    FaExclamationTriangle,
-    FaCheckCircle,
-    FaTrash,
-    FaUpload,
+    FaCheck,
+    FaTimes,
+    FaEdit,
+    FaSave,
+    FaSpinner,
     FaEye,
     FaEyeSlash,
-    FaCheck,
-    FaSpinner, FaSave
+    FaCheckCircle,
+    FaExclamationTriangle,
+    FaUpload,
+    FaTrash,
+    FaServer,
+    FaCreditCard,
+    FaShieldAlt,
+    FaInfoCircle,
+    FaGlobe,
+    FaPhone,
+    FaMapMarkerAlt
 } from 'react-icons/fa';
 
-// Import real API and types
-import {
-    companySettingsApi,
-    CompanySettingsResponse,
-    UpdateCompanySettingsRequest,
-    EmailTestResponse,
-    NipValidationResponse
-} from '../../api/companySettingsApi';
+// Professional theme matching finances module
+const brandTheme = {
+    primary: '#1a365d',
+    primaryLight: '#2c5aa0',
+    primaryDark: '#0f2027',
+    primaryGhost: 'rgba(26, 54, 93, 0.04)',
 
-// Używamy theme z istniejących styli
-const settingsTheme = {
-    primary: 'var(--brand-primary, #1a365d)',
-    primaryLight: 'var(--brand-primary-light, #2c5aa0)',
-    primaryDark: 'var(--brand-primary-dark, #0f2027)',
-    primaryGhost: 'var(--brand-primary-ghost, rgba(26, 54, 93, 0.04))',
     surface: '#ffffff',
     surfaceAlt: '#fafbfc',
     surfaceElevated: '#f8fafc',
     surfaceHover: '#f1f5f9',
+
     text: {
         primary: '#0f172a',
         secondary: '#475569',
@@ -43,9 +43,11 @@ const settingsTheme = {
         muted: '#94a3b8',
         disabled: '#cbd5e1'
     },
+
     border: '#e2e8f0',
     borderLight: '#f1f5f9',
     borderHover: '#cbd5e1',
+
     status: {
         success: '#059669',
         successLight: '#d1fae5',
@@ -56,6 +58,7 @@ const settingsTheme = {
         info: '#0ea5e9',
         infoLight: '#e0f2fe'
     },
+
     shadow: {
         xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
         sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
@@ -63,6 +66,7 @@ const settingsTheme = {
         lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
         xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
     },
+
     spacing: {
         xs: '4px',
         sm: '8px',
@@ -71,6 +75,7 @@ const settingsTheme = {
         xl: '32px',
         xxl: '48px'
     },
+
     radius: {
         sm: '6px',
         md: '8px',
@@ -78,6 +83,7 @@ const settingsTheme = {
         xl: '16px',
         xxl: '20px'
     },
+
     transitions: {
         fast: '0.15s ease',
         normal: '0.2s ease',
@@ -86,156 +92,57 @@ const settingsTheme = {
     }
 };
 
-// Interfejs dla form data
-interface FormData {
+// Mock data
+const mockCompanyData = {
     basicInfo: {
-        companyName: string;
-        taxId: string;
-        address: string;
-        phone: string;
-        website: string;
-    };
+        companyName: 'AutoSerwis Premium',
+        taxId: '123-456-78-90',
+        address: 'ul. Motoryzacyjna 123, 00-001 Warszawa',
+        phone: '+48 123 456 789',
+        website: 'https://autoserwis-premium.pl'
+    },
     bankSettings: {
-        bankAccountNumber: string;
-        bankName: string;
-        swiftCode: string;
-        accountHolderName: string;
-    };
+        bankAccountNumber: '12 3456 7890 1234 5678 9012 3456',
+        bankName: 'PKO Bank Polski',
+        swiftCode: 'PKOPPLPW',
+        accountHolderName: 'AutoSerwis Premium Sp. z o.o.'
+    },
     emailSettings: {
-        smtpHost: string;
-        smtpPort: number;
-        smtpUsername: string;
-        smtpPassword: string;
-        imapHost: string;
-        imapPort: number;
-        imapUsername: string;
-        imapPassword: string;
-        senderEmail: string;
-        senderName: string;
-        useSSL: boolean;
-        useTLS: boolean;
-    };
-}
+        smtpHost: 'smtp.gmail.com',
+        smtpPort: 587,
+        smtpUsername: 'noreply@autoserwis-premium.pl',
+        senderEmail: 'noreply@autoserwis-premium.pl',
+        senderName: 'AutoSerwis Premium',
+        imapHost: 'imap.gmail.com',
+        imapPort: 993,
+        useSSL: true,
+        useTLS: true,
+        smtpConfigured: true,
+        imapConfigured: false
+    },
+    logoSettings: {
+        hasLogo: true,
+        logoFileName: 'logo.png',
+        logoUrl: 'https://via.placeholder.com/200x100/1a365d/ffffff?text=AutoSerwis'
+    }
+};
+
+type EditingSection = 'basic' | 'bank' | 'email' | 'logo' | null;
 
 const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) => {
-    // Stan główny
-    const [settings, setSettings] = useState<CompanySettingsResponse | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [formData, setFormData] = useState(mockCompanyData);
+    const [originalData, setOriginalData] = useState(mockCompanyData);
+    const [editingSection, setEditingSection] = useState<EditingSection>(null);
     const [saving, setSaving] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [successMessage, setSuccessMessage] = useState<string | null>(null);
-    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-
-    // Stan dla formularza
-    const [formData, setFormData] = useState<FormData>({
-        basicInfo: {
-            companyName: '',
-            taxId: '',
-            address: '',
-            phone: '',
-            website: ''
-        },
-        bankSettings: {
-            bankAccountNumber: '',
-            bankName: '',
-            swiftCode: '',
-            accountHolderName: ''
-        },
-        emailSettings: {
-            smtpHost: '',
-            smtpPort: 587,
-            smtpUsername: '',
-            smtpPassword: '',
-            imapHost: '',
-            imapPort: 993,
-            imapUsername: '',
-            imapPassword: '',
-            senderEmail: '',
-            senderName: '',
-            useSSL: true,
-            useTLS: true
-        }
-    });
-
-    // Stan dla walidacji
-    const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
-    const [nipValidation, setNipValidation] = useState<NipValidationResponse | null>(null);
-    const [isValidatingNip, setIsValidatingNip] = useState(false);
-
-    // Stan dla haseł
-    const [showPasswords, setShowPasswords] = useState({
-        smtp: false,
-        imap: false
-    });
-
-    // Stan dla logo
-    const [logoFile, setLogoFile] = useState<File | null>(null);
-    const [logoPreview, setLogoPreview] = useState<string | null>(null);
-    const [uploadingLogo, setUploadingLogo] = useState(false);
-    const [deletingLogo, setDeletingLogo] = useState(false);
-
-    // Stan dla testu email
+    const [showPasswords, setShowPasswords] = useState({ smtp: false, imap: false });
     const [testingEmail, setTestingEmail] = useState(false);
-    const [emailTestResult, setEmailTestResult] = useState<EmailTestResponse | null>(null);
+    const [emailTestResult, setEmailTestResult] = useState<any>(null);
 
-    // Referencje
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
-    // Expose handleSave method to parent component
     useImperativeHandle(ref, () => ({
-        handleSave: handleSave
+        handleSave: handleSaveAll
     }));
 
-    // Ładowanie danych przy montowaniu komponentu
-    useEffect(() => {
-        loadSettings();
-    }, []);
-
-    const loadSettings = async () => {
-        try {
-            setLoading(true);
-            setError(null);
-            const data = await companySettingsApi.getCompanySettings();
-            setSettings(data);
-            setFormData({
-                basicInfo: {
-                    companyName: '' || '',
-                    taxId: '',
-                    address: '' || '',
-                    phone: '',
-                    website: '' || ''
-                },
-                bankSettings: {
-                    bankAccountNumber: '' || '',
-                    bankName: '',
-                    swiftCode: '' || '',
-                    accountHolderName: '' || ''
-                },
-                emailSettings: {
-                    smtpHost: '' || '',
-                    smtpPort: 123 || 587,
-                    smtpUsername: '' || '',
-                    smtpPassword: '', // Nie pokazujemy rzeczywistego hasła
-                    imapHost: '' || '',
-                    imapPort: 1 || 993,
-                    imapUsername: '' || '',
-                    imapPassword: '', // Nie pokazujemy rzeczywistego hasła
-                    senderEmail: '' || '',
-                    senderName: '' || '',
-                    useSSL: true ?? true,
-                    useTLS: true ?? true
-                }
-            });
-        } catch (err) {
-            setError('Nie udało się załadować ustawień firmy');
-            console.error('Error loading settings:', err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Obsługa zmian w formularzu
-    const handleInputChange = (section: keyof FormData, field: string, value: string | number | boolean) => {
+    const handleInputChange = (section: string, field: string, value: any) => {
         setFormData(prev => ({
             ...prev,
             [section]: {
@@ -243,906 +150,762 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                 [field]: value
             }
         }));
-        setHasUnsavedChanges(true);
-
-        // Usuwanie błędów walidacji
-        const errorKey = `${section}.${field}`;
-        if (validationErrors[errorKey]) {
-            setValidationErrors(prev => {
-                const newErrors = { ...prev };
-                delete newErrors[errorKey];
-                return newErrors;
-            });
-        }
-
-        // Walidacja NIP w czasie rzeczywistym
-        if (section === 'basicInfo' && field === 'taxId' && typeof value === 'string') {
-            validateNipDebounced(value);
-        }
     };
 
-    // Debounced walidacja NIP
-    const validateNipDebounced = (() => {
-        let timeout: NodeJS.Timeout;
-        return (nip: string) => {
-            clearTimeout(timeout);
-            if (!nip.trim()) {
-                setNipValidation(null);
-                return;
-            }
-            timeout = setTimeout(async () => {
-                setIsValidatingNip(true);
-                try {
-                    const result = await companySettingsApi.validateNIP(nip);
-                    setNipValidation(result);
-                } catch (err) {
-                    setNipValidation({
-                        nip: nip,
-                        valid: false,
-                        message: 'Błąd walidacji NIP'
-                    });
-                } finally {
-                    setIsValidatingNip(false);
-                }
-            }, 500);
-        };
-    })();
-
-    // Walidacja formularza
-    const validateForm = (): boolean => {
-        const errors: Record<string, string> = {};
-
-        // Walidacja podstawowych informacji
-        if (!formData.basicInfo.companyName.trim()) {
-            errors['basicInfo.companyName'] = 'Nazwa firmy jest wymagana';
-        }
-
-        if (!formData.basicInfo.taxId.trim()) {
-            errors['basicInfo.taxId'] = 'NIP jest wymagany';
-        }
-
-        // Walidacja email
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (formData.emailSettings.senderEmail && !emailRegex.test(formData.emailSettings.senderEmail)) {
-            errors['emailSettings.senderEmail'] = 'Nieprawidłowy format adresu email';
-        }
-
-        if (formData.emailSettings.smtpUsername && !emailRegex.test(formData.emailSettings.smtpUsername)) {
-            errors['emailSettings.smtpUsername'] = 'Nieprawidłowy format adresu email';
-        }
-
-        if (formData.emailSettings.imapUsername && !emailRegex.test(formData.emailSettings.imapUsername)) {
-            errors['emailSettings.imapUsername'] = 'Nieprawidłowy format adresu email';
-        }
-
-        // Walidacja portów
-        if (formData.emailSettings.smtpPort && (formData.emailSettings.smtpPort < 1 || formData.emailSettings.smtpPort > 65535)) {
-            errors['emailSettings.smtpPort'] = 'Port SMTP musi być liczbą od 1 do 65535';
-        }
-
-        if (formData.emailSettings.imapPort && (formData.emailSettings.imapPort < 1 || formData.emailSettings.imapPort > 65535)) {
-            errors['emailSettings.imapPort'] = 'Port IMAP musi być liczbą od 1 do 65535';
-        }
-
-        setValidationErrors(errors);
-        return Object.keys(errors).length === 0;
+    const handleSaveAll = async () => {
+        setSaving(true);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        setOriginalData(formData);
+        setEditingSection(null);
+        setSaving(false);
     };
 
-    // Zapisywanie ustawień
-    const handleSave = async (): Promise<void> => {
-        if (!validateForm()) {
-            setError('Proszę poprawić błędy w formularzu');
-            return;
-        }
-
-        if (nipValidation && !nipValidation.valid) {
-            setError('NIP jest nieprawidłowy');
-            return;
-        }
-
-        try {
-            setSaving(true);
-            setError(null);
-
-            const requestData: UpdateCompanySettingsRequest = {
-                basicInfo: formData.basicInfo,
-                bankSettings: formData.bankSettings,
-                emailSettings: formData.emailSettings
-            };
-
-            const updatedSettings = await companySettingsApi.updateCompanySettings(requestData);
-            setSettings(prev => prev ? { ...prev, ...updatedSettings } : updatedSettings);
-            setHasUnsavedChanges(false);
-            setSuccessMessage('Ustawienia zostały zapisane pomyślnie');
-
-            setTimeout(() => setSuccessMessage(null), 3000);
-        } catch (err) {
-            setError('Nie udało się zapisać ustawień');
-            console.error('Error saving settings:', err);
-        } finally {
-            setSaving(false);
-        }
+    const handleSaveSection = async (section: EditingSection) => {
+        if (!section) return;
+        setSaving(true);
+        await new Promise(resolve => setTimeout(resolve, 800));
+        setOriginalData(formData);
+        setEditingSection(null);
+        setSaving(false);
     };
 
-    // Resetowanie formularza
-    const handleReset = () => {
-        if (settings) {
-            setFormData({
-                basicInfo: {
-                    companyName: settings.basicInfo.companyName || '',
-                    taxId: settings.basicInfo.taxId || '',
-                    address: settings.basicInfo.address || '',
-                    phone: settings.basicInfo.phone || '',
-                    website: settings.basicInfo.website || ''
-                },
-                bankSettings: {
-                    bankAccountNumber: settings.bankSettings.bankAccountNumber || '',
-                    bankName: settings.bankSettings.bankName || '',
-                    swiftCode: settings.bankSettings.swiftCode || '',
-                    accountHolderName: settings.bankSettings.accountHolderName || ''
-                },
-                emailSettings: {
-                    smtpHost: settings.emailSettings.smtpHost || '',
-                    smtpPort: settings.emailSettings.smtpPort || 587,
-                    smtpUsername: settings.emailSettings.smtpUsername || '',
-                    smtpPassword: '',
-                    imapHost: settings.emailSettings.imapHost || '',
-                    imapPort: settings.emailSettings.imapPort || 993,
-                    imapUsername: settings.emailSettings.imapUsername || '',
-                    imapPassword: '',
-                    senderEmail: settings.emailSettings.senderEmail || '',
-                    senderName: settings.emailSettings.senderName || '',
-                    useSSL: settings.emailSettings.useSSL ?? true,
-                    useTLS: settings.emailSettings.useTLS ?? true
-                }
-            });
-            setHasUnsavedChanges(false);
-            setValidationErrors({});
-            setNipValidation(null);
-            setEmailTestResult(null);
-        }
+    const handleCancelSection = (section: EditingSection) => {
+        if (!section) return;
+        setFormData(originalData);
+        setEditingSection(null);
     };
 
-    // Obsługa logo
-    const handleLogoSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (file) {
-            // Walidacja pliku
-            const maxSize = 5 * 1024 * 1024; // 5MB
-            const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-
-            if (!allowedTypes.includes(file.type)) {
-                setError('Dozwolone są tylko pliki JPG, PNG i WebP');
-                return;
-            }
-
-            if (file.size > maxSize) {
-                setError('Plik nie może być większy niż 5MB');
-                return;
-            }
-
-            setLogoFile(file);
-
-            // Podgląd
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                if (e.target?.result) {
-                    setLogoPreview(e.target.result as string);
-                }
-            };
-            reader.readAsDataURL(file);
-        }
+    const testEmailConnection = async () => {
+        setTestingEmail(true);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        setEmailTestResult({
+            success: Math.random() > 0.3,
+            message: Math.random() > 0.3 ? 'Połączenie z serwerem SMTP udane' : 'Błąd połączenia - sprawdź dane konfiguracji'
+        });
+        setTestingEmail(false);
     };
 
-    const handleLogoUpload = async () => {
-        if (!logoFile) return;
+    const hasUnsavedChanges = JSON.stringify(formData) !== JSON.stringify(originalData);
 
-        try {
-            setUploadingLogo(true);
-            setError(null);
-
-            const result = await companySettingsApi.uploadLogo(logoFile);
-            setSettings(prev => prev ? {
-                ...prev,
-                logoSettings: result.logoSettings
-            } : null);
-            setLogoFile(null);
-            setSuccessMessage('Logo zostało zapisane pomyślnie');
-
-            setTimeout(() => setSuccessMessage(null), 3000);
-        } catch (err) {
-            setError('Nie udało się przesłać logo');
-            console.error('Error uploading logo:', err);
-        } finally {
-            setUploadingLogo(false);
-        }
+    const getCompletionPercentage = () => {
+        const fields = [
+            formData.basicInfo.companyName,
+            formData.basicInfo.taxId,
+            formData.basicInfo.address,
+            formData.basicInfo.phone,
+            formData.bankSettings.bankAccountNumber,
+            formData.emailSettings.smtpHost,
+            formData.emailSettings.senderEmail,
+            formData.logoSettings.hasLogo
+        ];
+        const completed = fields.filter(field => field && field !== false).length;
+        return Math.round((completed / fields.length) * 100);
     };
-
-    const handleLogoDelete = async () => {
-        if (!window.confirm('Czy na pewno chcesz usunąć logo?')) return;
-
-        try {
-            setDeletingLogo(true);
-            setError(null);
-
-            const result = await companySettingsApi.deleteLogo();
-            setSettings(prev => prev ? {
-                ...prev,
-                logoSettings: result.logoSettings
-            } : null);
-            setLogoPreview(null);
-            setLogoFile(null);
-            setSuccessMessage('Logo zostało usunięte');
-
-            setTimeout(() => setSuccessMessage(null), 3000);
-        } catch (err) {
-            setError('Nie udało się usunąć logo');
-            console.error('Error deleting logo:', err);
-        } finally {
-            setDeletingLogo(false);
-        }
-    };
-
-    // Test połączenia email
-    const handleTestEmail = async () => {
-        if (!formData.emailSettings.smtpHost || !formData.emailSettings.smtpUsername) {
-            setError('Wypełnij dane SMTP przed testem');
-            return;
-        }
-
-        try {
-            setTestingEmail(true);
-            setEmailTestResult(null);
-            setError(null);
-
-            const testData = {
-                smtpHost: formData.emailSettings.smtpHost,
-                smtpPort: formData.emailSettings.smtpPort,
-                smtpUsername: formData.emailSettings.smtpUsername,
-                smtpPassword: formData.emailSettings.smtpPassword,
-                useSSL: formData.emailSettings.useSSL,
-                useTLS: formData.emailSettings.useTLS,
-                testEmail: formData.emailSettings.senderEmail || formData.emailSettings.smtpUsername
-            };
-
-            const result = await companySettingsApi.testEmailConnection(testData);
-            setEmailTestResult(result);
-        } catch (err) {
-            setEmailTestResult(err as EmailTestResponse);
-        } finally {
-            setTestingEmail(false);
-        }
-    };
-
-    if (loading) {
-        return (
-            <ContentContainer>
-                <LoadingContainer>
-                    <LoadingSpinner />
-                    <LoadingText>Ładowanie ustawień firmy...</LoadingText>
-                </LoadingContainer>
-            </ContentContainer>
-        );
-    }
 
     return (
-        <ContentContainer>
-            {/* Messages */}
-            {successMessage && (
-                <MessageContainer>
-                    <SuccessMessage>
-                        <MessageIcon><FaCheckCircle /></MessageIcon>
-                        {successMessage}
-                    </SuccessMessage>
-                </MessageContainer>
-            )}
+        <PageContainer>
+            {/* Progress Summary - matching finances style */}
+            {/* Settings Content */}
+            <ContentContainer>
+                {/* Basic Information */}
+                <SettingsCard>
+                    <CardHeader>
+                        <HeaderContent>
+                            <HeaderIcon>
+                                <FaBuilding />
+                            </HeaderIcon>
+                            <HeaderText>
+                                <HeaderTitle>Dane podstawowe</HeaderTitle>
+                                <HeaderSubtitle>Podstawowe informacje identyfikacyjne firmy</HeaderSubtitle>
+                            </HeaderText>
+                        </HeaderContent>
+                        <HeaderActions>
+                            {editingSection === 'basic' ? (
+                                <ActionGroup>
+                                    <SecondaryButton onClick={() => handleCancelSection('basic')}>
+                                        <FaTimes />
+                                        Anuluj
+                                    </SecondaryButton>
+                                    <PrimaryButton onClick={() => handleSaveSection('basic')} disabled={saving}>
+                                        {saving ? <FaSpinner className="spinning" /> : <FaSave />}
+                                        Zapisz
+                                    </PrimaryButton>
+                                </ActionGroup>
+                            ) : (
+                                <SecondaryButton onClick={() => setEditingSection('basic')}>
+                                    <FaEdit />
+                                    Edytuj
+                                </SecondaryButton>
+                            )}
+                        </HeaderActions>
+                    </CardHeader>
 
-            {error && (
-                <MessageContainer>
-                    <ErrorMessage>
-                        <MessageIcon><FaExclamationTriangle /></MessageIcon>
-                        {error}
-                    </ErrorMessage>
-                </MessageContainer>
-            )}
-
-            {/* Main Content */}
-            <ContentGrid>
-                {/* Company Basic Info */}
-                <SectionCard>
-                    <SectionHeader>
-                        <SectionIcon>
-                            <FaBuilding />
-                        </SectionIcon>
-                        <SectionTitle>Dane firmy</SectionTitle>
-                    </SectionHeader>
-
-                    <SectionContent>
+                    <CardBody>
                         <FormGrid>
-                            <FormGroup>
-                                <Label htmlFor="companyName">Nazwa firmy*</Label>
-                                <Input
-                                    id="companyName"
-                                    value={formData.basicInfo.companyName}
-                                    onChange={(e) => handleInputChange('basicInfo', 'companyName', e.target.value)}
-                                    placeholder="Nazwa firmy"
-                                    $hasError={!!validationErrors['basicInfo.companyName']}
-                                />
-                                {validationErrors['basicInfo.companyName'] && (
-                                    <ErrorText>{validationErrors['basicInfo.companyName']}</ErrorText>
+                            <FormField>
+                                <FieldLabel>
+                                    <FaBuilding />
+                                    Nazwa firmy
+                                    <RequiredMark>*</RequiredMark>
+                                </FieldLabel>
+                                {editingSection === 'basic' ? (
+                                    <Input
+                                        value={formData.basicInfo.companyName}
+                                        onChange={(e) => handleInputChange('basicInfo', 'companyName', e.target.value)}
+                                        placeholder="Wprowadź nazwę firmy"
+                                    />
+                                ) : (
+                                    <DisplayValue $hasValue={!!formData.basicInfo.companyName}>
+                                        {formData.basicInfo.companyName || 'Nie podano'}
+                                    </DisplayValue>
                                 )}
-                            </FormGroup>
+                            </FormField>
 
-                            <FormGroup>
-                                <Label htmlFor="taxId">
-                                    NIP*
-                                    {isValidatingNip && <ValidationSpinner><FaSpinner /></ValidationSpinner>}
-                                    {nipValidation && (
-                                        <ValidationStatus $valid={nipValidation.valid}>
-                                            {nipValidation.valid ? <FaCheck /> : <FaExclamationTriangle />}
-                                        </ValidationStatus>
-                                    )}
-                                </Label>
-                                <Input
-                                    id="taxId"
-                                    value={formData.basicInfo.taxId}
-                                    onChange={(e) => handleInputChange('basicInfo', 'taxId', e.target.value)}
-                                    placeholder="123-456-78-90"
-                                />
-                                {validationErrors['basicInfo.taxId'] && (
-                                    <ErrorText>{validationErrors['basicInfo.taxId']}</ErrorText>
+                            <FormField>
+                                <FieldLabel>
+                                    <span className="icon">🏛️</span>
+                                    NIP
+                                    <RequiredMark>*</RequiredMark>
+                                    <ValidationStatus $valid={!!formData.basicInfo.taxId}>
+                                        {formData.basicInfo.taxId ? <FaCheckCircle /> : <FaExclamationTriangle />}
+                                    </ValidationStatus>
+                                </FieldLabel>
+                                {editingSection === 'basic' ? (
+                                    <Input
+                                        value={formData.basicInfo.taxId}
+                                        onChange={(e) => handleInputChange('basicInfo', 'taxId', e.target.value)}
+                                        placeholder="123-456-78-90"
+                                    />
+                                ) : (
+                                    <DisplayValue $hasValue={!!formData.basicInfo.taxId}>
+                                        {formData.basicInfo.taxId || 'Nie podano'}
+                                    </DisplayValue>
                                 )}
-                                {nipValidation && !nipValidation.valid && (
-                                    <ErrorText>{nipValidation.message}</ErrorText>
+                            </FormField>
+
+                            <FormField $fullWidth>
+                                <FieldLabel>
+                                    <FaMapMarkerAlt />
+                                    Adres
+                                </FieldLabel>
+                                {editingSection === 'basic' ? (
+                                    <Input
+                                        value={formData.basicInfo.address}
+                                        onChange={(e) => handleInputChange('basicInfo', 'address', e.target.value)}
+                                        placeholder="ul. Nazwa 123, 00-000 Miasto"
+                                    />
+                                ) : (
+                                    <DisplayValue $hasValue={!!formData.basicInfo.address}>
+                                        {formData.basicInfo.address || 'Nie podano'}
+                                    </DisplayValue>
                                 )}
-                            </FormGroup>
+                            </FormField>
 
-                            <FormGroup $fullWidth>
-                                <Label htmlFor="address">Adres</Label>
-                                <Input
-                                    id="address"
-                                    value={formData.basicInfo.address}
-                                    onChange={(e) => handleInputChange('basicInfo', 'address', e.target.value)}
-                                    placeholder="ul. Motoryzacyjna 123, 00-001 Warszawa"
-                                />
-                            </FormGroup>
+                            <FormField>
+                                <FieldLabel>
+                                    <FaPhone />
+                                    Telefon
+                                </FieldLabel>
+                                {editingSection === 'basic' ? (
+                                    <Input
+                                        value={formData.basicInfo.phone}
+                                        onChange={(e) => handleInputChange('basicInfo', 'phone', e.target.value)}
+                                        placeholder="+48 123 456 789"
+                                    />
+                                ) : (
+                                    <DisplayValue $hasValue={!!formData.basicInfo.phone}>
+                                        {formData.basicInfo.phone || 'Nie podano'}
+                                    </DisplayValue>
+                                )}
+                            </FormField>
 
-                            <FormGroup>
-                                <Label htmlFor="phone">Telefon</Label>
-                                <Input
-                                    id="phone"
-                                    value={formData.basicInfo.phone}
-                                    onChange={(e) => handleInputChange('basicInfo', 'phone', e.target.value)}
-                                    placeholder="+48 123 456 789"
-                                />
-                            </FormGroup>
-
-                            <FormGroup>
-                                <Label htmlFor="website">Strona WWW</Label>
-                                <Input
-                                    id="website"
-                                    value={formData.basicInfo.website}
-                                    onChange={(e) => handleInputChange('basicInfo', 'website', e.target.value)}
-                                    placeholder="https://firma.pl"
-                                />
-                            </FormGroup>
+                            <FormField>
+                                <FieldLabel>
+                                    <FaGlobe />
+                                    Strona WWW
+                                </FieldLabel>
+                                {editingSection === 'basic' ? (
+                                    <Input
+                                        value={formData.basicInfo.website}
+                                        onChange={(e) => handleInputChange('basicInfo', 'website', e.target.value)}
+                                        placeholder="https://firma.pl"
+                                    />
+                                ) : (
+                                    <DisplayValue $hasValue={!!formData.basicInfo.website}>
+                                        {formData.basicInfo.website ? (
+                                            <WebsiteLink href={formData.basicInfo.website} target="_blank">
+                                                {formData.basicInfo.website}
+                                            </WebsiteLink>
+                                        ) : (
+                                            'Nie podano'
+                                        )}
+                                    </DisplayValue>
+                                )}
+                            </FormField>
                         </FormGrid>
-                    </SectionContent>
-                </SectionCard>
+                    </CardBody>
+                </SettingsCard>
 
                 {/* Bank Settings */}
-                <SectionCard>
-                    <SectionHeader>
-                        <SectionIcon>
-                            💳
-                        </SectionIcon>
-                        <SectionTitle>Dane bankowe</SectionTitle>
-                    </SectionHeader>
+                <SettingsCard>
+                    <CardHeader>
+                        <HeaderContent>
+                            <HeaderIcon>
+                                <FaCreditCard />
+                            </HeaderIcon>
+                            <HeaderText>
+                                <HeaderTitle>Dane bankowe</HeaderTitle>
+                                <HeaderSubtitle>Informacje o koncie bankowym firmy</HeaderSubtitle>
+                            </HeaderText>
+                        </HeaderContent>
+                        <HeaderActions>
+                            {editingSection === 'bank' ? (
+                                <ActionGroup>
+                                    <SecondaryButton onClick={() => handleCancelSection('bank')}>
+                                        <FaTimes />
+                                        Anuluj
+                                    </SecondaryButton>
+                                    <PrimaryButton onClick={() => handleSaveSection('bank')} disabled={saving}>
+                                        {saving ? <FaSpinner className="spinning" /> : <FaSave />}
+                                        Zapisz
+                                    </PrimaryButton>
+                                </ActionGroup>
+                            ) : (
+                                <SecondaryButton onClick={() => setEditingSection('bank')}>
+                                    <FaEdit />
+                                    Edytuj
+                                </SecondaryButton>
+                            )}
+                        </HeaderActions>
+                    </CardHeader>
 
-                    <SectionContent>
+                    <CardBody>
                         <FormGrid>
-                            <FormGroup $fullWidth>
-                                <Label htmlFor="bankAccountNumber">Numer konta</Label>
-                                <Input
-                                    id="bankAccountNumber"
-                                    value={formData.bankSettings.bankAccountNumber}
-                                    onChange={(e) => handleInputChange('bankSettings', 'bankAccountNumber', e.target.value)}
-                                    placeholder="12 3456 7890 1234 5678 9012 3456"
-                                />
-                            </FormGroup>
+                            <FormField $fullWidth>
+                                <FieldLabel>Numer konta bankowego</FieldLabel>
+                                {editingSection === 'bank' ? (
+                                    <Input
+                                        value={formData.bankSettings.bankAccountNumber}
+                                        onChange={(e) => handleInputChange('bankSettings', 'bankAccountNumber', e.target.value)}
+                                        placeholder="12 3456 7890 1234 5678 9012 3456"
+                                    />
+                                ) : (
+                                    <DisplayValue $hasValue={!!formData.bankSettings.bankAccountNumber}>
+                                        {formData.bankSettings.bankAccountNumber || 'Nie podano'}
+                                    </DisplayValue>
+                                )}
+                            </FormField>
 
-                            <FormGroup>
-                                <Label htmlFor="bankName">Nazwa banku</Label>
-                                <Input
-                                    id="bankName"
-                                    value={formData.bankSettings.bankName}
-                                    onChange={(e) => handleInputChange('bankSettings', 'bankName', e.target.value)}
-                                    placeholder="Nazwa banku"
-                                />
-                            </FormGroup>
+                            <FormField>
+                                <FieldLabel>Nazwa banku</FieldLabel>
+                                {editingSection === 'bank' ? (
+                                    <Input
+                                        value={formData.bankSettings.bankName}
+                                        onChange={(e) => handleInputChange('bankSettings', 'bankName', e.target.value)}
+                                        placeholder="Nazwa banku"
+                                    />
+                                ) : (
+                                    <DisplayValue $hasValue={!!formData.bankSettings.bankName}>
+                                        {formData.bankSettings.bankName || 'Nie podano'}
+                                    </DisplayValue>
+                                )}
+                            </FormField>
 
-                            <FormGroup>
-                                <Label htmlFor="swiftCode">Kod SWIFT</Label>
-                                <Input
-                                    id="swiftCode"
-                                    value={formData.bankSettings.swiftCode}
-                                    onChange={(e) => handleInputChange('bankSettings', 'swiftCode', e.target.value)}
-                                    placeholder="PREMBPLPW"
-                                />
-                            </FormGroup>
-
-                            <FormGroup $fullWidth>
-                                <Label htmlFor="accountHolderName">Właściciel konta</Label>
-                                <Input
-                                    id="accountHolderName"
-                                    value={formData.bankSettings.accountHolderName}
-                                    onChange={(e) => handleInputChange('bankSettings', 'accountHolderName', e.target.value)}
-                                    placeholder="Nazwa właściciela konta"
-                                />
-                            </FormGroup>
+                            <FormField>
+                                <FieldLabel>Kod SWIFT</FieldLabel>
+                                {editingSection === 'bank' ? (
+                                    <Input
+                                        value={formData.bankSettings.swiftCode}
+                                        onChange={(e) => handleInputChange('bankSettings', 'swiftCode', e.target.value)}
+                                        placeholder="PKOPPLPW"
+                                    />
+                                ) : (
+                                    <DisplayValue $hasValue={!!formData.bankSettings.swiftCode}>
+                                        {formData.bankSettings.swiftCode || 'Nie podano'}
+                                    </DisplayValue>
+                                )}
+                            </FormField>
                         </FormGrid>
-                    </SectionContent>
-                </SectionCard>
+                    </CardBody>
+                </SettingsCard>
 
                 {/* Email Settings */}
-                <SectionCard>
-                    <SectionHeader>
-                        <SectionIcon>
-                            <FaEnvelope />
-                        </SectionIcon>
-                        <SectionTitle>Ustawienia email</SectionTitle>
-                        <TestEmailButton
-                            onClick={handleTestEmail}
-                            disabled={testingEmail}
-                        >
-                            {testingEmail ? <FaSpinner /> : <FaServer />}
-                            {testingEmail ? 'Testowanie...' : 'Testuj połączenie'}
-                        </TestEmailButton>
-                    </SectionHeader>
+                <SettingsCard>
+                    <CardHeader>
+                        <HeaderContent>
+                            <HeaderIcon>
+                                <FaEnvelope />
+                            </HeaderIcon>
+                            <HeaderText>
+                                <HeaderTitle>Ustawienia email</HeaderTitle>
+                                <HeaderSubtitle>Konfiguracja automatycznych powiadomień</HeaderSubtitle>
+                            </HeaderText>
+                        </HeaderContent>
+                        <HeaderActions>
+                            <SecondaryButton onClick={testEmailConnection} disabled={testingEmail}>
+                                {testingEmail ? <FaSpinner className="spinning" /> : <FaServer />}
+                                Testuj połączenie
+                            </SecondaryButton>
+                            {editingSection === 'email' ? (
+                                <ActionGroup>
+                                    <SecondaryButton onClick={() => handleCancelSection('email')}>
+                                        <FaTimes />
+                                        Anuluj
+                                    </SecondaryButton>
+                                    <PrimaryButton onClick={() => handleSaveSection('email')} disabled={saving}>
+                                        {saving ? <FaSpinner className="spinning" /> : <FaSave />}
+                                        Zapisz
+                                    </PrimaryButton>
+                                </ActionGroup>
+                            ) : (
+                                <SecondaryButton onClick={() => setEditingSection('email')}>
+                                    <FaEdit />
+                                    Edytuj
+                                </SecondaryButton>
+                            )}
+                        </HeaderActions>
+                    </CardHeader>
 
                     {emailTestResult && (
-                        <TestResultContainer $success={emailTestResult.success}>
+                        <TestResultBanner $success={emailTestResult.success}>
                             <TestResultIcon>
                                 {emailTestResult.success ? <FaCheckCircle /> : <FaExclamationTriangle />}
                             </TestResultIcon>
-                            <TestResultText>
-                                {emailTestResult.message}
-                                {emailTestResult.errorDetails && (
-                                    <TestErrorDetails>{emailTestResult.errorDetails}</TestErrorDetails>
-                                )}
-                            </TestResultText>
-                        </TestResultContainer>
+                            <TestResultText>{emailTestResult.message}</TestResultText>
+                        </TestResultBanner>
                     )}
 
-                    <SectionContent>
-                        <SubSectionTitle>Dane nadawcy</SubSectionTitle>
+                    <CardBody>
+                        <ConfigStatusBanner $configured={formData.emailSettings.smtpConfigured}>
+                            <StatusIcon>
+                                {formData.emailSettings.smtpConfigured ? <FaCheckCircle /> : <FaExclamationTriangle />}
+                            </StatusIcon>
+                            <StatusText>
+                                {formData.emailSettings.smtpConfigured
+                                    ? 'Serwer SMTP skonfigurowany i gotowy'
+                                    : 'Serwer SMTP wymaga konfiguracji'
+                                }
+                            </StatusText>
+                        </ConfigStatusBanner>
+
                         <FormGrid>
-                            <FormGroup>
-                                <Label htmlFor="senderEmail">Email nadawcy</Label>
-                                <Input
-                                    id="senderEmail"
-                                    type="email"
-                                    value={formData.emailSettings.senderEmail}
-                                    onChange={(e) => handleInputChange('emailSettings', 'senderEmail', e.target.value)}
-                                    placeholder="noreply@firma.pl"
-                                    $hasError={!!validationErrors['emailSettings.senderEmail']}
-                                />
-                                {validationErrors['emailSettings.senderEmail'] && (
-                                    <ErrorText>{validationErrors['emailSettings.senderEmail']}</ErrorText>
-                                )}
-                            </FormGroup>
-
-                            <FormGroup>
-                                <Label htmlFor="senderName">Nazwa nadawcy</Label>
-                                <Input
-                                    id="senderName"
-                                    value={formData.emailSettings.senderName}
-                                    onChange={(e) => handleInputChange('emailSettings', 'senderName', e.target.value)}
-                                    placeholder="Nazwa firmy"
-                                />
-                            </FormGroup>
-                        </FormGrid>
-
-                        <SubSectionTitle>Serwer SMTP (wysyłanie)</SubSectionTitle>
-                        <FormGrid>
-                            <FormGroup>
-                                <Label htmlFor="smtpHost">Host SMTP</Label>
-                                <Input
-                                    id="smtpHost"
-                                    value={formData.emailSettings.smtpHost}
-                                    onChange={(e) => handleInputChange('emailSettings', 'smtpHost', e.target.value)}
-                                    placeholder="smtp.gmail.com"
-                                />
-                            </FormGroup>
-
-                            <FormGroup>
-                                <Label htmlFor="smtpPort">Port SMTP</Label>
-                                <Input
-                                    id="smtpPort"
-                                    type="number"
-                                    value={formData.emailSettings.smtpPort}
-                                    onChange={(e) => handleInputChange('emailSettings', 'smtpPort', parseInt(e.target.value) || 587)}
-                                    placeholder="587"
-                                    $hasError={!!validationErrors['emailSettings.smtpPort']}
-                                />
-                                {validationErrors['emailSettings.smtpPort'] && (
-                                    <ErrorText>{validationErrors['emailSettings.smtpPort']}</ErrorText>
-                                )}
-                            </FormGroup>
-
-                            <FormGroup>
-                                <Label htmlFor="smtpUsername">Użytkownik SMTP</Label>
-                                <Input
-                                    id="smtpUsername"
-                                    type="email"
-                                    value={formData.emailSettings.smtpUsername}
-                                    onChange={(e) => handleInputChange('emailSettings', 'smtpUsername', e.target.value)}
-                                    placeholder="email@firma.pl"
-                                    $hasError={!!validationErrors['emailSettings.smtpUsername']}
-                                />
-                                {validationErrors['emailSettings.smtpUsername'] && (
-                                    <ErrorText>{validationErrors['emailSettings.smtpUsername']}</ErrorText>
-                                )}
-                            </FormGroup>
-
-                            <FormGroup>
-                                <Label htmlFor="smtpPassword">Hasło SMTP</Label>
-                                <PasswordInputContainer>
+                            <FormField>
+                                <FieldLabel>Email nadawcy</FieldLabel>
+                                {editingSection === 'email' ? (
                                     <Input
-                                        id="smtpPassword"
-                                        type={showPasswords.smtp ? 'text' : 'password'}
-                                        value={formData.emailSettings.smtpPassword}
-                                        onChange={(e) => handleInputChange('emailSettings', 'smtpPassword', e.target.value)}
-                                        placeholder={false ? 'Hasło jest skonfigurowane' : 'Hasło SMTP'}
+                                        type="email"
+                                        value={formData.emailSettings.senderEmail}
+                                        onChange={(e) => handleInputChange('emailSettings', 'senderEmail', e.target.value)}
+                                        placeholder="noreply@firma.pl"
                                     />
-                                    <PasswordToggle
-                                        onClick={() => setShowPasswords(prev => ({ ...prev, smtp: !prev.smtp }))}
-                                    >
-                                        {showPasswords.smtp ? <FaEyeSlash /> : <FaEye />}
-                                    </PasswordToggle>
-                                </PasswordInputContainer>
-                            </FormGroup>
-                        </FormGrid>
-
-                        <SubSectionTitle>Serwer IMAP (odbiór)</SubSectionTitle>
-                        <FormGrid>
-                            <FormGroup>
-                                <Label htmlFor="imapHost">Host IMAP</Label>
-                                <Input
-                                    id="imapHost"
-                                    value={formData.emailSettings.imapHost}
-                                    onChange={(e) => handleInputChange('emailSettings', 'imapHost', e.target.value)}
-                                    placeholder="imap.gmail.com"
-                                />
-                            </FormGroup>
-
-                            <FormGroup>
-                                <Label htmlFor="imapPort">Port IMAP</Label>
-                                <Input
-                                    id="imapPort"
-                                    type="number"
-                                    value={formData.emailSettings.imapPort}
-                                    onChange={(e) => handleInputChange('emailSettings', 'imapPort', parseInt(e.target.value) || 993)}
-                                    placeholder="993"
-                                    $hasError={!!validationErrors['emailSettings.imapPort']}
-                                />
-                                {validationErrors['emailSettings.imapPort'] && (
-                                    <ErrorText>{validationErrors['emailSettings.imapPort']}</ErrorText>
+                                ) : (
+                                    <DisplayValue $hasValue={!!formData.emailSettings.senderEmail}>
+                                        {formData.emailSettings.senderEmail || 'Nie podano'}
+                                    </DisplayValue>
                                 )}
-                            </FormGroup>
+                            </FormField>
 
-                            <FormGroup>
-                                <Label htmlFor="imapUsername">Użytkownik IMAP</Label>
-                                <Input
-                                    id="imapUsername"
-                                    type="email"
-                                    value={formData.emailSettings.imapUsername}
-                                    onChange={(e) => handleInputChange('emailSettings', 'imapUsername', e.target.value)}
-                                    placeholder="email@firma.pl"
-                                    $hasError={!!validationErrors['emailSettings.imapUsername']}
-                                />
-                                {validationErrors['emailSettings.imapUsername'] && (
-                                    <ErrorText>{validationErrors['emailSettings.imapUsername']}</ErrorText>
-                                )}
-                            </FormGroup>
-
-                            <FormGroup>
-                                <Label htmlFor="imapPassword">Hasło IMAP</Label>
-                                <PasswordInputContainer>
+                            <FormField>
+                                <FieldLabel>Nazwa nadawcy</FieldLabel>
+                                {editingSection === 'email' ? (
                                     <Input
-                                        id="imapPassword"
-                                        type={showPasswords.imap ? 'text' : 'password'}
-                                        value={formData.emailSettings.imapPassword}
-                                        onChange={(e) => handleInputChange('emailSettings', 'imapPassword', e.target.value)}
-                                        placeholder={false ? 'Hasło jest skonfigurowane' : 'Hasło IMAP'}
+                                        value={formData.emailSettings.senderName}
+                                        onChange={(e) => handleInputChange('emailSettings', 'senderName', e.target.value)}
+                                        placeholder="Nazwa firmy"
                                     />
-                                    <PasswordToggle
-                                        onClick={() => setShowPasswords(prev => ({ ...prev, imap: !prev.imap }))}
-                                    >
-                                        {showPasswords.imap ? <FaEyeSlash /> : <FaEye />}
-                                    </PasswordToggle>
-                                </PasswordInputContainer>
-                            </FormGroup>
+                                ) : (
+                                    <DisplayValue $hasValue={!!formData.emailSettings.senderName}>
+                                        {formData.emailSettings.senderName || 'Nie podano'}
+                                    </DisplayValue>
+                                )}
+                            </FormField>
+
+                            <FormField>
+                                <FieldLabel>Host SMTP</FieldLabel>
+                                {editingSection === 'email' ? (
+                                    <Input
+                                        value={formData.emailSettings.smtpHost}
+                                        onChange={(e) => handleInputChange('emailSettings', 'smtpHost', e.target.value)}
+                                        placeholder="smtp.gmail.com"
+                                    />
+                                ) : (
+                                    <DisplayValue $hasValue={!!formData.emailSettings.smtpHost}>
+                                        {formData.emailSettings.smtpHost || 'Nie podano'}
+                                    </DisplayValue>
+                                )}
+                            </FormField>
+
+                            <FormField>
+                                <FieldLabel>Port SMTP</FieldLabel>
+                                {editingSection === 'email' ? (
+                                    <Input
+                                        type="number"
+                                        value={formData.emailSettings.smtpPort}
+                                        onChange={(e) => handleInputChange('emailSettings', 'smtpPort', parseInt(e.target.value))}
+                                        placeholder="587"
+                                    />
+                                ) : (
+                                    <DisplayValue $hasValue={!!formData.emailSettings.smtpPort}>
+                                        {formData.emailSettings.smtpPort}
+                                    </DisplayValue>
+                                )}
+                            </FormField>
                         </FormGrid>
 
-                        <SubSectionTitle>Opcje bezpieczeństwa</SubSectionTitle>
-                        <SecurityOptionsGrid>
-                            <CheckboxGroup>
-                                <Checkbox
-                                    id="useSSL"
-                                    checked={formData.emailSettings.useSSL}
-                                    onChange={(e) => handleInputChange('emailSettings', 'useSSL', e.target.checked)}
-                                />
-                                <CheckboxLabel htmlFor="useSSL">Użyj SSL</CheckboxLabel>
-                            </CheckboxGroup>
-
-                            <CheckboxGroup>
-                                <Checkbox
-                                    id="useTLS"
-                                    checked={formData.emailSettings.useTLS}
-                                    onChange={(e) => handleInputChange('emailSettings', 'useTLS', e.target.checked)}
-                                />
-                                <CheckboxLabel htmlFor="useTLS">Użyj TLS</CheckboxLabel>
-                            </CheckboxGroup>
-                        </SecurityOptionsGrid>
-                    </SectionContent>
-                </SectionCard>
+                        {editingSection === 'email' && (
+                            <SecuritySection>
+                                <SecurityHeader>
+                                    <FaShieldAlt />
+                                    Opcje bezpieczeństwa
+                                </SecurityHeader>
+                                <SecurityOptions>
+                                    <SecurityOption>
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.emailSettings.useSSL}
+                                            onChange={(e) => handleInputChange('emailSettings', 'useSSL', e.target.checked)}
+                                        />
+                                        <span>Użyj SSL</span>
+                                    </SecurityOption>
+                                    <SecurityOption>
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.emailSettings.useTLS}
+                                            onChange={(e) => handleInputChange('emailSettings', 'useTLS', e.target.checked)}
+                                        />
+                                        <span>Użyj TLS</span>
+                                    </SecurityOption>
+                                </SecurityOptions>
+                            </SecuritySection>
+                        )}
+                    </CardBody>
+                </SettingsCard>
 
                 {/* Logo Settings */}
-                <SectionCard>
-                    <SectionHeader>
-                        <SectionIcon>
-                            <FaImage />
-                        </SectionIcon>
-                        <SectionTitle>Logo firmy</SectionTitle>
-                    </SectionHeader>
+                <SettingsCard>
+                    <CardHeader>
+                        <HeaderContent>
+                            <HeaderIcon>
+                                <FaImage />
+                            </HeaderIcon>
+                            <HeaderText>
+                                <HeaderTitle>Logo firmy</HeaderTitle>
+                                <HeaderSubtitle>Identyfikacja wizualna w dokumentach i systemie</HeaderSubtitle>
+                            </HeaderText>
+                        </HeaderContent>
+                    </CardHeader>
 
-                    <SectionContent>
-                        <LogoContainer>
-                            <LogoPreviewArea>
-                                {logoPreview ? (
-                                    <LogoPreview>
-                                        <LogoImage src={logoPreview} alt="Logo firmy" />
+                    <CardBody>
+                        <LogoSection>
+                            <LogoPreview>
+                                {formData.logoSettings.hasLogo ? (
+                                    <LogoContainer>
+                                        <LogoImage src={formData.logoSettings.logoUrl} alt="Logo firmy" />
                                         <LogoInfo>
-                                            {settings?.logoSettings.logoFileName && (
-                                                <LogoFileName>{settings.logoSettings.logoFileName}</LogoFileName>
-                                            )}
-                                            {settings?.logoSettings.logoSize && (
-                                                <LogoFileSize>{(settings.logoSettings.logoSize / 1024).toFixed(1)} KB</LogoFileSize>
-                                            )}
+                                            <LogoName>{formData.logoSettings.logoFileName}</LogoName>
+                                            <LogoActions>
+                                                <SecondaryButton>
+                                                    <FaUpload />
+                                                    Zmień logo
+                                                </SecondaryButton>
+                                                <DangerButton>
+                                                    <FaTrash />
+                                                    Usuń
+                                                </DangerButton>
+                                            </LogoActions>
                                         </LogoInfo>
-                                    </LogoPreview>
+                                    </LogoContainer>
                                 ) : (
                                     <LogoPlaceholder>
-                                        <FaImage />
-                                        <span>Brak logo</span>
+                                        <LogoPlaceholderIcon>
+                                            <FaImage />
+                                        </LogoPlaceholderIcon>
+                                        <LogoPlaceholderText>Brak logo</LogoPlaceholderText>
+                                        <PrimaryButton>
+                                            <FaUpload />
+                                            Dodaj logo
+                                        </PrimaryButton>
                                     </LogoPlaceholder>
                                 )}
-                            </LogoPreviewArea>
+                            </LogoPreview>
 
-                            <LogoActions>
-                                <input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    accept="image/jpeg,image/png,image/webp"
-                                    onChange={handleLogoSelect}
-                                    style={{ display: 'none' }}
-                                />
-
-                                <SecondaryButton onClick={() => fileInputRef.current?.click()}>
-                                    <FaUpload />
-                                    Wybierz plik
-                                </SecondaryButton>
-
-                                {logoFile && (
-                                    <PrimaryButton
-                                        onClick={handleLogoUpload}
-                                        disabled={uploadingLogo}
-                                    >
-                                        {uploadingLogo ? <FaSpinner /> : <FaSave />}
-                                        {uploadingLogo ? 'Przesyłanie...' : 'Prześlij logo'}
-                                    </PrimaryButton>
-                                )}
-
-                                {logoPreview && !logoFile && (
-                                    <DangerButton
-                                        onClick={handleLogoDelete}
-                                        disabled={deletingLogo}
-                                    >
-                                        {deletingLogo ? <FaSpinner /> : <FaTrash />}
-                                        {deletingLogo ? 'Usuwanie...' : 'Usuń logo'}
-                                    </DangerButton>
-                                )}
-                            </LogoActions>
-
-                            <LogoHelpText>
-                                Zalecane formaty: JPG, PNG, WebP. Maksymalny rozmiar: 5MB.
-                                Optymalne wymiary: 200x200px (kwadrat) lub 300x100px (poziom).
-                            </LogoHelpText>
-                        </LogoContainer>
-                    </SectionContent>
-                </SectionCard>
-            </ContentGrid>
-
-            {/* Unsaved Changes Indicator */}
-            {hasUnsavedChanges && (
-                <UnsavedChangesIndicator>
-                    <FaExclamationTriangle />
-                    Masz niezapisane zmiany
-                    <SecondaryButton onClick={handleReset} style={{ marginLeft: '12px', padding: '4px 8px', fontSize: '12px' }}>
-                        <FaUndo />
-                        Przywróć
-                    </SecondaryButton>
-                </UnsavedChangesIndicator>
-            )}
-        </ContentContainer>
+                            <LogoRequirements>
+                                <RequirementsTitle>Wymagania techniczne</RequirementsTitle>
+                                <RequirementsList>
+                                    <RequirementItem>Formaty: JPG, PNG, WebP</RequirementItem>
+                                    <RequirementItem>Maksymalny rozmiar: 5MB</RequirementItem>
+                                    <RequirementItem>Zalecane wymiary: 200x100px</RequirementItem>
+                                    <RequirementItem>Przezroczyste tło: PNG</RequirementItem>
+                                </RequirementsList>
+                            </LogoRequirements>
+                        </LogoSection>
+                    </CardBody>
+                </SettingsCard>
+            </ContentContainer>
+        </PageContainer>
     );
 });
 
-// Styled Components (bez zmian - te same co wcześniej)
+// Styled Components - Professional style matching finances
+const PageContainer = styled.div`
+    min-height: 100vh;
+    background: ${brandTheme.surfaceAlt};
+    display: flex;
+    flex-direction: column;
+`;
+
+const SummarySection = styled.section`
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl} 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: ${brandTheme.spacing.lg};
+
+    @media (max-width: 1024px) {
+        padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg} 0;
+        grid-template-columns: 1fr;
+    }
+`;
+
+const SummaryCard = styled.div`
+    background: ${brandTheme.surface};
+    border-radius: ${brandTheme.radius.lg};
+    border: 1px solid ${brandTheme.border};
+    overflow: hidden;
+    box-shadow: ${brandTheme.shadow.xs};
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.md};
+    padding: ${brandTheme.spacing.lg};
+    transition: all ${brandTheme.transitions.spring};
+    position: relative;
+    min-height: 110px;
+
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow: ${brandTheme.shadow.sm};
+        border-color: ${brandTheme.borderHover};
+    }
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: ${brandTheme.primary};
+        opacity: 0.8;
+    }
+`;
+
+const CardIcon = styled.div<{ $color: string }>`
+    width: 48px;
+    height: 48px;
+    background: ${brandTheme.surfaceAlt};
+    border-radius: ${brandTheme.radius.md};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${brandTheme.text.secondary};
+    font-size: 20px;
+    flex-shrink: 0;
+    border: 1px solid ${brandTheme.border};
+    transition: all ${brandTheme.transitions.spring};
+
+    ${SummaryCard}:hover & {
+        background: ${brandTheme.primary};
+        color: white;
+        border-color: ${brandTheme.primary};
+    }
+`;
+
+const CardContent = styled.div`
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 100%;
+`;
+
+const CardValue = styled.div`
+    font-size: 20px;
+    font-weight: 600;
+   color: ${brandTheme.text.primary};
+   margin-bottom: ${brandTheme.spacing.xs};
+   letter-spacing: -0.025em;
+   line-height: 1.2;
+   height: 24px;
+   display: flex;
+   align-items: center;
+
+   @media (max-width: 768px) {
+       font-size: 18px;
+   }
+`;
+
+const CardLabel = styled.div`
+   font-size: 14px;
+   color: ${brandTheme.text.primary};
+   font-weight: 600;
+   margin-bottom: ${brandTheme.spacing.xs};
+   text-transform: uppercase;
+   letter-spacing: 0.5px;
+   height: 17px;
+   display: flex;
+   align-items: center;
+`;
+
+const CardDetail = styled.div`
+   font-size: 12px;
+   color: ${brandTheme.text.tertiary};
+   font-weight: 500;
+   line-height: 1.3;
+   min-height: 16px;
+   display: flex;
+   align-items: center;
+`;
+
 const ContentContainer = styled.div`
    flex: 1;
    max-width: 1600px;
    margin: 0 auto;
-   padding: 0 ${settingsTheme.spacing.xl} ${settingsTheme.spacing.xl};
+   padding: 0 ${brandTheme.spacing.xl} ${brandTheme.spacing.xl};
    width: 100%;
    display: flex;
    flex-direction: column;
-   gap: ${settingsTheme.spacing.lg};
+   gap: ${brandTheme.spacing.lg};
    min-height: 0;
 
    @media (max-width: 1024px) {
-       padding: 0 ${settingsTheme.spacing.lg} ${settingsTheme.spacing.lg};
+       padding: 0 ${brandTheme.spacing.lg} ${brandTheme.spacing.lg};
    }
 
    @media (max-width: 768px) {
-       padding: 0 ${settingsTheme.spacing.md} ${settingsTheme.spacing.md};
-       gap: ${settingsTheme.spacing.md};
+       padding: 0 ${brandTheme.spacing.md} ${brandTheme.spacing.md};
+       gap: ${brandTheme.spacing.md};
    }
 `;
 
-const LoadingContainer = styled.div`
-   display: flex;
-   flex-direction: column;
-   align-items: center;
-   justify-content: center;
-   padding: ${settingsTheme.spacing.xxl};
-   background: ${settingsTheme.surface};
-   border-radius: ${settingsTheme.radius.xl};
-   border: 1px solid ${settingsTheme.border};
-   gap: ${settingsTheme.spacing.md};
-   min-height: 400px;
-`;
-
-const LoadingSpinner = styled.div`
-   width: 48px;
-   height: 48px;
-   border: 3px solid ${settingsTheme.borderLight};
-   border-top: 3px solid ${settingsTheme.primary};
-   border-radius: 50%;
-   animation: spin 1s linear infinite;
-
-   @keyframes spin {
-       0% { transform: rotate(0deg); }
-       100% { transform: rotate(360deg); }
-   }
-`;
-
-const LoadingText = styled.div`
-   font-size: 16px;
-   color: ${settingsTheme.text.secondary};
-   font-weight: 500;
-`;
-
-const MessageContainer = styled.div`
-   margin-bottom: ${settingsTheme.spacing.lg};
-`;
-
-const SuccessMessage = styled.div`
-   display: flex;
-   align-items: center;
-   gap: ${settingsTheme.spacing.sm};
-   background: ${settingsTheme.status.successLight};
-   color: ${settingsTheme.status.success};
-   padding: ${settingsTheme.spacing.md} ${settingsTheme.spacing.lg};
-   border-radius: ${settingsTheme.radius.lg};
-   border: 1px solid ${settingsTheme.status.success}30;
-   font-weight: 500;
-   box-shadow: ${settingsTheme.shadow.xs};
-`;
-
-const ErrorMessage = styled.div`
-   display: flex;
-   align-items: center;
-   gap: ${settingsTheme.spacing.sm};
-   background: ${settingsTheme.status.errorLight};
-   color: ${settingsTheme.status.error};
-   padding: ${settingsTheme.spacing.md} ${settingsTheme.spacing.lg};
-   border-radius: ${settingsTheme.radius.lg};
-   border: 1px solid ${settingsTheme.status.error}30;
-   font-weight: 500;
-   box-shadow: ${settingsTheme.shadow.xs};
-`;
-
-const MessageIcon = styled.div`
-   font-size: 18px;
-   flex-shrink: 0;
-`;
-
-const ContentGrid = styled.div`
-   display: grid;
-   grid-template-columns: 1fr;
-   gap: ${settingsTheme.spacing.lg};
-
-   @media (min-width: 1200px) {
-       grid-template-columns: 1fr 1fr;
-   }
-`;
-
-const SectionCard = styled.div`
-   background: ${settingsTheme.surface};
-   border-radius: ${settingsTheme.radius.xl};
-   border: 1px solid ${settingsTheme.border};
+const SettingsCard = styled.div`
+   background: ${brandTheme.surface};
+   border-radius: ${brandTheme.radius.xl};
+   border: 1px solid ${brandTheme.border};
    overflow: hidden;
-   box-shadow: ${settingsTheme.shadow.sm};
-   transition: all ${settingsTheme.transitions.spring};
+   box-shadow: ${brandTheme.shadow.sm};
+   transition: all ${brandTheme.transitions.spring};
 
    &:hover {
-       border-color: ${settingsTheme.borderHover};
-       box-shadow: ${settingsTheme.shadow.md};
+       box-shadow: ${brandTheme.shadow.md};
+       border-color: ${brandTheme.borderHover};
    }
 `;
 
-const SectionHeader = styled.div`
+const CardHeader = styled.div`
    display: flex;
+   justify-content: space-between;
    align-items: center;
-   gap: ${settingsTheme.spacing.md};
-   padding: ${settingsTheme.spacing.lg};
-   border-bottom: 1px solid ${settingsTheme.border};
-   background: ${settingsTheme.surfaceAlt};
+   padding: ${brandTheme.spacing.lg};
+   border-bottom: 1px solid ${brandTheme.border};
+   background: ${brandTheme.surfaceAlt};
+   gap: ${brandTheme.spacing.lg};
+
+   @media (max-width: 768px) {
+       flex-direction: column;
+       align-items: stretch;
+       gap: ${brandTheme.spacing.md};
+   }
 `;
 
-const SectionIcon = styled.div`
+const HeaderContent = styled.div`
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.md};
+   flex: 1;
+   min-width: 0;
+`;
+
+const HeaderIcon = styled.div`
    width: 40px;
    height: 40px;
-   background: ${settingsTheme.primaryGhost};
-   border-radius: ${settingsTheme.radius.lg};
+   background: ${brandTheme.primaryGhost};
+   border-radius: ${brandTheme.radius.md};
    display: flex;
    align-items: center;
    justify-content: center;
-   color: ${settingsTheme.primary};
+   color: ${brandTheme.primary};
    font-size: 18px;
    flex-shrink: 0;
 `;
 
-const SectionTitle = styled.h3`
-   font-size: 18px;
-   font-weight: 600;
-   color: ${settingsTheme.text.primary};
-   margin: 0;
-   letter-spacing: -0.025em;
+const HeaderText = styled.div`
    flex: 1;
+   min-width: 0;
 `;
 
-const TestEmailButton = styled.button`
+const HeaderTitle = styled.h3`
+   font-size: 18px;
+   font-weight: 600;
+   color: ${brandTheme.text.primary};
+   margin: 0 0 ${brandTheme.spacing.xs} 0;
+   letter-spacing: -0.025em;
+`;
+
+const HeaderSubtitle = styled.p`
+   font-size: 14px;
+   color: ${brandTheme.text.secondary};
+   margin: 0;
+   font-weight: 500;
+`;
+
+const HeaderActions = styled.div`
+   display: flex;
+   gap: ${brandTheme.spacing.sm};
+   align-items: center;
+   flex-shrink: 0;
+
+   @media (max-width: 768px) {
+       justify-content: stretch;
+       
+       > * {
+           flex: 1;
+       }
+   }
+`;
+
+const ActionGroup = styled.div`
+   display: flex;
+   gap: ${brandTheme.spacing.sm};
+
+   @media (max-width: 768px) {
+       width: 100%;
+       
+       > * {
+           flex: 1;
+       }
+   }
+`;
+
+const BaseButton = styled.button`
    display: flex;
    align-items: center;
-   gap: ${settingsTheme.spacing.sm};
-   padding: ${settingsTheme.spacing.sm} ${settingsTheme.spacing.md};
-   background: ${settingsTheme.status.infoLight};
-   color: ${settingsTheme.status.info};
-   border: 1px solid ${settingsTheme.status.info}30;
-   border-radius: ${settingsTheme.radius.md};
-   font-size: 14px;
+   gap: ${brandTheme.spacing.sm};
+   padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+   border-radius: ${brandTheme.radius.md};
    font-weight: 600;
+   font-size: 14px;
    cursor: pointer;
-   transition: all ${settingsTheme.transitions.spring};
+   transition: all ${brandTheme.transitions.spring};
+   border: 1px solid transparent;
+   white-space: nowrap;
+   min-height: 44px;
+   justify-content: center;
 
    &:hover:not(:disabled) {
-       background: ${settingsTheme.status.info};
-       color: white;
        transform: translateY(-1px);
-       box-shadow: ${settingsTheme.shadow.md};
+       box-shadow: ${brandTheme.shadow.md};
    }
 
    &:disabled {
@@ -1151,8 +914,8 @@ const TestEmailButton = styled.button`
        transform: none;
    }
 
-   svg {
-       animation: ${props => props.disabled ? 'spin 1s linear infinite' : 'none'};
+   .spinning {
+       animation: spin 1s linear infinite;
    }
 
    @keyframes spin {
@@ -1161,348 +924,404 @@ const TestEmailButton = styled.button`
    }
 `;
 
-const TestResultContainer = styled.div<{ $success: boolean }>`
+const PrimaryButton = styled(BaseButton)`
+   background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+   color: white;
+   box-shadow: ${brandTheme.shadow.sm};
+
+   &:hover:not(:disabled) {
+       background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
+       box-shadow: ${brandTheme.shadow.lg};
+   }
+`;
+
+const SecondaryButton = styled(BaseButton)`
+   background: ${brandTheme.surface};
+   color: ${brandTheme.text.secondary};
+   border-color: ${brandTheme.border};
+   box-shadow: ${brandTheme.shadow.xs};
+
+   &:hover:not(:disabled) {
+       background: ${brandTheme.surfaceHover};
+       color: ${brandTheme.text.primary};
+       border-color: ${brandTheme.borderHover};
+   }
+`;
+
+const DangerButton = styled(BaseButton)`
+   background: ${brandTheme.status.errorLight};
+   color: ${brandTheme.status.error};
+   border-color: ${brandTheme.status.error}30;
+
+   &:hover:not(:disabled) {
+       background: ${brandTheme.status.error};
+       color: white;
+       border-color: ${brandTheme.status.error};
+   }
+`;
+
+const TestResultBanner = styled.div<{ $success: boolean }>`
    display: flex;
    align-items: center;
-   gap: ${settingsTheme.spacing.sm};
-   padding: ${settingsTheme.spacing.md} ${settingsTheme.spacing.lg};
-   background: ${props => props.$success ? settingsTheme.status.successLight : settingsTheme.status.errorLight};
-   color: ${props => props.$success ? settingsTheme.status.success : settingsTheme.status.error};
-   border-bottom: 1px solid ${settingsTheme.border};
+   gap: ${brandTheme.spacing.md};
+   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.xl};
+   background: ${props => props.$success ? brandTheme.status.successLight : brandTheme.status.errorLight};
+   color: ${props => props.$success ? brandTheme.status.success : brandTheme.status.error};
+   border-bottom: 1px solid ${brandTheme.border};
    font-weight: 500;
 `;
 
 const TestResultIcon = styled.div`
-   font-size: 16px;
+   font-size: 18px;
    flex-shrink: 0;
 `;
 
 const TestResultText = styled.div`
    flex: 1;
-`;
-
-const TestErrorDetails = styled.div`
-   font-size: 12px;
-   opacity: 0.8;
-   margin-top: 4px;
-`;
-
-const SectionContent = styled.div`
-   padding: ${settingsTheme.spacing.lg};
-`;
-
-const SubSectionTitle = styled.h4`
-   font-size: 16px;
    font-weight: 600;
-   color: ${settingsTheme.text.primary};
-   margin: 0 0 ${settingsTheme.spacing.md} 0;
-   padding-top: ${settingsTheme.spacing.lg};
-   border-top: 1px solid ${settingsTheme.borderLight};
+`;
 
-   &:first-child {
-       padding-top: 0;
-       border-top: none;
-   }
+const CardBody = styled.div`
+   padding: ${brandTheme.spacing.xl};
+`;
+
+const ConfigStatusBanner = styled.div<{ $configured: boolean }>`
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.sm};
+   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+   background: ${props => props.$configured ? brandTheme.status.successLight : brandTheme.status.warningLight};
+   color: ${props => props.$configured ? brandTheme.status.success : brandTheme.status.warning};
+   border-radius: ${brandTheme.radius.md};
+   margin-bottom: ${brandTheme.spacing.lg};
+   border: 1px solid ${props => props.$configured ? brandTheme.status.success + '30' : brandTheme.status.warning + '30'};
+`;
+
+const StatusIcon = styled.div`
+   font-size: 16px;
+   flex-shrink: 0;
+`;
+
+const StatusText = styled.div`
+   font-weight: 500;
+   flex: 1;
 `;
 
 const FormGrid = styled.div`
    display: grid;
    grid-template-columns: 1fr 1fr;
-   gap: ${settingsTheme.spacing.md};
+   gap: ${brandTheme.spacing.lg};
 
    @media (max-width: 768px) {
        grid-template-columns: 1fr;
+       gap: ${brandTheme.spacing.md};
    }
 `;
 
-const FormGroup = styled.div<{ $fullWidth?: boolean }>`
+const FormField = styled.div<{ $fullWidth?: boolean }>`
    display: flex;
    flex-direction: column;
-   gap: ${settingsTheme.spacing.xs};
+   gap: ${brandTheme.spacing.sm};
    ${props => props.$fullWidth && 'grid-column: 1 / -1;'}
 `;
 
-const Label = styled.label`
-   font-weight: 600;
-   font-size: 14px;
-   color: ${settingsTheme.text.primary};
+const FieldLabel = styled.label`
    display: flex;
    align-items: center;
-   gap: ${settingsTheme.spacing.xs};
+   gap: ${brandTheme.spacing.sm};
+   font-weight: 600;
+   font-size: 14px;
+   color: ${brandTheme.text.primary};
+   
+   .icon {
+       font-size: 16px;
+   }
+   
+   svg {
+       font-size: 16px;
+       color: ${brandTheme.text.tertiary};
+   }
 `;
 
-const ValidationSpinner = styled.div`
-   font-size: 12px;
-   color: ${settingsTheme.text.muted};
-   animation: spin 1s linear infinite;
-
-   @keyframes spin {
-       0% { transform: rotate(0deg); }
-       100% { transform: rotate(360deg); }
-   }
+const RequiredMark = styled.span`
+   color: ${brandTheme.status.error};
+   font-weight: 700;
+   margin-left: ${brandTheme.spacing.xs};
 `;
 
 const ValidationStatus = styled.div<{ $valid: boolean }>`
-   font-size: 12px;
-   color: ${props => props.$valid ? settingsTheme.status.success : settingsTheme.status.error};
+   font-size: 14px;
+   color: ${props => props.$valid ? brandTheme.status.success : brandTheme.status.warning};
+   margin-left: auto;
 `;
 
-const Input = styled.input<{ $hasError?: boolean }>`
-   height: 44px;
-   padding: 0 ${settingsTheme.spacing.md};
-   border: 2px solid ${props => props.$hasError ? settingsTheme.status.error : settingsTheme.border};
-   border-radius: ${settingsTheme.radius.md};
-   font-size: 14px;
+const Input = styled.input`
+   height: 48px;
+   padding: 0 ${brandTheme.spacing.md};
+   border: 2px solid ${brandTheme.border};
+   border-radius: ${brandTheme.radius.md};
+   font-size: 15px;
    font-weight: 500;
-   background: ${settingsTheme.surface};
-   color: ${settingsTheme.text.primary};
-   transition: all ${settingsTheme.transitions.spring};
+   background: ${brandTheme.surface};
+   color: ${brandTheme.text.primary};
+   transition: all ${brandTheme.transitions.spring};
 
    &:focus {
        outline: none;
-       border-color: ${props => props.$hasError ? settingsTheme.status.error : settingsTheme.primary};
-       box-shadow: 0 0 0 3px ${props => props.$hasError ? settingsTheme.status.error + '30' : settingsTheme.primaryGhost};
+       border-color: ${brandTheme.primary};
+       box-shadow: 0 0 0 3px ${brandTheme.primaryGhost};
    }
 
    &::placeholder {
-       color: ${settingsTheme.text.muted};
+       color: ${brandTheme.text.muted};
        font-weight: 400;
    }
 `;
 
-const PasswordInputContainer = styled.div`
-   position: relative;
+const DisplayValue = styled.div<{ $hasValue: boolean }>`
+   padding: ${brandTheme.spacing.md};
+   background: ${brandTheme.surfaceElevated};
+   border: 2px solid ${brandTheme.borderLight};
+   border-radius: ${brandTheme.radius.md};
+   color: ${props => props.$hasValue ? brandTheme.text.primary : brandTheme.text.muted};
+   font-weight: 500;
+   font-size: 15px;
+   min-height: 48px;
    display: flex;
    align-items: center;
+   font-style: ${props => props.$hasValue ? 'normal' : 'italic'};
 `;
 
-const PasswordToggle = styled.button`
-   position: absolute;
-   right: 12px;
-   background: none;
-   border: none;
-   color: ${settingsTheme.text.muted};
-   cursor: pointer;
-   padding: 4px;
-   border-radius: ${settingsTheme.radius.sm};
-   transition: all ${settingsTheme.transitions.fast};
-
+const WebsiteLink = styled.a`
+   color: ${brandTheme.primary};
+   text-decoration: none;
+   font-weight: 600;
+   
    &:hover {
-       color: ${settingsTheme.text.primary};
-       background: ${settingsTheme.surfaceAlt};
+       text-decoration: underline;
    }
 `;
 
-const SecurityOptionsGrid = styled.div`
-   display: flex;
-   gap: ${settingsTheme.spacing.lg};
-   flex-wrap: wrap;
+const SecuritySection = styled.div`
+   margin-top: ${brandTheme.spacing.lg};
+   padding: ${brandTheme.spacing.lg};
+   background: ${brandTheme.surfaceElevated};
+   border-radius: ${brandTheme.radius.md};
+   border: 1px solid ${brandTheme.border};
 `;
 
-const CheckboxGroup = styled.div`
+const SecurityHeader = styled.h4`
    display: flex;
    align-items: center;
-   gap: ${settingsTheme.spacing.sm};
+   gap: ${brandTheme.spacing.sm};
+   font-size: 16px;
+   font-weight: 600;
+   color: ${brandTheme.text.primary};
+   margin: 0 0 ${brandTheme.spacing.md} 0;
+   
+   svg {
+       color: ${brandTheme.status.success};
+   }
 `;
 
-const Checkbox = styled.input.attrs({ type: 'checkbox' })`
-   width: 18px;
-   height: 18px;
-   accent-color: ${settingsTheme.primary};
-   cursor: pointer;
+const SecurityOptions = styled.div`
+   display: flex;
+   gap: ${brandTheme.spacing.lg};
+
+   @media (max-width: 480px) {
+       flex-direction: column;
+       gap: ${brandTheme.spacing.md};
+   }
 `;
 
-const CheckboxLabel = styled.label`
+const SecurityOption = styled.label`
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.sm};
    font-size: 14px;
    font-weight: 500;
-   color: ${settingsTheme.text.primary};
+   color: ${brandTheme.text.primary};
    cursor: pointer;
+
+   input[type="checkbox"] {
+       width: 18px;
+       height: 18px;
+       accent-color: ${brandTheme.primary};
+       cursor: pointer;
+   }
 `;
 
-const ErrorText = styled.div`
-   color: ${settingsTheme.status.error};
-   font-size: 12px;
-   font-weight: 500;
-   margin-top: 2px;
+const LogoSection = styled.div`
+   display: grid;
+   grid-template-columns: 2fr 1fr;
+   gap: ${brandTheme.spacing.xl};
+   align-items: start;
+
+   @media (max-width: 768px) {
+       grid-template-columns: 1fr;
+       gap: ${brandTheme.spacing.lg};
+   }
+`;
+
+const LogoPreview = styled.div`
+   border: 2px dashed ${brandTheme.border};
+   border-radius: ${brandTheme.radius.lg};
+   padding: ${brandTheme.spacing.xl};
+   background: ${brandTheme.surfaceElevated};
    display: flex;
    align-items: center;
-   gap: 4px;
+   justify-content: center;
+   min-height: 200px;
+   transition: all ${brandTheme.transitions.spring};
+
+   &:hover {
+       border-color: ${brandTheme.borderHover};
+   }
 `;
 
 const LogoContainer = styled.div`
    display: flex;
    flex-direction: column;
-   gap: ${settingsTheme.spacing.lg};
-`;
-
-const LogoPreviewArea = styled.div`
-   display: flex;
-   justify-content: center;
-   padding: ${settingsTheme.spacing.xl};
-   border: 2px dashed ${settingsTheme.border};
-   border-radius: ${settingsTheme.radius.lg};
-   background: ${settingsTheme.surfaceAlt};
-`;
-
-const LogoPreview = styled.div`
-   display: flex;
-   flex-direction: column;
    align-items: center;
-   gap: ${settingsTheme.spacing.md};
+   gap: ${brandTheme.spacing.lg};
+   text-align: center;
 `;
 
 const LogoImage = styled.img`
    max-width: 200px;
-   max-height: 200px;
+   max-height: 100px;
    object-fit: contain;
-   border-radius: ${settingsTheme.radius.md};
-   box-shadow: ${settingsTheme.shadow.md};
+   border-radius: ${brandTheme.radius.md};
+   box-shadow: ${brandTheme.shadow.sm};
+   border: 1px solid ${brandTheme.border};
 `;
 
 const LogoInfo = styled.div`
-   text-align: center;
+   display: flex;
+   flex-direction: column;
+   gap: ${brandTheme.spacing.md};
 `;
 
-const LogoFileName = styled.div`
-   font-size: 14px;
+const LogoName = styled.div`
    font-weight: 600;
-   color: ${settingsTheme.text.primary};
+   color: ${brandTheme.text.primary};
+   font-size: 14px;
 `;
 
-const LogoFileSize = styled.div`
-   font-size: 12px;
-   color: ${settingsTheme.text.muted};
+const LogoActions = styled.div`
+   display: flex;
+   gap: ${brandTheme.spacing.sm};
+   justify-content: center;
 `;
 
 const LogoPlaceholder = styled.div`
    display: flex;
    flex-direction: column;
    align-items: center;
-   gap: ${settingsTheme.spacing.sm};
-   color: ${settingsTheme.text.muted};
-   font-size: 16px;
-   font-weight: 500;
-
-   svg {
-       font-size: 32px;
-       opacity: 0.5;
-   }
-`;
-
-const LogoActions = styled.div`
-   display: flex;
-   gap: ${settingsTheme.spacing.sm};
-   justify-content: center;
-   flex-wrap: wrap;
-`;
-
-const LogoHelpText = styled.div`
-   font-size: 12px;
-   color: ${settingsTheme.text.muted};
+   gap: ${brandTheme.spacing.lg};
+   color: ${brandTheme.text.muted};
    text-align: center;
-   line-height: 1.4;
 `;
 
-const BaseButton = styled.button`
+const LogoPlaceholderIcon = styled.div`
+   width: 64px;
+   height: 64px;
+   background: ${brandTheme.borderLight};
+   border-radius: 50%;
    display: flex;
    align-items: center;
-   gap: ${settingsTheme.spacing.sm};
-   padding: ${settingsTheme.spacing.sm} ${settingsTheme.spacing.md};
-   border-radius: ${settingsTheme.radius.md};
+   justify-content: center;
+   font-size: 24px;
+   color: ${brandTheme.text.tertiary};
+`;
+
+const LogoPlaceholderText = styled.div`
+   font-size: 16px;
+   font-weight: 500;
+   color: ${brandTheme.text.secondary};
+`;
+
+const LogoRequirements = styled.div`
+   background: ${brandTheme.surface};
+   border: 1px solid ${brandTheme.border};
+   border-radius: ${brandTheme.radius.lg};
+   padding: ${brandTheme.spacing.lg};
+`;
+
+const RequirementsTitle = styled.h4`
+   font-size: 16px;
    font-weight: 600;
+   color: ${brandTheme.text.primary};
+   margin: 0 0 ${brandTheme.spacing.md} 0;
+`;
+
+const RequirementsList = styled.ul`
+   list-style: none;
+   padding: 0;
+   margin: 0;
+   display: flex;
+   flex-direction: column;
+   gap: ${brandTheme.spacing.sm};
+`;
+
+const RequirementItem = styled.li`
    font-size: 14px;
+   color: ${brandTheme.text.secondary};
+   font-weight: 500;
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.sm};
+
+   &::before {
+       content: '•';
+       color: ${brandTheme.primary};
+       font-weight: bold;
+       font-size: 16px;
+   }
+`;
+
+const FloatingSaveButton = styled.button`
+   position: fixed;
+   bottom: ${brandTheme.spacing.xl};
+   right: ${brandTheme.spacing.xl};
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.md};
+   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.xl};
+   background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+   color: white;
+   border: none;
+   border-radius: ${brandTheme.radius.xl};
+   font-weight: 600;
+   font-size: 16px;
    cursor: pointer;
-   transition: all ${settingsTheme.transitions.spring};
-   border: 1px solid transparent;
-   white-space: nowrap;
-   min-height: 44px;
-   position: relative;
-   overflow: hidden;
+   box-shadow: ${brandTheme.shadow.xl};
+   transition: all ${brandTheme.transitions.spring};
+   z-index: 1000;
+   min-width: 220px;
+   justify-content: center;
 
    &:hover:not(:disabled) {
-       transform: translateY(-1px);
-   }
-
-   &:active:not(:disabled) {
-       transform: translateY(0);
+       transform: translateY(-2px);
+       box-shadow: 0 20px 40px -5px rgba(26, 54, 93, 0.4);
+       background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
    }
 
    &:disabled {
-       opacity: 0.5;
+       opacity: 0.8;
        cursor: not-allowed;
        transform: none;
    }
 
-   @media (max-width: 576px) {
-       justify-content: center;
+   .spinning {
+       animation: spin 1s linear infinite;
    }
-`;
 
-const PrimaryButton = styled(BaseButton)`
-   background: linear-gradient(135deg, ${settingsTheme.primary} 0%, ${settingsTheme.primaryLight} 100%);
-   color: white;
-   box-shadow: ${settingsTheme.shadow.sm};
-
-   &:hover:not(:disabled) {
-       background: linear-gradient(135deg, ${settingsTheme.primaryDark} 0%, ${settingsTheme.primary} 100%);
-       box-shadow: ${settingsTheme.shadow.md};
-   }
-`;
-
-const SecondaryButton = styled(BaseButton)`
-   background: ${settingsTheme.surface};
-   color: ${settingsTheme.text.secondary};
-   border-color: ${settingsTheme.border};
-   box-shadow: ${settingsTheme.shadow.xs};
-
-   &:hover:not(:disabled) {
-       background: ${settingsTheme.surfaceHover};
-       color: ${settingsTheme.text.primary};
-       border-color: ${settingsTheme.borderHover};
-       box-shadow: ${settingsTheme.shadow.sm};
-   }
-`;
-
-const DangerButton = styled(BaseButton)`
-   background: ${settingsTheme.status.errorLight};
-   color: ${settingsTheme.status.error};
-   border-color: ${settingsTheme.status.error}30;
-
-   &:hover:not(:disabled) {
-       background: ${settingsTheme.status.error};
-       color: white;
-       border-color: ${settingsTheme.status.error};
-       box-shadow: ${settingsTheme.shadow.md};
-   }
-`;
-
-const UnsavedChangesIndicator = styled.div`
-   position: fixed;
-   bottom: 20px;
-   right: 20px;
-   display: flex;
-   align-items: center;
-   gap: ${settingsTheme.spacing.sm};
-   background: ${settingsTheme.status.warningLight};
-   color: ${settingsTheme.status.warning};
-   padding: ${settingsTheme.spacing.sm} ${settingsTheme.spacing.md};
-   border-radius: ${settingsTheme.radius.lg};
-   border: 1px solid ${settingsTheme.status.warning}30;
-   font-weight: 600;
-   font-size: 14px;
-   box-shadow: ${settingsTheme.shadow.lg};
-   z-index: 1000;
-   animation: slideIn 0.3s ease;
-
-   @keyframes slideIn {
-       from {
-           transform: translateX(100%);
-           opacity: 0;
-       }
-       to {
-           transform: translateX(0);
-           opacity: 1;
-       }
+   @media (max-width: 768px) {
+       bottom: ${brandTheme.spacing.lg};
+       right: ${brandTheme.spacing.lg};
+       left: ${brandTheme.spacing.lg};
+       min-width: auto;
    }
 `;
 

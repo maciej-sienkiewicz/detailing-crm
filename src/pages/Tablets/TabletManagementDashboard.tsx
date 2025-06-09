@@ -16,8 +16,77 @@ import {
     FaTimesCircle,
     FaExclamationTriangle,
     FaPaperPlane,
-    FaSpinner
+    FaSpinner, FaTimes
 } from 'react-icons/fa';
+
+// Professional Brand Theme - Consistent with the application
+const brandTheme = {
+    // Primary Colors - Professional Blue Palette
+    primary: 'var(--brand-primary, #1a365d)',
+    primaryLight: 'var(--brand-primary-light, #2c5aa0)',
+    primaryDark: 'var(--brand-primary-dark, #0f2027)',
+    primaryGhost: 'var(--brand-primary-ghost, rgba(26, 54, 93, 0.04))',
+
+    // Surface Colors - Clean & Minimal
+    surface: '#ffffff',
+    surfaceAlt: '#fafbfc',
+    surfaceElevated: '#f8fafc',
+    surfaceHover: '#f1f5f9',
+
+    // Typography Colors
+    text: {
+        primary: '#0f172a',
+        secondary: '#475569',
+        tertiary: '#64748b',
+        muted: '#94a3b8',
+        disabled: '#cbd5e1'
+    },
+
+    // Border Colors
+    border: '#e2e8f0',
+    borderLight: '#f1f5f9',
+    borderHover: '#cbd5e1',
+
+    // Status Colors - Automotive Grade
+    status: {
+        success: '#059669',
+        successLight: '#d1fae5',
+        warning: '#d97706',
+        warningLight: '#fef3c7',
+        error: '#dc2626',
+        errorLight: '#fee2e2',
+        info: '#0ea5e9',
+        infoLight: '#e0f2fe'
+    },
+
+    // Shadows - Professional Depth
+    shadow: {
+        xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+        sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+        md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+    },
+
+    // Spacing Scale
+    spacing: {
+        xs: '4px',
+        sm: '8px',
+        md: '16px',
+        lg: '24px',
+        xl: '32px',
+        xxl: '48px'
+    },
+
+    // Border Radius
+    radius: {
+        sm: '6px',
+        md: '8px',
+        lg: '12px',
+        xl: '16px',
+        xxl: '20px'
+    }
+};
 
 interface TabletManagementDashboardProps {
     tablets: TabletDevice[];
@@ -48,22 +117,22 @@ const TabletManagementDashboard: React.FC<TabletManagementDashboardProps> = ({
     };
 
     const getStatusColor = (status: string, isOnline?: boolean) => {
-        if (status === 'ACTIVE' && isOnline) return '#10b981'; // green
-        if (status === 'ACTIVE' && !isOnline) return '#f59e0b'; // yellow
-        if (status === 'INACTIVE') return '#6b7280'; // gray
-        if (status === 'MAINTENANCE') return '#3b82f6'; // blue
-        if (status === 'ERROR') return '#ef4444'; // red
-        return '#6b7280';
+        if (status === 'ACTIVE' && isOnline) return brandTheme.status.success;
+        if (status === 'ACTIVE' && !isOnline) return brandTheme.status.warning;
+        if (status === 'INACTIVE') return brandTheme.text.muted;
+        if (status === 'MAINTENANCE') return brandTheme.status.info;
+        if (status === 'ERROR') return brandTheme.status.error;
+        return brandTheme.text.muted;
     };
 
     const getSessionStatusColor = (status: string) => {
         switch (status) {
-            case 'PENDING': return '#f59e0b';
-            case 'SENT_TO_TABLET': return '#3b82f6';
-            case 'SIGNED': return '#10b981';
-            case 'EXPIRED': return '#6b7280';
-            case 'CANCELLED': return '#ef4444';
-            default: return '#6b7280';
+            case 'PENDING': return brandTheme.status.warning;
+            case 'SENT_TO_TABLET': return brandTheme.status.info;
+            case 'SIGNED': return brandTheme.status.success;
+            case 'EXPIRED': return brandTheme.text.muted;
+            case 'CANCELLED': return brandTheme.status.error;
+            default: return brandTheme.text.muted;
         }
     };
 
@@ -127,7 +196,6 @@ const TabletManagementDashboard: React.FC<TabletManagementDashboardProps> = ({
                 additionalNotes: formData.get('notes') as string || undefined
             };
 
-            // Używamy nowego endpointu /api/signatures/request
             const response = await tabletsApi.createSignatureSessionDirect(request);
 
             if (response.success) {
@@ -150,18 +218,28 @@ const TabletManagementDashboard: React.FC<TabletManagementDashboardProps> = ({
             <DashboardCard>
                 <TabNavigation>
                     <TabButton
-                        active={activeTab === 'tablets'}
+                        $active={activeTab === 'tablets'}
                         onClick={() => setActiveTab('tablets')}
                     >
-                        <FaTabletAlt />
-                        Tablety ({tablets.length})
+                        <TabIcon>
+                            <FaTabletAlt />
+                        </TabIcon>
+                        <TabContent>
+                            <TabLabel>Tablety</TabLabel>
+                            <TabCount>({tablets.length})</TabCount>
+                        </TabContent>
                     </TabButton>
                     <TabButton
-                        active={activeTab === 'sessions'}
+                        $active={activeTab === 'sessions'}
                         onClick={() => setActiveTab('sessions')}
                     >
-                        <FaSignature />
-                        Sesje Podpisów ({sessions.length})
+                        <TabIcon>
+                            <FaSignature />
+                        </TabIcon>
+                        <TabContent>
+                            <TabLabel>Sesje Podpisów</TabLabel>
+                            <TabCount>({sessions.length})</TabCount>
+                        </TabContent>
                     </TabButton>
                 </TabNavigation>
 
@@ -170,139 +248,178 @@ const TabletManagementDashboard: React.FC<TabletManagementDashboardProps> = ({
                         <TabletsGrid>
                             {tablets.length === 0 ? (
                                 <EmptyState>
-                                    <FaTabletAlt />
+                                    <EmptyStateIcon>
+                                        <FaTabletAlt />
+                                    </EmptyStateIcon>
                                     <EmptyStateText>
-                                        <h3>Brak podłączonych tabletów</h3>
-                                        <p>Użyj przycisku "Sparuj Tablet" aby dodać nowy tablet</p>
+                                        <EmptyStateTitle>Brak podłączonych tabletów</EmptyStateTitle>
+                                        <EmptyStateDescription>
+                                            Użyj przycisku "Sparuj Tablet" aby dodać nowy tablet
+                                        </EmptyStateDescription>
                                     </EmptyStateText>
                                 </EmptyState>
                             ) : (
                                 tablets.map(tablet => (
-                                    <TabletCard key={tablet.id} status={tablet.status} isOnline={tablet.isOnline}>
+                                    <TabletCard key={tablet.id} $status={tablet.status} $isOnline={tablet.isOnline}>
                                         <TabletHeader>
-                                            <TabletName>{tablet.friendlyName}</TabletName>
-                                            <StatusIndicator color={getStatusColor(tablet.status, tablet.isOnline)}>
+                                            <TabletInfo>
+                                                <TabletName>{tablet.friendlyName}</TabletName>
+                                                <TabletSubtitle>
+                                                    {tablet.isOnline ? 'Online' : `Ostatnia aktywność: ${formatLastSeen(tablet.lastSeen)}`}
+                                                </TabletSubtitle>
+                                            </TabletInfo>
+                                            <StatusIndicator $color={getStatusColor(tablet.status, tablet.isOnline)}>
                                                 <FaWifi />
                                                 {tablet.isOnline ? 'Online' : 'Offline'}
                                             </StatusIndicator>
                                         </TabletHeader>
 
-                                        <TabletInfo>
-                                            <InfoRow>
-                                                <InfoLabel>Status:</InfoLabel>
-                                                <InfoValue>{tablet.status}</InfoValue>
-                                            </InfoRow>
-                                            <InfoRow>
-                                                <InfoLabel>Ostatnia aktywność:</InfoLabel>
-                                                <InfoValue>{formatLastSeen(tablet.lastSeen)}</InfoValue>
-                                            </InfoRow>
-                                        </TabletInfo>
+                                        <TabletDetails>
+                                            <DetailRow>
+                                                <DetailLabel>Status:</DetailLabel>
+                                                <DetailValue>{tablet.status}</DetailValue>
+                                            </DetailRow>
+                                            <DetailRow>
+                                                <DetailLabel>Lokalizacja:</DetailLabel>
+                                                <DetailValue>{tablet.locationId || 'Brak'}</DetailValue>
+                                            </DetailRow>
+                                        </TabletDetails>
 
                                         <TabletActions>
-                                            <TabletActionButton
+                                            <ActionButton
                                                 onClick={() => handleRequestSignature(tablet)}
                                                 disabled={!tablet.isOnline}
                                                 title="Poproś o podpis"
+                                                $variant="view"
                                             >
                                                 <FaSignature />
-                                            </TabletActionButton>
-                                            <TabletActionButton
+                                            </ActionButton>
+                                            <ActionButton
                                                 onClick={() => handleSendSignatureRequest(tablet)}
                                                 disabled={!tablet.isOnline}
                                                 title="Wyślij żądanie podpisu"
+                                                $variant="view"
                                             >
                                                 <FaPaperPlane />
-                                            </TabletActionButton>
-                                            <TabletActionButton
+                                            </ActionButton>
+                                            <ActionButton
                                                 onClick={() => handleTestTablet(tablet.id)}
                                                 disabled={!tablet.isOnline}
                                                 title="Test tabletu"
+                                                $variant="view"
                                             >
                                                 <FaEye />
-                                            </TabletActionButton>
-                                            <TabletActionButton title="Edytuj" disabled>
+                                            </ActionButton>
+                                            <ActionButton
+                                                title="Edytuj"
+                                                disabled
+                                                $variant="edit"
+                                            >
                                                 <FaEdit />
-                                            </TabletActionButton>
-                                            <TabletActionButton danger title="Usuń" disabled>
+                                            </ActionButton>
+                                            <ActionButton
+                                                title="Usuń"
+                                                disabled
+                                                $variant="delete"
+                                            >
                                                 <FaTrash />
-                                            </TabletActionButton>
+                                            </ActionButton>
                                         </TabletActions>
                                     </TabletCard>
                                 ))
                             )}
                         </TabletsGrid>
                     ) : (
-                        <SessionsTable>
-                            <TableHeader>
-                                <HeaderCell>Klient</HeaderCell>
-                                <HeaderCell>Pojazd</HeaderCell>
-                                <HeaderCell>Usługa</HeaderCell>
-                                <HeaderCell>Status</HeaderCell>
-                                <HeaderCell>Tablet</HeaderCell>
-                                <HeaderCell>Utworzono</HeaderCell>
-                                <HeaderCell>Akcje</HeaderCell>
-                            </TableHeader>
+                        <SessionsContainer>
                             {sessions.length === 0 ? (
-                                <EmptySessionsState>
-                                    <FaSignature />
+                                <EmptyState>
+                                    <EmptyStateIcon>
+                                        <FaSignature />
+                                    </EmptyStateIcon>
                                     <EmptyStateText>
-                                        <h3>Brak sesji podpisów</h3>
-                                        <p>Sesje pojawią się tutaj po wysłaniu żądań podpisu do tabletów</p>
+                                        <EmptyStateTitle>Brak sesji podpisów</EmptyStateTitle>
+                                        <EmptyStateDescription>
+                                            Sesje pojawią się tutaj po wysłaniu żądań podpisu do tabletów
+                                        </EmptyStateDescription>
                                     </EmptyStateText>
-                                </EmptySessionsState>
+                                </EmptyState>
                             ) : (
-                                sessions.map(session => (
-                                    <TableRow key={session.id} onClick={() => onSessionClick(session)}>
-                                        <Cell>
-                                            <CustomerInfo>
-                                                <CustomerName>{session.customerName}</CustomerName>
-                                                <DocumentType>{session.documentType}</DocumentType>
-                                            </CustomerInfo>
-                                        </Cell>
-                                        <Cell>
-                                            <VehicleInfo>
-                                                <VehicleName>{session.vehicleInfo.make} {session.vehicleInfo.model}</VehicleName>
-                                                <LicensePlate>{session.vehicleInfo.licensePlate}</LicensePlate>
-                                            </VehicleInfo>
-                                        </Cell>
-                                        <Cell>{session.serviceType}</Cell>
-                                        <Cell>
-                                            <StatusBadge color={getSessionStatusColor(session.status)}>
-                                                {session.status === 'SIGNED' && <FaCheckCircle />}
-                                                {session.status === 'EXPIRED' && <FaTimesCircle />}
-                                                {session.status === 'SENT_TO_TABLET' && <FaClock />}
-                                                {session.status === 'CANCELLED' && <FaExclamationTriangle />}
-                                                {session.status}
-                                            </StatusBadge>
-                                        </Cell>
-                                        <Cell>
-                                            {session.assignedTabletId ?
-                                                tablets.find(t => t.id === session.assignedTabletId)?.friendlyName || 'Nieznany'
-                                                : '-'}
-                                        </Cell>
-                                        <Cell>{new Date(session.createdAt).toLocaleString('pl-PL')}</Cell>
-                                        <Cell>
-                                            <SessionActions>
-                                                <SessionActionButton title="Szczegóły" onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    onSessionClick(session);
-                                                }}>
-                                                    <FaEye />
-                                                </SessionActionButton>
-                                                {(session.status === 'PENDING' || session.status === 'SENT_TO_TABLET') && (
-                                                    <SessionActionButton danger title="Anuluj" onClick={(e) => {
+                                <SessionsList>
+                                    {sessions.map(session => (
+                                        <SessionCard key={session.id} onClick={() => onSessionClick(session)}>
+                                            <SessionHeader>
+                                                <SessionInfo>
+                                                    <CustomerName>{session.customerName}</CustomerName>
+                                                    <DocumentType>{session.documentType}</DocumentType>
+                                                </SessionInfo>
+                                                <StatusBadge $color={getSessionStatusColor(session.status)}>
+                                                    {session.status === 'SIGNED' && <FaCheckCircle />}
+                                                    {session.status === 'EXPIRED' && <FaTimesCircle />}
+                                                    {session.status === 'SENT_TO_TABLET' && <FaClock />}
+                                                    {session.status === 'CANCELLED' && <FaExclamationTriangle />}
+                                                    {session.status}
+                                                </StatusBadge>
+                                            </SessionHeader>
+
+                                            <SessionDetails>
+                                                <DetailRow>
+                                                    <DetailLabel>Pojazd:</DetailLabel>
+                                                    <VehicleInfo>
+                                                        <VehicleName>
+                                                            {session.vehicleInfo.make} {session.vehicleInfo.model}
+                                                        </VehicleName>
+                                                        <LicensePlate>{session.vehicleInfo.licensePlate}</LicensePlate>
+                                                    </VehicleInfo>
+                                                </DetailRow>
+                                                <DetailRow>
+                                                    <DetailLabel>Usługa:</DetailLabel>
+                                                    <DetailValue>{session.serviceType}</DetailValue>
+                                                </DetailRow>
+                                                <DetailRow>
+                                                    <DetailLabel>Tablet:</DetailLabel>
+                                                    <DetailValue>
+                                                        {session.assignedTabletId ?
+                                                            tablets.find(t => t.id === session.assignedTabletId)?.friendlyName || 'Nieznany'
+                                                            : '-'}
+                                                    </DetailValue>
+                                                </DetailRow>
+                                                <DetailRow>
+                                                    <DetailLabel>Utworzono:</DetailLabel>
+                                                    <DetailValue>{new Date(session.createdAt).toLocaleString('pl-PL')}</DetailValue>
+                                                </DetailRow>
+                                            </SessionDetails>
+
+                                            <SessionActions onClick={(e) => e.stopPropagation()}>
+                                                <ActionButton
+                                                    title="Szczegóły"
+                                                    onClick={(e) => {
                                                         e.stopPropagation();
-                                                        // Handle cancel
-                                                    }}>
+                                                        onSessionClick(session);
+                                                    }}
+                                                    $variant="view"
+                                                    $small
+                                                >
+                                                    <FaEye />
+                                                </ActionButton>
+                                                {(session.status === 'PENDING' || session.status === 'SENT_TO_TABLET') && (
+                                                    <ActionButton
+                                                        title="Anuluj"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            // Handle cancel
+                                                        }}
+                                                        $variant="delete"
+                                                        $small
+                                                    >
                                                         <FaTimesCircle />
-                                                    </SessionActionButton>
+                                                    </ActionButton>
                                                 )}
                                             </SessionActions>
-                                        </Cell>
-                                    </TableRow>
-                                ))
+                                        </SessionCard>
+                                    ))}
+                                </SessionsList>
                             )}
-                        </SessionsTable>
+                        </SessionsContainer>
                     )}
                 </ContentArea>
             </DashboardCard>
@@ -316,7 +433,9 @@ const TabletManagementDashboard: React.FC<TabletManagementDashboardProps> = ({
                                 <FaSignature />
                                 Poproś o Podpis Cyfrowy
                             </ModalTitle>
-                            <CloseButton onClick={() => setShowSignatureModal(false)}>×</CloseButton>
+                            <CloseButton onClick={() => setShowSignatureModal(false)}>
+                                <FaTimes />
+                            </CloseButton>
                         </ModalHeader>
                         <ModalContent>
                             <SignatureForm onSubmit={handleSubmitSignatureRequest}>
@@ -327,8 +446,8 @@ const TabletManagementDashboard: React.FC<TabletManagementDashboardProps> = ({
                                             <FaTabletAlt />
                                         </TabletIcon>
                                         <TabletDetails>
-                                            <TabletName>{selectedTablet.friendlyName}</TabletName>
-                                            <TabletStatus online={selectedTablet.isOnline}>
+                                            <TabletDisplayName>{selectedTablet.friendlyName}</TabletDisplayName>
+                                            <TabletStatus $online={selectedTablet.isOnline}>
                                                 {selectedTablet.isOnline ? 'Online' : 'Offline'}
                                             </TabletStatus>
                                         </TabletDetails>
@@ -393,89 +512,133 @@ const TabletManagementDashboard: React.FC<TabletManagementDashboardProps> = ({
 
                                 <FormGroup>
                                     <Label>Dodatkowe uwagi</Label>
-                                    <TextArea name="notes" rows={3} placeholder="Opcjonalne uwagi lub instrukcje specjalne..." />
+                                    <TextArea
+                                        name="notes"
+                                        rows={3}
+                                        placeholder="Opcjonalne uwagi lub instrukcje specjalne..."
+                                    />
                                 </FormGroup>
 
                                 <ModalActions>
-                                    <Button type="button" onClick={() => setShowSignatureModal(false)}>
+                                    <CancelButton type="button" onClick={() => setShowSignatureModal(false)}>
                                         Anuluj
-                                    </Button>
-                                    <Button type="submit" primary disabled={isSubmitting}>
+                                    </CancelButton>
+                                    <SubmitButton type="submit" disabled={isSubmitting}>
                                         {isSubmitting ? <FaSpinner className="spin" /> : <FaSignature />}
                                         {isSubmitting ? 'Wysyłanie...' : 'Poproś o podpis'}
-                                    </Button>
+                                    </SubmitButton>
                                 </ModalActions>
                             </SignatureForm>
                         </ModalContent>
                     </Modal>
                 </ModalOverlay>
             )}
+
+            <style>{`
+                .spin {
+                    animation: spin 1s linear infinite;
+                }
+                
+                @keyframes spin {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+            `}</style>
         </DashboardContainer>
     );
 };
 
-// Styled Components
+// Styled Components - Updated to match application theme
 const DashboardContainer = styled.div`
     padding: 0;
     margin: 0;
 `;
 
 const DashboardCard = styled.div`
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    border-radius: 24px;
-    box-shadow:
-            0 20px 25px -5px rgba(0, 0, 0, 0.1),
-            0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    border: 1px solid rgba(226, 232, 240, 0.8);
+    background: ${brandTheme.surface};
+    border-radius: ${brandTheme.radius.xl};
+    border: 1px solid ${brandTheme.border};
     overflow: hidden;
+    box-shadow: ${brandTheme.shadow.sm};
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
 `;
 
 const TabNavigation = styled.div`
     display: flex;
-    gap: 8px;
-    padding: 24px 24px 0 24px;
-    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.lg};
+    border-bottom: 1px solid ${brandTheme.border};
+    background: ${brandTheme.surfaceAlt};
+    flex-shrink: 0;
 `;
 
-const TabButton = styled.button<{ active: boolean }>`
+const TabButton = styled.button<{ $active: boolean }>`
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 16px 24px;
-    border: none;
-    border-radius: 16px;
-    font-weight: 600;
-    font-size: 16px;
+    gap: ${brandTheme.spacing.md};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    border: 2px solid ${props => props.$active ? brandTheme.primary : brandTheme.border};
+    border-radius: ${brandTheme.radius.lg};
+    background: ${props => props.$active ? brandTheme.primaryGhost : brandTheme.surface};
+    color: ${props => props.$active ? brandTheme.primary : brandTheme.text.secondary};
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s ease;
+    font-weight: 600;
 
-    ${props => props.active ? `
-        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-        color: white;
-        box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
-        transform: translateY(-2px);
-    ` : `
-        background: rgba(255, 255, 255, 0.8);
-        color: #64748b;
-        border: 1px solid rgba(226, 232, 240, 0.8);
-        
-        &:hover {
-            background: rgba(59, 130, 246, 0.1);
-            color: #3b82f6;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
-        }
-    `}
-
-    svg {
-        font-size: 18px;
+    &:hover {
+        border-color: ${brandTheme.primary};
+        color: ${brandTheme.primary};
+        background: ${brandTheme.primaryGhost};
+        transform: translateY(-1px);
+        box-shadow: ${brandTheme.shadow.md};
     }
 `;
 
+const TabIcon = styled.div`
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+`;
+
+const TabContent = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.xs};
+`;
+
+const TabLabel = styled.span`
+    font-size: 14px;
+    font-weight: 600;
+`;
+
+const TabCount = styled.span`
+    font-size: 12px;
+    opacity: 0.8;
+`;
+
 const ContentArea = styled.div`
-    padding: 32px;
-    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    flex: 1;
+    overflow-y: auto;
+    padding: ${brandTheme.spacing.lg};
+    min-height: 0;
+    
+    /* Custom scrollbar */
+    &::-webkit-scrollbar {
+        width: 6px;
+    }
+    &::-webkit-scrollbar-track {
+        background: ${brandTheme.surfaceAlt};
+    }
+    &::-webkit-scrollbar-thumb {
+        background: ${brandTheme.border};
+        border-radius: 3px;
+    }
 `;
 
 const EmptyState = styled.div`
@@ -483,64 +646,60 @@ const EmptyState = styled.div`
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 80px 40px;
+    padding: ${brandTheme.spacing.xxl};
     text-align: center;
-    color: #64748b;
-
-    svg {
-        font-size: 64px;
-        margin-bottom: 24px;
-        opacity: 0.5;
-    }
+    min-height: 400px;
 `;
 
-const EmptySessionsState = styled.div`
+const EmptyStateIcon = styled.div`
+    width: 64px;
+    height: 64px;
+    background: ${brandTheme.surfaceAlt};
+    border-radius: 50%;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 80px 40px;
-    text-align: center;
-    color: #64748b;
-    grid-column: 1 / -1;
-
-    svg {
-        font-size: 64px;
-        margin-bottom: 24px;
-        opacity: 0.5;
-    }
+    font-size: 24px;
+    color: ${brandTheme.text.tertiary};
+    margin-bottom: ${brandTheme.spacing.lg};
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
 `;
 
 const EmptyStateText = styled.div`
-    h3 {
-        font-size: 24px;
-        font-weight: 600;
-        color: #374151;
-        margin-bottom: 8px;
-    }
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.sm};
+`;
 
-    p {
-        font-size: 16px;
-        color: #6b7280;
-        margin: 0;
-    }
+const EmptyStateTitle = styled.h3`
+    font-size: 20px;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+    margin: 0;
+    letter-spacing: -0.025em;
+`;
+
+const EmptyStateDescription = styled.p`
+    font-size: 16px;
+    color: ${brandTheme.text.secondary};
+    margin: 0;
+    line-height: 1.5;
 `;
 
 const TabletsGrid = styled.div`
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 24px;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: ${brandTheme.spacing.lg};
 `;
 
-const TabletCard = styled.div<{ status: string; isOnline: boolean }>`
-    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-    border: 2px solid ${props => props.isOnline ? '#10b981' : 'rgba(226, 232, 240, 0.8)'};
-    border-radius: 20px;
-    padding: 24px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+const TabletCard = styled.div<{ $status: string; $isOnline: boolean }>`
+    background: ${brandTheme.surface};
+    border: 2px solid ${props => props.$isOnline ? brandTheme.status.success : brandTheme.border};
+    border-radius: ${brandTheme.radius.lg};
+    padding: ${brandTheme.spacing.lg};
+    transition: all 0.2s ease;
     position: relative;
     overflow: hidden;
-    backdrop-filter: blur(10px);
 
     &::before {
         content: '';
@@ -549,115 +708,146 @@ const TabletCard = styled.div<{ status: string; isOnline: boolean }>`
         left: 0;
         right: 0;
         height: 4px;
-        background: ${props => props.isOnline ?
-                'linear-gradient(90deg, #10b981 0%, #059669 100%)' :
-                'linear-gradient(90deg, #e2e8f0 0%, #cbd5e1 100%)'
-        };
+        background: ${props => props.$isOnline ? brandTheme.status.success : brandTheme.border};
     }
 
     &:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.15);
-        border-color: ${props => props.isOnline ? '#059669' : '#3b82f6'};
+        transform: translateY(-2px);
+        box-shadow: ${brandTheme.shadow.md};
+        border-color: ${props => props.$isOnline ? brandTheme.status.success : brandTheme.primary};
     }
 `;
 
 const TabletHeader = styled.div`
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-`;
-
-const TabletName = styled.h3`
-    font-size: 20px;
-    font-weight: 700;
-    color: #1e293b;
-    margin: 0;
-    letter-spacing: -0.01em;
-`;
-
-const StatusIndicator = styled.div<{ color: string }>`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    background: ${props => props.color}20;
-    color: ${props => props.color};
-    border-radius: 16px;
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    align-items: flex-start;
+    margin-bottom: ${brandTheme.spacing.md};
+    gap: ${brandTheme.spacing.md};
 `;
 
 const TabletInfo = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-bottom: 20px;
+    flex: 1;
+    min-width: 0;
 `;
 
-const InfoRow = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 0;
+const TabletName = styled.h3`
+    font-size: 18px;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+    margin: 0 0 ${brandTheme.spacing.xs} 0;
+    letter-spacing: -0.025em;
 `;
 
-const InfoLabel = styled.span`
-    display: flex;
-    align-items: center;
-    gap: 8px;
+const TabletSubtitle = styled.div`
     font-size: 14px;
-    color: #64748b;
+    color: ${brandTheme.text.secondary};
     font-weight: 500;
 `;
 
-const InfoValue = styled.span`
-    font-size: 14px;
-    color: #1e293b;
+const StatusIndicator = styled.div<{ $color: string }>`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.xs};
+    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
+    background: ${props => `${props.$color}15`};
+    color: ${props => props.$color};
+    border-radius: ${brandTheme.radius.md};
+    font-size: 12px;
     font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: 1px solid ${props => `${props.$color}30`};
+    flex-shrink: 0;
+`;
+
+const TabletDetails = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.sm};
+    margin-bottom: ${brandTheme.spacing.lg};
+`;
+
+const DetailRow = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+`;
+
+const DetailLabel = styled.span`
+    font-size: 14px;
+    color: ${brandTheme.text.secondary};
+    font-weight: 500;
+`;
+
+const DetailValue = styled.span`
+    font-size: 14px;
+    color: ${brandTheme.text.primary};
+    font-weight: 600;
+    text-align: right;
 `;
 
 const TabletActions = styled.div`
     display: flex;
-    gap: 12px;
+    gap: ${brandTheme.spacing.sm};
     justify-content: flex-end;
 `;
 
-const TabletActionButton = styled.button<{ danger?: boolean }>`
+const ActionButton = styled.button<{
+    $variant: 'view' | 'edit' | 'delete';
+    $small?: boolean;
+}>`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
+    width: ${props => props.$small ? '28px' : '32px'};
+    height: ${props => props.$small ? '28px' : '32px'};
     border: none;
-    border-radius: 12px;
+    border-radius: ${brandTheme.radius.sm};
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: ${props => props.$small ? '12px' : '13px'};
+    position: relative;
+    overflow: hidden;
 
-    ${props => props.danger ? `
-        background: rgba(239, 68, 68, 0.1);
-        color: #ef4444;
-        
-        &:hover:not(:disabled) {
-            background: #ef4444;
-            color: white;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
-        }
-    ` : `
-        background: rgba(59, 130, 246, 0.1);
-        color: #3b82f6;
-        
-        &:hover:not(:disabled) {
-            background: #3b82f6;
-            color: white;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
-        }
-    `}
+    ${({ $variant }) => {
+    switch ($variant) {
+        case 'view':
+            return `
+                    background: ${brandTheme.primaryGhost};
+                    color: ${brandTheme.primary};
+                    &:hover:not(:disabled) {
+                        background: ${brandTheme.primary};
+                        color: white;
+                        transform: translateY(-1px);
+                        box-shadow: ${brandTheme.shadow.md};
+                    }
+                `;
+        case 'edit':
+            return `
+                    background: ${brandTheme.status.warningLight};
+                    color: ${brandTheme.status.warning};
+                    &:hover:not(:disabled) {
+                        background: ${brandTheme.status.warning};
+                        color: white;
+                        transform: translateY(-1px);
+                        box-shadow: ${brandTheme.shadow.md};
+                    }
+                `;
+        case 'delete':
+            return `
+                    background: ${brandTheme.status.errorLight};
+                    color: ${brandTheme.status.error};
+                    &:hover:not(:disabled) {
+                        background: ${brandTheme.status.error};
+                        color: white;
+                        transform: translateY(-1px);
+                        box-shadow: ${brandTheme.shadow.md};
+                    }
+                `;
+    }
+}}
 
     &:disabled {
         opacity: 0.5;
@@ -667,201 +857,175 @@ const TabletActionButton = styled.button<{ danger?: boolean }>`
     }
 `;
 
-const SessionsTable = styled.div`
-    display: grid;
-    grid-template-columns: 1.5fr 1.5fr 1fr 0.8fr 1fr 1fr 0.8fr;
-    background: rgba(255, 255, 255, 0.8);
-    border-radius: 16px;
-    overflow: hidden;
-    backdrop-filter: blur(10px);
-`;
-
-const TableHeader = styled.div`
-    display: contents;
-
-    > div {
-        padding: 20px 24px;
-        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-        border-bottom: 2px solid rgba(226, 232, 240, 0.8);
-        font-size: 14px;
-        font-weight: 700;
-        color: #475569;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-`;
-
-const HeaderCell = styled.div``;
-
-const TableRow = styled.div`
-    display: contents;
-    cursor: pointer;
-
-    > div {
-        padding: 20px 24px;
-        border-bottom: 1px solid rgba(241, 245, 249, 0.8);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    &:hover > div {
-        background: rgba(59, 130, 246, 0.05);
-    }
-
-    &:last-child > div {
-        border-bottom: none;
-    }
-`;
-
-const Cell = styled.div`
-    display: flex;
-    align-items: center;
-    font-size: 14px;
-    color: #1e293b;
-`;
-
-const CustomerInfo = styled.div`
+const SessionsContainer = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: ${brandTheme.spacing.md};
+`;
+
+const SessionsList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.md};
+`;
+
+const SessionCard = styled.div`
+    background: ${brandTheme.surface};
+    border: 2px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.lg};
+    padding: ${brandTheme.spacing.lg};
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border-left: 4px solid ${brandTheme.primary};
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: ${brandTheme.shadow.lg};
+        border-color: ${brandTheme.primary};
+    }
+`;
+
+const SessionHeader = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: ${brandTheme.spacing.md};
+    gap: ${brandTheme.spacing.md};
+`;
+
+const SessionInfo = styled.div`
+    flex: 1;
+    min-width: 0;
 `;
 
 const CustomerName = styled.div`
     font-weight: 600;
-    color: #1e293b;
+    color: ${brandTheme.text.primary};
+    font-size: 16px;
+    margin-bottom: ${brandTheme.spacing.xs};
 `;
 
 const DocumentType = styled.div`
     font-size: 12px;
-    color: #64748b;
+    color: ${brandTheme.text.muted};
+`;
+
+const StatusBadge = styled.div<{ $color: string }>`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.xs};
+    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
+    background: ${props => `${props.$color}15`};
+    color: ${props => props.$color};
+    border-radius: ${brandTheme.radius.md};
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    width: fit-content;
+    letter-spacing: 0.5px;
+    border: 1px solid ${props => `${props.$color}30`};
+    flex-shrink: 0;
+`;
+
+const SessionDetails = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.sm};
+    margin-bottom: ${brandTheme.spacing.md};
 `;
 
 const VehicleInfo = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
+    text-align: right;
 `;
 
 const VehicleName = styled.div`
     font-weight: 600;
-    color: #1e293b;
+    color: ${brandTheme.text.primary};
+    font-size: 14px;
 `;
 
 const LicensePlate = styled.div`
     font-size: 12px;
-    color: #64748b;
+    color: ${brandTheme.text.muted};
     font-family: 'Courier New', monospace;
-    background: rgba(241, 245, 249, 0.8);
-    padding: 4px 8px;
-    border-radius: 8px;
+    background: ${brandTheme.surfaceAlt};
+    padding: 2px 6px;
+    border-radius: ${brandTheme.radius.sm};
     width: fit-content;
+    margin-left: auto;
     font-weight: 600;
-    letter-spacing: 0.05em;
-`;
-
-const StatusBadge = styled.div<{ color: string }>`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    background: ${props => props.color}20;
-    color: ${props => props.color};
-    border-radius: 16px;
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    width: fit-content;
-    letter-spacing: 0.05em;
-    border: 1px solid ${props => props.color}30;
+    letter-spacing: 0.5px;
 `;
 
 const SessionActions = styled.div`
     display: flex;
-    gap: 8px;
+    gap: ${brandTheme.spacing.xs};
+    justify-content: flex-end;
 `;
 
-const SessionActionButton = styled.button<{ danger?: boolean }>`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-    ${props => props.danger ? `
-        background: rgba(239, 68, 68, 0.1);
-        color: #ef4444;
-        
-        &:hover {
-            background: #ef4444;
-            color: white;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(239, 68, 68, 0.3);
-        }
-    ` : `
-        background: rgba(59, 130, 246, 0.1);
-        color: #3b82f6;
-        
-        &:hover {
-            background: #3b82f6;
-            color: white;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(59, 130, 246, 0.3);
-        }
-    `}
-`;
-
-// Modal Styles
+// Modal Styles - Updated to match application theme
 const ModalOverlay = styled.div`
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(0, 0, 0, 0.5);
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
-    backdrop-filter: blur(12px);
+    z-index: ${1050};
+    backdrop-filter: blur(4px);
+    padding: ${brandTheme.spacing.lg};
 `;
 
 const Modal = styled.div`
-    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-    border-radius: 24px;
-    box-shadow:
-            0 25px 50px -12px rgba(0, 0, 0, 0.25),
-            0 0 0 1px rgba(255, 255, 255, 0.8);
+    background: ${brandTheme.surface};
+    border-radius: ${brandTheme.radius.xl};
+    box-shadow: ${brandTheme.shadow.xl};
     max-width: 700px;
     width: 90%;
     max-height: 90vh;
     overflow-y: auto;
-    backdrop-filter: blur(20px);
+
+    /* Custom scrollbar */
+    &::-webkit-scrollbar {
+        width: 8px;
+    }
+    &::-webkit-scrollbar-track {
+        background: ${brandTheme.surfaceAlt};
+    }
+    &::-webkit-scrollbar-thumb {
+        background: ${brandTheme.border};
+        border-radius: 4px;
+    }
 `;
 
 const ModalHeader = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 32px 32px 0;
-    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
+    border-bottom: 1px solid ${brandTheme.border};
+    background: ${brandTheme.surfaceAlt};
 `;
 
 const ModalTitle = styled.h2`
     display: flex;
     align-items: center;
-    gap: 16px;
-    font-size: 28px;
+    gap: ${brandTheme.spacing.md};
+    font-size: 20px;
     font-weight: 700;
-    color: #1e293b;
+    color: ${brandTheme.text.primary};
     margin: 0;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.025em;
 
     svg {
-        color: #3b82f6;
-        font-size: 32px;
+        color: ${brandTheme.primary};
+        font-size: 24px;
     }
 `;
 
@@ -869,45 +1033,43 @@ const CloseButton = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     border: none;
-    border-radius: 50%;
-    background: rgba(241, 245, 249, 0.8);
-    color: #64748b;
-    font-size: 24px;
+    background: ${brandTheme.surfaceHover};
+    color: ${brandTheme.text.secondary};
+    border-radius: ${brandTheme.radius.md};
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s ease;
+    font-size: 18px;
 
     &:hover {
-        background: #ef4444;
-        color: white;
-        transform: scale(1.1);
-        box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
+        background: ${brandTheme.status.errorLight};
+        color: ${brandTheme.status.error};
+        transform: scale(1.05);
     }
 `;
 
 const ModalContent = styled.div`
-    padding: 32px;
-    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    padding: ${brandTheme.spacing.xl};
 `;
 
 const SignatureForm = styled.form`
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: ${brandTheme.spacing.lg};
 `;
 
 const FormGroup = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: ${brandTheme.spacing.xs};
 `;
 
 const FormRow = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 20px;
+    gap: ${brandTheme.spacing.md};
 
     @media (max-width: 768px) {
         grid-template-columns: 1fr;
@@ -917,169 +1079,177 @@ const FormRow = styled.div`
 const Label = styled.label`
     font-size: 14px;
     font-weight: 600;
-    color: #374151;
-    margin-bottom: 4px;
+    color: ${brandTheme.text.primary};
 `;
 
 const TabletInfoDisplay = styled.div`
     display: flex;
     align-items: center;
-    gap: 16px;
-    padding: 16px 20px;
-    background: rgba(59, 130, 246, 0.05);
-    border: 2px solid rgba(59, 130, 246, 0.2);
-    border-radius: 12px;
+    gap: ${brandTheme.spacing.md};
+    padding: ${brandTheme.spacing.md};
+    background: ${brandTheme.primaryGhost};
+    border: 2px solid ${brandTheme.primary}30;
+    border-radius: ${brandTheme.radius.md};
 `;
 
 const TabletIcon = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-    border-radius: 12px;
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+    border-radius: ${brandTheme.radius.md};
     color: white;
-    font-size: 20px;
+    font-size: 18px;
 `;
 
-const TabletDetails = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+const TabletDisplayName = styled.div`
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+    font-size: 16px;
 `;
 
-const TabletStatus = styled.div<{ online: boolean }>`
+const TabletStatus = styled.div<{ $online: boolean }>`
     font-size: 12px;
     font-weight: 500;
-    color: ${props => props.online ? '#059669' : '#dc2626'};
+    color: ${props => props.$online ? brandTheme.status.success : brandTheme.status.error};
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.5px;
 `;
 
 const Input = styled.input`
-    padding: 16px 20px;
-    border: 2px solid rgba(226, 232, 240, 0.8);
-    border-radius: 12px;
-    font-size: 16px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(10px);
+    height: 44px;
+    padding: 0 ${brandTheme.spacing.md};
+    border: 2px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.md};
+    font-size: 14px;
+    font-weight: 500;
+    background: ${brandTheme.surface};
+    color: ${brandTheme.text.primary};
+    transition: all 0.2s ease;
 
     &:focus {
         outline: none;
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
-        background: rgba(255, 255, 255, 1);
+        border-color: ${brandTheme.primary};
+        box-shadow: 0 0 0 3px ${brandTheme.primaryGhost};
     }
 
     &::placeholder {
-        color: #94a3b8;
+        color: ${brandTheme.text.muted};
+        font-weight: 400;
     }
 `;
 
 const Select = styled.select`
-    padding: 16px 20px;
-    border: 2px solid rgba(226, 232, 240, 0.8);
-    border-radius: 12px;
-    font-size: 16px;
-    background: rgba(255, 255, 255, 0.8);
+    height: 44px;
+    padding: 0 ${brandTheme.spacing.md};
+    border: 2px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.md};
+    font-size: 14px;
+    font-weight: 500;
+    background: ${brandTheme.surface};
+    color: ${brandTheme.text.primary};
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    backdrop-filter: blur(10px);
+    transition: all 0.2s ease;
 
     &:focus {
         outline: none;
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
-        background: rgba(255, 255, 255, 1);
-    }
-
-    &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
+        border-color: ${brandTheme.primary};
+        box-shadow: 0 0 0 3px ${brandTheme.primaryGhost};
     }
 `;
 
 const TextArea = styled.textarea`
-    padding: 16px 20px;
-    border: 2px solid rgba(226, 232, 240, 0.8);
-    border-radius: 12px;
-    font-size: 16px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(10px);
+    padding: ${brandTheme.spacing.md};
+    border: 2px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.md};
+    font-size: 14px;
+    font-weight: 500;
+    background: ${brandTheme.surface};
+    color: ${brandTheme.text.primary};
     resize: vertical;
-    min-height: 100px;
+    min-height: 80px;
     font-family: inherit;
+    transition: all 0.2s ease;
 
     &:focus {
         outline: none;
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
-        background: rgba(255, 255, 255, 1);
+        border-color: ${brandTheme.primary};
+        box-shadow: 0 0 0 3px ${brandTheme.primaryGhost};
     }
 
     &::placeholder {
-        color: #94a3b8;
+        color: ${brandTheme.text.muted};
+        font-weight: 400;
     }
 `;
 
 const ModalActions = styled.div`
     display: flex;
-    gap: 16px;
+    gap: ${brandTheme.spacing.md};
     justify-content: flex-end;
-    margin-top: 32px;
-    padding-top: 24px;
-    border-top: 1px solid rgba(226, 232, 240, 0.8);
+    margin-top: ${brandTheme.spacing.xl};
+    padding-top: ${brandTheme.spacing.lg};
+    border-top: 1px solid ${brandTheme.border};
+
+    @media (max-width: 576px) {
+        flex-direction: column-reverse;
+    }
 `;
 
-const Button = styled.button<{ primary?: boolean }>`
+const CancelButton = styled.button`
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 16px 32px;
-    border: none;
-    border-radius: 12px;
+    justify-content: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    border: 2px solid ${brandTheme.border};
+    background: ${brandTheme.surface};
+    color: ${brandTheme.text.secondary};
+    border-radius: ${brandTheme.radius.md};
     font-weight: 600;
-    font-size: 16px;
+    font-size: 14px;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s ease;
+    min-height: 44px;
 
-    ${props => props.primary ? `
-        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-        color: white;
-        box-shadow: 0 4px 14px rgba(59, 130, 246, 0.39);
-        
-        &:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.5);
-        }
-    ` : `
-        background: rgba(241, 245, 249, 0.8);
-        color: #64748b;
-        border: 1px solid rgba(226, 232, 240, 0.8);
-        
-        &:hover {
-            background: rgba(226, 232, 240, 0.8);
-            color: #475569;
-            transform: translateY(-1px);
-        }
-    `}
+    &:hover {
+        border-color: ${brandTheme.borderHover};
+        color: ${brandTheme.text.primary};
+        background: ${brandTheme.surfaceHover};
+        box-shadow: ${brandTheme.shadow.sm};
+    }
+`;
+
+const SubmitButton = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+    color: white;
+    border: none;
+    border-radius: ${brandTheme.radius.md};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: ${brandTheme.shadow.sm};
+    min-height: 44px;
+
+    &:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: ${brandTheme.shadow.md};
+        background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
+    }
 
     &:disabled {
-        opacity: 0.5;
+        opacity: 0.6;
         cursor: not-allowed;
-        transform: none !important;
-    }
-
-    .spin {
-        animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
+        transform: none;
+        box-shadow: ${brandTheme.shadow.xs};
     }
 `;
 

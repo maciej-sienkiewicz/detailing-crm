@@ -3,7 +3,6 @@ import React, { useState, useCallback } from 'react';
 import styled from 'styled-components';
 import TabletManagementDashboard from './TabletManagementDashboard';
 import SessionDetailsModal from './components/SessionDetailsModal';
-import WebSocketManager from './components/WebSocketManager';
 import { useTablets } from '../../hooks/useTablets';
 import {
     FaTabletAlt,
@@ -14,6 +13,75 @@ import {
     FaExclamationTriangle,
     FaCheckCircle
 } from 'react-icons/fa';
+
+// Professional Brand Theme - Consistent with Finance module
+const brandTheme = {
+    // Primary Colors - Professional Blue Palette
+    primary: 'var(--brand-primary, #1a365d)',
+    primaryLight: 'var(--brand-primary-light, #2c5aa0)',
+    primaryDark: 'var(--brand-primary-dark, #0f2027)',
+    primaryGhost: 'var(--brand-primary-ghost, rgba(26, 54, 93, 0.04))',
+
+    // Surface Colors - Clean & Minimal
+    surface: '#ffffff',
+    surfaceAlt: '#fafbfc',
+    surfaceElevated: '#f8fafc',
+    surfaceHover: '#f1f5f9',
+
+    // Typography Colors
+    text: {
+        primary: '#0f172a',
+        secondary: '#475569',
+        tertiary: '#64748b',
+        muted: '#94a3b8',
+        disabled: '#cbd5e1'
+    },
+
+    // Border Colors
+    border: '#e2e8f0',
+    borderLight: '#f1f5f9',
+    borderHover: '#cbd5e1',
+
+    // Status Colors - Automotive Grade
+    status: {
+        success: '#059669',
+        successLight: '#d1fae5',
+        warning: '#d97706',
+        warningLight: '#fef3c7',
+        error: '#dc2626',
+        errorLight: '#fee2e2',
+        info: '#0ea5e9',
+        infoLight: '#e0f2fe'
+    },
+
+    // Shadows - Professional Depth
+    shadow: {
+        xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+        sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+        md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+    },
+
+    // Spacing Scale
+    spacing: {
+        xs: '4px',
+        sm: '8px',
+        md: '16px',
+        lg: '24px',
+        xl: '32px',
+        xxl: '48px'
+    },
+
+    // Border Radius
+    radius: {
+        sm: '6px',
+        md: '8px',
+        lg: '12px',
+        xl: '16px',
+        xxl: '20px'
+    }
+};
 
 // Get company ID from localStorage
 const getCompanyId = (): number | null => {
@@ -170,7 +238,9 @@ const TabletIntegrationPage: React.FC = () => {
         return (
             <PageContainer>
                 <ErrorContainer>
-                    <FaExclamationTriangle />
+                    <ErrorIcon>
+                        <FaExclamationTriangle />
+                    </ErrorIcon>
                     <ErrorText>
                         Brak ID firmy. Proszę się zalogować ponownie.
                     </ErrorText>
@@ -183,7 +253,7 @@ const TabletIntegrationPage: React.FC = () => {
         return (
             <PageContainer>
                 <LoadingContainer>
-                    <FaSpinner className="spin" />
+                    <LoadingSpinner />
                     <LoadingText>Ładowanie danych tabletów...</LoadingText>
                 </LoadingContainer>
             </PageContainer>
@@ -194,7 +264,9 @@ const TabletIntegrationPage: React.FC = () => {
         return (
             <PageContainer>
                 <ErrorContainer>
-                    <FaExclamationTriangle />
+                    <ErrorIcon>
+                        <FaExclamationTriangle />
+                    </ErrorIcon>
                     <ErrorText>Nie udało się załadować danych: {error}</ErrorText>
                 </ErrorContainer>
             </PageContainer>
@@ -204,61 +276,51 @@ const TabletIntegrationPage: React.FC = () => {
     return (
         <PageContainer>
             {/* Professional Header */}
-            <PageHeader>
+            <HeaderContainer>
                 <HeaderContent>
-                    <HeaderTitleSection>
+                    <HeaderLeft>
                         <HeaderIcon>
                             <FaTabletAlt />
                         </HeaderIcon>
-                        <HeaderTextGroup>
+                        <HeaderText>
                             <HeaderTitle>Integracja Tabletów</HeaderTitle>
                             <HeaderSubtitle>
                                 Centrum zarządzania urządzeniami mobilnymi i podpisami cyfrowymi
                             </HeaderSubtitle>
-                        </HeaderTextGroup>
-                    </HeaderTitleSection>
+                        </HeaderText>
+                    </HeaderLeft>
+
+                    <HeaderActions>
+                        <ConnectedDevicesIndicator>
+                            <DeviceStatusIcon>
+                                <FaWifi />
+                            </DeviceStatusIcon>
+                            <DeviceStatusInfo>
+                                <DeviceCount>{realtimeStats.connectedTablets}</DeviceCount>
+                                <DeviceLabel>urządzeń online</DeviceLabel>
+                            </DeviceStatusInfo>
+                        </ConnectedDevicesIndicator>
+
+                        <PairTabletButton
+                            onClick={handlePairTablet}
+                            disabled={isPairingCodeGenerating}
+                        >
+                            {isPairingCodeGenerating ? <FaSpinner className="spin" /> : <FaPlus />}
+                            {isPairingCodeGenerating ? 'Generowanie...' : 'Sparuj Tablet'}
+                        </PairTabletButton>
+                    </HeaderActions>
                 </HeaderContent>
-
-                <HeaderActions>
-                    <ConnectedDevicesIndicator>
-                        <DeviceStatusIcon>
-                            <FaWifi />
-                        </DeviceStatusIcon>
-                        <DeviceStatusInfo>
-                            <DeviceCount>{realtimeStats.connectedTablets}</DeviceCount>
-                            <DeviceLabel>urządzeń online</DeviceLabel>
-                        </DeviceStatusInfo>
-                    </ConnectedDevicesIndicator>
-
-                    <PairTabletButton
-                        onClick={handlePairTablet}
-                        disabled={isPairingCodeGenerating}
-                    >
-                        {isPairingCodeGenerating ? <FaSpinner className="spin" /> : <FaPlus />}
-                        {isPairingCodeGenerating ? 'Generowanie...' : 'Sparuj Tablet'}
-                    </PairTabletButton>
-                </HeaderActions>
-            </PageHeader>
-
-            {/* WebSocket connection manager */}
-            <ConnectionSection>
-                <WebSocketManager
-                    companyId={companyId}
-                    onTabletConnectionChange={handleTabletConnectionChange}
-                    onSignatureUpdate={handleSignatureUpdate}
-                    onNotification={handleNotification}
-                />
-            </ConnectionSection>
+            </HeaderContainer>
 
             {/* Main dashboard */}
-            <DashboardSection>
+            <ContentContainer>
                 <TabletManagementDashboard
                     tablets={tablets}
                     sessions={sessions}
                     onSessionClick={handleSessionClick}
                     realtimeStats={realtimeStats}
                 />
-            </DashboardSection>
+            </ContentContainer>
 
             {/* Session details modal */}
             {showSessionDetails && selectedSession && (
@@ -280,7 +342,9 @@ const TabletIntegrationPage: React.FC = () => {
                                 <FaTabletAlt />
                                 Parowanie nowego tabletu
                             </PairingModalTitle>
-                            <CloseButton onClick={handleClosePairingModal}>×</CloseButton>
+                            <CloseButton onClick={handleClosePairingModal}>
+                                <FaTimes />
+                            </CloseButton>
                         </PairingModalHeader>
 
                         <PairingModalContent>
@@ -346,28 +410,6 @@ const TabletIntegrationPage: React.FC = () => {
                 </PairingModalOverlay>
             )}
 
-            {/* System Status Bar */}
-            <SystemStatusBar>
-                <StatusItem status="healthy">
-                    <StatusIndicator color="#10b981" />
-                    <StatusText>API: Operacyjne</StatusText>
-                </StatusItem>
-
-                <StatusItem status="healthy">
-                    <StatusIndicator color="#10b981" />
-                    <StatusText>WebSocket: Połączony</StatusText>
-                </StatusItem>
-
-                <StatusItem status="healthy">
-                    <StatusIndicator color="#10b981" />
-                    <StatusText>Baza danych: Dostępna</StatusText>
-                </StatusItem>
-
-                <StatusTimestamp>
-                    Ostatnia aktualizacja: {new Date().toLocaleTimeString('pl-PL')}
-                </StatusTimestamp>
-            </SystemStatusBar>
-
             <style>{`
                 .spin {
                     animation: spin 1s linear infinite;
@@ -382,515 +424,589 @@ const TabletIntegrationPage: React.FC = () => {
     );
 };
 
-// Styled Components (existing ones remain the same, adding new ones)
+// Styled Components - Updated to match the application theme
+// Styled Components - Updated to match the application theme
 const PageContainer = styled.div`
-    min-height: 100vh;
-    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-    display: grid;
-    grid-template-areas:
-        "header"
-        "connection"
-        "dashboard"
-        "status";
-    grid-template-rows: auto auto 1fr auto;
-    gap: 24px;
-    padding: 24px;
+   min-height: 100vh;
+   background: ${brandTheme.surfaceAlt};
+   display: flex;
+   flex-direction: column;
 `;
 
 const LoadingContainer = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 60vh;
-    gap: 16px;
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   justify-content: center;
+   padding: ${brandTheme.spacing.xxl};
+   background: ${brandTheme.surface};
+   border-radius: ${brandTheme.radius.xl};
+   border: 1px solid ${brandTheme.border};
+   gap: ${brandTheme.spacing.md};
+   min-height: 400px;
+   margin: ${brandTheme.spacing.xl};
+`;
 
-    svg {
-        font-size: 48px;
-        color: #3b82f6;
-    }
+const LoadingSpinner = styled.div`
+   width: 48px;
+   height: 48px;
+   border: 3px solid ${brandTheme.borderLight};
+   border-top: 3px solid ${brandTheme.primary};
+   border-radius: 50%;
+   animation: spin 1s linear infinite;
+
+   @keyframes spin {
+       0% { transform: rotate(0deg); }
+       100% { transform: rotate(360deg); }
+   }
 `;
 
 const LoadingText = styled.div`
-    font-size: 18px;
-    color: #64748b;
-    font-weight: 500;
+   font-size: 16px;
+   color: ${brandTheme.text.secondary};
+   font-weight: 500;
 `;
 
 const ErrorContainer = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 60vh;
-    gap: 16px;
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   justify-content: center;
+   padding: ${brandTheme.spacing.xxl};
+   background: ${brandTheme.surface};
+   border-radius: ${brandTheme.radius.xl};
+   border: 2px dashed ${brandTheme.border};
+   text-align: center;
+   min-height: 400px;
+   margin: ${brandTheme.spacing.xl};
+`;
 
-    svg {
-        font-size: 48px;
-        color: #ef4444;
-    }
+const ErrorIcon = styled.div`
+   width: 64px;
+   height: 64px;
+   background: ${brandTheme.surfaceAlt};
+   border-radius: 50%;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   font-size: 24px;
+   color: ${brandTheme.status.error};
+   margin-bottom: ${brandTheme.spacing.lg};
+   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
 `;
 
 const ErrorText = styled.div`
-    font-size: 18px;
-    color: #ef4444;
-    font-weight: 500;
-    text-align: center;
-    max-width: 600px;
+   font-size: 18px;
+   color: ${brandTheme.status.error};
+   font-weight: 500;
+   text-align: center;
+   max-width: 600px;
 `;
 
-const PageHeader = styled.div`
-    grid-area: header;
-    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-    border-radius: 24px;
-    padding: 40px;
-    box-shadow:
-            0 20px 25px -5px rgba(0, 0, 0, 0.1),
-            0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    border: 1px solid rgba(226, 232, 240, 0.8);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    backdrop-filter: blur(10px);
-
-    @media (max-width: 768px) {
-        flex-direction: column;
-        gap: 24px;
-        align-items: flex-start;
-        padding: 24px;
-    }
+const HeaderContainer = styled.header`
+   background: ${brandTheme.surface};
+   border-bottom: 1px solid ${brandTheme.border};
+   box-shadow: ${brandTheme.shadow.sm};
+   position: sticky;
+   top: 0;
+   z-index: 100;
+   backdrop-filter: blur(8px);
+   background: rgba(255, 255, 255, 0.95);
 `;
 
 const HeaderContent = styled.div`
-    flex: 1;
+   max-width: 1600px;
+   margin: 0 auto;
+   padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   gap: ${brandTheme.spacing.lg};
+
+   @media (max-width: 1024px) {
+       padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+       flex-direction: column;
+       align-items: stretch;
+       gap: ${brandTheme.spacing.md};
+   }
+
+   @media (max-width: 768px) {
+       padding: ${brandTheme.spacing.md};
+   }
 `;
 
-const HeaderTitleSection = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 20px;
+const HeaderLeft = styled.div`
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.md};
+   min-width: 0;
+   flex: 1;
 `;
 
 const HeaderIcon = styled.div`
-    width: 64px;
-    height: 64px;
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-    border-radius: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 28px;
-    color: white;
-    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+   width: 56px;
+   height: 56px;
+   background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+   border-radius: ${brandTheme.radius.lg};
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   color: white;
+   font-size: 24px;
+   box-shadow: ${brandTheme.shadow.md};
+   flex-shrink: 0;
 `;
 
-const HeaderTextGroup = styled.div``;
+const HeaderText = styled.div`
+   min-width: 0;
+   flex: 1;
+`;
 
 const HeaderTitle = styled.h1`
-    font-size: 42px;
-    font-weight: 800;
-    background: linear-gradient(135deg, #1e293b 0%, #475569 100%);
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin: 0 0 8px 0;
-    letter-spacing: -0.02em;
-    line-height: 1.1;
+   font-size: 32px;
+   font-weight: 700;
+   color: ${brandTheme.text.primary};
+   margin: 0 0 ${brandTheme.spacing.xs} 0;
+   letter-spacing: -0.025em;
+   line-height: 1.2;
+
+   @media (max-width: 768px) {
+       font-size: 28px;
+   }
 `;
 
 const HeaderSubtitle = styled.p`
-    color: #64748b;
-    font-size: 18px;
-    margin: 0;
-    max-width: 600px;
-    line-height: 1.6;
-    font-weight: 400;
+   color: ${brandTheme.text.secondary};
+   margin: 0;
+   font-size: 16px;
+   font-weight: 500;
+   line-height: 1.4;
+
+   @media (max-width: 768px) {
+       font-size: 14px;
+   }
 `;
 
 const HeaderActions = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 24px;
+   display: flex;
+   gap: ${brandTheme.spacing.md};
+   align-items: center;
+   flex-wrap: wrap;
 
-    @media (max-width: 768px) {
-        width: 100%;
-        justify-content: space-between;
-        flex-wrap: wrap;
-    }
+   @media (max-width: 1024px) {
+       justify-content: flex-end;
+       width: 100%;
+   }
+
+   @media (max-width: 768px) {
+       flex-direction: column;
+       gap: ${brandTheme.spacing.xs};
+
+       > * {
+           width: 100%;
+       }
+   }
 `;
 
 const ConnectedDevicesIndicator = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 20px 24px;
-    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-    border: 2px solid #0ea5e9;
-    border-radius: 16px;
-    box-shadow: 0 4px 6px -1px rgba(14, 165, 233, 0.1);
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.md};
+   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+   background: ${brandTheme.surfaceAlt};
+   border: 1px solid ${brandTheme.border};
+   border-radius: ${brandTheme.radius.lg};
+   box-shadow: ${brandTheme.shadow.xs};
 `;
 
 const DeviceStatusIcon = styled.div`
-    font-size: 24px;
-    color: #0ea5e9;
+   width: 32px;
+   height: 32px;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   color: ${brandTheme.primary};
+   font-size: 16px;
 `;
 
 const DeviceStatusInfo = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
+   display: flex;
+   flex-direction: column;
+   align-items: flex-start;
 `;
 
 const DeviceCount = styled.div`
-    font-size: 28px;
-    font-weight: 700;
-    color: #0c4a6e;
-    line-height: 1;
+   font-size: 20px;
+   font-weight: 700;
+   color: ${brandTheme.text.primary};
+   line-height: 1;
 `;
 
 const DeviceLabel = styled.div`
-    font-size: 14px;
-    color: #0369a1;
-    font-weight: 500;
-    margin-top: 2px;
-`;
-
-const CompanyIndicator = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    padding: 16px 20px;
-    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-    border: 2px solid #f59e0b;
-    border-radius: 16px;
-    box-shadow: 0 4px 6px -1px rgba(245, 158, 11, 0.1);
-
-    @media (max-width: 768px) {
-        display: none;
-    }
-`;
-
-const CompanyLabel = styled.div`
-    font-size: 12px;
-    color: #92400e;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-`;
-
-const CompanyId = styled.div`
-    font-size: 20px;
-    font-weight: 700;
-    color: #78350f;
-    line-height: 1;
+   font-size: 12px;
+   color: ${brandTheme.text.tertiary};
+   font-weight: 500;
+   margin-top: 2px;
 `;
 
 const PairTabletButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 16px 32px;
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    color: white;
-    border: none;
-    border-radius: 16px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.39);
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.sm};
+   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+   background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+   color: white;
+   border: none;
+   border-radius: ${brandTheme.radius.md};
+   font-size: 14px;
+   font-weight: 600;
+   cursor: pointer;
+   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+   box-shadow: ${brandTheme.shadow.sm};
+   min-height: 44px;
 
-    &:hover:not(:disabled) {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px 0 rgba(16, 185, 129, 0.5);
-        background: linear-gradient(135deg, #059669 0%, #047857 100%);
-    }
+   &:hover:not(:disabled) {
+       transform: translateY(-1px);
+       box-shadow: ${brandTheme.shadow.md};
+       background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
+   }
 
-    &:active {
-        transform: translateY(0);
-    }
+   &:active {
+       transform: translateY(0);
+   }
 
-    &:disabled {
-        opacity: 0.7;
-        cursor: not-allowed;
-        transform: none;
-        box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.2);
-    }
+   &:disabled {
+       opacity: 0.6;
+       cursor: not-allowed;
+       transform: none;
+       box-shadow: ${brandTheme.shadow.xs};
+   }
+
+   @media (max-width: 768px) {
+       justify-content: center;
+   }
 `;
 
 const ConnectionSection = styled.div`
-    grid-area: connection;
+   max-width: 1600px;
+   margin: 0 auto;
+   padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl} 0;
+
+   @media (max-width: 1024px) {
+       padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg} 0;
+   }
+
+   @media (max-width: 768px) {
+       padding: ${brandTheme.spacing.md} ${brandTheme.spacing.md} 0;
+   }
 `;
 
-const DashboardSection = styled.div`
-    grid-area: dashboard;
+const ContentContainer = styled.div`
+   flex: 1;
+   max-width: 1600px;
+   margin: 0 auto;
+   padding: 0 ${brandTheme.spacing.xl} ${brandTheme.spacing.xl};
+   width: 100%;
+   display: flex;
+   flex-direction: column;
+   gap: ${brandTheme.spacing.lg};
+   min-height: 0;
+
+   @media (max-width: 1024px) {
+       padding: 0 ${brandTheme.spacing.lg} ${brandTheme.spacing.lg};
+   }
+
+   @media (max-width: 768px) {
+       padding: 0 ${brandTheme.spacing.md} ${brandTheme.spacing.md};
+       gap: ${brandTheme.spacing.md};
+   }
 `;
 
-const SystemStatusBar = styled.div`
-    grid-area: status;
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(10px);
-    border-radius: 16px;
-    padding: 16px 24px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    display: flex;
-    align-items: center;
-    gap: 32px;
-    border: 1px solid rgba(226, 232, 240, 0.8);
-
-    @media (max-width: 768px) {
-        flex-direction: column;
-        gap: 12px;
-        align-items: flex-start;
-    }
-`;
-
-const StatusItem = styled.div<{ status: string }>`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-`;
-
-const StatusIndicator = styled.div<{ color: string }>`
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: ${props => props.color};
-    box-shadow: 0 0 0 2px ${props => props.color}20;
-`;
-
-const StatusText = styled.span`
-    font-size: 14px;
-    color: #475569;
-    font-weight: 500;
-`;
-
-const StatusTimestamp = styled.div`
-    font-size: 12px;
-    color: #94a3b8;
-    margin-left: auto;
-
-    @media (max-width: 768px) {
-        margin-left: 0;
-    }
-`;
-
-// Pairing Modal Styles (same as before)
 const PairingModalOverlay = styled.div`
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.6);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    backdrop-filter: blur(8px);
+   position: fixed;
+   top: 0;
+   left: 0;
+   right: 0;
+   bottom: 0;
+   background: rgba(0, 0, 0, 0.5);
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   z-index: 1050;
+   padding: ${brandTheme.spacing.lg};
+   backdrop-filter: blur(4px);
+   animation: fadeIn 0.2s ease;
+
+   @keyframes fadeIn {
+       from { opacity: 0; }
+       to { opacity: 1; }
+   }
 `;
 
 const PairingModal = styled.div`
-    background: white;
-    border-radius: 24px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-    max-width: 600px;
-    width: 90%;
-    max-height: 90vh;
-    overflow: hidden;
+   background: ${brandTheme.surface};
+   border-radius: ${brandTheme.radius.xl};
+   box-shadow: ${brandTheme.shadow.xl};
+   max-width: 600px;
+   width: 90%;
+   max-height: 90vh;
+   overflow: hidden;
+   animation: slideUp 0.3s ease;
+
+   @keyframes slideUp {
+       from {
+           opacity: 0;
+           transform: translateY(20px) scale(0.95);
+       }
+       to {
+           opacity: 1;
+           transform: translateY(0) scale(1);
+       }
+   }
+
+   @media (max-width: 768px) {
+       width: 100vw;
+       height: 100vh;
+       max-height: 100vh;
+       border-radius: 0;
+   }
 `;
 
 const PairingModalHeader = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 32px 32px 0;
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
+   border-bottom: 1px solid ${brandTheme.border};
+   background: ${brandTheme.surfaceAlt};
+   flex-shrink: 0;
 `;
 
 const PairingModalTitle = styled.h2`
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    font-size: 28px;
-    font-weight: 700;
-    color: #1e293b;
-    margin: 0;
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.md};
+   font-size: 20px;
+   font-weight: 700;
+   color: ${brandTheme.text.primary};
+   margin: 0;
+   letter-spacing: -0.025em;
 
-    svg {
-        color: #3b82f6;
-        font-size: 32px;
-    }
+   svg {
+       color: ${brandTheme.primary};
+       font-size: 24px;
+   }
 `;
 
 const CloseButton = styled.button`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 44px;
-    height: 44px;
-    border: none;
-    border-radius: 50%;
-    background: #f1f5f9;
-    color: #64748b;
-    font-size: 24px;
-    cursor: pointer;
-    transition: all 0.2s;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   width: 40px;
+   height: 40px;
+   border: none;
+   background: ${brandTheme.surfaceHover};
+   color: ${brandTheme.text.secondary};
+   border-radius: ${brandTheme.radius.md};
+   cursor: pointer;
+   transition: all 0.2s ease;
+   font-size: 18px;
 
-    &:hover {
-        background: #ef4444;
-        color: white;
-        transform: scale(1.1);
-    }
+   &:hover {
+       background: ${brandTheme.status.errorLight};
+       color: ${brandTheme.status.error};
+       transform: scale(1.05);
+   }
+
+   &:active {
+       transform: scale(0.95);
+   }
 `;
 
 const PairingModalContent = styled.div`
-    padding: 32px;
+   padding: ${brandTheme.spacing.xl};
 `;
 
 const LoadingSection = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 16px;
-    padding: 60px;
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: ${brandTheme.spacing.md};
+   padding: ${brandTheme.spacing.xxl};
 
-    svg {
-        font-size: 48px;
-        color: #3b82f6;
-    }
+   svg {
+       font-size: 48px;
+       color: ${brandTheme.primary};
+   }
 `;
 
 const ErrorMessage = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 16px 20px;
-    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
-    border: 1px solid #fecaca;
-    border-radius: 12px;
-    color: #dc2626;
-    font-weight: 500;
-    margin-bottom: 24px;
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.sm};
+   background: ${brandTheme.status.errorLight};
+   color: ${brandTheme.status.error};
+   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+   border-radius: ${brandTheme.radius.lg};
+   border: 1px solid ${brandTheme.status.error}30;
+   font-weight: 500;
+   margin-bottom: ${brandTheme.spacing.lg};
+   box-shadow: ${brandTheme.shadow.xs};
 
-    svg {
-        color: #dc2626;
-        font-size: 18px;
-    }
+   svg {
+       color: ${brandTheme.status.error};
+       font-size: 18px;
+   }
 `;
 
 const PairingInstructions = styled.div`
-    margin-bottom: 32px;
+   margin-bottom: ${brandTheme.spacing.xl};
 
-    h3 {
-        color: #1e293b;
-        font-size: 20px;
-        font-weight: 600;
-        margin-bottom: 16px;
-    }
+   h3 {
+       color: ${brandTheme.text.primary};
+       font-size: 18px;
+       font-weight: 600;
+       margin-bottom: ${brandTheme.spacing.md};
+       display: flex;
+       align-items: center;
+       gap: ${brandTheme.spacing.sm};
 
-    ol {
-        color: #64748b;
-        line-height: 1.7;
-        padding-left: 20px;
+       &::before {
+           content: '';
+           width: 4px;
+           height: 18px;
+           background: ${brandTheme.primary};
+           border-radius: 2px;
+       }
+   }
 
-        li {
-            margin-bottom: 8px;
-        }
-    }
+   ol {
+       color: ${brandTheme.text.secondary};
+       line-height: 1.6;
+       padding-left: 20px;
+
+       li {
+           margin-bottom: ${brandTheme.spacing.sm};
+       }
+   }
 `;
 
 const PairingCodeSection = styled.div`
-    text-align: center;
-    padding: 32px;
-    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-    border-radius: 20px;
-    border: 2px dashed #3b82f6;
-    margin-bottom: 32px;
+   text-align: center;
+   padding: ${brandTheme.spacing.xl};
+   background: ${brandTheme.surfaceAlt};
+   border-radius: ${brandTheme.radius.xl};
+   border: 2px dashed ${brandTheme.primary};
+   margin-bottom: ${brandTheme.spacing.xl};
+   box-shadow: ${brandTheme.shadow.xs};
 `;
 
 const PairingCodeLabel = styled.div`
-    font-size: 16px;
-    color: #64748b;
-    font-weight: 500;
-    margin-bottom: 16px;
+   font-size: 14px;
+   color: ${brandTheme.text.secondary};
+   font-weight: 600;
+   margin-bottom: ${brandTheme.spacing.md};
+   text-transform: uppercase;
+   letter-spacing: 0.5px;
 `;
 
 const PairingCode = styled.div`
-    font-size: 56px;
-    font-weight: 800;
-    color: #3b82f6;
-    font-family: 'Courier New', monospace;
-    letter-spacing: 8px;
-    margin-bottom: 16px;
-    text-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+   font-size: 48px;
+   font-weight: 800;
+   color: ${brandTheme.primary};
+   font-family: 'Courier New', monospace;
+   letter-spacing: 8px;
+   margin-bottom: ${brandTheme.spacing.md};
+   text-shadow: 0 2px 4px rgba(26, 54, 93, 0.2);
+
+   @media (max-width: 768px) {
+       font-size: 36px;
+       letter-spacing: 4px;
+   }
 `;
 
 const PairingCodeNote = styled.div`
-    font-size: 14px;
-    color: #ef4444;
-    font-weight: 500;
+   font-size: 14px;
+   color: ${brandTheme.status.error};
+   font-weight: 500;
 `;
 
 const ExpiredCodeNote = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    color: #dc2626;
-    font-weight: 600;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   gap: ${brandTheme.spacing.xs};
+   color: ${brandTheme.status.error};
+   font-weight: 600;
 
-    svg {
-        font-size: 16px;
-    }
+   svg {
+       font-size: 16px;
+   }
 `;
 
 const PairingActions = styled.div`
-    display: flex;
-    gap: 16px;
-    justify-content: flex-end;
+   display: flex;
+   gap: ${brandTheme.spacing.md};
+   justify-content: flex-end;
+
+   @media (max-width: 576px) {
+       flex-direction: column-reverse;
+   }
 `;
 
 const CancelPairingButton = styled.button`
-    padding: 12px 24px;
-    border: 2px solid #e2e8f0;
-    background: white;
-    color: #64748b;
-    border-radius: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   gap: ${brandTheme.spacing.sm};
+   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+   border: 2px solid ${brandTheme.border};
+   background: ${brandTheme.surface};
+   color: ${brandTheme.text.secondary};
+   border-radius: ${brandTheme.radius.md};
+   font-weight: 600;
+   font-size: 14px;
+   cursor: pointer;
+   transition: all 0.2s ease;
+   min-height: 44px;
 
-    &:hover {
-        border-color: #cbd5e1;
-        color: #475569;
-        background: #f8fafc;
-    }
+   &:hover {
+       border-color: ${brandTheme.borderHover};
+       color: ${brandTheme.text.primary};
+       background: ${brandTheme.surfaceHover};
+       box-shadow: ${brandTheme.shadow.xs};
+   }
 `;
 
 const GenerateNewCodeButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 24px;
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-    color: white;
-    border: none;
-    border-radius: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   gap: ${brandTheme.spacing.sm};
+   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+   background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+   color: white;
+   border: none;
+   border-radius: ${brandTheme.radius.md};
+   font-weight: 600;
+   font-size: 14px;
+   cursor: pointer;
+   transition: all 0.2s ease;
+   box-shadow: ${brandTheme.shadow.sm};
+   min-height: 44px;
 
-    &:hover:not(:disabled) {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
-    }
+   &:hover:not(:disabled) {
+       transform: translateY(-1px);
+       box-shadow: ${brandTheme.shadow.md};
+       background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
+   }
 
-    &:disabled {
-        opacity: 0.7;
-        cursor: not-allowed;
-        transform: none;
-    }
+   &:disabled {
+       opacity: 0.6;
+       cursor: not-allowed;
+       transform: none;
+       box-shadow: ${brandTheme.shadow.xs};
+   }
 `;
 
 export default TabletIntegrationPage;

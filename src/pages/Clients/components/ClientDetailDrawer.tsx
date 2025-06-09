@@ -1,9 +1,78 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { FaTimes, FaUser, FaBuilding, FaIdCard, FaMapMarkerAlt, FaEnvelope, FaPhone, FaCalendarAlt, FaMoneyBillWave, FaCar, FaHistory } from 'react-icons/fa';
+import { FaTimes, FaUser, FaBuilding, FaIdCard, FaMapMarkerAlt, FaEnvelope, FaPhone, FaCalendarAlt, FaMoneyBillWave, FaCar, FaHistory, FaStickyNote } from 'react-icons/fa';
 import {ClientExpanded, ClientStatistics, ContactAttempt} from '../../../types';
 import { fetchContactAttemptsByClientId } from '../../../api/mocks/clientMocks';
 import {clientApi} from "../../../api/clientsApi";
+
+// Professional Brand Theme - Premium Automotive CRM
+const brandTheme = {
+    // Primary Colors - Professional Blue Palette
+    primary: 'var(--brand-primary, #1a365d)',
+    primaryLight: 'var(--brand-primary-light, #2c5aa0)',
+    primaryDark: 'var(--brand-primary-dark, #0f2027)',
+    primaryGhost: 'var(--brand-primary-ghost, rgba(26, 54, 93, 0.04))',
+
+    // Surface Colors - Clean & Minimal
+    surface: '#ffffff',
+    surfaceAlt: '#fafbfc',
+    surfaceElevated: '#f8fafc',
+    surfaceHover: '#f1f5f9',
+
+    // Typography Colors
+    text: {
+        primary: '#0f172a',
+        secondary: '#475569',
+        tertiary: '#64748b',
+        muted: '#94a3b8',
+        disabled: '#cbd5e1'
+    },
+
+    // Border Colors
+    border: '#e2e8f0',
+    borderLight: '#f1f5f9',
+    borderHover: '#cbd5e1',
+
+    // Status Colors - Automotive Grade
+    status: {
+        success: '#059669',
+        successLight: '#d1fae5',
+        warning: '#d97706',
+        warningLight: '#fef3c7',
+        error: '#dc2626',
+        errorLight: '#fee2e2',
+        info: '#0ea5e9',
+        infoLight: '#e0f2fe'
+    },
+
+    // Shadows - Professional Depth
+    shadow: {
+        xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+        sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+        md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+    },
+
+    // Spacing Scale
+    spacing: {
+        xs: '4px',
+        sm: '8px',
+        md: '16px',
+        lg: '24px',
+        xl: '32px',
+        xxl: '48px'
+    },
+
+    // Border Radius
+    radius: {
+        sm: '6px',
+        md: '8px',
+        lg: '12px',
+        xl: '16px',
+        xxl: '20px'
+    }
+};
 
 interface ClientDetailDrawerProps {
     isOpen: boolean;
@@ -19,6 +88,7 @@ const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
     const [contactHistory, setContactHistory] = useState<ContactAttempt[]>([]);
     const [clientStats, setClientStats] = useState<ClientStatistics | null>(null);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const loadContactHistory = async () => {
@@ -31,6 +101,7 @@ const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
                     setClientStats(clientStats)
                 } catch (error) {
                     console.error('Error loading contact history:', error);
+                    setError('Nie udało się załadować danych klienta');
                 } finally {
                     setLoading(false);
                 }
@@ -40,19 +111,94 @@ const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
         loadContactHistory();
     }, [client]);
 
+    const formatDate = (dateString: string): string => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('pl-PL', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        });
+    };
+
+    const formatCurrency = (amount: number): string => {
+        return new Intl.NumberFormat('pl-PL', {
+            style: 'currency',
+            currency: 'PLN'
+        }).format(amount);
+    };
+
+    const getContactTypeInfo = (type: string) => {
+        switch (type) {
+            case 'PHONE':
+                return { label: 'Telefon', color: brandTheme.status.info };
+            case 'EMAIL':
+                return { label: 'Email', color: brandTheme.primary };
+            case 'SMS':
+                return { label: 'SMS', color: brandTheme.status.success };
+            default:
+                return { label: 'Inne', color: brandTheme.text.muted };
+        }
+    };
+
+    const getContactResultInfo = (result: string) => {
+        switch (result) {
+            case 'SUCCESS':
+                return { label: 'Sukces', color: brandTheme.status.success };
+            case 'NO_ANSWER':
+                return { label: 'Brak odpowiedzi', color: brandTheme.status.warning };
+            case 'CALLBACK_REQUESTED':
+                return { label: 'Oddzwonienie', color: brandTheme.status.info };
+            case 'REJECTED':
+                return { label: 'Odmowa', color: brandTheme.status.error };
+            default:
+                return { label: result, color: brandTheme.text.muted };
+        }
+    };
+
     if (!client || !clientStats) return null;
 
     return (
         <DrawerContainer isOpen={isOpen}>
             <DrawerHeader>
-                <h2>Szczegóły klienta</h2>
+                <HeaderContent>
+                    <HeaderIcon>
+                        <FaUser />
+                    </HeaderIcon>
+                    <HeaderText>
+                        <HeaderTitle>Szczegóły klienta</HeaderTitle>
+                        <HeaderSubtitle>{client.firstName} {client.lastName}</HeaderSubtitle>
+                    </HeaderText>
+                </HeaderContent>
                 <CloseButton onClick={onClose}>
                     <FaTimes />
                 </CloseButton>
             </DrawerHeader>
 
             <DrawerContent>
-                <SectionTitle>Informacje podstawowe</SectionTitle>
+                {/* Client Header Section */}
+                <ClientHeaderSection>
+                    <ClientTitle>{client.firstName} {client.lastName}</ClientTitle>
+                    <ClientEmail>{client.email}</ClientEmail>
+                    <ClientBasicInfo>
+                        <InfoItem>
+                            <InfoIcon><FaPhone /></InfoIcon>
+                            <InfoText>{client.phone}</InfoText>
+                        </InfoItem>
+                        {client.address && (
+                            <InfoItem>
+                                <InfoIcon><FaMapMarkerAlt /></InfoIcon>
+                                <InfoText>{client.address}</InfoText>
+                            </InfoItem>
+                        )}
+                    </ClientBasicInfo>
+                </ClientHeaderSection>
+
+                {/* Personal Information */}
+                <SectionTitle>
+                    <SectionTitleIcon><FaUser /></SectionTitleIcon>
+                    Informacje podstawowe
+                </SectionTitle>
 
                 <DetailSection>
                     <DetailRow>
@@ -90,9 +236,13 @@ const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
                     )}
                 </DetailSection>
 
+                {/* Company Information */}
                 {(client.company || client.taxId) && (
                     <>
-                        <SectionTitle>Dane firmowe</SectionTitle>
+                        <SectionTitle>
+                            <SectionTitleIcon><FaBuilding /></SectionTitleIcon>
+                            Dane firmowe
+                        </SectionTitle>
 
                         <DetailSection>
                             {client.company && (
@@ -118,323 +268,623 @@ const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
                     </>
                 )}
 
-                <SectionTitle>Statystyki klienta</SectionTitle>
+                {/* Client Statistics */}
+                <SectionTitle>
+                    <SectionTitleIcon><FaCalendarAlt /></SectionTitleIcon>
+                    Statystyki klienta
+                </SectionTitle>
 
                 <MetricsGrid>
                     <MetricCard>
-                        <MetricIcon $color="#3498db"><FaCalendarAlt /></MetricIcon>
-                        <MetricValue>{clientStats.totalVisits}</MetricValue>
-                        <MetricLabel>Liczba wizyt</MetricLabel>
+                        <MetricIcon $color={brandTheme.status.info}>
+                            <FaCalendarAlt />
+                        </MetricIcon>
+                        <MetricContent>
+                            <MetricValue>{clientStats.totalVisits}</MetricValue>
+                            <MetricLabel>Liczba wizyt</MetricLabel>
+                        </MetricContent>
                     </MetricCard>
 
                     <MetricCard>
-                        <MetricIcon $color="#2ecc71"><FaMoneyBillWave /></MetricIcon>
-                        <MetricValue>{clientStats.totalRevenue.toFixed(2)} zł</MetricValue>
-                        <MetricLabel>Suma przychodów</MetricLabel>
+                        <MetricIcon $color={brandTheme.status.success}>
+                            <FaMoneyBillWave />
+                        </MetricIcon>
+                        <MetricContent>
+                            <MetricValue>{formatCurrency(clientStats.totalRevenue)}</MetricValue>
+                            <MetricLabel>Suma przychodów</MetricLabel>
+                        </MetricContent>
                     </MetricCard>
 
                     <MetricCard>
-                        <MetricIcon $color="#f39c12"><FaCar /></MetricIcon>
-                        <MetricValue>{clientStats.vehicleNo}</MetricValue>
-                        <MetricLabel>Pojazdy</MetricLabel>
+                        <MetricIcon $color={brandTheme.status.warning}>
+                            <FaCar />
+                        </MetricIcon>
+                        <MetricContent>
+                            <MetricValue>{clientStats.vehicleNo}</MetricValue>
+                            <MetricLabel>Pojazdy</MetricLabel>
+                        </MetricContent>
                     </MetricCard>
 
                     <MetricCard>
-                        <MetricIcon $color="#9b59b6"><FaHistory /></MetricIcon>
-                        <MetricValue>{contactHistory.length}</MetricValue>
-                        <MetricLabel>Próby kontaktu</MetricLabel>
+                        <MetricIcon $color={brandTheme.primary}>
+                            <FaHistory />
+                        </MetricIcon>
+                        <MetricContent>
+                            <MetricValue>{contactHistory.length}</MetricValue>
+                            <MetricLabel>Próby kontaktu</MetricLabel>
+                        </MetricContent>
                     </MetricCard>
                 </MetricsGrid>
 
+                {/* Notes Section */}
                 {client.notes && (
                     <>
-                        <SectionTitle>Notatki</SectionTitle>
+                        <SectionTitle>
+                            <SectionTitleIcon><FaStickyNote /></SectionTitleIcon>
+                            Notatki
+                        </SectionTitle>
                         <NotesContent>{client.notes}</NotesContent>
                     </>
                 )}
 
-                <SectionTitle>Historia kontaktów</SectionTitle>
+                {/* Contact History */}
+                <SectionTitle>
+                    <SectionTitleIcon><FaHistory /></SectionTitleIcon>
+                    Historia kontaktów
+                </SectionTitle>
 
                 {loading ? (
-                    <LoadingText>Ładowanie historii kontaktów...</LoadingText>
+                    <LoadingContainer>
+                        <LoadingSpinner />
+                        <LoadingText>Ładowanie historii kontaktów...</LoadingText>
+                    </LoadingContainer>
                 ) : contactHistory.length === 0 ? (
-                    <EmptyMessage>Brak historii kontaktów z klientem</EmptyMessage>
+                    <EmptyMessage>
+                        <EmptyIcon><FaHistory /></EmptyIcon>
+                        <EmptyText>Brak historii kontaktów</EmptyText>
+                        <EmptySubtext>Ten klient nie ma jeszcze żadnej historii kontaktów</EmptySubtext>
+                    </EmptyMessage>
                 ) : (
                     <ContactHistoryList>
-                        {contactHistory.map(contact => (
-                            <ContactHistoryItem key={contact.id}>
-                                <ContactDate>{formatDate(contact.date)}</ContactDate>
-                                <ContactType type={contact.type}>{getContactTypeLabel(contact.type)}</ContactType>
-                                <ContactDescription>{contact.description}</ContactDescription>
-                                <ContactResult result={contact.result}>{getContactResultLabel(contact.result)}</ContactResult>
-                            </ContactHistoryItem>
-                        ))}
+                        {contactHistory
+                            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                            .map(contact => {
+                                const typeInfo = getContactTypeInfo(contact.type);
+                                const resultInfo = getContactResultInfo(contact.result);
+                                return (
+                                    <ContactHistoryItem key={contact.id}>
+                                        <ContactHeader>
+                                            <ContactDate>
+                                                <ContactDateIcon><FaCalendarAlt /></ContactDateIcon>
+                                                {formatDate(contact.date)}
+                                            </ContactDate>
+                                            <ContactTypeBadge $color={typeInfo.color}>
+                                                {typeInfo.label}
+                                            </ContactTypeBadge>
+                                        </ContactHeader>
+
+                                        <ContactDescription>{contact.description}</ContactDescription>
+
+                                        <ContactFooter>
+                                            <ContactResultBadge $color={resultInfo.color}>
+                                                {resultInfo.label}
+                                            </ContactResultBadge>
+                                        </ContactFooter>
+                                    </ContactHistoryItem>
+                                );
+                            })
+                        }
                     </ContactHistoryList>
+                )}
+
+                {/* Error Display */}
+                {error && (
+                    <ErrorMessage>
+                        ⚠️ {error}
+                    </ErrorMessage>
                 )}
             </DrawerContent>
         </DrawerContainer>
     );
 };
 
-// Helper functions
-const formatDate = (dateString: string): string => {
-    if (!dateString) return '';
-
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pl-PL', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-    });
-};
-
-const getContactTypeLabel = (type: string): string => {
-    const types: Record<string, string> = {
-        'PHONE': 'Telefon',
-        'EMAIL': 'Email',
-        'SMS': 'SMS',
-        'OTHER': 'Inne'
-    };
-    return types[type] || type;
-};
-
-const getContactResultLabel = (result: string): string => {
-    const results: Record<string, string> = {
-        'SUCCESS': 'Sukces',
-        'NO_ANSWER': 'Brak odpowiedzi',
-        'CALLBACK_REQUESTED': 'Oddzwonienie',
-        'REJECTED': 'Odmowa'
-    };
-    return results[result] || result;
-};
-
-// Styled components
+// Professional Styled Components
 const DrawerContainer = styled.div<{ isOpen: boolean }>`
-  position: fixed;
-  top: 0;
-  right: 0;
-  width: 450px;
-  max-width: 90vw;
-  height: 100vh;
-  background-color: white;
-  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
-  transform: ${props => props.isOpen ? 'translateX(0)' : 'translateX(100%)'};
-  transition: transform 0.3s ease-in-out;
-  display: flex;
-  flex-direction: column;
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 480px;
+    max-width: 90vw;
+    height: 100vh;
+    background: ${brandTheme.surface};
+    box-shadow: ${brandTheme.shadow.xl};
+    z-index: 1000;
+    transform: ${props => props.isOpen ? 'translateX(0)' : 'translateX(100%)'};
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid ${brandTheme.border};
 `;
 
 const DrawerHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid #eee;
-  
-  h2 {
-    margin: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
+    border-bottom: 1px solid ${brandTheme.border};
+    background: linear-gradient(135deg, ${brandTheme.surfaceAlt} 0%, ${brandTheme.surface} 100%);
+    flex-shrink: 0;
+`;
+
+const HeaderContent = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.md};
+    flex: 1;
+`;
+
+const HeaderIcon = styled.div`
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+    border-radius: ${brandTheme.radius.lg};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
     font-size: 18px;
-    color: #2c3e50;
-  }
+    box-shadow: ${brandTheme.shadow.sm};
+`;
+
+const HeaderText = styled.div`
+    flex: 1;
+`;
+
+const HeaderTitle = styled.h2`
+    margin: 0 0 ${brandTheme.spacing.xs} 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+    letter-spacing: -0.025em;
+`;
+
+const HeaderSubtitle = styled.div`
+    font-size: 14px;
+    color: ${brandTheme.text.secondary};
+    font-weight: 500;
 `;
 
 const CloseButton = styled.button`
-  background: none;
-  border: none;
-  color: #7f8c8d;
-  font-size: 16px;
-  cursor: pointer;
-  padding: 4px;
-  
-  &:hover {
-    color: #34495e;
-  }
+    width: 36px;
+    height: 36px;
+    background: ${brandTheme.surfaceElevated};
+    border: 1px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.md};
+    color: ${brandTheme.text.tertiary};
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: ${brandTheme.status.errorLight};
+        color: ${brandTheme.status.error};
+        border-color: ${brandTheme.status.error}30;
+        transform: scale(1.05);
+    }
 `;
 
 const DrawerContent = styled.div`
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px;
+    flex: 1;
+    overflow-y: auto;
+    padding: ${brandTheme.spacing.xl};
+
+    /* Custom scrollbar */
+    &::-webkit-scrollbar {
+        width: 6px;
+    }
+    &::-webkit-scrollbar-track {
+        background: ${brandTheme.surfaceAlt};
+    }
+    &::-webkit-scrollbar-thumb {
+        background: ${brandTheme.border};
+        border-radius: 3px;
+    }
+`;
+
+const ClientHeaderSection = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: ${brandTheme.spacing.xl};
+    padding: ${brandTheme.spacing.lg};
+    background: linear-gradient(135deg, ${brandTheme.surfaceAlt} 0%, ${brandTheme.surface} 100%);
+    border-radius: ${brandTheme.radius.xl};
+    border: 1px solid ${brandTheme.border};
+    box-shadow: ${brandTheme.shadow.xs};
+`;
+
+const ClientTitle = styled.h2`
+    font-size: 24px;
+    font-weight: 700;
+    color: ${brandTheme.text.primary};
+    margin: 0 0 ${brandTheme.spacing.md} 0;
+    text-align: center;
+    letter-spacing: -0.025em;
+`;
+
+const ClientEmail = styled.div`
+    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+    color: white;
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.lg};
+    border-radius: ${brandTheme.radius.md};
+    font-weight: 500;
+    font-size: 14px;
+    box-shadow: ${brandTheme.shadow.md};
+    margin-bottom: ${brandTheme.spacing.md};
+`;
+
+const ClientBasicInfo = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.xs};
+    align-items: center;
+`;
+
+const InfoItem = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
+    background: ${brandTheme.surface};
+    border-radius: ${brandTheme.radius.md};
+    border: 1px solid ${brandTheme.borderLight};
+`;
+
+const InfoIcon = styled.div`
+    color: ${brandTheme.text.muted};
+    font-size: 12px;
+`;
+
+const InfoText = styled.div`
+    font-size: 14px;
+    color: ${brandTheme.text.secondary};
+    font-weight: 500;
 `;
 
 const SectionTitle = styled.h3`
-  font-size: 16px;
-  color: #3498db;
-  margin: 20px 0 10px 0;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #eee;
-  
-  &:first-of-type {
-    margin-top: 0;
-  }
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    font-size: 16px;
+    font-weight: 600;
+    color: ${brandTheme.primary};
+    margin: ${brandTheme.spacing.xl} 0 ${brandTheme.spacing.md} 0;
+    padding-bottom: ${brandTheme.spacing.sm};
+    border-bottom: 2px solid ${brandTheme.primaryGhost};
+
+    &:first-of-type {
+        margin-top: 0;
+    }
+`;
+
+const SectionTitleIcon = styled.div`
+    color: ${brandTheme.primary};
+    font-size: 14px;
 `;
 
 const DetailSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.md};
+    margin-bottom: ${brandTheme.spacing.lg};
 `;
 
 const DetailRow = styled.div`
-  display: flex;
-  align-items: flex-start;
+    display: flex;
+    align-items: flex-start;
+    gap: ${brandTheme.spacing.md};
+    padding: ${brandTheme.spacing.md};
+    background: ${brandTheme.surfaceAlt};
+    border-radius: ${brandTheme.radius.lg};
+    border: 1px solid ${brandTheme.borderLight};
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: ${brandTheme.primaryGhost};
+        border-color: ${brandTheme.primary}30;
+    }
 `;
 
 const DetailIcon = styled.div`
-  width: 20px;
-  margin-right: 12px;
-  color: #7f8c8d;
-  margin-top: 2px;
+    width: 32px;
+    height: 32px;
+    background: ${brandTheme.surface};
+    border-radius: ${brandTheme.radius.md};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${brandTheme.text.muted};
+    font-size: 14px;
+    flex-shrink: 0;
+    box-shadow: ${brandTheme.shadow.xs};
 `;
 
 const DetailContent = styled.div`
-  flex: 1;
+    flex: 1;
 `;
 
 const DetailLabel = styled.div`
-  font-size: 12px;
-  color: #7f8c8d;
-  margin-bottom: 2px;
+    font-size: 12px;
+    color: ${brandTheme.text.tertiary};
+    font-weight: 500;
+    margin-bottom: ${brandTheme.spacing.xs};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 `;
 
 const DetailValue = styled.div`
-  font-size: 15px;
-  color: #34495e;
+    font-size: 15px;
+    color: ${brandTheme.text.primary};
+    font-weight: 600;
 `;
 
 const MetricsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: ${brandTheme.spacing.md};
+    margin-bottom: ${brandTheme.spacing.lg};
+
+    @media (max-width: 600px) {
+        grid-template-columns: 1fr;
+    }
 `;
 
 const MetricCard = styled.div`
-  background-color: #f9f9f9;
-  border-radius: 8px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
+    background: ${brandTheme.surfaceAlt};
+    border: 1px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.lg};
+    padding: ${brandTheme.spacing.md};
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.md};
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: ${brandTheme.primaryGhost};
+        border-color: ${brandTheme.primary};
+        transform: translateY(-2px);
+        box-shadow: ${brandTheme.shadow.md};
+    }
 `;
 
 const MetricIcon = styled.div<{ $color: string }>`
-  color: ${props => props.$color};
-  font-size: 20px;
-  margin-bottom: 8px;
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, ${props => props.$color}15 0%, ${props => props.$color}08 100%);
+    border-radius: ${brandTheme.radius.md};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${props => props.$color};
+    font-size: 18px;
+    flex-shrink: 0;
+    box-shadow: ${brandTheme.shadow.xs};
+`;
+
+const MetricContent = styled.div`
+    flex: 1;
+    min-width: 0;
 `;
 
 const MetricValue = styled.div`
-  font-weight: 600;
-  font-size: 18px;
-  color: #34495e;
-  margin-bottom: 4px;
+    font-size: 18px;
+    font-weight: 700;
+    color: ${brandTheme.text.primary};
+    margin-bottom: ${brandTheme.spacing.xs};
+    line-height: 1.2;
 `;
 
 const MetricLabel = styled.div`
-  font-size: 12px;
-  color: #7f8c8d;
+    font-size: 12px;
+    color: ${brandTheme.text.tertiary};
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 `;
 
-const NotesContent = styled.p`
-  font-size: 14px;
-  color: #34495e;
-  background-color: #f9f9f9;
-  padding: 12px;
-  border-radius: 4px;
-  white-space: pre-line;
+const NotesContent = styled.div`
+    background: ${brandTheme.surfaceAlt};
+    border: 1px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.lg};
+    padding: ${brandTheme.spacing.lg};
+    font-size: 14px;
+    color: ${brandTheme.text.primary};
+    white-space: pre-line;
+    line-height: 1.6;
+    margin-bottom: ${brandTheme.spacing.lg};
+    border-left: 4px solid ${brandTheme.primary};
+`;
+
+const LoadingContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: ${brandTheme.spacing.xl};
+    background: ${brandTheme.surfaceAlt};
+    border-radius: ${brandTheme.radius.lg};
+    gap: ${brandTheme.spacing.md};
+`;
+
+const LoadingSpinner = styled.div`
+    width: 32px;
+    height: 32px;
+    border: 3px solid ${brandTheme.borderLight};
+    border-top: 3px solid ${brandTheme.primary};
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
 `;
 
 const LoadingText = styled.div`
-  font-size: 14px;
-  color: #7f8c8d;
-  padding: 12px 0;
-  text-align: center;
+    font-size: 14px;
+    color: ${brandTheme.text.secondary};
+    font-weight: 500;
+    text-align: center;
 `;
 
 const EmptyMessage = styled.div`
-  font-size: 14px;
-  color: #7f8c8d;
-  padding: 12px;
-  text-align: center;
-  background-color: #f9f9f9;
-  border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: ${brandTheme.spacing.xl};
+    background: ${brandTheme.surfaceAlt};
+    border-radius: ${brandTheme.radius.lg};
+    border: 2px dashed ${brandTheme.border};
+    text-align: center;
+`;
+
+const EmptyIcon = styled.div`
+    width: 48px;
+    height: 48px;
+    background: ${brandTheme.surface};
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: ${brandTheme.text.tertiary};
+    margin-bottom: ${brandTheme.spacing.md};
+    box-shadow: ${brandTheme.shadow.xs};
+`;
+
+const EmptyText = styled.div`
+    font-size: 16px;
+    font-weight: 600;
+    color: ${brandTheme.text.secondary};
+    margin-bottom: ${brandTheme.spacing.xs};
+`;
+
+const EmptySubtext = styled.div`
+    font-size: 14px;
+    color: ${brandTheme.text.muted};
+    font-style: italic;
 `;
 
 const ContactHistoryList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.md};
 `;
 
 const ContactHistoryItem = styled.div`
-  background-color: #f9f9f9;
-  border-radius: 4px;
-  padding: 12px;
+    background: ${brandTheme.surface};
+    border: 1px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.lg};
+    padding: ${brandTheme.spacing.lg};
+    border-left: 4px solid ${brandTheme.primary};
+    transition: all 0.2s ease;
+    box-shadow: ${brandTheme.shadow.xs};
+
+    &:hover {
+        background: ${brandTheme.primaryGhost};
+        border-color: ${brandTheme.primary};
+        border-left-color: ${brandTheme.primary};
+        transform: translateX(4px);
+        box-shadow: ${brandTheme.shadow.md};
+    }
+`;
+
+const ContactHeader = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: ${brandTheme.spacing.md};
+    gap: ${brandTheme.spacing.sm};
+
+    @media (max-width: 480px) {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: ${brandTheme.spacing.sm};
+    }
 `;
 
 const ContactDate = styled.div`
-  font-size: 13px;
-  color: #7f8c8d;
-  margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.xs};
+    font-size: 14px;
+    color: ${brandTheme.text.secondary};
+    font-weight: 500;
 `;
 
-const ContactType = styled.span<{ type: string }>`
-  display: inline-block;
-  font-size: 12px;
-  padding: 2px 6px;
-  margin-right: 8px;
-  border-radius: 4px;
-  font-weight: 500;
-  background-color: ${props => {
-    switch (props.type) {
-        case 'PHONE': return '#e8f7ff';
-        case 'EMAIL': return '#e8f4f9';
-        case 'SMS': return '#eefbea';
-        default: return '#f5f5f5';
-    }
-}};
-  color: ${props => {
-    switch (props.type) {
-        case 'PHONE': return '#3498db';
-        case 'EMAIL': return '#9b59b6';
-        case 'SMS': return '#27ae60';
-        default: return '#7f8c8d';
-    }
-}};
+const ContactDateIcon = styled.div`
+    color: ${brandTheme.text.muted};
+    font-size: 12px;
+`;
+
+const ContactTypeBadge = styled.div<{ $color: string }>`
+    display: inline-flex;
+    align-items: center;
+    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
+    border-radius: ${brandTheme.radius.lg};
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: ${props => props.$color}15;
+    color: ${props => props.$color};
+    border: 1px solid ${props => props.$color}30;
+    white-space: nowrap;
 `;
 
 const ContactDescription = styled.div`
-  font-size: 14px;
-  color: #34495e;
-  margin: 8px 0;
+    font-size: 14px;
+    color: ${brandTheme.text.primary};
+    margin-bottom: ${brandTheme.spacing.md};
+    line-height: 1.5;
 `;
 
-const ContactResult = styled.span<{ result: string }>`
-  display: inline-block;
-  font-size: 12px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-weight: 500;
-  background-color: ${props => {
-    switch (props.result) {
-        case 'SUCCESS': return '#eefbea';
-        case 'NO_ANSWER': return '#fcf3ea';
-        case 'CALLBACK_REQUESTED': return '#e8f7ff';
-        case 'REJECTED': return '#fdecea';
-        default: return '#f5f5f5';
-    }
-}};
-  color: ${props => {
-    switch (props.result) {
-        case 'SUCCESS': return '#27ae60';
-        case 'NO_ANSWER': return '#f39c12';
-        case 'CALLBACK_REQUESTED': return '#3498db';
-        case 'REJECTED': return '#e74c3c';
-        default: return '#7f8c8d';
-    }
-}};
+const ContactFooter = styled.div`
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+`;
+
+const ContactResultBadge = styled.div<{ $color: string }>`
+    display: inline-flex;
+    align-items: center;
+    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
+    border-radius: ${brandTheme.radius.md};
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: ${props => props.$color}15;
+    color: ${props => props.$color};
+    border: 1px solid ${props => props.$color}30;
+`;
+
+const ErrorMessage = styled.div`
+    background: linear-gradient(135deg, ${brandTheme.status.errorLight} 0%, #fef2f2 100%);
+    color: ${brandTheme.status.error};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    border-radius: ${brandTheme.radius.lg};
+    border: 1px solid ${brandTheme.status.error}30;
+    font-weight: 500;
+    margin-top: ${brandTheme.spacing.md};
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    box-shadow: ${brandTheme.shadow.xs};
 `;
 
 export default ClientDetailDrawer;
