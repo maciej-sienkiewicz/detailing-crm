@@ -489,21 +489,6 @@ const CalendarPage: React.FC = () => {
 
             <StatsSection>
                 <StatsGrid>
-                    <StatCard>
-                        <StatIcon $color={enterprise.textPrimary}><FaUsers /></StatIcon>
-                        <StatContent>
-                            <StatValue>{stats.today}</StatValue>
-                            <StatLabel>Do przyjęcia dzisiaj</StatLabel>
-                        </StatContent>
-                    </StatCard>
-
-                    <StatCard>
-                        <StatIcon $color={enterprise.textPrimary}><FaChartLine /></StatIcon>
-                        <StatContent>
-                            <StatValue>{stats.thisWeek}</StatValue>
-                            <StatLabel>Zaplanowane w tygodniu</StatLabel>
-                        </StatContent>
-                    </StatCard>
 
                     <StatCard>
                         <StatIcon $color={enterprise.textPrimary}><FaClock /></StatIcon>
@@ -513,11 +498,28 @@ const CalendarPage: React.FC = () => {
                         </StatContent>
                     </StatCard>
 
+
+                    <StatCard>
+                        <StatIcon $color={enterprise.textPrimary}><FaUsers /></StatIcon>
+                        <StatContent>
+                            <StatValue>{stats.today}</StatValue>
+                            <StatLabel>Do przyjęcia dzisiaj</StatLabel>
+                        </StatContent>
+                    </StatCard>
+
                     <StatCard>
                         <StatIcon $color={enterprise.textPrimary}><FaClock /></StatIcon>
                         <StatContent>
                             <StatValue>{stats.done}</StatValue>
                             <StatLabel>Oczekujące na odbiór</StatLabel>
+                        </StatContent>
+                    </StatCard>
+
+                    <StatCard>
+                        <StatIcon $color={enterprise.textPrimary}><FaChartLine /></StatIcon>
+                        <StatContent>
+                            <StatValue>{stats.thisWeek}</StatValue>
+                            <StatLabel>Łącznie w tym tygodniu</StatLabel>
                         </StatContent>
                     </StatCard>
 
