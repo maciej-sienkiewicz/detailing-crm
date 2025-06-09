@@ -276,8 +276,29 @@ const CalendarPage: React.FC = () => {
 
     // Quick appointment creation
     const handleNewAppointmentClick = () => {
-        setSelectedDate(new Date());
-        setShowNewAppointmentModal(true);
+        // Utwórz daty w lokalnej strefie czasowej z obecną godziną
+        const startDate = new Date(); // Obecny czas lokalny
+
+        const endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + 1); // +1 dzień
+        endDate.setHours(23, 59, 0, 0); // Koniec dnia
+
+        // Funkcja do konwersji lokalnego czasu na string bez zmiany na UTC
+        const toLocalISOString = (date: Date): string => {
+            const offset = date.getTimezoneOffset() * 60000; // offset w milisekundach
+            const localDate = new Date(date.getTime() - offset);
+            return localDate.toISOString();
+        };
+
+        // Przekieruj do pełnego widoku tworzenia wizyty zamiast prostego formularza
+        navigate('/orders', {
+            state: {
+                startDate: toLocalISOString(startDate),
+                endDate: toLocalISOString(endDate),
+                isFullProtocol: false, // Nowa wizyta, nie pełny protokół
+                fromCalendar: true // Oznaczenie, że przyszliśmy z kalendarza
+            }
+        });
     };
 
     // Enhanced appointment saving with validation

@@ -45,7 +45,8 @@ const ClientInfoSection: React.FC<ClientInfoSectionProps> = ({
         value: string,
         placeholder: string,
         required: boolean = false,
-        error?: string
+        error?: string,
+        type: 'text' | 'email' | 'phone' = 'text'
     ) => {
         if (readOnly) {
             return (
@@ -72,6 +73,7 @@ const ClientInfoSection: React.FC<ClientInfoSectionProps> = ({
                 required={required}
                 onSearchClick={() => handleSearchClick(name)}
                 error={error}
+                type={type}
             />
         );
     };
@@ -124,7 +126,8 @@ const ClientInfoSection: React.FC<ClientInfoSectionProps> = ({
                         formData.email || '',
                         "np. jan.kowalski@example.com",
                         !formData.phone,
-                        errors.email
+                        errors.email,
+                        'email'
                     )}
                 </FormGroup>
 
@@ -134,9 +137,10 @@ const ClientInfoSection: React.FC<ClientInfoSectionProps> = ({
                         "phone",
                         "phone",
                         formData.phone || '',
-                        "np. +48 123 456 789",
+                        "123 456 789",
                         !formData.email,
-                        errors.phone
+                        errors.phone,
+                        'phone'
                     )}
                 </FormGroup>
             </FormRow>

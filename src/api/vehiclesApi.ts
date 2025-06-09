@@ -304,8 +304,7 @@ export const vehicleApi = {
 
     updateVehicle: async (id: string, vehicleData: VehicleData): Promise<VehicleExpanded> => {
         try {
-            const requestData = apiClient.convertCamelToSnake(vehicleData);
-            const response = await apiClient.put<any>(`/vehicles/${id}`, requestData);
+            const response = await apiClient.putNot<any>(`/vehicles/${id}`, vehicleData);
             return apiClient.convertSnakeToCamel(response) as VehicleExpanded;
         } catch (error) {
             console.error(`Error updating vehicle ${id}:`, error);

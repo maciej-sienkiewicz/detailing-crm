@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { CarReceptionProtocol } from '../../../../types';
 import { ClientExpanded, VehicleExpanded } from '../../../../types';
 import { FormSearchService } from "../../shared/services/FormSearchService";
+import toast, {useToast} from "../../../../components/common/Toast/Toast";
 
 interface UseClientSearchResult {
     foundClients: ClientExpanded[];
@@ -28,6 +29,8 @@ export const useClientSearch = (
     const [searchError, setSearchError] = useState<string | null>(null);
     const [searchLoading, setSearchLoading] = useState(false);
     const [selectedClient, setSelectedClient] = useState<ClientExpanded | null>(null);
+    const { showToast } = useToast();
+
 
     // Funkcja do wypełnienia danych klienta w formularzu
     const fillClientData = (client: ClientExpanded) => {
@@ -68,31 +71,7 @@ export const useClientSearch = (
             // Podejmowanie decyzji w zależności od wyników wyszukiwania
             if (results.clients.length === 0) {
                 // Brak wyników
-                setSearchError('Nie znaleziono klientów o podanych danych');
-            } else if (results.clients.length === 1) {
-                // Znaleziono dokładnie jednego klienta
-                const client = results.clients[0];
-                fillClientData(client);
-                setSelectedClient(client);
-
-                // Sprawdzamy czy klient ma pojazdy
-                if (client.vehicles && client.vehicles.length > 0) {
-                    try {
-                        // Pobieramy pojazdy klienta
-                        const vehicles = await FormSearchService.getVehiclesForClient(client.id);
-
-                        if (vehicles.length === 1) {
-                            // Jeśli klient ma dokładnie jeden pojazd, automatycznie go wybieramy
-                            fillVehicleData(vehicles[0]);
-                        } else if (vehicles.length > 1) {
-                            // Jeśli klient ma wiele pojazdów, pokazujemy modal wyboru pojazdu
-                            setFoundVehicles(vehicles);
-                            setShowVehicleModal(true);
-                        }
-                    } catch (err) {
-                        console.error('Error fetching vehicles for client:', err);
-                    }
-                }
+                showToast('Nie znaleziono klientów o podanych danych');
             } else {
                 // Znaleziono wielu klientów, pokazujemy modal wyboru
                 setShowClientModal(true);

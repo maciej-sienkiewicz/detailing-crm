@@ -1,3 +1,4 @@
+// src/pages/Protocols/form/components/SearchField.tsx
 import React from 'react';
 import styled from 'styled-components';
 import { FaSearch } from 'react-icons/fa';
@@ -12,6 +13,7 @@ interface SearchFieldProps {
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onSearchClick: () => void;
     error?: string;
+    type?: 'text' | 'email' | 'phone';
 }
 
 const SearchField: React.FC<SearchFieldProps> = ({
@@ -22,34 +24,76 @@ const SearchField: React.FC<SearchFieldProps> = ({
                                                      required,
                                                      onChange,
                                                      onSearchClick,
-                                                     error
+                                                     error,
+                                                     type = 'text'
                                                  }) => {
-
     // Funkcja obsługująca kliknięcie przycisku wyszukiwania
     const handleSearchButtonClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-        // Zapobiegamy domyślnej akcji przycisku wewnątrz formularza
         e.preventDefault();
-        // Zapobiegamy propagacji zdarzenia do formularza
         e.stopPropagation();
-        // Wywołujemy naszą funkcję wyszukiwania
         onSearchClick();
+    };
+
+    // Specjalna obsługa dla pola telefonu
+    const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (type === 'phone') {
+            let inputValue = e.target.value;
+
+            // Usuń wszystkie znaki oprócz cyfr
+            inputValue = inputValue.replace(/[^\d]/g, '');
+
+            // Formatuj numer - dodaj spacje co 3 cyfry dla lepszej czytelności
+            if (inputValue.length > 0) {
+                inputValue = inputValue.replace(/(\d{3})(?=\d)/g, '$1 ');
+            }
+
+            // Ograniczenie do 11 cyfr (9 cyfr polskiego numeru + opcjonalnie 2 dodatkowe)
+            if (inputValue.replace(/\s/g, '').length > 11) {
+                return;
+            }
+
+            // Tworzenie syntetycznego eventu z oczyszczoną wartością
+            const syntheticEvent = {
+                ...e,
+                target: {
+                    ...e.target,
+                    name,
+                    value: inputValue
+                }
+            } as React.ChangeEvent<HTMLInputElement>;
+
+            onChange(syntheticEvent);
+        } else {
+            onChange(e);
+        }
     };
 
     return (
         <FieldContainer>
             <InputWithIcon>
+                {type === 'phone' && <PhonePrefix>+48</PhonePrefix>}
                 <Input
                     id={id}
                     name={name}
+                    type={type === 'email' ? 'email' : 'text'}
                     value={value}
-                    onChange={onChange}
+                    onChange={handlePhoneChange}
                     placeholder={placeholder}
                     required={required}
                     $hasError={!!error}
+                    $isPhone={type === 'phone'}
+                    autoComplete={type === 'email' ? 'email' : type === 'phone' ? 'tel' : 'off'}
+                    inputMode={type === 'phone' ? 'numeric' : undefined}
                 />
                 <SearchIcon
                     onClick={handleSearchButtonClick}
-                    title="Wyszukaj w bazie klientów"
+                    title={`Wyszukaj w bazie klientów po ${
+                        type === 'email' ? 'adresie email' :
+                            type === 'phone' ? 'numerze telefonu' :
+                                name === 'ownerName' ? 'imieniu i nazwisku' :
+                                    name === 'companyName' ? 'nazwie firmy' :
+                                        name === 'taxId' ? 'numerze NIP' : 'polu'
+                    }`}
                     type="button"
                 >
                     <FaSearch />
@@ -69,10 +113,22 @@ const InputWithIcon = styled.div`
     width: 100%;
 `;
 
-const Input = styled.input<{ $hasError?: boolean }>`
+const PhonePrefix = styled.span`
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: ${brandTheme.text.muted};
+    font-weight: 500;
+    font-size: 14px;
+    pointer-events: none;
+    z-index: 2;
+`;
+
+const Input = styled.input<{ $hasError?: boolean; $isPhone?: boolean }>`
     width: 100%;
     height: 44px;
-    padding: 0 48px 0 ${brandTheme.spacing.md};
+    padding: 0 48px 0 ${props => props.$isPhone ? '48px' : brandTheme.spacing.md};
     border: 2px solid ${props => props.$hasError ? brandTheme.status.error : brandTheme.border};
     border-radius: ${brandTheme.radius.md};
     font-size: 14px;
@@ -80,6 +136,7 @@ const Input = styled.input<{ $hasError?: boolean }>`
     background: ${brandTheme.surface};
     color: ${brandTheme.text.primary};
     transition: all ${brandTheme.transitions.normal};
+    ${props => props.$isPhone && 'font-variant-numeric: tabular-nums;'}
 
     &:focus {
         outline: none;

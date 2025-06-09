@@ -323,7 +323,6 @@ const InfoMessage = styled.div`
     gap: ${brandTheme.spacing.sm};
 
     &::before {
-        content: '🚗';
         font-size: 16px;
     }
 `;

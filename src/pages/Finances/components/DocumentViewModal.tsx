@@ -363,7 +363,7 @@ const ModalOverlay = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: ${brandTheme.zIndex.modal};
+    z-index: 1040   ;
     padding: ${brandTheme.spacing.lg};
     backdrop-filter: blur(4px);
     animation: fadeIn 0.2s ease;
