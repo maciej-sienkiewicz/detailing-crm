@@ -912,14 +912,6 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                     </CardBody>
                 </SettingsCard>
             </ContentContainer>
-
-            {/* Floating Save Button */}
-            {hasUnsavedChanges && (
-                <FloatingSaveButton onClick={handleSaveAll} disabled={saving}>
-                    {saving ? <FaSpinner className="spinning" /> : <FaSave />}
-                    {saving ? 'Zapisywanie...' : 'Zapisz wszystkie zmiany'}
-                </FloatingSaveButton>
-            )}
         </PageContainer>
     );
 });

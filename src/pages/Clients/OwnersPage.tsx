@@ -433,7 +433,7 @@ const OwnersPage: React.FC = () => {
             <StatsSection>
                 <StatsGrid>
                     <StatCard>
-                        <StatIcon $color={brandTheme.primary}>
+                        <StatIcon $color={brandTheme.text.secondary}>
                             <FaUsers />
                         </StatIcon>
                         <StatContent>
@@ -443,7 +443,7 @@ const OwnersPage: React.FC = () => {
                     </StatCard>
 
                     <StatCard>
-                        <StatIcon $color={brandTheme.status.warning}>
+                        <StatIcon $color={brandTheme.text.secondary}>
                             <FaUsers />
                         </StatIcon>
                         <StatContent>
@@ -453,7 +453,7 @@ const OwnersPage: React.FC = () => {
                     </StatCard>
 
                     <StatCard>
-                        <StatIcon $color={brandTheme.status.success}>
+                        <StatIcon $color={brandTheme.text.secondary}>
                             <FaUsers />
                         </StatIcon>
                         <StatContent>
@@ -463,7 +463,7 @@ const OwnersPage: React.FC = () => {
                     </StatCard>
 
                     <StatCard>
-                        <StatIcon $color={brandTheme.status.info}>
+                        <StatIcon $color={brandTheme.text.secondary}>
                             <FaUsers />
                         </StatIcon>
                         <StatContent>

@@ -1,4 +1,4 @@
-// src/pages/Finances/FinancialPageWithFixedCosts.tsx
+// src/pages/Finances/FinancialPageWithFixedCosts.tsx - Updated with Reports
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import {
@@ -15,8 +15,10 @@ import DocumentTable from './components/DocumentTable';
 import DocumentFormModal from './components/DocumentFormModal';
 import DocumentViewModal from './components/DocumentViewModal';
 
-// Import new Fixed Costs components
+// Import Fixed Costs components
 import FixedCostsIntegration from './components/FixedCostsIntegration';
+
+// Import new Reports component
 
 // Import hooks
 import { useFinancialData } from './hooks/useFinancialData';
@@ -29,6 +31,7 @@ import { DocumentType } from '../../types/finance';
 import { brandTheme } from './styles/theme';
 import { useToast } from '../../components/common/Toast/Toast';
 import Pagination from '../../components/common/Pagination';
+import FinancialReportsPage from "./FinancialReportsPage";
 
 type ActiveTab = 'documents' | 'fixed-costs' | 'reports';
 
@@ -87,7 +90,7 @@ const FinancialPageWithFixedCosts: React.FC = () => {
             id: 'reports' as ActiveTab,
             label: 'Raporty',
             icon: FaChartLine,
-            description: 'Analizy i raporty finansowe'
+            description: 'Analizy WoW, MoM, YoY i break-even'
         }
     ];
 
@@ -164,6 +167,13 @@ const FinancialPageWithFixedCosts: React.FC = () => {
                                 <FaBuilding />
                                 <span>Dodaj koszt stały</span>
                             </PrimaryButton>
+                        )}
+
+                        {activeTab === 'reports' && (
+                            <SecondaryButton onClick={() => showToast('info', 'Eksport raportów - funkcjonalność w przygotowaniu')}>
+                                <FaExchangeAlt />
+                                <span>Eksport raportów</span>
+                            </SecondaryButton>
                         )}
                     </HeaderActions>
                 </HeaderContent>
@@ -275,22 +285,14 @@ const FinancialPageWithFixedCosts: React.FC = () => {
                 )}
 
                 {activeTab === 'reports' && (
-                    <ReportsPlaceholder>
-                        <ReportsIcon>
-                            <FaChartLine />
-                        </ReportsIcon>
-                        <ReportsTitle>Raporty finansowe</ReportsTitle>
-                        <ReportsDescription>
-                            Sekcja raportów i analiz finansowych jest w przygotowaniu
-                        </ReportsDescription>
-                    </ReportsPlaceholder>
+                    <FinancialReportsPage />
                 )}
             </ContentContainer>
         </PageContainer>
     );
 };
 
-// Styled Components
+// Styled Components (existing styles remain the same)
 const PageContainer = styled.div`
     min-height: 100vh;
     background: ${brandTheme.surfaceAlt};
@@ -662,49 +664,6 @@ const PaginationContainer = styled.div`
     display: flex;
     justify-content: center;
     padding: ${brandTheme.spacing.lg} 0;
-`;
-
-const ReportsPlaceholder = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: ${brandTheme.spacing.xxl};
-    background: ${brandTheme.surface};
-    border-radius: ${brandTheme.radius.xl};
-    border: 2px dashed ${brandTheme.border};
-    text-align: center;
-    min-height: 400px;
-    margin: ${brandTheme.spacing.lg} 0;
-`;
-
-const ReportsIcon = styled.div`
-    width: 64px;
-    height: 64px;
-    background: ${brandTheme.surfaceAlt};
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    color: ${brandTheme.text.tertiary};
-    margin-bottom: ${brandTheme.spacing.lg};
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
-`;
-
-const ReportsTitle = styled.h3`
-    font-size: 20px;
-    font-weight: 600;
-    color: ${brandTheme.text.primary};
-    margin: 0 0 ${brandTheme.spacing.sm} 0;
-    letter-spacing: -0.025em;
-`;
-
-const ReportsDescription = styled.p`
-    font-size: 16px;
-    color: ${brandTheme.text.secondary};
-    margin: 0;
-    line-height: 1.5;
 `;
 
 export default FinancialPageWithFixedCosts;

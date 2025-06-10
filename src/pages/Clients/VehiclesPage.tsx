@@ -398,7 +398,7 @@
                 <StatsSection>
                     <StatsGrid>
                         <StatCard>
-                            <StatIcon $color={brandTheme.primary}>
+                            <StatIcon $color={brandTheme.text.secondary}>
                                 <FaCar />
                             </StatIcon>
                             <StatContent>
@@ -408,7 +408,7 @@
                         </StatCard>
 
                         <StatCard>
-                            <StatIcon $color={brandTheme.status.warning}>
+                            <StatIcon $color={brandTheme.text.secondary}>
                                 <FaTrophy />
                             </StatIcon>
                             <StatContent>
@@ -418,7 +418,7 @@
                         </StatCard>
 
                         <StatCard>
-                            <StatIcon $color={brandTheme.status.success}>
+                            <StatIcon $color={brandTheme.text.secondary}>
                                 <FaMoneyBillWave />
                             </StatIcon>
                             <StatContent>
@@ -428,7 +428,7 @@
                         </StatCard>
 
                         <StatCard>
-                            <StatIcon $color={brandTheme.status.info}>
+                            <StatIcon $color={brandTheme.text.secondary}>
                                 <FaEye />
                             </StatIcon>
                             <StatContent>
