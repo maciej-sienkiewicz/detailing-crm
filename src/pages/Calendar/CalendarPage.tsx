@@ -240,11 +240,6 @@ const CalendarPage: React.FC = () => {
         setSelectedEndDate(correctedEndDate);
         setShowNewVisitConfirmation(true);
 
-        console.log('New appointment date range:', {
-            start: start.toISOString(),
-            originalEnd: end.toISOString(),
-            correctedEnd: correctedEndDate.toISOString()
-        });
     };
 
     // Visit creation confirmation handler

@@ -249,7 +249,8 @@ const UnifiedDocumentForm: React.FC<UnifiedDocumentFormProps> = ({
             setIsExtracting(true);
             setExtractionError(null);
 
-            const extractedData = await unifiedFinancialApi.extractDocumentData(selectedFile);
+            const result = await unifiedFinancialApi.extractDocumentData(selectedFile);
+            const extractedData = result?.extractedInvoiceData
 
             if (extractedData) {
                 const mappedItems: DocumentItem[] = extractedData.items.map((item, index) => ({
@@ -277,7 +278,8 @@ const UnifiedDocumentForm: React.FC<UnifiedDocumentFormProps> = ({
                     totalNet: extractedData.summary.totalNet,
                     totalTax: extractedData.summary.totalTax,
                     totalGross: extractedData.summary.totalGross,
-                    notes: extractedData.notes || ''
+                    notes: extractedData.notes || '',
+                    direction: result.direction || TransactionDirection.INCOME,
                 }));
 
                 setItems(mappedItems);

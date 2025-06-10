@@ -44,7 +44,8 @@ export interface ExtractedDocumentData {
 
 // Typ odpowiedzi z serwera dla ekstrahowanych danych
 export interface DocumentDataResponse {
-    extractedDocumentData: ExtractedDocumentData;
+    extractedInvoiceData: ExtractedDocumentData;
+    direction: String
 }
 
 /**
@@ -252,13 +253,13 @@ export const unifiedFinancialApi = {
     },
 
     // Ekstrakcja danych z dokumentu
-    extractDocumentData: async (file: File): Promise<ExtractedDocumentData | null> => {
+    extractDocumentData: async (file: File): Promise<DocumentDataResponse | null> => {
         try {
             const formData = new FormData();
             formData.append('file', file);
 
-            const response = await apiClient.post<DocumentDataResponse>('/financial-documents/extract', formData);
-            return response.extractedDocumentData;
+            const response = await apiClient.postNotCamel<DocumentDataResponse>('/financial-documents/extract', formData);
+            return response;
         } catch (error) {
             console.error('Error extracting document data:', error);
             return null;
