@@ -24,6 +24,17 @@ import {
     FaMapMarkerAlt
 } from 'react-icons/fa';
 
+// Import API and types
+import {
+    companySettingsApi,
+    companySettingsValidation,
+    type CompanySettingsResponse,
+    type UpdateCompanySettingsRequest,
+    type TestEmailConnectionRequest,
+    type EmailTestResponse,
+    type NipValidationResponse
+} from '../../api/companySettingsApi';
+
 // Professional theme matching finances module
 const brandTheme = {
     primary: '#1a365d',
@@ -92,119 +103,288 @@ const brandTheme = {
     }
 };
 
-// Mock data
-const mockCompanyData = {
-    basicInfo: {
-        companyName: 'AutoSerwis Premium',
-        taxId: '123-456-78-90',
-        address: 'ul. Motoryzacyjna 123, 00-001 Warszawa',
-        phone: '+48 123 456 789',
-        website: 'https://autoserwis-premium.pl'
-    },
-    bankSettings: {
-        bankAccountNumber: '12 3456 7890 1234 5678 9012 3456',
-        bankName: 'PKO Bank Polski',
-        swiftCode: 'PKOPPLPW',
-        accountHolderName: 'AutoSerwis Premium Sp. z o.o.'
-    },
-    emailSettings: {
-        smtpHost: 'smtp.gmail.com',
-        smtpPort: 587,
-        smtpUsername: 'noreply@autoserwis-premium.pl',
-        senderEmail: 'noreply@autoserwis-premium.pl',
-        senderName: 'AutoSerwis Premium',
-        imapHost: 'imap.gmail.com',
-        imapPort: 993,
-        useSSL: true,
-        useTLS: true,
-        smtpConfigured: true,
-        imapConfigured: false
-    },
-    logoSettings: {
-        hasLogo: true,
-        logoFileName: 'logo.png',
-        logoUrl: 'https://via.placeholder.com/200x100/1a365d/ffffff?text=AutoSerwis'
-    }
-};
-
 type EditingSection = 'basic' | 'bank' | 'email' | 'logo' | null;
 
 const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) => {
-    const [formData, setFormData] = useState(mockCompanyData);
-    const [originalData, setOriginalData] = useState(mockCompanyData);
+    const [formData, setFormData] = useState<CompanySettingsResponse | null>(null);
+    const [originalData, setOriginalData] = useState<CompanySettingsResponse | null>(null);
     const [editingSection, setEditingSection] = useState<EditingSection>(null);
+    const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [showPasswords, setShowPasswords] = useState({ smtp: false, imap: false });
     const [testingEmail, setTestingEmail] = useState(false);
-    const [emailTestResult, setEmailTestResult] = useState<any>(null);
+    const [emailTestResult, setEmailTestResult] = useState<EmailTestResponse | null>(null);
+    const [nipValidation, setNipValidation] = useState<{ isValid: boolean; message: string } | null>(null);
+    const [validatingNip, setValidatingNip] = useState(false);
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useImperativeHandle(ref, () => ({
         handleSave: handleSaveAll
     }));
 
-    const handleInputChange = (section: string, field: string, value: any) => {
+    // Load company settings on component mount
+    useEffect(() => {
+        loadCompanySettings();
+    }, []);
+
+    const loadCompanySettings = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const data = await companySettingsApi.getCompanySettings();
+            setFormData(data);
+            setOriginalData(data);
+        } catch (err) {
+            console.error('Error loading company settings:', err);
+            setError('Nie udało się załadować ustawień firmy');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleInputChange = (section: keyof CompanySettingsResponse, field: string, value: any) => {
+        if (!formData) return;
+
         setFormData(prev => ({
-            ...prev,
+            ...prev!,
             [section]: {
-                ...prev[section],
+                ...prev![section],
                 [field]: value
             }
         }));
+
+        // Clear NIP validation when NIP changes
+        if (section === 'basicInfo' && field === 'taxId') {
+            setNipValidation(null);
+        }
+    };
+
+    const validateNIP = async (nip: string) => {
+        if (!nip || nip.length < 10) {
+            setNipValidation(null);
+            return;
+        }
+
+        try {
+            setValidatingNip(true);
+            const result = await companySettingsApi.validateNIP(nip);
+            setNipValidation({
+                isValid: result.valid,
+                message: result.message
+            });
+        } catch (err) {
+            console.error('Error validating NIP:', err);
+            setNipValidation({
+                isValid: false,
+                message: 'Błąd walidacji NIP'
+            });
+        } finally {
+            setValidatingNip(false);
+        }
     };
 
     const handleSaveAll = async () => {
-        setSaving(true);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setOriginalData(formData);
-        setEditingSection(null);
-        setSaving(false);
+        if (!formData || !originalData) return;
+
+        try {
+            setSaving(true);
+            setError(null);
+
+            const updateRequest: UpdateCompanySettingsRequest = {
+                basicInfo: formData.basicInfo,
+                bankSettings: formData.bankSettings,
+                emailSettings: formData.emailSettings,
+                logoSettings: formData.logoSettings
+            };
+
+            const updatedData = await companySettingsApi.updateCompanySettings(updateRequest);
+
+            setFormData(updatedData);
+            setOriginalData(updatedData);
+            setEditingSection(null);
+            setSuccessMessage('Ustawienia zostały zapisane pomyślnie');
+
+            setTimeout(() => setSuccessMessage(null), 3000);
+        } catch (err) {
+            console.error('Error saving company settings:', err);
+            setError('Nie udało się zapisać ustawień');
+        } finally {
+            setSaving(false);
+        }
     };
 
     const handleSaveSection = async (section: EditingSection) => {
-        if (!section) return;
-        setSaving(true);
-        await new Promise(resolve => setTimeout(resolve, 800));
-        setOriginalData(formData);
-        setEditingSection(null);
-        setSaving(false);
+        if (!section || !formData) return;
+        await handleSaveAll();
     };
 
     const handleCancelSection = (section: EditingSection) => {
-        if (!section) return;
+        if (!section || !originalData) return;
         setFormData(originalData);
         setEditingSection(null);
+        setError(null);
     };
 
     const testEmailConnection = async () => {
-        setTestingEmail(true);
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        setEmailTestResult({
-            success: Math.random() > 0.3,
-            message: Math.random() > 0.3 ? 'Połączenie z serwerem SMTP udane' : 'Błąd połączenia - sprawdź dane konfiguracji'
-        });
-        setTestingEmail(false);
+        if (!formData?.emailSettings) return;
+
+        const { emailSettings } = formData;
+
+        if (!emailSettings.smtpHost || !emailSettings.smtpPort || !emailSettings.smtpUsername || !emailSettings.senderEmail) {
+            setEmailTestResult({
+                success: false,
+                message: 'Uzupełnij wszystkie wymagane pola SMTP',
+                errorDetails: 'Brakuje host, port, username lub email nadawcy'
+            });
+            return;
+        }
+
+        try {
+            setTestingEmail(true);
+            setEmailTestResult(null);
+
+            const testRequest: TestEmailConnectionRequest = {
+                smtpHost: emailSettings.smtpHost,
+                smtpPort: emailSettings.smtpPort,
+                smtpUsername: emailSettings.smtpUsername,
+                smtpPassword: emailSettings.smtpPassword || '',
+                useSSL: emailSettings.useSSL,
+                useTLS: emailSettings.useTLS,
+                testEmail: emailSettings.senderEmail
+            };
+
+            const result = await companySettingsApi.testEmailConnection(testRequest);
+            setEmailTestResult(result);
+        } catch (err) {
+            console.error('Error testing email connection:', err);
+            setEmailTestResult({
+                success: false,
+                message: 'Błąd podczas testowania połączenia',
+                errorDetails: err instanceof Error ? err.message : 'Nieznany błąd'
+            });
+        } finally {
+            setTestingEmail(false);
+        }
     };
 
-    const hasUnsavedChanges = JSON.stringify(formData) !== JSON.stringify(originalData);
+    const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const validation = companySettingsValidation.validateLogoFile(file);
+        if (!validation.valid) {
+            setError(validation.error || 'Nieprawidłowy plik logo');
+            return;
+        }
+
+        try {
+            setSaving(true);
+            setError(null);
+
+            const updatedData = await companySettingsApi.uploadLogo(file);
+            setFormData(updatedData);
+            setOriginalData(updatedData);
+            setSuccessMessage('Logo zostało przesłane pomyślnie');
+
+            setTimeout(() => setSuccessMessage(null), 3000);
+        } catch (err) {
+            console.error('Error uploading logo:', err);
+            setError('Nie udało się przesłać logo');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleLogoDelete = async () => {
+        if (!window.confirm('Czy na pewno chcesz usunąć logo?')) return;
+
+        try {
+            setSaving(true);
+            setError(null);
+
+            const updatedData = await companySettingsApi.deleteLogo();
+            setFormData(updatedData);
+            setOriginalData(updatedData);
+            setSuccessMessage('Logo zostało usunięte');
+
+            setTimeout(() => setSuccessMessage(null), 3000);
+        } catch (err) {
+            console.error('Error deleting logo:', err);
+            setError('Nie udało się usunąć logo');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const hasUnsavedChanges = formData && originalData ?
+        JSON.stringify(formData) !== JSON.stringify(originalData) : false;
 
     const getCompletionPercentage = () => {
+        if (!formData) return 0;
+
         const fields = [
-            formData.basicInfo.companyName,
-            formData.basicInfo.taxId,
-            formData.basicInfo.address,
-            formData.basicInfo.phone,
-            formData.bankSettings.bankAccountNumber,
-            formData.emailSettings.smtpHost,
-            formData.emailSettings.senderEmail,
-            formData.logoSettings.hasLogo
+            formData.basicInfo?.companyName,
+            formData.basicInfo?.taxId,
+            formData.basicInfo?.address,
+            formData.basicInfo?.phone,
+            formData.bankSettings?.bankAccountNumber,
+            formData.emailSettings?.smtpHost,
+            formData.emailSettings?.senderEmail,
+            formData.logoSettings?.hasLogo
         ];
         const completed = fields.filter(field => field && field !== false).length;
         return Math.round((completed / fields.length) * 100);
     };
 
+    if (loading) {
+        return (
+            <PageContainer>
+                <LoadingContainer>
+                    <LoadingSpinner />
+                    <LoadingText>Ładowanie ustawień...</LoadingText>
+                </LoadingContainer>
+            </PageContainer>
+        );
+    }
+
+    if (!formData) {
+        return (
+            <PageContainer>
+                <ErrorContainer>
+                    <ErrorIcon>⚠️</ErrorIcon>
+                    <ErrorText>{error || 'Nie udało się załadować danych'}</ErrorText>
+                    <RetryButton onClick={loadCompanySettings}>
+                        Spróbuj ponownie
+                    </RetryButton>
+                </ErrorContainer>
+            </PageContainer>
+        );
+    }
+
     return (
         <PageContainer>
-            {/* Progress Summary - matching finances style */}
+            {/* Success/Error Messages */}
+            {successMessage && (
+                <MessageContainer>
+                    <SuccessMessage>
+                        <MessageIcon>✓</MessageIcon>
+                        {successMessage}
+                    </SuccessMessage>
+                </MessageContainer>
+            )}
+
+            {error && (
+                <MessageContainer>
+                    <ErrorMessage>
+                        <MessageIcon>⚠️</MessageIcon>
+                        {error}
+                    </ErrorMessage>
+                </MessageContainer>
+            )}
+
             {/* Settings Content */}
             <ContentContainer>
                 {/* Basic Information */}
@@ -250,13 +430,13 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                                 </FieldLabel>
                                 {editingSection === 'basic' ? (
                                     <Input
-                                        value={formData.basicInfo.companyName}
+                                        value={formData.basicInfo?.companyName || ''}
                                         onChange={(e) => handleInputChange('basicInfo', 'companyName', e.target.value)}
                                         placeholder="Wprowadź nazwę firmy"
                                     />
                                 ) : (
-                                    <DisplayValue $hasValue={!!formData.basicInfo.companyName}>
-                                        {formData.basicInfo.companyName || 'Nie podano'}
+                                    <DisplayValue $hasValue={!!formData.basicInfo?.companyName}>
+                                        {formData.basicInfo?.companyName || 'Nie podano'}
                                     </DisplayValue>
                                 )}
                             </FormField>
@@ -266,19 +446,33 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                                     <span className="icon">🏛️</span>
                                     NIP
                                     <RequiredMark>*</RequiredMark>
-                                    <ValidationStatus $valid={!!formData.basicInfo.taxId}>
-                                        {formData.basicInfo.taxId ? <FaCheckCircle /> : <FaExclamationTriangle />}
+                                    <ValidationStatus $valid={nipValidation?.isValid ?? !!formData.basicInfo?.taxId}>
+                                        {validatingNip ? (
+                                            <FaSpinner className="spinning" />
+                                        ) : nipValidation?.isValid ?? !!formData.basicInfo?.taxId ? (
+                                            <FaCheckCircle />
+                                        ) : (
+                                            <FaExclamationTriangle />
+                                        )}
                                     </ValidationStatus>
                                 </FieldLabel>
                                 {editingSection === 'basic' ? (
-                                    <Input
-                                        value={formData.basicInfo.taxId}
-                                        onChange={(e) => handleInputChange('basicInfo', 'taxId', e.target.value)}
-                                        placeholder="123-456-78-90"
-                                    />
+                                    <>
+                                        <Input
+                                            value={formData.basicInfo?.taxId || ''}
+                                            onChange={(e) => handleInputChange('basicInfo', 'taxId', e.target.value)}
+                                            onBlur={(e) => validateNIP(e.target.value)}
+                                            placeholder="123-456-78-90"
+                                        />
+                                        {nipValidation && (
+                                            <ValidationMessage $isValid={nipValidation.isValid}>
+                                                {nipValidation.message}
+                                            </ValidationMessage>
+                                        )}
+                                    </>
                                 ) : (
-                                    <DisplayValue $hasValue={!!formData.basicInfo.taxId}>
-                                        {formData.basicInfo.taxId || 'Nie podano'}
+                                    <DisplayValue $hasValue={!!formData.basicInfo?.taxId}>
+                                        {formData.basicInfo?.taxId || 'Nie podano'}
                                     </DisplayValue>
                                 )}
                             </FormField>
@@ -290,13 +484,13 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                                 </FieldLabel>
                                 {editingSection === 'basic' ? (
                                     <Input
-                                        value={formData.basicInfo.address}
+                                        value={formData.basicInfo?.address || ''}
                                         onChange={(e) => handleInputChange('basicInfo', 'address', e.target.value)}
                                         placeholder="ul. Nazwa 123, 00-000 Miasto"
                                     />
                                 ) : (
-                                    <DisplayValue $hasValue={!!formData.basicInfo.address}>
-                                        {formData.basicInfo.address || 'Nie podano'}
+                                    <DisplayValue $hasValue={!!formData.basicInfo?.address}>
+                                        {formData.basicInfo?.address || 'Nie podano'}
                                     </DisplayValue>
                                 )}
                             </FormField>
@@ -308,13 +502,13 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                                 </FieldLabel>
                                 {editingSection === 'basic' ? (
                                     <Input
-                                        value={formData.basicInfo.phone}
+                                        value={formData.basicInfo?.phone || ''}
                                         onChange={(e) => handleInputChange('basicInfo', 'phone', e.target.value)}
                                         placeholder="+48 123 456 789"
                                     />
                                 ) : (
-                                    <DisplayValue $hasValue={!!formData.basicInfo.phone}>
-                                        {formData.basicInfo.phone || 'Nie podano'}
+                                    <DisplayValue $hasValue={!!formData.basicInfo?.phone}>
+                                        {formData.basicInfo?.phone || 'Nie podano'}
                                     </DisplayValue>
                                 )}
                             </FormField>
@@ -326,13 +520,13 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                                 </FieldLabel>
                                 {editingSection === 'basic' ? (
                                     <Input
-                                        value={formData.basicInfo.website}
+                                        value={formData.basicInfo?.website || ''}
                                         onChange={(e) => handleInputChange('basicInfo', 'website', e.target.value)}
                                         placeholder="https://firma.pl"
                                     />
                                 ) : (
-                                    <DisplayValue $hasValue={!!formData.basicInfo.website}>
-                                        {formData.basicInfo.website ? (
+                                    <DisplayValue $hasValue={!!formData.basicInfo?.website}>
+                                        {formData.basicInfo?.website ? (
                                             <WebsiteLink href={formData.basicInfo.website} target="_blank">
                                                 {formData.basicInfo.website}
                                             </WebsiteLink>
@@ -385,13 +579,13 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                                 <FieldLabel>Numer konta bankowego</FieldLabel>
                                 {editingSection === 'bank' ? (
                                     <Input
-                                        value={formData.bankSettings.bankAccountNumber}
+                                        value={formData.bankSettings?.bankAccountNumber || ''}
                                         onChange={(e) => handleInputChange('bankSettings', 'bankAccountNumber', e.target.value)}
                                         placeholder="12 3456 7890 1234 5678 9012 3456"
                                     />
                                 ) : (
-                                    <DisplayValue $hasValue={!!formData.bankSettings.bankAccountNumber}>
-                                        {formData.bankSettings.bankAccountNumber || 'Nie podano'}
+                                    <DisplayValue $hasValue={!!formData.bankSettings?.bankAccountNumber}>
+                                        {formData.bankSettings?.bankAccountNumber || 'Nie podano'}
                                     </DisplayValue>
                                 )}
                             </FormField>
@@ -400,13 +594,13 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                                 <FieldLabel>Nazwa banku</FieldLabel>
                                 {editingSection === 'bank' ? (
                                     <Input
-                                        value={formData.bankSettings.bankName}
+                                        value={formData.bankSettings?.bankName || ''}
                                         onChange={(e) => handleInputChange('bankSettings', 'bankName', e.target.value)}
                                         placeholder="Nazwa banku"
                                     />
                                 ) : (
-                                    <DisplayValue $hasValue={!!formData.bankSettings.bankName}>
-                                        {formData.bankSettings.bankName || 'Nie podano'}
+                                    <DisplayValue $hasValue={!!formData.bankSettings?.bankName}>
+                                        {formData.bankSettings?.bankName || 'Nie podano'}
                                     </DisplayValue>
                                 )}
                             </FormField>
@@ -415,13 +609,28 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                                 <FieldLabel>Kod SWIFT</FieldLabel>
                                 {editingSection === 'bank' ? (
                                     <Input
-                                        value={formData.bankSettings.swiftCode}
+                                        value={formData.bankSettings?.swiftCode || ''}
                                         onChange={(e) => handleInputChange('bankSettings', 'swiftCode', e.target.value)}
                                         placeholder="PKOPPLPW"
                                     />
                                 ) : (
-                                    <DisplayValue $hasValue={!!formData.bankSettings.swiftCode}>
-                                        {formData.bankSettings.swiftCode || 'Nie podano'}
+                                    <DisplayValue $hasValue={!!formData.bankSettings?.swiftCode}>
+                                        {formData.bankSettings?.swiftCode || 'Nie podano'}
+                                    </DisplayValue>
+                                )}
+                            </FormField>
+
+                            <FormField>
+                                <FieldLabel>Właściciel konta</FieldLabel>
+                                {editingSection === 'bank' ? (
+                                    <Input
+                                        value={formData.bankSettings?.accountHolderName || ''}
+                                        onChange={(e) => handleInputChange('bankSettings', 'accountHolderName', e.target.value)}
+                                        placeholder="Nazwa właściciela konta"
+                                    />
+                                ) : (
+                                    <DisplayValue $hasValue={!!formData.bankSettings?.accountHolderName}>
+                                        {formData.bankSettings?.accountHolderName || 'Nie podano'}
                                     </DisplayValue>
                                 )}
                             </FormField>
@@ -471,17 +680,22 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                             <TestResultIcon>
                                 {emailTestResult.success ? <FaCheckCircle /> : <FaExclamationTriangle />}
                             </TestResultIcon>
-                            <TestResultText>{emailTestResult.message}</TestResultText>
+                            <TestResultText>
+                                {emailTestResult.message}
+                                {emailTestResult.errorDetails && (
+                                    <TestResultDetails>{emailTestResult.errorDetails}</TestResultDetails>
+                                )}
+                            </TestResultText>
                         </TestResultBanner>
                     )}
 
                     <CardBody>
-                        <ConfigStatusBanner $configured={formData.emailSettings.smtpConfigured}>
+                        <ConfigStatusBanner $configured={formData.emailSettings?.smtpConfigured ?? false}>
                             <StatusIcon>
-                                {formData.emailSettings.smtpConfigured ? <FaCheckCircle /> : <FaExclamationTriangle />}
+                                {formData.emailSettings?.smtpConfigured ? <FaCheckCircle /> : <FaExclamationTriangle />}
                             </StatusIcon>
                             <StatusText>
-                                {formData.emailSettings.smtpConfigured
+                                {formData.emailSettings?.smtpConfigured
                                     ? 'Serwer SMTP skonfigurowany i gotowy'
                                     : 'Serwer SMTP wymaga konfiguracji'
                                 }
@@ -494,13 +708,13 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                                 {editingSection === 'email' ? (
                                     <Input
                                         type="email"
-                                        value={formData.emailSettings.senderEmail}
+                                        value={formData.emailSettings?.senderEmail || ''}
                                         onChange={(e) => handleInputChange('emailSettings', 'senderEmail', e.target.value)}
                                         placeholder="noreply@firma.pl"
                                     />
                                 ) : (
-                                    <DisplayValue $hasValue={!!formData.emailSettings.senderEmail}>
-                                        {formData.emailSettings.senderEmail || 'Nie podano'}
+                                    <DisplayValue $hasValue={!!formData.emailSettings?.senderEmail}>
+                                        {formData.emailSettings?.senderEmail || 'Nie podano'}
                                     </DisplayValue>
                                 )}
                             </FormField>
@@ -509,13 +723,13 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                                 <FieldLabel>Nazwa nadawcy</FieldLabel>
                                 {editingSection === 'email' ? (
                                     <Input
-                                        value={formData.emailSettings.senderName}
+                                        value={formData.emailSettings?.senderName || ''}
                                         onChange={(e) => handleInputChange('emailSettings', 'senderName', e.target.value)}
                                         placeholder="Nazwa firmy"
                                     />
                                 ) : (
-                                    <DisplayValue $hasValue={!!formData.emailSettings.senderName}>
-                                        {formData.emailSettings.senderName || 'Nie podano'}
+                                    <DisplayValue $hasValue={!!formData.emailSettings?.senderName}>
+                                        {formData.emailSettings?.senderName || 'Nie podano'}
                                     </DisplayValue>
                                 )}
                             </FormField>
@@ -524,13 +738,13 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                                 <FieldLabel>Host SMTP</FieldLabel>
                                 {editingSection === 'email' ? (
                                     <Input
-                                        value={formData.emailSettings.smtpHost}
+                                        value={formData.emailSettings?.smtpHost || ''}
                                         onChange={(e) => handleInputChange('emailSettings', 'smtpHost', e.target.value)}
                                         placeholder="smtp.gmail.com"
                                     />
                                 ) : (
-                                    <DisplayValue $hasValue={!!formData.emailSettings.smtpHost}>
-                                        {formData.emailSettings.smtpHost || 'Nie podano'}
+                                    <DisplayValue $hasValue={!!formData.emailSettings?.smtpHost}>
+                                        {formData.emailSettings?.smtpHost || 'Nie podano'}
                                     </DisplayValue>
                                 )}
                             </FormField>
@@ -540,13 +754,49 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                                 {editingSection === 'email' ? (
                                     <Input
                                         type="number"
-                                        value={formData.emailSettings.smtpPort}
-                                        onChange={(e) => handleInputChange('emailSettings', 'smtpPort', parseInt(e.target.value))}
+                                        value={formData.emailSettings?.smtpPort || ''}
+                                        onChange={(e) => handleInputChange('emailSettings', 'smtpPort', parseInt(e.target.value) || undefined)}
                                         placeholder="587"
                                     />
                                 ) : (
-                                    <DisplayValue $hasValue={!!formData.emailSettings.smtpPort}>
-                                        {formData.emailSettings.smtpPort}
+                                    <DisplayValue $hasValue={!!formData.emailSettings?.smtpPort}>
+                                        {formData.emailSettings?.smtpPort || 'Nie podano'}
+                                    </DisplayValue>
+                                )}
+                            </FormField>
+
+                            <FormField>
+                                <FieldLabel>Użytkownik SMTP</FieldLabel>
+                                {editingSection === 'email' ? (
+                                    <Input
+                                        value={formData.emailSettings?.smtpUsername || ''}
+                                        onChange={(e) => handleInputChange('emailSettings', 'smtpUsername', e.target.value)}
+                                        placeholder="username@gmail.com"
+                                    />
+                                ) : (
+                                    <DisplayValue $hasValue={!!formData.emailSettings?.smtpUsername}>
+                                        {formData.emailSettings?.smtpUsername || 'Nie podano'}
+                                    </DisplayValue>
+                                )}
+                            </FormField>
+
+                            <FormField>
+                                <FieldLabel>Hasło SMTP</FieldLabel>
+                                {editingSection === 'email' ? (
+                                    <PasswordContainer>
+                                        <Input
+                                            type={showPasswords.smtp ? 'text' : 'password'}
+                                            value={formData.emailSettings?.smtpPassword || ''}
+                                            onChange={(e) => handleInputChange('emailSettings', 'smtpPassword', e.target.value)}
+                                            placeholder="Hasło SMTP"
+                                        />
+                                        <PasswordToggle onClick={() => setShowPasswords(prev => ({ ...prev, smtp: !prev.smtp }))}>
+                                            {showPasswords.smtp ? <FaEyeSlash /> : <FaEye />}
+                                        </PasswordToggle>
+                                    </PasswordContainer>
+                                ) : (
+                                    <DisplayValue $hasValue={!!formData.emailSettings?.smtpPasswordConfigured}>
+                                        {formData.emailSettings?.smtpPasswordConfigured ? '••••••••' : 'Nie skonfigurowano'}
                                     </DisplayValue>
                                 )}
                             </FormField>
@@ -562,7 +812,7 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                                     <SecurityOption>
                                         <input
                                             type="checkbox"
-                                            checked={formData.emailSettings.useSSL}
+                                            checked={formData.emailSettings?.useSSL ?? true}
                                             onChange={(e) => handleInputChange('emailSettings', 'useSSL', e.target.checked)}
                                         />
                                         <span>Użyj SSL</span>
@@ -570,7 +820,7 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                                     <SecurityOption>
                                         <input
                                             type="checkbox"
-                                            checked={formData.emailSettings.useTLS}
+                                            checked={formData.emailSettings?.useTLS ?? true}
                                             onChange={(e) => handleInputChange('emailSettings', 'useTLS', e.target.checked)}
                                         />
                                         <span>Użyj TLS</span>
@@ -598,17 +848,30 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                     <CardBody>
                         <LogoSection>
                             <LogoPreview>
-                                {formData.logoSettings.hasLogo ? (
+                                {formData.logoSettings?.hasLogo ? (
                                     <LogoContainer>
-                                        <LogoImage src={formData.logoSettings.logoUrl} alt="Logo firmy" />
+                                        <LogoImage
+                                            src={formData.logoSettings.logoUrl}
+                                            alt="Logo firmy"
+                                            onError={(e) => {
+                                                console.error('Logo loading error');
+                                                // Fallback behavior if logo fails to load
+                                            }}
+                                        />
                                         <LogoInfo>
                                             <LogoName>{formData.logoSettings.logoFileName}</LogoName>
+                                            <LogoSize>
+                                                {formData.logoSettings.logoSize ?
+                                                    `${Math.round(formData.logoSettings.logoSize / 1024)} KB` :
+                                                    'Nieznany rozmiar'
+                                                }
+                                            </LogoSize>
                                             <LogoActions>
-                                                <SecondaryButton>
+                                                <SecondaryButton onClick={() => fileInputRef.current?.click()}>
                                                     <FaUpload />
                                                     Zmień logo
                                                 </SecondaryButton>
-                                                <DangerButton>
+                                                <DangerButton onClick={handleLogoDelete} disabled={saving}>
                                                     <FaTrash />
                                                     Usuń
                                                 </DangerButton>
@@ -621,7 +884,7 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                                             <FaImage />
                                         </LogoPlaceholderIcon>
                                         <LogoPlaceholderText>Brak logo</LogoPlaceholderText>
-                                        <PrimaryButton>
+                                        <PrimaryButton onClick={() => fileInputRef.current?.click()}>
                                             <FaUpload />
                                             Dodaj logo
                                         </PrimaryButton>
@@ -639,9 +902,24 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                                 </RequirementsList>
                             </LogoRequirements>
                         </LogoSection>
+
+                        <HiddenFileInput
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            onChange={handleLogoUpload}
+                        />
                     </CardBody>
                 </SettingsCard>
             </ContentContainer>
+
+            {/* Floating Save Button */}
+            {hasUnsavedChanges && (
+                <FloatingSaveButton onClick={handleSaveAll} disabled={saving}>
+                    {saving ? <FaSpinner className="spinning" /> : <FaSave />}
+                    {saving ? 'Zapisywanie...' : 'Zapisz wszystkie zmiany'}
+                </FloatingSaveButton>
+            )}
         </PageContainer>
     );
 });
@@ -654,153 +932,186 @@ const PageContainer = styled.div`
     flex-direction: column;
 `;
 
-const SummarySection = styled.section`
-    max-width: 1600px;
-    margin: 0 auto;
-    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl} 0;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: ${brandTheme.spacing.lg};
-
-    @media (max-width: 1024px) {
-        padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg} 0;
-        grid-template-columns: 1fr;
-    }
-`;
-
-const SummaryCard = styled.div`
-    background: ${brandTheme.surface};
-    border-radius: ${brandTheme.radius.lg};
-    border: 1px solid ${brandTheme.border};
-    overflow: hidden;
-    box-shadow: ${brandTheme.shadow.xs};
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.md};
-    padding: ${brandTheme.spacing.lg};
-    transition: all ${brandTheme.transitions.spring};
-    position: relative;
-    min-height: 110px;
-
-    &:hover {
-        transform: translateY(-1px);
-        box-shadow: ${brandTheme.shadow.sm};
-        border-color: ${brandTheme.borderHover};
-    }
-
-    &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 3px;
-        background: ${brandTheme.primary};
-        opacity: 0.8;
-    }
-`;
-
-const CardIcon = styled.div<{ $color: string }>`
-    width: 48px;
-    height: 48px;
-    background: ${brandTheme.surfaceAlt};
-    border-radius: ${brandTheme.radius.md};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: ${brandTheme.text.secondary};
-    font-size: 20px;
-    flex-shrink: 0;
-    border: 1px solid ${brandTheme.border};
-    transition: all ${brandTheme.transitions.spring};
-
-    ${SummaryCard}:hover & {
-        background: ${brandTheme.primary};
-        color: white;
-        border-color: ${brandTheme.primary};
-    }
-`;
-
-const CardContent = styled.div`
-    flex: 1;
-    min-width: 0;
+const LoadingContainer = styled.div`
     display: flex;
     flex-direction: column;
+    align-items: center;
     justify-content: center;
-    height: 100%;
+    padding: ${brandTheme.spacing.xxl};
+    background: ${brandTheme.surface};
+    border-radius: ${brandTheme.radius.xl};
+    margin: ${brandTheme.spacing.xl};
+    gap: ${brandTheme.spacing.md};
+    min-height: 400px;
 `;
 
-const CardValue = styled.div`
-    font-size: 20px;
+const LoadingSpinner = styled.div`
+    width: 48px;
+    height: 48px;
+    border: 3px solid ${brandTheme.borderLight};
+    border-top: 3px solid ${brandTheme.primary};
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+`;
+
+const LoadingText = styled.div`
+    font-size: 16px;
+    color: ${brandTheme.text.secondary};
+    font-weight: 500;
+`;
+
+const ErrorContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: ${brandTheme.spacing.xxl};
+    background: ${brandTheme.surface};
+    border-radius: ${brandTheme.radius.xl};
+    margin: ${brandTheme.spacing.xl};
+    gap: ${brandTheme.spacing.md};
+    min-height: 400px;
+`;
+
+const ErrorIcon = styled.div`
+    font-size: 48px;
+    color: ${brandTheme.status.error};
+`;
+
+const ErrorText = styled.div`
+    font-size: 16px;
+    color: ${brandTheme.text.secondary};
+    font-weight: 500;
+    text-align: center;
+`;
+
+const RetryButton = styled.button`
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+    background: ${brandTheme.primary};
+    color: white;
+    border: none;
+    border-radius: ${brandTheme.radius.md};
     font-weight: 600;
-   color: ${brandTheme.text.primary};
-   margin-bottom: ${brandTheme.spacing.xs};
-   letter-spacing: -0.025em;
-   line-height: 1.2;
-   height: 24px;
-   display: flex;
-   align-items: center;
+    cursor: pointer;
+    transition: all ${brandTheme.transitions.spring};
 
-   @media (max-width: 768px) {
-       font-size: 18px;
-   }
+    &:hover {
+        background: ${brandTheme.primaryDark};
+        transform: translateY(-1px);
+    }
 `;
 
-const CardLabel = styled.div`
-   font-size: 14px;
-   color: ${brandTheme.text.primary};
-   font-weight: 600;
-   margin-bottom: ${brandTheme.spacing.xs};
-   text-transform: uppercase;
-   letter-spacing: 0.5px;
-   height: 17px;
-   display: flex;
-   align-items: center;
+const MessageContainer = styled.div`
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    max-width: 400px;
+    width: auto;
+    padding: 0;
+
+    @media (max-width: 768px) {
+        bottom: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+    }
 `;
 
-const CardDetail = styled.div`
-   font-size: 12px;
-   color: ${brandTheme.text.tertiary};
-   font-weight: 500;
-   line-height: 1.3;
-   min-height: 16px;
-   display: flex;
-   align-items: center;
+const SuccessMessage = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    background: ${brandTheme.status.successLight};
+    color: ${brandTheme.status.success};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    border-radius: ${brandTheme.radius.lg};
+    border: 1px solid ${brandTheme.status.success}30;
+    font-weight: 500;
+    box-shadow: ${brandTheme.shadow.lg};
+    animation: slideInFromRight 0.3s ease-out;
+    min-width: 300px;
+
+    @keyframes slideInFromRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    @media (max-width: 768px) {
+        min-width: auto;
+        width: 100%;
+    }
+`;
+
+const ErrorMessage = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    background: ${brandTheme.status.errorLight};
+    color: ${brandTheme.status.error};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    border-radius: ${brandTheme.radius.lg};
+    border: 1px solid ${brandTheme.status.error}30;
+    font-weight: 500;
+    box-shadow: ${brandTheme.shadow.lg};
+    animation: slideInFromRight 0.3s ease-out;
+    min-width: 300px;
+
+    @media (max-width: 768px) {
+        min-width: auto;
+        width: 100%;
+    }
+`;
+
+const MessageIcon = styled.div`
+    font-size: 18px;
+    flex-shrink: 0;
 `;
 
 const ContentContainer = styled.div`
-   flex: 1;
-   max-width: 1600px;
-   margin: 0 auto;
-   padding: 0 ${brandTheme.spacing.xl} ${brandTheme.spacing.xl};
-   width: 100%;
-   display: flex;
-   flex-direction: column;
-   gap: ${brandTheme.spacing.lg};
-   min-height: 0;
+    flex: 1;
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 0 ${brandTheme.spacing.xl} ${brandTheme.spacing.xl};
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.lg};
+    min-height: 0;
 
-   @media (max-width: 1024px) {
-       padding: 0 ${brandTheme.spacing.lg} ${brandTheme.spacing.lg};
-   }
+    @media (max-width: 1024px) {
+        padding: 0 ${brandTheme.spacing.lg} ${brandTheme.spacing.lg};
+    }
 
-   @media (max-width: 768px) {
-       padding: 0 ${brandTheme.spacing.md} ${brandTheme.spacing.md};
-       gap: ${brandTheme.spacing.md};
-   }
+    @media (max-width: 768px) {
+        padding: 0 ${brandTheme.spacing.md} ${brandTheme.spacing.md};
+        gap: ${brandTheme.spacing.md};
+    }
 `;
 
 const SettingsCard = styled.div`
-   background: ${brandTheme.surface};
-   border-radius: ${brandTheme.radius.xl};
-   border: 1px solid ${brandTheme.border};
-   overflow: hidden;
-   box-shadow: ${brandTheme.shadow.sm};
-   transition: all ${brandTheme.transitions.spring};
+    background: ${brandTheme.surface};
+    border-radius: ${brandTheme.radius.xl};
+    border: 1px solid ${brandTheme.border};
+    overflow: hidden;
+    box-shadow: ${brandTheme.shadow.sm};
+    transition: all ${brandTheme.transitions.spring};
 
-   &:hover {
-       box-shadow: ${brandTheme.shadow.md};
-       border-color: ${brandTheme.borderHover};
-   }
+    &:hover {
+        box-shadow: ${brandTheme.shadow.md};
+        border-color: ${brandTheme.borderHover};
+    }
 `;
 
 const CardHeader = styled.div`
@@ -820,29 +1131,29 @@ const CardHeader = styled.div`
 `;
 
 const HeaderContent = styled.div`
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.md};
-   flex: 1;
-   min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.md};
+    flex: 1;
+    min-width: 0;
 `;
 
 const HeaderIcon = styled.div`
-   width: 40px;
-   height: 40px;
-   background: ${brandTheme.primaryGhost};
-   border-radius: ${brandTheme.radius.md};
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   color: ${brandTheme.primary};
-   font-size: 18px;
-   flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    background: ${brandTheme.primaryGhost};
+    border-radius: ${brandTheme.radius.md};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${brandTheme.primary};
+    font-size: 18px;
+    flex-shrink: 0;
 `;
 
 const HeaderText = styled.div`
-   flex: 1;
-   min-width: 0;
+    flex: 1;
+    min-width: 0;
 `;
 
 const HeaderTitle = styled.h3`
@@ -861,67 +1172,67 @@ const HeaderSubtitle = styled.p`
 `;
 
 const HeaderActions = styled.div`
-   display: flex;
-   gap: ${brandTheme.spacing.sm};
-   align-items: center;
-   flex-shrink: 0;
+    display: flex;
+    gap: ${brandTheme.spacing.sm};
+    align-items: center;
+    flex-shrink: 0;
 
-   @media (max-width: 768px) {
-       justify-content: stretch;
-       
-       > * {
-           flex: 1;
-       }
-   }
+    @media (max-width: 768px) {
+        justify-content: stretch;
+
+        > * {
+            flex: 1;
+        }
+    }
 `;
 
 const ActionGroup = styled.div`
-   display: flex;
-   gap: ${brandTheme.spacing.sm};
+    display: flex;
+    gap: ${brandTheme.spacing.sm};
 
-   @media (max-width: 768px) {
-       width: 100%;
-       
-       > * {
-           flex: 1;
-       }
-   }
+    @media (max-width: 768px) {
+        width: 100%;
+
+        > * {
+            flex: 1;
+        }
+    }
 `;
 
 const BaseButton = styled.button`
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.sm};
-   padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
-   border-radius: ${brandTheme.radius.md};
-   font-weight: 600;
-   font-size: 14px;
-   cursor: pointer;
-   transition: all ${brandTheme.transitions.spring};
-   border: 1px solid transparent;
-   white-space: nowrap;
-   min-height: 44px;
-   justify-content: center;
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+    border-radius: ${brandTheme.radius.md};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all ${brandTheme.transitions.spring};
+    border: 1px solid transparent;
+    white-space: nowrap;
+    min-height: 44px;
+    justify-content: center;
 
-   &:hover:not(:disabled) {
-       transform: translateY(-1px);
-       box-shadow: ${brandTheme.shadow.md};
-   }
+    &:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: ${brandTheme.shadow.md};
+    }
 
-   &:disabled {
-       opacity: 0.6;
-       cursor: not-allowed;
-       transform: none;
-   }
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
 
-   .spinning {
-       animation: spin 1s linear infinite;
-   }
+    .spinning {
+        animation: spin 1s linear infinite;
+    }
 
-   @keyframes spin {
-       0% { transform: rotate(0deg); }
-       100% { transform: rotate(360deg); }
-   }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
 `;
 
 const PrimaryButton = styled(BaseButton)`
@@ -949,15 +1260,15 @@ const SecondaryButton = styled(BaseButton)`
 `;
 
 const DangerButton = styled(BaseButton)`
-   background: ${brandTheme.status.errorLight};
-   color: ${brandTheme.status.error};
-   border-color: ${brandTheme.status.error}30;
+    background: ${brandTheme.status.errorLight};
+    color: ${brandTheme.status.error};
+    border-color: ${brandTheme.status.error}30;
 
-   &:hover:not(:disabled) {
-       background: ${brandTheme.status.error};
-       color: white;
-       border-color: ${brandTheme.status.error};
-   }
+    &:hover:not(:disabled) {
+        background: ${brandTheme.status.error};
+        color: white;
+        border-color: ${brandTheme.status.error};
+    }
 `;
 
 const TestResultBanner = styled.div<{ $success: boolean }>`
@@ -972,8 +1283,8 @@ const TestResultBanner = styled.div<{ $success: boolean }>`
 `;
 
 const TestResultIcon = styled.div`
-   font-size: 18px;
-   flex-shrink: 0;
+    font-size: 18px;
+    flex-shrink: 0;
 `;
 
 const TestResultText = styled.div`
@@ -981,20 +1292,27 @@ const TestResultText = styled.div`
    font-weight: 600;
 `;
 
+const TestResultDetails = styled.div`
+   font-size: 12px;
+   font-weight: 400;
+   margin-top: 4px;
+   opacity: 0.8;
+`;
+
 const CardBody = styled.div`
    padding: ${brandTheme.spacing.xl};
 `;
 
 const ConfigStatusBanner = styled.div<{ $configured: boolean }>`
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.sm};
-   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-   background: ${props => props.$configured ? brandTheme.status.successLight : brandTheme.status.warningLight};
-   color: ${props => props.$configured ? brandTheme.status.success : brandTheme.status.warning};
-   border-radius: ${brandTheme.radius.md};
-   margin-bottom: ${brandTheme.spacing.lg};
-   border: 1px solid ${props => props.$configured ? brandTheme.status.success + '30' : brandTheme.status.warning + '30'};
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    background: ${props => props.$configured ? brandTheme.status.successLight : brandTheme.status.warningLight};
+    color: ${props => props.$configured ? brandTheme.status.success : brandTheme.status.warning};
+    border-radius: ${brandTheme.radius.md};
+    margin-bottom: ${brandTheme.spacing.lg};
+    border: 1px solid ${props => props.$configured ? brandTheme.status.success + '30' : brandTheme.status.warning + '30'};
 `;
 
 const StatusIcon = styled.div`
@@ -1003,26 +1321,26 @@ const StatusIcon = styled.div`
 `;
 
 const StatusText = styled.div`
-   font-weight: 500;
-   flex: 1;
+    font-weight: 500;
+    flex: 1;
 `;
 
 const FormGrid = styled.div`
-   display: grid;
-   grid-template-columns: 1fr 1fr;
-   gap: ${brandTheme.spacing.lg};
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: ${brandTheme.spacing.lg};
 
-   @media (max-width: 768px) {
-       grid-template-columns: 1fr;
-       gap: ${brandTheme.spacing.md};
-   }
+    @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+        gap: ${brandTheme.spacing.md};
+    }
 `;
 
 const FormField = styled.div<{ $fullWidth?: boolean }>`
-   display: flex;
-   flex-direction: column;
-   gap: ${brandTheme.spacing.sm};
-   ${props => props.$fullWidth && 'grid-column: 1 / -1;'}
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.sm};
+    ${props => props.$fullWidth && 'grid-column: 1 / -1;'}
 `;
 
 const FieldLabel = styled.label`
@@ -1044,15 +1362,34 @@ const FieldLabel = styled.label`
 `;
 
 const RequiredMark = styled.span`
-   color: ${brandTheme.status.error};
-   font-weight: 700;
-   margin-left: ${brandTheme.spacing.xs};
+    color: ${brandTheme.status.error};
+    font-weight: 700;
+    margin-left: ${brandTheme.spacing.xs};
 `;
 
 const ValidationStatus = styled.div<{ $valid: boolean }>`
-   font-size: 14px;
-   color: ${props => props.$valid ? brandTheme.status.success : brandTheme.status.warning};
-   margin-left: auto;
+    font-size: 14px;
+    color: ${props => props.$valid ? brandTheme.status.success : brandTheme.status.warning};
+    margin-left: auto;
+
+    .spinning {
+        animation: spin 1s linear infinite;
+    }
+`;
+
+const ValidationMessage = styled.div<{ $isValid: boolean }>`
+    font-size: 12px;
+    color: ${props => props.$isValid ? brandTheme.status.success : brandTheme.status.error};
+    font-weight: 500;
+    margin-top: ${brandTheme.spacing.xs};
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.xs};
+
+    &::before {
+        content: ${props => props.$isValid ? '"✓"' : '"⚠"'};
+        font-size: 14px;
+    }
 `;
 
 const Input = styled.input`
@@ -1076,6 +1413,28 @@ const Input = styled.input`
        color: ${brandTheme.text.muted};
        font-weight: 400;
    }
+`;
+
+const PasswordContainer = styled.div`
+    position: relative;
+    display: flex;
+    align-items: center;
+`;
+
+const PasswordToggle = styled.button`
+    position: absolute;
+    right: 12px;
+    background: none;
+    border: none;
+    color: ${brandTheme.text.muted};
+    cursor: pointer;
+    padding: 4px;
+    border-radius: ${brandTheme.radius.sm};
+
+    &:hover {
+        color: ${brandTheme.text.secondary};
+        background: ${brandTheme.surfaceHover};
+    }
 `;
 
 const DisplayValue = styled.div<{ $hasValue: boolean }>`
@@ -1103,226 +1462,236 @@ const WebsiteLink = styled.a`
 `;
 
 const SecuritySection = styled.div`
-   margin-top: ${brandTheme.spacing.lg};
-   padding: ${brandTheme.spacing.lg};
-   background: ${brandTheme.surfaceElevated};
-   border-radius: ${brandTheme.radius.md};
-   border: 1px solid ${brandTheme.border};
+    margin-top: ${brandTheme.spacing.lg};
+    padding: ${brandTheme.spacing.lg};
+    background: ${brandTheme.surfaceElevated};
+    border-radius: ${brandTheme.radius.md};
+    border: 1px solid ${brandTheme.border};
 `;
 
 const SecurityHeader = styled.h4`
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.sm};
-   font-size: 16px;
-   font-weight: 600;
-   color: ${brandTheme.text.primary};
-   margin: 0 0 ${brandTheme.spacing.md} 0;
-   
-   svg {
-       color: ${brandTheme.status.success};
-   }
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    font-size: 16px;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+    margin: 0 0 ${brandTheme.spacing.md} 0;
+
+    svg {
+        color: ${brandTheme.status.success};
+    }
 `;
 
 const SecurityOptions = styled.div`
-   display: flex;
-   gap: ${brandTheme.spacing.lg};
+    display: flex;
+    gap: ${brandTheme.spacing.lg};
 
-   @media (max-width: 480px) {
-       flex-direction: column;
-       gap: ${brandTheme.spacing.md};
-   }
+    @media (max-width: 480px) {
+        flex-direction: column;
+        gap: ${brandTheme.spacing.md};
+    }
 `;
 
 const SecurityOption = styled.label`
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.sm};
-   font-size: 14px;
-   font-weight: 500;
-   color: ${brandTheme.text.primary};
-   cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    font-size: 14px;
+    font-weight: 500;
+    color: ${brandTheme.text.primary};
+    cursor: pointer;
 
-   input[type="checkbox"] {
-       width: 18px;
-       height: 18px;
-       accent-color: ${brandTheme.primary};
-       cursor: pointer;
-   }
+    input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        accent-color: ${brandTheme.primary};
+        cursor: pointer;
+    }
 `;
 
 const LogoSection = styled.div`
-   display: grid;
-   grid-template-columns: 2fr 1fr;
-   gap: ${brandTheme.spacing.xl};
-   align-items: start;
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: ${brandTheme.spacing.xl};
+    align-items: start;
 
-   @media (max-width: 768px) {
-       grid-template-columns: 1fr;
-       gap: ${brandTheme.spacing.lg};
-   }
+    @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+        gap: ${brandTheme.spacing.lg};
+    }
 `;
 
 const LogoPreview = styled.div`
-   border: 2px dashed ${brandTheme.border};
-   border-radius: ${brandTheme.radius.lg};
-   padding: ${brandTheme.spacing.xl};
-   background: ${brandTheme.surfaceElevated};
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   min-height: 200px;
-   transition: all ${brandTheme.transitions.spring};
+    border: 2px dashed ${brandTheme.border};
+    border-radius: ${brandTheme.radius.lg};
+    padding: ${brandTheme.spacing.xl};
+    background: ${brandTheme.surfaceElevated};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    transition: all ${brandTheme.transitions.spring};
 
-   &:hover {
-       border-color: ${brandTheme.borderHover};
-   }
+    &:hover {
+        border-color: ${brandTheme.borderHover};
+    }
 `;
 
 const LogoContainer = styled.div`
-   display: flex;
-   flex-direction: column;
-   align-items: center;
-   gap: ${brandTheme.spacing.lg};
-   text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: ${brandTheme.spacing.lg};
+    text-align: center;
 `;
 
 const LogoImage = styled.img`
-   max-width: 200px;
-   max-height: 100px;
-   object-fit: contain;
-   border-radius: ${brandTheme.radius.md};
-   box-shadow: ${brandTheme.shadow.sm};
-   border: 1px solid ${brandTheme.border};
+    max-width: 200px;
+    max-height: 100px;
+    object-fit: contain;
+    border-radius: ${brandTheme.radius.md};
+    box-shadow: ${brandTheme.shadow.sm};
+    border: 1px solid ${brandTheme.border};
 `;
 
 const LogoInfo = styled.div`
-   display: flex;
-   flex-direction: column;
-   gap: ${brandTheme.spacing.md};
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.md};
 `;
 
 const LogoName = styled.div`
-   font-weight: 600;
-   color: ${brandTheme.text.primary};
-   font-size: 14px;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+    font-size: 14px;
+`;
+
+const LogoSize = styled.div`
+    font-size: 12px;
+    color: ${brandTheme.text.muted};
+    font-weight: 500;
 `;
 
 const LogoActions = styled.div`
-   display: flex;
-   gap: ${brandTheme.spacing.sm};
-   justify-content: center;
+    display: flex;
+    gap: ${brandTheme.spacing.sm};
+    justify-content: center;
 `;
 
 const LogoPlaceholder = styled.div`
-   display: flex;
-   flex-direction: column;
-   align-items: center;
-   gap: ${brandTheme.spacing.lg};
-   color: ${brandTheme.text.muted};
-   text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: ${brandTheme.spacing.lg};
+    color: ${brandTheme.text.muted};
+    text-align: center;
 `;
 
 const LogoPlaceholderIcon = styled.div`
-   width: 64px;
-   height: 64px;
-   background: ${brandTheme.borderLight};
-   border-radius: 50%;
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   font-size: 24px;
-   color: ${brandTheme.text.tertiary};
+    width: 64px;
+    height: 64px;
+    background: ${brandTheme.borderLight};
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: ${brandTheme.text.tertiary};
 `;
 
 const LogoPlaceholderText = styled.div`
-   font-size: 16px;
-   font-weight: 500;
-   color: ${brandTheme.text.secondary};
+    font-size: 16px;
+    font-weight: 500;
+    color: ${brandTheme.text.secondary};
 `;
 
 const LogoRequirements = styled.div`
-   background: ${brandTheme.surface};
-   border: 1px solid ${brandTheme.border};
-   border-radius: ${brandTheme.radius.lg};
-   padding: ${brandTheme.spacing.lg};
+    background: ${brandTheme.surface};
+    border: 1px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.lg};
+    padding: ${brandTheme.spacing.lg};
 `;
 
 const RequirementsTitle = styled.h4`
-   font-size: 16px;
-   font-weight: 600;
-   color: ${brandTheme.text.primary};
-   margin: 0 0 ${brandTheme.spacing.md} 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+    margin: 0 0 ${brandTheme.spacing.md} 0;
 `;
 
 const RequirementsList = styled.ul`
-   list-style: none;
-   padding: 0;
-   margin: 0;
-   display: flex;
-   flex-direction: column;
-   gap: ${brandTheme.spacing.sm};
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.sm};
 `;
 
 const RequirementItem = styled.li`
-   font-size: 14px;
-   color: ${brandTheme.text.secondary};
-   font-weight: 500;
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.sm};
+    font-size: 14px;
+    color: ${brandTheme.text.secondary};
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
 
-   &::before {
-       content: '•';
-       color: ${brandTheme.primary};
-       font-weight: bold;
-       font-size: 16px;
-   }
+    &::before {
+        content: '•';
+        color: ${brandTheme.primary};
+        font-weight: bold;
+        font-size: 16px;
+    }
+`;
+
+const HiddenFileInput = styled.input`
+    display: none;
 `;
 
 const FloatingSaveButton = styled.button`
-   position: fixed;
-   bottom: ${brandTheme.spacing.xl};
-   right: ${brandTheme.spacing.xl};
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.md};
-   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.xl};
-   background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-   color: white;
-   border: none;
-   border-radius: ${brandTheme.radius.xl};
-   font-weight: 600;
-   font-size: 16px;
-   cursor: pointer;
-   box-shadow: ${brandTheme.shadow.xl};
-   transition: all ${brandTheme.transitions.spring};
-   z-index: 1000;
-   min-width: 220px;
-   justify-content: center;
+    position: fixed;
+    bottom: ${brandTheme.spacing.xl};
+    right: ${brandTheme.spacing.xl};
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.md};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.xl};
+    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+    color: white;
+    border: none;
+    border-radius: ${brandTheme.radius.xl};
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: ${brandTheme.shadow.xl};
+    transition: all ${brandTheme.transitions.spring};
+    z-index: 1000;
+    min-width: 220px;
+    justify-content: center;
 
-   &:hover:not(:disabled) {
-       transform: translateY(-2px);
-       box-shadow: 0 20px 40px -5px rgba(26, 54, 93, 0.4);
-       background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
-   }
+    &:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 20px 40px -5px rgba(26, 54, 93, 0.4);
+        background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
+    }
 
-   &:disabled {
-       opacity: 0.8;
-       cursor: not-allowed;
-       transform: none;
-   }
+    &:disabled {
+        opacity: 0.8;
+        cursor: not-allowed;
+        transform: none;
+    }
 
-   .spinning {
-       animation: spin 1s linear infinite;
-   }
+    .spinning {
+        animation: spin 1s linear infinite;
+    }
 
-   @media (max-width: 768px) {
-       bottom: ${brandTheme.spacing.lg};
-       right: ${brandTheme.spacing.lg};
-       left: ${brandTheme.spacing.lg};
-       min-width: auto;
-   }
+    @media (max-width: 768px) {
+        bottom: ${brandTheme.spacing.lg};
+        right: ${brandTheme.spacing.lg};
+        left: ${brandTheme.spacing.lg};
+        min-width: auto;
+    }
 `;
 
 export default CompanySettingsPage;
