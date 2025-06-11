@@ -10,6 +10,7 @@ const brandTheme = {
     primaryLight: 'var(--brand-primary-light, #3b82f6)',
     primaryDark: 'var(--brand-primary-dark, #1d4ed8)',
     primaryGhost: 'var(--brand-primary-ghost, rgba(37, 99, 235, 0.08))',
+    primaryGradient: 'linear-gradient(135deg, var(--brand-primary, #2563eb) 0%, var(--brand-primary-light, #3b82f6) 100%)',
     accent: '#f8fafc',
     neutral: '#64748b',
     surface: '#ffffff',

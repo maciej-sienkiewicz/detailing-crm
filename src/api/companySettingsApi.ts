@@ -1,6 +1,20 @@
 // src/api/companySettingsApi.ts
 import { apiClient } from './apiClient';
 
+export interface GoogleDriveSettings {
+    isActive: boolean;
+    serviceAccountEmail?: string;
+    credentialsConfigured: boolean;
+    lastBackupDate?: string;
+    autoBackupEnabled: boolean;
+}
+
+export interface GoogleDriveTestResponse {
+    success: boolean;
+    message: string;
+    errorDetails?: string;
+}
+
 // Interfejsy TypeScript dla ustawień firmy
 export interface CompanyBasicInfo {
     companyName: string;
@@ -115,6 +129,90 @@ export const companySettingsApi = {
         } catch (error) {
             console.error('Error updating company settings:', error);
             throw new Error('Nie udało się zaktualizować ustawień firmy');
+        }
+    },
+
+    async getIntegrationStatus(): Promise<GoogleDriveSettings> {
+        try {
+            const response = await apiClient.getNot<{
+                companyId: number;
+                isActive: boolean;
+                status: string;
+                serviceAccountEmail?: string;
+                lastBackupDate?: string;
+            }>('/google-drive/integration-status');
+
+            return {
+                isActive: response.isActive,
+                serviceAccountEmail: response.serviceAccountEmail,
+                credentialsConfigured: response.isActive,
+                lastBackupDate: response.lastBackupDate,
+                autoBackupEnabled: false // TODO: dodać do backendu
+            };
+        } catch (error) {
+            console.error('Error fetching Google Drive status:', error);
+            return {
+                isActive: false,
+                credentialsConfigured: false,
+                autoBackupEnabled: false
+            };
+        }
+    },
+
+    async uploadCredentials(file: File, serviceAccountEmail: string): Promise<{ status: string; message: string }> {
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('serviceAccountEmail', serviceAccountEmail);
+
+            const response = await apiClient.postNotCamel<{ status: string; message: string }>(
+                '/google-drive/credentials',
+                formData
+            );
+            return response;
+        } catch (error) {
+            console.error('Error uploading Google Drive credentials:', error);
+            throw new Error('Nie udało się przesłać credentials');
+        }
+    },
+
+    async testConnection(): Promise<GoogleDriveTestResponse> {
+        try {
+            const response = await apiClient.getNot<GoogleDriveTestResponse>(
+                '/google-drive/integration-status',
+                {}
+            );
+            return response;
+        } catch (error) {
+            console.error('Error testing Google Drive connection:', error);
+            return {
+                success: false,
+                message: 'Nie udało się przetestować połączenia',
+                errorDetails: error instanceof Error ? error.message : 'Nieznany błąd'
+            };
+        }
+    },
+
+    async backupCurrentMonth(): Promise<{ status: string; message: string }> {
+        try {
+            const response = await apiClient.postNotCamel<{ status: string; message: string }>(
+                '/google-drive/backup-current-month',
+                {}
+            );
+            return response;
+        } catch (error) {
+            console.error('Error running Google Drive backup:', error);
+            throw new Error('Nie udało się uruchomić backup');
+        }
+    },
+
+    async removeIntegration(): Promise<{ status: string; message: string }> {
+        try {
+            const response = await apiClient.delete<{ status: string; message: string }>('/google-drive/credentials');
+            return response;
+        } catch (error) {
+            console.error('Error removing Google Drive integration:', error);
+            throw new Error('Nie udało się usunąć integracji');
         }
     },
 

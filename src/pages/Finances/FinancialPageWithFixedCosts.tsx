@@ -5,7 +5,7 @@ import {
     FaFileInvoiceDollar,
     FaBuilding,
     FaChartLine,
-    FaExchangeAlt
+    FaExchangeAlt, FaSpinner, FaSync
 } from 'react-icons/fa';
 
 // Import existing components
@@ -32,6 +32,7 @@ import { brandTheme } from './styles/theme';
 import { useToast } from '../../components/common/Toast/Toast';
 import Pagination from '../../components/common/Pagination';
 import FinancialReportsPage from "./FinancialReportsPage";
+import {companySettingsApi} from "../../api/companySettingsApi";
 
 type ActiveTab = 'documents' | 'fixed-costs' | 'reports';
 
@@ -41,6 +42,7 @@ const FinancialPageWithFixedCosts: React.FC = () => {
 
     // State for Fixed Costs integration
     const [fixedCostsRef, setFixedCostsRef] = useState<{ handleAddFixedCost?: () => void }>({});
+    const [backingUp, setBackingUp] = useState(false);
 
     // Use existing hooks for documents
     const {
@@ -100,9 +102,23 @@ const FinancialPageWithFixedCosts: React.FC = () => {
     };
 
     // Handle export for documents tab
-    const handleExportDocuments = () => {
-        showToast('info', 'Eksport dokumentów - funkcjonalność w przygotowaniu');
+    const handleExportDocuments = async () => {
+        try {
+            setBackingUp(true);
+            const result = await companySettingsApi.backupCurrentMonth();
+
+            if (result.status === 'success') {
+                showToast('success', 'Twoje dane zostały pomyślnie przesłane do Google Drive');
+            } else {
+                showToast('error', result.message || 'Nie udało się przesłać danych do Google Drive');
+            }
+        } catch (err) {
+            showToast('error', 'Nie udało się przesłać danych do Google Drive');
+        } finally {
+            setBackingUp(false);
+        }
     };
+
 
     // Handle add fixed cost
     const handleAddFixedCost = () => {
@@ -148,9 +164,9 @@ const FinancialPageWithFixedCosts: React.FC = () => {
                     <HeaderActions>
                         {activeTab === 'documents' && (
                             <>
-                                <SecondaryButton onClick={handleExportDocuments}>
-                                    <FaExchangeAlt />
-                                    <span>Eksport</span>
+                                <SecondaryButton onClick={handleExportDocuments} disabled={backingUp}>
+                                    {backingUp ? <FaSpinner className="spinning" /> : <FaExchangeAlt />}
+                                    <span>Eksport księgowy</span>
                                 </SecondaryButton>
 
                                 <AddButtonGroup>
@@ -516,6 +532,10 @@ const SecondaryButton = styled(BaseButton)`
 
     @media (max-width: 768px) {
         justify-content: center;
+    }
+
+    .spinning {
+        animation: spin 1s linear infinite;
     }
 `;
 

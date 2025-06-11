@@ -29,6 +29,10 @@ export const useFormValidation = (formData: Partial<CarReceptionProtocol>) => {
             newErrors.ownerName = 'Imię i nazwisko właściciela jest wymagane';
         }
 
+        if (formData.ownerName && formData.ownerName?.split(' ').length < 2) {
+            newErrors.ownerName = 'Podaj pełne imię i nazwisko właściciela';
+        }
+
         if (!formData.email?.trim() && !formData.phone?.trim()) {
             newErrors.contactInfo = 'Podaj przynajmniej jeden sposób kontaktu (email lub telefon)';
         } else {

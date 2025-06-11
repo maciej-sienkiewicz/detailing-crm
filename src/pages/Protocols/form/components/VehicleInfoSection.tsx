@@ -19,6 +19,7 @@ import {
 // Import our SearchField component instead of LicensePlateField
 import SearchField from './SearchField';
 import { useToast } from "../../../../components/common/Toast/Toast";
+import { LabelWithBadge } from './LabelWithBadge';
 
 // List of car brands
 const carBrands = [
@@ -209,7 +210,13 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                 <SectionTitle>Harmonogram wizyty</SectionTitle>
                 <FormRow className="responsive-row">
                     <FormGroup className="date-time-group">
-                        <Label htmlFor="startDate">Data i godzina rozpoczęcia*</Label>
+                        <LabelWithBadge
+                            htmlFor="phone"
+                            required={true}
+                            badgeVariant="modern"
+                        >
+                        <Label htmlFor="startDate">Data i godzina rozpoczęcia</Label>
+                        </LabelWithBadge>
                         <DateTimeContainer>
                             <Input
                                 id="startDate"
@@ -246,7 +253,13 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                     </FormGroup>
 
                     <FormGroup>
-                        <Label htmlFor="endDate">Data zakończenia*</Label>
+                        <LabelWithBadge
+                            htmlFor="phone"
+                            required={true}
+                            badgeVariant="modern"
+                        >
+                        <Label htmlFor="endDate">Data zakończenia</Label>
+                        </LabelWithBadge>
                         <Input
                             id="endDate"
                             name="endDate"
@@ -266,7 +279,13 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                 <SectionTitle>Informacje o pojeździe</SectionTitle>
                 <FormRow className="responsive-row">
                     <FormGroup>
-                        <Label htmlFor="licensePlate">Tablica rejestracyjna*</Label>
+                        <LabelWithBadge
+                            htmlFor="phone"
+                            required={true}
+                            badgeVariant="modern"
+                        >
+                        <Label htmlFor="licensePlate">Tablica rejestracyjna</Label>
+                        </LabelWithBadge>
                         {readOnly ? (
                             <Input
                                 id="licensePlate"
@@ -291,7 +310,13 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                     </FormGroup>
 
                     <FormGroup>
-                        <Label htmlFor="make">Marka pojazdu*</Label>
+                        <LabelWithBadge
+                            htmlFor="brand"
+                            required={true}
+                            badgeVariant="modern"
+                        >
+                        <Label htmlFor="make">Marka pojazdu</Label>
+                        </LabelWithBadge>
                         <Input
                             id="make"
                             name="make"
@@ -311,7 +336,13 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                     </FormGroup>
 
                     <FormGroup>
+                        <LabelWithBadge
+                            htmlFor="phone"
+                            required={true}
+                            badgeVariant="modern"
+                        >
                         <Label htmlFor="model">Model pojazdu*</Label>
+                        </LabelWithBadge>
                         <Input
                             id="model"
                             name="model"

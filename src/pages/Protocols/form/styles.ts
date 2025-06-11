@@ -968,3 +968,106 @@ export const DialogActions = styled.div`
        gap: ${brandTheme.spacing.sm};
    }
 `;
+
+export const EnhancedLabel = styled.label`
+    font-size: 14px;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+    margin-bottom: ${brandTheme.spacing.xs};
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+`;
+
+// Professional Badge Components
+export const RequiredBadge = styled.span`
+    background: linear-gradient(135deg, ${brandTheme.status.error} 0%, #ef4444 100%);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: ${brandTheme.radius.sm};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+    box-shadow: ${brandTheme.shadow.xs};
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        animation: shimmer 2s infinite;
+    }
+
+    @keyframes shimmer {
+        0% { left: -100%; }
+        100% { left: 100%; }
+    }
+`;
+
+export const OptionalBadge = styled.span`
+    background: ${brandTheme.text.muted};
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: ${brandTheme.radius.sm};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+    opacity: 0.8;
+    transition: all ${brandTheme.transitions.normal};
+
+    &:hover {
+        opacity: 1;
+        transform: translateY(-1px);
+    }
+`;
+
+// Modern variant
+export const ModernRequiredBadge = styled.span`
+    background: ${brandTheme.primaryLight};
+    opacity: 0.29;
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 4px ${brandTheme.primary}30;
+    border: 2px solid ${brandTheme.primaryLight};
+    transition: all ${brandTheme.transitions.spring};
+
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px ${brandTheme.primary}40;
+    }
+`;
+
+// Minimal variant
+export const MinimalRequiredBadge = styled.span`
+    background: ${brandTheme.status.errorLight};
+    color: ${brandTheme.status.error};
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: ${brandTheme.radius.sm};
+    text-transform: none;
+    flex-shrink: 0;
+    border: 1px solid ${brandTheme.status.error}40;
+    transition: all ${brandTheme.transitions.normal};
+
+    &:hover {
+        background: ${brandTheme.status.error};
+        color: white;
+        transform: scale(1.05);
+    }
+`;

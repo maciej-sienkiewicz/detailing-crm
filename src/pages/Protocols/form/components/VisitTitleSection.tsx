@@ -12,6 +12,7 @@ import {
     ErrorText,
     brandTheme
 } from '../styles';
+import { LabelWithBadge } from './LabelWithBadge';
 
 interface VisitTitleSectionProps {
     title: string;
@@ -102,7 +103,13 @@ const VisitTitleSection: React.FC<VisitTitleSectionProps> = ({
 
                 <FormGroup>
                     <Label htmlFor="calendarColorId">
+                        <LabelWithBadge
+                            htmlFor="phone"
+                            required={!selectedColorId}
+                            badgeVariant="modern"
+                        >
                         Kolor w kalendarzu
+                        </LabelWithBadge>
                     </Label>
                     <ColorSelectContainer>
                         <ColorSquare $color={selectedColor} $hasColor={!!selectedColor} />

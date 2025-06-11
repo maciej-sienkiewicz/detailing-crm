@@ -23,6 +23,8 @@ import {
     FaPhone,
     FaMapMarkerAlt
 } from 'react-icons/fa';
+import { type GoogleDriveSettings, type GoogleDriveTestResponse } from '../../api/companySettingsApi';
+import { FaGoogleDrive, FaCloud, FaSync, FaFileArchive, FaTrashAlt } from 'react-icons/fa';
 
 // Import API and types
 import {
@@ -118,6 +120,116 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
     const [emailTestResult, setEmailTestResult] = useState<EmailTestResponse | null>(null);
     const [nipValidation, setNipValidation] = useState<{ isValid: boolean; message: string } | null>(null);
     const [validatingNip, setValidatingNip] = useState(false);
+
+    const [googleDriveSettings, setGoogleDriveSettings] = useState<GoogleDriveSettings | null>(null);
+    const [testingGoogleDrive, setTestingGoogleDrive] = useState(false);
+    const [googleDriveTestResult, setGoogleDriveTestResult] = useState<GoogleDriveTestResponse | null>(null);
+    const [backingUp, setBackingUp] = useState(false);
+    const [uploadingCredentials, setUploadingCredentials] = useState(false);
+
+    const googleDriveFileInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        loadCompanySettings();
+        loadGoogleDriveSettings();
+    }, []);
+
+    const loadGoogleDriveSettings = async () => {
+        try {
+            const settings = await companySettingsApi.getIntegrationStatus();
+            setGoogleDriveSettings(settings);
+        } catch (err) {
+            console.error('Error loading Google Drive settings:', err);
+        }
+    };
+
+    const handleGoogleDriveCredentialsUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        if (!file.name.endsWith('.json')) {
+            setError('Plik musi mieć rozszerzenie .json');
+            return;
+        }
+
+        if (file.size > 10 * 1024 * 1024) { // 10MB limit
+            setError('Plik nie może być większy niż 10MB');
+            return;
+        }
+
+        // Sprawdź czy to prawidłowy service account JSON
+        try {
+            const text = await file.text();
+            const json = JSON.parse(text);
+
+            if (!json.type || json.type !== 'service_account' || !json.client_email || !json.private_key) {
+                setError('Nieprawidłowy plik Service Account JSON');
+                return;
+            }
+
+            setUploadingCredentials(true);
+            setError(null);
+
+            const result = await companySettingsApi.uploadCredentials(file, json.client_email);
+
+            if (result.status === 'success') {
+                setSuccessMessage('Credentials Google Drive zostały zapisane pomyślnie');
+                await loadGoogleDriveSettings();
+            } else {
+                setError(result.message || 'Nie udało się zapisać credentials');
+            }
+        } catch (err) {
+            console.error('Error uploading Google Drive credentials:', err);
+            setError('Nie udało się przesłać credentials');
+        } finally {
+            setUploadingCredentials(false);
+            // Reset input
+            if (googleDriveFileInputRef.current) {
+                googleDriveFileInputRef.current.value = '';
+            }
+        }
+    };
+
+    const testGoogleDriveConnection = async () => {
+        try {
+            setTestingGoogleDrive(true);
+            setGoogleDriveTestResult(null);
+
+            const result = await companySettingsApi.testConnection();
+            setGoogleDriveTestResult(result);
+        } catch (err) {
+            console.error('Error testing Google Drive connection:', err);
+            setGoogleDriveTestResult({
+                success: false,
+                message: 'Błąd podczas testowania połączenia',
+                errorDetails: err instanceof Error ? err.message : 'Nieznany błąd'
+            });
+        } finally {
+            setTestingGoogleDrive(false);
+        }
+    };
+
+    const removeGoogleDriveIntegration = async () => {
+        if (!window.confirm('Czy na pewno chcesz usunąć integrację z Google Drive? Nie będziesz mógł automatycznie tworzyć kopii zapasowych.')) {
+            return;
+        }
+
+        try {
+            setError(null);
+
+            const result = await companySettingsApi.removeIntegration();
+
+            if (result.status === 'success') {
+                setSuccessMessage('Integracja z Google Drive została usunięta');
+                await loadGoogleDriveSettings();
+            } else {
+                setError(result.message || 'Nie udało się usunąć integracji');
+            }
+        } catch (err) {
+            console.error('Error removing Google Drive integration:', err);
+            setError('Nie udało się usunąć integracji');
+        }
+    };
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -549,7 +661,7 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                             </HeaderIcon>
                             <HeaderText>
                                 <HeaderTitle>Dane bankowe</HeaderTitle>
-                                <HeaderSubtitle>Informacje o koncie bankowym firmy</HeaderSubtitle>
+                                <HeaderSubtitle>Te dane będą wykorzystywane przy tworzeniu faktur</HeaderSubtitle>
                             </HeaderText>
                         </HeaderContent>
                         <HeaderActions>
@@ -911,6 +1023,161 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                         />
                     </CardBody>
                 </SettingsCard>
+
+                <SettingsCard>
+                    <CardHeader>
+                        <HeaderContent>
+                            <HeaderIcon>
+                                <FaGoogleDrive />
+                            </HeaderIcon>
+                            <HeaderText>
+                                <HeaderTitle>Google Drive</HeaderTitle>
+                                <HeaderSubtitle>Automatyczne kopie zapasowe faktur w chmurze</HeaderSubtitle>
+                            </HeaderText>
+                        </HeaderContent>
+                        <HeaderActions>
+                            <>
+                                <SecondaryButton onClick={testGoogleDriveConnection} disabled={testingGoogleDrive}>
+                                    {testingGoogleDrive ? <FaSpinner className="spinning" /> : <FaCloud />}
+                                    Test połączenia
+                                </SecondaryButton>
+                            </>
+                        </HeaderActions>
+                    </CardHeader>
+
+                    {googleDriveTestResult && (
+                        <TestResultBanner $success={googleDriveTestResult.success}>
+                            <TestResultIcon>
+                                {googleDriveTestResult.success ? <FaCheckCircle /> : <FaExclamationTriangle />}
+                            </TestResultIcon>
+                            <TestResultText>
+                                {googleDriveTestResult.message}
+                                {googleDriveTestResult.errorDetails && (
+                                    <TestResultDetails>{googleDriveTestResult.errorDetails}</TestResultDetails>
+                                )}
+                            </TestResultText>
+                        </TestResultBanner>
+                    )}
+
+                    <CardBody>
+                        <ConfigStatusBanner $configured={googleDriveSettings?.credentialsConfigured ?? false}>
+                            <StatusIcon>
+                                {googleDriveSettings?.credentialsConfigured ? <FaCheckCircle /> : <FaExclamationTriangle />}
+                            </StatusIcon>
+                            <StatusText>
+                                {googleDriveSettings?.credentialsConfigured
+                                    ? 'Google Drive skonfigurowane i gotowe do użycia'
+                                    : 'Google Drive wymaga konfiguracji Service Account'
+                                }
+                            </StatusText>
+                        </ConfigStatusBanner>
+
+                        {googleDriveSettings?.credentialsConfigured ? (
+                            // Configured state
+                            <GoogleDriveConfigured>
+                                <GoogleDriveActions>
+                                    <ActionGroup>
+                                        <SecondaryButton onClick={() => googleDriveFileInputRef.current?.click()}>
+                                            <FaUpload />
+                                            Zmień credentials
+                                        </SecondaryButton>
+                                        <DangerButton onClick={removeGoogleDriveIntegration}>
+                                            <FaTrashAlt />
+                                            Usuń integrację
+                                        </DangerButton>
+                                    </ActionGroup>
+                                </GoogleDriveActions>
+
+                                <GoogleDriveHelp>
+                                    <HelpTitle>
+                                        <FaInfoCircle />
+                                        Jak działa backup?
+                                    </HelpTitle>
+                                    <HelpList>
+                                        <HelpItem>Faktury są automatycznie organizowane w folderach: faktury/rok/miesiąc</HelpItem>
+                                        <HelpItem>Backup można uruchomić ręcznie lub skonfigurować automatycznie</HelpItem>
+                                        <HelpItem>Kopie zapasowe zawierają wszystkie faktury z bieżącego miesiąca</HelpItem>
+                                        <HelpItem>Pliki są bezpiecznie przechowywane na Twoim Google Drive</HelpItem>
+                                    </HelpList>
+                                </GoogleDriveHelp>
+                            </GoogleDriveConfigured>
+                        ) : (
+                            // Not configured state
+                            <GoogleDriveSetup>
+                                <SetupSteps>
+                                    <SetupTitle>Konfiguracja Google Drive w 3 krokach:</SetupTitle>
+                                    <StepsList>
+                                        <SetupStep>
+                                            <StepNumber>1</StepNumber>
+                                            <StepContent>
+                                                <StepTitle>Utwórz Service Account</StepTitle>
+                                                <StepDescription>
+                                                    Przejdź do <ExternalLink href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</ExternalLink>,
+                                                    włącz Google Drive API i utwórz Service Account
+                                                </StepDescription>
+                                            </StepContent>
+                                        </SetupStep>
+                                        <SetupStep>
+                                            <StepNumber>2</StepNumber>
+                                            <StepContent>
+                                                <StepTitle>Pobierz plik JSON</StepTitle>
+                                                <StepDescription>
+                                                    Wygeneruj i pobierz klucz prywatny w formacie JSON dla Service Account
+                                                </StepDescription>
+                                            </StepContent>
+                                        </SetupStep>
+                                        <SetupStep>
+                                            <StepNumber>3</StepNumber>
+                                            <StepContent>
+                                                <StepTitle>Udostępnij folder</StepTitle>
+                                                <StepDescription>
+                                                    Na Google Drive udostępnij folder "Faktury" dla emaila Service Account z uprawnieniami Edytora
+                                                </StepDescription>
+                                            </StepContent>
+                                        </SetupStep>
+                                    </StepsList>
+                                </SetupSteps>
+
+                                <UploadArea>
+                                    <UploadContent>
+                                        <UploadIcon>
+                                            <FaFileArchive />
+                                        </UploadIcon>
+                                        <UploadTitle>Prześlij plik Service Account JSON</UploadTitle>
+                                        <UploadDescription>
+                                            Kliknij poniżej aby wybrać plik JSON z credentials
+                                        </UploadDescription>
+                                        <PrimaryButton
+                                            onClick={() => googleDriveFileInputRef.current?.click()}
+                                            disabled={uploadingCredentials}
+                                        >
+                                            {uploadingCredentials ? <FaSpinner className="spinning" /> : <FaUpload />}
+                                            {uploadingCredentials ? 'Przesyłanie...' : 'Wybierz plik JSON'}
+                                        </PrimaryButton>
+                                    </UploadContent>
+                                </UploadArea>
+
+                                <RequirementsBox>
+                                    <RequirementsTitle>Wymagania pliku:</RequirementsTitle>
+                                    <RequirementsList>
+                                        <RequirementItem>Format: JSON</RequirementItem>
+                                        <RequirementItem>Typ: service_account</RequirementItem>
+                                        <RequirementItem>Maksymalny rozmiar: 10MB</RequirementItem>
+                                        <RequirementItem>Musi zawierać private_key i client_email</RequirementItem>
+                                    </RequirementsList>
+                                </RequirementsBox>
+                            </GoogleDriveSetup>
+                        )}
+
+                        <HiddenFileInput
+                            ref={googleDriveFileInputRef}
+                            type="file"
+                            accept=".json"
+                            onChange={handleGoogleDriveCredentialsUpload}
+                        />
+                    </CardBody>
+                </SettingsCard>
+
             </ContentContainer>
         </PageContainer>
     );
@@ -1075,7 +1342,7 @@ const ContentContainer = styled.div`
     flex: 1;
     max-width: 1600px;
     margin: 0 auto;
-    padding: 0 ${brandTheme.spacing.xl} ${brandTheme.spacing.xl};
+    padding: ${brandTheme.spacing.xl} ${brandTheme.spacing.xl} ${brandTheme.spacing.xl};
     width: 100%;
     display: flex;
     flex-direction: column;
@@ -1083,11 +1350,11 @@ const ContentContainer = styled.div`
     min-height: 0;
 
     @media (max-width: 1024px) {
-        padding: 0 ${brandTheme.spacing.lg} ${brandTheme.spacing.lg};
+        padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.lg} ${brandTheme.spacing.lg};
     }
 
     @media (max-width: 768px) {
-        padding: 0 ${brandTheme.spacing.md} ${brandTheme.spacing.md};
+        padding: ${brandTheme.spacing.md} ${brandTheme.spacing.md} ${brandTheme.spacing.md};
         gap: ${brandTheme.spacing.md};
     }
 `;
@@ -1683,6 +1950,250 @@ const FloatingSaveButton = styled.button`
         right: ${brandTheme.spacing.lg};
         left: ${brandTheme.spacing.lg};
         min-width: auto;
+    }
+`;
+
+const GoogleDriveConfigured = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.lg};
+`;
+
+const GoogleDriveInfo = styled.div`
+    background: ${brandTheme.surfaceElevated};
+    border-radius: ${brandTheme.radius.md};
+    padding: ${brandTheme.spacing.lg};
+    border: 1px solid ${brandTheme.border};
+`;
+
+const InfoGrid = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: ${brandTheme.spacing.md};
+
+    @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+    }
+`;
+
+const InfoItem = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.xs};
+`;
+
+const InfoLabel = styled.div`
+    font-size: 12px;
+    font-weight: 600;
+    color: ${brandTheme.text.tertiary};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+`;
+
+const InfoValue = styled.div`
+    font-size: 14px;
+    font-weight: 500;
+    color: ${brandTheme.text.primary};
+`;
+
+const StatusBadge = styled.span<{ $active: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
+    border-radius: ${brandTheme.radius.sm};
+    font-size: 12px;
+    font-weight: 600;
+    background: ${props => props.$active ? brandTheme.status.successLight : brandTheme.status.warningLight};
+    color: ${props => props.$active ? brandTheme.status.success : brandTheme.status.warning};
+    border: 1px solid ${props => props.$active ? brandTheme.status.success + '30' : brandTheme.status.warning + '30'};
+`;
+
+const GoogleDriveActions = styled.div`
+    display: flex;
+    justify-content: center;
+    padding: ${brandTheme.spacing.lg} 0;
+    border-top: 1px solid ${brandTheme.border};
+    border-bottom: 1px solid ${brandTheme.border};
+`;
+
+const GoogleDriveHelp = styled.div`
+    background: ${brandTheme.primaryGhost};
+    border-radius: ${brandTheme.radius.md};
+    padding: ${brandTheme.spacing.lg};
+    border: 1px solid ${brandTheme.primary}20;
+`;
+
+const HelpTitle = styled.h4`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    font-size: 16px;
+    font-weight: 600;
+    color: ${brandTheme.primary};
+    margin: 0 0 ${brandTheme.spacing.md} 0;
+`;
+
+const HelpList = styled.ul`
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.sm};
+`;
+
+const HelpItem = styled.li`
+    font-size: 14px;
+    color: ${brandTheme.text.secondary};
+    font-weight: 500;
+    display: flex;
+    align-items: flex-start;
+    gap: ${brandTheme.spacing.sm};
+
+    &::before {
+        content: '✓';
+        color: ${brandTheme.status.success};
+        font-weight: bold;
+        font-size: 14px;
+        margin-top: 1px;
+        flex-shrink: 0;
+    }
+`;
+
+const GoogleDriveSetup = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.xl};
+`;
+
+const SetupSteps = styled.div`
+    background: ${brandTheme.surfaceElevated};
+    border-radius: ${brandTheme.radius.lg};
+    padding: ${brandTheme.spacing.xl};
+    border: 1px solid ${brandTheme.border};
+`;
+
+const SetupTitle = styled.h4`
+    font-size: 18px;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+    margin: 0 0 ${brandTheme.spacing.lg} 0;
+`;
+
+const StepsList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.lg};
+`;
+
+const SetupStep = styled.div`
+    display: flex;
+    gap: ${brandTheme.spacing.md};
+    align-items: flex-start;
+`;
+
+const StepNumber = styled.div`
+    width: 32px;
+    height: 32px;
+    background: ${brandTheme.primary};
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+    flex-shrink: 0;
+`;
+
+const StepContent = styled.div`
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.xs};
+`;
+
+const StepTitle = styled.div`
+    font-size: 16px;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+`;
+
+const StepDescription = styled.div`
+    font-size: 14px;
+    color: ${brandTheme.text.secondary};
+    line-height: 1.5;
+`;
+
+const ExternalLink = styled.a`
+    color: ${brandTheme.primary};
+    text-decoration: none;
+    font-weight: 600;
+
+    &:hover {
+        text-decoration: underline;
+    }
+`;
+
+const UploadArea = styled.div`
+    border: 2px dashed ${brandTheme.border};
+    border-radius: ${brandTheme.radius.lg};
+    padding: ${brandTheme.spacing.xxl};
+    background: ${brandTheme.surfaceElevated};
+    text-align: center;
+    transition: all ${brandTheme.transitions.spring};
+
+    &:hover {
+        border-color: ${brandTheme.primary};
+        background: ${brandTheme.primaryGhost};
+    }
+`;
+
+const UploadContent = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: ${brandTheme.spacing.lg};
+`;
+
+const UploadIcon = styled.div`
+    width: 64px;
+    height: 64px;
+    background: ${brandTheme.primaryGhost};
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: ${brandTheme.primary};
+`;
+
+const UploadTitle = styled.h4`
+    font-size: 18px;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+    margin: 0;
+`;
+
+const UploadDescription = styled.p`
+    font-size: 14px;
+    color: ${brandTheme.text.secondary};
+    margin: 0;
+    font-weight: 500;
+`;
+
+const RequirementsBox = styled.div`
+    background: ${brandTheme.surface};
+    border: 1px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.md};
+    padding: ${brandTheme.spacing.lg};
+`;
+
+const SectionSpacer = styled.div`
+    height: ${brandTheme.spacing.xxl};
+    
+    @media (max-width: 768px) {
+        height: ${brandTheme.spacing.xl};
     }
 `;
 

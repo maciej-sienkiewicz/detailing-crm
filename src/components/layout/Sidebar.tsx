@@ -77,7 +77,8 @@ const mainMenuItems: MainMenuItem[] = [
         icon: <FaRss />,
         path: '/activity',
         hasSubmenu: false,
-        category: 'daily'
+        category: 'daily',
+        badge: "Faza rozwoju"
     },
 
     // Zarządzanie biznesem
@@ -94,7 +95,8 @@ const mainMenuItems: MainMenuItem[] = [
         icon: <FaCar />,
         path: '/fleet',
         hasSubmenu: true,
-        category: 'business'
+        category: 'business',
+        badge: "Faza rozwoju"
     },
     {
         id: 'finances',
@@ -110,7 +112,8 @@ const mainMenuItems: MainMenuItem[] = [
         icon: <FaChartBar />,
         path: '/reports',
         hasSubmenu: false,
-        category: 'business'
+        category: 'business',
+        badge: "Faza rozwoju"
     },
 
     // Narzędzia i administracja
@@ -137,7 +140,8 @@ const mainMenuItems: MainMenuItem[] = [
         icon: <FaUsers />,
         path: '/team',
         hasSubmenu: false,
-        category: 'admin'
+        category: 'admin',
+        badge: "Faza rozwoju"
     },
     {
         id: 'sms',
@@ -145,7 +149,8 @@ const mainMenuItems: MainMenuItem[] = [
         icon: <FaSms />,
         path: '/sms',
         hasSubmenu: false,
-        category: 'admin'
+        category: 'admin',
+        badge: "Faza rozwoju"
     },
     {
         id: 'settings',
@@ -236,7 +241,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                         </IconContainer>
                                         <Label>{item.label}</Label>
                                         {item.isNew && <NewBadge>Nowe</NewBadge>}
-                                        {item.badge && <CountBadge>{item.badge}</CountBadge>}
+                                        {item.badge && <ProgressBadge>{item.badge}</ProgressBadge>}
                                         {item.hasSubmenu && (
                                             <SubmenuArrow $expanded={item.id === activeMenuItem}>
                                                 <FaChevronRight />
@@ -264,7 +269,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                             {item.icon}
                                         </IconContainer>
                                         <Label>{item.label}</Label>
-                                        {item.badge && <CountBadge>{item.badge}</CountBadge>}
+                                        {item.badge && <ProgressBadge>{item.badge}</ProgressBadge>}
                                         {item.hasSubmenu && (
                                             <SubmenuArrow $expanded={item.id === activeMenuItem}>
                                                 <FaChevronRight />
@@ -293,7 +298,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                         </IconContainer>
                                         <Label>{item.label}</Label>
                                         {item.isNew && <NewBadge>Nowe</NewBadge>}
-                                        {item.badge && <CountBadge>{item.badge}</CountBadge>}
+                                        {item.badge && <ProgressBadge>{item.badge}</ProgressBadge>}
                                         {item.hasSubmenu && (
                                             <SubmenuArrow $expanded={item.id === activeMenuItem}>
                                                 <FaChevronRight />
@@ -504,6 +509,17 @@ const Label = styled.span`
 
 const NewBadge = styled.span`
     background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+`;
+
+const ProgressBadge = styled.span`
+    background: #d3e1da;
     color: white;
     font-size: 10px;
     font-weight: 600;

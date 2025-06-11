@@ -443,6 +443,9 @@ const CalendarPage: React.FC = () => {
     // Calculate page statistics
     const calculateStats = () => {
         const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+        const yesterdayString = yesterday.toISOString().split('T')[0];
         const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
         const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
 
@@ -469,7 +472,8 @@ const CalendarPage: React.FC = () => {
             thisWeek: thisWeekAppointments.length,
             protocols: appointments.filter(a => a.isProtocol).length,
             inProgress: appointments.filter(a => a.status === AppointmentStatus.IN_PROGRESS).length,
-            done: appointments.filter(a => a.status === AppointmentStatus.READY_FOR_PICKUP).length
+            done: appointments.filter(a => a.status === AppointmentStatus.READY_FOR_PICKUP).length,
+            cancelled: appointments.filter(a => a.status === AppointmentStatus.CANCELLED && a.start.toISOString().split('T')[0] === yesterdayString).length
         };
     };
 
@@ -542,7 +546,7 @@ const CalendarPage: React.FC = () => {
                     <StatCard>
                         <StatIcon $color={enterprise.textPrimary}><FaSignOutAlt /></StatIcon>
                         <StatContent>
-                            <StatValue>{stats.today}</StatValue>
+                            <StatValue>{stats.cancelled}</StatValue>
                             <StatLabel>Wczoraj przucono</StatLabel>
                         </StatContent>
                     </StatCard>

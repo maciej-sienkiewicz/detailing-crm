@@ -1,4 +1,3 @@
-// src/pages/Protocols/form/components/ClientInfoSection.tsx
 import React from 'react';
 import { CarReceptionProtocol } from '../../../../types';
 import { FormErrors } from '../hooks/useFormValidation';
@@ -7,12 +6,12 @@ import {
     SectionTitle,
     FormRow,
     FormGroup,
-    Label,
     ErrorText,
-    Input
+    Input,
 } from '../styles';
 
 import SearchField from './SearchField';
+import {LabelWithBadge} from "./LabelWithBadge";
 
 interface ClientInfoSectionProps {
     formData: Partial<CarReceptionProtocol>;
@@ -35,10 +34,8 @@ const ClientInfoSection: React.FC<ClientInfoSectionProps> = ({
         }
     };
 
-    // Sprawdzenie, czy którekolwiek z pól kontaktowych jest wypełnione
     const hasContactInfo = !!formData.phone || !!formData.email;
 
-    // Funkcja renderująca pole - zależnie od readOnly użyje Input lub SearchField
     const renderField = (
         id: string,
         name: 'ownerName' | 'companyName' | 'taxId' | 'email' | 'phone',
@@ -83,7 +80,9 @@ const ClientInfoSection: React.FC<ClientInfoSectionProps> = ({
             <SectionTitle>Dane właściciela pojazdu</SectionTitle>
             <FormRow className="responsive-row">
                 <FormGroup>
-                    <Label htmlFor="ownerName">Imię i nazwisko właściciela*</Label>
+                    <LabelWithBadge htmlFor="ownerName" required badgeVariant="modern">
+                        Imię i nazwisko właściciela
+                    </LabelWithBadge>
                     {renderField(
                         "ownerName",
                         "ownerName",
@@ -97,7 +96,7 @@ const ClientInfoSection: React.FC<ClientInfoSectionProps> = ({
 
             <FormRow className="responsive-row">
                 <FormGroup>
-                    <Label htmlFor="companyName">Nazwa firmy</Label>
+                        Nazwa firmy
                     {renderField(
                         "companyName",
                         "companyName",
@@ -107,7 +106,7 @@ const ClientInfoSection: React.FC<ClientInfoSectionProps> = ({
                 </FormGroup>
 
                 <FormGroup>
-                    <Label htmlFor="taxId">NIP firmy</Label>
+                        NIP firmy
                     {renderField(
                         "taxId",
                         "taxId",
@@ -119,7 +118,14 @@ const ClientInfoSection: React.FC<ClientInfoSectionProps> = ({
 
             <FormRow className="responsive-row">
                 <FormGroup>
-                    <Label htmlFor="email">Adres e-mail{!formData.phone ? '*' : ''}</Label>
+                    <LabelWithBadge
+                        htmlFor="email"
+                        required={!formData.phone}
+                        optional={!!formData.phone}
+                        badgeVariant="modern"
+                    >
+                        Adres e-mail
+                    </LabelWithBadge>
                     {renderField(
                         "email",
                         "email",
@@ -132,7 +138,14 @@ const ClientInfoSection: React.FC<ClientInfoSectionProps> = ({
                 </FormGroup>
 
                 <FormGroup>
-                    <Label htmlFor="phone">Numer telefonu{!formData.email ? '*' : ''}</Label>
+                    <LabelWithBadge
+                        htmlFor="phone"
+                        required={!formData.email}
+                        optional={!!formData.email}
+                        badgeVariant="modern"
+                    >
+                        Numer telefonu
+                    </LabelWithBadge>
                     {renderField(
                         "phone",
                         "phone",
