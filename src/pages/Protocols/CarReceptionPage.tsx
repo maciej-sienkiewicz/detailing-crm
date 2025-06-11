@@ -11,7 +11,7 @@ import {
     BackButton,
     AddButton,
     LoadingMessage,
-    ErrorMessage, HeaderTitle, TitleContent, MainTitle, Subtitle, TitleIcon
+    ErrorMessage, HeaderTitle, TitleContent, MainTitle, Subtitle, TitleIcon, PrimaryAction
 } from './styles';
 import { useProtocolList } from "./form/hooks/useProtocolList";
 import { useProtocolActions } from "./form/hooks/useProtocolActions";
@@ -239,9 +239,9 @@ const CarReceptionPage: React.FC = () => {
                                 <Subtitle>Zarządzanie listą wizyt</Subtitle>
                             </TitleContent>
                         </HeaderTitle>
-                        <AddButton onClick={handleAddProtocol}>
+                        <PrimaryAction onClick={handleAddProtocol}>
                             <FaPlus /> Rozpocznij wizytę
-                        </AddButton>
+                        </PrimaryAction>
                     </>
                 )}
             </PageHeader>

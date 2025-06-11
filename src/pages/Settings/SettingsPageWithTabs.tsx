@@ -24,9 +24,9 @@ import CompanySettingsPage from './CompanySettingsPage';
 // Import styles and utilities
 import { settingsTheme } from './styles/theme';
 
-type ActiveTab = 'company' | 'employees' | 'services' | 'brand-theme' | 'calendar-colors';
+type ActiveTab = 'company' | 'employees' | 'services' | 'visual-personalization' | 'calendar-colors';
 
-// Interfejsy dla komunikacji z komponentami dziećmi - poprawione typy
+// Interfejsy dla komunikacji z komponentami dzieci - poprawione typy
 interface CompanySettingsRef {
     handleSave: () => void;
 }
@@ -43,6 +43,10 @@ interface CalendarColorsPageRef {
     handleAddColor: () => void;
 }
 
+interface BrandThemeSettingsRef {
+    handleSave: () => void;
+}
+
 const SettingsPageWithTabs: React.FC = () => {
     const [activeTab, setActiveTab] = useState<ActiveTab>('company');
 
@@ -51,6 +55,7 @@ const SettingsPageWithTabs: React.FC = () => {
     const employeesPageRef = useRef<EmployeesPageRef>(null);
     const servicesPageRef = useRef<ServicesPageRef>(null);
     const calendarColorsPageRef = useRef<CalendarColorsPageRef>(null);
+    const brandThemeSettingsRef = useRef<BrandThemeSettingsRef>(null);
 
     // Tab configuration
     const tabs = [
@@ -58,7 +63,7 @@ const SettingsPageWithTabs: React.FC = () => {
             id: 'company' as ActiveTab,
             label: 'Ustawienia firmy',
             icon: FaBuilding,
-            description: 'Dane firmy, bank, email i logo'
+            description: 'Dane firmy, bank, email i integracje'
         },
         {
             id: 'employees' as ActiveTab,
@@ -73,10 +78,10 @@ const SettingsPageWithTabs: React.FC = () => {
             description: 'Lista usług i cennik'
         },
         {
-            id: 'brand-theme' as ActiveTab,
-            label: 'Kolory marki',
+            id: 'visual-personalization' as ActiveTab,
+            label: 'Personalizacja wizualna',
             icon: FaPalette,
-            description: 'Personalizacja wyglądu aplikacji'
+            description: 'Kolory marki i logo firmy'
         },
         {
             id: 'calendar-colors' as ActiveTab,
@@ -94,6 +99,10 @@ const SettingsPageWithTabs: React.FC = () => {
     // Akcje dla poszczególnych zakładek - poprawione z null checking
     const handleCompanySaveSettings = () => {
         companySettingsRef.current?.handleSave();
+    };
+
+    const handleBrandThemeSaveSettings = () => {
+        brandThemeSettingsRef.current?.handleSave();
     };
 
     const handleAddEmployee = () => {
@@ -129,6 +138,19 @@ const SettingsPageWithTabs: React.FC = () => {
                     </HeaderLeft>
 
                     <HeaderActions>
+                        {activeTab === 'company' && (
+                            <PrimaryButton onClick={handleCompanySaveSettings}>
+                                <FaSave />
+                                <span>Zapisz ustawienia</span>
+                            </PrimaryButton>
+                        )}
+
+                        {activeTab === 'visual-personalization' && (
+                            <PrimaryButton onClick={handleBrandThemeSaveSettings}>
+                                <FaSave />
+                                <span>Zapisz wszystko</span>
+                            </PrimaryButton>
+                        )}
 
                         {activeTab === 'employees' && (
                             <PrimaryButton onClick={handleAddEmployee}>
@@ -183,7 +205,7 @@ const SettingsPageWithTabs: React.FC = () => {
                 {activeTab === 'company' && <CompanySettingsPage ref={companySettingsRef} />}
                 {activeTab === 'employees' && <EmployeesPage ref={employeesPageRef} />}
                 {activeTab === 'services' && <ServicesPage ref={servicesPageRef} />}
-                {activeTab === 'brand-theme' && <BrandThemeSettingsPage />}
+                {activeTab === 'visual-personalization' && <BrandThemeSettingsPage ref={brandThemeSettingsRef} />}
                 {activeTab === 'calendar-colors' && <CalendarColorsPage ref={calendarColorsPageRef} />}
             </ContentContainer>
         </PageContainer>

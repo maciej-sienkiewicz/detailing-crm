@@ -1,9 +1,9 @@
+// src/pages/Settings/CompanySettingsPage.tsx - sekcja Logo przeniesiona do BrandThemeSettingsPage
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import styled from 'styled-components';
 import {
     FaBuilding,
     FaEnvelope,
-    FaImage,
     FaCheck,
     FaTimes,
     FaEdit,
@@ -13,15 +13,13 @@ import {
     FaEyeSlash,
     FaCheckCircle,
     FaExclamationTriangle,
-    FaUpload,
-    FaTrash,
     FaServer,
     FaCreditCard,
     FaShieldAlt,
     FaInfoCircle,
     FaGlobe,
     FaPhone,
-    FaMapMarkerAlt
+    FaMapMarkerAlt, FaUpload
 } from 'react-icons/fa';
 import { type GoogleDriveSettings, type GoogleDriveTestResponse } from '../../api/companySettingsApi';
 import { FaGoogleDrive, FaCloud, FaSync, FaFileArchive, FaTrashAlt } from 'react-icons/fa';
@@ -36,8 +34,6 @@ import {
     type EmailTestResponse,
     type NipValidationResponse
 } from '../../api/companySettingsApi';
-import StableLogo from '../../components/common/LogoDisplay';
-
 
 // Professional theme matching finances module
 const brandTheme = {
@@ -107,7 +103,7 @@ const brandTheme = {
     }
 };
 
-type EditingSection = 'basic' | 'bank' | 'email' | 'logo' | null;
+type EditingSection = 'basic' | 'bank' | 'email' | null;
 
 const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) => {
     const [formData, setFormData] = useState<CompanySettingsResponse | null>(null);
@@ -232,8 +228,6 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
             setError('Nie udało się usunąć integracji');
         }
     };
-
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useImperativeHandle(ref, () => ({
         handleSave: handleSaveAll
@@ -384,55 +378,6 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
         }
     };
 
-    const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-
-        const validation = companySettingsValidation.validateLogoFile(file);
-        if (!validation.valid) {
-            setError(validation.error || 'Nieprawidłowy plik logo');
-            return;
-        }
-
-        try {
-            setSaving(true);
-            setError(null);
-
-            const updatedData = await companySettingsApi.uploadLogo(file);
-            setFormData(updatedData);
-            setOriginalData(updatedData);
-            setSuccessMessage('Logo zostało przesłane pomyślnie');
-
-            setTimeout(() => setSuccessMessage(null), 3000);
-        } catch (err) {
-            console.error('Error uploading logo:', err);
-            setError('Nie udało się przesłać logo');
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const handleLogoDelete = async () => {
-        if (!window.confirm('Czy na pewno chcesz usunąć logo?')) return;
-
-        try {
-            setSaving(true);
-            setError(null);
-
-            const updatedData = await companySettingsApi.deleteLogo();
-            setFormData(updatedData);
-            setOriginalData(updatedData);
-            setSuccessMessage('Logo zostało usunięte');
-
-            setTimeout(() => setSuccessMessage(null), 3000);
-        } catch (err) {
-            console.error('Error deleting logo:', err);
-            setError('Nie udało się usunąć logo');
-        } finally {
-            setSaving(false);
-        }
-    };
-
     const hasUnsavedChanges = formData && originalData ?
         JSON.stringify(formData) !== JSON.stringify(originalData) : false;
 
@@ -446,8 +391,7 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
             formData.basicInfo?.phone,
             formData.bankSettings?.bankAccountNumber,
             formData.emailSettings?.smtpHost,
-            formData.emailSettings?.senderEmail,
-            formData.logoSettings?.hasLogo
+            formData.emailSettings?.senderEmail
         ];
         const completed = fields.filter(field => field && field !== false).length;
         return Math.round((completed / fields.length) * 100);
@@ -945,84 +889,7 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                     </CardBody>
                 </SettingsCard>
 
-                {/* Logo Settings */}
-                <SettingsCard>
-                    <CardHeader>
-                        <HeaderContent>
-                            <HeaderIcon>
-                                <FaImage />
-                            </HeaderIcon>
-                            <HeaderText>
-                                <HeaderTitle>Logo firmy</HeaderTitle>
-                                <HeaderSubtitle>Identyfikacja wizualna w dokumentach i systemie</HeaderSubtitle>
-                            </HeaderText>
-                        </HeaderContent>
-                    </CardHeader>
-
-                    <CardBody>
-                        <LogoSection>
-                            <LogoPreview>
-                                <StableLogo
-                                    logoSettings={formData.logoSettings}
-                                    alt="Logo firmy"
-                                    maxWidth="200px"
-                                    maxHeight="100px"
-                                />
-
-                                {/* Actions below logo */}
-                                {formData.logoSettings?.hasLogo && (
-                                    <LogoInfo>
-                                        <LogoName>{formData.logoSettings.logoFileName}</LogoName>
-                                        <LogoSize>
-                                            {formData.logoSettings.logoSize ?
-                                                `${Math.round(formData.logoSettings.logoSize / 1024)} KB` :
-                                                'Nieznany rozmiar'
-                                            }
-                                        </LogoSize>
-                                        <LogoActions>
-                                            <SecondaryButton onClick={() => fileInputRef.current?.click()}>
-                                                <FaUpload />
-                                                Zmień logo
-                                            </SecondaryButton>
-                                            <DangerButton onClick={handleLogoDelete} disabled={saving}>
-                                                <FaTrash />
-                                                Usuń
-                                            </DangerButton>
-                                        </LogoActions>
-                                    </LogoInfo>
-                                )}
-
-                                {/* Add logo button if no logo */}
-                                {!formData.logoSettings?.hasLogo && (
-                                    <div style={{ marginTop: '16px', textAlign: 'center' }}>
-                                        <PrimaryButton onClick={() => fileInputRef.current?.click()}>
-                                            <FaUpload />
-                                            Dodaj logo
-                                        </PrimaryButton>
-                                    </div>
-                                )}
-                            </LogoPreview>
-
-                            <LogoRequirements>
-                                <RequirementsTitle>Wymagania techniczne</RequirementsTitle>
-                                <RequirementsList>
-                                    <RequirementItem>Formaty: JPG, PNG, WebP</RequirementItem>
-                                    <RequirementItem>Maksymalny rozmiar: 5MB</RequirementItem>
-                                    <RequirementItem>Zalecane wymiary: 200x100px</RequirementItem>
-                                    <RequirementItem>Przezroczyste tło: PNG</RequirementItem>
-                                </RequirementsList>
-                            </LogoRequirements>
-                        </LogoSection>
-
-                        <HiddenFileInput
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/jpeg,image/png,image/webp"
-                            onChange={handleLogoUpload}
-                        />
-                    </CardBody>
-                </SettingsCard>
-
+                {/* Google Drive Settings */}
                 <SettingsCard>
                     <CardHeader>
                         <HeaderContent>

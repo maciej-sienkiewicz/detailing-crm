@@ -615,6 +615,58 @@ export const TableCell = styled.div<{ width?: string, colSpan?: number }>`
     }
 `;
 
+const BaseButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+    border-radius: ${brandTheme.radius.md};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid transparent;
+    white-space: nowrap;
+    min-height: 44px;
+    position: relative;
+    overflow: hidden;
+
+    &:hover {
+        transform: translateY(-1px);
+    }
+
+    &:active {
+        transform: translateY(0);
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    span {
+        @media (max-width: 480px) {
+            display: block;
+        }
+    }
+`;
+
+export const PrimaryAction = styled(BaseButton)`
+    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+    color: white;
+    box-shadow: ${brandTheme.shadow.sm};
+
+    &:hover {
+        background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
+        box-shadow: ${brandTheme.shadow.md};
+    }
+
+    @media (max-width: 768px) {
+        justify-content: center;
+    }
+`;
+
 export default {
     brandTheme,
     StatusBadge,
@@ -643,4 +695,5 @@ export default {
     TableRow,
     TableCell,
     HeaderContainer,
+    PrimaryAction
 };

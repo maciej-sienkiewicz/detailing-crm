@@ -12,11 +12,11 @@ import {
     FaEye,
     FaChevronDown,
     FaChevronUp,
-    FaFilter
+    FaFilter,
+    FaCheck
 } from 'react-icons/fa';
 import { calendarColorsApi } from '../../api/calendarColorsApi';
 import ConfirmationDialog from '../../components/common/ConfirmationDialog';
-import Modal from '../../components/common/Modal';
 import { CalendarColor } from "../../types/calendar";
 import { settingsTheme } from './styles/theme';
 
@@ -110,6 +110,15 @@ const CalendarColorsPage = forwardRef<{ handleAddColor: () => void }, {}>((props
     const handleCloseModal = () => {
         setShowModal(false);
         resetForm();
+    };
+
+    // Obsługa zmiany koloru
+    const handleCustomColorChange = (color: string) => {
+        setFormColor(color);
+        // Wyczyść błąd koloru jeśli istnieje
+        if (formErrors.color) {
+            setFormErrors(prev => ({ ...prev, color: '' }));
+        }
     };
 
     // Walidacja formularza
@@ -219,7 +228,6 @@ const CalendarColorsPage = forwardRef<{ handleAddColor: () => void }, {}>((props
 
     return (
         <PageContainer>
-            {/* Header */}
             {/* Filters */}
             <FiltersContainer>
                 <QuickSearchSection>
@@ -353,57 +361,127 @@ const CalendarColorsPage = forwardRef<{ handleAddColor: () => void }, {}>((props
                 )}
             </ContentContainer>
 
-            {/* Modal edycji/dodawania */}
-            <Modal
-                isOpen={showModal}
-                onClose={handleCloseModal}
-                title={editingColor ? 'Edytuj kolor' : 'Dodaj nowy kolor'}
-            >
-                <FormContainer>
-                    <FormGroup>
-                        <Label htmlFor="color-name">Nazwa*</Label>
-                        <Input
-                            id="color-name"
-                            value={formName}
-                            onChange={(e) => setFormName(e.target.value)}
-                            placeholder="Nazwa (np. nazwisko pracownika lub nazwa usługi)"
-                        />
-                        {formErrors.name && <ErrorText>{formErrors.name}</ErrorText>}
-                        <HelpText>
-                            Nazwa musi być unikalna. Będzie używana do identyfikacji koloru w systemie.
-                        </HelpText>
-                    </FormGroup>
+            {/* Modern Modal edycji/dodawania */}
+            {showModal && (
+                <ModernModalOverlay>
+                    <ModernModalContainer>
+                        <ModernModalHeader>
+                            <ModernModalTitle>
+                                <ModalIcon>
+                                    <FaPalette />
+                                </ModalIcon>
+                                <ModalTitleText>
+                                    <MainTitle>{editingColor ? 'Edytuj kolor' : 'Dodaj nowy kolor'}</MainTitle>
+                                    <SubTitle>Kolor będzie dostępny w kalendarzu dla pracowników i usług</SubTitle>
+                                </ModalTitleText>
+                            </ModernModalTitle>
+                            <ModernCloseButton onClick={handleCloseModal}>
+                                <FaTimes />
+                            </ModernCloseButton>
+                        </ModernModalHeader>
 
-                    <FormGroup>
-                        <Label htmlFor="color-value">Kolor*</Label>
-                        <ColorPickerContainer>
-                            <ColorPreview color={formColor} />
-                            <ColorInput
-                                id="color-value"
-                                type="color"
-                                value={formColor}
-                                onChange={(e) => setFormColor(e.target.value)}
-                            />
-                            <Input
-                                value={formColor}
-                                onChange={(e) => setFormColor(e.target.value)}
-                                placeholder="#RRGGBB"
-                                style={{ flex: 1 }}
-                            />
-                        </ColorPickerContainer>
-                        {formErrors.color && <ErrorText>{formErrors.color}</ErrorText>}
-                    </FormGroup>
+                        <ModernModalBody>
+                            <ModernForm>
+                                <ModernFormGroup>
+                                    <ModernLabel htmlFor="color-name">
+                                        Nazwa koloru
+                                        <RequiredMark>*</RequiredMark>
+                                    </ModernLabel>
+                                    <ModernInput
+                                        id="color-name"
+                                        value={formName}
+                                        onChange={(e) => setFormName(e.target.value)}
+                                        placeholder="np. Mechanik Jan, Diagnostyka, Lakiernia..."
+                                        $hasError={!!formErrors.name}
+                                    />
+                                    {formErrors.name && (
+                                        <ModernErrorText>
+                                            <ErrorIcon>⚠</ErrorIcon>
+                                            {formErrors.name}
+                                        </ModernErrorText>
+                                    )}
+                                    <ModernHelpText>
+                                        Nazwa musi być unikalna. Będzie używana do identyfikacji koloru w systemie.
+                                    </ModernHelpText>
+                                </ModernFormGroup>
 
-                    <FormActions>
-                        <SecondaryButton onClick={handleCloseModal}>
-                            Anuluj
-                        </SecondaryButton>
-                        <PrimaryButton onClick={handleSave}>
-                            <FaSave /> {editingColor ? 'Zapisz zmiany' : 'Dodaj kolor'}
-                        </PrimaryButton>
-                    </FormActions>
-                </FormContainer>
-            </Modal>
+                                <ModernFormGroup>
+                                    <ModernLabel htmlFor="color-value">
+                                        Wybierz kolor
+                                        <RequiredMark>*</RequiredMark>
+                                    </ModernLabel>
+
+                                    <ColorPickerSection>
+                                        <ColorPreviewLarge color={formColor} />
+                                        <ColorInputsContainer>
+                                            <ColorPickerInput
+                                                id="color-value"
+                                                type="color"
+                                                value={formColor}
+                                                onChange={(e) => handleCustomColorChange(e.target.value)}
+                                            />
+                                            <HexInput
+                                                value={formColor}
+                                                onChange={(e) => handleCustomColorChange(e.target.value)}
+                                                placeholder="#RRGGBB"
+                                                pattern="^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$"
+                                                $hasError={!!formErrors.color}
+                                            />
+                                        </ColorInputsContainer>
+                                    </ColorPickerSection>
+
+                                    {formErrors.color && (
+                                        <ModernErrorText>
+                                            <ErrorIcon>⚠</ErrorIcon>
+                                            {formErrors.color}
+                                        </ModernErrorText>
+                                    )}
+
+                                    <ModernHelpText>
+                                        Kliknij kolorową próbkę aby otworzyć paletę kolorów, lub wpisz kod HEX
+                                    </ModernHelpText>
+                                </ModernFormGroup>
+
+                                <PreviewSection>
+                                    <PreviewTitle>Podgląd</PreviewTitle>
+                                    <PreviewContainer>
+                                        <PreviewItem>
+                                            <PreviewLabel>W kalendarzu</PreviewLabel>
+                                            <CalendarPreview>
+                                                <CalendarEvent color={formColor}>
+                                                    <EventTime>10:00</EventTime>
+                                                    <EventTitle>{formName || 'Nazwa koloru'}</EventTitle>
+                                                </CalendarEvent>
+                                            </CalendarPreview>
+                                        </PreviewItem>
+
+                                        <PreviewItem>
+                                            <PreviewLabel>Na liście</PreviewLabel>
+                                            <ListPreview>
+                                                <ListColorDot color={formColor} />
+                                                <ListText>{formName || 'Nazwa koloru'}</ListText>
+                                            </ListPreview>
+                                        </PreviewItem>
+                                    </PreviewContainer>
+                                </PreviewSection>
+                            </ModernForm>
+                        </ModernModalBody>
+
+                        <ModernModalFooter>
+                            <ModernButtonGroup>
+                                <ModernSecondaryButton onClick={handleCloseModal}>
+                                    <FaTimes />
+                                    Anuluj
+                                </ModernSecondaryButton>
+                                <ModernPrimaryButton onClick={handleSave} disabled={!formName.trim()}>
+                                    <FaSave />
+                                    {editingColor ? 'Zapisz zmiany' : 'Dodaj kolor'}
+                                </ModernPrimaryButton>
+                            </ModernButtonGroup>
+                        </ModernModalFooter>
+                    </ModernModalContainer>
+                </ModernModalOverlay>
+            )}
 
             {/* Dialog potwierdzenia usunięcia */}
             <ConfirmationDialog
@@ -425,182 +503,6 @@ const PageContainer = styled.div`
     background: ${settingsTheme.surfaceAlt};
     display: flex;
     flex-direction: column;
-`;
-
-const HeaderContainer = styled.header`
-    background: ${settingsTheme.surface};
-    border-bottom: 1px solid ${settingsTheme.border};
-    box-shadow: ${settingsTheme.shadow.sm};
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    backdrop-filter: blur(8px);
-    background: rgba(255, 255, 255, 0.95);
-`;
-
-const HeaderContent = styled.div`
-    max-width: 1600px;
-    margin: 0 auto;
-    padding: ${settingsTheme.spacing.lg} ${settingsTheme.spacing.xl};
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: ${settingsTheme.spacing.lg};
-
-    @media (max-width: 1024px) {
-        padding: ${settingsTheme.spacing.md} ${settingsTheme.spacing.lg};
-        flex-direction: column;
-        align-items: stretch;
-        gap: ${settingsTheme.spacing.md};
-    }
-
-    @media (max-width: 768px) {
-        padding: ${settingsTheme.spacing.md};
-    }
-`;
-
-const HeaderLeft = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${settingsTheme.spacing.md};
-    min-width: 0;
-    flex: 1;
-`;
-
-const HeaderIcon = styled.div`
-    width: 56px;
-    height: 56px;
-    background: linear-gradient(135deg, ${settingsTheme.primary} 0%, ${settingsTheme.primaryLight} 100%);
-    border-radius: ${settingsTheme.radius.lg};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 24px;
-    box-shadow: ${settingsTheme.shadow.md};
-    flex-shrink: 0;
-`;
-
-const HeaderText = styled.div`
-    min-width: 0;
-    flex: 1;
-`;
-
-const HeaderTitle = styled.h1`
-    font-size: 32px;
-    font-weight: 700;
-    color: ${settingsTheme.text.primary};
-    margin: 0 0 ${settingsTheme.spacing.xs} 0;
-    letter-spacing: -0.025em;
-    line-height: 1.2;
-
-    @media (max-width: 768px) {
-        font-size: 28px;
-    }
-`;
-
-const HeaderSubtitle = styled.p`
-    color: ${settingsTheme.text.secondary};
-    margin: 0;
-    font-size: 16px;
-    font-weight: 500;
-    line-height: 1.4;
-
-    @media (max-width: 768px) {
-        font-size: 14px;
-    }
-`;
-
-const HeaderActions = styled.div`
-    display: flex;
-    gap: ${settingsTheme.spacing.sm};
-    align-items: center;
-    flex-wrap: wrap;
-
-    @media (max-width: 1024px) {
-        justify-content: flex-end;
-        width: 100%;
-    }
-
-    @media (max-width: 768px) {
-        flex-direction: column;
-        gap: ${settingsTheme.spacing.xs};
-
-        > * {
-            width: 100%;
-        }
-    }
-`;
-
-const PrimaryButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: ${settingsTheme.spacing.sm};
-    padding: ${settingsTheme.spacing.sm} ${settingsTheme.spacing.md};
-    border-radius: ${settingsTheme.radius.md};
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 1px solid transparent;
-    white-space: nowrap;
-    min-height: 44px;
-    position: relative;
-    overflow: hidden;
-    background: linear-gradient(135deg, ${settingsTheme.primary} 0%, ${settingsTheme.primaryLight} 100%);
-    color: white;
-    box-shadow: ${settingsTheme.shadow.sm};
-
-    &:hover {
-        background: linear-gradient(135deg, ${settingsTheme.primaryDark} 0%, ${settingsTheme.primary} 100%);
-        box-shadow: ${settingsTheme.shadow.md};
-        transform: translateY(-1px);
-    }
-
-    &:active {
-        transform: translateY(0);
-    }
-
-    @media (max-width: 768px) {
-        justify-content: center;
-    }
-`;
-
-const SecondaryButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: ${settingsTheme.spacing.sm};
-    padding: ${settingsTheme.spacing.sm} ${settingsTheme.spacing.md};
-    border-radius: ${settingsTheme.radius.md};
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 1px solid transparent;
-    white-space: nowrap;
-    min-height: 44px;
-    position: relative;
-    overflow: hidden;
-    background: ${settingsTheme.surface};
-    color: ${settingsTheme.text.secondary};
-    border-color: ${settingsTheme.border};
-    box-shadow: ${settingsTheme.shadow.xs};
-
-    &:hover {
-        background: ${settingsTheme.surfaceHover};
-        color: ${settingsTheme.text.primary};
-        border-color: ${settingsTheme.borderHover};
-        box-shadow: ${settingsTheme.shadow.sm};
-        transform: translateY(-1px);
-    }
-
-    &:active {
-        transform: translateY(0);
-    }
-
-    @media (max-width: 768px) {
-        justify-content: center;
-    }
 `;
 
 const FiltersContainer = styled.div`
@@ -1043,39 +945,200 @@ const ActionButton = styled.button<{
 }}
 `;
 
-const FormContainer = styled.div`
+// Modern Modal Styles
+const ModernModalOverlay = styled.div`
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
     display: flex;
-    flex-direction: column;
-    gap: ${settingsTheme.spacing.lg};
+    align-items: center;
+    justify-content: center;
+    z-index: ${settingsTheme.zIndex.modal};
+    padding: ${settingsTheme.spacing.lg};
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.2s ease;
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
 `;
 
-const FormGroup = styled.div`
+const ModernModalContainer = styled.div`
+    background-color: ${settingsTheme.surface};
+    border-radius: ${settingsTheme.radius.xl};
+    box-shadow: ${settingsTheme.shadow.xl};
+    width: 95vw;
+    max-width: 650px;
+    max-height: 95vh;
     display: flex;
     flex-direction: column;
-    gap: ${settingsTheme.spacing.xs};
+    overflow: hidden;
+    animation: slideUp 0.3s ease;
+
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    @media (max-width: 768px) {
+        width: 100vw;
+        height: 100vh;
+        max-height: 100vh;
+        border-radius: 0;
+    }
 `;
 
-const Label = styled.label`
-    font-weight: 600;
+const ModernModalHeader = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: ${settingsTheme.spacing.xl};
+    border-bottom: 1px solid ${settingsTheme.border};
+    background: ${settingsTheme.surfaceAlt};
+    flex-shrink: 0;
+`;
+
+const ModernModalTitle = styled.div`
+    display: flex;
+    align-items: flex-start;
+    gap: ${settingsTheme.spacing.md};
+    flex: 1;
+`;
+
+const ModalIcon = styled.div`
+    width: 48px;
+    height: 48px;
+    background: ${settingsTheme.primaryGhost};
+    border-radius: ${settingsTheme.radius.lg};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${settingsTheme.primary};
+    font-size: 20px;
+    flex-shrink: 0;
+    border: 1px solid ${settingsTheme.primary}20;
+`;
+
+const ModalTitleText = styled.div`
+    flex: 1;
+`;
+
+const MainTitle = styled.h2`
+    margin: 0 0 ${settingsTheme.spacing.xs} 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: ${settingsTheme.text.primary};
+    letter-spacing: -0.025em;
+`;
+
+const SubTitle = styled.p`
+    margin: 0;
     font-size: 14px;
+    color: ${settingsTheme.text.secondary};
+    font-weight: 500;
+    line-height: 1.4;
+`;
+
+const ModernCloseButton = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: ${settingsTheme.surfaceHover};
+    color: ${settingsTheme.text.secondary};
+    border-radius: ${settingsTheme.radius.md};
+    cursor: pointer;
+    transition: all ${settingsTheme.transitions.spring};
+    font-size: 16px;
+    margin-left: ${settingsTheme.spacing.md};
+
+    &:hover {
+        background: ${settingsTheme.status.errorLight};
+        color: ${settingsTheme.status.error};
+        transform: scale(1.05);
+    }
+
+    &:active {
+        transform: scale(0.95);
+    }
+`;
+
+const ModernModalBody = styled.div`
+    overflow-y: auto;
+    flex: 1;
+    padding: ${settingsTheme.spacing.xl};
+    
+    &::-webkit-scrollbar {
+        width: 8px;
+    }
+    
+    &::-webkit-scrollbar-track {
+        background: ${settingsTheme.surfaceAlt};
+    }
+    
+    &::-webkit-scrollbar-thumb {
+        background: ${settingsTheme.border};
+        border-radius: 4px;
+    }
+    
+    &::-webkit-scrollbar-thumb:hover {
+        background: ${settingsTheme.borderHover};
+    }
+`;
+
+const ModernForm = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${settingsTheme.spacing.xl};
+`;
+
+const ModernFormGroup = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${settingsTheme.spacing.sm};
+`;
+
+const ModernLabel = styled.label`
+    display: flex;
+    align-items: center;
+    gap: ${settingsTheme.spacing.xs};
+    font-weight: 600;
+    font-size: 15px;
     color: ${settingsTheme.text.primary};
 `;
 
-const Input = styled.input`
-    height: 44px;
+const RequiredMark = styled.span`
+    color: ${settingsTheme.status.error};
+    font-weight: 700;
+`;
+
+const ModernInput = styled.input<{ $hasError?: boolean }>`
+    height: 52px;
     padding: 0 ${settingsTheme.spacing.md};
-    border: 2px solid ${settingsTheme.border};
-    border-radius: ${settingsTheme.radius.md};
-    font-size: 14px;
+    border: 2px solid ${props => props.$hasError ? settingsTheme.status.error : settingsTheme.border};
+    border-radius: ${settingsTheme.radius.lg};
+    font-size: 15px;
     font-weight: 500;
     background: ${settingsTheme.surface};
     color: ${settingsTheme.text.primary};
-    transition: all 0.2s ease;
+    transition: all ${settingsTheme.transitions.spring};
 
     &:focus {
         outline: none;
-        border-color: ${settingsTheme.primary};
-        box-shadow: 0 0 0 3px ${settingsTheme.primaryGhost};
+        border-color: ${props => props.$hasError ? settingsTheme.status.error : settingsTheme.primary};
+        box-shadow: 0 0 0 3px ${props => props.$hasError ? settingsTheme.status.error + '20' : settingsTheme.primaryGhost};
     }
 
     &::placeholder {
@@ -1084,62 +1147,288 @@ const Input = styled.input`
     }
 `;
 
-const ColorPickerContainer = styled.div`
+const ColorPickerSection = styled.div`
     display: flex;
     align-items: center;
-    gap: ${settingsTheme.spacing.sm};
+    gap: ${settingsTheme.spacing.lg};
+    padding: ${settingsTheme.spacing.lg};
+    background: ${settingsTheme.surfaceAlt};
+    border-radius: ${settingsTheme.radius.lg};
+    border: 1px solid ${settingsTheme.border};
 `;
 
-const ColorPreview = styled.div<{ color: string }>`
-    width: 44px;
-    height: 44px;
-    border-radius: ${settingsTheme.radius.sm};
+const ColorPreviewLarge = styled.div<{ color: string }>`
+    width: 64px;
+    height: 64px;
+    border-radius: ${settingsTheme.radius.lg};
     background-color: ${props => props.color};
-    border: 2px solid ${settingsTheme.border};
+    border: 3px solid ${settingsTheme.border};
+    box-shadow: ${settingsTheme.shadow.md};
     flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+
+    &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+    }
 `;
 
-const ColorInput = styled.input`
-    width: 44px;
-    height: 44px;
-    border: none;
-    padding: 0;
-    background: none;
+const ColorInputsContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${settingsTheme.spacing.sm};
+    flex: 1;
+`;
+
+const ColorPickerInput = styled.input`
+    width: 100%;
+    height: 52px;
+    border: 2px solid ${settingsTheme.border};
+    border-radius: ${settingsTheme.radius.md};
     cursor: pointer;
-    border-radius: ${settingsTheme.radius.sm};
+    background: none;
+    padding: 4px;
 
     &::-webkit-color-swatch-wrapper {
         padding: 0;
+        border-radius: ${settingsTheme.radius.sm};
+        overflow: hidden;
     }
 
     &::-webkit-color-swatch {
-        border: 2px solid ${settingsTheme.border};
+        border: none;
         border-radius: ${settingsTheme.radius.sm};
+    }
+
+    &:focus {
+        outline: none;
+        border-color: ${settingsTheme.primary};
+        box-shadow: 0 0 0 3px ${settingsTheme.primaryGhost};
     }
 `;
 
-const HelpText = styled.div`
+const HexInput = styled.input<{ $hasError?: boolean }>`
+    height: 44px;
+    padding: 0 ${settingsTheme.spacing.md};
+    border: 2px solid ${props => props.$hasError ? settingsTheme.status.error : settingsTheme.border};
+    border-radius: ${settingsTheme.radius.md};
+    font-size: 14px;
+    font-weight: 600;
+    font-family: 'Courier New', monospace;
+    background: ${settingsTheme.surface};
+    color: ${settingsTheme.text.primary};
+    transition: all ${settingsTheme.transitions.spring};
+    text-transform: uppercase;
+
+    &:focus {
+        outline: none;
+        border-color: ${props => props.$hasError ? settingsTheme.status.error : settingsTheme.primary};
+        box-shadow: 0 0 0 3px ${props => props.$hasError ? settingsTheme.status.error + '20' : settingsTheme.primaryGhost};
+    }
+
+    &::placeholder {
+        color: ${settingsTheme.text.muted};
+        font-weight: 400;
+        text-transform: none;
+    }
+`;
+
+const PreviewSection = styled.div`
+    background: ${settingsTheme.surfaceElevated};
+    border-radius: ${settingsTheme.radius.lg};
+    padding: ${settingsTheme.spacing.lg};
+    border: 1px solid ${settingsTheme.border};
+`;
+
+const PreviewTitle = styled.h3`
+    margin: 0 0 ${settingsTheme.spacing.md} 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: ${settingsTheme.text.primary};
+`;
+
+const PreviewContainer = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: ${settingsTheme.spacing.lg};
+
+    @media (max-width: 480px) {
+        grid-template-columns: 1fr;
+    }
+`;
+
+const PreviewItem = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${settingsTheme.spacing.sm};
+`;
+
+const PreviewLabel = styled.div`
     font-size: 12px;
+    font-weight: 600;
+    color: ${settingsTheme.text.tertiary};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+`;
+
+const CalendarPreview = styled.div`
+    background: ${settingsTheme.surface};
+    border: 1px solid ${settingsTheme.border};
+    border-radius: ${settingsTheme.radius.md};
+    padding: ${settingsTheme.spacing.sm};
+    min-height: 60px;
+`;
+
+const CalendarEvent = styled.div<{ color?: string }>`
+    background: ${props => props.color || 'currentColor'};
+    color: white;
+    padding: ${settingsTheme.spacing.sm};
+    border-radius: ${settingsTheme.radius.sm};
+    font-size: 12px;
+    box-shadow: ${settingsTheme.shadow.sm};
+`;
+
+const EventTime = styled.div`
+    font-weight: 600;
+    margin-bottom: 2px;
+    opacity: 0.9;
+`;
+
+const EventTitle = styled.div`
+    font-weight: 500;
+    line-height: 1.2;
+`;
+
+const ListPreview = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${settingsTheme.spacing.sm};
+    background: ${settingsTheme.surface};
+    border: 1px solid ${settingsTheme.border};
+    border-radius: ${settingsTheme.radius.md};
+    padding: ${settingsTheme.spacing.md};
+`;
+
+const ListColorDot = styled.div<{ color: string }>`
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: ${props => props.color};
+    flex-shrink: 0;
+    border: 1px solid ${settingsTheme.border};
+`;
+
+const ListText = styled.div`
+    font-size: 14px;
+    font-weight: 500;
+    color: ${settingsTheme.text.primary};
+`;
+
+const ModernErrorText = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${settingsTheme.spacing.xs};
+    color: ${settingsTheme.status.error};
+    font-size: 13px;
+    font-weight: 500;
+`;
+
+const ErrorIcon = styled.span`
+    font-size: 14px;
+`;
+
+const ModernHelpText = styled.div`
+    font-size: 13px;
     color: ${settingsTheme.text.muted};
     line-height: 1.4;
 `;
 
-const ErrorText = styled.div`
-    color: ${settingsTheme.status.error};
-    font-size: 12px;
-    font-weight: 500;
+const ModernModalFooter = styled.div`
+    padding: ${settingsTheme.spacing.xl};
+    border-top: 1px solid ${settingsTheme.border};
+    background: ${settingsTheme.surfaceAlt};
+    flex-shrink: 0;
 `;
 
-const FormActions = styled.div`
+const ModernButtonGroup = styled.div`
     display: flex;
     justify-content: flex-end;
     gap: ${settingsTheme.spacing.sm};
-    margin-top: ${settingsTheme.spacing.md};
-    padding-top: ${settingsTheme.spacing.lg};
-    border-top: 1px solid ${settingsTheme.border};
 
-    @media (max-width: 576px) {
+    @media (max-width: 480px) {
         flex-direction: column;
+    }
+`;
+
+const BaseModernButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: ${settingsTheme.spacing.sm};
+    padding: ${settingsTheme.spacing.md} ${settingsTheme.spacing.lg};
+    border-radius: ${settingsTheme.radius.lg};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all ${settingsTheme.transitions.spring};
+    border: 1px solid transparent;
+    white-space: nowrap;
+    min-height: 48px;
+    position: relative;
+    overflow: hidden;
+
+    &:hover:not(:disabled) {
+        transform: translateY(-1px);
+    }
+
+    &:active {
+        transform: translateY(0);
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    @media (max-width: 480px) {
+        justify-content: center;
+    }
+`;
+
+const ModernPrimaryButton = styled(BaseModernButton)`
+    background: linear-gradient(135deg, ${settingsTheme.primary} 0%, ${settingsTheme.primaryLight} 100%);
+    color: white;
+    box-shadow: ${settingsTheme.shadow.sm};
+
+    &:hover:not(:disabled) {
+        background: linear-gradient(135deg, ${settingsTheme.primaryDark} 0%, ${settingsTheme.primary} 100%);
+        box-shadow: ${settingsTheme.shadow.lg};
+    }
+
+    @media (max-width: 480px) {
+        order: 1;
+    }
+`;
+
+const ModernSecondaryButton = styled(BaseModernButton)`
+    background: ${settingsTheme.surface};
+    color: ${settingsTheme.text.secondary};
+    border-color: ${settingsTheme.border};
+    box-shadow: ${settingsTheme.shadow.xs};
+
+    &:hover:not(:disabled) {
+        background: ${settingsTheme.surfaceHover};
+        color: ${settingsTheme.text.primary};
+        border-color: ${settingsTheme.borderHover};
+        box-shadow: ${settingsTheme.shadow.sm};
+    }
+
+    @media (max-width: 480px) {
+        order: 2;
     }
 `;
 

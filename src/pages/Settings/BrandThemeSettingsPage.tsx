@@ -1,8 +1,14 @@
 // src/pages/Settings/BrandThemeSettingsPage.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import styled from 'styled-components';
-import { FaPalette, FaSave, FaUndo, FaEye, FaCar, FaCheck } from 'react-icons/fa';
+import { FaPalette, FaSave, FaUndo, FaEye, FaCar, FaCheck, FaImage, FaUpload, FaTrash, FaInfoCircle } from 'react-icons/fa';
 import { settingsTheme } from './styles/theme';
+import StableLogo from '../../components/common/LogoDisplay';
+import {
+    companySettingsApi,
+    companySettingsValidation,
+    type CompanySettingsResponse
+} from '../../api/companySettingsApi';
 
 interface BrandPreset {
     id: string;
@@ -32,29 +38,61 @@ const brandPresets: BrandPreset[] = [
     { id: 'custom-orange', name: 'Professional Orange', color: '#EA580C', description: 'Energiczny pomarańcz', category: 'general' }
 ];
 
-const BrandThemeSettingsPage: React.FC = () => {
+// Expose ref interface for parent component
+interface BrandThemeSettingsRef {
+    handleSave: () => void;
+}
+
+const BrandThemeSettingsPage = forwardRef<BrandThemeSettingsRef, {}>((props, ref) => {
     const [currentTheme, setCurrentTheme] = useState<string>('default');
     const [customColor, setCustomColor] = useState<string>('#2563eb');
     const [previewMode, setPreviewMode] = useState<boolean>(false);
     const [savedTheme, setSavedTheme] = useState<string>('default');
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
-    // Load saved theme from localStorage
+    // Logo states
+    const [logoSettings, setLogoSettings] = useState<any>(null);
+    const [companyData, setCompanyData] = useState<CompanySettingsResponse | null>(null);
+    const [saving, setSaving] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Expose handleSave method to parent component
+    useImperativeHandle(ref, () => ({
+        handleSave: handleSaveAll
+    }));
+
+    // Load saved theme and logo settings from localStorage/API
     useEffect(() => {
-        const saved = localStorage.getItem('brandTheme');
-        if (saved) {
+        const loadSettings = async () => {
             try {
-                const themeData = JSON.parse(saved);
-                setCurrentTheme(themeData.id || 'default');
-                setSavedTheme(themeData.id || 'default');
-                if (themeData.color) {
-                    setCustomColor(themeData.color);
-                    applyTheme(themeData.id, themeData.color);
+                // Load theme
+                const saved = localStorage.getItem('brandTheme');
+                if (saved) {
+                    try {
+                        const themeData = JSON.parse(saved);
+                        setCurrentTheme(themeData.id || 'default');
+                        setSavedTheme(themeData.id || 'default');
+                        if (themeData.color) {
+                            setCustomColor(themeData.color);
+                            applyTheme(themeData.id, themeData.color);
+                        }
+                    } catch (error) {
+                        console.error('Error loading saved theme:', error);
+                    }
                 }
-            } catch (error) {
-                console.error('Error loading saved theme:', error);
+
+                // Load logo settings and full company data
+                const data = await companySettingsApi.getCompanySettings();
+                setCompanyData(data);
+                setLogoSettings(data.logoSettings);
+            } catch (err) {
+                console.error('Error loading settings:', err);
+                setError('Nie udało się załadować ustawień');
             }
-        }
+        };
+
+        loadSettings();
     }, []);
 
     // Apply theme to the document
@@ -75,6 +113,73 @@ const BrandThemeSettingsPage: React.FC = () => {
         } else {
             // Reset to default
             document.documentElement.style.setProperty('--brand-primary', '#2563eb');
+        }
+    };
+
+    // Function to trigger logo refresh globally (like in CompanySettingsPage)
+    const triggerGlobalLogoRefresh = async () => {
+        try {
+            // Reload company data to get fresh logo settings
+            const freshData = await companySettingsApi.getCompanySettings();
+            setCompanyData(freshData);
+            setLogoSettings(freshData.logoSettings);
+
+            // Dispatch events for other components
+            window.dispatchEvent(new CustomEvent('logoUpdated', {
+                detail: { logoSettings: freshData.logoSettings }
+            }));
+
+            // Update localStorage to notify other parts of app
+            localStorage.setItem('logoLastUpdated', Date.now().toString());
+
+            // Force refresh of logo components throughout the app
+            const logoElements = document.querySelectorAll('[data-logo-component]');
+            logoElements.forEach(element => {
+                element.setAttribute('data-refresh', Date.now().toString());
+            });
+
+            // Additional method - trigger a global state update if using React Context
+            window.dispatchEvent(new CustomEvent('companyDataUpdated', {
+                detail: { companyData: freshData }
+            }));
+
+        } catch (err) {
+            console.error('Error refreshing logo globally:', err);
+        }
+    };
+
+    // Save all changes (themes + logo updates)
+    const handleSaveAll = async () => {
+        try {
+            setSaving(true);
+            setError(null);
+
+            // Save theme changes
+            const themeData = {
+                id: currentTheme,
+                color: currentTheme === 'custom' ? customColor : brandPresets.find(p => p.id === currentTheme)?.color
+            };
+
+            // Save to localStorage
+            localStorage.setItem('brandTheme', JSON.stringify(themeData));
+
+            // Apply theme
+            applyTheme(themeData.id, themeData.color || '#2563eb');
+
+            // Update saved state
+            setSavedTheme(currentTheme);
+
+            // Refresh logo globally to ensure consistency
+            await triggerGlobalLogoRefresh();
+
+            setSuccessMessage('Ustawienia wizualne zostały zapisane pomyślnie!');
+            setTimeout(() => setSuccessMessage(null), 3000);
+
+        } catch (err) {
+            console.error('Error saving visual settings:', err);
+            setError('Nie udało się zapisać ustawień');
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -128,8 +233,8 @@ const BrandThemeSettingsPage: React.FC = () => {
         }
     };
 
-    // Save theme
-    const handleSave = () => {
+    // Save theme only
+    const handleSaveTheme = () => {
         const themeData = {
             id: currentTheme,
             color: currentTheme === 'custom' ? customColor : brandPresets.find(p => p.id === currentTheme)?.color
@@ -158,7 +263,72 @@ const BrandThemeSettingsPage: React.FC = () => {
         }
     };
 
-    const hasChanges = currentTheme !== savedTheme;
+    // Logo upload handler - similar to CompanySettingsPage
+    const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const validation = companySettingsValidation.validateLogoFile(file);
+        if (!validation.valid) {
+            setError(validation.error || 'Nieprawidłowy plik logo');
+            return;
+        }
+
+        try {
+            setSaving(true);
+            setError(null);
+
+            // Upload logo using the same API as CompanySettingsPage
+            const updatedData = await companySettingsApi.uploadLogo(file);
+
+            // Update local state
+            setCompanyData(updatedData);
+            setLogoSettings(updatedData.logoSettings);
+
+            // Trigger global refresh - this is the key part!
+            await triggerGlobalLogoRefresh();
+
+            setSuccessMessage('Logo zostało przesłane pomyślnie');
+            setTimeout(() => setSuccessMessage(null), 3000);
+
+        } catch (err) {
+            console.error('Error uploading logo:', err);
+            setError('Nie udało się przesłać logo');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    // Logo delete handler - similar to CompanySettingsPage
+    const handleLogoDelete = async () => {
+        if (!window.confirm('Czy na pewno chcesz usunąć logo?')) return;
+
+        try {
+            setSaving(true);
+            setError(null);
+
+            // Delete logo using the same API as CompanySettingsPage
+            const updatedData = await companySettingsApi.deleteLogo();
+
+            // Update local state
+            setCompanyData(updatedData);
+            setLogoSettings(updatedData.logoSettings);
+
+            // Trigger global refresh - this is the key part!
+            await triggerGlobalLogoRefresh();
+
+            setSuccessMessage('Logo zostało usunięte');
+            setTimeout(() => setSuccessMessage(null), 3000);
+
+        } catch (err) {
+            console.error('Error deleting logo:', err);
+            setError('Nie udało się usunąć logo');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const hasUnsavedChanges = currentTheme !== savedTheme;
     const selectedPreset = brandPresets.find(p => p.id === currentTheme);
 
     return (
@@ -174,6 +344,7 @@ const BrandThemeSettingsPage: React.FC = () => {
                 </PreviewToggle>
             </HeaderActions>
 
+            {/* Success/Error Messages */}
             {successMessage && (
                 <SuccessMessage>
                     <FaCheck />
@@ -181,10 +352,17 @@ const BrandThemeSettingsPage: React.FC = () => {
                 </SuccessMessage>
             )}
 
+            {error && (
+                <ErrorMessage>
+                    <span>⚠️</span>
+                    {error}
+                </ErrorMessage>
+            )}
+
             <ContentGrid>
                 {/* Theme Selection */}
                 <SelectionPanel>
-                    <SectionTitle>Gotowe motywy</SectionTitle>
+                    <SectionTitle>Kolory marki</SectionTitle>
 
                     {/* Automotive Brands */}
                     <CategorySection>
@@ -267,6 +445,75 @@ const BrandThemeSettingsPage: React.FC = () => {
                             )}
                         </CustomColorSection>
                     </CategorySection>
+
+                    {/* Logo Section */}
+                    <CategorySection>
+                        <CategoryTitle>
+                            <FaImage />
+                            Logo firmy
+                        </CategoryTitle>
+                        <LogoSection>
+                            <LogoPreview>
+                                <StableLogo
+                                    logoSettings={logoSettings}
+                                    alt="Logo firmy"
+                                    maxWidth="200px"
+                                    maxHeight="100px"
+                                    key={`preview-${logoSettings?.logoLastUpdated || Date.now()}`}
+                                />
+
+                                {/* Actions below logo */}
+                                {logoSettings?.hasLogo && (
+                                    <LogoInfo>
+                                        <LogoName>{logoSettings.logoFileName}</LogoName>
+                                        <LogoSize>
+                                            {logoSettings.logoSize ?
+                                                `${Math.round(logoSettings.logoSize / 1024)} KB` :
+                                                'Nieznany rozmiar'
+                                            }
+                                        </LogoSize>
+                                        <LogoActions>
+                                            <SecondaryButton onClick={() => fileInputRef.current?.click()}>
+                                                <FaUpload />
+                                                Zmień logo
+                                            </SecondaryButton>
+                                            <DangerButton onClick={handleLogoDelete} disabled={saving}>
+                                                <FaTrash />
+                                                Usuń
+                                            </DangerButton>
+                                        </LogoActions>
+                                    </LogoInfo>
+                                )}
+
+                                {/* Add logo button if no logo */}
+                                {!logoSettings?.hasLogo && (
+                                    <div style={{ marginTop: '16px', textAlign: 'center' }}>
+                                        <PrimaryButton onClick={() => fileInputRef.current?.click()}>
+                                            <FaUpload />
+                                            Dodaj logo
+                                        </PrimaryButton>
+                                    </div>
+                                )}
+                            </LogoPreview>
+
+                            <LogoRequirements>
+                                <RequirementsTitle>Wymagania techniczne</RequirementsTitle>
+                                <RequirementsList>
+                                    <RequirementItem>Formaty: JPG, PNG, WebP</RequirementItem>
+                                    <RequirementItem>Maksymalny rozmiar: 5MB</RequirementItem>
+                                    <RequirementItem>Zalecane wymiary: 200x100px</RequirementItem>
+                                    <RequirementItem>Przezroczyste tło: PNG</RequirementItem>
+                                </RequirementsList>
+                            </LogoRequirements>
+
+                            <HiddenFileInput
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                onChange={handleLogoUpload}
+                            />
+                        </LogoSection>
+                    </CategorySection>
                 </SelectionPanel>
 
                 {/* Preview Panel */}
@@ -323,6 +570,23 @@ const BrandThemeSettingsPage: React.FC = () => {
                                     </CardDemoContent>
                                 </CardDemo>
                             </DemoGroup>
+
+                            {/* Logo Example */}
+                            {logoSettings?.hasLogo && (
+                                <DemoGroup>
+                                    <DemoSubtitle>Logo w interfejsie</DemoSubtitle>
+                                    <LogoDemo>
+                                        <StableLogo
+                                            logoSettings={logoSettings}
+                                            alt="Logo w menu"
+                                            maxWidth="120px"
+                                            maxHeight="40px"
+                                            key={`demo-${logoSettings?.logoLastUpdated || Date.now()}`}
+                                        />
+                                        <LogoDemoText>Tak będzie wyglądać logo w menu bocznym</LogoDemoText>
+                                    </LogoDemo>
+                                </DemoGroup>
+                            )}
                         </DemoSection>
                     </PreviewContent>
 
@@ -333,12 +597,12 @@ const BrandThemeSettingsPage: React.FC = () => {
                             Resetuj
                         </ResetButton>
                         <SaveButton
-                            onClick={handleSave}
-                            $hasChanges={hasChanges}
-                            disabled={!hasChanges}
+                            onClick={handleSaveTheme}
+                            $hasChanges={hasUnsavedChanges}
+                            disabled={!hasUnsavedChanges}
                         >
                             <FaSave />
-                            {hasChanges ? 'Zapisz zmiany' : 'Zapisane'}
+                            {hasUnsavedChanges ? 'Zapisz kolory' : 'Zapisane'}
                         </SaveButton>
                     </ActionButtons>
                 </PreviewPanel>
@@ -358,22 +622,29 @@ const BrandThemeSettingsPage: React.FC = () => {
                     <InstructionCard>
                         <InstructionNumber>2</InstructionNumber>
                         <InstructionContent>
-                            <InstructionTitle>Sprawdź podgląd</InstructionTitle>
-                            <InstructionText>Użyj "Podgląd na żywo" aby zobaczyć zmiany w aplikacji</InstructionText>
+                            <InstructionTitle>Dodaj logo</InstructionTitle>
+                            <InstructionText>Prześlij logo firmy które będzie używane w dokumentach i menu</InstructionText>
                         </InstructionContent>
                     </InstructionCard>
                     <InstructionCard>
                         <InstructionNumber>3</InstructionNumber>
                         <InstructionContent>
+                            <InstructionTitle>Sprawdź podgląd</InstructionTitle>
+                            <InstructionText>Użyj "Podgląd na żywo" aby zobaczyć zmiany w aplikacji</InstructionText>
+                        </InstructionContent>
+                    </InstructionCard>
+                    <InstructionCard>
+                        <InstructionNumber>4</InstructionNumber>
+                        <InstructionContent>
                             <InstructionTitle>Zapisz ustawienia</InstructionTitle>
-                            <InstructionText>Kliknij "Zapisz zmiany" aby zastosować nowy motyw</InstructionText>
+                            <InstructionText>Logo zapisuje się automatycznie, kolory ręcznie przyciskiem</InstructionText>
                         </InstructionContent>
                     </InstructionCard>
                 </InstructionsGrid>
             </InstructionsSection>
         </ContentContainer>
     );
-};
+});
 
 // Styled Components
 const ContentContainer = styled.div`
@@ -431,6 +702,20 @@ const SuccessMessage = styled.div`
     padding: ${settingsTheme.spacing.md} ${settingsTheme.spacing.lg};
     border-radius: ${settingsTheme.radius.lg};
     border: 1px solid ${settingsTheme.status.success}30;
+    font-weight: 500;
+    box-shadow: ${settingsTheme.shadow.xs};
+    margin-bottom: ${settingsTheme.spacing.lg};
+`;
+
+const ErrorMessage = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${settingsTheme.spacing.sm};
+    background: ${settingsTheme.status.errorLight};
+    color: ${settingsTheme.status.error};
+    padding: ${settingsTheme.spacing.md} ${settingsTheme.spacing.lg};
+    border-radius: ${settingsTheme.radius.lg};
+    border: 1px solid ${settingsTheme.status.error}30;
     font-weight: 500;
     box-shadow: ${settingsTheme.shadow.xs};
     margin-bottom: ${settingsTheme.spacing.lg};
@@ -608,6 +893,162 @@ const CustomActiveIndicator = styled.div`
     font-weight: 600;
 `;
 
+// Logo Section Styles
+const LogoSection = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${settingsTheme.spacing.lg};
+`;
+
+const LogoPreview = styled.div`
+    border: 2px dashed ${settingsTheme.border};
+    border-radius: ${settingsTheme.radius.lg};
+    padding: ${settingsTheme.spacing.xl};
+    background: ${settingsTheme.surfaceElevated};
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 160px;
+    transition: all ${settingsTheme.transitions.spring};
+
+    &:hover {
+        border-color: ${settingsTheme.borderHover};
+    }
+`;
+
+const LogoInfo = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${settingsTheme.spacing.sm};
+    margin-top: ${settingsTheme.spacing.md};
+    text-align: center;
+`;
+
+const LogoName = styled.div`
+    font-weight: 600;
+    color: ${settingsTheme.text.primary};
+    font-size: 14px;
+`;
+
+const LogoSize = styled.div`
+    font-size: 12px;
+    color: ${settingsTheme.text.muted};
+    font-weight: 500;
+`;
+
+const LogoActions = styled.div`
+    display: flex;
+    gap: ${settingsTheme.spacing.sm};
+    justify-content: center;
+    margin-top: ${settingsTheme.spacing.sm};
+`;
+
+const LogoRequirements = styled.div`
+    background: ${settingsTheme.surface};
+    border: 1px solid ${settingsTheme.border};
+    border-radius: ${settingsTheme.radius.lg};
+    padding: ${settingsTheme.spacing.md};
+`;
+
+const RequirementsTitle = styled.h4`
+    font-size: 14px;
+    font-weight: 600;
+    color: ${settingsTheme.text.primary};
+    margin: 0 0 ${settingsTheme.spacing.sm} 0;
+`;
+
+const RequirementsList = styled.ul`
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: ${settingsTheme.spacing.xs};
+`;
+
+const RequirementItem = styled.li`
+    font-size: 12px;
+    color: ${settingsTheme.text.secondary};
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: ${settingsTheme.spacing.xs};
+
+    &::before {
+        content: '•';
+        color: ${settingsTheme.primary};
+        font-weight: bold;
+        font-size: 14px;
+    }
+`;
+
+const HiddenFileInput = styled.input`
+    display: none;
+`;
+
+// Button Styles
+const BaseButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: ${settingsTheme.spacing.xs};
+    padding: ${settingsTheme.spacing.xs} ${settingsTheme.spacing.sm};
+    border-radius: ${settingsTheme.radius.md};
+    font-weight: 600;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid transparent;
+    white-space: nowrap;
+    min-height: 32px;
+
+    &:hover:not(:disabled) {
+        transform: translateY(-1px);
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+`;
+
+const PrimaryButton = styled(BaseButton)`
+    background: linear-gradient(135deg, ${settingsTheme.primary} 0%, ${settingsTheme.primaryLight} 100%);
+    color: white;
+    box-shadow: ${settingsTheme.shadow.xs};
+
+    &:hover:not(:disabled) {
+        background: linear-gradient(135deg, ${settingsTheme.primaryDark} 0%, ${settingsTheme.primary} 100%);
+        box-shadow: ${settingsTheme.shadow.sm};
+    }
+`;
+
+const SecondaryButton = styled(BaseButton)`
+    background: ${settingsTheme.surface};
+    color: ${settingsTheme.text.secondary};
+    border-color: ${settingsTheme.border};
+    box-shadow: ${settingsTheme.shadow.xs};
+
+    &:hover:not(:disabled) {
+        background: ${settingsTheme.surfaceHover};
+        color: ${settingsTheme.text.primary};
+        border-color: ${settingsTheme.borderHover};
+    }
+`;
+
+const DangerButton = styled(BaseButton)`
+    background: ${settingsTheme.status.errorLight};
+    color: ${settingsTheme.status.error};
+    border-color: ${settingsTheme.status.error}30;
+
+    &:hover:not(:disabled) {
+        background: ${settingsTheme.status.error};
+        color: white;
+        border-color: ${settingsTheme.status.error};
+    }
+`;
+
 const PreviewContent = styled.div`
     flex: 1;
 `;
@@ -729,6 +1170,23 @@ const CardDemoContent = styled.div`
     padding: ${settingsTheme.spacing.sm} ${settingsTheme.spacing.md};
     color: ${settingsTheme.text.secondary};
     font-size: 14px;
+`;
+
+const LogoDemo = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: ${settingsTheme.spacing.sm};
+    padding: ${settingsTheme.spacing.md};
+    background: ${settingsTheme.surfaceAlt};
+    border-radius: ${settingsTheme.radius.md};
+    border: 1px solid ${settingsTheme.border};
+`;
+
+const LogoDemoText = styled.div`
+    font-size: 12px;
+    color: ${settingsTheme.text.muted};
+    text-align: center;
 `;
 
 const ActionButtons = styled.div`

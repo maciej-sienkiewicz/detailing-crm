@@ -1,4 +1,4 @@
-// src/components/layout/Sidebar.tsx
+// src/components/layout/Sidebar.tsx - Updated with company logo
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
@@ -28,6 +28,7 @@ import {
     FaChevronRight
 } from 'react-icons/fa';
 import UserProfileSection from './UserProfileSection';
+import { useCompanyLogo } from '../../context/LogoCacheContext';
 
 // Brand Theme System - możliwość konfiguracji przez klienta
 const brandTheme = {
@@ -179,6 +180,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                          }) => {
     const location = useLocation();
     const navigate = useNavigate();
+    const { logoUrl, loading: logoLoading, error: logoError } = useCompanyLogo();
 
     const handleMenuItemClick = (item: MainMenuItem) => {
         if (item.hasSubmenu) {
@@ -202,15 +204,25 @@ const Sidebar: React.FC<SidebarProps> = ({
     return (
         <>
             <SidebarContainer isOpen={isOpen} isMobile={isMobile}>
-                {/* Header z logo */}
+                {/* Header z logo lub fallback */}
                 <SidebarHeader>
                     <LogoContainer>
-                        <LogoIcon>
-                            <FaCarSide />
-                        </LogoIcon>
-                        <LogoText>
-                            <CompanyName>DetailingPro</CompanyName>
-                        </LogoText>
+                        {logoUrl && !logoLoading && !logoError ? (
+                            // Pokaż logo firmy gdy jest dostępne
+                            <CompanyLogoContainer>
+                                <CompanyLogo src={logoUrl} alt="Logo firmy" />
+                            </CompanyLogoContainer>
+                        ) : (
+                            // Fallback - zawsze pokaż ikonę i napis gdy nie ma logo
+                            <>
+                                <LogoIcon>
+                                    <FaCarSide />
+                                </LogoIcon>
+                                <LogoText>
+                                    <CompanyName>DetailingPro</CompanyName>
+                                </LogoText>
+                            </>
+                        )}
                     </LogoContainer>
                     {isMobile && (
                         <CloseButton onClick={toggleSidebar}>
@@ -360,14 +372,36 @@ const SidebarHeader = styled.div`
     justify-content: space-between;
     padding: 20px;
     border-bottom: 1px solid #f1f5f9;
+    min-height: 80px;
 `;
 
 const LogoContainer = styled.div`
     display: flex;
     align-items: center;
     gap: 12px;
+    flex: 1;
+    min-width: 0;
 `;
 
+// New company logo styles
+const CompanyLogoContainer = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 8px;
+`;
+
+const CompanyLogo = styled.img`
+    max-width: 180px;
+    max-height: 40px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 4px;
+`;
+
+// Original fallback styles
 const LogoIcon = styled.div`
     width: 36px;
     height: 36px;
@@ -378,9 +412,13 @@ const LogoIcon = styled.div`
     justify-content: center;
     color: white;
     font-size: 18px;
+    flex-shrink: 0;
 `;
 
-const LogoText = styled.div``;
+const LogoText = styled.div`
+    flex: 1;
+    min-width: 0;
+`;
 
 const CompanyName = styled.div`
     font-size: 18px;
@@ -401,6 +439,7 @@ const CloseButton = styled.button`
     align-items: center;
     justify-content: center;
     transition: all 0.2s;
+    flex-shrink: 0;
 
     &:hover {
         background: #f1f5f9;

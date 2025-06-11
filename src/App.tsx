@@ -1,11 +1,10 @@
-// src/App.tsx
-// Aktualizacja globalnych stylów w aplikacji, aby zapewnić lepszą responsywność
-
+// src/App.tsx - Updated with LogoCacheProvider
 import React from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { createGlobalStyle } from 'styled-components';
 import { ToastProvider } from "./components/common/Toast/Toast";
 import { AuthProvider } from './context/AuthContext';
+import { LogoCacheProvider } from './context/LogoCacheContext';
 import AppRoutes from './routes';
 
 // Globalne style dla całej aplikacji
@@ -101,7 +100,9 @@ const App: React.FC = () => {
             <ToastProvider>
                 <GlobalStyle />
                 <AuthProvider>
-                    <AppRoutes />
+                    <LogoCacheProvider>
+                        <AppRoutes />
+                    </LogoCacheProvider>
                 </AuthProvider>
             </ToastProvider>
         </Router>
