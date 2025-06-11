@@ -227,12 +227,7 @@ export const companySettingsApi = {
 
             const response = await apiClient.post<CompanySettingsResponse>(
                 '/company-settings/logo',
-                formData,
-                {
-                    headers: {
-                        'Content-Type': 'multipart/form-data'
-                    }
-                }
+                formData
             );
             return response;
         } catch (error) {
@@ -259,8 +254,64 @@ export const companySettingsApi = {
      * Pobiera logo firmy
      * GET /api/company-settings/logo/{logoFileId}
      */
-    getLogoUrl(logoFileId: string): string {
-        return `${apiClient.getBaseUrl()}/company-settings/logo/${logoFileId}`;
+    async getLogoUrl(logoFileId: string): Promise<string> {
+        try {
+            // Używamy bezpośrednio fetch, bo apiClient.get parsuje JSON, a my chcemy blob
+            const token = apiClient.getAuthToken();
+            const response = await fetch(`${apiClient.getBaseUrl()}/company-settings/logo/${logoFileId}`, {
+                method: 'GET',
+                headers: {
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                    'Accept': '*/*' // Akceptujemy dowolny typ pliku
+                }
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    throw new Error('Unauthorized access to logo');
+                }
+                if (response.status === 404) {
+                    throw new Error('Logo not found');
+                }
+                throw new Error(`Failed to fetch logo: ${response.status}`);
+            }
+
+            const blob = await response.blob();
+            return URL.createObjectURL(blob);
+        } catch (error) {
+            console.error('Error fetching logo:', error);
+            throw new Error('Nie udało się pobrać logo');
+        }
+    },
+
+    async getLogoBase64(logoFileId: string): Promise<string> {
+        try {
+            const token = apiClient.getAuthToken();
+            const response = await fetch(`${apiClient.getBaseUrl()}/company-settings/logo/${logoFileId}`, {
+                method: 'GET',
+                headers: {
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                    'Accept': '*/*'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch logo: ${response.status}`);
+            }
+
+            const blob = await response.blob();
+
+            // Konwertuj blob na Base64
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        } catch (error) {
+            console.error('Error fetching logo as base64:', error);
+            throw new Error('Nie udało się pobrać logo');
+        }
     },
 
     /**
