@@ -256,13 +256,17 @@ export const companySettingsApi = {
      */
     async getLogoUrl(logoFileId: string): Promise<string> {
         try {
-            // Używamy bezpośrednio fetch, bo apiClient.get parsuje JSON, a my chcemy blob
             const token = apiClient.getAuthToken();
+
+            if (!token) {
+                throw new Error('No authentication token available');
+            }
+
             const response = await fetch(`${apiClient.getBaseUrl()}/company-settings/logo/${logoFileId}`, {
                 method: 'GET',
                 headers: {
-                    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-                    'Accept': '*/*' // Akceptujemy dowolny typ pliku
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'image/*'
                 }
             });
 
@@ -284,14 +288,22 @@ export const companySettingsApi = {
         }
     },
 
+    /**
+     * Pobiera logo jako Base64 z autoryzacją
+     */
     async getLogoBase64(logoFileId: string): Promise<string> {
         try {
             const token = apiClient.getAuthToken();
+
+            if (!token) {
+                throw new Error('No authentication token available');
+            }
+
             const response = await fetch(`${apiClient.getBaseUrl()}/company-settings/logo/${logoFileId}`, {
                 method: 'GET',
                 headers: {
-                    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-                    'Accept': '*/*'
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'image/*'
                 }
             });
 
@@ -312,6 +324,21 @@ export const companySettingsApi = {
             console.error('Error fetching logo as base64:', error);
             throw new Error('Nie udało się pobrać logo');
         }
+    },
+
+    /**
+     * Pobiera bezpośredni URL do loga (dla użycia w src img)
+     * Zwraca URL z tokenem jako parametr jeśli potrzebny
+     */
+    getLogoDirectUrl(logoFileId: string): string {
+        const token = apiClient.getAuthToken();
+        const baseUrl = `${apiClient.getBaseUrl()}/company-settings/logo/${logoFileId}`;
+
+        // Dla środowisk które wymagają tokena w parametrach URL (nie zalecane w produkcji ze względów bezpieczeństwa)
+        // return token ? `${baseUrl}?token=${encodeURIComponent(token)}` : baseUrl;
+
+        // Dla autoryzacji przez nagłówki (zalecane)
+        return baseUrl;
     },
 
     /**

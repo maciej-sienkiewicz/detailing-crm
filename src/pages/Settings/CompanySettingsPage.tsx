@@ -36,6 +36,8 @@ import {
     type EmailTestResponse,
     type NipValidationResponse
 } from '../../api/companySettingsApi';
+import StableLogo from '../../components/common/LogoDisplay';
+
 
 // Professional theme matching finances module
 const brandTheme = {
@@ -960,47 +962,44 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                     <CardBody>
                         <LogoSection>
                             <LogoPreview>
-                                {formData.logoSettings?.hasLogo ? (
-                                    <LogoContainer>
-                                        <LogoImage
-                                            src={formData.logoSettings.logoUrl}
-                                            alt="Logo firmy"
-                                            onError={(e) => {
-                                                console.error('Logo loading error');
-                                                // Fallback behavior if logo fails to load
-                                            }}
-                                        />
-                                        <LogoInfo>
-                                            <LogoName>{formData.logoSettings.logoFileName}</LogoName>
-                                            <LogoSize>
-                                                {formData.logoSettings.logoSize ?
-                                                    `${Math.round(formData.logoSettings.logoSize / 1024)} KB` :
-                                                    'Nieznany rozmiar'
-                                                }
-                                            </LogoSize>
-                                            <LogoActions>
-                                                <SecondaryButton onClick={() => fileInputRef.current?.click()}>
-                                                    <FaUpload />
-                                                    Zmień logo
-                                                </SecondaryButton>
-                                                <DangerButton onClick={handleLogoDelete} disabled={saving}>
-                                                    <FaTrash />
-                                                    Usuń
-                                                </DangerButton>
-                                            </LogoActions>
-                                        </LogoInfo>
-                                    </LogoContainer>
-                                ) : (
-                                    <LogoPlaceholder>
-                                        <LogoPlaceholderIcon>
-                                            <FaImage />
-                                        </LogoPlaceholderIcon>
-                                        <LogoPlaceholderText>Brak logo</LogoPlaceholderText>
+                                <StableLogo
+                                    logoSettings={formData.logoSettings}
+                                    alt="Logo firmy"
+                                    maxWidth="200px"
+                                    maxHeight="100px"
+                                />
+
+                                {/* Actions below logo */}
+                                {formData.logoSettings?.hasLogo && (
+                                    <LogoInfo>
+                                        <LogoName>{formData.logoSettings.logoFileName}</LogoName>
+                                        <LogoSize>
+                                            {formData.logoSettings.logoSize ?
+                                                `${Math.round(formData.logoSettings.logoSize / 1024)} KB` :
+                                                'Nieznany rozmiar'
+                                            }
+                                        </LogoSize>
+                                        <LogoActions>
+                                            <SecondaryButton onClick={() => fileInputRef.current?.click()}>
+                                                <FaUpload />
+                                                Zmień logo
+                                            </SecondaryButton>
+                                            <DangerButton onClick={handleLogoDelete} disabled={saving}>
+                                                <FaTrash />
+                                                Usuń
+                                            </DangerButton>
+                                        </LogoActions>
+                                    </LogoInfo>
+                                )}
+
+                                {/* Add logo button if no logo */}
+                                {!formData.logoSettings?.hasLogo && (
+                                    <div style={{ marginTop: '16px', textAlign: 'center' }}>
                                         <PrimaryButton onClick={() => fileInputRef.current?.click()}>
                                             <FaUpload />
                                             Dodaj logo
                                         </PrimaryButton>
-                                    </LogoPlaceholder>
+                                    </div>
                                 )}
                             </LogoPreview>
 
