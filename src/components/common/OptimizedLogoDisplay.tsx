@@ -1,7 +1,7 @@
-// src/components/common/OptimizedLogoDisplay.tsx
-import React from 'react';
+// src/components/common/OptimizedLogoDisplay.tsx - BEZPIECZNA WERSJA z debugowaniem
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { useLogoCache } from '../../context/LogoCacheContext';
+import { usePersistentLogoCache } from '../../context/PersistentLogoCacheContext';
 
 interface OptimizedLogoDisplayProps {
     alt?: string;
@@ -11,8 +11,8 @@ interface OptimizedLogoDisplayProps {
     showFallback?: boolean;
     fallbackText?: string;
     fallbackIcon?: React.ReactNode;
-    hideOnError?: boolean; // Nowa prop - ukryj komponent przy błędzie
-    hideOnEmpty?: boolean; // Nowa prop - ukryj komponent gdy nie ma logo
+    hideOnError?: boolean;
+    hideOnEmpty?: boolean;
 }
 
 const OptimizedLogoDisplay: React.FC<OptimizedLogoDisplayProps> = ({
@@ -26,7 +26,38 @@ const OptimizedLogoDisplay: React.FC<OptimizedLogoDisplayProps> = ({
                                                                        hideOnError = false,
                                                                        hideOnEmpty = false
                                                                    }) => {
-    const { logoUrl, loading, error } = useLogoCache();
+    const { logoUrl, loading, error } = usePersistentLogoCache();
+    const [imageError, setImageError] = useState(false);
+    const [imageLoaded, setImageLoaded] = useState(false);
+
+    // Debug info
+    useEffect(() => {
+        console.log('🖼️ OptimizedLogoDisplay render:', {
+            logoUrl: logoUrl ? `${logoUrl.substring(0, 50)}...` : null,
+            loading,
+            error,
+            imageError,
+            imageLoaded
+        });
+    }, [logoUrl, loading, error, imageError, imageLoaded]);
+
+    // Reset image states when logoUrl changes
+    useEffect(() => {
+        setImageError(false);
+        setImageLoaded(false);
+    }, [logoUrl]);
+
+    const handleImageLoad = () => {
+        console.log('✅ Image loaded successfully');
+        setImageLoaded(true);
+        setImageError(false);
+    };
+
+    const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+        console.error('❌ Image failed to load:', e);
+        setImageError(true);
+        setImageLoaded(false);
+    };
 
     // Loading state
     if (loading) {
@@ -38,7 +69,7 @@ const OptimizedLogoDisplay: React.FC<OptimizedLogoDisplayProps> = ({
         );
     }
 
-    // Error state
+    // Context error state
     if (error) {
         if (hideOnError) {
             return null;
@@ -52,18 +83,37 @@ const OptimizedLogoDisplay: React.FC<OptimizedLogoDisplayProps> = ({
         );
     }
 
+    // Image error state
+    if (logoUrl && imageError) {
+        if (hideOnError) {
+            return null;
+        }
+        return (
+            <ErrorContainer className={className}>
+                <ErrorIcon>⚠️</ErrorIcon>
+                <ErrorTitle>Błąd wyświetlania logo</ErrorTitle>
+                <ErrorText>Nieprawidłowy format obrazu</ErrorText>
+            </ErrorContainer>
+        );
+    }
+
     // Success state - show logo
-    if (logoUrl) {
+    if (logoUrl && !imageError) {
         return (
             <ImageContainer className={className}>
+                {!imageLoaded && (
+                    <ImageLoadingOverlay>
+                        <Spinner />
+                    </ImageLoadingOverlay>
+                )}
                 <StyledImage
                     src={logoUrl}
                     alt={alt}
                     $maxWidth={maxWidth}
                     $maxHeight={maxHeight}
-                    onError={(e) => {
-                        console.error('Logo display error:', e);
-                    }}
+                    $loaded={imageLoaded}
+                    onLoad={handleImageLoad}
+                    onError={handleImageError}
                 />
             </ImageContainer>
         );
@@ -175,6 +225,7 @@ const NoLogoText = styled.div`
 `;
 
 const ImageContainer = styled.div`
+    position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -183,9 +234,27 @@ const ImageContainer = styled.div`
     border-radius: 8px;
     border: 1px solid #e2e8f0;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
 `;
 
-const StyledImage = styled.img<{ $maxWidth: string; $maxHeight: string }>`
+const ImageLoadingOverlay = styled.div`
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(248, 250, 252, 0.8);
+    z-index: 1;
+`;
+
+const StyledImage = styled.img<{
+    $maxWidth: string;
+    $maxHeight: string;
+    $loaded: boolean;
+}>`
     max-width: ${props => props.$maxWidth};
     max-height: ${props => props.$maxHeight};
     width: auto;
@@ -193,6 +262,12 @@ const StyledImage = styled.img<{ $maxWidth: string; $maxHeight: string }>`
     object-fit: contain;
     border-radius: 4px;
     display: block;
+    opacity: ${props => props.$loaded ? 1 : 0};
+    transition: opacity 0.3s ease;
+    
+    /* Zapobieganie czarnemu prostokątowi */
+    background: transparent;
+    background-color: transparent;
 `;
 
 export default OptimizedLogoDisplay;

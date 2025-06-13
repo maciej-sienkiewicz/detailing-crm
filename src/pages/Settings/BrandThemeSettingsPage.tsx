@@ -1,14 +1,15 @@
-// src/pages/Settings/BrandThemeSettingsPage.tsx
+// src/pages/Settings/BrandThemeSettingsPage.tsx - Updated with persistent logo cache
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import styled from 'styled-components';
 import { FaPalette, FaSave, FaUndo, FaEye, FaCar, FaCheck, FaImage, FaUpload, FaTrash, FaInfoCircle } from 'react-icons/fa';
 import { settingsTheme } from './styles/theme';
-import StableLogo from '../../components/common/LogoDisplay';
+import OptimizedLogoDisplay from '../../components/common/OptimizedLogoDisplay';
 import {
     companySettingsApi,
     companySettingsValidation,
     type CompanySettingsResponse
 } from '../../api/companySettingsApi';
+import { usePersistentLogoCache } from '../../context/PersistentLogoCacheContext'; // Zmieniony import
 
 interface BrandPreset {
     id: string;
@@ -51,8 +52,8 @@ const BrandThemeSettingsPage = forwardRef<BrandThemeSettingsRef, {}>((props, ref
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
 
-    // Logo states
-    const [logoSettings, setLogoSettings] = useState<any>(null);
+    // Logo states - now using persistent cache
+    const { logoUrl, logoSettings, loading: logoLoading, error: logoError, refetchLogo, updateLogo } = usePersistentLogoCache();
     const [companyData, setCompanyData] = useState<CompanySettingsResponse | null>(null);
     const [saving, setSaving] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -82,10 +83,9 @@ const BrandThemeSettingsPage = forwardRef<BrandThemeSettingsRef, {}>((props, ref
                     }
                 }
 
-                // Load logo settings and full company data
+                // Load company data (logo settings come from persistent cache)
                 const data = await companySettingsApi.getCompanySettings();
                 setCompanyData(data);
-                setLogoSettings(data.logoSettings);
             } catch (err) {
                 console.error('Error loading settings:', err);
                 setError('Nie udało się załadować ustawień');
@@ -116,32 +116,27 @@ const BrandThemeSettingsPage = forwardRef<BrandThemeSettingsRef, {}>((props, ref
         }
     };
 
-    // Function to trigger logo refresh globally (like in CompanySettingsPage)
+    // UPDATED: Function to trigger logo refresh globally using persistent cache
     const triggerGlobalLogoRefresh = async () => {
         try {
-            // Reload company data to get fresh logo settings
+            console.log('🔄 Triggering global logo refresh via persistent cache');
+
+            // 1. Reload company data to get fresh logo settings
             const freshData = await companySettingsApi.getCompanySettings();
             setCompanyData(freshData);
-            setLogoSettings(freshData.logoSettings);
 
-            // Dispatch events for other components
+            // 2. KLUCZOWE: Update persistent logo cache
+            await updateLogo(freshData.logoSettings);
+
+            // 3. Dispatch events for other components (legacy support)
             window.dispatchEvent(new CustomEvent('logoUpdated', {
                 detail: { logoSettings: freshData.logoSettings }
             }));
 
-            // Update localStorage to notify other parts of app
+            // 4. Update localStorage to notify other parts of app
             localStorage.setItem('logoLastUpdated', Date.now().toString());
 
-            // Force refresh of logo components throughout the app
-            const logoElements = document.querySelectorAll('[data-logo-component]');
-            logoElements.forEach(element => {
-                element.setAttribute('data-refresh', Date.now().toString());
-            });
-
-            // Additional method - trigger a global state update if using React Context
-            window.dispatchEvent(new CustomEvent('companyDataUpdated', {
-                detail: { companyData: freshData }
-            }));
+            console.log('✅ Logo globally refreshed via persistent cache');
 
         } catch (err) {
             console.error('Error refreshing logo globally:', err);
@@ -263,7 +258,7 @@ const BrandThemeSettingsPage = forwardRef<BrandThemeSettingsRef, {}>((props, ref
         }
     };
 
-    // Logo upload handler - similar to CompanySettingsPage
+    // UPDATED: Logo upload handler using persistent cache
     const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
@@ -278,14 +273,16 @@ const BrandThemeSettingsPage = forwardRef<BrandThemeSettingsRef, {}>((props, ref
             setSaving(true);
             setError(null);
 
-            // Upload logo using the same API as CompanySettingsPage
+            // Upload logo using API
             const updatedData = await companySettingsApi.uploadLogo(file);
 
-            // Update local state
+            // Update local company data
             setCompanyData(updatedData);
-            setLogoSettings(updatedData.logoSettings);
 
-            // Trigger global refresh - this is the key part!
+            // KLUCZOWE: Update persistent cache with new logo
+            await updateLogo(updatedData.logoSettings);
+
+            // Trigger global refresh for consistency
             await triggerGlobalLogoRefresh();
 
             setSuccessMessage('Logo zostało przesłane pomyślnie');
@@ -299,7 +296,7 @@ const BrandThemeSettingsPage = forwardRef<BrandThemeSettingsRef, {}>((props, ref
         }
     };
 
-    // Logo delete handler - similar to CompanySettingsPage
+    // UPDATED: Logo delete handler using persistent cache
     const handleLogoDelete = async () => {
         if (!window.confirm('Czy na pewno chcesz usunąć logo?')) return;
 
@@ -307,14 +304,16 @@ const BrandThemeSettingsPage = forwardRef<BrandThemeSettingsRef, {}>((props, ref
             setSaving(true);
             setError(null);
 
-            // Delete logo using the same API as CompanySettingsPage
+            // Delete logo using API
             const updatedData = await companySettingsApi.deleteLogo();
 
-            // Update local state
+            // Update local company data
             setCompanyData(updatedData);
-            setLogoSettings(updatedData.logoSettings);
 
-            // Trigger global refresh - this is the key part!
+            // KLUCZOWE: Update persistent cache (remove logo)
+            await updateLogo(updatedData.logoSettings);
+
+            // Trigger global refresh for consistency
             await triggerGlobalLogoRefresh();
 
             setSuccessMessage('Logo zostało usunięte');
@@ -446,7 +445,7 @@ const BrandThemeSettingsPage = forwardRef<BrandThemeSettingsRef, {}>((props, ref
                         </CustomColorSection>
                     </CategorySection>
 
-                    {/* Logo Section */}
+                    {/* Logo Section - UPDATED to use OptimizedLogoDisplay */}
                     <CategorySection>
                         <CategoryTitle>
                             <FaImage />
@@ -454,12 +453,14 @@ const BrandThemeSettingsPage = forwardRef<BrandThemeSettingsRef, {}>((props, ref
                         </CategoryTitle>
                         <LogoSection>
                             <LogoPreview>
-                                <StableLogo
-                                    logoSettings={logoSettings}
+                                <OptimizedLogoDisplay
                                     alt="Logo firmy"
                                     maxWidth="200px"
                                     maxHeight="100px"
-                                    key={`preview-${logoSettings?.logoLastUpdated || Date.now()}`}
+                                    showFallback={true}
+                                    fallbackText="Brak logo"
+                                    fallbackIcon="📷"
+                                    key={`preview-${Date.now()}`} // Force refresh
                                 />
 
                                 {/* Actions below logo */}
@@ -503,6 +504,7 @@ const BrandThemeSettingsPage = forwardRef<BrandThemeSettingsRef, {}>((props, ref
                                     <RequirementItem>Maksymalny rozmiar: 5MB</RequirementItem>
                                     <RequirementItem>Zalecane wymiary: 200x100px</RequirementItem>
                                     <RequirementItem>Przezroczyste tło: PNG</RequirementItem>
+                                    <RequirementItem>⭐ Logo jest teraz zapisywane trwale</RequirementItem>
                                 </RequirementsList>
                             </LogoRequirements>
 
@@ -571,17 +573,18 @@ const BrandThemeSettingsPage = forwardRef<BrandThemeSettingsRef, {}>((props, ref
                                 </CardDemo>
                             </DemoGroup>
 
-                            {/* Logo Example */}
+                            {/* Logo Example - UPDATED */}
                             {logoSettings?.hasLogo && (
                                 <DemoGroup>
                                     <DemoSubtitle>Logo w interfejsie</DemoSubtitle>
                                     <LogoDemo>
-                                        <StableLogo
-                                            logoSettings={logoSettings}
+                                        <OptimizedLogoDisplay
                                             alt="Logo w menu"
                                             maxWidth="120px"
                                             maxHeight="40px"
-                                            key={`demo-${logoSettings?.logoLastUpdated || Date.now()}`}
+                                            showFallback={false}
+                                            hideOnError={true}
+                                            key={`demo-${Date.now()}`}
                                         />
                                         <LogoDemoText>Tak będzie wyglądać logo w menu bocznym</LogoDemoText>
                                     </LogoDemo>
@@ -623,7 +626,7 @@ const BrandThemeSettingsPage = forwardRef<BrandThemeSettingsRef, {}>((props, ref
                         <InstructionNumber>2</InstructionNumber>
                         <InstructionContent>
                             <InstructionTitle>Dodaj logo</InstructionTitle>
-                            <InstructionText>Prześlij logo firmy które będzie używane w dokumentach i menu</InstructionText>
+                            <InstructionText>Logo jest teraz zapisywane trwale i nie zniknie po wylogowaniu</InstructionText>
                         </InstructionContent>
                     </InstructionCard>
                     <InstructionCard>
@@ -637,7 +640,7 @@ const BrandThemeSettingsPage = forwardRef<BrandThemeSettingsRef, {}>((props, ref
                         <InstructionNumber>4</InstructionNumber>
                         <InstructionContent>
                             <InstructionTitle>Zapisz ustawienia</InstructionTitle>
-                            <InstructionText>Logo zapisuje się automatycznie, kolory ręcznie przyciskiem</InstructionText>
+                            <InstructionText>Logo zapisuje się automatycznie i trwale, kolory ręcznie</InstructionText>
                         </InstructionContent>
                     </InstructionCard>
                 </InstructionsGrid>
@@ -646,7 +649,7 @@ const BrandThemeSettingsPage = forwardRef<BrandThemeSettingsRef, {}>((props, ref
     );
 });
 
-// Styled Components
+// Styled Components - identyczne jak wcześniej
 const ContentContainer = styled.div`
     flex: 1;
     max-width: 1600px;

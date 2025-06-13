@@ -1,4 +1,4 @@
-// src/components/layout/Sidebar.tsx - Updated with company logo
+// src/components/layout/Sidebar.tsx - Updated with persistent logo cache
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
@@ -28,7 +28,7 @@ import {
     FaChevronRight
 } from 'react-icons/fa';
 import UserProfileSection from './UserProfileSection';
-import { useCompanyLogo } from '../../context/LogoCacheContext';
+import { useCompanyLogoPersistent } from '../../context/PersistentLogoCacheContext'; // Zmieniony import
 
 // Brand Theme System - możliwość konfiguracji przez klienta
 const brandTheme = {
@@ -180,7 +180,33 @@ const Sidebar: React.FC<SidebarProps> = ({
                                          }) => {
     const location = useLocation();
     const navigate = useNavigate();
-    const { logoUrl, loading: logoLoading, error: logoError } = useCompanyLogo();
+
+    // ZMIENIONY HOOK - teraz używa persistentnego cache
+    const { logoUrl, loading: logoLoading, error: logoError, refetchLogo } = useCompanyLogoPersistent();
+
+    // Dodatkowe nasłuchiwanie na zmiany logo - BACKUP
+    React.useEffect(() => {
+        const handleLogoUpdate = () => {
+            console.log('🔄 Sidebar received logo update event');
+            refetchLogo();
+        };
+
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === 'logoLastUpdated') {
+                console.log('🔄 Sidebar detected logo localStorage change');
+                refetchLogo();
+            }
+        };
+
+        // Nasłuchuj na eventy
+        window.addEventListener('logoUpdated', handleLogoUpdate);
+        window.addEventListener('storage', handleStorageChange);
+
+        return () => {
+            window.removeEventListener('logoUpdated', handleLogoUpdate);
+            window.removeEventListener('storage', handleStorageChange);
+        };
+    }, [refetchLogo]);
 
     const handleMenuItemClick = (item: MainMenuItem) => {
         if (item.hasSubmenu) {
@@ -210,8 +236,18 @@ const Sidebar: React.FC<SidebarProps> = ({
                         {logoUrl && !logoLoading && !logoError ? (
                             // Pokaż logo firmy gdy jest dostępne
                             <CompanyLogoContainer>
-                                <CompanyLogo src={logoUrl} alt="Logo firmy" />
+                                <CompanyLogo
+                                    src={logoUrl}
+                                    alt="Logo firmy"
+                                    key={`sidebar-logo-${Date.now()}`} // Force refresh na zmianę
+                                />
                             </CompanyLogoContainer>
+                        ) : logoLoading ? (
+                            // Loading state
+                            <LogoLoadingContainer>
+                                <LogoSpinner />
+                                <CompanyName style={{fontSize: '14px', color: '#64748b'}}>Ładowanie...</CompanyName>
+                            </LogoLoadingContainer>
                         ) : (
                             // Fallback - zawsze pokaż ikonę i napis gdy nie ma logo
                             <>
@@ -339,7 +375,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     );
 };
 
-// Styled Components - Clean & Professional
+// Styled Components - identyczne jak wcześniej + nowe style dla loading
 const SidebarContainer = styled.div<{ isOpen: boolean; isMobile: boolean }>`
     position: fixed;
     top: 0;
@@ -399,6 +435,31 @@ const CompanyLogo = styled.img`
     height: auto;
     object-fit: contain;
     border-radius: 4px;
+`;
+
+// Loading state styles
+const LogoLoadingContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px;
+`;
+
+const LogoSpinner = styled.div`
+    width: 24px;
+    height: 24px;
+    border: 2px solid #e2e8f0;
+    border-top: 2px solid #2563eb;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
 `;
 
 // Original fallback styles

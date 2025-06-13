@@ -1,10 +1,10 @@
-// src/App.tsx - Updated with LogoCacheProvider
+// src/App.tsx - Updated with PersistentLogoCacheProvider
 import React from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { createGlobalStyle } from 'styled-components';
 import { ToastProvider } from "./components/common/Toast/Toast";
 import { AuthProvider } from './context/AuthContext';
-import { LogoCacheProvider } from './context/LogoCacheContext';
+import { PersistentLogoCacheProvider } from './context/PersistentLogoCacheContext'; // Zmieniony import
 import AppRoutes from './routes';
 
 // Globalne style dla całej aplikacji
@@ -100,9 +100,9 @@ const App: React.FC = () => {
             <ToastProvider>
                 <GlobalStyle />
                 <AuthProvider>
-                    <LogoCacheProvider>
+                    <PersistentLogoCacheProvider>
                         <AppRoutes />
-                    </LogoCacheProvider>
+                    </PersistentLogoCacheProvider>
                 </AuthProvider>
             </ToastProvider>
         </Router>
