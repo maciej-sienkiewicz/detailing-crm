@@ -104,15 +104,16 @@ export const brandTheme = {
         spring: '0.2s cubic-bezier(0.4, 0, 0.2, 1)'
     },
 
-    // Z-index scale
+    // Z-index scale - FIXED: Increased modal z-index values
     zIndex: {
         dropdown: 1000,
         sticky: 1020,
         fixed: 1030,
         modalBackdrop: 1040,
         modal: 1050,
-        popover: 1060,
-        tooltip: 1070
+        modalEdit: 1060, // Added higher z-index for edit modals
+        popover: 1070,
+        tooltip: 1080
     },
 
     // Breakpoints

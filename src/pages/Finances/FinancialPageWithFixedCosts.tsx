@@ -1,4 +1,4 @@
-// src/pages/Finances/FinancialPageWithFixedCosts.tsx - Updated with Reports
+// src/pages/Finances/FinancialPageWithFixedCosts.tsx - Updated with Fixed Header
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import {
@@ -146,7 +146,7 @@ const FinancialPageWithFixedCosts: React.FC = () => {
 
     return (
         <PageContainer>
-            {/* Header with updated navigation */}
+            {/* Header with updated navigation - FIXED: Removed sticky positioning */}
             <HeaderContainer>
                 <HeaderContent>
                     <HeaderLeft>
@@ -350,15 +350,12 @@ const LoadingText = styled.div`
     font-weight: 500;
 `;
 
+// FIXED: Removed sticky positioning and backdrop-filter from HeaderContainer
 const HeaderContainer = styled.header`
     background: ${brandTheme.surface};
     border-bottom: 1px solid ${brandTheme.border};
     box-shadow: ${brandTheme.shadow.sm};
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    backdrop-filter: blur(8px);
-    background: rgba(255, 255, 255, 0.95);
+    /* Removed sticky positioning and backdrop-filter */
 `;
 
 const HeaderContent = styled.div`
