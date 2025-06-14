@@ -10,9 +10,9 @@ export interface GoogleDriveSettings {
 }
 
 export interface GoogleDriveTestResponse {
-    success: boolean;
-    message: string;
-    errorDetails?: string;
+    companyId: number;
+    isActive: boolean;
+    status?: string;
 }
 
 // Interfejsy TypeScript dla ustawień firmy
@@ -186,9 +186,9 @@ export const companySettingsApi = {
         } catch (error) {
             console.error('Error testing Google Drive connection:', error);
             return {
-                success: false,
-                message: 'Nie udało się przetestować połączenia',
-                errorDetails: error instanceof Error ? error.message : 'Nieznany błąd'
+                companyId: 0,
+                isActive: false,
+                status: "INACTIVE"
             };
         }
     },

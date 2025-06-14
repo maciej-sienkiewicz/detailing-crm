@@ -198,9 +198,9 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
         } catch (err) {
             console.error('Error testing Google Drive connection:', err);
             setGoogleDriveTestResult({
-                success: false,
-                message: 'Błąd podczas testowania połączenia',
-                errorDetails: err instanceof Error ? err.message : 'Nieznany błąd'
+                companyId: 0,
+                isActive: false,
+                status: "INACTIVE"
             });
         } finally {
             setTestingGoogleDrive(false);
@@ -912,15 +912,12 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                     </CardHeader>
 
                     {googleDriveTestResult && (
-                        <TestResultBanner $success={googleDriveTestResult.success}>
+                        <TestResultBanner $success={googleDriveTestResult.isActive}>
                             <TestResultIcon>
-                                {googleDriveTestResult.success ? <FaCheckCircle /> : <FaExclamationTriangle />}
+                                {googleDriveTestResult.isActive ? <FaCheckCircle /> : <FaExclamationTriangle />}
                             </TestResultIcon>
                             <TestResultText>
-                                {googleDriveTestResult.message}
-                                {googleDriveTestResult.errorDetails && (
-                                    <TestResultDetails>{googleDriveTestResult.errorDetails}</TestResultDetails>
-                                )}
+                                {googleDriveTestResult.status}
                             </TestResultText>
                         </TestResultBanner>
                     )}

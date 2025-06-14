@@ -60,6 +60,14 @@ interface ProtocolConfirmationModalProps {
     onConfirm: (options: { print: boolean; sendEmail: boolean }) => void;
 }
 
+// Enum do śledzenia sekwencji modali
+enum ModalSequence {
+    SELECTION = 'selection',
+    SIGNATURE = 'signature',
+    SIGNATURE_STATUS = 'signature_status',
+    PDF_PREVIEW = 'pdf_preview'
+}
+
 const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
                                                                                  isOpen,
                                                                                  onClose,
@@ -71,14 +79,32 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
         print: true,
         sendEmail: !!clientEmail
     });
+
+    // Stan sekwencji modali
+    const [currentModal, setCurrentModal] = useState<ModalSequence>(ModalSequence.SELECTION);
+    const [modalSequence, setModalSequence] = useState<ModalSequence[]>([]);
+    const [currentSequenceIndex, setCurrentSequenceIndex] = useState(0);
+
+    // Stany ładowania i błędów
     const [isPrinting, setIsPrinting] = useState(false);
     const [isSendingEmail, setIsSendingEmail] = useState(false);
     const [hasError, setHasError] = useState<string | null>(null);
-    const [showPdfPreview, setShowPdfPreview] = useState(false);
 
-    const [showTabletSignatureModal, setShowTabletSignatureModal] = useState(false);
-    const [showSignatureStatusModal, setShowSignatureStatusModal] = useState(false);
+    // Stany modali podpisu
     const [signatureSessionId, setSignatureSessionId] = useState<string>('');
+
+    // Resetowanie stanów przy otwarciu modala
+    useEffect(() => {
+        if (isOpen) {
+            setCurrentModal(ModalSequence.SELECTION);
+            setModalSequence([]);
+            setCurrentSequenceIndex(0);
+            setHasError(null);
+            setIsPrinting(false);
+            setIsSendingEmail(false);
+            setSignatureSessionId('');
+        }
+    }, [isOpen]);
 
     const handleOptionChange = (option: 'print' | 'sendEmail') => {
         setSelectedOptions(prev => ({
@@ -87,95 +113,98 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
         }));
     };
 
-    const handlePrintProtocol = async () => {
-        try {
-            setIsPrinting(true);
-            setShowPdfPreview(true);
-            setIsPrinting(false);
-        } catch (error) {
-            console.error('Error preparing PDF preview:', error);
-            setHasError('Wystąpił błąd podczas generowania podglądu PDF');
-            setIsPrinting(false);
+    // Tworzenie sekwencji modali na podstawie wybranych opcji
+    const createModalSequence = (options: { print: boolean; sendEmail: boolean }): ModalSequence[] => {
+        const sequence: ModalSequence[] = [];
+
+        // Jeśli wybrano email (podpis), dodaj modali podpisu
+        if (options.sendEmail && clientEmail) {
+            sequence.push(ModalSequence.SIGNATURE);
+            sequence.push(ModalSequence.SIGNATURE_STATUS);
         }
-    };
 
-    const handleSendEmail = async () => {
-        if (!clientEmail) return;
-
-        try {
-            setIsSendingEmail(true);
-            // await emailService.sendProtocolEmail(protocolId, clientEmail);
-            setIsSendingEmail(false);
-        } catch (error) {
-            console.error('Error sending email:', error);
-            setHasError('Wystąpił błąd podczas wysyłania emaila');
-            setIsSendingEmail(false);
+        // Jeśli wybrano druk, dodaj modal PDF
+        if (options.print) {
+            sequence.push(ModalSequence.PDF_PREVIEW);
         }
-    };
 
+        return sequence;
+    };
 
     const handleConfirm = async () => {
         setHasError(null);
 
-        try {
-            if (selectedOptions.print) {
-                handlePrintProtocol();
-                return;
-            }
+        // Jeśli żadna opcja nie jest wybrana
+        if (!selectedOptions.print && !selectedOptions.sendEmail) {
+            return;
+        }
 
-            if (selectedOptions.sendEmail && clientEmail) {
-                // Zamiast bezpośrednio wysyłać email, otwórz modal wyboru tableta
-                setShowTabletSignatureModal(true);
-                return;
-            }
+        // Tworzenie sekwencji modali
+        const sequence = createModalSequence(selectedOptions);
 
+        if (sequence.length === 0) {
+            // Brak sekwencji - natychmiastowe zakończenie
             onConfirm(selectedOptions);
             onClose();
-        } catch (error) {
-            console.error('Error during confirmation actions:', error);
-            setHasError('Wystąpił błąd podczas wykonywania żądanych akcji');
+            return;
+        }
+
+        // Ustawienie sekwencji i przejście do pierwszego modala
+        setModalSequence(sequence);
+        setCurrentSequenceIndex(0);
+        setCurrentModal(sequence[0]);
+    };
+
+    // Przejście do następnego modala w sekwencji
+    const proceedToNextModal = () => {
+        const nextIndex = currentSequenceIndex + 1;
+
+        if (nextIndex < modalSequence.length) {
+            setCurrentSequenceIndex(nextIndex);
+            setCurrentModal(modalSequence[nextIndex]);
+        } else {
+            // Koniec sekwencji - zakończenie całego procesu
+            completeProcess();
         }
     };
 
+    // Zakończenie całego procesu
+    const completeProcess = () => {
+        onConfirm(selectedOptions);
+        onClose();
+    };
+
+    // Obsługa anulowania - różna logika w zależności od kontekstu
+    const handleCancel = () => {
+        if (currentModal === ModalSequence.SELECTION) {
+            // Anulowanie z głównego modala - zamknij cały modal
+            onClose();
+        } else {
+            // Anulowanie z modala w sekwencji - kontynuuj do następnego modala
+            // (np. anulowanie podpisu nie przerywa całej sekwencji jeśli jest jeszcze druk)
+            proceedToNextModal();
+        }
+    };
+
+    // Obsługa żądania podpisu
     const handleSignatureRequested = (sessionId: string) => {
         setSignatureSessionId(sessionId);
-        setShowTabletSignatureModal(false);
-        setShowSignatureStatusModal(true);
+        proceedToNextModal(); // Przejście do modal śledzenia podpisu
     };
 
+    // Obsługa zakończenia podpisu
     const handleSignatureCompleted = (signedDocumentUrl?: string) => {
-        setShowSignatureStatusModal(false);
-
-        // Jeśli też chcemy wysłać email, robimy to teraz
-        if (selectedOptions.sendEmail && clientEmail) {
-            handleSendEmail().then(() => {
-                onConfirm(selectedOptions);
-                onClose();
-            }).catch(error => {
-                console.error('Error sending email after signature:', error);
-                setHasError('Podpis został złożony, ale wystąpił błąd podczas wysyłania emaila');
-            });
-        } else {
-            onConfirm(selectedOptions);
-            onClose();
-        }
+        proceedToNextModal(); // Przejście do następnego modala lub zakończenie
     };
 
-    const handlePdfPreviewClose = () => {
-        setShowPdfPreview(false);
+    // Obsługa anulowania podpisu - przejście do następnego modala lub zakończenie
+    const handleSignatureCancelled = () => {
+        proceedToNextModal(); // Kontynuuj sekwencję nawet po anulowaniu podpisu
+    };
 
-        if (selectedOptions.sendEmail && clientEmail) {
-            handleSendEmail().then(() => {
-                onConfirm(selectedOptions);
-                onClose();
-            }).catch(error => {
-                console.error('Error sending email after PDF preview:', error);
-                setHasError('Wystąpił błąd podczas wysyłania emaila');
-            });
-        } else {
-            onConfirm(selectedOptions);
-            onClose();
-        }
+    // Obsługa zamknięcia PDF preview
+    const handlePdfPreviewClose = () => {
+        proceedToNextModal(); // Przejście do następnego modala lub zakończenie
     };
 
     const handleSkip = () => {
@@ -185,152 +214,173 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
 
     if (!isOpen) return null;
 
-    return (
-        <ModalOverlay>
-            <ModalContainer>
-                <ModalHeader>
-                    <HeaderContent>
-                        <DocumentIcon>
-                            <FaFileAlt />
-                        </DocumentIcon>
-                        <HeaderText>
-                            <ModalTitle>Protokół #{protocolId} utworzony</ModalTitle>
-                            <ModalSubtitle>Wybierz opcje udostępnienia dokumentu</ModalSubtitle>
-                        </HeaderText>
-                    </HeaderContent>
-                </ModalHeader>
+    // Renderowanie modala wyboru opcji
+    if (currentModal === ModalSequence.SELECTION) {
+        return (
+            <ModalOverlay>
+                <ModalContainer>
+                    <ModalHeader>
+                        <HeaderContent>
+                            <DocumentIcon>
+                                <FaFileAlt />
+                            </DocumentIcon>
+                            <HeaderText>
+                                <ModalTitle>Protokół #{protocolId} utworzony</ModalTitle>
+                                <ModalSubtitle>Wybierz opcje udostępnienia dokumentu</ModalSubtitle>
+                            </HeaderText>
+                        </HeaderContent>
+                    </ModalHeader>
 
-                <ModalBody>
-                    <StatusSection>
-                        <StatusIndicator>
-                            <StatusIcon>
-                                <FaCheck />
-                            </StatusIcon>
-                            <StatusMessage>Protokół został pomyślnie zapisany w systemie</StatusMessage>
-                        </StatusIndicator>
-                    </StatusSection>
-
-                    {hasError && (
-                        <ErrorSection>
-                            <ErrorMessage>{hasError}</ErrorMessage>
-                        </ErrorSection>
-                    )}
-
-                    <OptionsSection>
-                        <SectionTitle>Opcje udostępnienia</SectionTitle>
-
-                        <OptionsList>
-                            <OptionItem>
-                                <OptionCheckbox
-                                    type="checkbox"
-                                    checked={selectedOptions.print}
-                                    onChange={() => handleOptionChange('print')}
-                                    disabled={isPrinting}
-                                />
-                                <OptionContent>
-                                    <OptionHeader>
-                                        <OptionIcon $primary>
-                                            {isPrinting ? <FaSpinner className="spinner" /> : <FaPrint />}
-                                        </OptionIcon>
-                                        <OptionDetails>
-                                            <OptionTitle>Podgląd i druk</OptionTitle>
-                                            <OptionDescription>
-                                                Otwórz dokument w formacie PDF do wydruku lub pobrania
-                                            </OptionDescription>
-                                        </OptionDetails>
-                                    </OptionHeader>
-                                </OptionContent>
-                            </OptionItem>
-
-                            <OptionItem>
-                                <OptionCheckbox
-                                    type="checkbox"
-                                    checked={selectedOptions.sendEmail}
-                                    onChange={() => handleOptionChange('sendEmail')}
-                                    disabled={!clientEmail || isSendingEmail}
-                                />
-                                <OptionContent>
-                                    <OptionHeader>
-                                        <OptionIcon $secondary={!clientEmail}>
-                                            {isSendingEmail ? <FaSpinner className="spinner" /> : <FaEnvelope />}
-                                        </OptionIcon>
-                                        <OptionDetails>
-                                            <OptionTitle>Wysyłka emailem</OptionTitle>
-                                            <OptionDescription>
-                                                {clientEmail
-                                                    ? `Wyślij kopię protokołu na adres: ${clientEmail}`
-                                                    : 'Nie można wysłać - brak adresu email w danych klienta'
-                                                }
-                                            </OptionDescription>
-                                        </OptionDetails>
-                                    </OptionHeader>
-                                </OptionContent>
-                            </OptionItem>
-                        </OptionsList>
-                    </OptionsSection>
-
-                    <InfoSection>
-                        <InfoMessage>
-                            Możesz wybrać jedną lub obie opcje. Protokół zostanie zachowany w systemie niezależnie od wyboru.
-                        </InfoMessage>
-                    </InfoSection>
-                </ModalBody>
-
-                <ModalFooter>
-                    <ButtonGroup>
-                        <SecondaryButton onClick={handleSkip}>
-                            Pomiń
-                        </SecondaryButton>
-                        <PrimaryButton
-                            onClick={handleConfirm}
-                            disabled={isPrinting || isSendingEmail || (!selectedOptions.print && !selectedOptions.sendEmail)}
-                        >
-                            {isPrinting || isSendingEmail ? (
-                                <>
-                                    <FaSpinner className="spinner" />
-                                    Przetwarzanie...
-                                </>
-                            ) : (
-                                <>
+                    <ModalBody>
+                        <StatusSection>
+                            <StatusIndicator>
+                                <StatusIcon>
                                     <FaCheck />
-                                    Wykonaj
-                                </>
-                            )}
-                        </PrimaryButton>
-                    </ButtonGroup>
-                </ModalFooter>
+                                </StatusIcon>
+                                <StatusMessage>Protokół został pomyślnie zapisany w systemie</StatusMessage>
+                            </StatusIndicator>
+                        </StatusSection>
 
-                {showPdfPreview && (
-                    <PDFViewer
-                        protocolId={protocolId}
-                        onClose={handlePdfPreviewClose}
-                        title={`Protokół przyjęcia pojazdu #${protocolId}`}
-                    />
-                )}
+                        {hasError && (
+                            <ErrorSection>
+                                <ErrorMessage>{hasError}</ErrorMessage>
+                            </ErrorSection>
+                        )}
 
-                {showTabletSignatureModal && (
-                    <TabletSignatureRequestModal
-                        isOpen={showTabletSignatureModal}
-                        onClose={() => setShowTabletSignatureModal(false)}
-                        protocolId={parseInt(protocolId)}
-                        customerName={clientEmail} // lub inne pole z imieniem klienta
-                        onSignatureRequested={handleSignatureRequested}
-                    />
-                )}
+                        <OptionsSection>
+                            <SectionTitle>Opcje udostępnienia</SectionTitle>
 
-                {/* Modal śledzenia statusu podpisu */}
-                {showSignatureStatusModal && signatureSessionId && (
-                    <SignatureStatusModal
-                        isOpen={showSignatureStatusModal}
-                        onClose={() => setShowSignatureStatusModal(false)}
-                        sessionId={signatureSessionId}
-                        protocolId={parseInt(protocolId)}
-                        onCompleted={handleSignatureCompleted}
-                    />
-                )}
-            </ModalContainer>
-        </ModalOverlay>
-    );
+                            <OptionsList>
+                                <OptionItem>
+                                    <OptionCheckbox
+                                        type="checkbox"
+                                        checked={selectedOptions.print}
+                                        onChange={() => handleOptionChange('print')}
+                                        disabled={isPrinting}
+                                    />
+                                    <OptionContent>
+                                        <OptionHeader>
+                                            <OptionIcon $primary>
+                                                {isPrinting ? <FaSpinner className="spinner" /> : <FaPrint />}
+                                            </OptionIcon>
+                                            <OptionDetails>
+                                                <OptionTitle>Podgląd i druk</OptionTitle>
+                                                <OptionDescription>
+                                                    Otwórz dokument w formacie PDF do wydruku lub pobrania
+                                                </OptionDescription>
+                                            </OptionDetails>
+                                        </OptionHeader>
+                                    </OptionContent>
+                                </OptionItem>
+
+                                <OptionItem>
+                                    <OptionCheckbox
+                                        type="checkbox"
+                                        checked={selectedOptions.sendEmail}
+                                        onChange={() => handleOptionChange('sendEmail')}
+                                        disabled={!clientEmail || isSendingEmail}
+                                    />
+                                    <OptionContent>
+                                        <OptionHeader>
+                                            <OptionIcon $secondary={!clientEmail}>
+                                                {isSendingEmail ? <FaSpinner className="spinner" /> : <FaEnvelope />}
+                                            </OptionIcon>
+                                            <OptionDetails>
+                                                <OptionTitle>Wysyłka emailem</OptionTitle>
+                                                <OptionDescription>
+                                                    {clientEmail
+                                                        ? `Wyślij kopię protokołu na adres: ${clientEmail}`
+                                                        : 'Nie można wysłać - brak adresu email w danych klienta'
+                                                    }
+                                                </OptionDescription>
+                                            </OptionDetails>
+                                        </OptionHeader>
+                                    </OptionContent>
+                                </OptionItem>
+                            </OptionsList>
+                        </OptionsSection>
+
+                        <InfoSection>
+                            <InfoMessage>
+                                {selectedOptions.print && selectedOptions.sendEmail && clientEmail ? (
+                                    "Zostanie wykonana następująca sekwencja: 1) zebranie podpisu od klienta, 2) wyświetlenie protokołu do druku."
+                                ) : selectedOptions.sendEmail && clientEmail ? (
+                                    "Klient zostanie poproszony o podpisanie protokołu na tablecie."
+                                ) : selectedOptions.print ? (
+                                    "Protokół zostanie wyświetlony do podglądu i druku."
+                                ) : (
+                                    "Możesz wybrać jedną lub obie opcje. Protokół zostanie zachowany w systemie niezależnie od wyboru."
+                                )}
+                            </InfoMessage>
+                        </InfoSection>
+                    </ModalBody>
+
+                    <ModalFooter>
+                        <ButtonGroup>
+                            <SecondaryButton onClick={handleSkip}>
+                                Pomiń
+                            </SecondaryButton>
+                            <PrimaryButton
+                                onClick={handleConfirm}
+                                disabled={isPrinting || isSendingEmail || (!selectedOptions.print && !selectedOptions.sendEmail)}
+                            >
+                                {isPrinting || isSendingEmail ? (
+                                    <>
+                                        <FaSpinner className="spinner" />
+                                        Przetwarzanie...
+                                    </>
+                                ) : (
+                                    <>
+                                        <FaCheck />
+                                        {selectedOptions.print && selectedOptions.sendEmail && clientEmail ? 'Rozpocznij sekwencję' : 'Wykonaj'}
+                                    </>
+                                )}
+                            </PrimaryButton>
+                        </ButtonGroup>
+                    </ModalFooter>
+                </ModalContainer>
+            </ModalOverlay>
+        );
+    }
+
+    // Renderowanie modala żądania podpisu
+    if (currentModal === ModalSequence.SIGNATURE) {
+        return (
+            <TabletSignatureRequestModal
+                isOpen={true}
+                onClose={handleCancel}
+                protocolId={parseInt(protocolId)}
+                customerName={clientEmail}
+                onSignatureRequested={handleSignatureRequested}
+            />
+        );
+    }
+
+    // Renderowanie modala śledzenia statusu podpisu
+    if (currentModal === ModalSequence.SIGNATURE_STATUS && signatureSessionId) {
+        return (
+            <SignatureStatusModal
+                isOpen={true}
+                onClose={handleCancel}
+                sessionId={signatureSessionId}
+                protocolId={parseInt(protocolId)}
+                onCompleted={handleSignatureCompleted}
+            />
+        );
+    }
+
+    // Renderowanie PDF preview
+    if (currentModal === ModalSequence.PDF_PREVIEW) {
+        return (
+            <PDFViewer
+                protocolId={protocolId}
+                onClose={handlePdfPreviewClose}
+                title={`Protokół przyjęcia pojazdu #${protocolId}`}
+            />
+        );
+    }
+
+    return null;
 };
 
 // Professional Styled Components
@@ -518,7 +568,7 @@ const OptionItem = styled.label`
     &:has(input:disabled) {
         opacity: 0.6;
         cursor: not-allowed;
-        
+
         &:hover {
             border-color: ${corporateTheme.borderLight};
             background: transparent;
