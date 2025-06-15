@@ -1,4 +1,4 @@
-// src/pages/Finances/FinancialPageWithFixedCosts.tsx - Updated with Fixed Header
+// src/pages/Finances/FinancialPageWithFixedCosts.tsx - Updated with Balance Edit Support
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import {
@@ -19,6 +19,7 @@ import DocumentViewModal from './components/DocumentViewModal';
 import FixedCostsIntegration from './components/FixedCostsIntegration';
 
 // Import new Reports component
+import FinancialReportsPage from "./FinancialReportsPage";
 
 // Import hooks
 import { useFinancialData } from './hooks/useFinancialData';
@@ -31,7 +32,6 @@ import { DocumentType } from '../../types/finance';
 import { brandTheme } from './styles/theme';
 import { useToast } from '../../components/common/Toast/Toast';
 import Pagination from '../../components/common/Pagination';
-import FinancialReportsPage from "./FinancialReportsPage";
 import {companySettingsApi} from "../../api/companySettingsApi";
 
 type ActiveTab = 'documents' | 'fixed-costs' | 'reports';
@@ -119,7 +119,6 @@ const FinancialPageWithFixedCosts: React.FC = () => {
         }
     };
 
-
     // Handle add fixed cost
     const handleAddFixedCost = () => {
         if (fixedCostsRef.handleAddFixedCost) {
@@ -130,6 +129,18 @@ const FinancialPageWithFixedCosts: React.FC = () => {
     // Handle setting fixed costs ref
     const handleSetFixedCostsRef = (ref: { handleAddFixedCost?: () => void }) => {
         setFixedCostsRef(ref);
+    };
+
+    // Handle balance update from FinancialSummaryCards
+    const handleBalanceUpdate = async (newCashBalance: number, newBankBalance: number) => {
+        try {
+            showToast('success', 'Saldo zostało pomyślnie zaktualizowane');
+            // Refresh data to get updated summary
+            await refreshData();
+        } catch (error) {
+            console.error('Error after balance update:', error);
+            showToast('error', 'Wystąpił błąd podczas odświeżania danych');
+        }
     };
 
     // Loading state for initial load
@@ -146,7 +157,7 @@ const FinancialPageWithFixedCosts: React.FC = () => {
 
     return (
         <PageContainer>
-            {/* Header with updated navigation - FIXED: Removed sticky positioning */}
+            {/* Header with updated navigation */}
             <HeaderContainer>
                 <HeaderContent>
                     <HeaderLeft>
@@ -219,12 +230,13 @@ const FinancialPageWithFixedCosts: React.FC = () => {
                 </TabNavigation>
             </HeaderContainer>
 
-            {/* Summary Cards - only for documents tab */}
+            {/* Summary Cards - only for documents tab with balance edit support */}
             {activeTab === 'documents' && summary && (
                 <SummarySection>
                     <FinancialSummaryCards
                         summary={summary}
                         isLoading={loading}
+                        onBalanceUpdate={handleBalanceUpdate}
                     />
                 </SummarySection>
             )}
@@ -350,12 +362,10 @@ const LoadingText = styled.div`
     font-weight: 500;
 `;
 
-// FIXED: Removed sticky positioning and backdrop-filter from HeaderContainer
 const HeaderContainer = styled.header`
     background: ${brandTheme.surface};
     border-bottom: 1px solid ${brandTheme.border};
     box-shadow: ${brandTheme.shadow.sm};
-    /* Removed sticky positioning and backdrop-filter */
 `;
 
 const HeaderContent = styled.div`
