@@ -422,7 +422,7 @@
                                 <FaMoneyBillWave />
                             </StatIcon>
                             <StatContent>
-                                <StatValue>{companyStats?.totalRevenue}</StatValue>
+                                <StatValue>{companyStats?.totalRevenue?.toFixed(2)} zł</StatValue>
                                 <StatLabel>Łączne przychody</StatLabel>
                             </StatContent>
                         </StatCard>
@@ -432,7 +432,7 @@
                                 <FaEye />
                             </StatIcon>
                             <StatContent>
-                                <StatValue>{companyStats?.visitRevenueMedian}</StatValue>
+                                <StatValue>{companyStats?.visitRevenueMedian?.toFixed(2)} zł</StatValue>
                                 <StatLabel>Mediana wartości wizyt</StatLabel>
                             </StatContent>
                         </StatCard>
