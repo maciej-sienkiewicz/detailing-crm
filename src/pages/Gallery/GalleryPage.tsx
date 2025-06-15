@@ -92,6 +92,61 @@ const brandTheme = {
     }
 };
 
+// Funkcja do konwersji Java LocalDateTime array na JavaScript Date
+const parseJavaLocalDateTime = (dateArray: any): Date => {
+    console.log('🕐 parseJavaLocalDateTime input:', dateArray, 'type:', typeof dateArray, 'isArray:', Array.isArray(dateArray));
+
+    // Sprawdź czy to jest array z Java LocalDateTime
+    if (Array.isArray(dateArray) && dateArray.length >= 6) {
+        const [year, month, day, hour, minute, second, nanosecond] = dateArray;
+        console.log('📅 Parsing Java date array:', { year, month, day, hour, minute, second, nanosecond });
+
+        // Java miesiące są 1-12, JavaScript 0-11, więc odejmujemy 1
+        const millisecond = nanosecond ? Math.floor(nanosecond / 1000000) : 0;
+        const jsDate = new Date(year, month - 1, day, hour, minute, second, millisecond);
+
+        console.log('✅ Created JS Date:', jsDate, 'ISO:', jsDate.toISOString());
+        return jsDate;
+    }
+
+    // Jeśli to string, spróbuj normalnego parsowania
+    if (typeof dateArray === 'string') {
+        console.log('📝 Parsing string date:', dateArray);
+        const stringDate = new Date(dateArray);
+        console.log('✅ String date result:', stringDate);
+        return stringDate;
+    }
+
+    // Fallback na aktualną datę
+    console.warn('⚠️ Nie można sparsować daty, using current date. Input was:', dateArray);
+    return new Date();
+};
+
+// Funkcja do normalizacji danych obrazu z API
+const normalizeImageData = (rawImage: any): GalleryImage => {
+    console.log('🔧 normalizeImageData input:', rawImage);
+
+    const normalized = {
+        id: rawImage.id,
+        name: rawImage.name,
+        protocolId: rawImage.protocol_id,
+        protocolTitle: rawImage.protocol_title,
+        clientName: rawImage.client_name,
+        vehicleInfo: rawImage.vehicle_info,
+        size: rawImage.size,
+        contentType: rawImage.content_type,
+        description: rawImage.description,
+        location: rawImage.location,
+        tags: rawImage.tags || [],
+        createdAt: rawImage.created_at, // Zachowujemy surowy array, nie konwertujemy na ISO string
+        thumbnailUrl: rawImage.thumbnail_url,
+        downloadUrl: rawImage.download_url
+    };
+
+    console.log('✅ normalizeImageData output:', normalized);
+    return normalized;
+};
+
 const GalleryPage: React.FC = () => {
     const navigate = useNavigate();
     const [images, setImages] = useState<GalleryImage[]>([]);
@@ -184,6 +239,9 @@ const GalleryPage: React.FC = () => {
                 setImages([]);
                 return;
             }
+
+            // Normalizuj dane z API
+            console.log('🔧 All normalized images:', response.data);
 
             setImages(response.data);
             setTotalPages(response.pagination?.totalPages || 0);
@@ -314,13 +372,31 @@ const GalleryPage: React.FC = () => {
     };
 
     const formatDate = (dateString: string): string => {
-        return new Date(dateString).toLocaleDateString('pl-PL', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
+        console.log('📅 formatDate input:', dateString);
+
+        try {
+            const date = new Date(dateString);
+            console.log('📅 formatDate created Date object:', date, 'isValid:', !isNaN(date.getTime()));
+
+            if (isNaN(date.getTime())) {
+                console.warn('Invalid date string:', dateString);
+                return 'Nieprawidłowa data';
+            }
+
+            const formatted = date.toLocaleDateString('pl-PL', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            console.log('📅 formatDate result:', formatted);
+            return formatted;
+        } catch (error) {
+            console.error('Error formatting date:', error, dateString);
+            return 'Błąd daty';
+        }
     };
 
     return (
@@ -453,7 +529,7 @@ const GalleryPage: React.FC = () => {
 
                                                 <ImageMeta>
                                                     <MetaItem>{formatFileSize(image.size)}</MetaItem>
-                                                    <MetaItem>{formatDate(image.createdAt)}</MetaItem>
+                                                    <MetaItem>{formatDate(parseJavaLocalDateTime(image.createdAt).toISOString())}</MetaItem>
                                                 </ImageMeta>
 
                                                 {image.tags.length > 0 && (
@@ -568,7 +644,7 @@ const GalleryPage: React.FC = () => {
 
                             <InfoSection>
                                 <InfoLabel>Data utworzenia</InfoLabel>
-                                <InfoValue>{formatDate(selectedImage.createdAt)}</InfoValue>
+                                <InfoValue>{formatDate(parseJavaLocalDateTime(selectedImage.createdAt).toISOString())}</InfoValue>
                             </InfoSection>
 
                             {selectedImage.tags.length > 0 && (
@@ -872,337 +948,337 @@ const ResultsText = styled.div`
 `;
 
 const ImagesGrid = styled.div`
-   display: grid;
-   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-   gap: ${brandTheme.spacing.xl};
-   margin-bottom: ${brandTheme.spacing.xxl};
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: ${brandTheme.spacing.xl};
+    margin-bottom: ${brandTheme.spacing.xxl};
 
-   @media (max-width: 768px) {
-       grid-template-columns: 1fr;
-       gap: ${brandTheme.spacing.lg};
-   }
+    @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+        gap: ${brandTheme.spacing.lg};
+    }
 `;
 
 const ImageCard = styled.div`
-   border: 1px solid ${brandTheme.border};
-   border-radius: ${brandTheme.radius.xl};
-   overflow: hidden;
-   cursor: pointer;
-   transition: all ${brandTheme.transitions.spring};
-   background: ${brandTheme.surface};
-   box-shadow: ${brandTheme.shadow.xs};
+    border: 1px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.xl};
+    overflow: hidden;
+    cursor: pointer;
+    transition: all ${brandTheme.transitions.spring};
+    background: ${brandTheme.surface};
+    box-shadow: ${brandTheme.shadow.xs};
 
-   &:hover {
-       border-color: ${brandTheme.primary};
-       box-shadow: ${brandTheme.shadow.lg};
-       transform: translateY(-4px);
-   }
+    &:hover {
+        border-color: ${brandTheme.primary};
+        box-shadow: ${brandTheme.shadow.lg};
+        transform: translateY(-4px);
+    }
 `;
 
 const ImageContainer = styled.div`
-   position: relative;
-   height: 240px;
-   overflow: hidden;
-   background: ${brandTheme.surfaceAlt};
+    position: relative;
+    height: 240px;
+    overflow: hidden;
+    background: ${brandTheme.surfaceAlt};
 `;
 
 const Image = styled.img`
-   width: 100%;
-   height: 100%;
-   object-fit: cover;
-   transition: transform ${brandTheme.transitions.slow};
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform ${brandTheme.transitions.slow};
 
-   ${ImageCard}:hover & {
-       transform: scale(1.05);
-   }
+    ${ImageCard}:hover & {
+        transform: scale(1.05);
+    }
 `;
 
 const ImageOverlay = styled.div`
-   position: absolute;
-   top: 0;
-   left: 0;
-   right: 0;
-   bottom: 0;
-   background: linear-gradient(135deg, rgba(26, 54, 93, 0.9) 0%, rgba(15, 32, 39, 0.9) 100%);
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   opacity: 0;
-   transition: opacity ${brandTheme.transitions.normal};
-   backdrop-filter: blur(4px);
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(26, 54, 93, 0.9) 0%, rgba(15, 32, 39, 0.9) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity ${brandTheme.transitions.normal};
+    backdrop-filter: blur(4px);
 
-   ${ImageCard}:hover & {
-       opacity: 1;
-   }
+    ${ImageCard}:hover & {
+        opacity: 1;
+    }
 `;
 
 const ImageActions = styled.div`
-   display: flex;
-   gap: ${brandTheme.spacing.md};
+    display: flex;
+    gap: ${brandTheme.spacing.md};
 `;
 
 const ActionButton = styled.button`
-   width: 48px;
-   height: 48px;
-   border-radius: ${brandTheme.radius.lg};
-   border: 2px solid rgba(255, 255, 255, 0.2);
-   background: rgba(255, 255, 255, 0.1);
-   color: white;
-   cursor: pointer;
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   transition: all ${brandTheme.transitions.normal};
-   font-size: 18px;
-   backdrop-filter: blur(8px);
+    width: 48px;
+    height: 48px;
+    border-radius: ${brandTheme.radius.lg};
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all ${brandTheme.transitions.normal};
+    font-size: 18px;
+    backdrop-filter: blur(8px);
 
-   &:hover {
-       background: rgba(255, 255, 255, 0.2);
-       border-color: rgba(255, 255, 255, 0.4);
-       transform: translateY(-2px) scale(1.05);
-       box-shadow: ${brandTheme.shadow.lg};
-   }
+    &:hover {
+        background: rgba(255, 255, 255, 0.2);
+        border-color: rgba(255, 255, 255, 0.4);
+        transform: translateY(-2px) scale(1.05);
+        box-shadow: ${brandTheme.shadow.lg};
+    }
 `;
 
 const ImageInfo = styled.div`
-   padding: ${brandTheme.spacing.lg};
+    padding: ${brandTheme.spacing.lg};
 `;
 
 const ImageHeader = styled.div`
-   display: flex;
-   justify-content: space-between;
-   align-items: flex-start;
-   margin-bottom: ${brandTheme.spacing.md};
-   gap: ${brandTheme.spacing.sm};
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: ${brandTheme.spacing.md};
+    gap: ${brandTheme.spacing.sm};
 `;
 
 const ImageName = styled.div`
-   font-size: 16px;
-   font-weight: 600;
-   color: ${brandTheme.text.primary};
-   line-height: 1.4;
-   flex: 1;
+    font-size: 16px;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+    line-height: 1.4;
+    flex: 1;
 `;
 
 const ProtocolBadge = styled.div`
-   background: linear-gradient(135deg, ${brandTheme.primaryGhost} 0%, ${brandTheme.surface} 100%);
-   color: ${brandTheme.primary};
-   padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
-   border-radius: ${brandTheme.radius.sm};
-   font-size: 12px;
-   font-weight: 600;
-   cursor: pointer;
-   transition: all ${brandTheme.transitions.normal};
-   border: 1px solid ${brandTheme.primary}30;
-   flex-shrink: 0;
+    background: linear-gradient(135deg, ${brandTheme.primaryGhost} 0%, ${brandTheme.surface} 100%);
+    color: ${brandTheme.primary};
+    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
+    border-radius: ${brandTheme.radius.sm};
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all ${brandTheme.transitions.normal};
+    border: 1px solid ${brandTheme.primary}30;
+    flex-shrink: 0;
 
-   &:hover {
-       background: ${brandTheme.primary};
-       color: white;
-       transform: translateY(-1px);
-       box-shadow: ${brandTheme.shadow.sm};
-   }
+    &:hover {
+        background: ${brandTheme.primary};
+        color: white;
+        transform: translateY(-1px);
+        box-shadow: ${brandTheme.shadow.sm};
+    }
 `;
 
 const ImageMeta = styled.div`
-   display: flex;
-   justify-content: space-between;
-   align-items: center;
-   margin-bottom: ${brandTheme.spacing.md};
-   gap: ${brandTheme.spacing.sm};
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: ${brandTheme.spacing.md};
+    gap: ${brandTheme.spacing.sm};
 `;
 
 const MetaItem = styled.span`
-   font-size: 12px;
-   color: ${brandTheme.text.muted};
-   font-weight: 500;
+    font-size: 12px;
+    color: ${brandTheme.text.muted};
+    font-weight: 500;
 `;
 
 const ImageTags = styled.div`
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.sm};
-   margin-bottom: ${brandTheme.spacing.sm};
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    margin-bottom: ${brandTheme.spacing.sm};
 `;
 
 const TagsIcon = styled.div`
-   color: ${brandTheme.text.muted};
-   font-size: 12px;
+    color: ${brandTheme.text.muted};
+    font-size: 12px;
 `;
 
 const TagsList = styled.div`
-   display: flex;
-   flex-wrap: wrap;
-   gap: ${brandTheme.spacing.xs};
+    display: flex;
+    flex-wrap: wrap;
+    gap: ${brandTheme.spacing.xs};
 `;
 
 const Tag = styled.span`
-   background: ${brandTheme.surfaceAlt};
-   color: ${brandTheme.text.secondary};
-   padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
-   border-radius: ${brandTheme.radius.sm};
-   font-size: 11px;
-   font-weight: 500;
-   border: 1px solid ${brandTheme.borderLight};
+    background: ${brandTheme.surfaceAlt};
+    color: ${brandTheme.text.secondary};
+    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
+    border-radius: ${brandTheme.radius.sm};
+    font-size: 11px;
+    font-weight: 500;
+    border: 1px solid ${brandTheme.borderLight};
 `;
 
 const ImageDescription = styled.div`
-   font-size: 13px;
-   color: ${brandTheme.text.tertiary};
-   line-height: 1.4;
-   white-space: nowrap;
-   overflow: hidden;
-   text-overflow: ellipsis;
+    font-size: 13px;
+    color: ${brandTheme.text.tertiary};
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 `;
 
 const EmptyState = styled.div`
-   display: flex;
-   flex-direction: column;
-   align-items: center;
-   justify-content: center;
-   padding: ${brandTheme.spacing.xxl};
-   text-align: center;
-   background: ${brandTheme.surfaceAlt};
-   border-radius: ${brandTheme.radius.xl};
-   border: 2px dashed ${brandTheme.borderLight};
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: ${brandTheme.spacing.xxl};
+    text-align: center;
+    background: ${brandTheme.surfaceAlt};
+    border-radius: ${brandTheme.radius.xl};
+    border: 2px dashed ${brandTheme.borderLight};
 `;
 
 const EmptyStateIcon = styled.div`
-   font-size: 64px;
-   color: ${brandTheme.text.disabled};
-   margin-bottom: ${brandTheme.spacing.lg};
+    font-size: 64px;
+    color: ${brandTheme.text.disabled};
+    margin-bottom: ${brandTheme.spacing.lg};
 `;
 
 const EmptyStateTitle = styled.h3`
-   color: ${brandTheme.text.secondary};
-   margin-bottom: ${brandTheme.spacing.sm};
-   font-size: 20px;
-   font-weight: 600;
+    color: ${brandTheme.text.secondary};
+    margin-bottom: ${brandTheme.spacing.sm};
+    font-size: 20px;
+    font-weight: 600;
 `;
 
 const EmptyStateMessage = styled.p`
-   color: ${brandTheme.text.muted};
-   max-width: 500px;
-   line-height: 1.6;
-   font-size: 16px;
-   margin: 0;
+    color: ${brandTheme.text.muted};
+    max-width: 500px;
+    line-height: 1.6;
+    font-size: 16px;
+    margin: 0;
 `;
 
 // Modal Preview Styles
 const ImagePreviewContainer = styled.div`
-   display: flex;
-   gap: ${brandTheme.spacing.xl};
-   max-height: 80vh;
-   
-   @media (max-width: 768px) {
-       flex-direction: column;
-       gap: ${brandTheme.spacing.lg};
-   }
+    display: flex;
+    gap: ${brandTheme.spacing.xl};
+    max-height: 80vh;
+
+    @media (max-width: 768px) {
+        flex-direction: column;
+        gap: ${brandTheme.spacing.lg};
+    }
 `;
 
 const PreviewImage = styled.img`
-   flex: 1;
-   max-width: 65%;
-   max-height: 100%;
-   object-fit: contain;
-   border-radius: ${brandTheme.radius.lg};
-   box-shadow: ${brandTheme.shadow.lg};
-   
-   @media (max-width: 768px) {
-       max-width: 100%;
-       max-height: 400px;
-   }
+    flex: 1;
+    max-width: 65%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: ${brandTheme.radius.lg};
+    box-shadow: ${brandTheme.shadow.lg};
+
+    @media (max-width: 768px) {
+        max-width: 100%;
+        max-height: 400px;
+    }
 `;
 
 const PreviewInfo = styled.div`
-   flex: 0 0 320px;
-   
-   @media (max-width: 768px) {
-       flex: none;
-   }
+    flex: 0 0 320px;
+
+    @media (max-width: 768px) {
+        flex: none;
+    }
 `;
 
 const InfoSection = styled.div`
-   margin-bottom: ${brandTheme.spacing.lg};
-   padding-bottom: ${brandTheme.spacing.md};
-   border-bottom: 1px solid ${brandTheme.borderLight};
-   
-   &:last-child {
-       border-bottom: none;
-       margin-bottom: 0;
-   }
+    margin-bottom: ${brandTheme.spacing.lg};
+    padding-bottom: ${brandTheme.spacing.md};
+    border-bottom: 1px solid ${brandTheme.borderLight};
+
+    &:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+    }
 `;
 
 const InfoLabel = styled.div`
-   font-size: 12px;
-   font-weight: 600;
-   color: ${brandTheme.text.muted};
-   margin-bottom: ${brandTheme.spacing.xs};
-   text-transform: uppercase;
-   letter-spacing: 0.5px;
+    font-size: 12px;
+    font-weight: 600;
+    color: ${brandTheme.text.muted};
+    margin-bottom: ${brandTheme.spacing.xs};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 `;
 
 const InfoValue = styled.div`
-   color: ${brandTheme.text.primary};
-   font-size: 15px;
-   font-weight: 500;
-   line-height: 1.5;
+    color: ${brandTheme.text.primary};
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1.5;
 `;
 
 const ProtocolLink = styled.span`
-   color: ${brandTheme.primary};
-   cursor: pointer;
-   text-decoration: underline;
-   font-weight: 600;
-   
-   &:hover {
-       color: ${brandTheme.primaryDark};
-   }
+    color: ${brandTheme.primary};
+    cursor: pointer;
+    text-decoration: underline;
+    font-weight: 600;
+
+    &:hover {
+        color: ${brandTheme.primaryDark};
+    }
 `;
 
 const TagsContainer = styled.div`
-   display: flex;
-   flex-wrap: wrap;
-   gap: ${brandTheme.spacing.sm};
+    display: flex;
+    flex-wrap: wrap;
+    gap: ${brandTheme.spacing.sm};
 `;
 
 const PreviewTag = styled.span`
-   background: ${brandTheme.surfaceAlt};
-   color: ${brandTheme.text.secondary};
-   padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
-   border-radius: ${brandTheme.radius.sm};
-   font-size: 12px;
-   font-weight: 500;
-   border: 1px solid ${brandTheme.borderLight};
+    background: ${brandTheme.surfaceAlt};
+    color: ${brandTheme.text.secondary};
+    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
+    border-radius: ${brandTheme.radius.sm};
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid ${brandTheme.borderLight};
 `;
 
 const DownloadButton = styled.button`
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   gap: ${brandTheme.spacing.sm};
-   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-   background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-   color: white;
-   border: none;
-   border-radius: ${brandTheme.radius.lg};
-   cursor: pointer;
-   font-size: 14px;
-   font-weight: 600;
-   width: 100%;
-   margin-top: ${brandTheme.spacing.xl};
-   transition: all ${brandTheme.transitions.spring};
-   box-shadow: ${brandTheme.shadow.sm};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+    color: white;
+    border: none;
+    border-radius: ${brandTheme.radius.lg};
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    width: 100%;
+    margin-top: ${brandTheme.spacing.xl};
+    transition: all ${brandTheme.transitions.spring};
+    box-shadow: ${brandTheme.shadow.sm};
 
-   &:hover {
-       background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
-       transform: translateY(-2px);
-       box-shadow: ${brandTheme.shadow.md};
-   }
+    &:hover {
+        background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
+        transform: translateY(-2px);
+        box-shadow: ${brandTheme.shadow.md};
+    }
 
-   &:active {
-       transform: translateY(0);
-   }
+    &:active {
+        transform: translateY(0);
+    }
 `;
 
 export default GalleryPage;

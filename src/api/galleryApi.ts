@@ -13,7 +13,7 @@ export interface GalleryImage {
     description?: string;
     location?: string;
     tags: string[];
-    createdAt: string;
+    createdAt: string[];
     thumbnailUrl: string;
     downloadUrl: string;
 }
