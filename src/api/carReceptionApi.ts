@@ -16,6 +16,12 @@ export interface ProtocolDocument {
     downloadUrl: string;
 }
 
+export interface ImageUploadResponse {
+    mediaId: string;
+    protocolId: string;
+    message: string;
+}
+
 
 /**
  * Funkcja do mapowania obrazów z serwera na format aplikacji
@@ -446,20 +452,22 @@ export const carReceptionApi = {
             formData.append('image', JSON.stringify(apiClient.convertCamelToSnake(imageData)));
 
             // Wysyłamy żądanie POST z FormData
-            const response = await apiClient.post<{ id: string }>(
-                `/receptions/${protocolId}/image`,
+            const response = await apiClient.post<{mediaid: string, protocolid: string, message: string}>(
+                `/v1/protocols/${protocolId}/media`,
                 formData
             );
 
             // Tworzymy zaktualizowany obiekt obrazu z odpowiedzią z serwera
             const updatedImage: VehicleImage = {
                 ...image,
-                id: response.id,
+                id: response.protocolid,
                 protocolId: protocolId,
                 name: imageData.name,
                 tags: imageData.tags,
                 createdAt: new Date().toISOString()
             };
+
+            console.log(updatedImage);
 
             return updatedImage;
         } catch (error) {
