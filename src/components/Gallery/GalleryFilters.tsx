@@ -6,10 +6,11 @@ import { GalleryFilters } from '../../api/galleryApi';
 
 // Brand Theme (same as above)
 const brandTheme = {
-    primary: '#1a365d',
-    primaryLight: '#2c5aa0',
-    primaryDark: '#0f2027',
-    primaryGhost: 'rgba(26, 54, 93, 0.04)',
+    primary: 'var(--brand-primary, #2563eb)',
+    primaryDark: 'var(--brand-primary-dark, #1d4ed8)',
+    primaryLight: 'var(--brand-primary-light, #3b82f6)',
+    primaryGhost: 'var(--brand-primary-ghost, rgba(26, 54, 93, 0.04))',
+    
     surface: '#ffffff',
     surfaceAlt: '#fafbfc',
     surfaceElevated: '#f8fafc',
@@ -261,12 +262,12 @@ const HeaderLeft = styled.div`
 const FilterIcon = styled.div`
     width: 48px;
     height: 48px;
-    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+    background: ${brandTheme.surfaceAlt};
+    color: ${brandTheme.text.secondary};
     border-radius: ${brandTheme.radius.lg};
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
     font-size: 20px;
     box-shadow: ${brandTheme.shadow.sm};
     flex-shrink: 0;

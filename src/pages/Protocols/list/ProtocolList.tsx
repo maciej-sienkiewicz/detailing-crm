@@ -11,15 +11,23 @@ import styled from 'styled-components';
 
 // Brand Theme System
 const brandTheme = {
-    primary: 'var(--brand-primary, #2563eb)',
-    primaryLight: 'var(--brand-primary-light, #3b82f6)',
-    primaryDark: 'var(--brand-primary-dark, #1d4ed8)',
-    primaryGhost: 'var(--brand-primary-ghost, rgba(37, 99, 235, 0.08))',
+    primary: 'var(--brand-primary, #1a365d)',
+    primaryLight: 'var(--brand-primary-light, #2c5aa0)',
+    primaryDark: 'var(--brand-primary-dark, #0f2027)',
+    primaryGhost: 'var(--brand-primary-ghost, rgba(26, 54, 93, 0.04))',
     accent: '#f8fafc',
     neutral: '#64748b',
     surface: '#ffffff',
     surfaceAlt: '#f1f5f9',
-    border: '#e2e8f0'
+    border: '#e2e8f0',
+
+    shadow: {
+        xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+        sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+        md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+    },
 };
 
 // Definicja kolumny tabeli
@@ -281,14 +289,14 @@ export const ProtocolList: React.FC<ProtocolListProps> = ({
                                                         <ActionButton
                                                             onClick={(e) => handleQuickAction('edit', protocol, e)}
                                                             title="Edytuj"
-                                                            $variant="edit"
+                                                            $variant="view"
                                                         >
                                                             <FaEdit />
                                                         </ActionButton>
                                                         <ActionButton
                                                             onClick={(e) => handleQuickAction('delete', protocol, e)}
                                                             title="Usuń"
-                                                            $variant="delete"
+                                                            $variant="view"
                                                         >
                                                             <FaTrash />
                                                         </ActionButton>
@@ -662,6 +670,8 @@ const ActionButton = styled.button<{
                         background: ${brandTheme.primary};
                         color: white;
                         transform: translateY(-1px);
+                        transform: translateY(-1px);
+                        box-shadow: ${brandTheme.shadow.md};
                     }
                 `;
         case 'edit':

@@ -225,21 +225,21 @@ const VehicleListTable: React.FC<VehicleListTableProps> = ({
                                             </ActionButton>
                                             <ActionButton
                                                 title="Edytuj pojazd"
-                                                $variant="edit"
+                                                $variant="view"
                                                 onClick={() => onEditVehicle(vehicle)}
                                             >
                                                 <FaEdit />
                                             </ActionButton>
                                             <ActionButton
                                                 title="Historia serwisowa"
-                                                $variant="info"
+                                                $variant="view"
                                                 onClick={() => onShowHistory(vehicle)}
                                             >
                                                 <FaHistory />
                                             </ActionButton>
                                             <ActionButton
                                                 title="Usuń pojazd"
-                                                $variant="delete"
+                                                $variant="view"
                                                 onClick={() => onDeleteVehicle(vehicle.id)}
                                             >
                                                 <FaTrash />

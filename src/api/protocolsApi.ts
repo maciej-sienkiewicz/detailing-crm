@@ -39,11 +39,24 @@ export const protocolsApi = {
         try {
             const { page = 0, size = 10, ...otherFilters } = filters;
 
-            return await apiClient.getWithPagination<ProtocolListItem>(
+            // Używamy poprawnego endpointu - /receptions/list zamiast /v1/protocols
+            const response = await apiClient.getWithPagination<ProtocolListItem>(
                 '/receptions/list',
                 otherFilters,
                 { page, size }
             );
+
+            // Server zwraca strukturę z snake_case, ale apiClient.getWithPagination
+            // już konwertuje do camelCase, więc sprawdzamy czy konwersja przebiegła poprawnie
+            return {
+                data: response.data || [],
+                pagination: {
+                    currentPage: response.pagination?.currentPage ?? page,
+                    pageSize: response.pagination?.pageSize ?? size,
+                    totalItems: response.pagination?.totalItems ?? 0,
+                    totalPages: response.pagination?.totalPages ?? 0
+                }
+            };
         } catch (error) {
             console.error('Error fetching protocols list:', error);
             // W przypadku błędu zwracamy pustą listę z minimalnymi informacjami o paginacji

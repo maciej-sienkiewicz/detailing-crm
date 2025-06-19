@@ -123,6 +123,7 @@ const ProtocolClientInfo: React.FC<ProtocolClientInfoProps> = ({ protocol }) => 
 
                     const clientVehicles = await vehicleApi.fetchVehiclesByOwnerId(matchedClient.id);
                     setVehicles(clientVehicles);
+                    console.log("Znaleziono pojazdy klienta:", clientVehicles);
                 } else {
                     console.error('Client not found for ID:', clientId);
                     setError('Nie znaleziono klienta w bazie danych.');

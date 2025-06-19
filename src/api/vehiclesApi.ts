@@ -230,7 +230,7 @@ export const vehicleApi = {
 
     fetchVehicleStatistics: async (vehicleId: string): Promise<VehicleStatistics> => {
         try {
-            return await apiClient.get<VehicleStatistics>(`/vehicles/${vehicleId}/statistics`);
+            return await apiClient.getNot<VehicleStatistics>(`/vehicles/${vehicleId}/statistics`);
         } catch (error) {
             console.error('Error fetching vehicle statistics:', error);
             throw error;
@@ -265,18 +265,23 @@ export const vehicleApi = {
     // Pobieranie pojazdów dla właściciela - używa nowego API z filtrem
     fetchVehiclesByOwnerId: async (ownerId: string): Promise<VehicleExpanded[]> => {
         try {
-            // Najpierw pobierz dane właściciela, żeby otrzymać jego imię i nazwisko
-            // Następnie użyj filtra ownerName w nowym API
-            // To wymaga dodatkowego zapytania lub rozszerzenia API o filtr po owner ID
-
-            // Tymczasowo używamy filtrowania lokalnego
             const response = await vehicleApi.fetchVehiclesForTable({ page: 0, size: 1000 });
-            return response.data.filter(vehicle =>
-                vehicle.ownerIds.includes(ownerId)
-            );
+
+            return response.data.filter(vehicle => {
+                // Sprawdź czy owners istnieje i nie jest pusty
+                if (!vehicle.owners || vehicle.owners.length === 0) {
+                    return false;
+                }
+
+                // Porównaj zarówno string z string jak i string z number
+                return vehicle.owners.some(owner =>
+                    owner.id.toString() === ownerId ||
+                    owner.id === parseInt(ownerId, 10)
+                );
+            });
         } catch (error) {
-            console.error(`Error fetching vehicles for owner ${ownerId}:`, error);
-            return [];
+            console.error('Error fetching vehicles by owner ID:', error);
+            throw error;
         }
     },
 

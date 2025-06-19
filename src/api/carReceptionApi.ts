@@ -1,6 +1,22 @@
 import { CarReceptionProtocol, ClientProtocolHistory, ProtocolListItem, VehicleImage } from '../types';
 import { apiClient } from './apiClient';
 
+
+export interface ProtocolDocument {
+    storageId: string;
+    protocolId: string;
+    originalName: string;
+    fileSize: number;
+    contentType: string;
+    documentType: string;
+    documentTypeDisplay: string;
+    description?: string;
+    createdAt: string;
+    uploadedBy: string;
+    downloadUrl: string;
+}
+
+
 /**
  * Funkcja do mapowania obrazów z serwera na format aplikacji
  * @param serverImages - Tablica obrazów z serwera
@@ -91,7 +107,7 @@ export const carReceptionApi = {
                 response = await apiClient.post<any>('/receptions/with-files', formDataWithFiles);
             } else {
                 // Jeśli nie mamy zdjęć z plikami, używamy standardowego JSON
-                response = await apiClient.post<any>('/receptions', protocolData);
+                response = await apiClient.post<any>('/v1/protocols', protocolData);
             }
 
             // Połącz dane protokołu z odpowiedzią serwera
@@ -198,6 +214,74 @@ export const carReceptionApi = {
             console.error('Error updating protocol:', error);
             throw error;
         }
+    },
+
+    /**
+     * Pobiera listę dokumentów protokołu
+     * @param protocolId - ID protokołu
+     * @returns Lista dokumentów protokołu
+     */
+    getProtocolDocuments: async (protocolId: string): Promise<ProtocolDocument[]> => {
+        try {
+            return await apiClient.get<ProtocolDocument[]>(`/receptions/${protocolId}/documents`);
+        } catch (error) {
+            console.error('Error fetching protocol documents:', error);
+            return [];
+        }
+    },
+
+    /**
+     * Przesyła dokument do protokołu
+     * @param protocolId - ID protokołu
+     * @param file - Plik do przesłania
+     * @param documentType - Typ dokumentu
+     * @param description - Opcjonalny opis dokumentu
+     * @returns Odpowiedź z serwera
+     */
+    uploadProtocolDocument: async (
+        protocolId: string,
+        file: File,
+        documentType: string,
+        description?: string
+    ): Promise<any> => {
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('documentType', documentType);
+            if (description) {
+                formData.append('description', description);
+            }
+
+            return await apiClient.post(`/receptions/${protocolId}/document`, formData);
+        } catch (error) {
+            console.error('Error uploading protocol document:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Usuwa dokument protokołu
+     * @param protocolId - ID protokołu
+     * @param documentId - ID dokumentu do usunięcia
+     * @returns true jeśli usunięto pomyślnie, false w przypadku błędu
+     */
+    deleteProtocolDocument: async (protocolId: string, documentId: string): Promise<boolean> => {
+        try {
+            await apiClient.delete(`/receptions/${protocolId}/document/${documentId}`);
+            return true;
+        } catch (error) {
+            console.error(`Error deleting document ${documentId} from protocol ${protocolId}:`, error);
+            return false;
+        }
+    },
+
+    /**
+     * Generuje URL do pobrania dokumentu
+     * @param documentId - ID dokumentu
+     * @returns URL do pobrania dokumentu
+     */
+    getProtocolDocumentDownloadUrl: (documentId: string): string => {
+        return `${apiClient.getBaseUrl()}/receptions/document/${documentId}`;
     },
 
     /**

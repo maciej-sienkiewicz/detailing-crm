@@ -3,10 +3,11 @@ import { FilterType } from '../../list/ProtocolFilters';
 import { ProtocolListItem, ProtocolStatus } from '../../../../types';
 import { protocolsApi } from '../../../../api/protocolsApi';
 import { SearchCriteria } from '../../list/ProtocolSearchFilters';
+import visitsApiNew, {VisitListItem} from "../../../../api/visitsApiNew";
 
 interface UseProtocolListReturn {
-    protocols: ProtocolListItem[];
-    filteredProtocols: ProtocolListItem[];
+    protocols: VisitListItem[];
+    filteredProtocols: VisitListItem[];
     loading: boolean;
     error: string | null;
     activeFilter: FilterType;
@@ -40,8 +41,8 @@ const mapFilterToStatus = (filter: FilterType): ProtocolStatus | undefined => {
 };
 
 export const useProtocolList = (): UseProtocolListReturn => {
-    const [protocols, setProtocols] = useState<ProtocolListItem[]>([]);
-    const [filteredProtocols, setFilteredProtocols] = useState<ProtocolListItem[]>([]);
+    const [protocols, setProtocols] = useState<VisitListItem[]>([]);
+    const [filteredProtocols, setFilteredProtocols] = useState<VisitListItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [activeFilter, setActiveFilter] = useState<FilterType>('W realizacji');
@@ -87,28 +88,47 @@ export const useProtocolList = (): UseProtocolListReturn => {
             console.log('Pobieranie protokołów z parametrami:', queryParams);
 
             // Wywołanie API z paginacją
-            const response = await protocolsApi.getProtocolsList(queryParams);
+            const result = await visitsApiNew.getVisitsList(queryParams);
 
             console.log('Odpowiedź z API po przetworzeniu:', {
-                dataLength: response.data.length,
-                pagination: response.pagination
+                success: result.success,
+                dataLength: result.data?.data.length || 0,
+                pagination: result.data?.pagination,
+                error: result.error
             });
 
-            setProtocols(response.data);
-            setFilteredProtocols(response.data);
+            if (result.success && result.data) {
+                setProtocols(result.data.data);
+                setFilteredProtocols(result.data.data);
 
-            // Aktualizacja informacji o paginacji z odpowiedzi API
-            setPagination({
-                currentPage: response.pagination.currentPage,
-                pageSize: response.pagination.pageSize,
-                totalItems: response.pagination.totalItems,
-                totalPages: response.pagination.totalPages
-            });
+                // Aktualizacja informacji o paginacji z odpowiedzi API
+                setPagination({
+                    currentPage: result.data.pagination.currentPage,
+                    pageSize: result.data.pagination.pageSize,
+                    totalItems: result.data.pagination.totalItems,
+                    totalPages: result.data.pagination.totalPages
+                });
+            } else {
+                // Obsługa błędu
+                console.error('Błąd pobierania wizyt:', result.error);
 
-            setError(null);
+                // Możesz ustawić pustą listę i pokazać błąd użytkownikowi
+                setProtocols([]);
+                setFilteredProtocols([]);
+
+                setError(result.error || 'Nieznany błąd');
+
+
+                // Ustaw domyślną paginację
+                setPagination({
+                    currentPage: 0,
+                    pageSize: 10,
+                    totalItems: 0,
+                    totalPages: 0
+                });
+            }
         } catch (err) {
             console.error('Error fetching protocols:', err);
-            setError('Wystąpił błąd podczas pobierania danych. Spróbuj ponownie później.');
             setProtocols([]);
             setFilteredProtocols([]);
         } finally {

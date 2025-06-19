@@ -13,10 +13,10 @@ import {apiClient} from "../../api/apiClient";
 // Brand Theme - zgodny z systemem designu
 const brandTheme = {
     // Primary Colors
-    primary: '#1a365d',
-    primaryLight: '#2c5aa0',
-    primaryDark: '#0f2027',
-    primaryGhost: 'rgba(26, 54, 93, 0.04)',
+    primary: 'var(--brand-primary, #1a365d)',
+    primaryLight: 'var(--brand-primary-light, #2c5aa0)',
+    primaryDark: 'var(--brand-primary-dark, #0f2027)',
+    primaryGhost: 'var(--brand-primary-ghost, rgba(26, 54, 93, 0.04))',
 
     textPrimary: '#0f172a',
     textSecondary: '#334155',
@@ -423,7 +423,7 @@ const GalleryPage: React.FC = () => {
                 <StatsSection>
                     <StatsGrid>
                         <StatCard>
-                            <StatIcon $color={brandTheme.primary}><FaImages /></StatIcon>
+                            <StatIcon $color={brandTheme.textPrimary}><FaImages /></StatIcon>
                             <StatContent>
                                 <StatValue>{stats.totalImages}</StatValue>
                                 <StatLabel>Zdjęć w galerii</StatLabel>
@@ -431,7 +431,7 @@ const GalleryPage: React.FC = () => {
                         </StatCard>
 
                         <StatCard>
-                            <StatIcon $color={brandTheme.status.info}><FaDatabase /></StatIcon>
+                            <StatIcon $color={brandTheme.textPrimary}><FaDatabase /></StatIcon>
                             <StatContent>
                                 <StatValue>{formatFileSize(stats.totalSize)}</StatValue>
                                 <StatLabel>Rozmiar danych</StatLabel>
@@ -439,7 +439,7 @@ const GalleryPage: React.FC = () => {
                         </StatCard>
 
                         <StatCard>
-                            <StatIcon $color={brandTheme.status.success}><FaTags /></StatIcon>
+                            <StatIcon $color={brandTheme.textPrimary}><FaTags /></StatIcon>
                             <StatContent>
                                 <StatValue>{availableTags.length}</StatValue>
                                 <StatLabel>Dostępnych tagów</StatLabel>
@@ -447,7 +447,7 @@ const GalleryPage: React.FC = () => {
                         </StatCard>
 
                         <StatCard>
-                            <StatIcon $color={brandTheme.status.warning}><FaCubes /></StatIcon>
+                            <StatIcon $color={brandTheme.textPrimary}><FaCubes /></StatIcon>
                             <StatContent>
                                 <StatValue>{totalItems}</StatValue>
                                 <StatLabel>Wyników wyszukiwania</StatLabel>

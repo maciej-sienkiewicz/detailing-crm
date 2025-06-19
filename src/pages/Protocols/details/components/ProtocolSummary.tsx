@@ -104,7 +104,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
     const [isLoading, setIsLoading] = useState(false);
 
     const handleOpenAddServiceModal = async () => {
-        setIsLoading(true);
+        setIsLoading(true)
         try {
             const services = await servicesApi.fetchServices();
             setAvailableServices(services);

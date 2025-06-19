@@ -88,12 +88,38 @@ export interface CarReceptionProtocol {
     appointmentId?: string;
     referralSource?: 'regular_customer' | 'recommendation' | 'search_engine' | 'social_media' | 'local_ad' | 'other';
     otherSourceDetails?: string;
+    protocolDocuments?: ProtocolDocument[]; // Dodaj to pole
 
     // Dodatkowe pola
     comments?: any[];
     purchaseInvoices?: any[];
     vehicleIssues?: any[];
     vehicleImages?: VehicleImage[]; // Zdjęcia pojazdu
+}
+
+export interface ProtocolDocument {
+    storageId: string;
+    protocolId: string;
+    originalName: string;
+    fileSize: number;
+    contentType: string;
+    documentType: string;
+    documentTypeDisplay: string;
+    description?: string;
+    createdAt: string;
+    uploadedBy: string;
+    downloadUrl: string;
+}
+
+// Enum dla typów dokumentów
+export enum ProtocolDocumentType {
+    MARKETING_CONSENT = 'MARKETING_CONSENT',
+    SERVICE_CONSENT = 'SERVICE_CONSENT',
+    TERMS_ACCEPTANCE = 'TERMS_ACCEPTANCE',
+    PRIVACY_POLICY = 'PRIVACY_POLICY',
+    ACCEPTANCE_PROTOCOL = "Protokół odbioru",
+    DAMAGE_WAIVER = 'DAMAGE_WAIVER',
+    OTHER = 'OTHER'
 }
 
 // Podstawowe informacje o pojeździe (dla widoku listy)

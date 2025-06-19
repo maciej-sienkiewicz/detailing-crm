@@ -123,7 +123,7 @@ export const clientApi = {
 
     fetchClientStatsById: async (id: number | string): Promise<ClientStatistics | null> => {
         try {
-            const data = await apiClient.get<any>(`/clients/${id}/statistics`);
+            const data = await apiClient.getNot<any>(`/clients/${id}/statistics`);
             return {
                 ...data,
                 // Dodajemy brakujące pola wymagane przez interfejs ClientExpanded, jeśli nie istnieją
