@@ -1,4 +1,3 @@
-// src/pages/Settings/EmployeesPage.tsx
 import React, { useState, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import styled from 'styled-components';
 import {
@@ -13,9 +12,30 @@ import {
     FaChevronDown,
     FaChevronUp,
     FaFilter,
-    FaTimes
+    FaTimes,
+    FaEye,
+    FaShieldAlt,
+    FaMoneyBillWave,
+    FaFileDownload,
+    FaSort,
+    FaSortUp,
+    FaSortDown,
+    FaEyeSlash,
+    FaClock,
+    FaUserTie,
+    FaCircle,
+    FaCheckCircle,
+    FaTimesCircle
 } from 'react-icons/fa';
 import { Employee, EmployeeDocument } from '../../types';
+import {
+    ExtendedEmployee,
+    UserRole,
+    UserRoleLabels,
+    ContractType,
+    EmployeeHelpers
+} from '../../types/employeeTypes';
+import { useAuth } from '../../context/AuthContext';
 import {
     fetchEmployees,
     addEmployee,
@@ -31,12 +51,69 @@ import {
 import { EmployeeFormModal } from './components/EmployeeFormModal';
 import { DocumentFormModal } from './components/DocumentFormModal';
 import { DocumentsDrawer } from './components/DocumentsDrawer';
-import { settingsTheme } from './styles/theme';
+import { SalaryModal } from './components/SalaryModal';
+import { PermissionsModal } from './components/PermissionsModal';
+import { DocumentTemplatesModal } from './components/DocumentTemplatesModal';
+import { EmployeeDetailsModal } from './components/EmployeeDetailsModal';
+
+// Professional Brand Theme - zgodny z resztą aplikacji
+const brandTheme = {
+    primary: 'var(--brand-primary, #1a365d)',
+    primaryLight: 'var(--brand-primary-light, #2c5aa0)',
+    primaryDark: 'var(--brand-primary-dark, #0f2027)',
+    primaryGhost: 'var(--brand-primary-ghost, rgba(26, 54, 93, 0.04))',
+    surface: '#ffffff',
+    surfaceAlt: '#fafbfc',
+    surfaceElevated: '#f8fafc',
+    surfaceHover: '#f1f5f9',
+    text: {
+        primary: '#0f172a',
+        secondary: '#475569',
+        tertiary: '#64748b',
+        muted: '#94a3b8',
+        disabled: '#cbd5e1'
+    },
+    border: '#e2e8f0',
+    borderLight: '#f1f5f9',
+    borderHover: '#cbd5e1',
+    status: {
+        success: '#059669',
+        successLight: '#d1fae5',
+        warning: '#d97706',
+        warningLight: '#fef3c7',
+        error: '#dc2626',
+        errorLight: '#fee2e2',
+        info: '#0ea5e9',
+        infoLight: '#e0f2fe'
+    },
+    spacing: {
+        xs: '4px',
+        sm: '8px',
+        md: '16px',
+        lg: '24px',
+        xl: '32px',
+        xxl: '48px'
+    },
+    radius: {
+        sm: '6px',
+        md: '8px',
+        lg: '12px',
+        xl: '16px'
+    },
+    shadow: {
+        xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+        sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+        md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+    }
+};
+
+// Typy uprawnień użytkowników - export do użytku w innych komponentach
+export { UserRole, UserRoleLabels, type ExtendedEmployee } from '../../types/employeeTypes';
 
 // Funkcja pomocnicza do formatowania daty
 export const formatDate = (dateString: string): string => {
     if (!dateString) return '';
-
     const date = new Date(dateString);
     return date.toLocaleDateString('pl-PL', {
         year: 'numeric',
@@ -45,26 +122,55 @@ export const formatDate = (dateString: string): string => {
     });
 };
 
+// Funkcja pomocnicza do obliczania stażu pracy
+const calculateWorkExperience = (hireDate: string): string => {
+    return EmployeeHelpers.formatTenure(hireDate);
+};
+
+type SortField = 'fullName' | 'position' | 'email' | 'hireDate' | 'role' | 'hourlyRate' | 'isActive';
+type SortDirection = 'asc' | 'desc' | null;
+
 const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref) => {
-    const [employees, setEmployees] = useState<Employee[]>([]);
-    const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
+    const { user } = useAuth();
+    const [employees, setEmployees] = useState<ExtendedEmployee[]>([]);
+    const [filteredEmployees, setFilteredEmployees] = useState<ExtendedEmployee[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    // Sorting state
+    const [sortField, setSortField] = useState<SortField>('fullName');
+    const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+
+    // Modals state
     const [showModal, setShowModal] = useState(false);
-    const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+    const [showDetailsModal, setShowDetailsModal] = useState(false);
+    const [showDocumentsDrawer, setShowDocumentsDrawer] = useState(false);
+    const [showSalaryModal, setShowSalaryModal] = useState(false);
+    const [showPermissionsModal, setShowPermissionsModal] = useState(false);
+    const [showDocumentModal, setShowDocumentModal] = useState(false);
+    const [showTemplatesModal, setShowTemplatesModal] = useState(false);
+
+    const [editingEmployee, setEditingEmployee] = useState<ExtendedEmployee | null>(null);
+    const [selectedEmployee, setSelectedEmployee] = useState<ExtendedEmployee | null>(null);
 
     // Search and filters
     const [searchQuery, setSearchQuery] = useState('');
     const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
     const [positionFilter, setPositionFilter] = useState('');
+    const [roleFilter, setRoleFilter] = useState('');
+    const [statusFilter, setStatusFilter] = useState('');
 
-    // Stan dla panelu dokumentów
-    const [showDocumentsDrawer, setShowDocumentsDrawer] = useState(false);
-    const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+    // Documents state
     const [employeeDocuments, setEmployeeDocuments] = useState<EmployeeDocument[]>([]);
     const [loadingDocuments, setLoadingDocuments] = useState(false);
     const [documentError, setDocumentError] = useState<string | null>(null);
-    const [showDocumentModal, setShowDocumentModal] = useState(false);
+
+    // Security check - MOCK: Always admin for demo
+    const isAdmin = true;
+    const canViewAllEmployees = true;
+    const canEditEmployees = true;
+    const canManageSalaries = true;
+    const canManagePermissions = true;
 
     // Expose handleAddEmployee method to parent component
     useImperativeHandle(ref, () => ({
@@ -76,8 +182,14 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const data = await fetchEmployees();
-                setEmployees(data);
+                let data = await fetchEmployees();
+
+                if (!canViewAllEmployees && user) {
+                    data = data.filter(employee => employee.id === user.userId);
+                }
+
+                const extendedData = data as ExtendedEmployee[];
+                setEmployees(extendedData);
                 setError(null);
             } catch (err) {
                 setError('Nie udało się pobrać listy pracowników');
@@ -88,13 +200,59 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
         };
 
         fetchData();
-    }, []);
+    }, [canViewAllEmployees, user]);
 
-    // Filtrowanie pracowników
+    // Sorting function
+    const sortEmployees = (employees: ExtendedEmployee[]): ExtendedEmployee[] => {
+        if (!sortDirection || !sortField) return employees;
+
+        return [...employees].sort((a, b) => {
+            let aValue: any = a[sortField];
+            let bValue: any = b[sortField];
+
+            // Handle date sorting
+            if (sortField === 'hireDate') {
+                aValue = new Date(aValue).getTime();
+                bValue = new Date(bValue).getTime();
+            }
+
+            // Handle string sorting
+            if (typeof aValue === 'string' && typeof bValue === 'string') {
+                aValue = aValue.toLowerCase();
+                bValue = bValue.toLowerCase();
+            }
+
+            if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+            if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+            return 0;
+        });
+    };
+
+    // Handle sorting
+    const handleSort = (field: SortField) => {
+        if (sortField === field) {
+            setSortDirection(prev =>
+                prev === 'asc' ? 'desc' : prev === 'desc' ? null : 'asc'
+            );
+        } else {
+            setSortField(field);
+            setSortDirection('asc');
+        }
+    };
+
+    // Get sort icon
+    const getSortIcon = (field: SortField) => {
+        if (sortField !== field) return <FaSort />;
+        if (sortDirection === 'asc') return <FaSortUp />;
+        if (sortDirection === 'desc') return <FaSortDown />;
+        return <FaSort />;
+    };
+
+    // Filtrowanie i sortowanie pracowników
     useEffect(() => {
         let result = [...employees];
 
-        // Filtrowanie po wyszukiwanej frazie
+        // Apply search filter
         if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase().trim();
             result = result.filter(employee =>
@@ -105,7 +263,7 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
             );
         }
 
-        // Filtrowanie po stanowisku
+        // Apply filters
         if (positionFilter.trim()) {
             const posQuery = positionFilter.toLowerCase().trim();
             result = result.filter(employee =>
@@ -113,13 +271,30 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
             );
         }
 
-        setFilteredEmployees(result);
-    }, [employees, searchQuery, positionFilter]);
+        if (roleFilter) {
+            result = result.filter(employee => employee.role === roleFilter);
+        }
 
-    // Obsługa dodawania nowego pracownika
+        if (statusFilter) {
+            const isActive = statusFilter === 'active';
+            result = result.filter(employee => employee.isActive === isActive);
+        }
+
+        // Apply sorting
+        result = sortEmployees(result);
+
+        setFilteredEmployees(result);
+    }, [employees, searchQuery, positionFilter, roleFilter, statusFilter, sortField, sortDirection]);
+
+    // Handler functions
     const handleAddEmployee = () => {
+        if (!canEditEmployees) {
+            alert('Nie masz uprawnień do dodawania pracowników');
+            return;
+        }
+
         const today = new Date().toISOString().split('T')[0];
-        setEditingEmployee({
+        const newEmployee: ExtendedEmployee = {
             id: '',
             fullName: '',
             birthDate: '',
@@ -127,23 +302,43 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
             position: '',
             email: '',
             phone: '',
-            color: '#1a365d'
-        });
+            color: '#1a365d',
+            role: UserRole.EMPLOYEE,
+            hourlyRate: 25.00,
+            bonusFromRevenue: 0,
+            isActive: true,
+            workingHoursPerWeek: 40,
+            contractType: ContractType.EMPLOYMENT
+        };
+
+        setEditingEmployee(newEmployee);
         setShowModal(true);
     };
 
-    // Obsługa edycji istniejącego pracownika
-    const handleEditEmployee = (employee: Employee) => {
+    const handleViewEmployee = (employee: ExtendedEmployee) => {
+        setSelectedEmployee(employee);
+        setShowDetailsModal(true);
+    };
+
+    const handleEditEmployee = (employee: ExtendedEmployee) => {
+        if (!canEditEmployees && employee.id !== user?.userId) {
+            alert('Nie masz uprawnień do edycji tego pracownika');
+            return;
+        }
+
         setEditingEmployee({...employee});
         setShowModal(true);
     };
 
-    // Obsługa usuwania pracownika
     const handleDeleteEmployee = async (id: string) => {
+        if (!canEditEmployees) {
+            alert('Nie masz uprawnień do usuwania pracowników');
+            return;
+        }
+
         if (window.confirm('Czy na pewno chcesz usunąć tego pracownika?')) {
             try {
                 const result = await deleteEmployee(id);
-
                 if (result) {
                     setEmployees(employees.filter(employee => employee.id !== id));
                 }
@@ -153,17 +348,19 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
         }
     };
 
-    // Obsługa zapisu pracownika
-    const handleSaveEmployee = async (employee: Employee) => {
+    const handleSaveEmployee = async (employee: ExtendedEmployee) => {
         try {
-            let savedEmployee: Employee;
+            let savedEmployee: ExtendedEmployee;
 
             if (employee.id) {
-                savedEmployee = await updateEmployee(employee);
+                const { role, hourlyRate, bonusFromRevenue, isActive, ...basicEmployee } = employee;
+                const updated = await updateEmployee(basicEmployee);
+                savedEmployee = { ...updated, role, hourlyRate, bonusFromRevenue, isActive } as ExtendedEmployee;
                 setEmployees(employees.map(emp => emp.id === savedEmployee.id ? savedEmployee : emp));
             } else {
-                const { id, ...employeeWithoutId } = employee;
-                savedEmployee = await addEmployee(employeeWithoutId);
+                const { id, role, hourlyRate, bonusFromRevenue, isActive, ...employeeWithoutId } = employee;
+                const created = await addEmployee(employeeWithoutId);
+                savedEmployee = { ...created, role, hourlyRate, bonusFromRevenue, isActive } as ExtendedEmployee;
                 setEmployees([...employees, savedEmployee]);
             }
 
@@ -174,78 +371,39 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
         }
     };
 
-    // Obsługa otwierania panelu dokumentów
-    const handleOpenDocuments = async (employee: Employee) => {
-        setSelectedEmployee(employee);
-        setShowDocumentsDrawer(true);
-
-        try {
-            setLoadingDocuments(true);
-            setDocumentError(null);
-            const documents = await fetchEmployeeDocuments(employee.id);
-            setEmployeeDocuments(documents);
-        } catch (err) {
-            setDocumentError('Nie udało się pobrać dokumentów pracownika');
-            console.error('Error fetching employee documents:', err);
-        } finally {
-            setLoadingDocuments(false);
-        }
-    };
-
-    // Obsługa zamykania panelu dokumentów
-    const handleCloseDocuments = () => {
-        setShowDocumentsDrawer(false);
-        setSelectedEmployee(null);
-        setEmployeeDocuments([]);
-    };
-
-    // Obsługa dodawania nowego dokumentu
-    const handleAddDocument = () => {
-        if (!selectedEmployee) return;
-        setShowDocumentModal(true);
-    };
-
-    // Obsługa usuwania dokumentu
-    const handleDeleteDocument = async (documentId: string) => {
-        if (window.confirm('Czy na pewno chcesz usunąć ten dokument?')) {
-            try {
-                const result = await deleteEmployeeDocument(documentId);
-
-                if (result) {
-                    setEmployeeDocuments(employeeDocuments.filter(doc => doc.id !== documentId));
-                }
-            } catch (err) {
-                setDocumentError('Nie udało się usunąć dokumentu');
-            }
-        }
-    };
-
-    // Obsługa zapisu nowego dokumentu
-    const handleSaveDocument = async (document: Omit<EmployeeDocument, 'id'>) => {
-        try {
-            const savedDocument = await addEmployeeDocument(document);
-            setEmployeeDocuments([...employeeDocuments, savedDocument]);
-            setShowDocumentModal(false);
-        } catch (err) {
-            setDocumentError('Nie udało się zapisać dokumentu');
-        }
-    };
-
     // Clear filters
     const clearAllFilters = () => {
         setSearchQuery('');
         setPositionFilter('');
+        setRoleFilter('');
+        setStatusFilter('');
     };
 
     const hasActiveFilters = () => {
-        return searchQuery.trim() !== '' || positionFilter.trim() !== '';
+        return searchQuery.trim() !== '' || positionFilter.trim() !== '' || roleFilter !== '' || statusFilter !== '';
     };
 
-    // Get unique positions for filter
+    // Get unique values for filters
     const uniquePositions = [...new Set(employees.map(emp => emp.position))];
+    const uniqueRoles = Object.values(UserRole);
+    const statusOptions = [
+        { value: 'active', label: 'Aktywni' },
+        { value: 'inactive', label: 'Nieaktywni' }
+    ];
 
     return (
         <ContentContainer>
+            {/* Header Actions */}
+            <HeaderActions>
+                <ActionButton
+                    onClick={() => setShowTemplatesModal(true)}
+                    $variant="secondary"
+                >
+                    <FaFileDownload />
+                    Szablony dokumentów
+                </ActionButton>
+            </HeaderActions>
+
             {/* Filters */}
             <FiltersContainer>
                 <QuickSearchSection>
@@ -255,7 +413,7 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                         </SearchIcon>
                         <SearchInput
                             type="text"
-                            placeholder="Szybkie wyszukiwanie - imię, nazwisko, email, telefon..."
+                            placeholder="Szybkie wyszukiwanie pracowników..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
@@ -291,6 +449,36 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                                     ))}
                                 </Select>
                             </FormGroup>
+
+                            {canViewAllEmployees && (
+                                <>
+                                    <FormGroup>
+                                        <Label>Rola</Label>
+                                        <Select
+                                            value={roleFilter}
+                                            onChange={(e) => setRoleFilter(e.target.value)}
+                                        >
+                                            <option value="">Wszystkie role</option>
+                                            {uniqueRoles.map(role => (
+                                                <option key={role} value={role}>{UserRoleLabels[role]}</option>
+                                            ))}
+                                        </Select>
+                                    </FormGroup>
+
+                                    <FormGroup>
+                                        <Label>Status</Label>
+                                        <Select
+                                            value={statusFilter}
+                                            onChange={(e) => setStatusFilter(e.target.value)}
+                                        >
+                                            <option value="">Wszystkie statusy</option>
+                                            {statusOptions.map(option => (
+                                                <option key={option.value} value={option.value}>{option.label}</option>
+                                            ))}
+                                        </Select>
+                                    </FormGroup>
+                                </>
+                            )}
                         </FiltersGrid>
 
                         <FiltersActions>
@@ -303,15 +491,15 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                 )}
 
                 <ResultsCounter>
-                    Znaleziono: <strong>{filteredEmployees.length}</strong> {filteredEmployees.length === 1 ? 'pracownik' : 'pracowników'}
+                    Znaleziono: <strong>{filteredEmployees.length}</strong> z {employees.length} pracowników
                 </ResultsCounter>
             </FiltersContainer>
 
-            {/* Content */}
+            {/* Main Table */}
             {loading ? (
                 <LoadingContainer>
                     <LoadingSpinner />
-                    <LoadingText>Ładowanie pracowników...</LoadingText>
+                    <LoadingText>Ładowanie zespołu...</LoadingText>
                 </LoadingContainer>
             ) : error ? (
                 <ErrorMessage>
@@ -319,103 +507,220 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                     <ErrorText>{error}</ErrorText>
                 </ErrorMessage>
             ) : (
-                <>
-                    {employees.length === 0 ? (
+                <TableContainer>
+                    <TableWrapper>
+                        <Table>
+                            <TableHead>
+                                <TableRow>
+                                    <SortableHeaderCell onClick={() => handleSort('fullName')}>
+                                        <HeaderContent>
+                                            Pracownik
+                                            <SortIcon>{getSortIcon('fullName')}</SortIcon>
+                                        </HeaderContent>
+                                    </SortableHeaderCell>
+
+                                    <SortableHeaderCell onClick={() => handleSort('position')}>
+                                        <HeaderContent>
+                                            Stanowisko
+                                            <SortIcon>{getSortIcon('position')}</SortIcon>
+                                        </HeaderContent>
+                                    </SortableHeaderCell>
+
+                                    <TableHeaderCell>Kontakt</TableHeaderCell>
+
+                                    <SortableHeaderCell onClick={() => handleSort('hireDate')}>
+                                        <HeaderContent>
+                                            Zatrudnienie
+                                            <SortIcon>{getSortIcon('hireDate')}</SortIcon>
+                                        </HeaderContent>
+                                    </SortableHeaderCell>
+
+                                    {canViewAllEmployees && (
+                                        <SortableHeaderCell onClick={() => handleSort('role')}>
+                                            <HeaderContent>
+                                                Rola
+                                                <SortIcon>{getSortIcon('role')}</SortIcon>
+                                            </HeaderContent>
+                                        </SortableHeaderCell>
+                                    )}
+
+                                    {canManageSalaries && (
+                                        <SortableHeaderCell onClick={() => handleSort('hourlyRate')}>
+                                            <HeaderContent>
+                                                Stawka
+                                                <SortIcon>{getSortIcon('hourlyRate')}</SortIcon>
+                                            </HeaderContent>
+                                        </SortableHeaderCell>
+                                    )}
+
+                                    <SortableHeaderCell onClick={() => handleSort('isActive')}>
+                                        <HeaderContent>
+                                            Status
+                                            <SortIcon>{getSortIcon('isActive')}</SortIcon>
+                                        </HeaderContent>
+                                    </SortableHeaderCell>
+
+                                    <TableHeaderCell>Akcje</TableHeaderCell>
+                                </TableRow>
+                            </TableHead>
+
+                            <TableBody>
+                                {filteredEmployees.map(employee => (
+                                    <TableRow
+                                        key={employee.id}
+                                        onClick={() => handleViewEmployee(employee)}
+                                        $clickable
+                                    >
+                                        <TableCell>
+                                            <EmployeeInfo>
+                                                <EmployeeAvatar $color={employee.color}>
+                                                    {EmployeeHelpers.getInitials(employee.fullName)}
+                                                </EmployeeAvatar>
+                                                <EmployeeDetails>
+                                                    <EmployeeName>{employee.fullName}</EmployeeName>
+                                                    <EmployeeEmail>{employee.email}</EmployeeEmail>
+                                                </EmployeeDetails>
+                                            </EmployeeInfo>
+                                        </TableCell>
+
+                                        <TableCell>
+                                            <PositionInfo>
+                                                <PositionTitle>{employee.position}</PositionTitle>
+                                                <WorkHours>
+                                                    {employee.workingHoursPerWeek || 40}h/tydzień
+                                                </WorkHours>
+                                            </PositionInfo>
+                                        </TableCell>
+
+                                        <TableCell>
+                                            <ContactInfo>
+                                                <ContactItem>
+                                                    <FaPhone />
+                                                    {employee.phone}
+                                                </ContactItem>
+                                                <ContactItem>
+                                                    <FaCalendarAlt />
+                                                    {EmployeeHelpers.calculateAge(employee.birthDate)} lat
+                                                </ContactItem>
+                                            </ContactInfo>
+                                        </TableCell>
+
+                                        <TableCell>
+                                            <EmploymentInfo>
+                                                <HireDate>{formatDate(employee.hireDate)}</HireDate>
+                                                <Tenure>{calculateWorkExperience(employee.hireDate)}</Tenure>
+                                            </EmploymentInfo>
+                                        </TableCell>
+
+                                        {canViewAllEmployees && (
+                                            <TableCell>
+                                                <RoleBadge $role={employee.role}>
+                                                    <FaShieldAlt />
+                                                    {UserRoleLabels[employee.role]}
+                                                </RoleBadge>
+                                            </TableCell>
+                                        )}
+
+                                        {canManageSalaries && (
+                                            <TableCell>
+                                                <SalaryInfo>
+                                                    <SalaryAmount>{employee.hourlyRate || 0} zł/h</SalaryAmount>
+                                                    {employee.bonusFromRevenue > 0 && (
+                                                        <BonusInfo>+{employee.bonusFromRevenue}% bonus</BonusInfo>
+                                                    )}
+                                                </SalaryInfo>
+                                            </TableCell>
+                                        )}
+
+                                        <TableCell>
+                                            <StatusBadge $isActive={employee.isActive}>
+                                                {employee.isActive ? (
+                                                    <>
+                                                        <FaCheckCircle />
+                                                        Aktywny
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <FaTimesCircle />
+                                                        Nieaktywny
+                                                    </>
+                                                )}
+                                            </StatusBadge>
+                                        </TableCell>
+
+                                        <TableCell>
+                                            <ActionsGroup onClick={(e) => e.stopPropagation()}>
+                                                <ActionIconButton
+                                                    onClick={() => handleViewEmployee(employee)}
+                                                    title="Szczegóły"
+                                                >
+                                                    <FaEye />
+                                                </ActionIconButton>
+
+                                                <ActionIconButton
+                                                    onClick={() => handleEditEmployee(employee)}
+                                                    title="Edytuj"
+                                                    disabled={!canEditEmployees && employee.id !== user?.userId}
+                                                >
+                                                    <FaEdit />
+                                                </ActionIconButton>
+
+                                                <ActionIconButton
+                                                    onClick={async () => {
+                                                        setSelectedEmployee(employee);
+                                                        setShowDocumentsDrawer(true);
+                                                        try {
+                                                            setLoadingDocuments(true);
+                                                            const documents = await fetchEmployeeDocuments(employee.id);
+                                                            setEmployeeDocuments(documents);
+                                                        } catch (err) {
+                                                            setDocumentError('Nie udało się pobrać dokumentów');
+                                                        } finally {
+                                                            setLoadingDocuments(false);
+                                                        }
+                                                    }}
+                                                    title="Dokumenty"
+                                                >
+                                                    <FaFileAlt />
+                                                </ActionIconButton>
+
+                                                {canEditEmployees && (
+                                                    <ActionIconButton
+                                                        onClick={() => handleDeleteEmployee(employee.id)}
+                                                        title="Usuń"
+                                                        $variant="danger"
+                                                    >
+                                                        <FaTrash />
+                                                    </ActionIconButton>
+                                                )}
+                                            </ActionsGroup>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </TableWrapper>
+
+                    {filteredEmployees.length === 0 && (
                         <EmptyStateContainer>
                             <EmptyStateIcon>
                                 <FaUser />
                             </EmptyStateIcon>
-                            <EmptyStateTitle>Brak pracowników</EmptyStateTitle>
+                            <EmptyStateTitle>
+                                {hasActiveFilters() ? 'Brak wyników' : 'Brak pracowników'}
+                            </EmptyStateTitle>
                             <EmptyStateDescription>
-                                Nie masz jeszcze żadnych pracowników w systemie
-                            </EmptyStateDescription>
-                            <EmptyStateAction>
-                                Kliknij przycisk "Dodaj pracownika", aby dodać pierwszego pracownika
-                            </EmptyStateAction>
-                        </EmptyStateContainer>
-                    ) : filteredEmployees.length === 0 && hasActiveFilters() ? (
-                        <EmptyStateContainer>
-                            <EmptyStateIcon>
-                                <FaSearch />
-                            </EmptyStateIcon>
-                            <EmptyStateTitle>Brak wyników</EmptyStateTitle>
-                            <EmptyStateDescription>
-                                Nie znaleziono pracowników spełniających kryteria wyszukiwania
+                                {hasActiveFilters()
+                                    ? 'Nie znaleziono pracowników spełniających kryteria wyszukiwania'
+                                    : 'Nie masz jeszcze żadnych pracowników w systemie'
+                                }
                             </EmptyStateDescription>
                         </EmptyStateContainer>
-                    ) : (
-                        <TableContainer>
-                            <TableHeader>
-                                <TableTitle>
-                                    Pracownicy ({filteredEmployees.length})
-                                </TableTitle>
-                            </TableHeader>
-
-                            <EmployeesGrid>
-                                {filteredEmployees.map(employee => (
-                                    <EmployeeCard key={employee.id}>
-                                        <ColorBadge color={employee.color} />
-
-                                        <EmployeeHeader>
-                                            <EmployeeName>
-                                                {employee.fullName}
-                                                <DocumentsButton
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleOpenDocuments(employee);
-                                                    }}
-                                                    title="Pokaż dokumenty"
-                                                >
-                                                    <FaFileAlt />
-                                                </DocumentsButton>
-                                            </EmployeeName>
-                                            <EmployeePosition>{employee.position}</EmployeePosition>
-                                        </EmployeeHeader>
-
-                                        <EmployeeDetails>
-                                            <EmployeeDetail>
-                                                <DetailIcon><FaCalendarAlt /></DetailIcon>
-                                                <DetailText>Urodzony: {formatDate(employee.birthDate)}</DetailText>
-                                            </EmployeeDetail>
-                                            <EmployeeDetail>
-                                                <DetailIcon><FaCalendarAlt /></DetailIcon>
-                                                <DetailText>Zatrudniony: {formatDate(employee.hireDate)}</DetailText>
-                                            </EmployeeDetail>
-                                            <EmployeeDetail>
-                                                <DetailIcon><FaEnvelope /></DetailIcon>
-                                                <DetailText>{employee.email}</DetailText>
-                                            </EmployeeDetail>
-                                            <EmployeeDetail>
-                                                <DetailIcon><FaPhone /></DetailIcon>
-                                                <DetailText>{employee.phone}</DetailText>
-                                            </EmployeeDetail>
-                                        </EmployeeDetails>
-
-                                        <EmployeeActions>
-                                            <ActionButton
-                                                onClick={() => handleEditEmployee(employee)}
-                                                $variant="edit"
-                                            >
-                                                <FaEdit />
-                                                Edytuj
-                                            </ActionButton>
-                                            <ActionButton
-                                                onClick={() => handleDeleteEmployee(employee.id)}
-                                                $variant="delete"
-                                            >
-                                                <FaTrash />
-                                                Usuń
-                                            </ActionButton>
-                                        </EmployeeActions>
-                                    </EmployeeCard>
-                                ))}
-                            </EmployeesGrid>
-                        </TableContainer>
                     )}
-                </>
+                </TableContainer>
             )}
 
-            {/* Modals */}
+            {/* All Modals */}
             {showModal && editingEmployee && (
                 <EmployeeFormModal
                     employee={editingEmployee}
@@ -427,6 +732,20 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                 />
             )}
 
+            {showDetailsModal && selectedEmployee && (
+                <EmployeeDetailsModal
+                    employee={selectedEmployee}
+                    onClose={() => {
+                        setShowDetailsModal(false);
+                        setSelectedEmployee(null);
+                    }}
+                    onEdit={() => {
+                        setShowDetailsModal(false);
+                        handleEditEmployee(selectedEmployee);
+                    }}
+                />
+            )}
+
             {showDocumentsDrawer && selectedEmployee && (
                 <DocumentsDrawer
                     isOpen={showDocumentsDrawer}
@@ -434,59 +753,185 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                     documents={employeeDocuments}
                     loading={loadingDocuments}
                     error={documentError}
-                    onClose={handleCloseDocuments}
-                    onAddDocument={handleAddDocument}
-                    onDeleteDocument={handleDeleteDocument}
+                    onClose={() => {
+                        setShowDocumentsDrawer(false);
+                        setSelectedEmployee(null);
+                        setEmployeeDocuments([]);
+                    }}
+                    onAddDocument={() => setShowDocumentModal(true)}
+                    onDeleteDocument={async (documentId: string) => {
+                        if (window.confirm('Czy na pewno chcesz usunąć ten dokument?')) {
+                            try {
+                                const result = await deleteEmployeeDocument(documentId);
+                                if (result) {
+                                    setEmployeeDocuments(employeeDocuments.filter(doc => doc.id !== documentId));
+                                }
+                            } catch (err) {
+                                setDocumentError('Nie udało się usunąć dokumentu');
+                            }
+                        }
+                    }}
                 />
             )}
 
             {showDocumentModal && selectedEmployee && (
                 <DocumentFormModal
                     employeeId={selectedEmployee.id}
-                    onSave={handleSaveDocument}
+                    onSave={async (document: Omit<EmployeeDocument, 'id'>) => {
+                        try {
+                            const savedDocument = await addEmployeeDocument(document);
+                            setEmployeeDocuments([...employeeDocuments, savedDocument]);
+                            setShowDocumentModal(false);
+                        } catch (err) {
+                            setDocumentError('Nie udało się zapisać dokumentu');
+                        }
+                    }}
                     onCancel={() => setShowDocumentModal(false)}
+                />
+            )}
+
+            {showSalaryModal && selectedEmployee && (
+                <SalaryModal
+                    employee={selectedEmployee}
+                    onSave={(updatedEmployee: ExtendedEmployee) => {
+                        setEmployees(employees.map(emp =>
+                            emp.id === updatedEmployee.id ? updatedEmployee : emp
+                        ));
+                        setShowSalaryModal(false);
+                        setSelectedEmployee(null);
+                    }}
+                    onCancel={() => {
+                        setShowSalaryModal(false);
+                        setSelectedEmployee(null);
+                    }}
+                />
+            )}
+
+            {showPermissionsModal && selectedEmployee && (
+                <PermissionsModal
+                    employee={selectedEmployee}
+                    onSave={(updatedEmployee: ExtendedEmployee) => {
+                        setEmployees(employees.map(emp =>
+                            emp.id === updatedEmployee.id ? updatedEmployee : emp
+                        ));
+                        setShowPermissionsModal(false);
+                        setSelectedEmployee(null);
+                    }}
+                    onCancel={() => {
+                        setShowPermissionsModal(false);
+                        setSelectedEmployee(null);
+                    }}
+                />
+            )}
+
+            {showTemplatesModal && (
+                <DocumentTemplatesModal
+                    onClose={() => setShowTemplatesModal(false)}
                 />
             )}
         </ContentContainer>
     );
 });
 
-// Styled Components - Based on Finance Module Style
+// Styled Components - Modern Professional Design
 const ContentContainer = styled.div`
     flex: 1;
     max-width: 1600px;
     margin: 0 auto;
-    padding: 0 ${settingsTheme.spacing.xl} ${settingsTheme.spacing.xl};
+    padding: 0 ${brandTheme.spacing.xl} ${brandTheme.spacing.xl};
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: ${settingsTheme.spacing.lg};
+    gap: ${brandTheme.spacing.lg};
     min-height: 0;
 
     @media (max-width: 1024px) {
-        padding: 0 ${settingsTheme.spacing.lg} ${settingsTheme.spacing.lg};
+        padding: 0 ${brandTheme.spacing.lg} ${brandTheme.spacing.lg};
     }
 
     @media (max-width: 768px) {
-        padding: 0 ${settingsTheme.spacing.md} ${settingsTheme.spacing.md};
-        gap: ${settingsTheme.spacing.md};
+        padding: 0 ${brandTheme.spacing.md} ${brandTheme.spacing.md};
+        gap: ${brandTheme.spacing.md};
+    }
+`;
+
+const HeaderActions = styled.div`
+    display: flex;
+    justify-content: flex-end;
+    gap: ${brandTheme.spacing.sm};
+
+    @media (max-width: 768px) {
+        justify-content: stretch;
+        
+        > * {
+            flex: 1;
+        }
+    }
+`;
+
+const ActionButton = styled.button<{ $variant: 'primary' | 'secondary' }>`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+    border-radius: ${brandTheme.radius.md};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid transparent;
+    white-space: nowrap;
+    min-height: 44px;
+
+    ${({ $variant }) => {
+    switch ($variant) {
+        case 'primary':
+            return `
+                    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+                    color: white;
+                    box-shadow: ${brandTheme.shadow.sm};
+
+                    &:hover {
+                        transform: translateY(-1px);
+                        box-shadow: ${brandTheme.shadow.md};
+                    }
+                `;
+        case 'secondary':
+            return `
+                    background: ${brandTheme.surface};
+                    color: ${brandTheme.text.secondary};
+                    border-color: ${brandTheme.border};
+                    box-shadow: ${brandTheme.shadow.xs};
+
+                    &:hover {
+                        background: ${brandTheme.surfaceHover};
+                        color: ${brandTheme.text.primary};
+                        border-color: ${brandTheme.borderHover};
+                        box-shadow: ${brandTheme.shadow.sm};
+                    }
+                `;
+    }
+}}
+
+    @media (max-width: 768px) {
+        justify-content: center;
     }
 `;
 
 const FiltersContainer = styled.div`
-    background: ${settingsTheme.surface};
-    border-radius: ${settingsTheme.radius.xl};
-    border: 1px solid ${settingsTheme.border};
+    background: ${brandTheme.surface};
+    border-radius: ${brandTheme.radius.xl};
+    border: 1px solid ${brandTheme.border};
     overflow: hidden;
-    box-shadow: ${settingsTheme.shadow.sm};
+    box-shadow: ${brandTheme.shadow.sm};
 `;
 
 const QuickSearchSection = styled.div`
-    padding: ${settingsTheme.spacing.lg};
+    padding: ${brandTheme.spacing.lg};
     display: flex;
     align-items: center;
-    gap: ${settingsTheme.spacing.md};
-    border-bottom: 1px solid ${settingsTheme.border};
+    gap: ${brandTheme.spacing.md};
+    border-bottom: 1px solid ${brandTheme.border};
 
     @media (max-width: 768px) {
         flex-direction: column;
@@ -509,7 +954,7 @@ const SearchIcon = styled.div`
     left: 16px;
     top: 50%;
     transform: translateY(-50%);
-    color: ${settingsTheme.text.muted};
+    color: ${brandTheme.text.muted};
     font-size: 16px;
     z-index: 2;
 `;
@@ -518,22 +963,22 @@ const SearchInput = styled.input`
     width: 100%;
     height: 48px;
     padding: 0 48px 0 48px;
-    border: 2px solid ${settingsTheme.border};
-    border-radius: ${settingsTheme.radius.lg};
+    border: 2px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.lg};
     font-size: 16px;
     font-weight: 500;
-    background: ${settingsTheme.surface};
-    color: ${settingsTheme.text.primary};
+    background: ${brandTheme.surface};
+    color: ${brandTheme.text.primary};
     transition: all 0.2s ease;
 
     &:focus {
         outline: none;
-        border-color: ${settingsTheme.primary};
-        box-shadow: 0 0 0 3px ${settingsTheme.primaryGhost};
+        border-color: ${brandTheme.primary};
+        box-shadow: 0 0 0 3px ${brandTheme.primaryGhost};
     }
 
     &::placeholder {
-        color: ${settingsTheme.text.muted};
+        color: ${brandTheme.text.muted};
         font-weight: 400;
     }
 `;
@@ -546,8 +991,8 @@ const ClearSearchButton = styled.button`
     width: 24px;
     height: 24px;
     border: none;
-    background: ${settingsTheme.surfaceAlt};
-    color: ${settingsTheme.text.muted};
+    background: ${brandTheme.surfaceAlt};
+    color: ${brandTheme.text.muted};
     border-radius: 50%;
     cursor: pointer;
     display: flex;
@@ -557,7 +1002,7 @@ const ClearSearchButton = styled.button`
     transition: all 0.2s ease;
 
     &:hover {
-        background: ${settingsTheme.status.error};
+        background: ${brandTheme.status.error};
         color: white;
     }
 `;
@@ -567,10 +1012,10 @@ const AdvancedToggle = styled.button<{ $expanded: boolean }>`
     align-items: center;
     gap: 8px;
     padding: 12px 20px;
-    border: 2px solid ${props => props.$expanded ? settingsTheme.primary : settingsTheme.border};
-    background: ${props => props.$expanded ? settingsTheme.primaryGhost : settingsTheme.surface};
-    color: ${props => props.$expanded ? settingsTheme.primary : settingsTheme.text.secondary};
-    border-radius: ${settingsTheme.radius.md};
+    border: 2px solid ${props => props.$expanded ? brandTheme.primary : brandTheme.border};
+    background: ${props => props.$expanded ? brandTheme.primaryGhost : brandTheme.surface};
+    color: ${props => props.$expanded ? brandTheme.primary : brandTheme.text.secondary};
+    border-radius: ${brandTheme.radius.md};
     font-weight: 600;
     font-size: 14px;
     cursor: pointer;
@@ -578,21 +1023,21 @@ const AdvancedToggle = styled.button<{ $expanded: boolean }>`
     white-space: nowrap;
 
     &:hover {
-        border-color: ${settingsTheme.primary};
-        color: ${settingsTheme.primary};
+        border-color: ${brandTheme.primary};
+        color: ${brandTheme.primary};
     }
 `;
 
 const AdvancedFiltersSection = styled.div`
-    padding: ${settingsTheme.spacing.lg};
-    background: ${settingsTheme.surfaceAlt};
+    padding: ${brandTheme.spacing.lg};
+    background: ${brandTheme.surfaceAlt};
 `;
 
 const FiltersGrid = styled.div`
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: ${settingsTheme.spacing.md};
-    margin-bottom: ${settingsTheme.spacing.lg};
+    gap: ${brandTheme.spacing.md};
+    margin-bottom: ${brandTheme.spacing.lg};
 
     @media (max-width: 768px) {
         grid-template-columns: 1fr;
@@ -602,71 +1047,71 @@ const FiltersGrid = styled.div`
 const FormGroup = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${settingsTheme.spacing.xs};
+    gap: ${brandTheme.spacing.xs};
 `;
 
 const Label = styled.label`
     font-size: 14px;
     font-weight: 600;
-    color: ${settingsTheme.text.primary};
+    color: ${brandTheme.text.primary};
 `;
 
 const Select = styled.select`
     height: 44px;
-    padding: 0 ${settingsTheme.spacing.md};
-    border: 2px solid ${settingsTheme.border};
-    border-radius: ${settingsTheme.radius.md};
+    padding: 0 ${brandTheme.spacing.md};
+    border: 2px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.md};
     font-size: 14px;
     font-weight: 500;
-    background: ${settingsTheme.surface};
-    color: ${settingsTheme.text.primary};
+    background: ${brandTheme.surface};
+    color: ${brandTheme.text.primary};
     cursor: pointer;
     transition: all 0.2s ease;
 
     &:focus {
         outline: none;
-        border-color: ${settingsTheme.primary};
-        box-shadow: 0 0 0 3px ${settingsTheme.primaryGhost};
+        border-color: ${brandTheme.primary};
+        box-shadow: 0 0 0 3px ${brandTheme.primaryGhost};
     }
 `;
 
 const FiltersActions = styled.div`
     display: flex;
     justify-content: flex-end;
-    gap: ${settingsTheme.spacing.sm};
-    padding-top: ${settingsTheme.spacing.md};
-    border-top: 1px solid ${settingsTheme.border};
+    gap: ${brandTheme.spacing.sm};
+    padding-top: ${brandTheme.spacing.md};
+    border-top: 1px solid ${brandTheme.border};
 `;
 
 const ClearButton = styled.button`
     display: flex;
     align-items: center;
-    gap: ${settingsTheme.spacing.xs};
-    padding: ${settingsTheme.spacing.sm} ${settingsTheme.spacing.md};
-    border: 2px solid ${settingsTheme.border};
-    background: ${settingsTheme.surface};
-    color: ${settingsTheme.text.secondary};
-    border-radius: ${settingsTheme.radius.md};
+    gap: ${brandTheme.spacing.xs};
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+    border: 2px solid ${brandTheme.border};
+    background: ${brandTheme.surface};
+    color: ${brandTheme.text.secondary};
+    border-radius: ${brandTheme.radius.md};
     font-weight: 600;
     font-size: 14px;
     cursor: pointer;
     transition: all 0.2s ease;
 
     &:hover {
-        border-color: ${settingsTheme.status.error};
-        color: ${settingsTheme.status.error};
-        background: ${settingsTheme.status.errorLight};
+        border-color: ${brandTheme.status.error};
+        color: ${brandTheme.status.error};
+        background: ${brandTheme.status.errorLight};
     }
 `;
 
 const ResultsCounter = styled.div`
-    padding: ${settingsTheme.spacing.md} ${settingsTheme.spacing.lg};
-    background: ${settingsTheme.primaryGhost};
-    color: ${settingsTheme.primary};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    background: ${brandTheme.primaryGhost};
+    color: ${brandTheme.primary};
     font-size: 14px;
     font-weight: 500;
     text-align: center;
-    border-top: 1px solid ${settingsTheme.border};
+    border-top: 1px solid ${brandTheme.border};
 
     strong {
         font-weight: 700;
@@ -678,19 +1123,19 @@ const LoadingContainer = styled.div`
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: ${settingsTheme.spacing.xxl};
-    background: ${settingsTheme.surface};
-    border-radius: ${settingsTheme.radius.xl};
-    border: 1px solid ${settingsTheme.border};
-    gap: ${settingsTheme.spacing.md};
+    padding: ${brandTheme.spacing.xxl};
+    background: ${brandTheme.surface};
+    border-radius: ${brandTheme.radius.xl};
+    border: 1px solid ${brandTheme.border};
+    gap: ${brandTheme.spacing.md};
     min-height: 400px;
 `;
 
 const LoadingSpinner = styled.div`
     width: 48px;
     height: 48px;
-    border: 3px solid ${settingsTheme.borderLight};
-    border-top: 3px solid ${settingsTheme.primary};
+    border: 3px solid ${brandTheme.borderLight};
+    border-top: 3px solid ${brandTheme.primary};
     border-radius: 50%;
     animation: spin 1s linear infinite;
 
@@ -702,21 +1147,21 @@ const LoadingSpinner = styled.div`
 
 const LoadingText = styled.div`
     font-size: 16px;
-    color: ${settingsTheme.text.secondary};
+    color: ${brandTheme.text.secondary};
     font-weight: 500;
 `;
 
 const ErrorMessage = styled.div`
     display: flex;
     align-items: center;
-    gap: ${settingsTheme.spacing.sm};
-    background: ${settingsTheme.status.errorLight};
-    color: ${settingsTheme.status.error};
-    padding: ${settingsTheme.spacing.md} ${settingsTheme.spacing.lg};
-    border-radius: ${settingsTheme.radius.lg};
-    border: 1px solid ${settingsTheme.status.error}30;
+    gap: ${brandTheme.spacing.sm};
+    background: ${brandTheme.status.errorLight};
+    color: ${brandTheme.status.error};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    border-radius: ${brandTheme.radius.lg};
+    border: 1px solid ${brandTheme.status.error}30;
     font-weight: 500;
-    box-shadow: ${settingsTheme.shadow.xs};
+    box-shadow: ${brandTheme.shadow.xs};
 `;
 
 const ErrorIcon = styled.div`
@@ -728,249 +1173,386 @@ const ErrorText = styled.div`
     flex: 1;
 `;
 
-const EmptyStateContainer = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: ${settingsTheme.spacing.xxl};
-    background: ${settingsTheme.surface};
-    border-radius: ${settingsTheme.radius.xl};
-    border: 2px dashed ${settingsTheme.border};
-    text-align: center;
-    min-height: 400px;
-`;
-
-const EmptyStateIcon = styled.div`
-    width: 64px;
-    height: 64px;
-    background: ${settingsTheme.surfaceAlt};
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    color: ${settingsTheme.text.tertiary};
-    margin-bottom: ${settingsTheme.spacing.lg};
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
-`;
-
-const EmptyStateTitle = styled.h3`
-    font-size: 20px;
-    font-weight: 600;
-    color: ${settingsTheme.text.primary};
-    margin: 0 0 ${settingsTheme.spacing.sm} 0;
-    letter-spacing: -0.025em;
-`;
-
-const EmptyStateDescription = styled.p`
-    font-size: 16px;
-    color: ${settingsTheme.text.secondary};
-    margin: 0 0 ${settingsTheme.spacing.sm} 0;
-    line-height: 1.5;
-`;
-
-const EmptyStateAction = styled.p`
-    font-size: 14px;
-    color: ${settingsTheme.primary};
-    margin: 0;
-    font-weight: 500;
-`;
-
 const TableContainer = styled.div`
-    background: ${settingsTheme.surface};
-    border-radius: ${settingsTheme.radius.xl};
-    border: 1px solid ${settingsTheme.border};
+    background: ${brandTheme.surface};
+    border-radius: ${brandTheme.radius.xl};
+    border: 1px solid ${brandTheme.border};
     overflow: hidden;
-    box-shadow: ${settingsTheme.shadow.sm};
+    box-shadow: ${brandTheme.shadow.sm};
     flex: 1;
     display: flex;
     flex-direction: column;
     min-height: 0;
 `;
 
-const TableHeader = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: ${settingsTheme.spacing.lg};
-    border-bottom: 1px solid ${settingsTheme.border};
-    background: ${settingsTheme.surfaceAlt};
-    flex-shrink: 0;
-`;
+const TableWrapper = styled.div`
+    flex: 1;
+    overflow: auto;
+    min-height: 0;
 
-const TableTitle = styled.h3`
-    font-size: 18px;
-    font-weight: 600;
-    color: ${settingsTheme.text.primary};
-    margin: 0;
-    letter-spacing: -0.025em;
-`;
+    &::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
 
-const EmployeesGrid = styled.div`
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: ${settingsTheme.spacing.lg};
-    padding: ${settingsTheme.spacing.lg};
+    &::-webkit-scrollbar-track {
+        background: ${brandTheme.surfaceAlt};
+    }
 
-    @media (max-width: 768px) {
-        grid-template-columns: 1fr;
-        gap: ${settingsTheme.spacing.md};
-        padding: ${settingsTheme.spacing.md};
+    &::-webkit-scrollbar-thumb {
+        background: ${brandTheme.border};
+        border-radius: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+        background: ${brandTheme.borderHover};
     }
 `;
 
-const EmployeeCard = styled.div`
-    position: relative;
-    background: ${settingsTheme.surface};
-    border-radius: ${settingsTheme.radius.xl};
-    border: 1px solid ${settingsTheme.border};
-    overflow: hidden;
-    box-shadow: ${settingsTheme.shadow.sm};
+const Table = styled.table`
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 1200px;
+`;
+
+const TableHead = styled.thead`
+    background: ${brandTheme.surfaceAlt};
+    border-bottom: 2px solid ${brandTheme.border};
+    position: sticky;
+    top: 0;
+    z-index: 10;
+`;
+
+const TableRow = styled.tr<{ $clickable?: boolean }>`
+    border-bottom: 1px solid ${brandTheme.borderLight};
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    display: flex;
-    flex-direction: column;
+
+    ${({ $clickable }) => $clickable && `
+        cursor: pointer;
+        
+        &:hover {
+            background: ${brandTheme.surfaceHover};
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+    `}
+
+    &:last-child {
+        border-bottom: none;
+    }
+`;
+
+const TableHeaderCell = styled.th`
+    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.md};
+    text-align: left;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+    font-size: 14px;
+    white-space: nowrap;
+    background: ${brandTheme.surfaceAlt};
+`;
+
+const SortableHeaderCell = styled(TableHeaderCell)`
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s ease;
 
     &:hover {
-        transform: translateY(-2px);
-        box-shadow: ${settingsTheme.shadow.lg};
-        border-color: ${settingsTheme.primary};
+        background: ${brandTheme.primaryGhost};
+        color: ${brandTheme.primary};
     }
 `;
 
-const ColorBadge = styled.div<{ color: string }>`
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: ${props => props.color};
-`;
-
-const EmployeeHeader = styled.div`
-    padding: ${settingsTheme.spacing.lg} ${settingsTheme.spacing.lg} ${settingsTheme.spacing.md};
-    border-bottom: 1px solid ${settingsTheme.borderLight};
-`;
-
-const EmployeeName = styled.h3`
-    margin: 0 0 ${settingsTheme.spacing.xs} 0;
-    font-size: 18px;
-    font-weight: 600;
-    color: ${settingsTheme.text.primary};
+const HeaderContent = styled.div`
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: ${brandTheme.spacing.xs};
+`;
+
+const SortIcon = styled.span`
+    opacity: 0.6;
+    font-size: 12px;
+    transition: opacity 0.2s ease;
+
+    ${SortableHeaderCell}:hover & {
+        opacity: 1;
+    }
+`;
+
+const TableBody = styled.tbody`
+    background: ${brandTheme.surface};
+`;
+
+const TableCell = styled.td`
+    padding: ${brandTheme.spacing.md};
+    vertical-align: middle;
+    border-right: 1px solid ${brandTheme.borderLight};
+
+    &:last-child {
+        border-right: none;
+    }
+`;
+
+const EmployeeInfo = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.md};
+    min-width: 220px;
+`;
+
+const EmployeeAvatar = styled.div<{ $color: string }>`
+    width: 44px;
+    height: 44px;
+    background: ${props => props.$color};
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    flex-shrink: 0;
+    box-shadow: ${brandTheme.shadow.sm};
+`;
+
+const EmployeeDetails = styled.div`
+    flex: 1;
+    min-width: 0;
+`;
+
+const EmployeeName = styled.div`
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+    font-size: 15px;
+    margin-bottom: 2px;
     line-height: 1.3;
 `;
 
-const DocumentsButton = styled.button`
+const EmployeeEmail = styled.div`
+    font-size: 13px;
+    color: ${brandTheme.text.tertiary};
+    font-weight: 500;
+`;
+
+const PositionInfo = styled.div`
+    min-width: 180px;
+`;
+
+const PositionTitle = styled.div`
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+    font-size: 14px;
+    margin-bottom: 2px;
+`;
+
+const WorkHours = styled.div`
+    font-size: 12px;
+    color: ${brandTheme.text.muted};
+    font-weight: 500;
+`;
+
+const ContactInfo = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 160px;
+`;
+
+const ContactItem = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: ${brandTheme.text.secondary};
+    font-weight: 500;
+
+    svg {
+        font-size: 11px;
+        color: ${brandTheme.text.muted};
+        width: 12px;
+    }
+`;
+
+const EmploymentInfo = styled.div`
+    min-width: 140px;
+`;
+
+const HireDate = styled.div`
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+    font-size: 14px;
+    margin-bottom: 2px;
+`;
+
+const Tenure = styled.div`
+    font-size: 12px;
+    color: ${brandTheme.text.muted};
+    font-weight: 500;
+`;
+
+const RoleBadge = styled.div<{ $role: UserRole }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: ${brandTheme.radius.md};
+    font-size: 12px;
+    font-weight: 600;
+    min-width: 100px;
+
+    ${({ $role }) => {
+        switch ($role) {
+            case UserRole.ADMIN:
+                return `
+                    background: ${brandTheme.status.errorLight};
+                    color: ${brandTheme.status.error};
+                `;
+            case UserRole.MANAGER:
+                return `
+                    background: ${brandTheme.status.warningLight};
+                    color: ${brandTheme.status.warning};
+                `;
+            case UserRole.EMPLOYEE:
+                return `
+                    background: ${brandTheme.primaryGhost};
+                    color: ${brandTheme.primary};
+                `;
+        }
+    }}
+`;
+
+const SalaryInfo = styled.div`
+    min-width: 120px;
+`;
+
+const SalaryAmount = styled.div`
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+    font-size: 14px;
+    margin-bottom: 2px;
+`;
+
+const BonusInfo = styled.div`
+    font-size: 11px;
+    color: ${brandTheme.status.success};
+    font-weight: 600;
+`;
+
+const StatusBadge = styled.div<{ $isActive: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: ${brandTheme.radius.md};
+    font-size: 12px;
+    font-weight: 600;
+    min-width: 90px;
+
+    ${({ $isActive }) => $isActive ? `
+        background: ${brandTheme.status.successLight};
+        color: ${brandTheme.status.success};
+    ` : `
+        background: ${brandTheme.status.errorLight};
+        color: ${brandTheme.status.error};
+    `}
+`;
+
+const ActionsGroup = styled.div`
+    display: flex;
+    gap: ${brandTheme.spacing.xs};
+    align-items: center;
+    min-width: 140px;
+`;
+
+const ActionIconButton = styled.button<{ $variant?: 'danger' }>`
     display: flex;
     align-items: center;
     justify-content: center;
     width: 32px;
     height: 32px;
     border: none;
-    border-radius: ${settingsTheme.radius.sm};
-    background: ${settingsTheme.primaryGhost};
-    color: ${settingsTheme.primary};
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-size: 14px;
-
-    &:hover {
-        background: ${settingsTheme.primary};
-        color: white;
-        transform: scale(1.05);
-    }
-`;
-
-const EmployeePosition = styled.div`
-    font-size: 14px;
-    color: ${settingsTheme.text.secondary};
-    font-weight: 500;
-`;
-
-const EmployeeDetails = styled.div`
-    padding: ${settingsTheme.spacing.md} ${settingsTheme.spacing.lg};
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: ${settingsTheme.spacing.sm};
-`;
-
-const EmployeeDetail = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${settingsTheme.spacing.sm};
-    font-size: 14px;
-`;
-
-const DetailIcon = styled.div`
-    width: 16px;
-    color: ${settingsTheme.text.tertiary};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-`;
-
-const DetailText = styled.div`
-    color: ${settingsTheme.text.secondary};
-    font-weight: 500;
-    line-height: 1.4;
-`;
-
-const EmployeeActions = styled.div`
-    display: flex;
-    gap: ${settingsTheme.spacing.sm};
-    padding: ${settingsTheme.spacing.md} ${settingsTheme.spacing.lg} ${settingsTheme.spacing.lg};
-    border-top: 1px solid ${settingsTheme.borderLight};
-`;
-
-const ActionButton = styled.button<{
-    $variant: 'edit' | 'delete';
-}>`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: ${settingsTheme.spacing.xs};
-    flex: 1;
-    padding: ${settingsTheme.spacing.sm} ${settingsTheme.spacing.md};
-    border: none;
-    border-radius: ${settingsTheme.radius.md};
-    font-size: 14px;
-    font-weight: 600;
+    border-radius: ${brandTheme.radius.sm};
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 13px;
+    position: relative;
+    overflow: hidden;
 
     ${({ $variant }) => {
-    switch ($variant) {
-        case 'edit':
+        if ($variant === 'danger') {
             return `
-                    background: ${settingsTheme.status.warningLight};
-                    color: ${settingsTheme.status.warning};
-                    
-                    &:hover {
-                        background: ${settingsTheme.status.warning};
-                        color: white;
-                        transform: translateY(-1px);
-                        box-shadow: ${settingsTheme.shadow.md};
-                    }
-                `;
-        case 'delete':
+                background: ${brandTheme.status.errorLight};
+                color: ${brandTheme.status.error};
+                
+                &:hover:not(:disabled) {
+                    background: ${brandTheme.status.error};
+                    color: white;
+                    transform: translateY(-1px);
+                    box-shadow: ${brandTheme.shadow.md};
+                }
+            `;
+        } else {
             return `
-                    background: ${settingsTheme.status.errorLight};
-                    color: ${settingsTheme.status.error};
-                    
-                    &:hover {
-                        background: ${settingsTheme.status.error};
-                        color: white;
-                        transform: translateY(-1px);
-                        box-shadow: ${settingsTheme.shadow.md};
-                    }
-                `;
+                background: ${brandTheme.primaryGhost};
+                color: ${brandTheme.primary};
+                
+                &:hover:not(:disabled) {
+                    background: ${brandTheme.primary};
+                    color: white;
+                    transform: translateY(-1px);
+                    box-shadow: ${brandTheme.shadow.md};
+                }
+            `;
+        }
+    }}
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
     }
-}}
+`;
+
+const EmptyStateContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: ${brandTheme.spacing.xxl};
+    text-align: center;
+    min-height: 300px;
+    background: ${brandTheme.surfaceAlt};
+    margin: ${brandTheme.spacing.lg};
+    border-radius: ${brandTheme.radius.lg};
+`;
+
+const EmptyStateIcon = styled.div`
+    width: 64px;
+    height: 64px;
+    background: ${brandTheme.surface};
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: ${brandTheme.text.muted};
+    margin-bottom: ${brandTheme.spacing.lg};
+    box-shadow: ${brandTheme.shadow.xs};
+`;
+
+const EmptyStateTitle = styled.h3`
+    font-size: 20px;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+    margin: 0 0 ${brandTheme.spacing.sm} 0;
+    letter-spacing: -0.025em;
+`;
+
+const EmptyStateDescription = styled.p`
+    font-size: 16px;
+    color: ${brandTheme.text.secondary};
+    margin: 0;
+    line-height: 1.5;
 `;
 
 export default EmployeesPage;

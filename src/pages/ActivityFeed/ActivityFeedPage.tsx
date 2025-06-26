@@ -1,112 +1,103 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import ActivityHeader from './components/ActivityHeader';
-import ActivityFilters from './components/ActivityFilters';
-import ActivityList from './components/ActivityList';
-import ActivityStatistics from './components/ActivityStatistics';
-import ActivityDateRange from './components/ActivityDateRange';
-import { fetchActivityItems, fetchDailySummary } from '../../api/mocks/activityMocks';
-import { ActivityItem, ActivityFilter, DailySummaryData } from '../../types/activity';
+import { FaRss, FaFilter, FaCalendarAlt, FaSync, FaChevronDown } from 'react-icons/fa';
+import { fetchActivityItems } from '../../api/mocks/activityMocks';
+import { ActivityItem, ActivityFilter } from '../../types/activity';
+import { format, subDays } from 'date-fns';
+import { pl } from 'date-fns/locale';
+import ActivityFiltersPanel from "./components/ActivityFiltersPanelProps";
+import ActivityTimelineList from "./components/ActivitiTimelineList";
+
+// Brand Theme - zgodne z resztą aplikacji
+const brandTheme = {
+    primary: 'var(--brand-primary, #2563eb)',
+    primaryLight: 'var(--brand-primary-light, #3b82f6)',
+    primaryGhost: 'var(--brand-primary-ghost, rgba(37, 99, 235, 0.08))',
+    surface: '#ffffff',
+    surfaceAlt: '#f8fafc',
+    neutral: '#64748b',
+    border: '#e2e8f0',
+    text: {
+        primary: '#1e293b',
+        secondary: '#475569',
+        muted: '#64748b'
+    },
+    spacing: {
+        xs: '4px',
+        sm: '8px',
+        md: '16px',
+        lg: '24px',
+        xl: '32px'
+    },
+    radius: {
+        sm: '6px',
+        md: '8px',
+        lg: '12px'
+    },
+    shadow: {
+        xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+        sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)'
+    }
+};
 
 const ActivityFeedPage: React.FC = () => {
     const [activities, setActivities] = useState<ActivityItem[]>([]);
     const [filteredActivities, setFilteredActivities] = useState<ActivityItem[]>([]);
-    const [dailySummary, setDailySummary] = useState<DailySummaryData | null>(null);
-    const [loading, setLoading] = useState({
-        activities: true,
-        summary: true
-    });
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [refreshing, setRefreshing] = useState(false);
+
+    // Filtry i kontrola
+    const [showFilters, setShowFilters] = useState(false);
     const [activeFilters, setActiveFilters] = useState<ActivityFilter[]>([
         { type: 'category', value: 'all' },
-        { type: 'entity', value: 'all' },
         { type: 'user', value: 'all' }
     ]);
-    const [dateRange, setDateRange] = useState<{
-        startDate: string;
-        endDate: string;
-    }>({
-        startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Ostatnie 7 dni
-        endDate: new Date().toISOString().split('T')[0], // Dzisiaj
+
+    // Zakres dat - domyślnie ostatnie 7 dni
+    const [dateRange, setDateRange] = useState({
+        startDate: format(subDays(new Date(), 6), 'yyyy-MM-dd'),
+        endDate: format(new Date(), 'yyyy-MM-dd')
     });
 
     // Pobieranie danych aktywności
-    useEffect(() => {
-        const loadActivities = async () => {
-            try {
-                setLoading(prev => ({ ...prev, activities: true }));
-                setError(null);
-
-                // Pobierz aktywności
-                const activitiesData = await fetchActivityItems(dateRange.startDate, dateRange.endDate);
-                setActivities(activitiesData);
-
-                // Początkowe filtrowanie
-                setFilteredActivities(activitiesData);
-            } catch (err) {
-                setError('Nie udało się załadować danych aktywności.');
-                console.error('Error loading activity data:', err);
-            } finally {
-                setLoading(prev => ({ ...prev, activities: false }));
+    const loadActivities = async (showRefreshLoader = false) => {
+        try {
+            if (showRefreshLoader) {
+                setRefreshing(true);
+            } else {
+                setLoading(true);
             }
-        };
+            setError(null);
 
+            const activitiesData = await fetchActivityItems(dateRange.startDate, dateRange.endDate);
+            setActivities(activitiesData);
+            setFilteredActivities(activitiesData);
+        } catch (err) {
+            setError('Nie udało się załadować aktywności. Sprawdź połączenie z internetem.');
+            console.error('Error loading activities:', err);
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    };
+
+    // Efekt pobierania danych przy zmianie zakresu dat
+    useEffect(() => {
         loadActivities();
     }, [dateRange]);
 
-    // Pobieranie danych podsumowania dziennego
-    useEffect(() => {
-        const loadSummary = async () => {
-            try {
-                setLoading(prev => ({ ...prev, summary: true }));
-
-                // Pobierz dzienne podsumowanie
-                const summaryData = await fetchDailySummary();
-                setDailySummary(summaryData);
-            } catch (err) {
-                console.error('Error loading summary data:', err);
-                // Nie ustawiamy ogólnego błędu, aby nie przeszkadzać w wyświetlaniu aktywności
-            } finally {
-                setLoading(prev => ({ ...prev, summary: false }));
-            }
-        };
-
-        loadSummary();
-    }, [dateRange.endDate]); // Odświeżanie tylko przy zmianie daty końcowej
-
     // Filtrowanie aktywności
     useEffect(() => {
-        if (activeFilters.length === 0) {
-            setFilteredActivities(activities);
-            return;
-        }
-
-        // Sprawdzenie czy wszystkie typy filtrów mają ustawioną wartość 'all'
-        const allFilterTypes = ['category', 'entity', 'user'];
-        const hasOnlyAllFilters = allFilterTypes.every(type =>
-            activeFilters.some(filter => filter.type === type && filter.value === 'all')
-        );
-
-        if (hasOnlyAllFilters) {
-            setFilteredActivities(activities);
-            return;
-        }
-
         const filtered = activities.filter(activity => {
-            // Sprawdzenie dla kategorii
-            const categoryFilter = activeFilters.find(filter => filter.type === 'category');
+            // Filtr kategorii
+            const categoryFilter = activeFilters.find(f => f.type === 'category');
             if (categoryFilter && categoryFilter.value !== 'all' && activity.category !== categoryFilter.value) {
                 return false;
             }
 
-            // Sprawdzenie dla encji
-            const entityFilter = activeFilters.find(filter => filter.type === 'entity');
-            if (entityFilter && entityFilter.value !== 'all' && activity.entityType !== entityFilter.value) {
-                return false;
-            }
-
-            // Sprawdzenie dla użytkownika
-            const userFilter = activeFilters.find(filter => filter.type === 'user');
+            // Filtr użytkownika
+            const userFilter = activeFilters.find(f => f.type === 'user');
             if (userFilter && userFilter.value !== 'all' && activity.userId !== userFilter.value) {
                 return false;
             }
@@ -117,68 +108,285 @@ const ActivityFeedPage: React.FC = () => {
         setFilteredActivities(filtered);
     }, [activities, activeFilters]);
 
+    // Obsługa odświeżania
+    const handleRefresh = () => {
+        loadActivities(true);
+    };
+
     // Obsługa zmiany filtrów
     const handleFilterChange = (filters: ActivityFilter[]) => {
         setActiveFilters(filters);
     };
 
     // Obsługa zmiany zakresu dat
-    const handleDateRangeChange = (startDate: string, endDate: string) => {
-        setDateRange({ startDate, endDate });
+    const handleDateRangeChange = (newDateRange: { startDate: string; endDate: string }) => {
+        setDateRange(newDateRange);
+    };
+
+    // Formatowanie tytułu z zakresem dat
+    const getDateRangeTitle = () => {
+        const start = new Date(dateRange.startDate);
+        const end = new Date(dateRange.endDate);
+
+        if (dateRange.startDate === dateRange.endDate) {
+            return format(start, 'd MMMM yyyy', { locale: pl });
+        }
+
+        return `${format(start, 'd MMM', { locale: pl })} - ${format(end, 'd MMM yyyy', { locale: pl })}`;
     };
 
     return (
         <PageContainer>
-            <ActivityHeader />
+            {/* Header */}
+            <HeaderSection>
+                <HeaderContent>
+                    <HeaderLeft>
+                        <HeaderIcon>
+                            <FaRss />
+                        </HeaderIcon>
+                        <HeaderText>
+                            <HeaderTitle>Aktywności firmy</HeaderTitle>
+                            <HeaderSubtitle>
+                                {getDateRangeTitle()} • {filteredActivities.length} {filteredActivities.length === 1 ? 'aktywność' : 'aktywności'}
+                            </HeaderSubtitle>
+                        </HeaderText>
+                    </HeaderLeft>
 
-            <ActivityDateRange
-                dateRange={dateRange}
-                onDateRangeChange={handleDateRangeChange}
-            />
+                    <HeaderActions>
+                        <RefreshButton onClick={handleRefresh} disabled={refreshing}>
+                            <FaSync className={refreshing ? 'spinning' : ''} />
+                            {refreshing ? 'Odświeżanie...' : 'Odśwież'}
+                        </RefreshButton>
 
-            <ActivityStatistics
-                summaryData={dailySummary}
-                loading={loading.summary}
-            />
+                        <FiltersToggle
+                            onClick={() => setShowFilters(!showFilters)}
+                            $active={showFilters}
+                        >
+                            <FaFilter />
+                            Filtry
+                            <FaChevronDown className={showFilters ? 'rotated' : ''} />
+                        </FiltersToggle>
+                    </HeaderActions>
+                </HeaderContent>
+            </HeaderSection>
 
-            <MainContent>
-                <LeftColumn>
-                    <ActivityFilters
-                        onFilterChange={handleFilterChange}
-                        activeFilters={activeFilters}
-                    />
-                </LeftColumn>
+            {/* Main Content */}
+            <ContentContainer>
+                <MainLayout>
+                    {/* Filtry - panel boczny */}
+                    {showFilters && (
+                        <FiltersPanel>
+                            <ActivityFiltersPanel
+                                activeFilters={activeFilters}
+                                dateRange={dateRange}
+                                onFilterChange={handleFilterChange}
+                                onDateRangeChange={handleDateRangeChange}
+                            />
+                        </FiltersPanel>
+                    )}
 
-                <RightColumn>
-                    {error && <ErrorMessage>{error}</ErrorMessage>}
+                    {/* Lista aktywności */}
+                    <ActivityContent $hasFilters={showFilters}>
+                        {error && (
+                            <ErrorAlert>
+                                <ErrorIcon>⚠️</ErrorIcon>
+                                <ErrorMessage>{error}</ErrorMessage>
+                            </ErrorAlert>
+                        )}
 
-                    <ActivityList
-                        activities={filteredActivities}
-                        loading={loading.activities}
-                    />
-                </RightColumn>
-            </MainContent>
+                        <ActivityTimelineList
+                            activities={filteredActivities}
+                            loading={loading}
+                        />
+                    </ActivityContent>
+                </MainLayout>
+            </ContentContainer>
         </PageContainer>
     );
 };
 
-// Styled components
+// Styled Components
 const PageContainer = styled.div`
-    padding: 20px;
-    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background: ${brandTheme.surfaceAlt};
 `;
 
-const MainContent = styled.div`
-    display: flex;
-    gap: 20px;
+const HeaderSection = styled.div`
+    background: ${brandTheme.surface};
+    border-bottom: 1px solid ${brandTheme.border};
+    box-shadow: ${brandTheme.shadow.xs};
+`;
 
-    @media (max-width: 992px) {
+const HeaderContent = styled.div`
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: ${brandTheme.spacing.lg};
+
+    @media (max-width: 768px) {
+        padding: ${brandTheme.spacing.md};
         flex-direction: column;
+        align-items: stretch;
+        gap: ${brandTheme.spacing.md};
     }
 `;
 
-const LeftColumn = styled.div`
-    width: 300px;
+const HeaderLeft = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.md};
+    min-width: 0;
+    flex: 1;
+`;
+
+const HeaderIcon = styled.div`
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+    border-radius: ${brandTheme.radius.lg};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 20px;
+    box-shadow: ${brandTheme.shadow.sm};
+    flex-shrink: 0;
+`;
+
+const HeaderText = styled.div`
+    min-width: 0;
+    flex: 1;
+`;
+
+const HeaderTitle = styled.h1`
+    font-size: 28px;
+    font-weight: 700;
+    color: ${brandTheme.text.primary};
+    margin: 0 0 4px 0;
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+
+    @media (max-width: 768px) {
+        font-size: 24px;
+    }
+`;
+
+const HeaderSubtitle = styled.p`
+    color: ${brandTheme.text.secondary};
+    margin: 0;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.4;
+`;
+
+const HeaderActions = styled.div`
+    display: flex;
+    gap: ${brandTheme.spacing.sm};
+    align-items: center;
+
+    @media (max-width: 768px) {
+        width: 100%;
+        justify-content: space-between;
+    }
+`;
+
+const RefreshButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+    background: ${brandTheme.surface};
+    color: ${brandTheme.text.secondary};
+    border: 1px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.md};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 44px;
+
+    &:hover:not(:disabled) {
+        background: ${brandTheme.surfaceAlt};
+        color: ${brandTheme.text.primary};
+        border-color: ${brandTheme.neutral};
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .spinning {
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+`;
+
+const FiltersToggle = styled.button<{ $active: boolean }>`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+    background: ${props => props.$active ? brandTheme.primaryGhost : brandTheme.surface};
+    color: ${props => props.$active ? brandTheme.primary : brandTheme.text.secondary};
+    border: 1px solid ${props => props.$active ? brandTheme.primary : brandTheme.border};
+    border-radius: ${brandTheme.radius.md};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 44px;
+
+    &:hover {
+        background: ${props => props.$active ? brandTheme.primaryGhost : brandTheme.surfaceAlt};
+        color: ${brandTheme.primary};
+        border-color: ${brandTheme.primary};
+    }
+
+    .rotated {
+        transform: rotate(180deg);
+    }
+
+    svg:last-child {
+        transition: transform 0.2s ease;
+    }
+`;
+
+const ContentContainer = styled.div`
+    flex: 1;
+    max-width: 1600px;
+    margin: 0 auto;
+    width: 100%;
+    padding: 0 ${brandTheme.spacing.xl};
+
+    @media (max-width: 768px) {
+        padding: 0 ${brandTheme.spacing.md};
+    }
+`;
+
+const MainLayout = styled.div`
+    display: flex;
+    gap: ${brandTheme.spacing.lg};
+    padding: ${brandTheme.spacing.lg} 0;
+    align-items: flex-start;
+
+    @media (max-width: 992px) {
+        flex-direction: column;
+        gap: ${brandTheme.spacing.md};
+    }
+`;
+
+const FiltersPanel = styled.aside`
+    width: 320px;
     flex-shrink: 0;
 
     @media (max-width: 992px) {
@@ -186,17 +394,36 @@ const LeftColumn = styled.div`
     }
 `;
 
-const RightColumn = styled.div`
+const ActivityContent = styled.main<{ $hasFilters: boolean }>`
     flex: 1;
     min-width: 0;
+    width: ${props => props.$hasFilters ? 'calc(100% - 340px)' : '100%'};
+
+    @media (max-width: 992px) {
+        width: 100%;
+    }
+`;
+
+const ErrorAlert = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    background: #fef2f2;
+    color: #dc2626;
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    border-radius: ${brandTheme.radius.lg};
+    border: 1px solid #fecaca;
+    margin-bottom: ${brandTheme.spacing.lg};
+    font-weight: 500;
+`;
+
+const ErrorIcon = styled.div`
+    font-size: 18px;
+    flex-shrink: 0;
 `;
 
 const ErrorMessage = styled.div`
-    background-color: #fdecea;
-    color: #e74c3c;
-    padding: 12px;
-    border-radius: 4px;
-    margin-bottom: 20px;
+    flex: 1;
 `;
 
 export default ActivityFeedPage;
