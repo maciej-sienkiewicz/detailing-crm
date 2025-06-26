@@ -1,7 +1,6 @@
-// src/api/mocks/employeesMocks.ts - Zaktualizowane mocki pracowników
+// src/api/mocks/employeesMocks.ts - Zaktualizowane mocki pracowników bez koloru
 import { Employee } from '../../types';
 import { ExtendedEmployee, UserRole, ContractType } from '../../types/employeeTypes';
-
 
 export const mockEmployees: Employee[] = []
 
@@ -15,7 +14,6 @@ const mockExtendedEmployees: ExtendedEmployee[] = [
         position: 'Kierownik Działu Detailingu',
         email: 'anna.kowalska@detailingpro.pl',
         phone: '+48 123 456 789',
-        color: '#e74c3c',
         role: UserRole.MANAGER,
         hourlyRate: 45.00,
         bonusFromRevenue: 5.0,
@@ -25,8 +23,7 @@ const mockExtendedEmployees: ExtendedEmployee[] = [
         contractType: ContractType.EMPLOYMENT,
         emergencyContact: {
             name: 'Tomasz Kowalski',
-            phone: '+48 987 654 321',
-            relation: 'Mąż'
+            phone: '+48 987 654 321'
         },
         notes: 'Bardzo doświadczona w zarządzaniu zespołem. Specjalizuje się w detailingu premium.'
     },
@@ -38,7 +35,6 @@ const mockExtendedEmployees: ExtendedEmployee[] = [
         position: 'Senior Detailer',
         email: 'marcin.nowak@detailingpro.pl',
         phone: '+48 234 567 890',
-        color: '#3498db',
         role: UserRole.EMPLOYEE,
         hourlyRate: 35.00,
         bonusFromRevenue: 3.0,
@@ -48,8 +44,7 @@ const mockExtendedEmployees: ExtendedEmployee[] = [
         contractType: ContractType.EMPLOYMENT,
         emergencyContact: {
             name: 'Maria Nowak',
-            phone: '+48 876 543 210',
-            relation: 'Żona'
+            phone: '+48 876 543 210'
         },
         notes: 'Ekspert w ceramice i zabezpieczeniach. Prowadzi szkolenia dla nowych pracowników.'
     },
@@ -61,7 +56,6 @@ const mockExtendedEmployees: ExtendedEmployee[] = [
         position: 'Detailer',
         email: 'katarzyna.wisniewska@detailingpro.pl',
         phone: '+48 345 678 901',
-        color: '#9b59b6',
         role: UserRole.EMPLOYEE,
         hourlyRate: 28.00,
         bonusFromRevenue: 2.0,
@@ -71,8 +65,7 @@ const mockExtendedEmployees: ExtendedEmployee[] = [
         contractType: ContractType.EMPLOYMENT,
         emergencyContact: {
             name: 'Jan Wiśniewski',
-            phone: '+48 765 432 109',
-            relation: 'Ojciec'
+            phone: '+48 765 432 109'
         },
         notes: 'Specjalizuje się w detailingu wnętrz. Bardzo precyzyjna w pracy.'
     },
@@ -84,7 +77,6 @@ const mockExtendedEmployees: ExtendedEmployee[] = [
         position: 'Konsultant Techniczny',
         email: 'pawel.zielinski@detailingpro.pl',
         phone: '+48 456 789 012',
-        color: '#f39c12',
         role: UserRole.EMPLOYEE,
         hourlyRate: 32.00,
         bonusFromRevenue: 4.0,
@@ -94,8 +86,7 @@ const mockExtendedEmployees: ExtendedEmployee[] = [
         contractType: ContractType.B2B,
         emergencyContact: {
             name: 'Agnieszka Zielińska',
-            phone: '+48 654 321 098',
-            relation: 'Żona'
+            phone: '+48 654 321 098'
         },
         notes: 'Odpowiedzialny za konsultacje techniczne i dobór produktów do konkretnych projektów.'
     },
@@ -107,7 +98,6 @@ const mockExtendedEmployees: ExtendedEmployee[] = [
         position: 'Junior Detailer',
         email: 'michal.jankowski@detailingpro.pl',
         phone: '+48 567 890 123',
-        color: '#2ecc71',
         role: UserRole.EMPLOYEE,
         hourlyRate: 22.00,
         bonusFromRevenue: 1.5,
@@ -117,8 +107,7 @@ const mockExtendedEmployees: ExtendedEmployee[] = [
         contractType: ContractType.EMPLOYMENT,
         emergencyContact: {
             name: 'Barbara Jankowska',
-            phone: '+48 543 210 987',
-            relation: 'Matka'
+            phone: '+48 543 210 987'
         },
         notes: 'Nowy w branży, ale bardzo chętny do nauki. Szybko przyswaja nowe umiejętności.'
     },
@@ -130,7 +119,6 @@ const mockExtendedEmployees: ExtendedEmployee[] = [
         position: 'Administrator Systemu',
         email: 'robert.krol@detailingpro.pl',
         phone: '+48 678 901 234',
-        color: '#34495e',
         role: UserRole.ADMIN,
         hourlyRate: 50.00,
         bonusFromRevenue: 2.0,
@@ -140,8 +128,7 @@ const mockExtendedEmployees: ExtendedEmployee[] = [
         contractType: ContractType.EMPLOYMENT,
         emergencyContact: {
             name: 'Monika Król',
-            phone: '+48 432 109 876',
-            relation: 'Żona'
+            phone: '+48 432 109 876'
         },
         notes: 'Odpowiedzialny za IT i administrację systemu. Ma pełny dostęp do wszystkich funkcji.'
     },
@@ -153,7 +140,6 @@ const mockExtendedEmployees: ExtendedEmployee[] = [
         position: 'Specjalista ds. Klienta',
         email: 'agnieszka.dabrowska@detailingpro.pl',
         phone: '+48 789 012 345',
-        color: '#e67e22',
         role: UserRole.EMPLOYEE,
         hourlyRate: 26.00,
         bonusFromRevenue: 3.5,
@@ -163,8 +149,7 @@ const mockExtendedEmployees: ExtendedEmployee[] = [
         contractType: ContractType.EMPLOYMENT,
         emergencyContact: {
             name: 'Krzysztof Dąbrowski',
-            phone: '+48 321 098 765',
-            relation: 'Brat'
+            phone: '+48 321 098 765'
         },
         notes: 'Obsługuje VIP klientów. Doskonała znajomość języków obcych.'
     },
@@ -176,7 +161,6 @@ const mockExtendedEmployees: ExtendedEmployee[] = [
         position: 'Detailer Mobilny',
         email: 'lukasz.mazurek@detailingpro.pl',
         phone: '+48 890 123 456',
-        color: '#1abc9c',
         role: UserRole.EMPLOYEE,
         hourlyRate: 30.00,
         bonusFromRevenue: 2.5,
@@ -186,8 +170,7 @@ const mockExtendedEmployees: ExtendedEmployee[] = [
         contractType: ContractType.MANDATE,
         emergencyContact: {
             name: 'Ewa Mazurek',
-            phone: '+48 210 987 654',
-            relation: 'Matka'
+            phone: '+48 210 987 654'
         },
         notes: 'Specjalizuje się w usługach mobilnych. Obsługuje klientów w całym regionie.'
     },
@@ -199,7 +182,6 @@ const mockExtendedEmployees: ExtendedEmployee[] = [
         position: 'Asystent Detailera',
         email: 'joanna.krawczyk@detailingpro.pl',
         phone: '+48 901 234 567',
-        color: '#8e44ad',
         role: UserRole.EMPLOYEE,
         hourlyRate: 20.00,
         bonusFromRevenue: 1.0,
@@ -209,8 +191,7 @@ const mockExtendedEmployees: ExtendedEmployee[] = [
         contractType: ContractType.EMPLOYMENT,
         emergencyContact: {
             name: 'Piotr Krawczyk',
-            phone: '+48 109 876 543',
-            relation: 'Mąż'
+            phone: '+48 109 876 543'
         },
         notes: 'Obecnie na urlopie macierzyńskim. Planowany powrót w marcu 2025.'
     },
@@ -222,7 +203,6 @@ const mockExtendedEmployees: ExtendedEmployee[] = [
         position: 'Kierownik Sprzedaży',
         email: 'adam.kowalczyk@detailingpro.pl',
         phone: '+48 012 345 678',
-        color: '#d35400',
         role: UserRole.MANAGER,
         hourlyRate: 42.00,
         bonusFromRevenue: 8.0,
@@ -232,8 +212,7 @@ const mockExtendedEmployees: ExtendedEmployee[] = [
         contractType: ContractType.EMPLOYMENT,
         emergencyContact: {
             name: 'Justyna Kowalczyk',
-            phone: '+48 098 765 432',
-            relation: 'Żona'
+            phone: '+48 098 765 432'
         },
         notes: 'Odpowiedzialny za sprzedaż i rozwój biznesu. Doskonałe wyniki w pozyskiwaniu nowych klientów.'
     }
@@ -367,7 +346,6 @@ export const createTestScenarios = () => {
                 position: ['Detailer', 'Senior Detailer', 'Asystent', 'Specjalista'][Math.floor(Math.random() * 4)],
                 email: `pracownik${i + 1}@detailingpro.pl`,
                 phone: `+48 ${Math.floor(Math.random() * 900) + 100} ${Math.floor(Math.random() * 900) + 100} ${Math.floor(Math.random() * 900) + 100}`,
-                color: ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6'][Math.floor(Math.random() * 5)],
                 role: [UserRole.EMPLOYEE, UserRole.MANAGER][Math.floor(Math.random() * 2)],
                 hourlyRate: Math.floor(Math.random() * 30) + 20,
                 bonusFromRevenue: Math.random() * 5,

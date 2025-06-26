@@ -25,7 +25,10 @@ import {
     FaUserTie,
     FaCircle,
     FaCheckCircle,
-    FaTimesCircle
+    FaTimesCircle,
+    FaPlus,
+    FaUserPlus,
+    FaDownload
 } from 'react-icons/fa';
 import { Employee, EmployeeDocument } from '../../types';
 import {
@@ -42,21 +45,12 @@ import {
     updateEmployee,
     deleteEmployee
 } from '../../api/mocks/employeesMocks';
-import {
-    fetchEmployeeDocuments,
-    addEmployeeDocument,
-    deleteEmployeeDocument
-} from '../../api/mocks/employeeDocumentsMocks';
 
 import { EmployeeFormModal } from './components/EmployeeFormModal';
-import { DocumentFormModal } from './components/DocumentFormModal';
-import { DocumentsDrawer } from './components/DocumentsDrawer';
-import { SalaryModal } from './components/SalaryModal';
-import { PermissionsModal } from './components/PermissionsModal';
 import { DocumentTemplatesModal } from './components/DocumentTemplatesModal';
 import { EmployeeDetailsModal } from './components/EmployeeDetailsModal';
 
-// Professional Brand Theme - zgodny z resztą aplikacji
+// Professional Brand Theme
 const brandTheme = {
     primary: 'var(--brand-primary, #1a365d)',
     primaryLight: 'var(--brand-primary-light, #2c5aa0)',
@@ -108,10 +102,7 @@ const brandTheme = {
     }
 };
 
-// Typy uprawnień użytkowników - export do użytku w innych komponentach
-export { UserRole, UserRoleLabels, type ExtendedEmployee } from '../../types/employeeTypes';
-
-// Funkcja pomocnicza do formatowania daty
+// Export formatDate function
 export const formatDate = (dateString: string): string => {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -120,11 +111,6 @@ export const formatDate = (dateString: string): string => {
         month: '2-digit',
         day: '2-digit'
     });
-};
-
-// Funkcja pomocnicza do obliczania stażu pracy
-const calculateWorkExperience = (hireDate: string): string => {
-    return EmployeeHelpers.formatTenure(hireDate);
 };
 
 type SortField = 'fullName' | 'position' | 'email' | 'hireDate' | 'role' | 'hourlyRate' | 'isActive';
@@ -144,10 +130,6 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
     // Modals state
     const [showModal, setShowModal] = useState(false);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
-    const [showDocumentsDrawer, setShowDocumentsDrawer] = useState(false);
-    const [showSalaryModal, setShowSalaryModal] = useState(false);
-    const [showPermissionsModal, setShowPermissionsModal] = useState(false);
-    const [showDocumentModal, setShowDocumentModal] = useState(false);
     const [showTemplatesModal, setShowTemplatesModal] = useState(false);
 
     const [editingEmployee, setEditingEmployee] = useState<ExtendedEmployee | null>(null);
@@ -160,12 +142,7 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
     const [roleFilter, setRoleFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
 
-    // Documents state
-    const [employeeDocuments, setEmployeeDocuments] = useState<EmployeeDocument[]>([]);
-    const [loadingDocuments, setLoadingDocuments] = useState(false);
-    const [documentError, setDocumentError] = useState<string | null>(null);
-
-    // Security check - MOCK: Always admin for demo
+    // Security check
     const isAdmin = true;
     const canViewAllEmployees = true;
     const canEditEmployees = true;
@@ -177,7 +154,7 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
         handleAddEmployee: handleAddEmployee
     }));
 
-    // Pobieranie listy pracowników
+    // Fetch employees
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -210,13 +187,11 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
             let aValue: any = a[sortField];
             let bValue: any = b[sortField];
 
-            // Handle date sorting
             if (sortField === 'hireDate') {
                 aValue = new Date(aValue).getTime();
                 bValue = new Date(bValue).getTime();
             }
 
-            // Handle string sorting
             if (typeof aValue === 'string' && typeof bValue === 'string') {
                 aValue = aValue.toLowerCase();
                 bValue = bValue.toLowerCase();
@@ -248,7 +223,7 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
         return <FaSort />;
     };
 
-    // Filtrowanie i sortowanie pracowników
+    // Filter and sort employees
     useEffect(() => {
         let result = [...employees];
 
@@ -302,7 +277,6 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
             position: '',
             email: '',
             phone: '',
-            color: '#1a365d',
             role: UserRole.EMPLOYEE,
             hourlyRate: 25.00,
             bonusFromRevenue: 0,
@@ -393,18 +367,36 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
 
     return (
         <ContentContainer>
-            {/* Header Actions */}
-            <HeaderActions>
-                <ActionButton
-                    onClick={() => setShowTemplatesModal(true)}
-                    $variant="secondary"
-                >
-                    <FaFileDownload />
-                    Szablony dokumentów
-                </ActionButton>
-            </HeaderActions>
+            {/* Professional Header */}
+            <PageHeader>
+                <HeaderContent>
+                    <HeaderTitle>
+                        <TitleRow>
+                            <h1>Zespół</h1>
+                            <TeamCounter>{filteredEmployees.length}</TeamCounter>
+                        </TitleRow>
+                        <HeaderSubtitle>Zarządzaj pracownikami i ich uprawnieniami w systemie</HeaderSubtitle>
+                    </HeaderTitle>
+                    <HeaderActions>
+                        <ActionButton
+                            onClick={() => setShowTemplatesModal(true)}
+                            $variant="secondary"
+                        >
+                            <FaFileDownload />
+                            Szablony dokumentów
+                        </ActionButton>
+                        <ActionButton
+                            onClick={handleAddEmployee}
+                            $variant="primary"
+                        >
+                            <FaUserPlus />
+                            Dodaj pracownika
+                        </ActionButton>
+                    </HeaderActions>
+                </HeaderContent>
+            </PageHeader>
 
-            {/* Filters */}
+            {/* Enhanced Search and Filters */}
             <FiltersContainer>
                 <QuickSearchSection>
                     <SearchWrapper>
@@ -413,7 +405,7 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                         </SearchIcon>
                         <SearchInput
                             type="text"
-                            placeholder="Szybkie wyszukiwanie pracowników..."
+                            placeholder="Wyszukaj pracownika po nazwisku, emailu, telefonie lub stanowisku..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
@@ -424,14 +416,16 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                         )}
                     </SearchWrapper>
 
-                    <AdvancedToggle
-                        onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                        $expanded={showAdvancedFilters}
-                    >
-                        <FaFilter />
-                        Filtry zaawansowane
-                        {showAdvancedFilters ? <FaChevronUp /> : <FaChevronDown />}
-                    </AdvancedToggle>
+                    <FilterActions>
+                        <AdvancedToggle
+                            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                            $expanded={showAdvancedFilters}
+                        >
+                            <FaFilter />
+                            Filtry zaawansowane
+                            {showAdvancedFilters ? <FaChevronUp /> : <FaChevronDown />}
+                        </AdvancedToggle>
+                    </FilterActions>
                 </QuickSearchSection>
 
                 {showAdvancedFilters && (
@@ -453,7 +447,7 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                             {canViewAllEmployees && (
                                 <>
                                     <FormGroup>
-                                        <Label>Rola</Label>
+                                        <Label>Rola w systemie</Label>
                                         <Select
                                             value={roleFilter}
                                             onChange={(e) => setRoleFilter(e.target.value)}
@@ -466,7 +460,7 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                                     </FormGroup>
 
                                     <FormGroup>
-                                        <Label>Status</Label>
+                                        <Label>Status konta</Label>
                                         <Select
                                             value={statusFilter}
                                             onChange={(e) => setStatusFilter(e.target.value)}
@@ -481,21 +475,24 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                             )}
                         </FiltersGrid>
 
-                        <FiltersActions>
-                            <ClearButton onClick={clearAllFilters}>
-                                <FaTimes />
-                                Wyczyść wszystkie
-                            </ClearButton>
-                        </FiltersActions>
+                        <FiltersActionsRow>
+                            <ResultsInfo>
+                                Wyświetlane: <strong>{filteredEmployees.length}</strong> z {employees.length} pracowników
+                                {hasActiveFilters() && <FilterIndicator>• Aktywne filtry</FilterIndicator>}
+                            </ResultsInfo>
+
+                            {hasActiveFilters() && (
+                                <ClearButton onClick={clearAllFilters}>
+                                    <FaTimes />
+                                    Wyczyść filtry
+                                </ClearButton>
+                            )}
+                        </FiltersActionsRow>
                     </AdvancedFiltersSection>
                 )}
-
-                <ResultsCounter>
-                    Znaleziono: <strong>{filteredEmployees.length}</strong> z {employees.length} pracowników
-                </ResultsCounter>
             </FiltersContainer>
 
-            {/* Main Table */}
+            {/* Main Table Content */}
             {loading ? (
                 <LoadingContainer>
                     <LoadingSpinner />
@@ -513,51 +510,51 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                             <TableHead>
                                 <TableRow>
                                     <SortableHeaderCell onClick={() => handleSort('fullName')}>
-                                        <HeaderContent>
+                                        <HeaderCellContent>
                                             Pracownik
                                             <SortIcon>{getSortIcon('fullName')}</SortIcon>
-                                        </HeaderContent>
+                                        </HeaderCellContent>
                                     </SortableHeaderCell>
 
                                     <SortableHeaderCell onClick={() => handleSort('position')}>
-                                        <HeaderContent>
+                                        <HeaderCellContent>
                                             Stanowisko
                                             <SortIcon>{getSortIcon('position')}</SortIcon>
-                                        </HeaderContent>
+                                        </HeaderCellContent>
                                     </SortableHeaderCell>
 
                                     <TableHeaderCell>Kontakt</TableHeaderCell>
 
                                     <SortableHeaderCell onClick={() => handleSort('hireDate')}>
-                                        <HeaderContent>
+                                        <HeaderCellContent>
                                             Zatrudnienie
                                             <SortIcon>{getSortIcon('hireDate')}</SortIcon>
-                                        </HeaderContent>
+                                        </HeaderCellContent>
                                     </SortableHeaderCell>
 
                                     {canViewAllEmployees && (
                                         <SortableHeaderCell onClick={() => handleSort('role')}>
-                                            <HeaderContent>
+                                            <HeaderCellContent>
                                                 Rola
                                                 <SortIcon>{getSortIcon('role')}</SortIcon>
-                                            </HeaderContent>
+                                            </HeaderCellContent>
                                         </SortableHeaderCell>
                                     )}
 
                                     {canManageSalaries && (
                                         <SortableHeaderCell onClick={() => handleSort('hourlyRate')}>
-                                            <HeaderContent>
-                                                Stawka
+                                            <HeaderCellContent>
+                                                Wynagrodzenie
                                                 <SortIcon>{getSortIcon('hourlyRate')}</SortIcon>
-                                            </HeaderContent>
+                                            </HeaderCellContent>
                                         </SortableHeaderCell>
                                     )}
 
                                     <SortableHeaderCell onClick={() => handleSort('isActive')}>
-                                        <HeaderContent>
+                                        <HeaderCellContent>
                                             Status
                                             <SortIcon>{getSortIcon('isActive')}</SortIcon>
-                                        </HeaderContent>
+                                        </HeaderCellContent>
                                     </SortableHeaderCell>
 
                                     <TableHeaderCell>Akcje</TableHeaderCell>
@@ -586,9 +583,10 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                                         <TableCell>
                                             <PositionInfo>
                                                 <PositionTitle>{employee.position}</PositionTitle>
-                                                <WorkHours>
+                                                <WorkInfo>
+                                                    <FaClock />
                                                     {employee.workingHoursPerWeek || 40}h/tydzień
-                                                </WorkHours>
+                                                </WorkInfo>
                                             </PositionInfo>
                                         </TableCell>
 
@@ -596,11 +594,11 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                                             <ContactInfo>
                                                 <ContactItem>
                                                     <FaPhone />
-                                                    {employee.phone}
+                                                    <span>{employee.phone}</span>
                                                 </ContactItem>
                                                 <ContactItem>
                                                     <FaCalendarAlt />
-                                                    {EmployeeHelpers.calculateAge(employee.birthDate)} lat
+                                                    <span>{EmployeeHelpers.calculateAge(employee.birthDate)} lat</span>
                                                 </ContactItem>
                                             </ContactInfo>
                                         </TableCell>
@@ -608,7 +606,10 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                                         <TableCell>
                                             <EmploymentInfo>
                                                 <HireDate>{formatDate(employee.hireDate)}</HireDate>
-                                                <Tenure>{calculateWorkExperience(employee.hireDate)}</Tenure>
+                                                <Tenure>
+                                                    <FaUserTie />
+                                                    {EmployeeHelpers.formatTenure(employee.hireDate)}
+                                                </Tenure>
                                             </EmploymentInfo>
                                         </TableCell>
 
@@ -624,7 +625,10 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                                         {canManageSalaries && (
                                             <TableCell>
                                                 <SalaryInfo>
-                                                    <SalaryAmount>{employee.hourlyRate || 0} zł/h</SalaryAmount>
+                                                    <SalaryAmount>
+                                                        <FaMoneyBillWave />
+                                                        {employee.hourlyRate || 0} zł/h
+                                                    </SalaryAmount>
                                                     {employee.bonusFromRevenue > 0 && (
                                                         <BonusInfo>+{employee.bonusFromRevenue}% bonus</BonusInfo>
                                                     )}
@@ -652,42 +656,23 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                                             <ActionsGroup onClick={(e) => e.stopPropagation()}>
                                                 <ActionIconButton
                                                     onClick={() => handleViewEmployee(employee)}
-                                                    title="Szczegóły"
+                                                    title="Szczegóły pracownika"
                                                 >
                                                     <FaEye />
                                                 </ActionIconButton>
 
                                                 <ActionIconButton
                                                     onClick={() => handleEditEmployee(employee)}
-                                                    title="Edytuj"
+                                                    title="Edytuj pracownika"
                                                     disabled={!canEditEmployees && employee.id !== user?.userId}
                                                 >
                                                     <FaEdit />
                                                 </ActionIconButton>
 
-                                                <ActionIconButton
-                                                    onClick={async () => {
-                                                        setSelectedEmployee(employee);
-                                                        setShowDocumentsDrawer(true);
-                                                        try {
-                                                            setLoadingDocuments(true);
-                                                            const documents = await fetchEmployeeDocuments(employee.id);
-                                                            setEmployeeDocuments(documents);
-                                                        } catch (err) {
-                                                            setDocumentError('Nie udało się pobrać dokumentów');
-                                                        } finally {
-                                                            setLoadingDocuments(false);
-                                                        }
-                                                    }}
-                                                    title="Dokumenty"
-                                                >
-                                                    <FaFileAlt />
-                                                </ActionIconButton>
-
                                                 {canEditEmployees && (
                                                     <ActionIconButton
                                                         onClick={() => handleDeleteEmployee(employee.id)}
-                                                        title="Usuń"
+                                                        title="Usuń pracownika"
                                                         $variant="danger"
                                                     >
                                                         <FaTrash />
@@ -707,14 +692,22 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                                 <FaUser />
                             </EmptyStateIcon>
                             <EmptyStateTitle>
-                                {hasActiveFilters() ? 'Brak wyników' : 'Brak pracowników'}
+                                {hasActiveFilters() ? 'Brak wyników wyszukiwania' : 'Brak pracowników'}
                             </EmptyStateTitle>
                             <EmptyStateDescription>
                                 {hasActiveFilters()
-                                    ? 'Nie znaleziono pracowników spełniających kryteria wyszukiwania'
-                                    : 'Nie masz jeszcze żadnych pracowników w systemie'
+                                    ? 'Nie znaleziono pracowników spełniających podane kryteria. Spróbuj zmienić filtry wyszukiwania.'
+                                    : 'Nie masz jeszcze żadnych pracowników w systemie. Dodaj pierwszego pracownika, aby rozpocząć zarządzanie zespołem.'
                                 }
                             </EmptyStateDescription>
+                            {!hasActiveFilters() && (
+                                <EmptyStateAction>
+                                    <ActionButton onClick={handleAddEmployee} $variant="primary">
+                                        <FaUserPlus />
+                                        Dodaj pierwszego pracownika
+                                    </ActionButton>
+                                </EmptyStateAction>
+                            )}
                         </EmptyStateContainer>
                     )}
                 </TableContainer>
@@ -729,6 +722,7 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                         setShowModal(false);
                         setEditingEmployee(null);
                     }}
+                    canManageRoles={canManagePermissions}
                 />
             )}
 
@@ -746,84 +740,6 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                 />
             )}
 
-            {showDocumentsDrawer && selectedEmployee && (
-                <DocumentsDrawer
-                    isOpen={showDocumentsDrawer}
-                    employee={selectedEmployee}
-                    documents={employeeDocuments}
-                    loading={loadingDocuments}
-                    error={documentError}
-                    onClose={() => {
-                        setShowDocumentsDrawer(false);
-                        setSelectedEmployee(null);
-                        setEmployeeDocuments([]);
-                    }}
-                    onAddDocument={() => setShowDocumentModal(true)}
-                    onDeleteDocument={async (documentId: string) => {
-                        if (window.confirm('Czy na pewno chcesz usunąć ten dokument?')) {
-                            try {
-                                const result = await deleteEmployeeDocument(documentId);
-                                if (result) {
-                                    setEmployeeDocuments(employeeDocuments.filter(doc => doc.id !== documentId));
-                                }
-                            } catch (err) {
-                                setDocumentError('Nie udało się usunąć dokumentu');
-                            }
-                        }
-                    }}
-                />
-            )}
-
-            {showDocumentModal && selectedEmployee && (
-                <DocumentFormModal
-                    employeeId={selectedEmployee.id}
-                    onSave={async (document: Omit<EmployeeDocument, 'id'>) => {
-                        try {
-                            const savedDocument = await addEmployeeDocument(document);
-                            setEmployeeDocuments([...employeeDocuments, savedDocument]);
-                            setShowDocumentModal(false);
-                        } catch (err) {
-                            setDocumentError('Nie udało się zapisać dokumentu');
-                        }
-                    }}
-                    onCancel={() => setShowDocumentModal(false)}
-                />
-            )}
-
-            {showSalaryModal && selectedEmployee && (
-                <SalaryModal
-                    employee={selectedEmployee}
-                    onSave={(updatedEmployee: ExtendedEmployee) => {
-                        setEmployees(employees.map(emp =>
-                            emp.id === updatedEmployee.id ? updatedEmployee : emp
-                        ));
-                        setShowSalaryModal(false);
-                        setSelectedEmployee(null);
-                    }}
-                    onCancel={() => {
-                        setShowSalaryModal(false);
-                        setSelectedEmployee(null);
-                    }}
-                />
-            )}
-
-            {showPermissionsModal && selectedEmployee && (
-                <PermissionsModal
-                    employee={selectedEmployee}
-                    onSave={(updatedEmployee: ExtendedEmployee) => {
-                        setEmployees(employees.map(emp =>
-                            emp.id === updatedEmployee.id ? updatedEmployee : emp
-                        ));
-                        setShowPermissionsModal(false);
-                        setSelectedEmployee(null);
-                    }}
-                    onCancel={() => {
-                        setShowPermissionsModal(false);
-                        setSelectedEmployee(null);
-                    }}
-                />
-            )}
-
             {showTemplatesModal && (
                 <DocumentTemplatesModal
                     onClose={() => setShowTemplatesModal(false)}
@@ -833,7 +749,7 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
     );
 });
 
-// Styled Components - Modern Professional Design
+// Styled Components
 const ContentContainer = styled.div`
     flex: 1;
     max-width: 1600px;
@@ -855,14 +771,65 @@ const ContentContainer = styled.div`
     }
 `;
 
+const PageHeader = styled.div`
+    margin-bottom: ${brandTheme.spacing.md};
+`;
+
+const HeaderContent = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: ${brandTheme.spacing.lg};
+
+    @media (max-width: 768px) {
+        flex-direction: column;
+        gap: ${brandTheme.spacing.md};
+    }
+`;
+
+const HeaderTitle = styled.div`
+    flex: 1;
+`;
+
+const TitleRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.md};
+    margin-bottom: ${brandTheme.spacing.xs};
+
+    h1 {
+        font-size: 32px;
+        font-weight: 700;
+        color: ${brandTheme.text.primary};
+        margin: 0;
+        letter-spacing: -0.025em;
+    }
+`;
+
+const TeamCounter = styled.div`
+    background: ${brandTheme.primaryGhost};
+    color: ${brandTheme.primary};
+    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.md};
+    border-radius: ${brandTheme.radius.lg};
+    font-size: 16px;
+    font-weight: 700;
+    border: 1px solid ${brandTheme.primary}20;
+`;
+
+const HeaderSubtitle = styled.div`
+    font-size: 16px;
+    color: ${brandTheme.text.secondary};
+    font-weight: 500;
+    line-height: 1.5;
+`;
+
 const HeaderActions = styled.div`
     display: flex;
-    justify-content: flex-end;
     gap: ${brandTheme.spacing.sm};
 
     @media (max-width: 768px) {
-        justify-content: stretch;
-        
+        width: 100%;
+
         > * {
             flex: 1;
         }
@@ -884,9 +851,9 @@ const ActionButton = styled.button<{ $variant: 'primary' | 'secondary' }>`
     min-height: 44px;
 
     ${({ $variant }) => {
-    switch ($variant) {
-        case 'primary':
-            return `
+        switch ($variant) {
+            case 'primary':
+                return `
                     background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
                     color: white;
                     box-shadow: ${brandTheme.shadow.sm};
@@ -896,8 +863,8 @@ const ActionButton = styled.button<{ $variant: 'primary' | 'secondary' }>`
                         box-shadow: ${brandTheme.shadow.md};
                     }
                 `;
-        case 'secondary':
-            return `
+            case 'secondary':
+                return `
                     background: ${brandTheme.surface};
                     color: ${brandTheme.text.secondary};
                     border-color: ${brandTheme.border};
@@ -910,14 +877,11 @@ const ActionButton = styled.button<{ $variant: 'primary' | 'secondary' }>`
                         box-shadow: ${brandTheme.shadow.sm};
                     }
                 `;
-    }
-}}
-
-    @media (max-width: 768px) {
-        justify-content: center;
-    }
+        }
+    }}
 `;
 
+// Filters Section
 const FiltersContainer = styled.div`
     background: ${brandTheme.surface};
     border-radius: ${brandTheme.radius.xl};
@@ -931,7 +895,6 @@ const QuickSearchSection = styled.div`
     display: flex;
     align-items: center;
     gap: ${brandTheme.spacing.md};
-    border-bottom: 1px solid ${brandTheme.border};
 
     @media (max-width: 768px) {
         flex-direction: column;
@@ -942,7 +905,7 @@ const QuickSearchSection = styled.div`
 const SearchWrapper = styled.div`
     position: relative;
     flex: 1;
-    max-width: 500px;
+    max-width: 600px;
 
     @media (max-width: 768px) {
         max-width: none;
@@ -1007,6 +970,12 @@ const ClearSearchButton = styled.button`
     }
 `;
 
+const FilterActions = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+`;
+
 const AdvancedToggle = styled.button<{ $expanded: boolean }>`
     display: flex;
     align-items: center;
@@ -1031,6 +1000,7 @@ const AdvancedToggle = styled.button<{ $expanded: boolean }>`
 const AdvancedFiltersSection = styled.div`
     padding: ${brandTheme.spacing.lg};
     background: ${brandTheme.surfaceAlt};
+    border-top: 1px solid ${brandTheme.border};
 `;
 
 const FiltersGrid = styled.div`
@@ -1075,12 +1045,36 @@ const Select = styled.select`
     }
 `;
 
-const FiltersActions = styled.div`
+const FiltersActionsRow = styled.div`
     display: flex;
-    justify-content: flex-end;
-    gap: ${brandTheme.spacing.sm};
+    justify-content: space-between;
+    align-items: center;
     padding-top: ${brandTheme.spacing.md};
     border-top: 1px solid ${brandTheme.border};
+    gap: ${brandTheme.spacing.md};
+
+    @media (max-width: 768px) {
+        flex-direction: column;
+        align-items: stretch;
+    }
+`;
+
+const ResultsInfo = styled.div`
+    color: ${brandTheme.primary};
+    font-size: 14px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+
+    strong {
+        font-weight: 700;
+    }
+`;
+
+const FilterIndicator = styled.span`
+    color: ${brandTheme.status.warning};
+    font-weight: 600;
 `;
 
 const ClearButton = styled.button`
@@ -1101,20 +1095,6 @@ const ClearButton = styled.button`
         border-color: ${brandTheme.status.error};
         color: ${brandTheme.status.error};
         background: ${brandTheme.status.errorLight};
-    }
-`;
-
-const ResultsCounter = styled.div`
-    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-    background: ${brandTheme.primaryGhost};
-    color: ${brandTheme.primary};
-    font-size: 14px;
-    font-weight: 500;
-    text-align: center;
-    border-top: 1px solid ${brandTheme.border};
-
-    strong {
-        font-weight: 700;
     }
 `;
 
@@ -1173,6 +1153,7 @@ const ErrorText = styled.div`
     flex: 1;
 `;
 
+// Table Components
 const TableContainer = styled.div`
     background: ${brandTheme.surface};
     border-radius: ${brandTheme.radius.xl};
@@ -1262,7 +1243,7 @@ const SortableHeaderCell = styled(TableHeaderCell)`
     }
 `;
 
-const HeaderContent = styled.div`
+const HeaderCellContent = styled.div`
     display: flex;
     align-items: center;
     gap: ${brandTheme.spacing.xs};
@@ -1299,10 +1280,10 @@ const EmployeeInfo = styled.div`
     min-width: 220px;
 `;
 
-const EmployeeAvatar = styled.div<{ $color: string }>`
+const EmployeeAvatar = styled.div`
     width: 44px;
     height: 44px;
-    background: ${props => props.$color};
+    background: ${brandTheme.primary};
     color: white;
     border-radius: 50%;
     display: flex;
@@ -1342,13 +1323,20 @@ const PositionTitle = styled.div`
     font-weight: 600;
     color: ${brandTheme.text.primary};
     font-size: 14px;
-    margin-bottom: 2px;
+    margin-bottom: 4px;
 `;
 
-const WorkHours = styled.div`
+const WorkInfo = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
     font-size: 12px;
     color: ${brandTheme.text.muted};
     font-weight: 500;
+
+    svg {
+        font-size: 10px;
+    }
 `;
 
 const ContactInfo = styled.div`
@@ -1370,6 +1358,13 @@ const ContactItem = styled.div`
         font-size: 11px;
         color: ${brandTheme.text.muted};
         width: 12px;
+        flex-shrink: 0;
+    }
+
+    span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 `;
 
@@ -1381,13 +1376,20 @@ const HireDate = styled.div`
     font-weight: 600;
     color: ${brandTheme.text.primary};
     font-size: 14px;
-    margin-bottom: 2px;
+    margin-bottom: 4px;
 `;
 
 const Tenure = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
     font-size: 12px;
     color: ${brandTheme.text.muted};
     font-weight: 500;
+
+    svg {
+        font-size: 10px;
+    }
 `;
 
 const RoleBadge = styled.div<{ $role: UserRole }>`
@@ -1422,14 +1424,22 @@ const RoleBadge = styled.div<{ $role: UserRole }>`
 `;
 
 const SalaryInfo = styled.div`
-    min-width: 120px;
+    min-width: 140px;
 `;
 
 const SalaryAmount = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
     font-weight: 600;
     color: ${brandTheme.text.primary};
     font-size: 14px;
     margin-bottom: 2px;
+
+    svg {
+        font-size: 12px;
+        color: ${brandTheme.status.success};
+    }
 `;
 
 const BonusInfo = styled.div`
@@ -1461,7 +1471,7 @@ const ActionsGroup = styled.div`
     display: flex;
     gap: ${brandTheme.spacing.xs};
     align-items: center;
-    min-width: 140px;
+    min-width: 110px;
 `;
 
 const ActionIconButton = styled.button<{ $variant?: 'danger' }>`
@@ -1520,29 +1530,30 @@ const EmptyStateContainer = styled.div`
     justify-content: center;
     padding: ${brandTheme.spacing.xxl};
     text-align: center;
-    min-height: 300px;
-    background: ${brandTheme.surfaceAlt};
+    min-height: 400px;
+    background: ${brandTheme.surface};
+    border-radius: ${brandTheme.radius.xl};
+    border: 2px dashed ${brandTheme.border};
     margin: ${brandTheme.spacing.lg};
-    border-radius: ${brandTheme.radius.lg};
 `;
 
 const EmptyStateIcon = styled.div`
-    width: 64px;
-    height: 64px;
-    background: ${brandTheme.surface};
+    width: 80px;
+    height: 80px;
+    background: ${brandTheme.surfaceAlt};
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
+    font-size: 32px;
     color: ${brandTheme.text.muted};
     margin-bottom: ${brandTheme.spacing.lg};
     box-shadow: ${brandTheme.shadow.xs};
 `;
 
 const EmptyStateTitle = styled.h3`
-    font-size: 20px;
-    font-weight: 600;
+    font-size: 24px;
+    font-weight: 700;
     color: ${brandTheme.text.primary};
     margin: 0 0 ${brandTheme.spacing.sm} 0;
     letter-spacing: -0.025em;
@@ -1551,8 +1562,13 @@ const EmptyStateTitle = styled.h3`
 const EmptyStateDescription = styled.p`
     font-size: 16px;
     color: ${brandTheme.text.secondary};
-    margin: 0;
+    margin: 0 0 ${brandTheme.spacing.lg} 0;
     line-height: 1.5;
+    max-width: 500px;
+`;
+
+const EmptyStateAction = styled.div`
+    margin-top: ${brandTheme.spacing.md};
 `;
 
 export default EmployeesPage;

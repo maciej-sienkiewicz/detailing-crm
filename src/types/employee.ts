@@ -10,7 +10,6 @@ export interface Employee {
     position: string;
     email: string;
     phone: string;
-    color: string; // Kolor przypisany pracownikowi (do wizualizacji)
 }
 
 // Definicja typu dla dokumentu pracownika

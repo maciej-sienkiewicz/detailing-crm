@@ -1,5 +1,5 @@
 // src/types/employeeTypes.ts
-// Rozszerzone typy dla modułu pracowników
+// Rozszerzone typy dla modułu pracowników - zaktualizowane
 
 import { Employee, EmployeeDocument } from './employee';
 
@@ -41,7 +41,6 @@ export interface ExtendedEmployee extends Employee {
     emergencyContact?: {
         name: string;
         phone: string;
-        relation: string;
     };
     permissions?: string[]; // Lista uprawnień użytkownika
     notes?: string; // Dodatkowe notatki o pracowniku
@@ -64,7 +63,6 @@ export interface EmployeeFormData {
     position: string;
     email: string;
     phone: string;
-    color: string;
     role: UserRole;
     hourlyRate?: number;
     bonusFromRevenue?: number;
@@ -74,7 +72,6 @@ export interface EmployeeFormData {
     emergencyContact?: {
         name: string;
         phone: string;
-        relation: string;
     };
     notes?: string;
 }
@@ -252,6 +249,25 @@ export const EmployeeHelpers = {
             .map(name => name.charAt(0).toUpperCase())
             .join('')
             .substring(0, 2);
+    },
+
+    /**
+     * Generuje deterministyczny kolor na podstawie imienia
+     */
+    generateColor: (fullName: string): string => {
+        const colors = [
+            '#1a365d', '#2c5aa0', '#0f2027', '#059669', '#d97706',
+            '#dc2626', '#0ea5e9', '#7c3aed', '#059669', '#be123c',
+            '#0369a1', '#7c2d12', '#166534', '#92400e', '#b91c1c'
+        ];
+
+        // Prosty hash na podstawie imienia
+        let hash = 0;
+        for (let i = 0; i < fullName.length; i++) {
+            hash = fullName.charCodeAt(i) + ((hash << 5) - hash);
+        }
+
+        return colors[Math.abs(hash) % colors.length];
     },
 
     /**
