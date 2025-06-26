@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+// src/pages/Settings/components/EmployeeDetailsModal.tsx - Updated with API Integration
+import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import {
     FaUser,
@@ -18,14 +19,12 @@ import {
     FaTrash,
     FaDownload,
     FaEye,
-    FaHistory
+    FaHistory,
+    FaSpinner,
+    FaExclamationTriangle, FaAirFreshener,
 } from 'react-icons/fa';
 import { EmployeeDocument } from '../../../types';
-import {
-    fetchEmployeeDocuments,
-    addEmployeeDocument,
-    deleteEmployeeDocument
-} from '../../../api/mocks/employeeDocumentsMocks';
+import { ExtendedEmployee, EmployeeHelpers, UserRoleLabels } from '../../../types/employeeTypes';
 import { DocumentFormModal } from './DocumentFormModal';
 import {
     ModalOverlay,
@@ -36,7 +35,6 @@ import {
     ButtonGroup,
     Button
 } from '../styles/ModalStyles';
-import {EmployeeHelpers, UserRoleLabels} from "../../../types/employeeTypes";
 
 // Brand Theme
 const brandTheme = {
@@ -60,6 +58,7 @@ const brandTheme = {
     borderLight: '#f1f5f9',
     divider: '#e5e7eb',
     radius: {
+        sm: '4px',
         md: '8px',
         lg: '12px'
     },
@@ -77,6 +76,12 @@ interface EmployeeDetailsModalProps {
     employee: ExtendedEmployee;
     onClose: () => void;
     onEdit: () => void;
+    documents: EmployeeDocument[];
+    isLoadingDocuments: boolean;
+    documentError: string | null;
+    onFetchDocuments: (employeeId: string) => Promise<void>;
+    onUploadDocument: (employeeId: string, file: File, name: string, type: string) => Promise<EmployeeDocument | null>;
+    onDeleteDocument: (documentId: string) => Promise<boolean>;
 }
 
 type TabType = 'overview' | 'employment' | 'documents' | 'permissions';
@@ -84,46 +89,64 @@ type TabType = 'overview' | 'employment' | 'documents' | 'permissions';
 export const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
                                                                               employee,
                                                                               onClose,
-                                                                              onEdit
+                                                                              onEdit,
+                                                                              documents,
+                                                                              isLoadingDocuments,
+                                                                              documentError,
+                                                                              onFetchDocuments,
+                                                                              onUploadDocument,
+                                                                              onDeleteDocument
                                                                           }) => {
     const [activeTab, setActiveTab] = useState<TabType>('overview');
-    const [documents, setDocuments] = useState<EmployeeDocument[]>([]);
-    const [loadingDocuments, setLoadingDocuments] = useState(false);
     const [showDocumentModal, setShowDocumentModal] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
-    // Ładowanie dokumentów
+    // Fetch documents when switching to documents tab
     useEffect(() => {
-        if (activeTab === 'documents') {
-            loadDocuments();
+        if (activeTab === 'documents' && documents.length === 0 && !isLoadingDocuments && !documentError) {
+            onFetchDocuments(employee.id);
         }
-    }, [activeTab, employee.id]);
+    }, [activeTab, employee.id, documents.length, isLoadingDocuments, documentError, onFetchDocuments]);
 
-    const loadDocuments = async () => {
-        try {
-            setLoadingDocuments(true);
-            const employeeDocuments = await fetchEmployeeDocuments(employee.id);
-            setDocuments(employeeDocuments);
-        } catch (error) {
-            console.error('Error loading documents:', error);
-        } finally {
-            setLoadingDocuments(false);
-        }
-    };
-
-    const handleDeleteDocument = async (documentId: string) => {
+    // Handle document operations
+    const handleDeleteDocument = useCallback(async (documentId: string) => {
         if (window.confirm('Czy na pewno chcesz usunąć ten dokument?')) {
-            try {
-                const result = await deleteEmployeeDocument(documentId);
-                if (result) {
-                    setDocuments(documents.filter(doc => doc.id !== documentId));
-                }
-            } catch (error) {
-                console.error('Error deleting document:', error);
+            const success = await onDeleteDocument(documentId);
+            if (!success) {
+                alert('Nie udało się usunąć dokumentu. Spróbuj ponownie.');
             }
         }
-    };
+    }, [onDeleteDocument]);
 
-    // Formatowanie daty
+    const handleRefreshDocuments = useCallback(async () => {
+        setIsRefreshing(true);
+        try {
+            await onFetchDocuments(employee.id);
+        } finally {
+            setIsRefreshing(false);
+        }
+    }, [employee.id, onFetchDocuments]);
+
+    const handleDocumentUpload = useCallback(async (documentData: any) => {
+        try {
+            const result = await onUploadDocument(
+                employee.id,
+                documentData.file,
+                documentData.name,
+                documentData.type
+            );
+
+            if (result) {
+                setShowDocumentModal(false);
+            } else {
+                alert('Nie udało się przesłać dokumentu. Spróbuj ponownie.');
+            }
+        } catch (error) {
+            console.error('Error uploading document:', error);
+            alert('Wystąpił błąd podczas przesyłania dokumentu.');
+        }
+    }, [employee.id, onUploadDocument]);
+
     const formatDate = (dateString: string): string => {
         if (!dateString) return 'Nie podano';
         const date = new Date(dateString);
@@ -134,14 +157,12 @@ export const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
         });
     };
 
-    // Obliczanie miesięcznego wynagrodzenia
     const calculateMonthlySalary = (): string => {
         if (!employee.hourlyRate || !employee.workingHoursPerWeek) return 'Nie ustalono';
         const monthly = employee.hourlyRate * employee.workingHoursPerWeek * 4.33;
         return `${monthly.toFixed(2)} zł`;
     };
 
-    // Formatowanie ostatniego logowania
     const formatLastLogin = (lastLoginDate?: string): string => {
         if (!lastLoginDate) return 'Nigdy';
 
@@ -164,7 +185,13 @@ export const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
     const tabs = [
         { id: 'overview', label: 'Przegląd', icon: FaUser },
         { id: 'employment', label: 'Zatrudnienie', icon: FaBriefcase },
-        { id: 'documents', label: 'Dokumenty', icon: FaFileAlt, badge: documents.length || undefined },
+        {
+            id: 'documents',
+            label: 'Dokumenty',
+            icon: FaFileAlt,
+            badge: documents.length || undefined,
+            hasError: !!documentError
+        },
         { id: 'permissions', label: 'Uprawnienia', icon: FaShieldAlt }
     ];
 
@@ -201,11 +228,13 @@ export const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
                             <TabButton
                                 key={tab.id}
                                 $active={activeTab === tab.id}
+                                $hasError={tab.hasError}
                                 onClick={() => setActiveTab(tab.id as TabType)}
                             >
                                 <Icon />
                                 {tab.label}
                                 {tab.badge && <TabBadge>{tab.badge}</TabBadge>}
+                                {tab.hasError && <ErrorIndicator>!</ErrorIndicator>}
                             </TabButton>
                         );
                     })}
@@ -396,7 +425,7 @@ export const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
                                     <SalaryItem>
                                         <SalaryLabel>Bonus od obrotu:</SalaryLabel>
                                         <SalaryValue>
-                                            {employee.bonusFromRevenue > 0
+                                            {employee.bonusFromRevenue && employee.bonusFromRevenue > 0
                                                 ? `${employee.bonusFromRevenue}% miesięcznego obrotu`
                                                 : 'Brak bonusu'
                                             }
@@ -411,21 +440,49 @@ export const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
                         <TabContent>
                             <DocumentsHeader>
                                 <SectionTitle>Dokumenty pracownika</SectionTitle>
-                                <AddDocumentButton onClick={() => setShowDocumentModal(true)}>
-                                    <FaPlus />
-                                    Dodaj dokument
-                                </AddDocumentButton>
+                                <DocumentsActions>
+                                    <RefreshButton
+                                        onClick={handleRefreshDocuments}
+                                        disabled={isLoadingDocuments || isRefreshing}
+                                        title="Odśwież listę dokumentów"
+                                    >
+                                        <FaAirFreshener className={isRefreshing ? 'spinning' : ''} />
+                                    </RefreshButton>
+                                    <AddDocumentButton onClick={() => setShowDocumentModal(true)}>
+                                        <FaPlus />
+                                        Dodaj dokument
+                                    </AddDocumentButton>
+                                </DocumentsActions>
                             </DocumentsHeader>
 
-                            {loadingDocuments ? (
-                                <LoadingState>Ładowanie dokumentów...</LoadingState>
-                            ) : documents.length === 0 ? (
+                            {documentError && (
+                                <ErrorContainer>
+                                    <ErrorIcon><FaExclamationTriangle /></ErrorIcon>
+                                    <ErrorText>{documentError}</ErrorText>
+                                    <RetryButton onClick={handleRefreshDocuments}>
+                                        Spróbuj ponownie
+                                    </RetryButton>
+                                </ErrorContainer>
+                            )}
+
+                            {isLoadingDocuments ? (
+                                <LoadingState>
+                                    <LoadingSpinner><FaSpinner /></LoadingSpinner>
+                                    <LoadingText>Ładowanie dokumentów...</LoadingText>
+                                </LoadingState>
+                            ) : documents.length === 0 && !documentError ? (
                                 <EmptyDocuments>
                                     <EmptyIcon><FaFileAlt /></EmptyIcon>
                                     <EmptyTitle>Brak dokumentów</EmptyTitle>
                                     <EmptyDescription>
                                         Ten pracownik nie ma jeszcze żadnych dokumentów w systemie
                                     </EmptyDescription>
+                                    <EmptyActionContainer>
+                                        <AddDocumentButton onClick={() => setShowDocumentModal(true)}>
+                                            <FaPlus />
+                                            Dodaj pierwszy dokument
+                                        </AddDocumentButton>
+                                    </EmptyActionContainer>
                                 </EmptyDocuments>
                             ) : (
                                 <DocumentsList>
@@ -499,7 +556,7 @@ export const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
                                 <PermissionsList>
                                     {employee.role === 'ADMIN' && (
                                         <>
-                                            <PermissionItem><FaSettings /> Administracja systemu</PermissionItem>
+                                            <PermissionItem><FaShieldAlt /> Administracja systemu</PermissionItem>
                                             <PermissionItem><FaUser /> Zarządzanie wszystkimi pracownikami</PermissionItem>
                                             <PermissionItem><FaMoneyBillWave /> Pełny dostęp do finansów</PermissionItem>
                                             <PermissionItem><FaFileAlt /> Wszystkie raporty i eksporty</PermissionItem>
@@ -540,15 +597,7 @@ export const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
                 {showDocumentModal && (
                     <DocumentFormModal
                         employeeId={employee.id}
-                        onSave={async (document) => {
-                            try {
-                                const savedDocument = await addEmployeeDocument(document);
-                                setDocuments([...documents, savedDocument]);
-                                setShowDocumentModal(false);
-                            } catch (error) {
-                                console.error('Error saving document:', error);
-                            }
-                        }}
+                        onSave={handleDocumentUpload}
                         onCancel={() => setShowDocumentModal(false)}
                     />
                 )}
@@ -557,7 +606,112 @@ export const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
     );
 };
 
-// Styled Components
+// Styled Components with enhanced loading and error states
+const LoadingSpinner = styled.div`
+    font-size: 24px;
+    color: ${brandTheme.primary};
+    animation: spin 1s linear infinite;
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+`;
+
+const ErrorContainer = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.md};
+    background: ${brandTheme.status.errorLight};
+    color: ${brandTheme.status.error};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    border-radius: ${brandTheme.radius.lg};
+    border: 1px solid ${brandTheme.status.error}30;
+    margin-bottom: ${brandTheme.spacing.lg};
+`;
+
+const ErrorIcon = styled.div`
+    font-size: 18px;
+    flex-shrink: 0;
+`;
+
+const ErrorText = styled.div`
+    flex: 1;
+    font-weight: 500;
+`;
+
+const RetryButton = styled.button`
+    background: ${brandTheme.status.error};
+    color: white;
+    border: none;
+    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
+    border-radius: ${brandTheme.radius.sm};
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: ${brandTheme.status.error}dd;
+        transform: translateY(-1px);
+    }
+`;
+
+const RefreshButton = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid ${brandTheme.border};
+    background: ${brandTheme.surface};
+    color: ${brandTheme.text.secondary};
+    border-radius: ${brandTheme.radius.md};
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover:not(:disabled) {
+        background: ${brandTheme.primaryGhost};
+        border-color: ${brandTheme.primary};
+        color: ${brandTheme.primary};
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .spinning {
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+`;
+
+const DocumentsActions = styled.div`
+    display: flex;
+    gap: ${brandTheme.spacing.sm};
+    align-items: center;
+`;
+
+const ErrorIndicator = styled.span`
+    background: ${brandTheme.status.error};
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 50%;
+    min-width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+`;
+
+// Enhanced existing components
 const EmployeeProfileHeader = styled.div`
     display: flex;
     align-items: center;
@@ -663,14 +817,17 @@ const TabsContainer = styled.div`
     gap: 2px;
 `;
 
-const TabButton = styled.button<{ $active: boolean }>`
+const TabButton = styled.button<{ $active: boolean; $hasError?: boolean }>`
     display: flex;
     align-items: center;
     gap: ${brandTheme.spacing.xs};
     padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
     border: none;
     background: ${({ $active }) => $active ? brandTheme.surfaceAlt : 'transparent'};
-    color: ${({ $active }) => $active ? brandTheme.primary : brandTheme.text.secondary};
+    color: ${({ $active, $hasError }) =>
+            $hasError ? brandTheme.status.error :
+                    $active ? brandTheme.primary : brandTheme.text.secondary
+    };
     font-weight: 600;
     font-size: 13px;
     cursor: pointer;
@@ -681,7 +838,7 @@ const TabButton = styled.button<{ $active: boolean }>`
 
     &:hover {
         background: ${brandTheme.surfaceAlt};
-        color: ${brandTheme.primary};
+        color: ${({ $hasError }) => $hasError ? brandTheme.status.error : brandTheme.primary};
     }
 
     ${({ $active }) => $active && `
@@ -944,11 +1101,17 @@ const AddDocumentButton = styled.button`
 
 const LoadingState = styled.div`
     display: flex;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
+    justify-content: center;
     padding: ${brandTheme.spacing.xl};
     color: ${brandTheme.text.muted};
+    gap: ${brandTheme.spacing.md};
+`;
+
+const LoadingText = styled.div`
     font-size: 14px;
+    font-weight: 500;
 `;
 
 const EmptyDocuments = styled.div`
@@ -1093,6 +1256,10 @@ const DocumentActionButton = styled.button<{ $danger?: boolean }>`
     `}
 `;
 
+const EmptyActionContainer = styled.div`
+    margin-top: ${brandTheme.spacing.lg};
+`;
+
 const PermissionsOverview = styled.div`
     margin-bottom: ${brandTheme.spacing.lg};
 `;
@@ -1106,24 +1273,24 @@ const PermissionCard = styled.div<{ $role: string }>`
     border: 1px solid ${brandTheme.border};
 
     ${({ $role }) => {
-        switch ($role) {
-            case 'ADMIN':
-                return `
+    switch ($role) {
+        case 'ADMIN':
+            return `
                     background: ${brandTheme.status.errorLight};
                     border-color: ${brandTheme.status.error}30;
                 `;
-            case 'MANAGER':
-                return `
+        case 'MANAGER':
+            return `
                     background: ${brandTheme.status.warningLight};
                     border-color: ${brandTheme.status.warning}30;
                 `;
-            default:
-                return `
+        default:
+            return `
                     background: ${brandTheme.primaryGhost};
                     border-color: ${brandTheme.primary}30;
                 `;
-        }
-    }}
+    }
+}}
 `;
 
 const PermissionIcon = styled.div`
@@ -1235,3 +1402,5 @@ const PermissionItem = styled.div`
         flex-shrink: 0;
     }
 `;
+
+export default EmployeeDetailsModal;

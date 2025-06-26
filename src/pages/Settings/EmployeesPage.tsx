@@ -1,3 +1,4 @@
+// src/pages/Settings/EmployeesPage.tsx - Refactored with Real API
 import React, { useState, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import styled from 'styled-components';
 import {
@@ -28,24 +29,22 @@ import {
     FaTimesCircle,
     FaPlus,
     FaUserPlus,
-    FaDownload
+    FaDownload,
+    FaSpinner,
+    FaExclamationTriangle
 } from 'react-icons/fa';
+
 import { Employee, EmployeeDocument } from '../../types';
 import {
     ExtendedEmployee,
     UserRole,
     UserRoleLabels,
     ContractType,
-    EmployeeHelpers
+    EmployeeHelpers,
+    EmployeeFilters
 } from '../../types/employeeTypes';
 import { useAuth } from '../../context/AuthContext';
-import {
-    fetchEmployees,
-    addEmployee,
-    updateEmployee,
-    deleteEmployee
-} from '../../api/mocks/employeesMocks';
-
+import { useEmployees } from '../../hooks/useEmployees';
 import { EmployeeFormModal } from './components/EmployeeFormModal';
 import { DocumentTemplatesModal } from './components/DocumentTemplatesModal';
 import { EmployeeDetailsModal } from './components/EmployeeDetailsModal';
@@ -116,104 +115,124 @@ export const formatDate = (dateString: string): string => {
 type SortField = 'fullName' | 'position' | 'email' | 'hireDate' | 'role' | 'hourlyRate' | 'isActive';
 type SortDirection = 'asc' | 'desc' | null;
 
-const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref) => {
-    const { user } = useAuth();
-    const [employees, setEmployees] = useState<ExtendedEmployee[]>([]);
-    const [filteredEmployees, setFilteredEmployees] = useState<ExtendedEmployee[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+interface EmployeesPageRef {
+    handleAddEmployee: () => void;
+}
 
-    // Sorting state
+const EmployeesPage = forwardRef<EmployeesPageRef>((props, ref) => {
+    const { user } = useAuth();
+
+    // API Hook with optimized configuration
+    const {
+        // Data
+        employees,
+        filteredEmployees,
+        selectedEmployee,
+        currentPage,
+        totalPages,
+        totalItems,
+        pageSize,
+        hasNext,
+        hasPrevious,
+
+        // Loading states
+        isLoading,
+        isCreating,
+        isUpdating,
+        isDeleting,
+        isLoadingDocuments,
+
+        // Error states
+        error,
+        validationErrors,
+
+        // Documents
+        documents,
+        documentError,
+
+        // Actions
+        fetchEmployees,
+        createEmployee,
+        updateEmployee,
+        deleteEmployee,
+        selectEmployee,
+        setFilters,
+        clearFilters,
+        setPage,
+        setPageSize,
+        nextPage,
+        previousPage,
+        fetchDocuments,
+        uploadDocument,
+        deleteDocument,
+        refreshData,
+        clearError,
+        searchEmployees,
+        sortEmployees
+    } = useEmployees({
+        initialPageSize: 20,
+        autoFetch: true,
+        enableCaching: true,
+        refreshInterval: 5 * 60 * 1000 // 5 minutes
+    });
+
+    // Local state for UI
+    const [searchQuery, setSearchQuery] = useState('');
+    const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
     const [sortField, setSortField] = useState<SortField>('fullName');
     const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
-    // Modals state
+    // Modal states
     const [showModal, setShowModal] = useState(false);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [showTemplatesModal, setShowTemplatesModal] = useState(false);
-
     const [editingEmployee, setEditingEmployee] = useState<ExtendedEmployee | null>(null);
-    const [selectedEmployee, setSelectedEmployee] = useState<ExtendedEmployee | null>(null);
 
-    // Search and filters
-    const [searchQuery, setSearchQuery] = useState('');
-    const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-    const [positionFilter, setPositionFilter] = useState('');
-    const [roleFilter, setRoleFilter] = useState('');
-    const [statusFilter, setStatusFilter] = useState('');
+    // Filters state
+    const [filters, setFiltersState] = useState<EmployeeFilters>({});
 
-    // Security check
-    const isAdmin = true;
-    const canViewAllEmployees = true;
-    const canEditEmployees = true;
-    const canManageSalaries = true;
-    const canManagePermissions = true;
+    // Security checks
+    const isAdmin = user?.role === UserRole.ADMIN;
+    const canViewAllEmployees = user?.role === UserRole.ADMIN || user?.role === UserRole.MANAGER;
+    const canEditEmployees = user?.role === UserRole.ADMIN || user?.role === UserRole.MANAGER;
+    const canManageSalaries = user?.role === UserRole.ADMIN;
+    const canManagePermissions = user?.role === UserRole.ADMIN;
 
-    // Expose handleAddEmployee method to parent component
+    // Expose API to parent
     useImperativeHandle(ref, () => ({
         handleAddEmployee: handleAddEmployee
     }));
 
-    // Fetch employees
+    // Debounced search
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setLoading(true);
-                let data = await fetchEmployees();
-
-                if (!canViewAllEmployees && user) {
-                    data = data.filter(employee => employee.id === user.userId);
-                }
-
-                const extendedData = data as ExtendedEmployee[];
-                setEmployees(extendedData);
-                setError(null);
-            } catch (err) {
-                setError('Nie udało się pobrać listy pracowników');
-                console.error('Error fetching employees data:', err);
-            } finally {
-                setLoading(false);
+        const timeoutId = setTimeout(() => {
+            if (searchQuery !== (filters.searchQuery || '')) {
+                const newFilters = { ...filters, searchQuery: searchQuery || undefined };
+                setFiltersState(newFilters);
+                setFilters(newFilters);
             }
-        };
+        }, 300);
 
-        fetchData();
-    }, [canViewAllEmployees, user]);
+        return () => clearTimeout(timeoutId);
+    }, [searchQuery, filters, setFilters]);
 
-    // Sorting function
-    const sortEmployees = (employees: ExtendedEmployee[]): ExtendedEmployee[] => {
-        if (!sortDirection || !sortField) return employees;
+    // Handle sorting with API integration
+    const handleSort = useCallback((field: SortField) => {
+        let newDirection: SortDirection;
 
-        return [...employees].sort((a, b) => {
-            let aValue: any = a[sortField];
-            let bValue: any = b[sortField];
-
-            if (sortField === 'hireDate') {
-                aValue = new Date(aValue).getTime();
-                bValue = new Date(bValue).getTime();
-            }
-
-            if (typeof aValue === 'string' && typeof bValue === 'string') {
-                aValue = aValue.toLowerCase();
-                bValue = bValue.toLowerCase();
-            }
-
-            if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
-            if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
-            return 0;
-        });
-    };
-
-    // Handle sorting
-    const handleSort = (field: SortField) => {
         if (sortField === field) {
-            setSortDirection(prev =>
-                prev === 'asc' ? 'desc' : prev === 'desc' ? null : 'asc'
-            );
+            newDirection = sortDirection === 'asc' ? 'desc' : sortDirection === 'desc' ? null : 'asc';
         } else {
-            setSortField(field);
-            setSortDirection('asc');
+            newDirection = 'asc';
         }
-    };
+
+        setSortField(field);
+        setSortDirection(newDirection);
+
+        if (newDirection) {
+            sortEmployees(field, newDirection);
+        }
+    }, [sortField, sortDirection, sortEmployees]);
 
     // Get sort icon
     const getSortIcon = (field: SortField) => {
@@ -223,46 +242,8 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
         return <FaSort />;
     };
 
-    // Filter and sort employees
-    useEffect(() => {
-        let result = [...employees];
-
-        // Apply search filter
-        if (searchQuery.trim()) {
-            const query = searchQuery.toLowerCase().trim();
-            result = result.filter(employee =>
-                employee.fullName.toLowerCase().includes(query) ||
-                employee.email.toLowerCase().includes(query) ||
-                employee.phone.includes(query) ||
-                employee.position.toLowerCase().includes(query)
-            );
-        }
-
-        // Apply filters
-        if (positionFilter.trim()) {
-            const posQuery = positionFilter.toLowerCase().trim();
-            result = result.filter(employee =>
-                employee.position.toLowerCase().includes(posQuery)
-            );
-        }
-
-        if (roleFilter) {
-            result = result.filter(employee => employee.role === roleFilter);
-        }
-
-        if (statusFilter) {
-            const isActive = statusFilter === 'active';
-            result = result.filter(employee => employee.isActive === isActive);
-        }
-
-        // Apply sorting
-        result = sortEmployees(result);
-
-        setFilteredEmployees(result);
-    }, [employees, searchQuery, positionFilter, roleFilter, statusFilter, sortField, sortDirection]);
-
-    // Handler functions
-    const handleAddEmployee = () => {
+    // Handler functions with API integration
+    const handleAddEmployee = useCallback(() => {
         if (!canEditEmployees) {
             alert('Nie masz uprawnień do dodawania pracowników');
             return;
@@ -287,74 +268,88 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
 
         setEditingEmployee(newEmployee);
         setShowModal(true);
-    };
+    }, [canEditEmployees]);
 
-    const handleViewEmployee = (employee: ExtendedEmployee) => {
-        setSelectedEmployee(employee);
+    const handleViewEmployee = useCallback(async (employee: ExtendedEmployee) => {
+        await selectEmployee(employee);
         setShowDetailsModal(true);
-    };
+    }, [selectEmployee]);
 
-    const handleEditEmployee = (employee: ExtendedEmployee) => {
-        if (!canEditEmployees && employee.id !== user?.userId) {
+    const handleEditEmployee = useCallback((employee: ExtendedEmployee) => {
+        if (!canEditEmployees && employee.id !== String(user?.userId)) {
             alert('Nie masz uprawnień do edycji tego pracownika');
             return;
         }
 
-        setEditingEmployee({...employee});
+        setEditingEmployee({ ...employee });
         setShowModal(true);
-    };
+    }, [canEditEmployees, user?.userId]);
 
-    const handleDeleteEmployee = async (id: string) => {
+    const handleDeleteEmployee = useCallback(async (id: string) => {
         if (!canEditEmployees) {
             alert('Nie masz uprawnień do usuwania pracowników');
             return;
         }
 
         if (window.confirm('Czy na pewno chcesz usunąć tego pracownika?')) {
-            try {
-                const result = await deleteEmployee(id);
-                if (result) {
-                    setEmployees(employees.filter(employee => employee.id !== id));
-                }
-            } catch (err) {
-                setError('Nie udało się usunąć pracownika');
+            const success = await deleteEmployee(id);
+            if (!success && error) {
+                alert(`Błąd podczas usuwania: ${error}`);
             }
         }
-    };
+    }, [canEditEmployees, deleteEmployee, error]);
 
-    const handleSaveEmployee = async (employee: ExtendedEmployee) => {
-        try {
-            let savedEmployee: ExtendedEmployee;
+    const handleSaveEmployee = useCallback(async (employee: ExtendedEmployee) => {
+        let result: ExtendedEmployee | null = null;
 
-            if (employee.id) {
-                const { role, hourlyRate, bonusFromRevenue, isActive, ...basicEmployee } = employee;
-                const updated = await updateEmployee(basicEmployee);
-                savedEmployee = { ...updated, role, hourlyRate, bonusFromRevenue, isActive } as ExtendedEmployee;
-                setEmployees(employees.map(emp => emp.id === savedEmployee.id ? savedEmployee : emp));
-            } else {
-                const { id, role, hourlyRate, bonusFromRevenue, isActive, ...employeeWithoutId } = employee;
-                const created = await addEmployee(employeeWithoutId);
-                savedEmployee = { ...created, role, hourlyRate, bonusFromRevenue, isActive } as ExtendedEmployee;
-                setEmployees([...employees, savedEmployee]);
-            }
+        if (employee.id) {
+            // Update existing employee
+            result = await updateEmployee({
+                ...employee
+            });
+        } else {
+            // Create new employee
+            result = await createEmployee({
+                fullName: employee.fullName,
+                birthDate: employee.birthDate,
+                hireDate: employee.hireDate,
+                position: employee.position,
+                email: employee.email,
+                phone: employee.phone,
+                role: employee.role,
+                hourlyRate: employee.hourlyRate,
+                bonusFromRevenue: employee.bonusFromRevenue,
+                isActive: employee.isActive,
+                workingHoursPerWeek: employee.workingHoursPerWeek,
+                contractType: employee.contractType,
+                emergencyContact: employee.emergencyContact,
+                notes: employee.notes
+            });
+        }
 
+        if (result) {
             setShowModal(false);
             setEditingEmployee(null);
-        } catch (err) {
-            setError('Nie udało się zapisać pracownika');
+        } else if (error) {
+            alert(`Błąd podczas zapisywania: ${error}`);
         }
-    };
+    }, [updateEmployee, createEmployee, error]);
 
-    // Clear filters
-    const clearAllFilters = () => {
+    // Filter handlers
+    const handleFilterChange = useCallback((filterKey: keyof EmployeeFilters, value: any) => {
+        const newFilters = { ...filters, [filterKey]: value || undefined };
+        setFiltersState(newFilters);
+        setFilters(newFilters);
+    }, [filters, setFilters]);
+
+    const clearAllFilters = useCallback(() => {
         setSearchQuery('');
-        setPositionFilter('');
-        setRoleFilter('');
-        setStatusFilter('');
-    };
+        setFiltersState({});
+        clearFilters();
+    }, [clearFilters]);
 
     const hasActiveFilters = () => {
-        return searchQuery.trim() !== '' || positionFilter.trim() !== '' || roleFilter !== '' || statusFilter !== '';
+        return Object.values(filters).some(value => value !== undefined && value !== '');
     };
 
     // Get unique values for filters
@@ -365,6 +360,12 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
         { value: 'inactive', label: 'Nieaktywni' }
     ];
 
+    // Error handling with retry
+    const handleRetry = useCallback(() => {
+        clearError();
+        refreshData();
+    }, [clearError, refreshData]);
+
     return (
         <ContentContainer>
             {/* Professional Header */}
@@ -373,7 +374,13 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                     <HeaderTitle>
                         <TitleRow>
                             <h1>Zespół</h1>
-                            <TeamCounter>{filteredEmployees.length}</TeamCounter>
+                            <TeamCounter>
+                                {isLoading ? (
+                                    <LoadingSpinner size="small" />
+                                ) : (
+                                    filteredEmployees.length
+                                )}
+                            </TeamCounter>
                         </TitleRow>
                         <HeaderSubtitle>Zarządzaj pracownikami i ich uprawnieniami w systemie</HeaderSubtitle>
                     </HeaderTitle>
@@ -381,6 +388,7 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                         <ActionButton
                             onClick={() => setShowTemplatesModal(true)}
                             $variant="secondary"
+                            disabled={isLoading}
                         >
                             <FaFileDownload />
                             Szablony dokumentów
@@ -388,8 +396,9 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                         <ActionButton
                             onClick={handleAddEmployee}
                             $variant="primary"
+                            disabled={isLoading || isCreating}
                         >
-                            <FaUserPlus />
+                            {isCreating ? <LoadingSpinner size="small" /> : <FaUserPlus />}
                             Dodaj pracownika
                         </ActionButton>
                     </HeaderActions>
@@ -408,6 +417,7 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                             placeholder="Wyszukaj pracownika po nazwisku, emailu, telefonie lub stanowisku..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
+                            disabled={isLoading}
                         />
                         {searchQuery && (
                             <ClearSearchButton onClick={() => setSearchQuery('')}>
@@ -420,6 +430,7 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                         <AdvancedToggle
                             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
                             $expanded={showAdvancedFilters}
+                            disabled={isLoading}
                         >
                             <FaFilter />
                             Filtry zaawansowane
@@ -434,8 +445,9 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                             <FormGroup>
                                 <Label>Stanowisko</Label>
                                 <Select
-                                    value={positionFilter}
-                                    onChange={(e) => setPositionFilter(e.target.value)}
+                                    value={filters.position || ''}
+                                    onChange={(e) => handleFilterChange('position', e.target.value)}
+                                    disabled={isLoading}
                                 >
                                     <option value="">Wszystkie stanowiska</option>
                                     {uniquePositions.map(position => (
@@ -449,8 +461,9 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                                     <FormGroup>
                                         <Label>Rola w systemie</Label>
                                         <Select
-                                            value={roleFilter}
-                                            onChange={(e) => setRoleFilter(e.target.value)}
+                                            value={filters.role || ''}
+                                            onChange={(e) => handleFilterChange('role', e.target.value)}
+                                            disabled={isLoading}
                                         >
                                             <option value="">Wszystkie role</option>
                                             {uniqueRoles.map(role => (
@@ -462,8 +475,9 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                                     <FormGroup>
                                         <Label>Status konta</Label>
                                         <Select
-                                            value={statusFilter}
-                                            onChange={(e) => setStatusFilter(e.target.value)}
+                                            value={filters.isActive === undefined ? '' : (filters.isActive ? 'active' : 'inactive')}
+                                            onChange={(e) => handleFilterChange('isActive', e.target.value === '' ? undefined : e.target.value === 'active')}
+                                            disabled={isLoading}
                                         >
                                             <option value="">Wszystkie statusy</option>
                                             {statusOptions.map(option => (
@@ -477,12 +491,12 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
 
                         <FiltersActionsRow>
                             <ResultsInfo>
-                                Wyświetlane: <strong>{filteredEmployees.length}</strong> z {employees.length} pracowników
+                                Wyświetlane: <strong>{filteredEmployees.length}</strong> z {totalItems} pracowników
                                 {hasActiveFilters() && <FilterIndicator>• Aktywne filtry</FilterIndicator>}
                             </ResultsInfo>
 
                             {hasActiveFilters() && (
-                                <ClearButton onClick={clearAllFilters}>
+                                <ClearButton onClick={clearAllFilters} disabled={isLoading}>
                                     <FaTimes />
                                     Wyczyść filtry
                                 </ClearButton>
@@ -492,17 +506,27 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                 )}
             </FiltersContainer>
 
+            {/* Error Handling */}
+            {error && (
+                <ErrorContainer>
+                    <ErrorIcon>
+                        <FaExclamationTriangle />
+                    </ErrorIcon>
+                    <ErrorContent>
+                        <ErrorText>{error}</ErrorText>
+                        <RetryButton onClick={handleRetry}>
+                            Spróbuj ponownie
+                        </RetryButton>
+                    </ErrorContent>
+                </ErrorContainer>
+            )}
+
             {/* Main Table Content */}
-            {loading ? (
+            {isLoading && employees.length === 0 ? (
                 <LoadingContainer>
                     <LoadingSpinner />
                     <LoadingText>Ładowanie zespołu...</LoadingText>
                 </LoadingContainer>
-            ) : error ? (
-                <ErrorMessage>
-                    <ErrorIcon>⚠️</ErrorIcon>
-                    <ErrorText>{error}</ErrorText>
-                </ErrorMessage>
             ) : (
                 <TableContainer>
                     <TableWrapper>
@@ -567,10 +591,11 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                                         key={employee.id}
                                         onClick={() => handleViewEmployee(employee)}
                                         $clickable
+                                        $loading={isDeleting}
                                     >
                                         <TableCell>
                                             <EmployeeInfo>
-                                                <EmployeeAvatar $color={employee.color}>
+                                                <EmployeeAvatar>
                                                     {EmployeeHelpers.getInitials(employee.fullName)}
                                                 </EmployeeAvatar>
                                                 <EmployeeDetails>
@@ -629,7 +654,7 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                                                         <FaMoneyBillWave />
                                                         {employee.hourlyRate || 0} zł/h
                                                     </SalaryAmount>
-                                                    {employee.bonusFromRevenue > 0 && (
+                                                    {(employee.bonusFromRevenue || 0) > 0 && (
                                                         <BonusInfo>+{employee.bonusFromRevenue}% bonus</BonusInfo>
                                                     )}
                                                 </SalaryInfo>
@@ -657,6 +682,7 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                                                 <ActionIconButton
                                                     onClick={() => handleViewEmployee(employee)}
                                                     title="Szczegóły pracownika"
+                                                    disabled={isLoading}
                                                 >
                                                     <FaEye />
                                                 </ActionIconButton>
@@ -664,9 +690,9 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                                                 <ActionIconButton
                                                     onClick={() => handleEditEmployee(employee)}
                                                     title="Edytuj pracownika"
-                                                    disabled={!canEditEmployees && employee.id !== user?.userId}
+                                                    disabled={(!canEditEmployees && employee.id !== String(user?.userId)) || isUpdating}
                                                 >
-                                                    <FaEdit />
+                                                    {isUpdating ? <LoadingSpinner size="small" /> : <FaEdit />}
                                                 </ActionIconButton>
 
                                                 {canEditEmployees && (
@@ -674,8 +700,9 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                                                         onClick={() => handleDeleteEmployee(employee.id)}
                                                         title="Usuń pracownika"
                                                         $variant="danger"
+                                                        disabled={isDeleting}
                                                     >
-                                                        <FaTrash />
+                                                        {isDeleting ? <LoadingSpinner size="small" /> : <FaTrash />}
                                                     </ActionIconButton>
                                                 )}
                                             </ActionsGroup>
@@ -686,7 +713,30 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                         </Table>
                     </TableWrapper>
 
-                    {filteredEmployees.length === 0 && (
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                        <PaginationContainer>
+                            <PaginationInfo>
+                                Strona {currentPage + 1} z {totalPages} ({totalItems} pracowników)
+                            </PaginationInfo>
+                            <PaginationControls>
+                                <PaginationButton
+                                    onClick={previousPage}
+                                    disabled={!hasPrevious || isLoading}
+                                >
+                                    Poprzednia
+                                </PaginationButton>
+                                <PaginationButton
+                                    onClick={nextPage}
+                                    disabled={!hasNext || isLoading}
+                                >
+                                    Następna
+                                </PaginationButton>
+                            </PaginationControls>
+                        </PaginationContainer>
+                    )}
+
+                    {filteredEmployees.length === 0 && !isLoading && (
                         <EmptyStateContainer>
                             <EmptyStateIcon>
                                 <FaUser />
@@ -723,6 +773,8 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                         setEditingEmployee(null);
                     }}
                     canManageRoles={canManagePermissions}
+                    isLoading={isCreating || isUpdating}
+                    validationErrors={validationErrors}
                 />
             )}
 
@@ -731,12 +783,18 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
                     employee={selectedEmployee}
                     onClose={() => {
                         setShowDetailsModal(false);
-                        setSelectedEmployee(null);
+                        selectEmployee(null);
                     }}
                     onEdit={() => {
                         setShowDetailsModal(false);
                         handleEditEmployee(selectedEmployee);
                     }}
+                    documents={documents}
+                    isLoadingDocuments={isLoadingDocuments}
+                    documentError={documentError}
+                    onFetchDocuments={fetchDocuments}
+                    onUploadDocument={uploadDocument}
+                    onDeleteDocument={deleteDocument}
                 />
             )}
 
@@ -749,7 +807,7 @@ const EmployeesPage = forwardRef<{ handleAddEmployee: () => void }>((props, ref)
     );
 });
 
-// Styled Components
+// Styled Components with loading states
 const ContentContainer = styled.div`
     flex: 1;
     max-width: 1600px;
@@ -768,6 +826,20 @@ const ContentContainer = styled.div`
     @media (max-width: 768px) {
         padding: 0 ${brandTheme.spacing.md} ${brandTheme.spacing.md};
         gap: ${brandTheme.spacing.md};
+    }
+`;
+
+const LoadingSpinner = styled.div<{ size?: 'small' | 'medium' | 'large' }>`
+    width: ${props => props.size === 'small' ? '16px' : props.size === 'large' ? '48px' : '24px'};
+    height: ${props => props.size === 'small' ? '16px' : props.size === 'large' ? '48px' : '24px'};
+    border: 2px solid ${brandTheme.borderLight};
+    border-top: 2px solid ${brandTheme.primary};
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
     }
 `;
 
@@ -814,6 +886,10 @@ const TeamCounter = styled.div`
     font-size: 16px;
     font-weight: 700;
     border: 1px solid ${brandTheme.primary}20;
+    min-width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 `;
 
 const HeaderSubtitle = styled.div`
@@ -836,7 +912,7 @@ const HeaderActions = styled.div`
     }
 `;
 
-const ActionButton = styled.button<{ $variant: 'primary' | 'secondary' }>`
+const ActionButton = styled.button<{ $variant: 'primary' | 'secondary'; disabled?: boolean }>`
     display: flex;
     align-items: center;
     gap: ${brandTheme.spacing.sm};
@@ -858,7 +934,7 @@ const ActionButton = styled.button<{ $variant: 'primary' | 'secondary' }>`
                     color: white;
                     box-shadow: ${brandTheme.shadow.sm};
 
-                    &:hover {
+                    &:hover:not(:disabled) {
                         transform: translateY(-1px);
                         box-shadow: ${brandTheme.shadow.md};
                     }
@@ -870,7 +946,7 @@ const ActionButton = styled.button<{ $variant: 'primary' | 'secondary' }>`
                     border-color: ${brandTheme.border};
                     box-shadow: ${brandTheme.shadow.xs};
 
-                    &:hover {
+                    &:hover:not(:disabled) {
                         background: ${brandTheme.surfaceHover};
                         color: ${brandTheme.text.primary};
                         border-color: ${brandTheme.borderHover};
@@ -879,6 +955,59 @@ const ActionButton = styled.button<{ $variant: 'primary' | 'secondary' }>`
                 `;
         }
     }}
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+`;
+
+// Error handling components
+const ErrorContainer = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.md};
+    background: ${brandTheme.status.errorLight};
+    color: ${brandTheme.status.error};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    border-radius: ${brandTheme.radius.lg};
+    border: 1px solid ${brandTheme.status.error}30;
+    margin-bottom: ${brandTheme.spacing.md};
+`;
+
+const ErrorIcon = styled.div`
+    font-size: 18px;
+    flex-shrink: 0;
+`;
+
+const ErrorContent = styled.div`
+    flex: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: ${brandTheme.spacing.md};
+`;
+
+const ErrorText = styled.div`
+    font-weight: 500;
+`;
+
+const RetryButton = styled.button`
+    background: ${brandTheme.status.error};
+    color: white;
+    border: none;
+    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
+    border-radius: ${brandTheme.radius.sm};
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: ${brandTheme.status.error}dd;
+        transform: translateY(-1px);
+    }
 `;
 
 // Filters Section
@@ -944,6 +1073,12 @@ const SearchInput = styled.input`
         color: ${brandTheme.text.muted};
         font-weight: 400;
     }
+
+    &:disabled {
+        background: ${brandTheme.surfaceAlt};
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
 `;
 
 const ClearSearchButton = styled.button`
@@ -991,9 +1126,14 @@ const AdvancedToggle = styled.button<{ $expanded: boolean }>`
     transition: all 0.2s ease;
     white-space: nowrap;
 
-    &:hover {
+    &:hover:not(:disabled) {
         border-color: ${brandTheme.primary};
         color: ${brandTheme.primary};
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
     }
 `;
 
@@ -1043,6 +1183,12 @@ const Select = styled.select`
         border-color: ${brandTheme.primary};
         box-shadow: 0 0 0 3px ${brandTheme.primaryGhost};
     }
+
+    &:disabled {
+        background: ${brandTheme.surfaceAlt};
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
 `;
 
 const FiltersActionsRow = styled.div`
@@ -1091,10 +1237,15 @@ const ClearButton = styled.button`
     cursor: pointer;
     transition: all 0.2s ease;
 
-    &:hover {
+    &:hover:not(:disabled) {
         border-color: ${brandTheme.status.error};
         color: ${brandTheme.status.error};
         background: ${brandTheme.status.errorLight};
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
     }
 `;
 
@@ -1111,46 +1262,10 @@ const LoadingContainer = styled.div`
     min-height: 400px;
 `;
 
-const LoadingSpinner = styled.div`
-    width: 48px;
-    height: 48px;
-    border: 3px solid ${brandTheme.borderLight};
-    border-top: 3px solid ${brandTheme.primary};
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-`;
-
 const LoadingText = styled.div`
     font-size: 16px;
     color: ${brandTheme.text.secondary};
     font-weight: 500;
-`;
-
-const ErrorMessage = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
-    background: ${brandTheme.status.errorLight};
-    color: ${brandTheme.status.error};
-    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-    border-radius: ${brandTheme.radius.lg};
-    border: 1px solid ${brandTheme.status.error}30;
-    font-weight: 500;
-    box-shadow: ${brandTheme.shadow.xs};
-`;
-
-const ErrorIcon = styled.div`
-    font-size: 18px;
-    flex-shrink: 0;
-`;
-
-const ErrorText = styled.div`
-    flex: 1;
 `;
 
 // Table Components
@@ -1204,7 +1319,7 @@ const TableHead = styled.thead`
     z-index: 10;
 `;
 
-const TableRow = styled.tr<{ $clickable?: boolean }>`
+const TableRow = styled.tr<{ $clickable?: boolean; $loading?: boolean }>`
     border-bottom: 1px solid ${brandTheme.borderLight};
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
@@ -1215,6 +1330,11 @@ const TableRow = styled.tr<{ $clickable?: boolean }>`
             background: ${brandTheme.surfaceHover};
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
+    `}
+
+    ${({ $loading }) => $loading && `
+        opacity: 0.6;
+        pointer-events: none;
     `}
 
     &:last-child {
@@ -1273,6 +1393,56 @@ const TableCell = styled.td`
     }
 `;
 
+// Pagination
+const PaginationContainer = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: ${brandTheme.spacing.lg};
+    border-top: 1px solid ${brandTheme.border};
+    background: ${brandTheme.surfaceAlt};
+
+    @media (max-width: 768px) {
+        flex-direction: column;
+        gap: ${brandTheme.spacing.md};
+    }
+`;
+
+const PaginationInfo = styled.div`
+    font-size: 14px;
+    color: ${brandTheme.text.secondary};
+    font-weight: 500;
+`;
+
+const PaginationControls = styled.div`
+    display: flex;
+    gap: ${brandTheme.spacing.sm};
+`;
+
+const PaginationButton = styled.button`
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+    border: 1px solid ${brandTheme.border};
+    background: ${brandTheme.surface};
+    color: ${brandTheme.text.secondary};
+    border-radius: ${brandTheme.radius.md};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover:not(:disabled) {
+        background: ${brandTheme.primaryGhost};
+        border-color: ${brandTheme.primary};
+        color: ${brandTheme.primary};
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+`;
+
+// Employee specific components (existing ones updated with loading states)
 const EmployeeInfo = styled.div`
     display: flex;
     align-items: center;
@@ -1474,7 +1644,7 @@ const ActionsGroup = styled.div`
     min-width: 110px;
 `;
 
-const ActionIconButton = styled.button<{ $variant?: 'danger' }>`
+const ActionIconButton = styled.button<{ $variant?: 'danger'; disabled?: boolean }>`
     display: flex;
     align-items: center;
     justify-content: center;

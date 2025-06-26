@@ -1,16 +1,24 @@
-// src/hooks/useEmployees.ts
+// src/hooks/useEmployees.ts - Updated with Real API Integration
 /**
  * Custom hook for managing employees state with optimized API operations
  * Features:
  * - Smart caching and state management
- * - Optimistic updates
+ * - Optimistic updates with rollback
  * - Error handling with recovery
  * - Loading states management
  * - Real-time data synchronization
+ * - Debounced API calls
+ * - Pagination management
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { employeesApi, EmployeeSearchParams, EmployeeCreatePayload, EmployeeUpdatePayload } from '../api/employeesApi';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import {
+    employeesApi,
+    EmployeeSearchParams,
+    EmployeeCreatePayload,
+    EmployeeUpdatePayload,
+    EmployeesApiResult
+} from '../api/employeesApi';
 import { ExtendedEmployee, EmployeeFilters } from '../types/employeeTypes';
 import { EmployeeDocument } from '../types';
 
@@ -38,6 +46,7 @@ export interface UseEmployeesState {
     isUpdating: boolean;
     isDeleting: boolean;
     isLoadingDocuments: boolean;
+    isRefreshing: boolean;
 
     // Error states
     error: string | null;
@@ -46,6 +55,10 @@ export interface UseEmployeesState {
     // Documents
     documents: EmployeeDocument[];
     documentError: string | null;
+
+    // Cache info
+    lastFetch: Date | null;
+    cacheValid: boolean;
 }
 
 export interface UseEmployeesActions {
@@ -75,7 +88,8 @@ export interface UseEmployeesActions {
     refreshData: () => Promise<void>;
     clearError: () => void;
     searchEmployees: (query: string) => void;
-    sortEmployees: (field: string, direction: 'asc' | 'desc') => void;
+    sortEmployees: (field: 'fullName' | 'position' | 'email' | 'hireDate' | 'role' | 'hourlyRate' | 'isActive', direction: 'asc' | 'desc') => void;
+    invalidateCache: () => void;
 }
 
 export interface UseEmployeesOptions {
@@ -83,23 +97,36 @@ export interface UseEmployeesOptions {
     autoFetch?: boolean;
     enableCaching?: boolean;
     refreshInterval?: number;
+    cacheTimeout?: number;
+    optimisticUpdates?: boolean;
 }
 
 export type UseEmployeesReturn = UseEmployeesState & UseEmployeesActions;
+
+// ========================================================================================
+// CONSTANTS
+// ========================================================================================
+
+const DEFAULT_PAGE_SIZE = 20;
+const DEFAULT_CACHE_TIMEOUT = 5 * 60 * 1000; // 5 minutes
+const DEBOUNCE_DELAY = 300;
+const MAX_RETRIES = 3;
 
 // ========================================================================================
 // CUSTOM HOOK IMPLEMENTATION
 // ========================================================================================
 
 /**
- * Main hook for employees management
+ * Main hook for employees management with API integration
  */
 export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesReturn => {
     const {
-        initialPageSize = 20,
+        initialPageSize = DEFAULT_PAGE_SIZE,
         autoFetch = true,
         enableCaching = true,
-        refreshInterval
+        refreshInterval = 0,
+        cacheTimeout = DEFAULT_CACHE_TIMEOUT,
+        optimisticUpdates = true
     } = options;
 
     // ========================================================================================
@@ -126,6 +153,7 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
         isUpdating: false,
         isDeleting: false,
         isLoadingDocuments: false,
+        isRefreshing: false,
 
         // Error states
         error: null,
@@ -133,16 +161,29 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
 
         // Documents
         documents: [],
-        documentError: null
+        documentError: null,
+
+        // Cache info
+        lastFetch: null,
+        cacheValid: false
     });
 
-    // Refs for avoiding stale closure issues
+    // Refs for avoiding stale closure issues and debouncing
     const currentFiltersRef = useRef<EmployeeFilters>({});
-    const sortConfigRef = useRef<{ field: string; direction: 'asc' | 'desc' }>({
+    const sortConfigRef = useRef<{ field: 'fullName' | 'position' | 'email' | 'hireDate' | 'role' | 'hourlyRate' | 'isActive'; direction: 'asc' | 'desc' }>({
         field: 'fullName',
         direction: 'asc'
     });
     const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const abortControllerRef = useRef<AbortController | null>(null);
+    const retryCountRef = useRef<number>(0);
+
+    // Memoized cache validity check
+    const isCacheValid = useMemo(() => {
+        if (!enableCaching || !state.lastFetch) return false;
+        return Date.now() - state.lastFetch.getTime() < cacheTimeout;
+    }, [enableCaching, state.lastFetch, cacheTimeout]);
 
     // ========================================================================================
     // CORE DATA OPERATIONS
@@ -152,25 +193,43 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
      * Fetches employees with smart caching and error handling
      */
     const fetchEmployees = useCallback(async (params?: EmployeeSearchParams) => {
+        // Cancel any ongoing request
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+
         try {
-            setState(prev => ({ ...prev, isLoading: true, error: null }));
+            // Check cache validity for repeated requests
+            if (isCacheValid && !params && state.employees.length > 0) {
+                console.log('📦 Using cached employees data');
+                return;
+            }
+
+            setState(prev => ({
+                ...prev,
+                isLoading: true,
+                error: null,
+                isRefreshing: !!params
+            }));
 
             const searchParams: EmployeeSearchParams = {
-                page: state.currentPage,
-                size: state.pageSize,
-                sortBy: sortConfigRef.current.field,
-                sortOrder: sortConfigRef.current.direction,
+                page: params?.page ?? state.currentPage,
+                size: params?.size ?? state.pageSize,
+                sortBy: params?.sortBy ?? sortConfigRef.current.field,
+                sortOrder: params?.sortOrder ?? sortConfigRef.current.direction,
                 ...currentFiltersRef.current,
                 ...params
             };
+
+            console.log('🔄 Fetching employees with params:', searchParams);
 
             const result = await employeesApi.getEmployeesList(searchParams);
 
             if (result.success && result.data) {
                 setState(prev => ({
                     ...prev,
-                    employees: result.data!.data,
-                    filteredEmployees: result.data!.data,
+                    employees: result.data!.data as ExtendedEmployee[],
+                    filteredEmployees: result.data!.data as ExtendedEmployee[],
                     currentPage: result.data!.pagination.currentPage,
                     totalPages: result.data!.pagination.totalPages,
                     totalItems: result.data!.pagination.totalItems,
@@ -178,171 +237,259 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
                     hasNext: result.data!.pagination.hasNext,
                     hasPrevious: result.data!.pagination.hasPrevious,
                     isLoading: false,
-                    error: null
+                    isRefreshing: false,
+                    error: null,
+                    lastFetch: new Date(),
+                    cacheValid: true
                 }));
+
+                retryCountRef.current = 0;
+                console.log('✅ Successfully fetched employees:', result.data.data.length);
             } else {
-                setState(prev => ({
-                    ...prev,
-                    isLoading: false,
-                    error: result.error || 'Nie udało się pobrać listy pracowników'
-                }));
+                throw new Error(result.error || 'Failed to fetch employees');
             }
-        } catch (error) {
-            console.error('Error in fetchEmployees:', error);
+        } catch (error: any) {
+            console.error('❌ Error in fetchEmployees:', error);
+
+            // Handle different error types
+            let errorMessage = 'Wystąpił nieoczekiwany błąd podczas pobierania pracowników';
+
+            if (error.name === 'AbortError') {
+                return; // Request was cancelled, don't update state
+            }
+
+            if (error.message?.includes('network') || error.message?.includes('fetch')) {
+                errorMessage = 'Błąd połączenia z serwerem. Sprawdź połączenie internetowe.';
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+
             setState(prev => ({
                 ...prev,
                 isLoading: false,
-                error: 'Wystąpił nieoczekiwany błąd podczas pobierania pracowników'
+                isRefreshing: false,
+                error: errorMessage,
+                cacheValid: false
             }));
+
+            // Implement retry logic for network errors
+            if (retryCountRef.current < MAX_RETRIES && !error.message?.includes('401')) {
+                retryCountRef.current++;
+                console.log(`🔄 Retrying fetch (attempt ${retryCountRef.current}/${MAX_RETRIES})`);
+
+                const retryDelay = Math.min(1000 * Math.pow(2, retryCountRef.current - 1), 5000);
+                setTimeout(() => fetchEmployees(params), retryDelay);
+            }
         }
-    }, [state.currentPage, state.pageSize]);
+    }, [state.currentPage, state.pageSize, state.employees.length, isCacheValid]);
 
     /**
-     * Creates a new employee with optimistic updates
+     * Creates a new employee with optimistic updates and validation
      */
     const createEmployee = useCallback(async (data: EmployeeCreatePayload): Promise<ExtendedEmployee | null> => {
         try {
-            setState(prev => ({ ...prev, isCreating: true, error: null, validationErrors: {} }));
+            setState(prev => ({
+                ...prev,
+                isCreating: true,
+                error: null,
+                validationErrors: {}
+            }));
+
+            console.log('📝 Creating new employee:', data.fullName);
 
             const result = await employeesApi.createEmployee(data);
 
             if (result.success && result.data) {
-                // Optimistic update - add to current list
-                setState(prev => ({
-                    ...prev,
-                    employees: [result.data!, ...prev.employees],
-                    filteredEmployees: [result.data!, ...prev.filteredEmployees],
-                    totalItems: prev.totalItems + 1,
-                    isCreating: false
-                }));
+                const newEmployee = result.data;
 
-                return result.data;
+                if (optimisticUpdates) {
+                    // Optimistic update - add to current list
+                    setState(prev => ({
+                        ...prev,
+                        employees: [newEmployee, ...prev.employees],
+                        filteredEmployees: [newEmployee, ...prev.filteredEmployees],
+                        totalItems: prev.totalItems + 1,
+                        isCreating: false,
+                        cacheValid: false // Invalidate cache
+                    }));
+                } else {
+                    // Conservative approach - refetch data
+                    setState(prev => ({ ...prev, isCreating: false }));
+                    await fetchEmployees();
+                }
+
+                console.log('✅ Successfully created employee:', newEmployee.id);
+                return newEmployee;
             } else {
-                setState(prev => ({
-                    ...prev,
-                    isCreating: false,
-                    error: result.error || 'Nie udało się utworzyć pracownika'
-                }));
-                return null;
+                throw new Error(result.error || 'Failed to create employee');
             }
-        } catch (error) {
-            console.error('Error in createEmployee:', error);
+        } catch (error: any) {
+            console.error('❌ Error in createEmployee:', error);
+
+            // Extract validation errors if available
+            const validationErrors = error.details?.validationErrors || {};
+
             setState(prev => ({
                 ...prev,
                 isCreating: false,
-                error: 'Wystąpił nieoczekiwany błąd podczas tworzenia pracownika'
+                error: error.message || 'Nie udało się utworzyć pracownika',
+                validationErrors
             }));
             return null;
         }
-    }, []);
+    }, [optimisticUpdates, fetchEmployees]);
 
     /**
-     * Updates an employee with optimistic updates
+     * Updates an employee with optimistic updates and rollback
      */
     const updateEmployee = useCallback(async (data: EmployeeUpdatePayload): Promise<ExtendedEmployee | null> => {
+        if (!data.id) {
+            console.error('❌ Employee ID is required for update');
+            return null;
+        }
+
+        // Store original state for rollback
+        const originalEmployees = state.employees;
+        const originalFiltered = state.filteredEmployees;
+        const originalSelected = state.selectedEmployee;
+
         try {
-            setState(prev => ({ ...prev, isUpdating: true, error: null, validationErrors: {} }));
-
-            // Optimistic update
-            const optimisticUpdate = (employees: ExtendedEmployee[]) =>
-                employees.map(emp => emp.id === data.id ? { ...emp, ...data } : emp);
-
             setState(prev => ({
                 ...prev,
-                employees: optimisticUpdate(prev.employees),
-                filteredEmployees: optimisticUpdate(prev.filteredEmployees),
-                selectedEmployee: prev.selectedEmployee?.id === data.id
-                    ? { ...prev.selectedEmployee, ...data }
-                    : prev.selectedEmployee
+                isUpdating: true,
+                error: null,
+                validationErrors: {}
             }));
+
+            console.log('📝 Updating employee:', data.id);
+
+            if (optimisticUpdates) {
+                // Optimistic update
+                const updateEmployeeInArray = (employees: ExtendedEmployee[]) =>
+                    employees.map(emp => emp.id === data.id ? { ...emp, ...data } : emp);
+
+                setState(prev => ({
+                    ...prev,
+                    employees: updateEmployeeInArray(prev.employees),
+                    filteredEmployees: updateEmployeeInArray(prev.filteredEmployees),
+                    selectedEmployee: prev.selectedEmployee?.id === data.id
+                        ? { ...prev.selectedEmployee, ...data }
+                        : prev.selectedEmployee
+                }));
+            }
 
             const result = await employeesApi.updateEmployee(data);
 
             if (result.success && result.data) {
+                const updatedEmployee = result.data;
+
                 // Update with server response
                 const serverUpdate = (employees: ExtendedEmployee[]) =>
-                    employees.map(emp => emp.id === data.id ? result.data! : emp);
+                    employees.map(emp => emp.id === data.id ? updatedEmployee : emp);
 
                 setState(prev => ({
                     ...prev,
                     employees: serverUpdate(prev.employees),
                     filteredEmployees: serverUpdate(prev.filteredEmployees),
-                    selectedEmployee: prev.selectedEmployee?.id === data.id ? result.data! : prev.selectedEmployee,
-                    isUpdating: false
-                }));
-
-                return result.data;
-            } else {
-                // Revert optimistic update on failure
-                await fetchEmployees();
-                setState(prev => ({
-                    ...prev,
+                    selectedEmployee: prev.selectedEmployee?.id === data.id ? updatedEmployee : prev.selectedEmployee,
                     isUpdating: false,
-                    error: result.error || 'Nie udało się zaktualizować pracownika'
+                    cacheValid: false
                 }));
-                return null;
-            }
-        } catch (error) {
-            console.error('Error in updateEmployee:', error);
-            // Revert optimistic update
-            await fetchEmployees();
-            setState(prev => ({
-                ...prev,
-                isUpdating: false,
-                error: 'Wystąpił nieoczekiwany błąd podczas aktualizacji pracownika'
-            }));
-            return null;
-        }
-    }, [fetchEmployees]);
 
-    /**
-     * Deletes an employee with optimistic updates
-     */
-    const deleteEmployee = useCallback(async (id: string): Promise<boolean> => {
-        try {
-            setState(prev => ({ ...prev, isDeleting: true, error: null }));
-
-            // Store original state for rollback
-            const originalEmployees = state.employees;
-            const originalFiltered = state.filteredEmployees;
-
-            // Optimistic update - remove from lists
-            setState(prev => ({
-                ...prev,
-                employees: prev.employees.filter(emp => emp.id !== id),
-                filteredEmployees: prev.filteredEmployees.filter(emp => emp.id !== id),
-                selectedEmployee: prev.selectedEmployee?.id === id ? null : prev.selectedEmployee,
-                totalItems: Math.max(0, prev.totalItems - 1)
-            }));
-
-            const result = await employeesApi.deleteEmployee(id);
-
-            if (result.success) {
-                setState(prev => ({ ...prev, isDeleting: false }));
-                return true;
+                console.log('✅ Successfully updated employee:', updatedEmployee.id);
+                return updatedEmployee;
             } else {
-                // Revert optimistic update on failure
+                throw new Error(result.error || 'Failed to update employee');
+            }
+        } catch (error: any) {
+            console.error('❌ Error in updateEmployee:', error);
+
+            // Rollback optimistic update
+            if (optimisticUpdates) {
                 setState(prev => ({
                     ...prev,
                     employees: originalEmployees,
                     filteredEmployees: originalFiltered,
-                    isDeleting: false,
-                    error: result.error || 'Nie udało się usunąć pracownika'
+                    selectedEmployee: originalSelected,
+                    isUpdating: false,
+                    error: error.message || 'Nie udało się zaktualizować pracownika',
+                    validationErrors: error.details?.validationErrors || {}
                 }));
-                return false;
+            } else {
+                setState(prev => ({
+                    ...prev,
+                    isUpdating: false,
+                    error: error.message || 'Nie udało się zaktualizować pracownika'
+                }));
             }
-        } catch (error) {
-            console.error('Error in deleteEmployee:', error);
-            // Revert optimistic update
-            await fetchEmployees();
-            setState(prev => ({
-                ...prev,
-                isDeleting: false,
-                error: 'Wystąpił nieoczekiwany błąd podczas usuwania pracownika'
-            }));
+            return null;
+        }
+    }, [state.employees, state.filteredEmployees, state.selectedEmployee, optimisticUpdates]);
+
+    /**
+     * Deletes an employee with optimistic updates and rollback
+     */
+    const deleteEmployee = useCallback(async (id: string): Promise<boolean> => {
+        // Store original state for rollback
+        const originalEmployees = state.employees;
+        const originalFiltered = state.filteredEmployees;
+        const originalSelected = state.selectedEmployee;
+        const originalTotalItems = state.totalItems;
+
+        try {
+            setState(prev => ({ ...prev, isDeleting: true, error: null }));
+
+            console.log('🗑️ Deleting employee:', id);
+
+            if (optimisticUpdates) {
+                // Optimistic update - remove from lists
+                setState(prev => ({
+                    ...prev,
+                    employees: prev.employees.filter(emp => emp.id !== id),
+                    filteredEmployees: prev.filteredEmployees.filter(emp => emp.id !== id),
+                    selectedEmployee: prev.selectedEmployee?.id === id ? null : prev.selectedEmployee,
+                    totalItems: Math.max(0, prev.totalItems - 1)
+                }));
+            }
+
+            const result = await employeesApi.deleteEmployee(id);
+
+            if (result.success) {
+                setState(prev => ({
+                    ...prev,
+                    isDeleting: false,
+                    cacheValid: false
+                }));
+
+                console.log('✅ Successfully deleted employee:', id);
+                return true;
+            } else {
+                throw new Error(result.error || 'Failed to delete employee');
+            }
+        } catch (error: any) {
+            console.error('❌ Error in deleteEmployee:', error);
+
+            // Rollback optimistic update
+            if (optimisticUpdates) {
+                setState(prev => ({
+                    ...prev,
+                    employees: originalEmployees,
+                    filteredEmployees: originalFiltered,
+                    selectedEmployee: originalSelected,
+                    totalItems: originalTotalItems,
+                    isDeleting: false,
+                    error: error.message || 'Nie udało się usunąć pracownika'
+                }));
+            } else {
+                setState(prev => ({
+                    ...prev,
+                    isDeleting: false,
+                    error: error.message || 'Nie udało się usunąć pracownika'
+                }));
+            }
             return false;
         }
-    }, [state.employees, state.filteredEmployees, fetchEmployees]);
+    }, [state.employees, state.filteredEmployees, state.selectedEmployee, state.totalItems, optimisticUpdates]);
 
     // ========================================================================================
     // SELECTION AND FILTERING
@@ -354,39 +501,57 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
     const selectEmployee = useCallback(async (employee: ExtendedEmployee | null) => {
         setState(prev => ({ ...prev, selectedEmployee: employee }));
 
-        // Fetch detailed data if not already loaded
+        // Fetch detailed data if employee is selected and doesn't have all details
         if (employee && !employee.emergencyContact) {
             try {
+                console.log('🔍 Fetching detailed employee data:', employee.id);
                 const result = await employeesApi.getEmployeeById(employee.id);
+
                 if (result.success && result.data) {
-                    setState(prev => ({ ...prev, selectedEmployee: result.data! }));
+                    setState(prev => ({
+                        ...prev,
+                        selectedEmployee: result.data!
+                    }));
                 }
             } catch (error) {
-                console.error('Error fetching employee details:', error);
+                console.error('❌ Error fetching employee details:', error);
             }
         }
     }, []);
 
     /**
-     * Updates filters and triggers search
+     * Updates filters with debouncing
      */
     const setFilters = useCallback(async (filters: EmployeeFilters) => {
+        // Clear existing debounce timeout
+        if (debounceTimeoutRef.current) {
+            clearTimeout(debounceTimeoutRef.current);
+        }
+
         currentFiltersRef.current = filters;
-        setState(prev => ({ ...prev, currentPage: 0 })); // Reset to first page
-        await fetchEmployees({ page: 0, ...filters });
+
+        // Debounce the API call
+        debounceTimeoutRef.current = setTimeout(async () => {
+            setState(prev => ({ ...prev, currentPage: 0 })); // Reset to first page
+            await fetchEmployees({ page: 0, ...filters });
+        }, DEBOUNCE_DELAY);
     }, [fetchEmployees]);
 
     /**
      * Clears all filters
      */
     const clearFilters = useCallback(async () => {
+        if (debounceTimeoutRef.current) {
+            clearTimeout(debounceTimeoutRef.current);
+        }
+
         currentFiltersRef.current = {};
         setState(prev => ({ ...prev, currentPage: 0 }));
         await fetchEmployees({ page: 0 });
     }, [fetchEmployees]);
 
     /**
-     * Performs client-side search through loaded employees
+     * Performs client-side search for immediate feedback
      */
     const searchEmployees = useCallback((query: string) => {
         if (!query.trim()) {
@@ -406,9 +571,9 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
     }, [state.employees]);
 
     /**
-     * Sorts employees by specified field
+     * Sorts employees with API integration
      */
-    const sortEmployees = useCallback(async (field: string, direction: 'asc' | 'desc') => {
+    const sortEmployees = useCallback(async (field: 'fullName' | 'position' | 'email' | 'hireDate' | 'role' | 'hourlyRate' | 'isActive', direction: 'asc' | 'desc') => {
         sortConfigRef.current = { field, direction };
         await fetchEmployees({
             sortBy: field,
@@ -421,14 +586,18 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
     // ========================================================================================
 
     const setPage = useCallback(async (page: number) => {
-        setState(prev => ({ ...prev, currentPage: page }));
-        await fetchEmployees({ page });
-    }, [fetchEmployees]);
+        if (page !== state.currentPage) {
+            setState(prev => ({ ...prev, currentPage: page }));
+            await fetchEmployees({ page });
+        }
+    }, [state.currentPage, fetchEmployees]);
 
     const setPageSize = useCallback(async (size: number) => {
-        setState(prev => ({ ...prev, pageSize: size, currentPage: 0 }));
-        await fetchEmployees({ page: 0, size });
-    }, [fetchEmployees]);
+        if (size !== state.pageSize) {
+            setState(prev => ({ ...prev, pageSize: size, currentPage: 0 }));
+            await fetchEmployees({ page: 0, size });
+        }
+    }, [state.pageSize, fetchEmployees]);
 
     const nextPage = useCallback(async () => {
         if (state.hasNext) {
@@ -451,7 +620,13 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
      */
     const fetchDocuments = useCallback(async (employeeId: string) => {
         try {
-            setState(prev => ({ ...prev, isLoadingDocuments: true, documentError: null }));
+            setState(prev => ({
+                ...prev,
+                isLoadingDocuments: true,
+                documentError: null
+            }));
+
+            console.log('📄 Fetching documents for employee:', employeeId);
 
             const result = await employeesApi.getEmployeeDocuments(employeeId);
 
@@ -461,19 +636,16 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
                     documents: result.data!,
                     isLoadingDocuments: false
                 }));
+                console.log('✅ Successfully fetched documents:', result.data.length);
             } else {
-                setState(prev => ({
-                    ...prev,
-                    isLoadingDocuments: false,
-                    documentError: result.error || 'Nie udało się pobrać dokumentów'
-                }));
+                throw new Error(result.error || 'Failed to fetch documents');
             }
-        } catch (error) {
-            console.error('Error in fetchDocuments:', error);
+        } catch (error: any) {
+            console.error('❌ Error in fetchDocuments:', error);
             setState(prev => ({
                 ...prev,
                 isLoadingDocuments: false,
-                documentError: 'Wystąpił nieoczekiwany błąd podczas pobierania dokumentów'
+                documentError: error.message || 'Nie udało się pobrać dokumentów'
             }));
         }
     }, []);
@@ -488,7 +660,13 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
         type: string
     ): Promise<EmployeeDocument | null> => {
         try {
-            setState(prev => ({ ...prev, isLoadingDocuments: true, documentError: null }));
+            setState(prev => ({
+                ...prev,
+                isLoadingDocuments: true,
+                documentError: null
+            }));
+
+            console.log('📤 Uploading document for employee:', employeeId);
 
             const result = await employeesApi.uploadEmployeeDocument({
                 employeeId,
@@ -503,21 +681,18 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
                     documents: [...prev.documents, result.data!],
                     isLoadingDocuments: false
                 }));
+
+                console.log('✅ Successfully uploaded document:', result.data.id);
                 return result.data;
             } else {
-                setState(prev => ({
-                    ...prev,
-                    isLoadingDocuments: false,
-                    documentError: result.error || 'Nie udało się przesłać dokumentu'
-                }));
-                return null;
+                throw new Error(result.error || 'Failed to upload document');
             }
-        } catch (error) {
-            console.error('Error in uploadDocument:', error);
+        } catch (error: any) {
+            console.error('❌ Error in uploadDocument:', error);
             setState(prev => ({
                 ...prev,
                 isLoadingDocuments: false,
-                documentError: 'Wystąpił nieoczekiwany błąd podczas przesyłania dokumentu'
+                documentError: error.message || 'Nie udało się przesłać dokumentu'
             }));
             return null;
         }
@@ -530,6 +705,8 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
         try {
             setState(prev => ({ ...prev, documentError: null }));
 
+            console.log('🗑️ Deleting document:', documentId);
+
             const result = await employeesApi.deleteEmployeeDocument(documentId);
 
             if (result.success) {
@@ -537,19 +714,17 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
                     ...prev,
                     documents: prev.documents.filter(doc => doc.id !== documentId)
                 }));
+
+                console.log('✅ Successfully deleted document:', documentId);
                 return true;
             } else {
-                setState(prev => ({
-                    ...prev,
-                    documentError: result.error || 'Nie udało się usunąć dokumentu'
-                }));
-                return false;
+                throw new Error(result.error || 'Failed to delete document');
             }
-        } catch (error) {
-            console.error('Error in deleteDocument:', error);
+        } catch (error: any) {
+            console.error('❌ Error in deleteDocument:', error);
             setState(prev => ({
                 ...prev,
-                documentError: 'Wystąpił nieoczekiwany błąd podczas usuwania dokumentu'
+                documentError: error.message || 'Nie udało się usunąć dokumentu'
             }));
             return false;
         }
@@ -563,6 +738,7 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
      * Refreshes all data
      */
     const refreshData = useCallback(async () => {
+        setState(prev => ({ ...prev, cacheValid: false }));
         await fetchEmployees();
     }, [fetchEmployees]);
 
@@ -578,6 +754,17 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
         }));
     }, []);
 
+    /**
+     * Invalidates cache manually
+     */
+    const invalidateCache = useCallback(() => {
+        setState(prev => ({
+            ...prev,
+            cacheValid: false,
+            lastFetch: null
+        }));
+    }, []);
+
     // ========================================================================================
     // EFFECTS
     // ========================================================================================
@@ -589,7 +776,17 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
         if (autoFetch) {
             fetchEmployees();
         }
-    }, [autoFetch, fetchEmployees]);
+
+        // Cleanup function
+        return () => {
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+            if (debounceTimeoutRef.current) {
+                clearTimeout(debounceTimeoutRef.current);
+            }
+        };
+    }, [autoFetch]); // Only run on mount
 
     /**
      * Set up refresh interval if specified
@@ -597,7 +794,10 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
     useEffect(() => {
         if (refreshInterval && refreshInterval > 0) {
             refreshIntervalRef.current = setInterval(() => {
-                fetchEmployees();
+                if (!state.isLoading && !state.isCreating && !state.isUpdating && !state.isDeleting) {
+                    console.log('⏰ Auto-refreshing employees data');
+                    refreshData();
+                }
             }, refreshInterval);
 
             return () => {
@@ -606,7 +806,14 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
                 }
             };
         }
-    }, [refreshInterval, fetchEmployees]);
+    }, [refreshInterval, state.isLoading, state.isCreating, state.isUpdating, state.isDeleting, refreshData]);
+
+    /**
+     * Update cache validity based on time
+     */
+    useEffect(() => {
+        setState(prev => ({ ...prev, cacheValid: isCacheValid }));
+    }, [isCacheValid]);
 
     /**
      * Cleanup on unmount
@@ -615,6 +822,12 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
         return () => {
             if (refreshIntervalRef.current) {
                 clearInterval(refreshIntervalRef.current);
+            }
+            if (debounceTimeoutRef.current) {
+                clearTimeout(debounceTimeoutRef.current);
+            }
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
             }
         };
     }, []);
@@ -645,7 +858,8 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
         refreshData,
         clearError,
         searchEmployees,
-        sortEmployees
+        sortEmployees,
+        invalidateCache
     };
 };
 
@@ -671,16 +885,19 @@ export const useEmployee = (employeeId: string | null) => {
             setIsLoading(true);
             setError(null);
 
+            console.log('🔍 Fetching single employee:', employeeId);
+
             const result = await employeesApi.getEmployeeById(employeeId);
 
             if (result.success && result.data) {
                 setEmployee(result.data);
+                console.log('✅ Successfully fetched employee:', result.data.id);
             } else {
-                setError(result.error || 'Nie udało się pobrać danych pracownika');
+                throw new Error(result.error || 'Employee not found');
             }
-        } catch (error) {
-            console.error('Error fetching employee:', error);
-            setError('Wystąpił nieoczekiwany błąd');
+        } catch (error: any) {
+            console.error('❌ Error fetching employee:', error);
+            setError(error.message || 'Nie udało się pobrać danych pracownika');
         } finally {
             setIsLoading(false);
         }
@@ -702,7 +919,7 @@ export const useEmployee = (employeeId: string | null) => {
  * Hook for employee statistics
  */
 export const useEmployeeStatistics = () => {
-    const [statistics, setStatistics] = useState(null);
+    const [statistics, setStatistics] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -711,16 +928,19 @@ export const useEmployeeStatistics = () => {
             setIsLoading(true);
             setError(null);
 
+            console.log('📊 Fetching employee statistics');
+
             const result = await employeesApi.getEmployeeStatistics();
 
             if (result.success && result.data) {
                 setStatistics(result.data);
+                console.log('✅ Successfully fetched statistics');
             } else {
-                setError(result.error || 'Nie udało się pobrać statystyk');
+                throw new Error(result.error || 'Failed to fetch statistics');
             }
-        } catch (error) {
-            console.error('Error fetching statistics:', error);
-            setError('Wystąpił nieoczekiwany błąd');
+        } catch (error: any) {
+            console.error('❌ Error fetching statistics:', error);
+            setError(error.message || 'Nie udało się pobrać statystyk');
         } finally {
             setIsLoading(false);
         }

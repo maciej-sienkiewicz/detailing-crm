@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+// src/pages/Settings/components/EmployeeFormModal.tsx - Updated with API Integration
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { FaUser, FaShieldAlt, FaEye, FaEyeSlash } from 'react-icons/fa';
-import { Employee } from '../../../types';
+import { FaUser, FaShieldAlt, FaEye, FaEyeSlash, FaSpinner } from 'react-icons/fa';
 import { ExtendedEmployee, UserRole, UserRoleLabels, ContractType } from '../../../types/employeeTypes';
 import {
     ModalOverlay,
@@ -15,9 +15,6 @@ import {
     Label,
     Input,
     Select,
-    ColorPickerContainer,
-    ColorPreview,
-    ColorInput,
     HelpText,
     ButtonGroup,
     Button,
@@ -60,92 +57,196 @@ const brandTheme = {
 
 interface EmployeeFormModalProps {
     employee: ExtendedEmployee;
-    onSave: (employee: ExtendedEmployee) => void;
+    onSave: (employee: ExtendedEmployee) => Promise<void>;
     onCancel: () => void;
     canManageRoles?: boolean;
+    isLoading?: boolean;
+    validationErrors?: Record<string, string>;
 }
 
 export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                                                                         employee,
                                                                         onSave,
                                                                         onCancel,
-                                                                        canManageRoles = true
+                                                                        canManageRoles = true,
+                                                                        isLoading = false,
+                                                                        validationErrors = {}
                                                                     }) => {
     const [formData, setFormData] = useState<ExtendedEmployee>(employee);
-    const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+    const [localErrors, setLocalErrors] = useState<Record<string, string>>({});
     const [showAdvanced, setShowAdvanced] = useState(false);
+    const [isDirty, setIsDirty] = useState(false);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    // Merge external validation errors with local errors
+    const allErrors = { ...localErrors, ...validationErrors };
+
+    // Update form data when employee prop changes
+    useEffect(() => {
+        setFormData(employee);
+        setIsDirty(false);
+    }, [employee]);
+
+    // Clear local errors when external validation errors change
+    useEffect(() => {
+        if (Object.keys(validationErrors).length > 0) {
+            setLocalErrors({});
+        }
+    }, [validationErrors]);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
 
         let processedValue: any = value;
         if (type === 'number') {
-            processedValue = parseFloat(value) || 0;
+            processedValue = value === '' ? undefined : parseFloat(value) || 0;
         } else if (type === 'checkbox') {
             processedValue = (e.target as HTMLInputElement).checked;
         }
 
-        setFormData({
-            ...formData,
+        setFormData(prev => ({
+            ...prev,
             [name]: processedValue
-        });
+        }));
 
-        // Usuwanie błędów przy edycji pola
-        if (formErrors[name]) {
-            setFormErrors({
-                ...formErrors,
+        setIsDirty(true);
+
+        // Clear error for this field when user starts typing
+        if (allErrors[name]) {
+            setLocalErrors(prev => ({
+                ...prev,
                 [name]: ''
-            });
+            }));
         }
+    };
+
+    const handleEmergencyContactChange = (field: 'name' | 'phone', value: string) => {
+        setFormData(prev => ({
+            ...prev,
+            emergencyContact: {
+                name: field === 'name' ? value : prev.emergencyContact?.name || '',
+                phone: field === 'phone' ? value : prev.emergencyContact?.phone || ''
+            }
+        }));
+        setIsDirty(true);
     };
 
     const validateForm = (): boolean => {
         const errors: Record<string, string> = {};
 
-        if (!formData.fullName.trim()) {
+        // Required field validations
+        if (!formData.fullName?.trim()) {
             errors.fullName = 'Imię i nazwisko jest wymagane';
         }
 
-        if (!formData.position.trim()) {
+        if (!formData.position?.trim()) {
             errors.position = 'Stanowisko jest wymagane';
         }
 
-        if (!formData.email.trim()) {
+        if (!formData.email?.trim()) {
             errors.email = 'Adres email jest wymagany';
         } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
             errors.email = 'Podaj prawidłowy adres email';
         }
 
-        if (!formData.phone.trim()) {
+        if (!formData.phone?.trim()) {
             errors.phone = 'Numer telefonu jest wymagany';
+        } else if (!/^[\+]?[\d\s\-\(\)]{9,}$/.test(formData.phone.replace(/\s/g, ''))) {
+            errors.phone = 'Podaj prawidłowy numer telefonu';
         }
 
         if (!formData.birthDate) {
             errors.birthDate = 'Data urodzenia jest wymagana';
+        } else {
+            const birthDate = new Date(formData.birthDate);
+            const today = new Date();
+            const age = today.getFullYear() - birthDate.getFullYear();
+
+            if (birthDate > today) {
+                errors.birthDate = 'Data urodzenia nie może być w przyszłości';
+            } else if (age < 16) {
+                errors.birthDate = 'Pracownik musi mieć co najmniej 16 lat';
+            } else if (age > 80) {
+                errors.birthDate = 'Sprawdź poprawność daty urodzenia';
+            }
         }
 
         if (!formData.hireDate) {
             errors.hireDate = 'Data zatrudnienia jest wymagana';
+        } else {
+            const hireDate = new Date(formData.hireDate);
+            const today = new Date();
+
+            if (hireDate > today) {
+                errors.hireDate = 'Data zatrudnienia nie może być w przyszłości';
+            }
+
+            if (formData.birthDate) {
+                const birthDate = new Date(formData.birthDate);
+                const minHireAge = new Date(birthDate);
+                minHireAge.setFullYear(birthDate.getFullYear() + 16);
+
+                if (hireDate < minHireAge) {
+                    errors.hireDate = 'Data zatrudnienia musi być po 16. roku życia';
+                }
+            }
         }
 
-        if (formData.hourlyRate && formData.hourlyRate <= 0) {
+        // Optional field validations
+        if (formData.hourlyRate !== undefined && formData.hourlyRate <= 0) {
             errors.hourlyRate = 'Stawka godzinowa musi być większa od 0';
         }
 
-        if (formData.bonusFromRevenue && (formData.bonusFromRevenue < 0 || formData.bonusFromRevenue > 100)) {
+        if (formData.bonusFromRevenue !== undefined &&
+            (formData.bonusFromRevenue < 0 || formData.bonusFromRevenue > 100)) {
             errors.bonusFromRevenue = 'Bonus musi być między 0 a 100%';
         }
 
-        setFormErrors(errors);
+        if (formData.workingHoursPerWeek !== undefined &&
+            (formData.workingHoursPerWeek <= 0 || formData.workingHoursPerWeek > 168)) {
+            errors.workingHoursPerWeek = 'Godziny pracy muszą być między 1 a 168 na tydzień';
+        }
+
+        // Emergency contact validation
+        if (formData.emergencyContact?.name && !formData.emergencyContact?.phone) {
+            errors.emergencyContactPhone = 'Podaj numer telefonu kontaktu awaryjnego';
+        }
+        if (formData.emergencyContact?.phone && !formData.emergencyContact?.name) {
+            errors.emergencyContactName = 'Podaj imię i nazwisko kontaktu awaryjnego';
+        }
+
+        setLocalErrors(errors);
         return Object.keys(errors).length === 0;
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (validateForm()) {
-            onSave(formData);
+        if (!validateForm() || isLoading) {
+            return;
         }
+
+        try {
+            await onSave(formData);
+        } catch (error) {
+            console.error('Form submission error:', error);
+        }
+    };
+
+    const handleCancel = () => {
+        if (isDirty && !isLoading) {
+            if (window.confirm('Masz niezapisane zmiany. Czy na pewno chcesz zamknąć formularz?')) {
+                onCancel();
+            }
+        } else {
+            onCancel();
+        }
+    };
+
+    // Calculate estimated monthly salary
+    const calculateMonthlySalary = (): string => {
+        if (!formData.hourlyRate || !formData.workingHoursPerWeek) return 'Nie ustalono';
+        const monthly = formData.hourlyRate * formData.workingHoursPerWeek * 4.33;
+        return `${monthly.toFixed(2)} zł`;
     };
 
     return (
@@ -160,11 +261,25 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                             </StatusBadge>
                         )}
                     </HeaderContent>
-                    <CloseButton onClick={onCancel}>&times;</CloseButton>
+                    <CloseButton onClick={handleCancel} disabled={isLoading}>
+                        &times;
+                    </CloseButton>
                 </ModalHeader>
 
                 <ModalBody>
                     <Form onSubmit={handleSubmit}>
+                        {/* Loading Overlay */}
+                        {isLoading && (
+                            <LoadingOverlay>
+                                <LoadingSpinner>
+                                    <FaSpinner />
+                                </LoadingSpinner>
+                                <LoadingText>
+                                    {employee.id ? 'Aktualizowanie...' : 'Tworzenie pracownika...'}
+                                </LoadingText>
+                            </LoadingOverlay>
+                        )}
+
                         {/* Podstawowe dane */}
                         <SectionTitle>
                             <FaUser />
@@ -180,8 +295,13 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                                 onChange={handleChange}
                                 placeholder="Imię i nazwisko"
                                 required
+                                disabled={isLoading}
+                                style={{
+                                    borderColor: allErrors.fullName ? brandTheme.status.error : undefined,
+                                    boxShadow: allErrors.fullName ? `0 0 0 3px ${brandTheme.status.errorLight}` : undefined
+                                }}
                             />
-                            {formErrors.fullName && <ErrorText>{formErrors.fullName}</ErrorText>}
+                            {allErrors.fullName && <ErrorText>{allErrors.fullName}</ErrorText>}
                         </FormGroup>
 
                         <FormRow>
@@ -194,8 +314,14 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                                     value={formData.birthDate}
                                     onChange={handleChange}
                                     required
+                                    disabled={isLoading}
+                                    max={new Date().toISOString().split('T')[0]}
+                                    style={{
+                                        borderColor: allErrors.birthDate ? brandTheme.status.error : undefined,
+                                        boxShadow: allErrors.birthDate ? `0 0 0 3px ${brandTheme.status.errorLight}` : undefined
+                                    }}
                                 />
-                                {formErrors.birthDate && <ErrorText>{formErrors.birthDate}</ErrorText>}
+                                {allErrors.birthDate && <ErrorText>{allErrors.birthDate}</ErrorText>}
                             </FormGroup>
 
                             <FormGroup>
@@ -207,8 +333,14 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                                     value={formData.hireDate}
                                     onChange={handleChange}
                                     required
+                                    disabled={isLoading}
+                                    max={new Date().toISOString().split('T')[0]}
+                                    style={{
+                                        borderColor: allErrors.hireDate ? brandTheme.status.error : undefined,
+                                        boxShadow: allErrors.hireDate ? `0 0 0 3px ${brandTheme.status.errorLight}` : undefined
+                                    }}
                                 />
-                                {formErrors.hireDate && <ErrorText>{formErrors.hireDate}</ErrorText>}
+                                {allErrors.hireDate && <ErrorText>{allErrors.hireDate}</ErrorText>}
                             </FormGroup>
                         </FormRow>
 
@@ -221,8 +353,13 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                                 onChange={handleChange}
                                 placeholder="np. Senior Detailer, Kierownik Sprzedaży"
                                 required
+                                disabled={isLoading}
+                                style={{
+                                    borderColor: allErrors.position ? brandTheme.status.error : undefined,
+                                    boxShadow: allErrors.position ? `0 0 0 3px ${brandTheme.status.errorLight}` : undefined
+                                }}
                             />
-                            {formErrors.position && <ErrorText>{formErrors.position}</ErrorText>}
+                            {allErrors.position && <ErrorText>{allErrors.position}</ErrorText>}
                         </FormGroup>
 
                         <FormRow>
@@ -236,8 +373,13 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                                     onChange={handleChange}
                                     placeholder="email@example.com"
                                     required
+                                    disabled={isLoading}
+                                    style={{
+                                        borderColor: allErrors.email ? brandTheme.status.error : undefined,
+                                        boxShadow: allErrors.email ? `0 0 0 3px ${brandTheme.status.errorLight}` : undefined
+                                    }}
                                 />
-                                {formErrors.email && <ErrorText>{formErrors.email}</ErrorText>}
+                                {allErrors.email && <ErrorText>{allErrors.email}</ErrorText>}
                             </FormGroup>
 
                             <FormGroup>
@@ -249,12 +391,15 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                                     onChange={handleChange}
                                     placeholder="+48 123 456 789"
                                     required
+                                    disabled={isLoading}
+                                    style={{
+                                        borderColor: allErrors.phone ? brandTheme.status.error : undefined,
+                                        boxShadow: allErrors.phone ? `0 0 0 3px ${brandTheme.status.errorLight}` : undefined
+                                    }}
                                 />
-                                {formErrors.phone && <ErrorText>{formErrors.phone}</ErrorText>}
+                                {allErrors.phone && <ErrorText>{allErrors.phone}</ErrorText>}
                             </FormGroup>
                         </FormRow>
-
-
 
                         {/* Rola i uprawnienia */}
                         {canManageRoles && (
@@ -273,6 +418,7 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                                             value={formData.role}
                                             onChange={handleChange}
                                             required
+                                            disabled={isLoading}
                                         >
                                             {Object.entries(UserRoleLabels).map(([key, label]) => (
                                                 <option key={key} value={key}>{label}</option>
@@ -290,6 +436,7 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                                                 type="checkbox"
                                                 checked={formData.isActive}
                                                 onChange={handleChange}
+                                                disabled={isLoading}
                                             />
                                             <StatusLabel htmlFor="isActive" $isActive={formData.isActive}>
                                                 {formData.isActive ? (
@@ -322,6 +469,7 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                                 type="button"
                                 onClick={() => setShowAdvanced(!showAdvanced)}
                                 $expanded={showAdvanced}
+                                disabled={isLoading}
                             >
                                 Szczegóły zatrudnienia i wynagrodzenia
                                 <ToggleIcon $expanded={showAdvanced}>▼</ToggleIcon>
@@ -337,6 +485,7 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                                                 name="contractType"
                                                 value={formData.contractType || ContractType.EMPLOYMENT}
                                                 onChange={handleChange}
+                                                disabled={isLoading}
                                             >
                                                 <option value={ContractType.EMPLOYMENT}>Umowa o pracę</option>
                                                 <option value={ContractType.B2B}>Umowa B2B</option>
@@ -354,7 +503,15 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                                                 max="168"
                                                 value={formData.workingHoursPerWeek || 40}
                                                 onChange={handleChange}
+                                                disabled={isLoading}
+                                                style={{
+                                                    borderColor: allErrors.workingHoursPerWeek ? brandTheme.status.error : undefined,
+                                                    boxShadow: allErrors.workingHoursPerWeek ? `0 0 0 3px ${brandTheme.status.errorLight}` : undefined
+                                                }}
                                             />
+                                            {allErrors.workingHoursPerWeek && (
+                                                <ErrorText>{allErrors.workingHoursPerWeek}</ErrorText>
+                                            )}
                                         </FormGroup>
                                     </FormRow>
 
@@ -370,8 +527,15 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                                                 value={formData.hourlyRate || ''}
                                                 onChange={handleChange}
                                                 placeholder="25.00"
+                                                disabled={isLoading}
+                                                style={{
+                                                    borderColor: allErrors.hourlyRate ? brandTheme.status.error : undefined,
+                                                    boxShadow: allErrors.hourlyRate ? `0 0 0 3px ${brandTheme.status.errorLight}` : undefined
+                                                }}
                                             />
-                                            {formErrors.hourlyRate && <ErrorText>{formErrors.hourlyRate}</ErrorText>}
+                                            {allErrors.hourlyRate && (
+                                                <ErrorText>{allErrors.hourlyRate}</ErrorText>
+                                            )}
                                         </FormGroup>
 
                                         <FormGroup>
@@ -386,10 +550,21 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                                                 value={formData.bonusFromRevenue || ''}
                                                 onChange={handleChange}
                                                 placeholder="0"
+                                                disabled={isLoading}
                                             />
-                                            {formErrors.bonusFromRevenue && <ErrorText>{formErrors.bonusFromRevenue}</ErrorText>}
+                                            {allErrors.bonusFromRevenue && (
+                                                <ErrorText>{allErrors.bonusFromRevenue}</ErrorText>
+                                            )}
                                         </FormGroup>
                                     </FormRow>
+
+                                    {/* Salary calculation preview */}
+                                    {formData.hourlyRate && formData.workingHoursPerWeek && (
+                                        <SalaryPreview>
+                                            <SalaryPreviewTitle>Oszacowanie wynagrodzenia:</SalaryPreviewTitle>
+                                            <SalaryAmount>{calculateMonthlySalary()} miesięcznie</SalaryAmount>
+                                        </SalaryPreview>
+                                    )}
 
                                     {/* Kontakt awaryjny */}
                                     <ContactSection>
@@ -399,34 +574,36 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                                                 <Label htmlFor="emergencyContactName">Imię i nazwisko</Label>
                                                 <Input
                                                     id="emergencyContactName"
-                                                    name="emergencyContactName"
                                                     value={formData.emergencyContact?.name || ''}
-                                                    onChange={(e) => setFormData({
-                                                        ...formData,
-                                                        emergencyContact: {
-                                                            name: e.target.value,
-                                                            phone: formData.emergencyContact?.phone || ''
-                                                        }
-                                                    })}
+                                                    onChange={(e) => handleEmergencyContactChange('name', e.target.value)}
                                                     placeholder="np. Jan Kowalski"
+                                                    disabled={isLoading}
+                                                    style={{
+                                                        borderColor: allErrors.emergencyContactName ? brandTheme.status.error : undefined,
+                                                        boxShadow: allErrors.emergencyContactName ? `0 0 0 3px ${brandTheme.status.errorLight}` : undefined
+                                                    }}
                                                 />
+                                                {allErrors.emergencyContactName && (
+                                                    <ErrorText>{allErrors.emergencyContactName}</ErrorText>
+                                                )}
                                             </FormGroup>
 
                                             <FormGroup>
                                                 <Label htmlFor="emergencyContactPhone">Telefon</Label>
                                                 <Input
                                                     id="emergencyContactPhone"
-                                                    name="emergencyContactPhone"
                                                     value={formData.emergencyContact?.phone || ''}
-                                                    onChange={(e) => setFormData({
-                                                        ...formData,
-                                                        emergencyContact: {
-                                                            name: formData.emergencyContact?.name || '',
-                                                            phone: e.target.value
-                                                        }
-                                                    })}
+                                                    onChange={(e) => handleEmergencyContactChange('phone', e.target.value)}
                                                     placeholder="+48 123 456 789"
+                                                    disabled={isLoading}
+                                                    style={{
+                                                        borderColor: allErrors.emergencyContactPhone ? brandTheme.status.error : undefined,
+                                                        boxShadow: allErrors.emergencyContactPhone ? `0 0 0 3px ${brandTheme.status.errorLight}` : undefined
+                                                    }}
                                                 />
+                                                {allErrors.emergencyContactPhone && (
+                                                    <ErrorText>{allErrors.emergencyContactPhone}</ErrorText>
+                                                )}
                                             </FormGroup>
                                         </FormRow>
                                     </ContactSection>
@@ -440,6 +617,7 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                                             onChange={handleChange}
                                             placeholder="Dodatkowe informacje o pracowniku, specjalizacje, uwagi..."
                                             rows={3}
+                                            disabled={isLoading}
                                         />
                                     </FormGroup>
                                 </AdvancedContent>
@@ -447,11 +625,27 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                         </AdvancedSection>
 
                         <ButtonGroup>
-                            <Button type="button" secondary onClick={onCancel}>
+                            <Button
+                                type="button"
+                                secondary
+                                onClick={handleCancel}
+                                disabled={isLoading}
+                            >
                                 Anuluj
                             </Button>
-                            <Button type="submit" primary>
-                                {employee.id ? 'Zapisz zmiany' : 'Dodaj pracownika'}
+                            <Button
+                                type="submit"
+                                primary
+                                disabled={isLoading || Object.keys(allErrors).length > 0}
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <FaSpinner />
+                                        {employee.id ? 'Zapisywanie...' : 'Tworzenie...'}
+                                    </>
+                                ) : (
+                                    employee.id ? 'Zapisz zmiany' : 'Dodaj pracownika'
+                                )}
                             </Button>
                         </ButtonGroup>
                     </Form>
@@ -462,6 +656,39 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
 };
 
 // Styled Components
+const LoadingOverlay = styled.div`
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(2px);
+`;
+
+const LoadingSpinner = styled.div`
+    font-size: 24px;
+    color: ${brandTheme.primary};
+    animation: spin 1s linear infinite;
+    margin-bottom: ${brandTheme.spacing.md};
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+`;
+
+const LoadingText = styled.div`
+    font-size: 16px;
+    color: ${brandTheme.text.secondary};
+    font-weight: 500;
+`;
+
 const HeaderContent = styled.div`
     display: flex;
     align-items: center;
@@ -506,12 +733,6 @@ const SectionSubtitle = styled.h4`
     font-weight: 600;
     color: ${brandTheme.text.secondary};
     margin: 0 0 ${brandTheme.spacing.md} 0;
-`;
-
-const ColorLabel = styled.div`
-    font-size: 13px;
-    color: ${brandTheme.text.muted};
-    line-height: 1.4;
 `;
 
 const RoleDescription = styled.div<{ role: UserRole }>`
@@ -583,13 +804,14 @@ const StatusLabel = styled.label<{ $isActive: boolean }>`
         border: 1px solid ${brandTheme.status.error}30;
     `}
 
-    &:hover {
+    &:hover:not(:disabled) {
         transform: scale(1.02);
     }
 `;
 
 const AdvancedSection = styled.div`
     margin: ${brandTheme.spacing.lg} 0;
+    position: relative;
 `;
 
 const AdvancedToggle = styled.button<{ $expanded: boolean }>`
@@ -607,10 +829,15 @@ const AdvancedToggle = styled.button<{ $expanded: boolean }>`
     cursor: pointer;
     transition: all 0.2s ease;
 
-    &:hover {
+    &:hover:not(:disabled) {
         background: ${brandTheme.primaryGhost};
         border-color: ${brandTheme.primary};
         color: ${brandTheme.primary};
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
     }
 `;
 
@@ -625,6 +852,29 @@ const AdvancedContent = styled.div`
     background: ${brandTheme.surfaceAlt};
     border-radius: ${brandTheme.radius.md};
     border: 1px solid ${brandTheme.border};
+`;
+
+const SalaryPreview = styled.div`
+    background: ${brandTheme.primaryGhost};
+    border: 1px solid ${brandTheme.primary}30;
+    border-radius: ${brandTheme.radius.md};
+    padding: ${brandTheme.spacing.md};
+    margin: ${brandTheme.spacing.md} 0;
+`;
+
+const SalaryPreviewTitle = styled.div`
+    font-size: 12px;
+    color: ${brandTheme.text.muted};
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: ${brandTheme.spacing.xs};
+`;
+
+const SalaryAmount = styled.div`
+    font-size: 16px;
+    color: ${brandTheme.primary};
+    font-weight: 700;
 `;
 
 const ContactSection = styled.div`
@@ -657,4 +907,12 @@ const NotesTextarea = styled.textarea`
         color: ${brandTheme.text.muted};
         font-weight: 400;
     }
+
+    &:disabled {
+        background: ${brandTheme.surfaceAlt};
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
 `;
+
+export default EmployeeFormModal;
