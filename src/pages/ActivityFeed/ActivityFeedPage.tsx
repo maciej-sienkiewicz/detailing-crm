@@ -1,14 +1,15 @@
-import React, { useState, useEffect } from 'react';
+// src/pages/ActivityFeed/ActivityFeedPage.tsx
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import styled from 'styled-components';
-import { FaRss, FaFilter, FaCalendarAlt, FaSync, FaChevronDown } from 'react-icons/fa';
-import { fetchActivityItems } from '../../api/mocks/activityMocks';
+import { FaRss, FaFilter, FaSync, FaChevronDown, FaExclamationTriangle } from 'react-icons/fa';
 import { ActivityItem, ActivityFilter } from '../../types/activity';
 import { format, subDays } from 'date-fns';
 import { pl } from 'date-fns/locale';
+import { activityApi } from '../../api/activity';
 import ActivityFiltersPanel from "./components/ActivityFiltersPanelProps";
 import ActivityTimelineList from "./components/ActivitiTimelineList";
 
-// Brand Theme - zgodne z resztą aplikacji
+// Brand Theme
 const brandTheme = {
     primary: 'var(--brand-primary, #2563eb)',
     primaryLight: 'var(--brand-primary-light, #3b82f6)',
@@ -41,13 +42,14 @@ const brandTheme = {
 };
 
 const ActivityFeedPage: React.FC = () => {
+    // Stan aplikacji
     const [activities, setActivities] = useState<ActivityItem[]>([]);
-    const [filteredActivities, setFilteredActivities] = useState<ActivityItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [refreshing, setRefreshing] = useState(false);
+    const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
-    // Filtry i kontrola
+    // Kontrola UI
     const [showFilters, setShowFilters] = useState(false);
     const [activeFilters, setActiveFilters] = useState<ActivityFilter[]>([
         { type: 'category', value: 'all' },
@@ -60,71 +62,160 @@ const ActivityFeedPage: React.FC = () => {
         endDate: format(new Date(), 'yyyy-MM-dd')
     });
 
-    // Pobieranie danych aktywności
-    const loadActivities = async (showRefreshLoader = false) => {
+    // Paginacja i cache
+    const [hasMoreData, setHasMoreData] = useState(true);
+    const [currentPage, setCurrentPage] = useState(0);
+    const pageSize = 50;
+
+    // Memoizowane parametry API
+    const apiParams = useMemo(() => {
+        const params: any = {
+            startDate: dateRange.startDate,
+            endDate: dateRange.endDate,
+            sortBy: 'timestamp',
+            sortOrder: 'desc'
+        };
+
+        // Dodaj filtry kategorii
+        const categoryFilter = activeFilters.find(f => f.type === 'category');
+        if (categoryFilter && categoryFilter.value !== 'all') {
+            params.category = categoryFilter.value;
+        }
+
+        // Dodaj filtry użytkownika
+        const userFilter = activeFilters.find(f => f.type === 'user');
+        if (userFilter && userFilter.value !== 'all') {
+            params.userId = userFilter.value;
+        }
+
+        return params;
+    }, [dateRange, activeFilters]);
+
+    // Główna funkcja ładowania danych
+    const loadActivities = useCallback(async (
+        showRefreshLoader = false,
+        resetData = true
+    ) => {
         try {
+            console.log('🔄 Ładowanie aktywności...', { apiParams, resetData });
+
             if (showRefreshLoader) {
                 setRefreshing(true);
-            } else {
+            } else if (resetData) {
                 setLoading(true);
             }
+
             setError(null);
 
-            const activitiesData = await fetchActivityItems(dateRange.startDate, dateRange.endDate);
-            setActivities(activitiesData);
-            setFilteredActivities(activitiesData);
+            // Reset paginacji przy nowym ładowaniu
+            if (resetData) {
+                setCurrentPage(0);
+                setHasMoreData(true);
+            }
+
+            // Wywołanie API z paginacją
+            const result = await activityApi.getActivities({
+                ...apiParams,
+                page: resetData ? 0 : currentPage,
+                size: pageSize
+            });
+
+            if (result.success && result.data) {
+                console.log('✅ Dane załadowane:', {
+                    count: result.data.data.length,
+                    totalItems: result.data.pagination.totalItems,
+                    currentPage: result.data.pagination.currentPage
+                });
+
+                if (resetData) {
+                    setActivities(result.data.data);
+                } else {
+                    // Append przy ładowaniu kolejnych stron
+                    setActivities(prev => [...prev, ...result.data!.data]);
+                }
+
+                // Sprawdź czy są jeszcze dane do załadowania
+                setHasMoreData(result.data.pagination.hasNext);
+                setCurrentPage(result.data.pagination.currentPage + 1);
+                setLastRefresh(new Date());
+            } else {
+                console.error('❌ Błąd API:', result.error);
+                setError(result.error || 'Wystąpił nieoczekiwany błąd');
+
+                // Jeśli to nie refresh, wyczyść dane
+                if (resetData) {
+                    setActivities([]);
+                }
+            }
         } catch (err) {
-            setError('Nie udało się załadować aktywności. Sprawdź połączenie z internetem.');
-            console.error('Error loading activities:', err);
+            console.error('❌ Błąd krytyczny:', err);
+            setError('Nie udało się połączyć z serwerem. Sprawdź połączenie internetowe.');
+
+            if (resetData) {
+                setActivities([]);
+            }
         } finally {
             setLoading(false);
             setRefreshing(false);
         }
-    };
+    }, [apiParams, currentPage, pageSize]);
 
-    // Efekt pobierania danych przy zmianie zakresu dat
+    // Auto-refresh co 30 sekund dla najnowszych danych
     useEffect(() => {
-        loadActivities();
-    }, [dateRange]);
+        const interval = setInterval(() => {
+            const now = new Date();
+            const endDate = new Date(dateRange.endDate);
 
-    // Filtrowanie aktywności
+            // Auto-refresh tylko jeśli pokazujemy dzisiejsze dane
+            if (endDate.toDateString() === now.toDateString()) {
+                console.log('🔄 Auto-refresh aktywności...');
+                loadActivities(false, true);
+            }
+        }, 30000); // 30 sekund
+
+        return () => clearInterval(interval);
+    }, [loadActivities, dateRange.endDate]);
+
+    // Ładowanie przy zmianie parametrów
     useEffect(() => {
-        const filtered = activities.filter(activity => {
-            // Filtr kategorii
-            const categoryFilter = activeFilters.find(f => f.type === 'category');
-            if (categoryFilter && categoryFilter.value !== 'all' && activity.category !== categoryFilter.value) {
-                return false;
-            }
+        console.log('📅 Zmiana parametrów wyszukiwania');
+        loadActivities(false, true);
+    }, [apiParams]);
 
-            // Filtr użytkownika
-            const userFilter = activeFilters.find(f => f.type === 'user');
-            if (userFilter && userFilter.value !== 'all' && activity.userId !== userFilter.value) {
-                return false;
-            }
-
-            return true;
-        });
-
-        setFilteredActivities(filtered);
-    }, [activities, activeFilters]);
-
-    // Obsługa odświeżania
-    const handleRefresh = () => {
-        loadActivities(true);
-    };
+    // Obsługa odświeżania przez użytkownika
+    const handleRefresh = useCallback(() => {
+        console.log('🔄 Manualne odświeżanie...');
+        loadActivities(true, true);
+    }, [loadActivities]);
 
     // Obsługa zmiany filtrów
-    const handleFilterChange = (filters: ActivityFilter[]) => {
+    const handleFilterChange = useCallback((filters: ActivityFilter[]) => {
+        console.log('🔍 Zmiana filtrów:', filters);
         setActiveFilters(filters);
-    };
+    }, []);
 
     // Obsługa zmiany zakresu dat
-    const handleDateRangeChange = (newDateRange: { startDate: string; endDate: string }) => {
+    const handleDateRangeChange = useCallback((newDateRange: { startDate: string; endDate: string }) => {
+        console.log('📅 Zmiana zakresu dat:', newDateRange);
         setDateRange(newDateRange);
-    };
+    }, []);
+
+    // Ładowanie kolejnych stron (infinite scroll)
+    const loadMoreActivities = useCallback(() => {
+        if (!loading && !refreshing && hasMoreData) {
+            console.log('📄 Ładowanie kolejnej strony...');
+            loadActivities(false, false);
+        }
+    }, [loading, refreshing, hasMoreData, loadActivities]);
+
+    // Filtrowanie aktywności (tylko lokalne dla UI)
+    const filteredActivities = useMemo(() => {
+        // API już zwraca przefiltrowane dane, ale można dodać dodatkowe filtrowanie UI
+        return activities;
+    }, [activities]);
 
     // Formatowanie tytułu z zakresem dat
-    const getDateRangeTitle = () => {
+    const getDateRangeTitle = useCallback(() => {
         const start = new Date(dateRange.startDate);
         const end = new Date(dateRange.endDate);
 
@@ -133,7 +224,15 @@ const ActivityFeedPage: React.FC = () => {
         }
 
         return `${format(start, 'd MMM', { locale: pl })} - ${format(end, 'd MMM yyyy', { locale: pl })}`;
-    };
+    }, [dateRange]);
+
+    // Sprawdzenie czy dane są aktualne
+    const isDataFresh = useMemo(() => {
+        if (!lastRefresh) return false;
+        const now = new Date();
+        const diffMinutes = (now.getTime() - lastRefresh.getTime()) / (1000 * 60);
+        return diffMinutes < 2; // Dane świeże przez 2 minuty
+    }, [lastRefresh]);
 
     return (
         <PageContainer>
@@ -148,12 +247,21 @@ const ActivityFeedPage: React.FC = () => {
                             <HeaderTitle>Aktywności firmy</HeaderTitle>
                             <HeaderSubtitle>
                                 {getDateRangeTitle()} • {filteredActivities.length} {filteredActivities.length === 1 ? 'aktywność' : 'aktywności'}
+                                {lastRefresh && (
+                                    <LastRefreshInfo $fresh={isDataFresh}>
+                                        • Aktualizacja: {format(lastRefresh, 'HH:mm:ss')}
+                                    </LastRefreshInfo>
+                                )}
                             </HeaderSubtitle>
                         </HeaderText>
                     </HeaderLeft>
 
                     <HeaderActions>
-                        <RefreshButton onClick={handleRefresh} disabled={refreshing}>
+                        <RefreshButton
+                            onClick={handleRefresh}
+                            disabled={refreshing}
+                            $fresh={isDataFresh}
+                        >
                             <FaSync className={refreshing ? 'spinning' : ''} />
                             {refreshing ? 'Odświeżanie...' : 'Odśwież'}
                         </RefreshButton>
@@ -173,7 +281,7 @@ const ActivityFeedPage: React.FC = () => {
             {/* Main Content */}
             <ContentContainer>
                 <MainLayout>
-                    {/* Filtry - panel boczny */}
+                    {/* Panel filtrów */}
                     {showFilters && (
                         <FiltersPanel>
                             <ActivityFiltersPanel
@@ -187,17 +295,38 @@ const ActivityFeedPage: React.FC = () => {
 
                     {/* Lista aktywności */}
                     <ActivityContent $hasFilters={showFilters}>
+                        {/* Alert błędu */}
                         {error && (
                             <ErrorAlert>
-                                <ErrorIcon>⚠️</ErrorIcon>
-                                <ErrorMessage>{error}</ErrorMessage>
+                                <ErrorIcon>
+                                    <FaExclamationTriangle />
+                                </ErrorIcon>
+                                <ErrorContent>
+                                    <ErrorMessage>{error}</ErrorMessage>
+                                    <RetryButton onClick={handleRefresh}>
+                                        Spróbuj ponownie
+                                    </RetryButton>
+                                </ErrorContent>
                             </ErrorAlert>
                         )}
 
+                        {/* Lista aktywności z infinite scroll */}
                         <ActivityTimelineList
                             activities={filteredActivities}
                             loading={loading}
                         />
+
+                        {/* Informacja o braku danych */}
+                        {!loading && !error && filteredActivities.length === 0 && (
+                            <EmptyState>
+                                <EmptyIcon>📋</EmptyIcon>
+                                <EmptyTitle>Brak aktywności</EmptyTitle>
+                                <EmptyDescription>
+                                    W wybranym okresie nie zarejestrowano żadnych aktywności.
+                                    Spróbuj zmienić zakres dat lub filtry.
+                                </EmptyDescription>
+                            </EmptyState>
+                        )}
                     </ActivityContent>
                 </MainLayout>
             </ContentContainer>
@@ -205,7 +334,7 @@ const ActivityFeedPage: React.FC = () => {
     );
 };
 
-// Styled Components
+// Styled Components (rozszerzone o nowe style)
 const PageContainer = styled.div`
     display: flex;
     flex-direction: column;
@@ -282,6 +411,16 @@ const HeaderSubtitle = styled.p`
     font-size: 14px;
     font-weight: 500;
     line-height: 1.4;
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.xs};
+    flex-wrap: wrap;
+`;
+
+const LastRefreshInfo = styled.span<{ $fresh: boolean }>`
+    color: ${props => props.$fresh ? '#22c55e' : brandTheme.text.muted};
+    font-size: 12px;
+    font-weight: 400;
 `;
 
 const HeaderActions = styled.div`
@@ -295,14 +434,14 @@ const HeaderActions = styled.div`
     }
 `;
 
-const RefreshButton = styled.button`
+const RefreshButton = styled.button<{ $fresh?: boolean }>`
     display: flex;
     align-items: center;
     gap: ${brandTheme.spacing.sm};
     padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
-    background: ${brandTheme.surface};
-    color: ${brandTheme.text.secondary};
-    border: 1px solid ${brandTheme.border};
+    background: ${props => props.$fresh ? '#f0fdf4' : brandTheme.surface};
+    color: ${props => props.$fresh ? '#22c55e' : brandTheme.text.secondary};
+    border: 1px solid ${props => props.$fresh ? '#22c55e' : brandTheme.border};
     border-radius: ${brandTheme.radius.md};
     font-weight: 600;
     font-size: 14px;
@@ -311,7 +450,7 @@ const RefreshButton = styled.button`
     min-height: 44px;
 
     &:hover:not(:disabled) {
-        background: ${brandTheme.surfaceAlt};
+        background: ${props => props.$fresh ? '#dcfce7' : brandTheme.surfaceAlt};
         color: ${brandTheme.text.primary};
         border-color: ${brandTheme.neutral};
     }
@@ -406,24 +545,84 @@ const ActivityContent = styled.main<{ $hasFilters: boolean }>`
 
 const ErrorAlert = styled.div`
     display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
+    align-items: flex-start;
+    gap: ${brandTheme.spacing.md};
     background: #fef2f2;
     color: #dc2626;
-    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    padding: ${brandTheme.spacing.lg};
     border-radius: ${brandTheme.radius.lg};
     border: 1px solid #fecaca;
     margin-bottom: ${brandTheme.spacing.lg};
-    font-weight: 500;
+    box-shadow: ${brandTheme.shadow.sm};
 `;
 
 const ErrorIcon = styled.div`
-    font-size: 18px;
+    font-size: 20px;
     flex-shrink: 0;
+    margin-top: 2px;
+`;
+
+const ErrorContent = styled.div`
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.sm};
 `;
 
 const ErrorMessage = styled.div`
-    flex: 1;
+    font-weight: 500;
+    line-height: 1.5;
+`;
+
+const RetryButton = styled.button`
+    align-self: flex-start;
+    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.md};
+    background: #dc2626;
+    color: white;
+    border: none;
+    border-radius: ${brandTheme.radius.md};
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: #b91c1c;
+    }
+`;
+
+const EmptyState = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: ${brandTheme.spacing.xl} ${brandTheme.spacing.lg};
+    background: ${brandTheme.surface};
+    border-radius: ${brandTheme.radius.lg};
+    border: 2px dashed ${brandTheme.border};
+    text-align: center;
+    min-height: 300px;
+`;
+
+const EmptyIcon = styled.div`
+    font-size: 48px;
+    margin-bottom: ${brandTheme.spacing.lg};
+    opacity: 0.5;
+`;
+
+const EmptyTitle = styled.h3`
+    font-size: 18px;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+    margin: 0 0 ${brandTheme.spacing.sm} 0;
+`;
+
+const EmptyDescription = styled.p`
+    font-size: 14px;
+    color: ${brandTheme.text.muted};
+    margin: 0;
+    line-height: 1.5;
+    max-width: 400px;
 `;
 
 export default ActivityFeedPage;

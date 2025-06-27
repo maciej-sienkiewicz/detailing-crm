@@ -79,7 +79,6 @@ const mainMenuItems: MainMenuItem[] = [
         path: '/activity',
         hasSubmenu: false,
         category: 'daily',
-        badge: "Faza rozwoju"
     },
 
     // Zarządzanie biznesem

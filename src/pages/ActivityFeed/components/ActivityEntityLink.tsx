@@ -19,7 +19,7 @@ const ActivityEntityLink: React.FC<ActivityEntityLinkProps> = ({ entity }) => {
     // Generuj link i ikonę w zależności od typu encji
     const getLinkDetails = () => {
         switch (entity.type) {
-            case 'appointment':
+            case 'APPOINTMENT':
                 return {
                     icon: <FaCalendarAlt />,
                     path: `/calendar?id=${entity.id}`,

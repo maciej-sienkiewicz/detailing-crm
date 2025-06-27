@@ -82,7 +82,7 @@ const ActivityList: React.FC<ActivityListProps> = ({ activities, loading }) => {
     // Ikona dla kategorii aktywności
     const getCategoryIcon = (category: string) => {
         switch (category) {
-            case 'appointment':
+            case 'APPOINTMENT':
                 return <FaCalendarAlt />;
             case 'protocol':
                 return <FaClipboardCheck />;

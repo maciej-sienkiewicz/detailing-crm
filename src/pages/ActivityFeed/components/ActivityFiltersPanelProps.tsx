@@ -62,7 +62,7 @@ interface ActivityFiltersPanelProps {
 // Kategorie aktywności (bez telefonów)
 const activityCategories = [
     { id: 'all', label: 'Wszystkie aktywności', icon: <FaFilter /> },
-    { id: 'appointment', label: 'Wizyty i rezerwacje', icon: <FaCalendarAlt /> },
+    { id: 'APPOINTMENT', label: 'Wizyty i rezerwacje', icon: <FaCalendarAlt /> },
     { id: 'protocol', label: 'Protokoły przyjęcia', icon: <FaClipboardCheck /> },
     { id: 'comment', label: 'Komentarze', icon: <FaComment /> },
     { id: 'client', label: 'Operacje na klientach', icon: <FaUser /> },

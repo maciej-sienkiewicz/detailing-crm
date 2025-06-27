@@ -102,7 +102,7 @@ const ActivityTimelineList: React.FC<ActivityTimelineListProps> = ({ activities,
     // Ikona dla kategorii aktywności
     const getCategoryIcon = (category: string) => {
         switch (category) {
-            case 'appointment':
+            case 'APPOINTMENT':
                 return <FaCalendarAlt />;
             case 'protocol':
                 return <FaClipboardCheck />;
@@ -124,7 +124,7 @@ const ActivityTimelineList: React.FC<ActivityTimelineListProps> = ({ activities,
     // Kolor dla kategorii
     const getCategoryColor = (category: string): string => {
         switch (category) {
-            case 'appointment':
+            case 'APPOINTMENT':
                 return '#3498db';
             case 'protocol':
                 return '#2ecc71';
@@ -148,7 +148,7 @@ const ActivityTimelineList: React.FC<ActivityTimelineListProps> = ({ activities,
         if (!entity) return '#';
 
         switch (entity.type) {
-            case 'appointment':
+            case 'APPOINTMENT':
                 return `/calendar?highlight=${entity.id}`;
             case 'client':
                 return `/clients/owners?search=${entity.displayName}`;

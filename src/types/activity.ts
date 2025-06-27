@@ -2,7 +2,7 @@
 
 // Kategorie aktywności (usunięto 'call' - telefony)
 export type ActivityCategory =
-    | 'appointment'  // Wizyty/rezerwacje
+    | 'APPOINTMENT'  // Wizyty/rezerwacje
     | 'protocol'     // Protokoły przyjęcia pojazdów
     | 'comment'      // Komentarze i notatki
     | 'client'       // Akcje związane z klientami
@@ -15,7 +15,7 @@ export type ActivityStatus = 'success' | 'pending' | 'error' | null;
 
 // Typy encji powiązanych z aktywnościami
 export type EntityType =
-    | 'appointment'  // Wizyta/rezerwacja
+    | 'APPOINTMENT'  // Wizyta/rezerwacja
     | 'protocol'     // Protokół przyjęcia
     | 'client'       // Klient
     | 'vehicle'      // Pojazd

@@ -103,7 +103,7 @@ const ActivityListItem: React.FC<ActivityListItemProps> = ({ activity, icon }) =
 // Style dla różnych kategorii aktywności
 const getCategoryColor = (category: string): string => {
     switch (category) {
-        case 'appointment':
+        case 'APPOINTMENT':
             return '#3498db'; // niebieski
         case 'protocol':
             return '#2ecc71'; // zielony

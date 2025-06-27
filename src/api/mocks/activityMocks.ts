@@ -155,7 +155,7 @@ const generateClientActivities = (baseTime: Date): ActivityItem[] => {
         message: 'Dodano nowego klienta do bazy wraz z danymi kontaktowymi',
         userId: user.id,
         userName: user.name,
-        userColor: user.color,
+        userColor: null,
         entities: [
             {
                 id: `client-${Math.random()}`,
@@ -166,7 +166,7 @@ const generateClientActivities = (baseTime: Date): ActivityItem[] => {
         ],
         status: 'success',
         metadata: {
-            previousValue: null,
+            previousValue: "Stary klienta - Jan Kowalski",
             newValue: 'Nowy klient - Maria Nowak',
             notes: 'Klient polecony przez Jana Kowalskiego'
         }
