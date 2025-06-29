@@ -105,9 +105,9 @@ const getCategoryColor = (category: string): string => {
     switch (category) {
         case 'APPOINTMENT':
             return '#3498db'; // niebieski
-        case 'protocol':
+        case 'PROTOCOL':
             return '#2ecc71'; // zielony
-        case 'comment':
+        case 'COMMENT':
             return '#9b59b6'; // fioletowy
         case 'call':
             return '#e74c3c'; // czerwony

@@ -64,7 +64,7 @@ const activityCategories = [
     { id: 'all', label: 'Wszystkie aktywności', icon: <FaFilter /> },
     { id: 'APPOINTMENT', label: 'Wizyty i rezerwacje', icon: <FaCalendarAlt /> },
     { id: 'protocol', label: 'Protokoły przyjęcia', icon: <FaClipboardCheck /> },
-    { id: 'comment', label: 'Komentarze', icon: <FaComment /> },
+    { id: 'COMMENT', label: 'Komentarze', icon: <FaComment /> },
     { id: 'client', label: 'Operacje na klientach', icon: <FaUser /> },
     { id: 'vehicle', label: 'Operacje na pojazdach', icon: <FaCar /> },
     { id: 'notification', label: 'Powiadomienia', icon: <FaBell /> },

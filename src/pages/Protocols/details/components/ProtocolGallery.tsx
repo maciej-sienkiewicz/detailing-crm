@@ -144,7 +144,7 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
     // Protocol documents API functions
     const protocolDocumentsApi = {
         getDocuments: async (protocolId: string): Promise<ProtocolDocument[]> => {
-            return await apiClient.get<ProtocolDocument[]>(`/receptions/${protocolId}/documents`);
+            return await apiClient.get<ProtocolDocument[]>(`/v1/protocols/${protocolId}/documents`);
         },
 
         uploadDocument: async (protocolId: string, file: File, documentType: string, description?: string) => {
@@ -155,7 +155,7 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                 formData.append('description', description);
             }
 
-            return await apiClient.post(`/receptions/${protocolId}/document`, formData);
+            return await apiClient.post(`/v1/protocols/${protocolId}/document`, formData);
         },
 
         deleteDocument: async (protocolId: string, documentId: string): Promise<boolean> => {

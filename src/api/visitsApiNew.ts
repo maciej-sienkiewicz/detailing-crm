@@ -140,7 +140,7 @@ class VisitsApi {
 
             // Call the API
             const response = await apiClientNew.getWithPagination<VisitListItem>(
-                `${this.baseEndpoint}/list`,
+                `/v1/protocols/list`,
                 apiParams,
                 { page, size },
                 { timeout: 15000 } // 15 second timeout for list operations

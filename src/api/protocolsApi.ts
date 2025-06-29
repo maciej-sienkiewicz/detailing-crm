@@ -39,9 +39,8 @@ export const protocolsApi = {
         try {
             const { page = 0, size = 10, ...otherFilters } = filters;
 
-            // Używamy poprawnego endpointu - /receptions/list zamiast /v1/protocols
             const response = await apiClient.getWithPagination<ProtocolListItem>(
-                '/receptions/list',
+                '/v1/protocols/list',
                 otherFilters,
                 { page, size }
             );
@@ -77,7 +76,7 @@ export const protocolsApi = {
      */
     getProtocolsListWithoutPagination: async (filters: Omit<ProtocolFilterParams, 'page' | 'size'> = {}): Promise<ProtocolListItem[]> => {
         try {
-            return await apiClient.get<ProtocolListItem[]>('/receptions/not-paginated', filters);
+            return await apiClient.get<ProtocolListItem[]>('/v1/protocols/not-paginated', filters);
         } catch (error) {
             console.error('Error fetching protocols list:', error);
             return [];
@@ -104,7 +103,7 @@ export const protocolsApi = {
         documentType: 'invoice' | 'receipt' | 'other';
     }): Promise<CarReceptionProtocol | null> => {
         try {
-            return await apiClient.post<CarReceptionProtocol>(`/receptions/${id}/release`, data);
+            return await apiClient.post<CarReceptionProtocol>(`/v1/protocols/${id}/release`, data);
         } catch (error) {
             console.error(`Error releasing vehicle (ID: ${id}):`, error);
             return null;
@@ -116,7 +115,7 @@ export const protocolsApi = {
      */
     getProtocolDetails: async (id: string): Promise<CarReceptionProtocol | null> => {
         try {
-            return await apiClient.get<CarReceptionProtocol>(`/receptions/${id}`);
+            return await apiClient.get<CarReceptionProtocol>(`/v1/protocols/${id}`);
         } catch (error) {
             console.error(`Error fetching protocol details (ID: ${id}):`, error);
             return null;
@@ -152,7 +151,7 @@ export const protocolsApi = {
      */
     updateProtocolStatus: async (id: string, status: ProtocolStatus, reason?: string): Promise<CarReceptionProtocol | null> => {
         try {
-            return await apiClient.patch<CarReceptionProtocol>(`/receptions/${id}/status`, { status, reason });
+            return await apiClient.patch<CarReceptionProtocol>(`/v1/protocols/${id}/status`, { status, reason });
         } catch (error) {
             console.error(`Error updating protocol status (ID: ${id}):`, error);
             return null;
@@ -193,7 +192,7 @@ export const protocolsApi = {
 
     getProtocolCounters: async (): Promise<ProtocolCounters> => {
         try {
-            return await apiClient.get<ProtocolCounters>('/receptions/counters');
+            return await apiClient.get<ProtocolCounters>('/v1/protocols/counters');
         } catch (error) {
             console.error('Error fetching protocol counters:', error);
             // Zwracamy domyślne wartości w przypadku błędu

@@ -49,7 +49,7 @@ const ActivityEntityLink: React.FC<ActivityEntityLinkProps> = ({ entity }) => {
                     path: `/finances/invoices?id=${entity.id}`,
                     text: entity.displayName || 'Faktura'
                 };
-            case 'comment':
+            case 'COMMENT':
                 return {
                     icon: <FaComments />,
                     path: `/orders/car-reception/${entity.relatedId}?comment=${entity.id}`,

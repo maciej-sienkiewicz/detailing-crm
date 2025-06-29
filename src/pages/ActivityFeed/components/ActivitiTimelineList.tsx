@@ -104,9 +104,9 @@ const ActivityTimelineList: React.FC<ActivityTimelineListProps> = ({ activities,
         switch (category) {
             case 'APPOINTMENT':
                 return <FaCalendarAlt />;
-            case 'protocol':
+            case 'PROTOCOL':
                 return <FaClipboardCheck />;
-            case 'comment':
+            case 'COMMENT':
                 return <FaComment />;
             case 'client':
                 return <FaUser />;
@@ -126,9 +126,9 @@ const ActivityTimelineList: React.FC<ActivityTimelineListProps> = ({ activities,
         switch (category) {
             case 'APPOINTMENT':
                 return '#3498db';
-            case 'protocol':
+            case 'PROTOCOL':
                 return '#2ecc71';
-            case 'comment':
+            case 'COMMENT':
                 return '#9b59b6';
             case 'client':
                 return '#f39c12';
@@ -154,7 +154,7 @@ const ActivityTimelineList: React.FC<ActivityTimelineListProps> = ({ activities,
                 return `/clients/owners?search=${entity.displayName}`;
             case 'vehicle':
                 return `/clients/vehicles?search=${entity.displayName}`;
-            case 'protocol':
+            case 'PROTOCOL':
                 return `/orders/car-reception/${entity.id}`;
             default:
                 return '#';

@@ -56,7 +56,7 @@ export const commentsApi = {
     // Pobieranie komentarzy dla protokołu
     getComments: async (protocolId: string): Promise<Comment[]> => {
         try {
-            const data = await apiClient.get<any[]>(`/receptions/comments/${protocolId}`);
+            const data = await apiClient.get<any[]>(`/v1/visits/comments/${protocolId}`);
             return convertSnakeToCamel(data) as Comment[];
         } catch (error) {
             console.error(`Error fetching comments for protocol ${protocolId}:`, error);
@@ -67,7 +67,7 @@ export const commentsApi = {
     // Dodawanie nowego komentarza
     addComment: async (comment: Comment): Promise<Comment | null> => {
         try {
-            const response = await apiClient.postNot<any>('/receptions/comments', comment);
+            const response = await apiClient.postNot<any>('/v1/visits/comments', comment);
             return convertSnakeToCamel(response) as Comment;
         } catch (error) {
             console.error('Error adding comment:', error);

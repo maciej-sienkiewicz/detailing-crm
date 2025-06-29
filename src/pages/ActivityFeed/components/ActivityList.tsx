@@ -84,9 +84,9 @@ const ActivityList: React.FC<ActivityListProps> = ({ activities, loading }) => {
         switch (category) {
             case 'APPOINTMENT':
                 return <FaCalendarAlt />;
-            case 'protocol':
+            case 'PROTOCOL':
                 return <FaClipboardCheck />;
-            case 'comment':
+            case 'COMMENT':
                 return <FaComment />;
             case 'call':
                 return <FaPhone />;

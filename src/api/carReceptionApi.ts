@@ -43,7 +43,7 @@ const mapServerImagesToDisplayImages = (serverImages: any[], protocolId?: string
 
         // Tworzymy URL do obrazu na podstawie endpointu API
         if (camelCaseImage.id) {
-            camelCaseImage.url = `${apiClient.getBaseUrl()}/image/${serverImage.id}`;
+            camelCaseImage.url = `${apiClient.getBaseUrl()}/v1/visits/image/${serverImage.id}`;
         }
 
         return camelCaseImage;
@@ -110,7 +110,7 @@ export const carReceptionApi = {
                 );
 
                 // Wysyłanie żądania POST z FormData
-                response = await apiClient.post<any>('/receptions/with-files', formDataWithFiles);
+                response = await apiClient.post<any>('/v1/protocols/with-files', formDataWithFiles);
             } else {
                 // Jeśli nie mamy zdjęć z plikami, używamy standardowego JSON
                 response = await apiClient.post<any>('/v1/protocols', protocolData);
@@ -229,7 +229,7 @@ export const carReceptionApi = {
      */
     getProtocolDocuments: async (protocolId: string): Promise<ProtocolDocument[]> => {
         try {
-            return await apiClient.get<ProtocolDocument[]>(`/receptions/${protocolId}/documents`);
+            return await apiClient.get<ProtocolDocument[]>(`/v1/protocols/${protocolId}/documents`);
         } catch (error) {
             console.error('Error fetching protocol documents:', error);
             return [];
@@ -258,7 +258,7 @@ export const carReceptionApi = {
                 formData.append('description', description);
             }
 
-            return await apiClient.post(`/receptions/${protocolId}/document`, formData);
+            return await apiClient.post(`/v1/protocols/${protocolId}/document`, formData);
         } catch (error) {
             console.error('Error uploading protocol document:', error);
             throw error;
@@ -273,7 +273,7 @@ export const carReceptionApi = {
      */
     deleteProtocolDocument: async (protocolId: string, documentId: string): Promise<boolean> => {
         try {
-            await apiClient.delete(`/receptions/${protocolId}/document/${documentId}`);
+            await apiClient.delete(`/v1/protocols/${protocolId}/document/${documentId}`);
             return true;
         } catch (error) {
             console.error(`Error deleting document ${documentId} from protocol ${protocolId}:`, error);
@@ -287,7 +287,7 @@ export const carReceptionApi = {
      * @returns URL do pobrania dokumentu
      */
     getProtocolDocumentDownloadUrl: (documentId: string): string => {
-        return `${apiClient.getBaseUrl()}/receptions/document/${documentId}`;
+        return `${apiClient.getBaseUrl()}/v1/protocols/document/${documentId}`;
     },
 
     /**
@@ -382,7 +382,7 @@ export const carReceptionApi = {
      */
     fetchVehicleImages: async (protocolId: string): Promise<VehicleImage[]> => {
         try {
-            const response = await apiClient.get<any[]>(`/receptions/receptions/${protocolId}/images`);
+            const response = await apiClient.get<any[]>(`/v1/protocols/${protocolId}/images`);
             return mapServerImagesToDisplayImages(response, protocolId);
         } catch (error) {
             console.error(`Error fetching images for protocol ${protocolId}:`, error);
@@ -407,7 +407,7 @@ export const carReceptionApi = {
             });
 
             // Wysyłanie żądania POST z FormData
-            const response = await apiClient.post<any[]>(`/receptions/${protocolId}/images`, formData);
+            const response = await apiClient.post<any[]>(`/v1/protocols/${protocolId}/images`, formData);
 
             // Konwertuj odpowiedź na format używany w aplikacji
             return mapServerImagesToDisplayImages(response, protocolId);
@@ -491,13 +491,13 @@ export const carReceptionApi = {
     }): Promise<VehicleImage | null> => {
         try {
             // Wysyłanie żądania PATCH
-            const response = await apiClient.patch<any>(`/receptions/${protocolId}/image/${imageId}`, metadata);
+            const response = await apiClient.patch<any>(`/v1/protocols/${protocolId}/image/${imageId}`, metadata);
 
             // Konwertuj odpowiedź na format używany w aplikacji
             const updatedImage = apiClient.parseResponse<VehicleImage>(response);
 
             // Dodaj URL do obrazu
-            updatedImage.url = `${apiClient.getBaseUrl()}/receptions/image/${imageId}`;
+            updatedImage.url = `${apiClient.getBaseUrl()}/v1/protocols/image/${imageId}`;
             updatedImage.protocolId = protocolId;
 
             return updatedImage;
@@ -515,7 +515,7 @@ export const carReceptionApi = {
     fetchVehicleImageAsUrl: async (imageId: string): Promise<string> => {
         try {
             // Konstruujemy URL z wykorzystaniem naszej funkcji getVehicleImageUrl
-            const url = `${apiClient.getBaseUrl()}/receptions/image/${imageId}`;
+            const url = `${apiClient.getBaseUrl()}/v1/protocols/image/${imageId}`;
 
             console.log('Fetching image with URL:', url); // Dodajemy logging dla debugowania
             console.log('Auth token present:', !!apiClient.getAuthToken()); // Sprawdzamy czy token jest dostępny
