@@ -26,7 +26,8 @@ import {
     FaPlus,
     FaSignOutAlt,
     FaSync,
-    FaUsers
+    FaUsers,
+    FaInfoCircle
 } from 'react-icons/fa';
 import {brandTheme} from "../Finances/styles/theme";
 
@@ -90,6 +91,25 @@ const enterprise = {
         lg: '12px',
         xl: '16px'
     }
+};
+
+// Professional Tooltip Component for CRM
+interface TooltipProps {
+    text: string;
+    position?: 'top' | 'bottom' | 'left' | 'right';
+    children: React.ReactNode;
+}
+
+const Tooltip: React.FC<TooltipProps> = ({ text, position = 'top', children }) => {
+    return (
+        <TooltipContainer>
+            {children}
+            <TooltipContent $position={position}>
+                <TooltipArrow $position={position} />
+                <TooltipText>{text}</TooltipText>
+            </TooltipContent>
+        </TooltipContainer>
+    );
 };
 
 const CalendarPage: React.FC = () => {
@@ -479,77 +499,109 @@ const CalendarPage: React.FC = () => {
 
     const stats = calculateStats();
 
+    // Professional tooltip content for automotive CRM
+    const tooltipContent = {
+        inProgress: "Pojazdy aktualnie znajdujące się na terenie zakładu, które są w trakcie realizacji usług detailingowych lub naprawczych. Obejmuje wszystkie jednostki będące w różnych fazach prac wykonawczych.",
+        today: "Liczba pojazdów zaplanowanych do przyjęcia w bieżącym dniu roboczym. Po przeprowadzeniu procedury przyjęcia pojazdu wartość ta zostanie automatycznie przeniesiona do kategorii 'W trakcie realizacji'.",
+        readyForPickup: "Pojazdy, dla których wszystkie zlecone prace zostały zakończone i oczekują na odbiór przez właściciela. Status ten oznacza gotowość do wydania oraz zakończenie procesu produkcyjnego.",
+        thisWeek: "Łączna liczba wizyt i protokołów zaplanowanych do realizacji w bieżącym tygodniu kalendarzowym. Uwzględnia wszystkie terminy przyjęć pojazdów oraz zaplanowane usługi.",
+        cancelled: "Liczba wizyt, które były zaplanowane na poprzedni dzień roboczy, ale z różnych przyczyn nie doszły do skutku. Może obejmować anulowania ze strony klienta lub przesunięcia terminu."
+    };
+
     return (
         <CalendarPageContainer>
             {/* Executive Header */}
             <HeaderContainer>
-            <PageHeader>
-                <HeaderLeft>
-                    <HeaderTitle>
-                        <TitleIcon>
-                            <FaCalendarAlt />
-                        </TitleIcon>
-                        <TitleContent>
-                            <MainTitle>Kalendarz wizyt</MainTitle>
-                            <Subtitle>Zarządzanie terminami i protokołami</Subtitle>
-                        </TitleContent>
-                    </HeaderTitle>
+                <PageHeader>
+                    <HeaderLeft>
+                        <HeaderTitle>
+                            <TitleIcon>
+                                <FaCalendarAlt />
+                            </TitleIcon>
+                            <TitleContent>
+                                <MainTitle>Kalendarz wizyt</MainTitle>
+                                <Subtitle>Zarządzanie terminami i protokołami</Subtitle>
+                            </TitleContent>
+                        </HeaderTitle>
 
-                    {/* Professional Statistics */}
-                </HeaderLeft>
+                        {/* Professional Statistics */}
+                    </HeaderLeft>
 
-                <HeaderActions>
-                    <PrimaryAction onClick={handleNewAppointmentClick}>
-                        <FaPlus />
-                        <span>Nowa wizyta</span>
-                    </PrimaryAction>
-                </HeaderActions>
-            </PageHeader>
+                    <HeaderActions>
+                        <PrimaryAction onClick={handleNewAppointmentClick}>
+                            <FaPlus />
+                            <span>Nowa wizyta</span>
+                        </PrimaryAction>
+                    </HeaderActions>
+                </PageHeader>
             </HeaderContainer>
 
             <StatsSection>
                 <StatsGrid>
+                    <Tooltip text={tooltipContent.inProgress} position="bottom">
+                        <StatCard>
+                            <StatIcon $color={enterprise.textPrimary}><FaClock /></StatIcon>
+                            <StatContent>
+                                <StatValue>{stats.inProgress}</StatValue>
+                                <StatLabel>W trakcie realizacji</StatLabel>
+                            </StatContent>
+                            <StatTooltipIcon>
+                                <FaInfoCircle />
+                            </StatTooltipIcon>
+                        </StatCard>
+                    </Tooltip>
 
-                    <StatCard>
-                        <StatIcon $color={enterprise.textPrimary}><FaClock /></StatIcon>
-                        <StatContent>
-                            <StatValue>{stats.inProgress}</StatValue>
-                            <StatLabel>W trakcie realizacji</StatLabel>
-                        </StatContent>
-                    </StatCard>
+                    <Tooltip text={tooltipContent.today} position="bottom">
+                        <StatCard>
+                            <StatIcon $color={enterprise.textPrimary}><FaUsers /></StatIcon>
+                            <StatContent>
+                                <StatValue>{stats.today}</StatValue>
+                                <StatLabel>Do przyjęcia dzisiaj</StatLabel>
+                            </StatContent>
+                            <StatTooltipIcon>
+                                <FaInfoCircle />
+                            </StatTooltipIcon>
+                        </StatCard>
+                    </Tooltip>
 
+                    <Tooltip text={tooltipContent.readyForPickup} position="bottom">
+                        <StatCard>
+                            <StatIcon $color={enterprise.textPrimary}><FaClock /></StatIcon>
+                            <StatContent>
+                                <StatValue>{stats.done}</StatValue>
+                                <StatLabel>Oczekujące na odbiór</StatLabel>
+                            </StatContent>
+                            <StatTooltipIcon>
+                                <FaInfoCircle />
+                            </StatTooltipIcon>
+                        </StatCard>
+                    </Tooltip>
 
-                    <StatCard>
-                        <StatIcon $color={enterprise.textPrimary}><FaUsers /></StatIcon>
-                        <StatContent>
-                            <StatValue>{stats.today}</StatValue>
-                            <StatLabel>Do przyjęcia dzisiaj</StatLabel>
-                        </StatContent>
-                    </StatCard>
+                    <Tooltip text={tooltipContent.thisWeek} position="bottom">
+                        <StatCard>
+                            <StatIcon $color={enterprise.textPrimary}><FaChartLine /></StatIcon>
+                            <StatContent>
+                                <StatValue>{stats.thisWeek}</StatValue>
+                                <StatLabel>Łącznie w tym tygodniu</StatLabel>
+                            </StatContent>
+                            <StatTooltipIcon>
+                                <FaInfoCircle />
+                            </StatTooltipIcon>
+                        </StatCard>
+                    </Tooltip>
 
-                    <StatCard>
-                        <StatIcon $color={enterprise.textPrimary}><FaClock /></StatIcon>
-                        <StatContent>
-                            <StatValue>{stats.done}</StatValue>
-                            <StatLabel>Oczekujące na odbiór</StatLabel>
-                        </StatContent>
-                    </StatCard>
-
-                    <StatCard>
-                        <StatIcon $color={enterprise.textPrimary}><FaChartLine /></StatIcon>
-                        <StatContent>
-                            <StatValue>{stats.thisWeek}</StatValue>
-                            <StatLabel>Łącznie w tym tygodniu</StatLabel>
-                        </StatContent>
-                    </StatCard>
-
-                    <StatCard>
-                        <StatIcon $color={enterprise.textPrimary}><FaSignOutAlt /></StatIcon>
-                        <StatContent>
-                            <StatValue>{stats.cancelled}</StatValue>
-                            <StatLabel>Wczoraj przucono</StatLabel>
-                        </StatContent>
-                    </StatCard>
+                    <Tooltip text={tooltipContent.cancelled} position="bottom">
+                        <StatCard>
+                            <StatIcon $color={enterprise.textPrimary}><FaSignOutAlt /></StatIcon>
+                            <StatContent>
+                                <StatValue>{stats.cancelled}</StatValue>
+                                <StatLabel>Wczoraj przucono</StatLabel>
+                            </StatContent>
+                            <StatTooltipIcon>
+                                <FaInfoCircle />
+                            </StatTooltipIcon>
+                        </StatCard>
+                    </Tooltip>
                 </StatsGrid>
             </StatsSection>
 
@@ -667,467 +719,554 @@ const CalendarPage: React.FC = () => {
 
 // Professional Styled Components
 const CalendarPageContainer = styled.div`
-    min-height: 100vh;
-    background: ${brandTheme.surfaceAlt};
-    display: flex;
-    flex-direction: column;
+   min-height: 100vh;
+   background: ${brandTheme.surfaceAlt};
+   display: flex;
+   flex-direction: column;
+`;
+
+// Tooltip Styles
+const TooltipContainer = styled.div`
+   position: relative;
+   display: inline-block;
+   width: 100%;
+
+   &:hover > div:last-child {
+       opacity: 1;
+       visibility: visible;
+       transform: translateY(0);
+   }
+`;
+
+const TooltipContent = styled.div<{ $position: 'top' | 'bottom' | 'left' | 'right' }>`
+   position: absolute;
+   z-index: 1000;
+   padding: ${enterprise.spacing.lg};
+   background: ${enterprise.textPrimary};
+   color: white;
+   border-radius: ${enterprise.radius.md};
+   font-size: 13px;
+   font-weight: 500;
+   line-height: 1.4;
+   box-shadow: ${enterprise.shadow.xl};
+   opacity: 0;
+   visibility: hidden;
+   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+   pointer-events: none;
+   max-width: 350px;
+   min-width: 280px;
+   white-space: normal;
+   word-wrap: break-word;
+
+   ${props => {
+    switch (props.$position) {
+        case 'top':
+            return `
+                   bottom: calc(100% + 8px);
+                   left: 50%;
+                   transform: translateX(-50%) translateY(-4px);
+               `;
+        case 'bottom':
+            return `
+                   top: calc(100% + 8px);
+                   left: 50%;
+                   transform: translateX(-50%) translateY(4px);
+               `;
+        case 'left':
+            return `
+                   right: calc(100% + 8px);
+                   top: 50%;
+                   transform: translateY(-50%) translateX(-4px);
+               `;
+        case 'right':
+            return `
+                   left: calc(100% + 8px);
+                   top: 50%;
+                   transform: translateY(-50%) translateX(4px);
+               `;
+    }
+}}
+
+   &:hover {
+       opacity: 1;
+       visibility: visible;
+       transform: ${props => {
+    switch (props.$position) {
+        case 'top':
+            return 'translateX(-50%) translateY(0)';
+        case 'bottom':
+            return 'translateX(-50%) translateY(0)';
+        case 'left':
+            return 'translateY(-50%) translateX(0)';
+        case 'right':
+            return 'translateY(-50%) translateX(0)';
+    }
+}};
+   }
+`;
+
+const TooltipArrow = styled.div<{ $position: 'top' | 'bottom' | 'left' | 'right' }>`
+   position: absolute;
+   width: 0;
+   height: 0;
+   border-style: solid;
+
+   ${props => {
+    switch (props.$position) {
+        case 'top':
+            return `
+                   top: 100%;
+                   left: 50%;
+                   transform: translateX(-50%);
+                   border-width: 6px 6px 0 6px;
+                   border-color: ${enterprise.textPrimary} transparent transparent transparent;
+               `;
+        case 'bottom':
+            return `
+                   bottom: 100%;
+                   left: 50%;
+                   transform: translateX(-50%);
+                   border-width: 0 6px 6px 6px;
+                   border-color: transparent transparent ${enterprise.textPrimary} transparent;
+               `;
+        case 'left':
+            return `
+                   left: 100%;
+                   top: 50%;
+                   transform: translateY(-50%);
+                   border-width: 6px 0 6px 6px;
+                   border-color: transparent transparent transparent ${enterprise.textPrimary};
+               `;
+        case 'right':
+            return `
+                   right: 100%;
+                   top: 50%;
+                   transform: translateY(-50%);
+                   border-width: 6px 6px 6px 0;
+                   border-color: transparent ${enterprise.textPrimary} transparent transparent;
+               `;
+    }
+}}
+`;
+
+const TooltipText = styled.span`
+   display: block;
 `;
 
 const HeaderContainer = styled.header`
-    background: ${brandTheme.surface};
-    border-bottom: 1px solid ${brandTheme.border};
-    box-shadow: ${brandTheme.shadow.sm};
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    backdrop-filter: blur(8px);
-    background: rgba(255, 255, 255, 0.95);
+   background: ${brandTheme.surface};
+   border-bottom: 1px solid ${brandTheme.border};
+   box-shadow: ${brandTheme.shadow.sm};
+   position: sticky;
+   top: 0;
+   z-index: 100;
+   backdrop-filter: blur(8px);
+   background: rgba(255, 255, 255, 0.95);
 `;
 
 const PageHeader = styled.div`
-    max-width: 1600px;
-    margin: 0 auto;
-    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: ${brandTheme.spacing.lg};
+   max-width: 1600px;
+   margin: 0 auto;
+   padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   gap: ${brandTheme.spacing.lg};
 
-    @media (max-width: 1024px) {
-        padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-        flex-direction: column;
-        align-items: stretch;
-        gap: ${brandTheme.spacing.md};
-    }
+   @media (max-width: 1024px) {
+       padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+       flex-direction: column;
+       align-items: stretch;
+       gap: ${brandTheme.spacing.md};
+   }
 
-    @media (max-width: 768px) {
-        padding: ${brandTheme.spacing.md};
-    }
+   @media (max-width: 768px) {
+       padding: ${brandTheme.spacing.md};
+   }
 `;
 
 const HeaderLeft = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.md};
-    min-width: 0;
-    flex: 1;
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.md};
+   min-width: 0;
+   flex: 1;
 `;
 
 const HeaderTitle = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${enterprise.spacing.lg};
+   display: flex;
+   align-items: center;
+   gap: ${enterprise.spacing.lg};
 `;
 
 const TitleIcon = styled.div`
-    width: 56px;
-    height: 56px;
-    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-    border-radius: ${brandTheme.radius.lg};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 24px;
-    box-shadow: ${brandTheme.shadow.md};
-    flex-shrink: 0;
+   width: 56px;
+   height: 56px;
+   background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+   border-radius: ${brandTheme.radius.lg};
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   color: white;
+   font-size: 24px;
+   box-shadow: ${brandTheme.shadow.md};
+   flex-shrink: 0;
 `;
 
 const TitleContent = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${enterprise.spacing.xs};
+   display: flex;
+   flex-direction: column;
+   gap: ${enterprise.spacing.xs};
 `;
 
 const MainTitle = styled.h1`
-    font-size: 32px;
-    font-weight: 700;
-    color: ${enterprise.textPrimary};
-    margin: 0;
-    letter-spacing: -0.5px;
-    line-height: 1.2;
+   font-size: 32px;
+   font-weight: 700;
+   color: ${enterprise.textPrimary};
+   margin: 0;
+   letter-spacing: -0.5px;
+   line-height: 1.2;
 
-    @media (max-width: 768px) {
-        font-size: 28px;
-    }
+   @media (max-width: 768px) {
+       font-size: 28px;
+   }
 `;
 
 const Subtitle = styled.div`
-    font-size: 16px;
-    color: ${enterprise.textTertiary};
-    font-weight: 500;
+   font-size: 16px;
+   color: ${enterprise.textTertiary};
+   font-weight: 500;
 `;
 
 const StatsSection = styled.section`
-    max-width: 1600px;
-    margin: 0 auto;
-    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl} 0;
+   max-width: 1600px;
+   margin: 0 auto;
+   padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl} 0;
 
-    @media (max-width: 1024px) {
-        padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg} 0;
-    }
+   @media (max-width: 1024px) {
+       padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg} 0;
+   }
 
-    @media (max-width: 768px) {
-        padding: ${brandTheme.spacing.md} ${brandTheme.spacing.md} 0;
-    }
+   @media (max-width: 768px) {
+       padding: ${brandTheme.spacing.md} ${brandTheme.spacing.md} 0;
+   }
 `;
 
 const StatsGrid = styled.div`
-    display: grid;
-    grid-template-columns: repeat(5, 1fr); /* Wymuś dokładnie 5 kolumn */
-    gap: ${brandTheme.spacing.lg};
-    margin-bottom: ${brandTheme.spacing.lg};
+   display: grid;
+   grid-template-columns: repeat(5, 1fr);
+   gap: ${brandTheme.spacing.lg};
+   margin-bottom: ${brandTheme.spacing.lg};
 
-    /* Alternatywnie, jeśli chcesz dynamicznie dopasowywać minimalną szerokość: */
-    /* grid-template-columns: repeat(5, minmax(180px, 1fr)); */
+   @media (max-width: 1400px) {
+       grid-template-columns: repeat(3, 1fr);
+       gap: ${brandTheme.spacing.md};
+   }
 
-    @media (max-width: 1400px) {
-        grid-template-columns: repeat(3, 1fr);
-        gap: ${brandTheme.spacing.md};
-    }
+   @media (max-width: 1024px) {
+       grid-template-columns: repeat(2, 1fr);
+       gap: ${brandTheme.spacing.md};
+   }
 
-    @media (max-width: 1024px) {
-        grid-template-columns: repeat(2, 1fr);
-        gap: ${brandTheme.spacing.md};
-    }
-
-    @media (max-width: 768px) {
-        grid-template-columns: 1fr;
-        gap: ${brandTheme.spacing.md};
-    }
+   @media (max-width: 768px) {
+       grid-template-columns: 1fr;
+       gap: ${brandTheme.spacing.md};
+   }
 `;
 
 const StatCard = styled.div`
-    background: ${brandTheme.surface};
-    border: 1px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.xl};
-    padding: ${brandTheme.spacing.lg};
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.md};
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: ${brandTheme.shadow.xs};
-    position: relative;
-    overflow: hidden;
+   background: ${brandTheme.surface};
+   border: 1px solid ${brandTheme.border};
+   border-radius: ${brandTheme.radius.xl};
+   padding: ${brandTheme.spacing.lg};
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.md};
+   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+   box-shadow: ${brandTheme.shadow.xs};
+   position: relative;
+   overflow: hidden;
 
-    &:hover {
-        transform: translateY(-2px);
-        box-shadow: ${brandTheme.shadow.lg};
-        border-color: ${brandTheme.primary};
-    }
+   &:hover {
+       transform: translateY(-2px);
+       box-shadow: ${brandTheme.shadow.lg};
+       border-color: ${brandTheme.primary};
+   }
 
-    &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(90deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-        opacity: 0;
-        transition: opacity 0.2s ease;
-    }
+   &::before {
+       content: '';
+       position: absolute;
+       top: 0;
+       left: 0;
+       right: 0;
+       height: 4px;
+       background: linear-gradient(90deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+       opacity: 0;
+       transition: opacity 0.2s ease;
+   }
 
-    &:hover::before {
-        opacity: 1;
-    }
+   &:hover::before {
+       opacity: 1;
+   }
+`;
+
+const StatTooltipIcon = styled.div`
+   position: absolute;
+   top: ${brandTheme.spacing.sm};
+   right: ${brandTheme.spacing.sm};
+   color: ${brandTheme.text.tertiary};
+   font-size: 12px;
+   opacity: 0.7;
+   transition: opacity 0.2s ease;
+
+   ${StatCard}:hover & {
+       opacity: 1;
+       color: ${brandTheme.primary};
+   }
 `;
 
 const StatIcon = styled.div<{ $color: string }>`
-    width: 56px;
-    height: 56px;
-    background: linear-gradient(135deg, ${props => props.$color}15 0%, ${props => props.$color}08 100%);
-    border-radius: ${brandTheme.radius.lg};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: ${props => props.$color};
-    font-size: 24px;
-    flex-shrink: 0;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+   width: 56px;
+   height: 56px;
+   background: linear-gradient(135deg, ${props => props.$color}15 0%, ${props => props.$color}08 100%);
+   border-radius: ${brandTheme.radius.lg};
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   color: ${props => props.$color};
+   font-size: 24px;
+   flex-shrink: 0;
+   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
 `;
 
 const StatContent = styled.div`
-    flex: 1;
-    min-width: 0;
+   flex: 1;
+   min-width: 0;
 `;
 
 const StatValue = styled.div`
-    font-size: 28px;
-    font-weight: 700;
-    color: ${brandTheme.text.primary};
-    margin-bottom: ${brandTheme.spacing.xs};
-    letter-spacing: -0.025em;
-    line-height: 1.1;
+   font-size: 28px;
+   font-weight: 700;
+   color: ${brandTheme.text.primary};
+   margin-bottom: ${brandTheme.spacing.xs};
+   letter-spacing: -0.025em;
+   line-height: 1.1;
 
-    @media (max-width: 768px) {
-        font-size: 24px;
-    }
+   @media (max-width: 768px) {
+       font-size: 24px;
+   }
 `;
 
 const StatLabel = styled.div`
-    font-size: 14px;
-    color: ${brandTheme.text.secondary};
-    font-weight: 500;
-    line-height: 1.3;
+   font-size: 14px;
+   color: ${brandTheme.text.secondary};
+   font-weight: 500;
+   line-height: 1.3;
 `;
 
 const HeaderActions = styled.div`
-    display: flex;
-    gap: ${enterprise.spacing.lg};
-    align-items: center;
+   display: flex;
+   gap: ${enterprise.spacing.lg};
+   align-items: center;
 
-    @media (max-width: 1024px) {
-        width: 100%;
-        justify-content: flex-start;
-    }
+   @media (max-width: 1024px) {
+       width: 100%;
+       justify-content: flex-start;
+   }
 
-    @media (max-width: 768px) {
-        flex-direction: column;
-        gap: ${enterprise.spacing.md};
+   @media (max-width: 768px) {
+       flex-direction: column;
+       gap: ${enterprise.spacing.md};
 
-        > * {
-            width: 100%;
-        }
-    }
-`;
-
-const BaseAction = styled.button`
-    display: flex;
-    align-items: center;
-    gap: ${enterprise.spacing.md};
-    padding: ${enterprise.spacing.lg} ${enterprise.spacing.xl};
-    border-radius: ${enterprise.radius.lg};
-    font-weight: 600;
-    font-size: 16px;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 2px solid;
-    white-space: nowrap;
-    min-height: 48px;
-
-    &:hover:not(:disabled) {
-        transform: translateY(-2px);
-        box-shadow: ${enterprise.shadow.lg};
-    }
-
-    &:active:not(:disabled) {
-        transform: translateY(-1px);
-    }
-
-    &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: none;
-        box-shadow: none;
-    }
-
-    svg {
-        font-size: 18px;
-    }
-
-    @media (max-width: 480px) {
-        span {
-            display: none;
-        }
-    }
+       > * {
+           width: 100%;
+       }
+   }
 `;
 
 const BaseButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
-    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
-    border-radius: ${brandTheme.radius.md};
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 1px solid transparent;
-    white-space: nowrap;
-    min-height: 44px;
-    position: relative;
-    overflow: hidden;
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.sm};
+   padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+   border-radius: ${brandTheme.radius.md};
+   font-weight: 600;
+   font-size: 14px;
+   cursor: pointer;
+   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+   border: 1px solid transparent;
+   white-space: nowrap;
+   min-height: 44px;
+   position: relative;
+   overflow: hidden;
 
-    &:hover {
-        transform: translateY(-1px);
-    }
+   &:hover {
+       transform: translateY(-1px);
+   }
 
-    &:active {
-        transform: translateY(0);
-    }
+   &:active {
+       transform: translateY(0);
+   }
 
-    &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-        transform: none;
-    }
+   &:disabled {
+       opacity: 0.5;
+       cursor: not-allowed;
+       transform: none;
+   }
 
-    span {
-        @media (max-width: 480px) {
-            display: block;
-        }
-    }
+   span {
+       @media (max-width: 480px) {
+           display: block;
+       }
+   }
 `;
 
 const PrimaryAction = styled(BaseButton)`
-    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-    color: white;
-    box-shadow: ${brandTheme.shadow.sm};
+   background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+   color: white;
+   box-shadow: ${brandTheme.shadow.sm};
 
-    &:hover {
-        background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
-        box-shadow: ${brandTheme.shadow.md};
-    }
+   &:hover {
+       background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
+       box-shadow: ${brandTheme.shadow.md};
+   }
 
-    @media (max-width: 768px) {
-        justify-content: center;
-    }
-`;
-
-const SecondaryAction = styled(BaseAction)`
-    background: ${enterprise.surface};
-    color: ${enterprise.textSecondary};
-    border-color: ${enterprise.border};
-
-    &:hover:not(:disabled) {
-        background: ${enterprise.surfaceHover};
-        border-color: ${enterprise.primary};
-        color: ${enterprise.primary};
-    }
+   @media (max-width: 768px) {
+       justify-content: center;
+   }
 `;
 
 const LoadingContainer = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 400px;
-    gap: ${enterprise.spacing.xl};
-    background: ${enterprise.surface};
-    margin: ${enterprise.spacing.xl};
-    border-radius: ${enterprise.radius.xl};
-    border: 2px dashed ${enterprise.borderLight};
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   justify-content: center;
+   min-height: 400px;
+   gap: ${enterprise.spacing.xl};
+   background: ${enterprise.surface};
+   margin: ${enterprise.spacing.xl};
+   border-radius: ${enterprise.radius.xl};
+   border: 2px dashed ${enterprise.borderLight};
 `;
 
 const LoadingSpinner = styled.div`
-    width: 48px;
-    height: 48px;
-    border: 3px solid ${enterprise.borderLight};
-    border-top: 3px solid ${enterprise.primary};
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
+   width: 48px;
+   height: 48px;
+   border: 3px solid ${enterprise.borderLight};
+   border-top: 3px solid ${enterprise.primary};
+   border-radius: 50%;
+   animation: spin 1s linear infinite;
 
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
+   @keyframes spin {
+       0% { transform: rotate(0deg); }
+       100% { transform: rotate(360deg); }
+   }
 `;
 
 const LoadingText = styled.div`
-    font-size: 18px;
-    color: ${enterprise.textTertiary};
-    font-weight: 500;
+   font-size: 18px;
+   color: ${enterprise.textTertiary};
+   font-weight: 500;
 `;
 
 const ErrorContainer = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 400px;
-    padding: ${enterprise.spacing.xl};
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   min-height: 400px;
+   padding: ${enterprise.spacing.xl};
 `;
 
 const ErrorCard = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: ${enterprise.spacing.xl};
-    padding: ${enterprise.spacing.xxxl};
-    background: ${enterprise.surface};
-    border: 2px solid ${enterprise.error}30;
-    border-radius: ${enterprise.radius.xl};
-    box-shadow: ${enterprise.shadow.lg};
-    text-align: center;
-    max-width: 500px;
-    width: 100%;
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: ${enterprise.spacing.xl};
+   padding: ${enterprise.spacing.xxxl};
+   background: ${enterprise.surface};
+   border: 2px solid ${enterprise.error}30;
+   border-radius: ${enterprise.radius.xl};
+   box-shadow: ${enterprise.shadow.lg};
+   text-align: center;
+   max-width: 500px;
+   width: 100%;
 `;
 
 const ErrorIcon = styled.div`
-    font-size: 64px;
+   font-size: 64px;
 `;
 
 const ErrorMessage = styled.div`
-    font-size: 18px;
-    color: ${enterprise.error};
-    font-weight: 500;
-    line-height: 1.5;
+   font-size: 18px;
+   color: ${enterprise.error};
+   font-weight: 500;
+   line-height: 1.5;
 `;
 
 const RetryButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: ${enterprise.spacing.md};
-    padding: ${enterprise.spacing.lg} ${enterprise.spacing.xl};
-    background: ${enterprise.primary};
-    color: white;
-    border: none;
-    border-radius: ${enterprise.radius.lg};
-    font-weight: 600;
-    font-size: 16px;
-    cursor: pointer;
-    transition: all 0.2s ease;
+   display: flex;
+   align-items: center;
+   gap: ${enterprise.spacing.md};
+   padding: ${enterprise.spacing.lg} ${enterprise.spacing.xl};
+   background: ${enterprise.primary};
+   color: white;
+   border: none;
+   border-radius: ${enterprise.radius.lg};
+   font-weight: 600;
+   font-size: 16px;
+   cursor: pointer;
+   transition: all 0.2s ease;
 
-    &:hover {
-        background: ${enterprise.primaryDark};
-        transform: translateY(-1px);
-        box-shadow: ${enterprise.shadow.md};
-    }
+   &:hover {
+       background: ${enterprise.primaryDark};
+       transform: translateY(-1px);
+       box-shadow: ${enterprise.shadow.md};
+   }
 
-    svg {
-        font-size: 16px;
-    }
+   svg {
+       font-size: 16px;
+   }
 `;
 
 const CalendarSection = styled.section`
-    flex: 1;
-    margin: ${enterprise.spacing.xl};
-    background: ${enterprise.surface};
-    border-radius: ${enterprise.radius.xl};
-    border: 1px solid ${enterprise.border};
-    box-shadow: ${enterprise.shadow.lg};
-    overflow: hidden;
+   flex: 1;
+   margin: ${enterprise.spacing.xl};
+   background: ${enterprise.surface};
+   border-radius: ${enterprise.radius.xl};
+   border: 1px solid ${enterprise.border};
+   box-shadow: ${enterprise.shadow.lg};
+   overflow: hidden;
 
-    @media (max-width: 768px) {
-        margin: ${enterprise.spacing.lg};
-        border-radius: ${enterprise.radius.lg};
-    }
+   @media (max-width: 768px) {
+       margin: ${enterprise.spacing.lg};
+       border-radius: ${enterprise.radius.lg};
+   }
 `;
 
 const StatusBar = styled.div`
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: ${enterprise.spacing.lg} ${enterprise.spacing.xl};
-    background: ${enterprise.surfaceActive};
-    border-top: 1px solid ${enterprise.borderLight};
+   display: flex;
+   justify-content: center;
+   align-items: center;
+   padding: ${enterprise.spacing.lg} ${enterprise.spacing.xl};
+   background: ${enterprise.surfaceActive};
+   border-top: 1px solid ${enterprise.borderLight};
 `;
 
 const StatusInfo = styled.div`
-    font-size: 13px;
-    color: ${enterprise.textMuted};
-    font-weight: 500;
-    text-align: center;
+   font-size: 13px;
+   color: ${enterprise.textMuted};
+   font-weight: 500;
+   text-align: center;
 
-    span {
-        margin-left: ${enterprise.spacing.md};
-        
-        @media (max-width: 768px) {
-            display: block;
-            margin-left: 0;
-            margin-top: ${enterprise.spacing.xs};
-        }
-    }
+   span {
+       margin-left: ${enterprise.spacing.md};
+       
+       @media (max-width: 768px) {
+           display: block;
+           margin-left: 0;
+           margin-top: ${enterprise.spacing.xs};
+       }
+   }
 `;
 
 export default CalendarPage;

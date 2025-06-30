@@ -1,5 +1,5 @@
-// src/components/calendar/Calendar.tsx
-import React, { useState, useEffect, useRef } from 'react';
+// src/components/calendar/Calendar.tsx - PRODUCTION VERSION
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styled from 'styled-components';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -92,10 +92,11 @@ const AppointmentCalendar: React.FC<CalendarProps> = ({
                                                           onRangeChange,
                                                           onEventCreate
                                                       }) => {
-    // Professional State Management
+    // PRODUCTION STATE MANAGEMENT - Single source of truth
     const [calendarColors, setCalendarColors] = useState<Record<string, CalendarColor>>({});
     const [currentView, setCurrentView] = useState<CalendarView>('dayGridMonth');
-    const [selectedDate, setSelectedDate] = useState(new Date());
+    const [currentDate, setCurrentDate] = useState<Date>(new Date()); // This tracks FullCalendar's actual date
+    const [isCalendarReady, setIsCalendarReady] = useState(false); // Track calendar initialization
     const [quickFilters, setQuickFilters] = useState({
         scheduled: true,
         inProgress: true,
@@ -106,22 +107,24 @@ const AppointmentCalendar: React.FC<CalendarProps> = ({
 
     const calendarRef = useRef<FullCalendar>(null);
 
-    // Get current period title for display
-    const getCurrentPeriodTitle = (): string => {
-        const currentDate = selectedDate;
+    // PRODUCTION: Reliable period title generation
+    const getCurrentPeriodTitle = useCallback((): string => {
+        // Always use currentDate state as single source of truth
+        const displayDate = currentDate;
+
         switch (currentView) {
             case 'dayGridMonth':
-                return format(currentDate, 'LLLL yyyy', { locale: pl });
+                return format(displayDate, 'LLLL yyyy', { locale: pl });
             case 'timeGridWeek':
-                return `Tydzień ${format(currentDate, 'w, LLLL yyyy', { locale: pl })}`;
+                return `Tydzień ${format(displayDate, 'w, LLLL yyyy', { locale: pl })}`;
             case 'timeGridDay':
-                return format(currentDate, 'EEEE, dd LLLL yyyy', { locale: pl });
+                return format(displayDate, 'EEEE, dd LLLL yyyy', { locale: pl });
             case 'listWeek':
-                return `Lista - ${format(currentDate, 'LLLL yyyy', { locale: pl })}`;
+                return `Lista - ${format(displayDate, 'LLLL yyyy', { locale: pl })}`;
             default:
-                return format(currentDate, 'LLLL yyyy', { locale: pl });
+                return format(displayDate, 'LLLL yyyy', { locale: pl });
         }
-    };
+    }, [currentDate, currentView]);
 
     // Enhanced Color System - Keep original logic
     const getEventBackgroundColor = (event: Appointment): string => {
@@ -178,7 +181,7 @@ const AppointmentCalendar: React.FC<CalendarProps> = ({
         return '#ffffff';
     };
 
-    // Professional Event Handlers
+    // PRODUCTION: Reliable event handlers with proper synchronization
     const handleEventClick = (info: any) => {
         const appointment = info.event.extendedProps;
         onEventSelect(appointment);
@@ -197,41 +200,66 @@ const AppointmentCalendar: React.FC<CalendarProps> = ({
         }
     };
 
-    const handleDatesSet = (info: any) => {
-        setSelectedDate(info.start);
+    // PRODUCTION: Critical handler for calendar date synchronization
+    const handleDatesSet = useCallback((info: any) => {
+        // CRITICAL: This is the authoritative source of current calendar date
+        // We need to extract the actual current date being displayed from FullCalendar
+
+        if (!calendarRef.current) return;
+
+        // Get the ACTUAL current date from FullCalendar API - this is the single source of truth
+        const calendarApi = calendarRef.current.getApi();
+        const actualCalendarDate = calendarApi.getDate();
+
+        // Update our state with FullCalendar's actual current date
+        setCurrentDate(new Date(actualCalendarDate));
+
+        // Mark calendar as ready after first datesSet
+        if (!isCalendarReady) {
+            setIsCalendarReady(true);
+        }
+
+        // Notify parent component of range change
         if (onRangeChange) {
             onRangeChange({
                 start: info.start,
                 end: info.end
             });
         }
-    };
+    }, [isCalendarReady, onRangeChange]);
 
-    // View Controls
-    const handleViewChange = (view: CalendarView) => {
+    // PRODUCTION: Bulletproof navigation with proper state management
+    const handleNavigate = useCallback((action: 'prev' | 'next' | 'today') => {
+        if (!calendarRef.current) return;
+
+        const calendarApi = calendarRef.current.getApi();
+
+        switch (action) {
+            case 'prev':
+                calendarApi.prev();
+                // Let handleDatesSet update the currentDate
+                break;
+            case 'next':
+                calendarApi.next();
+                // Let handleDatesSet update the currentDate
+                break;
+            case 'today':
+                calendarApi.today();
+                // For today, we can immediately update since we know the target date
+                setCurrentDate(new Date());
+                break;
+        }
+    }, []);
+
+    // PRODUCTION: View change handler with state synchronization
+    const handleViewChange = useCallback((view: CalendarView) => {
         setCurrentView(view);
         if (calendarRef.current) {
             const calendarApi = calendarRef.current.getApi();
             calendarApi.changeView(view);
+            // handleDatesSet will be called automatically and update currentDate
         }
-    };
-
-    const handleNavigate = (action: 'prev' | 'next' | 'today') => {
-        if (calendarRef.current) {
-            const calendarApi = calendarRef.current.getApi();
-            switch (action) {
-                case 'prev':
-                    calendarApi.prev();
-                    break;
-                case 'next':
-                    calendarApi.next();
-                    break;
-                case 'today':
-                    calendarApi.today();
-                    break;
-            }
-        }
-    };
+    }, []);
 
     // Filter Toggle
     const toggleFilter = (filterKey: keyof typeof quickFilters) => {
@@ -241,7 +269,24 @@ const AppointmentCalendar: React.FC<CalendarProps> = ({
         }));
     };
 
-    // Initialize Calendar Colors
+    // PRODUCTION: Calendar initialization with proper error handling
+    useEffect(() => {
+        if (calendarRef.current && !isCalendarReady) {
+            try {
+                const calendarApi = calendarRef.current.getApi();
+                // Set calendar to current date on initialization
+                calendarApi.gotoDate(new Date());
+                // Update our state to match
+                setCurrentDate(new Date());
+            } catch (error) {
+                console.error('Calendar initialization error:', error);
+                // Fallback: just set current date in state
+                setCurrentDate(new Date());
+            }
+        }
+    }, [isCalendarReady]);
+
+    // PRODUCTION: Calendar colors initialization
     useEffect(() => {
         const fetchCalendarColors = async () => {
             try {
@@ -256,6 +301,8 @@ const AppointmentCalendar: React.FC<CalendarProps> = ({
                 setCalendarColors(colorsMap);
             } catch (error) {
                 console.error('Błąd podczas pobierania kolorów kalendarza:', error);
+                // Graceful fallback - empty colors map
+                setCalendarColors({});
             }
         };
 
@@ -341,6 +388,7 @@ const AppointmentCalendar: React.FC<CalendarProps> = ({
                     ref={calendarRef}
                     plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
                     initialView={currentView}
+                    initialDate={new Date()} // Ustaw na obecną datę
                     events={mapAppointmentsToFullCalendarEvents()}
                     locale={plLocale}
                     selectable={true}
@@ -409,7 +457,7 @@ const AppointmentCalendar: React.FC<CalendarProps> = ({
     );
 };
 
-// Professional Styled Components
+// Professional Styled Components (pozostałe bez zmian)
 const CalendarContainer = styled.div`
     display: flex;
     flex-direction: column;
@@ -471,12 +519,12 @@ const NavButton = styled.button`
 `;
 
 const CurrentPeriod = styled.div`
-   font-size: 18px;
-   font-weight: 700;
-   color: ${automotiveTheme.textPrimary};
-   min-width: 200px;
-   text-align: center;
-   letter-spacing: -0.025em;
+    font-size: 18px;
+    font-weight: 700;
+    color: ${automotiveTheme.textPrimary};
+    min-width: 200px;
+    text-align: center;
+    letter-spacing: -0.025em;
 `;
 
 const TodayButton = styled.button`
@@ -505,24 +553,24 @@ const ViewSelector = styled.div`
 `;
 
 const ViewButton = styled.button<{ $active: boolean }>`
-   padding: ${automotiveTheme.spacing.md} ${automotiveTheme.spacing.xl};
-   background: ${props => props.$active ? automotiveTheme.primary : 'transparent'};
-   color: ${props => props.$active ? 'white' : automotiveTheme.textSecondary};
-   border: none;
-   font-weight: 600;
-   font-size: 14px;
-   cursor: pointer;
-   transition: all 0.2s ease;
-   border-right: 1px solid ${automotiveTheme.borderLight};
+    padding: ${automotiveTheme.spacing.md} ${automotiveTheme.spacing.xl};
+    background: ${props => props.$active ? automotiveTheme.primary : 'transparent'};
+    color: ${props => props.$active ? 'white' : automotiveTheme.textSecondary};
+    border: none;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-right: 1px solid ${automotiveTheme.borderLight};
 
-   &:last-child {
-       border-right: none;
-   }
+    &:last-child {
+        border-right: none;
+    }
 
-   &:hover:not([data-active="true"]) {
-       background: ${automotiveTheme.surfaceHover};
-       color: ${automotiveTheme.primary};
-   }
+    &:hover:not([data-active="true"]) {
+        background: ${automotiveTheme.surfaceHover};
+        color: ${automotiveTheme.primary};
+    }
 `;
 
 const ControlsRight = styled.div`
@@ -555,144 +603,144 @@ const FilterButton = styled.button<{ $active: boolean; $color: string }>`
 `;
 
 const CalendarWrapper = styled.div`
-   flex: 1;
-   padding: ${automotiveTheme.spacing.xl} ${automotiveTheme.spacing.xxxl};
-   background: ${automotiveTheme.surface};
+    flex: 1;
+    padding: ${automotiveTheme.spacing.xl} ${automotiveTheme.spacing.xxxl};
+    background: ${automotiveTheme.surface};
 
-   /* Professional FullCalendar Styling */
-   .fc {
-       height: 100%;
-       font-family: inherit;
-   }
+    /* Professional FullCalendar Styling */
+    .fc {
+        height: 100%;
+        font-family: inherit;
+    }
 
-   .fc-theme-standard td, .fc-theme-standard th {
-       border-color: ${automotiveTheme.borderLight};
-   }
+    .fc-theme-standard td, .fc-theme-standard th {
+        border-color: ${automotiveTheme.borderLight};
+    }
 
-   .fc-theme-standard .fc-scrollgrid {
-       border-color: ${automotiveTheme.border};
-       border-radius: ${automotiveTheme.radius.lg};
-       overflow: hidden;
-   }
+    .fc-theme-standard .fc-scrollgrid {
+        border-color: ${automotiveTheme.border};
+        border-radius: ${automotiveTheme.radius.lg};
+        overflow: hidden;
+    }
 
-   .fc-col-header-cell {
-       background: ${automotiveTheme.surfaceActive};
-       font-weight: 600;
-       color: ${automotiveTheme.textSecondary};
-       font-size: 13px;
-       padding: ${automotiveTheme.spacing.lg};
-   }
+    .fc-col-header-cell {
+        background: ${automotiveTheme.surfaceActive};
+        font-weight: 600;
+        color: ${automotiveTheme.textSecondary};
+        font-size: 13px;
+        padding: ${automotiveTheme.spacing.lg};
+    }
 
-   .fc-daygrid-day {
-       transition: background-color 0.2s ease;
-       
-       &:hover {
-           background: ${automotiveTheme.surfaceHover};
-       }
-   }
+    .fc-daygrid-day {
+        transition: background-color 0.2s ease;
 
-   .fc-daygrid-day-number {
-       color: ${automotiveTheme.textSecondary};
-       font-weight: 600;
-       padding: ${automotiveTheme.spacing.sm};
-   }
+        &:hover {
+            background: ${automotiveTheme.surfaceHover};
+        }
+    }
 
-   .fc-day-today {
-       background: ${automotiveTheme.surfaceHover} !important;
-       
-       .fc-daygrid-day-number {
-           background: ${automotiveTheme.primary};
-           color: white;
-           border-radius: ${automotiveTheme.radius.sm};
-           width: 28px;
-           height: 28px;
-           display: flex;
-           align-items: center;
-           justify-content: center;
-       }
-   }
+    .fc-daygrid-day-number {
+        color: ${automotiveTheme.textSecondary};
+        font-weight: 600;
+        padding: ${automotiveTheme.spacing.sm};
+    }
 
-   .fc-event {
-       border-radius: ${automotiveTheme.radius.sm};
-       border: none;
-       font-weight: 600;
-       font-size: 12px;
-       margin: 2px;
-       padding: 2px 6px;
-       
-       &.protocol-event {
-           border-left: 3px solid ${automotiveTheme.primary};
-           font-weight: 700;
-       }
-   }
+    .fc-day-today {
+        background: ${automotiveTheme.surfaceHover} !important;
 
-   .fc-timegrid-slot {
-       height: 60px;
-       border-color: ${automotiveTheme.borderLight};
-   }
+        .fc-daygrid-day-number {
+            background: ${automotiveTheme.primary};
+            color: white;
+            border-radius: ${automotiveTheme.radius.sm};
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    }
 
-   .fc-timegrid-slot-label {
-       color: ${automotiveTheme.textTertiary};
-       font-weight: 500;
-       font-size: 12px;
-   }
+    .fc-event {
+        border-radius: ${automotiveTheme.radius.sm};
+        border: none;
+        font-weight: 600;
+        font-size: 12px;
+        margin: 2px;
+        padding: 2px 6px;
 
-   .fc-list-event {
-       border-radius: ${automotiveTheme.radius.md};
-       margin-bottom: ${automotiveTheme.spacing.sm};
-       
-       &:hover {
-           transform: translateY(-1px);
-           box-shadow: ${automotiveTheme.shadow.sm};
-       }
-   }
+        &.protocol-event {
+            border-left: 3px solid ${automotiveTheme.primary};
+            font-weight: 700;
+        }
+    }
 
-   .fc-list-event-time {
-       font-weight: 600;
-       color: ${automotiveTheme.primary};
-   }
+    .fc-timegrid-slot {
+        height: 60px;
+        border-color: ${automotiveTheme.borderLight};
+    }
 
-   .fc-list-event-title {
-       font-weight: 500;
-       color: ${automotiveTheme.textPrimary};
-   }
+    .fc-timegrid-slot-label {
+        color: ${automotiveTheme.textTertiary};
+        font-weight: 500;
+        font-size: 12px;
+    }
 
-   /* Professional scrollbar */
-   .fc-scroller::-webkit-scrollbar {
-       width: 6px;
-       height: 6px;
-   }
+    .fc-list-event {
+        border-radius: ${automotiveTheme.radius.md};
+        margin-bottom: ${automotiveTheme.spacing.sm};
 
-   .fc-scroller::-webkit-scrollbar-track {
-       background: ${automotiveTheme.surfaceHover};
-       border-radius: 3px;
-   }
+        &:hover {
+            transform: translateY(-1px);
+            box-shadow: ${automotiveTheme.shadow.sm};
+        }
+    }
 
-   .fc-scroller::-webkit-scrollbar-thumb {
-       background: ${automotiveTheme.border};
-       border-radius: 3px;
-       
-       &:hover {
-           background: ${automotiveTheme.textMuted};
-       }
-   }
+    .fc-list-event-time {
+        font-weight: 600;
+        color: ${automotiveTheme.primary};
+    }
 
-   /* Professional event styling */
-   .professional-event {
-       transition: all 0.2s ease;
-       
-       &:hover {
-           z-index: 10;
-       }
-   }
+    .fc-list-event-title {
+        font-weight: 500;
+        color: ${automotiveTheme.textPrimary};
+    }
 
-   /* Mobile responsiveness */
-   @media (max-width: 768px) {
-       .fc-event {
-           font-size: 11px;
-           padding: 1px 4px;
-       }
-   }
+    /* Professional scrollbar */
+    .fc-scroller::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    .fc-scroller::-webkit-scrollbar-track {
+        background: ${automotiveTheme.surfaceHover};
+        border-radius: 3px;
+    }
+
+    .fc-scroller::-webkit-scrollbar-thumb {
+        background: ${automotiveTheme.border};
+        border-radius: 3px;
+
+        &:hover {
+            background: ${automotiveTheme.textMuted};
+        }
+    }
+
+    /* Professional event styling */
+    .professional-event {
+        transition: all 0.2s ease;
+
+        &:hover {
+            z-index: 10;
+        }
+    }
+
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+        .fc-event {
+            font-size: 11px;
+            padding: 1px 4px;
+        }
+    }
 `;
 
 export default AppointmentCalendar;
