@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import {
     FaBell,
@@ -20,47 +20,44 @@ import {
     FaTachometerAlt,
     FaCalendarCheck,
     FaTools,
-    FaCarCrash
+    FaCarCrash,
+    FaPercent,
+    FaStar,
+    FaCalendarAlt,
+    FaCrown,
+    FaShieldAlt,
+    FaMapMarkerAlt,
+    FaMoneyBillWave,
+    FaHistory,
+    FaUserTie,
+    FaAward,
+    FaGem
 } from 'react-icons/fa';
-import {
-    CarReceptionProtocol,
-    DiscountType,
-    ProtocolStatus,
-    ProtocolStatusLabels,
-    SelectedService,
-    ServiceApprovalStatus
-} from '../../../../types';
-import {protocolsApi} from '../../../../api/protocolsApi';
-import AddServiceModal from "../../shared/modals/AddServiceModal";
-import {servicesApi} from "../../../../api/servicesApi";
+import {clientApi} from "../../../../api/clientsApi";
 
-// Executive Design System - Ultra-professional automotive grade
-const executive = {
-    // Premium Brand Colors
-    primary: 'var(--brand-primary, #2563eb)',
-    primaryDark: '#1d4ed8',
+// Professional Brand System - Enterprise Automotive Grade
+const brand = {
+    // Primary Brand Colors - Professional & Trustworthy
+    primary: '#1e40af',
     primaryLight: '#3b82f6',
+    primaryDark: '#1e3a8a',
+    primaryGhost: 'rgba(30, 64, 175, 0.04)',
 
-    // Executive Surface Colors
+    // Premium Surface System
     surface: '#ffffff',
     surfaceElevated: '#fafbfc',
-    surfaceHover: '#f8fafc',
+    surfaceSubtle: '#f8fafc',
+    surfaceHover: '#f1f5f9',
 
-    // Professional Typography
+    // Professional Typography Hierarchy
     textPrimary: '#0f172a',
     textSecondary: '#475569',
-    textMuted: '#64748b',
-    textSuccess: '#059669',
-    textWarning: '#d97706',
-    textError: '#dc2626',
+    textTertiary: '#64748b',
+    textMuted: '#94a3b8',
 
-    // Executive Borders
-    border: '#e2e8f0',
-    borderLight: '#f1f5f9',
-
-    // Status Colors - refined
+    // Enterprise Status System
     success: '#059669',
-    successBg: '#05966915',
+    successBg: '#ecfdf5',
     warning: '#d97706',
     warningBg: '#fffbeb',
     error: '#dc2626',
@@ -68,27 +65,36 @@ const executive = {
     pending: '#0891b2',
     pendingBg: '#f0f9ff',
 
+    // Professional Borders
+    border: '#e2e8f0',
+    borderLight: '#f1f5f9',
+    borderSubtle: '#f8fafc',
+
     // Executive Spacing
-    spacing: {
+    space: {
         xs: '4px',
         sm: '8px',
         md: '12px',
         lg: '16px',
         xl: '20px',
-        xxl: '24px'
+        xxl: '24px',
+        xxxl: '32px'
     },
 
-    // Professional Radius
+    // Premium Shadows
+    shadow: {
+        subtle: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+        soft: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+        moderate: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        elevated: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+    },
+
     radius: {
-        sm: '4px',
-        md: '6px',
-        lg: '8px'
-    },
-
-    // Executive Shadows - refined for automotive luxury
-    shadowCard: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
-    shadowHover: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-    shadowSubtle: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+        sm: '6px',
+        md: '8px',
+        lg: '12px',
+        xl: '16px'
+    }
 };
 
 interface ProtocolSummaryProps {
@@ -96,1260 +102,1273 @@ interface ProtocolSummaryProps {
     onProtocolUpdate?: (updatedProtocol: CarReceptionProtocol) => void;
 }
 
-const DEFAULT_VAT_RATE = 23;
-
 const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolUpdate }) => {
     const [showAddServiceModal, setShowAddServiceModal] = useState(false);
-    const [availableServices, setAvailableServices] = useState<Array<{id: string; name: string; price: number;}>>([]);
-    const [isLoading, setIsLoading] = useState(false);
+    const [client, setClient] = useState<ClientExpanded | null>(null);
+    const [clientStats, setClientStats] = useState<ClientStatistics | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    const handleOpenAddServiceModal = async () => {
-        setIsLoading(true)
-        try {
-            const services = await servicesApi.fetchServices();
-            setAvailableServices(services);
-        } catch (error) {
-            console.error('Błąd podczas pobierania listy usług', error);
-        } finally {
-            setIsLoading(false);
-            setShowAddServiceModal(true);
-        }
-    };
+    // Load client data based on protocol's owner ID
+    React.useEffect(() => {
+        const loadClientData = async () => {
+            try {
+                setLoading(true);
+                setError(null);
 
-    const handleCancelService = async (serviceId: string) => {
-        if (!window.confirm('Czy na pewno chcesz anulować tę usługę?')) return;
+                const clientId = protocol.ownerId;
+                console.log('Fetching client with ID:', clientId);
 
-        const updatedServices = protocol.selectedServices.filter(service => service.id !== serviceId);
-        const updatedProtocol = {
-            ...protocol,
-            selectedServices: updatedServices,
-            updatedAt: new Date().toISOString()
-        };
+                const [matchedClient, matchedClientStats] = await Promise.all([
+                    clientApi.fetchClientById(clientId),
+                    clientApi.fetchClientStatsById(clientId)
+                ]);
 
-        try {
-            const savedProtocol = await protocolsApi.updateProtocol(updatedProtocol);
-            if (onProtocolUpdate) {
-                onProtocolUpdate(savedProtocol);
-            }
-        } catch (error) {
-            console.error('Błąd podczas anulowania usługi', error);
-        }
-    };
-
-    const handleDeleteService = async (serviceId: string) => {
-        if (!window.confirm('Czy na pewno chcesz usunąć tę usługę?')) return;
-
-        const updatedServices = protocol.selectedServices.filter(service => service.id !== serviceId);
-        const updatedProtocol = {
-            ...protocol,
-            selectedServices: updatedServices,
-            updatedAt: new Date().toISOString()
-        };
-
-        try {
-            const savedProtocol = await protocolsApi.updateProtocol(updatedProtocol);
-            if (onProtocolUpdate) {
-                onProtocolUpdate(savedProtocol);
-            }
-        } catch (error) {
-            console.error('Błąd podczas usuwania usługi', error);
-        }
-    };
-
-    const handleResendNotification = async (serviceId: string) => {
-        const service = protocol.selectedServices.find(s => s.id === serviceId);
-        if (!service) return;
-        alert(`Ponowne wysłanie SMS z prośbą o potwierdzenie usługi: ${service.name}`);
-    };
-
-    const handleAddServices = async (servicesData: {
-        services: Array<{
-            id: string;
-            name: string;
-            price: number;
-            discountType?: DiscountType;
-            discountValue?: number;
-            finalPrice: number;
-            note?: string
-        }>;
-    }) => {
-        if (servicesData.services.length === 0) return;
-
-        try {
-            setIsLoading(true);
-            const now = new Date().toISOString();
-
-            const newServices: SelectedService[] = servicesData.services.map(serviceData => {
-                const newService: SelectedService = {
-                    id: `service_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
-                    name: serviceData.name,
-                    price: serviceData.price,
-                    discountType: serviceData.discountType || 'PERCENTAGE',
-                    discountValue: serviceData.discountValue !== undefined ? serviceData.discountValue : 0,
-                    finalPrice: serviceData.finalPrice,
-                    approvalStatus: ServiceApprovalStatus.PENDING,
-                    addedAt: now,
-                    confirmationMessage: `Wysłano SMS z prośbą o potwierdzenie usługi`
-                };
-
-                if (serviceData.note) {
-                    newService.note = serviceData.note;
+                if (matchedClient) {
+                    console.log('Client found:', matchedClient);
+                    setClient(matchedClient);
+                    setClientStats(matchedClientStats);
+                } else {
+                    console.error('Client not found for ID:', clientId);
+                    setError('Nie znaleziono klienta w bazie danych.');
                 }
+            } catch (err) {
+                console.error('Error loading client data:', err);
+                setError('Wystąpił błąd podczas ładowania danych klienta.');
+            } finally {
+                setLoading(false);
+            }
+        };
 
-                return newService;
-            });
+        if (protocol.ownerId) {
+            loadClientData();
+        }
+    }, [protocol.ownerId]);
 
-            const updatedServices = [...protocol.selectedServices, ...newServices];
-            const updatedProtocol = {
-                ...protocol,
-                selectedServices: updatedServices,
-                updatedAt: now
-            };
+    // Business calculations
+    const totalRevenue = protocol.selectedServices.reduce((sum, s) => sum + s.finalPrice, 0);
+    const totalDiscount = protocol.selectedServices.reduce((sum, s) => sum + (s.price - s.finalPrice), 0);
+    const pendingServices = protocol.selectedServices.filter(s => s.approvalStatus === "PENDING");
+    const approvedServices = protocol.selectedServices.filter(s => s.approvalStatus === "APPROVED");
 
-            const savedProtocol = await protocolsApi.updateProtocol(updatedProtocol);
-            onProtocolUpdate(savedProtocol);
-            setShowAddServiceModal(false);
+    // Client tier logic
+    const getClientTier = (revenue: number) => {
+        if (revenue >= 40000) return {
+            label: 'Platinum',
+            color: '#7c3aed',
+            icon: <FaGem />,
+            bgColor: 'rgba(124, 58, 237, 0.08)'
+        };
+        if (revenue >= 20000) return {
+            label: 'Gold',
+            color: '#d97706',
+            icon: <FaCrown />,
+            bgColor: 'rgba(217, 119, 6, 0.08)'
+        };
+        if (revenue >= 10000) return {
+            label: 'Silver',
+            color: '#059669',
+            icon: <FaAward />,
+            bgColor: 'rgba(5, 150, 105, 0.08)'
+        };
+        return {
+            label: 'Standard',
+            color: '#64748b',
+            icon: <FaShieldAlt />,
+            bgColor: 'rgba(100, 116, 139, 0.08)'
+        };
+    };
 
-            alert(`Dodano ${newServices.length} ${newServices.length === 1 ? 'usługę' : newServices.length < 5 ? 'usługi' : 'usług'}. SMS zostanie wysłany na numer ${protocol.phone}.`);
-        } catch (error) {
-            console.error('Błąd podczas dodawania nowych usług:', error);
-            alert('Wystąpił błąd podczas dodawania usług. Spróbuj ponownie.');
-        } finally {
-            setIsLoading(false);
+    const clientTier = clientStats ? getClientTier(clientStats.totalRevenue) : getClientTier(0);
+
+    // Format currency for display
+    const formatCurrency = (value: number): string => {
+        return new Intl.NumberFormat('pl-PL', {
+            style: 'currency',
+            currency: 'PLN',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(value);
+    };
+
+    // Status mapping
+    const getStatusInfo = (status: string) => {
+        switch (status) {
+            case 'SCHEDULED':
+                return { step: 1, label: 'Przyjęto', time: new Date(protocol.startDate).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) };
+            case 'IN_PROGRESS':
+                return { step: 2, label: 'W realizacji', time: 'Teraz' };
+            case 'READY_FOR_PICKUP':
+                return { step: 3, label: 'Gotowe', time: '~15:30' };
+            case 'COMPLETED':
+                return { step: 4, label: 'Wydano', time: new Date(protocol.endDate).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) };
+            default:
+                return { step: 1, label: 'Przyjęto', time: '--:--' };
         }
     };
 
-    // Business Logic Calculations
-    const calculateNetPrice = (grossPrice: number, vatRate: number = DEFAULT_VAT_RATE): number => {
-        return grossPrice / (1 + vatRate / 100);
-    };
+    const currentStatus = getStatusInfo(protocol.status);
 
-    const calculateServicePrices = (service: SelectedService) => {
-        const vatRate = DEFAULT_VAT_RATE;
-        const baseGrossPrice = service.price;
-        const baseNetPrice = calculateNetPrice(baseGrossPrice, vatRate);
-        const finalGrossPrice = service.finalPrice;
-        const finalNetPrice = calculateNetPrice(finalGrossPrice, vatRate);
-
-        return {
-            baseNetPrice,
-            baseGrossPrice,
-            finalNetPrice,
-            finalGrossPrice
-        };
-    };
-
-    const calculateBusinessMetrics = () => {
-        const allServices = protocol.selectedServices;
-        const approvedServices = allServices.filter(s => s.approvalStatus === ServiceApprovalStatus.APPROVED);
-        const pendingServices = allServices.filter(s => s.approvalStatus === ServiceApprovalStatus.PENDING);
-
-        let approvedTotal = 0;
-        let pendingTotal = 0;
-        let totalDiscount = 0;
-        let totalBase = 0;
-
-        approvedServices.forEach(service => {
-            const prices = calculateServicePrices(service);
-            approvedTotal += prices.finalGrossPrice;
-            totalBase += prices.baseGrossPrice;
-            totalDiscount += (prices.baseGrossPrice - prices.finalGrossPrice);
-        });
-
-        pendingServices.forEach(service => {
-            pendingTotal += service.finalPrice;
-        });
-
-        const discountPercentage = totalBase > 0 ? (totalDiscount / totalBase) * 100 : 0;
-
-        return {
-            approvedTotal,
-            pendingTotal,
-            totalRevenue: approvedTotal + pendingTotal,
-            totalDiscount,
-            discountPercentage,
-            servicesCount: allServices.length,
-            pendingCount: pendingServices.length
-        };
-    };
-
-    // Ulepszona funkcja do pobierania logo samochodu - używamy Car Query API + Fallback
-    const getCarLogoUrl = (make: string): string => {
-        const cleanMake = make.toLowerCase().replace(/\s+/g, '');
-
-        // Próbujemy kilka różnych źródeł logo samochodów
-        const logoSources = [
-            // Car Make Logo API (darmowe)
-            `https://carmakelogos.herokuapp.com/api/v1/logos/${cleanMake}`,
-            // Fallback do Car API (jeśli dostępne)
-            `https://car-data.p.rapidapi.com/logo/${cleanMake}.png`,
-            // Logo z AutoImg
-            `https://www.carlogos.org/car-logos/${cleanMake}-logo.png`,
-            // Ostatni fallback - prostą ikonę
-            `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.22.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>`)}`
-        ];
-
-        return logoSources[0]; // Używamy pierwszego źródła jako główne
-    };
-
-    const metrics = calculateBusinessMetrics();
+    if (loading) {
+        return (
+            <LoadingContainer>
+                <LoadingSpinner />
+                <span>Ładowanie danych klienta...</span>
+            </LoadingContainer>
+        );
+    }
 
     return (
-        <ExecutiveDashboard>
-            {/* Kompaktowy Status Timeline - zmniejszona szerokość */}
-            <CompactStatusTimelineSection>
-                <TimelineHeader>
-                    <TimelineTitle>Status realizacji</TimelineTitle>
-                    <StatusProgress>
-                        {protocol.status === ProtocolStatus.SCHEDULED && '1/4'}
-                        {protocol.status === ProtocolStatus.IN_PROGRESS && '2/4'}
-                        {protocol.status === ProtocolStatus.READY_FOR_PICKUP && '3/4'}
-                        {protocol.status === ProtocolStatus.COMPLETED && '4/4'}
-                        {protocol.status === ProtocolStatus.CANCELLED && 'Anulowane'}
-                    </StatusProgress>
-                </TimelineHeader>
-                <CompactStatusSteps>
-                    <StatusStep $active={protocol.status !== ProtocolStatus.CANCELLED} $completed={protocol.status !== ProtocolStatus.SCHEDULED}>
-                        <CompactStepIcon $active={protocol.status === ProtocolStatus.SCHEDULED} $completed={protocol.status !== ProtocolStatus.SCHEDULED && protocol.status !== ProtocolStatus.CANCELLED}>
+        <Container>
+            {/* Enhanced Status Timeline - More Professional */}
+            <StatusSection>
+                <StatusHeader>
+                    <StatusTitle>Status realizacji</StatusTitle>
+                    <StatusProgress>Etap {currentStatus.step}/4</StatusProgress>
+                </StatusHeader>
+                <StatusTimeline>
+                    <StatusStep $active={true} $completed={protocol.status !== 'SCHEDULED'}>
+                        <StepIcon $active={protocol.status === 'SCHEDULED'} $completed={protocol.status !== 'SCHEDULED'}>
                             <FaCalendarCheck />
-                        </CompactStepIcon>
-                        <CompactStepLabel>Zaplanowane</CompactStepLabel>
+                        </StepIcon>
+                        <StepLabel>Przyjęto</StepLabel>
+                        <StepTime>{new Date(protocol.startDate).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}</StepTime>
                     </StatusStep>
-                    <CompactStatusConnector $active={protocol.status !== ProtocolStatus.SCHEDULED && protocol.status !== ProtocolStatus.CANCELLED} />
-                    <StatusStep $active={protocol.status !== ProtocolStatus.CANCELLED} $completed={[ProtocolStatus.READY_FOR_PICKUP, ProtocolStatus.COMPLETED].includes(protocol.status)}>
-                        <CompactStepIcon $active={protocol.status === ProtocolStatus.IN_PROGRESS} $completed={[ProtocolStatus.READY_FOR_PICKUP, ProtocolStatus.COMPLETED].includes(protocol.status)}>
+
+                    <StatusConnector $active={['IN_PROGRESS', 'READY_FOR_PICKUP', 'COMPLETED'].includes(protocol.status)} />
+
+                    <StatusStep $active={true} $completed={['READY_FOR_PICKUP', 'COMPLETED'].includes(protocol.status)}>
+                        <StepIcon $active={protocol.status === 'IN_PROGRESS'} $completed={['READY_FOR_PICKUP', 'COMPLETED'].includes(protocol.status)}>
                             <FaTools />
-                        </CompactStepIcon>
-                        <CompactStepLabel>W realizacji</CompactStepLabel>
+                        </StepIcon>
+                        <StepLabel>W realizacji</StepLabel>
+                        <StepTime>{protocol.status === 'IN_PROGRESS' ? 'Teraz' : '~'}</StepTime>
                     </StatusStep>
-                    <CompactStatusConnector $active={[ProtocolStatus.READY_FOR_PICKUP, ProtocolStatus.COMPLETED].includes(protocol.status)} />
-                    <StatusStep $active={protocol.status !== ProtocolStatus.CANCELLED} $completed={protocol.status === ProtocolStatus.COMPLETED}>
-                        <CompactStepIcon $active={protocol.status === ProtocolStatus.READY_FOR_PICKUP} $completed={protocol.status === ProtocolStatus.COMPLETED}>
+
+                    <StatusConnector $active={['READY_FOR_PICKUP', 'COMPLETED'].includes(protocol.status)} />
+
+                    <StatusStep $active={true} $completed={protocol.status === 'COMPLETED'}>
+                        <StepIcon $active={protocol.status === 'READY_FOR_PICKUP'} $completed={protocol.status === 'COMPLETED'}>
                             <FaClock />
-                        </CompactStepIcon>
-                        <CompactStepLabel>Gotowe</CompactStepLabel>
+                        </StepIcon>
+                        <StepLabel>Gotowe</StepLabel>
+                        <StepTime>{protocol.status === 'READY_FOR_PICKUP' ? 'Teraz' : protocol.status === 'COMPLETED' ? '✓' : '~15:30'}</StepTime>
                     </StatusStep>
-                    <CompactStatusConnector $active={protocol.status === ProtocolStatus.COMPLETED} />
-                    <StatusStep $active={protocol.status !== ProtocolStatus.CANCELLED} $completed={protocol.status === ProtocolStatus.COMPLETED}>
-                        <CompactStepIcon $active={protocol.status === ProtocolStatus.COMPLETED} $completed={protocol.status === ProtocolStatus.COMPLETED}>
+
+                    <StatusConnector $active={protocol.status === 'COMPLETED'} />
+
+                    <StatusStep $active={true} $completed={protocol.status === 'COMPLETED'}>
+                        <StepIcon $active={protocol.status === 'COMPLETED'} $completed={protocol.status === 'COMPLETED'}>
                             <FaCarSide />
-                        </CompactStepIcon>
-                        <CompactStepLabel>Wydane</CompactStepLabel>
+                        </StepIcon>
+                        <StepLabel>Wydano</StepLabel>
+                        <StepTime>{protocol.status === 'COMPLETED' ? new Date(protocol.endDate).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) : '17:00'}</StepTime>
                     </StatusStep>
-                </CompactStatusSteps>
-            </CompactStatusTimelineSection>
+                </StatusTimeline>
 
-            {/* KPI Metrics Row */}
-            <MetricsRow>
+                {pendingServices.length > 0 && (
+                    <AlertBanner>
+                        <FaExclamationTriangle />
+                        <span>{pendingServices.length} usług oczekuje na potwierdzenie klienta</span>
+                    </AlertBanner>
+                )}
+            </StatusSection>
 
-                {metrics.pendingCount > 0 && (
-                    <KPICard $alert>
-                        <KPIIcon $color={executive.warning}>
+            {/* Main Content Grid */}
+            <ContentGrid>
+                {/* Vehicle Card - Enhanced with Professional License Plate */}
+                <VehicleCard>
+                    <CardHeader>
+                        <HeaderIcon $color={brand.primary}>
+                            <FaCarSide />
+                        </HeaderIcon>
+                        <HeaderContent>
+                            <CardTitle>Pojazd w serwisie</CardTitle>
+                            <CardSubtitle>Informacje podstawowe</CardSubtitle>
+                        </HeaderContent>
+                    </CardHeader>
+
+                    <VehicleMainInfo>
+                        <VehicleIdentity>
+                            <VehicleModel>{protocol.make} {protocol.model}</VehicleModel>
+                            <VehicleYear>{protocol.productionYear}</VehicleYear>
+                        </VehicleIdentity>
+
+                        {/* Professional License Plate Design */}
+                        <LicensePlateContainer>
+                            <LicensePlate>
+                                <PlateFlag>
+                                    <EUStars>
+                                        ★ ★<br/>
+                                        ★ ★<br/>
+                                        ★ ★
+                                    </EUStars>
+                                    <CountryCode>PL</CountryCode>
+                                </PlateFlag>
+                                <PlateNumber>{protocol.licensePlate}</PlateNumber>
+                            </LicensePlate>
+                        </LicensePlateContainer>
+                    </VehicleMainInfo>
+
+                    <VehicleDetails>
+                        <DetailItem>
+                            <DetailIcon><FaTachometerAlt /></DetailIcon>
+                            <DetailContent>
+                                <DetailLabel>Przebieg</DetailLabel>
+                                <DetailValue>{protocol.mileage ? protocol.mileage.toLocaleString() : '---'} km</DetailValue>
+                            </DetailContent>
+                        </DetailItem>
+
+                        <DetailItem>
+                            <DetailIcon><FaKey /></DetailIcon>
+                            <DetailContent>
+                                <DetailLabel>Kluczyki</DetailLabel>
+                                <DetailValue $status={protocol.keysProvided ? "provided" : undefined}>
+                                    {protocol.keysProvided ? 'Przekazane' : 'Nie przekazane'}
+                                </DetailValue>
+                            </DetailContent>
+                        </DetailItem>
+
+                        <DetailItem>
+                            <DetailIcon><FaFileAlt /></DetailIcon>
+                            <DetailContent>
+                                <DetailLabel>Dokumenty</DetailLabel>
+                                <DetailValue $status={protocol.documentsProvided ? "provided" : undefined}>
+                                    {protocol.documentsProvided ? 'Przekazane' : 'Nie przekazane'}
+                                </DetailValue>
+                            </DetailContent>
+                        </DetailItem>
+                    </VehicleDetails>
+                </VehicleCard>
+
+                {/* Enhanced Client Profile Card */}
+                <ClientCard>
+                    <CardHeader>
+                        <HeaderIcon $color={clientTier.color}>
+                            <FaUserTie />
+                        </HeaderIcon>
+                        <HeaderContent>
+                            <CardTitle>Profil klienta</CardTitle>
+                            <ClientTierBadge $color={clientTier.color} $bgColor={clientTier.bgColor}>
+                                {clientTier.icon}
+                                <span>Klient {clientTier.label}</span>
+                            </ClientTierBadge>
+                        </HeaderContent>
+                    </CardHeader>
+
+                    {error ? (
+                        <ErrorState>
                             <FaExclamationTriangle />
-                        </KPIIcon>
-                        <KPIContent>
-                            <KPIValue>{metrics.pendingCount}</KPIValue>
-                            <KPILabel>Oczekuje</KPILabel>
-                        </KPIContent>
-                    </KPICard>
-                )}
+                            <span>{error}</span>
+                        </ErrorState>
+                    ) : client && clientStats ? (
+                        <>
+                            <ClientMainInfo>
+                                <ClientName>{client.firstName} {client.lastName}</ClientName>
+                                {client.company && (
+                                    <CompanyName>
+                                        <FaBuilding />
+                                        <span>{client.company}</span>
+                                    </CompanyName>
+                                )}
+                            </ClientMainInfo>
 
-                {metrics.discountPercentage > 0 && (
-                    <KPICard>
-                        <KPIIcon $color={executive.error}>
-                            <FaPercent />
-                        </KPIIcon>
-                        <KPIContent>
-                            <KPIValue>{metrics.discountPercentage.toFixed(1)}%</KPIValue>
-                            <KPILabel>Rabat</KPILabel>
-                        </KPIContent>
-                    </KPICard>
-                )}
-            </MetricsRow>
+                            {/* Business Metrics */}
+                            <BusinessMetrics>
+                                <MetricCard>
+                                    <MetricIcon $color={brand.success}>
+                                        <FaMoneyBillWave />
+                                    </MetricIcon>
+                                    <MetricContent>
+                                        <MetricValue>{formatCurrency(clientStats.totalRevenue)}</MetricValue>
+                                        <MetricLabel>Łączne przychody</MetricLabel>
+                                    </MetricContent>
+                                </MetricCard>
 
-            {/* Vehicle & Client Info Row */}
-            <InfoRow>
-                <InfoCard>
-                    <InfoCardHeader>
-                        <InfoCardIcon><FaCarSide /></InfoCardIcon>
-                        <InfoCardTitle>Pojazd</InfoCardTitle>
-                    </InfoCardHeader>
-                    <InfoCardContent>
-                        <PrimaryInfo>
-                            <VehicleModelWithLogo>
-                                <CarLogo
-                                    src={getCarLogoUrl(protocol.make)}
-                                    alt={`${protocol.make} logo`}
-                                    onError={(e) => {
-                                        // Fallback hierarchy przy błędzie ładowania
-                                        const target = e.target as HTMLImageElement;
-                                        if (!target.dataset.fallbackAttempted) {
-                                            target.dataset.fallbackAttempted = 'true';
-                                            target.src = `https://www.carlogos.org/car-logos/${protocol.make.toLowerCase()}-logo.png`;
-                                        } else if (!target.dataset.fallbackAttempted2) {
-                                            target.dataset.fallbackAttempted2 = 'true';
-                                            // Ostateczny fallback - ukryj logo
-                                            target.style.display = 'none';
-                                        }
-                                    }}
-                                />
-                                <VehicleModel>{protocol.make} {protocol.model}</VehicleModel>
-                            </VehicleModelWithLogo>
-                            {/* Ulepszona tablica rejestracyjna - wyeksponowana */}
-                            <EnhancedVehiclePlate>{protocol.licensePlate}</EnhancedVehiclePlate>
-                        </PrimaryInfo>
-                        <SecondaryInfo>
-                            <InfoPair>
-                                <InfoLabel>Właściciel</InfoLabel>
-                                <InfoValue>{protocol.ownerName}</InfoValue>
-                            </InfoPair>
-                            <InfoPair>
-                                <InfoLabel>Rok</InfoLabel>
-                                <InfoValue>{protocol.productionYear}</InfoValue>
-                            </InfoPair>
-                            <InfoPair>
-                                <InfoLabel>Przebieg</InfoLabel>
-                                <InfoValue>{(protocol.mileage && protocol.mileage > 0) ? protocol.mileage : "---"  } km</InfoValue>
-                            </InfoPair>
-                        </SecondaryInfo>
-                        <StatusRow>
-                            <StatusIndicator $status={protocol.keysProvided ? 'completed' : 'pending'}>
-                                {protocol.keysProvided ? <FaCheckCircle /> : <FaKey />}
-                                <span>Kluczyki</span>
-                            </StatusIndicator>
-                            <StatusIndicator $status={protocol.documentsProvided ? 'completed' : 'pending'}>
-                                {protocol.documentsProvided ? <FaCheckCircle /> : <FaFileAlt />}
-                                <span>Dokumenty</span>
-                            </StatusIndicator>
-                        </StatusRow>
-                    </InfoCardContent>
-                </InfoCard>
+                                <MetricCard>
+                                    <MetricIcon $color={brand.primary}>
+                                        <FaHistory />
+                                    </MetricIcon>
+                                    <MetricContent>
+                                        <MetricValue>{clientStats.totalVisits}</MetricValue>
+                                        <MetricLabel>Wizyty</MetricLabel>
+                                    </MetricContent>
+                                </MetricCard>
 
-                <InfoCard>
-                    <InfoCardHeader>
-                        <InfoCardIcon><FaUser /></InfoCardIcon>
-                        <InfoCardTitle>Kontakt</InfoCardTitle>
-                    </InfoCardHeader>
-                    <InfoCardContent>
-                        <ContactGrid>
-                            <ContactItem>
-                                <FaPhone />
-                                <span>{protocol.phone}</span>
-                            </ContactItem>
-                            <ContactItem>
-                                <FaEnvelope />
-                                <span>{protocol.email}</span>
-                            </ContactItem>
-                            {protocol.companyName && (
+                                <MetricCard>
+                                    <MetricIcon $color={brand.warning}>
+                                        <FaCarSide />
+                                    </MetricIcon>
+                                    <MetricContent>
+                                        <MetricValue>{clientStats.vehicleNo}</MetricValue>
+                                        <MetricLabel>Pojazdy</MetricLabel>
+                                    </MetricContent>
+                                </MetricCard>
+                            </BusinessMetrics>
+
+                            {/* Contact Information */}
+                            <ContactSection>
                                 <ContactItem>
+                                    <ContactIcon><FaPhone /></ContactIcon>
+                                    <ContactValue>{protocol.phone}</ContactValue>
+                                </ContactItem>
+
+                                <ContactItem>
+                                    <ContactIcon><FaEnvelope /></ContactIcon>
+                                    <ContactValue>{protocol.email}</ContactValue>
+                                </ContactItem>
+
+                                {client.address && (
+                                    <ContactItem>
+                                        <ContactIcon><FaMapMarkerAlt /></ContactIcon>
+                                        <ContactValue>{client.address}</ContactValue>
+                                    </ContactItem>
+                                )}
+
+                                {protocol.taxId && (
+                                    <ContactItem>
+                                        <ContactIcon><FaIdCard /></ContactIcon>
+                                        <ContactValue>{protocol.taxId}</ContactValue>
+                                    </ContactItem>
+                                )}
+                            </ContactSection>
+
+                            {/* Quick Actions */}
+                            <ClientActions>
+                                <ActionButton $variant="primary">
+                                    <FaUser />
+                                    <span>Pełny profil</span>
+                                </ActionButton>
+                                <ActionButton $variant="secondary">
+                                    <FaHistory />
+                                    <span>Historia wizyt</span>
+                                </ActionButton>
+                            </ClientActions>
+                        </>
+                    ) : (
+                        <ClientMainInfo>
+                            <ClientName>{protocol.ownerName}</ClientName>
+                            {protocol.companyName && (
+                                <CompanyName>
                                     <FaBuilding />
                                     <span>{protocol.companyName}</span>
-                                </ContactItem>
+                                </CompanyName>
                             )}
-                            {protocol.taxId && (
+                            <ContactSection>
                                 <ContactItem>
-                                    <FaIdCard />
-                                    <span>{protocol.taxId}</span>
+                                    <ContactIcon><FaPhone /></ContactIcon>
+                                    <ContactValue>{protocol.phone}</ContactValue>
                                 </ContactItem>
-                            )}
-                        </ContactGrid>
-                    </InfoCardContent>
-                </InfoCard>
-            </InfoRow>
+                                <ContactItem>
+                                    <ContactIcon><FaEnvelope /></ContactIcon>
+                                    <ContactValue>{protocol.email}</ContactValue>
+                                </ContactItem>
+                            </ContactSection>
+                        </ClientMainInfo>
+                    )}
+                </ClientCard>
+            </ContentGrid>
 
-            {/* Services Table */}
+            {/* Services Section */}
             <ServicesSection>
                 <SectionHeader>
-                    <SectionTitle>Wykaz usług</SectionTitle>
-                    {protocol.status == ProtocolStatus.IN_PROGRESS && (
-                        <AddServiceBtn onClick={handleOpenAddServiceModal} disabled={isLoading}>
-                            <FaPlus />
-                            <span>Dodaj usługę</span>
-                        </AddServiceBtn>
-                    )}
+                    <HeaderContent>
+                        <SectionTitle>Wykaz usług</SectionTitle>
+                        <SectionStats>
+                            {approvedServices.length} zatwierdzone • {pendingServices.length} oczekujące
+                        </SectionStats>
+                    </HeaderContent>
+                    <AddServiceButton onClick={() => setShowAddServiceModal(true)}>
+                        <FaPlus />
+                        <span>Dodaj usługę</span>
+                    </AddServiceButton>
                 </SectionHeader>
 
-                {protocol.selectedServices.length === 0 ? (
-                    <EmptyServicesState>
-                        <EmptyStateContent>
-                            <EmptyIcon><FaFileAlt /></EmptyIcon>
-                            <EmptyTitle>Brak usług w protokole</EmptyTitle>
-                            <EmptySubtitle>Dodaj usługi aby rozpocząć wycenę</EmptySubtitle>
-                        </EmptyStateContent>
-                    </EmptyServicesState>
-                ) : (
-                    <ServicesTable>
-                        <TableHeader>
-                            <th style={{ width: '40%' }}>Usługa</th>
-                            <th style={{ width: '15%' }}>Cena bazowa</th>
-                            <th style={{ width: '15%' }}>Rabat</th>
-                            <th style={{ width: '15%' }}>Cena końcowa</th>
-                            <th style={{ width: '10%' }}>Status</th>
-                            <th style={{ width: '5%' }}></th>
-                        </TableHeader>
-                        <TableBody>
-                            {protocol.selectedServices.map((service) => {
-                                const prices = calculateServicePrices(service);
-                                const isPending = service.approvalStatus === ServiceApprovalStatus.PENDING;
+                <ServicesTable>
+                    <TableHeader>
+                        <HeaderCell style={{width: '40%'}}>Usługa</HeaderCell>
+                        <HeaderCell style={{width: '15%'}}>Cena bazowa</HeaderCell>
+                        <HeaderCell style={{width: '15%'}}>Rabat</HeaderCell>
+                        <HeaderCell style={{width: '15%'}}>Cena końcowa</HeaderCell>
+                        <HeaderCell style={{width: '10%'}}>Status</HeaderCell>
+                        <HeaderCell style={{width: '5%'}}></HeaderCell>
+                    </TableHeader>
 
-                                return (
-                                    <TableRow key={service.id} $pending={isPending}>
-                                        <td>
-                                            <ServiceDetails>
-                                                <ServiceName>{service.name}</ServiceName>
-                                                {service.note && (
-                                                    <ServiceNote>{service.note}</ServiceNote>
-                                                )}
-                                            </ServiceDetails>
-                                        </td>
-                                        <td>
-                                            <PriceDisplay>
-                                                <PriceRow>
-                                                    <PriceAmount>{prices.baseGrossPrice.toFixed(2)} zł</PriceAmount>
-                                                    <PriceLabel>brutto</PriceLabel>
-                                                </PriceRow>
-                                                <PriceRow>
-                                                    <PriceAmount $secondary>
-                                                        {prices.baseNetPrice.toFixed(2)} zł
-                                                    </PriceAmount>
-                                                    <PriceLabel>netto</PriceLabel>
-                                                </PriceRow>
-                                            </PriceDisplay>
-                                        </td>
-                                        <td>
-                                            {service.discountValue > 0 ? (
-                                                <DiscountDisplay>
-                                                    <DiscountAmount>
-                                                        -{service.discountValue.toFixed(2)}
-                                                        {service.discountType === 'PERCENTAGE' ? '%' : 'zł'}
-                                                    </DiscountAmount>
-                                                    <SavingsAmount>
-                                                        (-{(prices.baseGrossPrice - prices.finalGrossPrice).toFixed(2)} zł)
-                                                    </SavingsAmount>
-                                                </DiscountDisplay>
-                                            ) : (
-                                                <NoDiscount>—</NoDiscount>
-                                            )}
-                                        </td>
-                                        <td>
-                                            <PriceDisplay>
-                                                <PriceRow>
-                                                    <FinalPriceAmount>{prices.finalGrossPrice.toFixed(2)} zł</FinalPriceAmount>
-                                                    <PriceLabel>brutto</PriceLabel>
-                                                </PriceRow>
-                                                <PriceRow>
-                                                    <FinalPriceAmount $secondary>
-                                                        {prices.finalNetPrice.toFixed(2)} zł
-                                                    </FinalPriceAmount>
-                                                    <PriceLabel>netto</PriceLabel>
-                                                </PriceRow>
-                                            </PriceDisplay>
-                                        </td>
-                                        <td>
-                                            <ServiceStatusBadge $status={isPending ? 'pending' : 'approved'}>
-                                                {isPending ? (
-                                                    <>
-                                                        <FaClock />
-                                                        <span>Oczekuje</span>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <FaCheckCircle />
-                                                        <span>Zatwierdzona</span>
-                                                    </>
-                                                )}
-                                            </ServiceStatusBadge>
-                                        </td>
-                                        <td>
-                                            {protocol.status !== ProtocolStatus.COMPLETED && protocol.status !== ProtocolStatus.CANCELLED && (
-                                                <ActionsMenu>
-                                                    {isPending && (
-                                                        <>
-                                                            <ActionButton
-                                                                onClick={() => handleResendNotification(service.id)}
-                                                                title="Wyślij ponownie SMS"
-                                                                $variant="primary"
-                                                            >
-                                                                <FaBell />
-                                                            </ActionButton>
-                                                            <ActionButton
-                                                                onClick={() => handleCancelService(service.id)}
-                                                                title="Anuluj usługę"
-                                                                $variant="warning"
-                                                            >
-                                                                <FaTimesCircle />
-                                                            </ActionButton>
-                                                        </>
-                                                    )}
-                                                    <ActionButton
-                                                        onClick={() => handleDeleteService(service.id)}
-                                                        title="Usuń usługę"
-                                                        $variant="danger"
-                                                    >
-                                                        <FaTrash />
-                                                    </ActionButton>
-                                                </ActionsMenu>
-                                            )}
-                                        </td>
-                                    </TableRow>
-                                );
-                            })}
-                        </TableBody>
+                    <TableBody>
+                        {protocol.selectedServices.map((service, index) => (
+                            <ServiceRow key={service.id} $pending={service.approvalStatus === "PENDING"}>
+                                <ServiceCell>
+                                    <ServiceName>{service.name}</ServiceName>
+                                    {service.note && (
+                                        <ServiceNote>{service.note}</ServiceNote>
+                                    )}
+                                </ServiceCell>
 
-                        <TableFooter>
-                            <tr>
-                                <td><TotalLabel>ŁĄCZNIE</TotalLabel></td>
-                                <td>
-                                    <PriceDisplay>
-                                        <PriceRow>
-                                            <TotalAmount>
-                                                {protocol.selectedServices.reduce((sum, s) => sum + s.price, 0).toFixed(2)} zł
-                                            </TotalAmount>
-                                            <PriceLabel>brutto</PriceLabel>
-                                        </PriceRow>
-                                        <PriceRow>
-                                            <TotalAmount $secondary>
-                                                {calculateNetPrice(protocol.selectedServices.reduce((sum, s) => sum + s.price, 0)).toFixed(2)} zł
-                                            </TotalAmount>
-                                            <PriceLabel>netto</PriceLabel>
-                                        </PriceRow>
-                                    </PriceDisplay>
-                                </td>
-                                <td>
-                                    <PriceDisplay>
-                                        <PriceRow>
-                                            <TotalAmount>-{metrics.totalDiscount.toFixed(2)} zł</TotalAmount>
-                                            <PriceLabel>brutto</PriceLabel>
-                                        </PriceRow>
-                                        <PriceRow>
-                                            <TotalAmount $secondary>-{calculateNetPrice(metrics.totalDiscount).toFixed(2)} zł</TotalAmount>
-                                            <PriceLabel>netto</PriceLabel>
-                                        </PriceRow>
-                                    </PriceDisplay>
-                                </td>
-                                <td>
-                                    <PriceDisplay>
-                                        <PriceRow>
-                                            <FinalTotalAmount>{metrics.totalRevenue.toFixed(2)} zł</FinalTotalAmount>
-                                            <PriceLabel>brutto</PriceLabel>
-                                        </PriceRow>
-                                        <PriceRow>
-                                            <FinalTotalAmount $secondary>
-                                                {calculateNetPrice(metrics.totalRevenue).toFixed(2)} zł
-                                            </FinalTotalAmount>
-                                            <PriceLabel>netto</PriceLabel>
-                                        </PriceRow>
-                                    </PriceDisplay>
-                                </td>
-                                <td></td>
-                                <td></td>
-                            </tr>
-                        </TableFooter>
-                    </ServicesTable>
-                )}
+                                <PriceCell>
+                                    <PriceAmount>{service.price.toFixed(2)} zł</PriceAmount>
+                                </PriceCell>
+
+                                <DiscountCell>
+                                    {service.discountValue > 0 ? (
+                                        <DiscountInfo>
+                                            <DiscountAmount>
+                                                -{service.discountValue.toFixed(2)}
+                                                {service.discountType === 'PERCENTAGE' ? '%' : 'zł'}
+                                            </DiscountAmount>
+                                            <SavingsAmount>(-{(service.price - service.finalPrice).toFixed(2)} zł)</SavingsAmount>
+                                        </DiscountInfo>
+                                    ) : (
+                                        <NoDiscount>—</NoDiscount>
+                                    )}
+                                </DiscountCell>
+
+                                <FinalPriceCell>
+                                    <FinalPrice>{service.finalPrice.toFixed(2)} zł</FinalPrice>
+                                </FinalPriceCell>
+
+                                <StatusCell>
+                                    <ServiceStatus $status={service.approvalStatus || "PENDING"}>
+                                        {(service.approvalStatus || "PENDING") === "PENDING" ? (
+                                            <>
+                                                <FaClock />
+                                                <span>Oczekuje</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <FaCheckCircle />
+                                                <span>Zatwierdzona</span>
+                                            </>
+                                        )}
+                                    </ServiceStatus>
+                                </StatusCell>
+
+                                <ActionsCell>
+                                    <ServiceActions>
+                                        {(service.approvalStatus || "PENDING") === "PENDING" && (
+                                            <ActionIcon $type="notify" title="Wyślij ponownie powiadomienie">
+                                                <FaBell />
+                                            </ActionIcon>
+                                        )}
+                                        <ActionIcon $type="delete" title="Usuń usługę">
+                                            <FaTrash />
+                                        </ActionIcon>
+                                    </ServiceActions>
+                                </ActionsCell>
+                            </ServiceRow>
+                        ))}
+                    </TableBody>
+
+                    <TableFooter>
+                        <FooterRow>
+                            <FooterCell>
+                                <TotalLabel>PODSUMOWANIE</TotalLabel>
+                            </FooterCell>
+                            <FooterCell>
+                                <TotalAmount>{protocol.selectedServices.reduce((sum, s) => sum + s.price, 0).toFixed(2)} zł</TotalAmount>
+                            </FooterCell>
+                            <FooterCell>
+                                <TotalAmount>-{totalDiscount.toFixed(2)} zł</TotalAmount>
+                            </FooterCell>
+                            <FooterCell>
+                                <FinalTotalAmount>{totalRevenue.toFixed(2)} zł</FinalTotalAmount>
+                            </FooterCell>
+                            <FooterCell></FooterCell>
+                            <FooterCell></FooterCell>
+                        </FooterRow>
+                    </TableFooter>
+                </ServicesTable>
             </ServicesSection>
-
-            {/* Notes Section */}
-            {protocol.notes && (
-                <NotesSection>
-                    <SectionHeader>
-                        <SectionTitle>Uwagi do zlecenia</SectionTitle>
-                    </SectionHeader>
-                    <NotesContent>{protocol.notes}</NotesContent>
-                </NotesSection>
-            )}
-
-            {/* Add Service Modal */}
-            <AddServiceModal
-                isOpen={showAddServiceModal}
-                onClose={() => setShowAddServiceModal(false)}
-                onAddServices={handleAddServices}
-                availableServices={availableServices}
-                customerPhone={protocol.phone}
-            />
-        </ExecutiveDashboard>
+        </Container>
     );
 };
 
-// Executive Styled Components
-const ExecutiveDashboard = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${executive.spacing.xl};
-    max-width: 100%;
+// Professional Styled Components
+const Container = styled.div`
+   display: flex;
+   flex-direction: column;
+   gap: ${brand.space.xxxl};
+   max-width: 100%;
 `;
 
-// Kompaktowy Status Timeline - zmniejszona wysokość, pełna szerokość
-const CompactStatusTimelineSection = styled.div`
-    background: ${executive.surface};
-    border: 1px solid ${executive.border};
-    border-radius: ${executive.radius.lg};
-    box-shadow: ${executive.shadowCard};
-    padding: ${executive.spacing.md} ${executive.spacing.xl}; // Zmniejszone tylko góra/dół
-    width: 100%; // Pełna szerokość jak wcześniej
+const StatusSection = styled.div`
+   background: ${brand.surface};
+   border: 1px solid ${brand.border};
+   border-radius: ${brand.radius.xl};
+   padding: ${brand.space.xxl};
+   box-shadow: ${brand.shadow.soft};
 `;
 
-const TimelineHeader = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: ${executive.spacing.md}; // Zmniejszone z lg
+const StatusHeader = styled.div`
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   margin-bottom: ${brand.space.xl};
 `;
 
-const TimelineTitle = styled.h3`
-    font-size: 15px; // Zmniejszone z 16px
-    font-weight: 600;
-    color: ${executive.textPrimary};
-    margin: 0;
+const StatusTitle = styled.h3`
+   font-size: 18px;
+   font-weight: 600;
+   color: ${brand.textPrimary};
+   margin: 0;
 `;
 
 const StatusProgress = styled.div`
-    font-size: 13px; // Zmniejszone z 14px
-    font-weight: 500;
-    color: ${executive.textMuted};
-    padding: ${executive.spacing.xs} ${executive.spacing.sm}; // Zmniejszone
-    background: ${executive.surfaceElevated};
-    border-radius: ${executive.radius.md};
+   font-size: 14px;
+   font-weight: 500;
+   color: ${brand.textTertiary};
+   padding: ${brand.space.sm} ${brand.space.md};
+   background: ${brand.surfaceSubtle};
+   border-radius: ${brand.radius.md};
 `;
 
-const CompactStatusSteps = styled.div`
-    display: flex;
-    align-items: center;
-    margin-bottom: ${executive.spacing.md}; // Zmniejszone z lg
+const StatusTimeline = styled.div`
+   display: flex;
+   align-items: center;
+   margin-bottom: ${brand.space.xl};
 `;
 
 const StatusStep = styled.div<{ $active: boolean; $completed: boolean }>`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: ${executive.spacing.xs}; // Zmniejszone z sm
-    opacity: ${props => props.$active ? 1 : 0.4};
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: ${brand.space.sm};
+   opacity: ${props => props.$active || props.$completed ? 1 : 0.4};
 `;
 
-const CompactStepIcon = styled.div<{ $active: boolean; $completed: boolean }>`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px; // Zmniejszone z 48px dla kompaktowości
-    height: 32px;
-    border-radius: 50%;
-    background: ${props => {
-        if (props.$completed) return executive.success;
-        if (props.$active) return executive.primary;
-        return executive.surfaceElevated;
-    }};
-    color: ${props => {
-        if (props.$completed || props.$active) return 'white';
-        return executive.textMuted;
-    }};
-    border: 2px solid ${props => { // Zmniejszone z 3px
-        if (props.$completed) return executive.success;
-        if (props.$active) return executive.primary;
-        return executive.border;
-    }};
-    font-size: 12px; // Zmniejszone z 18px dla kompaktowości
-    transition: all 0.3s ease;
+const StepIcon = styled.div<{ $active: boolean; $completed: boolean }>`
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   width: 48px;
+   height: 48px;
+   border-radius: 50%;
+   background: ${props => {
+    if (props.$completed) return brand.success;
+    if (props.$active) return brand.primary;
+    return brand.surfaceSubtle;
+}};
+   color: ${props => {
+    if (props.$completed || props.$active) return 'white';
+    return brand.textMuted;
+}};
+   border: 3px solid ${props => {
+    if (props.$completed) return brand.success;
+    if (props.$active) return brand.primary;
+    return brand.border;
+}};
+   font-size: 18px;
+   transition: all 0.3s ease;
 `;
 
-const CompactStepLabel = styled.div`
-    font-size: 11px; // Zmniejszone z 13px
-    font-weight: 500;
-    color: ${executive.textSecondary};
-    text-align: center;
-    max-width: 70px; // Lekko zwiększone dla czytelności
+const StepLabel = styled.div`
+   font-size: 13px;
+   font-weight: 600;
+   color: ${brand.textSecondary};
+   text-align: center;
 `;
 
-const CompactStatusConnector = styled.div<{ $active: boolean }>`
-    flex: 1;
-    height: 2px;
-    background: ${props => props.$active ? executive.success : executive.border};
-    margin: 0 ${executive.spacing.sm}; // Zmniejszone z md
-    transition: background 0.3s ease;
+const StepTime = styled.div`
+   font-size: 11px;
+   color: ${brand.textMuted};
+   text-align: center;
 `;
 
-const MetricsRow = styled.div`
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: ${executive.spacing.lg};
+const StatusConnector = styled.div<{ $active: boolean }>`
+   flex: 1;
+   height: 3px;
+   background: ${props => props.$active ? brand.success : brand.border};
+   margin: 0 ${brand.space.lg};
+   transition: background 0.3s ease;
 `;
 
-const KPICard = styled.div<{ $alert?: boolean }>`
-    display: flex;
-    align-items: center;
-    gap: ${executive.spacing.lg};
-    padding: ${executive.spacing.lg} ${executive.spacing.xl};
-    background: ${executive.surface};
-    border: 1px solid ${props => props.$alert ? executive.warning + '40' : executive.border};
-    border-radius: ${executive.radius.lg};
-    box-shadow: ${executive.shadowCard};
-    transition: all 0.2s ease;
-
-    &:hover {
-        box-shadow: ${executive.shadowHover};
-        transform: translateY(-1px);
-    }
-
-    ${props => props.$alert && `
-        background: ${executive.warningBg};
-    `}
+const AlertBanner = styled.div`
+   display: flex;
+   align-items: center;
+   gap: ${brand.space.md};
+   padding: ${brand.space.md} ${brand.space.lg};
+   background: ${brand.warningBg};
+   border: 1px solid rgba(217, 119, 6, 0.3);
+   border-radius: ${brand.radius.md};
+   color: ${brand.warning};
+   font-size: 14px;
+   font-weight: 500;
 `;
 
-const KPIIcon = styled.div<{ $color: string }>`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 48px;
-    height: 48px;
-    background: ${props => props.$color}15;
-    color: ${props => props.$color};
-    border-radius: ${executive.radius.lg};
-    font-size: 20px;
+const ContentGrid = styled.div`
+   display: grid;
+   grid-template-columns: 1fr 1fr;
+   gap: ${brand.space.xxxl};
+
+   @media (max-width: 1024px) {
+       grid-template-columns: 1fr;
+   }
 `;
 
-const KPIContent = styled.div`
-    display: flex;
-    flex-direction: column;
+const VehicleCard = styled.div`
+   background: ${brand.surface};
+   border: 1px solid ${brand.border};
+   border-radius: ${brand.radius.xl};
+   overflow: hidden;
+   box-shadow: ${brand.shadow.soft};
 `;
 
-const KPIValue = styled.div`
-    font-size: 24px;
-    font-weight: 700;
-    color: ${executive.textPrimary};
-    line-height: 1.2;
+const ClientCard = styled.div`
+   background: ${brand.surface};
+   border: 1px solid ${brand.border};
+   border-radius: ${brand.radius.xl};
+   overflow: hidden;
+   box-shadow: ${brand.shadow.soft};
 `;
 
-const KPILabel = styled.div`
-    font-size: 13px;
-    color: ${executive.textMuted};
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+const CardHeader = styled.div`
+   display: flex;
+   align-items: center;
+   gap: ${brand.space.lg};
+   padding: ${brand.space.xl} ${brand.space.xxl};
+   background: ${brand.surfaceElevated};
+   border-bottom: 1px solid ${brand.borderLight};
 `;
 
-const InfoRow = styled.div`
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: ${executive.spacing.xxl};
-
-    @media (max-width: 768px) {
-        grid-template-columns: 1fr;
-    }
+const HeaderIcon = styled.div<{ $color: string }>`
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   width: 48px;
+   height: 48px;
+   background: ${props => props.$color}15;
+   color: ${props => props.$color};
+   border-radius: ${brand.radius.lg};
+   font-size: 20px;
 `;
 
-const InfoCard = styled.div`
-    background: ${executive.surface};
-    border: 1px solid ${executive.border};
-    border-radius: ${executive.radius.lg};
-    box-shadow: ${executive.shadowCard};
-    overflow: hidden;
+const HeaderContent = styled.div`
+   flex: 1;
 `;
 
-const InfoCardHeader = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${executive.spacing.md};
-    padding: ${executive.spacing.lg} ${executive.spacing.xl};
-    background: ${executive.surfaceElevated};
-    border-bottom: 1px solid ${executive.borderLight};
+const CardTitle = styled.h3`
+   font-size: 16px;
+   font-weight: 600;
+   color: ${brand.textPrimary};
+   margin: 0 0 ${brand.space.xs} 0;
 `;
 
-const InfoCardIcon = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    background: ${executive.primary}15;
-    color: ${executive.primary};
-    border-radius: ${executive.radius.md};
-    font-size: 16px;
+const CardSubtitle = styled.div`
+   font-size: 13px;
+   color: ${brand.textTertiary};
+   font-weight: 500;
 `;
 
-const InfoCardTitle = styled.h3`
-    font-size: 16px;
-    font-weight: 600;
-    color: ${executive.textPrimary};
-    margin: 0;
+const ClientTierBadge = styled.div<{ $color: string; $bgColor: string }>`
+   display: flex;
+   align-items: center;
+   gap: ${brand.space.sm};
+   padding: ${brand.space.xs} ${brand.space.sm};
+   background: ${props => props.$bgColor};
+   color: ${props => props.$color};
+   border: 1px solid ${props => props.$color}30;
+   border-radius: ${brand.radius.md};
+   font-size: 12px;
+   font-weight: 600;
+   text-transform: uppercase;
+   letter-spacing: 0.5px;
+   width: fit-content;
+
+   svg {
+       font-size: 10px;
+   }
 `;
 
-const InfoCardContent = styled.div`
-    padding: ${executive.spacing.xl};
+const VehicleMainInfo = styled.div`
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   padding: ${brand.space.xxl};
+   border-bottom: 1px solid ${brand.borderLight};
 `;
 
-const PrimaryInfo = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: ${executive.spacing.lg};
-    padding-bottom: ${executive.spacing.lg};
-    border-bottom: 1px solid ${executive.borderLight};
-`;
-
-const VehicleModelWithLogo = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${executive.spacing.lg}; // Zwiększone z md dla lepszego spacingu z większym logo
-`;
-
-// Logo samochodu jako avatar - powiększone i eleganckie
-const CarLogo = styled.img`
-    width: 56px; // Zwiększone z 32px - rozmiar avatara
-    height: 56px;
-    object-fit: contain;
-    border-radius: ${executive.radius.lg}; // Większy radius dla elegancji
-    background: ${executive.surface};
-    padding: 8px; // Większy padding
-    border: 2px solid ${executive.borderLight};
-    box-shadow: ${executive.shadowSubtle}; // Dodany cień dla głębi
-    transition: all 0.3s ease;
-
-    &:hover {
-        transform: scale(1.05);
-        box-shadow: ${executive.shadowCard};
-        border-color: ${executive.primary}40;
-    }
+const VehicleIdentity = styled.div`
+   display: flex;
+   flex-direction: column;
+   gap: ${brand.space.xs};
 `;
 
 const VehicleModel = styled.div`
-    font-size: 18px;
-    font-weight: 600;
-    color: ${executive.textPrimary};
+   font-size: 20px;
+   font-weight: 700;
+   color: ${brand.textPrimary};
 `;
 
-// Ulepszona tablica rejestracyjna - bardziej wyeksponowana
-const EnhancedVehiclePlate = styled.div`
-    padding: ${executive.spacing.sm} ${executive.spacing.lg};
-    background: linear-gradient(135deg, ${executive.primary}08 0%, ${executive.primary}15 100%);
-    border: 2px solid ${executive.primary}40;
-    border-radius: ${executive.radius.md};
-    font-weight: 800;
-    color: ${executive.primary};
-    font-family: 'Courier New', monospace;
-    letter-spacing: 2px;
-    font-size: 16px; // Zwiększone z 14px
-    text-transform: uppercase;
-    box-shadow: ${executive.shadowSubtle};
-    position: relative;
-
-    &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        border-radius: ${executive.radius.sm};
-        background: linear-gradient(45deg, transparent 30%, ${executive.primary}05 50%, transparent 70%);
-        pointer-events: none;
-    }
+const VehicleYear = styled.div`
+   font-size: 14px;
+   color: ${brand.textTertiary};
+   font-weight: 500;
 `;
 
-const SecondaryInfo = styled.div`
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: ${executive.spacing.lg};
-    margin-bottom: ${executive.spacing.lg};
+/* ENHANCED LICENSE PLATE - Professional European Design */
+const LicensePlateContainer = styled.div`
+   display: flex;
+   align-items: center;
+   justify-content: center;
 `;
 
-const InfoPair = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${executive.spacing.xs};
+const LicensePlate = styled.div`
+   display: flex;
+   align-items: center;
+   background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+   border: 2px solid #2c3e50;
+   border-radius: ${brand.radius.sm};
+   box-shadow: 
+       0 2px 4px rgba(0, 0, 0, 0.1),
+       inset 0 1px 0 rgba(255, 255, 255, 0.7);
+   overflow: hidden;
+   font-family: 'Courier New', 'Monaco', monospace;
+   font-weight: 700;
+   height: 52px;
 `;
 
-const InfoLabel = styled.div`
-    font-size: 12px;
-    color: ${executive.textMuted};
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+const PlateFlag = styled.div`
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   justify-content: center;
+   background: linear-gradient(135deg, #003399 0%, #004da6 100%);
+   color: #ffd700;
+   padding: 0 ${brand.space.sm};
+   height: 100%;
+   min-width: 32px;
+   position: relative;
 `;
 
-const InfoValue = styled.div`
-    font-size: 14px;
-    font-weight: 600;
-    color: ${executive.textPrimary};
+const EUStars = styled.div`
+   font-size: 6px;
+   line-height: 1;
+   text-align: center;
+   margin-bottom: 1px;
+   text-shadow: 0 0 1px rgba(0, 0, 0, 0.3);
 `;
 
-const StatusRow = styled.div`
-    display: flex;
-    gap: ${executive.spacing.lg};
+const CountryCode = styled.div`
+   font-size: 9px;
+   font-weight: 800;
+   letter-spacing: 0.5px;
+   text-shadow: 0 0 1px rgba(0, 0, 0, 0.3);
 `;
 
-const StatusIndicator = styled.div<{ $status: 'completed' | 'pending' }>`
-    display: flex;
-    align-items: center;
-    gap: ${executive.spacing.sm};
-    padding: ${executive.spacing.sm} ${executive.spacing.md};
-    background: ${props => props.$status === 'completed' ? executive.successBg : executive.surfaceElevated};
-    border: 1px solid ${props => props.$status === 'completed' ? executive.success + '30' : executive.borderLight};
-    border-radius: ${executive.radius.md};
-    color: ${props => props.$status === 'completed' ? executive.success : executive.textMuted};
-    font-size: 13px;
-    font-weight: 500;
-    flex: 1;
+const PlateNumber = styled.div`
+   padding: 0 ${brand.space.lg};
+   color: #2c3e50;
+   font-size: 18px;
+   font-weight: 800;
+   letter-spacing: 2px;
+   text-align: center;
+   min-width: 120px;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+   text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
 `;
 
-const ContactGrid = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${executive.spacing.lg};
+const VehicleDetails = styled.div`
+   display: flex;
+   flex-direction: column;
+   gap: ${brand.space.lg};
+   padding: ${brand.space.xxl};
+`;
+
+const DetailItem = styled.div`
+   display: flex;
+   align-items: center;
+   gap: ${brand.space.md};
+`;
+
+const DetailIcon = styled.div`
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   width: 32px;
+   height: 32px;
+   background: ${brand.surfaceSubtle};
+   color: ${brand.textTertiary};
+   border-radius: ${brand.radius.md};
+   font-size: 14px;
+`;
+
+const DetailContent = styled.div`
+   display: flex;
+   flex-direction: column;
+   gap: ${brand.space.xs};
+   flex: 1;
+`;
+
+const DetailLabel = styled.div`
+   font-size: 12px;
+   color: ${brand.textMuted};
+   font-weight: 500;
+   text-transform: uppercase;
+   letter-spacing: 0.5px;
+`;
+
+const DetailValue = styled.div<{ $status?: string }>`
+   font-size: 14px;
+   font-weight: 600;
+   color: ${props => props.$status === 'provided' ? brand.success : brand.textPrimary};
+`;
+
+/* CLIENT CARD COMPONENTS */
+const ClientMainInfo = styled.div`
+   padding: ${brand.space.xxl};
+   border-bottom: 1px solid ${brand.borderLight};
+`;
+
+const ClientName = styled.div`
+   font-size: 20px;
+   font-weight: 700;
+   color: ${brand.textPrimary};
+   margin-bottom: ${brand.space.sm};
+`;
+
+const CompanyName = styled.div`
+   display: flex;
+   align-items: center;
+   gap: ${brand.space.sm};
+   font-size: 14px;
+   color: ${brand.textTertiary};
+   font-weight: 500;
+
+   svg {
+       font-size: 12px;
+   }
+`;
+
+const BusinessMetrics = styled.div`
+   display: grid;
+   grid-template-columns: repeat(3, 1fr);
+   gap: ${brand.space.lg};
+   padding: ${brand.space.xl} ${brand.space.xxl};
+   border-bottom: 1px solid ${brand.borderLight};
+`;
+
+const MetricCard = styled.div`
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   text-align: center;
+   gap: ${brand.space.md};
+`;
+
+const MetricIcon = styled.div<{ $color: string }>`
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   width: 40px;
+   height: 40px;
+   background: ${props => props.$color}15;
+   color: ${props => props.$color};
+   border-radius: ${brand.radius.lg};
+   font-size: 16px;
+`;
+
+const MetricContent = styled.div`
+   display: flex;
+   flex-direction: column;
+   gap: ${brand.space.xs};
+`;
+
+const MetricValue = styled.div`
+   font-size: 18px;
+   font-weight: 700;
+   color: ${brand.textPrimary};
+`;
+
+const MetricLabel = styled.div`
+   font-size: 11px;
+   color: ${brand.textMuted};
+   font-weight: 500;
+   text-transform: uppercase;
+   letter-spacing: 0.5px;
+`;
+
+const ContactSection = styled.div`
+   display: flex;
+   flex-direction: column;
+   gap: ${brand.space.lg};
+   padding: ${brand.space.xl} ${brand.space.xxl};
+   border-bottom: 1px solid ${brand.borderLight};
 `;
 
 const ContactItem = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${executive.spacing.md};
-    font-size: 14px;
-    color: ${executive.textSecondary};
-
-    svg {
-        color: ${executive.textMuted};
-        width: 16px;
-    }
+   display: flex;
+   align-items: center;
+   gap: ${brand.space.md};
 `;
 
+const ContactIcon = styled.div`
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   width: 24px;
+   height: 24px;
+   color: ${brand.textMuted};
+   font-size: 12px;
+`;
+
+const ContactValue = styled.div`
+   font-size: 14px;
+   color: ${brand.textSecondary};
+   font-weight: 500;
+   flex: 1;
+`;
+
+const ClientActions = styled.div`
+   display: flex;
+   gap: ${brand.space.md};
+   padding: ${brand.space.xl} ${brand.space.xxl};
+`;
+
+const ActionButton = styled.button<{ $variant: 'primary' | 'secondary' }>`
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   gap: ${brand.space.sm};
+   padding: ${brand.space.md} ${brand.space.lg};
+   border: 1px solid ${props => props.$variant === 'primary' ? brand.primary : brand.border};
+   background: ${props => props.$variant === 'primary' ? brand.primary : brand.surface};
+   color: ${props => props.$variant === 'primary' ? 'white' : brand.textSecondary};
+   border-radius: ${brand.radius.md};
+   font-size: 13px;
+   font-weight: 600;
+   cursor: pointer;
+   transition: all 0.2s ease;
+   flex: 1;
+
+   &:hover {
+       background: ${props => props.$variant === 'primary' ? brand.primaryDark : brand.surfaceHover};
+       transform: translateY(-1px);
+       box-shadow: ${brand.shadow.moderate};
+   }
+
+   svg {
+       font-size: 12px;
+   }
+`;
+
+/* SERVICES SECTION */
 const ServicesSection = styled.div`
-    background: ${executive.surface};
-    border: 1px solid ${executive.border};
-    border-radius: ${executive.radius.lg};
-    box-shadow: ${executive.shadowCard};
-    overflow: hidden;
+   background: ${brand.surface};
+   border: 1px solid ${brand.border};
+   border-radius: ${brand.radius.xl};
+   box-shadow: ${brand.shadow.soft};
+   overflow: hidden;
 `;
 
 const SectionHeader = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: ${executive.spacing.lg} ${executive.spacing.xl};
-    background: ${executive.surfaceElevated};
-    border-bottom: 1px solid ${executive.borderLight};
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   padding: ${brand.space.xl} ${brand.space.xxl};
+   background: ${brand.surfaceElevated};
+   border-bottom: 1px solid ${brand.borderLight};
 `;
 
 const SectionTitle = styled.h3`
-    font-size: 16px;
-    font-weight: 600;
-    color: ${executive.textPrimary};
-    margin: 0;
+   font-size: 18px;
+   font-weight: 600;
+   color: ${brand.textPrimary};
+   margin: 0;
 `;
 
-const AddServiceBtn = styled.button`
-    display: flex;
-    align-items: center;
-    gap: ${executive.spacing.sm};
-    padding: ${executive.spacing.sm} ${executive.spacing.lg};
-    background: ${executive.primary};
-    color: white;
-    border: none;
-    border-radius: ${executive.radius.md};
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover:not(:disabled) {
-        background: ${executive.primaryDark};
-        transform: translateY(-1px);
-    }
-
-    &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: none;
-    }
+const SectionStats = styled.div`
+   font-size: 13px;
+   color: ${brand.textTertiary};
+   font-weight: 500;
+   margin-top: ${brand.space.xs};
 `;
 
-const EmptyServicesState = styled.div`
-    padding: ${executive.spacing.xxl} ${executive.spacing.xl};
-`;
+const AddServiceButton = styled.button`
+   display: flex;
+   align-items: center;
+   gap: ${brand.space.sm};
+   padding: ${brand.space.md} ${brand.space.lg};
+   background: ${brand.primary};
+   color: white;
+   border: none;
+   border-radius: ${brand.radius.md};
+   font-size: 14px;
+   font-weight: 600;
+   cursor: pointer;
+   transition: all 0.2s ease;
 
-const EmptyStateContent = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: ${executive.spacing.xxl};
-`;
+   &:hover {
+       background: ${brand.primaryDark};
+       transform: translateY(-1px);
+       box-shadow: ${brand.shadow.moderate};
+   }
 
-const EmptyIcon = styled.div`
-    width: 64px;
-    height: 64px;
-    background: ${executive.surfaceElevated};
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: ${executive.textMuted};
-    font-size: 24px;
-    margin-bottom: ${executive.spacing.lg};
-`;
-
-const EmptyTitle = styled.div`
-    font-size: 18px;
-    font-weight: 600;
-    color: ${executive.textSecondary};
-    margin-bottom: ${executive.spacing.sm};
-`;
-
-const EmptySubtitle = styled.div`
-    font-size: 14px;
-    color: ${executive.textMuted};
+   svg {
+       font-size: 12px;
+   }
 `;
 
 const ServicesTable = styled.table`
-    width: 100%;
-    border-collapse: collapse;
+   width: 100%;
+   border-collapse: collapse;
 `;
 
-const TableHeader = styled.thead`
-    th {
-        padding: ${executive.spacing.lg} ${executive.spacing.xl};
-        text-align: left;
-        font-size: 12px;
-        font-weight: 600;
-        color: ${executive.textMuted};
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        background: ${executive.surfaceElevated};
-        border-bottom: 1px solid ${executive.borderLight};
-    }
+const TableHeader = styled.thead``;
+
+const HeaderCell = styled.th`
+   padding: ${brand.space.lg} ${brand.space.xxl};
+   text-align: left;
+   font-size: 12px;
+   font-weight: 600;
+   color: ${brand.textMuted};
+   text-transform: uppercase;
+   letter-spacing: 0.5px;
+   background: ${brand.surfaceElevated};
+   border-bottom: 1px solid ${brand.borderLight};
 `;
 
 const TableBody = styled.tbody``;
 
-const TableRow = styled.tr<{ $pending?: boolean }>`
-    border-bottom: 1px solid ${executive.borderLight};
-    transition: background-color 0.2s ease;
+const ServiceRow = styled.tr<{ $pending?: boolean }>`
+   border-bottom: 1px solid ${brand.borderLight};
+   transition: background-color 0.2s ease;
 
-    ${props => props.$pending && `
-        background: ${executive.pendingBg};
-    `}
+   ${props => props.$pending && `
+       background: ${brand.pendingBg};
+   `}
 
-    &:hover {
-        background: ${executive.surfaceHover};
-    }
+   &:hover {
+       background: ${brand.surfaceHover};
+   }
 
-    &:last-child {
-        border-bottom: none;
-    }
-
-    td {
-        padding: ${executive.spacing.lg} ${executive.spacing.xl};
-        vertical-align: top;
-    }
+   &:last-child {
+       border-bottom: none;
+   }
 `;
 
-const ServiceDetails = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${executive.spacing.sm};
+const ServiceCell = styled.td`
+   padding: ${brand.space.lg} ${brand.space.xxl};
+   vertical-align: top;
+`;
+
+const PriceCell = styled.td`
+   padding: ${brand.space.lg} ${brand.space.xxl};
+   vertical-align: top;
+`;
+
+const DiscountCell = styled.td`
+   padding: ${brand.space.lg} ${brand.space.xxl};
+   vertical-align: top;
+`;
+
+const FinalPriceCell = styled.td`
+   padding: ${brand.space.lg} ${brand.space.xxl};
+   vertical-align: top;
+`;
+
+const StatusCell = styled.td`
+   padding: ${brand.space.lg} ${brand.space.xxl};
+   vertical-align: top;
+`;
+
+const ActionsCell = styled.td`
+   padding: ${brand.space.lg} ${brand.space.xxl};
+   vertical-align: top;
 `;
 
 const ServiceName = styled.div`
-    font-size: 15px;
-    font-weight: 500;
-    color: ${executive.textPrimary};
-    line-height: 1.4;
+   font-size: 15px;
+   font-weight: 500;
+   color: ${brand.textPrimary};
+   line-height: 1.4;
 `;
 
-const ServiceNote = styled.div`
-    font-size: 13px;
-    color: ${executive.textMuted};
-    font-style: italic;
-    line-height: 1.4;
+const PriceAmount = styled.div`
+   font-size: 15px;
+   font-weight: 600;
+   color: ${brand.textPrimary};
 `;
 
-const PriceDisplay = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${executive.spacing.xs};
-`;
-
-const PriceRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${executive.spacing.sm};
-`;
-
-const PriceAmount = styled.div<{ $secondary?: boolean }>`
-    font-size: 15px;
-    font-weight: ${props => props.$secondary ? 500 : 600};
-    color: ${props => props.$secondary ? executive.textSecondary : executive.textPrimary};
-`;
-
-const PriceLabel = styled.span`
-    font-size: 11px;
-    color: ${executive.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    background: ${executive.surfaceElevated};
-    padding: 2px 6px;
-    border-radius: ${executive.radius.sm};
-`;
-
-const FinalPriceAmount = styled.div<{ $secondary?: boolean }>`
-    font-size: 16px;
-    font-weight: ${props => props.$secondary ? 600 : 700};
-    color: ${props => props.$secondary ? executive.textSecondary : executive.primary};
-`;
-
-const DiscountDisplay = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+const DiscountInfo = styled.div`
+   display: flex;
+   flex-direction: column;
+   gap: 2px;
 `;
 
 const DiscountAmount = styled.div`
-    font-size: 14px;
-    font-weight: 600;
-    color: ${executive.error};
+   font-size: 14px;
+   font-weight: 600;
+   color: ${brand.error};
 `;
 
 const SavingsAmount = styled.div`
-    font-size: 12px;
-    color: ${executive.textSuccess};
-    font-weight: 500;
+   font-size: 12px;
+   color: ${brand.success};
+   font-weight: 500;
 `;
 
 const NoDiscount = styled.div`
-    font-size: 15px;
-    color: ${executive.textMuted};
-    font-weight: 300;
+   font-size: 15px;
+   color: ${brand.textMuted};
+   font-weight: 300;
 `;
 
-const ServiceStatusBadge = styled.div<{ $status: 'pending' | 'approved' }>`
-    display: flex;
-    align-items: center;
-    gap: ${executive.spacing.xs};
-    padding: ${executive.spacing.xs} ${executive.spacing.sm};
-    background: ${props => props.$status === 'pending' ? executive.pendingBg : executive.successBg};
-    color: ${props => props.$status === 'pending' ? executive.pending : executive.success};
-    border: 1px solid ${props => props.$status === 'pending' ? executive.pending + '30' : executive.success + '30'};
-    border-radius: ${executive.radius.sm};
-    font-size: 12px;
-    font-weight: 500;
-    width: fit-content;
-
-    span {
-        font-size: 11px;
-    }
+const FinalPrice = styled.div`
+   font-size: 16px;
+   font-weight: 700;
+   color: ${brand.primary};
 `;
 
-const ActionsMenu = styled.div`
-    display: flex;
-    gap: ${executive.spacing.xs};
-    opacity: 0.7;
-    transition: opacity 0.2s ease;
+const ServiceStatus = styled.div<{ $status: string }>`
+   display: flex;
+   align-items: center;
+   gap: ${brand.space.xs};
+   padding: ${brand.space.xs} ${brand.space.sm};
+   background: ${props => props.$status === 'PENDING' ? brand.pendingBg : brand.successBg};
+   color: ${props => props.$status === 'PENDING' ? brand.pending : brand.success};
+   border: 1px solid ${props => props.$status === 'PENDING' ? `${brand.pending}30` : `${brand.success}30`};
+   border-radius: ${brand.radius.sm};
+   font-size: 12px;
+   font-weight: 500;
+   width: fit-content;
 
-    ${TableRow}:hover & {
-        opacity: 1;
-    }
+   span {
+       font-size: 11px;
+   }
+
+   svg {
+       font-size: 10px;
+   }
 `;
 
-const ActionButton = styled.button<{ $variant: 'primary' | 'warning' | 'danger' }>`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    border: none;
-    border-radius: ${executive.radius.sm};
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-size: 11px;
+const ServiceActions = styled.div`
+   display: flex;
+   gap: ${brand.space.xs};
+   opacity: 0.7;
+   transition: opacity 0.2s ease;
 
-    ${props => {
-        switch (props.$variant) {
-            case 'primary':
-                return `
-                    background: ${executive.primary}20;
-                    color: ${executive.primary};
-                    &:hover {
-                        background: ${executive.primary};
-                        color: white;
-                        transform: translateY(-1px);
-                    }
-                `;
-            case 'warning':
-                return `
-                    background: ${executive.warning}20;
-                    color: ${executive.warning};
-                    &:hover {
-                        background: ${executive.warning};
-                        color: white;
-                        transform: translateY(-1px);
-                    }
-                `;
-            case 'danger':
-                return `
-                    background: ${executive.error}20;
-                    color: ${executive.error};
-                    &:hover {
-                        background: ${executive.error};
-                        color: white;
-                        transform: translateY(-1px);
-                    }
-                `;
-        }
-    }}
+   ${ServiceRow}:hover & {
+       opacity: 1;
+   }
 `;
 
-const TableFooter = styled.tfoot`
-    tr {
-        background: ${executive.surfaceElevated};
-        border-top: 2px solid ${executive.border};
-    }
+const ActionIcon = styled.button<{ $type: 'notify' | 'delete' }>`
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   width: 28px;
+   height: 28px;
+   border: none;
+   border-radius: ${brand.radius.sm};
+   cursor: pointer;
+   transition: all 0.2s ease;
+   font-size: 11px;
 
-    td {
-        padding: ${executive.spacing.lg} ${executive.spacing.xl};
-        font-weight: 600;
+   ${props => {
+    switch (props.$type) {
+        case 'notify':
+            return `
+                   background: ${brand.primary}20;
+                   color: ${brand.primary};
+                   &:hover {
+                       background: ${brand.primary};
+                       color: white;
+                       transform: translateY(-1px);
+                   }
+               `;
+        case 'delete':
+            return `
+                   background: ${brand.error}20;
+                   color: ${brand.error};
+                   &:hover {
+                       background: ${brand.error};
+                       color: white;
+                       transform: translateY(-1px);
+                   }
+               `;
     }
+}}
+`;
+
+const TableFooter = styled.tfoot``;
+
+const FooterRow = styled.tr`
+   background: ${brand.surfaceElevated};
+   border-top: 2px solid ${brand.border};
+`;
+
+const FooterCell = styled.td`
+   padding: ${brand.space.lg} ${brand.space.xxl};
+   font-weight: 600;
 `;
 
 const TotalLabel = styled.div`
-    font-size: 14px;
-    font-weight: 700;
-    color: ${executive.textPrimary};
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+   font-size: 14px;
+   font-weight: 700;
+   color: ${brand.textPrimary};
+   text-transform: uppercase;
+   letter-spacing: 0.5px;
 `;
 
-const TotalAmount = styled.div<{ $secondary?: boolean }>`
-    font-size: 15px;
-    font-weight: 600;
-    color: ${props => props.$secondary ? executive.textSecondary : executive.textPrimary};
+const TotalAmount = styled.div`
+   font-size: 15px;
+   font-weight: 600;
+   color: ${brand.textPrimary};
 `;
 
-const FinalTotalAmount = styled.div<{ $secondary?: boolean }>`
-    font-size: 18px;
-    font-weight: 800;
-    color: ${props => props.$secondary ? executive.textSecondary : executive.primary};
+const FinalTotalAmount = styled.div`
+   font-size: 18px;
+   font-weight: 800;
+   color: ${brand.primary};
 `;
 
-const NotesSection = styled.div`
-    background: ${executive.surface};
-    border: 1px solid ${executive.border};
-    border-radius: ${executive.radius.lg};
-    box-shadow: ${executive.shadowCard};
-    overflow: hidden;
+// Add missing styled components
+const LoadingContainer = styled.div`
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   justify-content: center;
+   padding: ${brand.space.xxxl};
+   gap: ${brand.space.lg};
+   color: ${brand.textTertiary};
 `;
 
-const NotesContent = styled.div`
-    padding: ${executive.spacing.xl};
-    font-size: 15px;
-    color: ${executive.textSecondary};
-    line-height: 1.6;
-    white-space: pre-line;
-    background: ${executive.surfaceElevated};
-    border-left: 4px solid ${executive.primary};
+const LoadingSpinner = styled.div`
+   width: 40px;
+   height: 40px;
+   border: 3px solid ${brand.borderLight};
+   border-top: 3px solid ${brand.primary};
+   border-radius: 50%;
+   animation: spin 1s linear infinite;
+
+   @keyframes spin {
+       0% { transform: rotate(0deg); }
+       100% { transform: rotate(360deg); }
+   }
 `;
 
-// Missing FaPercent import fix
-const FaPercent = styled.div`
-    &::before {
-        content: '%';
-        font-weight: bold;
-    }
+const ErrorState = styled.div`
+   display: flex;
+   align-items: center;
+   gap: ${brand.space.md};
+   padding: ${brand.space.xl} ${brand.space.xxl};
+   color: ${brand.error};
+   font-size: 14px;
+   font-weight: 500;
+   background: ${brand.errorBg};
+   border: 1px solid rgba(220, 38, 38, 0.3);
+   border-radius: ${brand.radius.md};
+   margin: ${brand.space.xl} ${brand.space.xxl};
+`;
+
+const ServiceNote = styled.div`
+   font-size: 13px;
+   color: ${brand.textMuted};
+   font-style: italic;
+   margin-top: ${brand.space.xs};
+   line-height: 1.4;
 `;
 
 export default ProtocolSummary;

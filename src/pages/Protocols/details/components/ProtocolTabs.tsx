@@ -77,11 +77,6 @@ const tabsConfig: TabConfig[] = [
         icon: <FaFileInvoiceDollar />
     },
     {
-        id: 'client',
-        label: 'Klient',
-        icon: <FaUser />
-    },
-    {
         id: 'gallery',
         label: 'Dokumentacja',
         icon: <FaImages />

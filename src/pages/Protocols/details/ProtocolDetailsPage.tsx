@@ -8,7 +8,6 @@ import {CarReceptionProtocol, ProtocolStatus, SelectedService} from "../../../ty
 import ProtocolSummary from "./components/ProtocolSummary";
 import ProtocolComments from "./components/ProtocolComments";
 import ProtocolInvoices from "./components/ProtocolInvoices";
-import ProtocolClientInfo from "./components/ProtocolClientInfo";
 import ProtocolVehicleStatus from "./components/ProtocolVehicleStatus";
 import ProtocolGallery from "./components/ProtocolGallery";
 import ProtocolHeader from "./components/ProtocolHeader";
