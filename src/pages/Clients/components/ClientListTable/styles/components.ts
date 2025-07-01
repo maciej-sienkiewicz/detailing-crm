@@ -1,4 +1,4 @@
-// ClientListTable/styles/components.ts
+// ClientListTable/styles/components.ts - Updated with new components
 import styled from 'styled-components';
 import { brandTheme } from './theme';
 
@@ -33,34 +33,50 @@ export const ListTitle = styled.h3`
     letter-spacing: -0.025em;
 `;
 
-export const ViewControls = styled.div`
-    display: flex;
-    border: 2px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.md};
-    overflow: hidden;
-    background: ${brandTheme.surface};
-`;
+// Tooltip Component
+export const TooltipWrapper = styled.div<{ title: string }>`
+    position: relative;
+    display: inline-flex;
 
-export const ViewButton = styled.button<{ $active: boolean }>`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 44px;
-    height: 40px;
-    border: none;
-    background: ${props => props.$active ? brandTheme.primary : brandTheme.surface};
-    color: ${props => props.$active ? 'white' : brandTheme.text.tertiary};
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    font-size: 16px;
-
-    &:hover {
-        background: ${props => props.$active ? brandTheme.primaryDark : brandTheme.primaryGhost};
-        color: ${props => props.$active ? 'white' : brandTheme.primary};
+    &:hover::after {
+        content: attr(title);
+        position: absolute;
+        bottom: calc(100% + 8px);
+        left: 50%;
+        transform: translateX(-50%);
+        background: ${brandTheme.text.primary};
+        color: white;
+        padding: 8px 12px;
+        border-radius: ${brandTheme.radius.md};
+        font-size: 12px;
+        font-weight: 500;
+        white-space: nowrap;
+        z-index: 1000;
+        box-shadow: ${brandTheme.shadow.lg};
+        animation: tooltipFadeIn 0.2s ease-out;
     }
 
-    &:not(:last-child) {
-        border-right: 1px solid ${brandTheme.border};
+    &:hover::before {
+        content: '';
+        position: absolute;
+        bottom: calc(100% + 2px);
+        left: 50%;
+        transform: translateX(-50%);
+        border: 4px solid transparent;
+        border-top-color: ${brandTheme.text.primary};
+        z-index: 1000;
+        animation: tooltipFadeIn 0.2s ease-out;
+    }
+
+    @keyframes tooltipFadeIn {
+        from {
+            opacity: 0;
+            transform: translateX(-50%) translateY(4px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
     }
 `;
 
@@ -307,6 +323,40 @@ export const EmptyCompany = styled.div`
     font-size: 13px;
 `;
 
+// New Vehicle Count Component
+export const VehicleCount = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.xs};
+    background: linear-gradient(135deg, ${brandTheme.status.infoLight} 0%, #e0f2fe 100%);
+    color: ${brandTheme.status.info};
+    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
+    border-radius: ${brandTheme.radius.md};
+    font-weight: 600;
+    font-size: 14px;
+    border: 1px solid ${brandTheme.status.info}30;
+    width: fit-content;
+
+    svg {
+        font-size: 12px;
+    }
+`;
+
+// New Last Visit Date Component
+export const LastVisitDate = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.xs};
+    font-size: 13px;
+    font-weight: 500;
+    color: ${brandTheme.text.secondary};
+
+    svg {
+        color: ${brandTheme.text.muted};
+        font-size: 11px;
+    }
+`;
+
 // Metrics Components
 export const MetricsContainer = styled.div`
     display: flex;
@@ -382,9 +432,9 @@ export const ActionButton = styled.button<{
     overflow: hidden;
 
     ${({ $variant }) => {
-    switch ($variant) {
-        case 'view':
-            return `
+        switch ($variant) {
+            case 'view':
+                return `
                     background: ${brandTheme.primaryGhost};
                     color: ${brandTheme.primary};
                     &:hover {
@@ -394,8 +444,8 @@ export const ActionButton = styled.button<{
                         box-shadow: ${brandTheme.shadow.md};
                     }
                 `;
-        case 'edit':
-            return `
+            case 'edit':
+                return `
                     background: ${brandTheme.status.warningLight};
                     color: ${brandTheme.status.warning};
                     &:hover {
@@ -405,8 +455,8 @@ export const ActionButton = styled.button<{
                         box-shadow: ${brandTheme.shadow.md};
                     }
                 `;
-        case 'info':
-            return `
+            case 'info':
+                return `
                     background: ${brandTheme.status.infoLight};
                     color: ${brandTheme.status.info};
                     &:hover {
@@ -416,8 +466,8 @@ export const ActionButton = styled.button<{
                         box-shadow: ${brandTheme.shadow.md};
                     }
                 `;
-        case 'success':
-            return `
+            case 'success':
+                return `
                     background: ${brandTheme.status.successLight};
                     color: ${brandTheme.status.success};
                     &:hover {
@@ -427,8 +477,8 @@ export const ActionButton = styled.button<{
                         box-shadow: ${brandTheme.shadow.md};
                     }
                 `;
-        case 'secondary':
-            return `
+            case 'secondary':
+                return `
                     background: ${brandTheme.surfaceElevated};
                     color: ${brandTheme.text.tertiary};
                     &:hover {
@@ -438,8 +488,8 @@ export const ActionButton = styled.button<{
                         box-shadow: ${brandTheme.shadow.md};
                     }
                 `;
-        case 'delete':
-            return `
+            case 'delete':
+                return `
                     background: ${brandTheme.status.errorLight};
                     color: ${brandTheme.status.error};
                     &:hover {
@@ -449,91 +499,8 @@ export const ActionButton = styled.button<{
                         box-shadow: ${brandTheme.shadow.md};
                     }
                 `;
-    }
-}}
-`;
-
-// Card Components for Mobile/Tablet View
-export const CardsContainer = styled.div`
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: ${brandTheme.spacing.md};
-    padding: ${brandTheme.spacing.lg};
-    overflow-y: auto;
-    flex: 1;
-`;
-
-export const ClientCard = styled.div<{ $selected?: boolean }>`
-    background: ${props => props.$selected ? brandTheme.primaryGhost : brandTheme.surface};
-    border: 2px solid ${props => props.$selected ? brandTheme.primary : brandTheme.border};
-    border-radius: ${brandTheme.radius.lg};
-    padding: ${brandTheme.spacing.lg};
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: ${brandTheme.shadow.xs};
-
-    &:hover {
-        transform: translateY(-2px);
-        box-shadow: ${brandTheme.shadow.lg};
-        border-color: ${brandTheme.primary};
-    }
-`;
-
-export const CardHeader = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: ${brandTheme.spacing.md};
-    gap: ${brandTheme.spacing.sm};
-`;
-
-export const CardTitle = styled.h4`
-    font-size: 16px;
-    font-weight: 600;
-    color: ${brandTheme.text.primary};
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
-    flex: 1;
-    min-width: 0;
-`;
-
-export const CardContent = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${brandTheme.spacing.sm};
-    margin-bottom: ${brandTheme.spacing.md};
-`;
-
-export const CardRow = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
-`;
-
-export const CardLabel = styled.span`
-    font-size: 13px;
-    color: ${brandTheme.text.secondary};
-    font-weight: 500;
-    flex-shrink: 0;
-`;
-
-export const CardValue = styled.span`
-    font-size: 13px;
-    color: ${brandTheme.text.primary};
-    font-weight: 600;
-    text-align: right;
-    word-break: break-all;
-`;
-
-export const CardFooter = styled.div`
-    display: flex;
-    gap: ${brandTheme.spacing.sm};
-    justify-content: flex-end;
-    padding-top: ${brandTheme.spacing.sm};
-    border-top: 1px solid ${brandTheme.borderLight};
+        }
+    }}
 `;
 
 // Empty State Components

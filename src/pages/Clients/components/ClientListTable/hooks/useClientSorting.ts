@@ -1,4 +1,4 @@
-// ClientListTable/hooks/useClientSorting.ts
+// ClientListTable/hooks/useClientSorting.ts - Updated with new columns
 import { useState, useEffect } from 'react';
 import { SortDirection } from '../types';
 import {ClientExpanded} from "../../../../../types";
@@ -29,6 +29,14 @@ export const useClientSorting = (clients: ClientExpanded[]) => {
                     case 'company':
                         aValue = (a.company || '').toLowerCase();
                         bValue = (b.company || '').toLowerCase();
+                        break;
+                    case 'vehicles':
+                        aValue = a.vehicles?.length || 0;
+                        bValue = b.vehicles?.length || 0;
+                        break;
+                    case 'lastVisit':
+                        aValue = a.lastVisitDate ? new Date(a.lastVisitDate).getTime() : 0;
+                        bValue = b.lastVisitDate ? new Date(b.lastVisitDate).getTime() : 0;
                         break;
                     case 'metrics':
                         aValue = a.totalVisits;

@@ -1,4 +1,4 @@
-// ClientListTable/TableRow.tsx
+// ClientListTable/TableRow.tsx - Updated with new columns and tooltips
 import React from 'react';
 import {
     FaCheckSquare,
@@ -11,7 +11,9 @@ import {
     FaSms,
     FaEnvelope,
     FaPhone,
-    FaBuilding
+    FaBuilding,
+    FaCalendarAlt,
+    FaMoneyBillWave
 } from 'react-icons/fa';
 import { TableColumn } from './types';
 import { getClientStatus, formatCurrency, formatDate } from './utils/clientUtils';
@@ -39,7 +41,10 @@ import {
     RevenueDisplay,
     RevenueAmount,
     ActionButtons,
-    ActionButton
+    ActionButton,
+    VehicleCount,
+    LastVisitDate,
+    TooltipWrapper
 } from './styles/components';
 import {ClientExpanded} from "../../../../types";
 
@@ -134,61 +139,77 @@ export const TableRow: React.FC<TableRowProps> = ({
                     </CompanyInfo>
                 );
 
+            case 'lastVisit':
+                return (
+                    <TooltipWrapper title={client.lastVisitDate ? `Data ostatniej wizyty: ${formatDate(client.lastVisitDate)}` : 'Brak wizyt'}>
+                        <LastVisitDate>
+                            {client.lastVisitDate ? (
+                                <>
+                                    <FaCalendarAlt />
+                                    <span>{formatDate(client.lastVisitDate)}</span>
+                                </>
+                            ) : (
+                                <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Brak wizyt</span>
+                            )}
+                        </LastVisitDate>
+                    </TooltipWrapper>
+                );
+
             case 'metrics':
                 return (
-                    <MetricsContainer>
-                        <MetricItem>
-                            <MetricValue>{client.totalVisits}</MetricValue>
-                            <MetricLabel>wizyt</MetricLabel>
-                        </MetricItem>
-                        <MetricSeparator>•</MetricSeparator>
-                        <MetricItem>
-                            <MetricValue>{client.totalTransactions || 0}</MetricValue>
-                            <MetricLabel>transakcji</MetricLabel>
-                        </MetricItem>
-                    </MetricsContainer>
+                    <TooltipWrapper title={`Wizyty: ${client.totalVisits} | Pojazdy: ${client.vehicles?.length || 0}`}>
+                        <MetricsContainer>
+                            <MetricItem>
+                                <MetricValue>{client.totalVisits}</MetricValue>
+                                <MetricLabel>wizyt</MetricLabel>
+                            </MetricItem>
+                            <MetricSeparator>•</MetricSeparator>
+                            <MetricItem>
+                                <MetricValue>{client.vehicles?.length || 0}</MetricValue>
+                                <MetricLabel>pojazdów</MetricLabel>
+                            </MetricItem>
+                        </MetricsContainer>
+                    </TooltipWrapper>
                 );
 
             case 'revenue':
                 return (
-                    <RevenueDisplay>
-                        <RevenueAmount>
-                            {formatCurrency(client.totalRevenue)}
-                        </RevenueAmount>
-                    </RevenueDisplay>
+                    <TooltipWrapper title={`Łączne przychody od klienta: ${formatCurrency(client.totalRevenue)}`}>
+                        <RevenueDisplay>
+                            <RevenueAmount>
+                                {formatCurrency(client.totalRevenue)}
+                            </RevenueAmount>
+                        </RevenueDisplay>
+                    </TooltipWrapper>
                 );
 
             case 'actions':
                 return (
                     <ActionButtons>
-                        <ActionButton
-                            onClick={(e) => onQuickAction('edit', client, e)}
-                            title="Edytuj klienta"
-                            $variant="secondary"
-                        >
-                            <FaEdit />
-                        </ActionButton>
-                        <ActionButton
-                            onClick={(e) => onQuickAction('vehicles', client, e)}
-                            title="Pojazdy klienta"
-                            $variant="secondary"
-                        >
-                            <FaCar />
-                        </ActionButton>
-                        <ActionButton
-                            onClick={(e) => onQuickAction('contact', client, e)}
-                            title="Dodaj kontakt"
-                            $variant="secondary"
-                        >
-                            <FaHistory />
-                        </ActionButton>
-                        <ActionButton
-                            onClick={(e) => onQuickAction('delete', client, e)}
-                            title="Usuń klienta"
-                            $variant="secondary"
-                        >
-                            <FaTrash />
-                        </ActionButton>
+                        <TooltipWrapper title="Zobacz szczegóły klienta">
+                            <ActionButton
+                                onClick={(e) => onQuickAction('view', client, e)}
+                                $variant="secondary"
+                            >
+                                <FaEye />
+                            </ActionButton>
+                        </TooltipWrapper>
+                        <TooltipWrapper title="Edytuj dane klienta">
+                            <ActionButton
+                                onClick={(e) => onQuickAction('edit', client, e)}
+                                $variant="secondary"
+                            >
+                                <FaEdit />
+                            </ActionButton>
+                        </TooltipWrapper>
+                        <TooltipWrapper title="Usuń klienta">
+                            <ActionButton
+                                onClick={(e) => onQuickAction('delete', client, e)}
+                                $variant="secondary"
+                            >
+                                <FaTrash />
+                            </ActionButton>
+                        </TooltipWrapper>
                     </ActionButtons>
                 );
 

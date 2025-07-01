@@ -1,400 +1,458 @@
- import React, { useState, useEffect } from 'react';
-    import { useLocation, useNavigate } from 'react-router-dom';
-    import styled from 'styled-components';
-    import { FaPlus, FaArrowLeft, FaCar, FaUsers, FaTools, FaMoneyBillWave, FaExclamationTriangle, FaTrophy, FaEye } from 'react-icons/fa';
-    import { VehicleExpanded } from '../../types';
-    import { vehicleApi, VehicleTableFilters, VehicleCompanyStatisticsResponse } from '../../api/vehiclesApi';
-    import { clientApi } from '../../api/clientsApi';
-    import VehicleListTable from './components/VehicleListTable';
-    import VehicleDetailDrawer from './components/VehicleDetailDrawer';
-    import VehicleFilters, { VehicleFilters as VehicleFiltersType } from './components/VehicleFilters';
-    import VehicleFormModal from './components/VehicleFormModal';
-    import VehicleHistoryModal from './components/VehicleHistoryModal';
-    import Modal from '../../components/common/Modal';
+// VehiclesPage.tsx - Fixed filtering by ownerId
+import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import styled from 'styled-components';
+import { FaPlus, FaArrowLeft, FaCar, FaUsers, FaTools, FaMoneyBillWave, FaExclamationTriangle, FaTrophy, FaEye } from 'react-icons/fa';
+import { VehicleExpanded } from '../../types';
+import { vehicleApi, VehicleTableFilters, VehicleCompanyStatisticsResponse } from '../../api/vehiclesApi';
+import { clientApi } from '../../api/clientsApi';
+import VehicleListTable from './components/VehicleListTable';
+import VehicleDetailDrawer from './components/VehicleDetailDrawer';
+import VehicleFilters, { VehicleFilters as VehicleFiltersType } from './components/VehicleFilters';
+import VehicleFormModal from './components/VehicleFormModal';
+import VehicleHistoryModal from './components/VehicleHistoryModal';
+import Modal from '../../components/common/Modal';
 
 // Professional Brand Theme - Premium Automotive CRM
-    const brandTheme = {
-        primary: 'var(--brand-primary, #1a365d)',
-        primaryLight: 'var(--brand-primary-light, #2c5aa0)',
-        primaryDark: 'var(--brand-primary-dark, #0f2027)',
-        primaryGhost: 'var(--brand-primary-ghost, rgba(26, 54, 93, 0.04))',
-        surface: '#ffffff',
-        surfaceAlt: '#fafbfc',
-        surfaceElevated: '#f8fafc',
-        surfaceHover: '#f1f5f9',
-        text: {
-            primary: '#0f172a',
-            secondary: '#475569',
-            tertiary: '#64748b',
-            muted: '#94a3b8',
-            disabled: '#cbd5e1'
-        },
-        border: '#e2e8f0',
-        borderLight: '#f1f5f9',
-        borderHover: '#cbd5e1',
-        status: {
-            success: '#059669',
-            successLight: '#d1fae5',
-            warning: '#d97706',
-            warningLight: '#fef3c7',
-            error: '#dc2626',
-            errorLight: '#fee2e2',
-            info: '#0ea5e9',
-            infoLight: '#e0f2fe'
-        },
-        shadow: {
-            xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-            sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
-            md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-            lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-            xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
-        },
-        spacing: {
-            xs: '4px',
-            sm: '8px',
-            md: '16px',
-            lg: '24px',
-            xl: '32px',
-            xxl: '48px'
-        },
-        radius: {
-            sm: '6px',
-            md: '8px',
-            lg: '12px',
-            xl: '16px',
-            xxl: '20px'
+const brandTheme = {
+    primary: 'var(--brand-primary, #1a365d)',
+    primaryLight: 'var(--brand-primary-light, #2c5aa0)',
+    primaryDark: 'var(--brand-primary-dark, #0f2027)',
+    primaryGhost: 'var(--brand-primary-ghost, rgba(26, 54, 93, 0.04))',
+    surface: '#ffffff',
+    surfaceAlt: '#fafbfc',
+    surfaceElevated: '#f8fafc',
+    surfaceHover: '#f1f5f9',
+    text: {
+        primary: '#0f172a',
+        secondary: '#475569',
+        tertiary: '#64748b',
+        muted: '#94a3b8',
+        disabled: '#cbd5e1'
+    },
+    border: '#e2e8f0',
+    borderLight: '#f1f5f9',
+    borderHover: '#cbd5e1',
+    status: {
+        success: '#059669',
+        successLight: '#d1fae5',
+        warning: '#d97706',
+        warningLight: '#fef3c7',
+        error: '#dc2626',
+        errorLight: '#fee2e2',
+        info: '#0ea5e9',
+        infoLight: '#e0f2fe'
+    },
+    shadow: {
+        xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+        sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+        md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+    },
+    spacing: {
+        xs: '4px',
+        sm: '8px',
+        md: '16px',
+        lg: '24px',
+        xl: '32px',
+        xxl: '48px'
+    },
+    radius: {
+        sm: '6px',
+        md: '8px',
+        lg: '12px',
+        xl: '16px',
+        xxl: '20px'
+    }
+};
+
+const VehiclesPage: React.FC = () => {
+    const location = useLocation();
+    const navigate = useNavigate();
+    const queryParams = new URLSearchParams(location.search);
+    const ownerId = queryParams.get('ownerId');
+
+    // State dla danych
+    const [vehicles, setVehicles] = useState<VehicleExpanded[]>([]);
+    const [filteredVehicles, setFilteredVehicles] = useState<VehicleExpanded[]>([]);
+    const [ownerName, setOwnerName] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    // Nowe state dla paginacji
+    const [pagination, setPagination] = useState({
+        currentPage: 0,
+        pageSize: 20,
+        totalItems: 0,
+        totalPages: 0
+    });
+
+    // UI state
+    const [showFilters, setShowFilters] = useState(false);
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [showHistoryModal, setShowHistoryModal] = useState(false);
+    const [showDetailDrawer, setShowDetailDrawer] = useState(false);
+    const [selectedVehicle, setSelectedVehicle] = useState<VehicleExpanded | null>(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+    // Zaktualizowane state dla filtrów - dopasowane do nowego API
+    const [filters, setFilters] = useState<VehicleFiltersType>({
+        licensePlate: '',
+        make: '',
+        model: '',
+        ownerName: '',      // Nowy filtr zamiast minYear
+        minServices: '',    // Teraz to minVisits w API
+        maxServices: ''     // Nowy filtr maxVisits
+    });
+
+    // Nowe state dla statystyk firmowych
+    const [companyStats, setCompanyStats] = useState<VehicleCompanyStatisticsResponse | null>(null);
+
+    // Funkcja do konwersji filtrów na format API
+    const convertFiltersToApiFormat = (uiFilters: VehicleFiltersType): VehicleTableFilters => {
+        const apiFilters: VehicleTableFilters = {};
+
+        if (uiFilters.licensePlate) {
+            apiFilters.licensePlate = uiFilters.licensePlate;
+        }
+        if (uiFilters.make) {
+            apiFilters.make = uiFilters.make;
+        }
+        if (uiFilters.model) {
+            apiFilters.model = uiFilters.model;
+        }
+        if (uiFilters.ownerName) {
+            apiFilters.ownerName = uiFilters.ownerName;
+        }
+        if (uiFilters.minServices) {
+            const minServices = parseInt(uiFilters.minServices);
+            if (!isNaN(minServices)) {
+                apiFilters.minVisits = minServices;
+            }
+        }
+        if (uiFilters.maxServices) {
+            const maxServices = parseInt(uiFilters.maxServices);
+            if (!isNaN(maxServices)) {
+                apiFilters.maxVisits = maxServices;
+            }
+        }
+
+        return apiFilters;
+    };
+
+    // Funkcja do ładowania danych z nowego API - POPRAWIONA
+// VehiclesPage.tsx - Poprawiona logika filtrowania
+
+// Funkcja do ładowania danych z nowego API - POPRAWIONA
+    const loadVehiclesData = async (page: number = 0, apiFilters?: VehicleTableFilters) => {
+        try {
+            setLoading(true);
+            setError(null);
+
+            let finalApiFilters = { ...apiFilters };
+
+            // Jeśli mamy ownerId, najpierw ładujemy dane właściciela
+            if (ownerId) {
+                try {
+                    const owner = await clientApi.fetchClientById(ownerId);
+                    if (owner) {
+                        const fullOwnerName = `${owner.firstName} ${owner.lastName}`;
+                        setOwnerName(fullOwnerName);
+
+                        // POPRAWKA: Sprawdź różne warianty nazwy właściciela
+                        console.log('Filtering by owner:', fullOwnerName);
+
+                        // Próbuj różne formaty nazwy
+                        finalApiFilters = {
+                            ...finalApiFilters,
+                            ownerName: fullOwnerName
+                        };
+                    } else {
+                        setError('Nie znaleziono klienta o podanym ID');
+                        return;
+                    }
+                } catch (ownerError) {
+                    console.error('Error loading owner:', ownerError);
+                    setError('Nie udało się załadować danych właściciela');
+                    return;
+                }
+            }
+
+            console.log('Final API filters:', finalApiFilters);
+
+            // Ładujemy pojazdy z odpowiednimi filtrami
+            const response = await vehicleApi.fetchVehiclesForTable(
+                { page, size: pagination.pageSize },
+                finalApiFilters
+            );
+
+            console.log('API response:', response);
+
+            setVehicles(response.data);
+            setFilteredVehicles(response.data);
+            setPagination(response.pagination);
+
+            // Jeśli nie ma wyników dla filtrowania po właścicielu, sprawdź czy właściciel w ogóle ma pojazdy
+            if (ownerId && response.data.length === 0) {
+                console.warn(`No vehicles found for owner: ${ownerName}`);
+
+                // Opcjonalnie: spróbuj załadować wszystkie pojazdy i przefiltruj lokalnie
+                const allVehiclesResponse = await vehicleApi.fetchVehiclesForTable(
+                    { page: 0, size: 1000 }, // Większy limit
+                    {} // Bez filtrów
+                );
+
+                console.log('All vehicles for debugging:', allVehiclesResponse.data.map(v => ({
+                    id: v.id,
+                    make: v.make,
+                    model: v.model,
+                    licensePlate: v.licensePlate,
+                    owners: v.owners
+                })));
+            }
+
+        } catch (err) {
+            setError('Nie udało się załadować listy pojazdów');
+            console.error('Error loading vehicles:', err);
+        } finally {
+            setLoading(false);
         }
     };
 
-    const VehiclesPage: React.FC = () => {
-        const location = useLocation();
-        const navigate = useNavigate();
-        const queryParams = new URLSearchParams(location.search);
-        const ownerId = queryParams.get('ownerId');
+    // Funkcja do ładowania statystyk firmowych
+    const loadCompanyStatistics = async () => {
+        try {
+            const stats = await vehicleApi.fetchCompanyStatistics();
+            setCompanyStats(stats);
+        } catch (err) {
+            console.error('Error loading company statistics:', err);
+        }
+    };
 
-        // State dla danych
-        const [vehicles, setVehicles] = useState<VehicleExpanded[]>([]);
-        const [filteredVehicles, setFilteredVehicles] = useState<VehicleExpanded[]>([]);
-        const [ownerName, setOwnerName] = useState<string | null>(null);
-        const [loading, setLoading] = useState(true);
-        const [error, setError] = useState<string | null>(null);
+    // POPRAWKA: Ładowanie danych na starcie - bez dependency na ownerId w useEffect
+    useEffect(() => {
+        loadVehiclesData();
 
-        // Nowe state dla paginacji
-        const [pagination, setPagination] = useState({
-            currentPage: 0,
-            pageSize: 20,
-            totalItems: 0,
-            totalPages: 0
-        });
+        // Statystyki ładujemy tylko gdy nie ma filtrowania po właścicielu
+        if (!ownerId) {
+            loadCompanyStatistics();
+        }
+    }, []); // Puste dependencies
 
-        // UI state
-        const [showFilters, setShowFilters] = useState(false);
-        const [showAddModal, setShowAddModal] = useState(false);
-        const [showHistoryModal, setShowHistoryModal] = useState(false);
-        const [showDetailDrawer, setShowDetailDrawer] = useState(false);
-        const [selectedVehicle, setSelectedVehicle] = useState<VehicleExpanded | null>(null);
-        const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    // POPRAWKA: Osobny useEffect dla ownerId
+    useEffect(() => {
+        if (ownerId) {
+            // Gdy zmieni się ownerId, przeładuj dane
+            loadVehiclesData();
+        }
+    }, [ownerId]);
 
-        // Zaktualizowane state dla filtrów - dopasowane do nowego API
-        const [filters, setFilters] = useState<VehicleFiltersType>({
+    // Efekt do filtrowania danych - teraz korzysta z API
+    useEffect(() => {
+        // Jeśli mamy ownerId, nie wykonujemy dodatkowego filtrowania przez UI filtry
+        // bo właściciel jest już ustawiony w API
+        if (ownerId) {
+            return;
+        }
+
+        const apiFilters = convertFiltersToApiFormat(filters);
+
+        // Debounce filtrowania - ładujemy z API po 500ms
+        const timeoutId = setTimeout(() => {
+            loadVehiclesData(0, apiFilters);
+        }, 500);
+
+        return () => clearTimeout(timeoutId);
+    }, [filters, ownerId]); // Dodano ownerId do dependencies
+
+    // Handlers
+    const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setFilters(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    const resetFilters = () => {
+        setFilters({
             licensePlate: '',
             make: '',
             model: '',
-            ownerName: '',      // Nowy filtr zamiast minYear
-            minServices: '',    // Teraz to minVisits w API
-            maxServices: ''     // Nowy filtr maxVisits
+            ownerName: ownerId ? ownerName || '' : '', // Zachowaj nazwę właściciela jeśli jest ownerId
+            minServices: '',
+            maxServices: ''
         });
 
-        // Nowe state dla statystyk firmowych
-        const [companyStats, setCompanyStats] = useState<VehicleCompanyStatisticsResponse | null>(null);
-
-        // Funkcja do konwersji filtrów na format API
-        const convertFiltersToApiFormat = (uiFilters: VehicleFiltersType): VehicleTableFilters => {
-            const apiFilters: VehicleTableFilters = {};
-
-            if (uiFilters.licensePlate) {
-                apiFilters.licensePlate = uiFilters.licensePlate;
-            }
-            if (uiFilters.make) {
-                apiFilters.make = uiFilters.make;
-            }
-            if (uiFilters.model) {
-                apiFilters.model = uiFilters.model;
-            }
-            if (uiFilters.ownerName) {
-                apiFilters.ownerName = uiFilters.ownerName;
-            }
-            if (uiFilters.minServices) {
-                const minServices = parseInt(uiFilters.minServices);
-                if (!isNaN(minServices)) {
-                    apiFilters.minVisits = minServices;
-                }
-            }
-            if (uiFilters.maxServices) {
-                const maxServices = parseInt(uiFilters.maxServices);
-                if (!isNaN(maxServices)) {
-                    apiFilters.maxVisits = maxServices;
-                }
-            }
-
-            return apiFilters;
-        };
-
-        // Funkcja do ładowania danych z nowego API
-        const loadVehiclesData = async (page: number = 0, apiFilters?: VehicleTableFilters) => {
-            try {
-                setLoading(true);
-                setError(null);
-
-                // Jeśli mamy ownerId, ładujemy dane właściciela i filtrujemy pojazdy
-                if (ownerId) {
-                    const owner = await clientApi.fetchClientById(ownerId);
-                    if (owner) {
-                        setOwnerName(`${owner.firstName} ${owner.lastName}`);
-
-                        // Używamy filtra po nazwie właściciela
-                        const ownerApiFilters = {
-                            ...apiFilters,
-                            ownerName: `${owner.firstName} ${owner.lastName}`
-                        };
-
-                        const response = await vehicleApi.fetchVehiclesForTable(
-                            { page, size: pagination.pageSize },
-                            ownerApiFilters
-                        );
-
-                        setVehicles(response.data);
-                        setFilteredVehicles(response.data);
-                        setPagination(response.pagination);
-                    }
-                } else {
-                    // Ładujemy wszystkie pojazdy z filtrami
-                    const response = await vehicleApi.fetchVehiclesForTable(
-                        { page, size: pagination.pageSize },
-                        apiFilters
-                    );
-
-                    setVehicles(response.data);
-                    setFilteredVehicles(response.data);
-                    setPagination(response.pagination);
-                }
-            } catch (err) {
-                setError('Nie udało się załadować listy pojazdów');
-                console.error('Error loading vehicles:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        // Funkcja do ładowania statystyk firmowych
-        const loadCompanyStatistics = async () => {
-            try {
-                const stats = await vehicleApi.fetchCompanyStatistics();
-                setCompanyStats(stats);
-            } catch (err) {
-                console.error('Error loading company statistics:', err);
-            }
-        };
-
-        // Ładowanie danych na starcie
-        useEffect(() => {
+        // Jeśli mamy ownerId, przeładuj dane dla tego właściciela
+        if (ownerId) {
             loadVehiclesData();
-            loadCompanyStatistics();
-        }, [ownerId]);
+        }
+    };
 
-        // Efekt do filtrowania danych - teraz korzysta z API
-        useEffect(() => {
-            const apiFilters = convertFiltersToApiFormat(filters);
+    const handlePageChange = (newPage: number) => {
+        const apiFilters = convertFiltersToApiFormat(filters);
+        loadVehiclesData(newPage, apiFilters);
+    };
 
-            // Debounce filtrowania - ładujemy z API po 500ms
-            const timeoutId = setTimeout(() => {
-                loadVehiclesData(0, apiFilters);
-            }, 500);
+    const handleAddVehicle = () => {
+        setSelectedVehicle(null);
+        setShowAddModal(true);
+    };
 
-            return () => clearTimeout(timeoutId);
-        }, [filters]);
+    const handleEditVehicle = (vehicle: VehicleExpanded) => {
+        setSelectedVehicle(vehicle);
+        setShowAddModal(true);
+    };
 
-        // Handlers
-        const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-            const { name, value } = e.target;
-            setFilters(prev => ({
-                ...prev,
-                [name]: value
-            }));
-        };
+    const handleSaveVehicle = async (vehicle: VehicleExpanded) => {
+        try {
+            if (selectedVehicle && selectedVehicle.id) {
+                // Update existing vehicle
+                const updatedVehicle = await vehicleApi.updateVehicle(selectedVehicle.id, {
+                    make: vehicle.make,
+                    model: vehicle.model,
+                    year: vehicle.year,
+                    licensePlate: vehicle.licensePlate,
+                    color: vehicle.color,
+                    vin: vehicle.vin,
+                    ownerIds: vehicle.ownerIds
+                });
 
-        const resetFilters = () => {
-            setFilters({
-                licensePlate: '',
-                make: '',
-                model: '',
-                ownerName: '',
-                minServices: '',
-                maxServices: ''
-            });
-        };
+                // Refresh data after update
+                const apiFilters = convertFiltersToApiFormat(filters);
+                await loadVehiclesData(pagination.currentPage, apiFilters);
+                await loadCompanyStatistics();
 
-        const handlePageChange = (newPage: number) => {
-            const apiFilters = convertFiltersToApiFormat(filters);
-            loadVehiclesData(newPage, apiFilters);
-        };
-
-        const handleAddVehicle = () => {
-            setSelectedVehicle(null);
-            setShowAddModal(true);
-        };
-
-        const handleEditVehicle = (vehicle: VehicleExpanded) => {
-            setSelectedVehicle(vehicle);
-            setShowAddModal(true);
-        };
-
-        const handleSaveVehicle = async (vehicle: VehicleExpanded) => {
-            try {
-                if (selectedVehicle && selectedVehicle.id) {
-                    // Update existing vehicle
-                    const updatedVehicle = await vehicleApi.updateVehicle(selectedVehicle.id, {
-                        make: vehicle.make,
-                        model: vehicle.model,
-                        year: vehicle.year,
-                        licensePlate: vehicle.licensePlate,
-                        color: vehicle.color,
-                        vin: vehicle.vin,
-                        ownerIds: vehicle.ownerIds
-                    });
-
-                    // Refresh data after update
-                    const apiFilters = convertFiltersToApiFormat(filters);
-                    await loadVehiclesData(pagination.currentPage, apiFilters);
-                    await loadCompanyStatistics();
-
-                    if (showDetailDrawer) {
-                        setSelectedVehicle(updatedVehicle);
-                    }
-                } else {
-                    // Add new vehicle
-                    await vehicleApi.createVehicle({
-                        make: vehicle.make,
-                        model: vehicle.model,
-                        year: vehicle.year,
-                        licensePlate: vehicle.licensePlate,
-                        color: vehicle.color,
-                        vin: vehicle.vin,
-                        ownerIds: vehicle.ownerIds
-                    });
-
-                    // Refresh data after create
-                    const apiFilters = convertFiltersToApiFormat(filters);
-                    await loadVehiclesData(pagination.currentPage, apiFilters);
-                    await loadCompanyStatistics();
+                if (showDetailDrawer) {
+                    setSelectedVehicle(updatedVehicle);
                 }
-                setShowAddModal(false);
-            } catch (err) {
-                setError('Nie udało się zapisać pojazdu');
-                console.error('Error saving vehicle:', err);
+            } else {
+                // Add new vehicle
+                await vehicleApi.createVehicle({
+                    make: vehicle.make,
+                    model: vehicle.model,
+                    year: vehicle.year,
+                    licensePlate: vehicle.licensePlate,
+                    color: vehicle.color,
+                    vin: vehicle.vin,
+                    ownerIds: vehicle.ownerIds
+                });
+
+                // Refresh data after create
+                const apiFilters = convertFiltersToApiFormat(filters);
+                await loadVehiclesData(pagination.currentPage, apiFilters);
+                await loadCompanyStatistics();
             }
-        };
+            setShowAddModal(false);
+        } catch (err) {
+            setError('Nie udało się zapisać pojazdu');
+            console.error('Error saving vehicle:', err);
+        }
+    };
 
-        const handleDeleteClick = (vehicleId: string) => {
-            const vehicle = vehicles.find(v => v.id === vehicleId);
-            if (vehicle) {
-                setSelectedVehicle(vehicle);
-                setShowDeleteConfirm(true);
-            }
-        };
+    const handleDeleteClick = (vehicleId: string) => {
+        const vehicle = vehicles.find(v => v.id === vehicleId);
+        if (vehicle) {
+            setSelectedVehicle(vehicle);
+            setShowDeleteConfirm(true);
+        }
+    };
 
-        const handleConfirmDelete = async () => {
-            if (!selectedVehicle) return;
+    const handleConfirmDelete = async () => {
+        if (!selectedVehicle) return;
 
-            try {
-                const success = await vehicleApi.deleteVehicle(selectedVehicle.id);
+        try {
+            const success = await vehicleApi.deleteVehicle(selectedVehicle.id);
 
-                if (success) {
-                    // Refresh data after delete
-                    const apiFilters = convertFiltersToApiFormat(filters);
-                    await loadVehiclesData(pagination.currentPage, apiFilters);
-                    await loadCompanyStatistics();
+            if (success) {
+                // Refresh data after delete
+                const apiFilters = convertFiltersToApiFormat(filters);
+                await loadVehiclesData(pagination.currentPage, apiFilters);
+                await loadCompanyStatistics();
 
-                    setShowDeleteConfirm(false);
-                    setSelectedVehicle(null);
+                setShowDeleteConfirm(false);
+                setSelectedVehicle(null);
 
-                    if (showDetailDrawer) {
-                        setShowDetailDrawer(false);
-                    }
+                if (showDetailDrawer) {
+                    setShowDetailDrawer(false);
                 }
-            } catch (err) {
-                setError('Nie udało się usunąć pojazdu');
-                console.error('Error deleting vehicle:', err);
             }
-        };
+        } catch (err) {
+            setError('Nie udało się usunąć pojazdu');
+            console.error('Error deleting vehicle:', err);
+        }
+    };
 
-        const handleShowHistory = (vehicle: VehicleExpanded) => {
-            setSelectedVehicle(vehicle);
-            setShowHistoryModal(true);
-        };
+    const handleShowHistory = (vehicle: VehicleExpanded) => {
+        setSelectedVehicle(vehicle);
+        setShowHistoryModal(true);
+    };
 
-        const handleBackToOwners = () => {
-            navigate('/clients/owners');
-        };
+    const handleBackToOwners = () => {
+        navigate('/clients/owners');
+    };
 
-        const handleSelectVehicle = (vehicle: VehicleExpanded) => {
-            setSelectedVehicle(vehicle);
-            setShowDetailDrawer(true);
-        };
+    const handleSelectVehicle = (vehicle: VehicleExpanded) => {
+        setSelectedVehicle(vehicle);
+        setShowDetailDrawer(true);
+    };
 
-        const formatCurrency = (amount: number): string => {
-            return new Intl.NumberFormat('pl-PL', {
-                style: 'currency',
-                currency: 'PLN'
-            }).format(amount);
-        };
+    const formatCurrency = (amount: number): string => {
+        return new Intl.NumberFormat('pl-PL', {
+            style: 'currency',
+            currency: 'PLN'
+        }).format(amount);
+    };
 
-        return (
-            <PageContainer>
-                {/* Professional Header */}
-                <PageHeader>
-                    <HeaderContent>
-                        <HeaderLeft>
-                            {ownerId && ownerName ? (
-                                <BackSection>
-                                    <BackButton onClick={handleBackToOwners}>
-                                        <FaArrowLeft />
-                                    </BackButton>
-                                    <HeaderInfo>
-                                        <HeaderIcon>
-                                            <FaCar />
-                                        </HeaderIcon>
-                                        <HeaderText>
-                                            <HeaderTitle>Pojazdy klienta</HeaderTitle>
-                                            <HeaderSubtitle>{ownerName}</HeaderSubtitle>
-                                        </HeaderText>
-                                    </HeaderInfo>
-                                </BackSection>
-                            ) : (
-                                <>
+    return (
+        <PageContainer>
+            {/* Professional Header */}
+            <PageHeader>
+                <HeaderContent>
+                    <HeaderLeft>
+                        {ownerId && ownerName ? (
+                            <BackSection>
+                                <BackButton onClick={handleBackToOwners}>
+                                    <FaArrowLeft />
+                                </BackButton>
+                                <HeaderInfo>
                                     <HeaderIcon>
                                         <FaCar />
                                     </HeaderIcon>
                                     <HeaderText>
-                                        <HeaderTitle>Baza Pojazdów</HeaderTitle>
-                                        <HeaderSubtitle>
-                                            Zarządzanie flotą detailingu premium
-                                        </HeaderSubtitle>
+                                        <HeaderTitle>Pojazdy klienta</HeaderTitle>
+                                        <HeaderSubtitle>{ownerName}</HeaderSubtitle>
                                     </HeaderText>
-                                </>
-                            )}
-                        </HeaderLeft>
+                                </HeaderInfo>
+                            </BackSection>
+                        ) : (
+                            <>
+                                <HeaderIcon>
+                                    <FaCar />
+                                </HeaderIcon>
+                                <HeaderText>
+                                    <HeaderTitle>Baza Pojazdów</HeaderTitle>
+                                    <HeaderSubtitle>
+                                        Zarządzanie flotą detailingu premium
+                                    </HeaderSubtitle>
+                                </HeaderText>
+                            </>
+                        )}
+                    </HeaderLeft>
 
-                        <HeaderActions>
-                            <PrimaryButton onClick={handleAddVehicle}>
-                                <FaPlus />
-                                <span>Nowy pojazd</span>
-                            </PrimaryButton>
-                        </HeaderActions>
-                    </HeaderContent>
-                </PageHeader>
+                    <HeaderActions>
+                        <PrimaryButton onClick={handleAddVehicle}>
+                            <FaPlus />
+                            <span>Nowy pojazd</span>
+                        </PrimaryButton>
+                    </HeaderActions>
+                </HeaderContent>
+            </PageHeader>
 
-                {/* Enhanced Statistics Dashboard z nowymi danymi */}
+            {/* Enhanced Statistics Dashboard - tylko gdy nie ma filtrowania po właścicielu */}
+            {!ownerId && companyStats && (
                 <StatsSection>
                     <StatsGrid>
                         <StatCard>
@@ -402,7 +460,7 @@
                                 <FaCar />
                             </StatIcon>
                             <StatContent>
-                                <StatValue>{companyStats?.totalVehicles}</StatValue>
+                                <StatValue>{companyStats.totalVehicles}</StatValue>
                                 <StatLabel>Łączna liczba pojazdów</StatLabel>
                             </StatContent>
                         </StatCard>
@@ -412,7 +470,7 @@
                                 <FaTrophy />
                             </StatIcon>
                             <StatContent>
-                                <StatValue>{companyStats?.premiumVehicles}</StatValue>
+                                <StatValue>{companyStats.premiumVehicles}</StatValue>
                                 <StatLabel>Pojazdy Premium</StatLabel>
                             </StatContent>
                         </StatCard>
@@ -422,7 +480,7 @@
                                 <FaMoneyBillWave />
                             </StatIcon>
                             <StatContent>
-                                <StatValue>{companyStats?.totalRevenue?.toFixed(2)} zł</StatValue>
+                                <StatValue>{companyStats.totalRevenue?.toFixed(2)} zł</StatValue>
                                 <StatLabel>Łączne przychody</StatLabel>
                             </StatContent>
                         </StatCard>
@@ -432,14 +490,14 @@
                                 <FaEye />
                             </StatIcon>
                             <StatContent>
-                                <StatValue>{companyStats?.visitRevenueMedian?.toFixed(2)} zł</StatValue>
+                                <StatValue>{companyStats.visitRevenueMedian?.toFixed(2)} zł</StatValue>
                                 <StatLabel>Mediana wartości wizyt</StatLabel>
                             </StatContent>
                         </StatCard>
                     </StatsGrid>
 
                     {/* Nowa sekcja z najaktywniejszym pojazdem */}
-                    {companyStats?.mostActiveVehicle && (
+                    {companyStats.mostActiveVehicle && (
                         <MostActiveVehicleCard>
                             <MostActiveHeader>
                                 <MostActiveIcon>
@@ -462,10 +520,12 @@
                         </MostActiveVehicleCard>
                     )}
                 </StatsSection>
+            )}
 
-                {/* Content Container */}
-                <ContentContainer>
-                    {/* Filters */}
+            {/* Content Container */}
+            <ContentContainer>
+                {/* Filters - ukryj gdy mamy ownerId */}
+                {!ownerId && (
                     <VehicleFilters
                         filters={filters}
                         showFilters={showFilters}
@@ -474,150 +534,151 @@
                         onResetFilters={resetFilters}
                         resultCount={pagination.totalItems}
                     />
+                )}
 
-                    {/* Error Display */}
-                    {error && (
-                        <ErrorMessage>
-                            <FaExclamationTriangle />
-                            {error}
-                        </ErrorMessage>
-                    )}
+                {/* Error Display */}
+                {error && (
+                    <ErrorMessage>
+                        <FaExclamationTriangle />
+                        {error}
+                    </ErrorMessage>
+                )}
 
-                    {/* Loading State */}
-                    {loading ? (
-                        <LoadingContainer>
-                            <LoadingSpinner />
-                            <LoadingText>Ładowanie danych pojazdów...</LoadingText>
-                        </LoadingContainer>
-                    ) : (
-                        <>
-                            {/* Main Table Component */}
-                            <TableContainer>
-                                <VehicleListTable
-                                    vehicles={filteredVehicles}
-                                    onSelectVehicle={handleSelectVehicle}
-                                    onEditVehicle={handleEditVehicle}
-                                    onDeleteVehicle={handleDeleteClick}
-                                    onShowHistory={handleShowHistory}
-                                />
-                            </TableContainer>
+                {/* Loading State */}
+                {loading ? (
+                    <LoadingContainer>
+                        <LoadingSpinner />
+                        <LoadingText>Ładowanie danych pojazdów...</LoadingText>
+                    </LoadingContainer>
+                ) : (
+                    <>
+                        {/* Main Table Component */}
+                        <TableContainer>
+                            <VehicleListTable
+                                vehicles={filteredVehicles}
+                                onSelectVehicle={handleSelectVehicle}
+                                onEditVehicle={handleEditVehicle}
+                                onDeleteVehicle={handleDeleteClick}
+                                onShowHistory={handleShowHistory}
+                            />
+                        </TableContainer>
 
-                            {/* Pagination Controls */}
-                            {pagination.totalPages > 1 && (
-                                <PaginationContainer>
-                                    <PaginationInfo>
-                                        Strona {pagination.currentPage + 1} z {pagination.totalPages}
-                                        ({pagination.totalItems} pojazdów)
-                                    </PaginationInfo>
-                                    <PaginationButtons>
-                                        <PaginationButton
-                                            onClick={() => handlePageChange(0)}
-                                            disabled={pagination.currentPage === 0}
-                                        >
-                                            Pierwsza
-                                        </PaginationButton>
-                                        <PaginationButton
-                                            onClick={() => handlePageChange(pagination.currentPage - 1)}
-                                            disabled={pagination.currentPage === 0}
-                                        >
-                                            Poprzednia
-                                        </PaginationButton>
-                                        <PageNumbers>
-                                            {Array.from({length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                                                const startPage = Math.max(0, pagination.currentPage - 2);
-                                                const pageNumber = startPage + i;
-                                                if (pageNumber >= pagination.totalPages) return null;
+                        {/* Pagination Controls */}
+                        {pagination.totalPages > 1 && (
+                            <PaginationContainer>
+                                <PaginationInfo>
+                                    Strona {pagination.currentPage + 1} z {pagination.totalPages}
+                                    ({pagination.totalItems} pojazdów)
+                                </PaginationInfo>
+                                <PaginationButtons>
+                                    <PaginationButton
+                                        onClick={() => handlePageChange(0)}
+                                        disabled={pagination.currentPage === 0}
+                                    >
+                                        Pierwsza
+                                    </PaginationButton>
+                                    <PaginationButton
+                                        onClick={() => handlePageChange(pagination.currentPage - 1)}
+                                        disabled={pagination.currentPage === 0}
+                                    >
+                                        Poprzednia
+                                    </PaginationButton>
+                                    <PageNumbers>
+                                        {Array.from({length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                                            const startPage = Math.max(0, pagination.currentPage - 2);
+                                            const pageNumber = startPage + i;
+                                            if (pageNumber >= pagination.totalPages) return null;
 
-                                                return (
-                                                    <PageNumber
-                                                        key={pageNumber}
-                                                        $active={pageNumber === pagination.currentPage}
-                                                        onClick={() => handlePageChange(pageNumber)}
-                                                    >
-                                                        {pageNumber + 1}
-                                                    </PageNumber>
-                                                );
-                                            })}
-                                        </PageNumbers>
-                                        <PaginationButton
-                                            onClick={() => handlePageChange(pagination.currentPage + 1)}
-                                            disabled={pagination.currentPage >= pagination.totalPages - 1}
-                                        >
-                                            Następna
-                                        </PaginationButton>
-                                        <PaginationButton
-                                            onClick={() => handlePageChange(pagination.totalPages - 1)}
-                                            disabled={pagination.currentPage >= pagination.totalPages - 1}
-                                        >
-                                            Ostatnia
-                                        </PaginationButton>
-                                    </PaginationButtons>
-                                </PaginationContainer>
-                            )}
-                        </>
-                    )}
-                </ContentContainer>
+                                            return (
+                                                <PageNumber
+                                                    key={pageNumber}
+                                                    $active={pageNumber === pagination.currentPage}
+                                                    onClick={() => handlePageChange(pageNumber)}
+                                                >
+                                                    {pageNumber + 1}
+                                                </PageNumber>
+                                            );
+                                        })}
+                                    </PageNumbers>
+                                    <PaginationButton
+                                        onClick={() => handlePageChange(pagination.currentPage + 1)}
+                                        disabled={pagination.currentPage >= pagination.totalPages - 1}
+                                    >
+                                        Następna
+                                    </PaginationButton>
+                                    <PaginationButton
+                                        onClick={() => handlePageChange(pagination.totalPages - 1)}
+                                        disabled={pagination.currentPage >= pagination.totalPages - 1}
+                                    >
+                                        Ostatnia
+                                    </PaginationButton>
+                                </PaginationButtons>
+                            </PaginationContainer>
+                        )}
+                    </>
+                )}
+            </ContentContainer>
 
-                {/* Detail Drawer */}
-                <VehicleDetailDrawer
-                    isOpen={showDetailDrawer}
+            {/* Detail Drawer */}
+            <VehicleDetailDrawer
+                isOpen={showDetailDrawer}
+                vehicle={selectedVehicle}
+                onClose={() => setShowDetailDrawer(false)}
+            />
+
+            {/* Modals */}
+            {showAddModal && (
+                <VehicleFormModal
                     vehicle={selectedVehicle}
-                    onClose={() => setShowDetailDrawer(false)}
+                    defaultOwnerId={ownerId || undefined}
+                    onSave={handleSaveVehicle}
+                    onCancel={() => setShowAddModal(false)}
                 />
+            )}
 
-                {/* Modals */}
-                {showAddModal && (
-                    <VehicleFormModal
-                        vehicle={selectedVehicle}
-                        defaultOwnerId={ownerId || undefined}
-                        onSave={handleSaveVehicle}
-                        onCancel={() => setShowAddModal(false)}
-                    />
-                )}
+            {showHistoryModal && selectedVehicle && (
+                <VehicleHistoryModal
+                    vehicle={selectedVehicle}
+                    onClose={() => setShowHistoryModal(false)}
+                />
+            )}
 
-                {showHistoryModal && selectedVehicle && (
-                    <VehicleHistoryModal
-                        vehicle={selectedVehicle}
-                        onClose={() => setShowHistoryModal(false)}
-                    />
-                )}
+            {/* Professional Delete Confirmation Modal */}
+            {showDeleteConfirm && selectedVehicle && (
+                <Modal
+                    isOpen={showDeleteConfirm}
+                    onClose={() => setShowDeleteConfirm(false)}
+                    title="Potwierdź usunięcie"
+                >
+                    <DeleteConfirmContent>
+                        <DeleteIcon>
+                            <FaExclamationTriangle />
+                        </DeleteIcon>
+                        <DeleteText>
+                            <DeleteTitle>Czy na pewno chcesz usunąć pojazd?</DeleteTitle>
+                            <DeleteVehicleInfo>
+                                <strong>{selectedVehicle.make} {selectedVehicle.model}</strong>
+                                <VehiclePlate>{selectedVehicle.licensePlate}</VehiclePlate>
+                            </DeleteVehicleInfo>
+                            <DeleteWarning>
+                                Ta operacja jest nieodwracalna i usunie wszystkie dane serwisowe pojazdu.
+                            </DeleteWarning>
+                        </DeleteText>
+                    </DeleteConfirmContent>
 
-                {/* Professional Delete Confirmation Modal */}
-                {showDeleteConfirm && selectedVehicle && (
-                    <Modal
-                        isOpen={showDeleteConfirm}
-                        onClose={() => setShowDeleteConfirm(false)}
-                        title="Potwierdź usunięcie"
-                    >
-                        <DeleteConfirmContent>
-                            <DeleteIcon>
-                                <FaExclamationTriangle />
-                            </DeleteIcon>
-                            <DeleteText>
-                                <DeleteTitle>Czy na pewno chcesz usunąć pojazd?</DeleteTitle>
-                                <DeleteVehicleInfo>
-                                    <strong>{selectedVehicle.make} {selectedVehicle.model}</strong>
-                                    <VehiclePlate>{selectedVehicle.licensePlate}</VehiclePlate>
-                                </DeleteVehicleInfo>
-                                <DeleteWarning>
-                                    Ta operacja jest nieodwracalna i usunie wszystkie dane serwisowe pojazdu.
-                                </DeleteWarning>
-                            </DeleteText>
-                        </DeleteConfirmContent>
-
-                        <DeleteConfirmButtons>
-                            <SecondaryButton onClick={() => setShowDeleteConfirm(false)}>
-                                Anuluj
-                            </SecondaryButton>
-                            <DangerButton onClick={handleConfirmDelete}>
-                                Usuń pojazd
-                            </DangerButton>
-                        </DeleteConfirmButtons>
-                    </Modal>
-                )}
-            </PageContainer>
-        );
-    };
+                    <DeleteConfirmButtons>
+                        <SecondaryButton onClick={() => setShowDeleteConfirm(false)}>
+                            Anuluj
+                        </SecondaryButton>
+                        <DangerButton onClick={handleConfirmDelete}>
+                            Usuń pojazd
+                        </DangerButton>
+                    </DeleteConfirmButtons>
+                </Modal>
+            )}
+        </PageContainer>
+    );
+};
 
 // Professional Styled Components - Same styling as OwnersPage
     const PageContainer = styled.div`
@@ -1271,4 +1332,4 @@
     border-top: 1px solid ${brandTheme.border};
 `;
 
-    export default VehiclesPage;
+export default VehiclesPage;

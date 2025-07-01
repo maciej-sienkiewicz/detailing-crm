@@ -1,4 +1,4 @@
-// ClientListTable/hooks/useTableConfiguration.ts
+// ClientListTable/hooks/useTableConfiguration.ts - Updated with new columns
 import { useState, useEffect } from 'react';
 import { TableColumn } from '../types';
 
@@ -6,12 +6,13 @@ const COLUMN_ORDER_KEY = 'client_table_columns_order';
 
 const defaultColumns: TableColumn[] = [
     { id: 'selection', label: '', width: '50px', sortable: false },
-    { id: 'client', label: 'Klient', width: '20%', sortable: true },
-    { id: 'contact', label: 'Kontakt', width: '18%', sortable: true },
-    { id: 'company', label: 'Firma', width: '15%', sortable: true },
-    { id: 'metrics', label: 'Statystyki', width: '15%', sortable: true },
-    { id: 'revenue', label: 'Przychody', width: '12%', sortable: true },
-    { id: 'actions', label: 'Akcje', width: '20%', sortable: false },
+    { id: 'client', label: 'Klient', width: '16%', sortable: true },
+    { id: 'contact', label: 'Kontakt', width: '15%', sortable: true },
+    { id: 'company', label: 'Firma', width: '12%', sortable: true },
+    { id: 'lastVisit', label: 'Ostatnia wizyta', width: '10%', sortable: true },
+    { id: 'metrics', label: 'Wizyty / Pojazdy', width: '12%', sortable: true },
+    { id: 'revenue', label: 'Przychody', width: '10%', sortable: true },
+    { id: 'actions', label: 'Akcje', width: '15%', sortable: false },
 ];
 
 export const useTableConfiguration = () => {

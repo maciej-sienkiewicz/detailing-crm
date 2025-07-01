@@ -691,10 +691,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                         <FaUpload />
                         <span>Dodaj zdjęcie</span>
                     </UploadButton>
-                    <CameraButton onClick={handleCameraClick} disabled={isLoading || disabled}>
-                        <FaCamera />
-                        <span>Zrób zdjęcie</span>
-                    </CameraButton>
                     <DocumentButton onClick={handleDocumentUploadClick} disabled={isLoading || disabled}>
                         <FaFileAlt />
                         <span>Dodaj dokument</span>

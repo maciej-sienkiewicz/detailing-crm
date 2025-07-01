@@ -257,11 +257,6 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
                     onAddServiceDirect={handleAddServiceDirect}
                 />
 
-                <ImageUploadSection
-                    images={formData.vehicleImages || []}
-                    onImagesChange={handleImagesChange}
-                />
-
                 <NotesSection
                     notes={formData.notes || ''}
                     onChange={handleChange}

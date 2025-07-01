@@ -19,7 +19,6 @@ import VehicleInfoSection from '../components/VehicleInfoSection';
 import ClientInfoSection from '../components/ClientInfoSection';
 import ReferralSourceSection from '../components/ReferralSourceSection';
 import ServiceSection from '../components/ServiceSection';
-import ImageUploadSection from '../components/ImageUploadSection';
 import NotesSection from '../components/NotesSection';
 import FormActions from '../components/FormActions';
 import ClientSelectionModal from "../../shared/modals/ClientSelectionModal";
@@ -294,11 +293,6 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
                 <NotesSection
                     notes={formData.notes || ''}
                     onChange={handleChange}
-                />
-
-                <ImageUploadSection
-                    images={formData.vehicleImages || []}
-                    onImagesChange={handleImagesChange}
                 />
 
                 <FormActions
