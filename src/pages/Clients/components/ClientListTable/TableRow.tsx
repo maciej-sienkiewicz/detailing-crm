@@ -92,11 +92,6 @@ export const TableRow: React.FC<TableRowProps> = ({
                                 {status.label}
                             </StatusBadge>
                         </ClientName>
-                        {client.lastVisitDate && (
-                            <LastVisit>
-                                Ostatnia wizyta: {formatDate(client.lastVisitDate)}
-                            </LastVisit>
-                        )}
                     </ClientInfo>
                 );
 

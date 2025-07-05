@@ -1,4 +1,4 @@
-// src/api/visitsApi.ts
+// src/api/visitsApiNew.ts
 /**
  * Production-ready Visits API
  * Handles all visit/protocol-related API operations with proper typing and error handling
@@ -38,6 +38,21 @@ export interface VisitListItem {
     calendarColorId: string;
     selectedServices: VisitServiceSummary[];
     totalServiceCount: number;
+}
+
+/**
+ * Client visit history item (for client detail panel)
+ */
+export interface ClientVisitHistoryItem {
+    id: string;
+    startDate: string;
+    endDate: string;
+    status: ProtocolStatus;
+    make: string;
+    model: string;
+    licensePlate: string;
+    totalAmount: number;
+    title: string;
 }
 
 /**
@@ -171,6 +186,78 @@ class VisitsApi {
                     pagination: {
                         currentPage: params.page || 0,
                         pageSize: params.size || 10,
+                        totalItems: 0,
+                        totalPages: 0,
+                        hasNext: false,
+                        hasPrevious: false
+                    },
+                    success: false,
+                    message: errorMessage
+                }
+            };
+        }
+    }
+
+    /**
+     * Fetches client visit history for display in client detail panel
+     *
+     * @param clientId - ID of the client
+     * @param params - Optional pagination parameters (defaults to 5 most recent visits)
+     * @returns Promise<VisitsApiResult<PaginatedApiResponse<ClientVisitHistoryItem>>>
+     *
+     * @example
+     * ```typescript
+     * const result = await visitsApi.getClientVisitHistory('123', { size: 5 });
+     *
+     * if (result.success) {
+     *   console.log('Client visits:', result.data.data);
+     *   console.log('Total visits:', result.data.pagination.totalItems);
+     * }
+     * ```
+     */
+    async getClientVisitHistory(
+        clientId: string,
+        params: PaginationParams = {}
+    ): Promise<VisitsApiResult<PaginatedApiResponse<ClientVisitHistoryItem>>> {
+        try {
+            console.log('🔍 Fetching client visit history:', { clientId, params });
+
+            const { page = 0, size = 5 } = params;
+
+            // Call the new API endpoint for client visit history
+            const response = await apiClientNew.getWithPagination<ClientVisitHistoryItem>(
+                `/v1/protocols/client/${clientId}`,
+                {},
+                { page, size },
+                { timeout: 10000 } // 10 second timeout for client history
+            );
+
+            console.log('✅ Successfully fetched client visit history:', {
+                clientId,
+                visitCount: response.data.length,
+                totalItems: response.pagination.totalItems,
+                currentPage: response.pagination.currentPage
+            });
+
+            return {
+                success: true,
+                data: response
+            };
+
+        } catch (error) {
+            console.error('❌ Error fetching client visit history:', error);
+
+            const errorMessage = this.extractErrorMessage(error);
+
+            return {
+                success: false,
+                error: errorMessage,
+                details: error,
+                data: {
+                    data: [],
+                    pagination: {
+                        currentPage: params.page || 0,
+                        pageSize: params.size || 5,
                         totalItems: 0,
                         totalPages: 0,
                         hasNext: false,

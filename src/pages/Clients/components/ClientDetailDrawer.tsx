@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { FaTimes, FaUser, FaBuilding, FaIdCard, FaMapMarkerAlt, FaEnvelope, FaPhone, FaCalendarAlt, FaMoneyBillWave, FaCar, FaHistory, FaStickyNote } from 'react-icons/fa';
-import {ClientExpanded, ClientStatistics, ContactAttempt} from '../../../types';
-import { fetchContactAttemptsByClientId } from '../../../api/mocks/clientMocks';
+import { FaTimes, FaUser, FaBuilding, FaIdCard, FaMapMarkerAlt, FaEnvelope, FaPhone, FaCalendarAlt, FaMoneyBillWave, FaCar, FaEye, FaStickyNote, FaCheckCircle, FaClock, FaExclamationTriangle, FaArrowRight } from 'react-icons/fa';
+import {ClientExpanded, ClientStatistics} from '../../../types';
 import {clientApi} from "../../../api/clientsApi";
+import { visitsApi, ClientVisitHistoryItem } from '../../../api/visitsApiNew';
+import { ProtocolStatus, ProtocolStatusLabels, ProtocolStatusColors } from '../../../types/protocol';
 
 // Professional Brand Theme - Premium Automotive CRM
 const brandTheme = {
@@ -85,30 +87,48 @@ const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
                                                                    client,
                                                                    onClose
                                                                }) => {
-    const [contactHistory, setContactHistory] = useState<ContactAttempt[]>([]);
+    const navigate = useNavigate();
+    const [visitHistory, setVisitHistory] = useState<ClientVisitHistoryItem[]>([]);
     const [clientStats, setClientStats] = useState<ClientStatistics | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const loadContactHistory = async () => {
+        const loadClientData = async () => {
             if (client) {
                 setLoading(true);
+                setError(null);
                 try {
-                    const history = await clientApi.fetchContactAttemptsByClientById(client.id);
+                    console.log('📋 Loading data for client:', client.id);
+
+                    // Load client statistics
                     const clientStats = await clientApi.fetchClientStatsById(client.id);
-                    setContactHistory(history);
-                    setClientStats(clientStats)
+                    setClientStats(clientStats);
+                    console.log('📊 Client stats loaded:', clientStats);
+
+                    // Load visit history (5 most recent visits)
+                    const visitResult = await visitsApi.getClientVisitHistory(client.id, { size: 5 });
+                    console.log('🏥 Visit history result:', visitResult);
+
+                    if (visitResult.success && visitResult.data) {
+                        console.log('✅ Visit history data:', visitResult.data.data);
+                        setVisitHistory(visitResult.data.data);
+                    } else {
+                        console.warn('⚠️ Failed to load visit history:', visitResult.error);
+                        setError(visitResult.error || 'Nie udało się załadować historii wizyt');
+                        setVisitHistory([]);
+                    }
                 } catch (error) {
-                    console.error('Error loading contact history:', error);
+                    console.error('❌ Error loading client data:', error);
                     setError('Nie udało się załadować danych klienta');
+                    setVisitHistory([]);
                 } finally {
                     setLoading(false);
                 }
             }
         };
 
-        loadContactHistory();
+        loadClientData();
     }, [client]);
 
     const formatDate = (dateString: string): string => {
@@ -128,32 +148,33 @@ const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
         }).format(amount);
     };
 
-    const getContactTypeInfo = (type: string) => {
-        switch (type) {
-            case 'PHONE':
-                return { label: 'Telefon', color: brandTheme.status.info };
-            case 'EMAIL':
-                return { label: 'Email', color: brandTheme.primary };
-            case 'SMS':
-                return { label: 'SMS', color: brandTheme.status.success };
+    const getStatusInfo = (status: ProtocolStatus) => {
+        return {
+            label: ProtocolStatusLabels[status] || status,
+            color: ProtocolStatusColors[status] || brandTheme.text.muted,
+            icon: getStatusIcon(status)
+        };
+    };
+
+    const getStatusIcon = (status: ProtocolStatus) => {
+        switch (status) {
+            case ProtocolStatus.COMPLETED:
+                return <FaCheckCircle />;
+            case ProtocolStatus.IN_PROGRESS:
+                return <FaClock />;
+            case ProtocolStatus.READY_FOR_PICKUP:
+                return <FaCheckCircle />;
+            case ProtocolStatus.SCHEDULED:
+                return <FaCalendarAlt />;
+            case ProtocolStatus.CANCELLED:
+                return <FaExclamationTriangle />;
             default:
-                return { label: 'Inne', color: brandTheme.text.muted };
+                return <FaClock />;
         }
     };
 
-    const getContactResultInfo = (result: string) => {
-        switch (result) {
-            case 'SUCCESS':
-                return { label: 'Sukces', color: brandTheme.status.success };
-            case 'NO_ANSWER':
-                return { label: 'Brak odpowiedzi', color: brandTheme.status.warning };
-            case 'CALLBACK_REQUESTED':
-                return { label: 'Oddzwonienie', color: brandTheme.status.info };
-            case 'REJECTED':
-                return { label: 'Odmowa', color: brandTheme.status.error };
-            default:
-                return { label: result, color: brandTheme.text.muted };
-        }
+    const handleVisitClick = (visitId: string) => {
+        navigate(`/orders/car-reception/${visitId}`);
     };
 
     if (!client || !clientStats) return null;
@@ -307,11 +328,11 @@ const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
 
                     <MetricCard>
                         <MetricIcon $color={brandTheme.primary}>
-                            <FaHistory />
+                            <FaEye />
                         </MetricIcon>
                         <MetricContent>
-                            <MetricValue>{contactHistory.length}</MetricValue>
-                            <MetricLabel>Próby kontaktu</MetricLabel>
+                            <MetricValue>{visitHistory.length}</MetricValue>
+                            <MetricLabel>Ostatnie wizyty</MetricLabel>
                         </MetricContent>
                     </MetricCard>
                 </MetricsGrid>
@@ -327,54 +348,70 @@ const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
                     </>
                 )}
 
-                {/* Contact History */}
+                {/* Visit History */}
                 <SectionTitle>
-                    <SectionTitleIcon><FaHistory /></SectionTitleIcon>
-                    Historia kontaktów
+                    <SectionTitleIcon><FaCar /></SectionTitleIcon>
+                    Historia wizyt
                 </SectionTitle>
 
                 {loading ? (
                     <LoadingContainer>
                         <LoadingSpinner />
-                        <LoadingText>Ładowanie historii kontaktów...</LoadingText>
+                        <LoadingText>Ładowanie historii wizyt...</LoadingText>
                     </LoadingContainer>
-                ) : contactHistory.length === 0 ? (
+                ) : visitHistory.length === 0 ? (
                     <EmptyMessage>
-                        <EmptyIcon><FaHistory /></EmptyIcon>
-                        <EmptyText>Brak historii kontaktów</EmptyText>
-                        <EmptySubtext>Ten klient nie ma jeszcze żadnej historii kontaktów</EmptySubtext>
+                        <EmptyIcon><FaCar /></EmptyIcon>
+                        <EmptyText>Brak historii wizyt</EmptyText>
+                        <EmptySubtext>Ten klient nie ma jeszcze żadnej historii wizyt w systemie</EmptySubtext>
                     </EmptyMessage>
                 ) : (
-                    <ContactHistoryList>
-                        {contactHistory
-                            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                            .map(contact => {
-                                const typeInfo = getContactTypeInfo(contact.type);
-                                const resultInfo = getContactResultInfo(contact.result);
-                                return (
-                                    <ContactHistoryItem key={contact.id}>
-                                        <ContactHeader>
-                                            <ContactDate>
-                                                <ContactDateIcon><FaCalendarAlt /></ContactDateIcon>
-                                                {formatDate(contact.date)}
-                                            </ContactDate>
-                                            <ContactTypeBadge $color={typeInfo.color}>
-                                                {typeInfo.label}
-                                            </ContactTypeBadge>
-                                        </ContactHeader>
+                    <VisitHistoryList>
+                        {visitHistory.map(visit => {
+                            const statusInfo = getStatusInfo(visit.status);
+                            return (
+                                <VisitHistoryCard
+                                    key={visit.id}
+                                    onClick={() => handleVisitClick(visit.id)}
+                                    $status={visit.status}
+                                >
+                                    <VisitCardHeader>
+                                        <VisitMetadata>
+                                            <VisitDate>
+                                                {formatDate(visit.startDate)}
+                                            </VisitDate>
+                                            <VisitTitle>
+                                                {visit.title}
+                                            </VisitTitle>
+                                        </VisitMetadata>
+                                        <VisitStatusIndicator $status={visit.status}>
+                                            <StatusDot $color={statusInfo.color} />
+                                            <StatusText>{statusInfo.label}</StatusText>
+                                        </VisitStatusIndicator>
+                                    </VisitCardHeader>
 
-                                        <ContactDescription>{contact.description}</ContactDescription>
+                                    <VisitVehicleSection>
+                                        <VehicleInfo>
+                                            <VehicleBrand>{visit.make} {visit.model}</VehicleBrand>
+                                            <VehiclePlate>{visit.licensePlate}</VehiclePlate>
+                                        </VehicleInfo>
+                                    </VisitVehicleSection>
 
-                                        <ContactFooter>
-                                            <ContactResultBadge $color={resultInfo.color}>
-                                                {resultInfo.label}
-                                            </ContactResultBadge>
-                                        </ContactFooter>
-                                    </ContactHistoryItem>
-                                );
-                            })
-                        }
-                    </ContactHistoryList>
+                                    <VisitFooter>
+                                        <VisitAmount>
+                                            <AmountLabel>Wartość</AmountLabel>
+                                            <AmountValue>
+                                                {formatCurrency(visit.totalAmount)}
+                                            </AmountValue>
+                                        </VisitAmount>
+                                        <VisitActionIcon>
+                                            <FaArrowRight />
+                                        </VisitActionIcon>
+                                    </VisitFooter>
+                                </VisitHistoryCard>
+                            );
+                        })}
+                    </VisitHistoryList>
                 )}
 
                 {/* Error Display */}
@@ -390,501 +427,561 @@ const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
 
 // Professional Styled Components
 const DrawerContainer = styled.div<{ isOpen: boolean }>`
-    position: fixed;
-    top: 0;
-    right: 0;
-    width: 480px;
-    max-width: 90vw;
-    height: 100vh;
-    background: ${brandTheme.surface};
-    box-shadow: ${brandTheme.shadow.xl};
-    z-index: 1000;
-    transform: ${props => props.isOpen ? 'translateX(0)' : 'translateX(100%)'};
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    display: flex;
-    flex-direction: column;
-    border-left: 1px solid ${brandTheme.border};
+   position: fixed;
+   top: 0;
+   right: 0;
+   width: 480px;
+   max-width: 90vw;
+   height: 100vh;
+   background: ${brandTheme.surface};
+   box-shadow: ${brandTheme.shadow.xl};
+   z-index: 1000;
+   transform: ${props => props.isOpen ? 'translateX(0)' : 'translateX(100%)'};
+   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+   display: flex;
+   flex-direction: column;
+   border-left: 1px solid ${brandTheme.border};
 `;
 
 const DrawerHeader = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
-    border-bottom: 1px solid ${brandTheme.border};
-    background: linear-gradient(135deg, ${brandTheme.surfaceAlt} 0%, ${brandTheme.surface} 100%);
-    flex-shrink: 0;
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
+   border-bottom: 1px solid ${brandTheme.border};
+   background: linear-gradient(135deg, ${brandTheme.surfaceAlt} 0%, ${brandTheme.surface} 100%);
+   flex-shrink: 0;
 `;
 
 const HeaderContent = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.md};
-    flex: 1;
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.md};
+   flex: 1;
 `;
 
 const HeaderIcon = styled.div`
-    width: 40px;
-    height: 40px;
-    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-    border-radius: ${brandTheme.radius.lg};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 18px;
-    box-shadow: ${brandTheme.shadow.sm};
+   width: 40px;
+   height: 40px;
+   background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+   border-radius: ${brandTheme.radius.lg};
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   color: white;
+   font-size: 18px;
+   box-shadow: ${brandTheme.shadow.sm};
 `;
 
 const HeaderText = styled.div`
-    flex: 1;
+   flex: 1;
 `;
 
 const HeaderTitle = styled.h2`
-    margin: 0 0 ${brandTheme.spacing.xs} 0;
-    font-size: 18px;
-    font-weight: 600;
-    color: ${brandTheme.text.primary};
-    letter-spacing: -0.025em;
+   margin: 0 0 ${brandTheme.spacing.xs} 0;
+   font-size: 18px;
+   font-weight: 600;
+   color: ${brandTheme.text.primary};
+   letter-spacing: -0.025em;
 `;
 
 const HeaderSubtitle = styled.div`
-    font-size: 14px;
-    color: ${brandTheme.text.secondary};
-    font-weight: 500;
+   font-size: 14px;
+   color: ${brandTheme.text.secondary};
+   font-weight: 500;
 `;
 
 const CloseButton = styled.button`
-    width: 36px;
-    height: 36px;
-    background: ${brandTheme.surfaceElevated};
-    border: 1px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.md};
-    color: ${brandTheme.text.tertiary};
-    font-size: 14px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
+   width: 36px;
+   height: 36px;
+   background: ${brandTheme.surfaceElevated};
+   border: 1px solid ${brandTheme.border};
+   border-radius: ${brandTheme.radius.md};
+   color: ${brandTheme.text.tertiary};
+   font-size: 14px;
+   cursor: pointer;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   transition: all 0.2s ease;
 
-    &:hover {
-        background: ${brandTheme.status.errorLight};
-        color: ${brandTheme.status.error};
-        border-color: ${brandTheme.status.error}30;
-        transform: scale(1.05);
-    }
+   &:hover {
+       background: ${brandTheme.status.errorLight};
+       color: ${brandTheme.status.error};
+       border-color: ${brandTheme.status.error}30;
+       transform: scale(1.05);
+   }
 `;
 
 const DrawerContent = styled.div`
-    flex: 1;
-    overflow-y: auto;
-    padding: ${brandTheme.spacing.xl};
+   flex: 1;
+   overflow-y: auto;
+   padding: ${brandTheme.spacing.xl};
 
-    /* Custom scrollbar */
-    &::-webkit-scrollbar {
-        width: 6px;
-    }
-    &::-webkit-scrollbar-track {
-        background: ${brandTheme.surfaceAlt};
-    }
-    &::-webkit-scrollbar-thumb {
-        background: ${brandTheme.border};
-        border-radius: 3px;
-    }
+   /* Custom scrollbar */
+   &::-webkit-scrollbar {
+       width: 6px;
+   }
+   &::-webkit-scrollbar-track {
+       background: ${brandTheme.surfaceAlt};
+   }
+   &::-webkit-scrollbar-thumb {
+       background: ${brandTheme.border};
+       border-radius: 3px;
+   }
 `;
 
 const ClientHeaderSection = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-bottom: ${brandTheme.spacing.xl};
-    padding: ${brandTheme.spacing.lg};
-    background: linear-gradient(135deg, ${brandTheme.surfaceAlt} 0%, ${brandTheme.surface} 100%);
-    border-radius: ${brandTheme.radius.xl};
-    border: 1px solid ${brandTheme.border};
-    box-shadow: ${brandTheme.shadow.xs};
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   margin-bottom: ${brandTheme.spacing.xl};
+   padding: ${brandTheme.spacing.lg};
+   background: linear-gradient(135deg, ${brandTheme.surfaceAlt} 0%, ${brandTheme.surface} 100%);
+   border-radius: ${brandTheme.radius.xl};
+   border: 1px solid ${brandTheme.border};
+   box-shadow: ${brandTheme.shadow.xs};
 `;
 
 const ClientTitle = styled.h2`
-    font-size: 24px;
-    font-weight: 700;
-    color: ${brandTheme.text.primary};
-    margin: 0 0 ${brandTheme.spacing.md} 0;
-    text-align: center;
-    letter-spacing: -0.025em;
+   font-size: 24px;
+   font-weight: 700;
+   color: ${brandTheme.text.primary};
+   margin: 0 0 ${brandTheme.spacing.md} 0;
+   text-align: center;
+   letter-spacing: -0.025em;
 `;
 
 const ClientEmail = styled.div`
-    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-    color: white;
-    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.lg};
-    border-radius: ${brandTheme.radius.md};
-    font-weight: 500;
-    font-size: 14px;
-    box-shadow: ${brandTheme.shadow.md};
-    margin-bottom: ${brandTheme.spacing.md};
+   background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+   color: white;
+   padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.lg};
+   border-radius: ${brandTheme.radius.md};
+   font-weight: 500;
+   font-size: 14px;
+   box-shadow: ${brandTheme.shadow.md};
+   margin-bottom: ${brandTheme.spacing.md};
 `;
 
 const ClientBasicInfo = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${brandTheme.spacing.xs};
-    align-items: center;
+   display: flex;
+   flex-direction: column;
+   gap: ${brandTheme.spacing.xs};
+   align-items: center;
 `;
 
 const InfoItem = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
-    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
-    background: ${brandTheme.surface};
-    border-radius: ${brandTheme.radius.md};
-    border: 1px solid ${brandTheme.borderLight};
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.sm};
+   padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
+   background: ${brandTheme.surface};
+   border-radius: ${brandTheme.radius.md};
+   border: 1px solid ${brandTheme.borderLight};
 `;
 
 const InfoIcon = styled.div`
-    color: ${brandTheme.text.muted};
-    font-size: 12px;
+   color: ${brandTheme.text.muted};
+   font-size: 12px;
 `;
 
 const InfoText = styled.div`
-    font-size: 14px;
-    color: ${brandTheme.text.secondary};
-    font-weight: 500;
+   font-size: 14px;
+   color: ${brandTheme.text.secondary};
+   font-weight: 500;
 `;
 
 const SectionTitle = styled.h3`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
-    font-size: 16px;
-    font-weight: 600;
-    color: ${brandTheme.primary};
-    margin: ${brandTheme.spacing.xl} 0 ${brandTheme.spacing.md} 0;
-    padding-bottom: ${brandTheme.spacing.sm};
-    border-bottom: 2px solid ${brandTheme.primaryGhost};
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.sm};
+   font-size: 16px;
+   font-weight: 600;
+   color: ${brandTheme.primary};
+   margin: ${brandTheme.spacing.xl} 0 ${brandTheme.spacing.md} 0;
+   padding-bottom: ${brandTheme.spacing.sm};
+   border-bottom: 2px solid ${brandTheme.primaryGhost};
 
-    &:first-of-type {
-        margin-top: 0;
-    }
+   &:first-of-type {
+       margin-top: 0;
+   }
 `;
 
 const SectionTitleIcon = styled.div`
-    color: ${brandTheme.primary};
-    font-size: 14px;
+   color: ${brandTheme.primary};
+   font-size: 14px;
 `;
 
 const DetailSection = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${brandTheme.spacing.md};
-    margin-bottom: ${brandTheme.spacing.lg};
+   display: flex;
+   flex-direction: column;
+   gap: ${brandTheme.spacing.md};
+   margin-bottom: ${brandTheme.spacing.lg};
 `;
 
 const DetailRow = styled.div`
-    display: flex;
-    align-items: flex-start;
-    gap: ${brandTheme.spacing.md};
-    padding: ${brandTheme.spacing.md};
-    background: ${brandTheme.surfaceAlt};
-    border-radius: ${brandTheme.radius.lg};
-    border: 1px solid ${brandTheme.borderLight};
-    transition: all 0.2s ease;
+   display: flex;
+   align-items: flex-start;
+   gap: ${brandTheme.spacing.md};
+   padding: ${brandTheme.spacing.md};
+   background: ${brandTheme.surfaceAlt};
+   border-radius: ${brandTheme.radius.lg};
+   border: 1px solid ${brandTheme.borderLight};
+   transition: all 0.2s ease;
 
-    &:hover {
-        background: ${brandTheme.primaryGhost};
-        border-color: ${brandTheme.primary}30;
-    }
+   &:hover {
+       background: ${brandTheme.primaryGhost};
+       border-color: ${brandTheme.primary}30;
+   }
 `;
 
 const DetailIcon = styled.div`
-    width: 32px;
-    height: 32px;
-    background: ${brandTheme.surface};
-    border-radius: ${brandTheme.radius.md};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: ${brandTheme.text.muted};
-    font-size: 14px;
-    flex-shrink: 0;
-    box-shadow: ${brandTheme.shadow.xs};
+   width: 32px;
+   height: 32px;
+   background: ${brandTheme.surface};
+   border-radius: ${brandTheme.radius.md};
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   color: ${brandTheme.text.muted};
+   font-size: 14px;
+   flex-shrink: 0;
+   box-shadow: ${brandTheme.shadow.xs};
 `;
 
 const DetailContent = styled.div`
-    flex: 1;
+   flex: 1;
 `;
 
 const DetailLabel = styled.div`
-    font-size: 12px;
-    color: ${brandTheme.text.tertiary};
-    font-weight: 500;
-    margin-bottom: ${brandTheme.spacing.xs};
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+   font-size: 12px;
+   color: ${brandTheme.text.tertiary};
+   font-weight: 500;
+   margin-bottom: ${brandTheme.spacing.xs};
+   text-transform: uppercase;
+   letter-spacing: 0.5px;
 `;
 
 const DetailValue = styled.div`
-    font-size: 15px;
-    color: ${brandTheme.text.primary};
-    font-weight: 600;
+   font-size: 15px;
+   color: ${brandTheme.text.primary};
+   font-weight: 600;
 `;
 
 const MetricsGrid = styled.div`
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: ${brandTheme.spacing.md};
-    margin-bottom: ${brandTheme.spacing.lg};
+   display: grid;
+   grid-template-columns: repeat(2, 1fr);
+   gap: ${brandTheme.spacing.md};
+   margin-bottom: ${brandTheme.spacing.lg};
 
-    @media (max-width: 600px) {
-        grid-template-columns: 1fr;
-    }
+   @media (max-width: 600px) {
+       grid-template-columns: 1fr;
+   }
 `;
 
 const MetricCard = styled.div`
-    background: ${brandTheme.surfaceAlt};
-    border: 1px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.lg};
-    padding: ${brandTheme.spacing.md};
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.md};
-    transition: all 0.2s ease;
+   background: ${brandTheme.surfaceAlt};
+   border: 1px solid ${brandTheme.border};
+   border-radius: ${brandTheme.radius.lg};
+   padding: ${brandTheme.spacing.md};
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.md};
+   transition: all 0.2s ease;
 
-    &:hover {
-        background: ${brandTheme.primaryGhost};
-        border-color: ${brandTheme.primary};
-        transform: translateY(-2px);
-        box-shadow: ${brandTheme.shadow.md};
-    }
+   &:hover {
+       background: ${brandTheme.primaryGhost};
+       border-color: ${brandTheme.primary};
+       transform: translateY(-2px);
+       box-shadow: ${brandTheme.shadow.md};
+   }
 `;
 
 const MetricIcon = styled.div<{ $color: string }>`
-    width: 40px;
-    height: 40px;
-    background: linear-gradient(135deg, ${props => props.$color}15 0%, ${props => props.$color}08 100%);
-    border-radius: ${brandTheme.radius.md};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: ${props => props.$color};
-    font-size: 18px;
-    flex-shrink: 0;
-    box-shadow: ${brandTheme.shadow.xs};
+   width: 40px;
+   height: 40px;
+   background: linear-gradient(135deg, ${props => props.$color}15 0%, ${props => props.$color}08 100%);
+   border-radius: ${brandTheme.radius.md};
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   color: ${props => props.$color};
+   font-size: 18px;
+   flex-shrink: 0;
+   box-shadow: ${brandTheme.shadow.xs};
 `;
 
 const MetricContent = styled.div`
-    flex: 1;
-    min-width: 0;
+   flex: 1;
+   min-width: 0;
 `;
 
 const MetricValue = styled.div`
-    font-size: 18px;
-    font-weight: 700;
-    color: ${brandTheme.text.primary};
-    margin-bottom: ${brandTheme.spacing.xs};
-    line-height: 1.2;
+   font-size: 18px;
+   font-weight: 700;
+   color: ${brandTheme.text.primary};
+   margin-bottom: ${brandTheme.spacing.xs};
+   line-height: 1.2;
 `;
 
 const MetricLabel = styled.div`
-    font-size: 12px;
-    color: ${brandTheme.text.tertiary};
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+   font-size: 12px;
+   color: ${brandTheme.text.tertiary};
+   font-weight: 500;
+   text-transform: uppercase;
+   letter-spacing: 0.5px;
 `;
 
 const NotesContent = styled.div`
-    background: ${brandTheme.surfaceAlt};
-    border: 1px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.lg};
-    padding: ${brandTheme.spacing.lg};
-    font-size: 14px;
-    color: ${brandTheme.text.primary};
-    white-space: pre-line;
-    line-height: 1.6;
-    margin-bottom: ${brandTheme.spacing.lg};
-    border-left: 4px solid ${brandTheme.primary};
+   background: ${brandTheme.surfaceAlt};
+   border: 1px solid ${brandTheme.border};
+   border-radius: ${brandTheme.radius.lg};
+   padding: ${brandTheme.spacing.lg};
+   font-size: 14px;
+   color: ${brandTheme.text.primary};
+   white-space: pre-line;
+   line-height: 1.6;
+   margin-bottom: ${brandTheme.spacing.lg};
+   border-left: 4px solid ${brandTheme.primary};
 `;
 
 const LoadingContainer = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: ${brandTheme.spacing.xl};
-    background: ${brandTheme.surfaceAlt};
-    border-radius: ${brandTheme.radius.lg};
-    gap: ${brandTheme.spacing.md};
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   justify-content: center;
+   padding: ${brandTheme.spacing.xl};
+   background: ${brandTheme.surfaceAlt};
+   border-radius: ${brandTheme.radius.lg};
+   gap: ${brandTheme.spacing.md};
 `;
 
 const LoadingSpinner = styled.div`
-    width: 32px;
-    height: 32px;
-    border: 3px solid ${brandTheme.borderLight};
-    border-top: 3px solid ${brandTheme.primary};
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
+   width: 32px;
+   height: 32px;
+   border: 3px solid ${brandTheme.borderLight};
+   border-top: 3px solid ${brandTheme.primary};
+   border-radius: 50%;
+   animation: spin 1s linear infinite;
 
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
+   @keyframes spin {
+       0% { transform: rotate(0deg); }
+       100% { transform: rotate(360deg); }
+   }
 `;
 
 const LoadingText = styled.div`
-    font-size: 14px;
-    color: ${brandTheme.text.secondary};
-    font-weight: 500;
-    text-align: center;
+   font-size: 14px;
+   color: ${brandTheme.text.secondary};
+   font-weight: 500;
+   text-align: center;
 `;
 
 const EmptyMessage = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: ${brandTheme.spacing.xl};
-    background: ${brandTheme.surfaceAlt};
-    border-radius: ${brandTheme.radius.lg};
-    border: 2px dashed ${brandTheme.border};
-    text-align: center;
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   justify-content: center;
+   padding: ${brandTheme.spacing.xl};
+   background: ${brandTheme.surfaceAlt};
+   border-radius: ${brandTheme.radius.lg};
+   border: 2px dashed ${brandTheme.border};
+   text-align: center;
 `;
 
 const EmptyIcon = styled.div`
-    width: 48px;
-    height: 48px;
-    background: ${brandTheme.surface};
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    color: ${brandTheme.text.tertiary};
-    margin-bottom: ${brandTheme.spacing.md};
-    box-shadow: ${brandTheme.shadow.xs};
+   width: 48px;
+   height: 48px;
+   background: ${brandTheme.surface};
+   border-radius: 50%;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   font-size: 20px;
+   color: ${brandTheme.text.tertiary};
+   margin-bottom: ${brandTheme.spacing.md};
+   box-shadow: ${brandTheme.shadow.xs};
 `;
 
 const EmptyText = styled.div`
-    font-size: 16px;
-    font-weight: 600;
-    color: ${brandTheme.text.secondary};
-    margin-bottom: ${brandTheme.spacing.xs};
+   font-size: 16px;
+   font-weight: 600;
+   color: ${brandTheme.text.secondary};
+   margin-bottom: ${brandTheme.spacing.xs};
 `;
 
 const EmptySubtext = styled.div`
-    font-size: 14px;
-    color: ${brandTheme.text.muted};
-    font-style: italic;
+   font-size: 14px;
+   color: ${brandTheme.text.muted};
+   font-style: italic;
 `;
 
-const ContactHistoryList = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${brandTheme.spacing.md};
+// New styled components for visit history - Professional & Clean Design
+const VisitHistoryList = styled.div`
+   display: flex;
+   flex-direction: column;
+   gap: ${brandTheme.spacing.sm};
 `;
 
-const ContactHistoryItem = styled.div`
-    background: ${brandTheme.surface};
-    border: 1px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.lg};
-    padding: ${brandTheme.spacing.lg};
-    border-left: 4px solid ${brandTheme.primary};
-    transition: all 0.2s ease;
-    box-shadow: ${brandTheme.shadow.xs};
+const VisitHistoryCard = styled.div<{ $status: ProtocolStatus }>`
+   background: ${brandTheme.surface};
+   border: 1px solid ${brandTheme.border};
+   border-radius: ${brandTheme.radius.md};
+   padding: ${brandTheme.spacing.md};
+   cursor: pointer;
+   transition: all 0.15s ease;
+   position: relative;
+   border-left: 3px solid ${props => ProtocolStatusColors[props.$status] || brandTheme.text.muted};
 
-    &:hover {
-        background: ${brandTheme.primaryGhost};
-        border-color: ${brandTheme.primary};
-        border-left-color: ${brandTheme.primary};
-        transform: translateX(4px);
-        box-shadow: ${brandTheme.shadow.md};
-    }
+   &:hover {
+       border-color: ${brandTheme.borderHover};
+       border-left-color: ${props => ProtocolStatusColors[props.$status] || brandTheme.text.muted};
+       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+       transform: translateX(2px);
+   }
+
+   &:active {
+       transform: translateX(1px);
+   }
 `;
 
-const ContactHeader = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: ${brandTheme.spacing.md};
-    gap: ${brandTheme.spacing.sm};
-
-    @media (max-width: 480px) {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: ${brandTheme.spacing.sm};
-    }
+const VisitCardHeader = styled.div`
+   display: flex;
+   justify-content: space-between;
+   align-items: flex-start;
+   margin-bottom: ${brandTheme.spacing.md};
 `;
 
-const ContactDate = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.xs};
-    font-size: 14px;
-    color: ${brandTheme.text.secondary};
-    font-weight: 500;
+const VisitMetadata = styled.div`
+   display: flex;
+   flex-direction: column;
+   gap: 2px;
 `;
 
-const ContactDateIcon = styled.div`
-    color: ${brandTheme.text.muted};
-    font-size: 12px;
+const VisitDate = styled.div`
+   font-size: 14px;
+   font-weight: 600;
+   color: ${brandTheme.text.primary};
+   letter-spacing: -0.01em;
 `;
 
-const ContactTypeBadge = styled.div<{ $color: string }>`
-    display: inline-flex;
-    align-items: center;
-    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
-    border-radius: ${brandTheme.radius.lg};
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    background: ${props => props.$color}15;
-    color: ${props => props.$color};
-    border: 1px solid ${props => props.$color}30;
-    white-space: nowrap;
+const VisitTitle = styled.div`
+   font-size: 12px;
+   color: ${brandTheme.text.secondary};
+   font-weight: 500;
+   font-style: italic;
 `;
 
-const ContactDescription = styled.div`
-    font-size: 14px;
-    color: ${brandTheme.text.primary};
-    margin-bottom: ${brandTheme.spacing.md};
-    line-height: 1.5;
+const VisitStatusIndicator = styled.div<{ $status: ProtocolStatus }>`
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.xs};
 `;
 
-const ContactFooter = styled.div`
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
+const StatusDot = styled.div<{ $color: string }>`
+   width: 8px;
+   height: 8px;
+   border-radius: 50%;
+   background: ${props => props.$color};
+   flex-shrink: 0;
 `;
 
-const ContactResultBadge = styled.div<{ $color: string }>`
-    display: inline-flex;
-    align-items: center;
-    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
-    border-radius: ${brandTheme.radius.md};
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    background: ${props => props.$color}15;
-    color: ${props => props.$color};
-    border: 1px solid ${props => props.$color}30;
+const StatusText = styled.span`
+   font-size: 11px;
+   font-weight: 500;
+   color: ${brandTheme.text.secondary};
+   text-transform: uppercase;
+   letter-spacing: 0.5px;
+`;
+
+const VisitVehicleSection = styled.div`
+   margin-bottom: ${brandTheme.spacing.md};
+`;
+
+const VehicleInfo = styled.div`
+   display: flex;
+   flex-direction: column;
+   gap: ${brandTheme.spacing.xs};
+`;
+
+const VehicleBrand = styled.div`
+   font-size: 15px;
+   font-weight: 600;
+   color: ${brandTheme.text.primary};
+   letter-spacing: -0.01em;
+`;
+
+const VehiclePlate = styled.div`
+   display: inline-block;
+   background: ${brandTheme.text.primary};
+   color: white;
+   padding: 2px 6px;
+   border-radius: 3px;
+   font-size: 11px;
+   font-weight: 600;
+   text-transform: uppercase;
+   letter-spacing: 0.5px;
+   font-family: 'Monaco', 'Consolas', monospace;
+   width: fit-content;
+`;
+
+const VisitFooter = styled.div`
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   padding-top: ${brandTheme.spacing.sm};
+   border-top: 1px solid ${brandTheme.borderLight};
+`;
+
+const VisitAmount = styled.div`
+   display: flex;
+   flex-direction: column;
+   gap: 2px;
+`;
+
+const AmountLabel = styled.div`
+   font-size: 10px;
+   color: ${brandTheme.text.muted};
+   text-transform: uppercase;
+   letter-spacing: 0.5px;
+   font-weight: 500;
+`;
+
+const AmountValue = styled.div`
+   font-size: 14px;
+   font-weight: 700;
+   color: ${brandTheme.text.primary};
+   letter-spacing: -0.01em;
+`;
+
+const VisitActionIcon = styled.div`
+   width: 24px;
+   height: 24px;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   color: ${brandTheme.text.muted};
+   font-size: 10px;
+   transition: all 0.15s ease;
+
+   ${VisitHistoryCard}:hover & {
+       color: ${brandTheme.text.secondary};
+       transform: translateX(2px);
+   }
 `;
 
 const ErrorMessage = styled.div`
-    background: linear-gradient(135deg, ${brandTheme.status.errorLight} 0%, #fef2f2 100%);
-    color: ${brandTheme.status.error};
-    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-    border-radius: ${brandTheme.radius.lg};
-    border: 1px solid ${brandTheme.status.error}30;
-    font-weight: 500;
-    margin-top: ${brandTheme.spacing.md};
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
-    box-shadow: ${brandTheme.shadow.xs};
+   background: linear-gradient(135deg, ${brandTheme.status.errorLight} 0%, #fef2f2 100%);
+   color: ${brandTheme.status.error};
+   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+   border-radius: ${brandTheme.radius.lg};
+   border: 1px solid ${brandTheme.status.error}30;
+   font-weight: 500;
+   margin-top: ${brandTheme.spacing.md};
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.sm};
+   box-shadow: ${brandTheme.shadow.xs};
 `;
 
 export default ClientDetailDrawer;

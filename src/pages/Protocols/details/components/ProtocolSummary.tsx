@@ -34,6 +34,7 @@ import {
     FaGem
 } from 'react-icons/fa';
 import {clientApi} from "../../../../api/clientsApi";
+import {CarReceptionProtocol, ClientExpanded, ClientStatistics} from "../../../../types";
 
 // Professional Brand System - Enterprise Automotive Grade
 const brand = {
@@ -232,7 +233,6 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                             <FaCalendarCheck />
                         </StepIcon>
                         <StepLabel>Przyjęto</StepLabel>
-                        <StepTime>{new Date(protocol.startDate).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}</StepTime>
                     </StatusStep>
 
                     <StatusConnector $active={['IN_PROGRESS', 'READY_FOR_PICKUP', 'COMPLETED'].includes(protocol.status)} />
@@ -242,7 +242,6 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                             <FaTools />
                         </StepIcon>
                         <StepLabel>W realizacji</StepLabel>
-                        <StepTime>{protocol.status === 'IN_PROGRESS' ? 'Teraz' : '~'}</StepTime>
                     </StatusStep>
 
                     <StatusConnector $active={['READY_FOR_PICKUP', 'COMPLETED'].includes(protocol.status)} />
@@ -252,7 +251,6 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                             <FaClock />
                         </StepIcon>
                         <StepLabel>Gotowe</StepLabel>
-                        <StepTime>{protocol.status === 'READY_FOR_PICKUP' ? 'Teraz' : protocol.status === 'COMPLETED' ? '✓' : '~15:30'}</StepTime>
                     </StatusStep>
 
                     <StatusConnector $active={protocol.status === 'COMPLETED'} />
@@ -262,7 +260,6 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                             <FaCarSide />
                         </StepIcon>
                         <StepLabel>Wydano</StepLabel>
-                        <StepTime>{protocol.status === 'COMPLETED' ? new Date(protocol.endDate).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) : '17:00'}</StepTime>
                     </StatusStep>
                 </StatusTimeline>
 

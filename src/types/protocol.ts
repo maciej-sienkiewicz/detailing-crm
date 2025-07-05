@@ -158,13 +158,14 @@ export interface ProtocolListItem {
     lastUpdate: string;
 }
 
+// Nowy interfejs dla historii wizyt klienta (uproszczony format z API)
 export interface ClientProtocolHistory {
     id: string;
     startDate: string;
     endDate: string;
     status: ProtocolStatus;
-    make: string
-    model: string;
+    carMake: string;
+    carModel: string;
     licensePlate: string;
     totalAmount: number;
 }

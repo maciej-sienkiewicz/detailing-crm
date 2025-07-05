@@ -217,25 +217,11 @@ const VehicleListTable: React.FC<VehicleListTableProps> = ({
                                     <TableCell $width="22%" onClick={(e) => e.stopPropagation()}>
                                         <ActionButtons>
                                             <ActionButton
-                                                title="Zobacz szczegóły"
-                                                $variant="view"
-                                                onClick={() => onSelectVehicle(vehicle)}
-                                            >
-                                                <FaEye />
-                                            </ActionButton>
-                                            <ActionButton
                                                 title="Edytuj pojazd"
                                                 $variant="view"
                                                 onClick={() => onEditVehicle(vehicle)}
                                             >
                                                 <FaEdit />
-                                            </ActionButton>
-                                            <ActionButton
-                                                title="Historia serwisowa"
-                                                $variant="view"
-                                                onClick={() => onShowHistory(vehicle)}
-                                            >
-                                                <FaHistory />
                                             </ActionButton>
                                             <ActionButton
                                                 title="Usuń pojazd"

@@ -139,7 +139,7 @@ export const protocolsApi = {
      */
     updateProtocol: async (protocol: CarReceptionProtocol): Promise<CarReceptionProtocol | null> => {
         try {
-            return await apiClient.put<CarReceptionProtocol>(`/receptions/${protocol.id}`, protocol);
+            return await apiClient.put<CarReceptionProtocol>(`/v1/protocols/${protocol.id}`, protocol);
         } catch (error) {
             console.error(`Error updating protocol (ID: ${protocol.id}):`, error);
             return null;
