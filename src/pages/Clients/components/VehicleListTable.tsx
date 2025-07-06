@@ -1,40 +1,23 @@
-// VehicleListTable.tsx - Zaktualizowana tabela z nowymi kolumnami
-import React, { useState, useEffect } from 'react';
+// VehicleListTable.tsx - Enhanced with ProtocolList styling and structure
+import React, { useState, useEffect, useRef } from 'react';
+import { DndProvider, useDrag, useDrop } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import styled from 'styled-components';
-import { FaEdit, FaTrash, FaHistory, FaEye, FaCar, FaCalendarAlt, FaMoneyBillWave, FaTools, FaUser, FaUsers } from 'react-icons/fa';
-import { VehicleExpanded, VehicleOwner } from '../../../types';
-import { vehicleApi } from '../../../api/vehiclesApi';
+import { FaGripVertical, FaEye, FaEdit, FaTrash, FaList, FaTable, FaCar, FaCalendarAlt } from 'react-icons/fa';
+import { VehicleExpanded } from '../../../types';
 
-// Professional Brand Theme - Premium Automotive CRM
+// Brand Theme System - consistent with ProtocolList
 const brandTheme = {
     primary: 'var(--brand-primary, #1a365d)',
     primaryLight: 'var(--brand-primary-light, #2c5aa0)',
     primaryDark: 'var(--brand-primary-dark, #0f2027)',
     primaryGhost: 'var(--brand-primary-ghost, rgba(26, 54, 93, 0.04))',
+    accent: '#f8fafc',
+    neutral: '#64748b',
     surface: '#ffffff',
-    surfaceAlt: '#fafbfc',
-    surfaceElevated: '#f8fafc',
-    surfaceHover: '#f1f5f9',
-    text: {
-        primary: '#0f172a',
-        secondary: '#475569',
-        tertiary: '#64748b',
-        muted: '#94a3b8',
-        disabled: '#cbd5e1'
-    },
+    surfaceAlt: '#f1f5f9',
     border: '#e2e8f0',
-    borderLight: '#f1f5f9',
-    borderHover: '#cbd5e1',
-    status: {
-        success: '#059669',
-        successLight: '#d1fae5',
-        warning: '#d97706',
-        warningLight: '#fef3c7',
-        error: '#dc2626',
-        errorLight: '#fee2e2',
-        info: '#0ea5e9',
-        infoLight: '#e0f2fe'
-    },
+
     shadow: {
         xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
         sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
@@ -42,48 +25,111 @@ const brandTheme = {
         lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
         xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
     },
-    spacing: {
-        xs: '4px',
-        sm: '8px',
-        md: '16px',
-        lg: '24px',
-        xl: '32px',
-        xxl: '48px'
-    },
-    radius: {
-        sm: '6px',
-        md: '8px',
-        lg: '12px',
-        xl: '16px',
-        xxl: '20px'
-    }
 };
 
-interface VehicleListTableProps {
-    vehicles: VehicleExpanded[];
-    onSelectVehicle: (vehicle: VehicleExpanded) => void;
-    onEditVehicle: (vehicle: VehicleExpanded) => void;
-    onDeleteVehicle: (vehicleId: string) => void;
-    onShowHistory: (vehicle: VehicleExpanded) => void;
+// Table Column Definition
+interface TableColumn {
+    id: string;
+    label: string;
+    width: string;
+    sortable?: boolean;
 }
 
-const VehicleListTable: React.FC<VehicleListTableProps> = ({
-                                                               vehicles,
-                                                               onSelectVehicle,
-                                                               onEditVehicle,
-                                                               onDeleteVehicle,
-                                                               onShowHistory
-                                                           }) => {
-    const getVehicleStatus = (vehicle: VehicleExpanded) => {
-        if (vehicle.totalSpent > 20000) {
-            return { label: 'Premium', color: brandTheme.status.warning };
-        }
-        if (vehicle.totalSpent > 10000) {
-            return { label: 'VIP', color: brandTheme.status.info };
-        }
-        return { label: 'Standard', color: brandTheme.text.tertiary };
-    };
+// Drag and Drop Constants
+const COLUMN_TYPE = 'column';
+const COLUMN_ORDER_KEY = 'vehicle_table_columns_order';
+const VIEW_MODE_KEY = 'vehicle_view_mode';
 
+type ViewMode = 'table' | 'cards';
+
+// Vehicle Status Helper
+const getVehicleStatus = (vehicle: VehicleExpanded) => {
+    if (vehicle.totalSpent > 20000) {
+        return { label: 'Premium', color: '#f59e0b' };
+    }
+    if (vehicle.totalSpent > 10000) {
+        return { label: 'VIP', color: '#3b82f6' };
+    }
+    return { label: 'Standard', color: brandTheme.neutral };
+};
+
+// Column Header Component with Drag and Drop
+interface ColumnHeaderProps {
+    column: TableColumn;
+    index: number;
+    moveColumn: (dragIndex: number, hoverIndex: number) => void;
+}
+
+const ColumnHeader: React.FC<ColumnHeaderProps> = ({ column, index, moveColumn }) => {
+    const ref = useRef<HTMLDivElement>(null);
+
+    const [{ isDragging }, drag] = useDrag({
+        type: COLUMN_TYPE,
+        item: { index },
+        collect: (monitor) => ({
+            isDragging: monitor.isDragging(),
+        }),
+    });
+
+    const [, drop] = useDrop({
+        accept: COLUMN_TYPE,
+        hover: (item: any, monitor) => {
+            if (!ref.current) return;
+
+            const dragIndex = item.index;
+            const hoverIndex = index;
+
+            if (dragIndex === hoverIndex) return;
+
+            const hoverBoundingRect = ref.current.getBoundingClientRect();
+            const hoverMiddleX = (hoverBoundingRect.right - hoverBoundingRect.left) / 2;
+            const clientOffset = monitor.getClientOffset();
+            const hoverClientX = clientOffset!.x - hoverBoundingRect.left;
+
+            if (dragIndex > hoverIndex && hoverClientX > hoverMiddleX) return;
+            if (dragIndex < hoverIndex && hoverClientX < hoverMiddleX) return;
+
+            moveColumn(dragIndex, hoverIndex);
+            item.index = hoverIndex;
+        },
+    });
+
+    drag(drop(ref));
+
+    return (
+        <ModernHeaderCell
+            ref={ref}
+            $isDragging={isDragging}
+            $width={column.width}
+        >
+            <HeaderContent>
+                <DragHandle>
+                    <FaGripVertical />
+                </DragHandle>
+                <HeaderLabel>{column.label}</HeaderLabel>
+            </HeaderContent>
+        </ModernHeaderCell>
+    );
+};
+
+// Vehicle Item Component for rendering cell content
+interface VehicleItemProps {
+    vehicle: VehicleExpanded;
+    columnId: string;
+    onView: (vehicle: VehicleExpanded) => void;
+    onEdit: (vehicle: VehicleExpanded) => void;
+    onDelete: (vehicleId: string) => void;
+    onShowHistory?: (vehicle: VehicleExpanded) => void;
+}
+
+const VehicleItem: React.FC<VehicleItemProps> = ({
+                                                     vehicle,
+                                                     columnId,
+                                                     onView,
+                                                     onEdit,
+                                                     onDelete,
+                                                     onShowHistory
+                                                 }) => {
     const formatCurrency = (amount: number): string => {
         return new Intl.NumberFormat('pl-PL', {
             style: 'currency',
@@ -101,24 +147,194 @@ const VehicleListTable: React.FC<VehicleListTableProps> = ({
         });
     };
 
-    const renderOwners = (vehicle: VehicleExpanded) => {
-        const owners = vehicle.owners;
+    const status = getVehicleStatus(vehicle);
 
-        if (!owners || owners.length === 0) {
-            return <SimpleText $muted>Brak właścicieli</SimpleText>;
-        }
-
-        return (
-            <OwnersColumn>
-                {owners.map((owner, index) => (
-                    <OwnerText key={owner.id}>
-                        {owner.fullName}
-                    </OwnerText>
-                ))}
-            </OwnersColumn>
-        );
+    const handleActionClick = (e: React.MouseEvent, action: () => void) => {
+        e.stopPropagation();
+        action();
     };
 
+    switch (columnId) {
+        case 'licensePlate':
+            return (
+                <LicensePlateCell>
+                    {vehicle.licensePlate}
+                </LicensePlateCell>
+            );
+
+        case 'vehicle':
+            return (
+                <VehicleInfo>
+                    <VehicleName>
+                        {vehicle.make} {vehicle.model}
+                        <StatusBadge $color={status.color}>
+                            {status.label}
+                        </StatusBadge>
+                    </VehicleName>
+                    <VehicleYear>Rok: {vehicle.year}</VehicleYear>
+                </VehicleInfo>
+            );
+
+        case 'owners':
+            return (
+                <OwnersInfo>
+                    {vehicle.owners && vehicle.owners.length > 0 ? (
+                        vehicle.owners.map((owner, index) => (
+                            <OwnerName key={owner.id}>
+                                {owner.fullName}
+                            </OwnerName>
+                        ))
+                    ) : (
+                        <EmptyOwners>Brak właścicieli</EmptyOwners>
+                    )}
+                </OwnersInfo>
+            );
+
+        case 'services':
+            return (
+                <ServiceCount>
+                    {vehicle.totalServices}
+                </ServiceCount>
+            );
+
+        case 'lastService':
+            return (
+                <LastServiceDate>
+                    {vehicle.lastServiceDate ? (
+                        <>
+                            <FaCalendarAlt />
+                            <span>{formatDate(vehicle.lastServiceDate)}</span>
+                        </>
+                    ) : (
+                        <EmptyDate>Brak wizyt</EmptyDate>
+                    )}
+                </LastServiceDate>
+            );
+
+        case 'revenue':
+            return (
+                <RevenueDisplay>
+                    {formatCurrency(vehicle.totalSpent)}
+                </RevenueDisplay>
+            );
+
+        case 'actions':
+            return (
+                <ActionButtons>
+                    <ActionButton
+                        onClick={(e) => handleActionClick(e, () => onView(vehicle))}
+                        title="Zobacz szczegóły"
+                        $variant="view"
+                    >
+                        <FaEye />
+                    </ActionButton>
+                    <ActionButton
+                        onClick={(e) => handleActionClick(e, () => onEdit(vehicle))}
+                        title="Edytuj"
+                        $variant="edit"
+                    >
+                        <FaEdit />
+                    </ActionButton>
+                    <ActionButton
+                        onClick={(e) => handleActionClick(e, () => onDelete(vehicle.id))}
+                        title="Usuń"
+                        $variant="delete"
+                    >
+                        <FaTrash />
+                    </ActionButton>
+                </ActionButtons>
+            );
+
+        default:
+            return null;
+    }
+};
+
+// Main VehicleListTable Component
+interface VehicleListTableProps {
+    vehicles: VehicleExpanded[];
+    onSelectVehicle: (vehicle: VehicleExpanded) => void;
+    onEditVehicle: (vehicle: VehicleExpanded) => void;
+    onDeleteVehicle: (vehicleId: string) => void;
+    onShowHistory: (vehicle: VehicleExpanded) => void;
+}
+
+const VehicleListTable: React.FC<VehicleListTableProps> = ({
+                                                               vehicles,
+                                                               onSelectVehicle,
+                                                               onEditVehicle,
+                                                               onDeleteVehicle,
+                                                               onShowHistory
+                                                           }) => {
+    // Default column configuration
+    const defaultColumns: TableColumn[] = [
+        { id: 'licensePlate', label: 'Nr rejestracyjny', width: '15%', sortable: true },
+        { id: 'vehicle', label: 'Pojazd', width: '20%', sortable: true },
+        { id: 'owners', label: 'Właściciele', width: '20%', sortable: true },
+        { id: 'services', label: 'Liczba wizyt', width: '12%', sortable: true },
+        { id: 'lastService', label: 'Ostatnia wizyta', width: '15%', sortable: true },
+        { id: 'revenue', label: 'Przychody', width: '12%', sortable: true },
+        { id: 'actions', label: 'Akcje', width: '6%', sortable: false },
+    ];
+
+    // State management
+    const [viewMode, setViewMode] = useState<ViewMode>(() => {
+        const saved = localStorage.getItem(VIEW_MODE_KEY);
+        return (saved as ViewMode) || 'table';
+    });
+
+    const [columns, setColumns] = useState<TableColumn[]>(() => {
+        try {
+            const savedOrder = localStorage.getItem(COLUMN_ORDER_KEY);
+            return savedOrder ? JSON.parse(savedOrder) : defaultColumns;
+        } catch (e) {
+            console.error("Error loading saved column order:", e);
+            return defaultColumns;
+        }
+    });
+
+    // Save configuration changes
+    useEffect(() => {
+        try {
+            localStorage.setItem(COLUMN_ORDER_KEY, JSON.stringify(columns));
+            localStorage.setItem(VIEW_MODE_KEY, viewMode);
+        } catch (e) {
+            console.error("Error saving configuration:", e);
+        }
+    }, [columns, viewMode]);
+
+    // Column reordering function
+    const moveColumn = (dragIndex: number, hoverIndex: number) => {
+        const draggedColumn = columns[dragIndex];
+        const newColumns = [...columns];
+        newColumns.splice(dragIndex, 1);
+        newColumns.splice(hoverIndex, 0, draggedColumn);
+        setColumns(newColumns);
+    };
+
+    // Action handlers
+    const handleQuickAction = (action: string, vehicle: VehicleExpanded, e: React.MouseEvent) => {
+        e.stopPropagation();
+
+        switch (action) {
+            case 'view':
+                onSelectVehicle(vehicle);
+                break;
+            case 'edit':
+                onEditVehicle(vehicle);
+                break;
+            case 'delete':
+                if (window.confirm('Czy na pewno chcesz usunąć ten pojazd?')) {
+                    onDeleteVehicle(vehicle.id);
+                }
+                break;
+            case 'history':
+                onShowHistory(vehicle);
+                break;
+        }
+    };
+
+    // Empty state
     if (vehicles.length === 0) {
         return (
             <EmptyStateContainer>
@@ -130,7 +346,7 @@ const VehicleListTable: React.FC<VehicleListTableProps> = ({
                     Nie znaleziono żadnych pojazdów w bazie danych
                 </EmptyStateDescription>
                 <EmptyStateAction>
-                    Kliknij "Dodaj pojazd", aby utworzyć pierwszy wpis
+                    Kliknij "Nowy pojazd", aby utworzyć pierwszy wpis
                 </EmptyStateAction>
             </EmptyStateContainer>
         );
@@ -138,152 +354,200 @@ const VehicleListTable: React.FC<VehicleListTableProps> = ({
 
     return (
         <ListContainer>
-            {/* Header */}
+            {/* Header with view controls */}
             <ListHeader>
                 <ListTitle>
                     Lista pojazdów ({vehicles.length})
                 </ListTitle>
+                <ViewControls>
+                    <ViewButton
+                        $active={viewMode === 'table'}
+                        onClick={() => setViewMode('table')}
+                        title="Widok tabeli"
+                    >
+                        <FaTable />
+                    </ViewButton>
+                    <ViewButton
+                        $active={viewMode === 'cards'}
+                        onClick={() => setViewMode('cards')}
+                        title="Widok kart"
+                    >
+                        <FaList />
+                    </ViewButton>
+                </ViewControls>
             </ListHeader>
 
-            {/* Table Content */}
-            <TableWrapper>
-                <TableContainer>
-                    <TableHeader>
-                        <HeaderCell $width="12%">Numer rejestracyjny</HeaderCell>
-                        <HeaderCell $width="16%">Pojazd</HeaderCell>
-                        <HeaderCell $width="8%">Rok</HeaderCell>
-                        <HeaderCell $width="14%">Właściciele</HeaderCell>
-                        <HeaderCell $width="8%">Liczba wizyt</HeaderCell>
-                        <HeaderCell $width="10%">Ostatnia wizyta</HeaderCell>
-                        <HeaderCell $width="10%">Przychody</HeaderCell>
-                        <HeaderCell $width="22%">Akcje</HeaderCell>
-                    </TableHeader>
+            {/* Content based on view mode */}
+            {viewMode === 'table' ? (
+                <DndProvider backend={HTML5Backend}>
+                    <TableContainer>
+                        <TableHeader>
+                            {columns.map((column, index) => (
+                                <ColumnHeader
+                                    key={column.id}
+                                    column={column}
+                                    index={index}
+                                    moveColumn={moveColumn}
+                                />
+                            ))}
+                        </TableHeader>
 
-                    <TableBody>
-                        {vehicles.map(vehicle => {
-                            const status = getVehicleStatus(vehicle);
-                            return (
-                                <StyledTableRow
+                        <TableBody>
+                            {vehicles.map(vehicle => (
+                                <TableRow
                                     key={vehicle.id}
                                     onClick={() => onSelectVehicle(vehicle)}
                                 >
-                                    {/* Kolumna Numer rejestracyjny */}
-                                    <TableCell $width="12%">
-                                        <LicensePlateCell>{vehicle.licensePlate}</LicensePlateCell>
-                                    </TableCell>
+                                    {columns.map(column => (
+                                        <TableCell
+                                            key={`${vehicle.id}-${column.id}`}
+                                            $width={column.width}
+                                        >
+                                            <VehicleItem
+                                                vehicle={vehicle}
+                                                columnId={column.id}
+                                                onView={onSelectVehicle}
+                                                onEdit={onEditVehicle}
+                                                onDelete={onDeleteVehicle}
+                                                onShowHistory={onShowHistory}
+                                            />
+                                        </TableCell>
+                                    ))}
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </TableContainer>
+                </DndProvider>
+            ) : (
+                <CardsContainer>
+                    {vehicles.map(vehicle => {
+                        const status = getVehicleStatus(vehicle);
+                        return (
+                            <VehicleCard key={vehicle.id} onClick={() => onSelectVehicle(vehicle)}>
+                                <CardHeader>
+                                    <CardTitle>
+                                        {vehicle.make} {vehicle.model}
+                                        <StatusBadge $color={status.color}>
+                                            {status.label}
+                                        </StatusBadge>
+                                    </CardTitle>
+                                    <CardActions>
+                                        <ActionButton
+                                            onClick={(e) => handleQuickAction('view', vehicle, e)}
+                                            title="Zobacz szczegóły"
+                                            $variant="view"
+                                            $small
+                                        >
+                                            <FaEye />
+                                        </ActionButton>
+                                        <ActionButton
+                                            onClick={(e) => handleQuickAction('edit', vehicle, e)}
+                                            title="Edytuj"
+                                            $variant="edit"
+                                            $small
+                                        >
+                                            <FaEdit />
+                                        </ActionButton>
+                                    </CardActions>
+                                </CardHeader>
 
-                                    {/* Kolumna Pojazd - marka i model */}
-                                    <TableCell $width="16%">
-                                        <VehicleNameCell>
-                                            <VehicleMakeModel>
-                                                {vehicle.make} {vehicle.model}
-                                            </VehicleMakeModel>
-                                            <StatusBadge $color={status.color}>
-                                                {status.label}
-                                            </StatusBadge>
-                                        </VehicleNameCell>
-                                    </TableCell>
-
-                                    {/* Kolumna Rok produkcji */}
-                                    <TableCell $width="8%">
-                                        <SimpleText>{vehicle.year}</SimpleText>
-                                    </TableCell>
-
-                                    {/* Kolumna Właściciele - prosty tekst */}
-                                    <TableCell $width="14%">
-                                        {renderOwners(vehicle)}
-                                    </TableCell>
-
-                                    {/* Kolumna Liczba wizyt - prosty tekst */}
-                                    <TableCell $width="8%">
-                                        <SimpleText>{vehicle.totalServices}</SimpleText>
-                                    </TableCell>
-
-                                    {/* Kolumna Ostatnia wizyta - prosty tekst */}
-                                    <TableCell $width="10%">
-                                        {vehicle.lastServiceDate ? (
-                                            <SimpleText>{formatDate(vehicle.lastServiceDate)}</SimpleText>
-                                        ) : (
-                                            <SimpleText $muted>Brak wizyt</SimpleText>
-                                        )}
-                                    </TableCell>
-
-                                    {/* Kolumna Przychody - prosty tekst */}
-                                    <TableCell $width="10%">
-                                        <SimpleText>{formatCurrency(vehicle.totalSpent)}</SimpleText>
-                                    </TableCell>
-
-                                    {/* Kolumna Akcje */}
-                                    <TableCell $width="22%" onClick={(e) => e.stopPropagation()}>
-                                        <ActionButtons>
-                                            <ActionButton
-                                                title="Edytuj pojazd"
-                                                $variant="view"
-                                                onClick={() => onEditVehicle(vehicle)}
-                                            >
-                                                <FaEdit />
-                                            </ActionButton>
-                                            <ActionButton
-                                                title="Usuń pojazd"
-                                                $variant="view"
-                                                onClick={() => onDeleteVehicle(vehicle.id)}
-                                            >
-                                                <FaTrash />
-                                            </ActionButton>
-                                        </ActionButtons>
-                                    </TableCell>
-                                </StyledTableRow>
-                            );
-                        })}
-                    </TableBody>
-                </TableContainer>
-            </TableWrapper>
+                                <CardContent>
+                                    <CardRow>
+                                        <CardLabel>Nr rejestracyjny:</CardLabel>
+                                        <CardValue>{vehicle.licensePlate}</CardValue>
+                                    </CardRow>
+                                    <CardRow>
+                                        <CardLabel>Rok produkcji:</CardLabel>
+                                        <CardValue>{vehicle.year}</CardValue>
+                                    </CardRow>
+                                    <CardRow>
+                                        <CardLabel>Właściciele:</CardLabel>
+                                        <CardValue>
+                                            {vehicle.owners?.length || 0} właścicieli
+                                        </CardValue>
+                                    </CardRow>
+                                    <CardRow>
+                                        <CardLabel>Liczba wizyt:</CardLabel>
+                                        <CardValue>{vehicle.totalServices}</CardValue>
+                                    </CardRow>
+                                    <CardRow>
+                                        <CardLabel>Przychody:</CardLabel>
+                                        <CardValue>
+                                            {new Intl.NumberFormat('pl-PL', {
+                                                style: 'currency',
+                                                currency: 'PLN'
+                                            }).format(vehicle.totalSpent)}
+                                        </CardValue>
+                                    </CardRow>
+                                </CardContent>
+                            </VehicleCard>
+                        );
+                    })}
+                </CardsContainer>
+            )}
         </ListContainer>
     );
 };
 
-// Professional Styled Components
+// Styled Components - consistent with ProtocolList
 const ListContainer = styled.div`
     background: ${brandTheme.surface};
-    border-radius: ${brandTheme.radius.xl};
+    border-radius: 16px;
     border: 1px solid ${brandTheme.border};
     overflow: hidden;
-    box-shadow: ${brandTheme.shadow.sm};
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 `;
 
 const ListHeader = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: ${brandTheme.spacing.lg};
+    padding: 20px 24px;
     border-bottom: 1px solid ${brandTheme.border};
     background: ${brandTheme.surfaceAlt};
-    flex-shrink: 0;
 `;
 
 const ListTitle = styled.h3`
     font-size: 18px;
     font-weight: 600;
-    color: ${brandTheme.text.primary};
+    color: #1e293b;
     margin: 0;
-    letter-spacing: -0.025em;
 `;
 
-const TableWrapper = styled.div`
-    flex: 1;
-    overflow: hidden;
+const ViewControls = styled.div`
     display: flex;
-    flex-direction: column;
+    border: 2px solid ${brandTheme.border};
+    border-radius: 8px;
+    overflow: hidden;
 `;
 
+const ViewButton = styled.button<{ $active: boolean }>`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 36px;
+    border: none;
+    background: ${props => props.$active ? brandTheme.primary : brandTheme.surface};
+    color: ${props => props.$active ? 'white' : brandTheme.neutral};
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+
+    &:hover {
+        background: ${props => props.$active ? brandTheme.primaryDark : brandTheme.primaryGhost};
+        color: ${props => props.$active ? 'white' : brandTheme.primary};
+    }
+
+    &:not(:last-child) {
+        border-right: 1px solid ${brandTheme.border};
+    }
+`;
+
+// Table Components
 const TableContainer = styled.div`
-    flex: 1;
-    overflow: auto;
-    min-height: 0;
+    width: 100%;
+    overflow-x: auto;
 `;
 
 const TableHeader = styled.div`
@@ -291,41 +555,69 @@ const TableHeader = styled.div`
     background: ${brandTheme.surfaceAlt};
     border-bottom: 2px solid ${brandTheme.border};
     min-height: 56px;
-    position: sticky;
-    top: 0;
-    z-index: 10;
 `;
 
-const HeaderCell = styled.div<{ $width: string }>`
+const ModernHeaderCell = styled.div<{ $isDragging?: boolean; $width: string }>`
     flex: 0 0 ${props => props.$width};
     width: ${props => props.$width};
     display: flex;
     align-items: center;
-    padding: 0 ${brandTheme.spacing.md};
-    font-size: 14px;
-    font-weight: 600;
-    color: ${brandTheme.text.primary};
+    padding: 0 16px;
+    background: ${props => props.$isDragging ? brandTheme.primaryGhost : brandTheme.surfaceAlt};
     border-right: 1px solid ${brandTheme.border};
+    cursor: grab;
+    user-select: none;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: ${brandTheme.primaryGhost};
+    }
+
+    &:active {
+        cursor: grabbing;
+    }
 
     &:last-child {
         border-right: none;
     }
 `;
 
+const HeaderContent = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+`;
+
+const DragHandle = styled.div`
+    color: ${brandTheme.neutral};
+    font-size: 12px;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+
+    ${ModernHeaderCell}:hover & {
+        opacity: 1;
+    }
+`;
+
+const HeaderLabel = styled.span`
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+`;
+
 const TableBody = styled.div`
     background: ${brandTheme.surface};
 `;
 
-const StyledTableRow = styled.div`
+const TableRow = styled.div`
     display: flex;
-    border-bottom: 1px solid ${brandTheme.borderLight};
+    border-bottom: 1px solid ${brandTheme.border};
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    background: ${brandTheme.surface};
+    transition: all 0.2s ease;
 
     &:hover {
-        background: ${brandTheme.surfaceHover};
-        box-shadow: inset 0 0 0 1px ${brandTheme.borderHover};
+        background: ${brandTheme.surfaceAlt};
     }
 
     &:last-child {
@@ -333,27 +625,27 @@ const StyledTableRow = styled.div`
     }
 `;
 
-const TableCell = styled.div<{ $width: string }>`
-    flex: 0 0 ${props => props.$width};
-    width: ${props => props.$width};
-    padding: ${brandTheme.spacing.md};
+const TableCell = styled.div<{ $width?: string }>`
+    flex: 0 0 ${props => props.$width || 'auto'};
+    width: ${props => props.$width || 'auto'};
+    padding: 16px;
     display: flex;
     align-items: center;
-    min-height: 80px;
-    border-right: 1px solid ${brandTheme.borderLight};
+    min-height: 72px;
+    border-right: 1px solid ${brandTheme.border};
 
     &:last-child {
         border-right: none;
     }
 `;
 
-// Nowe style dla rozdzielonych kolumn
+// Vehicle-specific Cell Components
 const LicensePlateCell = styled.div`
     display: inline-block;
     background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
     color: white;
     padding: 6px 12px;
-    border-radius: ${brandTheme.radius.md};
+    border-radius: 8px;
     font-weight: 700;
     font-size: 13px;
     letter-spacing: 1px;
@@ -362,26 +654,34 @@ const LicensePlateCell = styled.div`
     width: fit-content;
 `;
 
-const VehicleNameCell = styled.div`
+const VehicleInfo = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${brandTheme.spacing.xs};
+    gap: 4px;
     width: 100%;
 `;
 
-const VehicleMakeModel = styled.div`
+const VehicleName = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-weight: 600;
     font-size: 15px;
-    color: ${brandTheme.text.primary};
+    color: #1e293b;
     line-height: 1.3;
-    margin-bottom: ${brandTheme.spacing.xs};
+`;
+
+const VehicleYear = styled.div`
+    font-size: 13px;
+    color: ${brandTheme.neutral};
+    font-weight: 500;
 `;
 
 const StatusBadge = styled.span<{ $color: string }>`
     display: inline-flex;
     align-items: center;
     padding: 2px 8px;
-    border-radius: ${brandTheme.radius.lg};
+    border-radius: 12px;
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
@@ -390,60 +690,85 @@ const StatusBadge = styled.span<{ $color: string }>`
     color: ${props => props.$color};
     border: 1px solid ${props => props.$color}30;
     white-space: nowrap;
-    width: fit-content;
 `;
 
-// Nowe style dla prostych kolumn tekstowych
-const SimpleText = styled.div<{ $muted?: boolean }>`
-    font-size: 14px;
-    font-weight: 500;
-    color: ${props => props.$muted ? brandTheme.text.muted : brandTheme.text.primary};
-    line-height: 1.4;
-`;
-
-const OwnersColumn = styled.div`
+const OwnersInfo = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${brandTheme.spacing.xs};
+    gap: 4px;
     width: 100%;
 `;
 
-const OwnerText = styled.div`
+const OwnerName = styled.div`
     font-size: 13px;
-    color: ${brandTheme.text.secondary};
+    color: #374151;
     font-weight: 500;
     line-height: 1.3;
-    word-break: break-word;
 `;
 
-// Action Components - bez zmian
+const EmptyOwners = styled.div`
+    font-size: 13px;
+    color: ${brandTheme.neutral};
+    font-style: italic;
+`;
+
+const ServiceCount = styled.div`
+    font-size: 15px;
+    font-weight: 600;
+    color: #374151;
+`;
+
+const LastServiceDate = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+
+    svg {
+        color: ${brandTheme.neutral};
+        font-size: 11px;
+    }
+`;
+
+const EmptyDate = styled.span`
+    color: ${brandTheme.neutral};
+    font-style: italic;
+`;
+
+const RevenueDisplay = styled.div`
+    font-size: 15px;
+    font-weight: 600;
+    color: #374151;
+`;
+
+// Action Components
 const ActionButtons = styled.div`
     display: flex;
-    gap: ${brandTheme.spacing.xs};
+    gap: 6px;
     align-items: center;
-    flex-wrap: wrap;
 `;
 
 const ActionButton = styled.button<{
-    $variant: 'view' | 'edit' | 'delete' | 'info' | 'success' | 'secondary';
+    $variant: 'view' | 'edit' | 'delete';
+    $small?: boolean;
 }>`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: ${props => props.$small ? '28px' : '32px'};
+    height: ${props => props.$small ? '28px' : '32px'};
     border: none;
-    border-radius: ${brandTheme.radius.sm};
+    border-radius: 6px;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    font-size: 13px;
-    position: relative;
-    overflow: hidden;
+    transition: all 0.2s ease;
+    font-size: ${props => props.$small ? '12px' : '14px'};
 
     ${({ $variant }) => {
-        switch ($variant) {
-            case 'view':
-                return `
+    switch ($variant) {
+        case 'view':
+            return `
                     background: ${brandTheme.primaryGhost};
                     color: ${brandTheme.primary};
                     &:hover {
@@ -453,56 +778,110 @@ const ActionButton = styled.button<{
                         box-shadow: ${brandTheme.shadow.md};
                     }
                 `;
-            case 'edit':
-                return `
-                    background: ${brandTheme.status.warningLight};
-                    color: ${brandTheme.status.warning};
+        case 'edit':
+            return `
+                    background: rgba(245, 158, 11, 0.1);
+                    color: #f59e0b;
                     &:hover {
-                        background: ${brandTheme.status.warning};
+                        background: #f59e0b;
                         color: white;
                         transform: translateY(-1px);
-                        box-shadow: ${brandTheme.shadow.md};
                     }
                 `;
-            case 'info':
-                return `
-                    background: ${brandTheme.status.infoLight};
-                    color: ${brandTheme.status.info};
+        case 'delete':
+            return `
+                    background: rgba(239, 68, 68, 0.1);
+                    color: #ef4444;
                     &:hover {
-                        background: ${brandTheme.status.info};
+                        background: #ef4444;
                         color: white;
                         transform: translateY(-1px);
-                        box-shadow: ${brandTheme.shadow.md};
                     }
                 `;
-            case 'delete':
-                return `
-                    background: ${brandTheme.status.errorLight};
-                    color: ${brandTheme.status.error};
-                    &:hover {
-                        background: ${brandTheme.status.error};
-                        color: white;
-                        transform: translateY(-1px);
-                        box-shadow: ${brandTheme.shadow.md};
-                    }
-                `;
-        }
-    }}
+    }
+}}
 `;
 
-// Empty State Components - bez zmian
+// Card Components
+const CardsContainer = styled.div`
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 16px;
+    padding: 24px;
+`;
+
+const VehicleCard = styled.div`
+    background: ${brandTheme.surface};
+    border: 2px solid ${brandTheme.border};
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+        border-color: ${brandTheme.primary};
+    }
+`;
+
+const CardHeader = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+`;
+
+const CardTitle = styled.h4`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0;
+`;
+
+const CardActions = styled.div`
+    display: flex;
+    gap: 8px;
+`;
+
+const CardContent = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+`;
+
+const CardRow = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+`;
+
+const CardLabel = styled.span`
+    font-size: 14px;
+    color: ${brandTheme.neutral};
+    font-weight: 500;
+`;
+
+const CardValue = styled.span`
+    font-size: 14px;
+    color: #374151;
+    font-weight: 600;
+`;
+
+// Empty State Components
 const EmptyStateContainer = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: ${brandTheme.spacing.xxl};
+    padding: 60px 40px;
     background: ${brandTheme.surface};
-    border-radius: ${brandTheme.radius.xl};
+    border-radius: 16px;
     border: 2px dashed ${brandTheme.border};
     text-align: center;
-    min-height: 400px;
-    margin: ${brandTheme.spacing.lg};
 `;
 
 const EmptyStateIcon = styled.div`
@@ -514,23 +893,21 @@ const EmptyStateIcon = styled.div`
     align-items: center;
     justify-content: center;
     font-size: 24px;
-    color: ${brandTheme.text.tertiary};
-    margin-bottom: ${brandTheme.spacing.lg};
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+    color: ${brandTheme.neutral};
+    margin-bottom: 20px;
 `;
 
 const EmptyStateTitle = styled.h3`
     font-size: 20px;
     font-weight: 600;
-    color: ${brandTheme.text.primary};
-    margin: 0 0 ${brandTheme.spacing.sm} 0;
-    letter-spacing: -0.025em;
+    color: #1e293b;
+    margin: 0 0 8px 0;
 `;
 
 const EmptyStateDescription = styled.p`
     font-size: 16px;
-    color: ${brandTheme.text.secondary};
-    margin: 0 0 ${brandTheme.spacing.sm} 0;
+    color: ${brandTheme.neutral};
+    margin: 0 0 12px 0;
     line-height: 1.5;
 `;
 

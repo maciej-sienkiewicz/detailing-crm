@@ -1,18 +1,19 @@
-// ClientListTable/hooks/useTableConfiguration.ts - Updated with new columns
+// ClientListTable/hooks/useTableConfiguration.ts - Zaktualizowane z szerokościami do pełnej tabeli
 import { useState, useEffect } from 'react';
 import { TableColumn } from '../types';
 
 const COLUMN_ORDER_KEY = 'client_table_columns_order';
 
+// Zaktualizowane kolumny z szerokościami dopasowanymi do pełnej tabeli
 const defaultColumns: TableColumn[] = [
-    { id: 'selection', label: '', width: '50px', sortable: false },
-    { id: 'client', label: 'Klient', width: '16%', sortable: true },
-    { id: 'contact', label: 'Kontakt', width: '15%', sortable: true },
-    { id: 'company', label: 'Firma', width: '12%', sortable: true },
-    { id: 'lastVisit', label: 'Ostatnia wizyta', width: '10%', sortable: true },
-    { id: 'metrics', label: 'Wizyty / Pojazdy', width: '12%', sortable: true },
-    { id: 'revenue', label: 'Przychody', width: '10%', sortable: true },
-    { id: 'actions', label: 'Akcje', width: '15%', sortable: false },
+    { id: 'selection', label: '', width: '60px', sortable: false },
+    { id: 'client', label: 'Klient', width: '200px', sortable: true },
+    { id: 'contact', label: 'Kontakt', width: '220px', sortable: true },
+    { id: 'company', label: 'Firma', width: '180px', sortable: true },
+    { id: 'lastVisit', label: 'Ostatnia wizyta', width: '140px', sortable: true },
+    { id: 'metrics', label: 'Wizyty / Pojazdy', width: '140px', sortable: true },
+    { id: 'revenue', label: 'Przychody', width: '120px', sortable: true },
+    { id: 'actions', label: 'Akcje', width: '120px', sortable: false }, // Ostatnia kolumna bez width - zajmie pozostałą przestrzeń
 ];
 
 export const useTableConfiguration = () => {
