@@ -1,5 +1,5 @@
-// VehiclesPage.tsx - Fixed filtering by ownerId
-import React, { useState, useEffect } from 'react';
+// src/pages/Clients/components/VehiclesPageContent.tsx - Extracted Content Component
+import React, { useState, useEffect, useImperativeHandle } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { FaPlus, FaArrowLeft, FaCar, FaUsers, FaTools, FaMoneyBillWave, FaExclamationTriangle, FaTrophy, FaEye } from 'react-icons/fa';
@@ -13,7 +13,7 @@ import VehicleFormModal from './components/VehicleFormModal';
 import VehicleHistoryModal from './components/VehicleHistoryModal';
 import Modal from '../../components/common/Modal';
 
-// Professional Brand Theme - Premium Automotive CRM
+// Professional Brand Theme
 const brandTheme = {
     primary: 'var(--brand-primary, #1a365d)',
     primaryLight: 'var(--brand-primary-light, #2c5aa0)',
@@ -67,7 +67,14 @@ const brandTheme = {
     }
 };
 
-const VehiclesPage: React.FC = () => {
+interface VehiclesPageContentProps {
+    onSetRef?: (ref: {
+        handleAddVehicle?: () => void;
+        handleExportVehicles?: () => void;
+    }) => void;
+}
+
+const VehiclesPageContent: React.FC<VehiclesPageContentProps> = ({ onSetRef }) => {
     const location = useLocation();
     const navigate = useNavigate();
     const queryParams = new URLSearchParams(location.search);
@@ -80,7 +87,7 @@ const VehiclesPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Nowe state dla paginacji
+    // Pagination state
     const [pagination, setPagination] = useState({
         currentPage: 0,
         pageSize: 20,
@@ -96,20 +103,40 @@ const VehiclesPage: React.FC = () => {
     const [selectedVehicle, setSelectedVehicle] = useState<VehicleExpanded | null>(null);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-    // Zaktualizowane state dla filtrów - dopasowane do nowego API
+    // Filters state
     const [filters, setFilters] = useState<VehicleFiltersType>({
         licensePlate: '',
         make: '',
         model: '',
-        ownerName: '',      // Nowy filtr zamiast minYear
-        minServices: '',    // Teraz to minVisits w API
-        maxServices: ''     // Nowy filtr maxVisits
+        ownerName: '',
+        minServices: '',
+        maxServices: ''
     });
 
-    // Nowe state dla statystyk firmowych
+    // Company statistics state
     const [companyStats, setCompanyStats] = useState<VehicleCompanyStatisticsResponse | null>(null);
 
-    // Funkcja do konwersji filtrów na format API
+    // Handlers - defined early to avoid dependency issues
+    const handleAddVehicle = React.useCallback(() => {
+        setSelectedVehicle(null);
+        setShowAddModal(true);
+    }, []);
+
+    const handleExportVehicles = React.useCallback(() => {
+        alert('Eksport danych pojazdów - funkcjonalność w przygotowaniu');
+    }, []);
+
+    // Notify parent when methods change
+    useEffect(() => {
+        if (onSetRef) {
+            onSetRef({
+                handleAddVehicle,
+                handleExportVehicles
+            });
+        }
+    }, [onSetRef, handleAddVehicle, handleExportVehicles]);
+
+    // Convert filters to API format
     const convertFiltersToApiFormat = (uiFilters: VehicleFiltersType): VehicleTableFilters => {
         const apiFilters: VehicleTableFilters = {};
 
@@ -141,10 +168,7 @@ const VehiclesPage: React.FC = () => {
         return apiFilters;
     };
 
-    // Funkcja do ładowania danych z nowego API - POPRAWIONA
-// VehiclesPage.tsx - Poprawiona logika filtrowania
-
-// Funkcja do ładowania danych z nowego API - POPRAWIONA
+    // Load vehicles data
     const loadVehiclesData = async (page: number = 0, apiFilters?: VehicleTableFilters) => {
         try {
             setLoading(true);
@@ -152,18 +176,13 @@ const VehiclesPage: React.FC = () => {
 
             let finalApiFilters = { ...apiFilters };
 
-            // Jeśli mamy ownerId, najpierw ładujemy dane właściciela
+            // If we have ownerId, load owner data first
             if (ownerId) {
                 try {
                     const owner = await clientApi.fetchClientById(ownerId);
                     if (owner) {
                         const fullOwnerName = `${owner.firstName} ${owner.lastName}`;
                         setOwnerName(fullOwnerName);
-
-                        // POPRAWKA: Sprawdź różne warianty nazwy właściciela
-                        console.log('Filtering by owner:', fullOwnerName);
-
-                        // Próbuj różne formaty nazwy
                         finalApiFilters = {
                             ...finalApiFilters,
                             ownerName: fullOwnerName
@@ -179,38 +198,15 @@ const VehiclesPage: React.FC = () => {
                 }
             }
 
-            console.log('Final API filters:', finalApiFilters);
-
-            // Ładujemy pojazdy z odpowiednimi filtrami
+            // Load vehicles with appropriate filters
             const response = await vehicleApi.fetchVehiclesForTable(
                 { page, size: pagination.pageSize },
                 finalApiFilters
             );
 
-            console.log('API response:', response);
-
             setVehicles(response.data);
             setFilteredVehicles(response.data);
             setPagination(response.pagination);
-
-            // Jeśli nie ma wyników dla filtrowania po właścicielu, sprawdź czy właściciel w ogóle ma pojazdy
-            if (ownerId && response.data.length === 0) {
-                console.warn(`No vehicles found for owner: ${ownerName}`);
-
-                // Opcjonalnie: spróbuj załadować wszystkie pojazdy i przefiltruj lokalnie
-                const allVehiclesResponse = await vehicleApi.fetchVehiclesForTable(
-                    { page: 0, size: 1000 }, // Większy limit
-                    {} // Bez filtrów
-                );
-
-                console.log('All vehicles for debugging:', allVehiclesResponse.data.map(v => ({
-                    id: v.id,
-                    make: v.make,
-                    model: v.model,
-                    licensePlate: v.licensePlate,
-                    owners: v.owners
-                })));
-            }
 
         } catch (err) {
             setError('Nie udało się załadować listy pojazdów');
@@ -220,7 +216,7 @@ const VehiclesPage: React.FC = () => {
         }
     };
 
-    // Funkcja do ładowania statystyk firmowych
+    // Load company statistics
     const loadCompanyStatistics = async () => {
         try {
             const stats = await vehicleApi.fetchCompanyStatistics();
@@ -230,41 +226,34 @@ const VehiclesPage: React.FC = () => {
         }
     };
 
-    // POPRAWKA: Ładowanie danych na starcie - bez dependency na ownerId w useEffect
+    // Initial data load
     useEffect(() => {
         loadVehiclesData();
-
-        // Statystyki ładujemy tylko gdy nie ma filtrowania po właścicielu
         if (!ownerId) {
             loadCompanyStatistics();
         }
-    }, []); // Puste dependencies
+    }, []);
 
-    // POPRAWKA: Osobny useEffect dla ownerId
+    // Owner ID change effect
     useEffect(() => {
         if (ownerId) {
-            // Gdy zmieni się ownerId, przeładuj dane
             loadVehiclesData();
         }
     }, [ownerId]);
 
-    // Efekt do filtrowania danych - teraz korzysta z API
+    // Filters change effect
     useEffect(() => {
-        // Jeśli mamy ownerId, nie wykonujemy dodatkowego filtrowania przez UI filtry
-        // bo właściciel jest już ustawiony w API
         if (ownerId) {
             return;
         }
 
         const apiFilters = convertFiltersToApiFormat(filters);
-
-        // Debounce filtrowania - ładujemy z API po 500ms
         const timeoutId = setTimeout(() => {
             loadVehiclesData(0, apiFilters);
         }, 500);
 
         return () => clearTimeout(timeoutId);
-    }, [filters, ownerId]); // Dodano ownerId do dependencies
+    }, [filters, ownerId]);
 
     // Handlers
     const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -280,12 +269,11 @@ const VehiclesPage: React.FC = () => {
             licensePlate: '',
             make: '',
             model: '',
-            ownerName: ownerId ? ownerName || '' : '', // Zachowaj nazwę właściciela jeśli jest ownerId
+            ownerName: ownerId ? ownerName || '' : '',
             minServices: '',
             maxServices: ''
         });
 
-        // Jeśli mamy ownerId, przeładuj dane dla tego właściciela
         if (ownerId) {
             loadVehiclesData();
         }
@@ -296,11 +284,6 @@ const VehiclesPage: React.FC = () => {
         loadVehiclesData(newPage, apiFilters);
     };
 
-    const handleAddVehicle = () => {
-        setSelectedVehicle(null);
-        setShowAddModal(true);
-    };
-
     const handleEditVehicle = (vehicle: VehicleExpanded) => {
         setSelectedVehicle(vehicle);
         setShowAddModal(true);
@@ -309,7 +292,6 @@ const VehiclesPage: React.FC = () => {
     const handleSaveVehicle = async (vehicle: VehicleExpanded) => {
         try {
             if (selectedVehicle && selectedVehicle.id) {
-                // Update existing vehicle
                 const updatedVehicle = await vehicleApi.updateVehicle(selectedVehicle.id, {
                     make: vehicle.make,
                     model: vehicle.model,
@@ -320,7 +302,6 @@ const VehiclesPage: React.FC = () => {
                     ownerIds: vehicle.ownerIds
                 });
 
-                // Refresh data after update
                 const apiFilters = convertFiltersToApiFormat(filters);
                 await loadVehiclesData(pagination.currentPage, apiFilters);
                 await loadCompanyStatistics();
@@ -329,7 +310,6 @@ const VehiclesPage: React.FC = () => {
                     setSelectedVehicle(updatedVehicle);
                 }
             } else {
-                // Add new vehicle
                 await vehicleApi.createVehicle({
                     make: vehicle.make,
                     model: vehicle.model,
@@ -340,7 +320,6 @@ const VehiclesPage: React.FC = () => {
                     ownerIds: vehicle.ownerIds
                 });
 
-                // Refresh data after create
                 const apiFilters = convertFiltersToApiFormat(filters);
                 await loadVehiclesData(pagination.currentPage, apiFilters);
                 await loadCompanyStatistics();
@@ -367,7 +346,6 @@ const VehiclesPage: React.FC = () => {
             const success = await vehicleApi.deleteVehicle(selectedVehicle.id);
 
             if (success) {
-                // Refresh data after delete
                 const apiFilters = convertFiltersToApiFormat(filters);
                 await loadVehiclesData(pagination.currentPage, apiFilters);
                 await loadCompanyStatistics();
@@ -390,13 +368,13 @@ const VehiclesPage: React.FC = () => {
         setShowHistoryModal(true);
     };
 
-    const handleBackToOwners = () => {
-        navigate('/clients/owners');
-    };
-
     const handleSelectVehicle = (vehicle: VehicleExpanded) => {
         setSelectedVehicle(vehicle);
         setShowDetailDrawer(true);
+    };
+
+    const handleBackToOwners = () => {
+        navigate('/clients-vehicles?tab=owners');
     };
 
     const formatCurrency = (amount: number): string => {
@@ -407,51 +385,22 @@ const VehiclesPage: React.FC = () => {
     };
 
     return (
-        <PageContainer>
-            {/* Professional Header */}
-            <PageHeader>
-                <HeaderContent>
-                    <HeaderLeft>
-                        {ownerId && ownerName ? (
-                            <BackSection>
-                                <BackButton onClick={handleBackToOwners}>
-                                    <FaArrowLeft />
-                                </BackButton>
-                                <HeaderInfo>
-                                    <HeaderIcon>
-                                        <FaCar />
-                                    </HeaderIcon>
-                                    <HeaderText>
-                                        <HeaderTitle>Pojazdy klienta</HeaderTitle>
-                                        <HeaderSubtitle>{ownerName}</HeaderSubtitle>
-                                    </HeaderText>
-                                </HeaderInfo>
-                            </BackSection>
-                        ) : (
-                            <>
-                                <HeaderIcon>
-                                    <FaCar />
-                                </HeaderIcon>
-                                <HeaderText>
-                                    <HeaderTitle>Baza Pojazdów</HeaderTitle>
-                                    <HeaderSubtitle>
-                                        Zarządzanie flotą detailingu premium
-                                    </HeaderSubtitle>
-                                </HeaderText>
-                            </>
-                        )}
-                    </HeaderLeft>
+        <ContentContainer>
+            {/* Back to Owners button when filtering by owner */}
+            {ownerId && ownerName && (
+                <BackSection>
+                    <BackButton onClick={handleBackToOwners}>
+                        <FaArrowLeft />
+                        Powrót do listy klientów
+                    </BackButton>
+                    <OwnerInfo>
+                        <OwnerTitle>Pojazdy klienta:</OwnerTitle>
+                        <OwnerName>{ownerName}</OwnerName>
+                    </OwnerInfo>
+                </BackSection>
+            )}
 
-                    <HeaderActions>
-                        <PrimaryButton onClick={handleAddVehicle}>
-                            <FaPlus />
-                            <span>Nowy pojazd</span>
-                        </PrimaryButton>
-                    </HeaderActions>
-                </HeaderContent>
-            </PageHeader>
-
-            {/* Enhanced Statistics Dashboard - tylko gdy nie ma filtrowania po właścicielu */}
+            {/* Enhanced Statistics Dashboard - only when not filtering by owner */}
             {!ownerId && companyStats && (
                 <StatsSection>
                     <StatsGrid>
@@ -496,7 +445,7 @@ const VehiclesPage: React.FC = () => {
                         </StatCard>
                     </StatsGrid>
 
-                    {/* Nowa sekcja z najaktywniejszym pojazdem */}
+                    {/* Most active vehicle card */}
                     {companyStats.mostActiveVehicle && (
                         <MostActiveVehicleCard>
                             <MostActiveHeader>
@@ -522,9 +471,9 @@ const VehiclesPage: React.FC = () => {
                 </StatsSection>
             )}
 
-            {/* Content Container */}
-            <ContentContainer>
-                {/* Filters - ukryj gdy mamy ownerId */}
+            {/* Main Content */}
+            <MainContent>
+                {/* Filters - hide when filtering by owner */}
                 {!ownerId && (
                     <VehicleFilters
                         filters={filters}
@@ -617,7 +566,7 @@ const VehiclesPage: React.FC = () => {
                         )}
                     </>
                 )}
-            </ContentContainer>
+            </MainContent>
 
             {/* Detail Drawer */}
             <VehicleDetailDrawer
@@ -643,7 +592,7 @@ const VehiclesPage: React.FC = () => {
                 />
             )}
 
-            {/* Professional Delete Confirmation Modal */}
+            {/* Delete Confirmation Modal */}
             {showDeleteConfirm && selectedVehicle && (
                 <Modal
                     isOpen={showDeleteConfirm}
@@ -676,82 +625,58 @@ const VehiclesPage: React.FC = () => {
                     </DeleteConfirmButtons>
                 </Modal>
             )}
-        </PageContainer>
+        </ContentContainer>
     );
 };
 
-// Professional Styled Components - Same styling as OwnersPage
-    const PageContainer = styled.div`
-    min-height: 100vh;
-    background: ${brandTheme.surfaceAlt};
+// Styled Components
+const ContentContainer = styled.div`
+    flex: 1;
     display: flex;
     flex-direction: column;
+    min-height: 0;
+    background: ${brandTheme.surfaceAlt};
 `;
 
-    const PageHeader = styled.header`
-    background: ${brandTheme.surface};
-    border-bottom: 1px solid ${brandTheme.border};
-    box-shadow: ${brandTheme.shadow.sm};
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    backdrop-filter: blur(8px);
-    background: rgba(255, 255, 255, 0.95);
-`;
-
-    const HeaderContent = styled.div`
+const BackSection = styled.div`
     max-width: 1600px;
     margin: 0 auto;
     padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
+    width: 100%;
     display: flex;
-    justify-content: space-between;
     align-items: center;
     gap: ${brandTheme.spacing.lg};
+    background: ${brandTheme.surface};
+    border-bottom: 1px solid ${brandTheme.border};
 
     @media (max-width: 1024px) {
         padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-        flex-direction: column;
-        align-items: stretch;
-        gap: ${brandTheme.spacing.md};
     }
 
     @media (max-width: 768px) {
         padding: ${brandTheme.spacing.md};
+        flex-direction: column;
+        align-items: flex-start;
+        gap: ${brandTheme.spacing.md};
     }
 `;
 
-    const HeaderLeft = styled.div`
+const BackButton = styled.button`
     display: flex;
     align-items: center;
-    gap: ${brandTheme.spacing.md};
-    min-width: 0;
-    flex: 1;
-`;
-
-    const BackSection = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.md};
-    width: 100%;
-`;
-
-    const BackButton = styled.button`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 48px;
-    height: 48px;
-    background: linear-gradient(135deg, ${brandTheme.surfaceElevated} 0%, ${brandTheme.surface} 100%);
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+    background: ${brandTheme.surfaceElevated};
     border: 2px solid ${brandTheme.border};
     border-radius: ${brandTheme.radius.lg};
-    cursor: pointer;
     color: ${brandTheme.text.secondary};
-    font-size: 18px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    flex-shrink: 0;
 
     &:hover {
-        background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+        background: ${brandTheme.primary};
         color: white;
         border-color: ${brandTheme.primary};
         transform: translateY(-1px);
@@ -759,155 +684,32 @@ const VehiclesPage: React.FC = () => {
     }
 `;
 
-    const HeaderInfo = styled.div`
+const OwnerInfo = styled.div`
     display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.md};
-    flex: 1;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.xs};
 `;
 
-    const HeaderIcon = styled.div`
-    width: 56px;
-    height: 56px;
-    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-    border-radius: ${brandTheme.radius.lg};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 24px;
-    box-shadow: ${brandTheme.shadow.md};
-    flex-shrink: 0;
-`;
-
-    const HeaderText = styled.div`
-    min-width: 0;
-    flex: 1;
-`;
-
-    const HeaderTitle = styled.h1`
-    font-size: 32px;
-    font-weight: 700;
-    color: ${brandTheme.text.primary};
-    margin: 0 0 ${brandTheme.spacing.xs} 0;
-    letter-spacing: -0.025em;
-    line-height: 1.2;
-
-    @media (max-width: 768px) {
-        font-size: 28px;
-    }
-`;
-
-    const HeaderSubtitle = styled.p`
-    color: ${brandTheme.text.secondary};
-    margin: 0;
-    font-size: 16px;
-    font-weight: 500;
-    line-height: 1.4;
-
-    @media (max-width: 768px) {
-        font-size: 14px;
-    }
-`;
-
-    const HeaderActions = styled.div`
-    display: flex;
-    gap: ${brandTheme.spacing.sm};
-    align-items: center;
-    flex-wrap: wrap;
-
-    @media (max-width: 1024px) {
-        justify-content: flex-end;
-        width: 100%;
-    }
-
-    @media (max-width: 768px) {
-        flex-direction: column;
-        gap: ${brandTheme.spacing.xs};
-
-        > * {
-            width: 100%;
-        }
-    }
-`;
-
-    const BaseButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
-    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
-    border-radius: ${brandTheme.radius.md};
-    font-weight: 600;
+const OwnerTitle = styled.div`
     font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 1px solid transparent;
-    white-space: nowrap;
-    min-height: 44px;
-    position: relative;
-    overflow: hidden;
-
-    &:hover {
-        transform: translateY(-1px);
-    }
-
-    &:active {
-        transform: translateY(0);
-    }
-
-    &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-        transform: none;
-    }
-
-    span {
-        @media (max-width: 480px) {
-            display: none;
-        }
-    }
-`;
-
-    const PrimaryButton = styled(BaseButton)`
-    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-    color: white;
-    box-shadow: ${brandTheme.shadow.sm};
-
-    &:hover {
-        background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
-        box-shadow: ${brandTheme.shadow.md};
-    }
-`;
-
-    const SecondaryButton = styled(BaseButton)`
-    background: ${brandTheme.surface};
+    font-weight: 500;
     color: ${brandTheme.text.secondary};
-    border-color: ${brandTheme.border};
-    box-shadow: ${brandTheme.shadow.xs};
-
-    &:hover {
-        background: ${brandTheme.surfaceHover};
-        color: ${brandTheme.text.primary};
-        border-color: ${brandTheme.borderHover};
-        box-shadow: ${brandTheme.shadow.sm};
-    }
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 `;
 
-    const DangerButton = styled(BaseButton)`
-    background: linear-gradient(135deg, ${brandTheme.status.error} 0%, #b91c1c 100%);
-    color: white;
-    box-shadow: ${brandTheme.shadow.sm};
-
-    &:hover {
-        background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
-        box-shadow: ${brandTheme.shadow.md};
-    }
+const OwnerName = styled.div`
+    font-size: 18px;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+    letter-spacing: -0.025em;
 `;
 
-    const StatsSection = styled.section`
+const StatsSection = styled.section`
     max-width: 1600px;
     margin: 0 auto;
     padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl} 0;
+    width: 100%;
 
     @media (max-width: 1024px) {
         padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg} 0;
@@ -918,7 +720,7 @@ const VehiclesPage: React.FC = () => {
     }
 `;
 
-    const StatsGrid = styled.div`
+const StatsGrid = styled.div`
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: ${brandTheme.spacing.lg};
@@ -935,7 +737,7 @@ const VehiclesPage: React.FC = () => {
     }
 `;
 
-    const StatCard = styled.div`
+const StatCard = styled.div`
     background: ${brandTheme.surface};
     border: 1px solid ${brandTheme.border};
     border-radius: ${brandTheme.radius.xl};
@@ -971,7 +773,7 @@ const VehiclesPage: React.FC = () => {
     }
 `;
 
-    const StatIcon = styled.div<{ $color: string }>`
+const StatIcon = styled.div<{ $color: string }>`
     width: 56px;
     height: 56px;
     background: linear-gradient(135deg, ${props => props.$color}15 0%, ${props => props.$color}08 100%);
@@ -985,12 +787,12 @@ const VehiclesPage: React.FC = () => {
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
 `;
 
-    const StatContent = styled.div`
+const StatContent = styled.div`
     flex: 1;
     min-width: 0;
 `;
 
-    const StatValue = styled.div`
+const StatValue = styled.div`
     font-size: 28px;
     font-weight: 700;
     color: ${brandTheme.text.primary};
@@ -1003,15 +805,14 @@ const VehiclesPage: React.FC = () => {
     }
 `;
 
-    const StatLabel = styled.div`
+const StatLabel = styled.div`
     font-size: 14px;
     color: ${brandTheme.text.secondary};
     font-weight: 500;
     line-height: 1.3;
 `;
 
-// Nowe style dla najaktywniejszego pojazdu
-    const MostActiveVehicleCard = styled.div`
+const MostActiveVehicleCard = styled.div`
     background: linear-gradient(135deg, ${brandTheme.status.warningLight} 0%, #fef3c7 100%);
     border: 2px solid ${brandTheme.status.warning}30;
     border-radius: ${brandTheme.radius.xl};
@@ -1020,14 +821,14 @@ const VehiclesPage: React.FC = () => {
     box-shadow: ${brandTheme.shadow.md};
 `;
 
-    const MostActiveHeader = styled.div`
+const MostActiveHeader = styled.div`
     display: flex;
     align-items: center;
     gap: ${brandTheme.spacing.md};
     margin-bottom: ${brandTheme.spacing.md};
 `;
 
-    const MostActiveIcon = styled.div`
+const MostActiveIcon = styled.div`
     width: 48px;
     height: 48px;
     background: ${brandTheme.status.warning};
@@ -1040,18 +841,18 @@ const VehiclesPage: React.FC = () => {
     box-shadow: ${brandTheme.shadow.sm};
 `;
 
-    const MostActiveContent = styled.div`
+const MostActiveContent = styled.div`
     flex: 1;
 `;
 
-    const MostActiveTitle = styled.div`
+const MostActiveTitle = styled.div`
     font-size: 18px;
     font-weight: 700;
     color: ${brandTheme.text.primary};
     margin-bottom: ${brandTheme.spacing.xs};
 `;
 
-    const MostActiveVehicleInfo = styled.div`
+const MostActiveVehicleInfo = styled.div`
     display: flex;
     align-items: center;
     gap: ${brandTheme.spacing.sm};
@@ -1060,7 +861,7 @@ const VehiclesPage: React.FC = () => {
     font-weight: 500;
 `;
 
-    const LicenseBadge = styled.span`
+const LicenseBadge = styled.span`
     background: ${brandTheme.status.warning};
     color: white;
     padding: 2px 8px;
@@ -1071,13 +872,13 @@ const VehiclesPage: React.FC = () => {
     letter-spacing: 1px;
 `;
 
-    const MostActiveStats = styled.div`
+const MostActiveStats = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
 `;
 
-    const MostActiveStat = styled.div`
+const MostActiveStat = styled.div`
     display: flex;
     gap: ${brandTheme.spacing.lg};
     font-size: 14px;
@@ -1093,7 +894,7 @@ const VehiclesPage: React.FC = () => {
     }
 `;
 
-    const ContentContainer = styled.div`
+const MainContent = styled.div`
     flex: 1;
     max-width: 1600px;
     margin: 0 auto;
@@ -1103,7 +904,6 @@ const VehiclesPage: React.FC = () => {
     flex-direction: column;
     gap: ${brandTheme.spacing.lg};
     min-height: 0;
-    overflow: hidden;
 
     @media (max-width: 1024px) {
         padding: 0 ${brandTheme.spacing.lg} ${brandTheme.spacing.lg};
@@ -1115,7 +915,7 @@ const VehiclesPage: React.FC = () => {
     }
 `;
 
-    const LoadingContainer = styled.div`
+const LoadingContainer = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1128,7 +928,7 @@ const VehiclesPage: React.FC = () => {
     min-height: 400px;
 `;
 
-    const LoadingSpinner = styled.div`
+const LoadingSpinner = styled.div`
     width: 48px;
     height: 48px;
     border: 3px solid ${brandTheme.borderLight};
@@ -1142,13 +942,13 @@ const VehiclesPage: React.FC = () => {
     }
 `;
 
-    const LoadingText = styled.div`
+const LoadingText = styled.div`
     font-size: 16px;
     color: ${brandTheme.text.secondary};
     font-weight: 500;
 `;
 
-    const ErrorMessage = styled.div`
+const ErrorMessage = styled.div`
     display: flex;
     align-items: center;
     gap: ${brandTheme.spacing.sm};
@@ -1166,7 +966,7 @@ const VehiclesPage: React.FC = () => {
     }
 `;
 
-    const TableContainer = styled.div`
+const TableContainer = styled.div`
     flex: 1;
     min-height: 0;
     overflow: hidden;
@@ -1183,8 +983,7 @@ const VehiclesPage: React.FC = () => {
     }
 `;
 
-// Nowe style dla paginacji
-    const PaginationContainer = styled.div`
+const PaginationContainer = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -1201,19 +1000,19 @@ const VehiclesPage: React.FC = () => {
     }
 `;
 
-    const PaginationInfo = styled.div`
+const PaginationInfo = styled.div`
     font-size: 14px;
     color: ${brandTheme.text.secondary};
     font-weight: 500;
 `;
 
-    const PaginationButtons = styled.div`
+const PaginationButtons = styled.div`
     display: flex;
     align-items: center;
     gap: ${brandTheme.spacing.sm};
 `;
 
-    const PaginationButton = styled.button`
+const PaginationButton = styled.button`
     padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
     border: 1px solid ${brandTheme.border};
     background: ${brandTheme.surface};
@@ -1236,12 +1035,12 @@ const VehiclesPage: React.FC = () => {
     }
 `;
 
-    const PageNumbers = styled.div`
+const PageNumbers = styled.div`
     display: flex;
     gap: ${brandTheme.spacing.xs};
 `;
 
-    const PageNumber = styled.button<{ $active: boolean }>`
+const PageNumber = styled.button<{ $active: boolean }>`
     width: 32px;
     height: 32px;
     border: 1px solid ${props => props.$active ? brandTheme.primary : brandTheme.border};
@@ -1261,13 +1060,13 @@ const VehiclesPage: React.FC = () => {
 `;
 
 // Delete Confirmation Modal Styles
-    const DeleteConfirmContent = styled.div`
+const DeleteConfirmContent = styled.div`
     display: flex;
     gap: ${brandTheme.spacing.md};
     padding: ${brandTheme.spacing.md} 0;
 `;
 
-    const DeleteIcon = styled.div`
+const DeleteIcon = styled.div`
     width: 48px;
     height: 48px;
     background: ${brandTheme.status.errorLight};
@@ -1280,18 +1079,18 @@ const VehiclesPage: React.FC = () => {
     flex-shrink: 0;
 `;
 
-    const DeleteText = styled.div`
+const DeleteText = styled.div`
     flex: 1;
 `;
 
-    const DeleteTitle = styled.div`
+const DeleteTitle = styled.div`
     font-size: 18px;
     font-weight: 700;
     color: ${brandTheme.text.primary};
     margin-bottom: ${brandTheme.spacing.sm};
 `;
 
-    const DeleteVehicleInfo = styled.div`
+const DeleteVehicleInfo = styled.div`
     background: ${brandTheme.surfaceAlt};
     padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
     border-radius: ${brandTheme.radius.md};
@@ -1307,7 +1106,7 @@ const VehiclesPage: React.FC = () => {
     }
 `;
 
-    const VehiclePlate = styled.span`
+const VehiclePlate = styled.span`
     background: ${brandTheme.primary};
     color: white;
     padding: 2px 8px;
@@ -1317,13 +1116,13 @@ const VehiclesPage: React.FC = () => {
     text-transform: uppercase;
 `;
 
-    const DeleteWarning = styled.div`
+const DeleteWarning = styled.div`
     font-size: 14px;
     color: ${brandTheme.status.error};
     font-weight: 500;
 `;
 
-    const DeleteConfirmButtons = styled.div`
+const DeleteConfirmButtons = styled.div`
     display: flex;
     justify-content: flex-end;
     gap: ${brandTheme.spacing.sm};
@@ -1332,4 +1131,54 @@ const VehiclesPage: React.FC = () => {
     border-top: 1px solid ${brandTheme.border};
 `;
 
-export default VehiclesPage;
+const BaseButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+    border-radius: ${brandTheme.radius.md};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid transparent;
+    white-space: nowrap;
+    min-height: 44px;
+
+    &:hover {
+        transform: translateY(-1px);
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
+`;
+
+const SecondaryButton = styled(BaseButton)`
+    background: ${brandTheme.surface};
+    color: ${brandTheme.text.secondary};
+    border-color: ${brandTheme.border};
+    box-shadow: ${brandTheme.shadow.xs};
+
+    &:hover {
+        background: ${brandTheme.surfaceHover};
+        color: ${brandTheme.text.primary};
+        border-color: ${brandTheme.borderHover};
+        box-shadow: ${brandTheme.shadow.sm};
+    }
+`;
+
+const DangerButton = styled(BaseButton)`
+    background: linear-gradient(135deg, ${brandTheme.status.error} 0%, #b91c1c 100%);
+    color: white;
+    box-shadow: ${brandTheme.shadow.sm};
+
+    &:hover {
+        background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+        box-shadow: ${brandTheme.shadow.md};
+    }
+`;
+
+export default VehiclesPageContent;

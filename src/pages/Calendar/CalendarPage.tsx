@@ -475,11 +475,14 @@ const CalendarPage: React.FC = () => {
         });
 
         const thisWeekStart = new Date(today);
-        thisWeekStart.setDate(today.getDate() - today.getDay());
+        const dayOfWeek = today.getDay();
+        const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Niedziela = 6 dni od poniedziałku
+        thisWeekStart.setDate(today.getDate() - daysFromMonday);
         thisWeekStart.setHours(0, 0, 0, 0);
 
         const thisWeekEnd = new Date(thisWeekStart);
-        thisWeekEnd.setDate(thisWeekStart.getDate() + 7);
+        thisWeekEnd.setDate(thisWeekStart.getDate() + 6); // +6 dni, żeby kończyć w niedzielę
+        thisWeekEnd.setHours(23, 59, 59, 999); // Koniec dnia w niedzielę
 
         const thisWeekAppointments = appointments.filter(appointment => {
             const appointmentDate = new Date(appointment.start);

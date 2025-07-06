@@ -84,9 +84,10 @@ const mainMenuItems: MainMenuItem[] = [
     // Zarządzanie biznesem
     {
         id: 'clients',
-        label: 'Klienci',
+        label: 'Klienci i pojazdy',
         icon: <FaUsers />,
-        hasSubmenu: true,
+        path: '/clients-vehicles',
+        hasSubmenu: false,
         category: 'business'
     },
     {
@@ -105,15 +106,6 @@ const mainMenuItems: MainMenuItem[] = [
         path: '/finances',
         hasSubmenu: false,
         category: 'business'
-    },
-    {
-        id: 'reports',
-        label: 'Raporty',
-        icon: <FaChartBar />,
-        path: '/reports',
-        hasSubmenu: false,
-        category: 'business',
-        badge: "Faza rozwoju"
     },
 
     // Narzędzia i administracja

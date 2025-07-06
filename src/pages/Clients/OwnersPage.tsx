@@ -1,5 +1,5 @@
-// OwnersPage.tsx - Updated with improved SMS modal and vehicle navigation
-import React, { useState, useEffect } from 'react';
+// src/pages/Clients/components/OwnersPageContent.tsx - Extracted Content Component
+import React, { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { FaPlus, FaSms, FaCheckSquare, FaSquare, FaUsers, FaFilter, FaFileExport, FaExclamationTriangle, FaTimes, FaPaperPlane, FaCheck } from 'react-icons/fa';
@@ -14,21 +14,16 @@ import Modal from '../../components/common/Modal';
 import DeleteConfirmationModal from "./modals/DeleteConfirmationModal";
 import { TooltipWrapper } from './components/ClientListTable/styles/components';
 
-// Professional Brand Theme - Premium Automotive CRM
+// Professional Brand Theme
 const brandTheme = {
-    // Primary Colors - Professional Blue Palette
     primary: 'var(--brand-primary, #1a365d)',
     primaryLight: 'var(--brand-primary-light, #2c5aa0)',
     primaryDark: 'var(--brand-primary-dark, #0f2027)',
     primaryGhost: 'var(--brand-primary-ghost, rgba(26, 54, 93, 0.04))',
-
-    // Surface Colors - Clean & Minimal
     surface: '#ffffff',
     surfaceAlt: '#fafbfc',
     surfaceElevated: '#f8fafc',
     surfaceHover: '#f1f5f9',
-
-    // Typography Colors
     text: {
         primary: '#0f172a',
         secondary: '#475569',
@@ -36,13 +31,9 @@ const brandTheme = {
         muted: '#94a3b8',
         disabled: '#cbd5e1'
     },
-
-    // Border Colors
     border: '#e2e8f0',
     borderLight: '#f1f5f9',
     borderHover: '#cbd5e1',
-
-    // Status Colors - Automotive Grade
     status: {
         success: '#059669',
         successLight: '#d1fae5',
@@ -53,8 +44,6 @@ const brandTheme = {
         info: '#0ea5e9',
         infoLight: '#e0f2fe'
     },
-
-    // Shadows - Professional Depth
     shadow: {
         xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
         sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
@@ -62,8 +51,6 @@ const brandTheme = {
         lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
         xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
     },
-
-    // Spacing Scale
     spacing: {
         xs: '4px',
         sm: '8px',
@@ -72,8 +59,6 @@ const brandTheme = {
         xl: '32px',
         xxl: '48px'
     },
-
-    // Border Radius
     radius: {
         sm: '6px',
         md: '8px',
@@ -83,7 +68,21 @@ const brandTheme = {
     }
 };
 
-const OwnersPage: React.FC = () => {
+interface OwnersPageContentProps {
+    onSetRef?: (ref: {
+        handleAddClient?: () => void;
+        handleExportClients?: () => void;
+        handleOpenBulkSmsModal?: () => void;
+        selectedClientIds?: string[];
+    }) => void;
+}
+
+const OwnersPageContent = forwardRef<{
+    handleAddClient: () => void;
+    handleExportClients: () => void;
+    handleOpenBulkSmsModal: () => void;
+    selectedClientIds: string[];
+}, OwnersPageContentProps>(({ onSetRef }, ref) => {
     const navigate = useNavigate();
 
     // State
@@ -123,6 +122,26 @@ const OwnersPage: React.FC = () => {
         totalRevenue: 0,
         averageRevenue: 0
     });
+
+    // Expose methods to parent via ref
+    useImperativeHandle(ref, () => ({
+        handleAddClient,
+        handleExportClients,
+        handleOpenBulkSmsModal,
+        selectedClientIds
+    }), [selectedClientIds]);
+
+    // Notify parent when methods change
+    useEffect(() => {
+        if (onSetRef) {
+            onSetRef({
+                handleAddClient,
+                handleExportClients,
+                handleOpenBulkSmsModal,
+                selectedClientIds
+            });
+        }
+    }, [selectedClientIds, onSetRef]);
 
     // Load clients on component mount
     useEffect(() => {
@@ -298,9 +317,8 @@ const OwnersPage: React.FC = () => {
         }
     };
 
-    // Fixed vehicle navigation
     const handleShowVehicles = (clientId: string) => {
-        navigate(`/clients/vehicles?ownerId=${clientId}`);
+        navigate(`/clients-vehicles?tab=vehicles&ownerId=${clientId}`);
     };
 
     const handleAddContactAttempt = (client: ClientExpanded) => {
@@ -394,43 +412,7 @@ const OwnersPage: React.FC = () => {
     };
 
     return (
-        <PageContainer>
-            {/* Professional Header */}
-            <PageHeader>
-                <HeaderContent>
-                    <HeaderLeft>
-                        <HeaderIcon>
-                            <FaUsers />
-                        </HeaderIcon>
-                        <HeaderText>
-                            <HeaderTitle>Baza Klientów</HeaderTitle>
-                            <HeaderSubtitle>
-                                Zarządzanie relacjami z klientami detailingu
-                            </HeaderSubtitle>
-                        </HeaderText>
-                    </HeaderLeft>
-
-                    <HeaderActions>
-                        {selectedClientIds.length > 0 && (
-                            <BulkActionButton onClick={handleOpenBulkSmsModal}>
-                                <FaSms />
-                                <span>SMS do zaznaczonych ({selectedClientIds.length})</span>
-                            </BulkActionButton>
-                        )}
-
-                        <SecondaryButton onClick={handleExportClients}>
-                            <FaFileExport />
-                            <span>Eksport</span>
-                        </SecondaryButton>
-
-                        <PrimaryButton onClick={handleAddClient}>
-                            <FaPlus />
-                            <span>Nowy klient</span>
-                        </PrimaryButton>
-                    </HeaderActions>
-                </HeaderContent>
-            </PageHeader>
-
+        <ContentContainer>
             {/* Statistics Dashboard */}
             <StatsSection>
                 <StatsGrid>
@@ -458,7 +440,7 @@ const OwnersPage: React.FC = () => {
                         </StatCard>
                     </TooltipWrapper>
 
-                    <TooltipWrapper title="Suma wszystkich przychodów wszystkich zakońcoznych wizyt w całej historii firmy">
+                    <TooltipWrapper title="Suma wszystkich przychodów wszystkich zakończonych wizyt w całej historii firmy">
                         <StatCard>
                             <StatIcon $color={brandTheme.text.secondary}>
                                 <FaUsers />
@@ -484,8 +466,8 @@ const OwnersPage: React.FC = () => {
                 </StatsGrid>
             </StatsSection>
 
-            {/* Content Container - Takes full width */}
-            <ContentContainer>
+            {/* Main Content */}
+            <MainContent>
                 {/* Filters */}
                 <ClientFilters
                     filters={filters}
@@ -532,7 +514,7 @@ const OwnersPage: React.FC = () => {
                             </SelectionBar>
                         )}
 
-                        {/* Main Table Component - Now Modular! */}
+                        {/* Main Table Component */}
                         <TableContainer>
                             <ClientListTable
                                 clients={filteredClients}
@@ -548,7 +530,7 @@ const OwnersPage: React.FC = () => {
                         </TableContainer>
                     </>
                 )}
-            </ContentContainer>
+            </MainContent>
 
             {/* Detail Drawer */}
             <ClientDetailDrawer
@@ -589,10 +571,10 @@ const OwnersPage: React.FC = () => {
                     onClose={() => setShowBulkSmsModal(false)}
                     title="Masowe wysyłanie SMS"
                 >
-                    <EnhancedBulkSmsContent>
+                    <BulkSmsContent>
                         <BulkSmsHeader>
                             <BulkSmsIcon>
-                                <FaPaperPlane />
+                                <FaSms />
                             </BulkSmsIcon>
                             <BulkSmsInfo>
                                 <BulkSmsTitle>
@@ -626,61 +608,280 @@ const OwnersPage: React.FC = () => {
                             </SmsFormGroup>
                         </SmsFormSection>
 
-                        <RecipientsList>
-                            <RecipientsHeader>
-                                <RecipientsLabel>
-                                    <FaUsers />
-                                    Lista odbiorców ({selectedClientIds.length})
-                                </RecipientsLabel>
-                                <RecipientsToggle>
-                                    Kliknij aby rozwinąć listę
-                                </RecipientsToggle>
-                            </RecipientsHeader>
-                            <RecipientsContainer>
-                                {clients
-                                    .filter(client => selectedClientIds.includes(client.id))
-                                    .map(client => (
-                                        <RecipientItem key={client.id}>
-                                            <RecipientAvatar>
-                                                {client.firstName.charAt(0)}{client.lastName.charAt(0)}
-                                            </RecipientAvatar>
-                                            <RecipientInfo>
-                                                <RecipientName>
-                                                    {client.firstName} {client.lastName}
-                                                </RecipientName>
-                                                <RecipientPhone>{client.phone}</RecipientPhone>
-                                            </RecipientInfo>
-                                            <RecipientStatus>
-                                                <FaCheck />
-                                            </RecipientStatus>
-                                        </RecipientItem>
-                                    ))
-                                }
-                            </RecipientsContainer>
-                        </RecipientsList>
-
                         <BulkSmsActions>
                             <SecondaryButton onClick={() => setShowBulkSmsModal(false)}>
-                                <FaTimes />
-                                <span>Anuluj</span>
+                                Anuluj
                             </SecondaryButton>
                             <PrimaryButton
                                 onClick={handleSendBulkSms}
                                 disabled={bulkSmsText.trim() === ''}
                             >
-                                <FaPaperPlane />
-                                <span>Wyślij SMS ({selectedClientIds.length})</span>
+                                Wyślij SMS ({selectedClientIds.length})
                             </PrimaryButton>
                         </BulkSmsActions>
-                    </EnhancedBulkSmsContent>
+                    </BulkSmsContent>
                 </Modal>
             )}
-        </PageContainer>
+        </ContentContainer>
     );
-};
+})
 
-// Enhanced Bulk SMS Modal Styles
-const EnhancedBulkSmsContent = styled.div`
+// Styled Components
+const ContentContainer = styled.div`
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: ${brandTheme.surfaceAlt};
+`;
+
+const StatsSection = styled.section`
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl} 0;
+    width: 100%;
+
+    @media (max-width: 1024px) {
+        padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg} 0;
+    }
+
+    @media (max-width: 768px) {
+        padding: ${brandTheme.spacing.md} ${brandTheme.spacing.md} 0;
+    }
+`;
+
+const StatsGrid = styled.div`
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: ${brandTheme.spacing.lg};
+    margin-bottom: ${brandTheme.spacing.lg};
+
+    @media (max-width: 1200px) {
+        grid-template-columns: repeat(2, 1fr);
+        gap: ${brandTheme.spacing.md};
+    }
+
+    @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+        gap: ${brandTheme.spacing.md};
+    }
+`;
+
+const StatCard = styled.div`
+    background: ${brandTheme.surface};
+    border: 1px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.xl};
+    padding: ${brandTheme.spacing.lg};
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.md};
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: ${brandTheme.shadow.xs};
+    position: relative;
+    overflow: hidden;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: ${brandTheme.shadow.lg};
+        border-color: ${brandTheme.primary};
+    }
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+
+    &:hover::before {
+        opacity: 1;
+    }
+`;
+
+const StatIcon = styled.div<{ $color: string }>`
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, ${props => props.$color}15 0%, ${props => props.$color}08 100%);
+    border-radius: ${brandTheme.radius.lg};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${props => props.$color};
+    font-size: 24px;
+    flex-shrink: 0;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+`;
+
+const StatContent = styled.div`
+    flex: 1;
+    min-width: 0;
+`;
+
+const StatValue = styled.div`
+    font-size: 28px;
+    font-weight: 700;
+    color: ${brandTheme.text.primary};
+    margin-bottom: ${brandTheme.spacing.xs};
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+
+    @media (max-width: 768px) {
+        font-size: 24px;
+    }
+`;
+
+const StatLabel = styled.div`
+    font-size: 14px;
+    color: ${brandTheme.text.secondary};
+    font-weight: 500;
+    line-height: 1.3;
+`;
+
+const MainContent = styled.div`
+    flex: 1;
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 0 ${brandTheme.spacing.xl} ${brandTheme.spacing.xl};
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.lg};
+    min-height: 0;
+
+    @media (max-width: 1024px) {
+        padding: 0 ${brandTheme.spacing.lg} ${brandTheme.spacing.lg};
+    }
+
+    @media (max-width: 768px) {
+        padding: 0 ${brandTheme.spacing.md} ${brandTheme.spacing.md};
+        gap: ${brandTheme.spacing.md};
+    }
+`;
+
+const SelectionBar = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    background: linear-gradient(135deg, ${brandTheme.primaryGhost} 0%, rgba(26, 54, 93, 0.02) 100%);
+    border: 1px solid ${brandTheme.borderLight};
+    border-radius: ${brandTheme.radius.lg};
+    margin-bottom: ${brandTheme.spacing.md};
+`;
+
+const SelectAllCheckbox = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    cursor: pointer;
+    color: ${brandTheme.text.primary};
+    font-weight: 500;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
+    border-radius: ${brandTheme.radius.md};
+
+    svg {
+        color: ${brandTheme.primary};
+        font-size: 18px;
+        transition: transform 0.2s ease;
+    }
+
+    &:hover {
+        color: ${brandTheme.primary};
+        background: ${brandTheme.primaryGhost};
+
+        svg {
+            transform: scale(1.1);
+        }
+    }
+`;
+
+const SelectionInfo = styled.div`
+    font-size: 14px;
+    color: ${brandTheme.primary};
+    font-weight: 600;
+    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
+    background: ${brandTheme.surface};
+    border-radius: ${brandTheme.radius.md};
+    border: 1px solid ${brandTheme.primary}30;
+`;
+
+const LoadingContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: ${brandTheme.spacing.xxl};
+    background: ${brandTheme.surface};
+    border-radius: ${brandTheme.radius.xl};
+    border: 1px solid ${brandTheme.border};
+    gap: ${brandTheme.spacing.md};
+    min-height: 400px;
+`;
+
+const LoadingSpinner = styled.div`
+    width: 48px;
+    height: 48px;
+    border: 3px solid ${brandTheme.borderLight};
+    border-top: 3px solid ${brandTheme.primary};
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+`;
+
+const LoadingText = styled.div`
+    font-size: 16px;
+    color: ${brandTheme.text.secondary};
+    font-weight: 500;
+`;
+
+const ErrorMessage = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    background: ${brandTheme.status.errorLight};
+    color: ${brandTheme.status.error};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    border-radius: ${brandTheme.radius.lg};
+    border: 1px solid ${brandTheme.status.error}30;
+    font-weight: 500;
+    box-shadow: ${brandTheme.shadow.xs};
+
+    svg {
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+`;
+
+const TableContainer = styled.div`
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 400px);
+
+    @media (max-width: 1024px) {
+        max-height: calc(100vh - 350px);
+    }
+
+    @media (max-width: 768px) {
+        max-height: calc(100vh - 300px);
+    }
+`;
+
+// Bulk SMS Modal styles
+const BulkSmsContent = styled.div`
     padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.md};
     display: flex;
     flex-direction: column;
@@ -696,690 +897,154 @@ const BulkSmsHeader = styled.div`
 `;
 
 const BulkSmsIcon = styled.div`
-   width: 56px;
-   height: 56px;
-   background: linear-gradient(135deg, ${brandTheme.status.success} 0%, #10b981 100%);
-   border-radius: ${brandTheme.radius.xl};
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   color: white;
-   font-size: 24px;
-   box-shadow: ${brandTheme.shadow.lg};
-   flex-shrink: 0;
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, ${brandTheme.status.success} 0%, #10b981 100%);
+    border-radius: ${brandTheme.radius.xl};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+    box-shadow: ${brandTheme.shadow.lg};
+    flex-shrink: 0;
 `;
 
 const BulkSmsInfo = styled.div`
-   flex: 1;
+    flex: 1;
 `;
 
 const BulkSmsTitle = styled.div`
-   font-size: 20px;
-   font-weight: 700;
-   color: ${brandTheme.text.primary};
-   margin-bottom: ${brandTheme.spacing.xs};
-   letter-spacing: -0.025em;
+    font-size: 20px;
+    font-weight: 700;
+    color: ${brandTheme.text.primary};
+    margin-bottom: ${brandTheme.spacing.xs};
+    letter-spacing: -0.025em;
 `;
 
 const BulkSmsSubtitle = styled.div`
-   font-size: 14px;
-   color: ${brandTheme.text.secondary};
-   line-height: 1.5;
+    font-size: 14px;
+    color: ${brandTheme.text.secondary};
+    line-height: 1.5;
 `;
 
 const SmsFormSection = styled.div`
-   display: flex;
-   flex-direction: column;
-   gap: ${brandTheme.spacing.lg};
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.lg};
 `;
 
 const SmsFormGroup = styled.div`
-   display: flex;
-   flex-direction: column;
-   gap: ${brandTheme.spacing.sm};
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.sm};
 `;
 
 const SmsLabel = styled.label`
-   font-weight: 600;
-   font-size: 14px;
-   color: ${brandTheme.text.primary};
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.xs};
+    font-weight: 600;
+    font-size: 14px;
+    color: ${brandTheme.text.primary};
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.xs};
 `;
 
 const SmsTextarea = styled.textarea`
-   width: 100%;
-   padding: ${brandTheme.spacing.md};
-   border: 2px solid ${brandTheme.border};
-   border-radius: ${brandTheme.radius.lg};
-   font-size: 15px;
-   font-weight: 500;
-   background: ${brandTheme.surface};
-   color: ${brandTheme.text.primary};
-   resize: vertical;
-   min-height: 120px;
-   font-family: inherit;
-   line-height: 1.6;
-   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 100%;
+    padding: ${brandTheme.spacing.md};
+    border: 2px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.lg};
+    font-size: 15px;
+    font-weight: 500;
+    background: ${brandTheme.surface};
+    color: ${brandTheme.text.primary};
+    resize: vertical;
+    min-height: 120px;
+    font-family: inherit;
+    line-height: 1.6;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
-   &:focus {
-       outline: none;
-       border-color: ${brandTheme.primary};
-       box-shadow: 0 0 0 4px ${brandTheme.primaryGhost};
-       transform: translateY(-1px);
-   }
+    &:focus {
+        outline: none;
+        border-color: ${brandTheme.primary};
+        box-shadow: 0 0 0 4px ${brandTheme.primaryGhost};
+        transform: translateY(-1px);
+    }
 
-   &::placeholder {
-       color: ${brandTheme.text.tertiary};
-       font-weight: 400;
-   }
+    &::placeholder {
+        color: ${brandTheme.text.tertiary};
+        font-weight: 400;
+    }
 `;
 
 const SmsCharacterCounter = styled.div<{ $nearLimit?: boolean }>`
-   font-size: 12px;
-   color: ${props => props.$nearLimit ? brandTheme.status.warning : brandTheme.text.muted};
-   text-align: right;
-   font-weight: 500;
-   
-   span {
-       color: ${brandTheme.status.error};
-       font-weight: 600;
-   }
-`;
+    font-size: 12px;
+    color: ${props => props.$nearLimit ? brandTheme.status.warning : brandTheme.text.muted};
+    text-align: right;
+    font-weight: 500;
 
-const QuickTemplates = styled.div`
-   background: linear-gradient(135deg, ${brandTheme.surfaceAlt} 0%, ${brandTheme.surface} 100%);
-   border: 1px solid ${brandTheme.borderLight};
-   border-radius: ${brandTheme.radius.lg};
-   padding: ${brandTheme.spacing.md};
-`;
-
-const TemplateLabel = styled.div`
-   font-size: 13px;
-   font-weight: 600;
-   color: ${brandTheme.text.secondary};
-   margin-bottom: ${brandTheme.spacing.sm};
-   text-transform: uppercase;
-   letter-spacing: 0.5px;
-`;
-
-const TemplateButtons = styled.div`
-   display: flex;
-   gap: ${brandTheme.spacing.xs};
-   flex-wrap: wrap;
-`;
-
-const TemplateButton = styled.button`
-   padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
-   background: ${brandTheme.surface};
-   border: 1px solid ${brandTheme.border};
-   border-radius: ${brandTheme.radius.md};
-   font-size: 12px;
-   font-weight: 500;
-   color: ${brandTheme.text.secondary};
-   cursor: pointer;
-   transition: all 0.2s ease;
-   
-   &:hover {
-       background: ${brandTheme.primary};
-       color: white;
-       border-color: ${brandTheme.primary};
-       transform: translateY(-1px);
-       box-shadow: ${brandTheme.shadow.sm};
-   }
-`;
-
-const RecipientsList = styled.div`
-   background: ${brandTheme.surfaceAlt};
-   border: 1px solid ${brandTheme.border};
-   border-radius: ${brandTheme.radius.lg};
-   overflow: hidden;
-`;
-
-const RecipientsHeader = styled.div`
-   display: flex;
-   justify-content: space-between;
-   align-items: center;
-   padding: ${brandTheme.spacing.md};
-   background: linear-gradient(135deg, ${brandTheme.primaryGhost} 0%, transparent 100%);
-   border-bottom: 1px solid ${brandTheme.borderLight};
-`;
-
-const RecipientsLabel = styled.div`
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.xs};
-   font-weight: 600;
-   font-size: 14px;
-   color: ${brandTheme.text.primary};
-   
-   svg {
-       color: ${brandTheme.primary};
-   }
-`;
-
-const RecipientsToggle = styled.div`
-   font-size: 12px;
-   color: ${brandTheme.text.muted};
-   font-style: italic;
-`;
-
-const RecipientsContainer = styled.div`
-   max-height: 200px;
-   overflow-y: auto;
-   
-   &::-webkit-scrollbar {
-       width: 6px;
-   }
-   &::-webkit-scrollbar-track {
-       background: ${brandTheme.surfaceAlt};
-   }
-   &::-webkit-scrollbar-thumb {
-       background: ${brandTheme.border};
-       border-radius: 3px;
-       
-       &:hover {
-           background: ${brandTheme.borderHover};
-       }
-   }
-`;
-
-const RecipientItem = styled.div`
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.md};
-   padding: ${brandTheme.spacing.md};
-   border-bottom: 1px solid ${brandTheme.borderLight};
-   transition: all 0.2s ease;
-
-   &:last-child {
-       border-bottom: none;
-   }
-
-   &:hover {
-       background: ${brandTheme.surface};
-       transform: translateX(4px);
-   }
-`;
-
-const RecipientAvatar = styled.div`
-   width: 40px;
-   height: 40px;
-   background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-   border-radius: 50%;
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   color: white;
-   font-weight: 600;
-   font-size: 14px;
-   flex-shrink: 0;
-   box-shadow: ${brandTheme.shadow.sm};
-`;
-
-const RecipientInfo = styled.div`
-   flex: 1;
-   min-width: 0;
-`;
-
-const RecipientName = styled.div`
-   font-size: 14px;
-   font-weight: 600;
-   color: ${brandTheme.text.primary};
-   margin-bottom: 2px;
-`;
-
-const RecipientPhone = styled.div`
-   font-size: 13px;
-   color: ${brandTheme.text.secondary};
-   font-weight: 500;
-`;
-
-const RecipientStatus = styled.div`
-   color: ${brandTheme.status.success};
-   font-size: 14px;
-   flex-shrink: 0;
+    span {
+        color: ${brandTheme.status.error};
+        font-weight: 600;
+    }
 `;
 
 const BulkSmsActions = styled.div`
-   display: flex;
-   justify-content: flex-end;
-   gap: ${brandTheme.spacing.sm};
-   padding-top: ${brandTheme.spacing.lg};
-   border-top: 2px solid ${brandTheme.borderLight};
-`;
-
-// Pozostałe style - kopiowane z oryginalnego pliku
-const PageContainer = styled.div`
-   min-height: 100vh;
-   background: ${brandTheme.surfaceAlt};
-   display: flex;
-   flex-direction: column;
-`;
-
-const PageHeader = styled.header`
-   background: ${brandTheme.surface};
-   border-bottom: 1px solid ${brandTheme.border};
-   box-shadow: ${brandTheme.shadow.sm};
-   position: sticky;
-   top: 0;
-   z-index: 100;
-   backdrop-filter: blur(8px);
-   background: rgba(255, 255, 255, 0.95);
-`;
-
-const HeaderContent = styled.div`
-   max-width: 1600px;
-   margin: 0 auto;
-   padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
-   display: flex;
-   justify-content: space-between;
-   align-items: center;
-   gap: ${brandTheme.spacing.lg};
-
-   @media (max-width: 1024px) {
-       padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-       flex-direction: column;
-       align-items: stretch;
-       gap: ${brandTheme.spacing.md};
-   }
-
-   @media (max-width: 768px) {
-       padding: ${brandTheme.spacing.md};
-   }
-`;
-
-const HeaderLeft = styled.div`
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.md};
-   min-width: 0;
-   flex: 1;
-`;
-
-const HeaderIcon = styled.div`
-   width: 56px;
-   height: 56px;
-   background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-   border-radius: ${brandTheme.radius.lg};
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   color: white;
-   font-size: 24px;
-   box-shadow: ${brandTheme.shadow.md};
-   flex-shrink: 0;
-`;
-
-const HeaderText = styled.div`
-   min-width: 0;
-   flex: 1;
-`;
-
-const HeaderTitle = styled.h1`
-   font-size: 32px;
-   font-weight: 700;
-   color: ${brandTheme.text.primary};
-   margin: 0 0 ${brandTheme.spacing.xs} 0;
-   letter-spacing: -0.025em;
-   line-height: 1.2;
-
-   @media (max-width: 768px) {
-       font-size: 28px;
-   }
-`;
-
-const HeaderSubtitle = styled.p`
-   color: ${brandTheme.text.secondary};
-   margin: 0;
-   font-size: 16px;
-   font-weight: 500;
-   line-height: 1.4;
-
-   @media (max-width: 768px) {
-       font-size: 14px;
-   }
-`;
-
-const HeaderActions = styled.div`
-   display: flex;
-   gap: ${brandTheme.spacing.sm};
-   align-items: center;
-   flex-wrap: wrap;
-
-   @media (max-width: 1024px) {
-       justify-content: flex-end;
-       width: 100%;
-   }
-
-   @media (max-width: 768px) {
-       flex-direction: column;
-       gap: ${brandTheme.spacing.xs};
-
-       > * {
-           width: 100%;
-       }
-   }
+    display: flex;
+    justify-content: flex-end;
+    gap: ${brandTheme.spacing.sm};
+    padding-top: ${brandTheme.spacing.lg};
+    border-top: 2px solid ${brandTheme.borderLight};
 `;
 
 const BaseButton = styled.button`
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.sm};
-   padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
-   border-radius: ${brandTheme.radius.md};
-   font-weight: 600;
-   font-size: 14px;
-   cursor: pointer;
-   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-   border: 1px solid transparent;
-   white-space: nowrap;
-   min-height: 44px;
-   position: relative;
-   overflow: hidden;
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+    border-radius: ${brandTheme.radius.md};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid transparent;
+    white-space: nowrap;
+    min-height: 44px;
 
-   &:hover {
-       transform: translateY(-1px);
-   }
+    &:hover {
+        transform: translateY(-1px);
+    }
 
-   &:active {
-       transform: translateY(0);
-   }
-
-   &:disabled {
-       opacity: 0.5;
-       cursor: not-allowed;
-       transform: none;
-   }
-
-   span {
-       @media (max-width: 480px) {
-           display: none;
-       }
-   }
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
 `;
 
 const PrimaryButton = styled(BaseButton)`
-   background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-   color: white;
-   box-shadow: ${brandTheme.shadow.sm};
+    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+    color: white;
+    box-shadow: ${brandTheme.shadow.sm};
 
-   &:hover {
-       background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
-       box-shadow: ${brandTheme.shadow.md};
-   }
+    &:hover {
+        background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
+        box-shadow: ${brandTheme.shadow.md};
+    }
 `;
 
 const SecondaryButton = styled(BaseButton)`
-   background: ${brandTheme.surface};
-   color: ${brandTheme.text.secondary};
-   border-color: ${brandTheme.border};
-   box-shadow: ${brandTheme.shadow.xs};
+    background: ${brandTheme.surface};
+    color: ${brandTheme.text.secondary};
+    border-color: ${brandTheme.border};
+    box-shadow: ${brandTheme.shadow.xs};
 
-   &:hover {
-       background: ${brandTheme.surfaceHover};
-       color: ${brandTheme.text.primary};
-       border-color: ${brandTheme.borderHover};
-       box-shadow: ${brandTheme.shadow.sm};
-   }
+    &:hover {
+        background: ${brandTheme.surfaceHover};
+        color: ${brandTheme.text.primary};
+        border-color: ${brandTheme.borderHover};
+        box-shadow: ${brandTheme.shadow.sm};
+    }
 `;
 
-const BulkActionButton = styled(BaseButton)`
-   background: linear-gradient(135deg, ${brandTheme.status.success} 0%, #10b981 100%);
-   color: white;
-   box-shadow: ${brandTheme.shadow.sm};
-
-   &:hover {
-       background: linear-gradient(135deg, #059669 0%, ${brandTheme.status.success} 100%);
-       box-shadow: ${brandTheme.shadow.md};
-   }
-`;
-
-// Pozostałe komponenty z oryginalnego pliku...
-const StatsSection = styled.section`
-   max-width: 1600px;
-   margin: 0 auto;
-   padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl} 0;
-
-   @media (max-width: 1024px) {
-       padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg} 0;
-   }
-
-   @media (max-width: 768px) {
-       padding: ${brandTheme.spacing.md} ${brandTheme.spacing.md} 0;
-   }
-`;
-
-const StatsGrid = styled.div`
-   display: grid;
-   grid-template-columns: repeat(4, 1fr);
-   gap: ${brandTheme.spacing.lg};
-   margin-bottom: ${brandTheme.spacing.lg};
-
-   @media (max-width: 1200px) {
-       grid-template-columns: repeat(2, 1fr);
-       gap: ${brandTheme.spacing.md};
-   }
-
-   @media (max-width: 768px) {
-       grid-template-columns: 1fr;
-       gap: ${brandTheme.spacing.md};
-   }
-`;
-
-const StatCard = styled.div`
-   background: ${brandTheme.surface};
-   border: 1px solid ${brandTheme.border};
-   border-radius: ${brandTheme.radius.xl};
-   padding: ${brandTheme.spacing.lg};
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.md};
-   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-   box-shadow: ${brandTheme.shadow.xs};
-   position: relative;
-   overflow: hidden;
-
-   &:hover {
-       transform: translateY(-2px);
-       box-shadow: ${brandTheme.shadow.lg};
-       border-color: ${brandTheme.primary};
-   }
-
-   &::before {
-       content: '';
-       position: absolute;
-       top: 0;
-       left: 0;
-       right: 0;
-       height: 4px;
-       background: linear-gradient(90deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-       opacity: 0;
-       transition: opacity 0.2s ease;
-   }
-
-   &:hover::before {
-       opacity: 1;
-   }
-`;
-
-const StatIcon = styled.div<{ $color: string }>`
-   width: 56px;
-   height: 56px;
-   background: linear-gradient(135deg, ${props => props.$color}15 0%, ${props => props.$color}08 100%);
-   border-radius: ${brandTheme.radius.lg};
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   color: ${props => props.$color};
-   font-size: 24px;
-   flex-shrink: 0;
-   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
-`;
-
-const StatContent = styled.div`
-   flex: 1;
-   min-width: 0;
-`;
-
-const StatValue = styled.div`
-   font-size: 28px;
-   font-weight: 700;
-   color: ${brandTheme.text.primary};
-   margin-bottom: ${brandTheme.spacing.xs};
-   letter-spacing: -0.025em;
-   line-height: 1.1;
-
-   @media (max-width: 768px) {
-       font-size: 24px;
-   }
-`;
-
-const StatLabel = styled.div`
-   font-size: 14px;
-   color: ${brandTheme.text.secondary};
-   font-weight: 500;
-   line-height: 1.3;
-`;
-
-const ContentContainer = styled.div`
-   flex: 1;
-   max-width: 1600px;
-   margin: 0 auto;
-   padding: 0 ${brandTheme.spacing.xl} ${brandTheme.spacing.xl};
-   width: 100%;
-   display: flex;
-   flex-direction: column;
-   gap: ${brandTheme.spacing.lg};
-   min-height: 0;
-   overflow: hidden;
-
-   @media (max-width: 1024px) {
-       padding: 0 ${brandTheme.spacing.lg} ${brandTheme.spacing.lg};
-   }
-
-   @media (max-width: 768px) {
-       padding: 0 ${brandTheme.spacing.md} ${brandTheme.spacing.md};
-       gap: ${brandTheme.spacing.md};
-   }
-`;
-
-const SelectionBar = styled.div`
-   display: flex;
-   justify-content: space-between;
-   align-items: center;
-   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-   background: linear-gradient(135deg, ${brandTheme.primaryGhost} 0%, rgba(26, 54, 93, 0.02) 100%);
-   border: 1px solid ${brandTheme.borderLight};
-   border-radius: ${brandTheme.radius.lg};
-   margin-bottom: ${brandTheme.spacing.md};
-`;
-
-const SelectAllCheckbox = styled.div`
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.sm};
-   cursor: pointer;
-   color: ${brandTheme.text.primary};
-   font-weight: 500;
-   font-size: 14px;
-   transition: all 0.2s ease;
-   padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
-   border-radius: ${brandTheme.radius.md};
-
-   svg {
-       color: ${brandTheme.primary};
-       font-size: 18px;
-       transition: transform 0.2s ease;
-   }
-
-   &:hover {
-       color: ${brandTheme.primary};
-       background: ${brandTheme.primaryGhost};
-
-       svg {
-           transform: scale(1.1);
-       }
-   }
-`;
-
-const SelectionInfo = styled.div`
-   font-size: 14px;
-   color: ${brandTheme.primary};
-   font-weight: 600;
-   padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
-   background: ${brandTheme.surface};
-   border-radius: ${brandTheme.radius.md};
-   border: 1px solid ${brandTheme.primary}30;
-`;
-
-const LoadingContainer = styled.div`
-   display: flex;
-   flex-direction: column;
-   align-items: center;
-   justify-content: center;
-   padding: ${brandTheme.spacing.xxl};
-   background: ${brandTheme.surface};
-   border-radius: ${brandTheme.radius.xl};
-   border: 1px solid ${brandTheme.border};
-   gap: ${brandTheme.spacing.md};
-   min-height: 400px;
-`;
-
-const LoadingSpinner = styled.div`
-   width: 48px;
-   height: 48px;
-   border: 3px solid ${brandTheme.borderLight};
-   border-top: 3px solid ${brandTheme.primary};
-   border-radius: 50%;
-   animation: spin 1s linear infinite;
-
-   @keyframes spin {
-       0% { transform: rotate(0deg); }
-       100% { transform: rotate(360deg); }
-   }
-`;
-
-const LoadingText = styled.div`
-   font-size: 16px;
-   color: ${brandTheme.text.secondary};
-   font-weight: 500;
-`;
-
-const ErrorMessage = styled.div`
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.sm};
-   background: ${brandTheme.status.errorLight};
-   color: ${brandTheme.status.error};
-   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-   border-radius: ${brandTheme.radius.lg};
-   border: 1px solid ${brandTheme.status.error}30;
-   font-weight: 500;
-   box-shadow: ${brandTheme.shadow.xs};
-
-   svg {
-       font-size: 18px;
-       flex-shrink: 0;
-   }
-`;
-
-const TableContainer = styled.div`
-   flex: 1;
-   min-height: 0;
-   overflow: hidden;
-   display: flex;
-   flex-direction: column;
-   max-height: calc(100vh - 400px);
-
-   @media (max-width: 1024px) {
-       max-height: calc(100vh - 350px);
-   }
-
-   @media (max-width: 768px) {
-       max-height: calc(100vh - 300px);
-   }
-`;
-
-export default OwnersPage;
+export default OwnersPageContent;

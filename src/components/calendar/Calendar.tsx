@@ -101,8 +101,8 @@ const AppointmentCalendar: React.FC<CalendarProps> = ({
         scheduled: true,
         inProgress: true,
         readyForPickup: true,
-        completed: false,
-        cancelled: false
+        completed: true,  // Dodane - domyślnie włączone
+        cancelled: true   // Dodane - domyślnie włączone
     });
 
     const calendarRef = useRef<FullCalendar>(null);
@@ -153,8 +153,12 @@ const AppointmentCalendar: React.FC<CalendarProps> = ({
                 classNames: [
                     'professional-event',
                     `status-${event.status}`,
-                    event.isProtocol ? 'protocol-event' : 'appointment-event'
-                ]
+                    `status-${event.status.toLowerCase()}`, // Dodane dla CSS
+                    event.isProtocol ? 'protocol-event' : 'appointment-event',
+                    // Dodaj klasy dla zakończonych statusów
+                    event.status === AppointmentStatus.COMPLETED ? 'completed-event' : '',
+                    event.status === AppointmentStatus.CANCELLED ? 'cancelled-event' : ''
+                ].filter(Boolean) // Usuń puste stringi
             }));
     };
 
@@ -164,8 +168,8 @@ const AppointmentCalendar: React.FC<CalendarProps> = ({
             case AppointmentStatus.SCHEDULED: return 'scheduled';
             case AppointmentStatus.IN_PROGRESS: return 'inProgress';
             case AppointmentStatus.READY_FOR_PICKUP: return 'readyForPickup';
-            case AppointmentStatus.COMPLETED: return 'completed';
-            case AppointmentStatus.CANCELLED: return 'cancelled';
+            case AppointmentStatus.COMPLETED: return 'completed';    // Dodane
+            case AppointmentStatus.CANCELLED: return 'cancelled';    // Dodane
             default: return 'scheduled';
         }
     };
@@ -359,24 +363,39 @@ const AppointmentCalendar: React.FC<CalendarProps> = ({
                     <QuickFilters>
                         <FilterButton
                             $active={quickFilters.scheduled}
-                            $color={automotiveTheme.info}
+                            $color={automotiveTheme.primary}
                             onClick={() => toggleFilter('scheduled')}
                         >
                             Zaplanowane
                         </FilterButton>
                         <FilterButton
                             $active={quickFilters.inProgress}
-                            $color={automotiveTheme.warning}
+                            $color={automotiveTheme.primary}
                             onClick={() => toggleFilter('inProgress')}
                         >
                             W trakcie
                         </FilterButton>
                         <FilterButton
                             $active={quickFilters.readyForPickup}
-                            $color={automotiveTheme.success}
+                            $color={automotiveTheme.primary}
                             onClick={() => toggleFilter('readyForPickup')}
                         >
                             Gotowe
+                        </FilterButton>
+                        {/* Nowe filtry dla zakończonych statusów */}
+                        <FilterButton
+                            $active={quickFilters.completed}
+                            $color={automotiveTheme.primary}
+                            onClick={() => toggleFilter('completed')}
+                        >
+                            Zakończone
+                        </FilterButton>
+                        <FilterButton
+                            $active={quickFilters.cancelled}
+                            $color={automotiveTheme.primary}
+                            onClick={() => toggleFilter('cancelled')}
+                        >
+                            Anulowane
                         </FilterButton>
                     </QuickFilters>
                 </ControlsRight>
@@ -426,29 +445,95 @@ const AppointmentCalendar: React.FC<CalendarProps> = ({
                     allDayText="Cały dzień"
                     noEventsText="Brak wizyt w wybranym zakresie"
                     eventDisplay="block"
+                    // Zaktualizuj eventDidMount w FullCalendar props
+                    // Zamień eventDidMount w FullCalendar props
                     eventDidMount={(info) => {
                         const appointment = info.event.extendedProps as Appointment;
 
-                        // Professional event styling
+                        // Professional event styling - podstawowe style
                         info.el.style.borderRadius = '6px';
                         info.el.style.fontSize = '12px';
                         info.el.style.fontWeight = '600';
                         info.el.style.cursor = 'pointer';
                         info.el.style.transition = 'all 0.2s ease';
 
+                        // Protocol styling
                         if (appointment.isProtocol) {
                             info.el.style.borderLeft = `3px solid ${automotiveTheme.primary}`;
                         }
 
-                        // Subtle hover effects
+                        // Specjalne style dla zakończonych statusów - WAŻNE: używamy !important lub setProperty
+                        if (appointment.status === AppointmentStatus.COMPLETED) {
+                            info.el.style.setProperty('opacity', '0.2', 'important');
+                            info.el.style.setProperty('font-weight', '700', 'important');
+                            info.el.style.setProperty('transform', 'scale(1.02)', 'important');
+                            info.el.style.setProperty('box-shadow', '0 4px 12px rgba(5, 150, 105, 0.25)', 'important');
+                            info.el.style.setProperty('background', 'linear-gradient(135deg, #059669 0%, #10b981 100%)', 'important');
+                            info.el.style.setProperty('border', '2px solid #047857', 'important');
+                            info.el.style.setProperty('color', 'white', 'important');
+                        }
+
+                        if (appointment.status === AppointmentStatus.CANCELLED) {
+                            info.el.style.setProperty('opacity', '0.5', 'important');
+                            info.el.style.setProperty('font-weight', '700', 'important');
+                            info.el.style.setProperty('transform', 'scale(1.02)', 'important');
+                            info.el.style.setProperty('box-shadow', '0 4px 12px rgba(220, 38, 38, 0.25)', 'important');
+                            info.el.style.setProperty('background', 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)', 'important');
+                            info.el.style.setProperty('border', '2px solid #b91c1c', 'important');
+                            info.el.style.setProperty('color', 'white', 'important');
+
+                            const strikethrough = document.createElement('div');
+                            strikethrough.style.position = 'absolute';
+                            strikethrough.style.top = '50%';
+                            strikethrough.style.left = '8%';
+                            strikethrough.style.right = '8%';
+                            strikethrough.style.height = '2px';
+                            strikethrough.style.background = 'rgba(255, 255, 255, 0.9)';
+                            strikethrough.style.transform = 'translateY(-50%)';
+                            strikethrough.style.zIndex = '1';
+                            strikethrough.style.borderRadius = '1px';
+                            info.el.style.position = 'relative'; // Potrzebne dla absolute positioning
+                            info.el.appendChild(strikethrough);
+                        }
+
+                        // Style dla pozostałych statusów - niższe opacity
+                        if (appointment.status === AppointmentStatus.SCHEDULED) {
+                            info.el.style.setProperty('opacity', '0.75', 'important');
+                        }
+
+                        if (appointment.status === AppointmentStatus.IN_PROGRESS) {
+                            info.el.style.setProperty('opacity', '0.8', 'important');
+                        }
+
+                        if (appointment.status === AppointmentStatus.READY_FOR_PICKUP) {
+                            info.el.style.setProperty('opacity', '0.8', 'important');
+                        }
+
+                        // Hover effects z uwzględnieniem statusów zakończonych
                         info.el.addEventListener('mouseenter', () => {
-                            info.el.style.transform = 'translateY(-1px)';
-                            info.el.style.boxShadow = automotiveTheme.shadow.sm;
+                            if (appointment.status === AppointmentStatus.COMPLETED) {
+                                info.el.style.setProperty('transform', 'scale(1.05) translateY(-2px)', 'important');
+                                info.el.style.setProperty('box-shadow', '0 8px 20px rgba(5, 150, 105, 0.4)', 'important');
+                            } else if (appointment.status === AppointmentStatus.CANCELLED) {
+                                info.el.style.setProperty('transform', 'scale(1.05) translateY(-2px)', 'important');
+                                info.el.style.setProperty('box-shadow', '0 8px 20px rgba(220, 38, 38, 0.4)', 'important');
+                            } else {
+                                info.el.style.transform = 'translateY(-1px)';
+                                info.el.style.boxShadow = automotiveTheme.shadow.sm;
+                            }
                         });
 
                         info.el.addEventListener('mouseleave', () => {
-                            info.el.style.transform = 'translateY(0)';
-                            info.el.style.boxShadow = 'none';
+                            if (appointment.status === AppointmentStatus.COMPLETED) {
+                                info.el.style.setProperty('transform', 'scale(1.02)', 'important');
+                                info.el.style.setProperty('box-shadow', '0 4px 12px rgba(5, 150, 105, 0.25)', 'important');
+                            } else if (appointment.status === AppointmentStatus.CANCELLED) {
+                                info.el.style.setProperty('transform', 'scale(1.02)', 'important');
+                                info.el.style.setProperty('box-shadow', '0 4px 12px rgba(220, 38, 38, 0.25)', 'important');
+                            } else {
+                                info.el.style.transform = 'translateY(0)';
+                                info.el.style.boxShadow = 'none';
+                            }
                         });
                     }}
                 />
@@ -740,6 +825,65 @@ const CalendarWrapper = styled.div`
             font-size: 11px;
             padding: 1px 4px;
         }
+    }
+
+    .completed-event {
+        opacity: 0.95 !important;
+        background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
+        border: 2px solid #047857 !important;
+        color: white !important;
+        font-weight: 700 !important;
+        box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25) !important;
+        transform: scale(1.02);
+    }
+
+    .cancelled-event {
+        opacity: 0.9 !important;
+        background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%) !important;
+        border: 2px solid #b91c1c !important;
+        color: white !important;
+        font-weight: 700 !important;
+        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25) !important;
+        position: relative;
+        transform: scale(1.02);
+    }
+
+    /* Opcjonalne przekreślenie dla anulowanych */
+    .cancelled-event::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 8%;
+        right: 8%;
+        height: 2px;
+        background: rgba(255, 255, 255, 0.9);
+        transform: translateY(-50%);
+        z-index: 1;
+        border-radius: 1px;
+    }
+
+    /* Hover effects dla zakończonych statusów */
+    .completed-event:hover {
+        transform: scale(1.05) translateY(-2px) !important;
+        box-shadow: 0 8px 20px rgba(5, 150, 105, 0.4) !important;
+    }
+
+    .cancelled-event:hover {
+        transform: scale(1.05) translateY(-2px) !important;
+        box-shadow: 0 8px 20px rgba(220, 38, 38, 0.4) !important;
+    }
+
+    /* Style dla pozostałych statusów - niższe opacity dla kontrastu */
+    .status-scheduled {
+        opacity: 0.75;
+    }
+
+    .status-in_progress {
+        opacity: 0.8;
+    }
+
+    .status-ready_for_pickup {
+        opacity: 0.8;
     }
 `;
 

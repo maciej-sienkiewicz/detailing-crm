@@ -51,22 +51,6 @@ interface SubMenuItem {
 }
 
 const secondaryMenuOptions: Record<string, SubMenuItem[]> = {
-    clients: [
-        {
-            id: 'owners',
-            label: 'Właściciele',
-            icon: <FaUsers />,
-            path: '/clients/owners',
-            description: 'Baza klientów'
-        },
-        {
-            id: 'vehicles',
-            label: 'Pojazdy',
-            icon: <FaCog />,
-            path: '/clients/vehicles',
-            description: 'Rejestr aut'
-        }
-    ],
     fleet: [
         {
             id: 'calendar',
@@ -139,7 +123,6 @@ const SecondaryMenu: React.FC<SecondaryMenuProps> = ({
 
 const getMenuTitle = (menuId: string): string => {
     const titles: Record<string, string> = {
-        clients: 'Klienci',
         fleet: 'Flota',
         pricing: 'Cennik'
     };

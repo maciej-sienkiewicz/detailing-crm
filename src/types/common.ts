@@ -38,13 +38,3 @@ export interface SelectedService {
     clientMessage?: string;
     note?: string;
 }
-
-// Typ do obsługi bocznego menu
-export interface MenuItem {
-    id: string;
-    label: string;
-    icon: string;
-    path?: string;
-    submenu?: MenuItem[];
-    expanded?: boolean;
-}

@@ -1,12 +1,10 @@
-// src/routes.tsx - Updated to include Fixed Costs
+// src/routes.tsx - Updated to include unified Clients/Vehicles
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import CalendarPage from './pages/Calendar/CalendarPage';
 import ServicesPage from './pages/Settings/ServicesPage';
 import EmployeesPage from './pages/Settings/EmployeesPage';
 import CarReceptionPage from './pages/Protocols/CarReceptionPage';
-import OwnersPage from './pages/Clients/OwnersPage';
-import VehiclesPage from './pages/Clients/VehiclesPage';
 import ReportsPage from "./pages/Reports/ReportsPage";
 import ActivityFeedPage from "./pages/ActivityFeed/ActivityFeedPage";
 import ProtocolDetailsPage from "./pages/Protocols/details/ProtocolDetailsPage";
@@ -36,6 +34,9 @@ import FinancialPageWithFixedCosts from "./pages/Finances/FinancialPageWithFixed
 import FixedCostsIntegration from "./pages/Finances/components/FixedCostsIntegration";
 import SettingsPageWithTabs from './pages/Settings/SettingsPageWithTabs';
 
+// NEW: Unified Clients/Vehicles component
+import ClientsVehiclesPage from './pages/Clients/ClientsVehiclesPage';
+
 // Tymczasowe komponenty dla innych stron - do zastąpienia rzeczywistymi implementacjami
 const PlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
     <div style={{ padding: "20px" }}>
@@ -62,15 +63,18 @@ const AppRoutes: React.FC = () => {
                 {/* Strona aktualności */}
                 <Route path="/activity" element={<ActivityFeedPage />} />
 
-                {/* Ścieżki finansowe - Updated */}
+                {/* Ścieżki finansowe */}
                 <Route path="/finances" element={<FinancialPageWithFixedCosts />} />
 
-                {/* Strona poczty - nowy moduł */}
+                {/* Strona poczty */}
                 <Route path="/mail" element={<MailPage />} />
 
-                {/* Strony klientów */}
-                <Route path="/clients/owners" element={<OwnersPage />} />
-                <Route path="/clients/vehicles" element={<VehiclesPage />} />
+                {/* UPDATED: Unified Clients/Vehicles page */}
+                <Route path="/clients-vehicles" element={<ClientsVehiclesPage />} />
+
+                {/* DEPRECATED: Redirects for old routes - for backward compatibility */}
+                <Route path="/clients/owners" element={<Navigate to="/clients-vehicles?tab=owners" replace />} />
+                <Route path="/clients/vehicles" element={<Navigate to="/clients-vehicles?tab=vehicles" replace />} />
 
                 {/* Inne strony */}
                 <Route path="/warehouse" element={<PlaceholderPage title="Magazyn" />} />
