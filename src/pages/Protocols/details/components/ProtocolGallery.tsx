@@ -203,10 +203,10 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
         const fetchImageUrls = async () => {
             console.log('🖼️ Fetching image URLs for', images.length, 'images');
 
+            console.log(images)
             const imagesToFetch = images.filter(img =>
                 !img.id.startsWith('temp_') &&
-                !imageUrls[img.id] &&
-                !img.url
+                !imageUrls[img.id]
             );
 
             console.log('🔍 Images to fetch URLs for:', imagesToFetch.length);

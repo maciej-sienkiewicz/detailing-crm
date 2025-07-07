@@ -1,20 +1,7 @@
-// src/api/employeesApi.ts
-/**
- * Production-ready Employees API
- * Handles all employee-related API operations with proper typing and error handling
- */
-
 import { apiClientNew, PaginatedApiResponse, PaginationParams, ApiError } from './apiClientNew';
 import { Employee, EmployeeDocument } from '../types';
 import { ExtendedEmployee, UserRole, ContractType, EmployeeFilters } from '../types/employeeTypes';
 
-// ========================================================================================
-// TYPE DEFINITIONS
-// ========================================================================================
-
-/**
- * Employee list item (lightweight representation for lists)
- */
 export interface EmployeeListItem {
     id: string;
     fullName: string;
@@ -31,9 +18,6 @@ export interface EmployeeListItem {
     contractType?: ContractType;
 }
 
-/**
- * Employee creation/update payload
- */
 export interface EmployeeCreatePayload {
     fullName: string;
     birthDate: string;
@@ -54,24 +38,15 @@ export interface EmployeeCreatePayload {
     notes?: string;
 }
 
-/**
- * Employee update payload (partial)
- */
 export interface EmployeeUpdatePayload extends Partial<EmployeeCreatePayload> {
     id: string;
 }
 
-/**
- * Employee search parameters
- */
 export interface EmployeeSearchParams extends EmployeeFilters, PaginationParams {
     sortBy?: 'fullName' | 'position' | 'email' | 'hireDate' | 'role' | 'hourlyRate' | 'isActive';
     sortOrder?: 'asc' | 'desc';
 }
 
-/**
- * Employee statistics
- */
 export interface EmployeeStatistics {
     totalEmployees: number;
     activeEmployees: number;
@@ -82,19 +57,20 @@ export interface EmployeeStatistics {
     contractTypeDistribution: Record<ContractType, number>;
 }
 
-/**
- * Document upload payload
- */
 export interface DocumentUploadPayload {
     employeeId: string;
     name: string;
     type: string;
-    file?: File;
+    description?: string;
+    file: File;
 }
 
-/**
- * Employees API operation result
- */
+export interface DocumentUploadResponse {
+    success: boolean;
+    message: string;
+    id: string;
+}
+
 export interface EmployeesApiResult<T = any> {
     success: boolean;
     data?: T;
@@ -102,69 +78,26 @@ export interface EmployeesApiResult<T = any> {
     details?: any;
 }
 
-// ========================================================================================
-// EMPLOYEES API CLASS
-// ========================================================================================
-
-/**
- * Production-ready Employees API
- * All methods include proper error handling, logging, and optimizations
- */
 class EmployeesApi {
     private readonly baseEndpoint = '/employees';
-    private readonly documentsEndpoint = '/employee-documents';
-
-    // Cache for frequently accessed data
     private employeeListCache: Map<string, { data: EmployeeListItem[]; timestamp: number }> = new Map();
-    private readonly cacheTimeout = 5 * 60 * 1000; // 5 minutes
+    private readonly cacheTimeout = 5 * 60 * 1000;
 
-    // ========================================================================================
-    // EMPLOYEE CRUD OPERATIONS
-    // ========================================================================================
-
-    /**
-     * Fetches a paginated list of employees with optional filtering and sorting
-     *
-     * @param params - Search, filter, and pagination parameters
-     * @returns Promise<EmployeesApiResult<PaginatedApiResponse<EmployeeListItem>>>
-     *
-     * @example
-     * ```typescript
-     * const result = await employeesApi.getEmployeesList({
-     *   role: UserRole.EMPLOYEE,
-     *   isActive: true,
-     *   page: 0,
-     *   size: 20,
-     *   sortBy: 'fullName',
-     *   sortOrder: 'asc'
-     * });
-     *
-     * if (result.success) {
-     *   console.log('Employees:', result.data);
-     * }
-     * ```
-     */
     async getEmployeesList(params: EmployeeSearchParams = {}): Promise<EmployeesApiResult<PaginatedApiResponse<EmployeeListItem>>> {
         try {
-            console.log('🔍 Fetching employees list with params:', params);
-
             const { page = 0, size = 20, sortBy = 'fullName', sortOrder = 'asc', ...filterParams } = params;
 
-            // Check cache first for frequently accessed data
             const cacheKey = this.generateCacheKey(params);
             const cachedData = this.getFromCache(cacheKey);
             if (cachedData && !filterParams.searchQuery) {
-                console.log('💾 Using cached employees data');
                 return {
                     success: true,
                     data: this.paginateData(cachedData, page, size)
                 };
             }
 
-            // Prepare API parameters
             const apiParams = this.prepareSearchParams(filterParams, sortBy, sortOrder);
 
-            // Call the API
             const response = await apiClientNew.getWithPagination<EmployeeListItem>(
                 `${this.baseEndpoint}/list`,
                 apiParams,
@@ -172,13 +105,6 @@ class EmployeesApi {
                 { timeout: 15000 }
             );
 
-            console.log('✅ Successfully fetched employees list:', {
-                count: response.data.length,
-                totalItems: response.pagination.totalItems,
-                currentPage: response.pagination.currentPage
-            });
-
-            // Cache the full dataset for future use (if not filtered by search)
             if (!filterParams.searchQuery && response.data.length > 0) {
                 this.setCache(cacheKey, response.data);
             }
@@ -189,50 +115,30 @@ class EmployeesApi {
             };
 
         } catch (error) {
-            console.error('❌ Error fetching employees list:', error);
             return this.createErrorResult(error, params);
         }
     }
 
-    /**
-     * Fetches detailed information about a specific employee
-     *
-     * @param employeeId - The employee ID
-     * @returns Promise<EmployeesApiResult<ExtendedEmployee>>
-     */
     async getEmployeeById(employeeId: string): Promise<EmployeesApiResult<ExtendedEmployee>> {
         try {
-            console.log(`🔍 Fetching employee details for ID: ${employeeId}`);
-
             const response = await apiClientNew.get<ExtendedEmployee>(
                 `${this.baseEndpoint}/${employeeId}`,
                 undefined,
                 { timeout: 10000 }
             );
 
-            console.log('✅ Successfully fetched employee details');
             return {
                 success: true,
                 data: response
             };
 
         } catch (error) {
-            console.error(`❌ Error fetching employee ${employeeId}:`, error);
             return this.createErrorResult(error);
         }
     }
 
-    /**
-     * Creates a new employee
-     *
-     * @param employeeData - The employee data to create
-     * @returns Promise<EmployeesApiResult<ExtendedEmployee>>
-     */
     async createEmployee(employeeData: EmployeeCreatePayload): Promise<EmployeesApiResult<ExtendedEmployee>> {
         try {
-            console.log('📝 Creating new employee:', { name: employeeData.fullName, role: employeeData.role });
-
-            // Validate required fields
             this.validateEmployeeData(employeeData);
 
             const response = await apiClientNew.post<ExtendedEmployee>(
@@ -241,9 +147,6 @@ class EmployeesApi {
                 { timeout: 10000 }
             );
 
-            console.log('✅ Successfully created employee:', response.id);
-
-            // Invalidate cache
             this.clearCache();
 
             return {
@@ -252,22 +155,12 @@ class EmployeesApi {
             };
 
         } catch (error) {
-            console.error('❌ Error creating employee:', error);
             return this.createErrorResult(error);
         }
     }
 
-    /**
-     * Updates an existing employee
-     *
-     * @param employeeData - The employee data to update
-     * @returns Promise<EmployeesApiResult<ExtendedEmployee>>
-     */
     async updateEmployee(employeeData: EmployeeUpdatePayload): Promise<EmployeesApiResult<ExtendedEmployee>> {
         try {
-            console.log(`📝 Updating employee: ${employeeData.id}`, { name: employeeData.fullName });
-
-            // Validate required fields
             if (!employeeData.id) {
                 throw new Error('Employee ID is required for update');
             }
@@ -278,9 +171,6 @@ class EmployeesApi {
                 { timeout: 10000 }
             );
 
-            console.log('✅ Successfully updated employee:', response.id);
-
-            // Invalidate cache
             this.clearCache();
 
             return {
@@ -289,29 +179,17 @@ class EmployeesApi {
             };
 
         } catch (error) {
-            console.error(`❌ Error updating employee ${employeeData.id}:`, error);
             return this.createErrorResult(error);
         }
     }
 
-    /**
-     * Deletes an employee
-     *
-     * @param employeeId - The employee ID to delete
-     * @returns Promise<EmployeesApiResult<void>>
-     */
     async deleteEmployee(employeeId: string): Promise<EmployeesApiResult<void>> {
         try {
-            console.log(`🗑️ Deleting employee: ${employeeId}`);
-
             await apiClientNew.delete(
                 `${this.baseEndpoint}/${employeeId}`,
                 { timeout: 10000 }
             );
 
-            console.log('✅ Successfully deleted employee:', employeeId);
-
-            // Invalidate cache
             this.clearCache();
 
             return {
@@ -319,207 +197,84 @@ class EmployeesApi {
             };
 
         } catch (error) {
-            console.error(`❌ Error deleting employee ${employeeId}:`, error);
             return this.createErrorResult(error);
         }
     }
 
-    // ========================================================================================
-    // EMPLOYEE DOCUMENTS OPERATIONS
-    // ========================================================================================
-
-    /**
-     * Fetches documents for a specific employee
-     *
-     * @param employeeId - The employee ID
-     * @returns Promise<EmployeesApiResult<EmployeeDocument[]>>
-     */
     async getEmployeeDocuments(employeeId: string): Promise<EmployeesApiResult<EmployeeDocument[]>> {
         try {
-            console.log(`📄 Fetching documents for employee: ${employeeId}`);
-
             const response = await apiClientNew.get<EmployeeDocument[]>(
-                `${this.documentsEndpoint}/employee/${employeeId}`,
+                `${this.baseEndpoint}/${employeeId}/documents`,
                 undefined,
                 { timeout: 10000 }
             );
 
-            console.log(`✅ Successfully fetched ${response.length} documents`);
             return {
                 success: true,
                 data: response
             };
 
         } catch (error) {
-            console.error(`❌ Error fetching documents for employee ${employeeId}:`, error);
             return this.createErrorResult(error);
         }
     }
 
-    /**
-     * Uploads a document for an employee
-     *
-     * @param payload - Document upload data
-     * @param onProgress - Progress callback for file upload
-     * @returns Promise<EmployeesApiResult<EmployeeDocument>>
-     */
     async uploadEmployeeDocument(
         payload: DocumentUploadPayload,
         onProgress?: (progress: number) => void
-    ): Promise<EmployeesApiResult<EmployeeDocument>> {
+    ): Promise<EmployeesApiResult<DocumentUploadResponse>> {
         try {
-            console.log(`📤 Uploading document for employee: ${payload.employeeId}`);
-
-            let response: EmployeeDocument;
-
-            if (payload.file) {
-                // Upload with file
-                response = await apiClientNew.uploadFile<EmployeeDocument>(
-                    `${this.documentsEndpoint}/upload`,
-                    payload.file,
-                    {
-                        employeeId: payload.employeeId,
-                        name: payload.name,
-                        type: payload.type
-                    },
-                    onProgress
-                );
-            } else {
-                // Create document record without file
-                response = await apiClientNew.post<EmployeeDocument>(
-                    this.documentsEndpoint,
-                    payload,
-                    { timeout: 10000 }
-                );
+            if (!payload.file) {
+                throw new Error('File is required for document upload');
             }
 
-            console.log('✅ Successfully uploaded document:', response.id);
+            const formData = new FormData();
+            formData.append('employeeId', payload.employeeId);
+            formData.append('name', payload.name);
+            formData.append('type', payload.type);
+            if (payload.description) {
+                formData.append('description', payload.description);
+            }
+            formData.append('file', payload.file);
+
+            const response = await apiClientNew.postFormData<DocumentUploadResponse>(
+                `${this.baseEndpoint}/documents`,
+                formData,
+                onProgress
+            );
+
             return {
                 success: true,
                 data: response
             };
 
         } catch (error) {
-            console.error(`❌ Error uploading document for employee ${payload.employeeId}:`, error);
             return this.createErrorResult(error);
         }
     }
 
-    /**
-     * Deletes an employee document
-     *
-     * @param documentId - The document ID to delete
-     * @returns Promise<EmployeesApiResult<void>>
-     */
     async deleteEmployeeDocument(documentId: string): Promise<EmployeesApiResult<void>> {
         try {
-            console.log(`🗑️ Deleting document: ${documentId}`);
-
             await apiClientNew.delete(
-                `${this.documentsEndpoint}/${documentId}`,
+                `${this.baseEndpoint}/documents/${documentId}`,
                 { timeout: 10000 }
             );
 
-            console.log('✅ Successfully deleted document:', documentId);
             return {
                 success: true
             };
 
         } catch (error) {
-            console.error(`❌ Error deleting document ${documentId}:`, error);
             return this.createErrorResult(error);
         }
     }
 
-    // ========================================================================================
-    // STATISTICS AND ANALYTICS
-    // ========================================================================================
-
-    /**
-     * Fetches employee statistics
-     *
-     * @returns Promise<EmployeesApiResult<EmployeeStatistics>>
-     */
-    async getEmployeeStatistics(): Promise<EmployeesApiResult<EmployeeStatistics>> {
+    async downloadEmployeeDocument(documentId: string): Promise<EmployeesApiResult<Blob>> {
         try {
-            console.log('📊 Fetching employee statistics');
-
-            const response = await apiClientNew.get<EmployeeStatistics>(
-                `${this.baseEndpoint}/statistics`,
-                undefined,
-                { timeout: 10000 }
-            );
-
-            console.log('✅ Successfully fetched employee statistics');
-            return {
-                success: true,
-                data: response
-            };
-
-        } catch (error) {
-            console.error('❌ Error fetching employee statistics:', error);
-            return this.createErrorResult(error);
-        }
-    }
-
-    // ========================================================================================
-    // BULK OPERATIONS
-    // ========================================================================================
-
-    /**
-     * Updates multiple employees in batch
-     *
-     * @param updates - Array of employee updates
-     * @returns Promise<EmployeesApiResult<ExtendedEmployee[]>>
-     */
-    async bulkUpdateEmployees(updates: EmployeeUpdatePayload[]): Promise<EmployeesApiResult<ExtendedEmployee[]>> {
-        try {
-            console.log(`📝 Bulk updating ${updates.length} employees`);
-
-            const response = await apiClientNew.patch<ExtendedEmployee[]>(
-                `${this.baseEndpoint}/bulk-update`,
-                { updates },
-                { timeout: 30000 } // Longer timeout for bulk operations
-            );
-
-            console.log(`✅ Successfully updated ${response.length} employees`);
-
-            // Invalidate cache
-            this.clearCache();
-
-            return {
-                success: true,
-                data: response
-            };
-
-        } catch (error) {
-            console.error('❌ Error in bulk update:', error);
-            return this.createErrorResult(error);
-        }
-    }
-
-    /**
-     * Exports employees data
-     *
-     * @param format - Export format (csv, xlsx, pdf)
-     * @param filters - Optional filters for export
-     * @returns Promise<EmployeesApiResult<Blob>>
-     */
-    async exportEmployees(
-        format: 'csv' | 'xlsx' | 'pdf' = 'xlsx',
-        filters?: EmployeeFilters
-    ): Promise<EmployeesApiResult<Blob>> {
-        try {
-            console.log(`📤 Exporting employees as ${format.toUpperCase()}`);
-
-            const params = filters ? this.prepareSearchParams(filters) : {};
-            params.format = format;
-
-            const response = await fetch(`${apiClientNew['baseUrl']}${this.baseEndpoint}/export`, {
+            const response = await fetch(`${apiClientNew['baseUrl']}${this.baseEndpoint}/documents/${documentId}/download`, {
                 method: 'GET',
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-                    'Accept': `application/${format === 'csv' ? 'csv' : 'vnd.openxmlformats-officedocument.spreadsheetml.sheet'}`
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
                 }
             });
 
@@ -528,7 +283,6 @@ class EmployeesApi {
             }
 
             const blob = await response.blob();
-            console.log(`✅ Successfully exported employees (${blob.size} bytes)`);
 
             return {
                 success: true,
@@ -536,18 +290,109 @@ class EmployeesApi {
             };
 
         } catch (error) {
-            console.error(`❌ Error exporting employees:`, error);
             return this.createErrorResult(error);
         }
     }
 
-    // ========================================================================================
-    // PRIVATE HELPER METHODS
-    // ========================================================================================
+    async getDocumentDownloadUrl(documentId: string, expirationMinutes: number = 60): Promise<EmployeesApiResult<{downloadUrl: string, expiresInMinutes: number}>> {
+        try {
+            const response = await apiClientNew.get<{downloadUrl: string, expiresInMinutes: number}>(
+                `${this.baseEndpoint}/documents/${documentId}/url`,
+                { expirationMinutes },
+                { timeout: 10000 }
+            );
 
-    /**
-     * Prepares search parameters for API call
-     */
+            return {
+                success: true,
+                data: response
+            };
+
+        } catch (error) {
+            return this.createErrorResult(error);
+        }
+    }
+
+    async getEmployeeStatistics(): Promise<EmployeesApiResult<EmployeeStatistics>> {
+        try {
+            const response = await apiClientNew.get<EmployeeStatistics>(
+                `${this.baseEndpoint}/statistics`,
+                undefined,
+                { timeout: 10000 }
+            );
+
+            return {
+                success: true,
+                data: response
+            };
+
+        } catch (error) {
+            return this.createErrorResult(error);
+        }
+    }
+
+    async bulkUpdateEmployees(updates: EmployeeUpdatePayload[]): Promise<EmployeesApiResult<ExtendedEmployee[]>> {
+        try {
+            const response = await apiClientNew.patch<ExtendedEmployee[]>(
+                `${this.baseEndpoint}/bulk-update`,
+                { updates },
+                { timeout: 30000 }
+            );
+
+            this.clearCache();
+
+            return {
+                success: true,
+                data: response
+            };
+
+        } catch (error) {
+            return this.createErrorResult(error);
+        }
+    }
+
+    async exportEmployees(
+        format: 'csv' | 'xlsx' | 'pdf' = 'xlsx',
+        filters?: EmployeeFilters
+    ): Promise<EmployeesApiResult<Blob>> {
+        try {
+            const params = filters ? this.prepareSearchParams(filters) : {};
+            params.format = format;
+
+            const baseUrl = apiClientNew['baseUrl'];
+            const url = new URL(`${baseUrl}${this.baseEndpoint}/export`);
+
+            Object.entries(params).forEach(([key, value]) => {
+                if (value !== undefined && value !== null) {
+                    url.searchParams.append(key, value.toString());
+                }
+            });
+
+            const response = await fetch(url.toString(), {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+                    'Accept': format === 'csv' ? 'text/csv' :
+                        format === 'pdf' ? 'application/pdf' :
+                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                }
+            });
+
+            if (!response.ok) {
+                throw new ApiError(response.status, response.statusText);
+            }
+
+            const blob = await response.blob();
+
+            return {
+                success: true,
+                data: blob
+            };
+
+        } catch (error) {
+            return this.createErrorResult(error);
+        }
+    }
+
     private prepareSearchParams(
         params: EmployeeFilters,
         sortBy?: string,
@@ -555,23 +400,18 @@ class EmployeesApi {
     ): Record<string, any> {
         const apiParams: Record<string, any> = {};
 
-        // Add filters
         if (params.searchQuery) apiParams.search = params.searchQuery;
         if (params.position) apiParams.position = params.position;
         if (params.role) apiParams.role = params.role;
         if (params.isActive !== undefined) apiParams.isActive = params.isActive;
         if (params.contractType) apiParams.contractType = params.contractType;
 
-        // Add sorting
         if (sortBy) apiParams.sortBy = sortBy;
         if (sortOrder) apiParams.sortOrder = sortOrder;
 
         return apiParams;
     }
 
-    /**
-     * Validates employee data before API calls
-     */
     private validateEmployeeData(data: EmployeeCreatePayload): void {
         const errors: string[] = [];
 
@@ -582,12 +422,10 @@ class EmployeesApi {
         if (!data.birthDate) errors.push('Birth date is required');
         if (!data.hireDate) errors.push('Hire date is required');
 
-        // Email validation
         if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
             errors.push('Invalid email format');
         }
 
-        // Date validations
         if (data.birthDate && new Date(data.birthDate) > new Date()) {
             errors.push('Birth date cannot be in the future');
         }
@@ -601,9 +439,6 @@ class EmployeesApi {
         }
     }
 
-    /**
-     * Cache management methods
-     */
     private generateCacheKey(params: EmployeeSearchParams): string {
         return JSON.stringify({
             role: params.role,
@@ -637,9 +472,6 @@ class EmployeesApi {
         this.employeeListCache.clear();
     }
 
-    /**
-     * Client-side pagination for cached data
-     */
     private paginateData(
         data: EmployeeListItem[],
         page: number,
@@ -663,9 +495,6 @@ class EmployeesApi {
         };
     }
 
-    /**
-     * Creates standardized error result
-     */
     private createErrorResult(error: unknown, params?: any): EmployeesApiResult<any> {
         const errorMessage = this.extractErrorMessage(error);
 
@@ -677,9 +506,6 @@ class EmployeesApi {
         };
     }
 
-    /**
-     * Creates empty response for error cases
-     */
     private createEmptyResponse(params: EmployeeSearchParams): PaginatedApiResponse<EmployeeListItem> {
         return {
             data: [],
@@ -696,9 +522,6 @@ class EmployeesApi {
         };
     }
 
-    /**
-     * Extracts user-friendly error message from various error types
-     */
     private extractErrorMessage(error: unknown): string {
         if (ApiError.isApiError(error)) {
             switch (error.status) {
@@ -737,12 +560,4 @@ class EmployeesApi {
     }
 }
 
-// ========================================================================================
-// EXPORTS
-// ========================================================================================
-
-// Export singleton instance
 export const employeesApi = new EmployeesApi();
-
-// Default export
-export default employeesApi;

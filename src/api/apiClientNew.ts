@@ -44,9 +44,6 @@ export interface RequestConfig extends RequestInit {
     skipAuth?: boolean;
 }
 
-/**
- * API Error class for proper error handling
- */
 export class ApiError extends Error {
     constructor(
         public status: number,
@@ -63,13 +60,7 @@ export class ApiError extends Error {
     }
 }
 
-/**
- * Case conversion utilities
- */
 const caseConverter = {
-    /**
-     * Converts snake_case to camelCase recursively
-     */
     toCamelCase: <T>(obj: any): T => {
         if (obj === null || obj === undefined || typeof obj !== 'object') {
             return obj;
@@ -89,9 +80,6 @@ const caseConverter = {
         return converted as T;
     },
 
-    /**
-     * Converts camelCase to snake_case recursively
-     */
     toSnakeCase: (obj: any): any => {
         if (obj === null || obj === undefined || typeof obj !== 'object') {
             return obj;
@@ -112,9 +100,6 @@ const caseConverter = {
     }
 };
 
-/**
- * Authentication utilities
- */
 const auth = {
     getToken: (): string | null => {
         try {
@@ -141,13 +126,7 @@ const auth = {
     }
 };
 
-/**
- * Request utilities
- */
 const requestUtils = {
-    /**
-     * Builds query string from object parameters
-     */
     buildQueryString: (params: Record<string, any>): string => {
         const filtered = Object.entries(params)
             .filter(([_, value]) => value !== undefined && value !== null && value !== '')
@@ -159,16 +138,12 @@ const requestUtils = {
         return `?${searchParams.toString()}`;
     },
 
-    /**
-     * Creates proper headers for requests
-     */
     createHeaders: (config?: RequestConfig): HeadersInit => {
         const headers: Record<string, string> = {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
         };
 
-        // Add authentication if not skipped and token exists
         if (!config?.skipAuth) {
             const token = auth.getToken();
             if (token) {
@@ -176,7 +151,6 @@ const requestUtils = {
             }
         }
 
-        // Merge with custom headers
         if (config?.headers) {
             Object.assign(headers, config.headers);
         }
@@ -184,9 +158,6 @@ const requestUtils = {
         return headers;
     },
 
-    /**
-     * Creates timeout controller
-     */
     createTimeoutController: (timeoutMs: number = 30000): AbortController => {
         const controller = new AbortController();
         setTimeout(() => controller.abort(), timeoutMs);
@@ -194,9 +165,6 @@ const requestUtils = {
     }
 };
 
-/**
- * Production-ready API Client
- */
 class ApiClientNew {
     private readonly baseUrl: string;
     private readonly defaultTimeout: number;
@@ -204,13 +172,10 @@ class ApiClientNew {
 
     constructor() {
         this.baseUrl = 'http://localhost:8080/api';
-        this.defaultTimeout = 30000; // 30 seconds
+        this.defaultTimeout = 30000;
         this.defaultRetries = 3;
     }
 
-    /**
-     * Generic request method with retry logic
-     */
     private async request<T>(
         endpoint: string,
         config: RequestConfig = {}
@@ -254,17 +219,14 @@ class ApiClientNew {
             } catch (error) {
                 lastError = error as Error;
 
-                // Don't retry on authentication errors or client errors (4xx)
                 if (ApiError.isApiError(error) && error.status >= 400 && error.status < 500) {
                     throw error;
                 }
 
-                // Don't retry on last attempt
                 if (attempt === retries) {
                     break;
                 }
 
-                // Wait before retry (exponential backoff)
                 const delay = Math.min(1000 * Math.pow(2, attempt), 5000);
                 await new Promise(resolve => setTimeout(resolve, delay));
             }
@@ -273,9 +235,6 @@ class ApiClientNew {
         throw lastError!;
     }
 
-    /**
-     * Parse successful response
-     */
     private async parseSuccessResponse<T>(response: Response): Promise<T> {
         const contentType = response.headers.get('Content-Type') || '';
 
@@ -284,19 +243,14 @@ class ApiClientNew {
             return caseConverter.toCamelCase<T>(jsonData);
         }
 
-        // Handle empty responses
         if (response.status === 204 || !contentType) {
             return {} as T;
         }
 
-        // Handle text responses
         const textData = await response.text();
         return textData as unknown as T;
     }
 
-    /**
-     * Parse error response
-     */
     private async parseErrorResponse(response: Response): Promise<any> {
         try {
             const contentType = response.headers.get('Content-Type') || '';
@@ -309,9 +263,6 @@ class ApiClientNew {
         }
     }
 
-    /**
-     * GET request
-     */
     async get<T>(endpoint: string, params?: Record<string, any>, config?: RequestConfig): Promise<T> {
         const queryString = params ? requestUtils.buildQueryString(caseConverter.toSnakeCase(params)) : '';
         const url = `${endpoint}${queryString}`;
@@ -322,9 +273,6 @@ class ApiClientNew {
         });
     }
 
-    /**
-     * GET request with pagination
-     */
     async getWithPagination<T>(
         endpoint: string,
         params: Record<string, any> = {},
@@ -336,7 +284,6 @@ class ApiClientNew {
 
         const response = await this.get<any>(endpoint, allParams, config);
 
-        // Handle different response formats from server
         const data = response.data || [];
         const paginationData = response.pagination || response;
 
@@ -350,14 +297,11 @@ class ApiClientNew {
                 hasNext: paginationData.hasNext || (paginationData.currentPage || page) < (paginationData.totalPages || 1) - 1,
                 hasPrevious: paginationData.hasPrevious || (paginationData.currentPage || page) > 0,
             },
-            success: response.success !== false, // Default to true if not specified
+            success: response.success !== false,
             message: response.message,
         };
     }
 
-    /**
-     * POST request
-     */
     async post<T>(endpoint: string, data?: any, config?: RequestConfig): Promise<T> {
         return this.request<T>(endpoint, {
             method: 'POST',
@@ -370,9 +314,24 @@ class ApiClientNew {
         });
     }
 
-    /**
-     * PUT request
-     */
+    async postFormData<T>(
+        endpoint: string,
+        formData: FormData,
+        onProgress?: (progress: number) => void
+    ): Promise<T> {
+        if (onProgress) {
+            return this.uploadFile<T>(endpoint, formData.get('file') as File, {}, onProgress);
+        }
+
+        return this.request<T>(endpoint, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'Authorization': `Bearer ${auth.getToken()}`,
+            },
+        });
+    }
+
     async put<T>(endpoint: string, data?: any, config?: RequestConfig): Promise<T> {
         return this.request<T>(endpoint, {
             method: 'PUT',
@@ -385,9 +344,6 @@ class ApiClientNew {
         });
     }
 
-    /**
-     * PATCH request
-     */
     async patch<T>(endpoint: string, data?: any, config?: RequestConfig): Promise<T> {
         return this.request<T>(endpoint, {
             method: 'PATCH',
@@ -400,9 +356,6 @@ class ApiClientNew {
         });
     }
 
-    /**
-     * DELETE request
-     */
     async delete<T>(endpoint: string, config?: RequestConfig): Promise<T> {
         return this.request<T>(endpoint, {
             method: 'DELETE',
@@ -410,9 +363,6 @@ class ApiClientNew {
         });
     }
 
-    /**
-     * Upload file with progress
-     */
     async uploadFile<T>(
         endpoint: string,
         file: File,
@@ -467,8 +417,5 @@ class ApiClientNew {
     }
 }
 
-// Export singleton instance
 export const apiClientNew = new ApiClientNew();
-
-// Export utilities for external use
 export { auth, caseConverter, requestUtils };

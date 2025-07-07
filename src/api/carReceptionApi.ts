@@ -1,6 +1,6 @@
+// src/api/carReceptionApi.ts - Poprawiona wersja z autoryzacją
 import { CarReceptionProtocol, ClientProtocolHistory, ProtocolListItem, VehicleImage } from '../types';
 import { apiClient } from './apiClient';
-
 
 export interface ProtocolDocument {
     storageId: string;
@@ -22,14 +22,106 @@ export interface ImageUploadResponse {
     message: string;
 }
 
+/**
+ * Funkcja do pobierania obrazu z autoryzacją i konwersji na blob URL
+ * @param imageId - ID obrazu
+ * @returns Promise z blob URL lub pusty string w przypadku błędu
+ */
+const fetchAuthorizedImageUrl = async (imageId: string): Promise<string> => {
+    try {
+        const authToken = apiClient.getAuthToken();
+        if (!authToken) {
+            console.warn(`No auth token available for image ${imageId}`);
+            return '';
+        }
+
+        const url = `${apiClient.getBaseUrl()}/v1/protocols/image/${imageId}`;
+        console.log("dupa");
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${authToken}`,
+                'Accept': 'image/*',
+                'Cache-Control': 'no-cache'
+            },
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            console.error(`Failed to fetch image ${imageId}: ${response.status}`);
+            return '';
+        }
+
+        const contentType = response.headers.get('Content-Type') || '';
+        if (!contentType.startsWith('image/')) {
+            console.error(`Invalid content type for image ${imageId}: ${contentType}`);
+            return '';
+        }
+
+        const blob = await response.blob();
+        return URL.createObjectURL(blob);
+
+    } catch (error) {
+        console.error(`Error fetching authorized image ${imageId}:`, error);
+        return '';
+    }
+};
 
 /**
- * Funkcja do mapowania obrazów z serwera na format aplikacji
+ * Funkcja do mapowania obrazów z serwera na format aplikacji z autoryzowanymi URL-ami
  * @param serverImages - Tablica obrazów z serwera
  * @param protocolId - Opcjonalne ID protokołu dla uzupełnienia URL
+ * @param loadImageUrls - Czy załadować autoryzowane URL-e obrazów (domyślnie false dla lepszej wydajności)
  * @returns Tablica obrazów przygotowanych do wyświetlenia
  */
-const mapServerImagesToDisplayImages = (serverImages: any[], protocolId?: string): VehicleImage[] => {
+const mapServerImagesToDisplayImages = async (
+    serverImages: any[],
+    protocolId?: string,
+    loadImageUrls: boolean = false
+): Promise<VehicleImage[]> => {
+    if (!serverImages || !Array.isArray(serverImages)) return [];
+
+    const mappedImages = serverImages.map(serverImage => {
+        // Używamy funkcji z apiClient do konwersji
+        const camelCaseImage = apiClient.parseResponse<VehicleImage>(serverImage);
+
+        // Dodajemy ID protokołu do obiektu obrazu (potrzebne do budowania URL)
+        if (protocolId) {
+            camelCaseImage.protocolId = protocolId;
+        }
+
+        console.log("dupa 2")
+        // Dodajemy endpoint URL (bez autoryzacji) - będzie używany do identyfikacji
+        if (camelCaseImage.id) {
+            camelCaseImage.url = `${apiClient.getBaseUrl()}/v1/protocols/image/${serverImage.id}`;
+        }
+
+        return camelCaseImage;
+    });
+
+    // Jeśli loadImageUrls jest true, pobieramy autoryzowane URL-e
+    if (loadImageUrls) {
+        const urlPromises = mappedImages.map(async (image) => {
+            if (image.id) {
+                const authorizedUrl = await fetchAuthorizedImageUrl(image.id);
+                return { ...image, url: authorizedUrl };
+            }
+            return image;
+        });
+
+        return Promise.all(urlPromises);
+    }
+
+    return mappedImages;
+};
+
+/**
+ * Synchroniczna wersja mapowania (bez autoryzowanych URL-i)
+ * @param serverImages - Tablica obrazów z serwera
+ * @param protocolId - Opcjonalne ID protokołu
+ * @returns Tablica obrazów bez autoryzowanych URL-i
+ */
+const mapServerImagesToDisplayImagesSync = (serverImages: any[], protocolId?: string): VehicleImage[] => {
     if (!serverImages || !Array.isArray(serverImages)) return [];
 
     return serverImages.map(serverImage => {
@@ -41,9 +133,10 @@ const mapServerImagesToDisplayImages = (serverImages: any[], protocolId?: string
             camelCaseImage.protocolId = protocolId;
         }
 
-        // Tworzymy URL do obrazu na podstawie endpointu API
+        console.log("dupa 3")
+        // Dodajemy endpoint URL (bez autoryzacji) - będzie używany do identyfikacji
         if (camelCaseImage.id) {
-            camelCaseImage.url = `${apiClient.getBaseUrl()}/v1/visits/image/${serverImage.id}`;
+            camelCaseImage.url = `${apiClient.getBaseUrl()}/v1/protocols/image/${serverImage.id}`;
         }
 
         return camelCaseImage;
@@ -125,9 +218,9 @@ export const carReceptionApi = {
                 statusUpdatedAt: response.statusUpdatedAt
             } as CarReceptionProtocol;
 
-            // Przetwarzamy obrazy z odpowiedzi serwera jeśli istnieją
+            // Przetwarzamy obrazy z odpowiedzi serwera jeśli istnieją (synchronicznie)
             if (response.vehicleImages) {
-                result.vehicleImages = mapServerImagesToDisplayImages(response.vehicleImages);
+                result.vehicleImages = mapServerImagesToDisplayImagesSync(response.vehicleImages);
             }
 
             return result;
@@ -210,9 +303,9 @@ export const carReceptionApi = {
                 statusUpdatedAt: response.statusUpdatedAt
             } as CarReceptionProtocol;
 
-            // Przetwarzamy obrazy z odpowiedzi serwera jeśli istnieją
+            // Przetwarzamy obrazy z odpowiedzi serwera jeśli istnieją (synchronicznie)
             if (response.vehicleImages) {
-                result.vehicleImages = mapServerImagesToDisplayImages(response.vehicleImages);
+                result.vehicleImages = mapServerImagesToDisplayImagesSync(response.vehicleImages);
             }
 
             return result;
@@ -298,13 +391,13 @@ export const carReceptionApi = {
         try {
             const response = await apiClient.get<any[]>('/receptions');
 
-            // Konwertuj odpowiedź i przetwarzamy zdjęcia dla każdego protokołu
+            // Konwertuj odpowiedź i przetwarzamy zdjęcia dla każdego protokołu (synchronicznie)
             return response.map(item => {
                 const protocol = apiClient.parseResponse<CarReceptionProtocol>(item);
 
                 // Jeśli protokół zawiera zdjęcia, przetwarzamy je
                 if (protocol.vehicleImages) {
-                    protocol.vehicleImages = mapServerImagesToDisplayImages(
+                    protocol.vehicleImages = mapServerImagesToDisplayImagesSync(
                         protocol.vehicleImages,
                         protocol.id
                     );
@@ -329,9 +422,9 @@ export const carReceptionApi = {
             const response = await apiClient.get<any>(`/receptions/${id}`);
             const protocol = apiClient.parseResponse<CarReceptionProtocol>(response);
 
-            // Jeśli protokół zawiera zdjęcia, przetwarzamy je
+            // Jeśli protokół zawiera zdjęcia, przetwarzamy je (synchronicznie)
             if (protocol.vehicleImages) {
-                protocol.vehicleImages = mapServerImagesToDisplayImages(
+                protocol.vehicleImages = mapServerImagesToDisplayImagesSync(
                     protocol.vehicleImages,
                     protocol.id
                 );
@@ -383,9 +476,24 @@ export const carReceptionApi = {
     fetchVehicleImages: async (protocolId: string): Promise<VehicleImage[]> => {
         try {
             const response = await apiClient.get<any[]>(`/v1/protocols/${protocolId}/images`);
-            return mapServerImagesToDisplayImages(response, protocolId);
+            return mapServerImagesToDisplayImagesSync(response, protocolId);
         } catch (error) {
             console.error(`Error fetching images for protocol ${protocolId}:`, error);
+            return [];
+        }
+    },
+
+    /**
+     * Pobiera wszystkie zdjęcia dla danego protokołu z autoryzowanymi URL-ami
+     * @param protocolId - ID protokołu
+     * @returns Lista zdjęć protokołu z załadowanymi URL-ami
+     */
+    fetchVehicleImagesWithUrls: async (protocolId: string): Promise<VehicleImage[]> => {
+        try {
+            const response = await apiClient.get<any[]>(`/v1/protocols/${protocolId}/images`);
+            return await mapServerImagesToDisplayImages(response, protocolId, true);
+        } catch (error) {
+            console.error(`Error fetching images with URLs for protocol ${protocolId}:`, error);
             return [];
         }
     },
@@ -410,7 +518,7 @@ export const carReceptionApi = {
             const response = await apiClient.post<any[]>(`/v1/protocols/${protocolId}/images`, formData);
 
             // Konwertuj odpowiedź na format używany w aplikacji
-            return mapServerImagesToDisplayImages(response, protocolId);
+            return mapServerImagesToDisplayImagesSync(response, protocolId);
         } catch (error) {
             console.error(`Error adding images to protocol ${protocolId}:`, error);
             throw error;
@@ -460,14 +568,16 @@ export const carReceptionApi = {
             // Tworzymy zaktualizowany obiekt obrazu z odpowiedzią z serwera
             const updatedImage: VehicleImage = {
                 ...image,
-                id: response.protocolid,
+                id: response.mediaid, // Używamy mediaid z odpowiedzi
                 protocolId: protocolId,
                 name: imageData.name,
                 tags: imageData.tags,
-                createdAt: new Date().toISOString()
+                createdAt: new Date().toISOString(),
+                // Usuwamy file z obiektu po upload
+                file: undefined
             };
 
-            console.log(updatedImage);
+            console.log('✅ Uploaded image:', updatedImage);
 
             return updatedImage;
         } catch (error) {
@@ -496,9 +606,9 @@ export const carReceptionApi = {
             // Konwertuj odpowiedź na format używany w aplikacji
             const updatedImage = apiClient.parseResponse<VehicleImage>(response);
 
-            // Dodaj URL do obrazu
-            updatedImage.url = `${apiClient.getBaseUrl()}/v1/protocols/image/${imageId}`;
+            // Dodaj dodatkowe pola
             updatedImage.protocolId = protocolId;
+            updatedImage.url = `${apiClient.getBaseUrl()}/v1/protocols/image/${imageId}`;
 
             return updatedImage;
         } catch (error) {
@@ -514,36 +624,21 @@ export const carReceptionApi = {
      */
     fetchVehicleImageAsUrl: async (imageId: string): Promise<string> => {
         try {
-            // Konstruujemy URL z wykorzystaniem naszej funkcji getVehicleImageUrl
-            const url = `${apiClient.getBaseUrl()}/v1/protocols/image/${imageId}`;
-
-            console.log('Fetching image with URL:', url); // Dodajemy logging dla debugowania
-            console.log('Auth token present:', !!apiClient.getAuthToken()); // Sprawdzamy czy token jest dostępny
-
-            // Pobieramy obraz z użyciem funkcji fetch z ręcznie dodanymi nagłówkami autoryzacyjnymi
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'image/*',
-                    ...(apiClient.getAuthToken() ? { 'Authorization': `Bearer ${apiClient.getAuthToken()}` } : {})
-                },
-                // Dodajemy credentials, aby zapewnić, że ciasteczka są przesyłane
-                credentials: 'include'
-            });
-
-            if (!response.ok) {
-                throw new Error(`Błąd podczas pobierania obrazu: ${response.status}`);
-            }
-
-            // Konwertujemy odpowiedź na blob
-            const blob = await response.blob();
-
-            // Tworzymy URL dla blobu
-            return URL.createObjectURL(blob);
+            // Używamy nowej funkcji z autoryzacją
+            return await fetchAuthorizedImageUrl(imageId);
         } catch (error) {
             console.error(`Error fetching image ${imageId}:`, error);
             return ''; // Zwracamy pusty string w przypadku błędu
         }
     },
 
+    /**
+     * Utility function - pobiera autoryzowany URL dla obrazu
+     * @param imageId - ID obrazu
+     * @returns Promise z blob URL
+     */
+    fetchAuthorizedImageUrl
 };
+
+// Eksportuj funkcje mapowania dla użycia w innych miejscach
+export { mapServerImagesToDisplayImages, mapServerImagesToDisplayImagesSync, fetchAuthorizedImageUrl };
