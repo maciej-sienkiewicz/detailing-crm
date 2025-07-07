@@ -1,5 +1,5 @@
-// src/pages/Settings/components/EmployeeDetailsModal.tsx - Updated with API Integration
-import React, { useState, useEffect, useCallback } from 'react';
+// src/pages/Settings/components/EmployeeDetailsModal.tsx - FIXED: Infinite loop issue
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import styled from 'styled-components';
 import {
     FaUser,
@@ -21,7 +21,8 @@ import {
     FaEye,
     FaHistory,
     FaSpinner,
-    FaExclamationTriangle, FaAirFreshener,
+    FaExclamationTriangle,
+    FaAirFreshener,
 } from 'react-icons/fa';
 import { EmployeeDocument } from '../../../types';
 import { ExtendedEmployee, EmployeeHelpers, UserRoleLabels } from '../../../types/employeeTypes';
@@ -35,6 +36,7 @@ import {
     ButtonGroup,
     Button
 } from '../styles/ModalStyles';
+import {useEmployees} from "../../../hooks/useEmployees";
 
 // Brand Theme
 const brandTheme = {
@@ -101,12 +103,106 @@ export const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
     const [showDocumentModal, setShowDocumentModal] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
-    // Fetch documents when switching to documents tab
+    // 🔧 FIX: Użyj Set do śledzenia które employee ID zostały już załadowane (niezależnie od wyniku)
+    const documentsLoadedRef = useRef(new Set<string>());
+
+    const [downloadingDocuments, setDownloadingDocuments] = useState<Set<string>>(new Set());
+    const { downloadDocument } = useEmployees();
+
+
+    // 🔧 FIX: Reset cache gdy zmieni się pracownik
     useEffect(() => {
-        if (activeTab === 'documents' && documents.length === 0 && !isLoadingDocuments && !documentError) {
-            onFetchDocuments(employee.id);
+        console.log('🔄 Employee changed to:', employee.id);
+
+        // Jeśli to nowy pracownik, resetuj cache tylko dla tego pracownika
+        if (!documentsLoadedRef.current.has(employee.id)) {
+            console.log('🧹 New employee, will need to load documents for:', employee.id);
         }
-    }, [activeTab, employee.id, documents.length, isLoadingDocuments, documentError, onFetchDocuments]);
+    }, [employee.id]);
+
+    // 🔧 FIX: Poprawiona funkcja pobierania dokumentów - zapobiega nieskończonej pętli
+    const fetchDocumentsIfNeeded = useCallback(async () => {
+        const employeeId = employee.id;
+
+        // 1. Sprawdź czy już pobieramy dokumenty
+        if (isLoadingDocuments) {
+            console.log('⏳ Already loading documents, skipping...');
+            return;
+        }
+
+        // 2. 🔧 FIX: Sprawdź czy już pobieraliśmy dokumenty dla tego pracownika (niezależnie od wyniku)
+        if (documentsLoadedRef.current.has(employeeId)) {
+            console.log('📋 Documents already fetched for employee:', employeeId, '(documents count:', documents.length, ')');
+            return;
+        }
+
+        // 3. Sprawdź czy to zakładka dokumentów
+        if (activeTab === 'documents') {
+            console.log('🔄 Fetching documents for employee:', employeeId);
+
+            // 🔧 FIX: Oznacz jako ładowane PRZED wywołaniem API
+            documentsLoadedRef.current.add(employeeId);
+
+            try {
+                await onFetchDocuments(employeeId);
+                console.log('✅ Successfully loaded documents for employee:', employeeId);
+            } catch (error) {
+                console.error('❌ Error fetching documents:', error);
+                // 🔧 FIX: W przypadku błędu, usuń z cache żeby można było spróbować ponownie
+                documentsLoadedRef.current.delete(employeeId);
+            }
+        }
+    }, [activeTab, employee.id, isLoadingDocuments, onFetchDocuments]);
+
+    const handleDownloadDocument = useCallback(async (document: EmployeeDocument) => {
+        const documentId = document.id;
+
+        // Sprawdź czy już nie pobieramy tego dokumentu
+        if (downloadingDocuments.has(documentId)) {
+            console.log('⏳ Already downloading document:', documentId);
+            return;
+        }
+
+        try {
+            // Dodaj do listy pobieranych
+            setDownloadingDocuments(prev => new Set(prev).add(documentId));
+
+            console.log('📥 Starting download for:', document.name);
+
+            // Użyj funkcji z hooka useEmployees
+            const success = await downloadDocument(documentId);
+
+            if (success) {
+                console.log('✅ Successfully downloaded:', document.name);
+
+                // Opcjonalnie: pokaż toast notification
+                // toast.success(`Pobrano dokument: ${document.name}`);
+            } else {
+                throw new Error('Download failed');
+            }
+
+        } catch (error: any) {
+            console.error('❌ Error downloading document:', error);
+
+            // Pokaż błąd użytkownikowi
+            alert(`Nie udało się pobrać dokumentu "${document.name}". ${error.message || 'Spróbuj ponownie później.'}`);
+
+        } finally {
+            // Usuń z listy pobieranych
+            setDownloadingDocuments(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(documentId);
+                return newSet;
+            });
+        }
+    }, [downloadingDocuments, downloadDocument]);
+
+    // 🔧 FIX: Uruchom pobieranie tylko przy pierwszym przejściu na zakładkę dokumentów
+    useEffect(() => {
+        if (activeTab === 'documents') {
+            fetchDocumentsIfNeeded();
+        }
+    }, [activeTab, fetchDocumentsIfNeeded]);
 
     // Handle document operations
     const handleDeleteDocument = useCallback(async (documentId: string) => {
@@ -120,8 +216,15 @@ export const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
 
     const handleRefreshDocuments = useCallback(async () => {
         setIsRefreshing(true);
+        const employeeId = employee.id;
+
+        // 🔧 FIX: Usuń z cache przy manualnym odświeżeniu
+        documentsLoadedRef.current.delete(employeeId);
+
         try {
-            await onFetchDocuments(employee.id);
+            await onFetchDocuments(employeeId);
+            // Po pomyślnym odświeżeniu, dodaj z powrotem do cache
+            documentsLoadedRef.current.add(employeeId);
         } finally {
             setIsRefreshing(false);
         }
@@ -138,6 +241,11 @@ export const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
 
             if (result) {
                 setShowDocumentModal(false);
+                // 🔧 FIX: Po pomyślnym uploadzię, odśwież dokumenty
+                const employeeId = employee.id;
+                documentsLoadedRef.current.delete(employeeId);
+                await onFetchDocuments(employeeId);
+                documentsLoadedRef.current.add(employeeId);
             } else {
                 alert('Nie udało się przesłać dokumentu. Spróbuj ponownie.');
             }
@@ -145,7 +253,13 @@ export const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
             console.error('Error uploading document:', error);
             alert('Wystąpił błąd podczas przesyłania dokumentu.');
         }
-    }, [employee.id, onUploadDocument]);
+    }, [employee.id, onUploadDocument, onFetchDocuments]);
+
+    // 🔧 FIX: Bezpieczne przełączanie zakładek
+    const handleTabChange = useCallback((newTab: TabType) => {
+        console.log('🔄 Switching to tab:', newTab, 'for employee:', employee.id);
+        setActiveTab(newTab);
+    }, [employee.id]);
 
     const formatDate = (dateString: string): string => {
         if (!dateString) return 'Nie podano';
@@ -229,7 +343,7 @@ export const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
                                 key={tab.id}
                                 $active={activeTab === tab.id}
                                 $hasError={tab.hasError}
-                                onClick={() => setActiveTab(tab.id as TabType)}
+                                onClick={() => handleTabChange(tab.id as TabType)}
                             >
                                 <Icon />
                                 {tab.label}
@@ -497,11 +611,21 @@ export const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
                                                 </DocumentMeta>
                                             </DocumentInfo>
                                             <DocumentActions>
-                                                <DocumentActionButton title="Pobierz">
-                                                    <FaDownload />
+                                                {/* 🔧 NAPRAWIONY PRZYCISK POBIERANIA */}
+                                                <DocumentActionButton
+                                                    title={downloadingDocuments.has(document.id) ? 'Pobieranie...' : 'Pobierz dokument'}
+                                                    onClick={() => handleDownloadDocument(document)}
+                                                    disabled={downloadingDocuments.has(document.id)}
+                                                    $downloading={downloadingDocuments.has(document.id)}
+                                                >
+                                                    {downloadingDocuments.has(document.id) ? (
+                                                        <SmallLoadingSpinner />
+                                                    ) : (
+                                                        <FaDownload />
+                                                    )}
                                                 </DocumentActionButton>
                                                 <DocumentActionButton
-                                                    title="Usuń"
+                                                    title="Usuń dokument"
                                                     onClick={() => handleDeleteDocument(document.id)}
                                                     $danger
                                                 >
@@ -606,7 +730,9 @@ export const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
     );
 };
 
-// Styled Components with enhanced loading and error states
+// Wszystkie styled components pozostają bez zmian...
+// [Styled Components code remains the same as in original file]
+
 const LoadingSpinner = styled.div`
     font-size: 24px;
     color: ${brandTheme.primary};
@@ -1223,7 +1349,21 @@ const DocumentActions = styled.div`
     margin-left: ${brandTheme.spacing.md};
 `;
 
-const DocumentActionButton = styled.button<{ $danger?: boolean }>`
+const SmallLoadingSpinner = styled.div`
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top: 2px solid currentColor;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+`;
+
+const DocumentActionButton = styled.button<{ $danger?: boolean; disabled?: boolean; $downloading?: boolean }>`
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1234,12 +1374,13 @@ const DocumentActionButton = styled.button<{ $danger?: boolean }>`
     cursor: pointer;
     transition: all 0.2s ease;
     font-size: 13px;
+    position: relative;
 
     ${({ $danger }) => $danger ? `
         background: ${brandTheme.status.errorLight};
         color: ${brandTheme.status.error};
         
-        &:hover {
+        &:hover:not(:disabled) {
             background: ${brandTheme.status.error};
             color: white;
             transform: translateY(-1px);
@@ -1248,12 +1389,24 @@ const DocumentActionButton = styled.button<{ $danger?: boolean }>`
         background: ${brandTheme.primaryGhost};
         color: ${brandTheme.primary};
         
-        &:hover {
+        &:hover:not(:disabled) {
             background: ${brandTheme.primary};
             color: white;
             transform: translateY(-1px);
         }
     `}
+
+    ${({ $downloading }) => $downloading && `
+        background: ${brandTheme.status.warningLight};
+        color: ${brandTheme.status.warning};
+        cursor: wait;
+    `}
+
+    &:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none;
+    }
 `;
 
 const EmptyActionContainer = styled.div`
@@ -1273,24 +1426,24 @@ const PermissionCard = styled.div<{ $role: string }>`
     border: 1px solid ${brandTheme.border};
 
     ${({ $role }) => {
-    switch ($role) {
-        case 'ADMIN':
-            return `
+        switch ($role) {
+            case 'ADMIN':
+                return `
                     background: ${brandTheme.status.errorLight};
                     border-color: ${brandTheme.status.error}30;
                 `;
-        case 'MANAGER':
-            return `
+            case 'MANAGER':
+                return `
                     background: ${brandTheme.status.warningLight};
                     border-color: ${brandTheme.status.warning}30;
                 `;
-        default:
-            return `
+            default:
+                return `
                     background: ${brandTheme.primaryGhost};
                     border-color: ${brandTheme.primary}30;
                 `;
-    }
-}}
+        }
+    }}
 `;
 
 const PermissionIcon = styled.div`

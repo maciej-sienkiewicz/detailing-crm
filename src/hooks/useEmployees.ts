@@ -67,6 +67,7 @@ export interface UseEmployeesActions {
     createEmployee: (data: EmployeeCreatePayload) => Promise<ExtendedEmployee | null>;
     updateEmployee: (data: EmployeeUpdatePayload) => Promise<ExtendedEmployee | null>;
     deleteEmployee: (id: string) => Promise<boolean>;
+    downloadDocument: (documentId: string) => Promise<boolean>; // 🔧 ADDED: Download function
 
     // Selection and filtering
     selectEmployee: (employee: ExtendedEmployee | null) => void;
@@ -499,7 +500,15 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
      * Selects an employee and fetches detailed data if needed
      */
     const selectEmployee = useCallback(async (employee: ExtendedEmployee | null) => {
-        setState(prev => ({ ...prev, selectedEmployee: employee }));
+        // 🔧 FIX: Wyczyść dokumenty przy zmianie pracownika
+        setState(prev => ({
+            ...prev,
+            selectedEmployee: employee,
+            // Wyczyść cache dokumentów
+            documents: [],
+            documentError: null,
+            isLoadingDocuments: false
+        }));
 
         // Fetch detailed data if employee is selected and doesn't have all details
         if (employee && !employee.emergencyContact) {
@@ -623,7 +632,8 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
             setState(prev => ({
                 ...prev,
                 isLoadingDocuments: true,
-                documentError: null
+                documentError: null,
+                documents: []
             }));
 
             console.log('📄 Fetching documents for employee:', employeeId);
@@ -645,7 +655,9 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
             setState(prev => ({
                 ...prev,
                 isLoadingDocuments: false,
-                documentError: error.message || 'Nie udało się pobrać dokumentów'
+                documentError: error.message || 'Nie udało się pobrać dokumentów',
+                // 🔧 FIX: Wyczyść dokumenty przy błędzie
+                documents: []
             }));
         }
     }, []);
@@ -676,11 +688,23 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
             });
 
             if (result.success && result.data) {
-                setState(prev => ({
-                    ...prev,
-                    documents: [...prev.documents, result.data!],
-                    isLoadingDocuments: false
-                }));
+                // 🔧 FIX: Sprawdź czy dokument jest dla aktualnie wybranego pracownika
+                setState(prev => {
+                    // Tylko dodaj dokument jeśli to ten sam pracownik
+                    if (prev.selectedEmployee?.id === employeeId) {
+                        return {
+                            ...prev,
+                            documents: [...prev.documents, result.data!],
+                            isLoadingDocuments: false
+                        };
+                    } else {
+                        // Jeśli to inny pracownik, tylko zakończ loading
+                        return {
+                            ...prev,
+                            isLoadingDocuments: false
+                        };
+                    }
+                });
 
                 console.log('✅ Successfully uploaded document:', result.data.id);
                 return result.data;
@@ -697,6 +721,44 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
             return null;
         }
     }, []);
+
+    const downloadDocument = useCallback(async (documentId: string): Promise<boolean> => {
+        try {
+            console.log('📥 Starting document download:', documentId);
+
+            const result = await employeesApi.downloadEmployeeDocument(documentId);
+
+            if (result.success && result.data) {
+                const { blob, filename } = result.data;
+
+                // Utwórz URL dla blob'a
+                const url = window.URL.createObjectURL(blob);
+
+                // Utwórz tymczasowy link do pobrania
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                link.style.display = 'none';
+
+                // Dodaj do DOM, kliknij i usuń
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                // Zwolnij pamięć
+                window.URL.revokeObjectURL(url);
+
+                console.log('✅ Document downloaded successfully:', filename);
+                return true;
+            } else {
+                throw new Error(result.error || 'Failed to download document');
+            }
+        } catch (error: any) {
+            console.error('❌ Error in downloadDocument:', error);
+            return false;
+        }
+    }, []);
+
 
     /**
      * Deletes a document
@@ -855,6 +917,7 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
         fetchDocuments,
         uploadDocument,
         deleteDocument,
+        downloadDocument,
         refreshData,
         clearError,
         searchEmployees,

@@ -237,15 +237,25 @@ class EmployeesApi {
             }
             formData.append('file', payload.file);
 
-            const response = await apiClientNew.postFormData<DocumentUploadResponse>(
-                `${this.baseEndpoint}/documents`,
-                formData,
-                onProgress
-            );
+            // Użyj bezpośrednio fetch z właściwymi headerami
+            const response = await fetch(`${apiClientNew['baseUrl']}${this.baseEndpoint}/documents`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                    // NIE dodawaj Content-Type - browser ustawi automatycznie multipart/form-data
+                },
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new ApiError(response.status, response.statusText);
+            }
+
+            const result = await response.json();
 
             return {
                 success: true,
-                data: response
+                data: result
             };
 
         } catch (error) {
@@ -269,28 +279,66 @@ class EmployeesApi {
         }
     }
 
-    async downloadEmployeeDocument(documentId: string): Promise<EmployeesApiResult<Blob>> {
+    async downloadEmployeeDocument(documentId: string): Promise<EmployeesApiResult<{ blob: Blob; filename: string }>> {
         try {
-            const response = await fetch(`${apiClientNew['baseUrl']}${this.baseEndpoint}/documents/${documentId}/download`, {
+            console.log('📥 Downloading document via API:', documentId);
+
+            const baseUrl = 'http://localhost:8080/api';
+            const token = localStorage.getItem('auth_token');
+
+            if (!token) {
+                throw new Error('Brak tokenu autoryzacji');
+            }
+
+            // 🔧 Użyj fetch dla pobierania plików binarnych
+            const response = await fetch(`${baseUrl}/employees/documents/${documentId}/download`, {
                 method: 'GET',
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/octet-stream'
                 }
             });
 
             if (!response.ok) {
-                throw new ApiError(response.status, response.statusText);
+                if (response.status === 404) {
+                    throw new Error('Dokument nie został znaleziony');
+                } else if (response.status === 403) {
+                    throw new Error('Brak uprawnień do pobrania dokumentu');
+                } else {
+                    throw new Error(`Błąd serwera: ${response.status} ${response.statusText}`);
+                }
             }
 
+            // Pobierz blob
             const blob = await response.blob();
+
+            // Wyciągnij nazwę pliku z nagłówka Content-Disposition
+            let filename = `document_${documentId}`;
+            const contentDisposition = response.headers.get('Content-Disposition');
+
+            if (contentDisposition) {
+                // Szukaj filename= w nagłówku
+                const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                if (filenameMatch && filenameMatch[1]) {
+                    filename = filenameMatch[1].replace(/['"]/g, '');
+                }
+            }
+
+            console.log('✅ Successfully downloaded:', filename, `(${blob.size} bytes)`);
 
             return {
                 success: true,
-                data: blob
+                data: { blob, filename }
             };
 
-        } catch (error) {
-            return this.createErrorResult(error);
+        } catch (error: any) {
+            console.error('❌ Error downloading document:', error);
+
+            return {
+                success: false,
+                error: error.message || 'Nie udało się pobrać dokumentu',
+                details: error
+            };
         }
     }
 
