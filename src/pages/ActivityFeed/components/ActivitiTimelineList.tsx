@@ -149,7 +149,7 @@ const ActivityTimelineList: React.FC<ActivityTimelineListProps> = ({ activities,
 
         switch (entity.type) {
             case 'APPOINTMENT':
-                return `/calendar?highlight=${entity.id}`;
+                return `/orders/car-reception/${entity.id}`;
             case 'client':
                 return `/clients/owners?search=${entity.displayName}`;
             case 'vehicle':

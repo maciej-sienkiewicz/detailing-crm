@@ -1,4 +1,4 @@
-// src/types/vehicle.ts - Zaktualizowane typy
+// src/types/vehicle.ts - Zaktualizowane typy - NAPRAWIONE
 // Typy związane z pojazdami
 
 // Rozszerzony interfejs pojazdu - zaktualizowany dla nowego API
@@ -19,7 +19,9 @@ export interface VehicleExpanded {
 
     // Relacje - zaktualizowane dla nowego API
     ownerIds: string[];       // ID właścicieli (może mieć wielu)
-    owners?: VehicleOwnerSummary[]; // Dodane dla nowego API
+
+    // NAPRAWIONE: Dodanie pełnych danych właścicieli z API
+    owners?: VehicleOwnerSummary[]; // Pełne dane właścicieli z API
 
     // Historia serwisowa - pobierana osobno
     serviceHistory?: ServiceHistoryItem[];
@@ -29,7 +31,7 @@ export interface VehicleExpanded {
     updatedAt?: string;
 }
 
-// Nowy interfejs dla właścicieli z API
+// NOWY interfejs dla właścicieli z API - rozszerzony o wszystkie potrzebne dane
 export interface VehicleOwnerSummary {
     id: number;
     firstName: string;
@@ -39,7 +41,7 @@ export interface VehicleOwnerSummary {
     phone?: string;
 }
 
-// Zachowany stary interfejs dla kompatybilności
+// Zachowany stary interfejs dla kompatybilności wstecznej
 export interface VehicleOwner {
     ownerId: number;
     ownerName: string;
@@ -153,3 +155,31 @@ export enum SortDirection {
     ASC = 'asc',
     DESC = 'desc'
 }
+
+// NOWE TYPY dla kompatybilności z różnymi formatami API
+export interface VehicleOwnerDetailed {
+    id: string;
+    firstName: string;
+    lastName: string;
+    fullName: string;
+    email: string;
+    phone: string;
+    company?: string;
+    address?: string;
+}
+
+// Typ dla konwersji między formatami
+export type VehicleOwnerFormat = VehicleOwnerSummary | VehicleOwner | VehicleOwnerDetailed;
+
+// Helper type guards
+export const isVehicleOwnerSummary = (owner: VehicleOwnerFormat): owner is VehicleOwnerSummary => {
+    return 'firstName' in owner && 'lastName' in owner && 'fullName' in owner;
+};
+
+export const isVehicleOwner = (owner: VehicleOwnerFormat): owner is VehicleOwner => {
+    return 'ownerId' in owner && 'ownerName' in owner;
+};
+
+export const isVehicleOwnerDetailed = (owner: VehicleOwnerFormat): owner is VehicleOwnerDetailed => {
+    return 'firstName' in owner && 'lastName' in owner && 'email' in owner && typeof (owner as any).id === 'string';
+};

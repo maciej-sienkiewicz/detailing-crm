@@ -1,5 +1,5 @@
-// VehicleDetailDrawer.tsx - Professional Premium Automotive CRM
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import {
     FaTimes,
@@ -9,36 +9,34 @@ import {
     FaTools,
     FaMoneyBillWave,
     FaUser,
-    FaExternalLinkAlt,
     FaPalette,
     FaBarcode,
-    FaUsers
+    FaUsers,
+    FaArrowRight,
+    FaCheckCircle,
+    FaClock,
+    FaExclamationTriangle,
+    FaEnvelope,
+    FaPhone
 } from 'react-icons/fa';
 import {
-    ClientProtocolHistory,
-    ProtocolStatus,
     VehicleExpanded,
-    VehicleOwner,
     VehicleStatistics
 } from '../../../types';
 import { vehicleApi } from '../../../api/vehiclesApi';
-import { carReceptionApi } from '../../../api/carReceptionApi';
+import { visitsApi, ClientVisitHistoryItem } from '../../../api/visitsApiNew';
+import { clientsApi } from '../../../api/clientsApi';
+import { ProtocolStatus, ProtocolStatusLabels, ProtocolStatusColors } from '../../../types/protocol';
 
-// Professional Brand Theme - Premium Automotive CRM
 const brandTheme = {
-    // Primary Colors - Professional Blue Palette
     primary: 'var(--brand-primary, #1a365d)',
     primaryLight: 'var(--brand-primary-light, #2c5aa0)',
     primaryDark: 'var(--brand-primary-dark, #0f2027)',
     primaryGhost: 'var(--brand-primary-ghost, rgba(26, 54, 93, 0.04))',
-
-    // Surface Colors - Clean & Minimal
     surface: '#ffffff',
     surfaceAlt: '#fafbfc',
     surfaceElevated: '#f8fafc',
     surfaceHover: '#f1f5f9',
-
-    // Typography Colors
     text: {
         primary: '#0f172a',
         secondary: '#475569',
@@ -46,13 +44,9 @@ const brandTheme = {
         muted: '#94a3b8',
         disabled: '#cbd5e1'
     },
-
-    // Border Colors
     border: '#e2e8f0',
     borderLight: '#f1f5f9',
     borderHover: '#cbd5e1',
-
-    // Status Colors - Automotive Grade
     status: {
         success: '#059669',
         successLight: '#d1fae5',
@@ -63,8 +57,6 @@ const brandTheme = {
         info: '#0ea5e9',
         infoLight: '#e0f2fe'
     },
-
-    // Shadows - Professional Depth
     shadow: {
         xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
         sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
@@ -72,8 +64,6 @@ const brandTheme = {
         lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
         xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
     },
-
-    // Spacing Scale
     spacing: {
         xs: '4px',
         sm: '8px',
@@ -82,8 +72,6 @@ const brandTheme = {
         xl: '32px',
         xxl: '48px'
     },
-
-    // Border Radius
     radius: {
         sm: '6px',
         md: '8px',
@@ -99,57 +87,130 @@ interface VehicleDetailDrawerProps {
     onClose: () => void;
 }
 
+interface FullOwnerInfo {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    fullName: string;
+}
+
 const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
                                                                      isOpen,
                                                                      vehicle,
                                                                      onClose
                                                                  }) => {
-    const [owners, setOwners] = useState<VehicleOwner[]>([]);
+    const navigate = useNavigate();
+    const [owners, setOwners] = useState<FullOwnerInfo[]>([]);
     const [loadingOwners, setLoadingOwners] = useState(false);
-    const [protocolHistory, setProtocolHistory] = useState<ClientProtocolHistory[]>([]);
+    const [visitHistory, setVisitHistory] = useState<ClientVisitHistoryItem[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [vehicleStats, setVehicleStats] = useState<VehicleStatistics | null>(null);
     const [error, setError] = useState<string | null>(null);
 
-    // Pobieranie właścicieli pojazdu
     useEffect(() => {
-        const loadOwners = async () => {
-            if (vehicle) {
-                setLoadingOwners(true);
-                try {
-                    setOwners(await vehicleApi.fetchOwners(vehicle.id));
-                    setVehicleStats(await vehicleApi.fetchVehicleStatistics(vehicle.id));
-                } catch (error) {
-                    console.error('Error loading vehicle owners:', error);
-                    setError('Nie udało się załadować właścicieli pojazdu');
-                } finally {
-                    setLoadingOwners(false);
+        const loadOwnersDetails = async () => {
+            if (!vehicle) return;
+
+            setLoadingOwners(true);
+            try {
+                let ownerData: FullOwnerInfo[] = [];
+
+                if (vehicle.ownerIds && vehicle.ownerIds.length > 0) {
+                    const ownerPromises = vehicle.ownerIds.map(async (ownerId) => {
+                        const numericId = typeof ownerId === 'string' ? parseInt(ownerId, 10) : ownerId;
+                        const result = await clientsApi.getClientById(numericId);
+                        if (result.success && result.data) {
+                            return {
+                                id: result.data.id,
+                                firstName: result.data.firstName,
+                                lastName: result.data.lastName,
+                                email: result.data.email,
+                                phone: result.data.phone,
+                                fullName: result.data.fullName || `${result.data.firstName} ${result.data.lastName}`
+                            };
+                        }
+                        return null;
+                    });
+
+                    const ownerResults = await Promise.all(ownerPromises);
+                    ownerData = ownerResults.filter((owner): owner is FullOwnerInfo => owner !== null);
                 }
+
+                if (ownerData.length === 0 && vehicle.owners && vehicle.owners.length > 0) {
+                    ownerData = vehicle.owners.map(owner => ({
+                        id: owner.id.toString(),
+                        firstName: owner.firstName,
+                        lastName: owner.lastName,
+                        email: owner.email || '',
+                        phone: owner.phone || '',
+                        fullName: owner.fullName || `${owner.firstName} ${owner.lastName}`
+                    }));
+                }
+
+                setOwners(ownerData);
+
+                const stats = await vehicleApi.fetchVehicleStatistics(vehicle.id);
+                setVehicleStats(stats);
+
+            } catch (error) {
+                if (vehicle.owners && vehicle.owners.length > 0) {
+                    const fallbackOwners = vehicle.owners.map(owner => ({
+                        id: owner.id.toString(),
+                        firstName: owner.firstName,
+                        lastName: owner.lastName,
+                        email: owner.email || '',
+                        phone: owner.phone || '',
+                        fullName: owner.fullName || `${owner.firstName} ${owner.lastName}`
+                    }));
+                    setOwners(fallbackOwners);
+                } else {
+                    setError('Nie udało się załadować danych właścicieli pojazdu');
+                }
+            } finally {
+                setLoadingOwners(false);
             }
         };
 
-        loadOwners();
+        loadOwnersDetails();
     }, [vehicle]);
 
-    // Pobieranie historii serwisowej pojazdu
     useEffect(() => {
-        const loadServiceHistory = async () => {
-            if (vehicle) {
+        const loadVisitHistory = async () => {
+            if (vehicle && owners.length > 0) {
                 setLoadingHistory(true);
                 try {
-                    const protocols = await carReceptionApi.getProtocolsByClientId(vehicle.ownerIds[0]);
-                    setProtocolHistory(protocols);
+                    const allVisitPromises = owners.map(async (owner) => {
+                        const visitResult = await visitsApi.getClientVisitHistory(owner.id, { size: 20 });
+                        if (visitResult.success && visitResult.data) {
+                            return visitResult.data.data.filter(visit =>
+                                visit.licensePlate === vehicle.licensePlate
+                            );
+                        }
+                        return [];
+                    });
+
+                    const allVisitResults = await Promise.all(allVisitPromises);
+                    const allVisits = allVisitResults.flat();
+
+                    const uniqueVisits = allVisits.filter((visit, index, arr) =>
+                        arr.findIndex(v => v.id === visit.id) === index
+                    ).sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
+
+                    setVisitHistory(uniqueVisits);
                 } catch (error) {
-                    console.error('Error loading service history:', error);
-                    setError('Nie udało się załadować historii serwisowej');
+                    setError('Nie udało się załadować historii wizyt');
                 } finally {
                     setLoadingHistory(false);
                 }
             }
         };
 
-        loadServiceHistory();
-    }, [vehicle]);
+        if (owners.length > 0) {
+            loadVisitHistory();
+        }
+    }, [vehicle, owners]);
 
     const formatDate = (dateString: string): string => {
         if (!dateString) return '';
@@ -169,23 +230,39 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
     };
 
     const getStatusInfo = (status: ProtocolStatus) => {
+        return {
+            label: ProtocolStatusLabels[status] || status,
+            color: ProtocolStatusColors[status] || brandTheme.text.muted,
+            icon: getStatusIcon(status)
+        };
+    };
+
+    const getStatusIcon = (status: ProtocolStatus) => {
         switch (status) {
             case ProtocolStatus.COMPLETED:
-                return { label: 'Zakończony', color: brandTheme.status.success };
-            case ProtocolStatus.SCHEDULED:
-                return { label: 'Zaplanowany', color: brandTheme.status.info };
-            case ProtocolStatus.READY_FOR_PICKUP:
-                return { label: 'Gotowy do odbioru', color: brandTheme.status.warning };
-            case ProtocolStatus.CANCELLED:
-                return { label: 'Anulowany', color: brandTheme.status.error };
+                return <FaCheckCircle />;
             case ProtocolStatus.IN_PROGRESS:
-                return { label: 'W realizacji', color: brandTheme.status.info };
+                return <FaClock />;
+            case ProtocolStatus.READY_FOR_PICKUP:
+                return <FaCheckCircle />;
+            case ProtocolStatus.SCHEDULED:
+                return <FaCalendarAlt />;
+            case ProtocolStatus.CANCELLED:
+                return <FaExclamationTriangle />;
             default:
-                return { label: String(status), color: brandTheme.text.muted };
+                return <FaClock />;
         }
     };
 
-    if (!vehicle || !vehicleStats) return null;
+    const handleVisitClick = (visitId: string) => {
+        navigate(`/orders/car-reception/${visitId}`);
+    };
+
+    const handleOwnerClick = (ownerId: string) => {
+        navigate(`/clients-vehicles?tab=owners&clientId=${ownerId}`);
+    };
+
+    if (!vehicle) return null;
 
     return (
         <DrawerContainer isOpen={isOpen}>
@@ -205,7 +282,6 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
             </DrawerHeader>
 
             <DrawerContent>
-                {/* Vehicle Header Section */}
                 <VehicleHeaderSection>
                     <VehicleTitle>{vehicle.make} {vehicle.model}</VehicleTitle>
                     <LicensePlate>{vehicle.licensePlate}</LicensePlate>
@@ -223,8 +299,10 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
                     </VehicleBasicInfo>
                 </VehicleHeaderSection>
 
-                {/* Vehicle Details */}
-                <SectionTitle>Dane pojazdu</SectionTitle>
+                <SectionTitle>
+                    <SectionTitleIcon><FaCar /></SectionTitleIcon>
+                    Dane pojazdu
+                </SectionTitle>
                 <DetailSection>
                     {vehicle.vin && (
                         <DetailRow>
@@ -253,7 +331,6 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
                     </DetailRow>
                 </DetailSection>
 
-                {/* Owners Section */}
                 <SectionTitle>
                     <SectionTitleIcon><FaUsers /></SectionTitleIcon>
                     Właściciele pojazdu
@@ -272,125 +349,140 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
                 ) : (
                     <OwnersList>
                         {owners.map(owner => (
-                            <OwnerItem key={owner.ownerId}>
+                            <OwnerItem
+                                key={owner.id}
+                                onClick={() => handleOwnerClick(owner.id)}
+                            >
                                 <OwnerIcon><FaUser /></OwnerIcon>
                                 <OwnerInfo>
-                                    <OwnerName>{owner.ownerName}</OwnerName>
+                                    <OwnerName>{owner.fullName}</OwnerName>
+                                    <OwnerContact>
+                                        <ContactItem>
+                                            <FaEnvelope />
+                                            <span>{owner.email}</span>
+                                        </ContactItem>
+                                        <ContactItem>
+                                            <FaPhone />
+                                            <span>{owner.phone}</span>
+                                        </ContactItem>
+                                    </OwnerContact>
                                 </OwnerInfo>
+                                <OwnerActionIcon>
+                                    <FaArrowRight />
+                                </OwnerActionIcon>
                             </OwnerItem>
                         ))}
                     </OwnersList>
                 )}
 
-                {/* Service Statistics */}
-                <SectionTitle>
-                    <SectionTitleIcon><FaTools /></SectionTitleIcon>
-                    Statystyki serwisowe
-                </SectionTitle>
+                {vehicleStats && (
+                    <>
+                        <SectionTitle>
+                            <SectionTitleIcon><FaTools /></SectionTitleIcon>
+                            Statystyki serwisowe
+                        </SectionTitle>
 
-                <MetricsGrid>
-                    <MetricCard>
-                        <MetricIcon $color={brandTheme.status.info}>
-                            <FaTools />
-                        </MetricIcon>
-                        <MetricContent>
-                            <MetricValue>{vehicleStats.servicesNo}</MetricValue>
-                            <MetricLabel>Liczba usług</MetricLabel>
-                        </MetricContent>
-                    </MetricCard>
+                        <MetricsGrid>
+                            <MetricCard>
+                                <MetricIcon $color={brandTheme.status.info}>
+                                    <FaTools />
+                                </MetricIcon>
+                                <MetricContent>
+                                    <MetricValue>{vehicleStats.servicesNo}</MetricValue>
+                                    <MetricLabel>Liczba usług</MetricLabel>
+                                </MetricContent>
+                            </MetricCard>
 
-                    <MetricCard>
-                        <MetricIcon $color={brandTheme.status.success}>
-                            <FaMoneyBillWave />
-                        </MetricIcon>
-                        <MetricContent>
-                            <MetricValue>{formatCurrency(vehicleStats.totalRevenue)}</MetricValue>
-                            <MetricLabel>Suma przychodów</MetricLabel>
-                        </MetricContent>
-                    </MetricCard>
+                            <MetricCard>
+                                <MetricIcon $color={brandTheme.status.success}>
+                                    <FaMoneyBillWave />
+                                </MetricIcon>
+                                <MetricContent>
+                                    <MetricValue>{formatCurrency(vehicleStats.totalRevenue)}</MetricValue>
+                                    <MetricLabel>Suma przychodów</MetricLabel>
+                                </MetricContent>
+                            </MetricCard>
 
-                    {vehicle.lastServiceDate && (
-                        <MetricCard $fullWidth>
-                            <MetricIcon $color={brandTheme.status.warning}>
-                                <FaCalendarAlt />
-                            </MetricIcon>
-                            <MetricContent>
-                                <MetricValue>{formatDate(vehicle.lastServiceDate)}</MetricValue>
-                                <MetricLabel>Ostatnia usługa</MetricLabel>
-                            </MetricContent>
-                        </MetricCard>
-                    )}
-                </MetricsGrid>
+                            {vehicle.lastServiceDate && (
+                                <MetricCard $fullWidth>
+                                    <MetricIcon $color={brandTheme.status.warning}>
+                                        <FaCalendarAlt />
+                                    </MetricIcon>
+                                    <MetricContent>
+                                        <MetricValue>{formatDate(vehicle.lastServiceDate)}</MetricValue>
+                                        <MetricLabel>Ostatnia usługa</MetricLabel>
+                                    </MetricContent>
+                                </MetricCard>
+                            )}
+                        </MetricsGrid>
+                    </>
+                )}
 
-                {/* Service History */}
                 <SectionTitle>
                     <SectionTitleIcon><FaCalendarAlt /></SectionTitleIcon>
-                    Historia serwisowa
+                    Historia rezerwacji
                 </SectionTitle>
 
                 {loadingHistory ? (
                     <LoadingContainer>
                         <LoadingSpinner />
-                        <LoadingText>Ładowanie historii serwisowej...</LoadingText>
+                        <LoadingText>Ładowanie historii rezerwacji...</LoadingText>
                     </LoadingContainer>
-                ) : protocolHistory.length === 0 ? (
+                ) : visitHistory.length === 0 ? (
                     <EmptyMessage>
-                        <EmptyIcon><FaTools /></EmptyIcon>
-                        <EmptyText>Brak historii serwisowej</EmptyText>
-                        <EmptySubtext>Ten pojazd nie ma jeszcze żadnych wykonanych usług</EmptySubtext>
+                        <EmptyIcon><FaCar /></EmptyIcon>
+                        <EmptyText>Brak historii rezerwacji</EmptyText>
+                        <EmptySubtext>Ten pojazd nie ma jeszcze żadnej historii rezerwacji w systemie</EmptySubtext>
                     </EmptyMessage>
                 ) : (
-                    <ServiceHistoryList>
-                        {protocolHistory
-                            .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())
-                            .map(service => {
-                                const statusInfo = getStatusInfo(service.status);
-                                return (
-                                    <ServiceHistoryItem key={service.id}>
-                                        <ServiceHeader>
-                                            <ServiceDate>
-                                                <ServiceDateIcon><FaCalendarAlt /></ServiceDateIcon>
-                                                {formatDate(service.startDate)}
-                                            </ServiceDate>
-                                            <StatusBadge $color={statusInfo.color}>
-                                                {statusInfo.label}
-                                            </StatusBadge>
-                                        </ServiceHeader>
+                    <VisitHistoryList>
+                        {visitHistory.slice(0, 5).map(visit => {
+                            const statusInfo = getStatusInfo(visit.status);
+                            return (
+                                <VisitHistoryCard
+                                    key={visit.id}
+                                    onClick={() => handleVisitClick(visit.id)}
+                                    $status={visit.status}
+                                >
+                                    <VisitCardHeader>
+                                        <VisitMetadata>
+                                            <VisitDate>
+                                                {formatDate(visit.startDate)}
+                                            </VisitDate>
+                                            <VisitTitle>
+                                                {visit.title}
+                                            </VisitTitle>
+                                        </VisitMetadata>
+                                        <VisitStatusIndicator $status={visit.status}>
+                                            <StatusDot $color={statusInfo.color} />
+                                            <StatusText>{statusInfo.label}</StatusText>
+                                        </VisitStatusIndicator>
+                                    </VisitCardHeader>
 
-                                        <ServiceInfo>
-                                            <ServiceVehicleInfo>
-                                                <VehicleInfoText>
-                                                    {service.make} {service.model}
-                                                </VehicleInfoText>
-                                                <LicenseBadge>{service.licensePlate}</LicenseBadge>
-                                            </ServiceVehicleInfo>
-                                        </ServiceInfo>
+                                    <VisitVehicleSection>
+                                        <VehicleInfo>
+                                            <VehicleBrand>{visit.make} {visit.model}</VehicleBrand>
+                                            <VehiclePlateDisplay>{visit.licensePlate}</VehiclePlateDisplay>
+                                        </VehicleInfo>
+                                    </VisitVehicleSection>
 
-                                        <ServiceFooter>
-                                            <PriceSection>
-                                                <PriceLabel>Kwota usługi:</PriceLabel>
-                                                <PriceValue>{formatCurrency(service.totalAmount)}</PriceValue>
-                                            </PriceSection>
-
-                                            {service.id && (
-                                                <ProtocolLink
-                                                    href={`/orders/car-reception/${service.id}`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                >
-                                                    <FaExternalLinkAlt />
-                                                    <span>Szczegóły protokołu</span>
-                                                </ProtocolLink>
-                                            )}
-                                        </ServiceFooter>
-                                    </ServiceHistoryItem>
-                                );
-                            })
-                        }
-                    </ServiceHistoryList>
+                                    <VisitFooter>
+                                        <VisitAmount>
+                                            <AmountLabel>Wartość</AmountLabel>
+                                            <AmountValue>
+                                                {formatCurrency(visit.totalAmount)}
+                                            </AmountValue>
+                                        </VisitAmount>
+                                        <VisitActionIcon>
+                                            <FaArrowRight />
+                                        </VisitActionIcon>
+                                    </VisitFooter>
+                                </VisitHistoryCard>
+                            );
+                        })}
+                    </VisitHistoryList>
                 )}
 
-                {/* Error Display */}
                 {error && (
                     <ErrorMessage>
                         ⚠️ {error}
@@ -401,7 +493,6 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
     );
 };
 
-// Professional Styled Components
 const DrawerContainer = styled.div<{ isOpen: boolean }>`
     position: fixed;
     top: 0;
@@ -494,7 +585,6 @@ const DrawerContent = styled.div`
     overflow-y: auto;
     padding: ${brandTheme.spacing.xl};
 
-    /* Custom scrollbar */
     &::-webkit-scrollbar {
         width: 6px;
     }
@@ -732,35 +822,81 @@ const OwnerItem = styled.div`
     border-radius: ${brandTheme.radius.lg};
     border: 1px solid ${brandTheme.borderLight};
     transition: all 0.2s ease;
+    cursor: pointer;
 
     &:hover {
         background: ${brandTheme.primaryGhost};
         border-color: ${brandTheme.primary}30;
         transform: translateX(4px);
+        box-shadow: ${brandTheme.shadow.md};
     }
 `;
 
 const OwnerIcon = styled.div`
-    width: 32px;
-    height: 32px;
+    width: 40px;
+    height: 40px;
     background: linear-gradient(135deg, ${brandTheme.primary}15 0%, ${brandTheme.primary}08 100%);
     border-radius: ${brandTheme.radius.md};
     display: flex;
     align-items: center;
     justify-content: center;
     color: ${brandTheme.primary};
-    font-size: 14px;
+    font-size: 16px;
     flex-shrink: 0;
 `;
 
 const OwnerInfo = styled.div`
     flex: 1;
+    min-width: 0;
 `;
 
 const OwnerName = styled.div`
     font-size: 15px;
     font-weight: 600;
     color: ${brandTheme.text.primary};
+    margin-bottom: ${brandTheme.spacing.xs};
+`;
+
+const OwnerContact = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+`;
+
+const ContactItem = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.xs};
+    font-size: 13px;
+    color: ${brandTheme.text.secondary};
+
+    svg {
+        font-size: 11px;
+        color: ${brandTheme.text.muted};
+        width: 12px;
+    }
+
+    span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+`;
+
+const OwnerActionIcon = styled.div`
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${brandTheme.text.muted};
+    font-size: 10px;
+    transition: all 0.15s ease;
+
+    ${OwnerItem}:hover & {
+        color: ${brandTheme.primary};
+        transform: translateX(2px);
+    }
 `;
 
 const MetricsGrid = styled.div`
@@ -831,162 +967,156 @@ const MetricLabel = styled.div`
     letter-spacing: 0.5px;
 `;
 
-const ServiceHistoryList = styled.div`
+const VisitHistoryList = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${brandTheme.spacing.md};
+    gap: ${brandTheme.spacing.sm};
 `;
 
-const ServiceHistoryItem = styled.div`
+const VisitHistoryCard = styled.div<{ $status: ProtocolStatus }>`
     background: ${brandTheme.surface};
     border: 1px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.lg};
-    padding: ${brandTheme.spacing.lg};
-    border-left: 4px solid ${brandTheme.primary};
-    transition: all 0.2s ease;
-    box-shadow: ${brandTheme.shadow.xs};
+    border-radius: ${brandTheme.radius.md};
+    padding: ${brandTheme.spacing.md};
+    cursor: pointer;
+    transition: all 0.15s ease;
+    position: relative;
+    border-left: 3px solid ${props => ProtocolStatusColors[props.$status] || brandTheme.text.muted};
 
     &:hover {
-        background: ${brandTheme.primaryGhost};
-        border-color: ${brandTheme.primary};
-        border-left-color: ${brandTheme.primary};
-        transform: translateX(4px);
-        box-shadow: ${brandTheme.shadow.md};
+        border-color: ${brandTheme.borderHover};
+        border-left-color: ${props => ProtocolStatusColors[props.$status] || brandTheme.text.muted};
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        transform: translateX(2px);
+    }
+
+    &:active {
+        transform: translateX(1px);
     }
 `;
 
-const ServiceHeader = styled.div`
+const VisitCardHeader = styled.div`
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     margin-bottom: ${brandTheme.spacing.md};
-    gap: ${brandTheme.spacing.sm};
-
-    @media (max-width: 480px) {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: ${brandTheme.spacing.sm};
-    }
 `;
 
-const ServiceDate = styled.div`
+const VisitMetadata = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+`;
+
+const VisitDate = styled.div`
+    font-size: 14px;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+    letter-spacing: -0.01em;
+`;
+
+const VisitTitle = styled.div`
+    font-size: 12px;
+    color: ${brandTheme.text.secondary};
+    font-weight: 500;
+    font-style: italic;
+`;
+
+const VisitStatusIndicator = styled.div<{ $status: ProtocolStatus }>`
     display: flex;
     align-items: center;
     gap: ${brandTheme.spacing.xs};
-    font-size: 14px;
-    color: ${brandTheme.text.secondary};
+`;
+
+const StatusDot = styled.div<{ $color: string }>`
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: ${props => props.$color};
+    flex-shrink: 0;
+`;
+
+const StatusText = styled.span`
+    font-size: 11px;
     font-weight: 500;
+    color: ${brandTheme.text.secondary};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 `;
 
-const ServiceDateIcon = styled.div`
-    color: ${brandTheme.text.muted};
-    font-size: 12px;
+const VisitVehicleSection = styled.div`
+    margin-bottom: ${brandTheme.spacing.md};
 `;
 
-const StatusBadge = styled.div<{ $color: string }>`
-    display: inline-flex;
-    align-items: center;
-    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
-    border-radius: ${brandTheme.radius.lg};
-    font-size: 12px;
+const VehicleInfo = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.xs};
+`;
+
+const VehicleBrand = styled.div`
+    font-size: 15px;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+    letter-spacing: -0.01em;
+`;
+
+const VehiclePlateDisplay = styled.div`
+    display: inline-block;
+    background: ${brandTheme.text.primary};
+    color: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    background: ${props => props.$color}15;
-    color: ${props => props.$color};
-    border: 1px solid ${props => props.$color}30;
-    white-space: nowrap;
+    font-family: 'Monaco', 'Consolas', monospace;
+    width: fit-content;
 `;
 
-const ServiceInfo = styled.div`
-    margin-bottom: ${brandTheme.spacing.md};
-`;
-
-const ServiceVehicleInfo = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.md};
-    flex-wrap: wrap;
-`;
-
-const VehicleInfoText = styled.div`
-    font-size: 15px;
-    font-weight: 500;
-    color: ${brandTheme.text.primary};
-`;
-
-const LicenseBadge = styled.span`
-    background: ${brandTheme.primaryGhost};
-    color: ${brandTheme.primary};
-    border: 1px solid ${brandTheme.primary}30;
-    border-radius: ${brandTheme.radius.sm};
-    padding: 2px 8px;
-    font-weight: 600;
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-`;
-
-const ServiceFooter = styled.div`
+const VisitFooter = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: ${brandTheme.spacing.md};
-
-    @media (max-width: 480px) {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: ${brandTheme.spacing.sm};
-    }
+    padding-top: ${brandTheme.spacing.sm};
+    border-top: 1px solid ${brandTheme.borderLight};
 `;
 
-const PriceSection = styled.div`
+const VisitAmount = styled.div`
     display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
+    flex-direction: column;
+    gap: 2px;
 `;
 
-const PriceLabel = styled.span`
-    font-size: 13px;
+const AmountLabel = styled.div`
+    font-size: 10px;
+    color: ${brandTheme.text.muted};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
     font-weight: 500;
-    color: ${brandTheme.text.secondary};
 `;
 
-const PriceValue = styled.span`
-    background: linear-gradient(135deg, ${brandTheme.status.successLight} 0%, #ecfdf5 100%);
-    color: ${brandTheme.status.success};
-    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
-    border-radius: ${brandTheme.radius.md};
-    font-weight: 700;
+const AmountValue = styled.div`
     font-size: 14px;
-    border: 1px solid ${brandTheme.status.success}30;
+    font-weight: 700;
+    color: ${brandTheme.text.primary};
+    letter-spacing: -0.01em;
 `;
 
-const ProtocolLink = styled.a`
+const VisitActionIcon = styled.div`
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
-    gap: ${brandTheme.spacing.xs};
-    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
-    background: ${brandTheme.status.infoLight};
-    color: ${brandTheme.status.info};
-    text-decoration: none;
-    border-radius: ${brandTheme.radius.md};
-    font-size: 13px;
-    font-weight: 500;
-    border: 1px solid ${brandTheme.status.info}30;
-    transition: all 0.2s ease;
+    justify-content: center;
+    color: ${brandTheme.text.muted};
+    font-size: 10px;
+    transition: all 0.15s ease;
 
-    &:hover {
-        background: ${brandTheme.status.info};
-        color: white;
-        transform: translateY(-1px);
-        box-shadow: ${brandTheme.shadow.sm};
-    }
-
-    span {
-        @media (max-width: 480px) {
-            display: none;
-        }
+    ${VisitHistoryCard}:hover & {
+        color: ${brandTheme.text.secondary};
+        transform: translateX(2px);
     }
 `;
 

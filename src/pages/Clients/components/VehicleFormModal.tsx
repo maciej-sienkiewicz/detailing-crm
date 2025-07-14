@@ -1,26 +1,19 @@
-// VehicleFormModal.tsx - Professional Premium Automotive CRM
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { FaCar, FaUser, FaIdCard, FaCheck, FaTimes, FaSpinner, FaCalendarAlt, FaMoneyBillWave, FaTools, FaPalette, FaBarcode } from 'react-icons/fa';
+import { FaCar, FaUser, FaIdCard, FaCheck, FaTimes, FaSpinner, FaCalendarAlt, FaMoneyBillWave, FaTools, FaPalette, FaBarcode, FaEye } from 'react-icons/fa';
 import { VehicleExpanded } from '../../../types/vehicle';
-import { clientApi } from '../../../api/clientsApi';
+import { clientsApi } from '../../../api/clientsApi';
 import Modal from '../../../components/common/Modal';
 
-// Professional Brand Theme - Premium Automotive CRM
 const brandTheme = {
-    // Primary Colors - Professional Blue Palette
     primary: 'var(--brand-primary, #1a365d)',
     primaryLight: 'var(--brand-primary-light, #2c5aa0)',
     primaryDark: 'var(--brand-primary-dark, #0f2027)',
     primaryGhost: 'var(--brand-primary-ghost, rgba(26, 54, 93, 0.04))',
-
-    // Surface Colors - Clean & Minimal
     surface: '#ffffff',
     surfaceAlt: '#fafbfc',
     surfaceElevated: '#f8fafc',
     surfaceHover: '#f1f5f9',
-
-    // Typography Colors
     text: {
         primary: '#0f172a',
         secondary: '#475569',
@@ -28,13 +21,9 @@ const brandTheme = {
         muted: '#94a3b8',
         disabled: '#cbd5e1'
     },
-
-    // Border Colors
     border: '#e2e8f0',
     borderLight: '#f1f5f9',
     borderHover: '#cbd5e1',
-
-    // Status Colors - Automotive Grade
     status: {
         success: '#059669',
         successLight: '#d1fae5',
@@ -45,8 +34,6 @@ const brandTheme = {
         info: '#0ea5e9',
         infoLight: '#e0f2fe'
     },
-
-    // Shadows - Professional Depth
     shadow: {
         xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
         sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
@@ -54,8 +41,6 @@ const brandTheme = {
         lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
         xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
     },
-
-    // Spacing Scale
     spacing: {
         xs: '4px',
         sm: '8px',
@@ -64,8 +49,6 @@ const brandTheme = {
         xl: '32px',
         xxl: '48px'
     },
-
-    // Border Radius
     radius: {
         sm: '6px',
         md: '8px',
@@ -82,6 +65,13 @@ interface VehicleFormModalProps {
     onCancel: () => void;
 }
 
+interface ClientOption {
+    id: string;
+    name: string;
+    email: string;
+    phone: string;
+}
+
 const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                                                                vehicle,
                                                                defaultOwnerId,
@@ -90,10 +80,9 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                                                            }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [owners, setOwners] = useState<{ id: string; name: string }[]>([]);
-    const [loadingOwners, setLoadingOwners] = useState(false);
+    const [clients, setClients] = useState<ClientOption[]>([]);
+    const [loadingClients, setLoadingClients] = useState(false);
 
-    // Initialize form with vehicle data or empty values
     const [formData, setFormData] = useState<Partial<VehicleExpanded>>(
         vehicle || {
             make: '',
@@ -104,42 +93,46 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
             vin: '',
             totalServices: 0,
             totalSpent: 0,
-            serviceHistory: [],
             ownerIds: defaultOwnerId ? [defaultOwnerId] : []
         }
     );
 
-    // Form validation errors
     const [errors, setErrors] = useState<Record<string, string>>({});
 
-    // Load owners list
     useEffect(() => {
-        const loadOwners = async () => {
+        const loadClients = async () => {
             try {
-                setLoadingOwners(true);
-                const clientsData = await clientApi.fetchClients();
+                setLoadingClients(true);
+                const result = await clientsApi.getClients({
+                    page: 0,
+                    size: 1000
+                });
 
-                const ownersData = clientsData.map(client => ({
-                    id: client.id,
-                    name: `${client.firstName} ${client.lastName}`
-                }));
+                if (result.success && result.data) {
+                    const clientsData = result.data.data.map(client => ({
+                        id: client.id,
+                        name: `${client.firstName} ${client.lastName}`,
+                        email: client.email,
+                        phone: client.phone
+                    }));
 
-                setOwners(ownersData);
+                    setClients(clientsData);
+                } else {
+                    setError('Nie udało się załadować listy klientów.');
+                }
             } catch (err) {
-                console.error('Error loading owners:', err);
-                setError('Nie udało się załadować listy właścicieli.');
+                setError('Nie udało się załadować listy klientów.');
             } finally {
-                setLoadingOwners(false);
+                setLoadingClients(false);
             }
         };
 
-        loadOwners();
+        loadClients();
     }, []);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
 
-        // Handle year as number
         if (name === 'year') {
             setFormData(prev => ({
                 ...prev,
@@ -152,7 +145,6 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
             }));
         }
 
-        // Clear error when field is edited
         if (errors[name]) {
             setErrors(prev => ({
                 ...prev,
@@ -169,7 +161,6 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
             ownerIds: selectedOptions
         }));
 
-        // Clear error when field is edited
         if (errors.ownerIds) {
             setErrors(prev => ({
                 ...prev,
@@ -215,7 +206,6 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
 
         setLoading(true);
 
-        // Prepare the vehicle data by copying only necessary fields
         const vehicleData: Partial<VehicleExpanded> = {
             ...vehicle,
             make: formData.make,
@@ -267,7 +257,6 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                 )}
 
                 <Form onSubmit={handleSubmit}>
-                    {/* Vehicle Information Section */}
                     <FormSection>
                         <SectionHeader>
                             <SectionIcon>
@@ -409,7 +398,6 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                         </FormRow>
                     </FormSection>
 
-                    {/* Owners Section */}
                     <FormSection>
                         <SectionHeader>
                             <SectionIcon>
@@ -425,7 +413,7 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                             <FormLabel htmlFor="ownerIds" $required>
                                 Wybierz właścicieli z bazy klientów
                             </FormLabel>
-                            {loadingOwners ? (
+                            {loadingClients ? (
                                 <LoadingOwnersContainer>
                                     <LoadingSpinner />
                                     <LoadingText>Ładowanie listy klientów...</LoadingText>
@@ -441,9 +429,9 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                                     $hasError={!!errors.ownerIds}
                                     $hasValue={!!(formData.ownerIds && formData.ownerIds.length > 0)}
                                 >
-                                    {owners.map(owner => (
-                                        <option key={owner.id} value={owner.id}>
-                                            {owner.name}
+                                    {clients.map(client => (
+                                        <option key={client.id} value={client.id}>
+                                            {client.name} ({client.email})
                                         </option>
                                     ))}
                                 </FormSelect>
@@ -458,14 +446,42 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
 
                             {formData.ownerIds && formData.ownerIds.length > 0 && (
                                 <SelectedOwners>
-                                    <SelectedOwnersTitle>Wybrani właściciele:</SelectedOwnersTitle>
+                                    <SelectedOwnersTitle>
+                                        <FaEye style={{ marginRight: '8px' }} />
+                                        Wybrani właściciele ({formData.ownerIds.length}):
+                                    </SelectedOwnersTitle>
                                     <SelectedOwnersList>
                                         {formData.ownerIds.map(ownerId => {
-                                            const owner = owners.find(o => o.id === ownerId);
-                                            return owner ? (
+                                            const client = clients.find(c => c.id === ownerId);
+                                            return client ? (
                                                 <SelectedOwnerItem key={ownerId}>
-                                                    <FaUser />
-                                                    <span>{owner.name}</span>
+                                                    <OwnerIcon>
+                                                        <FaUser />
+                                                    </OwnerIcon>
+                                                    <OwnerDetails>
+                                                        <OwnerName>{client.name}</OwnerName>
+                                                        <OwnerContact>
+                                                            <ContactDetail>
+                                                                📧 {client.email}
+                                                            </ContactDetail>
+                                                            <ContactDetail>
+                                                                📞 {client.phone}
+                                                            </ContactDetail>
+                                                        </OwnerContact>
+                                                    </OwnerDetails>
+                                                    <RemoveOwnerButton
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const newOwnerIds = formData.ownerIds?.filter(id => id !== ownerId) || [];
+                                                            setFormData(prev => ({
+                                                                ...prev,
+                                                                ownerIds: newOwnerIds
+                                                            }));
+                                                        }}
+                                                        title="Usuń właściciela"
+                                                    >
+                                                        <FaTimes />
+                                                    </RemoveOwnerButton>
                                                 </SelectedOwnerItem>
                                             ) : null;
                                         })}
@@ -475,7 +491,6 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                         </FormGroup>
                     </FormSection>
 
-                    {/* Statistics Section - Only for existing vehicles */}
                     {vehicle && (
                         <FormSection>
                             <SectionHeader>
@@ -529,7 +544,6 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                         </FormSection>
                     )}
 
-                    {/* Form Actions */}
                     <FormActions>
                         <SecondaryButton type="button" onClick={onCancel} disabled={loading}>
                             <FaTimes />
@@ -555,40 +569,38 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
     );
 };
 
-// Professional Styled Components - Premium Automotive Design
 const FormContainer = styled.div`
-   padding: 0 ${brandTheme.spacing.md};
-   max-height: 85vh;
-   overflow-y: auto;
+    padding: 0 ${brandTheme.spacing.md};
+    max-height: 85vh;
+    overflow-y: auto;
 
-   /* Custom scrollbar */
-   &::-webkit-scrollbar {
-       width: 8px;
-   }
-   &::-webkit-scrollbar-track {
-       background: ${brandTheme.surfaceAlt};
-       border-radius: 4px;
-   }
-   &::-webkit-scrollbar-thumb {
-       background: linear-gradient(135deg, ${brandTheme.border} 0%, ${brandTheme.borderHover} 100%);
-       border-radius: 4px;
-       
-       &:hover {
-           background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-       }
-   }
+    &::-webkit-scrollbar {
+        width: 8px;
+    }
+    &::-webkit-scrollbar-track {
+        background: ${brandTheme.surfaceAlt};
+        border-radius: 4px;
+    }
+    &::-webkit-scrollbar-thumb {
+        background: linear-gradient(135deg, ${brandTheme.border} 0%, ${brandTheme.borderHover} 100%);
+        border-radius: 4px;
+
+        &:hover {
+            background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+        }
+    }
 `;
 
 const ErrorContainer = styled.div`
-   background: linear-gradient(135deg, ${brandTheme.status.errorLight} 0%, #fdf2f8 100%);
-   border: 1px solid #fecaca;
-   border-radius: ${brandTheme.radius.lg};
-   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-   margin-bottom: ${brandTheme.spacing.lg};
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.sm};
-   box-shadow: ${brandTheme.shadow.sm};
+    background: linear-gradient(135deg, ${brandTheme.status.errorLight} 0%, #fdf2f8 100%);
+    border: 1px solid #fecaca;
+    border-radius: ${brandTheme.radius.lg};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    margin-bottom: ${brandTheme.spacing.lg};
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    box-shadow: ${brandTheme.shadow.sm};
 `;
 
 const ErrorIcon = styled.div`
@@ -610,17 +622,17 @@ const Form = styled.form`
 `;
 
 const FormSection = styled.section`
-   background: ${brandTheme.surface};
-   border: 1px solid ${brandTheme.border};
-   border-radius: ${brandTheme.radius.xl};
-   padding: ${brandTheme.spacing.xl};
-   box-shadow: ${brandTheme.shadow.sm};
-   transition: all 0.2s ease;
+    background: ${brandTheme.surface};
+    border: 1px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.xl};
+    padding: ${brandTheme.spacing.xl};
+    box-shadow: ${brandTheme.shadow.sm};
+    transition: all 0.2s ease;
 
-   &:hover {
-       box-shadow: ${brandTheme.shadow.md};
-       border-color: ${brandTheme.primary}30;
-   }
+    &:hover {
+        box-shadow: ${brandTheme.shadow.md};
+        border-color: ${brandTheme.primary}30;
+    }
 `;
 
 const SectionHeader = styled.div`
@@ -705,34 +717,34 @@ const FormInput = styled.input<{
     $hasError?: boolean;
     $hasValue?: boolean;
 }>`
-   height: 52px;
-   padding: 0 ${brandTheme.spacing.md};
-   border: 2px solid ${props =>
-    props.$hasError ? brandTheme.status.error :
-        props.$hasValue ? brandTheme.primary :
-            brandTheme.border
-};
-   border-radius: ${brandTheme.radius.lg};
-   font-size: 15px;
-   font-weight: 500;
-   background: ${props => props.$hasValue ? brandTheme.primaryGhost : brandTheme.surface};
-   color: ${brandTheme.text.primary};
-   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    height: 52px;
+    padding: 0 ${brandTheme.spacing.md};
+    border: 2px solid ${props =>
+            props.$hasError ? brandTheme.status.error :
+                    props.$hasValue ? brandTheme.primary :
+                            brandTheme.border
+    };
+    border-radius: ${brandTheme.radius.lg};
+    font-size: 15px;
+    font-weight: 500;
+    background: ${props => props.$hasValue ? brandTheme.primaryGhost : brandTheme.surface};
+    color: ${brandTheme.text.primary};
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
-   &:focus {
-       outline: none;
-       border-color: ${brandTheme.primary};
-       box-shadow: 0 0 0 4px ${brandTheme.primaryGhost};
-       background: ${brandTheme.surface};
-       transform: translateY(-1px);
-   }
+    &:focus {
+        outline: none;
+        border-color: ${brandTheme.primary};
+        box-shadow: 0 0 0 4px ${brandTheme.primaryGhost};
+        background: ${brandTheme.surface};
+        transform: translateY(-1px);
+    }
 
-   &::placeholder {
-       color: ${brandTheme.text.muted};
-       font-weight: 400;
-   }
+    &::placeholder {
+        color: ${brandTheme.text.muted};
+        font-weight: 400;
+    }
 
-   ${props => props.$hasError && `
+    ${props => props.$hasError && `
        &:focus {
            border-color: ${brandTheme.status.error};
            box-shadow: 0 0 0 4px ${brandTheme.status.errorLight};
@@ -748,28 +760,28 @@ const LicensePlateInputWrapper = styled.div`
 `;
 
 const LicensePlatePreview = styled.div`
-   align-self: flex-start;
-   background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-   color: white;
-   padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.md};
-   border-radius: ${brandTheme.radius.md};
-   font-weight: 700;
-   font-size: 14px;
-   letter-spacing: 2px;
-   text-transform: uppercase;
-   box-shadow: ${brandTheme.shadow.sm};
-   border: 2px solid white;
+    align-self: flex-start;
+    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+    color: white;
+    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.md};
+    border-radius: ${brandTheme.radius.md};
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    box-shadow: ${brandTheme.shadow.sm};
+    border: 2px solid white;
 `;
 
 const LoadingOwnersContainer = styled.div`
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   gap: ${brandTheme.spacing.md};
-   padding: ${brandTheme.spacing.xl};
-   background: ${brandTheme.surfaceAlt};
-   border-radius: ${brandTheme.radius.lg};
-   border: 2px dashed ${brandTheme.border};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: ${brandTheme.spacing.md};
+    padding: ${brandTheme.spacing.xl};
+    background: ${brandTheme.surfaceAlt};
+    border-radius: ${brandTheme.radius.lg};
+    border: 2px dashed ${brandTheme.border};
 `;
 
 const LoadingSpinner = styled.div`
@@ -787,58 +799,58 @@ const LoadingSpinner = styled.div`
 `;
 
 const LoadingText = styled.div`
-   font-size: 14px;
-   color: ${brandTheme.text.secondary};
-   font-weight: 500;
+    font-size: 14px;
+    color: ${brandTheme.text.secondary};
+    font-weight: 500;
 `;
 
 const FormSelect = styled.select<{
     $hasError?: boolean;
     $hasValue?: boolean;
 }>`
-   padding: ${brandTheme.spacing.md};
-   border: 2px solid ${props =>
-    props.$hasError ? brandTheme.status.error :
-        props.$hasValue ? brandTheme.primary :
-            brandTheme.border
-};
-   border-radius: ${brandTheme.radius.lg};
-   font-size: 14px;
-   font-family: inherit;
-   font-weight: 500;
-   background: ${props => props.$hasValue ? brandTheme.primaryGhost : brandTheme.surface};
-   color: ${brandTheme.text.primary};
-   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-   min-height: 140px;
+    padding: ${brandTheme.spacing.md};
+    border: 2px solid ${props =>
+            props.$hasError ? brandTheme.status.error :
+                    props.$hasValue ? brandTheme.primary :
+                            brandTheme.border
+    };
+    border-radius: ${brandTheme.radius.lg};
+    font-size: 14px;
+    font-family: inherit;
+    font-weight: 500;
+    background: ${props => props.$hasValue ? brandTheme.primaryGhost : brandTheme.surface};
+    color: ${brandTheme.text.primary};
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: 140px;
 
-   &:focus {
-       outline: none;
-       border-color: ${brandTheme.primary};
-       box-shadow: 0 0 0 4px ${brandTheme.primaryGhost};
-       background: ${brandTheme.surface};
-   }
+    &:focus {
+        outline: none;
+        border-color: ${brandTheme.primary};
+        box-shadow: 0 0 0 4px ${brandTheme.primaryGhost};
+        background: ${brandTheme.surface};
+    }
 
-   &[multiple] {
-       height: auto;
-   }
+    &[multiple] {
+        height: auto;
+    }
 
-   option {
-       padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
-       margin: 2px 0;
-       border-radius: ${brandTheme.radius.sm};
+    option {
+        padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+        margin: 2px 0;
+        border-radius: ${brandTheme.radius.sm};
 
-       &:checked {
-           background: rgba(26, 54, 93, 0.08); // Jeszcze bardziej przezroczyste
-           color: ${brandTheme.primary}; // Niebieski tekst dla lepszego kontrastu
-           font-weight: 600;
-       }
+        &:checked {
+            background: rgba(26, 54, 93, 0.08);
+            color: ${brandTheme.primary};
+            font-weight: 600;
+        }
 
-       &:hover {
-           background: ${brandTheme.primaryGhost};
-       }
-   }
+        &:hover {
+            background: ${brandTheme.primaryGhost};
+        }
+    }
 
-   ${props => props.$hasError && `
+    ${props => props.$hasError && `
        &:focus {
            border-color: ${brandTheme.status.error};
            box-shadow: 0 0 0 4px ${brandTheme.status.errorLight};
@@ -847,239 +859,303 @@ const FormSelect = styled.select<{
 `;
 
 const HelpText = styled.p`
-   font-size: 13px;
-   color: ${brandTheme.text.tertiary};
-   margin: 0;
-   font-style: italic;
-   line-height: 1.4;
+    font-size: 13px;
+    color: ${brandTheme.text.tertiary};
+    margin: 0;
+    font-style: italic;
+    line-height: 1.4;
 
-   strong {
-       color: ${brandTheme.text.secondary};
-       font-weight: 600;
-   }
+    strong {
+        color: ${brandTheme.text.secondary};
+        font-weight: 600;
+    }
 `;
 
 const ErrorMessage = styled.div`
-   color: ${brandTheme.status.error};
-   font-size: 12px;
-   font-weight: 500;
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.xs};
-   margin-top: ${brandTheme.spacing.xs};
+    color: ${brandTheme.status.error};
+    font-size: 12px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.xs};
+    margin-top: ${brandTheme.spacing.xs};
 
-   &::before {
-       content: '⚠';
-       font-size: 10px;
-   }
+    &::before {
+        content: '⚠';
+        font-size: 10px;
+    }
 `;
 
 const SelectedOwners = styled.div`
-   margin-top: ${brandTheme.spacing.md};
-   padding: ${brandTheme.spacing.md};
-   background: linear-gradient(135deg, ${brandTheme.primaryGhost} 0%, rgba(26, 54, 93, 0.02) 100%);
-   border-radius: ${brandTheme.radius.lg};
-   border: 1px solid ${brandTheme.primary}30;
+    margin-top: ${brandTheme.spacing.md};
+    padding: ${brandTheme.spacing.lg};
+    background: linear-gradient(135deg, ${brandTheme.primaryGhost} 0%, rgba(26, 54, 93, 0.02) 100%);
+    border-radius: ${brandTheme.radius.lg};
+    border: 1px solid ${brandTheme.primary}30;
 `;
 
 const SelectedOwnersTitle = styled.div`
-   font-size: 14px;
-   font-weight: 600;
-   color: ${brandTheme.text.primary};
-   margin-bottom: ${brandTheme.spacing.sm};
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+    margin-bottom: ${brandTheme.spacing.md};
+
+    svg {
+        color: ${brandTheme.primary};
+    }
 `;
 
 const SelectedOwnersList = styled.div`
-   display: flex;
-   flex-wrap: wrap;
-   gap: ${brandTheme.spacing.sm};
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.sm};
 `;
 
 const SelectedOwnerItem = styled.div`
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.xs};
-   padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
-   background: ${brandTheme.surface};
-   border: 1px solid ${brandTheme.primary};
-   border-radius: ${brandTheme.radius.md};
-   font-size: 13px;
-   font-weight: 500;
-   color: ${brandTheme.primary};
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.md};
+    padding: ${brandTheme.spacing.md};
+    background: ${brandTheme.surface};
+    border: 1px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.md};
+    transition: all 0.2s ease;
 
-   svg {
-       font-size: 11px;
-   }
+    &:hover {
+        border-color: ${brandTheme.primary};
+        box-shadow: ${brandTheme.shadow.sm};
+    }
+`;
+
+const OwnerIcon = styled.div`
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, ${brandTheme.primary}15 0%, ${brandTheme.primary}08 100%);
+    border-radius: ${brandTheme.radius.md};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${brandTheme.primary};
+    font-size: 16px;
+    flex-shrink: 0;
+`;
+
+const OwnerDetails = styled.div`
+    flex: 1;
+    min-width: 0;
+`;
+
+const OwnerName = styled.div`
+    font-size: 15px;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+    margin-bottom: ${brandTheme.spacing.xs};
+`;
+
+const OwnerContact = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+`;
+
+const ContactDetail = styled.div`
+    font-size: 13px;
+    color: ${brandTheme.text.secondary};
+    font-weight: 500;
+`;
+
+const RemoveOwnerButton = styled.button`
+    width: 28px;
+    height: 28px;
+    background: ${brandTheme.status.errorLight};
+    color: ${brandTheme.status.error};
+    border: 1px solid ${brandTheme.status.error}30;
+    border-radius: ${brandTheme.radius.sm};
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+
+    &:hover {
+        background: ${brandTheme.status.error};
+        color: white;
+        transform: scale(1.1);
+    }
 `;
 
 const StatsGrid = styled.div`
-   display: grid;
-   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-   gap: ${brandTheme.spacing.md};
-   margin-bottom: ${brandTheme.spacing.lg};
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: ${brandTheme.spacing.md};
+    margin-bottom: ${brandTheme.spacing.lg};
 `;
 
 const StatCard = styled.div<{ $fullWidth?: boolean }>`
-   background: ${brandTheme.surfaceAlt};
-   border: 1px solid ${brandTheme.border};
-   border-radius: ${brandTheme.radius.lg};
-   padding: ${brandTheme.spacing.md};
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.md};
-   transition: all 0.2s ease;
+    background: ${brandTheme.surfaceAlt};
+    border: 1px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.lg};
+    padding: ${brandTheme.spacing.md};
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.md};
+    transition: all 0.2s ease;
 
-   ${props => props.$fullWidth && `
+    ${props => props.$fullWidth && `
        grid-column: 1 / -1;
    `}
 
-   &:hover {
-       background: ${brandTheme.primaryGhost};
-       border-color: ${brandTheme.primary};
-       transform: translateY(-2px);
-       box-shadow: ${brandTheme.shadow.md};
-   }
+    &:hover {
+        background: ${brandTheme.primaryGhost};
+        border-color: ${brandTheme.primary};
+        transform: translateY(-2px);
+        box-shadow: ${brandTheme.shadow.md};
+    }
 `;
 
 const StatIcon = styled.div<{ $color: string }>`
-   width: 40px;
-   height: 40px;
-   background: linear-gradient(135deg, ${props => props.$color}15 0%, ${props => props.$color}08 100%);
-   border-radius: ${brandTheme.radius.md};
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   color: ${props => props.$color};
-   font-size: 18px;
-   flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, ${props => props.$color}15 0%, ${props => props.$color}08 100%);
+    border-radius: ${brandTheme.radius.md};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${props => props.$color};
+    font-size: 18px;
+    flex-shrink: 0;
 `;
 
 const StatContent = styled.div`
-   flex: 1;
-   min-width: 0;
+    flex: 1;
+    min-width: 0;
 `;
 
 const StatValue = styled.div`
-   font-size: 18px;
-   font-weight: 700;
-   color: ${brandTheme.text.primary};
-   margin-bottom: ${brandTheme.spacing.xs};
-   line-height: 1.2;
+    font-size: 18px;
+    font-weight: 700;
+    color: ${brandTheme.text.primary};
+    margin-bottom: ${brandTheme.spacing.xs};
+    line-height: 1.2;
 `;
 
 const StatLabel = styled.div`
-   font-size: 12px;
-   color: ${brandTheme.text.tertiary};
-   font-weight: 500;
-   text-transform: uppercase;
-   letter-spacing: 0.5px;
+    font-size: 12px;
+    color: ${brandTheme.text.tertiary};
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 `;
 
 const StatsNote = styled.div`
-   background: linear-gradient(135deg, ${brandTheme.status.infoLight} 0%, #f0f9ff 100%);
-   border: 1px solid ${brandTheme.status.info}30;
-   border-radius: ${brandTheme.radius.lg};
-   padding: ${brandTheme.spacing.md};
-   font-size: 13px;
-   color: ${brandTheme.text.secondary};
-   line-height: 1.4;
+    background: linear-gradient(135deg, ${brandTheme.status.infoLight} 0%, #f0f9ff 100%);
+    border: 1px solid ${brandTheme.status.info}30;
+    border-radius: ${brandTheme.radius.lg};
+    padding: ${brandTheme.spacing.md};
+    font-size: 13px;
+    color: ${brandTheme.text.secondary};
+    line-height: 1.4;
 
-   strong {
-       color: ${brandTheme.text.primary};
-   }
+    strong {
+        color: ${brandTheme.text.primary};
+    }
 `;
 
 const FormActions = styled.div`
-   display: flex;
-   justify-content: flex-end;
-   gap: ${brandTheme.spacing.sm};
-   padding-top: ${brandTheme.spacing.xl};
-   border-top: 2px solid ${brandTheme.borderLight};
-   margin-top: ${brandTheme.spacing.lg};
+    display: flex;
+    justify-content: flex-end;
+    gap: ${brandTheme.spacing.sm};
+    padding-top: ${brandTheme.spacing.xl};
+    border-top: 2px solid ${brandTheme.borderLight};
+    margin-top: ${brandTheme.spacing.lg};
 `;
 
 const BaseButton = styled.button`
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.sm};
-   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.xl};
-   border-radius: ${brandTheme.radius.lg};
-   font-size: 14px;
-   font-weight: 600;
-   cursor: pointer;
-   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-   min-height: 48px;
-   border: 1px solid transparent;
-   position: relative;
-   overflow: hidden;
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.xl};
+    border-radius: ${brandTheme.radius.lg};
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: 48px;
+    border: 1px solid transparent;
+    position: relative;
+    overflow: hidden;
 
-   &:hover:not(:disabled) {
-       transform: translateY(-2px);
-   }
+    &:hover:not(:disabled) {
+        transform: translateY(-2px);
+    }
 
-   &:active:not(:disabled) {
-       transform: translateY(0);
-   }
+    &:active:not(:disabled) {
+        transform: translateY(0);
+    }
 
-   &:disabled {
-       opacity: 0.6;
-       cursor: not-allowed;
-       transform: none;
-   }
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
 
-   .spinning {
-       animation: spin 1s linear infinite;
-   }
+    .spinning {
+        animation: spin 1s linear infinite;
+    }
 
-   @keyframes spin {
-       from { transform: rotate(0deg); }
-       to { transform: rotate(360deg); }
-   }
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
 
-   span {
-       @media (max-width: 480px) {
-           display: none;
-       }
-   }
+    span {
+        @media (max-width: 480px) {
+            display: none;
+        }
+    }
 `;
 
 const SecondaryButton = styled(BaseButton)`
-   background: ${brandTheme.surfaceAlt};
-   color: ${brandTheme.text.secondary};
-   border-color: ${brandTheme.border};
-   box-shadow: ${brandTheme.shadow.xs};
+    background: ${brandTheme.surfaceAlt};
+    color: ${brandTheme.text.secondary};
+    border-color: ${brandTheme.border};
+    box-shadow: ${brandTheme.shadow.xs};
 
-   &:hover:not(:disabled) {
-       background: ${brandTheme.borderLight};
-       color: ${brandTheme.text.primary};
-       box-shadow: ${brandTheme.shadow.sm};
-   }
+    &:hover:not(:disabled) {
+        background: ${brandTheme.borderLight};
+        color: ${brandTheme.text.primary};
+        box-shadow: ${brandTheme.shadow.sm};
+    }
 `;
 
 const PrimaryButton = styled(BaseButton)`
-   background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-   color: white;
-   box-shadow: ${brandTheme.shadow.md};
+    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+    color: white;
+    box-shadow: ${brandTheme.shadow.md};
 
-   &:hover:not(:disabled) {
-       background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
-       box-shadow: ${brandTheme.shadow.lg};
-   }
+    &:hover:not(:disabled) {
+        background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
+        box-shadow: ${brandTheme.shadow.lg};
+    }
 
-   &::before {
-       content: '';
-       position: absolute;
-       top: 0;
-       left: -100%;
-       width: 100%;
-       height: 100%;
-       background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-       transition: left 0.5s;
-   }
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: left 0.5s;
+    }
 
-   &:hover::before {
-       left: 100%;
-   }
+    &:hover::before {
+        left: 100%;
+    }
 `;
 
 export default VehicleFormModal;
