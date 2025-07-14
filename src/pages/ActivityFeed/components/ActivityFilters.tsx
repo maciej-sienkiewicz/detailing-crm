@@ -19,7 +19,7 @@ import { Employee } from '../../../types';
 // Zdefiniowane kategorie aktywności
 const activityCategories = [
     { id: 'all', label: 'Wszystkie aktywności', icon: <FaTags /> },
-    { id: 'APPOINTMENT', label: 'Wizyty i rezerwacje', icon: <FaCalendarAlt /> },
+    { id: 'visits', label: 'Wizyty i rezerwacje', icon: <FaCalendarAlt /> },
     { id: 'protocol', label: 'Protokoły przyjęcia', icon: <FaClipboardCheck /> },
     { id: 'call', label: 'Rozmowy telefoniczne', icon: <FaPhone /> },
     { id: 'COMMENT', label: 'Komentarze', icon: <FaComment /> },
@@ -33,7 +33,7 @@ const entityTypes = [
     { id: 'all', label: 'Wszystkie obiekty', icon: <FaTags /> },
     { id: 'vehicle', label: 'Pojazdy', icon: <FaCar /> },
     { id: 'client', label: 'Klienci', icon: <FaUser /> },
-    { id: 'APPOINTMENT', label: 'Wizyty', icon: <FaCalendarAlt /> },
+    { id: 'visits', label: 'Wizyty', icon: <FaCalendarAlt /> },
     { id: 'protocol', label: 'Protokoły', icon: <FaClipboardCheck /> },
     { id: 'invoice', label: 'Faktury', icon: <FaBuilding /> }
 ];
