@@ -169,7 +169,7 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
         },
 
         downloadDocument: (documentId: string): string => {
-            return `${apiClient.getBaseUrl()}/receptions/document/${documentId}`;
+            return `${apiClient.getBaseUrl()}/v1/protocols/document/${documentId}`;
         }
     };
 

@@ -34,7 +34,8 @@ import {
     FaGem
 } from 'react-icons/fa';
 import {clientApi} from "../../../../api/clientsApi";
-import {CarReceptionProtocol, ClientExpanded, ClientStatistics} from "../../../../types";
+import {CarReceptionProtocol, ClientExpanded, ClientStatistics, ServiceApprovalStatus, DiscountType} from "../../../../types";
+import AddServiceModal from "../../shared/modals/AddServiceModal";
 
 // Professional Brand System - Enterprise Automotive Grade
 const brand = {
@@ -146,11 +147,63 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
         }
     }, [protocol.ownerId]);
 
+    // Handler for adding new services
+    const handleAddService = () => {
+        setShowAddServiceModal(true);
+    };
+
+    // Handler for saving new services
+    const handleSaveServices = async (data: {
+        services: Array<{
+            id: string;
+            name: string;
+            price: number;
+            discountType?: DiscountType;
+            discountValue?: number;
+            finalPrice: number;
+            note?: string;
+        }>
+    }) => {
+        try {
+            // Create new services with proper structure
+            const newServices = data.services.map(service => ({
+                id: service.id,
+                name: service.name,
+                price: service.price,
+                discountType: service.discountType || DiscountType.PERCENTAGE,
+                discountValue: service.discountValue || 0,
+                finalPrice: service.finalPrice,
+                note: service.note || '',
+                approvalStatus: ServiceApprovalStatus.PENDING
+            }));
+
+            // Update protocol with new services
+            const updatedProtocol: CarReceptionProtocol = {
+                ...protocol,
+                selectedServices: [...protocol.selectedServices, ...newServices]
+            };
+
+            // Call parent update handler
+            if (onProtocolUpdate) {
+                onProtocolUpdate(updatedProtocol);
+            }
+
+            setShowAddServiceModal(false);
+
+            // Show success message
+            console.log('Services added successfully:', newServices);
+
+        } catch (error) {
+            console.error('Error adding services:', error);
+            // You might want to show an error toast here
+        }
+    };
+
     // Business calculations
     const totalRevenue = protocol.selectedServices.reduce((sum, s) => sum + s.finalPrice, 0);
     const totalDiscount = protocol.selectedServices.reduce((sum, s) => sum + (s.price - s.finalPrice), 0);
-    const pendingServices = protocol.selectedServices.filter(s => s.approvalStatus === "PENDING");
-    const approvedServices = protocol.selectedServices.filter(s => s.approvalStatus === "APPROVED");
+    const pendingServices = protocol.selectedServices.filter(s => s.approvalStatus === ServiceApprovalStatus.PENDING);
+    const approvedServices = protocol.selectedServices.filter(s => s.approvalStatus === ServiceApprovalStatus.APPROVED);
 
     // Client tier logic
     const getClientTier = (revenue: number) => {
@@ -475,7 +528,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                             {approvedServices.length} zatwierdzone • {pendingServices.length} oczekujące
                         </SectionStats>
                     </HeaderContent>
-                    <AddServiceButton onClick={() => setShowAddServiceModal(true)}>
+                    <AddServiceButton onClick={handleAddService}>
                         <FaPlus />
                         <span>Dodaj usługę</span>
                     </AddServiceButton>
@@ -493,7 +546,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
 
                     <TableBody>
                         {protocol.selectedServices.map((service, index) => (
-                            <ServiceRow key={service.id} $pending={service.approvalStatus === "PENDING"}>
+                            <ServiceRow key={service.id} $pending={service.approvalStatus === ServiceApprovalStatus.PENDING}>
                                 <ServiceCell>
                                     <ServiceName>{service.name}</ServiceName>
                                     {service.note && (
@@ -510,7 +563,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                                         <DiscountInfo>
                                             <DiscountAmount>
                                                 -{service.discountValue.toFixed(2)}
-                                                {service.discountType === 'PERCENTAGE' ? '%' : 'zł'}
+                                                {service.discountType === DiscountType.PERCENTAGE ? '%' : 'zł'}
                                             </DiscountAmount>
                                             <SavingsAmount>(-{(service.price - service.finalPrice).toFixed(2)} zł)</SavingsAmount>
                                         </DiscountInfo>
@@ -524,8 +577,8 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                                 </FinalPriceCell>
 
                                 <StatusCell>
-                                    <ServiceStatus $status={service.approvalStatus || "PENDING"}>
-                                        {(service.approvalStatus || "PENDING") === "PENDING" ? (
+                                    <ServiceStatus $status={service.approvalStatus || ServiceApprovalStatus.PENDING}>
+                                        {(service.approvalStatus || ServiceApprovalStatus.PENDING) === ServiceApprovalStatus.PENDING ? (
                                             <>
                                                 <FaClock />
                                                 <span>Oczekuje</span>
@@ -541,7 +594,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
 
                                 <ActionsCell>
                                     <ServiceActions>
-                                        {(service.approvalStatus || "PENDING") === "PENDING" && (
+                                        {(service.approvalStatus || ServiceApprovalStatus.PENDING) === ServiceApprovalStatus.PENDING && (
                                             <ActionIcon $type="notify" title="Wyślij ponownie powiadomienie">
                                                 <FaBell />
                                             </ActionIcon>
@@ -575,6 +628,15 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                     </TableFooter>
                 </ServicesTable>
             </ServicesSection>
+
+            {/* Add Service Modal */}
+            <AddServiceModal
+                isOpen={showAddServiceModal}
+                onClose={() => setShowAddServiceModal(false)}
+                onAddServices={handleSaveServices}
+                availableServices={[]} // You should pass actual available services here
+                customerPhone={protocol.phone}
+            />
         </Container>
     );
 };
@@ -661,12 +723,6 @@ const StepLabel = styled.div`
    font-size: 13px;
    font-weight: 600;
    color: ${brand.textSecondary};
-   text-align: center;
-`;
-
-const StepTime = styled.div`
-   font-size: 11px;
-   color: ${brand.textMuted};
    text-align: center;
 `;
 

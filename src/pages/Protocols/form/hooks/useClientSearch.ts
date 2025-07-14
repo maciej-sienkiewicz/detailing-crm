@@ -1,10 +1,20 @@
-import { useState } from 'react';
-import { CarReceptionProtocol } from '../../../../types';
-import { ClientExpanded, VehicleExpanded } from '../../../../types';
-import { FormSearchService } from "../../shared/services/FormSearchService";
-import toast, {useToast} from "../../../../components/common/Toast/Toast";
+// src/pages/Protocols/form/hooks/useClientSearch.ts
+/**
+ * Production-ready hook for client search operations in protocol forms
+ * Handles search, selection, and form data population with proper error handling
+ *
+ * CONSISTENT LOGIC: Always show modals when results are found (same as vehicle search)
+ */
 
-interface UseClientSearchResult {
+import { useState, useCallback } from 'react';
+import { CarReceptionProtocol, ClientExpanded, VehicleExpanded } from '../../../../types';
+import { formSearchService, SearchCriteria } from '../../shared/services/FormSearchService';
+
+// ========================================================================================
+// TYPE DEFINITIONS
+// ========================================================================================
+
+export interface UseClientSearchResult {
     foundClients: ClientExpanded[];
     foundVehicles: VehicleExpanded[];
     showClientModal: boolean;
@@ -16,44 +26,101 @@ interface UseClientSearchResult {
     handleVehicleSelect: (vehicle: VehicleExpanded) => void;
     setShowClientModal: (show: boolean) => void;
     setShowVehicleModal: (show: boolean) => void;
+    clearSearchResults: () => void;
 }
 
+// ========================================================================================
+// HOOK IMPLEMENTATION
+// ========================================================================================
+
+/**
+ * Hook for handling client search operations in protocol forms
+ *
+ * @param formData - Current form data state
+ * @param setFormData - Form data setter function
+ * @returns Object with search state and handlers
+ *
+ * @example
+ * ```typescript
+ * const {
+ *   foundClients,
+ *   searchError,
+ *   handleSearchByClientField,
+ *   handleClientSelect
+ * } = useClientSearch(formData, setFormData);
+ *
+ * // Search by client field
+ * await handleSearchByClientField('email');
+ *
+ * // Handle client selection
+ * handleClientSelect(selectedClient);
+ * ```
+ */
 export const useClientSearch = (
     formData: Partial<CarReceptionProtocol>,
     setFormData: React.Dispatch<React.SetStateAction<Partial<CarReceptionProtocol>>>
 ): UseClientSearchResult => {
+
+    // ========================================================================================
+    // STATE MANAGEMENT
+    // ========================================================================================
+
     const [foundClients, setFoundClients] = useState<ClientExpanded[]>([]);
     const [foundVehicles, setFoundVehicles] = useState<VehicleExpanded[]>([]);
     const [showClientModal, setShowClientModal] = useState(false);
     const [showVehicleModal, setShowVehicleModal] = useState(false);
     const [searchError, setSearchError] = useState<string | null>(null);
     const [searchLoading, setSearchLoading] = useState(false);
-    const [selectedClient, setSelectedClient] = useState<ClientExpanded | null>(null);
-    const { showToast } = useToast();
 
+    // ========================================================================================
+    // FORM DATA POPULATION HANDLERS
+    // ========================================================================================
 
-    // Funkcja do wypełnienia danych klienta w formularzu
-    const fillClientData = (client: ClientExpanded) => {
-        const clientData = FormSearchService.mapClientToFormData(client);
-        setFormData(prev => ({
-            ...prev,
-            ...clientData
-        }));
-    };
+    /**
+     * Populates form with client data
+     */
+    const populateClientData = useCallback((client: ClientExpanded): void => {
+        try {
+            const clientData = formSearchService.mapClientToFormData(client);
 
-    // Funkcja do wypełnienia danych pojazdu w formularzu
-    const fillVehicleData = (vehicle: VehicleExpanded) => {
-        const vehicleData = FormSearchService.mapVehicleToFormData(vehicle);
-        setFormData(prev => ({
-            ...prev,
-            ...vehicleData
-        }));
-    };
+            setFormData(prev => ({
+                ...prev,
+                ...clientData
+            }));
+        } catch (error) {
+            console.error('[useClientSearch] Failed to populate client data:', error);
+            setSearchError('Błąd podczas uzupełniania danych klienta');
+        }
+    }, [setFormData]);
 
-    // Obsługa wyszukiwania po polach klienta
-    const handleSearchByClientField = async (field: 'ownerName' | 'companyName' | 'taxId' | 'email' | 'phone') => {
+    /**
+     * Populates form with vehicle data
+     */
+    const populateVehicleData = useCallback((vehicle: VehicleExpanded): void => {
+        try {
+            const vehicleData = formSearchService.mapVehicleToFormData(vehicle);
+
+            setFormData(prev => ({
+                ...prev,
+                ...vehicleData
+            }));
+        } catch (error) {
+            console.error('[useClientSearch] Failed to populate vehicle data:', error);
+            setSearchError('Błąd podczas uzupełniania danych pojazdu');
+        }
+    }, [setFormData]);
+
+    // ========================================================================================
+    // SEARCH OPERATIONS
+    // ========================================================================================
+
+    /**
+     * Handles search by client field
+     */
+    const handleSearchByClientField = useCallback(async (field: 'ownerName' | 'companyName' | 'taxId' | 'email' | 'phone'): Promise<void> => {
         const fieldValue = formData[field] as string;
 
+        // Validate input
         if (!fieldValue || fieldValue.trim() === '') {
             setSearchError('Pole wyszukiwania jest puste');
             return;
@@ -63,57 +130,100 @@ export const useClientSearch = (
         setSearchError(null);
 
         try {
-            const criteria = { field, value: fieldValue };
-            const results = await FormSearchService.searchByField(criteria);
+            const criteria: SearchCriteria = { field, value: fieldValue };
+            const results = await formSearchService.searchByField(criteria);
 
             setFoundClients(results.clients);
 
-            // Podejmowanie decyzji w zależności od wyników wyszukiwania
-            if (results.clients.length === 0) {
-                // Brak wyników
-                showToast('Nie znaleziono klientów o podanych danych');
-            } else {
-                // Znaleziono wielu klientów, pokazujemy modal wyboru
-                setShowClientModal(true);
-            }
-        } catch (err) {
-            console.error('Error searching:', err);
-            setSearchError('Wystąpił błąd podczas wyszukiwania');
+            // Handle search results based on what was found
+            await handleSearchResults(results);
+
+        } catch (error) {
+            console.error('[useClientSearch] Search operation failed:', error);
+            setSearchError(
+                error instanceof Error
+                    ? error.message
+                    : 'Wystąpił błąd podczas wyszukiwania'
+            );
         } finally {
             setSearchLoading(false);
         }
-    };
+    }, [formData]);
 
-    // Obsługa wyboru klienta z modalu
-    const handleClientSelect = (client: ClientExpanded) => {
-        fillClientData(client);
-        setSelectedClient(client);
+    /**
+     * Processes search results and determines appropriate UI flow
+     * CONSISTENT LOGIC: Always show modal when clients are found
+     */
+    const handleSearchResults = useCallback(async (results: { vehicles: VehicleExpanded[], clients: ClientExpanded[] }): Promise<void> => {
+        const { vehicles, clients } = results;
+
+        if (clients.length === 0) {
+            setSearchError('Nie znaleziono klientów o podanych danych');
+            return;
+        }
+
+        // CONSISTENT LOGIC: Zawsze pokazuj modal jeśli znajdziesz klientów
+        if (clients.length >= 1) {
+            // Jeśli znaleziono klientów - pokaż modal wyboru klienta
+            setShowClientModal(true);
+        }
+    }, []);
+
+    // ========================================================================================
+    // SELECTION HANDLERS
+    // ========================================================================================
+
+    /**
+     * Handles client selection from modal
+     */
+    const handleClientSelect = useCallback((client: ClientExpanded): void => {
+        populateClientData(client);
         setShowClientModal(false);
 
-        // Po wyborze klienta, sprawdzamy czy ma pojazdy
-        if (client.vehicles && client.vehicles.length > 0) {
-            FormSearchService.getVehiclesForClient(client.id)
-                .then(vehicles => {
-                    if (vehicles.length === 1) {
-                        // Jeśli klient ma dokładnie jeden pojazd, automatycznie go wybieramy
-                        fillVehicleData(vehicles[0]);
-                    } else if (vehicles.length > 1) {
-                        // Jeśli klient ma wiele pojazdów, pokazujemy modal wyboru pojazdu
-                        setFoundVehicles(vehicles);
-                        setShowVehicleModal(true);
-                    }
-                })
-                .catch(err => {
-                    console.error('Error fetching vehicles for client:', err);
-                });
-        }
-    };
+        // Po wyborze klienta, pobierz jego pojazdy
+        formSearchService.getVehiclesForClient(client.id)
+            .then(vehicles => {
+                if (vehicles.length > 0) {
+                    setFoundVehicles(vehicles);
+                    // CONSISTENT LOGIC: Zawsze pokaż modal wyboru pojazdu jeśli klient ma pojazdy
+                    setShowVehicleModal(true);
+                } else {
+                    // Klient nie ma pojazdów - to jest OK, formularz pozostanie z danymi klienta
+                    console.log('[useClientSearch] Client has no vehicles registered');
+                }
+            })
+            .catch(error => {
+                console.error('[useClientSearch] Failed to fetch client vehicles:', error);
+                // Nie pokazujemy błędu - brak pojazdów nie jest błędem krytycznym
+            });
+    }, [populateClientData]);
 
-    // Obsługa wyboru pojazdu z modalu
-    const handleVehicleSelect = (vehicle: VehicleExpanded) => {
-        fillVehicleData(vehicle);
+    /**
+     * Handles vehicle selection from modal (client's vehicle)
+     */
+    const handleVehicleSelect = useCallback((vehicle: VehicleExpanded): void => {
+        populateVehicleData(vehicle);
         setShowVehicleModal(false);
-    };
+    }, [populateVehicleData]);
+
+    // ========================================================================================
+    // UTILITY FUNCTIONS
+    // ========================================================================================
+
+    /**
+     * Clears all search results and resets state
+     */
+    const clearSearchResults = useCallback((): void => {
+        setFoundClients([]);
+        setFoundVehicles([]);
+        setSearchError(null);
+        setShowClientModal(false);
+        setShowVehicleModal(false);
+    }, []);
+
+    // ========================================================================================
+    // RETURN INTERFACE
+    // ========================================================================================
 
     return {
         foundClients,
@@ -126,6 +236,7 @@ export const useClientSearch = (
         handleClientSelect,
         handleVehicleSelect,
         setShowClientModal,
-        setShowVehicleModal
+        setShowVehicleModal,
+        clearSearchResults
     };
 };

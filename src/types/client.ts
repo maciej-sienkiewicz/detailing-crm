@@ -1,7 +1,9 @@
+// src/types/client.ts
 export interface ClientExpanded {
     id: string;
     firstName: string;
     lastName: string;
+    fullName?: string;
     email: string;
     phone: string;
     address?: string;
@@ -17,6 +19,10 @@ export interface ClientExpanded {
     notes?: string;
 
     vehicles: string[];
+
+    // Dodane pola które mogą przyjść z API
+    createdAt?: string;
+    updatedAt?: string;
 }
 
 export interface ClientStatistics {

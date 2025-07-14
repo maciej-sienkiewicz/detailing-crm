@@ -1,10 +1,20 @@
-import { useState } from 'react';
-import { CarReceptionProtocol } from '../../../../types';
-import { ClientExpanded } from '../../../../types';
-import { VehicleExpanded } from '../../../../types';
-import {FormSearchService} from "../../shared/services/FormSearchService";
+// src/pages/Protocols/form/hooks/useVehicleSearch.ts
+/**
+ * Production-ready hook for vehicle search operations in protocol forms
+ * Handles search, selection, and form data population with proper error handling
+ *
+ * UPDATED LOGIC: Always show modals when results are found (consistent with client search)
+ */
 
-interface UseVehicleSearchResult {
+import { useState, useCallback } from 'react';
+import { CarReceptionProtocol, ClientExpanded, VehicleExpanded } from '../../../../types';
+import { formSearchService, SearchCriteria } from '../../shared/services/FormSearchService';
+
+// ========================================================================================
+// TYPE DEFINITIONS
+// ========================================================================================
+
+export interface UseVehicleSearchResult {
     foundVehicles: VehicleExpanded[];
     foundVehicleOwners: ClientExpanded[];
     showVehicleModal: boolean;
@@ -16,46 +26,103 @@ interface UseVehicleSearchResult {
     handleClientSelect: (client: ClientExpanded) => void;
     setShowVehicleModal: (show: boolean) => void;
     setShowClientModal: (show: boolean) => void;
+    clearSearchResults: () => void;
 }
 
+// ========================================================================================
+// HOOK IMPLEMENTATION
+// ========================================================================================
+
+/**
+ * Hook for handling vehicle search operations in protocol forms
+ *
+ * @param formData - Current form data state
+ * @param setFormData - Form data setter function
+ * @param availableClients - Pre-loaded clients for fallback operations
+ * @returns Object with search state and handlers
+ *
+ * @example
+ * ```typescript
+ * const {
+ *   foundVehicles,
+ *   searchError,
+ *   handleSearchByVehicleField,
+ *   handleVehicleSelect
+ * } = useVehicleSearch(formData, setFormData);
+ *
+ * // Search by license plate
+ * await handleSearchByVehicleField('licensePlate');
+ *
+ * // Handle vehicle selection
+ * handleVehicleSelect(selectedVehicle);
+ * ```
+ */
 export const useVehicleSearch = (
     formData: Partial<CarReceptionProtocol>,
     setFormData: React.Dispatch<React.SetStateAction<Partial<CarReceptionProtocol>>>,
     availableClients: ClientExpanded[] = []
 ): UseVehicleSearchResult => {
+
+    // ========================================================================================
+    // STATE MANAGEMENT
+    // ========================================================================================
+
     const [foundVehicles, setFoundVehicles] = useState<VehicleExpanded[]>([]);
     const [foundVehicleOwners, setFoundVehicleOwners] = useState<ClientExpanded[]>([]);
     const [showVehicleModal, setShowVehicleModal] = useState(false);
     const [showClientModal, setShowClientModal] = useState(false);
     const [searchError, setSearchError] = useState<string | null>(null);
     const [searchLoading, setSearchLoading] = useState(false);
-    const [selectedVehicle, setSelectedVehicle] = useState<VehicleExpanded | null>(null);
 
-    // Funkcja do wypełnienia danych pojazdu w formularzu
-    const fillVehicleData = (vehicle: VehicleExpanded) => {
-        const vehicleData = FormSearchService.mapVehicleToFormData(vehicle);
-        setFormData(prev => ({
-            ...prev,
-            ...vehicleData
-        }));
+    // ========================================================================================
+    // FORM DATA POPULATION HANDLERS
+    // ========================================================================================
 
-        // Zapisujemy wybrany pojazd do stanu
-        setSelectedVehicle(vehicle);
-    };
+    /**
+     * Populates form with vehicle data
+     */
+    const populateVehicleData = useCallback((vehicle: VehicleExpanded): void => {
+        try {
+            const vehicleData = formSearchService.mapVehicleToFormData(vehicle);
 
-    // Funkcja do wypełnienia danych klienta w formularzu
-    const fillClientData = (client: ClientExpanded) => {
-        const clientData = FormSearchService.mapClientToFormData(client);
-        setFormData(prev => ({
-            ...prev,
-            ...clientData
-        }));
-    };
+            setFormData(prev => ({
+                ...prev,
+                ...vehicleData
+            }));
+        } catch (error) {
+            console.error('[useVehicleSearch] Failed to populate vehicle data:', error);
+            setSearchError('Błąd podczas uzupełniania danych pojazdu');
+        }
+    }, [setFormData]);
 
-    // Obsługa wyszukiwania po numerze rejestracyjnym
-    const handleSearchByVehicleField = async (field: 'licensePlate') => {
+    /**
+     * Populates form with client data
+     */
+    const populateClientData = useCallback((client: ClientExpanded): void => {
+        try {
+            const clientData = formSearchService.mapClientToFormData(client);
+
+            setFormData(prev => ({
+                ...prev,
+                ...clientData
+            }));
+        } catch (error) {
+            console.error('[useVehicleSearch] Failed to populate client data:', error);
+            setSearchError('Błąd podczas uzupełniania danych klienta');
+        }
+    }, [setFormData]);
+
+    // ========================================================================================
+    // SEARCH OPERATIONS
+    // ========================================================================================
+
+    /**
+     * Handles search by vehicle field (currently only license plate)
+     */
+    const handleSearchByVehicleField = useCallback(async (field: 'licensePlate'): Promise<void> => {
         const fieldValue = formData[field] as string;
 
+        // Validate input
         if (!fieldValue || fieldValue.trim() === '') {
             setSearchError('Pole wyszukiwania jest puste');
             return;
@@ -65,76 +132,110 @@ export const useVehicleSearch = (
         setSearchError(null);
 
         try {
-            const criteria = { field, value: fieldValue };
-            const results = await FormSearchService.searchByField(criteria);
+            const criteria: SearchCriteria = { field, value: fieldValue };
+            const results = await formSearchService.searchByField(criteria);
 
             setFoundVehicles(results.vehicles);
 
-            // Decyzja o pokazaniu odpowiedniego modala
-            if (results.vehicles.length === 0) {
-                // Nie znaleziono pojazdów
-                setSearchError('Nie znaleziono pojazdów o podanym numerze rejestracyjnym');
-            } else if (results.vehicles.length === 1) {
-                // Znaleziono dokładnie jeden pojazd
-                const vehicle = results.vehicles[0];
-                fillVehicleData(vehicle);
+            // Handle search results based on what was found
+            await handleSearchResults(results);
 
-                // Sprawdzamy właścicieli pojazdu
-                if (results.clients.length === 0) {
-                    // Pojazd nie ma przypisanych właścicieli
-                    setSearchError('Pojazd nie ma przypisanego właściciela');
-                } else if (results.clients.length === 1) {
-                    // Pojazd ma jednego właściciela - automatycznie uzupełniamy jego dane
-                    fillClientData(results.clients[0]);
-                } else {
-                    // Pojazd ma wielu właścicieli - wyświetlamy modal wyboru
-                    setFoundVehicleOwners(results.clients);
-                    setShowClientModal(true);
-                }
-            } else {
-                // Znaleziono więcej pojazdów - wyświetlamy modal wyboru pojazdu
-                setShowVehicleModal(true);
-            }
-        } catch (err) {
-            console.error('Error searching:', err);
-            setSearchError('Wystąpił błąd podczas wyszukiwania');
+        } catch (error) {
+            console.error('[useVehicleSearch] Search operation failed:', error);
+            setSearchError(
+                error instanceof Error
+                    ? error.message
+                    : 'Wystąpił błąd podczas wyszukiwania'
+            );
         } finally {
             setSearchLoading(false);
         }
-    };
+    }, [formData]);
 
-    // Obsługa wyboru pojazdu z modalu
-    const handleVehicleSelect = (vehicle: VehicleExpanded) => {
-        fillVehicleData(vehicle);
+    /**
+     * Processes search results and determines appropriate UI flow
+     */
+    const handleSearchResults = useCallback(async (results: { vehicles: VehicleExpanded[], clients: ClientExpanded[] }): Promise<void> => {
+        const { vehicles, clients } = results;
+
+        if (vehicles.length === 0) {
+            setSearchError('Nie znaleziono pojazdów o podanym numerze rejestracyjnym');
+            return;
+        }
+
+        // NOWA LOGIKA: Zawsze pokazuj modal jeśli znajdziesz pojazdy
+        if (vehicles.length >= 1) {
+            // Jeśli znaleziono pojazdy - pokaż modal wyboru pojazdu
+            setShowVehicleModal(true);
+        }
+    }, []);
+
+    // ========================================================================================
+    // SELECTION HANDLERS
+    // ========================================================================================
+
+    /**
+     * Handles vehicle selection from modal
+     */
+    const handleVehicleSelect = useCallback((vehicle: VehicleExpanded): void => {
+        populateVehicleData(vehicle);
         setShowVehicleModal(false);
 
-        // Po wyborze pojazdu, sprawdzamy czy ma właścicieli
-        if (vehicle.ownerIds && vehicle.ownerIds.length > 0) {
-            // Filtrujemy dostępnych klientów, aby znaleźć właścicieli pojazdu
-            const owners = availableClients.filter(client =>
-                vehicle.ownerIds.includes(client.id)
-            );
+        // Po wyborze pojazdu, sprawdź właścicieli
+        // NOWA LOGIKA: Jeśli są właściciele, zawsze pokaż modal wyboru
+        if (vehicle.owners && vehicle.owners.length > 0) {
+            // Konwertuj VehicleOwnerSummary na ClientExpanded
+            const ownersAsClients: ClientExpanded[] = vehicle.owners.map(owner => ({
+                id: owner.id.toString(),
+                firstName: owner.firstName || '',
+                lastName: owner.lastName || '',
+                fullName: owner.fullName || `${owner.firstName || ''} ${owner.lastName || ''}`.trim(),
+                email: owner.email || '',
+                phone: owner.phone || '',
 
-            if (owners.length === 0) {
-                // Nie znaleziono właścicieli w dostępnych klientach
-                // Można spróbować pobrać ich z API
-                console.warn('No owners found in available clients. Consider fetching from API.');
-            } else if (owners.length === 1) {
-                // Pojazd ma jednego właściciela - automatycznie uzupełniamy jego dane
-                fillClientData(owners[0]);
-            } else {
-                // Pojazd ma wielu właścicieli - wyświetlamy modal wyboru
-                setFoundVehicleOwners(owners);
-                setShowClientModal(true);
-            }
+                // Wymagane pola z domyślnymi wartościami
+                totalVisits: 0,
+                totalTransactions: 0,
+                abandonedSales: 0,
+                totalRevenue: 0,
+                contactAttempts: 0,
+                vehicles: []
+            }));
+
+            // Zawsze pokaż modal wyboru właściciela
+            setFoundVehicleOwners(ownersAsClients);
+            setShowClientModal(true);
+        } else {
+            setSearchError('Wybrany pojazd nie ma przypisanego właściciela');
         }
-    };
+    }, [populateVehicleData]);
 
-    // Obsługa wyboru klienta z modalu (właściciela pojazdu)
-    const handleClientSelect = (client: ClientExpanded) => {
-        fillClientData(client);
+    /**
+     * Handles client selection from modal (vehicle owner)
+     */
+    const handleClientSelect = useCallback((client: ClientExpanded): void => {
+        populateClientData(client);
         setShowClientModal(false);
-    };
+    }, [populateClientData]);
+
+    // ========================================================================================
+    // UTILITY FUNCTIONS
+    // ========================================================================================
+
+    /**
+     * Clears all search results and resets state
+     */
+    const clearSearchResults = useCallback((): void => {
+        setFoundVehicles([]);
+        setFoundVehicleOwners([]);
+        setSearchError(null);
+        setShowVehicleModal(false);
+        setShowClientModal(false);
+    }, []);
+
+    // ========================================================================================
+    // RETURN INTERFACE
+    // ========================================================================================
 
     return {
         foundVehicles,
@@ -147,6 +248,7 @@ export const useVehicleSearch = (
         handleVehicleSelect,
         handleClientSelect,
         setShowVehicleModal,
-        setShowClientModal
+        setShowClientModal,
+        clearSearchResults
     };
 };
