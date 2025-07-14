@@ -1,4 +1,4 @@
-// src/api/clientsApi.ts
+// src/api/clientsApi.ts - Naprawione parsowanie odpowiedzi API
 /**
  * Production-ready Clients API
  * Handles all client-related operations with proper typing and error handling
@@ -17,6 +17,41 @@ import { ClientExpanded, ClientStatistics, ContactAttempt } from '../types';
 // ========================================================================================
 // TYPE DEFINITIONS
 // ========================================================================================
+
+/**
+ * Raw client data from API (before enrichment)
+ */
+interface RawClientData {
+    id: string | number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    address?: string;
+    company?: string;
+    taxId?: string;
+    notes?: string;
+    totalVisits?: number;
+    totalTransactions?: number;
+    abandonedSales?: number;
+    totalRevenue?: number;
+    contactAttempts?: number;
+    lastVisitDate?: string;
+    vehicles?: string[];
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+/**
+ * Paginated response from backend
+ */
+interface BackendPaginatedResponse {
+    data: RawClientData[];
+    page: number;
+    size: number;
+    totalItems: number;
+    totalPages: number;
+}
 
 /**
  * Client data for creation/update operations (excluding statistics)
@@ -81,22 +116,7 @@ class ClientsApi {
 
     /**
      * Fetches paginated list of clients with optional filtering
-     *
-     * @param params - Search and filter parameters
-     * @returns Promise<ClientApiResult<PaginatedApiResponse<ClientExpanded>>>
-     *
-     * @example
-     * ```typescript
-     * const result = await clientsApi.getClients({
-     *   query: 'John',
-     *   page: 0,
-     *   size: 20
-     * });
-     *
-     * if (result.success) {
-     *   console.log('Clients:', result.data.data);
-     * }
-     * ```
+     * NAPRAWIONE: Używa nowego endpointu z paginacją
      */
     async getClients(params: ClientSearchParams = {}): Promise<ClientApiResult<PaginatedApiResponse<ClientExpanded>>> {
         try {
@@ -105,44 +125,165 @@ class ClientsApi {
             const { page = 0, size = 20, ...filterParams } = params;
             const queryParams = this.buildQueryParams(filterParams);
 
-            const response = await apiClientNew.getWithPagination<any>(
-                this.baseEndpoint,
-                queryParams,
-                { page, size },
+            // NAPRAWIONE: Używamy nowego endpointu /clients/paginated z typowaniem
+            const response = await apiClientNew.get<BackendPaginatedResponse | RawClientData[]>(
+                `${this.baseEndpoint}/paginated`,
+                { ...queryParams, page, size },
                 { timeout: 15000 }
             );
 
-            // Process client data
-            const processedClients = response.data.map(client =>
-                this.enrichClientData(client)
-            );
+            this.logDebug('Raw API response:', response);
+
+            // NAPRAWIONE: Sprawdzamy format odpowiedzi z nowego endpointu z typowaniem
+            let processedClients: ClientExpanded[] = [];
+            let pagination = {
+                currentPage: page,
+                pageSize: size,
+                totalItems: 0,
+                totalPages: 0,
+                hasNext: false,
+                hasPrevious: false
+            };
+
+            // Nowy endpoint powinien zwracać PaginatedResponse<ClientExpandedResponse>
+            if (response && typeof response === 'object' && 'data' in response && Array.isArray(response.data)) {
+                console.log('🎯 Using paginated endpoint response');
+                const paginatedResponse = response as BackendPaginatedResponse;
+                processedClients = paginatedResponse.data.map((client: RawClientData) => this.enrichClientData(client));
+
+                pagination = {
+                    currentPage: paginatedResponse.page || page,
+                    pageSize: paginatedResponse.size || size,
+                    totalItems: paginatedResponse.totalItems || 0,
+                    totalPages: paginatedResponse.totalPages || 0,
+                    hasNext: (paginatedResponse.page || page) < (paginatedResponse.totalPages || 1) - 1,
+                    hasPrevious: (paginatedResponse.page || page) > 0
+                };
+            } else if (Array.isArray(response)) {
+                // Fallback: serwer zwrócił bezpośrednio tablicę klientów (stary endpoint)
+                console.log('🔄 Fallback: Server returned array directly, processing...');
+                const arrayResponse = response as RawClientData[];
+                processedClients = arrayResponse.map((client: RawClientData) => this.enrichClientData(client));
+
+                // Symulujemy paginację po stronie klienta
+                const startIndex = page * size;
+                const endIndex = startIndex + size;
+                const paginatedData = processedClients.slice(startIndex, endIndex);
+
+                pagination = {
+                    currentPage: page,
+                    pageSize: size,
+                    totalItems: processedClients.length,
+                    totalPages: Math.ceil(processedClients.length / size),
+                    hasNext: endIndex < processedClients.length,
+                    hasPrevious: page > 0
+                };
+
+                processedClients = paginatedData;
+            } else {
+                console.warn('⚠️ Unexpected response format:', response);
+                processedClients = [];
+            }
 
             const result: ClientApiResult<PaginatedApiResponse<ClientExpanded>> = {
                 success: true,
                 data: {
-                    ...response,
-                    data: processedClients
+                    data: processedClients,
+                    pagination,
+                    success: true
                 }
             };
 
-            this.logDebug('Successfully fetched clients:', {
+            this.logDebug('Successfully processed clients:', {
                 count: processedClients.length,
-                totalItems: response.pagination.totalItems
+                totalItems: pagination.totalItems,
+                currentPage: pagination.currentPage
             });
 
             return result;
 
         } catch (error) {
             console.error('[clientsApi] Error fetching clients:', error);
+
+            // NAPRAWIONE: Fallback do starego endpointu w przypadku błędu
+            if (error instanceof Error && error.message.includes('404')) {
+                console.log('🔄 Paginated endpoint not available, falling back to legacy endpoint...');
+                return this.getLegacyClients(params);
+            }
+
             return this.handleApiError(error, 'pobierania listy klientów');
         }
     }
 
     /**
+     * Fallback method for legacy endpoint without pagination
+     */
+    private async getLegacyClients(params: ClientSearchParams = {}): Promise<ClientApiResult<PaginatedApiResponse<ClientExpanded>>> {
+        try {
+            this.logDebug('Using legacy clients endpoint...');
+
+            const { page = 0, size = 20 } = params;
+
+            // Używamy starego endpointu /clients (bez paginacji)
+            const response = await apiClientNew.get<RawClientData[]>(
+                this.baseEndpoint,
+                {},
+                { timeout: 15000 }
+            );
+
+            this.logDebug('Legacy API response:', response);
+
+            let processedClients: ClientExpanded[] = [];
+
+            if (Array.isArray(response)) {
+                processedClients = response.map((client: RawClientData) => this.enrichClientData(client));
+
+                // Symulujemy paginację po stronie klienta
+                const startIndex = page * size;
+                const endIndex = startIndex + size;
+                const paginatedData = processedClients.slice(startIndex, endIndex);
+
+                const pagination = {
+                    currentPage: page,
+                    pageSize: size,
+                    totalItems: processedClients.length,
+                    totalPages: Math.ceil(processedClients.length / size),
+                    hasNext: endIndex < processedClients.length,
+                    hasPrevious: page > 0
+                };
+
+                const result: ClientApiResult<PaginatedApiResponse<ClientExpanded>> = {
+                    success: true,
+                    data: {
+                        data: paginatedData,
+                        pagination,
+                        success: true
+                    }
+                };
+
+                this.logDebug('Successfully processed legacy clients:', {
+                    count: paginatedData.length,
+                    totalItems: pagination.totalItems,
+                    currentPage: pagination.currentPage
+                });
+
+                return result;
+            } else {
+                console.warn('⚠️ Legacy endpoint returned unexpected format:', response);
+                return {
+                    success: false,
+                    error: 'Nieoczekiwany format odpowiedzi z serwera'
+                };
+            }
+
+        } catch (error) {
+            console.error('[clientsApi] Error with legacy endpoint:', error);
+            return this.handleApiError(error, 'pobierania listy klientów (legacy)');
+        }
+    }
+
+    /**
      * Fetches a single client by ID with full details
-     *
-     * @param id - Client ID
-     * @returns Promise<ClientApiResult<ClientExpanded>>
      */
     async getClientById(id: number | string): Promise<ClientApiResult<ClientExpanded>> {
         try {
@@ -178,9 +319,6 @@ class ClientsApi {
 
     /**
      * Creates a new client
-     *
-     * @param clientData - Client data for creation
-     * @returns Promise<ClientApiResult<ClientExpanded>>
      */
     async createClient(clientData: ClientData): Promise<ClientApiResult<ClientExpanded>> {
         try {
@@ -209,10 +347,6 @@ class ClientsApi {
 
     /**
      * Updates an existing client
-     *
-     * @param id - Client ID
-     * @param clientData - Updated client data
-     * @returns Promise<ClientApiResult<ClientExpanded>>
      */
     async updateClient(id: string, clientData: ClientData): Promise<ClientApiResult<ClientExpanded>> {
         try {
@@ -248,9 +382,6 @@ class ClientsApi {
 
     /**
      * Deletes a client
-     *
-     * @param id - Client ID
-     * @returns Promise<ClientApiResult<boolean>>
      */
     async deleteClient(id: string): Promise<ClientApiResult<boolean>> {
         try {
@@ -287,10 +418,6 @@ class ClientsApi {
 
     /**
      * Searches clients by query string
-     *
-     * @param query - Search query
-     * @param limit - Maximum number of results
-     * @returns Promise<ClientApiResult<ClientExpanded[]>>
      */
     async searchClients(query: string, limit: number = 20): Promise<ClientApiResult<ClientExpanded[]>> {
         try {
@@ -303,15 +430,15 @@ class ClientsApi {
                 };
             }
 
-            const response = await apiClientNew.get<any[]>(
+            const response = await apiClientNew.get<RawClientData[]>(
                 `${this.baseEndpoint}/search`,
                 { query: query.trim(), limit },
                 { timeout: 12000 }
             );
 
-            const processedClients = response.map(client =>
-                this.enrichClientData(client)
-            );
+            const processedClients = Array.isArray(response)
+                ? response.map((client: RawClientData) => this.enrichClientData(client))
+                : [];
 
             this.logDebug('Search completed:', { query, resultCount: processedClients.length });
 
@@ -328,9 +455,6 @@ class ClientsApi {
 
     /**
      * Gets client statistics by ID
-     *
-     * @param id - Client ID
-     * @returns Promise<ClientApiResult<ClientStatistics>>
      */
     async getClientStatistics(id: number | string): Promise<ClientApiResult<ClientStatistics>> {
         try {
@@ -375,9 +499,6 @@ class ClientsApi {
 
     /**
      * Creates a new contact attempt
-     *
-     * @param contactAttempt - Contact attempt data
-     * @returns Promise<ClientApiResult<ContactAttempt>>
      */
     async createContactAttempt(contactAttempt: ContactAttempt): Promise<ClientApiResult<ContactAttempt>> {
         try {
@@ -404,9 +525,6 @@ class ClientsApi {
 
     /**
      * Gets contact attempts for a client
-     *
-     * @param clientId - Client ID
-     * @returns Promise<ClientApiResult<ContactAttempt[]>>
      */
     async getContactAttemptsByClientId(clientId: string): Promise<ClientApiResult<ContactAttempt[]>> {
         try {
@@ -425,11 +543,11 @@ class ClientsApi {
                 { timeout: 10000 }
             );
 
-            this.logDebug('Successfully fetched contact attempts:', response.length);
+            this.logDebug('Successfully fetched contact attempts:', Array.isArray(response) ? response.length : 0);
 
             return {
                 success: true,
-                data: response
+                data: Array.isArray(response) ? response : []
             };
 
         } catch (error) {
@@ -439,7 +557,7 @@ class ClientsApi {
     }
 
     // ========================================================================================
-    // CONVENIENCE METHODS
+    // CONVENIENCE METHODS (for backward compatibility)
     // ========================================================================================
 
     /**
@@ -484,22 +602,24 @@ class ClientsApi {
 
     /**
      * Enriches raw client data from API with proper field mapping
+     * NAPRAWIONE: Lepsze obsługiwanie różnych formatów pól z typowaniem
      */
-    private enrichClientData(clientData: any): ClientExpanded {
+    private enrichClientData(clientData: RawClientData): ClientExpanded {
         if (!clientData) {
             throw new Error('Client data is required');
         }
 
+        console.log('🔄 Enriching client data:', clientData);
+
         // Extract data with proper field mapping for API response format
-        const id = (clientData.id)?.toString() || '';
-        const firstName = clientData.firstname || clientData.firstName || '';
-        const lastName = clientData.lastname || clientData.lastName || '';
-        const fullName = clientData.fullname || clientData.fullName ||
-            (firstName && lastName ? `${firstName} ${lastName}`.trim() : '');
+        const id = clientData.id?.toString() || '';
+        const firstName = clientData.firstName || '';
+        const lastName = clientData.lastName || '';
+        const fullName = (firstName && lastName ? `${firstName} ${lastName}`.trim() : '');
         const email = clientData.email || '';
         const phone = clientData.phone || '';
         const company = clientData.company || undefined;
-        const taxId = clientData.taxid || clientData.taxId || undefined;
+        const taxId = clientData.taxId || undefined;
 
         // Build enriched client object
         const enrichedClient: ClientExpanded = {
@@ -514,20 +634,21 @@ class ClientsApi {
             taxId,
             notes: clientData.notes || undefined,
 
-            // Statistical fields with defaults
+            // Statistical fields with defaults - NAPRAWIONE: obsługa null/undefined
             totalVisits: clientData.totalVisits || 0,
             totalTransactions: clientData.totalTransactions || 0,
             abandonedSales: clientData.abandonedSales || 0,
             totalRevenue: clientData.totalRevenue || 0,
             contactAttempts: clientData.contactAttempts || 0,
             lastVisitDate: clientData.lastVisitDate || undefined,
-            vehicles: clientData.vehicles || [],
+            vehicles: Array.isArray(clientData.vehicles) ? clientData.vehicles : [],
 
             // Metadata fields
             createdAt: clientData.createdAt || undefined,
             updatedAt: clientData.updatedAt || undefined
         };
 
+        console.log('✅ Enriched client:', enrichedClient);
         return enrichedClient;
     }
 

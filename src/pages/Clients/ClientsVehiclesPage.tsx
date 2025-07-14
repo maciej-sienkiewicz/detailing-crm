@@ -1,5 +1,5 @@
-// src/pages/Clients/ClientsVehiclesPage.tsx - Unified View with Tabs
-import React, { useState } from 'react';
+// src/pages/Clients/ClientsVehiclesPage.tsx - Fixed infinite loop
+import React, { useState, useCallback } from 'react';
 import styled from 'styled-components';
 import { FaUsers, FaCar, FaPlus, FaExchangeAlt, FaFileExport } from 'react-icons/fa';
 
@@ -56,7 +56,8 @@ type ActiveTab = 'owners' | 'vehicles';
 const ClientsVehiclesPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<ActiveTab>('owners');
 
-    // State for tab-specific actions
+    // NAPRAWIONE: Używamy useCallback do zapobiegania recreacji funkcji
+    // i stabilnych referencji w useEffect
     const [ownersRef, setOwnersRef] = useState<{
         handleAddClient?: () => void;
         handleExportClients?: () => void;
@@ -86,12 +87,12 @@ const ClientsVehiclesPage: React.FC = () => {
     ];
 
     // Handle tab change
-    const handleTabChange = (tabId: ActiveTab) => {
+    const handleTabChange = useCallback((tabId: ActiveTab) => {
         setActiveTab(tabId);
-    };
+    }, []);
 
     // Handle actions for owners tab
-    const handleOwnersAction = (action: string) => {
+    const handleOwnersAction = useCallback((action: string) => {
         switch (action) {
             case 'add':
                 if (ownersRef.handleAddClient) {
@@ -109,10 +110,10 @@ const ClientsVehiclesPage: React.FC = () => {
                 }
                 break;
         }
-    };
+    }, [ownersRef.handleAddClient, ownersRef.handleExportClients, ownersRef.handleOpenBulkSmsModal]);
 
     // Handle actions for vehicles tab
-    const handleVehiclesAction = (action: string) => {
+    const handleVehiclesAction = useCallback((action: string) => {
         switch (action) {
             case 'add':
                 if (vehiclesRef.handleAddVehicle) {
@@ -125,16 +126,22 @@ const ClientsVehiclesPage: React.FC = () => {
                 }
                 break;
         }
-    };
+    }, [vehiclesRef.handleAddVehicle, vehiclesRef.handleExportVehicles]);
 
-    // Set references for tab contents
-    const handleSetOwnersRef = (ref: typeof ownersRef) => {
-        setOwnersRef(ref);
-    };
+    // NAPRAWIONE: Używamy useCallback dla stabilnych referencji
+    const handleSetOwnersRef = useCallback((ref: typeof ownersRef) => {
+        // Sprawdzamy czy ref rzeczywiście się zmienił
+        if (JSON.stringify(ref) !== JSON.stringify(ownersRef)) {
+            setOwnersRef(ref);
+        }
+    }, [ownersRef]);
 
-    const handleSetVehiclesRef = (ref: typeof vehiclesRef) => {
-        setVehiclesRef(ref);
-    };
+    const handleSetVehiclesRef = useCallback((ref: typeof vehiclesRef) => {
+        // Sprawdzamy czy ref rzeczywiście się zmienił
+        if (JSON.stringify(ref) !== JSON.stringify(vehiclesRef)) {
+            setVehiclesRef(ref);
+        }
+    }, [vehiclesRef]);
 
     return (
         <PageContainer>
@@ -235,7 +242,7 @@ const ClientsVehiclesPage: React.FC = () => {
     );
 };
 
-// Styled Components
+// Styled Components (bez zmian)
 const PageContainer = styled.div`
     min-height: 100vh;
     background: ${brandTheme.surfaceAlt};

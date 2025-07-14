@@ -1,11 +1,11 @@
 // src/pages/Clients/components/OwnersPageContent.tsx - Extracted Content Component
-import React, { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
+import React, {useState, useEffect, useImperativeHandle, forwardRef, useCallback, useMemo} from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { FaPlus, FaSms, FaCheckSquare, FaSquare, FaUsers, FaFilter, FaFileExport, FaExclamationTriangle, FaTimes, FaPaperPlane, FaCheck } from 'react-icons/fa';
 import { ClientExpanded } from '../../types';
-import { clientApi } from '../../api/clientsApi';
-import ClientListTable from './components/ClientListTable'; // Modularny komponent
+import { clientsApi } from '../../api/clientsApi';
+import ClientListTable from './components/ClientListTable';
 import ClientDetailDrawer from './components/ClientDetailDrawer';
 import ClientFilters, { ClientFilters as ClientFiltersType } from './components/ClientFilters';
 import ClientFormModal from './components/ClientFormModal';
@@ -123,50 +123,87 @@ const OwnersPageContent = forwardRef<{
         averageRevenue: 0
     });
 
-    // Expose methods to parent via ref
-    useImperativeHandle(ref, () => ({
+    // NAPRAWIONE: Memoized handlers aby zapobiec recreacji funkcji
+    const handleAddClient = useCallback(() => {
+        setSelectedClient(null);
+        setShowAddModal(true);
+    }, []);
+
+    const handleExportClients = useCallback(() => {
+        alert('Eksport danych klientów - funkcjonalność w przygotowaniu');
+    }, []);
+
+    const handleOpenBulkSmsModal = useCallback(() => {
+        if (selectedClientIds.length === 0) {
+            alert('Zaznacz co najmniej jednego klienta, aby wysłać SMS');
+            return;
+        }
+        setShowBulkSmsModal(true);
+    }, [selectedClientIds.length]);
+
+    const refObject = useMemo(() => ({
         handleAddClient,
         handleExportClients,
         handleOpenBulkSmsModal,
         selectedClientIds
-    }), [selectedClientIds]);
+    }), [handleAddClient, handleExportClients, handleOpenBulkSmsModal, selectedClientIds]);
 
-    // Notify parent when methods change
-    useEffect(() => {
+    // Expose methods to parent via ref
+    useImperativeHandle(ref, () => refObject, [refObject]);
+
+    // NAPRAWIONE: Używamy useCallback dla onSetRef aby zapobiec nieskończonym wywołaniom
+    const stableOnSetRef = useCallback(() => {
         if (onSetRef) {
-            onSetRef({
-                handleAddClient,
-                handleExportClients,
-                handleOpenBulkSmsModal,
-                selectedClientIds
-            });
+            onSetRef(refObject);
         }
-    }, [selectedClientIds, onSetRef]);
+    }, [onSetRef, refObject]);
+
+    // Notify parent when methods change - NAPRAWIONE: stabilne wywołanie
+    useEffect(() => {
+        stableOnSetRef();
+    }, [stableOnSetRef]);
 
     // Load clients on component mount
     useEffect(() => {
         const loadClients = async () => {
             try {
                 setLoading(true);
-                const data = await clientApi.fetchClients();
-                setClients(data);
-                setFilteredClients(data);
+                console.log('🔄 Loading clients using new API...');
 
-                // Calculate statistics
-                const totalRevenue = data.reduce((sum, client) => sum + client.totalRevenue, 0);
-                const vipCount = data.filter(client => client.totalRevenue > 50000).length;
-
-                setStats({
-                    totalClients: data.length,
-                    vipClients: vipCount,
-                    totalRevenue,
-                    averageRevenue: data.length > 0 ? totalRevenue / data.length : 0
+                const result = await clientsApi.getClients({
+                    page: 0,
+                    size: 1000
                 });
 
-                setError(null);
+                if (result.success && result.data) {
+                    const clientsData = result.data.data;
+                    console.log('✅ Clients loaded successfully:', clientsData.length);
+
+                    setClients(clientsData);
+                    setFilteredClients(clientsData);
+
+                    const totalRevenue = clientsData.reduce((sum, client) => sum + (client.totalRevenue || 0), 0);
+                    const vipCount = clientsData.filter(client => (client.totalRevenue || 0) > 50000).length;
+
+                    setStats({
+                        totalClients: clientsData.length,
+                        vipClients: vipCount,
+                        totalRevenue,
+                        averageRevenue: clientsData.length > 0 ? totalRevenue / clientsData.length : 0
+                    });
+
+                    setError(null);
+                } else {
+                    console.error('❌ Failed to load clients:', result.error);
+                    setError(result.error || 'Nie udało się załadować listy klientów');
+                    setClients([]);
+                    setFilteredClients([]);
+                }
             } catch (err) {
+                console.error('❌ Error loading clients:', err);
                 setError('Nie udało się załadować listy klientów');
-                console.error('Error loading clients:', err);
+                setClients([]);
+                setFilteredClients([]);
             } finally {
                 setLoading(false);
             }
@@ -203,21 +240,21 @@ const OwnersPageContent = forwardRef<{
         if (filters.minVisits) {
             const minVisits = parseInt(filters.minVisits);
             if (!isNaN(minVisits)) {
-                result = result.filter(client => client.totalVisits >= minVisits);
+                result = result.filter(client => (client.totalVisits || 0) >= minVisits);
             }
         }
 
         if (filters.minTransactions) {
             const minTransactions = parseInt(filters.minTransactions);
             if (!isNaN(minTransactions)) {
-                result = result.filter(client => client.totalTransactions >= minTransactions);
+                result = result.filter(client => (client.totalTransactions || 0) >= minTransactions);
             }
         }
 
         if (filters.minRevenue) {
             const minRevenue = parseFloat(filters.minRevenue);
             if (!isNaN(minRevenue)) {
-                result = result.filter(client => client.totalRevenue >= minRevenue);
+                result = result.filter(client => (client.totalRevenue || 0) >= minRevenue);
             }
         }
 
@@ -245,16 +282,16 @@ const OwnersPageContent = forwardRef<{
         }
     }, [selectAll, filteredClients]);
 
-    // Handlers
-    const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // NAPRAWIONE: Memoized handlers
+    const handleFilterChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setFilters(prev => ({
             ...prev,
             [name]: value
         }));
-    };
+    }, []);
 
-    const resetFilters = () => {
+    const resetFilters = useCallback(() => {
         setFilters({
             name: '',
             email: '',
@@ -263,95 +300,129 @@ const OwnersPageContent = forwardRef<{
             minTransactions: '',
             minRevenue: ''
         });
-    };
+    }, []);
 
-    const handleAddClient = () => {
-        setSelectedClient(null);
-        setShowAddModal(true);
-    };
-
-    const handleEditClient = (client: ClientExpanded) => {
+    const handleEditClient = useCallback((client: ClientExpanded) => {
         setSelectedClient(client);
         setShowAddModal(true);
-    };
+    }, []);
 
-    const handleSaveClient = (client: ClientExpanded) => {
-        if (selectedClient) {
-            setClients(clients.map(c => c.id === client.id ? client : c));
-        } else {
-            setClients(prev => [...prev, client]);
+    const handleSaveClient = useCallback(async (client: ClientExpanded) => {
+        try {
+            if (selectedClient) {
+                const result = await clientsApi.updateClient(client.id, {
+                    firstName: client.firstName,
+                    lastName: client.lastName,
+                    email: client.email,
+                    phone: client.phone,
+                    address: client.address,
+                    company: client.company,
+                    taxId: client.taxId,
+                    notes: client.notes
+                });
+
+                if (result.success && result.data) {
+                    setClients(clients.map(c => c.id === client.id ? result.data! : c));
+                } else {
+                    setError(result.error || 'Nie udało się zaktualizować klienta');
+                    return;
+                }
+            } else {
+                const result = await clientsApi.createClient({
+                    firstName: client.firstName,
+                    lastName: client.lastName,
+                    email: client.email,
+                    phone: client.phone,
+                    address: client.address,
+                    company: client.company,
+                    taxId: client.taxId,
+                    notes: client.notes
+                });
+
+                if (result.success && result.data) {
+                    setClients(prev => [...prev, result.data!]);
+                    setStats(prevStats => ({
+                        ...prevStats,
+                        totalClients: prevStats.totalClients + 1
+                    }));
+                } else {
+                    setError(result.error || 'Nie udało się utworzyć klienta');
+                    return;
+                }
+            }
+
+            setShowAddModal(false);
+        } catch (err) {
+            console.error('Error saving client:', err);
+            setError('Wystąpił błąd podczas zapisywania klienta');
         }
-        setShowAddModal(false);
-        setStats(prevStats => ({
-            ...prevStats,
-            totalClients: prevStats.totalClients + 1,
-            totalRevenue: prevStats.totalRevenue,
-            averageRevenue: prevStats.totalRevenue
-        }));
-    };
+    }, [selectedClient, clients]);
 
-    const handleDeleteClick = (clientId: string) => {
+    const handleDeleteClick = useCallback((clientId: string) => {
         const client = clients.find(c => c.id === clientId);
         if (client) {
             setSelectedClient(client);
             setShowDeleteConfirm(true);
         }
-    };
+    }, [clients]);
 
-    const handleConfirmDelete = async () => {
+    const handleConfirmDelete = useCallback(async () => {
         if (!selectedClient) return;
 
         try {
-            await clientApi.deleteClient(selectedClient.id);
-            setClients(clients.filter(c => c.id !== selectedClient.id));
-            setSelectedClientIds(prev => prev.filter(id => id !== selectedClient.id));
-            setShowDeleteConfirm(false);
-            setSelectedClient(null);
+            const result = await clientsApi.deleteClient(selectedClient.id);
 
-            if (showDetailDrawer) {
-                setShowDetailDrawer(false);
+            if (result.success) {
+                setClients(clients.filter(c => c.id !== selectedClient.id));
+                setSelectedClientIds(prev => prev.filter(id => id !== selectedClient.id));
+                setShowDeleteConfirm(false);
+                setSelectedClient(null);
+
+                if (showDetailDrawer) {
+                    setShowDetailDrawer(false);
+                }
+            } else {
+                setError(result.error || 'Nie udało się usunąć klienta');
             }
         } catch (err) {
             setError('Nie udało się usunąć klienta');
             console.error('Error deleting client:', err);
         }
-    };
+    }, [selectedClient, clients, showDetailDrawer]);
 
-    const handleShowVehicles = (clientId: string) => {
+    const handleShowVehicles = useCallback((clientId: string) => {
         navigate(`/clients-vehicles?tab=vehicles&ownerId=${clientId}`);
-    };
+    }, [navigate]);
 
-    const handleAddContactAttempt = (client: ClientExpanded) => {
+    const handleAddContactAttempt = useCallback((client: ClientExpanded) => {
         setSelectedClient(client);
         setShowContactModal(true);
-    };
+    }, []);
 
-    const handleContactSaved = () => {
+    const handleContactSaved = useCallback(async () => {
         if (selectedClient) {
-            const updatedClient = {
-                ...selectedClient,
-                contactAttempts: selectedClient.contactAttempts + 1
-            };
-
-            setClients(clients.map(c =>
-                c.id === updatedClient.id ? updatedClient : c
-            ));
-
-            setSelectedClient(updatedClient);
+            const result = await clientsApi.getClientById(selectedClient.id);
+            if (result.success && result.data) {
+                const updatedClient = result.data;
+                setClients(clients.map(c =>
+                    c.id === updatedClient.id ? updatedClient : c
+                ));
+                setSelectedClient(updatedClient);
+            }
         }
         setShowContactModal(false);
-    };
+    }, [selectedClient, clients]);
 
-    const handleSendSMS = (client: ClientExpanded) => {
+    const handleSendSMS = useCallback((client: ClientExpanded) => {
         alert(`Symulacja wysyłania SMS do: ${client.firstName} ${client.lastName} (${client.phone})`);
-    };
+    }, []);
 
-    const handleSelectClient = (client: ClientExpanded) => {
+    const handleSelectClient = useCallback((client: ClientExpanded) => {
         setSelectedClient(client);
         setShowDetailDrawer(true);
-    };
+    }, []);
 
-    const toggleClientSelection = (clientId: string) => {
+    const toggleClientSelection = useCallback((clientId: string) => {
         setSelectedClientIds(currentSelected => {
             if (currentSelected.includes(clientId)) {
                 return currentSelected.filter(id => id !== clientId);
@@ -359,9 +430,9 @@ const OwnersPageContent = forwardRef<{
                 return [...currentSelected, clientId];
             }
         });
-    };
+    }, []);
 
-    const toggleSelectAll = () => {
+    const toggleSelectAll = useCallback(() => {
         const newSelectAll = !selectAll;
         setSelectAll(newSelectAll);
 
@@ -369,17 +440,9 @@ const OwnersPageContent = forwardRef<{
             const filteredIds = filteredClients.map(client => client.id);
             setSelectedClientIds(prev => prev.filter(id => !filteredIds.includes(id)));
         }
-    };
+    }, [selectAll, filteredClients]);
 
-    const handleOpenBulkSmsModal = () => {
-        if (selectedClientIds.length === 0) {
-            alert('Zaznacz co najmniej jednego klienta, aby wysłać SMS');
-            return;
-        }
-        setShowBulkSmsModal(true);
-    };
-
-    const handleSendBulkSms = () => {
+    const handleSendBulkSms = useCallback(() => {
         if (bulkSmsText.trim() === '') {
             alert('Wprowadź treść wiadomości SMS');
             return;
@@ -398,18 +461,14 @@ const OwnersPageContent = forwardRef<{
         setBulkSmsText('');
         setShowBulkSmsModal(false);
         setSelectedClientIds([]);
-    };
+    }, [bulkSmsText, clients, selectedClientIds]);
 
-    const handleExportClients = () => {
-        alert('Eksport danych klientów - funkcjonalność w przygotowaniu');
-    };
-
-    const formatCurrency = (amount: number): string => {
+    const formatCurrency = useCallback((amount: number): string => {
         return new Intl.NumberFormat('pl-PL', {
             style: 'currency',
             currency: 'PLN'
         }).format(amount);
-    };
+    }, []);
 
     return (
         <ContentContainer>
@@ -494,7 +553,7 @@ const OwnersPageContent = forwardRef<{
                     </LoadingContainer>
                 ) : (
                     <>
-                        {/* Selection Bar - Only show when we have clients and filters */}
+                        {/* Selection Bar */}
                         {filteredClients.length > 0 && (
                             <SelectionBar>
                                 <SelectAllCheckbox onClick={toggleSelectAll}>
@@ -556,7 +615,6 @@ const OwnersPageContent = forwardRef<{
                 />
             )}
 
-            {/* Professional Delete Confirmation Modal */}
             <DeleteConfirmationModal
                 isOpen={showDeleteConfirm}
                 client={selectedClient}
