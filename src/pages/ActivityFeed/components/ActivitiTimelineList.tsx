@@ -157,7 +157,7 @@ const ActivityTimelineList: React.FC<ActivityTimelineListProps> = ({ activities,
             case 'PROTOCOL':
                 return `/orders/car-reception/${entity.id}`;
             default:
-                return '#';
+                return '/clients-vehicles?tab=vehicles&vehicleId=2';
         }
     };
 

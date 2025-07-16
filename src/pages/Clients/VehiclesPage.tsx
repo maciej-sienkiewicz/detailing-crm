@@ -1,5 +1,5 @@
-// src/pages/Clients/components/VehiclesPageContent.tsx - Extracted Content Component
-import React, { useState, useEffect, useImperativeHandle } from 'react';
+// src/pages/Clients/VehiclesPage.tsx - Enhanced with URL navigation support
+import React, { useState, useEffect, useImperativeHandle, useCallback, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { FaPlus, FaArrowLeft, FaCar, FaUsers, FaTools, FaMoneyBillWave, FaExclamationTriangle, FaTrophy, FaEye } from 'react-icons/fa';
@@ -71,14 +71,28 @@ interface VehiclesPageContentProps {
     onSetRef?: (ref: {
         handleAddVehicle?: () => void;
         handleExportVehicles?: () => void;
+        openVehicleDetail?: (vehicleId: string) => void;
     }) => void;
+    // New props for URL navigation support
+    initialVehicleId?: string;
+    filterByOwnerId?: string;
+    onNavigateToClient?: (clientId: string) => void;
+    onClearDetailParams?: () => void;
+    onVehicleSelected?: (vehicleId: string) => void;
+    onVehicleClosed?: () => void;
 }
 
-const VehiclesPageContent: React.FC<VehiclesPageContentProps> = ({ onSetRef }) => {
+const VehiclesPageContent: React.FC<VehiclesPageContentProps> = ({
+                                                                     onSetRef,
+                                                                     initialVehicleId,
+                                                                     filterByOwnerId,
+                                                                     onNavigateToClient,
+                                                                     onClearDetailParams,
+                                                                     onVehicleSelected,
+                                                                     onVehicleClosed
+                                                                 }) => {
     const location = useLocation();
     const navigate = useNavigate();
-    const queryParams = new URLSearchParams(location.search);
-    const ownerId = queryParams.get('ownerId');
 
     // State dla danych
     const [vehicles, setVehicles] = useState<VehicleExpanded[]>([]);
@@ -116,25 +130,57 @@ const VehiclesPageContent: React.FC<VehiclesPageContentProps> = ({ onSetRef }) =
     // Company statistics state
     const [companyStats, setCompanyStats] = useState<VehicleCompanyStatisticsResponse | null>(null);
 
-    // Handlers - defined early to avoid dependency issues
-    const handleAddVehicle = React.useCallback(() => {
+    // Enhanced handlers with URL navigation support
+    const handleAddVehicle = useCallback(() => {
         setSelectedVehicle(null);
         setShowAddModal(true);
     }, []);
 
-    const handleExportVehicles = React.useCallback(() => {
+    const handleExportVehicles = useCallback(() => {
         alert('Eksport danych pojazdów - funkcjonalność w przygotowaniu');
     }, []);
+
+    // Enhanced vehicle detail opening with URL support
+    const openVehicleDetail = useCallback((vehicleId: string) => {
+        const vehicle = vehicles.find(v => v.id === vehicleId);
+        if (vehicle) {
+            setSelectedVehicle(vehicle);
+            setShowDetailDrawer(true);
+            onVehicleSelected?.(vehicleId);
+        }
+    }, [vehicles, onVehicleSelected]);
+
+    // Enhanced vehicle detail closing with URL cleanup
+    const closeVehicleDetail = useCallback(() => {
+        setShowDetailDrawer(false);
+        setSelectedVehicle(null);
+        // Always call onVehicleClosed to clear URL params
+        onVehicleClosed?.();
+    }, [onVehicleClosed]);
+
+    const refObject = useMemo(() => ({
+        handleAddVehicle,
+        handleExportVehicles,
+        openVehicleDetail
+    }), [handleAddVehicle, handleExportVehicles, openVehicleDetail]);
 
     // Notify parent when methods change
     useEffect(() => {
         if (onSetRef) {
-            onSetRef({
-                handleAddVehicle,
-                handleExportVehicles
-            });
+            onSetRef(refObject);
         }
-    }, [onSetRef, handleAddVehicle, handleExportVehicles]);
+    }, [onSetRef, refObject]);
+
+    // Handle initial vehicle ID from URL
+    useEffect(() => {
+        if (initialVehicleId && vehicles.length > 0) {
+            // Only open if not already open and vehicle exists
+            const vehicle = vehicles.find(v => v.id === initialVehicleId);
+            if (vehicle && !showDetailDrawer) {
+                openVehicleDetail(initialVehicleId);
+            }
+        }
+    }, [initialVehicleId, vehicles.length, openVehicleDetail]);
 
     // Convert filters to API format
     const convertFiltersToApiFormat = (uiFilters: VehicleFiltersType): VehicleTableFilters => {
@@ -176,10 +222,10 @@ const VehiclesPageContent: React.FC<VehiclesPageContentProps> = ({ onSetRef }) =
 
             let finalApiFilters = { ...apiFilters };
 
-            // If we have ownerId, load owner data first
-            if (ownerId) {
+            // Handle filtering by owner ID from URL
+            if (filterByOwnerId) {
                 try {
-                    const owner = await clientApi.fetchClientById(ownerId);
+                    const owner = await clientApi.fetchClientById(filterByOwnerId);
                     if (owner) {
                         const fullOwnerName = `${owner.firstName} ${owner.lastName}`;
                         setOwnerName(fullOwnerName);
@@ -229,21 +275,21 @@ const VehiclesPageContent: React.FC<VehiclesPageContentProps> = ({ onSetRef }) =
     // Initial data load
     useEffect(() => {
         loadVehiclesData();
-        if (!ownerId) {
+        if (!filterByOwnerId) {
             loadCompanyStatistics();
         }
     }, []);
 
     // Owner ID change effect
     useEffect(() => {
-        if (ownerId) {
+        if (filterByOwnerId) {
             loadVehiclesData();
         }
-    }, [ownerId]);
+    }, [filterByOwnerId]);
 
     // Filters change effect
     useEffect(() => {
-        if (ownerId) {
+        if (filterByOwnerId) {
             return;
         }
 
@@ -253,7 +299,7 @@ const VehiclesPageContent: React.FC<VehiclesPageContentProps> = ({ onSetRef }) =
         }, 500);
 
         return () => clearTimeout(timeoutId);
-    }, [filters, ownerId]);
+    }, [filters, filterByOwnerId]);
 
     // Handlers
     const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -269,12 +315,12 @@ const VehiclesPageContent: React.FC<VehiclesPageContentProps> = ({ onSetRef }) =
             licensePlate: '',
             make: '',
             model: '',
-            ownerName: ownerId ? ownerName || '' : '',
+            ownerName: filterByOwnerId ? ownerName || '' : '',
             minServices: '',
             maxServices: ''
         });
 
-        if (ownerId) {
+        if (filterByOwnerId) {
             loadVehiclesData();
         }
     };
@@ -354,7 +400,7 @@ const VehiclesPageContent: React.FC<VehiclesPageContentProps> = ({ onSetRef }) =
                 setSelectedVehicle(null);
 
                 if (showDetailDrawer) {
-                    setShowDetailDrawer(false);
+                    closeVehicleDetail();
                 }
             }
         } catch (err) {
@@ -368,13 +414,21 @@ const VehiclesPageContent: React.FC<VehiclesPageContentProps> = ({ onSetRef }) =
         setShowHistoryModal(true);
     };
 
-    const handleSelectVehicle = (vehicle: VehicleExpanded) => {
+    // Enhanced vehicle selection handler
+    const handleSelectVehicle = useCallback((vehicle: VehicleExpanded) => {
         setSelectedVehicle(vehicle);
         setShowDetailDrawer(true);
-    };
+        onVehicleSelected?.(vehicle.id);
+    }, [onVehicleSelected]);
 
+    // Enhanced back to owners handler
     const handleBackToOwners = () => {
-        navigate('/clients-vehicles?tab=owners');
+        if (onClearDetailParams) {
+            onClearDetailParams();
+        } else {
+            // Fallback to old navigation
+            navigate('/clients-vehicles?tab=owners');
+        }
     };
 
     const formatCurrency = (amount: number): string => {
@@ -387,7 +441,7 @@ const VehiclesPageContent: React.FC<VehiclesPageContentProps> = ({ onSetRef }) =
     return (
         <ContentContainer>
             {/* Back to Owners button when filtering by owner */}
-            {ownerId && ownerName && (
+            {filterByOwnerId && ownerName && (
                 <BackSection>
                     <BackButton onClick={handleBackToOwners}>
                         <FaArrowLeft />
@@ -401,7 +455,7 @@ const VehiclesPageContent: React.FC<VehiclesPageContentProps> = ({ onSetRef }) =
             )}
 
             {/* Enhanced Statistics Dashboard - only when not filtering by owner */}
-            {!ownerId && companyStats && (
+            {!filterByOwnerId && companyStats && (
                 <StatsSection>
                     <StatsGrid>
                         <StatCard>
@@ -474,7 +528,7 @@ const VehiclesPageContent: React.FC<VehiclesPageContentProps> = ({ onSetRef }) =
             {/* Main Content */}
             <MainContent>
                 {/* Filters - hide when filtering by owner */}
-                {!ownerId && (
+                {!filterByOwnerId && (
                     <VehicleFilters
                         filters={filters}
                         showFilters={showFilters}
@@ -568,18 +622,18 @@ const VehiclesPageContent: React.FC<VehiclesPageContentProps> = ({ onSetRef }) =
                 )}
             </MainContent>
 
-            {/* Detail Drawer */}
+            {/* Detail Drawer with enhanced close handler */}
             <VehicleDetailDrawer
                 isOpen={showDetailDrawer}
                 vehicle={selectedVehicle}
-                onClose={() => setShowDetailDrawer(false)}
+                onClose={closeVehicleDetail}
             />
 
             {/* Modals */}
             {showAddModal && (
                 <VehicleFormModal
                     vehicle={selectedVehicle}
-                    defaultOwnerId={ownerId || undefined}
+                    defaultOwnerId={filterByOwnerId || undefined}
                     onSave={handleSaveVehicle}
                     onCancel={() => setShowAddModal(false)}
                 />
@@ -629,13 +683,13 @@ const VehiclesPageContent: React.FC<VehiclesPageContentProps> = ({ onSetRef }) =
     );
 };
 
-// Styled Components
+// Styled Components (same as original but continued)
 const ContentContainer = styled.div`
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    background: ${brandTheme.surfaceAlt};
+   flex: 1;
+   display: flex;
+   flex-direction: column;
+   min-height: 0;
+   background: ${brandTheme.surfaceAlt};
 `;
 
 const BackSection = styled.div`

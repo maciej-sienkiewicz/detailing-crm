@@ -1,4 +1,4 @@
-// src/pages/Clients/components/OwnersPageContent.tsx - Extracted Content Component
+// src/pages/Clients/OwnersPage.tsx - Enhanced with URL navigation support
 import React, {useState, useEffect, useImperativeHandle, forwardRef, useCallback, useMemo} from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
@@ -74,7 +74,14 @@ interface OwnersPageContentProps {
         handleExportClients?: () => void;
         handleOpenBulkSmsModal?: () => void;
         selectedClientIds?: string[];
+        openClientDetail?: (clientId: string) => void;
     }) => void;
+    // New props for URL navigation support
+    initialClientId?: string;
+    onNavigateToVehiclesByOwner?: (ownerId: string) => void;
+    onClearDetailParams?: () => void;
+    onClientSelected?: (clientId: string) => void;
+    onClientClosed?: () => void;
 }
 
 const OwnersPageContent = forwardRef<{
@@ -82,7 +89,15 @@ const OwnersPageContent = forwardRef<{
     handleExportClients: () => void;
     handleOpenBulkSmsModal: () => void;
     selectedClientIds: string[];
-}, OwnersPageContentProps>(({ onSetRef }, ref) => {
+    openClientDetail: (clientId: string) => void;
+}, OwnersPageContentProps>(({
+                                onSetRef,
+                                initialClientId,
+                                onNavigateToVehiclesByOwner,
+                                onClearDetailParams,
+                                onClientSelected,
+                                onClientClosed
+                            }, ref) => {
     const navigate = useNavigate();
 
     // State
@@ -123,7 +138,7 @@ const OwnersPageContent = forwardRef<{
         averageRevenue: 0
     });
 
-    // NAPRAWIONE: Memoized handlers aby zapobiec recreacji funkcji
+    // Enhanced handlers with URL navigation support
     const handleAddClient = useCallback(() => {
         setSelectedClient(null);
         setShowAddModal(true);
@@ -141,27 +156,57 @@ const OwnersPageContent = forwardRef<{
         setShowBulkSmsModal(true);
     }, [selectedClientIds.length]);
 
+    // Enhanced client detail opening with URL support
+    const openClientDetail = useCallback((clientId: string) => {
+        const client = clients.find(c => c.id === clientId);
+        if (client) {
+            setSelectedClient(client);
+            setShowDetailDrawer(true);
+            onClientSelected?.(clientId);
+        }
+    }, [clients, onClientSelected]);
+
+    // Enhanced client detail closing with URL cleanup
+    const closeClientDetail = useCallback(() => {
+        setShowDetailDrawer(false);
+        setSelectedClient(null);
+        // Always call onClientClosed to clear URL params
+        onClientClosed?.();
+    }, [onClientClosed]);
+
     const refObject = useMemo(() => ({
         handleAddClient,
         handleExportClients,
         handleOpenBulkSmsModal,
-        selectedClientIds
-    }), [handleAddClient, handleExportClients, handleOpenBulkSmsModal, selectedClientIds]);
+        selectedClientIds,
+        openClientDetail
+    }), [handleAddClient, handleExportClients, handleOpenBulkSmsModal, selectedClientIds, openClientDetail]);
 
     // Expose methods to parent via ref
     useImperativeHandle(ref, () => refObject, [refObject]);
 
-    // NAPRAWIONE: Używamy useCallback dla onSetRef aby zapobiec nieskończonym wywołaniom
+    // Stable onSetRef callback
     const stableOnSetRef = useCallback(() => {
         if (onSetRef) {
             onSetRef(refObject);
         }
     }, [onSetRef, refObject]);
 
-    // Notify parent when methods change - NAPRAWIONE: stabilne wywołanie
+    // Notify parent when methods change
     useEffect(() => {
         stableOnSetRef();
     }, [stableOnSetRef]);
+
+    // Handle initial client ID from URL
+    useEffect(() => {
+        if (initialClientId && clients.length > 0) {
+            // Only open if not already open and client exists
+            const client = clients.find(c => c.id === initialClientId);
+            if (client && !showDetailDrawer) {
+                openClientDetail(initialClientId);
+            }
+        }
+    }, [initialClientId, clients.length, openClientDetail]);
 
     // Load clients on component mount
     useEffect(() => {
@@ -282,7 +327,6 @@ const OwnersPageContent = forwardRef<{
         }
     }, [selectAll, filteredClients]);
 
-    // NAPRAWIONE: Memoized handlers
     const handleFilterChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setFilters(prev => ({
@@ -379,7 +423,7 @@ const OwnersPageContent = forwardRef<{
                 setSelectedClient(null);
 
                 if (showDetailDrawer) {
-                    setShowDetailDrawer(false);
+                    closeClientDetail();
                 }
             } else {
                 setError(result.error || 'Nie udało się usunąć klienta');
@@ -388,11 +432,17 @@ const OwnersPageContent = forwardRef<{
             setError('Nie udało się usunąć klienta');
             console.error('Error deleting client:', err);
         }
-    }, [selectedClient, clients, showDetailDrawer]);
+    }, [selectedClient, clients, showDetailDrawer, closeClientDetail]);
 
+    // Enhanced vehicle navigation handler
     const handleShowVehicles = useCallback((clientId: string) => {
-        navigate(`/clients-vehicles?tab=vehicles&ownerId=${clientId}`);
-    }, [navigate]);
+        if (onNavigateToVehiclesByOwner) {
+            onNavigateToVehiclesByOwner(clientId);
+        } else {
+            // Fallback to old navigation
+            navigate(`/clients-vehicles?tab=vehicles&ownerId=${clientId}`);
+        }
+    }, [navigate, onNavigateToVehiclesByOwner]);
 
     const handleAddContactAttempt = useCallback((client: ClientExpanded) => {
         setSelectedClient(client);
@@ -417,10 +467,12 @@ const OwnersPageContent = forwardRef<{
         alert(`Symulacja wysyłania SMS do: ${client.firstName} ${client.lastName} (${client.phone})`);
     }, []);
 
+    // Enhanced client selection handler
     const handleSelectClient = useCallback((client: ClientExpanded) => {
         setSelectedClient(client);
         setShowDetailDrawer(true);
-    }, []);
+        onClientSelected?.(client.id);
+    }, [onClientSelected]);
 
     const toggleClientSelection = useCallback((clientId: string) => {
         setSelectedClientIds(currentSelected => {
@@ -595,7 +647,7 @@ const OwnersPageContent = forwardRef<{
             <ClientDetailDrawer
                 isOpen={showDetailDrawer}
                 client={selectedClient}
-                onClose={() => setShowDetailDrawer(false)}
+                onClose={closeClientDetail}
             />
 
             {/* Modals */}

@@ -1,5 +1,6 @@
-// src/pages/Clients/ClientsVehiclesPage.tsx - Fixed infinite loop
-import React, { useState, useCallback } from 'react';
+// src/pages/Clients/ClientsVehiclesPage.tsx - Enhanced with URL navigation
+import React, { useState, useCallback, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { FaUsers, FaCar, FaPlus, FaExchangeAlt, FaFileExport } from 'react-icons/fa';
 
@@ -53,22 +54,107 @@ const brandTheme = {
 
 type ActiveTab = 'owners' | 'vehicles';
 
-const ClientsVehiclesPage: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<ActiveTab>('owners');
+// URL Query Parameters interface
+interface URLParams {
+    tab?: ActiveTab;
+    clientId?: string;
+    vehicleId?: string;
+    ownerId?: string;
+}
 
-    // NAPRAWIONE: Używamy useCallback do zapobiegania recreacji funkcji
-    // i stabilnych referencji w useEffect
+const ClientsVehiclesPage: React.FC = () => {
+    const location = useLocation();
+    const navigate = useNavigate();
+
+    // Parse URL parameters
+    const parseURLParams = useCallback((): URLParams => {
+        const searchParams = new URLSearchParams(location.search);
+        return {
+            tab: (searchParams.get('tab') as ActiveTab) || 'owners',
+            clientId: searchParams.get('clientId') || undefined,
+            vehicleId: searchParams.get('vehicleId') || undefined,
+            ownerId: searchParams.get('ownerId') || undefined,
+        };
+    }, [location.search]);
+
+    // Initialize state from URL
+    const [urlParams, setUrlParams] = useState<URLParams>(parseURLParams);
+    const [activeTab, setActiveTab] = useState<ActiveTab>(urlParams.tab || 'owners');
+
+    // Enhanced component refs for communication with navigation helpers
     const [ownersRef, setOwnersRef] = useState<{
         handleAddClient?: () => void;
         handleExportClients?: () => void;
         handleOpenBulkSmsModal?: () => void;
         selectedClientIds?: string[];
+        openClientDetail?: (clientId: string) => void;
+        navigateToVehiclesByOwner?: (ownerId: string) => void;
+        clearDetailParams?: () => void;
     }>({});
 
     const [vehiclesRef, setVehiclesRef] = useState<{
         handleAddVehicle?: () => void;
         handleExportVehicles?: () => void;
+        openVehicleDetail?: (vehicleId: string) => void;
+        navigateToClient?: (clientId: string) => void;
+        clearDetailParams?: () => void;
     }>({});
+
+    // Update URL when parameters change
+    const updateURL = useCallback((newParams: Partial<URLParams>) => {
+        const searchParams = new URLSearchParams(location.search);
+
+        // Update parameters
+        Object.entries(newParams).forEach(([key, value]) => {
+            if (value !== undefined && value !== null) {
+                searchParams.set(key, value);
+            } else {
+                searchParams.delete(key);
+            }
+        });
+
+        // Navigate to new URL
+        const newSearch = searchParams.toString();
+        const newPath = `${location.pathname}${newSearch ? '?' + newSearch : ''}`;
+
+        if (newPath !== `${location.pathname}${location.search}`) {
+            navigate(newPath, { replace: true });
+        }
+    }, [location.pathname, location.search, navigate]);
+
+    // Sync URL changes with component state
+    useEffect(() => {
+        const newParams = parseURLParams();
+        setUrlParams(newParams);
+
+        // Update active tab if it changed in URL
+        if (newParams.tab !== activeTab) {
+            setActiveTab(newParams.tab || 'owners');
+        }
+    }, [location.search, parseURLParams, activeTab]);
+
+    // Handle auto-opening details based on URL parameters
+    useEffect(() => {
+        // Auto-open client detail if clientId is in URL
+        if (urlParams.clientId && activeTab === 'owners' && ownersRef.openClientDetail) {
+            // Small delay to ensure component is ready
+            setTimeout(() => {
+                if (ownersRef.openClientDetail) {
+                    ownersRef.openClientDetail(urlParams.clientId!);
+                }
+            }, 100);
+        }
+
+        // Auto-open vehicle detail if vehicleId is in URL
+        if (urlParams.vehicleId && activeTab === 'vehicles' && vehiclesRef.openVehicleDetail) {
+            // Small delay to ensure component is ready
+            setTimeout(() => {
+                if (vehiclesRef.openVehicleDetail) {
+                    vehiclesRef.openVehicleDetail(urlParams.vehicleId!);
+                }
+            }, 100);
+        }
+    }, [urlParams.clientId, urlParams.vehicleId, activeTab, ownersRef.openClientDetail, vehiclesRef.openVehicleDetail]);
 
     // Tab configuration
     const tabs = [
@@ -86,10 +172,57 @@ const ClientsVehiclesPage: React.FC = () => {
         }
     ];
 
-    // Handle tab change
+    // Enhanced tab change handler
     const handleTabChange = useCallback((tabId: ActiveTab) => {
         setActiveTab(tabId);
-    }, []);
+
+        // Clear specific detail parameters when switching tabs
+        const clearedParams: Partial<URLParams> = { tab: tabId };
+
+        if (tabId === 'owners') {
+            clearedParams.vehicleId = undefined;
+        } else if (tabId === 'vehicles') {
+            clearedParams.clientId = undefined;
+        }
+
+        updateURL(clearedParams);
+    }, [updateURL]);
+
+    // Navigation helpers for cross-component communication
+    const navigateToClient = useCallback((clientId: string) => {
+        updateURL({
+            tab: 'owners',
+            clientId: clientId,
+            vehicleId: undefined,
+            ownerId: undefined
+        });
+    }, [updateURL]);
+
+    const navigateToVehicle = useCallback((vehicleId: string) => {
+        updateURL({
+            tab: 'vehicles',
+            vehicleId: vehicleId,
+            clientId: undefined,
+            ownerId: undefined
+        });
+    }, [updateURL]);
+
+    const navigateToVehiclesByOwner = useCallback((ownerId: string) => {
+        updateURL({
+            tab: 'vehicles',
+            ownerId: ownerId,
+            clientId: undefined,
+            vehicleId: undefined
+        });
+    }, [updateURL]);
+
+    // Clear URL parameters for details
+    const clearDetailParams = useCallback(() => {
+        updateURL({
+            clientId: undefined,
+            vehicleId: undefined
+        });
+    }, [updateURL]);
 
     // Handle actions for owners tab
     const handleOwnersAction = useCallback((action: string) => {
@@ -128,20 +261,38 @@ const ClientsVehiclesPage: React.FC = () => {
         }
     }, [vehiclesRef.handleAddVehicle, vehiclesRef.handleExportVehicles]);
 
-    // NAPRAWIONE: Używamy useCallback dla stabilnych referencji
-    const handleSetOwnersRef = useCallback((ref: typeof ownersRef) => {
-        // Sprawdzamy czy ref rzeczywiście się zmienił
-        if (JSON.stringify(ref) !== JSON.stringify(ownersRef)) {
-            setOwnersRef(ref);
-        }
-    }, [ownersRef]);
+    // Enhanced ref handlers with navigation capabilities
+    const handleSetOwnersRef = useCallback((ref: {
+        handleAddClient?: () => void;
+        handleExportClients?: () => void;
+        handleOpenBulkSmsModal?: () => void;
+        selectedClientIds?: string[];
+        openClientDetail?: (clientId: string) => void;
+    }) => {
+        const enhancedRef = {
+            ...ref,
+            // Add navigation helpers
+            navigateToVehiclesByOwner,
+            clearDetailParams
+        };
 
-    const handleSetVehiclesRef = useCallback((ref: typeof vehiclesRef) => {
-        // Sprawdzamy czy ref rzeczywiście się zmienił
-        if (JSON.stringify(ref) !== JSON.stringify(vehiclesRef)) {
-            setVehiclesRef(ref);
-        }
-    }, [vehiclesRef]);
+        setOwnersRef(enhancedRef);
+    }, [navigateToVehiclesByOwner, clearDetailParams]);
+
+    const handleSetVehiclesRef = useCallback((ref: {
+        handleAddVehicle?: () => void;
+        handleExportVehicles?: () => void;
+        openVehicleDetail?: (vehicleId: string) => void;
+    }) => {
+        const enhancedRef = {
+            ...ref,
+            // Add navigation helpers
+            navigateToClient,
+            clearDetailParams
+        };
+
+        setVehiclesRef(enhancedRef);
+    }, [navigateToClient, clearDetailParams]);
 
     return (
         <PageContainer>
@@ -161,6 +312,16 @@ const ClientsVehiclesPage: React.FC = () => {
                                     ? 'Zarządzanie relacjami z klientami detailingu'
                                     : 'Zarządzanie flotą pojazdów klientów'
                                 }
+                                {/* Show current selection in subtitle */}
+                                {urlParams.clientId && activeTab === 'owners' && (
+                                    <span> • Podgląd klienta</span>
+                                )}
+                                {urlParams.vehicleId && activeTab === 'vehicles' && (
+                                    <span> • Podgląd pojazdu</span>
+                                )}
+                                {urlParams.ownerId && activeTab === 'vehicles' && (
+                                    <span> • Pojazdy właściciela</span>
+                                )}
                             </HeaderSubtitle>
                         </HeaderText>
                     </HeaderLeft>
@@ -231,18 +392,33 @@ const ClientsVehiclesPage: React.FC = () => {
             {/* Tab Content */}
             <ContentContainer>
                 {activeTab === 'owners' && (
-                    <OwnersPageContent onSetRef={handleSetOwnersRef} />
+                    <OwnersPageContent
+                        onSetRef={handleSetOwnersRef}
+                        initialClientId={urlParams.clientId}
+                        onNavigateToVehiclesByOwner={navigateToVehiclesByOwner}
+                        onClearDetailParams={clearDetailParams}
+                        onClientSelected={(clientId) => updateURL({ clientId })}
+                        onClientClosed={() => updateURL({ clientId: undefined })}
+                    />
                 )}
 
                 {activeTab === 'vehicles' && (
-                    <VehiclesPageContent onSetRef={handleSetVehiclesRef} />
+                    <VehiclesPageContent
+                        onSetRef={handleSetVehiclesRef}
+                        initialVehicleId={urlParams.vehicleId}
+                        filterByOwnerId={urlParams.ownerId}
+                        onNavigateToClient={navigateToClient}
+                        onClearDetailParams={clearDetailParams}
+                        onVehicleSelected={(vehicleId) => updateURL({ vehicleId })}
+                        onVehicleClosed={() => updateURL({ vehicleId: undefined })}
+                    />
                 )}
             </ContentContainer>
         </PageContainer>
     );
 };
 
-// Styled Components (bez zmian)
+// Styled Components (same as before)
 const PageContainer = styled.div`
     min-height: 100vh;
     background: ${brandTheme.surfaceAlt};
