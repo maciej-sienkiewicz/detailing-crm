@@ -444,8 +444,9 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                                 <ErrorMessage>{errors.ownerIds}</ErrorMessage>
                             )}
 
+                            {/* FIX: Dodano overflow i width kontrolę dla sekcji wybranych właścicieli */}
                             {formData.ownerIds && formData.ownerIds.length > 0 && (
-                                <SelectedOwners>
+                                <SelectedOwnersContainer>
                                     <SelectedOwnersTitle>
                                         <FaEye style={{ marginRight: '8px' }} />
                                         Wybrani właściciele ({formData.ownerIds.length}):
@@ -486,63 +487,10 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                                             ) : null;
                                         })}
                                     </SelectedOwnersList>
-                                </SelectedOwners>
+                                </SelectedOwnersContainer>
                             )}
                         </FormGroup>
                     </FormSection>
-
-                    {vehicle && (
-                        <FormSection>
-                            <SectionHeader>
-                                <SectionIcon $color={brandTheme.status.success}>
-                                    <FaCheck />
-                                </SectionIcon>
-                                <SectionContent>
-                                    <SectionTitle>Statystyki CRM</SectionTitle>
-                                    <SectionSubtitle>Dane aktualizowane automatycznie przez system</SectionSubtitle>
-                                </SectionContent>
-                            </SectionHeader>
-
-                            <StatsGrid>
-                                <StatCard>
-                                    <StatIcon $color={brandTheme.status.info}>
-                                        <FaTools />
-                                    </StatIcon>
-                                    <StatContent>
-                                        <StatValue>{vehicle.totalServices}</StatValue>
-                                        <StatLabel>Wykonanych usług</StatLabel>
-                                    </StatContent>
-                                </StatCard>
-
-                                <StatCard>
-                                    <StatIcon $color={brandTheme.status.success}>
-                                        <FaMoneyBillWave />
-                                    </StatIcon>
-                                    <StatContent>
-                                        <StatValue>{formatCurrency(vehicle.totalSpent)}</StatValue>
-                                        <StatLabel>Suma przychodów</StatLabel>
-                                    </StatContent>
-                                </StatCard>
-
-                                {vehicle.lastServiceDate && (
-                                    <StatCard $fullWidth>
-                                        <StatIcon $color={brandTheme.status.warning}>
-                                            <FaCalendarAlt />
-                                        </StatIcon>
-                                        <StatContent>
-                                            <StatValue>{formatDate(vehicle.lastServiceDate)}</StatValue>
-                                            <StatLabel>Ostatnia usługa serwisowa</StatLabel>
-                                        </StatContent>
-                                    </StatCard>
-                                )}
-                            </StatsGrid>
-
-                            <StatsNote>
-                                💡 <strong>Informacja:</strong> Statystyki są automatycznie aktualizowane po każdej
-                                wykonanej usłudze. Dane pochodzą z modułu protokołów serwisowych.
-                            </StatsNote>
-                        </FormSection>
-                    )}
 
                     <FormActions>
                         <SecondaryButton type="button" onClick={onCancel} disabled={loading}>
@@ -628,6 +576,9 @@ const FormSection = styled.section`
     padding: ${brandTheme.spacing.xl};
     box-shadow: ${brandTheme.shadow.sm};
     transition: all 0.2s ease;
+    /* FIX: Zapewnij prawidłowe zachowanie overflow */
+    overflow: hidden;
+    width: 100%;
 
     &:hover {
         box-shadow: ${brandTheme.shadow.md};
@@ -660,6 +611,7 @@ const SectionIcon = styled.div<{ $color?: string }>`
 
 const SectionContent = styled.div`
     flex: 1;
+    min-width: 0; /* FIX: Zapobiegaj overflow */
 `;
 
 const SectionTitle = styled.div`
@@ -693,6 +645,7 @@ const FormGroup = styled.div`
     flex-direction: column;
     flex: 1;
     gap: ${brandTheme.spacing.sm};
+    min-width: 0; /* FIX: Zapobiegaj overflow */
 `;
 
 const FormLabel = styled.label<{ $required?: boolean }>`
@@ -720,16 +673,17 @@ const FormInput = styled.input<{
     height: 52px;
     padding: 0 ${brandTheme.spacing.md};
     border: 2px solid ${props =>
-            props.$hasError ? brandTheme.status.error :
-                    props.$hasValue ? brandTheme.primary :
-                            brandTheme.border
-    };
+    props.$hasError ? brandTheme.status.error :
+        props.$hasValue ? brandTheme.primary :
+            brandTheme.border
+};
     border-radius: ${brandTheme.radius.lg};
     font-size: 15px;
     font-weight: 500;
     background: ${props => props.$hasValue ? brandTheme.primaryGhost : brandTheme.surface};
     color: ${brandTheme.text.primary};
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 100%; /* FIX: Zapewnij pełną szerokość w kontenerze */
 
     &:focus {
         outline: none;
@@ -757,6 +711,7 @@ const LicensePlateInputWrapper = styled.div`
     display: flex;
     flex-direction: column;
     gap: ${brandTheme.spacing.sm};
+    width: 100%; /* FIX: Zapewnij pełną szerokość */
 `;
 
 const LicensePlatePreview = styled.div`
@@ -809,119 +764,136 @@ const FormSelect = styled.select<{
     $hasValue?: boolean;
 }>`
     padding: ${brandTheme.spacing.md};
-    border: 2px solid ${props =>
-            props.$hasError ? brandTheme.status.error :
-                    props.$hasValue ? brandTheme.primary :
-                            brandTheme.border
-    };
-    border-radius: ${brandTheme.radius.lg};
-    font-size: 14px;
-    font-family: inherit;
-    font-weight: 500;
-    background: ${props => props.$hasValue ? brandTheme.primaryGhost : brandTheme.surface};
-    color: ${brandTheme.text.primary};
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    min-height: 140px;
+border: 2px solid ${props =>
+    props.$hasError ? brandTheme.status.error :
+        props.$hasValue ? brandTheme.primary :
+            brandTheme.border
+};
+   border-radius: ${brandTheme.radius.lg};
+   font-size: 14px;
+   font-family: inherit;
+   font-weight: 500;
+   background: ${props => props.$hasValue ? brandTheme.primaryGhost : brandTheme.surface};
+   color: ${brandTheme.text.primary};
+   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+   min-height: 140px;
+   width: 100%; /* FIX: Zapewnij pełną szerokość */
 
-    &:focus {
-        outline: none;
-        border-color: ${brandTheme.primary};
-        box-shadow: 0 0 0 4px ${brandTheme.primaryGhost};
-        background: ${brandTheme.surface};
-    }
+   &:focus {
+       outline: none;
+       border-color: ${brandTheme.primary};
+       box-shadow: 0 0 0 4px ${brandTheme.primaryGhost};
+       background: ${brandTheme.surface};
+   }
 
-    &[multiple] {
-        height: auto;
-    }
+   &[multiple] {
+       height: auto;
+   }
 
-    option {
-        padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
-        margin: 2px 0;
-        border-radius: ${brandTheme.radius.sm};
+   option {
+       padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+       margin: 2px 0;
+       border-radius: ${brandTheme.radius.sm};
 
-        &:checked {
-            background: rgba(26, 54, 93, 0.08);
-            color: ${brandTheme.primary};
-            font-weight: 600;
-        }
+       &:checked {
+           background: rgba(26, 54, 93, 0.08);
+           color: ${brandTheme.primary};
+           font-weight: 600;
+       }
 
-        &:hover {
-            background: ${brandTheme.primaryGhost};
-        }
-    }
+       &:hover {
+           background: ${brandTheme.primaryGhost};
+       }
+   }
 
-    ${props => props.$hasError && `
-       &:focus {
-           border-color: ${brandTheme.status.error};
-           box-shadow: 0 0 0 4px ${brandTheme.status.errorLight};
-           }
-   `}
+   ${props => props.$hasError && `
+      &:focus {
+          border-color: ${brandTheme.status.error};
+          box-shadow: 0 0 0 4px ${brandTheme.status.errorLight};
+          }
+  `}
 `;
 
 const HelpText = styled.p`
-    font-size: 13px;
-    color: ${brandTheme.text.tertiary};
-    margin: 0;
-    font-style: italic;
-    line-height: 1.4;
+   font-size: 13px;
+   color: ${brandTheme.text.tertiary};
+   margin: 0;
+   font-style: italic;
+   line-height: 1.4;
+   word-wrap: break-word; /* FIX: Łamanie długich słów */
 
-    strong {
-        color: ${brandTheme.text.secondary};
-        font-weight: 600;
-    }
+   strong {
+       color: ${brandTheme.text.secondary};
+       font-weight: 600;
+   }
 `;
 
 const ErrorMessage = styled.div`
-    color: ${brandTheme.status.error};
-    font-size: 12px;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.xs};
-    margin-top: ${brandTheme.spacing.xs};
+   color: ${brandTheme.status.error};
+   font-size: 12px;
+   font-weight: 500;
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.xs};
+   margin-top: ${brandTheme.spacing.xs};
 
-    &::before {
-        content: '⚠';
-        font-size: 10px;
-    }
+   &::before {
+       content: '⚠';
+       font-size: 10px;
+   }
 `;
 
-const SelectedOwners = styled.div`
+/* FIX: Główny kontener dla wybranych właścicieli z kontrolą overflow */
+const SelectedOwnersContainer = styled.div`
     margin-top: ${brandTheme.spacing.md};
     padding: ${brandTheme.spacing.lg};
     background: linear-gradient(135deg, ${brandTheme.primaryGhost} 0%, rgba(26, 54, 93, 0.02) 100%);
     border-radius: ${brandTheme.radius.lg};
     border: 1px solid ${brandTheme.primary}30;
+    width: 100%;
+    box-sizing: border-box;
+    /* FIX: Usuń overflow: hidden aby nie przycinało zawartości */
 `;
 
+/* FIX: Tytuł sekcji z poprawnym responsywnym zachowaniem */
 const SelectedOwnersTitle = styled.div`
     display: flex;
     align-items: center;
     font-size: 14px;
     font-weight: 600;
     color: ${brandTheme.text.primary};
-    margin-bottom: ${brandTheme.spacing.md};
+    margin-bottom: ${brandTheme.spacing.lg}; /* FIX: Zwiększ margines dolny */
+    width: 100%;
+    box-sizing: border-box;
+    gap: ${brandTheme.spacing.xs}; /* FIX: Dodaj gap między ikoną a tekstem */
 
     svg {
         color: ${brandTheme.primary};
+        flex-shrink: 0;
     }
 `;
 
+/* FIX: Lista właścicieli z kontrolą overflow */
 const SelectedOwnersList = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${brandTheme.spacing.sm};
+    gap: ${brandTheme.spacing.md}; /* FIX: Zwiększ gap między elementami */
+    width: 100%;
 `;
 
+/* FIX: Pojedynczy element właściciela z kontrolą overflow */
 const SelectedOwnerItem = styled.div`
     display: flex;
-    align-items: center;
+    align-items: flex-start; /* FIX: Zmień na flex-start dla lepszego wyrównania */
     gap: ${brandTheme.spacing.md};
-    padding: ${brandTheme.spacing.md};
+    padding: ${brandTheme.spacing.lg}; /* FIX: Zwiększ padding */
     background: ${brandTheme.surface};
     border: 1px solid ${brandTheme.border};
     border-radius: ${brandTheme.radius.md};
     transition: all 0.2s ease;
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 80px; /* FIX: Ustaw minimalną wysokość */
 
     &:hover {
         border-color: ${brandTheme.primary};
@@ -930,45 +902,57 @@ const SelectedOwnerItem = styled.div`
 `;
 
 const OwnerIcon = styled.div`
-    width: 40px;
-    height: 40px;
+    width: 44px; /* FIX: Lekko zwiększ rozmiar */
+    height: 44px;
     background: linear-gradient(135deg, ${brandTheme.primary}15 0%, ${brandTheme.primary}08 100%);
     border-radius: ${brandTheme.radius.md};
     display: flex;
     align-items: center;
     justify-content: center;
     color: ${brandTheme.primary};
-    font-size: 16px;
+    font-size: 18px; /* FIX: Zwiększ rozmiar ikony */
     flex-shrink: 0;
+    margin-top: ${brandTheme.spacing.xs}; /* FIX: Dodaj margines dla lepszego wyrównania */
 `;
 
+/* FIX: Szczegóły właściciela z kontrolą overflow */
 const OwnerDetails = styled.div`
     flex: 1;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.sm}; /* FIX: Dodaj gap */
 `;
 
+/* FIX: Nazwa właściciela z kontrolą overflow */
 const OwnerName = styled.div`
     font-size: 15px;
     font-weight: 600;
     color: ${brandTheme.text.primary};
-    margin-bottom: ${brandTheme.spacing.xs};
+    line-height: 1.3; /* FIX: Lepsza wysokość linii */
+    word-wrap: break-word; /* FIX: Łamanie długich słów zamiast ukrywania */
 `;
 
 const OwnerContact = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: ${brandTheme.spacing.xs}; /* FIX: Zwiększ gap */
+    width: 100%;
 `;
 
+/* FIX: Szczegóły kontaktu z kontrolą overflow */
 const ContactDetail = styled.div`
     font-size: 13px;
     color: ${brandTheme.text.secondary};
     font-weight: 500;
+    line-height: 1.3;
+    word-wrap: break-word; /* FIX: Łamanie długich słów */
+    /* FIX: Usuń white-space: nowrap i text-overflow: ellipsis */
 `;
 
 const RemoveOwnerButton = styled.button`
-    width: 28px;
-    height: 28px;
+    width: 32px; /* FIX: Zwiększ rozmiar */
+    height: 32px;
     background: ${brandTheme.status.errorLight};
     color: ${brandTheme.status.error};
     border: 1px solid ${brandTheme.status.error}30;
@@ -977,185 +961,191 @@ const RemoveOwnerButton = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    font-size: 13px; /* FIX: Zwiększ rozmiar ikony */
     transition: all 0.2s ease;
     flex-shrink: 0;
+    margin-top: ${brandTheme.spacing.xs}; /* FIX: Dodaj margines górny dla lepszego wyrównania */
 
     &:hover {
         background: ${brandTheme.status.error};
         color: white;
-        transform: scale(1.1);
+        transform: scale(1.05); /* FIX: Zmniejsz scale dla subtelniejszego efektu */
+        box-shadow: ${brandTheme.shadow.sm};
+    }
+
+    &:active {
+        transform: scale(0.95);
     }
 `;
 
 const StatsGrid = styled.div`
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: ${brandTheme.spacing.md};
-    margin-bottom: ${brandTheme.spacing.lg};
+   display: grid;
+   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+   gap: ${brandTheme.spacing.md};
+   margin-bottom: ${brandTheme.spacing.lg};
 `;
 
 const StatCard = styled.div<{ $fullWidth?: boolean }>`
-    background: ${brandTheme.surfaceAlt};
-    border: 1px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.lg};
-    padding: ${brandTheme.spacing.md};
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.md};
-    transition: all 0.2s ease;
+   background: ${brandTheme.surfaceAlt};
+   border: 1px solid ${brandTheme.border};
+   border-radius: ${brandTheme.radius.lg};
+   padding: ${brandTheme.spacing.md};
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.md};
+   transition: all 0.2s ease;
 
-    ${props => props.$fullWidth && `
-       grid-column: 1 / -1;
-   `}
+   ${props => props.$fullWidth && `
+      grid-column: 1 / -1;
+  `}
 
-    &:hover {
-        background: ${brandTheme.primaryGhost};
-        border-color: ${brandTheme.primary};
-        transform: translateY(-2px);
-        box-shadow: ${brandTheme.shadow.md};
-    }
+   &:hover {
+       background: ${brandTheme.primaryGhost};
+       border-color: ${brandTheme.primary};
+       transform: translateY(-2px);
+       box-shadow: ${brandTheme.shadow.md};
+   }
 `;
 
 const StatIcon = styled.div<{ $color: string }>`
-    width: 40px;
-    height: 40px;
-    background: linear-gradient(135deg, ${props => props.$color}15 0%, ${props => props.$color}08 100%);
-    border-radius: ${brandTheme.radius.md};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: ${props => props.$color};
-    font-size: 18px;
-    flex-shrink: 0;
+   width: 40px;
+   height: 40px;
+   background: linear-gradient(135deg, ${props => props.$color}15 0%, ${props => props.$color}08 100%);
+   border-radius: ${brandTheme.radius.md};
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   color: ${props => props.$color};
+   font-size: 18px;
+   flex-shrink: 0;
 `;
 
 const StatContent = styled.div`
-    flex: 1;
-    min-width: 0;
+   flex: 1;
+   min-width: 0;
 `;
 
 const StatValue = styled.div`
-    font-size: 18px;
-    font-weight: 700;
-    color: ${brandTheme.text.primary};
-    margin-bottom: ${brandTheme.spacing.xs};
-    line-height: 1.2;
+   font-size: 18px;
+   font-weight: 700;
+   color: ${brandTheme.text.primary};
+   margin-bottom: ${brandTheme.spacing.xs};
+   line-height: 1.2;
 `;
 
 const StatLabel = styled.div`
-    font-size: 12px;
-    color: ${brandTheme.text.tertiary};
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+   font-size: 12px;
+   color: ${brandTheme.text.tertiary};
+   font-weight: 500;
+   text-transform: uppercase;
+   letter-spacing: 0.5px;
 `;
 
 const StatsNote = styled.div`
-    background: linear-gradient(135deg, ${brandTheme.status.infoLight} 0%, #f0f9ff 100%);
-    border: 1px solid ${brandTheme.status.info}30;
-    border-radius: ${brandTheme.radius.lg};
-    padding: ${brandTheme.spacing.md};
-    font-size: 13px;
-    color: ${brandTheme.text.secondary};
-    line-height: 1.4;
+   background: linear-gradient(135deg, ${brandTheme.status.infoLight} 0%, #f0f9ff 100%);
+   border: 1px solid ${brandTheme.status.info}30;
+   border-radius: ${brandTheme.radius.lg};
+   padding: ${brandTheme.spacing.md};
+   font-size: 13px;
+   color: ${brandTheme.text.secondary};
+   line-height: 1.4;
 
-    strong {
-        color: ${brandTheme.text.primary};
-    }
+   strong {
+       color: ${brandTheme.text.primary};
+   }
 `;
 
 const FormActions = styled.div`
-    display: flex;
-    justify-content: flex-end;
-    gap: ${brandTheme.spacing.sm};
-    padding-top: ${brandTheme.spacing.xl};
-    border-top: 2px solid ${brandTheme.borderLight};
-    margin-top: ${brandTheme.spacing.lg};
+   display: flex;
+   justify-content: flex-end;
+   gap: ${brandTheme.spacing.sm};
+   padding-top: ${brandTheme.spacing.xl};
+   border-top: 2px solid ${brandTheme.borderLight};
+   margin-top: ${brandTheme.spacing.lg};
 `;
 
 const BaseButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
-    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.xl};
-    border-radius: ${brandTheme.radius.lg};
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    min-height: 48px;
-    border: 1px solid transparent;
-    position: relative;
-    overflow: hidden;
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.sm};
+   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.xl};
+   border-radius: ${brandTheme.radius.lg};
+   font-size: 14px;
+   font-weight: 600;
+   cursor: pointer;
+   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+   min-height: 48px;
+   border: 1px solid transparent;
+   position: relative;
+   overflow: hidden;
 
-    &:hover:not(:disabled) {
-        transform: translateY(-2px);
-    }
+   &:hover:not(:disabled) {
+       transform: translateY(-2px);
+   }
 
-    &:active:not(:disabled) {
-        transform: translateY(0);
-    }
+   &:active:not(:disabled) {
+       transform: translateY(0);
+   }
 
-    &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: none;
-    }
+   &:disabled {
+       opacity: 0.6;
+       cursor: not-allowed;
+       transform: none;
+   }
 
-    .spinning {
-        animation: spin 1s linear infinite;
-    }
+   .spinning {
+       animation: spin 1s linear infinite;
+   }
 
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
+   @keyframes spin {
+       from { transform: rotate(0deg); }
+       to { transform: rotate(360deg); }
+   }
 
-    span {
-        @media (max-width: 480px) {
-            display: none;
-        }
-    }
+   span {
+       @media (max-width: 480px) {
+           display: none;
+       }
+   }
 `;
 
 const SecondaryButton = styled(BaseButton)`
-    background: ${brandTheme.surfaceAlt};
-    color: ${brandTheme.text.secondary};
-    border-color: ${brandTheme.border};
-    box-shadow: ${brandTheme.shadow.xs};
+   background: ${brandTheme.surfaceAlt};
+   color: ${brandTheme.text.secondary};
+   border-color: ${brandTheme.border};
+   box-shadow: ${brandTheme.shadow.xs};
 
-    &:hover:not(:disabled) {
-        background: ${brandTheme.borderLight};
-        color: ${brandTheme.text.primary};
-        box-shadow: ${brandTheme.shadow.sm};
-    }
+   &:hover:not(:disabled) {
+       background: ${brandTheme.borderLight};
+       color: ${brandTheme.text.primary};
+       box-shadow: ${brandTheme.shadow.sm};
+   }
 `;
 
 const PrimaryButton = styled(BaseButton)`
-    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-    color: white;
-    box-shadow: ${brandTheme.shadow.md};
+   background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+   color: white;
+   box-shadow: ${brandTheme.shadow.md};
 
-    &:hover:not(:disabled) {
-        background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
-        box-shadow: ${brandTheme.shadow.lg};
-    }
+   &:hover:not(:disabled) {
+       background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
+       box-shadow: ${brandTheme.shadow.lg};
+   }
 
-    &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-        transition: left 0.5s;
-    }
+   &::before {
+       content: '';
+       position: absolute;
+       top: 0;
+       left: -100%;
+       width: 100%;
+       height: 100%;
+       background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+       transition: left 0.5s;
+   }
 
-    &:hover::before {
-        left: 100%;
-    }
+   &:hover::before {
+       left: 100%;
+   }
 `;
 
 export default VehicleFormModal;

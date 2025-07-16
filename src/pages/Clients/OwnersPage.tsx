@@ -114,6 +114,9 @@ const OwnersPageContent = forwardRef<{
     const [showDetailDrawer, setShowDetailDrawer] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+    // FIX: Add flag to prevent auto-opening when drawer is manually closed
+    const [manuallyClosedDrawer, setManuallyClosedDrawer] = useState(false);
+
     // Bulk operations state
     const [selectedClientIds, setSelectedClientIds] = useState<string[]>([]);
     const [showBulkSmsModal, setShowBulkSmsModal] = useState(false);
@@ -162,14 +165,16 @@ const OwnersPageContent = forwardRef<{
         if (client) {
             setSelectedClient(client);
             setShowDetailDrawer(true);
+            setManuallyClosedDrawer(false); // Reset the flag when opening programmatically
             onClientSelected?.(clientId);
         }
     }, [clients, onClientSelected]);
 
-    // Enhanced client detail closing with URL cleanup
+    // Enhanced client detail closing with URL cleanup - FIX: Set manual close flag
     const closeClientDetail = useCallback(() => {
         setShowDetailDrawer(false);
         setSelectedClient(null);
+        setManuallyClosedDrawer(true); // Set flag when manually closed
         // Always call onClientClosed to clear URL params
         onClientClosed?.();
     }, [onClientClosed]);
@@ -197,16 +202,23 @@ const OwnersPageContent = forwardRef<{
         stableOnSetRef();
     }, [stableOnSetRef]);
 
-    // Handle initial client ID from URL
+    // FIX: Handle initial client ID from URL - only if not manually closed
     useEffect(() => {
-        if (initialClientId && clients.length > 0) {
+        if (initialClientId && clients.length > 0 && !manuallyClosedDrawer) {
             // Only open if not already open and client exists
             const client = clients.find(c => c.id === initialClientId);
-            if (client && !showDetailDrawer) {
+            if (client && (!showDetailDrawer || selectedClient?.id !== initialClientId)) {
                 openClientDetail(initialClientId);
             }
         }
-    }, [initialClientId, clients.length, openClientDetail]);
+    }, [initialClientId, clients.length, openClientDetail, showDetailDrawer, selectedClient?.id, manuallyClosedDrawer]);
+
+    // FIX: Reset manual close flag when initialClientId changes
+    useEffect(() => {
+        if (initialClientId !== selectedClient?.id) {
+            setManuallyClosedDrawer(false);
+        }
+    }, [initialClientId, selectedClient?.id]);
 
     // Load clients on component mount
     useEffect(() => {
@@ -471,6 +483,7 @@ const OwnersPageContent = forwardRef<{
     const handleSelectClient = useCallback((client: ClientExpanded) => {
         setSelectedClient(client);
         setShowDetailDrawer(true);
+        setManuallyClosedDrawer(false); // Reset flag when selecting client
         onClientSelected?.(client.id);
     }, [onClientSelected]);
 
@@ -611,8 +624,8 @@ const OwnersPageContent = forwardRef<{
                                 <SelectAllCheckbox onClick={toggleSelectAll}>
                                     {selectAll ? <FaCheckSquare /> : <FaSquare />}
                                     <span>
-                                        Zaznacz wszystkich ({filteredClients.length})
-                                    </span>
+                                       Zaznacz wszystkich ({filteredClients.length})
+                                   </span>
                                 </SelectAllCheckbox>
                                 {selectedClientIds.length > 0 && (
                                     <SelectionInfo>
@@ -736,236 +749,236 @@ const OwnersPageContent = forwardRef<{
     );
 })
 
-// Styled Components
+// Styled Components (rest of the components remain the same as before)
 const ContentContainer = styled.div`
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    background: ${brandTheme.surfaceAlt};
+   flex: 1;
+   display: flex;
+   flex-direction: column;
+   min-height: 0;
+   background: ${brandTheme.surfaceAlt};
 `;
 
 const StatsSection = styled.section`
-    max-width: 1600px;
-    margin: 0 auto;
-    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl} 0;
-    width: 100%;
+   max-width: 1600px;
+   margin: 0 auto;
+   padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl} 0;
+   width: 100%;
 
-    @media (max-width: 1024px) {
-        padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg} 0;
-    }
+   @media (max-width: 1024px) {
+       padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg} 0;
+   }
 
-    @media (max-width: 768px) {
-        padding: ${brandTheme.spacing.md} ${brandTheme.spacing.md} 0;
-    }
+   @media (max-width: 768px) {
+       padding: ${brandTheme.spacing.md} ${brandTheme.spacing.md} 0;
+   }
 `;
 
 const StatsGrid = styled.div`
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: ${brandTheme.spacing.lg};
-    margin-bottom: ${brandTheme.spacing.lg};
+   display: grid;
+   grid-template-columns: repeat(4, 1fr);
+   gap: ${brandTheme.spacing.lg};
+   margin-bottom: ${brandTheme.spacing.lg};
 
-    @media (max-width: 1200px) {
-        grid-template-columns: repeat(2, 1fr);
-        gap: ${brandTheme.spacing.md};
-    }
+   @media (max-width: 1200px) {
+       grid-template-columns: repeat(2, 1fr);
+       gap: ${brandTheme.spacing.md};
+   }
 
-    @media (max-width: 768px) {
-        grid-template-columns: 1fr;
-        gap: ${brandTheme.spacing.md};
-    }
+   @media (max-width: 768px) {
+       grid-template-columns: 1fr;
+       gap: ${brandTheme.spacing.md};
+   }
 `;
 
 const StatCard = styled.div`
-    background: ${brandTheme.surface};
-    border: 1px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.xl};
-    padding: ${brandTheme.spacing.lg};
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.md};
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: ${brandTheme.shadow.xs};
-    position: relative;
-    overflow: hidden;
+   background: ${brandTheme.surface};
+   border: 1px solid ${brandTheme.border};
+   border-radius: ${brandTheme.radius.xl};
+   padding: ${brandTheme.spacing.lg};
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.md};
+   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+   box-shadow: ${brandTheme.shadow.xs};
+   position: relative;
+   overflow: hidden;
 
-    &:hover {
-        transform: translateY(-2px);
-        box-shadow: ${brandTheme.shadow.lg};
-        border-color: ${brandTheme.primary};
-    }
+   &:hover {
+       transform: translateY(-2px);
+       box-shadow: ${brandTheme.shadow.lg};
+       border-color: ${brandTheme.primary};
+   }
 
-    &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(90deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-        opacity: 0;
-        transition: opacity 0.2s ease;
-    }
+   &::before {
+       content: '';
+       position: absolute;
+       top: 0;
+       left: 0;
+       right: 0;
+       height: 4px;
+       background: linear-gradient(90deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+       opacity: 0;
+       transition: opacity 0.2s ease;
+   }
 
-    &:hover::before {
-        opacity: 1;
-    }
+   &:hover::before {
+       opacity: 1;
+   }
 `;
 
 const StatIcon = styled.div<{ $color: string }>`
-    width: 56px;
-    height: 56px;
-    background: linear-gradient(135deg, ${props => props.$color}15 0%, ${props => props.$color}08 100%);
-    border-radius: ${brandTheme.radius.lg};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: ${props => props.$color};
-    font-size: 24px;
-    flex-shrink: 0;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+   width: 56px;
+   height: 56px;
+   background: linear-gradient(135deg, ${props => props.$color}15 0%, ${props => props.$color}08 100%);
+   border-radius: ${brandTheme.radius.lg};
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   color: ${props => props.$color};
+   font-size: 24px;
+   flex-shrink: 0;
+   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
 `;
 
 const StatContent = styled.div`
-    flex: 1;
-    min-width: 0;
+   flex: 1;
+   min-width: 0;
 `;
 
 const StatValue = styled.div`
-    font-size: 28px;
-    font-weight: 700;
-    color: ${brandTheme.text.primary};
-    margin-bottom: ${brandTheme.spacing.xs};
-    letter-spacing: -0.025em;
-    line-height: 1.1;
+   font-size: 28px;
+   font-weight: 700;
+   color: ${brandTheme.text.primary};
+   margin-bottom: ${brandTheme.spacing.xs};
+   letter-spacing: -0.025em;
+   line-height: 1.1;
 
-    @media (max-width: 768px) {
-        font-size: 24px;
-    }
+   @media (max-width: 768px) {
+       font-size: 24px;
+   }
 `;
 
 const StatLabel = styled.div`
-    font-size: 14px;
-    color: ${brandTheme.text.secondary};
-    font-weight: 500;
-    line-height: 1.3;
+   font-size: 14px;
+   color: ${brandTheme.text.secondary};
+   font-weight: 500;
+   line-height: 1.3;
 `;
 
 const MainContent = styled.div`
-    flex: 1;
-    max-width: 1600px;
-    margin: 0 auto;
-    padding: 0 ${brandTheme.spacing.xl} ${brandTheme.spacing.xl};
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: ${brandTheme.spacing.lg};
-    min-height: 0;
+   flex: 1;
+   max-width: 1600px;
+   margin: 0 auto;
+   padding: 0 ${brandTheme.spacing.xl} ${brandTheme.spacing.xl};
+   width: 100%;
+   display: flex;
+   flex-direction: column;
+   gap: ${brandTheme.spacing.lg};
+   min-height: 0;
 
-    @media (max-width: 1024px) {
-        padding: 0 ${brandTheme.spacing.lg} ${brandTheme.spacing.lg};
-    }
+   @media (max-width: 1024px) {
+       padding: 0 ${brandTheme.spacing.lg} ${brandTheme.spacing.lg};
+   }
 
-    @media (max-width: 768px) {
-        padding: 0 ${brandTheme.spacing.md} ${brandTheme.spacing.md};
-        gap: ${brandTheme.spacing.md};
-    }
+   @media (max-width: 768px) {
+       padding: 0 ${brandTheme.spacing.md} ${brandTheme.spacing.md};
+       gap: ${brandTheme.spacing.md};
+   }
 `;
 
 const SelectionBar = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-    background: linear-gradient(135deg, ${brandTheme.primaryGhost} 0%, rgba(26, 54, 93, 0.02) 100%);
-    border: 1px solid ${brandTheme.borderLight};
-    border-radius: ${brandTheme.radius.lg};
-    margin-bottom: ${brandTheme.spacing.md};
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+   background: linear-gradient(135deg, ${brandTheme.primaryGhost} 0%, rgba(26, 54, 93, 0.02) 100%);
+   border: 1px solid ${brandTheme.borderLight};
+   border-radius: ${brandTheme.radius.lg};
+   margin-bottom: ${brandTheme.spacing.md};
 `;
 
 const SelectAllCheckbox = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
-    cursor: pointer;
-    color: ${brandTheme.text.primary};
-    font-weight: 500;
-    font-size: 14px;
-    transition: all 0.2s ease;
-    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
-    border-radius: ${brandTheme.radius.md};
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.sm};
+   cursor: pointer;
+   color: ${brandTheme.text.primary};
+   font-weight: 500;
+   font-size: 14px;
+   transition: all 0.2s ease;
+   padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
+   border-radius: ${brandTheme.radius.md};
 
-    svg {
-        color: ${brandTheme.primary};
-        font-size: 18px;
-        transition: transform 0.2s ease;
-    }
+   svg {
+       color: ${brandTheme.primary};
+       font-size: 18px;
+       transition: transform 0.2s ease;
+   }
 
-    &:hover {
-        color: ${brandTheme.primary};
-        background: ${brandTheme.primaryGhost};
+   &:hover {
+       color: ${brandTheme.primary};
+       background: ${brandTheme.primaryGhost};
 
-        svg {
-            transform: scale(1.1);
-        }
-    }
+       svg {
+           transform: scale(1.1);
+       }
+   }
 `;
 
 const SelectionInfo = styled.div`
-    font-size: 14px;
-    color: ${brandTheme.primary};
-    font-weight: 600;
-    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
-    background: ${brandTheme.surface};
-    border-radius: ${brandTheme.radius.md};
-    border: 1px solid ${brandTheme.primary}30;
+   font-size: 14px;
+   color: ${brandTheme.primary};
+   font-weight: 600;
+   padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
+   background: ${brandTheme.surface};
+   border-radius: ${brandTheme.radius.md};
+   border: 1px solid ${brandTheme.primary}30;
 `;
 
 const LoadingContainer = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: ${brandTheme.spacing.xxl};
-    background: ${brandTheme.surface};
-    border-radius: ${brandTheme.radius.xl};
-    border: 1px solid ${brandTheme.border};
-    gap: ${brandTheme.spacing.md};
-    min-height: 400px;
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   justify-content: center;
+   padding: ${brandTheme.spacing.xxl};
+   background: ${brandTheme.surface};
+   border-radius: ${brandTheme.radius.xl};
+   border: 1px solid ${brandTheme.border};
+   gap: ${brandTheme.spacing.md};
+   min-height: 400px;
 `;
 
 const LoadingSpinner = styled.div`
-    width: 48px;
-    height: 48px;
-    border: 3px solid ${brandTheme.borderLight};
-    border-top: 3px solid ${brandTheme.primary};
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
+   width: 48px;
+   height: 48px;
+   border: 3px solid ${brandTheme.borderLight};
+   border-top: 3px solid ${brandTheme.primary};
+   border-radius: 50%;
+   animation: spin 1s linear infinite;
 
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
+   @keyframes spin {
+       0% { transform: rotate(0deg); }
+       100% { transform: rotate(360deg); }
+   }
 `;
 
 const LoadingText = styled.div`
-    font-size: 16px;
-    color: ${brandTheme.text.secondary};
-    font-weight: 500;
+   font-size: 16px;
+   color: ${brandTheme.text.secondary};
+   font-weight: 500;
 `;
 
 const ErrorMessage = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
-    background: ${brandTheme.status.errorLight};
-    color: ${brandTheme.status.error};
-    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-    border-radius: ${brandTheme.radius.lg};
-    border: 1px solid ${brandTheme.status.error}30;
-    font-weight: 500;
-    box-shadow: ${brandTheme.shadow.xs};
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.sm};
+   background: ${brandTheme.status.errorLight};
+   color: ${brandTheme.status.error};
+   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+   border-radius: ${brandTheme.radius.lg};
+   border: 1px solid ${brandTheme.status.error}30;
+   font-weight: 500;
+   box-shadow: ${brandTheme.shadow.xs};
 
     svg {
         font-size: 18px;

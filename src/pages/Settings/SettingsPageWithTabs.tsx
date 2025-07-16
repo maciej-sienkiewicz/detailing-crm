@@ -66,12 +66,6 @@ const SettingsPageWithTabs: React.FC = () => {
             description: 'Dane firmy, bank, email i integracje'
         },
         {
-            id: 'employees' as ActiveTab,
-            label: 'Pracownicy',
-            icon: FaUsers,
-            description: 'Zarządzanie zespołem i dokumentacją'
-        },
-        {
             id: 'services' as ActiveTab,
             label: 'Usługi',
             icon: FaWrench,

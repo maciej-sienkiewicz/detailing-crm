@@ -395,41 +395,6 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ client, onSave, onCan
                         </FormGroup>
                     </FormSection>
 
-                    {/* Statistics Section - Only for existing clients */}
-                    {client && (
-                        <FormSection>
-                            <SectionHeader>
-                                <SectionIcon $color={brandTheme.status.success}>
-                                    <FaCheck />
-                                </SectionIcon>
-                                <SectionTitle>Statystyki CRM</SectionTitle>
-                                <SectionSubtitle>Dane aktualizowane automatycznie przez system</SectionSubtitle>
-                            </SectionHeader>
-
-                            <StatsGrid>
-                                <StatCard>
-                                    <StatValue>{client.totalVisits}</StatValue>
-                                    <StatLabel>Liczba wizyt</StatLabel>
-                                </StatCard>
-
-                                <StatCard>
-                                    <StatValue>{client.abandonedSales || 0}</StatValue>
-                                    <StatLabel>Porzucone szanse</StatLabel>
-                                </StatCard>
-
-                                <StatCard>
-                                    <StatValue>{client.totalRevenue?.toFixed(2)} PLN</StatValue>
-                                    <StatLabel>Suma przychodów</StatLabel>
-                                </StatCard>
-
-                                <StatCard>
-                                    <StatValue>{client.contactAttempts}</StatValue>
-                                    <StatLabel>Próby kontaktu</StatLabel>
-                                </StatCard>
-                            </StatsGrid>
-                        </FormSection>
-                    )}
-
                     {/* Form Actions */}
                     <FormActions>
                         <SecondaryButton type="button" onClick={onCancel} disabled={loading}>

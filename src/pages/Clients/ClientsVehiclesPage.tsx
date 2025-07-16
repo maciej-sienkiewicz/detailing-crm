@@ -1,5 +1,5 @@
-// src/pages/Clients/ClientsVehiclesPage.tsx - Enhanced with URL navigation
-import React, { useState, useCallback, useEffect } from 'react';
+// src/pages/Clients/ClientsVehiclesPage.tsx - Fixed infinite loop issues
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { FaUsers, FaCar, FaPlus, FaExchangeAlt, FaFileExport } from 'react-icons/fa';
@@ -66,8 +66,8 @@ const ClientsVehiclesPage: React.FC = () => {
     const location = useLocation();
     const navigate = useNavigate();
 
-    // Parse URL parameters
-    const parseURLParams = useCallback((): URLParams => {
+    // FIX: Memoize URL params parsing to prevent recreation on every render
+    const urlParams = useMemo((): URLParams => {
         const searchParams = new URLSearchParams(location.search);
         return {
             tab: (searchParams.get('tab') as ActiveTab) || 'owners',
@@ -77,8 +77,7 @@ const ClientsVehiclesPage: React.FC = () => {
         };
     }, [location.search]);
 
-    // Initialize state from URL
-    const [urlParams, setUrlParams] = useState<URLParams>(parseURLParams);
+    // Initialize state from URL - FIX: Use memoized urlParams
     const [activeTab, setActiveTab] = useState<ActiveTab>(urlParams.tab || 'owners');
 
     // Enhanced component refs for communication with navigation helpers
@@ -100,7 +99,7 @@ const ClientsVehiclesPage: React.FC = () => {
         clearDetailParams?: () => void;
     }>({});
 
-    // Update URL when parameters change
+    // FIX: Stable update URL function
     const updateURL = useCallback((newParams: Partial<URLParams>) => {
         const searchParams = new URLSearchParams(location.search);
 
@@ -122,39 +121,12 @@ const ClientsVehiclesPage: React.FC = () => {
         }
     }, [location.pathname, location.search, navigate]);
 
-    // Sync URL changes with component state
+    // FIX: Only update active tab when it actually changes
     useEffect(() => {
-        const newParams = parseURLParams();
-        setUrlParams(newParams);
-
-        // Update active tab if it changed in URL
-        if (newParams.tab !== activeTab) {
-            setActiveTab(newParams.tab || 'owners');
+        if (urlParams.tab && urlParams.tab !== activeTab) {
+            setActiveTab(urlParams.tab);
         }
-    }, [location.search, parseURLParams, activeTab]);
-
-    // Handle auto-opening details based on URL parameters
-    useEffect(() => {
-        // Auto-open client detail if clientId is in URL
-        if (urlParams.clientId && activeTab === 'owners' && ownersRef.openClientDetail) {
-            // Small delay to ensure component is ready
-            setTimeout(() => {
-                if (ownersRef.openClientDetail) {
-                    ownersRef.openClientDetail(urlParams.clientId!);
-                }
-            }, 100);
-        }
-
-        // Auto-open vehicle detail if vehicleId is in URL
-        if (urlParams.vehicleId && activeTab === 'vehicles' && vehiclesRef.openVehicleDetail) {
-            // Small delay to ensure component is ready
-            setTimeout(() => {
-                if (vehiclesRef.openVehicleDetail) {
-                    vehiclesRef.openVehicleDetail(urlParams.vehicleId!);
-                }
-            }, 100);
-        }
-    }, [urlParams.clientId, urlParams.vehicleId, activeTab, ownersRef.openClientDetail, vehiclesRef.openVehicleDetail]);
+    }, [urlParams.tab]); // Remove activeTab from dependencies to prevent loop
 
     // Tab configuration
     const tabs = [
@@ -269,14 +241,11 @@ const ClientsVehiclesPage: React.FC = () => {
         selectedClientIds?: string[];
         openClientDetail?: (clientId: string) => void;
     }) => {
-        const enhancedRef = {
+        setOwnersRef({
             ...ref,
-            // Add navigation helpers
             navigateToVehiclesByOwner,
             clearDetailParams
-        };
-
-        setOwnersRef(enhancedRef);
+        });
     }, [navigateToVehiclesByOwner, clearDetailParams]);
 
     const handleSetVehiclesRef = useCallback((ref: {
@@ -284,15 +253,29 @@ const ClientsVehiclesPage: React.FC = () => {
         handleExportVehicles?: () => void;
         openVehicleDetail?: (vehicleId: string) => void;
     }) => {
-        const enhancedRef = {
+        setVehiclesRef({
             ...ref,
-            // Add navigation helpers
             navigateToClient,
             clearDetailParams
-        };
-
-        setVehiclesRef(enhancedRef);
+        });
     }, [navigateToClient, clearDetailParams]);
+
+    // FIX: Stable callback functions to prevent child re-renders
+    const handleClientSelected = useCallback((clientId: string) => {
+        updateURL({ clientId });
+    }, [updateURL]);
+
+    const handleClientClosed = useCallback(() => {
+        updateURL({ clientId: undefined });
+    }, [updateURL]);
+
+    const handleVehicleSelected = useCallback((vehicleId: string) => {
+        updateURL({ vehicleId });
+    }, [updateURL]);
+
+    const handleVehicleClosed = useCallback(() => {
+        updateURL({ vehicleId: undefined });
+    }, [updateURL]);
 
     return (
         <PageContainer>
@@ -397,8 +380,8 @@ const ClientsVehiclesPage: React.FC = () => {
                         initialClientId={urlParams.clientId}
                         onNavigateToVehiclesByOwner={navigateToVehiclesByOwner}
                         onClearDetailParams={clearDetailParams}
-                        onClientSelected={(clientId) => updateURL({ clientId })}
-                        onClientClosed={() => updateURL({ clientId: undefined })}
+                        onClientSelected={handleClientSelected}
+                        onClientClosed={handleClientClosed}
                     />
                 )}
 
@@ -409,8 +392,8 @@ const ClientsVehiclesPage: React.FC = () => {
                         filterByOwnerId={urlParams.ownerId}
                         onNavigateToClient={navigateToClient}
                         onClearDetailParams={clearDetailParams}
-                        onVehicleSelected={(vehicleId) => updateURL({ vehicleId })}
-                        onVehicleClosed={() => updateURL({ vehicleId: undefined })}
+                        onVehicleSelected={handleVehicleSelected}
+                        onVehicleClosed={handleVehicleClosed}
                     />
                 )}
             </ContentContainer>
