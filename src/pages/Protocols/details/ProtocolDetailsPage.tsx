@@ -21,6 +21,8 @@ import PDFViewer from "../../../components/PdfViewer";
 import CancelProtocolModal, {CancellationReason} from "../shared/components/CancelProtocolModal";
 import RestoreProtocolModal, { RestoreOption } from "../shared/components/RestoreProtocolModal";
 import RescheduleProtocolModal from "../shared/components/RescheduleProtocolModal";
+import {format} from "date-fns";
+import {pl} from "date-fns/locale";
 
 // Brand Theme System - Automotive Premium
 const brandTheme = {
@@ -399,6 +401,7 @@ const ProtocolDetailsPage: React.FC = () => {
                     <HeaderContent>
                         <HeaderTitle>Wizyta #{protocol.id}</HeaderTitle>
                         <HeaderSubtitle>{protocol.make} {protocol.model} • {protocol.licensePlate}</HeaderSubtitle>
+                        <HeaderSubtitle>Planowany czas zakończenia: { format(new Date(protocol.endDate), 'yyyy-MM-dd HH:mm', { locale: pl })}</HeaderSubtitle>
                     </HeaderContent>
                 </HeaderLeft>
 

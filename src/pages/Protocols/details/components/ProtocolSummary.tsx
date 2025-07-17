@@ -484,16 +484,6 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                             </ContactSection>
 
                             {/* Quick Actions */}
-                            <ClientActions>
-                                <ActionButton $variant="primary">
-                                    <FaUser />
-                                    <span>Pełny profil</span>
-                                </ActionButton>
-                                <ActionButton $variant="secondary">
-                                    <FaHistory />
-                                    <span>Historia wizyt</span>
-                                </ActionButton>
-                            </ClientActions>
                         </>
                     ) : (
                         <ClientMainInfo>

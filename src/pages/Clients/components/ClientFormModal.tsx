@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { FaUser, FaBuilding, FaStickyNote, FaCheck, FaTimes, FaSpinner, FaEnvelope, FaPhone, FaMapMarkerAlt, FaIdCard } from 'react-icons/fa';
 import { ClientExpanded } from '../../../types';
-import { ClientData, clientApi } from '../../../api/clientsApi';
+import { ClientData, clientsApi } from '../../../api/clientsApi'; // Używamy Twojego API
 import Modal from '../../../components/common/Modal';
+import {useToast} from "../../../components/common/Toast/Toast";
 
 // Professional Brand Theme - Premium Automotive CRM
 const brandTheme = {
@@ -82,7 +83,7 @@ interface ClientFormModalProps {
 
 const ClientFormModal: React.FC<ClientFormModalProps> = ({ client, onSave, onCancel }) => {
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const { showToast } = useToast();
 
     // Initialize form data with all required fields
     const [formData, setFormData] = useState<ClientData>(() => {
@@ -174,35 +175,45 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ client, onSave, onCan
         e.preventDefault();
 
         if (!validateForm()) {
+            showToast('error', 'Wypełnij wszystkie wymagane pola poprawnie');
             return;
         }
 
         try {
             setLoading(true);
-            setError(null);
-
-            let savedClient: ClientExpanded;
 
             if (client && client.id) {
-                // Update existing client
+                // Update existing client - używamy Twojego API
                 console.log('Updating client:', client.id, formData);
-                savedClient = await clientApi.updateClient(client.id, formData);
-            } else {
-                // Create new client
-                console.log('Creating new client:', formData);
-                savedClient = await clientApi.createClient(formData);
-            }
+                const result = await clientsApi.updateClient(client.id, formData);
 
-            console.log('Client saved successfully:', savedClient);
-            onSave(savedClient);
+                if (result.success && result.data) {
+                    showToast('success', 'Dane klienta zostały zaktualizowane');
+                    onSave(result.data);
+                } else {
+                    showToast('error', result.error || 'Nie udało się zaktualizować klienta');
+                }
+            } else {
+                // Create new client - używamy Twojego API
+                console.log('Creating new client:', formData);
+                const result = await clientsApi.createClient(formData);
+
+                if (result.success && result.data) {
+                    showToast('success', 'Nowy klient został dodany');
+                    onSave(result.data);
+                } else {
+                    showToast('error', result.error || 'Nie udało się utworzyć klienta');
+                }
+            }
         } catch (err) {
             console.error('Error saving client:', err);
-            setError('Nie udało się zapisać klienta. Spróbuj ponownie.');
+            showToast('error', 'Wystąpił błąd podczas zapisywania klienta');
         } finally {
             setLoading(false);
         }
     };
 
+    // Reszta komponentu pozostaje bez zmian...
     return (
         <Modal
             isOpen={true}
@@ -210,13 +221,6 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ client, onSave, onCan
             title={client ? 'Edycja klienta' : 'Nowy klient'}
         >
             <FormContainer>
-                {error && (
-                    <ErrorContainer>
-                        <ErrorIcon>⚠️</ErrorIcon>
-                        <ErrorText>{error}</ErrorText>
-                    </ErrorContainer>
-                )}
-
                 <Form onSubmit={handleSubmit}>
                     {/* Personal Information Section */}
                     <FormSection>
@@ -421,7 +425,7 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ client, onSave, onCan
     );
 };
 
-// Professional Styled Components - Premium Automotive Design
+// Styled Components pozostają bez zmian...
 const FormContainer = styled.div`
     padding: 0 ${brandTheme.spacing.md};
     max-height: 80vh;
@@ -438,28 +442,6 @@ const FormContainer = styled.div`
         background: ${brandTheme.border};
         border-radius: 3px;
     }
-`;
-
-const ErrorContainer = styled.div`
-    background: linear-gradient(135deg, ${brandTheme.status.errorLight} 0%, #fdf2f8 100%);
-    border: 1px solid #fecaca;
-    border-radius: ${brandTheme.radius.lg};
-    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-    margin-bottom: ${brandTheme.spacing.lg};
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
-    box-shadow: ${brandTheme.shadow.sm};
-`;
-
-const ErrorIcon = styled.div`
-    font-size: 18px;
-`;
-
-const ErrorText = styled.div`
-    color: ${brandTheme.status.error};
-    font-weight: 500;
-    font-size: 14px;
 `;
 
 const Form = styled.form`
@@ -552,10 +534,10 @@ const FormInput = styled.input<{
     height: 48px;
     padding: 0 ${brandTheme.spacing.md};
     border: 2px solid ${props =>
-            props.$hasError ? brandTheme.status.error :
-                    props.$hasValue ? brandTheme.primary :
-                            brandTheme.border
-    };
+    props.$hasError ? brandTheme.status.error :
+        props.$hasValue ? brandTheme.primary :
+            brandTheme.border
+};
     border-radius: ${brandTheme.radius.md};
     font-size: 14px;
     font-weight: 500;
@@ -621,43 +603,6 @@ const ErrorMessage = styled.div`
         content: '⚠';
         font-size: 10px;
     }
-`;
-
-const StatsGrid = styled.div`
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: ${brandTheme.spacing.md};
-`;
-
-const StatCard = styled.div`
-    background: ${brandTheme.surfaceAlt};
-    border: 1px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.lg};
-    padding: ${brandTheme.spacing.md};
-    text-align: center;
-    transition: all 0.2s ease;
-
-    &:hover {
-        background: ${brandTheme.primaryGhost};
-        border-color: ${brandTheme.primary};
-        transform: translateY(-2px);
-        box-shadow: ${brandTheme.shadow.md};
-    }
-`;
-
-const StatValue = styled.div`
-    font-size: 20px;
-    font-weight: 700;
-    color: ${brandTheme.primary};
-    margin-bottom: ${brandTheme.spacing.xs};
-`;
-
-const StatLabel = styled.div`
-    font-size: 12px;
-    color: ${brandTheme.text.tertiary};
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
 `;
 
 const FormActions = styled.div`

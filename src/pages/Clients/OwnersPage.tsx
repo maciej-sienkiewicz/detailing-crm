@@ -1,8 +1,8 @@
-// src/pages/Clients/OwnersPage.tsx - Enhanced with URL navigation support
+// src/pages/Clients/OwnersPage.tsx - Enhanced with URL navigation support and Toast integration
 import React, {useState, useEffect, useImperativeHandle, forwardRef, useCallback, useMemo} from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { FaPlus, FaSms, FaCheckSquare, FaSquare, FaUsers, FaFilter, FaFileExport, FaExclamationTriangle, FaTimes, FaPaperPlane, FaCheck } from 'react-icons/fa';
+import { FaPlus, FaSms, FaCheckSquare, FaSquare, FaUsers, FaFilter, FaFileExport, FaTimes, FaPaperPlane, FaCheck } from 'react-icons/fa';
 import { ClientExpanded } from '../../types';
 import { clientsApi } from '../../api/clientsApi';
 import ClientListTable from './components/ClientListTable';
@@ -13,6 +13,7 @@ import ContactAttemptModal from './components/ContactAttemptModal';
 import Modal from '../../components/common/Modal';
 import DeleteConfirmationModal from "./modals/DeleteConfirmationModal";
 import { TooltipWrapper } from './components/ClientListTable/styles/components';
+import {useToast} from "../../components/common/Toast/Toast";
 
 // Professional Brand Theme
 const brandTheme = {
@@ -99,12 +100,12 @@ const OwnersPageContent = forwardRef<{
                                 onClientClosed
                             }, ref) => {
     const navigate = useNavigate();
+    const { showToast } = useToast();
 
     // State
     const [clients, setClients] = useState<ClientExpanded[]>([]);
     const [filteredClients, setFilteredClients] = useState<ClientExpanded[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
 
     // UI state
     const [showFilters, setShowFilters] = useState(false);
@@ -148,16 +149,16 @@ const OwnersPageContent = forwardRef<{
     }, []);
 
     const handleExportClients = useCallback(() => {
-        alert('Eksport danych klientów - funkcjonalność w przygotowaniu');
-    }, []);
+        showToast('info', 'Eksport danych klientów - funkcjonalność w przygotowaniu');
+    }, [showToast]);
 
     const handleOpenBulkSmsModal = useCallback(() => {
         if (selectedClientIds.length === 0) {
-            alert('Zaznacz co najmniej jednego klienta, aby wysłać SMS');
+            showToast('error', 'Zaznacz co najmniej jednego klienta, aby wysłać SMS');
             return;
         }
         setShowBulkSmsModal(true);
-    }, [selectedClientIds.length]);
+    }, [selectedClientIds.length, showToast]);
 
     // Enhanced client detail opening with URL support
     const openClientDetail = useCallback((clientId: string) => {
@@ -248,17 +249,15 @@ const OwnersPageContent = forwardRef<{
                         totalRevenue,
                         averageRevenue: clientsData.length > 0 ? totalRevenue / clientsData.length : 0
                     });
-
-                    setError(null);
                 } else {
                     console.error('❌ Failed to load clients:', result.error);
-                    setError(result.error || 'Nie udało się załadować listy klientów');
+                    showToast('error', result.error || 'Nie udało się załadować listy klientów');
                     setClients([]);
                     setFilteredClients([]);
                 }
             } catch (err) {
                 console.error('❌ Error loading clients:', err);
-                setError('Nie udało się załadować listy klientów');
+                showToast('error', 'Nie udało się załadować listy klientów');
                 setClients([]);
                 setFilteredClients([]);
             } finally {
@@ -267,7 +266,7 @@ const OwnersPageContent = forwardRef<{
         };
 
         loadClients();
-    }, []);
+    }, [showToast]);
 
     // Filter clients when filters change
     useEffect(() => {
@@ -358,60 +357,47 @@ const OwnersPageContent = forwardRef<{
         });
     }, []);
 
-    const handleEditClient = useCallback((client: ClientExpanded) => {
-        setSelectedClient(client);
-        setShowAddModal(true);
-    }, []);
+    const handleEditClient = useCallback(async (client: ClientExpanded) => {
+        try {
+            setLoading(true);
+            showToast('info', 'Pobieranie aktualnych danych klienta...');
+
+            // Pobierz świeże dane klienta z istniejącego endpointu
+            const result = await clientsApi.getClientById(client.id);
+
+            if (result.success && result.data) {
+                setSelectedClient(result.data);
+                setShowAddModal(true);
+            } else {
+                showToast('error', result.error || 'Nie udało się pobrać danych klienta');
+                // Fallback - użyj danych z listy
+                setSelectedClient(client);
+                setShowAddModal(true);
+            }
+        } catch (error) {
+            console.error('Error fetching client for edit:', error);
+            showToast('error', 'Błąd podczas pobierania danych klienta');
+            // Fallback - użyj danych z listy
+            setSelectedClient(client);
+            setShowAddModal(true);
+        } finally {
+            setLoading(false);
+        }
+    }, [showToast]);
 
     const handleSaveClient = useCallback(async (client: ClientExpanded) => {
-        try {
-            if (selectedClient) {
-                const result = await clientsApi.updateClient(client.id, {
-                    firstName: client.firstName,
-                    lastName: client.lastName,
-                    email: client.email,
-                    phone: client.phone,
-                    address: client.address,
-                    company: client.company,
-                    taxId: client.taxId,
-                    notes: client.notes
-                });
-
-                if (result.success && result.data) {
-                    setClients(clients.map(c => c.id === client.id ? result.data! : c));
-                } else {
-                    setError(result.error || 'Nie udało się zaktualizować klienta');
-                    return;
-                }
-            } else {
-                const result = await clientsApi.createClient({
-                    firstName: client.firstName,
-                    lastName: client.lastName,
-                    email: client.email,
-                    phone: client.phone,
-                    address: client.address,
-                    company: client.company,
-                    taxId: client.taxId,
-                    notes: client.notes
-                });
-
-                if (result.success && result.data) {
-                    setClients(prev => [...prev, result.data!]);
-                    setStats(prevStats => ({
-                        ...prevStats,
-                        totalClients: prevStats.totalClients + 1
-                    }));
-                } else {
-                    setError(result.error || 'Nie udało się utworzyć klienta');
-                    return;
-                }
-            }
-
-            setShowAddModal(false);
-        } catch (err) {
-            console.error('Error saving client:', err);
-            setError('Wystąpił błąd podczas zapisywania klienta');
+        // The saving logic is now handled in the modal itself with Toast notifications
+        // This callback just updates the local state
+        if (selectedClient) {
+            setClients(clients.map(c => c.id === client.id ? client : c));
+        } else {
+            setClients(prev => [...prev, client]);
+            setStats(prevStats => ({
+                ...prevStats,
+                totalClients: prevStats.totalClients + 1
+            }));
         }
+        setShowAddModal(false);
     }, [selectedClient, clients]);
 
     const handleDeleteClick = useCallback((clientId: string) => {
@@ -433,18 +419,19 @@ const OwnersPageContent = forwardRef<{
                 setSelectedClientIds(prev => prev.filter(id => id !== selectedClient.id));
                 setShowDeleteConfirm(false);
                 setSelectedClient(null);
+                showToast('success', 'Klient został usunięty');
 
                 if (showDetailDrawer) {
                     closeClientDetail();
                 }
             } else {
-                setError(result.error || 'Nie udało się usunąć klienta');
+                showToast('error', result.error || 'Nie udało się usunąć klienta');
             }
         } catch (err) {
-            setError('Nie udało się usunąć klienta');
+            showToast('error', 'Nie udało się usunąć klienta');
             console.error('Error deleting client:', err);
         }
-    }, [selectedClient, clients, showDetailDrawer, closeClientDetail]);
+    }, [selectedClient, clients, showDetailDrawer, closeClientDetail, showToast]);
 
     // Enhanced vehicle navigation handler
     const handleShowVehicles = useCallback((clientId: string) => {
@@ -476,8 +463,8 @@ const OwnersPageContent = forwardRef<{
     }, [selectedClient, clients]);
 
     const handleSendSMS = useCallback((client: ClientExpanded) => {
-        alert(`Symulacja wysyłania SMS do: ${client.firstName} ${client.lastName} (${client.phone})`);
-    }, []);
+        showToast('info', `Symulacja wysyłania SMS do: ${client.firstName} ${client.lastName} (${client.phone})`);
+    }, [showToast]);
 
     // Enhanced client selection handler
     const handleSelectClient = useCallback((client: ClientExpanded) => {
@@ -509,7 +496,7 @@ const OwnersPageContent = forwardRef<{
 
     const handleSendBulkSms = useCallback(() => {
         if (bulkSmsText.trim() === '') {
-            alert('Wprowadź treść wiadomości SMS');
+            showToast('error', 'Wprowadź treść wiadomości SMS');
             return;
         }
 
@@ -517,16 +504,12 @@ const OwnersPageContent = forwardRef<{
             selectedClientIds.includes(client.id)
         );
 
-        const recipientsList = selectedClients.map(client =>
-            `${client.firstName} ${client.lastName} (${client.phone})`
-        ).join('\n');
-
-        alert(`Wysłano SMS o treści:\n${bulkSmsText}\n\nDo odbiorców:\n${recipientsList}`);
+        showToast('success', `Wysłano SMS do ${selectedClients.length} klientów`);
 
         setBulkSmsText('');
         setShowBulkSmsModal(false);
         setSelectedClientIds([]);
-    }, [bulkSmsText, clients, selectedClientIds]);
+    }, [bulkSmsText, clients, selectedClientIds, showToast]);
 
     const formatCurrency = useCallback((amount: number): string => {
         return new Intl.NumberFormat('pl-PL', {
@@ -601,14 +584,6 @@ const OwnersPageContent = forwardRef<{
                     onResetFilters={resetFilters}
                     resultCount={filteredClients.length}
                 />
-
-                {/* Error Display */}
-                {error && (
-                    <ErrorMessage>
-                        <FaExclamationTriangle />
-                        {error}
-                    </ErrorMessage>
-                )}
 
                 {/* Loading State */}
                 {loading ? (
@@ -968,24 +943,6 @@ const LoadingText = styled.div`
    font-weight: 500;
 `;
 
-const ErrorMessage = styled.div`
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.sm};
-   background: ${brandTheme.status.errorLight};
-   color: ${brandTheme.status.error};
-   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-   border-radius: ${brandTheme.radius.lg};
-   border: 1px solid ${brandTheme.status.error}30;
-   font-weight: 500;
-   box-shadow: ${brandTheme.shadow.xs};
-
-    svg {
-        font-size: 18px;
-        flex-shrink: 0;
-    }
-`;
-
 const TableContainer = styled.div`
     flex: 1;
     min-height: 0;
@@ -1064,110 +1021,110 @@ const SmsFormGroup = styled.div`
 `;
 
 const SmsLabel = styled.label`
-    font-weight: 600;
-    font-size: 14px;
-    color: ${brandTheme.text.primary};
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.xs};
+   font-weight: 600;
+   font-size: 14px;
+   color: ${brandTheme.text.primary};
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.xs};
 `;
 
 const SmsTextarea = styled.textarea`
-    width: 100%;
-    padding: ${brandTheme.spacing.md};
-    border: 2px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.lg};
-    font-size: 15px;
-    font-weight: 500;
-    background: ${brandTheme.surface};
-    color: ${brandTheme.text.primary};
-    resize: vertical;
-    min-height: 120px;
-    font-family: inherit;
-    line-height: 1.6;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+   width: 100%;
+   padding: ${brandTheme.spacing.md};
+   border: 2px solid ${brandTheme.border};
+   border-radius: ${brandTheme.radius.lg};
+   font-size: 15px;
+   font-weight: 500;
+   background: ${brandTheme.surface};
+   color: ${brandTheme.text.primary};
+   resize: vertical;
+   min-height: 120px;
+   font-family: inherit;
+   line-height: 1.6;
+   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
-    &:focus {
-        outline: none;
-        border-color: ${brandTheme.primary};
-        box-shadow: 0 0 0 4px ${brandTheme.primaryGhost};
-        transform: translateY(-1px);
-    }
+   &:focus {
+       outline: none;
+       border-color: ${brandTheme.primary};
+       box-shadow: 0 0 0 4px ${brandTheme.primaryGhost};
+       transform: translateY(-1px);
+   }
 
-    &::placeholder {
-        color: ${brandTheme.text.tertiary};
-        font-weight: 400;
-    }
+   &::placeholder {
+       color: ${brandTheme.text.tertiary};
+       font-weight: 400;
+   }
 `;
 
 const SmsCharacterCounter = styled.div<{ $nearLimit?: boolean }>`
-    font-size: 12px;
-    color: ${props => props.$nearLimit ? brandTheme.status.warning : brandTheme.text.muted};
-    text-align: right;
-    font-weight: 500;
+   font-size: 12px;
+   color: ${props => props.$nearLimit ? brandTheme.status.warning : brandTheme.text.muted};
+   text-align: right;
+   font-weight: 500;
 
-    span {
-        color: ${brandTheme.status.error};
-        font-weight: 600;
-    }
+   span {
+       color: ${brandTheme.status.error};
+       font-weight: 600;
+   }
 `;
 
 const BulkSmsActions = styled.div`
-    display: flex;
-    justify-content: flex-end;
-    gap: ${brandTheme.spacing.sm};
-    padding-top: ${brandTheme.spacing.lg};
-    border-top: 2px solid ${brandTheme.borderLight};
+   display: flex;
+   justify-content: flex-end;
+   gap: ${brandTheme.spacing.sm};
+   padding-top: ${brandTheme.spacing.lg};
+   border-top: 2px solid ${brandTheme.borderLight};
 `;
 
 const BaseButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
-    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
-    border-radius: ${brandTheme.radius.md};
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 1px solid transparent;
-    white-space: nowrap;
-    min-height: 44px;
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.sm};
+   padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+   border-radius: ${brandTheme.radius.md};
+   font-weight: 600;
+   font-size: 14px;
+   cursor: pointer;
+   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+   border: 1px solid transparent;
+   white-space: nowrap;
+   min-height: 44px;
 
-    &:hover {
-        transform: translateY(-1px);
-    }
+   &:hover {
+       transform: translateY(-1px);
+   }
 
-    &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-        transform: none;
-    }
+   &:disabled {
+       opacity: 0.5;
+       cursor: not-allowed;
+       transform: none;
+   }
 `;
 
 const PrimaryButton = styled(BaseButton)`
-    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-    color: white;
-    box-shadow: ${brandTheme.shadow.sm};
+   background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+   color: white;
+   box-shadow: ${brandTheme.shadow.sm};
 
-    &:hover {
-        background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
-        box-shadow: ${brandTheme.shadow.md};
-    }
+   &:hover {
+       background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
+       box-shadow: ${brandTheme.shadow.md};
+   }
 `;
 
 const SecondaryButton = styled(BaseButton)`
-    background: ${brandTheme.surface};
-    color: ${brandTheme.text.secondary};
-    border-color: ${brandTheme.border};
-    box-shadow: ${brandTheme.shadow.xs};
+   background: ${brandTheme.surface};
+   color: ${brandTheme.text.secondary};
+   border-color: ${brandTheme.border};
+   box-shadow: ${brandTheme.shadow.xs};
 
-    &:hover {
-        background: ${brandTheme.surfaceHover};
-        color: ${brandTheme.text.primary};
-        border-color: ${brandTheme.borderHover};
-        box-shadow: ${brandTheme.shadow.sm};
-    }
+   &:hover {
+       background: ${brandTheme.surfaceHover};
+       color: ${brandTheme.text.primary};
+       border-color: ${brandTheme.borderHover};
+       box-shadow: ${brandTheme.shadow.sm};
+   }
 `;
 
 export default OwnersPageContent;

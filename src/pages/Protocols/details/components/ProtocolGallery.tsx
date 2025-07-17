@@ -27,6 +27,8 @@ import { apiClient } from '../../../../api/apiClient';
 import { carReceptionApi } from '../../../../api/carReceptionApi';
 import ImagePreviewModal from "../../shared/modals/ImagePreviewModal";
 import ImageEditModal from "../../shared/modals/ImageEditModal";
+import {format} from "date-fns";
+import {pl} from "date-fns/locale";
 
 // Enterprise Design System - Professional Automotive Gallery
 const enterprise = {
@@ -329,17 +331,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
         if (bytes < 1024) return bytes + ' B';
         if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
         return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-    };
-
-    // Format date
-    const formatDate = (dateString: string): string => {
-        return new Date(dateString).toLocaleDateString('pl-PL', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
     };
 
     // Handle image click
@@ -876,7 +867,7 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                                         <DocumentRowMeta>
                                             <DocumentRowInfo>
                                                 <FaClock />
-                                                <span>{formatDate(document.createdAt)}</span>
+                                                <span>{document.createdAt}</span>
                                             </DocumentRowInfo>
                                             <DocumentRowInfo>
                                                 <FaUser />

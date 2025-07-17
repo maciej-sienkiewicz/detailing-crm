@@ -304,8 +304,6 @@ class ClientsApi {
 
             const enrichedClient = this.enrichClientData(response);
 
-            this.logDebug('Successfully fetched client');
-
             return {
                 success: true,
                 data: enrichedClient
