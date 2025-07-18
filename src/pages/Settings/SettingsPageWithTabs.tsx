@@ -11,7 +11,7 @@ import {
     FaPlus,
     FaBuilding,
     FaExchangeAlt,
-    FaSave
+    FaSave, FaFileInvoice
 } from 'react-icons/fa';
 
 // Import existing components
@@ -23,8 +23,9 @@ import CompanySettingsPage from './CompanySettingsPage';
 
 // Import styles and utilities
 import { settingsTheme } from './styles/theme';
+import InvoiceTemplatesPage from "./InvoiceTemplatesPage";
 
-type ActiveTab = 'company' | 'employees' | 'services' | 'visual-personalization' | 'calendar-colors';
+type ActiveTab = 'company' | 'employees' | 'services' | 'visual-personalization' | 'calendar-colors' | 'invoice-templates';
 
 // Interfejsy dla komunikacji z komponentami dzieci - poprawione typy
 interface CompanySettingsRef {
@@ -43,6 +44,10 @@ interface CalendarColorsPageRef {
     handleAddColor: () => void;
 }
 
+interface InvoiceTemplatesPageRef {
+    handleAddTemplate: () => void;
+}
+
 interface BrandThemeSettingsRef {
     handleSave: () => void;
 }
@@ -56,6 +61,7 @@ const SettingsPageWithTabs: React.FC = () => {
     const servicesPageRef = useRef<ServicesPageRef>(null);
     const calendarColorsPageRef = useRef<CalendarColorsPageRef>(null);
     const brandThemeSettingsRef = useRef<BrandThemeSettingsRef>(null);
+    const invoiceTemplatesPageRef = useRef<InvoiceTemplatesPageRef>(null);
 
     // Tab configuration
     const tabs = [
@@ -82,6 +88,12 @@ const SettingsPageWithTabs: React.FC = () => {
             label: 'Kolory kalendarza',
             icon: FaCalendarAlt,
             description: 'Kolory dla pracowników i usług'
+        },
+        {
+            id: 'invoice-templates' as ActiveTab,
+            label: 'Szablony faktur',
+            icon: FaFileInvoice,
+            description: 'Zarządzanie szablonami HTML dla faktur'
         }
     ];
 
@@ -93,6 +105,10 @@ const SettingsPageWithTabs: React.FC = () => {
     // Akcje dla poszczególnych zakładek - poprawione z null checking
     const handleCompanySaveSettings = () => {
         companySettingsRef.current?.handleSave();
+    };
+
+    const handleAddInvoiceTemplate = () => {
+        invoiceTemplatesPageRef.current?.handleAddTemplate();
     };
 
     const handleBrandThemeSaveSettings = () => {
@@ -166,6 +182,13 @@ const SettingsPageWithTabs: React.FC = () => {
                                 <span>Dodaj kolor</span>
                             </PrimaryButton>
                         )}
+
+                        {activeTab === 'invoice-templates' && (
+                            <PrimaryButton onClick={handleAddInvoiceTemplate}>
+                                <FaFileInvoice />
+                                <span>Dodaj szablon</span>
+                            </PrimaryButton>
+                        )}
                     </HeaderActions>
                 </HeaderContent>
 
@@ -201,6 +224,7 @@ const SettingsPageWithTabs: React.FC = () => {
                 {activeTab === 'services' && <ServicesPage ref={servicesPageRef} />}
                 {activeTab === 'visual-personalization' && <BrandThemeSettingsPage ref={brandThemeSettingsRef} />}
                 {activeTab === 'calendar-colors' && <CalendarColorsPage ref={calendarColorsPageRef} />}
+                {activeTab === 'invoice-templates' && <InvoiceTemplatesPage ref={invoiceTemplatesPageRef} />}
             </ContentContainer>
         </PageContainer>
     );
