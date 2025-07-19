@@ -12,7 +12,9 @@ import {
     FaTable,
     FaSort,
     FaSortUp,
-    FaSortDown
+    FaSortDown,
+    FaPrint,
+    FaDownload
 } from 'react-icons/fa';
 import {
     UnifiedFinancialDocument,
@@ -27,6 +29,7 @@ import {
     PaymentMethodLabels
 } from '../../../types/finance';
 import { brandTheme } from '../styles/theme';
+import { documentPrintService } from '../../../api/documentPrintService';
 
 type ViewMode = 'table' | 'cards';
 type SortField = 'issuedDate' | 'totalGross' | 'buyerName' | 'number';
@@ -125,6 +128,37 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
                 return <FaExchangeAlt />;
             default:
                 return <FaFileInvoiceDollar />;
+        }
+    };
+
+    // Handle print document - opens in new tab for preview (like old behavior)
+    const handlePrintDocument = async (document: UnifiedFinancialDocument, e: React.MouseEvent) => {
+        e.stopPropagation();
+
+        try {
+            const result = await documentPrintService.previewDocument(document.id);
+            if (!result.success) {
+                alert(result.error || 'Nie udało się wyświetlić dokumentu');
+            }
+            // Po otwarciu w nowej karcie, użytkownik może tam kliknąć "drukuj" w przeglądarce
+        } catch (error) {
+            console.error('Error printing document:', error);
+            alert('Wystąpił błąd podczas przygotowywania dokumentu do wydruku');
+        }
+    };
+
+    // Handle download document - forces download
+    const handleDownloadDocument = async (document: UnifiedFinancialDocument, e: React.MouseEvent) => {
+        e.stopPropagation();
+
+        try {
+            const result = await documentPrintService.downloadDocument(document.id);
+            if (!result.success) {
+                alert(result.error || 'Nie udało się pobrać dokumentu');
+            }
+        } catch (error) {
+            console.error('Error downloading document:', error);
+            alert('Wystąpił błąd podczas pobierania dokumentu');
         }
     };
 
@@ -270,19 +304,6 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
                                         </StatusBadge>
                                     </TableCell>
                                     <TableCell>
-                                        {document.protocolNumber ? (
-                                            <ProtocolLink href={`/orders/car-reception/${document.protocolId}`}>
-                                                Wizyta #{document.protocolNumber}
-                                            </ProtocolLink>
-                                        ) : document.visitId ? (
-                                            <ProtocolLink href={`/appointments/${document.visitId}`}>
-                                                Wizyta #{document.visitId}
-                                            </ProtocolLink>
-                                        ) : (
-                                            <NoProtocol>-</NoProtocol>
-                                        )}
-                                    </TableCell>
-                                    <TableCell>
                                         <ActionButtons>
                                             <ActionButton
                                                 onClick={(e) => handleQuickAction('view', document, e)}
@@ -290,6 +311,20 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
                                                 $variant="view"
                                             >
                                                 <FaEye />
+                                            </ActionButton>
+                                            <ActionButton
+                                                onClick={(e) => handlePrintDocument(document, e)}
+                                                title="Drukuj"
+                                                $variant="print"
+                                            >
+                                                <FaPrint />
+                                            </ActionButton>
+                                            <ActionButton
+                                                onClick={(e) => handleDownloadDocument(document, e)}
+                                                title="Pobierz"
+                                                $variant="download"
+                                            >
+                                                <FaDownload />
                                             </ActionButton>
                                             <ActionButton
                                                 onClick={(e) => handleQuickAction('edit', document, e)}
@@ -332,6 +367,14 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
                                         $small
                                     >
                                         <FaEye />
+                                    </ActionButton>
+                                    <ActionButton
+                                        onClick={(e) => handlePrintDocument(document, e)}
+                                        title="Drukuj"
+                                        $variant="print"
+                                        $small
+                                    >
+                                        <FaPrint />
                                     </ActionButton>
                                     <ActionButton
                                         onClick={(e) => handleQuickAction('edit', document, e)}
@@ -632,7 +675,7 @@ const ActionButtons = styled.div`
 `;
 
 const ActionButton = styled.button<{
-    $variant: 'view' | 'edit' | 'delete';
+    $variant: 'view' | 'edit' | 'delete' | 'print' | 'download';
     $small?: boolean;
 }>`
     display: flex;
@@ -656,6 +699,28 @@ const ActionButton = styled.button<{
                     color: ${brandTheme.primary};
                     &:hover {
                         background: ${brandTheme.primary};
+                        color: white;
+                        transform: translateY(-1px);
+                        box-shadow: ${brandTheme.shadow.md};
+                    }
+                `;
+            case 'print':
+                return `
+                    background: ${brandTheme.status.infoLight};
+                    color: ${brandTheme.status.info};
+                    &:hover {
+                        background: ${brandTheme.status.info};
+                        color: white;
+                        transform: translateY(-1px);
+                        box-shadow: ${brandTheme.shadow.md};
+                    }
+                `;
+            case 'download':
+                return `
+                    background: ${brandTheme.status.successLight};
+                    color: ${brandTheme.status.success};
+                    &:hover {
+                        background: ${brandTheme.status.success};
                         color: white;
                         transform: translateY(-1px);
                         box-shadow: ${brandTheme.shadow.md};

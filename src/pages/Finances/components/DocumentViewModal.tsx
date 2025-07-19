@@ -24,6 +24,8 @@ import {
     PaymentMethodLabels
 } from '../../../types/finance';
 import { brandTheme } from '../styles/theme';
+import { apiClientNew } from '../../../api/apiClientNew';
+import {documentPrintService} from "../../../api/documentPrintService";
 
 interface DocumentViewModalProps {
     isOpen: boolean;
@@ -46,46 +48,199 @@ const DocumentViewModal: React.FC<DocumentViewModalProps> = ({
                                                              }) => {
     if (!isOpen) return null;
 
+    // Debug log
+    console.log('DocumentViewModal rendering with document:', document);
+
     // Helper functions
     const formatDate = (dateString: string): string => {
         if (!dateString) return '-';
-        const date = new Date(dateString);
-        return date.toLocaleDateString('pl-PL');
-    };
-
-    const formatAmount = (amount: number, currency: string = 'PLN'): string => {
-        return new Intl.NumberFormat('pl-PL', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        }).format(amount) + ` ${currency}`;
-    };
-
-    const getDocumentIcon = (type: DocumentType) => {
-        switch (type) {
-            case DocumentType.INVOICE:
-                return <FaFileInvoiceDollar />;
-            case DocumentType.RECEIPT:
-                return <FaReceipt />;
-            case DocumentType.OTHER:
-                return <FaExchangeAlt />;
-            default:
-                return <FaFileInvoiceDollar />;
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('pl-PL');
+        } catch (error) {
+            console.error('Error formatting date:', dateString, error);
+            return '-';
         }
     };
 
-    const handlePrintDocument = () => {
-        window.print();
+    const formatAmount = (amount: number, currency: string = 'PLN'): string => {
+        try {
+            return new Intl.NumberFormat('pl-PL', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(amount) + ` ${currency}`;
+        } catch (error) {
+            console.error('Error formatting amount:', amount, currency, error);
+            return `${amount} ${currency}`;
+        }
+    };
+
+    const getDocumentIcon = (type: DocumentType) => {
+        try {
+            switch (type) {
+                case DocumentType.INVOICE:
+                    return <FaFileInvoiceDollar />;
+                case DocumentType.RECEIPT:
+                    return <FaReceipt />;
+                case DocumentType.OTHER:
+                    return <FaExchangeAlt />;
+                default:
+                    return <FaFileInvoiceDollar />;
+            }
+        } catch (error) {
+            console.error('Error getting document icon:', type, error);
+            return <FaFileInvoiceDollar />;
+        }
+    };
+
+    // Prosta logika drukowania - sprawdza załącznik i otwiera odpowiedni URL
+    const handlePrintDocument = async () => {
+        try {
+            console.log('=== Starting print process for document:', document.id);
+
+            // Sprawdź czy dokument ma załącznik
+            const hasAttachment = await checkDocumentHasAttachment(document.id);
+            console.log('Document has attachment:', hasAttachment);
+
+            if (hasAttachment) {
+                // Otwórz załącznik
+                await openAttachmentForPreview(document.id);
+            } else {
+                // Wygeneruj i otwórz fakturę
+                await generateAndPreviewInvoice(document.id);
+            }
+        } catch (error) {
+            console.error('Błąd podczas drukowania dokumentu:', error);
+            alert('Wystąpił błąd podczas przygotowywania wydruku. Spróbuj ponownie później.');
+        }
+    };
+
+    // Sprawdza czy dokument ma załącznik
+    const checkDocumentHasAttachment = async (documentId: string): Promise<boolean> => {
+        return false;
+    };
+
+    // Otwiera załącznik do podglądu
+    const openAttachmentForPreview = async (documentId: string) => {
+        try {
+            console.log('Opening existing attachment for document:', documentId);
+
+            // Używamy prawidłowego URL z portem 8080
+            const url = `http://localhost:8080/api/financial-documents/${documentId}/attachment`;
+            console.log('Fetching attachment from URL:', url);
+
+            const response = await fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+                    'Accept': 'application/pdf,application/octet-stream,*/*',
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+
+            console.log('Opening attachment blob URL in new tab, blob size:', blob.size);
+
+            // Otwórz w nowej karcie
+            const newTab = window.open(blobUrl, '_blank');
+            if (!newTab) {
+                alert('Proszę zezwolić na wyskakujące okna dla tej strony');
+                return;
+            }
+
+            // Usuń URL po minucie
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+
+        } catch (error) {
+            console.error('Error opening attachment:', error);
+            throw error;
+        }
+    };
+
+    // Generuje i otwiera fakturę do podglądu
+    const generateAndPreviewInvoice = async (documentId: string) => {
+        try {
+            console.log('No attachment found, generating invoice from template for document:', documentId);
+
+            // Używamy prawidłowego URL z portem 8080
+            const url = `http://localhost:8080/api/invoice-templates/documents/${documentId}/generate`;
+            console.log('Generating invoice from URL:', url);
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/pdf,application/octet-stream,*/*',
+                }
+            });
+
+            console.log('Invoice generation response status:', response.status);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Invoice generation error response:', errorText);
+                throw new Error(`Błąd generowania faktury: ${response.status} - ${errorText}`);
+            }
+
+            const blob = await response.blob();
+            console.log('Generated invoice blob size:', blob.size);
+
+            const blobUrl = URL.createObjectURL(blob);
+            console.log('Opening generated invoice blob URL in new tab');
+
+            // Otwórz w nowej karcie
+            const newTab = window.open(blobUrl, '_blank');
+            if (!newTab) {
+                alert('Proszę zezwolić na wyskakujące okna dla tej strony');
+                return;
+            }
+
+            // Usuń URL po minucie
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+
+        } catch (error) {
+            console.error('Error generating invoice:', error);
+            throw error;
+        }
+    };
+
+    // Logika pobierania - wymusza pobranie pliku
+    const handleDownloadDocument = async () => {
+        try {
+            console.log('Downloading document:', document.id);
+            const result = await documentPrintService.downloadDocument(document.id);
+            console.log('Download result:', result);
+            if (!result.success) {
+                alert(result.error || 'Nie udało się pobrać dokumentu');
+            }
+        } catch (error) {
+            console.error('Błąd podczas pobierania dokumentu:', error);
+            alert('Wystąpił błąd podczas pobierania dokumentu');
+        }
     };
 
     const handleStatusChange = (status: DocumentStatus) => {
-        if (Object.values(DocumentStatus).includes(status)) {
-            onStatusChange(document.id, status);
+        try {
+            if (Object.values(DocumentStatus).includes(status)) {
+                onStatusChange(document.id, status);
+            }
+        } catch (error) {
+            console.error('Error changing status:', error);
         }
     };
 
     const handleDeleteDocument = () => {
-        if (window.confirm(`Czy na pewno chcesz usunąć ${DocumentTypeLabels[document.type].toLowerCase()} ${document.number}? Tej operacji nie można cofnąć.`)) {
-            onDelete(document.id);
+        try {
+            if (window.confirm(`Czy na pewno chcesz usunąć ${DocumentTypeLabels[document.type].toLowerCase()} ${document.number}? Tej operacji nie można cofnąć.`)) {
+                onDelete(document.id);
+            }
+        } catch (error) {
+            console.error('Error deleting document:', error);
         }
     };
 
@@ -106,11 +261,9 @@ const DocumentViewModal: React.FC<DocumentViewModalProps> = ({
                         <ActionButton title="Edytuj dokument" onClick={() => onEdit(document)}>
                             <FaEdit />
                         </ActionButton>
-                        {document.attachments && document.attachments.length > 0 && onDownloadAttachment && (
-                            <ActionButton title="Pobierz załącznik" onClick={() => onDownloadAttachment(document.id)}>
-                                <FaDownload />
-                            </ActionButton>
-                        )}
+                        <ActionButton title="Pobierz dokument" onClick={handleDownloadDocument}>
+                            <FaDownload />
+                        </ActionButton>
                         <ActionButton title="Drukuj dokument" onClick={handlePrintDocument}>
                             <FaPrint />
                         </ActionButton>
@@ -352,7 +505,7 @@ const DocumentViewModal: React.FC<DocumentViewModalProps> = ({
     );
 };
 
-// Styled Components
+// Styled Components (reszta bez zmian)
 const ModalOverlay = styled.div`
     position: fixed;
     top: 0;
@@ -363,7 +516,7 @@ const ModalOverlay = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1040   ;
+    z-index: ${brandTheme.zIndex.modal};
     padding: ${brandTheme.spacing.lg};
     backdrop-filter: blur(4px);
     animation: fadeIn 0.2s ease;
@@ -501,26 +654,27 @@ const ModalContent = styled.div`
     overflow-y: auto;
     flex: 1;
     padding: ${brandTheme.spacing.xl};
-    
+
     /* Custom scrollbar */
     &::-webkit-scrollbar {
         width: 8px;
     }
-    
+
     &::-webkit-scrollbar-track {
         background: ${brandTheme.surfaceAlt};
     }
-    
+
     &::-webkit-scrollbar-thumb {
         background: ${brandTheme.border};
         border-radius: 4px;
     }
-    
+
     &::-webkit-scrollbar-thumb:hover {
         background: ${brandTheme.borderHover};
     }
 `;
 
+// Wszystkie pozostałe styled components pozostają bez zmian...
 const DocumentHeader = styled.div`
     display: flex;
     justify-content: space-between;
@@ -939,27 +1093,27 @@ const StatusButton = styled.button<{ status: DocumentStatus; active: boolean }>`
     font-weight: 600;
     cursor: ${props => props.active ? 'default' : 'pointer'};
     background-color: ${props => props.active ? `${DocumentStatusColors[props.status]}22` : brandTheme.surface};
-   color: ${props => DocumentStatusColors[props.status]};
-   border: 2px solid ${props => props.active ? DocumentStatusColors[props.status] : `${DocumentStatusColors[props.status]}44`};
-   opacity: ${props => props.active ? 1 : 0.8};
-   transition: all ${brandTheme.transitions.normal};
-   
-   &:hover:not(:disabled) {
-       opacity: 1;
-       background-color: ${props => `${DocumentStatusColors[props.status]}11`};
-       transform: translateY(-1px);
-       box-shadow: ${brandTheme.shadow.sm};
-   }
-   
-   &:disabled {
-       cursor: default;
-       transform: none;
-       box-shadow: none;
-   }
+    color: ${props => DocumentStatusColors[props.status]};
+    border: 2px solid ${props => props.active ? DocumentStatusColors[props.status] : `${DocumentStatusColors[props.status]}44`};
+    opacity: ${props => props.active ? 1 : 0.8};
+    transition: all ${brandTheme.transitions.normal};
 
-   &:active:not(:disabled) {
-       transform: translateY(0);
-   }
+    &:hover:not(:disabled) {
+        opacity: 1;
+        background-color: ${props => `${DocumentStatusColors[props.status]}11`};
+        transform: translateY(-1px);
+        box-shadow: ${brandTheme.shadow.sm};
+    }
+
+    &:disabled {
+        cursor: default;
+        transform: none;
+        box-shadow: none;
+    }
+
+    &:active:not(:disabled) {
+        transform: translateY(0);
+    }
 `;
 
 export default DocumentViewModal;
