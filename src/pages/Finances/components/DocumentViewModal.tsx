@@ -10,7 +10,8 @@ import {
     FaTrashAlt,
     FaFileInvoiceDollar,
     FaReceipt,
-    FaExchangeAlt
+    FaExchangeAlt,
+    FaSpinner // <-- Dodaj ten import
 } from 'react-icons/fa';
 import {
     UnifiedFinancialDocument,
@@ -19,13 +20,13 @@ import {
     DocumentStatusColors,
     DocumentType,
     DocumentTypeLabels,
+    TransactionDirection,
     TransactionDirectionLabels,
     TransactionDirectionColors,
     PaymentMethodLabels
 } from '../../../types/finance';
 import { brandTheme } from '../styles/theme';
-import { apiClientNew } from '../../../api/apiClientNew';
-import {documentPrintService} from "../../../api/documentPrintService";
+import { useDocumentOperations } from '../hooks/useDocumentOperations';
 
 interface DocumentViewModalProps {
     isOpen: boolean;
@@ -35,6 +36,7 @@ interface DocumentViewModalProps {
     onStatusChange: (id: string, status: DocumentStatus) => Promise<void>;
     onDelete: (id: string) => Promise<void>;
     onDownloadAttachment?: (documentId: string) => void;
+    onError: (message: string) => void;
 }
 
 const DocumentViewModal: React.FC<DocumentViewModalProps> = ({
@@ -44,12 +46,17 @@ const DocumentViewModal: React.FC<DocumentViewModalProps> = ({
                                                                  onEdit,
                                                                  onStatusChange,
                                                                  onDelete,
-                                                                 onDownloadAttachment
+                                                                 onDownloadAttachment,
+                                                                 onError
                                                              }) => {
-    if (!isOpen) return null;
+    const {
+        handlePrintDocument,
+        handleDownloadDocument,
+        isPrinting,
+        isDownloading
+    } = useDocumentOperations({ onError });
 
-    // Debug log
-    console.log('DocumentViewModal rendering with document:', document);
+    if (!isOpen) return null;
 
     // Helper functions
     const formatDate = (dateString: string): string => {
@@ -93,137 +100,6 @@ const DocumentViewModal: React.FC<DocumentViewModalProps> = ({
         }
     };
 
-    // Prosta logika drukowania - sprawdza załącznik i otwiera odpowiedni URL
-    const handlePrintDocument = async () => {
-        try {
-            console.log('=== Starting print process for document:', document.id);
-
-            // Sprawdź czy dokument ma załącznik
-            const hasAttachment = await checkDocumentHasAttachment(document.id);
-            console.log('Document has attachment:', hasAttachment);
-
-            if (hasAttachment) {
-                // Otwórz załącznik
-                await openAttachmentForPreview(document.id);
-            } else {
-                // Wygeneruj i otwórz fakturę
-                await generateAndPreviewInvoice(document.id);
-            }
-        } catch (error) {
-            console.error('Błąd podczas drukowania dokumentu:', error);
-            alert('Wystąpił błąd podczas przygotowywania wydruku. Spróbuj ponownie później.');
-        }
-    };
-
-    // Sprawdza czy dokument ma załącznik
-    const checkDocumentHasAttachment = async (documentId: string): Promise<boolean> => {
-        return false;
-    };
-
-    // Otwiera załącznik do podglądu
-    const openAttachmentForPreview = async (documentId: string) => {
-        try {
-            console.log('Opening existing attachment for document:', documentId);
-
-            // Używamy prawidłowego URL z portem 8080
-            const url = `http://localhost:8080/api/financial-documents/${documentId}/attachment`;
-            console.log('Fetching attachment from URL:', url);
-
-            const response = await fetch(url, {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-                    'Accept': 'application/pdf,application/octet-stream,*/*',
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-
-            const blob = await response.blob();
-            const blobUrl = URL.createObjectURL(blob);
-
-            console.log('Opening attachment blob URL in new tab, blob size:', blob.size);
-
-            // Otwórz w nowej karcie
-            const newTab = window.open(blobUrl, '_blank');
-            if (!newTab) {
-                alert('Proszę zezwolić na wyskakujące okna dla tej strony');
-                return;
-            }
-
-            // Usuń URL po minucie
-            setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
-
-        } catch (error) {
-            console.error('Error opening attachment:', error);
-            throw error;
-        }
-    };
-
-    // Generuje i otwiera fakturę do podglądu
-    const generateAndPreviewInvoice = async (documentId: string) => {
-        try {
-            console.log('No attachment found, generating invoice from template for document:', documentId);
-
-            // Używamy prawidłowego URL z portem 8080
-            const url = `http://localhost:8080/api/invoice-templates/documents/${documentId}/generate`;
-            console.log('Generating invoice from URL:', url);
-
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/pdf,application/octet-stream,*/*',
-                }
-            });
-
-            console.log('Invoice generation response status:', response.status);
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Invoice generation error response:', errorText);
-                throw new Error(`Błąd generowania faktury: ${response.status} - ${errorText}`);
-            }
-
-            const blob = await response.blob();
-            console.log('Generated invoice blob size:', blob.size);
-
-            const blobUrl = URL.createObjectURL(blob);
-            console.log('Opening generated invoice blob URL in new tab');
-
-            // Otwórz w nowej karcie
-            const newTab = window.open(blobUrl, '_blank');
-            if (!newTab) {
-                alert('Proszę zezwolić na wyskakujące okna dla tej strony');
-                return;
-            }
-
-            // Usuń URL po minucie
-            setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
-
-        } catch (error) {
-            console.error('Error generating invoice:', error);
-            throw error;
-        }
-    };
-
-    // Logika pobierania - wymusza pobranie pliku
-    const handleDownloadDocument = async () => {
-        try {
-            console.log('Downloading document:', document.id);
-            const result = await documentPrintService.downloadDocument(document.id);
-            console.log('Download result:', result);
-            if (!result.success) {
-                alert(result.error || 'Nie udało się pobrać dokumentu');
-            }
-        } catch (error) {
-            console.error('Błąd podczas pobierania dokumentu:', error);
-            alert('Wystąpił błąd podczas pobierania dokumentu');
-        }
-    };
-
     const handleStatusChange = (status: DocumentStatus) => {
         try {
             if (Object.values(DocumentStatus).includes(status)) {
@@ -231,6 +107,7 @@ const DocumentViewModal: React.FC<DocumentViewModalProps> = ({
             }
         } catch (error) {
             console.error('Error changing status:', error);
+            onError('Wystąpił błąd podczas zmiany statusu');
         }
     };
 
@@ -241,6 +118,7 @@ const DocumentViewModal: React.FC<DocumentViewModalProps> = ({
             }
         } catch (error) {
             console.error('Error deleting document:', error);
+            onError('Wystąpił błąd podczas usuwania dokumentu');
         }
     };
 
@@ -261,11 +139,27 @@ const DocumentViewModal: React.FC<DocumentViewModalProps> = ({
                         <ActionButton title="Edytuj dokument" onClick={() => onEdit(document)}>
                             <FaEdit />
                         </ActionButton>
-                        <ActionButton title="Pobierz dokument" onClick={handleDownloadDocument}>
-                            <FaDownload />
+                        <ActionButton
+                            title="Pobierz dokument"
+                            onClick={() => handleDownloadDocument(document)}
+                            disabled={isDownloading(document.id)}
+                        >
+                            {isDownloading(document.id) ? (
+                                <FaSpinner className="spinning" />
+                            ) : (
+                                <FaDownload />
+                            )}
                         </ActionButton>
-                        <ActionButton title="Drukuj dokument" onClick={handlePrintDocument}>
-                            <FaPrint />
+                        <ActionButton
+                            title="Drukuj dokument"
+                            onClick={() => handlePrintDocument(document)}
+                            disabled={isPrinting(document.id)}
+                        >
+                            {isPrinting(document.id) ? (
+                                <FaSpinner className="spinning" />
+                            ) : (
+                                <FaPrint />
+                            )}
                         </ActionButton>
                         <ActionButton
                             title="Usuń dokument"
@@ -623,22 +517,42 @@ const ActionButton = styled.button`
     transition: all ${brandTheme.transitions.normal};
     font-size: 16px;
 
-    &:hover {
+    &:hover:not(:disabled) {
         background: ${brandTheme.primaryGhost};
         color: ${brandTheme.primary};
         transform: scale(1.05);
     }
 
     &.delete {
-        &:hover {
+        &:hover:not(:disabled) {
             background: ${brandTheme.status.errorLight};
             color: ${brandTheme.status.error};
         }
     }
 
-    &:active {
+    &:active:not(:disabled) {
         transform: scale(0.95);
     }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .spinning {
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+}
 `;
 
 const CloseButton = styled(ActionButton)`

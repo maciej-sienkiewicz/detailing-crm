@@ -183,19 +183,41 @@ const TabletIntegrationPage: React.FC = () => {
 
             const pairingCodeResponse = await generatePairingCode();
 
+            console.log('🔍 Pairing response:', pairingCodeResponse);
+
+            // POPRAWKA: Użyj właściwej nazwy pola z serwera
+            const startTime = Date.now();
+            const duration = pairingCodeResponse.expiresin || pairingCodeResponse.expiresIn || 300; // fallback na 300 sekund
+
+            console.log('🔍 Timer setup:', {
+                startTime: new Date(startTime).toISOString(),
+                durationSeconds: duration,
+                expiresAt: new Date(startTime + duration * 1000).toISOString(),
+                // Debug - pokaż dostępne pola
+                availableFields: Object.keys(pairingCodeResponse)
+            });
+
+            // Ustaw początkową wartość PRZED pokazaniem modala
+            setPairingCodeTimer(duration);
+
+            // TERAZ pokaż modal - timer już jest ustawiony
             setShowPairingModal(true);
 
             // Start countdown timer
-            setPairingCodeTimer(pairingCodeResponse.expiresIn);
             const interval = setInterval(() => {
-                setPairingCodeTimer(prev => {
-                    if (prev <= 1) {
-                        clearInterval(interval);
-                        return 0;
-                    }
-                    return prev - 1;
-                });
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                const timeLeft = Math.max(0, duration - elapsed);
+
+                console.log('⏰ Timer update:', { elapsed, timeLeft, duration });
+                setPairingCodeTimer(timeLeft);
+
+                if (timeLeft <= 0) {
+                    console.log('⏰ Timer expired!');
+                    clearInterval(interval);
+                    setPairingCodeInterval(null);
+                }
             }, 1000);
+
             setPairingCodeInterval(interval);
 
         } catch (error) {
@@ -218,9 +240,11 @@ const TabletIntegrationPage: React.FC = () => {
         try {
             if (pairingCodeInterval) {
                 clearInterval(pairingCodeInterval);
+                setPairingCodeInterval(null);
             }
 
-            // Generate new code
+            // Wyczyść modal i wygeneruj nowy kod
+            setShowPairingModal(false);
             await handlePairTablet();
         } catch (error) {
             showToast('error', 'Nie udało się wygenerować nowego kodu');
@@ -228,6 +252,8 @@ const TabletIntegrationPage: React.FC = () => {
     };
 
     const formatTime = (seconds: number): string => {
+        if (seconds <= 0) return '0:00';
+
         const minutes = Math.floor(seconds / 60);
         const remainingSeconds = seconds % 60;
         return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
@@ -376,12 +402,21 @@ const TabletIntegrationPage: React.FC = () => {
                                         <PairingCodeLabel>Kod parowania:</PairingCodeLabel>
                                         <PairingCode>{pairingCode.code}</PairingCode>
                                         <PairingCodeNote>
-                                            {pairingCodeTimer > 0 ? (
+                                            {isPairingCodeGenerating ? (
+                                                'Generowanie kodu...'
+                                            ) : pairingCode && pairingCodeTimer > 0 ? (
                                                 <>Kod wygaśnie za {formatTime(pairingCodeTimer)}</>
-                                            ) : (
+                                            ) : pairingCode && pairingCodeTimer === 0 ? (
                                                 <ExpiredCodeNote>
                                                     <FaExclamationTriangle />
                                                     Kod wygasł
+                                                </ExpiredCodeNote>
+                                            ) : pairingCode ? (
+                                                'Inicjalizacja timera...'
+                                            ) : (
+                                                <ExpiredCodeNote>
+                                                    <FaExclamationTriangle />
+                                                    Błąd generowania kodu
                                                 </ExpiredCodeNote>
                                             )}
                                         </PairingCodeNote>
@@ -425,301 +460,286 @@ const TabletIntegrationPage: React.FC = () => {
 };
 
 // Styled Components - Updated to match the application theme
-// Styled Components - Updated to match the application theme
 const PageContainer = styled.div`
-   min-height: 100vh;
-   background: ${brandTheme.surfaceAlt};
-   display: flex;
-   flex-direction: column;
+    min-height: 100vh;
+    background: ${brandTheme.surfaceAlt};
+    display: flex;
+    flex-direction: column;
 `;
 
 const LoadingContainer = styled.div`
-   display: flex;
-   flex-direction: column;
-   align-items: center;
-   justify-content: center;
-   padding: ${brandTheme.spacing.xxl};
-   background: ${brandTheme.surface};
-   border-radius: ${brandTheme.radius.xl};
-   border: 1px solid ${brandTheme.border};
-   gap: ${brandTheme.spacing.md};
-   min-height: 400px;
-   margin: ${brandTheme.spacing.xl};
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: ${brandTheme.spacing.xxl};
+    background: ${brandTheme.surface};
+    border-radius: ${brandTheme.radius.xl};
+    border: 1px solid ${brandTheme.border};
+    gap: ${brandTheme.spacing.md};
+    min-height: 400px;
+    margin: ${brandTheme.spacing.xl};
 `;
 
 const LoadingSpinner = styled.div`
-   width: 48px;
-   height: 48px;
-   border: 3px solid ${brandTheme.borderLight};
-   border-top: 3px solid ${brandTheme.primary};
-   border-radius: 50%;
-   animation: spin 1s linear infinite;
+    width: 48px;
+    height: 48px;
+    border: 3px solid ${brandTheme.borderLight};
+    border-top: 3px solid ${brandTheme.primary};
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
 
-   @keyframes spin {
-       0% { transform: rotate(0deg); }
-       100% { transform: rotate(360deg); }
-   }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
 `;
 
 const LoadingText = styled.div`
-   font-size: 16px;
-   color: ${brandTheme.text.secondary};
-   font-weight: 500;
+    font-size: 16px;
+    color: ${brandTheme.text.secondary};
+    font-weight: 500;
 `;
 
 const ErrorContainer = styled.div`
-   display: flex;
-   flex-direction: column;
-   align-items: center;
-   justify-content: center;
-   padding: ${brandTheme.spacing.xxl};
-   background: ${brandTheme.surface};
-   border-radius: ${brandTheme.radius.xl};
-   border: 2px dashed ${brandTheme.border};
-   text-align: center;
-   min-height: 400px;
-   margin: ${brandTheme.spacing.xl};
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: ${brandTheme.spacing.xxl};
+    background: ${brandTheme.surface};
+    border-radius: ${brandTheme.radius.xl};
+    border: 2px dashed ${brandTheme.border};
+    text-align: center;
+    min-height: 400px;
+    margin: ${brandTheme.spacing.xl};
 `;
 
 const ErrorIcon = styled.div`
-   width: 64px;
-   height: 64px;
-   background: ${brandTheme.surfaceAlt};
-   border-radius: 50%;
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   font-size: 24px;
-   color: ${brandTheme.status.error};
-   margin-bottom: ${brandTheme.spacing.lg};
-   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+    width: 64px;
+    height: 64px;
+    background: ${brandTheme.surfaceAlt};
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: ${brandTheme.status.error};
+    margin-bottom: ${brandTheme.spacing.lg};
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
 `;
 
 const ErrorText = styled.div`
-   font-size: 18px;
-   color: ${brandTheme.status.error};
-   font-weight: 500;
-   text-align: center;
-   max-width: 600px;
+    font-size: 18px;
+    color: ${brandTheme.status.error};
+    font-weight: 500;
+    text-align: center;
+    max-width: 600px;
 `;
 
 const HeaderContainer = styled.header`
-   background: ${brandTheme.surface};
-   border-bottom: 1px solid ${brandTheme.border};
-   box-shadow: ${brandTheme.shadow.sm};
-   position: sticky;
-   top: 0;
-   z-index: 100;
-   backdrop-filter: blur(8px);
-   background: rgba(255, 255, 255, 0.95);
+    background: ${brandTheme.surface};
+    border-bottom: 1px solid ${brandTheme.border};
+    box-shadow: ${brandTheme.shadow.sm};
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(8px);
+    background: rgba(255, 255, 255, 0.95);
 `;
 
 const HeaderContent = styled.div`
-   max-width: 1600px;
-   margin: 0 auto;
-   padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
-   display: flex;
-   justify-content: space-between;
-   align-items: center;
-   gap: ${brandTheme.spacing.lg};
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: ${brandTheme.spacing.lg};
 
-   @media (max-width: 1024px) {
-       padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-       flex-direction: column;
-       align-items: stretch;
-       gap: ${brandTheme.spacing.md};
-   }
+    @media (max-width: 1024px) {
+        padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+        flex-direction: column;
+        align-items: stretch;
+        gap: ${brandTheme.spacing.md};
+    }
 
-   @media (max-width: 768px) {
-       padding: ${brandTheme.spacing.md};
-   }
+    @media (max-width: 768px) {
+        padding: ${brandTheme.spacing.md};
+    }
 `;
 
 const HeaderLeft = styled.div`
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.md};
-   min-width: 0;
-   flex: 1;
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.md};
+    min-width: 0;
+    flex: 1;
 `;
 
 const HeaderIcon = styled.div`
-   width: 56px;
-   height: 56px;
-   background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-   border-radius: ${brandTheme.radius.lg};
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   color: white;
-   font-size: 24px;
-   box-shadow: ${brandTheme.shadow.md};
-   flex-shrink: 0;
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+    border-radius: ${brandTheme.radius.lg};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+    box-shadow: ${brandTheme.shadow.md};
+    flex-shrink: 0;
 `;
 
 const HeaderText = styled.div`
-   min-width: 0;
-   flex: 1;
+    min-width: 0;
+    flex: 1;
 `;
 
 const HeaderTitle = styled.h1`
-   font-size: 32px;
-   font-weight: 700;
-   color: ${brandTheme.text.primary};
-   margin: 0 0 ${brandTheme.spacing.xs} 0;
-   letter-spacing: -0.025em;
-   line-height: 1.2;
+    font-size: 32px;
+    font-weight: 700;
+    color: ${brandTheme.text.primary};
+    margin: 0 0 ${brandTheme.spacing.xs} 0;
+    letter-spacing: -0.025em;
+    line-height: 1.2;
 
-   @media (max-width: 768px) {
-       font-size: 28px;
-   }
+    @media (max-width: 768px) {
+        font-size: 28px;
+    }
 `;
 
 const HeaderSubtitle = styled.p`
-   color: ${brandTheme.text.secondary};
-   margin: 0;
-   font-size: 16px;
-   font-weight: 500;
-   line-height: 1.4;
+    color: ${brandTheme.text.secondary};
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.4;
 
-   @media (max-width: 768px) {
-       font-size: 14px;
-   }
+    @media (max-width: 768px) {
+        font-size: 14px;
+    }
 `;
 
 const HeaderActions = styled.div`
-   display: flex;
-   gap: ${brandTheme.spacing.md};
-   align-items: center;
-   flex-wrap: wrap;
+    display: flex;
+    gap: ${brandTheme.spacing.md};
+    align-items: center;
+    flex-wrap: wrap;
 
-   @media (max-width: 1024px) {
-       justify-content: flex-end;
-       width: 100%;
-   }
+    @media (max-width: 1024px) {
+        justify-content: flex-end;
+        width: 100%;
+    }
 
-   @media (max-width: 768px) {
-       flex-direction: column;
-       gap: ${brandTheme.spacing.xs};
+    @media (max-width: 768px) {
+        flex-direction: column;
+        gap: ${brandTheme.spacing.xs};
 
-       > * {
-           width: 100%;
-       }
-   }
+        > * {
+            width: 100%;
+        }
+    }
 `;
 
 const ConnectedDevicesIndicator = styled.div`
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.md};
-   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-   background: ${brandTheme.surfaceAlt};
-   border: 1px solid ${brandTheme.border};
-   border-radius: ${brandTheme.radius.lg};
-   box-shadow: ${brandTheme.shadow.xs};
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.md};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    background: ${brandTheme.surfaceAlt};
+    border: 1px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.lg};
+    box-shadow: ${brandTheme.shadow.xs};
 `;
 
 const DeviceStatusIcon = styled.div`
-   width: 32px;
-   height: 32px;
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   color: ${brandTheme.primary};
-   font-size: 16px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${brandTheme.primary};
+    font-size: 16px;
 `;
 
 const DeviceStatusInfo = styled.div`
-   display: flex;
-   flex-direction: column;
-   align-items: flex-start;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
 `;
 
 const DeviceCount = styled.div`
-   font-size: 20px;
-   font-weight: 700;
-   color: ${brandTheme.text.primary};
-   line-height: 1;
+    font-size: 20px;
+    font-weight: 700;
+    color: ${brandTheme.text.primary};
+    line-height: 1;
 `;
 
 const DeviceLabel = styled.div`
-   font-size: 12px;
-   color: ${brandTheme.text.tertiary};
-   font-weight: 500;
-   margin-top: 2px;
+    font-size: 12px;
+    color: ${brandTheme.text.tertiary};
+    font-weight: 500;
+    margin-top: 2px;
 `;
 
 const PairTabletButton = styled.button`
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.sm};
-   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-   background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-   color: white;
-   border: none;
-   border-radius: ${brandTheme.radius.md};
-   font-size: 14px;
-   font-weight: 600;
-   cursor: pointer;
-   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-   box-shadow: ${brandTheme.shadow.sm};
-   min-height: 44px;
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+    color: white;
+    border: none;
+    border-radius: ${brandTheme.radius.md};
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: ${brandTheme.shadow.sm};
+    min-height: 44px;
 
-   &:hover:not(:disabled) {
-       transform: translateY(-1px);
-       box-shadow: ${brandTheme.shadow.md};
-       background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
-   }
+    &:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: ${brandTheme.shadow.md};
+        background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
+    }
 
-   &:active {
-       transform: translateY(0);
-   }
+    &:active {
+        transform: translateY(0);
+    }
 
-   &:disabled {
-       opacity: 0.6;
-       cursor: not-allowed;
-       transform: none;
-       box-shadow: ${brandTheme.shadow.xs};
-   }
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: ${brandTheme.shadow.xs};
+    }
 
-   @media (max-width: 768px) {
-       justify-content: center;
-   }
-`;
-
-const ConnectionSection = styled.div`
-   max-width: 1600px;
-   margin: 0 auto;
-   padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl} 0;
-
-   @media (max-width: 1024px) {
-       padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg} 0;
-   }
-
-   @media (max-width: 768px) {
-       padding: ${brandTheme.spacing.md} ${brandTheme.spacing.md} 0;
-   }
+    @media (max-width: 768px) {
+        justify-content: center;
+    }
 `;
 
 const ContentContainer = styled.div`
-   flex: 1;
-   max-width: 1600px;
-   margin: 0 auto;
-   padding: 0 ${brandTheme.spacing.xl} ${brandTheme.spacing.xl};
-   width: 100%;
-   display: flex;
-   flex-direction: column;
-   gap: ${brandTheme.spacing.lg};
-   min-height: 0;
+    flex: 1;
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 0 ${brandTheme.spacing.xl} ${brandTheme.spacing.xl};
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.lg};
+    min-height: 0;
 
-   @media (max-width: 1024px) {
-       padding: 0 ${brandTheme.spacing.lg} ${brandTheme.spacing.lg};
-   }
+    @media (max-width: 1024px) {
+        padding: 0 ${brandTheme.spacing.lg} ${brandTheme.spacing.lg};
+    }
 
-   @media (max-width: 768px) {
-       padding: 0 ${brandTheme.spacing.md} ${brandTheme.spacing.md};
-       gap: ${brandTheme.spacing.md};
-   }
+    @media (max-width: 768px) {
+        padding: 0 ${brandTheme.spacing.md} ${brandTheme.spacing.md};
+        gap: ${brandTheme.spacing.md};
+    }
 `;
 
 const PairingModalOverlay = styled.div`
@@ -744,100 +764,100 @@ const PairingModalOverlay = styled.div`
 `;
 
 const PairingModal = styled.div`
-   background: ${brandTheme.surface};
-   border-radius: ${brandTheme.radius.xl};
-   box-shadow: ${brandTheme.shadow.xl};
-   max-width: 600px;
-   width: 90%;
-   max-height: 90vh;
-   overflow: hidden;
-   animation: slideUp 0.3s ease;
+    background: ${brandTheme.surface};
+    border-radius: ${brandTheme.radius.xl};
+    box-shadow: ${brandTheme.shadow.xl};
+    max-width: 600px;
+    width: 90%;
+    max-height: 90vh;
+    overflow: hidden;
+    animation: slideUp 0.3s ease;
 
-   @keyframes slideUp {
-       from {
-           opacity: 0;
-           transform: translateY(20px) scale(0.95);
-       }
-       to {
-           opacity: 1;
-           transform: translateY(0) scale(1);
-       }
-   }
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
 
-   @media (max-width: 768px) {
-       width: 100vw;
-       height: 100vh;
-       max-height: 100vh;
-       border-radius: 0;
-   }
+    @media (max-width: 768px) {
+        width: 100vw;
+        height: 100vh;
+        max-height: 100vh;
+        border-radius: 0;
+    }
 `;
 
 const PairingModalHeader = styled.div`
-   display: flex;
-   justify-content: space-between;
-   align-items: center;
-   padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
-   border-bottom: 1px solid ${brandTheme.border};
-   background: ${brandTheme.surfaceAlt};
-   flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
+    border-bottom: 1px solid ${brandTheme.border};
+    background: ${brandTheme.surfaceAlt};
+    flex-shrink: 0;
 `;
 
 const PairingModalTitle = styled.h2`
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.md};
-   font-size: 20px;
-   font-weight: 700;
-   color: ${brandTheme.text.primary};
-   margin: 0;
-   letter-spacing: -0.025em;
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.md};
+    font-size: 20px;
+    font-weight: 700;
+    color: ${brandTheme.text.primary};
+    margin: 0;
+    letter-spacing: -0.025em;
 
-   svg {
-       color: ${brandTheme.primary};
-       font-size: 24px;
-   }
+    svg {
+        color: ${brandTheme.primary};
+        font-size: 24px;
+    }
 `;
 
 const CloseButton = styled.button`
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   width: 40px;
-   height: 40px;
-   border: none;
-   background: ${brandTheme.surfaceHover};
-   color: ${brandTheme.text.secondary};
-   border-radius: ${brandTheme.radius.md};
-   cursor: pointer;
-   transition: all 0.2s ease;
-   font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: ${brandTheme.surfaceHover};
+    color: ${brandTheme.text.secondary};
+    border-radius: ${brandTheme.radius.md};
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 18px;
 
-   &:hover {
-       background: ${brandTheme.status.errorLight};
-       color: ${brandTheme.status.error};
-       transform: scale(1.05);
-   }
+    &:hover {
+        background: ${brandTheme.status.errorLight};
+        color: ${brandTheme.status.error};
+        transform: scale(1.05);
+    }
 
-   &:active {
-       transform: scale(0.95);
-   }
+    &:active {
+        transform: scale(0.95);
+    }
 `;
 
 const PairingModalContent = styled.div`
-   padding: ${brandTheme.spacing.xl};
+    padding: ${brandTheme.spacing.xl};
 `;
 
 const LoadingSection = styled.div`
-   display: flex;
-   flex-direction: column;
-   align-items: center;
-   gap: ${brandTheme.spacing.md};
-   padding: ${brandTheme.spacing.xxl};
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: ${brandTheme.spacing.md};
+    padding: ${brandTheme.spacing.xxl};
 
-   svg {
-       font-size: 48px;
-       color: ${brandTheme.primary};
-   }
+    svg {
+        font-size: 48px;
+        color: ${brandTheme.primary};
+    }
 `;
 
 const ErrorMessage = styled.div`
@@ -860,153 +880,153 @@ const ErrorMessage = styled.div`
 `;
 
 const PairingInstructions = styled.div`
-   margin-bottom: ${brandTheme.spacing.xl};
+    margin-bottom: ${brandTheme.spacing.xl};
 
-   h3 {
-       color: ${brandTheme.text.primary};
-       font-size: 18px;
-       font-weight: 600;
-       margin-bottom: ${brandTheme.spacing.md};
-       display: flex;
-       align-items: center;
-       gap: ${brandTheme.spacing.sm};
+    h3 {
+        color: ${brandTheme.text.primary};
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: ${brandTheme.spacing.md};
+        display: flex;
+        align-items: center;
+        gap: ${brandTheme.spacing.sm};
 
-       &::before {
-           content: '';
-           width: 4px;
-           height: 18px;
-           background: ${brandTheme.primary};
-           border-radius: 2px;
-       }
-   }
+        &::before {
+            content: '';
+            width: 4px;
+            height: 18px;
+            background: ${brandTheme.primary};
+            border-radius: 2px;
+        }
+    }
 
-   ol {
-       color: ${brandTheme.text.secondary};
-       line-height: 1.6;
-       padding-left: 20px;
+    ol {
+        color: ${brandTheme.text.secondary};
+        line-height: 1.6;
+        padding-left: 20px;
 
-       li {
-           margin-bottom: ${brandTheme.spacing.sm};
-       }
-   }
+        li {
+            margin-bottom: ${brandTheme.spacing.sm};
+        }
+    }
 `;
 
 const PairingCodeSection = styled.div`
-   text-align: center;
-   padding: ${brandTheme.spacing.xl};
-   background: ${brandTheme.surfaceAlt};
-   border-radius: ${brandTheme.radius.xl};
-   border: 2px dashed ${brandTheme.primary};
-   margin-bottom: ${brandTheme.spacing.xl};
-   box-shadow: ${brandTheme.shadow.xs};
+    text-align: center;
+    padding: ${brandTheme.spacing.xl};
+    background: ${brandTheme.surfaceAlt};
+    border-radius: ${brandTheme.radius.xl};
+    border: 2px dashed ${brandTheme.primary};
+    margin-bottom: ${brandTheme.spacing.xl};
+    box-shadow: ${brandTheme.shadow.xs};
 `;
 
 const PairingCodeLabel = styled.div`
-   font-size: 14px;
-   color: ${brandTheme.text.secondary};
-   font-weight: 600;
-   margin-bottom: ${brandTheme.spacing.md};
-   text-transform: uppercase;
-   letter-spacing: 0.5px;
+    font-size: 14px;
+    color: ${brandTheme.text.secondary};
+    font-weight: 600;
+    margin-bottom: ${brandTheme.spacing.md};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 `;
 
 const PairingCode = styled.div`
-   font-size: 48px;
-   font-weight: 800;
-   color: ${brandTheme.primary};
-   font-family: 'Courier New', monospace;
-   letter-spacing: 8px;
-   margin-bottom: ${brandTheme.spacing.md};
-   text-shadow: 0 2px 4px rgba(26, 54, 93, 0.2);
+    font-size: 48px;
+    font-weight: 800;
+    color: ${brandTheme.primary};
+    font-family: 'Courier New', monospace;
+    letter-spacing: 8px;
+    margin-bottom: ${brandTheme.spacing.md};
+    text-shadow: 0 2px 4px rgba(26, 54, 93, 0.2);
 
-   @media (max-width: 768px) {
-       font-size: 36px;
-       letter-spacing: 4px;
-   }
+    @media (max-width: 768px) {
+        font-size: 36px;
+        letter-spacing: 4px;
+    }
 `;
 
 const PairingCodeNote = styled.div`
-   font-size: 14px;
-   color: ${brandTheme.status.error};
-   font-weight: 500;
+    font-size: 14px;
+    color: ${brandTheme.status.success};
+    font-weight: 500;
 `;
 
 const ExpiredCodeNote = styled.div`
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   gap: ${brandTheme.spacing.xs};
-   color: ${brandTheme.status.error};
-   font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: ${brandTheme.spacing.xs};
+    color: ${brandTheme.status.error};
+    font-weight: 600;
 
-   svg {
-       font-size: 16px;
-   }
+    svg {
+        font-size: 16px;
+    }
 `;
 
 const PairingActions = styled.div`
-   display: flex;
-   gap: ${brandTheme.spacing.md};
-   justify-content: flex-end;
+    display: flex;
+    gap: ${brandTheme.spacing.md};
+    justify-content: flex-end;
 
-   @media (max-width: 576px) {
-       flex-direction: column-reverse;
-   }
+    @media (max-width: 576px) {
+        flex-direction: column-reverse;
+    }
 `;
 
 const CancelPairingButton = styled.button`
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   gap: ${brandTheme.spacing.sm};
-   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-   border: 2px solid ${brandTheme.border};
-   background: ${brandTheme.surface};
-   color: ${brandTheme.text.secondary};
-   border-radius: ${brandTheme.radius.md};
-   font-weight: 600;
-   font-size: 14px;
-   cursor: pointer;
-   transition: all 0.2s ease;
-   min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    border: 2px solid ${brandTheme.border};
+    background: ${brandTheme.surface};
+    color: ${brandTheme.text.secondary};
+    border-radius: ${brandTheme.radius.md};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 44px;
 
-   &:hover {
-       border-color: ${brandTheme.borderHover};
-       color: ${brandTheme.text.primary};
-       background: ${brandTheme.surfaceHover};
-       box-shadow: ${brandTheme.shadow.xs};
-   }
+    &:hover {
+        border-color: ${brandTheme.borderHover};
+        color: ${brandTheme.text.primary};
+        background: ${brandTheme.surfaceHover};
+        box-shadow: ${brandTheme.shadow.xs};
+    }
 `;
 
 const GenerateNewCodeButton = styled.button`
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   gap: ${brandTheme.spacing.sm};
-   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-   background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-   color: white;
-   border: none;
-   border-radius: ${brandTheme.radius.md};
-   font-weight: 600;
-   font-size: 14px;
-   cursor: pointer;
-   transition: all 0.2s ease;
-   box-shadow: ${brandTheme.shadow.sm};
-   min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+    color: white;
+    border: none;
+    border-radius: ${brandTheme.radius.md};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: ${brandTheme.shadow.sm};
+    min-height: 44px;
 
-   &:hover:not(:disabled) {
-       transform: translateY(-1px);
-       box-shadow: ${brandTheme.shadow.md};
-       background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
-   }
+    &:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: ${brandTheme.shadow.md};
+        background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
+    }
 
-   &:disabled {
-       opacity: 0.6;
-       cursor: not-allowed;
-       transform: none;
-       box-shadow: ${brandTheme.shadow.xs};
-   }
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: ${brandTheme.shadow.xs};
+    }
 `;
 
 export default TabletIntegrationPage;

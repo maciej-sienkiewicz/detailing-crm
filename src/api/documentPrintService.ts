@@ -1,4 +1,4 @@
-// src/services/documentPrintService.ts
+// src/api/documentPrintService.ts
 import { apiClientNew, ApiError } from '../api/apiClientNew';
 
 export interface PrintDocumentOptions {
@@ -14,11 +14,17 @@ export interface DocumentPrintResult {
     error?: string;
 }
 
+export interface DocumentActionResult {
+    success: boolean;
+    error?: string;
+}
+
 /**
- * Serwis do obsługi drukowania dokumentów finansowych
- * Implementuje logikę wyboru między załącznikami a generowaniem z szablonu
+ * Serwis do obsługi operacji na dokumentach finansowych
+ * Centralizuje wszystkie operacje związane z drukowaniem, pobieraniem i zarządzaniem dokumentami
  */
 class DocumentPrintService {
+    private readonly baseUrl = 'http://localhost:8080/api';
 
     /**
      * Główna metoda do drukowania/wyświetlania dokumentu
@@ -29,16 +35,13 @@ class DocumentPrintService {
             console.log('Document ID:', documentId);
             console.log('Options:', options);
 
-            // Sprawdź czy dokument ma załącznik
             const hasAttachment = await this.checkDocumentAttachment(documentId);
             console.log('Has attachment:', hasAttachment);
 
             if (hasAttachment) {
-                // Użyj załącznika z /api/financial-documents/{id}/attachment
                 console.log('Using existing attachment');
                 return await this.openDocumentAttachment(documentId, options);
             } else {
-                // Wygeneruj z szablonu z /api/invoice-templates/documents/{id}/generate
                 console.log('Generating from template');
                 return await this.generateAndOpenInvoice(documentId, options);
             }
@@ -52,16 +55,12 @@ class DocumentPrintService {
     }
 
     /**
-     * Sprawdza czy dokument ma załącznik używając apiClientNew
+     * Sprawdza czy dokument ma załącznik
      */
     private async checkDocumentAttachment(documentId: string): Promise<boolean> {
         try {
             console.log('Checking attachment for document:', documentId);
-
-            // Używamy get z pustymi parametrami - jeśli zwróci dane to znaczy że załącznik istnieje
-            // Jeśli rzuci błąd 404, to znaczy że nie ma załącznika
             await apiClientNew.get(`/financial-documents/${documentId}/attachment`);
-
             console.log('Document has attachment: true');
             return true;
         } catch (error) {
@@ -75,18 +74,16 @@ class DocumentPrintService {
     }
 
     /**
-     * Pobiera blob z endpointu używając niższego poziomu API
+     * Pobiera blob z endpointu
      */
     private async getBlobFromEndpoint(endpoint: string): Promise<Blob> {
-        // Używamy tego samego base URL co apiClientNew: http://localhost:8080/api
-        const url = `http://localhost:8080/api${endpoint}`;
-
+        const url = `${this.baseUrl}${endpoint}`;
         console.log('Fetching blob from URL:', url);
 
         const response = await fetch(url, {
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+                'Authorization': `Bearer ${this.getAuthToken()}`,
                 'Accept': 'application/pdf,application/octet-stream,*/*',
             },
         });
@@ -107,15 +104,13 @@ class DocumentPrintService {
      * Wykonuje POST i zwraca blob
      */
     private async postForBlob(endpoint: string, data?: any): Promise<Blob> {
-        // Używamy tego samego base URL co apiClientNew: http://localhost:8080/api
-        const url = `http://localhost:8080/api${endpoint}`;
-
+        const url = `${this.baseUrl}${endpoint}`;
         console.log('Posting to URL for blob:', url);
 
         const response = await fetch(url, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+                'Authorization': `Bearer ${this.getAuthToken()}`,
                 'Content-Type': 'application/json',
                 'Accept': 'application/pdf,application/octet-stream,*/*',
             },
@@ -136,21 +131,30 @@ class DocumentPrintService {
     }
 
     /**
+     * Pobiera token autoryzacji
+     */
+    private getAuthToken(): string | null {
+        try {
+            return localStorage.getItem('auth_token');
+        } catch {
+            return null;
+        }
+    }
+
+    /**
      * Otwiera załącznik dokumentu
      */
     private async openDocumentAttachment(documentId: string, options: Omit<PrintDocumentOptions, 'documentId'>): Promise<DocumentPrintResult> {
         try {
             console.log('Fetching attachment blob for document:', documentId);
-
             const blob = await this.getBlobFromEndpoint(`/financial-documents/${documentId}/attachment`);
             console.log('Attachment blob size:', blob.size);
-
             return this.handleBlobResponse(blob, documentId, 'dokument', options.forceDownload);
         } catch (error) {
             console.error('Error opening document attachment:', error);
             return {
                 success: false,
-                error: `Nie udało się otworzyć załącznika dokumentu:`
+                error: `Nie udało się otworzyć załącznika dokumentu`
             };
         }
     }
@@ -166,16 +170,14 @@ class DocumentPrintService {
             }
 
             console.log('Generating invoice from endpoint:', endpoint);
-
             const blob = await this.postForBlob(endpoint);
             console.log('Generated invoice blob size:', blob.size);
-
             return this.handleBlobResponse(blob, documentId, 'faktura', options.forceDownload);
         } catch (error) {
             console.error('Error generating invoice:', error);
             return {
                 success: false,
-                error: `Nie udało się wygenerować faktury z szablonu:`
+                error: `Nie udało się wygenerować faktury z szablonu`
             };
         }
     }
@@ -192,37 +194,10 @@ class DocumentPrintService {
         const blobUrl = URL.createObjectURL(blob);
 
         if (forceDownload) {
-            // Force download
-            const link = document.createElement('a');
-            link.href = blobUrl;
-            link.download = `${filePrefix}-${documentId}.pdf`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-
-            console.log('Download initiated for:', filePrefix);
-
-            // Cleanup blob URL quickly for downloads
+            this.downloadFile(blobUrl, `${filePrefix}-${documentId}.pdf`);
             setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
         } else {
-            // Open in new tab for preview
-            console.log('Opening', filePrefix, 'in new tab...');
-
-            const newWindow = window.open(blobUrl, '_blank', 'noopener,noreferrer');
-
-            if (!newWindow) {
-                // Fallback if popup is blocked
-                console.log('Popup blocked, trying alternative method');
-                const link = document.createElement('a');
-                link.href = blobUrl;
-                link.target = '_blank';
-                link.rel = 'noopener noreferrer';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            }
-
-            // Cleanup blob URL after longer time for preview
+            this.openInNewTab(blobUrl);
             setTimeout(() => {
                 console.log('Cleaning up blob URL for:', filePrefix);
                 URL.revokeObjectURL(blobUrl);
@@ -230,6 +205,36 @@ class DocumentPrintService {
         }
 
         return { success: true, pdfUrl: blobUrl };
+    }
+
+    /**
+     * Pobiera plik
+     */
+    private downloadFile(url: string, filename: string): void {
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        console.log('Download initiated for:', filename);
+    }
+
+    /**
+     * Otwiera URL w nowej karcie
+     */
+    private openInNewTab(url: string): void {
+        const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
+        if (!newWindow) {
+            console.log('Popup blocked, trying alternative method');
+            const link = document.createElement('a');
+            link.href = url;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
     }
 
     /**

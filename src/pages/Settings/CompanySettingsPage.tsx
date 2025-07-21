@@ -1,4 +1,4 @@
-// src/pages/Settings/CompanySettingsPage.tsx - sekcja Logo przeniesiona do BrandThemeSettingsPage
+// src/pages/Settings/CompanySettingsPage.tsx
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import styled from 'styled-components';
 import {
@@ -19,10 +19,15 @@ import {
     FaInfoCircle,
     FaGlobe,
     FaPhone,
-    FaMapMarkerAlt, FaUpload
+    FaMapMarkerAlt,
+    FaGoogleDrive,
+    FaCloud,
+    FaSync,
+    FaFileArchive,
+    FaTrashAlt,
+    FaExternalLinkAlt,
+    FaClipboard
 } from 'react-icons/fa';
-import { type GoogleDriveSettings, type GoogleDriveTestResponse } from '../../api/companySettingsApi';
-import { FaGoogleDrive, FaCloud, FaSync, FaFileArchive, FaTrashAlt } from 'react-icons/fa';
 
 // Import API and types
 import {
@@ -32,7 +37,10 @@ import {
     type UpdateCompanySettingsRequest,
     type TestEmailConnectionRequest,
     type EmailTestResponse,
-    type NipValidationResponse
+    type NipValidationResponse,
+    type GoogleDriveFolderSettings,
+    type GoogleDriveSystemInfo,
+    type ValidateFolderResponse
 } from '../../api/companySettingsApi';
 
 // Professional theme matching finances module
@@ -119,115 +127,17 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
     const [nipValidation, setNipValidation] = useState<{ isValid: boolean; message: string } | null>(null);
     const [validatingNip, setValidatingNip] = useState(false);
 
-    const [googleDriveSettings, setGoogleDriveSettings] = useState<GoogleDriveSettings | null>(null);
+    // Google Drive state - NOWA WERSJA
+    const [googleDriveSettings, setGoogleDriveSettings] = useState<GoogleDriveFolderSettings | null>(null);
+    const [googleDriveSystemInfo, setGoogleDriveSystemInfo] = useState<GoogleDriveSystemInfo | null>(null);
     const [testingGoogleDrive, setTestingGoogleDrive] = useState(false);
-    const [googleDriveTestResult, setGoogleDriveTestResult] = useState<GoogleDriveTestResponse | null>(null);
+    const [validatingFolder, setValidatingFolder] = useState(false);
+    const [configuringFolder, setConfiguringFolder] = useState(false);
     const [backingUp, setBackingUp] = useState(false);
-    const [uploadingCredentials, setUploadingCredentials] = useState(false);
-
-    const googleDriveFileInputRef = useRef<HTMLInputElement>(null);
-
-    useEffect(() => {
-        loadCompanySettings();
-        loadGoogleDriveSettings();
-    }, []);
-
-    const loadGoogleDriveSettings = async () => {
-        try {
-            const settings = await companySettingsApi.getIntegrationStatus();
-            setGoogleDriveSettings(settings);
-        } catch (err) {
-            console.error('Error loading Google Drive settings:', err);
-        }
-    };
-
-    const handleGoogleDriveCredentialsUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-
-        if (!file.name.endsWith('.json')) {
-            setError('Plik musi mieć rozszerzenie .json');
-            return;
-        }
-
-        if (file.size > 10 * 1024 * 1024) { // 10MB limit
-            setError('Plik nie może być większy niż 10MB');
-            return;
-        }
-
-        // Sprawdź czy to prawidłowy service account JSON
-        try {
-            const text = await file.text();
-            const json = JSON.parse(text);
-
-            if (!json.type || json.type !== 'service_account' || !json.client_email || !json.private_key) {
-                setError('Nieprawidłowy plik Service Account JSON');
-                return;
-            }
-
-            setUploadingCredentials(true);
-            setError(null);
-
-            const result = await companySettingsApi.uploadCredentials(file, json.client_email);
-
-            if (result.status === 'success') {
-                setSuccessMessage('Credentials Google Drive zostały zapisane pomyślnie');
-                await loadGoogleDriveSettings();
-            } else {
-                setError(result.message || 'Nie udało się zapisać credentials');
-            }
-        } catch (err) {
-            console.error('Error uploading Google Drive credentials:', err);
-            setError('Nie udało się przesłać credentials');
-        } finally {
-            setUploadingCredentials(false);
-            // Reset input
-            if (googleDriveFileInputRef.current) {
-                googleDriveFileInputRef.current.value = '';
-            }
-        }
-    };
-
-    const testGoogleDriveConnection = async () => {
-        try {
-            setTestingGoogleDrive(true);
-            setGoogleDriveTestResult(null);
-
-            const result = await companySettingsApi.testConnection();
-            setGoogleDriveTestResult(result);
-        } catch (err) {
-            console.error('Error testing Google Drive connection:', err);
-            setGoogleDriveTestResult({
-                companyId: 0,
-                isActive: false,
-                status: "INACTIVE"
-            });
-        } finally {
-            setTestingGoogleDrive(false);
-        }
-    };
-
-    const removeGoogleDriveIntegration = async () => {
-        if (!window.confirm('Czy na pewno chcesz usunąć integrację z Google Drive? Nie będziesz mógł automatycznie tworzyć kopii zapasowych.')) {
-            return;
-        }
-
-        try {
-            setError(null);
-
-            const result = await companySettingsApi.removeIntegration();
-
-            if (result.status === 'success') {
-                setSuccessMessage('Integracja z Google Drive została usunięta');
-                await loadGoogleDriveSettings();
-            } else {
-                setError(result.message || 'Nie udało się usunąć integracji');
-            }
-        } catch (err) {
-            console.error('Error removing Google Drive integration:', err);
-            setError('Nie udało się usunąć integracji');
-        }
-    };
+    const [googleDriveTestResult, setGoogleDriveTestResult] = useState<{ success: boolean; message: string } | null>(null);
+    const [folderValidationResult, setFolderValidationResult] = useState<ValidateFolderResponse | null>(null);
+    const [folderIdInput, setFolderIdInput] = useState('');
+    const [folderNameInput, setFolderNameInput] = useState('');
 
     useImperativeHandle(ref, () => ({
         handleSave: handleSaveAll
@@ -236,6 +146,8 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
     // Load company settings on component mount
     useEffect(() => {
         loadCompanySettings();
+        loadGoogleDriveSettings();
+        loadGoogleDriveSystemInfo();
     }, []);
 
     const loadCompanySettings = async () => {
@@ -250,6 +162,178 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
             setError('Nie udało się załadować ustawień firmy');
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Google Drive functions - NOWA WERSJA
+    const loadGoogleDriveSettings = async () => {
+        try {
+            const settings = await companySettingsApi.getGoogleDriveIntegrationStatus();
+            setGoogleDriveSettings(settings);
+        } catch (err) {
+            console.error('Error loading Google Drive settings:', err);
+        }
+    };
+
+    const loadGoogleDriveSystemInfo = async () => {
+        try {
+            const systemInfo = await companySettingsApi.getGoogleDriveSystemInfo();
+            setGoogleDriveSystemInfo(systemInfo);
+        } catch (err) {
+            console.error('Error loading Google Drive system info:', err);
+        }
+    };
+
+    const handleValidateFolder = async () => {
+        if (!folderIdInput.trim()) {
+            setError('Wprowadź ID folderu');
+            return;
+        }
+
+        // Walidacja formatu ID folderu
+        const validation = companySettingsValidation.validateGoogleDriveFolderId(folderIdInput);
+        if (!validation.valid) {
+            setError(validation.error || 'Nieprawidłowy format ID folderu');
+            return;
+        }
+
+        try {
+            setValidatingFolder(true);
+            setError(null);
+            setFolderValidationResult(null);
+
+            const result = await companySettingsApi.validateGoogleDriveFolder(folderIdInput.trim());
+            setFolderValidationResult(result);
+
+            if (!result.valid) {
+                setError(result.message);
+            }
+        } catch (err) {
+            console.error('Error validating folder:', err);
+            setError('Nie udało się sprawdzić folderu');
+        } finally {
+            setValidatingFolder(false);
+        }
+    };
+
+    const handleConfigureFolder = async () => {
+        if (!folderIdInput.trim()) {
+            setError('Wprowadź ID folderu');
+            return;
+        }
+
+        // Waliduj najpierw folder jeśli jeszcze nie zwalidowany
+        if (!folderValidationResult?.valid) {
+            await handleValidateFolder();
+            return;
+        }
+
+        try {
+            setConfiguringFolder(true);
+            setError(null);
+
+            const result = await companySettingsApi.configureGoogleDriveFolder({
+                folderId: folderIdInput.trim(),
+                folderName: folderNameInput.trim() || undefined
+            });
+
+            if (result.status === 'success') {
+                setSuccessMessage('Folder Google Drive został skonfigurowany pomyślnie');
+                setFolderIdInput('');
+                setFolderNameInput('');
+                setFolderValidationResult(null);
+                await loadGoogleDriveSettings();
+            } else {
+                setError(result.message || 'Nie udało się skonfigurować folderu');
+            }
+        } catch (err) {
+            console.error('Error configuring folder:', err);
+            setError('Nie udało się skonfigurować folderu');
+        } finally {
+            setConfiguringFolder(false);
+        }
+    };
+
+    const testGoogleDriveConnection = async () => {
+        try {
+            setTestingGoogleDrive(true);
+            setGoogleDriveTestResult(null);
+
+            const settings = await companySettingsApi.getGoogleDriveIntegrationStatus();
+
+            if (settings.systemServiceAvailable && settings.isActive) {
+                setGoogleDriveTestResult({
+                    success: true,
+                    message: 'Połączenie z Google Drive działa prawidłowo'
+                });
+            } else {
+                setGoogleDriveTestResult({
+                    success: false,
+                    message: settings.systemServiceAvailable
+                        ? 'Integracja nie jest aktywna'
+                        : 'Usługa systemowa nie jest dostępna'
+                });
+            }
+        } catch (err) {
+            console.error('Error testing Google Drive connection:', err);
+            setGoogleDriveTestResult({
+                success: false,
+                message: 'Błąd podczas testowania połączenia'
+            });
+        } finally {
+            setTestingGoogleDrive(false);
+        }
+    };
+
+    const handleBackupCurrentMonth = async () => {
+        try {
+            setBackingUp(true);
+            setError(null);
+
+            const result = await companySettingsApi.backupCurrentMonth();
+
+            if (result.status === 'success') {
+                setSuccessMessage('Backup bieżącego miesiąca wykonany pomyślnie');
+                await loadGoogleDriveSettings(); // Odśwież statystyki
+            } else {
+                setError(result.message || 'Nie udało się wykonać backup');
+            }
+        } catch (err) {
+            console.error('Error running backup:', err);
+            setError('Nie udało się wykonać backup');
+        } finally {
+            setBackingUp(false);
+        }
+    };
+
+    const handleDeactivateIntegration = async () => {
+        if (!window.confirm('Czy na pewno chcesz dezaktywować integrację z Google Drive? Będziesz mógł ją ponownie skonfigurować w każdej chwili.')) {
+            return;
+        }
+
+        try {
+            setError(null);
+
+            const result = await companySettingsApi.deactivateGoogleDriveIntegration();
+
+            if (result.status === 'success') {
+                setSuccessMessage('Integracja z Google Drive została dezaktywowana');
+                await loadGoogleDriveSettings();
+            } else {
+                setError(result.message || 'Nie udało się dezaktywować integracji');
+            }
+        } catch (err) {
+            console.error('Error deactivating integration:', err);
+            setError('Nie udało się dezaktywować integracji');
+        }
+    };
+
+    const copyToClipboard = async (text: string) => {
+        try {
+            await navigator.clipboard.writeText(text);
+            setSuccessMessage('Skopiowano do schowka');
+        } catch (err) {
+            console.error('Failed to copy:', err);
         }
     };
 
@@ -380,22 +464,6 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
 
     const hasUnsavedChanges = formData && originalData ?
         JSON.stringify(formData) !== JSON.stringify(originalData) : false;
-
-    const getCompletionPercentage = () => {
-        if (!formData) return 0;
-
-        const fields = [
-            formData.basicInfo?.companyName,
-            formData.basicInfo?.taxId,
-            formData.basicInfo?.address,
-            formData.basicInfo?.phone,
-            formData.bankSettings?.bankAccountNumber,
-            formData.emailSettings?.smtpHost,
-            formData.emailSettings?.senderEmail
-        ];
-        const completed = fields.filter(field => field && field !== false).length;
-        return Math.round((completed / fields.length) * 100);
-    };
 
     if (loading) {
         return (
@@ -889,7 +957,7 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                     </CardBody>
                 </SettingsCard>
 
-                {/* Google Drive Settings */}
+                {/* Google Drive Settings - NOWA WERSJA */}
                 <SettingsCard>
                     <CardHeader>
                         <HeaderContent>
@@ -898,55 +966,121 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                             </HeaderIcon>
                             <HeaderText>
                                 <HeaderTitle>Google Drive</HeaderTitle>
-                                <HeaderSubtitle>Automatyczne kopie zapasowe faktur w chmurze</HeaderSubtitle>
+                                <HeaderSubtitle>Automatyczne kopie zapasowe faktur w folderze Google Drive</HeaderSubtitle>
                             </HeaderText>
                         </HeaderContent>
                         <HeaderActions>
-                            <>
+                            <ActionGroup>
                                 <SecondaryButton onClick={testGoogleDriveConnection} disabled={testingGoogleDrive}>
                                     {testingGoogleDrive ? <FaSpinner className="spinning" /> : <FaCloud />}
                                     Test połączenia
                                 </SecondaryButton>
-                            </>
+                                {googleDriveSettings?.isActive && (
+                                    <PrimaryButton onClick={handleBackupCurrentMonth} disabled={backingUp}>
+                                        {backingUp ? <FaSpinner className="spinning" /> : <FaSync />}
+                                        Backup teraz
+                                    </PrimaryButton>
+                                )}
+                            </ActionGroup>
                         </HeaderActions>
                     </CardHeader>
 
                     {googleDriveTestResult && (
-                        <TestResultBanner $success={googleDriveTestResult.isActive}>
+                        <TestResultBanner $success={googleDriveTestResult.success}>
                             <TestResultIcon>
-                                {googleDriveTestResult.isActive ? <FaCheckCircle /> : <FaExclamationTriangle />}
+                                {googleDriveTestResult.success ? <FaCheckCircle /> : <FaExclamationTriangle />}
                             </TestResultIcon>
                             <TestResultText>
-                                {googleDriveTestResult.status}
+                                {googleDriveTestResult.message}
                             </TestResultText>
                         </TestResultBanner>
                     )}
 
                     <CardBody>
-                        <ConfigStatusBanner $configured={googleDriveSettings?.credentialsConfigured ?? false}>
+                        <ConfigStatusBanner $configured={googleDriveSettings?.isActive ?? false}>
                             <StatusIcon>
-                                {googleDriveSettings?.credentialsConfigured ? <FaCheckCircle /> : <FaExclamationTriangle />}
+                                {googleDriveSettings?.isActive ? <FaCheckCircle /> : <FaExclamationTriangle />}
                             </StatusIcon>
                             <StatusText>
-                                {googleDriveSettings?.credentialsConfigured
-                                    ? 'Google Drive skonfigurowane i gotowe do użycia'
-                                    : 'Google Drive wymaga konfiguracji Service Account'
+                                {googleDriveSettings?.isActive
+                                    ? `Integracja aktywna - folder: ${googleDriveSettings.folderName || 'Folder główny'}`
+                                    : 'Integracja wymaga konfiguracji folderu Google Drive'
                                 }
                             </StatusText>
                         </ConfigStatusBanner>
 
-                        {googleDriveSettings?.credentialsConfigured ? (
-                            // Configured state
+                        {googleDriveSettings?.isActive ? (
+                            // Stan skonfigurowany - NOWA WERSJA
                             <GoogleDriveConfigured>
+                                <GoogleDriveInfo>
+                                    <InfoGrid>
+                                        <InfoItem>
+                                            <InfoLabel>Folder</InfoLabel>
+                                            <InfoValue>
+                                                {googleDriveSettings.folderUrl ? (
+                                                    <ExternalLink href={googleDriveSettings.folderUrl} target="_blank">
+                                                        {googleDriveSettings.folderName || googleDriveSettings.folderId}
+                                                        <FaExternalLinkAlt style={{ marginLeft: '4px', fontSize: '12px' }} />
+                                                    </ExternalLink>
+                                                ) : (
+                                                    googleDriveSettings.folderName || googleDriveSettings.folderId
+                                                )}
+                                            </InfoValue>
+                                        </InfoItem>
+
+                                        <InfoItem>
+                                            <InfoLabel>Status</InfoLabel>
+                                            <StatusBadge $active={googleDriveSettings.systemServiceAvailable}>
+                                                {googleDriveSettings.systemServiceAvailable ? 'Aktywny' : 'Niedostępny'}
+                                            </StatusBadge>
+                                        </InfoItem>
+
+                                        <InfoItem>
+                                            <InfoLabel>Ostatni backup</InfoLabel>
+                                            <InfoValue>
+                                                {googleDriveSettings.lastBackupAt
+                                                    ? new Date(googleDriveSettings.lastBackupAt).toLocaleString('pl-PL')
+                                                    : 'Nigdy'
+                                                }
+                                            </InfoValue>
+                                        </InfoItem>
+
+                                        <InfoItem>
+                                            <InfoLabel>Liczba backup-ów</InfoLabel>
+                                            <InfoValue>{googleDriveSettings.backupCount || 0}</InfoValue>
+                                        </InfoItem>
+
+                                        <InfoItem>
+                                            <InfoLabel>Konto systemowe</InfoLabel>
+                                            <InfoValue style={{ fontSize: '12px', fontFamily: 'monospace' }}>
+                                                {googleDriveSettings.systemEmail}
+                                            </InfoValue>
+                                        </InfoItem>
+
+                                        <InfoItem>
+                                            <InfoLabel>Status ostatniego backup</InfoLabel>
+                                            <InfoValue>
+                                                <StatusBadge $active={googleDriveSettings.lastBackupStatus === 'SUCCESS'}>
+                                                    {googleDriveSettings.lastBackupStatus || 'Brak danych'}
+                                                </StatusBadge>
+                                            </InfoValue>
+                                        </InfoItem>
+                                    </InfoGrid>
+                                </GoogleDriveInfo>
+
                                 <GoogleDriveActions>
                                     <ActionGroup>
-                                        <SecondaryButton onClick={() => googleDriveFileInputRef.current?.click()}>
-                                            <FaUpload />
-                                            Zmień credentials
+                                        <SecondaryButton onClick={() => {
+                                            setGoogleDriveSettings(prev => prev ? { ...prev, isActive: false } : null);
+                                            setFolderIdInput('');
+                                            setFolderNameInput('');
+                                        }}>
+                                            <FaEdit />
+                                            Zmień folder
                                         </SecondaryButton>
-                                        <DangerButton onClick={removeGoogleDriveIntegration}>
+                                        <DangerButton onClick={handleDeactivateIntegration}>
                                             <FaTrashAlt />
-                                            Usuń integrację
+                                            Dezaktywuj
                                         </DangerButton>
                                     </ActionGroup>
                                 </GoogleDriveActions>
@@ -957,44 +1091,63 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                                         Jak działa backup?
                                     </HelpTitle>
                                     <HelpList>
-                                        <HelpItem>Faktury są automatycznie organizowane w folderach: faktury/rok/miesiąc</HelpItem>
-                                        <HelpItem>Backup można uruchomić ręcznie lub skonfigurować automatycznie</HelpItem>
+                                        <HelpItem>Faktury są automatycznie organizowane w folderach: faktury/rok/miesiąc/kierunek</HelpItem>
+                                        <HelpItem>Backup można uruchomić ręcznie przyciskiem "Backup teraz"</HelpItem>
                                         <HelpItem>Kopie zapasowe zawierają wszystkie faktury z bieżącego miesiąca</HelpItem>
-                                        <HelpItem>Pliki są bezpiecznie przechowywane na Twoim Google Drive</HelpItem>
+                                        <HelpItem>Pliki są bezpiecznie przechowywane w Twoim folderze Google Drive</HelpItem>
+                                        <HelpItem>System używa konta: {googleDriveSettings.systemEmail}</HelpItem>
                                     </HelpList>
                                 </GoogleDriveHelp>
                             </GoogleDriveConfigured>
                         ) : (
-                            // Not configured state
+                            // Stan niekonfigurowany - NOWA WERSJA
                             <GoogleDriveSetup>
                                 <SetupSteps>
-                                    <SetupTitle>Konfiguracja Google Drive w 3 krokach:</SetupTitle>
+                                    <SetupTitle>Konfiguracja Google Drive w 4 prostych krokach:</SetupTitle>
                                     <StepsList>
                                         <SetupStep>
                                             <StepNumber>1</StepNumber>
                                             <StepContent>
-                                                <StepTitle>Utwórz Service Account</StepTitle>
+                                                <StepTitle>Utwórz folder w Google Drive</StepTitle>
                                                 <StepDescription>
-                                                    Przejdź do <ExternalLink href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</ExternalLink>,
-                                                    włącz Google Drive API i utwórz Service Account
+                                                    Przejdź do <ExternalLink href="https://drive.google.com" target="_blank">Google Drive</ExternalLink> i utwórz nowy folder dla kopii zapasowych faktur
                                                 </StepDescription>
                                             </StepContent>
                                         </SetupStep>
                                         <SetupStep>
                                             <StepNumber>2</StepNumber>
                                             <StepContent>
-                                                <StepTitle>Pobierz plik JSON</StepTitle>
+                                                <StepTitle>Udostępnij folder dla systemu</StepTitle>
                                                 <StepDescription>
-                                                    Wygeneruj i pobierz klucz prywatny w formacie JSON dla Service Account
+                                                    Kliknij prawym przyciskiem na folder → "Udostępnij" → dodaj email:
+                                                    <EmailCopyBox style={{ marginTop: '8px' }}>
+                                                        <EmailText>{googleDriveSystemInfo?.systemEmail || 'system@carslab.com'}</EmailText>
+                                                        <CopyButton onClick={() => copyToClipboard(googleDriveSystemInfo?.systemEmail || '')}>
+                                                            <FaClipboard />
+                                                        </CopyButton>
+                                                    </EmailCopyBox>
+                                                    z uprawnieniami "Edytor"
                                                 </StepDescription>
                                             </StepContent>
                                         </SetupStep>
                                         <SetupStep>
                                             <StepNumber>3</StepNumber>
                                             <StepContent>
-                                                <StepTitle>Udostępnij folder</StepTitle>
+                                                <StepTitle>Skopiuj ID folderu</StepTitle>
                                                 <StepDescription>
-                                                    Na Google Drive udostępnij folder "Faktury" dla emaila Service Account z uprawnieniami Edytora
+                                                    Otwórz folder w przeglądarce i skopiuj ID z URL (długi ciąg znaków po "/folders/")
+                                                </StepDescription>
+                                                <ExampleUrl>
+                                                    Przykład URL: https://drive.google.com/drive/folders/<HighlightText>1PqsrjjfVbc-wMOCsrqPtjpiB2rPqgs4v</HighlightText>
+                                                </ExampleUrl>
+                                            </StepContent>
+                                        </SetupStep>
+                                        <SetupStep>
+                                            <StepNumber>4</StepNumber>
+                                            <StepContent>
+                                                <StepTitle>Skonfiguruj poniżej</StepTitle>
+                                                <StepDescription>
+                                                    Wklej ID folderu i opcjonalnie podaj nazwę dla łatwiejszej identyfikacji
                                                 </StepDescription>
                                             </StepContent>
                                         </SetupStep>
@@ -1006,38 +1159,97 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                                         <UploadIcon>
                                             <FaFileArchive />
                                         </UploadIcon>
-                                        <UploadTitle>Prześlij plik Service Account JSON</UploadTitle>
+                                        <UploadTitle>Konfiguracja folderu Google Drive</UploadTitle>
                                         <UploadDescription>
-                                            Kliknij poniżej aby wybrać plik JSON z credentials
+                                            Wprowadź ID folderu który udostępniłeś dla konta systemowego
                                         </UploadDescription>
-                                        <PrimaryButton
-                                            onClick={() => googleDriveFileInputRef.current?.click()}
-                                            disabled={uploadingCredentials}
-                                        >
-                                            {uploadingCredentials ? <FaSpinner className="spinning" /> : <FaUpload />}
-                                            {uploadingCredentials ? 'Przesyłanie...' : 'Wybierz plik JSON'}
-                                        </PrimaryButton>
+
+                                        <FormGrid style={{ marginTop: '24px', width: '100%' }}>
+                                            <FormField $fullWidth>
+                                                <FieldLabel>
+                                                    ID folderu Google Drive
+                                                    <RequiredMark>*</RequiredMark>
+                                                </FieldLabel>
+                                                <Input
+                                                    value={folderIdInput}
+                                                    onChange={(e) => setFolderIdInput(e.target.value)}
+                                                    placeholder="1PqsrjjfVbc-wMOCsrqPtjpiB2rPqgs4v"
+                                                    style={{ fontFamily: 'monospace', fontSize: '13px' }}
+                                                />
+                                                <HelpText>
+                                                    Skopiuj ID z URL folderu Google Drive (część po "/folders/")
+                                                </HelpText>
+                                            </FormField>
+
+                                            <FormField $fullWidth>
+                                                <FieldLabel>Nazwa folderu (opcjonalnie)</FieldLabel>
+                                                <Input
+                                                    value={folderNameInput}
+                                                    onChange={(e) => setFolderNameInput(e.target.value)}
+                                                    placeholder="Faktury CRM - Backup"
+                                                />
+                                                <HelpText>
+                                                    Opis dla łatwiejszej identyfikacji w systemie
+                                                </HelpText>
+                                            </FormField>
+                                        </FormGrid>
+
+                                        <ActionGroup style={{ marginTop: '24px', justifyContent: 'center' }}>
+                                            <SecondaryButton
+                                                onClick={handleValidateFolder}
+                                                disabled={validatingFolder || !folderIdInput.trim()}
+                                            >
+                                                {validatingFolder ? <FaSpinner className="spinning" /> : <FaCheckCircle />}
+                                                {validatingFolder ? 'Sprawdzanie...' : 'Sprawdź folder'}
+                                            </SecondaryButton>
+
+                                            {folderValidationResult?.valid && (
+                                                <PrimaryButton
+                                                    onClick={handleConfigureFolder}
+                                                    disabled={configuringFolder}
+                                                >
+                                                    {configuringFolder ? <FaSpinner className="spinning" /> : <FaSave />}
+                                                    {configuringFolder ? 'Konfigurowanie...' : 'Skonfiguruj'}
+                                                </PrimaryButton>
+                                            )}
+                                        </ActionGroup>
+
+                                        {folderValidationResult && (
+                                            <ValidationResultBox $success={folderValidationResult.valid}>
+                                                <ValidationIcon>
+                                                    {folderValidationResult.valid ? <FaCheckCircle /> : <FaExclamationTriangle />}
+                                                </ValidationIcon>
+                                                <ValidationText>
+                                                    <ValidationMessage $success={folderValidationResult.valid}>
+                                                        {folderValidationResult.message}
+                                                    </ValidationMessage>
+                                                    {!folderValidationResult.valid && folderValidationResult.instructions && (
+                                                        <ValidationInstructions>
+                                                            <InstructionTitle>Co należy zrobić:</InstructionTitle>
+                                                            <InstructionsList>
+                                                                <InstructionItem>{folderValidationResult.instructions.step1}</InstructionItem>
+                                                                <InstructionItem>{folderValidationResult.instructions.step2}</InstructionItem>
+                                                                <InstructionItem>{folderValidationResult.instructions.step3}</InstructionItem>
+                                                            </InstructionsList>
+                                                        </ValidationInstructions>
+                                                    )}
+                                                </ValidationText>
+                                            </ValidationResultBox>
+                                        )}
                                     </UploadContent>
                                 </UploadArea>
 
                                 <RequirementsBox>
-                                    <RequirementsTitle>Wymagania pliku:</RequirementsTitle>
+                                    <RequirementsTitle>Wymagania:</RequirementsTitle>
                                     <RequirementsList>
-                                        <RequirementItem>Format: JSON</RequirementItem>
-                                        <RequirementItem>Typ: service_account</RequirementItem>
-                                        <RequirementItem>Maksymalny rozmiar: 10MB</RequirementItem>
-                                        <RequirementItem>Musi zawierać private_key i client_email</RequirementItem>
+                                        <RequirementItem>Folder musi być udostępniony dla: {googleDriveSystemInfo?.systemEmail || 'system@carslab.com'}</RequirementItem>
+                                        <RequirementItem>Uprawnienia: Edytor (możliwość dodawania plików)</RequirementItem>
+                                        <RequirementItem>Folder może być pusty lub zawierać inne pliki</RequirementItem>
+                                        <RequirementItem>System automatycznie utworzy strukturę podfolderów</RequirementItem>
                                     </RequirementsList>
                                 </RequirementsBox>
                             </GoogleDriveSetup>
                         )}
-
-                        <HiddenFileInput
-                            ref={googleDriveFileInputRef}
-                            type="file"
-                            accept=".json"
-                            onChange={handleGoogleDriveCredentialsUpload}
-                        />
                     </CardBody>
                 </SettingsCard>
 
@@ -1048,1016 +1260,1013 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
 
 // Styled Components - Professional style matching finances
 const PageContainer = styled.div`
-    min-height: 100vh;
-    background: ${brandTheme.surfaceAlt};
-    display: flex;
-    flex-direction: column;
+   min-height: 100vh;
+   background: ${brandTheme.surfaceAlt};
+   display: flex;
+   flex-direction: column;
 `;
 
 const LoadingContainer = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: ${brandTheme.spacing.xxl};
-    background: ${brandTheme.surface};
-    border-radius: ${brandTheme.radius.xl};
-    margin: ${brandTheme.spacing.xl};
-    gap: ${brandTheme.spacing.md};
-    min-height: 400px;
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   justify-content: center;
+   padding: ${brandTheme.spacing.xxl};
+   background: ${brandTheme.surface};
+   border-radius: ${brandTheme.radius.xl};
+   margin: ${brandTheme.spacing.xl};
+   gap: ${brandTheme.spacing.md};
+   min-height: 400px;
 `;
 
 const LoadingSpinner = styled.div`
-    width: 48px;
-    height: 48px;
-    border: 3px solid ${brandTheme.borderLight};
-    border-top: 3px solid ${brandTheme.primary};
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
+   width: 48px;
+   height: 48px;
+   border: 3px solid ${brandTheme.borderLight};
+   border-top: 3px solid ${brandTheme.primary};
+   border-radius: 50%;
+   animation: spin 1s linear infinite;
 
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
+   @keyframes spin {
+       0% { transform: rotate(0deg); }
+       100% { transform: rotate(360deg); }
+   }
 `;
 
 const LoadingText = styled.div`
-    font-size: 16px;
-    color: ${brandTheme.text.secondary};
-    font-weight: 500;
+   font-size: 16px;
+   color: ${brandTheme.text.secondary};
+   font-weight: 500;
 `;
 
 const ErrorContainer = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: ${brandTheme.spacing.xxl};
-    background: ${brandTheme.surface};
-    border-radius: ${brandTheme.radius.xl};
-    margin: ${brandTheme.spacing.xl};
-    gap: ${brandTheme.spacing.md};
-    min-height: 400px;
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   justify-content: center;
+   padding: ${brandTheme.spacing.xxl};
+   background: ${brandTheme.surface};
+   border-radius: ${brandTheme.radius.xl};
+   margin: ${brandTheme.spacing.xl};
+   gap: ${brandTheme.spacing.md};
+   min-height: 400px;
 `;
 
 const ErrorIcon = styled.div`
-    font-size: 48px;
-    color: ${brandTheme.status.error};
+   font-size: 48px;
+   color: ${brandTheme.status.error};
 `;
 
 const ErrorText = styled.div`
-    font-size: 16px;
-    color: ${brandTheme.text.secondary};
-    font-weight: 500;
-    text-align: center;
+   font-size: 16px;
+   color: ${brandTheme.text.secondary};
+   font-weight: 500;
+   text-align: center;
 `;
 
 const RetryButton = styled.button`
-    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
-    background: ${brandTheme.primary};
-    color: white;
-    border: none;
-    border-radius: ${brandTheme.radius.md};
-    font-weight: 600;
-    cursor: pointer;
-    transition: all ${brandTheme.transitions.spring};
+   padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+   background: ${brandTheme.primary};
+   color: white;
+   border: none;
+   border-radius: ${brandTheme.radius.md};
+   font-weight: 600;
+   cursor: pointer;
+   transition: all ${brandTheme.transitions.spring};
 
-    &:hover {
-        background: ${brandTheme.primaryDark};
-        transform: translateY(-1px);
-    }
+   &:hover {
+       background: ${brandTheme.primaryDark};
+       transform: translateY(-1px);
+   }
 `;
 
 const MessageContainer = styled.div`
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 1000;
-    max-width: 400px;
-    width: auto;
-    padding: 0;
+   position: fixed;
+   bottom: 20px;
+   right: 20px;
+   z-index: 1000;
+   max-width: 400px;
+   width: auto;
+   padding: 0;
 
-    @media (max-width: 768px) {
-        bottom: 10px;
-        right: 10px;
-        left: 10px;
-        max-width: none;
-    }
+   @media (max-width: 768px) {
+       bottom: 10px;
+       right: 10px;
+       left: 10px;
+       max-width: none;
+   }
 `;
 
 const SuccessMessage = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
-    background: ${brandTheme.status.successLight};
-    color: ${brandTheme.status.success};
-    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-    border-radius: ${brandTheme.radius.lg};
-    border: 1px solid ${brandTheme.status.success}30;
-    font-weight: 500;
-    box-shadow: ${brandTheme.shadow.lg};
-    animation: slideInFromRight 0.3s ease-out;
-    min-width: 300px;
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.sm};
+   background: ${brandTheme.status.successLight};
+   color: ${brandTheme.status.success};
+   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+   border-radius: ${brandTheme.radius.lg};
+   border: 1px solid ${brandTheme.status.success}30;
+   font-weight: 500;
+   box-shadow: ${brandTheme.shadow.lg};
+   animation: slideInFromRight 0.3s ease-out;
+   min-width: 300px;
 
-    @keyframes slideInFromRight {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
+   @keyframes slideInFromRight {
+       from {
+           transform: translateX(100%);
+           opacity: 0;
+       }
+       to {
+           transform: translateX(0);
+           opacity: 1;
+       }
+   }
 
-    @media (max-width: 768px) {
-        min-width: auto;
-        width: 100%;
-    }
+   @media (max-width: 768px) {
+       min-width: auto;
+       width: 100%;
+   }
 `;
 
 const ErrorMessage = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
-    background: ${brandTheme.status.errorLight};
-    color: ${brandTheme.status.error};
-    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-    border-radius: ${brandTheme.radius.lg};
-    border: 1px solid ${brandTheme.status.error}30;
-    font-weight: 500;
-    box-shadow: ${brandTheme.shadow.lg};
-    animation: slideInFromRight 0.3s ease-out;
-    min-width: 300px;
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.sm};
+   background: ${brandTheme.status.errorLight};
+   color: ${brandTheme.status.error};
+   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+   border-radius: ${brandTheme.radius.lg};
+   border: 1px solid ${brandTheme.status.error}30;
+   font-weight: 500;
+   box-shadow: ${brandTheme.shadow.lg};
+   animation: slideInFromRight 0.3s ease-out;
+   min-width: 300px;
 
-    @media (max-width: 768px) {
-        min-width: auto;
-        width: 100%;
-    }
+   @media (max-width: 768px) {
+       min-width: auto;
+       width: 100%;
+   }
 `;
 
 const MessageIcon = styled.div`
-    font-size: 18px;
-    flex-shrink: 0;
+   font-size: 18px;
+   flex-shrink: 0;
 `;
 
 const ContentContainer = styled.div`
-    flex: 1;
-    max-width: 1600px;
-    margin: 0 auto;
-    padding: ${brandTheme.spacing.xl} ${brandTheme.spacing.xl} ${brandTheme.spacing.xl};
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: ${brandTheme.spacing.lg};
-    min-height: 0;
-
-    @media (max-width: 1024px) {
-        padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.lg} ${brandTheme.spacing.lg};
-    }
-
-    @media (max-width: 768px) {
-        padding: ${brandTheme.spacing.md} ${brandTheme.spacing.md} ${brandTheme.spacing.md};
-        gap: ${brandTheme.spacing.md};
-    }
-`;
-
-const SettingsCard = styled.div`
-    background: ${brandTheme.surface};
-    border-radius: ${brandTheme.radius.xl};
-    border: 1px solid ${brandTheme.border};
-    overflow: hidden;
-    box-shadow: ${brandTheme.shadow.sm};
-    transition: all ${brandTheme.transitions.spring};
-
-    &:hover {
-        box-shadow: ${brandTheme.shadow.md};
-        border-color: ${brandTheme.borderHover};
-    }
-`;
-
-const CardHeader = styled.div`
+   flex: 1;
+   max-width: 1600px;
+   margin: 0 auto;
+   padding: ${brandTheme.spacing.xl} ${brandTheme.spacing.xl} ${brandTheme.spacing.xl};
+   width: 100%;
    display: flex;
-   justify-content: space-between;
-   align-items: center;
-   padding: ${brandTheme.spacing.lg};
-   border-bottom: 1px solid ${brandTheme.border};
-   background: ${brandTheme.surfaceAlt};
+   flex-direction: column;
    gap: ${brandTheme.spacing.lg};
+   min-height: 0;
+
+   @media (max-width: 1024px) {
+       padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.lg} ${brandTheme.spacing.lg};
+   }
 
    @media (max-width: 768px) {
-       flex-direction: column;
-       align-items: stretch;
+       padding: ${brandTheme.spacing.md} ${brandTheme.spacing.md} ${brandTheme.spacing.md};
        gap: ${brandTheme.spacing.md};
    }
 `;
 
+const SettingsCard = styled.div`
+   background: ${brandTheme.surface};
+   border-radius: ${brandTheme.radius.xl};
+   border: 1px solid ${brandTheme.border};
+   overflow: hidden;
+   box-shadow: ${brandTheme.shadow.sm};
+   transition: all ${brandTheme.transitions.spring};
+
+   &:hover {
+       box-shadow: ${brandTheme.shadow.md};
+       border-color: ${brandTheme.borderHover};
+   }
+`;
+
+const CardHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: ${brandTheme.spacing.lg};
+  border-bottom: 1px solid ${brandTheme.border};
+  background: ${brandTheme.surfaceAlt};
+  gap: ${brandTheme.spacing.lg};
+
+  @media (max-width: 768px) {
+      flex-direction: column;
+      align-items: stretch;
+      gap: ${brandTheme.spacing.md};
+  }
+`;
+
 const HeaderContent = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.md};
-    flex: 1;
-    min-width: 0;
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.md};
+   flex: 1;
+   min-width: 0;
 `;
 
 const HeaderIcon = styled.div`
-    width: 40px;
-    height: 40px;
-    background: ${brandTheme.primaryGhost};
-    border-radius: ${brandTheme.radius.md};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: ${brandTheme.primary};
-    font-size: 18px;
-    flex-shrink: 0;
+   width: 40px;
+   height: 40px;
+   background: ${brandTheme.primaryGhost};
+   border-radius: ${brandTheme.radius.md};
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   color: ${brandTheme.primary};
+   font-size: 18px;
+   flex-shrink: 0;
 `;
 
 const HeaderText = styled.div`
-    flex: 1;
-    min-width: 0;
+   flex: 1;
+   min-width: 0;
 `;
 
 const HeaderTitle = styled.h3`
-   font-size: 18px;
-   font-weight: 600;
-   color: ${brandTheme.text.primary};
-   margin: 0 0 ${brandTheme.spacing.xs} 0;
-   letter-spacing: -0.025em;
+  font-size: 18px;
+  font-weight: 600;
+  color: ${brandTheme.text.primary};
+margin: 0 0 ${brandTheme.spacing.xs} 0;
+  letter-spacing: -0.025em;
 `;
 
 const HeaderSubtitle = styled.p`
+  font-size: 14px;
+  color: ${brandTheme.text.secondary};
+  margin: 0;
+  font-weight: 500;
+`;
+
+const HeaderActions = styled.div`
+   display: flex;
+   gap: ${brandTheme.spacing.sm};
+   align-items: center;
+   flex-shrink: 0;
+
+   @media (max-width: 768px) {
+       justify-content: stretch;
+
+       > * {
+           flex: 1;
+       }
+   }
+`;
+
+const ActionGroup = styled.div`
+   display: flex;
+   gap: ${brandTheme.spacing.sm};
+
+   @media (max-width: 768px) {
+       width: 100%;
+
+       > * {
+           flex: 1;
+       }
+   }
+`;
+
+const BaseButton = styled.button`
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.sm};
+   padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+   border-radius: ${brandTheme.radius.md};
+   font-weight: 600;
+   font-size: 14px;
+   cursor: pointer;
+   transition: all ${brandTheme.transitions.spring};
+   border: 1px solid transparent;
+   white-space: nowrap;
+   min-height: 44px;
+   justify-content: center;
+
+   &:hover:not(:disabled) {
+       transform: translateY(-1px);
+       box-shadow: ${brandTheme.shadow.md};
+   }
+
+   &:disabled {
+       opacity: 0.6;
+       cursor: not-allowed;
+       transform: none;
+   }
+
+   .spinning {
+       animation: spin 1s linear infinite;
+   }
+
+   @keyframes spin {
+       0% { transform: rotate(0deg); }
+       100% { transform: rotate(360deg); }
+   }
+`;
+
+const PrimaryButton = styled(BaseButton)`
+  background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+  color: white;
+  box-shadow: ${brandTheme.shadow.sm};
+
+  &:hover:not(:disabled) {
+      background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
+      box-shadow: ${brandTheme.shadow.lg};
+  }
+`;
+
+const SecondaryButton = styled(BaseButton)`
+  background: ${brandTheme.surface};
+  color: ${brandTheme.text.secondary};
+  border-color: ${brandTheme.border};
+  box-shadow: ${brandTheme.shadow.xs};
+
+  &:hover:not(:disabled) {
+      background: ${brandTheme.surfaceHover};
+      color: ${brandTheme.text.primary};
+      border-color: ${brandTheme.borderHover};
+  }
+`;
+
+const DangerButton = styled(BaseButton)`
+   background: ${brandTheme.status.errorLight};
+   color: ${brandTheme.status.error};
+   border-color: ${brandTheme.status.error}30;
+
+   &:hover:not(:disabled) {
+       background: ${brandTheme.status.error};
+       color: white;
+       border-color: ${brandTheme.status.error};
+   }
+`;
+
+const TestResultBanner = styled.div<{ $success: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: ${brandTheme.spacing.md};
+  padding: ${brandTheme.spacing.md} ${brandTheme.spacing.xl};
+  background: ${props => props.$success ? brandTheme.status.successLight : brandTheme.status.errorLight};
+  color: ${props => props.$success ? brandTheme.status.success : brandTheme.status.error};
+  border-bottom: 1px solid ${brandTheme.border};
+  font-weight: 500;
+`;
+
+const TestResultIcon = styled.div`
+   font-size: 18px;
+   flex-shrink: 0;
+`;
+
+const TestResultText = styled.div`
+  flex: 1;
+  font-weight: 600;
+`;
+
+const TestResultDetails = styled.div`
+  font-size: 12px;
+  font-weight: 400;
+  margin-top: 4px;
+  opacity: 0.8;
+`;
+
+const CardBody = styled.div`
+  padding: ${brandTheme.spacing.xl};
+`;
+
+const ConfigStatusBanner = styled.div<{ $configured: boolean }>`
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.sm};
+   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+   background: ${props => props.$configured ? brandTheme.status.successLight : brandTheme.status.warningLight};
+   color: ${props => props.$configured ? brandTheme.status.success : brandTheme.status.warning};
+   border-radius: ${brandTheme.radius.md};
+   margin-bottom: ${brandTheme.spacing.lg};
+   border: 1px solid ${props => props.$configured ? brandTheme.status.success + '30' : brandTheme.status.warning + '30'};
+`;
+
+const StatusIcon = styled.div`
+  font-size: 16px;
+  flex-shrink: 0;
+`;
+
+const StatusText = styled.div`
+   font-weight: 500;
+   flex: 1;
+`;
+
+const FormGrid = styled.div`
+   display: grid;
+   grid-template-columns: 1fr 1fr;
+   gap: ${brandTheme.spacing.lg};
+
+   @media (max-width: 768px) {
+       grid-template-columns: 1fr;
+       gap: ${brandTheme.spacing.md};
+   }
+`;
+
+const FormField = styled.div<{ $fullWidth?: boolean }>`
+   display: flex;
+   flex-direction: column;
+   gap: ${brandTheme.spacing.sm};
+   ${props => props.$fullWidth && 'grid-column: 1 / -1;'}
+`;
+
+const FieldLabel = styled.label`
+  display: flex;
+  align-items: center;
+  gap: ${brandTheme.spacing.sm};
+  font-weight: 600;
+  font-size: 14px;
+  color: ${brandTheme.text.primary};
+  
+  .icon {
+      font-size: 16px;
+  }
+  
+  svg {
+      font-size: 16px;
+      color: ${brandTheme.text.tertiary};
+  }
+`;
+
+const RequiredMark = styled.span`
+   color: ${brandTheme.status.error};
+   font-weight: 700;
+   margin-left: ${brandTheme.spacing.xs};
+`;
+
+const ValidationStatus = styled.div<{ $valid: boolean }>`
+   font-size: 14px;
+   color: ${props => props.$valid ? brandTheme.status.success : brandTheme.status.warning};
+   margin-left: auto;
+
+   .spinning {
+       animation: spin 1s linear infinite;
+   }
+`;
+
+const ValidationMessage = styled.div<{ $isValid: boolean }>`
+   font-size: 12px;
+   color: ${props => props.$isValid ? brandTheme.status.success : brandTheme.status.error};
+   font-weight: 500;
+   margin-top: ${brandTheme.spacing.xs};
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.xs};
+
+   &::before {
+       content: ${props => props.$isValid ? '"✓"' : '"⚠"'};
+       font-size: 14px;
+   }
+`;
+
+const Input = styled.input`
+  height: 48px;
+  padding: 0 ${brandTheme.spacing.md};
+  border: 2px solid ${brandTheme.border};
+  border-radius: ${brandTheme.radius.md};
+  font-size: 15px;
+  font-weight: 500;
+  background: ${brandTheme.surface};
+  color: ${brandTheme.text.primary};
+  transition: all ${brandTheme.transitions.spring};
+
+  &:focus {
+      outline: none;
+      border-color: ${brandTheme.primary};
+      box-shadow: 0 0 0 3px ${brandTheme.primaryGhost};
+  }
+
+  &::placeholder {
+      color: ${brandTheme.text.muted};
+      font-weight: 400;
+  }
+`;
+
+const PasswordContainer = styled.div`
+   position: relative;
+   display: flex;
+   align-items: center;
+`;
+
+const PasswordToggle = styled.button`
+   position: absolute;
+   right: 12px;
+   background: none;
+   border: none;
+   color: ${brandTheme.text.muted};
+   cursor: pointer;
+   padding: 4px;
+   border-radius: ${brandTheme.radius.sm};
+
+   &:hover {
+       color: ${brandTheme.text.secondary};
+       background: ${brandTheme.surfaceHover};
+   }
+`;
+
+const DisplayValue = styled.div<{ $hasValue: boolean }>`
+  padding: ${brandTheme.spacing.md};
+  background: ${brandTheme.surfaceElevated};
+  border: 2px solid ${brandTheme.borderLight};
+  border-radius: ${brandTheme.radius.md};
+  color: ${props => props.$hasValue ? brandTheme.text.primary : brandTheme.text.muted};
+  font-weight: 500;
+  font-size: 15px;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  font-style: ${props => props.$hasValue ? 'normal' : 'italic'};
+`;
+
+const WebsiteLink = styled.a`
+  color: ${brandTheme.primary};
+  text-decoration: none;
+  font-weight: 600;
+  
+  &:hover {
+      text-decoration: underline;
+  }
+`;
+
+const SecuritySection = styled.div`
+   margin-top: ${brandTheme.spacing.lg};
+   padding: ${brandTheme.spacing.lg};
+   background: ${brandTheme.surfaceElevated};
+   border-radius: ${brandTheme.radius.md};
+   border: 1px solid ${brandTheme.border};
+`;
+
+const SecurityHeader = styled.h4`
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.sm};
+   font-size: 16px;
+   font-weight: 600;
+   color: ${brandTheme.text.primary};
+   margin: 0 0 ${brandTheme.spacing.md} 0;
+
+   svg {
+       color: ${brandTheme.status.success};
+   }
+`;
+
+const SecurityOptions = styled.div`
+   display: flex;
+   gap: ${brandTheme.spacing.lg};
+
+   @media (max-width: 480px) {
+       flex-direction: column;
+       gap: ${brandTheme.spacing.md};
+   }
+`;
+
+const SecurityOption = styled.label`
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.sm};
+   font-size: 14px;
+   font-weight: 500;
+   color: ${brandTheme.text.primary};
+   cursor: pointer;
+
+   input[type="checkbox"] {
+       width: 18px;
+       height: 18px;
+       accent-color: ${brandTheme.primary};
+       cursor: pointer;
+   }
+`;
+
+// Google Drive styled components
+const GoogleDriveConfigured = styled.div`
+   display: flex;
+   flex-direction: column;
+   gap: ${brandTheme.spacing.lg};
+`;
+
+const GoogleDriveInfo = styled.div`
+   background: ${brandTheme.surfaceElevated};
+   border-radius: ${brandTheme.radius.md};
+   padding: ${brandTheme.spacing.lg};
+   border: 1px solid ${brandTheme.border};
+`;
+
+const InfoGrid = styled.div`
+   display: grid;
+   grid-template-columns: 1fr 1fr;
+   gap: ${brandTheme.spacing.md};
+
+   @media (max-width: 768px) {
+       grid-template-columns: 1fr;
+   }
+`;
+
+const InfoItem = styled.div`
+   display: flex;
+   flex-direction: column;
+   gap: ${brandTheme.spacing.xs};
+`;
+
+const InfoLabel = styled.div`
+   font-size: 12px;
+   font-weight: 600;
+   color: ${brandTheme.text.tertiary};
+   text-transform: uppercase;
+   letter-spacing: 0.5px;
+`;
+
+const InfoValue = styled.div`
+   font-size: 14px;
+   font-weight: 500;
+   color: ${brandTheme.text.primary};
+`;
+
+const StatusBadge = styled.span<{ $active: boolean }>`
+   display: inline-flex;
+   align-items: center;
+   padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
+   border-radius: ${brandTheme.radius.sm};
+   font-size: 12px;
+   font-weight: 600;
+   background: ${props => props.$active ? brandTheme.status.successLight : brandTheme.status.warningLight};
+   color: ${props => props.$active ? brandTheme.status.success : brandTheme.status.warning};
+   border: 1px solid ${props => props.$active ? brandTheme.status.success + '30' : brandTheme.status.warning + '30'};
+`;
+
+const GoogleDriveActions = styled.div`
+   display: flex;
+   justify-content: center;
+   padding: ${brandTheme.spacing.lg} 0;
+   border-top: 1px solid ${brandTheme.border};
+   border-bottom: 1px solid ${brandTheme.border};
+`;
+
+const GoogleDriveHelp = styled.div`
+   background: ${brandTheme.primaryGhost};
+   border-radius: ${brandTheme.radius.md};
+   padding: ${brandTheme.spacing.lg};
+   border: 1px solid ${brandTheme.primary}20;
+`;
+
+const HelpTitle = styled.h4`
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.sm};
+   font-size: 16px;
+   font-weight: 600;
+   color: ${brandTheme.primary};
+   margin: 0 0 ${brandTheme.spacing.md} 0;
+`;
+
+const HelpList = styled.ul`
+   list-style: none;
+   padding: 0;
+   margin: 0;
+   display: flex;
+   flex-direction: column;
+   gap: ${brandTheme.spacing.sm};
+`;
+
+const HelpItem = styled.li`
+   font-size: 14px;
+   color: ${brandTheme.text.secondary};
+   font-weight: 500;
+   display: flex;
+   align-items: flex-start;
+   gap: ${brandTheme.spacing.sm};
+
+   &::before {
+       content: '✓';
+       color: ${brandTheme.status.success};
+       font-weight: bold;
+       font-size: 14px;
+       margin-top: 1px;
+       flex-shrink: 0;
+   }
+`;
+
+const GoogleDriveSetup = styled.div`
+   display: flex;
+   flex-direction: column;
+   gap: ${brandTheme.spacing.xl};
+`;
+
+const SetupSteps = styled.div`
+   background: ${brandTheme.surfaceElevated};
+   border-radius: ${brandTheme.radius.lg};
+   padding: ${brandTheme.spacing.xl};
+   border: 1px solid ${brandTheme.border};
+`;
+
+const SetupTitle = styled.h4`
+   font-size: 18px;
+   font-weight: 600;
+   color: ${brandTheme.text.primary};
+   margin: 0 0 ${brandTheme.spacing.lg} 0;
+`;
+
+const StepsList = styled.div`
+   display: flex;
+   flex-direction: column;
+   gap: ${brandTheme.spacing.lg};
+`;
+
+const SetupStep = styled.div`
+   display: flex;
+   gap: ${brandTheme.spacing.md};
+   align-items: flex-start;
+`;
+
+const StepNumber = styled.div`
+   width: 32px;
+   height: 32px;
+   background: ${brandTheme.primary};
+   color: white;
+   border-radius: 50%;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   font-weight: 600;
+   font-size: 14px;
+   flex-shrink: 0;
+`;
+
+const StepContent = styled.div`
+   flex: 1;
+   display: flex;
+   flex-direction: column;
+   gap: ${brandTheme.spacing.xs};
+`;
+
+const StepTitle = styled.div`
+   font-size: 16px;
+   font-weight: 600;
+   color: ${brandTheme.text.primary};
+`;
+
+const StepDescription = styled.div`
+   font-size: 14px;
+   color: ${brandTheme.text.secondary};
+   line-height: 1.5;
+`;
+
+const ExternalLink = styled.a`
+   color: ${brandTheme.primary};
+   text-decoration: none;
+   font-weight: 600;
+   display: inline-flex;
+   align-items: center;
+   gap: 4px;
+
+   &:hover {
+       text-decoration: underline;
+   }
+`;
+
+const EmailCopyBox = styled.div`
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.sm};
+   background: ${brandTheme.surfaceElevated};
+   border: 1px solid ${brandTheme.border};
+   border-radius: ${brandTheme.radius.md};
+   padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+`;
+
+const EmailText = styled.code`
+   flex: 1;
+   font-family: monospace;
+   font-size: 13px;
+   color: ${brandTheme.text.primary};
+   background: none;
+`;
+
+const CopyButton = styled.button`
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   width: 32px;
+   height: 32px;
+   border: none;
+   background: ${brandTheme.primary}20;
+   color: ${brandTheme.primary};
+   border-radius: ${brandTheme.radius.sm};
+   cursor: pointer;
+   transition: all ${brandTheme.transitions.normal};
+
+   &:hover {
+       background: ${brandTheme.primary};
+       color: white;
+   }
+`;
+
+const ExampleUrl = styled.div`
+   font-family: monospace;
+   font-size: 12px;
+   background: ${brandTheme.surfaceElevated};
+   padding: ${brandTheme.spacing.sm};
+   border-radius: ${brandTheme.radius.sm};
+   margin-top: ${brandTheme.spacing.sm};
+   border: 1px solid ${brandTheme.border};
+`;
+
+const HighlightText = styled.span`
+   background: ${brandTheme.status.warningLight};
+   color: ${brandTheme.status.warning};
+   padding: 2px 4px;
+   border-radius: 3px;
+   font-weight: 600;
+`;
+
+const UploadArea = styled.div`
+   border: 2px dashed ${brandTheme.border};
+   border-radius: ${brandTheme.radius.lg};
+   padding: ${brandTheme.spacing.xxl};
+   background: ${brandTheme.surfaceElevated};
+   text-align: center;
+   transition: all ${brandTheme.transitions.spring};
+
+   &:hover {
+       border-color: ${brandTheme.primary};
+       background: ${brandTheme.primaryGhost};
+   }
+`;
+
+const UploadContent = styled.div`
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: ${brandTheme.spacing.lg};
+`;
+
+const UploadIcon = styled.div`
+   width: 64px;
+   height: 64px;
+   background: ${brandTheme.primaryGhost};
+   border-radius: 50%;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   font-size: 24px;
+   color: ${brandTheme.primary};
+`;
+
+const UploadTitle = styled.h4`
+   font-size: 18px;
+   font-weight: 600;
+   color: ${brandTheme.text.primary};
+   margin: 0;
+`;
+
+const UploadDescription = styled.p`
    font-size: 14px;
    color: ${brandTheme.text.secondary};
    margin: 0;
    font-weight: 500;
 `;
 
-const HeaderActions = styled.div`
-    display: flex;
-    gap: ${brandTheme.spacing.sm};
-    align-items: center;
-    flex-shrink: 0;
-
-    @media (max-width: 768px) {
-        justify-content: stretch;
-
-        > * {
-            flex: 1;
-        }
-    }
-`;
-
-const ActionGroup = styled.div`
-    display: flex;
-    gap: ${brandTheme.spacing.sm};
-
-    @media (max-width: 768px) {
-        width: 100%;
-
-        > * {
-            flex: 1;
-        }
-    }
-`;
-
-const BaseButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
-    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
-    border-radius: ${brandTheme.radius.md};
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all ${brandTheme.transitions.spring};
-    border: 1px solid transparent;
-    white-space: nowrap;
-    min-height: 44px;
-    justify-content: center;
-
-    &:hover:not(:disabled) {
-        transform: translateY(-1px);
-        box-shadow: ${brandTheme.shadow.md};
-    }
-
-    &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: none;
-    }
-
-    .spinning {
-        animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-`;
-
-const PrimaryButton = styled(BaseButton)`
-   background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-   color: white;
-   box-shadow: ${brandTheme.shadow.sm};
-
-   &:hover:not(:disabled) {
-       background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
-       box-shadow: ${brandTheme.shadow.lg};
-   }
-`;
-
-const SecondaryButton = styled(BaseButton)`
-   background: ${brandTheme.surface};
-   color: ${brandTheme.text.secondary};
-   border-color: ${brandTheme.border};
-   box-shadow: ${brandTheme.shadow.xs};
-
-   &:hover:not(:disabled) {
-       background: ${brandTheme.surfaceHover};
-       color: ${brandTheme.text.primary};
-       border-color: ${brandTheme.borderHover};
-   }
-`;
-
-const DangerButton = styled(BaseButton)`
-    background: ${brandTheme.status.errorLight};
-    color: ${brandTheme.status.error};
-    border-color: ${brandTheme.status.error}30;
-
-    &:hover:not(:disabled) {
-        background: ${brandTheme.status.error};
-        color: white;
-        border-color: ${brandTheme.status.error};
-    }
-`;
-
-const TestResultBanner = styled.div<{ $success: boolean }>`
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.md};
-   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.xl};
-   background: ${props => props.$success ? brandTheme.status.successLight : brandTheme.status.errorLight};
-   color: ${props => props.$success ? brandTheme.status.success : brandTheme.status.error};
-   border-bottom: 1px solid ${brandTheme.border};
-   font-weight: 500;
-`;
-
-const TestResultIcon = styled.div`
-    font-size: 18px;
-    flex-shrink: 0;
-`;
-
-const TestResultText = styled.div`
-   flex: 1;
-   font-weight: 600;
-`;
-
-const TestResultDetails = styled.div`
+const HelpText = styled.div`
    font-size: 12px;
-   font-weight: 400;
-   margin-top: 4px;
-   opacity: 0.8;
+   color: ${brandTheme.text.muted};
+   line-height: 1.4;
 `;
 
-const CardBody = styled.div`
-   padding: ${brandTheme.spacing.xl};
-`;
-
-const ConfigStatusBanner = styled.div<{ $configured: boolean }>`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
-    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-    background: ${props => props.$configured ? brandTheme.status.successLight : brandTheme.status.warningLight};
-    color: ${props => props.$configured ? brandTheme.status.success : brandTheme.status.warning};
-    border-radius: ${brandTheme.radius.md};
-    margin-bottom: ${brandTheme.spacing.lg};
-    border: 1px solid ${props => props.$configured ? brandTheme.status.success + '30' : brandTheme.status.warning + '30'};
-`;
-
-const StatusIcon = styled.div`
-   font-size: 16px;
-   flex-shrink: 0;
-`;
-
-const StatusText = styled.div`
-    font-weight: 500;
-    flex: 1;
-`;
-
-const FormGrid = styled.div`
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: ${brandTheme.spacing.lg};
-
-    @media (max-width: 768px) {
-        grid-template-columns: 1fr;
-        gap: ${brandTheme.spacing.md};
-    }
-`;
-
-const FormField = styled.div<{ $fullWidth?: boolean }>`
-    display: flex;
-    flex-direction: column;
-    gap: ${brandTheme.spacing.sm};
-    ${props => props.$fullWidth && 'grid-column: 1 / -1;'}
-`;
-
-const FieldLabel = styled.label`
+const ValidationResultBox = styled.div<{ $success: boolean }>`
    display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.sm};
-   font-weight: 600;
-   font-size: 14px;
-   color: ${brandTheme.text.primary};
-   
-   .icon {
-       font-size: 16px;
-   }
-   
-   svg {
-       font-size: 16px;
-       color: ${brandTheme.text.tertiary};
-   }
-`;
-
-const RequiredMark = styled.span`
-    color: ${brandTheme.status.error};
-    font-weight: 700;
-    margin-left: ${brandTheme.spacing.xs};
-`;
-
-const ValidationStatus = styled.div<{ $valid: boolean }>`
-    font-size: 14px;
-    color: ${props => props.$valid ? brandTheme.status.success : brandTheme.status.warning};
-    margin-left: auto;
-
-    .spinning {
-        animation: spin 1s linear infinite;
-    }
-`;
-
-const ValidationMessage = styled.div<{ $isValid: boolean }>`
-    font-size: 12px;
-    color: ${props => props.$isValid ? brandTheme.status.success : brandTheme.status.error};
-    font-weight: 500;
-    margin-top: ${brandTheme.spacing.xs};
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.xs};
-
-    &::before {
-        content: ${props => props.$isValid ? '"✓"' : '"⚠"'};
-        font-size: 14px;
-    }
-`;
-
-const Input = styled.input`
-   height: 48px;
-   padding: 0 ${brandTheme.spacing.md};
-   border: 2px solid ${brandTheme.border};
-   border-radius: ${brandTheme.radius.md};
-   font-size: 15px;
-   font-weight: 500;
-   background: ${brandTheme.surface};
-   color: ${brandTheme.text.primary};
-   transition: all ${brandTheme.transitions.spring};
-
-   &:focus {
-       outline: none;
-       border-color: ${brandTheme.primary};
-       box-shadow: 0 0 0 3px ${brandTheme.primaryGhost};
-   }
-
-   &::placeholder {
-       color: ${brandTheme.text.muted};
-       font-weight: 400;
-   }
-`;
-
-const PasswordContainer = styled.div`
-    position: relative;
-    display: flex;
-    align-items: center;
-`;
-
-const PasswordToggle = styled.button`
-    position: absolute;
-    right: 12px;
-    background: none;
-    border: none;
-    color: ${brandTheme.text.muted};
-    cursor: pointer;
-    padding: 4px;
-    border-radius: ${brandTheme.radius.sm};
-
-    &:hover {
-        color: ${brandTheme.text.secondary};
-        background: ${brandTheme.surfaceHover};
-    }
-`;
-
-const DisplayValue = styled.div<{ $hasValue: boolean }>`
+   gap: ${brandTheme.spacing.md};
    padding: ${brandTheme.spacing.md};
-   background: ${brandTheme.surfaceElevated};
-   border: 2px solid ${brandTheme.borderLight};
+   margin-top: ${brandTheme.spacing.md};
+   background: ${props => props.$success ? brandTheme.status.successLight : brandTheme.status.errorLight};
+   border: 1px solid ${props => props.$success ? brandTheme.status.success + '30' : brandTheme.status.error + '30'};
    border-radius: ${brandTheme.radius.md};
-   color: ${props => props.$hasValue ? brandTheme.text.primary : brandTheme.text.muted};
-   font-weight: 500;
-   font-size: 15px;
-   min-height: 48px;
-   display: flex;
-   align-items: center;
-   font-style: ${props => props.$hasValue ? 'normal' : 'italic'};
 `;
 
-const WebsiteLink = styled.a`
-   color: ${brandTheme.primary};
-   text-decoration: none;
+const ValidationIcon = styled.div`
+   font-size: 20px;
+   flex-shrink: 0;
+   margin-top: 2px;
+`;
+
+const ValidationText = styled.div`
+   flex: 1;
+`;
+
+const ValidationInstructions = styled.div`
+   margin-top: ${brandTheme.spacing.sm};
+`;
+
+const InstructionTitle = styled.div`
    font-weight: 600;
-   
-   &:hover {
-       text-decoration: underline;
-   }
+   font-size: 13px;
+   margin-bottom: ${brandTheme.spacing.xs};
+   color: ${brandTheme.text.primary};
 `;
 
-const SecuritySection = styled.div`
-    margin-top: ${brandTheme.spacing.lg};
-    padding: ${brandTheme.spacing.lg};
-    background: ${brandTheme.surfaceElevated};
-    border-radius: ${brandTheme.radius.md};
-    border: 1px solid ${brandTheme.border};
+const InstructionsList = styled.ul`
+   margin: 0;
+   padding-left: ${brandTheme.spacing.md};
+   list-style-type: disc;
 `;
 
-const SecurityHeader = styled.h4`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
-    font-size: 16px;
-    font-weight: 600;
-    color: ${brandTheme.text.primary};
-    margin: 0 0 ${brandTheme.spacing.md} 0;
-
-    svg {
-        color: ${brandTheme.status.success};
-    }
-`;
-
-const SecurityOptions = styled.div`
-    display: flex;
-    gap: ${brandTheme.spacing.lg};
-
-    @media (max-width: 480px) {
-        flex-direction: column;
-        gap: ${brandTheme.spacing.md};
-    }
-`;
-
-const SecurityOption = styled.label`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
-    font-size: 14px;
-    font-weight: 500;
-    color: ${brandTheme.text.primary};
-    cursor: pointer;
-
-    input[type="checkbox"] {
-        width: 18px;
-        height: 18px;
-        accent-color: ${brandTheme.primary};
-        cursor: pointer;
-    }
-`;
-
-const LogoSection = styled.div`
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: ${brandTheme.spacing.xl};
-    align-items: start;
-
-    @media (max-width: 768px) {
-        grid-template-columns: 1fr;
-        gap: ${brandTheme.spacing.lg};
-    }
-`;
-
-const LogoPreview = styled.div`
-    border: 2px dashed ${brandTheme.border};
-    border-radius: ${brandTheme.radius.lg};
-    padding: ${brandTheme.spacing.xl};
-    background: ${brandTheme.surfaceElevated};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 200px;
-    transition: all ${brandTheme.transitions.spring};
-
-    &:hover {
-        border-color: ${brandTheme.borderHover};
-    }
-`;
-
-const LogoContainer = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: ${brandTheme.spacing.lg};
-    text-align: center;
-`;
-
-const LogoImage = styled.img`
-    max-width: 200px;
-    max-height: 100px;
-    object-fit: contain;
-    border-radius: ${brandTheme.radius.md};
-    box-shadow: ${brandTheme.shadow.sm};
-    border: 1px solid ${brandTheme.border};
-`;
-
-const LogoInfo = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${brandTheme.spacing.md};
-`;
-
-const LogoName = styled.div`
-    font-weight: 600;
-    color: ${brandTheme.text.primary};
-    font-size: 14px;
-`;
-
-const LogoSize = styled.div`
-    font-size: 12px;
-    color: ${brandTheme.text.muted};
-    font-weight: 500;
-`;
-
-const LogoActions = styled.div`
-    display: flex;
-    gap: ${brandTheme.spacing.sm};
-    justify-content: center;
-`;
-
-const LogoPlaceholder = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: ${brandTheme.spacing.lg};
-    color: ${brandTheme.text.muted};
-    text-align: center;
-`;
-
-const LogoPlaceholderIcon = styled.div`
-    width: 64px;
-    height: 64px;
-    background: ${brandTheme.borderLight};
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    color: ${brandTheme.text.tertiary};
-`;
-
-const LogoPlaceholderText = styled.div`
-    font-size: 16px;
-    font-weight: 500;
-    color: ${brandTheme.text.secondary};
-`;
-
-const LogoRequirements = styled.div`
-    background: ${brandTheme.surface};
-    border: 1px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.lg};
-    padding: ${brandTheme.spacing.lg};
-`;
-
-const RequirementsTitle = styled.h4`
-    font-size: 16px;
-    font-weight: 600;
-    color: ${brandTheme.text.primary};
-    margin: 0 0 ${brandTheme.spacing.md} 0;
-`;
-
-const RequirementsList = styled.ul`
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: ${brandTheme.spacing.sm};
-`;
-
-const RequirementItem = styled.li`
-    font-size: 14px;
-    color: ${brandTheme.text.secondary};
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
-
-    &::before {
-        content: '•';
-        color: ${brandTheme.primary};
-        font-weight: bold;
-        font-size: 16px;
-    }
-`;
-
-const HiddenFileInput = styled.input`
-    display: none;
-`;
-
-const FloatingSaveButton = styled.button`
-    position: fixed;
-    bottom: ${brandTheme.spacing.xl};
-    right: ${brandTheme.spacing.xl};
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.md};
-    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.xl};
-    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-    color: white;
-    border: none;
-    border-radius: ${brandTheme.radius.xl};
-    font-weight: 600;
-    font-size: 16px;
-    cursor: pointer;
-    box-shadow: ${brandTheme.shadow.xl};
-    transition: all ${brandTheme.transitions.spring};
-    z-index: 1000;
-    min-width: 220px;
-    justify-content: center;
-
-    &:hover:not(:disabled) {
-        transform: translateY(-2px);
-        box-shadow: 0 20px 40px -5px rgba(26, 54, 93, 0.4);
-        background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
-    }
-
-    &:disabled {
-        opacity: 0.8;
-        cursor: not-allowed;
-        transform: none;
-    }
-
-    .spinning {
-        animation: spin 1s linear infinite;
-    }
-
-    @media (max-width: 768px) {
-        bottom: ${brandTheme.spacing.lg};
-        right: ${brandTheme.spacing.lg};
-        left: ${brandTheme.spacing.lg};
-        min-width: auto;
-    }
-`;
-
-const GoogleDriveConfigured = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${brandTheme.spacing.lg};
-`;
-
-const GoogleDriveInfo = styled.div`
-    background: ${brandTheme.surfaceElevated};
-    border-radius: ${brandTheme.radius.md};
-    padding: ${brandTheme.spacing.lg};
-    border: 1px solid ${brandTheme.border};
-`;
-
-const InfoGrid = styled.div`
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: ${brandTheme.spacing.md};
-
-    @media (max-width: 768px) {
-        grid-template-columns: 1fr;
-    }
-`;
-
-const InfoItem = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${brandTheme.spacing.xs};
-`;
-
-const InfoLabel = styled.div`
-    font-size: 12px;
-    font-weight: 600;
-    color: ${brandTheme.text.tertiary};
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-`;
-
-const InfoValue = styled.div`
-    font-size: 14px;
-    font-weight: 500;
-    color: ${brandTheme.text.primary};
-`;
-
-const StatusBadge = styled.span<{ $active: boolean }>`
-    display: inline-flex;
-    align-items: center;
-    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
-    border-radius: ${brandTheme.radius.sm};
-    font-size: 12px;
-    font-weight: 600;
-    background: ${props => props.$active ? brandTheme.status.successLight : brandTheme.status.warningLight};
-    color: ${props => props.$active ? brandTheme.status.success : brandTheme.status.warning};
-    border: 1px solid ${props => props.$active ? brandTheme.status.success + '30' : brandTheme.status.warning + '30'};
-`;
-
-const GoogleDriveActions = styled.div`
-    display: flex;
-    justify-content: center;
-    padding: ${brandTheme.spacing.lg} 0;
-    border-top: 1px solid ${brandTheme.border};
-    border-bottom: 1px solid ${brandTheme.border};
-`;
-
-const GoogleDriveHelp = styled.div`
-    background: ${brandTheme.primaryGhost};
-    border-radius: ${brandTheme.radius.md};
-    padding: ${brandTheme.spacing.lg};
-    border: 1px solid ${brandTheme.primary}20;
-`;
-
-const HelpTitle = styled.h4`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
-    font-size: 16px;
-    font-weight: 600;
-    color: ${brandTheme.primary};
-    margin: 0 0 ${brandTheme.spacing.md} 0;
-`;
-
-const HelpList = styled.ul`
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: ${brandTheme.spacing.sm};
-`;
-
-const HelpItem = styled.li`
-    font-size: 14px;
-    color: ${brandTheme.text.secondary};
-    font-weight: 500;
-    display: flex;
-    align-items: flex-start;
-    gap: ${brandTheme.spacing.sm};
-
-    &::before {
-        content: '✓';
-        color: ${brandTheme.status.success};
-        font-weight: bold;
-        font-size: 14px;
-        margin-top: 1px;
-        flex-shrink: 0;
-    }
-`;
-
-const GoogleDriveSetup = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${brandTheme.spacing.xl};
-`;
-
-const SetupSteps = styled.div`
-    background: ${brandTheme.surfaceElevated};
-    border-radius: ${brandTheme.radius.lg};
-    padding: ${brandTheme.spacing.xl};
-    border: 1px solid ${brandTheme.border};
-`;
-
-const SetupTitle = styled.h4`
-    font-size: 18px;
-    font-weight: 600;
-    color: ${brandTheme.text.primary};
-    margin: 0 0 ${brandTheme.spacing.lg} 0;
-`;
-
-const StepsList = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${brandTheme.spacing.lg};
-`;
-
-const SetupStep = styled.div`
-    display: flex;
-    gap: ${brandTheme.spacing.md};
-    align-items: flex-start;
-`;
-
-const StepNumber = styled.div`
-    width: 32px;
-    height: 32px;
-    background: ${brandTheme.primary};
-    color: white;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    font-size: 14px;
-    flex-shrink: 0;
-`;
-
-const StepContent = styled.div`
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: ${brandTheme.spacing.xs};
-`;
-
-const StepTitle = styled.div`
-    font-size: 16px;
-    font-weight: 600;
-    color: ${brandTheme.text.primary};
-`;
-
-const StepDescription = styled.div`
-    font-size: 14px;
-    color: ${brandTheme.text.secondary};
-    line-height: 1.5;
-`;
-
-const ExternalLink = styled.a`
-    color: ${brandTheme.primary};
-    text-decoration: none;
-    font-weight: 600;
-
-    &:hover {
-        text-decoration: underline;
-    }
-`;
-
-const UploadArea = styled.div`
-    border: 2px dashed ${brandTheme.border};
-    border-radius: ${brandTheme.radius.lg};
-    padding: ${brandTheme.spacing.xxl};
-    background: ${brandTheme.surfaceElevated};
-    text-align: center;
-    transition: all ${brandTheme.transitions.spring};
-
-    &:hover {
-        border-color: ${brandTheme.primary};
-        background: ${brandTheme.primaryGhost};
-    }
-`;
-
-const UploadContent = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: ${brandTheme.spacing.lg};
-`;
-
-const UploadIcon = styled.div`
-    width: 64px;
-    height: 64px;
-    background: ${brandTheme.primaryGhost};
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    color: ${brandTheme.primary};
-`;
-
-const UploadTitle = styled.h4`
-    font-size: 18px;
-    font-weight: 600;
-    color: ${brandTheme.text.primary};
-    margin: 0;
-`;
-
-const UploadDescription = styled.p`
-    font-size: 14px;
-    color: ${brandTheme.text.secondary};
-    margin: 0;
-    font-weight: 500;
+const InstructionItem = styled.li`
+   font-size: 12px;
+   color: ${brandTheme.text.secondary};
+   margin-bottom: ${brandTheme.spacing.xs};
+   line-height: 1.4;
 `;
 
 const RequirementsBox = styled.div`
-    background: ${brandTheme.surface};
-    border: 1px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.md};
-    padding: ${brandTheme.spacing.lg};
+   background: ${brandTheme.surface};
+   border: 1px solid ${brandTheme.border};
+   border-radius: ${brandTheme.radius.md};
+   padding: ${brandTheme.spacing.lg};
 `;
 
-const SectionSpacer = styled.div`
-    height: ${brandTheme.spacing.xxl};
-    
-    @media (max-width: 768px) {
-        height: ${brandTheme.spacing.xl};
-    }
+const RequirementsTitle = styled.h4`
+   font-size: 16px;
+   font-weight: 600;
+   color: ${brandTheme.text.primary};
+   margin: 0 0 ${brandTheme.spacing.md} 0;
+`;
+
+const RequirementsList = styled.ul`
+   list-style: none;
+   padding: 0;
+   margin: 0;
+   display: flex;
+   flex-direction: column;
+   gap: ${brandTheme.spacing.sm};
+`;
+
+const RequirementItem = styled.li`
+   font-size: 14px;
+   color: ${brandTheme.text.secondary};
+   font-weight: 500;
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.sm};
+
+   &::before {
+       content: '•';
+       color: ${brandTheme.primary};
+       font-weight: bold;
+       font-size: 16px;
+   }
+`;
+
+const SystemInfoBox = styled.div`
+   background: ${brandTheme.primaryGhost};
+   border-radius: ${brandTheme.radius.md};
+   padding: ${brandTheme.spacing.lg};
+   border: 1px solid ${brandTheme.primary}20;
+`;
+
+const SystemInfoTitle = styled.h4`
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.sm};
+   font-size: 16px;
+   font-weight: 600;
+   color: ${brandTheme.primary};
+   margin: 0 0 ${brandTheme.spacing.md} 0;
+`;
+
+const SystemInfoGrid = styled.div`
+   display: grid;
+   grid-template-columns: 1fr 1fr;
+   gap: ${brandTheme.spacing.md};
+
+   @media (max-width: 768px) {
+       grid-template-columns: 1fr;
+   }
+`;
+
+const SystemInfoItem = styled.div`
+   display: flex;
+   flex-direction: column;
+   gap: ${brandTheme.spacing.xs};
+`;
+
+const SystemInfoLabel = styled.div`
+   font-size: 12px;
+   font-weight: 600;
+   color: ${brandTheme.text.tertiary};
+   text-transform: uppercase;
+   letter-spacing: 0.5px;
+`;
+
+const SystemInfoValue = styled.div`
+   font-size: 14px;
+   font-weight: 500;
+   color: ${brandTheme.text.primary};
+   font-family: monospace;
 `;
 
 export default CompanySettingsPage;

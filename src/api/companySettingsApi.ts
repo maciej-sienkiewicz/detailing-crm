@@ -1,6 +1,56 @@
-// src/api/companySettingsApi.ts
+// src/api/companySettingsApi.ts - Zaktualizowana sekcja Google Drive
 import { apiClient } from './apiClient';
 
+// Nowe interfejsy dla systemowego Google Drive
+export interface GoogleDriveFolderSettings {
+    isActive: boolean;
+    folderId?: string;
+    folderName?: string;
+    folderUrl?: string;
+    lastBackupAt?: string;
+    lastBackupStatus?: string;
+    backupCount?: number;
+    systemEmail: string;
+    systemServiceAvailable: boolean;
+}
+
+export interface GoogleDriveSystemInfo {
+    systemEmail: string;
+    systemServiceAvailable: boolean;
+    connectionTest: boolean;
+    stats: {
+        activeIntegrations: number;
+        totalIntegrations: number;
+        systemEmail: string;
+        systemServiceAvailable: boolean;
+    };
+    instructions: {
+        step1: string;
+        step2: string;
+        step3: string;
+        step4: string;
+        step5: string;
+    };
+}
+
+export interface ConfigureFolderRequest {
+    folderId: string;
+    folderName?: string;
+}
+
+export interface ValidateFolderResponse {
+    status: string;
+    valid: boolean;
+    message: string;
+    systemEmail: string;
+    instructions?: {
+        step1: string;
+        step2: string;
+        step3: string;
+    };
+}
+
+// Zachowane stare interfejsy dla kompatybilności
 export interface GoogleDriveSettings {
     isActive: boolean;
     serviceAccountEmail?: string;
@@ -15,7 +65,7 @@ export interface GoogleDriveTestResponse {
     status?: string;
 }
 
-// Interfejsy TypeScript dla ustawień firmy
+// Pozostała część interfejsów pozostaje bez zmian...
 export interface CompanyBasicInfo {
     companyName: string;
     taxId: string;
@@ -132,25 +182,163 @@ export const companySettingsApi = {
         }
     },
 
-    async getIntegrationStatus(): Promise<GoogleDriveSettings> {
+    // ==========================================
+    // NOWE API DLA SYSTEMOWEGO GOOGLE DRIVE
+    // ==========================================
+
+    /**
+     * Pobiera status integracji Google Drive (nowy system)
+     * GET /api/google-drive/integration-status
+     */
+    async getGoogleDriveIntegrationStatus(): Promise<GoogleDriveFolderSettings> {
         try {
-            const response = await apiClient.getNot<{
+            const response = await apiClient.get<{
                 companyId: number;
                 isActive: boolean;
                 status: string;
-                serviceAccountEmail?: string;
-                lastBackupDate?: string;
+                systemEmail: string;
+                systemServiceAvailable: boolean;
+                configuration?: {
+                    folderId: string;
+                    folderName: string;
+                    folderUrl: string;
+                    lastBackupAt?: string;
+                    lastBackupStatus?: string;
+                    backupCount: number;
+                };
             }>('/google-drive/integration-status');
 
             return {
                 isActive: response.isActive,
-                serviceAccountEmail: response.serviceAccountEmail,
-                credentialsConfigured: response.isActive,
-                lastBackupDate: response.lastBackupDate,
-                autoBackupEnabled: false // TODO: dodać do backendu
+                folderId: response.configuration?.folderId,
+                folderName: response.configuration?.folderName,
+                folderUrl: response.configuration?.folderUrl,
+                lastBackupAt: response.configuration?.lastBackupAt,
+                lastBackupStatus: response.configuration?.lastBackupStatus,
+                backupCount: response.configuration?.backupCount,
+                systemEmail: response.systemEmail,
+                systemServiceAvailable: response.systemServiceAvailable
             };
         } catch (error) {
-            console.error('Error fetching Google Drive status:', error);
+            console.error('Error fetching Google Drive integration status:', error);
+            return {
+                isActive: false,
+                systemEmail: '',
+                systemServiceAvailable: false
+            };
+        }
+    },
+
+    /**
+     * Konfiguruje folder Google Drive dla firmy
+     * POST /api/google-drive/configure-folder
+     */
+    async configureGoogleDriveFolder(data: ConfigureFolderRequest): Promise<{
+        status: string;
+        message: string;
+        data?: {
+            folderId: string;
+            folderName: string;
+            folderUrl: string;
+            systemEmail: string;
+        };
+    }> {
+        try {
+            const response = await apiClient.post<{
+                status: string;
+                message: string;
+                data?: {
+                    folderId: string;
+                    folderName: string;
+                    folderUrl: string;
+                    systemEmail: string;
+                };
+            }>('/google-drive/configure-folder', data);
+            return response;
+        } catch (error) {
+            console.error('Error configuring Google Drive folder:', error);
+            throw new Error('Nie udało się skonfigurować folderu Google Drive');
+        }
+    },
+
+    /**
+     * Waliduje dostęp do folderu Google Drive
+     * POST /api/google-drive/validate-folder
+     */
+    async validateGoogleDriveFolder(folderId: string): Promise<ValidateFolderResponse> {
+        try {
+            const response = await apiClient.post<ValidateFolderResponse>('/google-drive/validate-folder', {
+                folderId
+            });
+            return response;
+        } catch (error) {
+            console.error('Error validating Google Drive folder:', error);
+            throw new Error('Nie udało się zwalidować folderu Google Drive');
+        }
+    },
+
+    /**
+     * Dezaktywuje integrację Google Drive
+     * DELETE /api/google-drive/integration
+     */
+    async deactivateGoogleDriveIntegration(): Promise<{ status: string; message: string }> {
+        try {
+            const response = await apiClient.delete<{ status: string; message: string }>('/google-drive/integration');
+            return response;
+        } catch (error) {
+            console.error('Error deactivating Google Drive integration:', error);
+            throw new Error('Nie udało się dezaktywować integracji Google Drive');
+        }
+    },
+
+    /**
+     * Pobiera informacje o systemie Google Drive
+     * GET /api/google-drive/system-info
+     */
+    async getGoogleDriveSystemInfo(): Promise<GoogleDriveSystemInfo> {
+        try {
+            const response = await apiClient.get<GoogleDriveSystemInfo>('/google-drive/system-info');
+            return response;
+        } catch (error) {
+            console.error('Error fetching Google Drive system info:', error);
+            throw new Error('Nie udało się pobrać informacji o systemie Google Drive');
+        }
+    },
+
+    /**
+     * Uruchamia backup bieżącego miesiąca
+     * POST /api/google-drive/backup-current-month
+     */
+    async backupCurrentMonth(): Promise<{ status: string; message: string }> {
+        try {
+            const response = await apiClient.post<{ status: string; message: string }>('/google-drive/backup-current-month', {});
+            return response;
+        } catch (error) {
+            console.error('Error running Google Drive backup:', error);
+            throw new Error('Nie udało się uruchomić backup');
+        }
+    },
+
+    // ==========================================
+    // STARE API (DEPRECATED - dla kompatybilności)
+    // ==========================================
+
+    /**
+     * @deprecated Użyj getGoogleDriveIntegrationStatus()
+     */
+    async getIntegrationStatus(): Promise<GoogleDriveSettings> {
+        try {
+            // Mapujemy nowe API na stary interfejs dla kompatybilności
+            const newStatus = await this.getGoogleDriveIntegrationStatus();
+            return {
+                isActive: newStatus.isActive,
+                serviceAccountEmail: newStatus.systemEmail,
+                credentialsConfigured: newStatus.isActive,
+                lastBackupDate: newStatus.lastBackupAt,
+                autoBackupEnabled: false
+            };
+        } catch (error) {
+            console.error('Error fetching Google Drive status (deprecated):', error);
             return {
                 isActive: false,
                 credentialsConfigured: false,
@@ -159,32 +347,27 @@ export const companySettingsApi = {
         }
     },
 
+    /**
+     * @deprecated Nie używane w nowym systemie
+     */
     async uploadCredentials(file: File, serviceAccountEmail: string): Promise<{ status: string; message: string }> {
-        try {
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('serviceAccountEmail', serviceAccountEmail);
-
-            const response = await apiClient.postNotCamel<{ status: string; message: string }>(
-                '/google-drive/credentials',
-                formData
-            );
-            return response;
-        } catch (error) {
-            console.error('Error uploading Google Drive credentials:', error);
-            throw new Error('Nie udało się przesłać credentials');
-        }
+        console.warn('uploadCredentials is deprecated. Use configureGoogleDriveFolder instead.');
+        throw new Error('Ta funkcjonalność została zastąpiona konfiguracją folderu');
     },
 
+    /**
+     * @deprecated Użyj getGoogleDriveIntegrationStatus()
+     */
     async testConnection(): Promise<GoogleDriveTestResponse> {
         try {
-            const response = await apiClient.getNot<GoogleDriveTestResponse>(
-                '/google-drive/integration-status',
-                {}
-            );
-            return response;
+            const status = await this.getGoogleDriveIntegrationStatus();
+            return {
+                companyId: 0, // Nie używane w nowym API
+                isActive: status.isActive,
+                status: status.isActive ? "ACTIVE" : "INACTIVE"
+            };
         } catch (error) {
-            console.error('Error testing Google Drive connection:', error);
+            console.error('Error testing Google Drive connection (deprecated):', error);
             return {
                 companyId: 0,
                 isActive: false,
@@ -193,28 +376,21 @@ export const companySettingsApi = {
         }
     },
 
-    async backupCurrentMonth(): Promise<{ status: string; message: string }> {
-        try {
-            const response = await apiClient.postNotCamel<{ status: string; message: string }>(
-                '/google-drive/backup-current-month',
-                {}
-            );
-            return response;
-        } catch (error) {
-            console.error('Error running Google Drive backup:', error);
-            throw new Error('Nie udało się uruchomić backup');
-        }
-    },
-
+    /**
+     * @deprecated Użyj deactivateGoogleDriveIntegration()
+     */
     async removeIntegration(): Promise<{ status: string; message: string }> {
         try {
-            const response = await apiClient.delete<{ status: string; message: string }>('/google-drive/credentials');
-            return response;
+            return await this.deactivateGoogleDriveIntegration();
         } catch (error) {
-            console.error('Error removing Google Drive integration:', error);
+            console.error('Error removing Google Drive integration (deprecated):', error);
             throw new Error('Nie udało się usunąć integracji');
         }
     },
+
+    // ==========================================
+    // POZOSTAŁE API (bez zmian)
+    // ==========================================
 
     /**
      * Przesyła logo firmy
@@ -399,7 +575,7 @@ export const companySettingsApi = {
     }
 };
 
-// Eksportujemy także pomocnicze funkcje walidacyjne
+// Eksportujemy także pomocnicze funkcje walidacyjne (bez zmian)
 export const companySettingsValidation = {
     /**
      * Waliduje format polskiego NIP
@@ -470,10 +646,42 @@ export const companySettingsValidation = {
         }
 
         return { valid: true };
+    },
+
+    /**
+     * Waliduje format ID folderu Google Drive
+     */
+    validateGoogleDriveFolderId(folderId: string): { valid: boolean; error?: string } {
+        const cleanFolderId = folderId.trim();
+
+        if (!cleanFolderId) {
+            return {
+                valid: false,
+                error: 'ID folderu nie może być puste'
+            };
+        }
+
+        // Google Drive folder IDs są zwykle długie ciągi znaków alfanumerycznych i znaków specjalnych
+        if (cleanFolderId.length < 10) {
+            return {
+                valid: false,
+                error: 'ID folderu wydaje się zbyt krótkie'
+            };
+        }
+
+        // Proste sprawdzenie czy zawiera niedozwolone znaki
+        if (!/^[a-zA-Z0-9_-]+$/.test(cleanFolderId)) {
+            return {
+                valid: false,
+                error: 'ID folderu zawiera niedozwolone znaki'
+            };
+        }
+
+        return { valid: true };
     }
 };
 
-// Eksportujemy również stałe używane w module
+// Eksportujemy również stałe używane w module (rozszerzone)
 export const COMPANY_SETTINGS_CONSTANTS = {
     MAX_LOGO_SIZE: 5 * 1024 * 1024, // 5MB
     ALLOWED_LOGO_TYPES: ['image/jpeg', 'image/png', 'image/webp'],
@@ -481,6 +689,19 @@ export const COMPANY_SETTINGS_CONSTANTS = {
     DEFAULT_IMAP_PORT: 993,
     DEFAULT_SMTP_SSL: true,
     DEFAULT_SMTP_TLS: true,
+
+    // Google Drive constants
+    GOOGLE_DRIVE: {
+        FOLDER_ID_MIN_LENGTH: 10,
+        FOLDER_ID_MAX_LENGTH: 100,
+        SYSTEM_EMAIL_DEFAULT: 'sienkiewicz.maciej971030@gmail.com',
+        BACKUP_STATUSES: {
+            SUCCESS: 'SUCCESS',
+            PARTIAL_SUCCESS: 'PARTIAL_SUCCESS',
+            ERROR: 'ERROR',
+            SUCCESS_NO_FILES: 'SUCCESS_NO_FILES'
+        }
+    },
 
     // Popularne ustawienia serwerów email
     EMAIL_PROVIDERS: {

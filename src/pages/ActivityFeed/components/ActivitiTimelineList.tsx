@@ -170,20 +170,6 @@ const ActivityTimelineList: React.FC<ActivityTimelineListProps> = ({ activities,
         );
     }
 
-    if (activities.length === 0) {
-        return (
-            <EmptyContainer>
-                <EmptyIcon>
-                    <FaInfoCircle />
-                </EmptyIcon>
-                <EmptyTitle>Brak aktywności</EmptyTitle>
-                <EmptyDescription>
-                    W wybranym okresie nie zarejestrowano żadnych aktywności.
-                </EmptyDescription>
-            </EmptyContainer>
-        );
-    }
-
     return (
         <TimelineContainer>
             {sortedDates.map(dateKey => (

@@ -1,5 +1,5 @@
 // src/pages/Finances/components/DocumentTable.tsx
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import styled from 'styled-components';
 import {
     FaFileInvoiceDollar,
@@ -14,7 +14,8 @@ import {
     FaSortUp,
     FaSortDown,
     FaPrint,
-    FaDownload
+    FaDownload,
+    FaSpinner // <-- Dodaj ten import
 } from 'react-icons/fa';
 import {
     UnifiedFinancialDocument,
@@ -26,10 +27,9 @@ import {
     TransactionDirection,
     TransactionDirectionLabels,
     TransactionDirectionColors,
-    PaymentMethodLabels
 } from '../../../types/finance';
 import { brandTheme } from '../styles/theme';
-import { documentPrintService } from '../../../api/documentPrintService';
+import { useDocumentOperations } from '../hooks/useDocumentOperations';
 
 type ViewMode = 'table' | 'cards';
 type SortField = 'issuedDate' | 'totalGross' | 'buyerName' | 'number';
@@ -42,6 +42,7 @@ interface DocumentTableProps {
     onEdit: (document: UnifiedFinancialDocument) => void;
     onDelete: (id: string) => void;
     onStatusChange: (id: string, status: DocumentStatus) => void;
+    onError: (message: string) => void;
 }
 
 const DocumentTable: React.FC<DocumentTableProps> = ({
@@ -50,15 +51,27 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
                                                          onView,
                                                          onEdit,
                                                          onDelete,
-                                                         onStatusChange
+                                                         onStatusChange,
+                                                         onError
                                                      }) => {
     const [viewMode, setViewMode] = useState<ViewMode>(() => {
-        const saved = localStorage.getItem('financial_view_mode');
-        return (saved as ViewMode) || 'table';
+        try {
+            const saved = localStorage.getItem('financial_view_mode');
+            return (saved as ViewMode) || 'table';
+        } catch {
+            return 'table';
+        }
     });
 
     const [sortField, setSortField] = useState<SortField>('issuedDate');
     const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
+    const {
+        handlePrintDocument,
+        handleDownloadDocument,
+        isPrinting,
+        isDownloading
+    } = useDocumentOperations({ onError });
 
     // Save view mode preference
     React.useEffect(() => {
@@ -70,7 +83,7 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
     }, [viewMode]);
 
     // Sorting logic
-    const sortedDocuments = React.useMemo(() => {
+    const sortedDocuments = useMemo(() => {
         if (!sortDirection) return documents;
 
         return [...documents].sort((a, b) => {
@@ -88,7 +101,7 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
         });
     }, [documents, sortField, sortDirection]);
 
-    const handleSort = (field: SortField) => {
+    const handleSort = useCallback((field: SortField) => {
         if (sortField === field) {
             setSortDirection(prev =>
                 prev === 'asc' ? 'desc' : prev === 'desc' ? null : 'asc'
@@ -97,28 +110,28 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
             setSortField(field);
             setSortDirection('asc');
         }
-    };
+    }, [sortField]);
 
-    const getSortIcon = (field: SortField) => {
+    const getSortIcon = useCallback((field: SortField) => {
         if (sortField !== field) return <FaSort />;
         if (sortDirection === 'asc') return <FaSortUp />;
         if (sortDirection === 'desc') return <FaSortDown />;
         return <FaSort />;
-    };
+    }, [sortField, sortDirection]);
 
     // Helper functions
-    const formatDate = (dateString: string): string => {
+    const formatDate = useCallback((dateString: string): string => {
         return new Date(dateString).toLocaleDateString('pl-PL');
-    };
+    }, []);
 
-    const formatAmount = (amount: number, currency: string = 'PLN'): string => {
+    const formatAmount = useCallback((amount: number, currency: string = 'PLN'): string => {
         return new Intl.NumberFormat('pl-PL', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
         }).format(amount) + ` ${currency}`;
-    };
+    }, []);
 
-    const getDocumentIcon = (type: DocumentType) => {
+    const getDocumentIcon = useCallback((type: DocumentType) => {
         switch (type) {
             case DocumentType.INVOICE:
                 return <FaFileInvoiceDollar />;
@@ -129,40 +142,9 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
             default:
                 return <FaFileInvoiceDollar />;
         }
-    };
+    }, []);
 
-    // Handle print document - opens in new tab for preview (like old behavior)
-    const handlePrintDocument = async (document: UnifiedFinancialDocument, e: React.MouseEvent) => {
-        e.stopPropagation();
-
-        try {
-            const result = await documentPrintService.previewDocument(document.id);
-            if (!result.success) {
-                alert(result.error || 'Nie udało się wyświetlić dokumentu');
-            }
-            // Po otwarciu w nowej karcie, użytkownik może tam kliknąć "drukuj" w przeglądarce
-        } catch (error) {
-            console.error('Error printing document:', error);
-            alert('Wystąpił błąd podczas przygotowywania dokumentu do wydruku');
-        }
-    };
-
-    // Handle download document - forces download
-    const handleDownloadDocument = async (document: UnifiedFinancialDocument, e: React.MouseEvent) => {
-        e.stopPropagation();
-
-        try {
-            const result = await documentPrintService.downloadDocument(document.id);
-            if (!result.success) {
-                alert(result.error || 'Nie udało się pobrać dokumentu');
-            }
-        } catch (error) {
-            console.error('Error downloading document:', error);
-            alert('Wystąpił błąd podczas pobierania dokumentu');
-        }
-    };
-
-    const handleQuickAction = (action: string, document: UnifiedFinancialDocument, e: React.MouseEvent) => {
+    const handleQuickAction = useCallback((action: string, document: UnifiedFinancialDocument, e: React.MouseEvent) => {
         e.stopPropagation();
 
         switch (action) {
@@ -177,8 +159,14 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
                     onDelete(document.id);
                 }
                 break;
+            case 'print':
+                handlePrintDocument(document);
+                break;
+            case 'download':
+                handleDownloadDocument(document);
+                break;
         }
-    };
+    }, [onView, onEdit, onDelete, handlePrintDocument, handleDownloadDocument]);
 
     if (loading && documents.length === 0) {
         return (
@@ -294,9 +282,7 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
                                         </DirectionBadge>
                                     </TableCell>
                                     <TableCell>
-                                        <TableCell>
-                                            {formatAmount(document.totalGross, document.currency)}
-                                        </TableCell>
+                                        {formatAmount(document.totalGross, document.currency)}
                                     </TableCell>
                                     <TableCell>
                                         <StatusBadge status={document.status}>
@@ -313,30 +299,40 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
                                                 <FaEye />
                                             </ActionButton>
                                             <ActionButton
-                                                onClick={(e) => handlePrintDocument(document, e)}
+                                                onClick={(e) => handleQuickAction('print', document, e)}
                                                 title="Drukuj"
-                                                $variant="print"
+                                                $variant="view"
+                                                disabled={isPrinting(document.id)}
                                             >
-                                                <FaPrint />
+                                                {isPrinting(document.id) ? (
+                                                    <FaSpinner className="spinning" />
+                                                ) : (
+                                                    <FaPrint />
+                                                )}
                                             </ActionButton>
                                             <ActionButton
-                                                onClick={(e) => handleDownloadDocument(document, e)}
+                                                onClick={(e) => handleQuickAction('download', document, e)}
                                                 title="Pobierz"
-                                                $variant="download"
+                                                $variant="view"
+                                                disabled={isDownloading(document.id)}
                                             >
-                                                <FaDownload />
+                                                {isDownloading(document.id) ? (
+                                                    <FaSpinner className="spinning" />
+                                                ) : (
+                                                    <FaDownload />
+                                                )}
                                             </ActionButton>
                                             <ActionButton
                                                 onClick={(e) => handleQuickAction('edit', document, e)}
                                                 title="Edytuj"
-                                                $variant="edit"
+                                                $variant="view"
                                             >
                                                 <FaEdit />
                                             </ActionButton>
                                             <ActionButton
                                                 onClick={(e) => handleQuickAction('delete', document, e)}
                                                 title="Usuń"
-                                                $variant="delete"
+                                                $variant="view"
                                             >
                                                 <FaTrashAlt />
                                             </ActionButton>
@@ -369,12 +365,30 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
                                         <FaEye />
                                     </ActionButton>
                                     <ActionButton
-                                        onClick={(e) => handlePrintDocument(document, e)}
+                                        onClick={(e) => handleQuickAction('print', document, e)}
                                         title="Drukuj"
                                         $variant="print"
                                         $small
+                                        disabled={isPrinting(document.id)}
                                     >
-                                        <FaPrint />
+                                        {isPrinting(document.id) ? (
+                                            <FaSpinner className="spinning" />
+                                        ) : (
+                                            <FaPrint />
+                                        )}
+                                    </ActionButton>
+                                    <ActionButton
+                                        onClick={(e) => handleQuickAction('download', document, e)}
+                                        title="Pobierz"
+                                        $variant="download"
+                                        $small
+                                        disabled={isDownloading(document.id)}
+                                    >
+                                        {isDownloading(document.id) ? (
+                                            <FaSpinner className="spinning" />
+                                        ) : (
+                                            <FaDownload />
+                                        )}
                                     </ActionButton>
                                     <ActionButton
                                         onClick={(e) => handleQuickAction('edit', document, e)}
@@ -697,7 +711,7 @@ const ActionButton = styled.button<{
                 return `
                     background: ${brandTheme.primaryGhost};
                     color: ${brandTheme.primary};
-                    &:hover {
+                    &:hover:not(:disabled) {
                         background: ${brandTheme.primary};
                         color: white;
                         transform: translateY(-1px);
@@ -708,7 +722,7 @@ const ActionButton = styled.button<{
                 return `
                     background: ${brandTheme.status.infoLight};
                     color: ${brandTheme.status.info};
-                    &:hover {
+                    &:hover:not(:disabled) {
                         background: ${brandTheme.status.info};
                         color: white;
                         transform: translateY(-1px);
@@ -719,7 +733,7 @@ const ActionButton = styled.button<{
                 return `
                     background: ${brandTheme.status.successLight};
                     color: ${brandTheme.status.success};
-                    &:hover {
+                    &:hover:not(:disabled) {
                         background: ${brandTheme.status.success};
                         color: white;
                         transform: translateY(-1px);
@@ -730,7 +744,7 @@ const ActionButton = styled.button<{
                 return `
                     background: ${brandTheme.status.warningLight};
                     color: ${brandTheme.status.warning};
-                    &:hover {
+                    &:hover:not(:disabled) {
                         background: ${brandTheme.status.warning};
                         color: white;
                         transform: translateY(-1px);
@@ -741,7 +755,7 @@ const ActionButton = styled.button<{
                 return `
                     background: ${brandTheme.status.errorLight};
                     color: ${brandTheme.status.error};
-                    &:hover {
+                    &:hover:not(:disabled) {
                         background: ${brandTheme.status.error};
                         color: white;
                         transform: translateY(-1px);
@@ -750,6 +764,21 @@ const ActionButton = styled.button<{
                 `;
         }
     }}
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .spinning {
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
 `;
 
 // Card Components

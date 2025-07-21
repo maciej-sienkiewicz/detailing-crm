@@ -1,11 +1,13 @@
-// src/pages/Finances/FinancialPageWithFixedCosts.tsx - Updated with Balance Edit Support
-import React, { useState } from 'react';
+// src/pages/Finances/FinancialPageWithFixedCosts.tsx
+import React, { useState, useCallback } from 'react';
 import styled from 'styled-components';
 import {
     FaFileInvoiceDollar,
     FaBuilding,
     FaChartLine,
-    FaExchangeAlt, FaSpinner, FaSync
+    FaExchangeAlt,
+    FaSpinner,
+    FaSync
 } from 'react-icons/fa';
 
 // Import existing components
@@ -32,7 +34,7 @@ import { DocumentType } from '../../types/finance';
 import { brandTheme } from './styles/theme';
 import { useToast } from '../../components/common/Toast/Toast';
 import Pagination from '../../components/common/Pagination';
-import {companySettingsApi} from "../../api/companySettingsApi";
+import { companySettingsApi } from "../../api/companySettingsApi";
 
 type ActiveTab = 'documents' | 'fixed-costs' | 'reports';
 
@@ -43,6 +45,16 @@ const FinancialPageWithFixedCosts: React.FC = () => {
     // State for Fixed Costs integration
     const [fixedCostsRef, setFixedCostsRef] = useState<{ handleAddFixedCost?: () => void }>({});
     const [backingUp, setBackingUp] = useState(false);
+
+    // Error handling callback
+    const handleError = useCallback((message: string) => {
+        showToast('error', message);
+    }, [showToast]);
+
+    // Success callback
+    const handleSuccess = useCallback((message: string) => {
+        showToast('success', message);
+    }, [showToast]);
 
     // Use existing hooks for documents
     const {
@@ -97,51 +109,81 @@ const FinancialPageWithFixedCosts: React.FC = () => {
     ];
 
     // Handle tab change
-    const handleTabChange = (tabId: ActiveTab) => {
+    const handleTabChange = useCallback((tabId: ActiveTab) => {
         setActiveTab(tabId);
-    };
+    }, []);
 
     // Handle export for documents tab
-    const handleExportDocuments = async () => {
+    const handleExportDocuments = useCallback(async () => {
         try {
             setBackingUp(true);
             const result = await companySettingsApi.backupCurrentMonth();
 
             if (result.status === 'success') {
-                showToast('success', 'Twoje dane zostały pomyślnie przesłane do Google Drive');
+                handleSuccess('Twoje dane zostały pomyślnie przesłane do Google Drive');
             } else {
-                showToast('error', result.message || 'Nie udało się przesłać danych do Google Drive');
+                handleError(result.message || 'Nie udało się przesłać danych do Google Drive');
             }
         } catch (err) {
-            showToast('error', 'Nie udało się przesłać danych do Google Drive');
+            handleError('Nie udało się przesłać danych do Google Drive');
         } finally {
             setBackingUp(false);
         }
-    };
+    }, [handleError, handleSuccess]);
 
     // Handle add fixed cost
-    const handleAddFixedCost = () => {
+    const handleAddFixedCost = useCallback(() => {
         if (fixedCostsRef.handleAddFixedCost) {
             fixedCostsRef.handleAddFixedCost();
         }
-    };
+    }, [fixedCostsRef]);
 
     // Handle setting fixed costs ref
-    const handleSetFixedCostsRef = (ref: { handleAddFixedCost?: () => void }) => {
+    const handleSetFixedCostsRef = useCallback((ref: { handleAddFixedCost?: () => void }) => {
         setFixedCostsRef(ref);
-    };
+    }, []);
 
     // Handle balance update from FinancialSummaryCards
-    const handleBalanceUpdate = async (newCashBalance: number, newBankBalance: number) => {
+    const handleBalanceUpdate = useCallback(async (newCashBalance: number, newBankBalance: number) => {
         try {
-            showToast('success', 'Saldo zostało pomyślnie zaktualizowane');
+            handleSuccess('Saldo zostało pomyślnie zaktualizowane');
             // Refresh data to get updated summary
             await refreshData();
         } catch (error) {
             console.error('Error after balance update:', error);
-            showToast('error', 'Wystąpił błąd podczas odświeżania danych');
+            handleError('Wystąpił błąd podczas odświeżania danych');
         }
-    };
+    }, [refreshData, handleSuccess, handleError]);
+
+    // Handle document actions with proper error handling
+    const handleDocumentStatusChange = useCallback(async (id: string, status: any) => {
+        try {
+            await handleStatusChange(id, status);
+        } catch (error) {
+            console.error('Error changing document status:', error);
+            handleError('Wystąpił błąd podczas zmiany statusu dokumentu');
+        }
+    }, [handleStatusChange, handleError]);
+
+    const handleDocumentDelete = useCallback(async (id: string) => {
+        try {
+            await handleDeleteDocument(id);
+        } catch (error) {
+            console.error('Error deleting document:', error);
+            handleError('Wystąpił błąd podczas usuwania dokumentu');
+        }
+    }, [handleDeleteDocument, handleError]);
+
+    // Handle download attachment
+    const handleDownloadAttachment = useCallback((documentId: string) => {
+        try {
+            const attachmentUrl = `http://localhost:8080/api/financial-documents/${documentId}/attachment`;
+            window.open(attachmentUrl, '_blank');
+        } catch (error) {
+            console.error('Error downloading attachment:', error);
+            handleError('Nie udało się pobrać załącznika');
+        }
+    }, [handleError]);
 
     // Loading state for initial load
     if (loading && documents.length === 0 && activeTab === 'documents') {
@@ -260,6 +302,10 @@ const FinancialPageWithFixedCosts: React.FC = () => {
                             <ErrorMessage>
                                 <ErrorIcon>⚠️</ErrorIcon>
                                 <ErrorText>{error}</ErrorText>
+                                <RefreshButton onClick={refreshData}>
+                                    <FaSync />
+                                    Odśwież
+                                </RefreshButton>
                             </ErrorMessage>
                         )}
 
@@ -269,8 +315,9 @@ const FinancialPageWithFixedCosts: React.FC = () => {
                             loading={loading}
                             onView={handleViewDocument}
                             onEdit={handleEditDocument}
-                            onDelete={handleDeleteDocument}
-                            onStatusChange={handleStatusChange}
+                            onDelete={handleDocumentDelete}
+                            onStatusChange={handleDocumentStatusChange}
+                            onError={handleError}
                         />
 
                         {/* Pagination */}
@@ -301,8 +348,10 @@ const FinancialPageWithFixedCosts: React.FC = () => {
                                 document={selectedDocument}
                                 onClose={handleCloseModals}
                                 onEdit={handleEditDocument}
-                                onStatusChange={handleStatusChange}
-                                onDelete={handleDeleteDocument}
+                                onStatusChange={handleDocumentStatusChange}
+                                onDelete={handleDocumentDelete}
+                                onDownloadAttachment={handleDownloadAttachment}
+                                onError={handleError}
                             />
                         )}
                     </>
@@ -320,7 +369,7 @@ const FinancialPageWithFixedCosts: React.FC = () => {
     );
 };
 
-// Styled Components (existing styles remain the same)
+// Styled Components
 const PageContainer = styled.div`
     min-height: 100vh;
     background: ${brandTheme.surfaceAlt};
@@ -685,6 +734,26 @@ const ErrorIcon = styled.div`
 
 const ErrorText = styled.div`
     flex: 1;
+`;
+
+const RefreshButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.xs};
+    background: ${brandTheme.status.error};
+    color: white;
+    border: none;
+    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
+    border-radius: ${brandTheme.radius.sm};
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: ${brandTheme.status.error}dd;
+        transform: translateY(-1px);
+    }
 `;
 
 const PaginationContainer = styled.div`

@@ -202,16 +202,16 @@ export const ProtocolList: React.FC<ProtocolListProps> = ({
                 <EmptyStateIcon>
                     <FaList />
                 </EmptyStateIcon>
-                <EmptyStateTitle>Brak protokołów</EmptyStateTitle>
+                <EmptyStateTitle>Brak wizyt</EmptyStateTitle>
                 <EmptyStateDescription>
                     {activeFilter !== 'Wszystkie'
-                        ? `Brak protokołów w grupie "${activeFilter}"`
-                        : 'Nie znaleziono żadnych protokołów przyjęcia pojazdów'
+                        ? `Brak wizyt w grupie "${activeFilter}"`
+                        : 'Nie znaleziono żadnych wizyt'
                     }
                 </EmptyStateDescription>
                 {activeFilter === 'Wszystkie' && (
                     <EmptyStateAction>
-                        Kliknij "Rozpocznij wizytę", aby utworzyć pierwszy protokół
+                        Kliknij "Rozpocznij wizytę", aby utworzyć pierwszą pozycję.
                     </EmptyStateAction>
                 )}
             </EmptyStateContainer>

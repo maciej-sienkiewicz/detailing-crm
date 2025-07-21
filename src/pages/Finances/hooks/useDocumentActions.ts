@@ -7,14 +7,12 @@ import {
 } from '../../../types/finance';
 import { unifiedFinancialApi } from '../../../api/unifiedFinancialApi';
 
-interface UseDocumentActionsProps {
-    refreshData: () => Promise<void>;
-    showToast: (type: 'success' | 'error' | 'info' | 'warning', message: string, duration?: number) => void;
-}
+// Użyj dokładnie tego samego typu co w Toast.tsx
+type ToastType = 'success' | 'error' | 'info';
 
 export const useDocumentActions = (
     refreshData: () => Promise<void>,
-    showToast: UseDocumentActionsProps['showToast']
+    showToast: (type: ToastType, message: string, duration?: number) => void
 ) => {
     // State
     const [selectedDocument, setSelectedDocument] = useState<UnifiedFinancialDocument | undefined>(undefined);
@@ -143,15 +141,6 @@ export const useDocumentActions = (
         setSelectedDocument(undefined);
     }, []);
 
-    // Handle modal actions from view modal
-    const handleViewModalEdit = useCallback((document: UnifiedFinancialDocument) => {
-        setShowViewModal(false);
-        setTimeout(() => {
-            setSelectedDocument(document);
-            setShowFormModal(true);
-        }, 100);
-    }, []);
-
     return {
         // State
         selectedDocument,
@@ -166,7 +155,6 @@ export const useDocumentActions = (
         handleSaveDocument,
         handleStatusChange,
         handleDownloadAttachment,
-        handleCloseModals,
-        handleViewModalEdit
+        handleCloseModals
     };
 };

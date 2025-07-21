@@ -6,7 +6,6 @@ import AppointmentCalendar from '../../components/calendar/Calendar';
 import Modal from '../../components/common/Modal';
 import AppointmentForm from '../../components/calendar/AppointmentForm';
 import AppointmentDetails from '../../components/calendar/AppointmentDetails';
-import ConfirmationDialog from '../../components/common/ConfirmationDialog';
 import {Appointment, AppointmentStatus, ProtocolStatus} from '../../types';
 import {
     addAppointment,
@@ -27,7 +26,10 @@ import {
     FaSignOutAlt,
     FaSync,
     FaUsers,
-    FaInfoCircle
+    FaInfoCircle,
+    FaExclamationTriangle,
+    FaCheck,
+    FaTimes
 } from 'react-icons/fa';
 import {brandTheme} from "../Finances/styles/theme";
 
@@ -109,6 +111,86 @@ const Tooltip: React.FC<TooltipProps> = ({ text, position = 'top', children }) =
                 <TooltipText>{text}</TooltipText>
             </TooltipContent>
         </TooltipContainer>
+    );
+};
+
+// Professional Modal Component - zgodny ze stylem systemu
+interface ProfessionalConfirmationDialogProps {
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText: string;
+    cancelText: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+    type?: 'info' | 'warning' | 'success' | 'error';
+}
+
+const ProfessionalConfirmationDialog: React.FC<ProfessionalConfirmationDialogProps> = ({
+                                                                                           isOpen,
+                                                                                           title,
+                                                                                           message,
+                                                                                           confirmText,
+                                                                                           cancelText,
+                                                                                           onConfirm,
+                                                                                           onCancel,
+                                                                                           type = 'info'
+                                                                                       }) => {
+    if (!isOpen) return null;
+
+    const getIcon = () => {
+        switch (type) {
+            case 'warning': return <FaExclamationTriangle />;
+            case 'success': return <FaCheck />;
+            case 'error': return <FaTimes />;
+            default: return <FaCalendarAlt />;
+        }
+    };
+
+    const getIconColor = () => {
+        switch (type) {
+            case 'warning': return enterprise.warning;
+            case 'success': return enterprise.success;
+            case 'error': return enterprise.error;
+            default: return enterprise.primary;
+        }
+    };
+
+    const getIconBgColor = () => {
+        switch (type) {
+            case 'warning': return enterprise.warningBg;
+            case 'success': return enterprise.successBg;
+            case 'error': return enterprise.errorBg;
+            default: return enterprise.primaryGhost;
+        }
+    };
+
+    return (
+        <ConfirmModalOverlay onClick={onCancel}>
+            <ConfirmModalContainer onClick={(e) => e.stopPropagation()}>
+                <ConfirmModalHeader>
+                    <ConfirmModalIcon $color={getIconColor()} $bgColor={getIconBgColor()}>
+                        {getIcon()}
+                    </ConfirmModalIcon>
+                    <ConfirmModalTitle>{title}</ConfirmModalTitle>
+                </ConfirmModalHeader>
+
+                <ConfirmModalBody>
+                    <ConfirmModalMessage>{message}</ConfirmModalMessage>
+                </ConfirmModalBody>
+
+                <ConfirmModalActions>
+                    <ConfirmModalButton $variant="secondary" onClick={onCancel}>
+                        <FaTimes />
+                        {cancelText}
+                    </ConfirmModalButton>
+                    <ConfirmModalButton $variant="primary" onClick={onConfirm}>
+                        <FaCheck />
+                        {confirmText}
+                    </ConfirmModalButton>
+                </ConfirmModalActions>
+            </ConfirmModalContainer>
+        </ConfirmModalOverlay>
     );
 };
 
@@ -242,7 +324,7 @@ const CalendarPage: React.FC = () => {
         });
     };
 
-    // Professional appointment creation workflow
+    // Professional appointment creation workflow - ZAKTUALIZOWANE
     const handleAppointmentCreate = (start: Date, end: Date) => {
         // Validate date selection
         const now = new Date();
@@ -259,10 +341,9 @@ const CalendarPage: React.FC = () => {
 
         setSelectedEndDate(correctedEndDate);
         setShowNewVisitConfirmation(true);
-
     };
 
-    // Visit creation confirmation handler
+    // Visit creation confirmation handler - ZAKTUALIZOWANE (usunięto opcję anulowania)
     const handleConfirmNewVisit = () => {
         setShowNewVisitConfirmation(false);
 
@@ -283,10 +364,9 @@ const CalendarPage: React.FC = () => {
         });
     };
 
-    // Simple appointment creation fallback
+    // ZAKTUALIZOWANE - usunięto funkcję handleCancelNewVisit i opcję prostego wydarzenia
     const handleCancelNewVisit = () => {
         setShowNewVisitConfirmation(false);
-        setShowNewAppointmentModal(true);
     };
 
     // Quick appointment creation
@@ -694,15 +774,16 @@ const CalendarPage: React.FC = () => {
                 </Modal>
             )}
 
-            {/* Visit Confirmation Dialog */}
-            <ConfirmationDialog
+            {/* ZAKTUALIZOWANY Visit Confirmation Dialog - nowy profesjonalny modal */}
+            <ProfessionalConfirmationDialog
                 isOpen={showNewVisitConfirmation}
                 title="Nowa wizyta"
-                message="Czy chcesz utworzyć pełną wizytę z protokołem przyjęcia?"
-                confirmText="Tak, utwórz wizytę"
-                cancelText="Nie, dodaj proste wydarzenie"
+                message="Czy na pewno chcesz rozpocząć nową wizytę?"
+                confirmText="Tak, rozpocznij wizytę"
+                cancelText="Anuluj"
                 onConfirm={handleConfirmNewVisit}
                 onCancel={handleCancelNewVisit}
+                type="info"
             />
 
             {/* Status Information */}
@@ -854,6 +935,180 @@ const TooltipArrow = styled.div<{ $position: 'top' | 'bottom' | 'left' | 'right'
 
 const TooltipText = styled.span`
    display: block;
+`;
+
+// Professional Confirmation Modal Styles - zgodne ze stylem systemu
+const ConfirmModalOverlay = styled.div`
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: ${enterprise.spacing.xl};
+    animation: fadeIn 0.2s ease-out;
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+`;
+
+const ConfirmModalContainer = styled.div`
+    background: ${enterprise.surface};
+    border-radius: ${enterprise.radius.xl};
+    box-shadow: ${enterprise.shadow.xl};
+    max-width: 500px;
+    width: 100%;
+    overflow: hidden;
+    border: 1px solid ${enterprise.border};
+    animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-20px) scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    @media (max-width: 768px) {
+        margin: ${enterprise.spacing.lg};
+        max-width: calc(100% - ${enterprise.spacing.xxxl});
+    }
+`;
+
+const ConfirmModalHeader = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${enterprise.spacing.lg};
+    padding: ${enterprise.spacing.xxxl} ${enterprise.spacing.xxxl} ${enterprise.spacing.xl};
+    background: ${enterprise.surfaceElevated};
+    border-bottom: 1px solid ${enterprise.borderLight};
+`;
+
+const ConfirmModalIcon = styled.div<{ $color: string; $bgColor: string }>`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    background: ${props => props.$bgColor};
+    color: ${props => props.$color};
+    border-radius: ${enterprise.radius.lg};
+    font-size: 24px;
+    flex-shrink: 0;
+    box-shadow: ${enterprise.shadow.sm};
+`;
+
+const ConfirmModalTitle = styled.h3`
+    font-size: 20px;
+    font-weight: 700;
+    color: ${enterprise.textPrimary};
+    margin: 0;
+    line-height: 1.3;
+    letter-spacing: -0.025em;
+`;
+
+const ConfirmModalBody = styled.div`
+    padding: ${enterprise.spacing.xl} ${enterprise.spacing.xxxl} ${enterprise.spacing.xxxl};
+`;
+
+const ConfirmModalMessage = styled.div`
+    font-size: 16px;
+    font-weight: 500;
+    color: ${enterprise.textSecondary};
+    line-height: 1.6;
+    margin: 0;
+`;
+
+const ConfirmModalActions = styled.div`
+    display: flex;
+    gap: ${enterprise.spacing.lg};
+    padding: ${enterprise.spacing.xl} ${enterprise.spacing.xxxl} ${enterprise.spacing.xxxl};
+    background: ${enterprise.surfaceElevated};
+    border-top: 1px solid ${enterprise.borderLight};
+
+    @media (max-width: 480px) {
+        flex-direction: column;
+        gap: ${enterprise.spacing.md};
+    }
+`;
+
+const ConfirmModalButton = styled.button<{ $variant: 'primary' | 'secondary' }>`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: ${enterprise.spacing.sm};
+    padding: ${enterprise.spacing.lg} ${enterprise.spacing.xxl};
+    border-radius: ${enterprise.radius.lg};
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid;
+    flex: 1;
+    min-height: 48px;
+    position: relative;
+    overflow: hidden;
+
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow: ${enterprise.shadow.md};
+    }
+
+    &:active {
+        transform: translateY(0);
+    }
+
+    ${props => {
+    switch (props.$variant) {
+        case 'secondary':
+            return `
+                    background: ${enterprise.surface};
+                    color: ${enterprise.textSecondary};
+                    border-color: ${enterprise.border};
+                    
+                    &:hover {
+                        background: ${enterprise.surfaceHover};
+                        border-color: ${enterprise.borderActive};
+                        color: ${enterprise.textPrimary};
+                    }
+                `;
+        case 'primary':
+            return `
+                    background: linear-gradient(135deg, ${enterprise.primary} 0%, ${enterprise.primaryLight} 100%);
+                    color: white;
+                    border-color: ${enterprise.primary};
+                    box-shadow: ${enterprise.shadow.sm};
+                    
+                    &:hover {
+                        background: linear-gradient(135deg, ${enterprise.primaryDark} 0%, ${enterprise.primary} 100%);
+                        border-color: ${enterprise.primaryDark};
+                    }
+                `;
+    }
+}}
+
+    svg {
+        font-size: 14px;
+    }
+
+    @media (max-width: 480px) {
+        padding: ${enterprise.spacing.lg};
+    }
 `;
 
 const HeaderContainer = styled.header`
