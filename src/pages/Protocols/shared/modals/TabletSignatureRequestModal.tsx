@@ -1,7 +1,7 @@
 // src/pages/Protocols/shared/modals/TabletSignatureRequestModal.tsx
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { FaTabletAlt, FaSignature, FaTimes, FaSpinner, FaCheck, FaExclamationTriangle, FaClock } from 'react-icons/fa';
+import { FaTabletAlt, FaSignature, FaTimes, FaSpinner, FaCheck, FaExclamationTriangle, FaClock, FaArrowRight } from 'react-icons/fa';
 import { tabletsApi, TabletDevice } from '../../../../api/tabletsApi';
 import { protocolSignatureApi, ProtocolSignatureRequest } from '../../../../api/protocolSignatureApi';
 
@@ -27,6 +27,7 @@ const TabletSignatureRequestModal: React.FC<TabletSignatureRequestModalProps> = 
     const [loading, setLoading] = useState(true);
     const [sending, setSending] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [showContinueOption, setShowContinueOption] = useState(false);
 
     // Ładowanie listy tabletów
     useEffect(() => {
@@ -39,23 +40,29 @@ const TabletSignatureRequestModal: React.FC<TabletSignatureRequestModalProps> = 
         try {
             setLoading(true);
             setError(null);
+            setShowContinueOption(false);
+
+            console.log('🔧 Loading tablets for signature request...');
 
             const tabletsData = await tabletsApi.getTablets();
             const onlineTablets = tabletsData.filter(tablet => tablet.isOnline);
+
+            console.log(`📊 Found ${tabletsData.length} tablets, ${onlineTablets.length} online`);
 
             setTablets(onlineTablets);
 
             // Auto-select first online tablet
             if (onlineTablets.length > 0) {
                 setSelectedTabletId(onlineTablets[0].id);
-            }
-
-            if (onlineTablets.length === 0) {
+            } else {
+                console.warn('⚠️ No tablets available online');
                 setError('Brak dostępnych tabletów online. Sprawdź czy tablety są podłączone i sparowane.');
+                setShowContinueOption(true);
             }
         } catch (err) {
-            console.error('Error loading tablets:', err);
+            console.error('❌ Error loading tablets:', err);
             setError('Nie udało się załadować listy tabletów');
+            setShowContinueOption(true);
         } finally {
             setLoading(false);
         }
@@ -71,6 +78,8 @@ const TabletSignatureRequestModal: React.FC<TabletSignatureRequestModalProps> = 
             setSending(true);
             setError(null);
 
+            console.log('🔧 Sending signature request to tablet:', selectedTabletId);
+
             const request: ProtocolSignatureRequest = {
                 protocolId,
                 tabletId: selectedTabletId,
@@ -82,17 +91,26 @@ const TabletSignatureRequestModal: React.FC<TabletSignatureRequestModalProps> = 
             const response = await protocolSignatureApi.requestProtocolSignature(request);
 
             if (response.success) {
+                console.log('✅ Signature request sent successfully:', response.sessionId);
                 onSignatureRequested(response.sessionId);
                 onClose();
             } else {
+                console.error('❌ Failed to send signature request:', response.message);
                 setError(response.message || 'Nie udało się wysłać żądania podpisu');
+                setShowContinueOption(true);
             }
         } catch (err) {
-            console.error('Error sending signature request:', err);
+            console.error('❌ Error sending signature request:', err);
             setError(err instanceof Error ? err.message : 'Nie udało się wysłać żądania podpisu');
+            setShowContinueOption(true);
         } finally {
             setSending(false);
         }
+    };
+
+    const handleContinueWithoutSignature = () => {
+        console.log('🔧 Continuing process without digital signature...');
+        onClose(); // To spowoduje przejście do następnego kroku w sekwencji
     };
 
     const handleClose = () => {
@@ -135,9 +153,18 @@ const TabletSignatureRequestModal: React.FC<TabletSignatureRequestModalProps> = 
                                 <FaExclamationTriangle />
                             </ErrorIcon>
                             <ErrorMessage>{error}</ErrorMessage>
-                            <RetryButton onClick={loadTablets}>
-                                Spróbuj ponownie
-                            </RetryButton>
+                            <ErrorDescription>
+                                Możesz kontynuować proces bez podpisu cyfrowego lub spróbować ponownie.
+                            </ErrorDescription>
+                            <ErrorActions>
+                                <RetryButton onClick={loadTablets} disabled={loading}>
+                                    {loading ? <FaSpinner className="spinner" /> : 'Spróbuj ponownie'}
+                                </RetryButton>
+                                <ContinueButton onClick={handleContinueWithoutSignature}>
+                                    <FaArrowRight />
+                                    Kontynuuj bez podpisu
+                                </ContinueButton>
+                            </ErrorActions>
                         </ErrorSection>
                     ) : (
                         <>
@@ -207,25 +234,45 @@ const TabletSignatureRequestModal: React.FC<TabletSignatureRequestModalProps> = 
 
                 <ModalFooter>
                     <ButtonGroup>
-                        <SecondaryButton onClick={handleClose} disabled={sending}>
-                            Anuluj
-                        </SecondaryButton>
-                        <PrimaryButton
-                            onClick={handleSendSignatureRequest}
-                            disabled={loading || !selectedTabletId || sending || tablets.length === 0}
-                        >
-                            {sending ? (
-                                <>
-                                    <FaSpinner className="spinner" />
-                                    Wysyłanie...
-                                </>
-                            ) : (
-                                <>
-                                    <FaSignature />
-                                    Wyślij żądanie podpisu
-                                </>
-                            )}
-                        </PrimaryButton>
+                        {tablets.length === 0 && !loading ? (
+                            <>
+                                <SecondaryButton onClick={handleClose} disabled={sending}>
+                                    Anuluj proces
+                                </SecondaryButton>
+                                <ContinueWithoutButton onClick={handleContinueWithoutSignature} disabled={sending}>
+                                    <FaArrowRight />
+                                    Kontynuuj bez podpisu
+                                </ContinueWithoutButton>
+                            </>
+                        ) : (
+                            <>
+                                <SecondaryButton onClick={handleClose} disabled={sending}>
+                                    Anuluj
+                                </SecondaryButton>
+                                {showContinueOption && (
+                                    <ContinueWithoutButton onClick={handleContinueWithoutSignature} disabled={sending}>
+                                        <FaArrowRight />
+                                        Kontynuuj bez podpisu
+                                    </ContinueWithoutButton>
+                                )}
+                                <PrimaryButton
+                                    onClick={handleSendSignatureRequest}
+                                    disabled={loading || !selectedTabletId || sending || tablets.length === 0}
+                                >
+                                    {sending ? (
+                                        <>
+                                            <FaSpinner className="spinner" />
+                                            Wysyłanie...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <FaSignature />
+                                            Wyślij żądanie podpisu
+                                        </>
+                                    )}
+                                </PrimaryButton>
+                            </>
+                        )}
                     </ButtonGroup>
                 </ModalFooter>
             </ModalContainer>
@@ -438,21 +485,73 @@ const ErrorMessage = styled.div`
     color: ${corporateTheme.status.error};
     font-size: 14px;
     line-height: 1.5;
+    font-weight: 600;
+`;
+
+const ErrorDescription = styled.div`
+    color: ${corporateTheme.text.secondary};
+    font-size: 13px;
+    line-height: 1.5;
+    font-style: italic;
+`;
+
+const ErrorActions = styled.div`
+    display: flex;
+    gap: ${corporateTheme.spacing.sm};
+    margin-top: ${corporateTheme.spacing.md};
 `;
 
 const RetryButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: ${corporateTheme.spacing.sm};
     padding: ${corporateTheme.spacing.sm} ${corporateTheme.spacing.md};
-    background: ${corporateTheme.primary};
-    color: white;
-    border: none;
+    background: ${corporateTheme.surface};
+    color: ${corporateTheme.text.secondary};
+    border: 1px solid ${corporateTheme.border};
     border-radius: ${corporateTheme.radius.sm};
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.15s ease;
 
+    &:hover:not(:disabled) {
+        background: ${corporateTheme.surfaceHover};
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .spinner {
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+`;
+
+const ContinueButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: ${corporateTheme.spacing.sm};
+    padding: ${corporateTheme.spacing.sm} ${corporateTheme.spacing.md};
+    background: ${corporateTheme.status.success};
+    color: white;
+    border: none;
+    border-radius: ${corporateTheme.radius.sm};
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+
     &:hover {
-        background: ${corporateTheme.primaryLight};
+        background: ${corporateTheme.status.success};
+        opacity: 0.9;
+        transform: translateY(-1px);
     }
 `;
 
@@ -635,6 +734,36 @@ const SecondaryButton = styled.button`
     &:disabled {
         opacity: 0.5;
         cursor: not-allowed;
+    }
+`;
+
+const ContinueWithoutButton = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: ${corporateTheme.spacing.sm};
+    padding: ${corporateTheme.spacing.sm} ${corporateTheme.spacing.md};
+    background: ${corporateTheme.status.success};
+    color: white;
+    border: 1px solid ${corporateTheme.status.success};
+    border-radius: ${corporateTheme.radius.sm};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    min-height: 40px;
+    min-width: 160px;
+
+    &:hover:not(:disabled) {
+        background: ${corporateTheme.status.success};
+        opacity: 0.9;
+        transform: translateY(-1px);
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
     }
 `;
 

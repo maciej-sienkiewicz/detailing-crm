@@ -28,6 +28,18 @@ export interface ProtocolCounters {
     all: number;
 }
 
+// Interfejsy dla wysyłania emaila
+export interface SendProtocolEmailRequest {
+    visit_id: string;
+}
+
+export interface EmailSendResponse {
+    success: boolean;
+    message?: string;
+    emailId?: string;
+    sentTo?: string;
+}
+
 /**
  * API do zarządzania protokołami przyjęcia pojazdów
  */
@@ -190,6 +202,9 @@ export const protocolsApi = {
         }
     },
 
+    /**
+     * Pobiera liczniki protokołów
+     */
     getProtocolCounters: async (): Promise<ProtocolCounters> => {
         try {
             return await apiClient.get<ProtocolCounters>('/v1/protocols/counters');
@@ -203,6 +218,32 @@ export const protocolsApi = {
                 completed: 0,
                 cancelled: 0,
                 all: 0
+            };
+        }
+    },
+
+    /**
+     * Wysyła protokół emailem
+     */
+    sendProtocolEmail: async (visitId: string): Promise<EmailSendResponse> => {
+        try {
+            console.log('🔧 Sending protocol email...', visitId);
+
+            const request: SendProtocolEmailRequest = {
+                visit_id: visitId
+            };
+
+            const response = await apiClient.post<EmailSendResponse>('/email/send/protocol', request);
+
+            console.log('✅ Protocol email sent successfully:', response);
+            return response;
+        } catch (error) {
+            console.error(`Error sending protocol email (Visit ID: ${visitId}):`, error);
+
+            // Zwracamy strukturę błędu zamiast rzucania wyjątku
+            return {
+                success: false,
+                message: error instanceof Error ? error.message : 'Nie udało się wysłać emaila z protokołem'
             };
         }
     }

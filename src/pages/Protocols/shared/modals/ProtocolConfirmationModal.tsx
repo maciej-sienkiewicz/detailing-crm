@@ -4,6 +4,7 @@ import { FaPrint, FaEnvelope, FaCheck, FaTimes, FaSpinner, FaFileAlt, FaDownload
 import PDFViewer from "../../../../components/PdfViewer";
 import TabletSignatureRequestModal from './TabletSignatureRequestModal';
 import SignatureStatusModal from './SignatureStatusModal';
+import { protocolsApi } from '../../../../api/protocolsApi';
 
 // Professional Corporate Theme
 const corporateTheme = {
@@ -89,6 +90,7 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
     const [isPrinting, setIsPrinting] = useState(false);
     const [isSendingEmail, setIsSendingEmail] = useState(false);
     const [hasError, setHasError] = useState<string | null>(null);
+    const [emailSendResult, setEmailSendResult] = useState<{ success: boolean; message?: string } | null>(null);
 
     // Stany modali podpisu
     const [signatureSessionId, setSignatureSessionId] = useState<string>('');
@@ -100,6 +102,7 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
             setModalSequence([]);
             setCurrentSequenceIndex(0);
             setHasError(null);
+            setEmailSendResult(null);
             setIsPrinting(false);
             setIsSendingEmail(false);
             setSignatureSessionId('');
@@ -131,8 +134,38 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
         return sequence;
     };
 
+    // Wysyłanie emaila z protokołem
+    const handleSendEmail = async (): Promise<boolean> => {
+        try {
+            setIsSendingEmail(true);
+            console.log('🔧 Sending protocol email for visit:', protocolId);
+
+            const response = await protocolsApi.sendProtocolEmail(protocolId);
+
+            setEmailSendResult(response);
+
+            if (response.success) {
+                console.log('✅ Protocol email sent successfully:', response.message);
+                return true;
+            } else {
+                console.error('❌ Failed to send protocol email:', response.message);
+                setHasError(`Nie udało się wysłać emaila: ${response.message || 'Nieznany błąd'}`);
+                return false;
+            }
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Nie udało się wysłać emaila z protokołem';
+            console.error('❌ Error sending protocol email:', error);
+            setHasError(errorMessage);
+            setEmailSendResult({ success: false, message: errorMessage });
+            return false;
+        } finally {
+            setIsSendingEmail(false);
+        }
+    };
+
     const handleConfirm = async () => {
         setHasError(null);
+        setEmailSendResult(null);
 
         // Jeśli żadna opcja nie jest wybrana
         if (!selectedOptions.print && !selectedOptions.sendEmail) {
@@ -156,14 +189,31 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
     };
 
     // Przejście do następnego modala w sekwencji
-    const proceedToNextModal = () => {
+    const proceedToNextModal = async () => {
         const nextIndex = currentSequenceIndex + 1;
+
+        // Jeśli w aktualnym modalu był podpis i następny to PDF, wyślij email jeśli wybrano
+        if (currentModal === ModalSequence.SIGNATURE_STATUS &&
+            selectedOptions.sendEmail &&
+            clientEmail &&
+            nextIndex < modalSequence.length &&
+            modalSequence[nextIndex] === ModalSequence.PDF_PREVIEW) {
+
+            console.log('🔧 Sending email before proceeding to PDF preview...');
+            await handleSendEmail(); // Wysyłamy email niezależnie od rezultatu
+        }
 
         if (nextIndex < modalSequence.length) {
             setCurrentSequenceIndex(nextIndex);
             setCurrentModal(modalSequence[nextIndex]);
         } else {
-            // Koniec sekwencji - zakończenie całego procesu
+            // Koniec sekwencji - wysyłanie emaila jeśli nie zostało już wysłane
+            if (selectedOptions.sendEmail && clientEmail && !emailSendResult) {
+                console.log('🔧 Sending email at the end of sequence...');
+                await handleSendEmail();
+            }
+
+            // Zakończenie całego procesu
             completeProcess();
         }
     };
@@ -192,6 +242,12 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
         proceedToNextModal(); // Przejście do modal śledzenia podpisu
     };
 
+    // Obsługa błędu żądania podpisu - kontynuujemy proces
+    const handleSignatureError = () => {
+        console.log('🔧 Signature request failed, but continuing process...');
+        proceedToNextModal(); // Kontynuuj proces mimo błędu
+    };
+
     // Obsługa zakończenia podpisu
     const handleSignatureCompleted = (signedDocumentUrl?: string) => {
         proceedToNextModal(); // Przejście do następnego modala lub zakończenie
@@ -207,8 +263,13 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
         proceedToNextModal(); // Przejście do następnego modala lub zakończenie
     };
 
-    const handleSkip = () => {
-        onConfirm({ print: false, sendEmail: false });
+    const handleSkip = async () => {
+        // Jeśli tylko email był wybrany, wyślij go przed zamknięciem
+        if (!selectedOptions.print && selectedOptions.sendEmail && clientEmail) {
+            await handleSendEmail();
+        }
+
+        onConfirm({ print: false, sendEmail: selectedOptions.sendEmail });
         onClose();
     };
 
@@ -245,6 +306,17 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
                             <ErrorSection>
                                 <ErrorMessage>{hasError}</ErrorMessage>
                             </ErrorSection>
+                        )}
+
+                        {emailSendResult && (
+                            <EmailResultSection success={emailSendResult.success}>
+                                <EmailResultMessage>
+                                    {emailSendResult.success
+                                        ? '✅ Email z protokołem został wysłany pomyślnie!'
+                                        : `❌ Nie udało się wysłać emaila: ${emailSendResult.message}`
+                                    }
+                                </EmailResultMessage>
+                            </EmailResultSection>
                         )}
 
                         <OptionsSection>
@@ -303,9 +375,9 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
                         <InfoSection>
                             <InfoMessage>
                                 {selectedOptions.print && selectedOptions.sendEmail && clientEmail ? (
-                                    "Zostanie wykonana następująca sekwencja: 1) zebranie podpisu od klienta, 2) wyświetlenie protokołu do druku."
+                                    "Zostanie wykonana następująca sekwencja: 1) żądanie podpisu cyfrowego od klienta, 2) wysłanie emaila, 3) wyświetlenie protokołu do druku."
                                 ) : selectedOptions.sendEmail && clientEmail ? (
-                                    "Klient zostanie poproszony o podpisanie protokołu na tablecie."
+                                    "Klient zostanie poproszony o podpisanie protokołu na tablecie, następnie protokół zostanie wysłany emailem."
                                 ) : selectedOptions.print ? (
                                     "Protokół zostanie wyświetlony do podglądu i druku."
                                 ) : (
@@ -365,6 +437,7 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
                 sessionId={signatureSessionId}
                 protocolId={parseInt(protocolId)}
                 onCompleted={handleSignatureCompleted}
+                onProceedNext={proceedToNextModal} // Nowy callback do przejścia dalej
             />
         );
     }
@@ -383,7 +456,7 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
     return null;
 };
 
-// Professional Styled Components
+// Professional Styled Components (dodaję nowe komponenty)
 const ModalOverlay = styled.div`
     position: fixed;
     top: 0;
@@ -522,6 +595,18 @@ const ErrorSection = styled.div`
 
 const ErrorMessage = styled.div`
     color: ${corporateTheme.status.error};
+    font-size: 14px;
+    font-weight: 500;
+`;
+
+const EmailResultSection = styled.div<{ success: boolean }>`
+    background: ${props => props.success ? corporateTheme.status.successLight : corporateTheme.status.errorLight};
+    border: 1px solid ${props => props.success ? corporateTheme.status.successBorder : corporateTheme.status.error};
+    border-radius: ${corporateTheme.radius.md};
+    padding: ${corporateTheme.spacing.md};
+`;
+
+const EmailResultMessage = styled.div`
     font-size: 14px;
     font-weight: 500;
 `;

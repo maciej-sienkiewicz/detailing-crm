@@ -258,10 +258,6 @@ const ProtocolDetailsPage: React.FC = () => {
             console.log('Wysyłanie SMS do klienta:', protocol?.phone);
         }
 
-        if (notificationOptions.sendEmail) {
-            console.log('Wysyłanie e-mail do klienta:', protocol?.email);
-        }
-
         if (notificationOptions.sendSms || notificationOptions.sendEmail) {
             console.log('Dodanie informacji o powiadomieniu do historii protokołu');
         }
