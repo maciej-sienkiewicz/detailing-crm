@@ -88,41 +88,55 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                                                        onServicesChange,
                                                        protocolId
                                                    }) => {
+    // Stan lokalny - zachowywany między otwieraniem modali
     const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card'>('cash');
     const [documentType, setDocumentType] = useState<'invoice' | 'receipt' | 'other'>('receipt');
     const [showInvoiceItemsModal, setShowInvoiceItemsModal] = useState(false);
-    const [customInvoiceItems, setCustomInvoiceItems] = useState<SelectedService[] | null>(null);
-    const [modifiedTotalAmount, setModifiedTotalAmount] = useState<number | null>(null);
+
+    // Stan dla zmodyfikowanych pozycji faktury - tymczasowy do momentu zatwierdzenia
+    const [pendingInvoiceItems, setPendingInvoiceItems] = useState<SelectedService[] | null>(null);
+
     const { showToast } = useToast();
 
-    // Resetuj stan przy otwarciu modalu
+    // Inicjalizacja stanu tylko przy pierwszym otwarciu modalu
     useEffect(() => {
-        if (isOpen) {
+        if (isOpen && !showInvoiceItemsModal) {
+            // Reset stanu tylko jeśli nie ma oczekujących zmian
+            if (!pendingInvoiceItems) {
+                setPaymentMethod('cash');
+                setDocumentType('receipt');
+            }
+        }
+    }, [isOpen]);
+
+    // Reset stanu po zamknięciu głównego modalu
+    useEffect(() => {
+        if (!isOpen) {
+            setPendingInvoiceItems(null);
             setPaymentMethod('cash');
             setDocumentType('receipt');
-            setCustomInvoiceItems(null);
-            setModifiedTotalAmount(null);
         }
-    }, [isOpen, services]);
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
     // Aktualna kwota do zapłaty
-    const currentTotalAmount = modifiedTotalAmount !== null ? modifiedTotalAmount : initialTotalAmount;
+    const currentServices = pendingInvoiceItems || services;
+    const currentTotalAmount = currentServices.reduce((sum, item) => sum + item.finalPrice, 0);
 
     const handleEditInvoiceItems = () => {
         setShowInvoiceItemsModal(true);
     };
 
+    // Obsługa zapisu pozycji faktury - zapisujemy lokalnie bez wysyłania na serwer
     const handleInvoiceItemsSave = (items: SelectedService[]) => {
-        setCustomInvoiceItems(items);
-        const newTotal = items.reduce((sum, item) => sum + item.finalPrice, 0);
-        setModifiedTotalAmount(newTotal);
+        setPendingInvoiceItems(items);
         setShowInvoiceItemsModal(false);
-        onServicesChange(items);
+
+        const newTotal = items.reduce((sum, item) => sum + item.finalPrice, 0);
 
         if (Math.abs(newTotal - initialTotalAmount) > 0.01) {
-            showToast('info', `Suma po modyfikacji: ${newTotal.toFixed(2)} zł (oryginalna: ${initialTotalAmount.toFixed(2)} zł)`, 5000);
+            showToast('info', `Pozycje faktury zostały zmodyfikowane. Nowa suma: ${newTotal.toFixed(2)} zł`, 3000);
         }
     };
 
@@ -130,12 +144,13 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         const paymentData = {
             paymentMethod,
             documentType,
-            invoiceItems: documentType === 'invoice' && customInvoiceItems ? customInvoiceItems : undefined
+            invoiceItems: documentType === 'invoice' && pendingInvoiceItems ? pendingInvoiceItems : undefined
         };
 
-        if (documentType === 'invoice' && customInvoiceItems) {
+        // Sprawdzenie różnic w kwotach przed zatwierdzeniem
+        if (documentType === 'invoice' && pendingInvoiceItems) {
             const originalTotal = initialTotalAmount;
-            const customTotal = customInvoiceItems.reduce((sum, item) => sum + item.finalPrice, 0);
+            const customTotal = pendingInvoiceItems.reduce((sum, item) => sum + item.finalPrice, 0);
 
             if (Math.abs(originalTotal - customTotal) > 0.01) {
                 const confirmed = window.confirm(
@@ -148,6 +163,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             }
         }
 
+        // Aktualizujemy services tylko w momencie finalnego zatwierdzenia
+        if (pendingInvoiceItems) {
+            onServicesChange(pendingInvoiceItems);
+        }
+
+        // Komunikaty o operacjach
         if (paymentMethod === 'cash') {
             showToast('success', 'Dodano nowy rekord w kasie.', 3000);
         }
@@ -157,6 +178,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         }
 
         onConfirm(paymentData);
+    };
+
+    const handleCloseInvoiceModal = () => {
+        setShowInvoiceItemsModal(false);
+        // Nie resetujemy stanu - zachowujemy wybory użytkownika
     };
 
     return (
@@ -179,14 +205,14 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
                 <ModalBody>
                     <AmountSection>
-                        <AmountCard $modified={modifiedTotalAmount !== null}>
+                        <AmountCard $modified={pendingInvoiceItems !== null}>
                             <AmountIcon>
                                 <FaCalculator />
                             </AmountIcon>
                             <AmountDetails>
                                 <AmountLabel>Kwota do zapłaty</AmountLabel>
                                 <AmountValue>{currentTotalAmount.toFixed(2)} zł</AmountValue>
-                                {modifiedTotalAmount !== null && (
+                                {pendingInvoiceItems !== null && (
                                     <ModifiedHint>
                                         (zmodyfikowano z {initialTotalAmount.toFixed(2)} zł)
                                     </ModifiedHint>
@@ -294,7 +320,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                     {documentType === 'invoice' && (
                         <InvoiceOptionsSection>
                             <InvoiceOptionsTitle>Opcje faktury</InvoiceOptionsTitle>
-                            {customInvoiceItems ? (
+                            {pendingInvoiceItems ? (
                                 <CustomItemsSummary>
                                     <SummaryInfo>
                                         <SummaryIcon>
@@ -303,10 +329,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                                         <SummaryText>
                                             <SummaryTitle>Pozycje faktury zostały zmodyfikowane</SummaryTitle>
                                             <SummaryDetails>
-                                                {customInvoiceItems.length} {
-                                                customInvoiceItems.length === 1 ? 'pozycja' :
-                                                    customInvoiceItems.length < 5 ? 'pozycje' : 'pozycji'
-                                            } • Suma: {modifiedTotalAmount?.toFixed(2)} zł
+                                                {pendingInvoiceItems.length} {
+                                                pendingInvoiceItems.length === 1 ? 'pozycja' :
+                                                    pendingInvoiceItems.length < 5 ? 'pozycje' : 'pozycji'
+                                            } • Suma: {currentTotalAmount.toFixed(2)} zł
                                             </SummaryDetails>
                                         </SummaryText>
                                     </SummaryInfo>
@@ -339,16 +365,16 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
             <InvoiceItemsModal
                 isOpen={showInvoiceItemsModal}
-                onClose={() => setShowInvoiceItemsModal(false)}
+                onClose={handleCloseInvoiceModal}
                 onSave={handleInvoiceItemsSave}
-                services={customInvoiceItems || services}
+                services={pendingInvoiceItems || services}
                 protocolId={protocolId}
             />
         </ModalOverlay>
     );
 };
 
-// Styled Components - Professional Automotive CRM Design
+// Styled Components - bez zmian, kopiujemy istniejące
 const ModalOverlay = styled.div`
     position: fixed;
     top: 0;
@@ -451,130 +477,130 @@ const CloseButton = styled.button`
     border: 1px solid ${brandTheme.border};
     border-radius: ${brandTheme.radius.sm};
     color: ${brandTheme.text.muted};
-   cursor: pointer;
-   transition: all ${brandTheme.transitions.normal};
+    cursor: pointer;
+    transition: all ${brandTheme.transitions.normal};
 
-   &:hover {
-       background: ${brandTheme.status.errorLight};
-       border-color: ${brandTheme.status.error};
-       color: ${brandTheme.status.error};
-       transform: translateY(-1px);
-   }
+    &:hover {
+        background: ${brandTheme.status.errorLight};
+        border-color: ${brandTheme.status.error};
+        color: ${brandTheme.status.error};
+        transform: translateY(-1px);
+    }
 `;
 
 const ModalBody = styled.div`
-   padding: ${brandTheme.spacing.xl};
-   overflow-y: auto;
-   flex: 1;
-   display: flex;
-   flex-direction: column;
-   gap: ${brandTheme.spacing.xl};
+    padding: ${brandTheme.spacing.xl};
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.xl};
 
-   /* Custom scrollbar */
-   &::-webkit-scrollbar {
-       width: 6px;
-   }
+    /* Custom scrollbar */
+    &::-webkit-scrollbar {
+        width: 6px;
+    }
 
-   &::-webkit-scrollbar-track {
-       background: ${brandTheme.surfaceAlt};
-   }
+    &::-webkit-scrollbar-track {
+        background: ${brandTheme.surfaceAlt};
+    }
 
-   &::-webkit-scrollbar-thumb {
-       background: ${brandTheme.border};
-       border-radius: 3px;
-   }
+    &::-webkit-scrollbar-thumb {
+        background: ${brandTheme.border};
+        border-radius: 3px;
+    }
 `;
 
 const AmountSection = styled.div`
-   display: flex;
-   justify-content: center;
+    display: flex;
+    justify-content: center;
 `;
 
 const AmountCard = styled.div<{ $modified: boolean }>`
-   background: ${props => props.$modified ? brandTheme.status.infoLight : brandTheme.surfaceAlt};
-   border: 2px solid ${props => props.$modified ? brandTheme.status.info : brandTheme.border};
-   border-radius: ${brandTheme.radius.lg};
-   padding: ${brandTheme.spacing.lg};
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.md};
-   min-width: 280px;
-   position: relative;
+    background: ${props => props.$modified ? brandTheme.status.infoLight : brandTheme.surfaceAlt};
+    border: 2px solid ${props => props.$modified ? brandTheme.status.info : brandTheme.border};
+    border-radius: ${brandTheme.radius.lg};
+    padding: ${brandTheme.spacing.lg};
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.md};
+    min-width: 280px;
+    position: relative;
 `;
 
 const AmountIcon = styled.div`
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   width: 48px;
-   height: 48px;
-   background: ${brandTheme.status.success};
-   color: white;
-   border-radius: ${brandTheme.radius.lg};
-   font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background: ${brandTheme.status.success};
+    color: white;
+    border-radius: ${brandTheme.radius.lg};
+    font-size: 20px;
 `;
 
 const AmountDetails = styled.div`
-   display: flex;
-   flex-direction: column;
-   gap: ${brandTheme.spacing.xs};
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.xs};
 `;
 
 const AmountLabel = styled.div`
-   font-size: 14px;
-   font-weight: 600;
-   color: ${brandTheme.text.secondary};
-   text-transform: uppercase;
-   letter-spacing: 0.5px;
+    font-size: 14px;
+    font-weight: 600;
+    color: ${brandTheme.text.secondary};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 `;
 
 const AmountValue = styled.div`
-   font-size: 24px;
-   font-weight: 700;
-   color: ${brandTheme.status.success};
-   font-variant-numeric: tabular-nums;
+    font-size: 24px;
+    font-weight: 700;
+    color: ${brandTheme.status.success};
+    font-variant-numeric: tabular-nums;
 `;
 
 const ModifiedHint = styled.div`
-   font-size: 12px;
-   color: ${brandTheme.status.info};
-   font-style: italic;
-   font-weight: 500;
+    font-size: 12px;
+    color: ${brandTheme.status.info};
+    font-style: italic;
+    font-weight: 500;
 `;
 
 const PaymentSection = styled.div`
-   display: flex;
-   flex-direction: column;
-   gap: ${brandTheme.spacing.lg};
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.lg};
 `;
 
 const DocumentSection = styled.div`
     display: flex;
     flex-direction: column;
     gap: ${brandTheme.spacing.lg};
-    min-height: 200px; /* Dodane: stała wysokość sekcji */
+    min-height: 200px;
 `;
 
 const SectionTitle = styled.h4`
-   margin: 0;
-   font-size: 16px;
-   font-weight: 600;
-   color: ${brandTheme.text.primary};
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.sm};
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
 
-   svg {
-       color: ${brandTheme.primary};
-       font-size: 16px;
-   }
+    svg {
+        color: ${brandTheme.primary};
+        font-size: 16px;
+    }
 `;
 
 const OptionsGrid = styled.div`
     display: grid;
-    grid-template-columns: repeat(3, 1fr); /* Zmieniamy na stałe 3 kolumny */
+    grid-template-columns: repeat(3, 1fr);
     gap: ${brandTheme.spacing.md};
-    min-height: 120px; /* Dodane: stała wysokość siatki */
+    min-height: 120px;
 `;
 
 const PaymentOption = styled.div<{ $selected: boolean }>`
@@ -588,8 +614,8 @@ const PaymentOption = styled.div<{ $selected: boolean }>`
     display: flex;
     flex-direction: column;
     gap: ${brandTheme.spacing.md};
-    min-height: 120px; /* Dodane: stała wysokość kafelka */
-    width: 100%; /* Dodane: stała szerokość */
+    min-height: 120px;
+    width: 100%;
 
     &:hover {
         border-color: ${brandTheme.primary};
@@ -599,56 +625,56 @@ const PaymentOption = styled.div<{ $selected: boolean }>`
 `;
 
 const DocumentOption = styled(PaymentOption)`
-    min-height: 120px; /* Dodane: stała wysokość kafelka */
-    width: 100%; /* Dodane: stała szerokość */
+    min-height: 120px;
+    width: 100%;
 `;
 
 const OptionIcon = styled.div`
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   width: 48px;
-   height: 48px;
-   background: ${brandTheme.surfaceAlt};
-   color: ${brandTheme.primary};
-   border-radius: ${brandTheme.radius.lg};
-   font-size: 20px;
-   margin-bottom: ${brandTheme.spacing.sm};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background: ${brandTheme.surfaceAlt};
+    color: ${brandTheme.primary};
+    border-radius: ${brandTheme.radius.lg};
+    font-size: 20px;
+    margin-bottom: ${brandTheme.spacing.sm};
 `;
 
 const OptionContent = styled.div`
-   display: flex;
-   flex-direction: column;
-   gap: ${brandTheme.spacing.xs};
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.xs};
 `;
 
 const OptionTitle = styled.div`
-   font-size: 16px;
-   font-weight: 600;
-   color: ${brandTheme.text.primary};
+    font-size: 16px;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
 `;
 
 const OptionDescription = styled.div`
-   font-size: 13px;
-   color: ${brandTheme.text.muted};
-   line-height: 1.4;
+    font-size: 13px;
+    color: ${brandTheme.text.muted};
+    line-height: 1.4;
 `;
 
 const SelectionIndicator = styled.div<{ $selected: boolean }>`
-   position: absolute;
-   top: ${brandTheme.spacing.sm};
-   right: ${brandTheme.spacing.sm};
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   width: 24px;
-   height: 24px;
-   background: ${props => props.$selected ? brandTheme.status.success : brandTheme.border};
-   color: white;
-   border-radius: 50%;
-   font-size: 12px;
-   transition: all ${brandTheme.transitions.normal};
-   opacity: ${props => props.$selected ? 1 : 0.3};
+    position: absolute;
+    top: ${brandTheme.spacing.sm};
+    right: ${brandTheme.spacing.sm};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: ${props => props.$selected ? brandTheme.status.success : brandTheme.border};
+    color: white;
+    border-radius: 50%;
+    font-size: 12px;
+    transition: all ${brandTheme.transitions.normal};
+    opacity: ${props => props.$selected ? 1 : 0.3};
 `;
 
 const InvoiceOptionsSection = styled.div`
@@ -675,171 +701,171 @@ const InvoiceOptionsSection = styled.div`
 `;
 
 const InvoiceOptionsTitle = styled.h5`
-   margin: 0;
-   font-size: 14px;
-   font-weight: 600;
-   color: ${brandTheme.text.primary};
-   text-transform: uppercase;
-   letter-spacing: 0.5px;
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 `;
 
 const EditInvoiceItemsButton = styled.button`
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   gap: ${brandTheme.spacing.sm};
-   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-   background: ${brandTheme.primaryGhost};
-   color: ${brandTheme.primary};
-   border: 2px solid ${brandTheme.primary}40;
-   border-radius: ${brandTheme.radius.md};
-   font-size: 14px;
-   font-weight: 600;
-   cursor: pointer;
-   transition: all ${brandTheme.transitions.normal};
-   width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    background: ${brandTheme.primaryGhost};
+    color: ${brandTheme.primary};
+    border: 2px solid ${brandTheme.primary}40;
+    border-radius: ${brandTheme.radius.md};
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all ${brandTheme.transitions.normal};
+    width: 100%;
 
-   &:hover {
-       background: ${brandTheme.primary}20;
-       border-color: ${brandTheme.primary};
-       transform: translateY(-1px);
-       box-shadow: ${brandTheme.shadow.sm};
-   }
+    &:hover {
+        background: ${brandTheme.primary}20;
+        border-color: ${brandTheme.primary};
+        transform: translateY(-1px);
+        box-shadow: ${brandTheme.shadow.sm};
+    }
 `;
 
 const CustomItemsSummary = styled.div`
-   display: flex;
-   align-items: center;
-   justify-content: space-between;
-   background: ${brandTheme.status.successLight};
-   border: 1px solid ${brandTheme.status.success};
-   border-radius: ${brandTheme.radius.md};
-   padding: ${brandTheme.spacing.md};
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: ${brandTheme.status.successLight};
+    border: 1px solid ${brandTheme.status.success};
+    border-radius: ${brandTheme.radius.md};
+    padding: ${brandTheme.spacing.md};
 `;
 
 const SummaryInfo = styled.div`
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.sm};
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
 `;
 
 const SummaryIcon = styled.div`
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   width: 32px;
-   height: 32px;
-   background: ${brandTheme.status.success};
-   color: white;
-   border-radius: ${brandTheme.radius.sm};
-   font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: ${brandTheme.status.success};
+    color: white;
+    border-radius: ${brandTheme.radius.sm};
+    font-size: 14px;
 `;
 
 const SummaryText = styled.div`
-   display: flex;
-   flex-direction: column;
-   gap: 2px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 `;
 
 const SummaryTitle = styled.div`
-   font-size: 14px;
-   font-weight: 600;
-   color: ${brandTheme.status.success};
+    font-size: 14px;
+    font-weight: 600;
+    color: ${brandTheme.status.success};
 `;
 
 const SummaryDetails = styled.div`
-   font-size: 12px;
-   color: ${brandTheme.text.secondary};
-   font-weight: 500;
+    font-size: 12px;
+    color: ${brandTheme.text.secondary};
+    font-weight: 500;
 `;
 
 const EditInvoiceButton = styled.button`
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.xs};
-   padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
-   background: none;
-   color: ${brandTheme.primary};
-   border: 1px solid ${brandTheme.primary};
-   border-radius: ${brandTheme.radius.sm};
-   font-size: 13px;
-   font-weight: 500;
-   cursor: pointer;
-   transition: all ${brandTheme.transitions.normal};
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.xs};
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+    background: none;
+    color: ${brandTheme.primary};
+    border: 1px solid ${brandTheme.primary};
+    border-radius: ${brandTheme.radius.sm};
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all ${brandTheme.transitions.normal};
 
-   &:hover {
-       background: ${brandTheme.primaryGhost};
-       transform: translateY(-1px);
-   }
+    &:hover {
+        background: ${brandTheme.primaryGhost};
+        transform: translateY(-1px);
+    }
 `;
 
 const ModalFooter = styled.div`
-   display: flex;
-   justify-content: flex-end;
-   gap: ${brandTheme.spacing.md};
-   padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
-   border-top: 2px solid ${brandTheme.border};
-   background: ${brandTheme.surfaceAlt};
+    display: flex;
+    justify-content: flex-end;
+    gap: ${brandTheme.spacing.md};
+    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
+    border-top: 2px solid ${brandTheme.border};
+    background: ${brandTheme.surfaceAlt};
 `;
 
 const SecondaryButton = styled.button`
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.sm};
-   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-   background: ${brandTheme.surface};
-   color: ${brandTheme.text.secondary};
-   border: 2px solid ${brandTheme.border};
-   border-radius: ${brandTheme.radius.md};
-   font-weight: 600;
-   font-size: 14px;
-   cursor: pointer;
-   transition: all ${brandTheme.transitions.spring};
-   min-height: 44px;
-   min-width: 120px;
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    background: ${brandTheme.surface};
+    color: ${brandTheme.text.secondary};
+    border: 2px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.md};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all ${brandTheme.transitions.spring};
+    min-height: 44px;
+    min-width: 120px;
 
-   &:hover {
-       background: ${brandTheme.surfaceHover};
-       color: ${brandTheme.text.primary};
-       border-color: ${brandTheme.borderHover};
-       box-shadow: ${brandTheme.shadow.sm};
-   }
+    &:hover {
+        background: ${brandTheme.surfaceHover};
+        color: ${brandTheme.text.primary};
+        border-color: ${brandTheme.borderHover};
+        box-shadow: ${brandTheme.shadow.sm};
+    }
 `;
 
 const PrimaryButton = styled.button`
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   gap: ${brandTheme.spacing.sm};
-   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-   background: linear-gradient(135deg, ${brandTheme.status.success} 0%, #27ae60 100%);
-   color: white;
-   border: 2px solid transparent;
-   border-radius: ${brandTheme.radius.md};
-   font-weight: 600;
-   font-size: 14px;
-   cursor: pointer;
-   transition: all ${brandTheme.transitions.spring};
-   box-shadow: ${brandTheme.shadow.sm};
-   min-height: 44px;
-   min-width: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    background: linear-gradient(135deg, ${brandTheme.status.success} 0%, #27ae60 100%);
+    color: white;
+    border: 2px solid transparent;
+    border-radius: ${brandTheme.radius.md};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all ${brandTheme.transitions.spring};
+    box-shadow: ${brandTheme.shadow.sm};
+    min-height: 44px;
+    min-width: 180px;
 
-   &:hover:not(:disabled) {
-       background: linear-gradient(135deg, #27ae60 0%, ${brandTheme.status.success} 100%);
-       transform: translateY(-1px);
-       box-shadow: ${brandTheme.shadow.md};
-   }
+    &:hover:not(:disabled) {
+        background: linear-gradient(135deg, #27ae60 0%, ${brandTheme.status.success} 100%);
+        transform: translateY(-1px);
+        box-shadow: ${brandTheme.shadow.md};
+    }
 
-   &:disabled {
-       opacity: 0.6;
-       cursor: not-allowed;
-       transform: none;
-       background: ${brandTheme.text.disabled};
-   }
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+        background: ${brandTheme.text.disabled};
+    }
 
-   &:active:not(:disabled) {
-       transform: translateY(0);
-   }
+    &:active:not(:disabled) {
+        transform: translateY(0);
+    }
 `;
 
 export default PaymentModal;

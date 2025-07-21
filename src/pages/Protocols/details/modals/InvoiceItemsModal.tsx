@@ -1,8 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import {FaCheck, FaTimesCircle, FaTimes, FaPencilAlt, FaTrash, FaLayerGroup, FaFileInvoice, FaCalculator, FaSpinner} from 'react-icons/fa';
+import {FaCheck, FaTimesCircle, FaTimes, FaPencilAlt, FaTrash, FaLayerGroup, FaFileInvoice, FaCalculator} from 'react-icons/fa';
 import {DiscountType, SelectedService, ServiceApprovalStatus} from '../../../../types';
-import {protocolsApi} from '../../../../api/protocolsApi';
 import {useToast} from "../../../../components/common/Toast/Toast";
 
 // Professional Brand Theme
@@ -151,7 +150,6 @@ const InvoiceItemsModal: React.FC<InvoiceItemsModalProps> = ({
     const [editName, setEditName] = useState('');
     const [editPrice, setEditPrice] = useState('');
     const [isPriceGross, setIsPriceGross] = useState(true);
-    const [isLoading, setIsLoading] = useState(false);
     const [extendedDiscountTypes, setExtendedDiscountTypes] = useState<Record<string, ExtendedDiscountType>>({});
 
     const { showToast } = useToast();
@@ -356,39 +354,7 @@ const InvoiceItemsModal: React.FC<InvoiceItemsModalProps> = ({
         });
     };
 
-    const updateProtocol = async (newServices: SelectedService[]) => {
-        setIsLoading(true);
-        try {
-            const protocolDetails = await protocolsApi.getProtocolDetails(protocolId);
-
-            if (!protocolDetails) {
-                throw new Error('Nie udało się pobrać danych protokołu');
-            }
-
-            const updatedProtocol = {
-                ...protocolDetails,
-                selectedServices: newServices,
-                updatedAt: new Date().toISOString()
-            };
-
-            const result = await protocolsApi.updateProtocol(updatedProtocol);
-
-            if (result) {
-                showToast('success', 'Pozycje faktury zostały zaktualizowane', 3000);
-                return true;
-            } else {
-                throw new Error('Nie udało się zaktualizować protokołu');
-            }
-        } catch (error) {
-            console.error('Błąd podczas aktualizacji protokołu:', error);
-            showToast('error', 'Wystąpił błąd podczas aktualizacji protokołu', 3000);
-            return false;
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleSave = async () => {
+    const handleSave = () => {
         const itemsToSave = editedServices.map(service => {
             const {
                 isModified,
@@ -405,8 +371,8 @@ const InvoiceItemsModal: React.FC<InvoiceItemsModalProps> = ({
             return serviceData as SelectedService;
         });
 
-        const newTotal = itemsToSave.reduce((sum, item) => sum + item.finalPrice, 0);
         const originalTotal = services.reduce((sum, item) => sum + item.finalPrice, 0);
+        const newTotal = itemsToSave.reduce((sum, item) => sum + item.finalPrice, 0);
 
         if (Math.abs(newTotal - originalTotal) > 0.01) {
             const confirmed = window.confirm(
@@ -418,12 +384,10 @@ const InvoiceItemsModal: React.FC<InvoiceItemsModalProps> = ({
             }
         }
 
-        const success = await updateProtocol(itemsToSave);
-
-        if (success) {
-            onSave(itemsToSave);
-            onClose();
-        }
+        // Zapisujemy lokalnie bez wysyłania na serwer
+        showToast('success', 'Pozycje faktury zostały zmodyfikowane. Zmiany zostaną zastosowane po zatwierdzeniu płatności.', 4000);
+        onSave(itemsToSave);
+        onClose();
     };
 
     const calculateTotals = () => {
@@ -468,6 +432,7 @@ const InvoiceItemsModal: React.FC<InvoiceItemsModalProps> = ({
                             <InstructionsDescription>
                                 Możesz edytować nazwy i ceny poszczególnych usług, które pojawią się na fakturze,
                                 lub połączyć wszystkie usługi w jedną pozycję dla uproszczenia dokumentu.
+                                Zmiany zostaną zastosowane dopiero po zatwierdzeniu płatności.
                             </InstructionsDescription>
                         </InstructionsText>
                     </InstructionsCard>
@@ -709,19 +674,10 @@ const InvoiceItemsModal: React.FC<InvoiceItemsModalProps> = ({
                     </SecondaryButton>
                     <PrimaryButton
                         onClick={handleSave}
-                        disabled={editedServices.length === 0 || isLoading}
+                        disabled={editedServices.length === 0}
                     >
-                        {isLoading ? (
-                            <>
-                                <FaSpinner className="spinner" />
-                                Zapisywanie...
-                            </>
-                        ) : (
-                            <>
-                                <FaCheck />
-                                Zastosuj zmiany
-                            </>
-                        )}
+                        <FaCheck />
+                        Zastosuj zmiany
                     </PrimaryButton>
                 </ModalFooter>
             </ModalContainer>
@@ -1367,15 +1323,6 @@ const PrimaryButton = styled.button`
 
    &:active:not(:disabled) {
        transform: translateY(0);
-   }
-
-   .spinner {
-       animation: spin 1s linear infinite;
-   }
-
-   @keyframes spin {
-       from { transform: rotate(0deg); }
-       to { transform: rotate(360deg); }
    }
 `;
 

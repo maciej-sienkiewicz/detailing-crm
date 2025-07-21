@@ -296,6 +296,26 @@ const ProtocolDetailsPage: React.FC = () => {
         try {
             setShowPaymentModal(false);
 
+            // Jeśli mamy zmodyfikowane pozycje faktury, aktualizujemy protokół
+            if (paymentData.invoiceItems) {
+                console.log('Aktualizowanie protokołu z zmodyfikowanymi pozycjami faktury:', paymentData.invoiceItems);
+
+                // Aktualizujemy protokół z nowymi services
+                const updatedProtocolWithServices = {
+                    ...protocol!,
+                    selectedServices: paymentData.invoiceItems,
+                    updatedAt: new Date().toISOString()
+                };
+
+                // Wysyłamy zapytanie do API z zaktualizowanymi services
+                const protocolUpdateResult = await protocolsApi.updateProtocol(updatedProtocolWithServices);
+
+                if (protocolUpdateResult) {
+                    setProtocol(protocolUpdateResult);
+                    console.log('Protokół zaktualizowany pomyślnie z nowymi pozycjami faktury');
+                }
+            }
+
             const releaseData = {
                 paymentMethod: paymentData.paymentMethod,
                 documentType: paymentData.documentType,
@@ -306,9 +326,16 @@ const ProtocolDetailsPage: React.FC = () => {
             if (result) {
                 setProtocol(result);
             } else {
+                // Fallback - aktualizujemy lokalnie jeśli API nie zwraca zaktualizowanego protokołu
                 const updatedProtocol = { ...protocol! };
                 updatedProtocol.status = ProtocolStatus.COMPLETED;
                 updatedProtocol.statusUpdatedAt = new Date().toISOString();
+
+                // Jeśli mamy zmodyfikowane pozycje faktury i nie udało się je wcześniej zapisać
+                if (paymentData.invoiceItems && !result) {
+                    updatedProtocol.selectedServices = paymentData.invoiceItems;
+                }
+
                 setProtocol(updatedProtocol);
 
                 await protocolsApi.updateProtocolStatus(protocol!.id, ProtocolStatus.COMPLETED);
