@@ -119,7 +119,7 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
     const handleGoToProtocol = () => {
         if (appointment.isProtocol && appointment.id) {
             const protocolId = appointment.id.replace('protocol-', '');
-            navigate(`/orders/car-reception/${protocolId}`);
+            navigate(`/visits/${protocolId}`);
         }
     };
 

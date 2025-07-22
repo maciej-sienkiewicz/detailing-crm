@@ -38,7 +38,7 @@ export const useProtocolActions = (
 
     // Obsługa przejścia do szczegółów protokołu
     const handleViewProtocol = (protocol: ProtocolListItem) => {
-        navigate(`/orders/car-reception/${protocol.id}`);
+        navigate(`/visits/${protocol.id}`);
     };
 
     // Obsługa edytowania protokołu
@@ -120,7 +120,7 @@ export const useProtocolActions = (
         setShowForm(false);
         setEditingProtocol(null);
         setCurrentProtocol(null);
-        navigate(`/orders/car-reception/${protocol.id}`);
+        navigate(`/visits/${protocol.id}`);
     };
 
     // Obsługa powrotu z formularza

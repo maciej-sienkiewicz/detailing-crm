@@ -68,7 +68,7 @@ const mainMenuItems: MainMenuItem[] = [
         id: 'orders',
         label: 'Wizyty',
         icon: <FaClipboardCheck />,
-        path: '/orders',
+        path: '/visits',
         hasSubmenu: false,
         category: 'daily'
     },

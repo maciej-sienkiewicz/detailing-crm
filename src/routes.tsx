@@ -88,9 +88,9 @@ const AppRoutes: React.FC = () => {
                 <Route path="/team" element={<EmployeesPage />} />
 
                 {/* Wizyty i protokoły */}
-                <Route path="/orders" element={<CarReceptionPage />} />
-                <Route path="/orders/car-reception/:id" element={<ProtocolDetailsPage />} />
-                <Route path="/orders/start-visit/:id" element={<StartVisitPage />} />
+                <Route path="/visits" element={<CarReceptionPage />} />
+                <Route path="/visits/:id" element={<ProtocolDetailsPage />} />
+                <Route path="/visits/:id/open" element={<StartVisitPage />} />
 
                 <Route path="/sms" element={<SmsMainPage />} />
                 <Route path="/sms/dashboard" element={<Navigate to="/sms" replace />} />

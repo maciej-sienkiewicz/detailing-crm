@@ -94,6 +94,7 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
 
     // Stany modali podpisu
     const [signatureSessionId, setSignatureSessionId] = useState<string>('');
+    const [wasSignatureCompleted, setWasSignatureCompleted] = useState(false);
 
     // Resetowanie stanów przy otwarciu modala
     useEffect(() => {
@@ -106,6 +107,7 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
             setIsPrinting(false);
             setIsSendingEmail(false);
             setSignatureSessionId('');
+            setWasSignatureCompleted(false);
         }
     }, [isOpen]);
 
@@ -126,8 +128,8 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
             sequence.push(ModalSequence.SIGNATURE_STATUS);
         }
 
-        // Jeśli wybrano druk, dodaj modal PDF
-        if (options.print) {
+        // Jeśli wybrano druk LUB mamy podpis, dodaj modal PDF
+        if (options.print || (options.sendEmail && clientEmail)) {
             sequence.push(ModalSequence.PDF_PREVIEW);
         }
 
@@ -192,34 +194,23 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
     const proceedToNextModal = async () => {
         const nextIndex = currentSequenceIndex + 1;
 
-        // Jeśli w aktualnym modalu był podpis i następny to PDF, wyślij email jeśli wybrano
-        if (currentModal === ModalSequence.SIGNATURE_STATUS &&
-            selectedOptions.sendEmail &&
-            clientEmail &&
-            nextIndex < modalSequence.length &&
-            modalSequence[nextIndex] === ModalSequence.PDF_PREVIEW) {
-
-            console.log('🔧 Sending email before proceeding to PDF preview...');
-            await handleSendEmail(); // Wysyłamy email niezależnie od rezultatu
-        }
-
         if (nextIndex < modalSequence.length) {
             setCurrentSequenceIndex(nextIndex);
             setCurrentModal(modalSequence[nextIndex]);
         } else {
-            // Koniec sekwencji - wysyłanie emaila jeśli nie zostało już wysłane
-            if (selectedOptions.sendEmail && clientEmail && !emailSendResult) {
-                console.log('🔧 Sending email at the end of sequence...');
-                await handleSendEmail();
-            }
-
-            // Zakończenie całego procesu
+            // Koniec sekwencji - zakończenie całego procesu
             completeProcess();
         }
     };
 
     // Zakończenie całego procesu
-    const completeProcess = () => {
+    const completeProcess = async () => {
+        // Jeśli był podpis i wybrano email, wyślij email na końcu
+        if (wasSignatureCompleted && selectedOptions.sendEmail && clientEmail) {
+            console.log('🔧 Sending email after process completion...');
+            await handleSendEmail();
+        }
+
         onConfirm(selectedOptions);
         onClose();
     };
@@ -231,7 +222,6 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
             onClose();
         } else {
             // Anulowanie z modala w sekwencji - kontynuuj do następnego modala
-            // (np. anulowanie podpisu nie przerywa całej sekwencji jeśli jest jeszcze druk)
             proceedToNextModal();
         }
     };
@@ -242,25 +232,25 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
         proceedToNextModal(); // Przejście do modal śledzenia podpisu
     };
 
-    // Obsługa błędu żądania podpisu - kontynuujemy proces
-    const handleSignatureError = () => {
-        console.log('🔧 Signature request failed, but continuing process...');
-        proceedToNextModal(); // Kontynuuj proces mimo błędu
-    };
-
     // Obsługa zakończenia podpisu
     const handleSignatureCompleted = (signedDocumentUrl?: string) => {
-        proceedToNextModal(); // Przejście do następnego modala lub zakończenie
+        console.log('🔧 Signature completed:', signedDocumentUrl);
+        setWasSignatureCompleted(true);
+        // NIE wywołujemy proceedToNextModal tutaj - użytkownik musi kliknąć "Kontynuuj"
     };
 
-    // Obsługa anulowania podpisu - przejście do następnego modala lub zakończenie
-    const handleSignatureCancelled = () => {
-        proceedToNextModal(); // Kontynuuj sekwencję nawet po anulowaniu podpisu
+    // Wrapper dla proceedToNextModal do obsługi w SignatureStatusModal
+    const handleProceedToNext = () => {
+        proceedToNextModal().catch(error => {
+            console.error('Error proceeding to next modal:', error);
+            completeProcess();
+        });
     };
 
     // Obsługa zamknięcia PDF preview
     const handlePdfPreviewClose = () => {
-        proceedToNextModal(); // Przejście do następnego modala lub zakończenie
+        console.log('🔧 PDF preview closed, completing process...');
+        completeProcess(); // Zakończ cały proces
     };
 
     const handleSkip = async () => {
@@ -358,10 +348,10 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
                                                 {isSendingEmail ? <FaSpinner className="spinner" /> : <FaEnvelope />}
                                             </OptionIcon>
                                             <OptionDetails>
-                                                <OptionTitle>Wysyłka emailem</OptionTitle>
+                                                <OptionTitle>Wysyłka emailem z podpisem cyfrowym</OptionTitle>
                                                 <OptionDescription>
                                                     {clientEmail
-                                                        ? `Wyślij kopię protokołu na adres: ${clientEmail}`
+                                                        ? `Zbierz podpis cyfrowy i wyślij protokół na adres: ${clientEmail}`
                                                         : 'Nie można wysłać - brak adresu email w danych klienta'
                                                     }
                                                 </OptionDescription>
@@ -375,9 +365,9 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
                         <InfoSection>
                             <InfoMessage>
                                 {selectedOptions.print && selectedOptions.sendEmail && clientEmail ? (
-                                    "Zostanie wykonana następująca sekwencja: 1) żądanie podpisu cyfrowego od klienta, 2) wysłanie emaila, 3) wyświetlenie protokołu do druku."
+                                    "Zostanie wykonana następująca sekwencja: 1) zebranie podpisu cyfrowego, 2) wyświetlenie podpisanego protokołu, 3) wysłanie emaila po zatwierdzeniu."
                                 ) : selectedOptions.sendEmail && clientEmail ? (
-                                    "Klient zostanie poproszony o podpisanie protokołu na tablecie, następnie protokół zostanie wysłany emailem."
+                                    "Klient zostanie poproszony o podpisanie protokołu na tablecie, następnie zostanie wyświetlony podpisany dokument do zatwierdzenia."
                                 ) : selectedOptions.print ? (
                                     "Protokół zostanie wyświetlony do podglądu i druku."
                                 ) : (
@@ -437,7 +427,7 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
                 sessionId={signatureSessionId}
                 protocolId={parseInt(protocolId)}
                 onCompleted={handleSignatureCompleted}
-                onProceedNext={proceedToNextModal} // Nowy callback do przejścia dalej
+                onProceedNext={handleProceedToNext}
             />
         );
     }
@@ -456,7 +446,7 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
     return null;
 };
 
-// Professional Styled Components (dodaję nowe komponenty)
+// Professional Styled Components (pozostają bez zmian)
 const ModalOverlay = styled.div`
     position: fixed;
     top: 0;

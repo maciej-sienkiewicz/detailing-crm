@@ -40,7 +40,7 @@ const ActivityEntityLink: React.FC<ActivityEntityLinkProps> = ({ entity }) => {
             case 'protocol':
                 return {
                     icon: <FaClipboardCheck />,
-                    path: `/orders/car-reception/${entity.id}`,
+                    path: `/visits/${entity.id}`,
                     text: entity.displayName || 'Protokół'
                 };
             case 'invoice':
@@ -52,7 +52,7 @@ const ActivityEntityLink: React.FC<ActivityEntityLinkProps> = ({ entity }) => {
             case 'COMMENT':
                 return {
                     icon: <FaComments />,
-                    path: `/orders/car-reception/${entity.relatedId}?comment=${entity.id}`,
+                    path: `/visits/${entity.relatedId}?comment=${entity.id}`,
                     text: entity.displayName || 'Komentarz'
                 };
             default:

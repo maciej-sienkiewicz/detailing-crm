@@ -255,7 +255,7 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
     };
 
     const handleVisitClick = (visitId: string) => {
-        navigate(`/orders/car-reception/${visitId}`);
+        navigate(`/visits/${visitId}`);
     };
 
     const handleOwnerClick = (ownerId: string) => {

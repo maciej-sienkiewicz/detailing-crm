@@ -100,7 +100,7 @@ const StartVisitPage: React.FC = () => {
 
     // Obsługa powrotu
     const handleGoBack = () => {
-        navigate(`/orders/car-reception/${id}`);
+        navigate(`/visits/${id}`);
     };
 
     // Obsługa zapisania formularza
@@ -113,7 +113,7 @@ const StartVisitPage: React.FC = () => {
     const handleConfirmationClose = () => {
         setShowConfirmationModal(false);
         if (savedProtocol) {
-            navigate(`/orders/car-reception/${savedProtocol.id}`);
+            navigate(`/visits/${savedProtocol.id}`);
         }
     };
 
@@ -123,7 +123,7 @@ const StartVisitPage: React.FC = () => {
         // We just need to handle the navigation after the confirmation
         setShowConfirmationModal(false);
         if (savedProtocol) {
-            navigate(`/orders/car-reception/${savedProtocol.id}`);
+            navigate(`/visits/${savedProtocol.id}`);
         }
     };
 

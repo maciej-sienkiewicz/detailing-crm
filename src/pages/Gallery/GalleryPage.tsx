@@ -271,7 +271,7 @@ const GalleryPage: React.FC = () => {
 
     const handleProtocolClick = (protocolId: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        navigate(`/orders/car-reception/${protocolId}`);
+        navigate(`/visits/${protocolId}`);
     };
 
     const getFileNameWithExtension = (image: GalleryImage): string => {

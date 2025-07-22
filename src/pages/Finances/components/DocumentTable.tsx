@@ -429,7 +429,7 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
                                 <CardRow>
                                     <CardLabel>Wizyta:</CardLabel>
                                     {document.protocolNumber ? (
-                                        <ProtocolLink href={`/orders/car-reception/${document.protocolId}`}>
+                                        <ProtocolLink href={`/visits/${document.protocolId}`}>
                                             #{document.protocolNumber}
                                         </ProtocolLink>
                                     ) : document.visitId ? (

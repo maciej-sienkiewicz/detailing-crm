@@ -174,7 +174,7 @@ const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
     };
 
     const handleVisitClick = (visitId: string) => {
-        navigate(`/orders/car-reception/${visitId}`);
+        navigate(`/visits/${visitId}`);
     };
 
     if (!client || !clientStats) return null;

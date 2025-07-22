@@ -219,7 +219,7 @@ const DocumentViewModal: React.FC<DocumentViewModalProps> = ({
                             <DetailItem>
                                 <DetailLabel>Powiązany protokół:</DetailLabel>
                                 <DetailValue>
-                                    <ProtocolLink href={`/orders/car-reception/${document.protocolId}`}>
+                                    <ProtocolLink href={`/visits/${document.protocolId}`}>
                                         {document.protocolNumber}
                                     </ProtocolLink>
                                 </DetailValue>

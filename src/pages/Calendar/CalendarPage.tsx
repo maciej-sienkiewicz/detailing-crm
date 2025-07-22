@@ -279,7 +279,7 @@ const CalendarPage: React.FC = () => {
         // Validate protocol creation conditions
         if (selectedAppointment.isProtocol &&
             (selectedAppointment.status as unknown as ProtocolStatus) === ProtocolStatus.SCHEDULED) {
-            navigate(`/orders`, {
+            navigate(`/visits`, {
                 state: {
                     editProtocolId: selectedAppointment.id,
                     isOpenProtocolAction: true
@@ -301,7 +301,7 @@ const CalendarPage: React.FC = () => {
             setShowAppointmentDetailsModal(false);
 
             // Navigate to protocol creation
-            navigate('/orders/car-reception?createFromAppointment=true', {
+            navigate('/visits/car-reception?createFromAppointment=true', {
                 state: {
                     protocolData,
                     appointmentId: selectedAppointment.id
@@ -355,7 +355,7 @@ const CalendarPage: React.FC = () => {
         localEndDate.setHours(23, 59, 0, 0);
 
         // Navigate to full protocol creation
-        navigate('/orders', {
+        navigate('/visits', {
             state: {
                 startDate: localStartDate.toISOString(),
                 endDate: localEndDate.toISOString(),
@@ -386,7 +386,7 @@ const CalendarPage: React.FC = () => {
         };
 
         // Przekieruj do pełnego widoku tworzenia wizyty zamiast prostego formularza
-        navigate('/orders', {
+        navigate('/visits', {
             state: {
                 startDate: toLocalISOString(startDate),
                 endDate: toLocalISOString(endDate),
@@ -430,7 +430,7 @@ const CalendarPage: React.FC = () => {
         // Handle protocol editing
         if (selectedAppointment.isProtocol &&
             (selectedAppointment.status as unknown as ProtocolStatus) === ProtocolStatus.SCHEDULED) {
-            navigate(`/orders`, {
+            navigate(`/visits`, {
                 state: {
                     editProtocolId: selectedAppointment.id,
                     isOpenProtocolAction: false,

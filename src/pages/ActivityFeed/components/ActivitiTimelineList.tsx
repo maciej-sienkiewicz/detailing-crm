@@ -149,13 +149,13 @@ const ActivityTimelineList: React.FC<ActivityTimelineListProps> = ({ activities,
 
         switch (entity.type) {
             case 'APPOINTMENT':
-                return `/orders/car-reception/${entity.id}`;
+                return `/visits/${entity.id}`;
             case 'client':
                 return `/clients/owners?search=${entity.displayName}`;
             case 'vehicle':
                 return `/clients/vehicles?search=${entity.displayName}`;
             case 'PROTOCOL':
-                return `/orders/car-reception/${entity.id}`;
+                return `/visits/${entity.id}`;
             default:
                 return '/clients-vehicles?tab=vehicles&vehicleId=2';
         }

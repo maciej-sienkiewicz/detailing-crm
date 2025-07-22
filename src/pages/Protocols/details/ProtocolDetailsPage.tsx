@@ -117,7 +117,7 @@ const ProtocolDetailsPage: React.FC = () => {
         if (option === 'SCHEDULED') {
             setShowRescheduleModal(true);
         } else if (option === 'REALTIME') {
-            navigate(`/orders/start-visit/${protocol.id}?restoreFromCancelled=true`);
+            navigate(`/visits/${protocol.id}/open?restoreFromCancelled=true`);
         }
     };
 
@@ -220,7 +220,7 @@ const ProtocolDetailsPage: React.FC = () => {
 
     // Go back to protocols list
     const handleGoBack = () => {
-        navigate('/orders');
+        navigate('/visits');
     };
 
     // Update protocol data after changes
@@ -444,7 +444,7 @@ const ProtocolDetailsPage: React.FC = () => {
                     )}
 
                     {protocol.status == ProtocolStatus.SCHEDULED && (
-                        <SecondaryActionButton onClick={() => navigate(`/orders`, {
+                        <SecondaryActionButton onClick={() => navigate(`/visits`, {
                             state: { editProtocolId: protocol.id }
                         })}>
                             <FaEdit />
@@ -453,7 +453,7 @@ const ProtocolDetailsPage: React.FC = () => {
                     )}
 
                     {isScheduled && (
-                        <PrimaryActionButton onClick={() => navigate(`/orders/start-visit/${protocol.id}`)} variant="primary">
+                        <PrimaryActionButton onClick={() => navigate(`/visits/${protocol.id}/open`)} variant="primary">
                             <FaEdit />
                             <span>Rozpocznij wizytę</span>
                         </PrimaryActionButton>

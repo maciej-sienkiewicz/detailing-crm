@@ -274,13 +274,6 @@ const SignatureStatusModal: React.FC<SignatureStatusModalProps> = ({
                                         <FaCheck />
                                         Protokół został pomyślnie podpisany!
                                     </SuccessMessage>
-
-                                    {status.signedDocumentUrl && (
-                                        <DownloadButton onClick={handleDownload}>
-                                            <FaDownload />
-                                            Pobierz podpisany protokół
-                                        </DownloadButton>
-                                    )}
                                 </CompletedActions>
                             )}
 
@@ -289,12 +282,6 @@ const SignatureStatusModal: React.FC<SignatureStatusModalProps> = ({
                                     <FaExclamationTriangle />
                                     Proces może być kontynuowany bez podpisu cyfrowego
                                 </WarningMessage>
-                            )}
-
-                            {status?.timestamp && (
-                                <TimestampInfo>
-                                    Ostatnia aktualizacja: {new Date(status.timestamp).toLocaleString('pl-PL')}
-                                </TimestampInfo>
                             )}
                         </StatusSection>
                     ) : null}

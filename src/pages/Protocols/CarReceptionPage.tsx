@@ -72,7 +72,7 @@ const CarReceptionPage: React.FC = () => {
             if (currentProtocol) {
                 refreshProtocolsList();
                 setShowForm(false);
-                navigate(`/orders/car-reception/${currentProtocol.id}`);
+                navigate(`/visits/${currentProtocol.id}`);
             }
         } else if (showModalPostNavigation) {
             // Jesli zamykamy modal po nawigacji
@@ -177,7 +177,7 @@ const CarReceptionPage: React.FC = () => {
 
                 if (isStartVisitAction) {
                     // Przekieruj na stronę rozpoczęcia wizyty
-                    navigate(`/orders/start-visit/${editProtocolId}`);
+                    navigate(`/visits/${editProtocolId}/open`);
                     return;
                 }
 
