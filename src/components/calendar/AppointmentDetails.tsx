@@ -1,4 +1,4 @@
-// src/components/calendar/AppointmentDetails.tsx - Professional Version
+// src/components/calendar/AppointmentDetails.tsx - REFACTORED VERSION
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { format } from 'date-fns';
@@ -13,80 +13,12 @@ import {
     FaClipboardCheck,
     FaExternalLinkAlt,
     FaTools,
-    FaPhone,
-    FaEnvelope,
-    FaMapMarkerAlt,
-    FaIdCard,
-    FaMoneyBillWave,
-    FaCheckCircle,
-    FaTimes,
-    FaEye,
-    FaFileInvoiceDollar
+    FaCheck,
+    FaTimes
 } from 'react-icons/fa';
-import { Appointment, ProtocolStatus, SelectedService } from '../../types';
-import { AppointmentStatusManager } from './AppointmentStatusManager';
+import { Appointment, ProtocolStatus } from '../../types';
 import { useNavigate } from 'react-router-dom';
-
-// Professional Design System for Corporate CRM
-const professional = {
-    // Corporate Color Palette
-    primary: '#1e293b',
-    primaryLight: '#334155',
-    primaryDark: '#0f172a',
-
-    // Business Surfaces
-    surface: '#ffffff',
-    surfaceElevated: '#f8fafc',
-    surfaceHover: '#f1f5f9',
-    surfaceAccent: '#fafbfc',
-
-    // Professional Typography
-    textPrimary: '#0f172a',
-    textSecondary: '#334155',
-    textTertiary: '#64748b',
-    textMuted: '#94a3b8',
-
-    // Corporate Borders
-    border: '#e2e8f0',
-    borderLight: '#f1f5f9',
-    borderAccent: '#cbd5e1',
-
-    // Business Status Colors
-    success: '#0f766e',
-    successBg: '#f0fdfa',
-    warning: '#b45309',
-    warningBg: '#fffbeb',
-    error: '#b91c1c',
-    errorBg: '#fef2f2',
-    info: '#0369a1',
-    infoBg: '#f0f9ff',
-
-    // Professional Spacing
-    spacing: {
-        xs: '4px',
-        sm: '8px',
-        md: '12px',
-        lg: '16px',
-        xl: '20px',
-        xxl: '24px',
-        xxxl: '32px'
-    },
-
-    // Corporate Shadows
-    shadow: {
-        sm: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-        md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-        lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-        xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
-    },
-
-    radius: {
-        sm: '4px',
-        md: '6px',
-        lg: '8px',
-        xl: '12px'
-    }
-};
+import { theme } from '../../styles/theme';
 
 interface AppointmentDetailsProps {
     appointment: Appointment;
@@ -106,7 +38,6 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
     const navigate = useNavigate();
     const [showConfirmDelete, setShowConfirmDelete] = useState(false);
 
-    // Date formatting functions
     const formatDateTime = (date: Date) => {
         return format(date, 'EEEE, dd MMMM yyyy • HH:mm', { locale: pl });
     };
@@ -115,7 +46,6 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
         return format(date, 'HH:mm', { locale: pl });
     };
 
-    // Protocol navigation
     const handleGoToProtocol = () => {
         if (appointment.isProtocol && appointment.id) {
             const protocolId = appointment.id.replace('protocol-', '');
@@ -123,7 +53,6 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
         }
     };
 
-    // Price calculations
     const calculateNetPrice = (grossPrice: number): number => {
         return grossPrice / 1.23;
     };
@@ -141,7 +70,6 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
 
     const totalValue = calculateTotalValue();
 
-    // Delete confirmation handlers
     const handleDeleteClick = () => {
         setShowConfirmDelete(true);
     };
@@ -153,7 +81,7 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
 
     return (
         <DetailsContainer>
-            {/* Professional Header */}
+            {/* Header */}
             <DetailsHeader>
                 <HeaderContent>
                     <HeaderInfo>
@@ -371,28 +299,28 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
     );
 };
 
-// Professional Styled Components
+// Styled Components
 const DetailsContainer = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${professional.spacing.xl};
+    gap: ${theme.spacing.xl};
     max-width: 100%;
-    background: ${professional.surface};
-    border: 1px solid ${professional.border};
-    border-radius: ${professional.radius.lg};
+    background: ${theme.surface};
+    border: 1px solid ${theme.border};
+    border-radius: ${theme.radius.lg};
     overflow: hidden;
 `;
 
 const DetailsHeader = styled.div`
-    background: ${professional.surfaceElevated};
-    border-bottom: 1px solid ${professional.border};
+    background: ${theme.surfaceElevated};
+    border-bottom: 1px solid ${theme.border};
 `;
 
 const HeaderContent = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: ${professional.spacing.xxl};
+    padding: ${theme.spacing.xxl};
 `;
 
 const HeaderInfo = styled.div`
@@ -402,37 +330,36 @@ const HeaderInfo = styled.div`
 const AppointmentTitle = styled.h2`
     font-size: 20px;
     font-weight: 600;
-    color: ${professional.textPrimary};
-    margin: 0 0 ${professional.spacing.sm} 0;
+    color: ${theme.text.primary};
+    margin: 0 0 ${theme.spacing.sm} 0;
     line-height: 1.3;
 `;
 
 const AppointmentMeta = styled.div`
     font-size: 14px;
-    color: ${professional.textTertiary};
+    color: ${theme.text.tertiary};
     font-weight: 400;
 `;
 
 const ProtocolActionButton = styled.button`
     display: flex;
     align-items: center;
-    gap: ${professional.spacing.sm};
-    padding: ${professional.spacing.md} ${professional.spacing.lg};
-    background: ${professional.surface};
-    color: ${professional.primary};
-    border: 2px solid ${professional.primary};
-    border-radius: ${professional.radius.md};
+    gap: ${theme.spacing.sm};
+    padding: ${theme.spacing.md} ${theme.spacing.lg};
+    background: ${theme.surface};
+    color: ${theme.primary};
+    border: 2px solid ${theme.primary};
+    border-radius: ${theme.radius.md};
     font-weight: 600;
     font-size: 14px;
     cursor: pointer;
     transition: all 0.2s ease;
-    text-decoration: none;
 
     &:hover {
-        background: ${professional.primary};
+        background: ${theme.primary};
         color: white;
         transform: translateY(-1px);
-        box-shadow: ${professional.shadow.md};
+        box-shadow: ${theme.shadow.md};
     }
 
     &:active {
@@ -444,20 +371,16 @@ const ProtocolActionButton = styled.button`
     }
 `;
 
-const StatusSection = styled.div`
-    border-bottom: 1px solid ${professional.borderLight};
-`;
-
 const SectionHeader = styled.div`
-    padding: ${professional.spacing.lg} ${professional.spacing.xxl} ${professional.spacing.md};
-    background: ${professional.surfaceAccent};
-    border-bottom: 1px solid ${professional.borderLight};
+    padding: ${theme.spacing.lg} ${theme.spacing.xxl} ${theme.spacing.md};
+    background: ${theme.surfaceAlt};
+    border-bottom: 1px solid ${theme.borderLight};
 `;
 
 const SectionTitle = styled.h3`
     font-size: 15px;
     font-weight: 600;
-    color: ${professional.textPrimary};
+    color: ${theme.text.primary};
     margin: 0;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -466,47 +389,43 @@ const SectionTitle = styled.h3`
 const SectionTitleWithIcon = styled.div`
     display: flex;
     align-items: center;
-    gap: ${professional.spacing.sm};
+    gap: ${theme.spacing.sm};
     font-size: 15px;
     font-weight: 600;
-    color: ${professional.textPrimary};
+    color: ${theme.text.primary};
     text-transform: uppercase;
     letter-spacing: 0.5px;
 
     svg {
-        color: ${professional.textTertiary};
+        color: ${theme.text.tertiary};
         font-size: 14px;
     }
 `;
 
-const StatusContent = styled.div`
-    padding: ${professional.spacing.lg} ${professional.spacing.xxl};
-`;
-
 const InfoSection = styled.div`
-    border-bottom: 1px solid ${professional.borderLight};
+    border-bottom: 1px solid ${theme.borderLight};
 `;
 
 const InfoGrid = styled.div`
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: ${professional.spacing.lg};
-    padding: ${professional.spacing.lg} ${professional.spacing.xxl};
+    gap: ${theme.spacing.lg};
+    padding: ${theme.spacing.lg} ${theme.spacing.xxl};
 `;
 
 const InfoItem = styled.div`
     display: flex;
     align-items: flex-start;
-    gap: ${professional.spacing.lg};
-    padding: ${professional.spacing.lg};
-    background: ${professional.surface};
-    border: 1px solid ${professional.borderLight};
-    border-radius: ${professional.radius.md};
+    gap: ${theme.spacing.lg};
+    padding: ${theme.spacing.lg};
+    background: ${theme.surface};
+    border: 1px solid ${theme.borderLight};
+    border-radius: ${theme.radius.md};
     transition: all 0.2s ease;
 
     &:hover {
-        background: ${professional.surfaceHover};
-        border-color: ${professional.borderAccent};
+        background: ${theme.surfaceHover};
+        border-color: ${theme.borderActive};
     }
 `;
 
@@ -516,10 +435,10 @@ const InfoIcon = styled.div`
     justify-content: center;
     width: 36px;
     height: 36px;
-    background: ${professional.surfaceElevated};
-    border: 1px solid ${professional.border};
-    border-radius: ${professional.radius.md};
-    color: ${professional.textTertiary};
+    background: ${theme.surfaceElevated};
+    border: 1px solid ${theme.border};
+    border-radius: ${theme.radius.md};
+    color: ${theme.text.tertiary};
     font-size: 14px;
     flex-shrink: 0;
 `;
@@ -527,14 +446,14 @@ const InfoIcon = styled.div`
 const InfoContent = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${professional.spacing.xs};
+    gap: ${theme.spacing.xs};
     flex: 1;
 `;
 
 const InfoLabel = styled.div`
     font-size: 12px;
     font-weight: 500;
-    color: ${professional.textMuted};
+    color: ${theme.text.muted};
     text-transform: uppercase;
     letter-spacing: 0.5px;
 `;
@@ -542,25 +461,25 @@ const InfoLabel = styled.div`
 const InfoValue = styled.div`
     font-size: 15px;
     font-weight: 500;
-    color: ${professional.textPrimary};
+    color: ${theme.text.primary};
     line-height: 1.4;
 `;
 
 const ServicesSection = styled.div`
-    border-bottom: 1px solid ${professional.borderLight};
+    border-bottom: 1px solid ${theme.borderLight};
 `;
 
 const TotalValue = styled.div`
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: ${professional.spacing.xs};
+    gap: ${theme.spacing.xs};
 `;
 
 const TotalLabel = styled.div`
     font-size: 12px;
     font-weight: 500;
-    color: ${professional.textMuted};
+    color: ${theme.text.muted};
     text-transform: uppercase;
     letter-spacing: 0.5px;
 `;
@@ -568,90 +487,90 @@ const TotalLabel = styled.div`
 const TotalAmount = styled.div`
     font-size: 18px;
     font-weight: 600;
-    color: ${professional.primary};
+    color: ${theme.primary};
 `;
 
 const ServicesContent = styled.div`
-    padding: ${professional.spacing.lg} ${professional.spacing.xxl};
+    padding: ${theme.spacing.lg} ${theme.spacing.xxl};
 `;
 
 const ServicesList = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${professional.spacing.md};
-    margin-bottom: ${professional.spacing.xl};
+    gap: ${theme.spacing.md};
+    margin-bottom: ${theme.spacing.xl};
 `;
 
 const ServiceItem = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: ${professional.spacing.lg};
-    background: ${professional.surface};
-    border: 1px solid ${professional.borderLight};
-    border-radius: ${professional.radius.md};
+    padding: ${theme.spacing.lg};
+    background: ${theme.surface};
+    border: 1px solid ${theme.borderLight};
+    border-radius: ${theme.radius.md};
     transition: all 0.2s ease;
 
     &:hover {
-        background: ${professional.surfaceHover};
-        border-color: ${professional.borderAccent};
+        background: ${theme.surfaceHover};
+        border-color: ${theme.borderActive};
     }
 `;
 
 const ServiceInfo = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${professional.spacing.xs};
+    gap: ${theme.spacing.xs};
     flex: 1;
 `;
 
 const ServiceName = styled.div`
     font-size: 15px;
     font-weight: 500;
-    color: ${professional.textPrimary};
+    color: ${theme.text.primary};
 `;
 
 const ServiceMeta = styled.div`
     font-size: 12px;
-    color: ${professional.textMuted};
+    color: ${theme.text.muted};
     font-weight: 400;
 `;
 
 const ServicePricing = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${professional.spacing.xs};
+    gap: ${theme.spacing.xs};
     align-items: flex-end;
 `;
 
 const PriceRow = styled.div`
     display: flex;
     align-items: center;
-    gap: ${professional.spacing.md};
+    gap: ${theme.spacing.md};
 `;
 
 const PriceLabel = styled.div`
     font-size: 12px;
-    color: ${professional.textTertiary};
+    color: ${theme.text.tertiary};
     font-weight: 400;
 `;
 
 const PriceValue = styled.div<{ $primary?: boolean }>`
     font-size: 14px;
     font-weight: 500;
-    color: ${props => props.$primary ? professional.primary : professional.textSecondary};
+    color: ${props => props.$primary ? theme.primary : theme.text.secondary};
     min-width: 80px;
     text-align: right;
 `;
 
 const ServicesSummary = styled.div`
-    padding: ${professional.spacing.lg};
-    background: ${professional.surfaceElevated};
-    border: 1px solid ${professional.border};
-    border-radius: ${professional.radius.md};
+    padding: ${theme.spacing.lg};
+    background: ${theme.surfaceElevated};
+    border: 1px solid ${theme.border};
+    border-radius: ${theme.radius.md};
     display: flex;
     flex-direction: column;
-    gap: ${professional.spacing.md};
+    gap: ${theme.spacing.md};
 `;
 
 const SummaryRow = styled.div<{ $primary?: boolean }>`
@@ -659,32 +578,32 @@ const SummaryRow = styled.div<{ $primary?: boolean }>`
     justify-content: space-between;
     align-items: center;
     ${props => props.$primary && `
-        padding-top: ${professional.spacing.md};
-        border-top: 1px solid ${professional.border};
+        padding-top: ${theme.spacing.md};
+        border-top: 1px solid ${theme.border};
     `}
 `;
 
 const SummaryLabel = styled.div`
     font-size: 14px;
     font-weight: 500;
-    color: ${professional.textPrimary};
+    color: ${theme.text.primary};
 `;
 
 const SummaryValue = styled.div<{ $primary?: boolean }>`
     font-size: ${props => props.$primary ? '16px' : '14px'};
     font-weight: ${props => props.$primary ? '600' : '500'};
-    color: ${props => props.$primary ? professional.primary : professional.textPrimary};
+    color: ${props => props.$primary ? theme.primary : theme.text.primary};
 `;
 
 const ActionsSection = styled.div`
-    padding: ${professional.spacing.xl} ${professional.spacing.xxl};
-    background: ${professional.surfaceElevated};
+    padding: ${theme.spacing.xl} ${theme.spacing.xxl};
+    background: ${theme.surfaceElevated};
 `;
 
 const ActionGrid = styled.div`
     display: grid;
     grid-template-columns: 1fr 2fr 1fr;
-    gap: ${professional.spacing.lg};
+    gap: ${theme.spacing.lg};
 
     @media (max-width: 768px) {
         grid-template-columns: 1fr;
@@ -695,21 +614,19 @@ const BaseAction = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: ${professional.spacing.sm};
-    padding: ${professional.spacing.lg};
-    border-radius: ${professional.radius.md};
+    gap: ${theme.spacing.sm};
+    padding: ${theme.spacing.lg};
+    border-radius: ${theme.radius.md};
     font-weight: 500;
     font-size: 14px;
     cursor: pointer;
     transition: all 0.2s ease;
     border: 1px solid;
-    position: relative;
-    overflow: hidden;
     min-height: 48px;
 
     &:hover {
         transform: translateY(-1px);
-        box-shadow: ${professional.shadow.md};
+        box-shadow: ${theme.shadow.md};
     }
 
     &:active {
@@ -718,38 +635,38 @@ const BaseAction = styled.button`
 `;
 
 const PrimaryAction = styled(BaseAction)`
-    background: ${professional.primary};
+    background: ${theme.primary};
     color: white;
-    border-color: ${professional.primary};
+    border-color: ${theme.primary};
     flex-direction: column;
-    gap: ${professional.spacing.xs};
+    gap: ${theme.spacing.xs};
 
     &:hover {
-        background: ${professional.primaryDark};
-        border-color: ${professional.primaryDark};
+        background: ${theme.primaryDark};
+        border-color: ${theme.primaryDark};
     }
 `;
 
 const SecondaryAction = styled(BaseAction)`
-    background: ${professional.surface};
-    color: ${professional.textSecondary};
-    border-color: ${professional.border};
+    background: ${theme.surface};
+    color: ${theme.text.secondary};
+    border-color: ${theme.border};
 
     &:hover {
-        background: ${professional.surfaceHover};
-        border-color: ${professional.borderAccent};
-        color: ${professional.textPrimary};
+        background: ${theme.surfaceHover};
+        border-color: ${theme.borderActive};
+        color: ${theme.text.primary};
     }
 `;
 
 const DangerAction = styled(BaseAction)`
-    background: ${professional.surface};
-    color: ${professional.error};
-    border-color: ${professional.border};
+    background: ${theme.surface};
+    color: ${theme.error};
+    border-color: ${theme.border};
 
     &:hover {
-        background: ${professional.errorBg};
-        border-color: ${professional.error};
+        background: ${theme.errorBg};
+        border-color: ${theme.error};
     }
 `;
 
@@ -782,7 +699,7 @@ const ConfirmModal = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: ${professional.spacing.lg};
+    padding: ${theme.spacing.lg};
 `;
 
 const ModalOverlay = styled.div`
@@ -797,22 +714,22 @@ const ModalOverlay = styled.div`
 
 const ModalContent = styled.div`
     position: relative;
-    background: ${professional.surface};
-    border-radius: ${professional.radius.lg};
-    box-shadow: ${professional.shadow.xl};
+    background: ${theme.surface};
+    border-radius: ${theme.radius.lg};
+    box-shadow: ${theme.shadow.xl};
     max-width: 400px;
     width: 100%;
     overflow: hidden;
-    border: 1px solid ${professional.border};
+    border: 1px solid ${theme.border};
 `;
 
 const ModalHeader = styled.div`
     display: flex;
     align-items: center;
-    gap: ${professional.spacing.lg};
-    padding: ${professional.spacing.xl};
-    background: ${professional.surfaceElevated};
-    border-bottom: 1px solid ${professional.border};
+    gap: ${theme.spacing.lg};
+    padding: ${theme.spacing.xl};
+    background: ${theme.surfaceElevated};
+    border-bottom: 1px solid ${theme.border};
 `;
 
 const ModalIcon = styled.div`
@@ -821,51 +738,51 @@ const ModalIcon = styled.div`
     justify-content: center;
     width: 40px;
     height: 40px;
-    background: ${professional.errorBg};
-    color: ${professional.error};
-    border-radius: ${professional.radius.md};
+    background: ${theme.errorBg};
+    color: ${theme.error};
+    border-radius: ${theme.radius.md};
     font-size: 16px;
 `;
 
 const ModalTitle = styled.h3`
     font-size: 16px;
     font-weight: 600;
-    color: ${professional.textPrimary};
+    color: ${theme.text.primary};
     margin: 0;
 `;
 
 const ModalBody = styled.div`
-    padding: ${professional.spacing.xl};
+    padding: ${theme.spacing.xl};
 `;
 
 const WarningText = styled.div`
     font-size: 15px;
     font-weight: 500;
-    color: ${professional.textPrimary};
-    margin-bottom: ${professional.spacing.md};
+    color: ${theme.text.primary};
+    margin-bottom: ${theme.spacing.md};
     line-height: 1.5;
 `;
 
 const WarningSubtext = styled.div`
     font-size: 13px;
-    color: ${professional.textTertiary};
+    color: ${theme.text.tertiary};
     line-height: 1.5;
 `;
 
 const ModalActions = styled.div`
     display: flex;
-    gap: ${professional.spacing.sm};
-    padding: ${professional.spacing.lg} ${professional.spacing.xl};
-    background: ${professional.surfaceElevated};
-    border-top: 1px solid ${professional.border};
+    gap: ${theme.spacing.sm};
+    padding: ${theme.spacing.lg} ${theme.spacing.xl};
+    background: ${theme.surfaceElevated};
+    border-top: 1px solid ${theme.border};
 `;
 
 const ModalButton = styled.button<{ $variant: 'primary' | 'secondary' | 'danger' }>`
     display: flex;
     align-items: center;
-    gap: ${professional.spacing.sm};
-    padding: ${professional.spacing.sm} ${professional.spacing.lg};
-    border-radius: ${professional.radius.md};
+    gap: ${theme.spacing.sm};
+    padding: ${theme.spacing.sm} ${theme.spacing.lg};
+    border-radius: ${theme.radius.md};
     font-weight: 500;
     font-size: 13px;
     cursor: pointer;
@@ -879,34 +796,34 @@ const ModalButton = styled.button<{ $variant: 'primary' | 'secondary' | 'danger'
         switch (props.$variant) {
             case 'secondary':
                 return `
-                    background: ${professional.surface};
-                    color: ${professional.textSecondary};
-                    border-color: ${professional.border};
+                    background: ${theme.surface};
+                    color: ${theme.text.secondary};
+                    border-color: ${theme.border};
                     
                     &:hover {
-                        background: ${professional.surfaceHover};
-                        border-color: ${professional.borderAccent};
+                        background: ${theme.surfaceHover};
+                        border-color: ${theme.borderActive};
                     }
                 `;
             case 'danger':
                 return `
-                    background: ${professional.error};
+                    background: ${theme.error};
                     color: white;
-                    border-color: ${professional.error};
+                    border-color: ${theme.error};
                     
                     &:hover {
-                        background: ${professional.error};
+                        background: ${theme.error};
                         opacity: 0.9;
                     }
                 `;
             default:
                 return `
-                    background: ${professional.primary};
+                    background: ${theme.primary};
                     color: white;
-                    border-color: ${professional.primary};
+                    border-color: ${theme.primary};
                     
                     &:hover {
-                        background: ${professional.primaryDark};
+                        background: ${theme.primaryDark};
                     }
                 `;
         }

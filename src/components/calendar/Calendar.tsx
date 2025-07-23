@@ -1,4 +1,4 @@
-// src/components/calendar/Calendar.tsx - PRODUCTION VERSION
+// src/components/calendar/Calendar.tsx - FINAL FIXED VERSION
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styled from 'styled-components';
 import FullCalendar from '@fullcalendar/react';
@@ -7,75 +7,18 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import listPlugin from '@fullcalendar/list';
 import plLocale from '@fullcalendar/core/locales/pl';
-import { Appointment, AppointmentStatus, AppointmentStatusColors } from '../../types';
-import { CalendarColor } from "../../types/calendar";
-import { addMinutes, format } from 'date-fns';
+import { Appointment } from '../../types';
+import { addMinutes } from 'date-fns';
+import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { theme } from '../../styles/theme';
+import { useCalendarColors } from '../../hooks/useCalendarColors';
 import {
-    FaChevronLeft,
-    FaChevronRight
-} from 'react-icons/fa';
-import {pl} from "date-fns/locale";
-
-// Professional Automotive Design System
-const automotiveTheme = {
-    // Brand Color System - Clean & Professional
-    primary: 'var(--brand-primary, #1a365d)',
-    primaryDark: 'var(--brand-primary-dark, #0f2027)',
-    primaryLight: 'var(--brand-primary-light, #2c5aa0)',
-
-    // Professional Surfaces
-    surface: '#ffffff',
-    surfaceElevated: '#fafbfc',
-    surfaceHover: '#f8fafc',
-    surfaceActive: '#f1f5f9',
-
-    // Typography
-    textPrimary: '#0f172a',
-    textSecondary: '#334155',
-    textTertiary: '#64748b',
-    textMuted: '#94a3b8',
-
-    // Technical Borders
-    border: '#e2e8f0',
-    borderLight: '#f1f5f9',
-    borderActive: '#cbd5e1',
-
-    // Status Colors - Professional
-    success: '#059669',
-    successBg: '#ecfdf5',
-    warning: '#d97706',
-    warningBg: '#fffbeb',
-    error: '#dc2626',
-    errorBg: '#fef2f2',
-    info: '#0891b2',
-    infoBg: '#f0f9ff',
-
-    // Professional Spacing
-    spacing: {
-        xs: '4px',
-        sm: '8px',
-        md: '12px',
-        lg: '16px',
-        xl: '20px',
-        xxl: '24px',
-        xxxl: '32px'
-    },
-
-    // Clean Shadows
-    shadow: {
-        sm: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-        md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-        lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-        xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
-    },
-
-    radius: {
-        sm: '6px',
-        md: '8px',
-        lg: '12px',
-        xl: '16px'
-    }
-};
+    CalendarView,
+    QuickFilters,
+    DEFAULT_QUICK_FILTERS,
+    getCurrentPeriodTitle,
+    mapAppointmentsToFullCalendarEvents
+} from '../../utils/calendarUtils';
 
 interface CalendarProps {
     events: Appointment[];
@@ -84,114 +27,34 @@ interface CalendarProps {
     onEventCreate?: (start: Date, end: Date) => void;
 }
 
-type CalendarView = 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listWeek';
-
 const AppointmentCalendar: React.FC<CalendarProps> = ({
                                                           events,
                                                           onEventSelect,
                                                           onRangeChange,
                                                           onEventCreate
                                                       }) => {
-    // PRODUCTION STATE MANAGEMENT - Single source of truth
-    const [calendarColors, setCalendarColors] = useState<Record<string, CalendarColor>>({});
+    // State Management
     const [currentView, setCurrentView] = useState<CalendarView>('dayGridMonth');
-    const [currentDate, setCurrentDate] = useState<Date>(new Date()); // This tracks FullCalendar's actual date
-    const [isCalendarReady, setIsCalendarReady] = useState(false); // Track calendar initialization
-    const [quickFilters, setQuickFilters] = useState({
-        scheduled: true,
-        inProgress: true,
-        readyForPickup: true,
-        completed: true,  // Dodane - domyślnie włączone
-        cancelled: true   // Dodane - domyślnie włączone
-    });
+    const [currentDate, setCurrentDate] = useState<Date>(new Date());
+    const [isCalendarReady, setIsCalendarReady] = useState(false);
+    const [quickFilters, setQuickFilters] = useState<QuickFilters>(DEFAULT_QUICK_FILTERS);
 
     const calendarRef = useRef<FullCalendar>(null);
 
-    // PRODUCTION: Reliable period title generation
-    const getCurrentPeriodTitle = useCallback((): string => {
-        // Always use currentDate state as single source of truth
-        const displayDate = currentDate;
+    // Only keep view changing ref - isNavigatingRef completely removed
+    const isViewChangingRef = useRef(false);
+    const pendingViewChangeRef = useRef<CalendarView | null>(null);
 
-        switch (currentView) {
-            case 'dayGridMonth':
-                return format(displayDate, 'LLLL yyyy', { locale: pl });
-            case 'timeGridWeek':
-                return `Tydzień ${format(displayDate, 'w, LLLL yyyy', { locale: pl })}`;
-            case 'timeGridDay':
-                return format(displayDate, 'EEEE, dd LLLL yyyy', { locale: pl });
-            case 'listWeek':
-                return `Lista - ${format(displayDate, 'LLLL yyyy', { locale: pl })}`;
-            default:
-                return format(displayDate, 'LLLL yyyy', { locale: pl });
-        }
-    }, [currentDate, currentView]);
+    // Use optimized calendar colors hook
+    const { calendarColors } = useCalendarColors();
 
-    // Enhanced Color System - Keep original logic
-    const getEventBackgroundColor = (event: Appointment): string => {
-        if (event.calendarColorId && calendarColors[event.calendarColorId]) {
-            return calendarColors[event.calendarColorId].color;
-        }
-        return AppointmentStatusColors[event.status];
-    };
-
-    // Enterprise Event Mapping
-    const mapAppointmentsToFullCalendarEvents = () => {
-        return events
-            .filter(event => quickFilters[getStatusKey(event.status)])
-            .map(event => ({
-                id: event.id,
-                title: event.title,
-                start: event.start,
-                end: event.end,
-                extendedProps: {
-                    ...event,
-                    description: `${event.customerId} • ${event.vehicleId || 'Brak pojazdu'}`
-                },
-                backgroundColor: getEventBackgroundColor(event),
-                borderColor: getEventBorderColor(event),
-                textColor: getEventTextColor(event),
-                classNames: [
-                    'professional-event',
-                    `status-${event.status}`,
-                    `status-${event.status.toLowerCase()}`, // Dodane dla CSS
-                    event.isProtocol ? 'protocol-event' : 'appointment-event',
-                    // Dodaj klasy dla zakończonych statusów
-                    event.status === AppointmentStatus.COMPLETED ? 'completed-event' : '',
-                    event.status === AppointmentStatus.CANCELLED ? 'cancelled-event' : ''
-                ].filter(Boolean) // Usuń puste stringi
-            }));
-    };
-
-    // Status Key Mapping for Filters
-    const getStatusKey = (status: AppointmentStatus): keyof typeof quickFilters => {
-        switch (status) {
-            case AppointmentStatus.SCHEDULED: return 'scheduled';
-            case AppointmentStatus.IN_PROGRESS: return 'inProgress';
-            case AppointmentStatus.READY_FOR_PICKUP: return 'readyForPickup';
-            case AppointmentStatus.COMPLETED: return 'completed';    // Dodane
-            case AppointmentStatus.CANCELLED: return 'cancelled';    // Dodane
-            default: return 'scheduled';
-        }
-    };
-
-    const getEventBorderColor = (event: Appointment): string => {
-        if (event.isProtocol) {
-            return automotiveTheme.primary;
-        }
-        return getEventBackgroundColor(event);
-    };
-
-    const getEventTextColor = (event: Appointment): string => {
-        return '#ffffff';
-    };
-
-    // PRODUCTION: Reliable event handlers with proper synchronization
-    const handleEventClick = (info: any) => {
+    // Event Handlers
+    const handleEventClick = useCallback((info: any) => {
         const appointment = info.event.extendedProps;
         onEventSelect(appointment);
-    };
+    }, [onEventSelect]);
 
-    const handleDateSelect = (info: any) => {
+    const handleDateSelect = useCallback((info: any) => {
         if (onEventCreate) {
             let start = new Date(info.start);
             let end = new Date(info.end);
@@ -202,28 +65,36 @@ const AppointmentCalendar: React.FC<CalendarProps> = ({
 
             onEventCreate(start, end);
         }
-    };
+    }, [onEventCreate]);
 
-    // PRODUCTION: Critical handler for calendar date synchronization
+    // Completely simplified handleDatesSet - no navigation blocking
     const handleDatesSet = useCallback((info: any) => {
-        // CRITICAL: This is the authoritative source of current calendar date
-        // We need to extract the actual current date being displayed from FullCalendar
-
         if (!calendarRef.current) return;
 
-        // Get the ACTUAL current date from FullCalendar API - this is the single source of truth
         const calendarApi = calendarRef.current.getApi();
         const actualCalendarDate = calendarApi.getDate();
 
-        // Update our state with FullCalendar's actual current date
+        // ALWAYS update the current date for label display
+        console.log('📅 ALWAYS updating calendar date:', actualCalendarDate.toLocaleDateString());
         setCurrentDate(new Date(actualCalendarDate));
 
-        // Mark calendar as ready after first datesSet
+        // Set ready flag
         if (!isCalendarReady) {
             setIsCalendarReady(true);
         }
 
-        // Notify parent component of range change
+        // Only skip during view changes (to prevent loading wrong data for new view)
+        if (isViewChangingRef.current) {
+            console.log('🔄 View change in progress - skipping range update only');
+            return;
+        }
+
+        // ALWAYS update range for data loading
+        console.log('📊 ALWAYS updating range:', {
+            start: info.start.toISOString().split('T')[0],
+            end: info.end.toISOString().split('T')[0]
+        });
+
         if (onRangeChange) {
             onRangeChange({
                 start: info.start,
@@ -232,97 +103,137 @@ const AppointmentCalendar: React.FC<CalendarProps> = ({
         }
     }, [isCalendarReady, onRangeChange]);
 
-    // PRODUCTION: Bulletproof navigation with proper state management
+    // Ultra-simplified navigation - no flags at all
     const handleNavigate = useCallback((action: 'prev' | 'next' | 'today') => {
         if (!calendarRef.current) return;
+
+        console.log(`🧭 Navigation: ${action} - direct execution`);
 
         const calendarApi = calendarRef.current.getApi();
 
         switch (action) {
             case 'prev':
+                console.log('⬅️ Going to previous period');
                 calendarApi.prev();
-                // Let handleDatesSet update the currentDate
                 break;
             case 'next':
+                console.log('➡️ Going to next period');
                 calendarApi.next();
-                // Let handleDatesSet update the currentDate
                 break;
             case 'today':
+                console.log('🏠 Going to today');
                 calendarApi.today();
-                // For today, we can immediately update since we know the target date
-                setCurrentDate(new Date());
                 break;
         }
+
+        console.log('✅ Navigation executed, datesSet will handle updates');
     }, []);
 
-    // PRODUCTION: View change handler with state synchronization
+    // Fixed view change handler with proper synchronization
     const handleViewChange = useCallback((view: CalendarView) => {
-        setCurrentView(view);
-        if (calendarRef.current) {
-            const calendarApi = calendarRef.current.getApi();
-            calendarApi.changeView(view);
-            // handleDatesSet will be called automatically and update currentDate
-        }
-    }, []);
+        if (!calendarRef.current) return;
 
-    // Filter Toggle
-    const toggleFilter = (filterKey: keyof typeof quickFilters) => {
+        console.log(`🔄 View change: ${currentView} -> ${view}`);
+
+        if (currentView === view) {
+            console.log('📋 View already active, skipping');
+            return;
+        }
+
+        isViewChangingRef.current = true;
+        pendingViewChangeRef.current = view;
+
+        const calendarApi = calendarRef.current.getApi();
+
+        try {
+            // Change view in FullCalendar
+            calendarApi.changeView(view);
+
+            // Update React state immediately
+            setCurrentView(view);
+
+            console.log(`✅ View changed to: ${view}`);
+        } catch (error) {
+            console.error('Error changing view:', error);
+            // Reset pending view change on error
+            pendingViewChangeRef.current = null;
+        } finally {
+            // Reset view changing flag after a delay
+            setTimeout(() => {
+                isViewChangingRef.current = false;
+                pendingViewChangeRef.current = null;
+            }, 200);
+        }
+    }, [currentView]);
+
+    const toggleFilter = useCallback((filterKey: keyof QuickFilters) => {
         setQuickFilters(prev => ({
             ...prev,
             [filterKey]: !prev[filterKey]
         }));
-    };
+    }, []);
 
-    // PRODUCTION: Calendar initialization with proper error handling
+    // Initialize calendar - ensure initial range is set
     useEffect(() => {
         if (calendarRef.current && !isCalendarReady) {
             try {
                 const calendarApi = calendarRef.current.getApi();
-                // Set calendar to current date on initialization
-                calendarApi.gotoDate(new Date());
-                // Update our state to match
-                setCurrentDate(new Date());
+                const today = new Date();
+
+                console.log('🚀 Initializing calendar');
+                calendarApi.gotoDate(today);
+                setCurrentDate(today);
+                setIsCalendarReady(true);
+
+                // Force initial datesSet call to establish range
+                setTimeout(() => {
+                    if (calendarRef.current) {
+                        const view = calendarApi.view;
+                        console.log('📅 Setting initial range from view:', {
+                            start: view.activeStart,
+                            end: view.activeEnd
+                        });
+
+                        if (onRangeChange) {
+                            onRangeChange({
+                                start: view.activeStart,
+                                end: view.activeEnd
+                            });
+                        }
+                    }
+                }, 100);
             } catch (error) {
                 console.error('Calendar initialization error:', error);
-                // Fallback: just set current date in state
                 setCurrentDate(new Date());
+                setIsCalendarReady(true);
             }
         }
-    }, [isCalendarReady]);
+    }, [isCalendarReady, onRangeChange]);
 
-    // PRODUCTION: Calendar colors initialization
+    // Synchronize view state if FullCalendar view changes externally
     useEffect(() => {
-        const fetchCalendarColors = async () => {
-            try {
-                const { calendarColorsApi } = await import('../../api/calendarColorsApi');
-                const colors = await calendarColorsApi.fetchCalendarColors();
+        if (!calendarRef.current || !isCalendarReady) return;
 
-                const colorsMap = colors.reduce((acc, color) => {
-                    acc[color.id] = color;
-                    return acc;
-                }, {} as Record<string, CalendarColor>);
+        const calendarApi = calendarRef.current.getApi();
+        const actualView = calendarApi.view.type as CalendarView;
 
-                setCalendarColors(colorsMap);
-            } catch (error) {
-                console.error('Błąd podczas pobierania kolorów kalendarza:', error);
-                // Graceful fallback - empty colors map
-                setCalendarColors({});
-            }
-        };
-
-        fetchCalendarColors();
-    }, []);
+        // Only update if there's a mismatch and we're not in the middle of changing views
+        if (actualView !== currentView && !isViewChangingRef.current && !pendingViewChangeRef.current) {
+            console.log(`🔄 Syncing view state: ${actualView}`);
+            setCurrentView(actualView);
+        }
+    }, [currentView, isCalendarReady]);
 
     return (
         <CalendarContainer>
-            {/* Professional Controls */}
+            {/* Controls */}
             <CalendarControls>
                 <ControlsLeft>
                     <NavigationGroup>
                         <NavButton onClick={() => handleNavigate('prev')}>
                             <FaChevronLeft />
                         </NavButton>
-                        <CurrentPeriod>{getCurrentPeriodTitle()}</CurrentPeriod>
+                        <CurrentPeriod>{getCurrentPeriodTitle(currentDate, currentView)}</CurrentPeriod>
                         <TodayButton onClick={() => handleNavigate('today')}>
                             Dzisiaj
                         </TodayButton>
@@ -360,55 +271,49 @@ const AppointmentCalendar: React.FC<CalendarProps> = ({
                 </ControlsLeft>
 
                 <ControlsRight>
-                    <QuickFilters>
+                    <QuickFiltersContainer>
                         <FilterButton
                             $active={quickFilters.scheduled}
-                            $color={automotiveTheme.primary}
                             onClick={() => toggleFilter('scheduled')}
                         >
                             Zaplanowane
                         </FilterButton>
                         <FilterButton
                             $active={quickFilters.inProgress}
-                            $color={automotiveTheme.primary}
                             onClick={() => toggleFilter('inProgress')}
                         >
                             W trakcie
                         </FilterButton>
                         <FilterButton
                             $active={quickFilters.readyForPickup}
-                            $color={automotiveTheme.primary}
                             onClick={() => toggleFilter('readyForPickup')}
                         >
                             Gotowe
                         </FilterButton>
-                        {/* Nowe filtry dla zakończonych statusów */}
                         <FilterButton
                             $active={quickFilters.completed}
-                            $color={automotiveTheme.primary}
                             onClick={() => toggleFilter('completed')}
                         >
                             Zakończone
                         </FilterButton>
                         <FilterButton
                             $active={quickFilters.cancelled}
-                            $color={automotiveTheme.primary}
                             onClick={() => toggleFilter('cancelled')}
                         >
                             Anulowane
                         </FilterButton>
-                    </QuickFilters>
+                    </QuickFiltersContainer>
                 </ControlsRight>
             </CalendarControls>
 
-            {/* Professional Calendar Component */}
+            {/* Calendar */}
             <CalendarWrapper>
                 <FullCalendar
                     ref={calendarRef}
                     plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
                     initialView={currentView}
-                    initialDate={new Date()} // Ustaw na obecną datę
-                    events={mapAppointmentsToFullCalendarEvents()}
+                    initialDate={new Date()}
+                    events={mapAppointmentsToFullCalendarEvents(events, quickFilters, calendarColors)}
                     locale={plLocale}
                     selectable={true}
                     selectMirror={true}
@@ -445,12 +350,10 @@ const AppointmentCalendar: React.FC<CalendarProps> = ({
                     allDayText="Cały dzień"
                     noEventsText="Brak wizyt w wybranym zakresie"
                     eventDisplay="block"
-                    // Zaktualizuj eventDidMount w FullCalendar props
-                    // Zamień eventDidMount w FullCalendar props
                     eventDidMount={(info) => {
                         const appointment = info.event.extendedProps as Appointment;
 
-                        // Professional event styling - podstawowe style
+                        // Basic styling
                         info.el.style.borderRadius = '6px';
                         info.el.style.fontSize = '12px';
                         info.el.style.fontWeight = '600';
@@ -459,81 +362,29 @@ const AppointmentCalendar: React.FC<CalendarProps> = ({
 
                         // Protocol styling
                         if (appointment.isProtocol) {
-                            info.el.style.borderLeft = `3px solid ${automotiveTheme.primary}`;
+                            info.el.style.borderLeft = `3px solid ${theme.primary}`;
                         }
 
-                        // Specjalne style dla zakończonych statusów - WAŻNE: używamy !important lub setProperty
-                        if (appointment.status === AppointmentStatus.COMPLETED) {
+                        // Status-specific styling
+                        if (appointment.status === 'COMPLETED') {
                             info.el.style.setProperty('opacity', '0.2', 'important');
-                            info.el.style.setProperty('font-weight', '700', 'important');
-                            info.el.style.setProperty('transform', 'scale(1.02)', 'important');
-                            info.el.style.setProperty('box-shadow', '0 4px 12px rgba(5, 150, 105, 0.25)', 'important');
                             info.el.style.setProperty('background', 'linear-gradient(135deg, #059669 0%, #10b981 100%)', 'important');
-                            info.el.style.setProperty('border', '2px solid #047857', 'important');
-                            info.el.style.setProperty('color', 'white', 'important');
                         }
 
-                        if (appointment.status === AppointmentStatus.CANCELLED) {
+                        if (appointment.status === 'CANCELLED') {
                             info.el.style.setProperty('opacity', '0.5', 'important');
-                            info.el.style.setProperty('font-weight', '700', 'important');
-                            info.el.style.setProperty('transform', 'scale(1.02)', 'important');
-                            info.el.style.setProperty('box-shadow', '0 4px 12px rgba(220, 38, 38, 0.25)', 'important');
                             info.el.style.setProperty('background', 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)', 'important');
-                            info.el.style.setProperty('border', '2px solid #b91c1c', 'important');
-                            info.el.style.setProperty('color', 'white', 'important');
-
-                            const strikethrough = document.createElement('div');
-                            strikethrough.style.position = 'absolute';
-                            strikethrough.style.top = '50%';
-                            strikethrough.style.left = '8%';
-                            strikethrough.style.right = '8%';
-                            strikethrough.style.height = '2px';
-                            strikethrough.style.background = 'rgba(255, 255, 255, 0.9)';
-                            strikethrough.style.transform = 'translateY(-50%)';
-                            strikethrough.style.zIndex = '1';
-                            strikethrough.style.borderRadius = '1px';
-                            info.el.style.position = 'relative'; // Potrzebne dla absolute positioning
-                            info.el.appendChild(strikethrough);
                         }
 
-                        // Style dla pozostałych statusów - niższe opacity
-                        if (appointment.status === AppointmentStatus.SCHEDULED) {
-                            info.el.style.setProperty('opacity', '0.75', 'important');
-                        }
-
-                        if (appointment.status === AppointmentStatus.IN_PROGRESS) {
-                            info.el.style.setProperty('opacity', '0.8', 'important');
-                        }
-
-                        if (appointment.status === AppointmentStatus.READY_FOR_PICKUP) {
-                            info.el.style.setProperty('opacity', '0.8', 'important');
-                        }
-
-                        // Hover effects z uwzględnieniem statusów zakończonych
+                        // Hover effects
                         info.el.addEventListener('mouseenter', () => {
-                            if (appointment.status === AppointmentStatus.COMPLETED) {
-                                info.el.style.setProperty('transform', 'scale(1.05) translateY(-2px)', 'important');
-                                info.el.style.setProperty('box-shadow', '0 8px 20px rgba(5, 150, 105, 0.4)', 'important');
-                            } else if (appointment.status === AppointmentStatus.CANCELLED) {
-                                info.el.style.setProperty('transform', 'scale(1.05) translateY(-2px)', 'important');
-                                info.el.style.setProperty('box-shadow', '0 8px 20px rgba(220, 38, 38, 0.4)', 'important');
-                            } else {
-                                info.el.style.transform = 'translateY(-1px)';
-                                info.el.style.boxShadow = automotiveTheme.shadow.sm;
-                            }
+                            info.el.style.transform = 'translateY(-1px)';
+                            info.el.style.boxShadow = theme.shadow.sm;
                         });
 
                         info.el.addEventListener('mouseleave', () => {
-                            if (appointment.status === AppointmentStatus.COMPLETED) {
-                                info.el.style.setProperty('transform', 'scale(1.02)', 'important');
-                                info.el.style.setProperty('box-shadow', '0 4px 12px rgba(5, 150, 105, 0.25)', 'important');
-                            } else if (appointment.status === AppointmentStatus.CANCELLED) {
-                                info.el.style.setProperty('transform', 'scale(1.02)', 'important');
-                                info.el.style.setProperty('box-shadow', '0 4px 12px rgba(220, 38, 38, 0.25)', 'important');
-                            } else {
-                                info.el.style.transform = 'translateY(0)';
-                                info.el.style.boxShadow = 'none';
-                            }
+                            info.el.style.transform = 'translateY(0)';
+                            info.el.style.boxShadow = 'none';
                         });
                     }}
                 />
@@ -542,42 +393,42 @@ const AppointmentCalendar: React.FC<CalendarProps> = ({
     );
 };
 
-// Professional Styled Components (pozostałe bez zmian)
+// Styled Components
 const CalendarContainer = styled.div`
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: ${automotiveTheme.surface};
-    border-radius: ${automotiveTheme.radius.lg};
-    border: 1px solid ${automotiveTheme.border};
+    background: ${theme.surface};
+    border-radius: ${theme.radius.lg};
+    border: 1px solid ${theme.border};
     overflow: hidden;
-    box-shadow: ${automotiveTheme.shadow.sm};
+    box-shadow: ${theme.shadow.sm};
 `;
 
 const CalendarControls = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: ${automotiveTheme.spacing.xl} ${automotiveTheme.spacing.xxxl};
-    background: ${automotiveTheme.surfaceElevated};
-    border-bottom: 1px solid ${automotiveTheme.borderLight};
+    padding: ${theme.spacing.xl} ${theme.spacing.xxxl};
+    background: ${theme.surfaceElevated};
+    border-bottom: 1px solid ${theme.borderLight};
 `;
 
 const ControlsLeft = styled.div`
     display: flex;
     align-items: center;
-    gap: ${automotiveTheme.spacing.xxl};
+    gap: ${theme.spacing.xxl};
 `;
 
 const NavigationGroup = styled.div`
     display: flex;
     align-items: center;
-    gap: ${automotiveTheme.spacing.lg};
-    background: ${automotiveTheme.surface};
-    border: 1px solid ${automotiveTheme.border};
-    border-radius: ${automotiveTheme.radius.md};
-    padding: ${automotiveTheme.spacing.sm};
-    box-shadow: ${automotiveTheme.shadow.sm};
+    gap: ${theme.spacing.lg};
+    background: ${theme.surface};
+    border: 1px solid ${theme.border};
+    border-radius: ${theme.radius.md};
+    padding: ${theme.spacing.sm};
+    box-shadow: ${theme.shadow.sm};
 `;
 
 const NavButton = styled.button`
@@ -588,14 +439,14 @@ const NavButton = styled.button`
     height: 36px;
     background: transparent;
     border: none;
-    border-radius: ${automotiveTheme.radius.sm};
-    color: ${automotiveTheme.textSecondary};
+    border-radius: ${theme.radius.sm};
+    color: ${theme.text.secondary};
     cursor: pointer;
     transition: all 0.2s ease;
 
     &:hover {
-        background: ${automotiveTheme.surfaceHover};
-        color: ${automotiveTheme.primary};
+        background: ${theme.surfaceHover};
+        color: ${theme.primary};
     }
 
     svg {
@@ -606,137 +457,136 @@ const NavButton = styled.button`
 const CurrentPeriod = styled.div`
     font-size: 18px;
     font-weight: 700;
-    color: ${automotiveTheme.textPrimary};
+    color: ${theme.text.primary};
     min-width: 200px;
     text-align: center;
     letter-spacing: -0.025em;
 `;
 
 const TodayButton = styled.button`
-    padding: ${automotiveTheme.spacing.sm} ${automotiveTheme.spacing.lg};
-    background: ${automotiveTheme.primary};
+    padding: ${theme.spacing.sm} ${theme.spacing.lg};
+    background: ${theme.primary};
     color: white;
     border: none;
-    border-radius: ${automotiveTheme.radius.sm};
+    border-radius: ${theme.radius.sm};
     font-weight: 600;
     font-size: 14px;
     cursor: pointer;
     transition: all 0.2s ease;
 
     &:hover {
-        background: ${automotiveTheme.primaryDark};
+        background: ${theme.primaryDark};
     }
 `;
 
 const ViewSelector = styled.div`
     display: flex;
-    background: ${automotiveTheme.surface};
-    border: 1px solid ${automotiveTheme.border};
-    border-radius: ${automotiveTheme.radius.md};
+    background: ${theme.surface};
+    border: 1px solid ${theme.border};
+    border-radius: ${theme.radius.md};
     overflow: hidden;
-    box-shadow: ${automotiveTheme.shadow.sm};
+    box-shadow: ${theme.shadow.sm};
 `;
 
 const ViewButton = styled.button<{ $active: boolean }>`
-    padding: ${automotiveTheme.spacing.md} ${automotiveTheme.spacing.xl};
-    background: ${props => props.$active ? automotiveTheme.primary : 'transparent'};
-    color: ${props => props.$active ? 'white' : automotiveTheme.textSecondary};
+    padding: ${theme.spacing.md} ${theme.spacing.xl};
+    background: ${props => props.$active ? theme.primary : 'transparent'};
+    color: ${props => props.$active ? 'white' : theme.text.secondary};
     border: none;
     font-weight: 600;
     font-size: 14px;
     cursor: pointer;
     transition: all 0.2s ease;
-    border-right: 1px solid ${automotiveTheme.borderLight};
+    border-right: 1px solid ${theme.borderLight};
 
     &:last-child {
         border-right: none;
     }
 
     &:hover:not([data-active="true"]) {
-        background: ${automotiveTheme.surfaceHover};
-        color: ${automotiveTheme.primary};
+        background: ${theme.surfaceHover};
+        color: ${theme.primary};
     }
 `;
 
 const ControlsRight = styled.div`
     display: flex;
     align-items: center;
-    gap: ${automotiveTheme.spacing.lg};
+    gap: ${theme.spacing.lg};
 `;
 
-const QuickFilters = styled.div`
+const QuickFiltersContainer = styled.div`
     display: flex;
-    gap: ${automotiveTheme.spacing.sm};
+    gap: ${theme.spacing.sm};
 `;
 
-const FilterButton = styled.button<{ $active: boolean; $color: string }>`
-    padding: ${automotiveTheme.spacing.sm} ${automotiveTheme.spacing.lg};
-    background: ${props => props.$active ? props.$color : automotiveTheme.surface};
-    color: ${props => props.$active ? 'white' : automotiveTheme.textSecondary};
-    border: 1px solid ${props => props.$active ? props.$color : automotiveTheme.border};
-    border-radius: ${automotiveTheme.radius.md};
+const FilterButton = styled.button<{ $active: boolean }>`
+    padding: ${theme.spacing.sm} ${theme.spacing.lg};
+    background: ${props => props.$active ? theme.primary : theme.surface};
+    color: ${props => props.$active ? 'white' : theme.text.secondary};
+    border: 1px solid ${props => props.$active ? theme.primary : theme.border};
+    border-radius: ${theme.radius.md};
     font-weight: 500;
     font-size: 13px;
     cursor: pointer;
     transition: all 0.2s ease;
 
     &:hover {
-        background: ${props => props.$active ? props.$color : props.$color + '15'};
-        border-color: ${props => props.$color};
-        color: ${props => props.$active ? 'white' : props.$color};
+        background: ${props => props.$active ? theme.primary : theme.primaryGhost};
+        border-color: ${theme.primary};
+        color: ${props => props.$active ? 'white' : theme.primary};
     }
 `;
 
 const CalendarWrapper = styled.div`
     flex: 1;
-    padding: ${automotiveTheme.spacing.xl} ${automotiveTheme.spacing.xxxl};
-    background: ${automotiveTheme.surface};
+    padding: ${theme.spacing.xl} ${theme.spacing.xxxl};
+    background: ${theme.surface};
 
-    /* Professional FullCalendar Styling */
     .fc {
         height: 100%;
         font-family: inherit;
     }
 
     .fc-theme-standard td, .fc-theme-standard th {
-        border-color: ${automotiveTheme.borderLight};
+        border-color: ${theme.borderLight};
     }
 
     .fc-theme-standard .fc-scrollgrid {
-        border-color: ${automotiveTheme.border};
-        border-radius: ${automotiveTheme.radius.lg};
+        border-color: ${theme.border};
+        border-radius: ${theme.radius.lg};
         overflow: hidden;
     }
 
     .fc-col-header-cell {
-        background: ${automotiveTheme.surfaceActive};
+        background: ${theme.surfaceActive};
         font-weight: 600;
-        color: ${automotiveTheme.textSecondary};
+        color: ${theme.text.secondary};
         font-size: 13px;
-        padding: ${automotiveTheme.spacing.lg};
+        padding: ${theme.spacing.lg};
     }
 
     .fc-daygrid-day {
         transition: background-color 0.2s ease;
 
         &:hover {
-            background: ${automotiveTheme.surfaceHover};
+            background: ${theme.surfaceHover};
         }
     }
 
     .fc-daygrid-day-number {
-        color: ${automotiveTheme.textSecondary};
+        color: ${theme.text.secondary};
         font-weight: 600;
-        padding: ${automotiveTheme.spacing.sm};
+        padding: ${theme.spacing.sm};
     }
 
     .fc-day-today {
-        background: ${automotiveTheme.surfaceHover} !important;
+        background: ${theme.surfaceHover} !important;
 
         .fc-daygrid-day-number {
-            background: ${automotiveTheme.primary};
+            background: ${theme.primary};
             color: white;
-            border-radius: ${automotiveTheme.radius.sm};
+            border-radius: ${theme.radius.sm};
             width: 28px;
             height: 28px;
             display: flex;
@@ -746,7 +596,7 @@ const CalendarWrapper = styled.div`
     }
 
     .fc-event {
-        border-radius: ${automotiveTheme.radius.sm};
+        border-radius: ${theme.radius.sm};
         border: none;
         font-weight: 600;
         font-size: 12px;
@@ -754,76 +604,66 @@ const CalendarWrapper = styled.div`
         padding: 2px 6px;
 
         &.protocol-event {
-            border-left: 3px solid ${automotiveTheme.primary};
+            border-left: 3px solid ${theme.primary};
             font-weight: 700;
         }
     }
 
     .fc-timegrid-slot {
         height: 60px;
-        border-color: ${automotiveTheme.borderLight};
+        border-color: ${theme.borderLight};
     }
 
     .fc-timegrid-slot-label {
-        color: ${automotiveTheme.textTertiary};
+        color: ${theme.text.tertiary};
         font-weight: 500;
         font-size: 12px;
     }
 
     .fc-list-event {
-        border-radius: ${automotiveTheme.radius.md};
-        margin-bottom: ${automotiveTheme.spacing.sm};
+        border-radius: ${theme.radius.md};
+        margin-bottom: ${theme.spacing.sm};
 
         &:hover {
             transform: translateY(-1px);
-            box-shadow: ${automotiveTheme.shadow.sm};
+            box-shadow: ${theme.shadow.sm};
         }
     }
 
     .fc-list-event-time {
         font-weight: 600;
-        color: ${automotiveTheme.primary};
+        color: ${theme.primary};
     }
 
     .fc-list-event-title {
         font-weight: 500;
-        color: ${automotiveTheme.textPrimary};
+        color: ${theme.text.primary};
     }
 
-    /* Professional scrollbar */
     .fc-scroller::-webkit-scrollbar {
         width: 6px;
         height: 6px;
     }
 
     .fc-scroller::-webkit-scrollbar-track {
-        background: ${automotiveTheme.surfaceHover};
+        background: ${theme.surfaceHover};
         border-radius: 3px;
     }
 
     .fc-scroller::-webkit-scrollbar-thumb {
-        background: ${automotiveTheme.border};
+        background: ${theme.border};
         border-radius: 3px;
 
         &:hover {
-            background: ${automotiveTheme.textMuted};
+            background: ${theme.text.muted};
         }
     }
 
-    /* Professional event styling */
     .professional-event {
         transition: all 0.2s ease;
 
         &:hover {
             z-index: 10;
-        }
-    }
-
-    /* Mobile responsiveness */
-    @media (max-width: 768px) {
-        .fc-event {
-            font-size: 11px;
-            padding: 1px 4px;
         }
     }
 
@@ -848,7 +688,6 @@ const CalendarWrapper = styled.div`
         transform: scale(1.02);
     }
 
-    /* Opcjonalne przekreślenie dla anulowanych */
     .cancelled-event::after {
         content: '';
         position: absolute;
@@ -862,7 +701,6 @@ const CalendarWrapper = styled.div`
         border-radius: 1px;
     }
 
-    /* Hover effects dla zakończonych statusów */
     .completed-event:hover {
         transform: scale(1.05) translateY(-2px) !important;
         box-shadow: 0 8px 20px rgba(5, 150, 105, 0.4) !important;
@@ -873,7 +711,6 @@ const CalendarWrapper = styled.div`
         box-shadow: 0 8px 20px rgba(220, 38, 38, 0.4) !important;
     }
 
-    /* Style dla pozostałych statusów - niższe opacity dla kontrastu */
     .status-scheduled {
         opacity: 0.75;
     }
@@ -884,6 +721,13 @@ const CalendarWrapper = styled.div`
 
     .status-ready_for_pickup {
         opacity: 0.8;
+    }
+
+    @media (max-width: 768px) {
+        .fc-event {
+            font-size: 11px;
+            padding: 1px 4px;
+        }
     }
 `;
 
