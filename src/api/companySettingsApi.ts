@@ -1,4 +1,4 @@
-// src/api/companySettingsApi.ts - Zaktualizowana sekcja Google Drive
+// src/api/companySettingsApi.ts - Poprawiona wersja zgodna z backendem
 import { apiClient } from './apiClient';
 
 // Nowe interfejsy dla systemowego Google Drive
@@ -65,7 +65,7 @@ export interface GoogleDriveTestResponse {
     status?: string;
 }
 
-// Pozostała część interfejsów pozostaje bez zmian...
+// ZAKTUALIZOWANE INTERFEJSY - zgodne z nowym backendem
 export interface CompanyBasicInfo {
     companyName: string;
     taxId: string;
@@ -81,26 +81,6 @@ export interface BankSettings {
     accountHolderName?: string;
 }
 
-export interface EmailSettings {
-    smtpHost?: string;
-    smtpPort?: number;
-    smtpUsername?: string;
-    smtpPassword?: string;
-    imapHost?: string;
-    imapPort?: number;
-    imapUsername?: string;
-    imapPassword?: string;
-    senderEmail?: string;
-    senderName?: string;
-    useSSL: boolean;
-    useTLS: boolean;
-    // Pola tylko do odczytu z backendu
-    smtpPasswordConfigured?: boolean;
-    imapPasswordConfigured?: boolean;
-    smtpConfigured?: boolean;
-    imapConfigured?: boolean;
-}
-
 export interface LogoSettings {
     hasLogo: boolean;
     logoFileName?: string;
@@ -109,38 +89,22 @@ export interface LogoSettings {
     logoUrl?: string;
 }
 
+// USUNIĘTO EmailSettings z CompanySettingsResponse - teraz jest osobno
 export interface CompanySettingsResponse {
     id: number;
     companyId: number;
     basicInfo: CompanyBasicInfo;
     bankSettings: BankSettings;
-    emailSettings: EmailSettings;
     logoSettings: LogoSettings;
     createdAt: string;
     updatedAt: string;
 }
 
+// ZAKTUALIZOWANO - usunięto emailSettings
 export interface UpdateCompanySettingsRequest {
     basicInfo: CompanyBasicInfo;
     bankSettings: BankSettings;
-    emailSettings: EmailSettings;
     logoSettings?: LogoSettings;
-}
-
-export interface TestEmailConnectionRequest {
-    smtpHost: string;
-    smtpPort: number;
-    smtpUsername: string;
-    smtpPassword: string;
-    useSSL: boolean;
-    useTLS: boolean;
-    testEmail: string;
-}
-
-export interface EmailTestResponse {
-    success: boolean;
-    message: string;
-    errorDetails?: string;
 }
 
 export interface NipValidationResponse {
@@ -149,9 +113,43 @@ export interface NipValidationResponse {
     message: string;
 }
 
+// NOWE INTERFEJSY EMAIL CONFIGURATION
+export interface EmailConfigurationRequest {
+    sender_email: string;
+    sender_name: string;
+    email_password: string;
+    smtp_host: string;
+    smtp_port: number;
+    use_ssl: boolean;
+    is_enabled?: boolean;
+    send_test_email?: boolean;
+}
+
+export interface EmailConfigurationResponse {
+    sender_email: string;
+    sender_name: string;
+    smtp_host: string;
+    smtp_port: number;
+    use_ssl: boolean;
+    is_enabled: boolean;
+    validation_status: 'NOT_TESTED' | 'VALID' | 'INVALID_CREDENTIALS' | 'INVALID_SETTINGS' | 'CONNECTION_ERROR';
+    validation_message?: string;
+    provider_hint?: string;
+    test_email_sent: boolean;
+}
+
+export interface EmailSuggestionsResponse {
+    email: string;
+    has_suggestion: boolean;
+    suggested_smtp_host: string;
+    suggested_smtp_port: number;
+    suggested_use_ssl: boolean;
+    help_text: string;
+}
+
 /**
  * API do zarządzania ustawieniami firmy
- * Kompatybilne z istniejącym backendem Kotlin/Spring
+ * Kompatybilne z nowym backendem Kotlin/Spring
  */
 export const companySettingsApi = {
     /**
@@ -183,7 +181,60 @@ export const companySettingsApi = {
     },
 
     // ==========================================
-    // NOWE API DLA SYSTEMOWEGO GOOGLE DRIVE
+    // NOWE API EMAIL CONFIGURATION
+    // ==========================================
+
+    /**
+     * Pobiera sugestie konfiguracji email na podstawie domeny
+     * GET /api/settings/email/suggestions?email={email}
+     */
+    async getEmailSuggestions(email: string): Promise<EmailSuggestionsResponse> {
+        try {
+            const response = await apiClient.get<EmailSuggestionsResponse>(`/settings/email/suggestions?email=${encodeURIComponent(email)}`);
+            return response;
+        } catch (error) {
+            console.error('Error getting email suggestions:', error);
+            return {
+                email,
+                has_suggestion: false,
+                suggested_smtp_host: '',
+                suggested_smtp_port: 587,
+                suggested_use_ssl: true,
+                help_text: 'Sprawdź dane SMTP w panelu swojego hostingu'
+            };
+        }
+    },
+
+    /**
+     * Zapisuje konfigurację email z walidacją i opcjonalnym testem
+     * POST /api/settings/email/save
+     */
+    async saveEmailConfiguration(data: EmailConfigurationRequest): Promise<EmailConfigurationResponse> {
+        try {
+            const response = await apiClient.post<EmailConfigurationResponse>('/settings/email/save', data);
+            return response;
+        } catch (error) {
+            console.error('Error saving email configuration:', error);
+            throw new Error('Nie udało się zapisać konfiguracji email');
+        }
+    },
+
+    /**
+     * Pobiera aktualną konfigurację email
+     * GET /api/settings/email/current
+     */
+    async getCurrentEmailConfiguration(): Promise<EmailConfigurationResponse | null> {
+        try {
+            const response = await apiClient.get<EmailConfigurationResponse | null>('/settings/email/current');
+            return response;
+        } catch (error) {
+            console.error('Error fetching current email configuration:', error);
+            return null;
+        }
+    },
+
+    // ==========================================
+    // GOOGLE DRIVE API
     // ==========================================
 
     /**
@@ -320,7 +371,7 @@ export const companySettingsApi = {
     },
 
     // ==========================================
-    // STARE API (DEPRECATED - dla kompatybilności)
+    // DEPRECATED API (dla kompatybilności wstecznej)
     // ==========================================
 
     /**
@@ -328,7 +379,6 @@ export const companySettingsApi = {
      */
     async getIntegrationStatus(): Promise<GoogleDriveSettings> {
         try {
-            // Mapujemy nowe API na stary interfejs dla kompatybilności
             const newStatus = await this.getGoogleDriveIntegrationStatus();
             return {
                 isActive: newStatus.isActive,
@@ -362,7 +412,7 @@ export const companySettingsApi = {
         try {
             const status = await this.getGoogleDriveIntegrationStatus();
             return {
-                companyId: 0, // Nie używane w nowym API
+                companyId: 0,
                 isActive: status.isActive,
                 status: status.isActive ? "ACTIVE" : "INACTIVE"
             };
@@ -489,7 +539,6 @@ export const companySettingsApi = {
 
             const blob = await response.blob();
 
-            // Konwertuj blob na Base64
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = () => resolve(reader.result as string);
@@ -504,17 +553,9 @@ export const companySettingsApi = {
 
     /**
      * Pobiera bezpośredni URL do loga (dla użycia w src img)
-     * Zwraca URL z tokenem jako parametr jeśli potrzebny
      */
     getLogoDirectUrl(logoFileId: string): string {
-        const token = apiClient.getAuthToken();
-        const baseUrl = `${apiClient.getBaseUrl()}/company-settings/logo/${logoFileId}`;
-
-        // Dla środowisk które wymagają tokena w parametrach URL (nie zalecane w produkcji ze względów bezpieczeństwa)
-        // return token ? `${baseUrl}?token=${encodeURIComponent(token)}` : baseUrl;
-
-        // Dla autoryzacji przez nagłówki (zalecane)
-        return baseUrl;
+        return `${apiClient.getBaseUrl()}/company-settings/logo/${logoFileId}`;
     },
 
     /**
@@ -533,29 +574,7 @@ export const companySettingsApi = {
     },
 
     /**
-     * Testuje połączenie z serwerem email
-     * POST /api/company-settings/test-email-connection
-     */
-    async testEmailConnection(data: TestEmailConnectionRequest): Promise<EmailTestResponse> {
-        try {
-            const response = await apiClient.post<EmailTestResponse>('/company-settings/test-email-connection', data);
-            return response;
-        } catch (error) {
-            console.error('Error testing email connection:', error);
-            // W przypadku błędu połączenia, zwracamy strukturę błędu
-            if (error instanceof Error) {
-                return {
-                    success: false,
-                    message: 'Nie udało się połączyć z serwerem email',
-                    errorDetails: error.message
-                };
-            }
-            throw new Error('Nie udało się przetestować połączenia email');
-        }
-    },
-
-    /**
-     * Sprawdza czy nazwa koloru kalendarza jest już zajęta (wykorzystuje istniejące API)
+     * Sprawdza czy nazwa koloru kalendarza jest już zajęta
      * GET /api/calendar-colors/check-name?name={name}&excludeId={id}
      */
     async isColorNameTaken(name: string, excludeId?: string): Promise<boolean> {
@@ -569,7 +588,6 @@ export const companySettingsApi = {
             return response.taken;
         } catch (error) {
             console.error('Error checking color name:', error);
-            // W przypadku błędu, zakładamy że nazwa nie jest zajęta
             return false;
         }
     }
@@ -583,12 +601,10 @@ export const companySettingsValidation = {
     validatePolishNIP(nip: string): boolean {
         const cleanNip = nip.replace(/[-\s]/g, '');
 
-        // Sprawdź długość i czy składa się tylko z cyfr
         if (cleanNip.length !== 10 || !/^\d{10}$/.test(cleanNip)) {
             return false;
         }
 
-        // Walidacja sumy kontrolnej NIP
         const weights = [6, 5, 7, 2, 3, 4, 5, 6, 7];
         const digits = cleanNip.split('').map(d => parseInt(d));
 
@@ -661,7 +677,6 @@ export const companySettingsValidation = {
             };
         }
 
-        // Google Drive folder IDs są zwykle długie ciągi znaków alfanumerycznych i znaków specjalnych
         if (cleanFolderId.length < 10) {
             return {
                 valid: false,
@@ -669,7 +684,6 @@ export const companySettingsValidation = {
             };
         }
 
-        // Proste sprawdzenie czy zawiera niedozwolone znaki
         if (!/^[a-zA-Z0-9_-]+$/.test(cleanFolderId)) {
             return {
                 valid: false,
@@ -681,7 +695,7 @@ export const companySettingsValidation = {
     }
 };
 
-// Eksportujemy również stałe używane w module (rozszerzone)
+// Stałe używane w module
 export const COMPANY_SETTINGS_CONSTANTS = {
     MAX_LOGO_SIZE: 5 * 1024 * 1024, // 5MB
     ALLOWED_LOGO_TYPES: ['image/jpeg', 'image/png', 'image/webp'],
