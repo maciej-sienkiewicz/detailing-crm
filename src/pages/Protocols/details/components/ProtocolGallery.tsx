@@ -162,7 +162,7 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
 
         deleteDocument: async (protocolId: string, documentId: string): Promise<boolean> => {
             try {
-                await apiClient.delete(`/receptions/${protocolId}/document/${documentId}`);
+                await carReceptionApi.deleteProtocolDocument(protocolId, documentId);
                 return true;
             } catch (error) {
                 console.error('Error deleting document:', error);
@@ -171,7 +171,7 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
         },
 
         downloadDocument: (documentId: string): string => {
-            return `${apiClient.getBaseUrl()}/v1/protocols/document/${documentId}`;
+            return carReceptionApi.getProtocolDocumentDownloadUrl(documentId);
         }
     };
 
@@ -458,7 +458,7 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
     // Handle download document
     const handleDownloadDocument = async (protocolDoc: ProtocolDocument) => {
         try {
-            const downloadUrl = protocolDocumentsApi.downloadDocument(protocolDoc.storageId);
+            const downloadUrl = protocolDocumentsApi.downloadDocument(protocolDoc.protocolId);
             await apiClient.downloadFile(downloadUrl, protocolDoc.originalName);
         } catch (error) {
             console.error('Error downloading document:', error);

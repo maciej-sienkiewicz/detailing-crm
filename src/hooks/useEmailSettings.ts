@@ -71,10 +71,10 @@ export const useEmailSettings = (): UseEmailSettingsReturn => {
             const response = await companySettingsApi.saveEmailConfiguration(data);
             setConfiguration(response);
 
-            if (response.validation_status === 'VALID') {
+            if (response.validationStatus === 'VALID') {
                 return true;
             } else {
-                setError(response.validation_message || 'Konfiguracja jest nieprawidłowa');
+                setError(response.validationMessage || 'Konfiguracja jest nieprawidłowa');
                 return false;
             }
         } catch (err) {
@@ -89,8 +89,8 @@ export const useEmailSettings = (): UseEmailSettingsReturn => {
         setError(null);
     }, []);
 
-    const isConfigured = Boolean(configuration?.is_enabled && configuration?.validation_status === 'VALID');
-    const needsConfiguration = !configuration || configuration.validation_status !== 'VALID';
+    const isConfigured = Boolean(configuration?.isEnabled && configuration?.validationStatus === 'VALID');
+    const needsConfiguration = !configuration || configuration.validationStatus !== 'VALID';
 
     useEffect(() => {
         loadConfiguration();

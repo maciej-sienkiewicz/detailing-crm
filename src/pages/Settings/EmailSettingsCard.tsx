@@ -50,14 +50,17 @@ export const EmailSettingsCard: React.FC<EmailSettingsCardProps> = ({ onSuccess,
     useEffect(() => {
         if (configuration) {
             setFormData({
-                sender_email: configuration.sender_email,
-                sender_name: configuration.sender_name,
+                sender_email: configuration.senderEmail,
+                sender_name: configuration.senderName,
                 email_password: '', // Nigdy nie pokazujemy hasła
-                smtp_host: configuration.smtp_host,
-                smtp_port: configuration.smtp_port,
-                use_ssl: configuration.use_ssl,
-                send_test_email: false
+                smtp_host: configuration.smtpHost,
+                smtp_port: configuration.smtpPort,
+                use_ssl: configuration.useSsl,
+                sendTestEmail: false
             });
+        } else {
+            console.log("jestem tu jednak")
+
         }
     }, [configuration]);
 
@@ -176,7 +179,7 @@ export const EmailSettingsCard: React.FC<EmailSettingsCardProps> = ({ onSuccess,
                 </StatusIcon>
                 <StatusText>
                     {isConfigured
-                        ? `Email skonfigurowany: ${configuration?.sender_email}`
+                        ? `Email skonfigurowany: ${configuration?.senderEmail}`
                         : 'Email wymaga konfiguracji'}
                 </StatusText>
             </StatusBanner>
@@ -188,24 +191,24 @@ export const EmailSettingsCard: React.FC<EmailSettingsCardProps> = ({ onSuccess,
                         <InfoGrid>
                             <InfoItem>
                                 <InfoLabel>Email nadawcy</InfoLabel>
-                                <InfoValue>{configuration.sender_email}</InfoValue>
+                                <InfoValue>{configuration.senderEmail}</InfoValue>
                             </InfoItem>
                             <InfoItem>
                                 <InfoLabel>Nazwa nadawcy</InfoLabel>
-                                <InfoValue>{configuration.sender_name}</InfoValue>
+                                <InfoValue>{configuration.senderName}</InfoValue>
                             </InfoItem>
                             <InfoItem>
                                 <InfoLabel>Serwer SMTP</InfoLabel>
-                                <InfoValue>{configuration.smtp_host}:{configuration.smtp_port}</InfoValue>
+                                <InfoValue>{configuration.smtpHost}:{configuration.smtpPort}</InfoValue>
                             </InfoItem>
                             <InfoItem>
                                 <InfoLabel>Szyfrowanie</InfoLabel>
-                                <InfoValue>{configuration.use_ssl ? 'SSL/TLS' : 'Brak'}</InfoValue>
+                                <InfoValue>{configuration.useSsl ? 'SSL/TLS' : 'Brak'}</InfoValue>
                             </InfoItem>
                             <InfoItem>
                                 <InfoLabel>Status</InfoLabel>
-                                <StatusBadge $status={configuration.validation_status}>
-                                    {getStatusText(configuration.validation_status)}
+                                <StatusBadge $status={configuration.validationStatus}>
+                                    {getStatusText(configuration.validationStatus)}
                                 </StatusBadge>
                             </InfoItem>
                             <InfoItem>

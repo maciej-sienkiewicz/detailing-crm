@@ -126,16 +126,16 @@ export interface EmailConfigurationRequest {
 }
 
 export interface EmailConfigurationResponse {
-    sender_email: string;
-    sender_name: string;
-    smtp_host: string;
-    smtp_port: number;
-    use_ssl: boolean;
-    is_enabled: boolean;
-    validation_status: 'NOT_TESTED' | 'VALID' | 'INVALID_CREDENTIALS' | 'INVALID_SETTINGS' | 'CONNECTION_ERROR';
-    validation_message?: string;
-    provider_hint?: string;
-    test_email_sent: boolean;
+    senderEmail: string;
+    senderName: string;
+    smtpHost: string;
+    smtpPort: number;
+    useSsl: boolean;
+    isEnabled: boolean;
+    validationStatus: 'NOT_TESTED' | 'VALID' | 'INVALID_CREDENTIALS' | 'INVALID_SETTINGS' | 'CONNECTION_ERROR';
+    validationMessage?: string;
+    providerHint?: string;
+    testEmailSent: boolean;
 }
 
 export interface EmailSuggestionsResponse {
