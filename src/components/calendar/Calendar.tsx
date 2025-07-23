@@ -1,5 +1,5 @@
-// src/components/calendar/Calendar.tsx - FINAL FIXED VERSION
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+// src/components/calendar/Calendar.tsx - PRODUCTION READY VERSION
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import styled from 'styled-components';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -27,28 +27,37 @@ interface CalendarProps {
     onEventCreate?: (start: Date, end: Date) => void;
 }
 
-const AppointmentCalendar: React.FC<CalendarProps> = ({
-                                                          events,
-                                                          onEventSelect,
-                                                          onRangeChange,
-                                                          onEventCreate
-                                                      }) => {
+const AppointmentCalendar: React.FC<CalendarProps> = React.memo(({
+                                                                     events,
+                                                                     onEventSelect,
+                                                                     onRangeChange,
+                                                                     onEventCreate
+                                                                 }) => {
     // State Management
     const [currentView, setCurrentView] = useState<CalendarView>('dayGridMonth');
     const [currentDate, setCurrentDate] = useState<Date>(new Date());
-    const [isCalendarReady, setIsCalendarReady] = useState(false);
     const [quickFilters, setQuickFilters] = useState<QuickFilters>(DEFAULT_QUICK_FILTERS);
 
+    // Refs for FullCalendar control
     const calendarRef = useRef<FullCalendar>(null);
 
-    // Only keep view changing ref - isNavigatingRef completely removed
-    const isViewChangingRef = useRef(false);
-    const pendingViewChangeRef = useRef<CalendarView | null>(null);
+    // Simple state management
+    const [isInitialized, setIsInitialized] = useState(false);
+    const [isViewChanging, setIsViewChanging] = useState(false);
+
+    // Prevent initial range update after mount
+    const hasInitialRangeBeenSet = useRef(false);
 
     // Use optimized calendar colors hook
     const { calendarColors } = useCalendarColors();
 
-    // Event Handlers
+    // Memoized events to prevent unnecessary re-renders
+    const memoizedEvents = useMemo(() =>
+            mapAppointmentsToFullCalendarEvents(events, quickFilters, calendarColors),
+        [events, quickFilters, calendarColors]
+    );
+
+    // Event Handlers - all memoized for performance
     const handleEventClick = useCallback((info: any) => {
         const appointment = info.event.extendedProps;
         onEventSelect(appointment);
@@ -67,102 +76,82 @@ const AppointmentCalendar: React.FC<CalendarProps> = ({
         }
     }, [onEventCreate]);
 
-    // Completely simplified handleDatesSet - no navigation blocking
+    // PRODUCTION: Clean and simple datesSet handler
     const handleDatesSet = useCallback((info: any) => {
         if (!calendarRef.current) return;
 
         const calendarApi = calendarRef.current.getApi();
         const actualCalendarDate = calendarApi.getDate();
 
-        // ALWAYS update the current date for label display
-        console.log('📅 ALWAYS updating calendar date:', actualCalendarDate.toLocaleDateString());
+        // Always update current date for display
         setCurrentDate(new Date(actualCalendarDate));
 
-        // Set ready flag
-        if (!isCalendarReady) {
-            setIsCalendarReady(true);
-        }
-
-        // Only skip during view changes (to prevent loading wrong data for new view)
-        if (isViewChangingRef.current) {
-            console.log('🔄 View change in progress - skipping range update only');
+        // Skip during view changes
+        if (isViewChanging) {
             return;
         }
 
-        // ALWAYS update range for data loading
-        console.log('📊 ALWAYS updating range:', {
-            start: info.start.toISOString().split('T')[0],
-            end: info.end.toISOString().split('T')[0]
-        });
-
-        if (onRangeChange) {
-            onRangeChange({
-                start: info.start,
-                end: info.end
-            });
+        // Mark as initialized
+        if (!isInitialized) {
+            setIsInitialized(true);
         }
-    }, [isCalendarReady, onRangeChange]);
 
-    // Ultra-simplified navigation - no flags at all
+        // Handle range changes
+        if (onRangeChange) {
+            // Set initial range only once
+            if (!hasInitialRangeBeenSet.current) {
+                hasInitialRangeBeenSet.current = true;
+                // Use setTimeout to avoid conflicts with React rendering
+                setTimeout(() => {
+                    onRangeChange({
+                        start: info.start,
+                        end: info.end
+                    });
+                }, 0);
+            } else {
+                // Immediate range update for navigation
+                onRangeChange({
+                    start: info.start,
+                    end: info.end
+                });
+            }
+        }
+    }, [isViewChanging, isInitialized, onRangeChange]);
+
+    // PRODUCTION: Simple navigation
     const handleNavigate = useCallback((action: 'prev' | 'next' | 'today') => {
         if (!calendarRef.current) return;
-
-        console.log(`🧭 Navigation: ${action} - direct execution`);
 
         const calendarApi = calendarRef.current.getApi();
 
         switch (action) {
             case 'prev':
-                console.log('⬅️ Going to previous period');
                 calendarApi.prev();
                 break;
             case 'next':
-                console.log('➡️ Going to next period');
                 calendarApi.next();
                 break;
             case 'today':
-                console.log('🏠 Going to today');
                 calendarApi.today();
                 break;
         }
-
-        console.log('✅ Navigation executed, datesSet will handle updates');
     }, []);
 
-    // Fixed view change handler with proper synchronization
+    // PRODUCTION: Clean view change handler
     const handleViewChange = useCallback((view: CalendarView) => {
-        if (!calendarRef.current) return;
+        if (!calendarRef.current || currentView === view) return;
 
-        console.log(`🔄 View change: ${currentView} -> ${view}`);
-
-        if (currentView === view) {
-            console.log('📋 View already active, skipping');
-            return;
-        }
-
-        isViewChangingRef.current = true;
-        pendingViewChangeRef.current = view;
-
+        setIsViewChanging(true);
         const calendarApi = calendarRef.current.getApi();
 
         try {
-            // Change view in FullCalendar
             calendarApi.changeView(view);
-
-            // Update React state immediately
             setCurrentView(view);
-
-            console.log(`✅ View changed to: ${view}`);
         } catch (error) {
             console.error('Error changing view:', error);
-            // Reset pending view change on error
-            pendingViewChangeRef.current = null;
         } finally {
-            // Reset view changing flag after a delay
-            setTimeout(() => {
-                isViewChangingRef.current = false;
-                pendingViewChangeRef.current = null;
-            }, 200);
+            // Reset view changing flag after a brief delay
+            setTimeout(() => setIsViewChanging(false), 100);
         }
     }, [currentView]);
 
@@ -173,56 +162,13 @@ const AppointmentCalendar: React.FC<CalendarProps> = ({
         }));
     }, []);
 
-    // Initialize calendar - ensure initial range is set
+    // PRODUCTION: Simple one-time initialization
     useEffect(() => {
-        if (calendarRef.current && !isCalendarReady) {
-            try {
-                const calendarApi = calendarRef.current.getApi();
-                const today = new Date();
-
-                console.log('🚀 Initializing calendar');
-                calendarApi.gotoDate(today);
-                setCurrentDate(today);
-                setIsCalendarReady(true);
-
-                // Force initial datesSet call to establish range
-                setTimeout(() => {
-                    if (calendarRef.current) {
-                        const view = calendarApi.view;
-                        console.log('📅 Setting initial range from view:', {
-                            start: view.activeStart,
-                            end: view.activeEnd
-                        });
-
-                        if (onRangeChange) {
-                            onRangeChange({
-                                start: view.activeStart,
-                                end: view.activeEnd
-                            });
-                        }
-                    }
-                }, 100);
-            } catch (error) {
-                console.error('Calendar initialization error:', error);
-                setCurrentDate(new Date());
-                setIsCalendarReady(true);
-            }
+        if (calendarRef.current && !isInitialized) {
+            const calendarApi = calendarRef.current.getApi();
+            calendarApi.gotoDate(new Date());
         }
-    }, [isCalendarReady, onRangeChange]);
-
-    // Synchronize view state if FullCalendar view changes externally
-    useEffect(() => {
-        if (!calendarRef.current || !isCalendarReady) return;
-
-        const calendarApi = calendarRef.current.getApi();
-        const actualView = calendarApi.view.type as CalendarView;
-
-        // Only update if there's a mismatch and we're not in the middle of changing views
-        if (actualView !== currentView && !isViewChangingRef.current && !pendingViewChangeRef.current) {
-            console.log(`🔄 Syncing view state: ${actualView}`);
-            setCurrentView(actualView);
-        }
-    }, [currentView, isCalendarReady]);
+    }, []); // Empty deps - runs only once
 
     return (
         <CalendarContainer>
@@ -313,7 +259,7 @@ const AppointmentCalendar: React.FC<CalendarProps> = ({
                     plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
                     initialView={currentView}
                     initialDate={new Date()}
-                    events={mapAppointmentsToFullCalendarEvents(events, quickFilters, calendarColors)}
+                    events={memoizedEvents}
                     locale={plLocale}
                     selectable={true}
                     selectMirror={true}
@@ -391,9 +337,11 @@ const AppointmentCalendar: React.FC<CalendarProps> = ({
             </CalendarWrapper>
         </CalendarContainer>
     );
-};
+});
 
-// Styled Components
+AppointmentCalendar.displayName = 'AppointmentCalendar';
+
+// Styled Components (same as before, truncated for brevity)
 const CalendarContainer = styled.div`
     display: flex;
     flex-direction: column;
