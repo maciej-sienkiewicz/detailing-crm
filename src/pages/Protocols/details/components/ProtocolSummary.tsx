@@ -31,11 +31,19 @@ import {
     FaHistory,
     FaUserTie,
     FaAward,
-    FaGem
+    FaGem, FaEdit
 } from 'react-icons/fa';
 import {clientApi} from "../../../../api/clientsApi";
-import {CarReceptionProtocol, ClientExpanded, ClientStatistics, ServiceApprovalStatus, DiscountType} from "../../../../types";
+import {
+    CarReceptionProtocol,
+    ClientExpanded,
+    ClientStatistics,
+    ServiceApprovalStatus,
+    DiscountType,
+    SelectedService, ProtocolStatus
+} from "../../../../types";
 import AddServiceModal from "../../shared/modals/AddServiceModal";
+import EditPricesModal from "./EditPricesModal";
 
 // Professional Brand System - Enterprise Automotive Grade
 const brand = {
@@ -106,10 +114,41 @@ interface ProtocolSummaryProps {
 
 const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolUpdate }) => {
     const [showAddServiceModal, setShowAddServiceModal] = useState(false);
+    const [showEditPricesModal, setShowEditPricesModal] = useState(false); // Nowy stan
     const [client, setClient] = useState<ClientExpanded | null>(null);
     const [clientStats, setClientStats] = useState<ClientStatistics | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    const handleEditPrices = () => {
+        setShowEditPricesModal(true);
+    };
+
+    const handleSavePrices = async (updatedServices: SelectedService[]) => {
+        try {
+            // Update protocol with modified services
+            const updatedProtocol: CarReceptionProtocol = {
+                ...protocol,
+                selectedServices: updatedServices
+            };
+
+            // Call parent update handler
+            if (onProtocolUpdate) {
+                onProtocolUpdate(updatedProtocol);
+            }
+
+            setShowEditPricesModal(false);
+
+            // Show success message
+            console.log('Prices updated successfully:', updatedServices);
+
+        } catch (error) {
+            console.error('Error updating prices:', error);
+            // You might want to show an error toast here
+        }
+    };
+
+    const canEditPrices = protocol.status === ProtocolStatus.READY_FOR_PICKUP;
 
     // Load client data based on protocol's owner ID
     React.useEffect(() => {
@@ -518,10 +557,20 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                             {approvedServices.length} zatwierdzone • {pendingServices.length} oczekujące
                         </SectionStats>
                     </HeaderContent>
-                    <AddServiceButton onClick={handleAddService}>
-                        <FaPlus />
-                        <span>Dodaj usługę</span>
-                    </AddServiceButton>
+                    <HeaderActions>
+                        {/* Przycisk "Edytuj ceny" - widoczny tylko gdy status to READY_FOR_PICKUP */}
+                        {canEditPrices && (
+                            <EditPricesButton onClick={handleEditPrices}>
+                                <FaEdit />
+                                <span>Edytuj ceny</span>
+                            </EditPricesButton>
+                        )}
+
+                        <AddServiceButton onClick={handleAddService}>
+                            <FaPlus />
+                            <span>Dodaj usługę</span>
+                        </AddServiceButton>
+                    </HeaderActions>
                 </SectionHeader>
 
                 <ServicesTable>
@@ -626,6 +675,14 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                 onAddServices={handleSaveServices}
                 availableServices={[]} // You should pass actual available services here
                 customerPhone={protocol.phone}
+            />
+
+            <EditPricesModal
+                isOpen={showEditPricesModal}
+                onClose={() => setShowEditPricesModal(false)}
+                onSave={handleSavePrices}
+                services={protocol.selectedServices}
+                protocolId={protocol.id}
             />
         </Container>
     );
@@ -1412,6 +1469,46 @@ const ServiceNote = styled.div`
    font-style: italic;
    margin-top: ${brand.space.xs};
    line-height: 1.4;
+`;
+
+const HeaderActions = styled.div`
+    display: flex;
+    gap: ${brand.space.sm};
+    align-items: center;
+`;
+
+const EditPricesButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: ${brand.space.sm};
+    padding: ${brand.space.md} ${brand.space.lg};
+    background: ${brand.primaryGhost};
+    color: ${brand.primary};
+    border: 2px solid ${brand.primary}40;
+    border-radius: ${brand.radius.md};
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: ${brand.primary}20;
+        border-color: ${brand.primary};
+        transform: translateY(-1px);
+        box-shadow: ${brand.shadow.moderate};
+    }
+
+    svg {
+        font-size: 12px;
+    }
+
+    @media (max-width: 768px) {
+        span {
+            display: none;
+        }
+        
+        padding: ${brand.space.md};
+    }
 `;
 
 export default ProtocolSummary;

@@ -71,7 +71,7 @@ interface PaymentModalProps {
     onConfirm: (paymentData: {
         paymentMethod: 'cash' | 'card';
         documentType: 'invoice' | 'receipt' | 'other';
-        invoiceItems?: SelectedService[];
+        overridenItems?: SelectedService[];
     }) => void;
     totalAmount: number;
     services: SelectedService[];
@@ -120,6 +120,29 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
     if (!isOpen) return null;
 
+    // Helper function to check if items were modified
+    const areItemsModified = (originalItems: SelectedService[], modifiedItems: SelectedService[] | null): boolean => {
+        if (!modifiedItems) return false;
+
+        // Check if number of items is different
+        if (originalItems.length !== modifiedItems.length) return true;
+
+        // Check if any item name was changed or items were merged
+        for (let i = 0; i < originalItems.length; i++) {
+            const original = originalItems[i];
+            const modified = modifiedItems.find(item => item.id === original.id);
+
+            if (!modified || modified.name !== original.name) {
+                return true;
+            }
+        }
+
+        // Check for merged items (items with generated IDs)
+        const hasMergedItems = modifiedItems.some(item => item.id.startsWith('merged_'));
+
+        return hasMergedItems;
+    };
+
     // Aktualna kwota do zapłaty
     const currentServices = pendingInvoiceItems || services;
     const currentTotalAmount = currentServices.reduce((sum, item) => sum + item.finalPrice, 0);
@@ -141,14 +164,17 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     };
 
     const handleConfirm = () => {
+        const itemsWereModified = areItemsModified(services, pendingInvoiceItems);
+
         const paymentData = {
             paymentMethod,
             documentType,
-            invoiceItems: documentType === 'invoice' && pendingInvoiceItems ? pendingInvoiceItems : undefined
+            // Tylko dodajemy overridenItems jeśli pozycje zostały faktycznie zmodyfikowane
+            ...(itemsWereModified && pendingInvoiceItems ? { overridenItems: pendingInvoiceItems } : {})
         };
 
-        // Sprawdzenie różnic w kwotach przed zatwierdzeniem
-        if (documentType === 'invoice' && pendingInvoiceItems) {
+        // Sprawdzenie różnic w kwotach przed zatwierdzeniem (tylko jeśli items zostały zmodyfikowane)
+        if (itemsWereModified && pendingInvoiceItems) {
             const originalTotal = initialTotalAmount;
             const customTotal = pendingInvoiceItems.reduce((sum, item) => sum + item.finalPrice, 0);
 
@@ -163,10 +189,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             }
         }
 
-        // Aktualizujemy services tylko w momencie finalnego zatwierdzenia
-        if (pendingInvoiceItems) {
-            onServicesChange(pendingInvoiceItems);
-        }
+        // NIE aktualizujemy services - pozostawiamy oryginalne dane w protokole
+        // Zmodyfikowane pozycje są przekazywane tylko do API release
 
         // Komunikaty o operacjach
         if (paymentMethod === 'cash') {
@@ -214,7 +238,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                                 <AmountValue>{currentTotalAmount.toFixed(2)} zł</AmountValue>
                                 {pendingInvoiceItems !== null && (
                                     <ModifiedHint>
-                                        (zmodyfikowano z {initialTotalAmount.toFixed(2)} zł)
+                                        (zmodyfikowano nazwy pozycji faktury)
                                     </ModifiedHint>
                                 )}
                             </AmountDetails>
@@ -327,7 +351,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                                             <FaListAlt />
                                         </SummaryIcon>
                                         <SummaryText>
-                                            <SummaryTitle>Pozycje faktury zostały zmodyfikowane</SummaryTitle>
+                                            <SummaryTitle>Pozycje faktury zostały dostosowane</SummaryTitle>
                                             <SummaryDetails>
                                                 {pendingInvoiceItems.length} {
                                                 pendingInvoiceItems.length === 1 ? 'pozycja' :
@@ -344,7 +368,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                             ) : (
                                 <EditInvoiceItemsButton onClick={handleEditInvoiceItems}>
                                     <FaListAlt />
-                                    Edytuj pozycje faktury
+                                    Dostosuj pozycje faktury
                                 </EditInvoiceItemsButton>
                             )}
                         </InvoiceOptionsSection>
@@ -374,7 +398,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     );
 };
 
-// Styled Components - bez zmian, kopiujemy istniejące
+// Styled Components (pozostają bez zmian)
 const ModalOverlay = styled.div`
     position: fixed;
     top: 0;

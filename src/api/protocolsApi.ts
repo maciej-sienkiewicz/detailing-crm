@@ -1,7 +1,31 @@
 // src/api/protocolsApi.ts
 import { apiClient, PaginatedResponse } from './apiClient';
 import { ProtocolListItem, ProtocolStatus } from '../types/protocol';
-import { CarReceptionProtocol } from '../types';
+import {CarReceptionProtocol, SelectedService} from '../types';
+import {apiClientNew} from "./apiClientNew";
+
+interface ReleaseVehicleData {
+    paymentMethod: 'cash' | 'card';
+    documentType: 'invoice' | 'receipt' | 'other';
+    overridenItems?: SelectedService[]; // Dodane nowe pole
+}
+
+interface ServicesUpdateCommand {
+    services: Array<{
+        name: string;
+        price: number;
+        quantity?: number;
+        discount_type?: string;
+        discount_value?: number;
+        final_price?: number;
+        approval_status?: string;
+        note?: string;
+    }>;
+}
+
+interface ProtocolIdResponse {
+    id: string;
+}
 
 // Interfejs dla parametrów filtrowania
 interface ProtocolFilterParams {
@@ -110,15 +134,53 @@ export const protocolsApi = {
     /**
      * Zwalnia (wydaje) pojazd
      */
-    releaseVehicle: async (id: string, data: {
-        paymentMethod: 'cash' | 'card';
-        documentType: 'invoice' | 'receipt' | 'other';
-    }): Promise<CarReceptionProtocol | null> => {
+    releaseVehicle: async (id: string, data: ReleaseVehicleData): Promise<CarReceptionProtocol | null> => {
         try {
-            return await apiClient.post<CarReceptionProtocol>(`/v1/protocols/${id}/release`, data);
+            console.log('Releasing vehicle with data:', {
+                id,
+                paymentMethod: data.paymentMethod,
+                documentType: data.documentType,
+                hasOverridenItems: !!data.overridenItems,
+                overridenItemsCount: data.overridenItems?.length || 0
+            });
+
+            return await apiClientNew.post<CarReceptionProtocol>(`/v1/protocols/${id}/release`, data);
         } catch (error) {
             console.error(`Error releasing vehicle (ID: ${id}):`, error);
             return null;
+        }
+    },
+
+    updateServices: async (protocolId: string, services: SelectedService[]): Promise<boolean> => {
+        try {
+            console.log('Updating services for protocol:', protocolId, 'Services count:', services.length);
+
+            // Mapowanie z SelectedService na format API
+            const servicesUpdateCommand: ServicesUpdateCommand = {
+                services: services.map(service => ({
+                    name: service.name,
+                    price: service.price,
+                    quantity: 1, // Domyślnie 1
+                    discount_type: service.discountType,
+                    discount_value: service.discountValue,
+                    final_price: service.finalPrice,
+                    approval_status: service.approvalStatus || 'PENDING',
+                    note: service.note || ''
+                }))
+            };
+
+            console.log('Sending services update command:', servicesUpdateCommand);
+
+            const response = await apiClientNew.put<ProtocolIdResponse>(
+                `/v1/protocols/${protocolId}/services`,
+                servicesUpdateCommand
+            );
+
+            console.log('Services updated successfully:', response);
+            return true;
+        } catch (error) {
+            console.error(`Error updating services for protocol (ID: ${protocolId}):`, error);
+            return false;
         }
     },
 

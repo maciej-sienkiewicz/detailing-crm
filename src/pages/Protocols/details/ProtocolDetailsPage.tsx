@@ -287,35 +287,19 @@ const ProtocolDetailsPage: React.FC = () => {
     const handlePaymentConfirm = async (paymentData: {
         paymentMethod: 'cash' | 'card';
         documentType: 'invoice' | 'receipt' | 'other';
-        invoiceItems?: SelectedService[];
+        overridenItems?: SelectedService[]; // Dodane nowe pole
     }) => {
         try {
             setShowPaymentModal(false);
 
-            // Jeśli mamy zmodyfikowane pozycje faktury, aktualizujemy protokół
-            if (paymentData.invoiceItems) {
-                console.log('Aktualizowanie protokołu z zmodyfikowanymi pozycjami faktury:', paymentData.invoiceItems);
-
-                // Aktualizujemy protokół z nowymi services
-                const updatedProtocolWithServices = {
-                    ...protocol!,
-                    selectedServices: paymentData.invoiceItems,
-                    updatedAt: new Date().toISOString()
-                };
-
-                // Wysyłamy zapytanie do API z zaktualizowanymi services
-                const protocolUpdateResult = await protocolsApi.updateProtocol(updatedProtocolWithServices);
-
-                if (protocolUpdateResult) {
-                    setProtocol(protocolUpdateResult);
-                    console.log('Protokół zaktualizowany pomyślnie z nowymi pozycjami faktury');
-                }
-            }
-
             const releaseData = {
                 paymentMethod: paymentData.paymentMethod,
                 documentType: paymentData.documentType,
+                // Dodajemy overridenItems tylko jeśli zostały przekazane
+                ...(paymentData.overridenItems ? { overridenItems: paymentData.overridenItems } : {})
             };
+
+            console.log('Release data being sent to API:', releaseData);
 
             const result = await protocolsApi.releaseVehicle(protocol!.id, releaseData);
 
@@ -326,11 +310,6 @@ const ProtocolDetailsPage: React.FC = () => {
                 const updatedProtocol = { ...protocol! };
                 updatedProtocol.status = ProtocolStatus.COMPLETED;
                 updatedProtocol.statusUpdatedAt = new Date().toISOString();
-
-                // Jeśli mamy zmodyfikowane pozycje faktury i nie udało się je wcześniej zapisać
-                if (paymentData.invoiceItems && !result) {
-                    updatedProtocol.selectedServices = paymentData.invoiceItems;
-                }
 
                 setProtocol(updatedProtocol);
 
@@ -379,8 +358,6 @@ const ProtocolDetailsPage: React.FC = () => {
                 return <ProtocolComments protocol={protocol} onProtocolUpdate={handleProtocolUpdate} />;
             case 'invoices':
                 return <ProtocolInvoices protocol={protocol} onProtocolUpdate={handleProtocolUpdate} />;
-            case 'client':
-                return <ProtocolClientInfo protocol={protocol} />;
             case 'vehicle':
                 return <ProtocolVehicleStatus protocol={protocol} onProtocolUpdate={handleProtocolUpdate} />;
             case 'gallery':

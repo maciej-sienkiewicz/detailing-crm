@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
 import {FaCheck, FaTimesCircle, FaTimes, FaPencilAlt, FaTrash, FaLayerGroup, FaFileInvoice, FaCalculator} from 'react-icons/fa';
-import {DiscountType, SelectedService, ServiceApprovalStatus} from '../../../../types';
+import {SelectedService, ServiceApprovalStatus} from '../../../../types';
 import {useToast} from "../../../../components/common/Toast/Toast";
 
 // Professional Brand Theme
@@ -64,69 +64,9 @@ const brandTheme = {
     }
 };
 
-// Rozszerzony typ rabatu
-enum ExtendedDiscountType {
-    PERCENTAGE = 'PERCENTAGE',
-    AMOUNT_GROSS = 'AMOUNT_GROSS',
-    AMOUNT_NET = 'AMOUNT_NET',
-    FIXED_PRICE_GROSS = 'FIXED_PRICE_GROSS',
-    FIXED_PRICE_NET = 'FIXED_PRICE_NET'
-}
-
-const DiscountTypeLabelsExtended: Record<ExtendedDiscountType, string> = {
-    [ExtendedDiscountType.PERCENTAGE]: "Procent",
-    [ExtendedDiscountType.AMOUNT_GROSS]: "Kwota (brutto)",
-    [ExtendedDiscountType.AMOUNT_NET]: "Kwota (netto)",
-    [ExtendedDiscountType.FIXED_PRICE_GROSS]: "Cena końcowa (brutto)",
-    [ExtendedDiscountType.FIXED_PRICE_NET]: "Cena końcowa (netto)"
-};
-
-const mapToStandardDiscountType = (extendedType: ExtendedDiscountType): DiscountType => {
-    switch (extendedType) {
-        case ExtendedDiscountType.PERCENTAGE:
-            return DiscountType.PERCENTAGE;
-        case ExtendedDiscountType.AMOUNT_GROSS:
-        case ExtendedDiscountType.AMOUNT_NET:
-            return DiscountType.AMOUNT;
-        case ExtendedDiscountType.FIXED_PRICE_GROSS:
-        case ExtendedDiscountType.FIXED_PRICE_NET:
-            return DiscountType.FIXED_PRICE;
-        default:
-            return DiscountType.PERCENTAGE;
-    }
-};
-
-const mapFromStandardDiscountType = (standardType: DiscountType): ExtendedDiscountType => {
-    switch (standardType) {
-        case DiscountType.PERCENTAGE:
-            return ExtendedDiscountType.PERCENTAGE;
-        case DiscountType.AMOUNT:
-            return ExtendedDiscountType.AMOUNT_GROSS;
-        case DiscountType.FIXED_PRICE:
-            return ExtendedDiscountType.FIXED_PRICE_GROSS;
-        default:
-            return ExtendedDiscountType.PERCENTAGE;
-    }
-};
-
-const DEFAULT_VAT_RATE = 23;
-
-const calculateNetPrice = (grossPrice: number, vatRate: number = DEFAULT_VAT_RATE): number => {
-    return grossPrice / (1 + vatRate / 100);
-};
-
-const calculateGrossPrice = (netPrice: number, vatRate: number = DEFAULT_VAT_RATE): number => {
-    return netPrice * (1 + vatRate / 100);
-};
-
 interface ServiceExtended extends SelectedService {
     isModified?: boolean;
     originalName?: string;
-    originalPrice?: number;
-    originalFinalPrice?: number;
-    originalDiscountType?: DiscountType;
-    originalDiscountValue?: number;
-    extendedDiscountType?: ExtendedDiscountType;
     mergedFrom?: SelectedService[];
 }
 
@@ -148,9 +88,6 @@ const InvoiceItemsModal: React.FC<InvoiceItemsModalProps> = ({
     const [editedServices, setEditedServices] = useState<ServiceExtended[]>([]);
     const [isEditing, setIsEditing] = useState<number | null>(null);
     const [editName, setEditName] = useState('');
-    const [editPrice, setEditPrice] = useState('');
-    const [isPriceGross, setIsPriceGross] = useState(true);
-    const [extendedDiscountTypes, setExtendedDiscountTypes] = useState<Record<string, ExtendedDiscountType>>({});
 
     const { showToast } = useToast();
 
@@ -160,21 +97,11 @@ const InvoiceItemsModal: React.FC<InvoiceItemsModalProps> = ({
             const initialServices = services.map(service => ({
                 ...service,
                 isModified: false,
-                originalName: service.name,
-                originalPrice: service.price,
-                originalFinalPrice: service.finalPrice,
-                originalDiscountType: service.discountType,
-                originalDiscountValue: service.discountValue
+                originalName: service.name
             }));
 
             setEditedServices(initialServices);
             setIsEditing(null);
-
-            const initialExtendedTypes: Record<string, ExtendedDiscountType> = {};
-            services.forEach(service => {
-                initialExtendedTypes[service.id] = mapFromStandardDiscountType(service.discountType);
-            });
-            setExtendedDiscountTypes(initialExtendedTypes);
         }
     }, [isOpen, services]);
 
@@ -182,34 +109,20 @@ const InvoiceItemsModal: React.FC<InvoiceItemsModalProps> = ({
         const service = editedServices[index];
         setIsEditing(index);
         setEditName(service.name);
-
-        if (isPriceGross) {
-            setEditPrice(service.price.toString());
-        } else {
-            setEditPrice(calculateNetPrice(service.price).toFixed(2));
-        }
     };
 
     const handleSaveEdit = () => {
         if (isEditing === null) return;
 
-        const parsedPrice = parseFloat(editPrice);
-        if (isNaN(parsedPrice) || parsedPrice <= 0) return;
-
         const updatedServices = [...editedServices];
         const originalService = updatedServices[isEditing];
 
-        const finalPrice = isPriceGross ? parsedPrice : calculateGrossPrice(parsedPrice);
-
         const isNameChanged = editName !== originalService.originalName;
-        const isPriceChanged = Math.abs(finalPrice - (originalService.originalPrice || 0)) > 0.01;
 
         updatedServices[isEditing] = {
             ...originalService,
-            name: editName,
-            price: finalPrice,
-            finalPrice: finalPrice,
-            isModified: isNameChanged || isPriceChanged
+            name: editName.trim(),
+            isModified: isNameChanged
         };
 
         setEditedServices(updatedServices);
@@ -226,107 +139,6 @@ const InvoiceItemsModal: React.FC<InvoiceItemsModalProps> = ({
         setEditedServices(updatedServices);
     };
 
-    const handleExtendedDiscountTypeChange = (serviceId: string, newExtendedType: ExtendedDiscountType) => {
-        const standardType = mapToStandardDiscountType(newExtendedType);
-        const serviceIndex = editedServices.findIndex(s => s.id === serviceId);
-
-        if (serviceIndex === -1) return;
-
-        setExtendedDiscountTypes({
-            ...extendedDiscountTypes,
-            [serviceId]: newExtendedType
-        });
-
-        const updatedServices = [...editedServices];
-        const service = updatedServices[serviceIndex];
-
-        let newDiscountValue = service.discountValue;
-
-        if (service.discountType !== standardType) {
-            if (standardType === DiscountType.PERCENTAGE) {
-                newDiscountValue = 0;
-            } else if (standardType === DiscountType.AMOUNT) {
-                newDiscountValue = 0;
-            } else if (standardType === DiscountType.FIXED_PRICE) {
-                newDiscountValue = newExtendedType === ExtendedDiscountType.FIXED_PRICE_NET
-                    ? calculateNetPrice(service.price)
-                    : service.price;
-            }
-        }
-
-        updatedServices[serviceIndex] = {
-            ...service,
-            discountType: standardType,
-            discountValue: newDiscountValue,
-            finalPrice: calculateFinalPrice(service.price, standardType, newExtendedType, newDiscountValue),
-            isModified: true
-        };
-
-        setEditedServices(updatedServices);
-    };
-
-    const calculateFinalPrice = (
-        price: number,
-        discountType: DiscountType,
-        extendedType: ExtendedDiscountType,
-        discountValue: number
-    ): number => {
-        let finalPrice = price;
-
-        switch (discountType) {
-            case DiscountType.PERCENTAGE:
-                finalPrice = price * (1 - discountValue / 100);
-                break;
-            case DiscountType.AMOUNT:
-                if (extendedType === ExtendedDiscountType.AMOUNT_NET) {
-                    const discountValueGross = calculateGrossPrice(discountValue);
-                    finalPrice = Math.max(0, price - discountValueGross);
-                } else {
-                    finalPrice = Math.max(0, price - discountValue);
-                }
-                break;
-            case DiscountType.FIXED_PRICE:
-                if (extendedType === ExtendedDiscountType.FIXED_PRICE_NET) {
-                    finalPrice = calculateGrossPrice(discountValue);
-                } else {
-                    finalPrice = discountValue;
-                }
-                break;
-        }
-
-        return parseFloat(finalPrice.toFixed(2));
-    };
-
-    const handleDiscountValueChange = (serviceId: string, value: number) => {
-        const serviceIndex = editedServices.findIndex(s => s.id === serviceId);
-
-        if (serviceIndex === -1) return;
-
-        const updatedServices = [...editedServices];
-        const service = updatedServices[serviceIndex];
-        const extendedType = extendedDiscountTypes[serviceId] ||
-            mapFromStandardDiscountType(service.discountType);
-
-        let validatedValue = value;
-
-        if (service.discountType === DiscountType.PERCENTAGE && validatedValue > 100) {
-            validatedValue = 100;
-        }
-
-        if (validatedValue < 0) {
-            validatedValue = 0;
-        }
-
-        updatedServices[serviceIndex] = {
-            ...service,
-            discountValue: validatedValue,
-            finalPrice: calculateFinalPrice(service.price, service.discountType, extendedType, validatedValue),
-            isModified: true
-        };
-
-        setEditedServices(updatedServices);
-    };
-
     const handleMergeAll = () => {
         const totalPrice = editedServices.reduce(
             (sum, service) => sum + service.finalPrice, 0
@@ -337,10 +149,10 @@ const InvoiceItemsModal: React.FC<InvoiceItemsModalProps> = ({
         const mergedService: ServiceExtended = {
             id: `merged_${Date.now()}`,
             name: 'Usługi detailingowe',
-            price: totalPrice,
-            discountType: DiscountType.PERCENTAGE,
-            discountValue: 0,
-            finalPrice: totalPrice,
+            price: totalPrice, // Zachowujemy oryginalną cenę
+            discountType: editedServices[0]?.discountType || 'PERCENTAGE' as any,
+            discountValue: 0, // Bez rabatu dla merged
+            finalPrice: totalPrice, // Cena końcowa taka sama jak suma
             isModified: true,
             mergedFrom: originalServices,
             note: '',
@@ -348,10 +160,6 @@ const InvoiceItemsModal: React.FC<InvoiceItemsModalProps> = ({
         };
 
         setEditedServices([mergedService]);
-
-        setExtendedDiscountTypes({
-            [mergedService.id]: ExtendedDiscountType.PERCENTAGE
-        });
     };
 
     const handleSave = () => {
@@ -359,11 +167,6 @@ const InvoiceItemsModal: React.FC<InvoiceItemsModalProps> = ({
             const {
                 isModified,
                 originalName,
-                originalPrice,
-                originalFinalPrice,
-                originalDiscountType,
-                originalDiscountValue,
-                extendedDiscountType,
                 mergedFrom,
                 ...serviceData
             } = service;
@@ -371,38 +174,29 @@ const InvoiceItemsModal: React.FC<InvoiceItemsModalProps> = ({
             return serviceData as SelectedService;
         });
 
+        // Sprawdzenie czy całkowita kwota się nie zmieniła
         const originalTotal = services.reduce((sum, item) => sum + item.finalPrice, 0);
         const newTotal = itemsToSave.reduce((sum, item) => sum + item.finalPrice, 0);
 
         if (Math.abs(newTotal - originalTotal) > 0.01) {
-            const confirmed = window.confirm(
-                `Suma po modyfikacji (${newTotal.toFixed(2)} zł) różni się od oryginalnej kwoty (${originalTotal.toFixed(2)} zł). Czy na pewno chcesz zapisać zmiany?`
-            );
-
-            if (!confirmed) {
-                return;
-            }
+            showToast('error', 'Błąd: Suma pozycji nie może ulec zmianie!', 4000);
+            return;
         }
 
-        // Zapisujemy lokalnie bez wysyłania na serwer
         showToast('success', 'Pozycje faktury zostały zmodyfikowane. Zmiany zostaną zastosowane po zatwierdzeniu płatności.', 4000);
         onSave(itemsToSave);
         onClose();
     };
 
     const calculateTotals = () => {
-        const totalPrice = editedServices.reduce((sum, service) => sum + service.price, 0);
-        const totalDiscount = editedServices.reduce((sum, service) => sum + (service.price - service.finalPrice), 0);
         const totalFinalPrice = editedServices.reduce((sum, service) => sum + service.finalPrice, 0);
 
         return {
-            totalPrice,
-            totalDiscount,
             totalFinalPrice
         };
     };
 
-    const { totalPrice, totalDiscount, totalFinalPrice } = calculateTotals();
+    const { totalFinalPrice } = calculateTotals();
 
     if (!isOpen) return null;
 
@@ -416,7 +210,7 @@ const InvoiceItemsModal: React.FC<InvoiceItemsModalProps> = ({
                         </HeaderIcon>
                         <HeaderText>
                             <ModalTitle>Edytuj pozycje faktury</ModalTitle>
-                            <ModalSubtitle>Dostosuj nazwy, ceny i rabaty dla dokumentu sprzedaży</ModalSubtitle>
+                            <ModalSubtitle>Dostosuj nazwy pozycji dla dokumentu sprzedaży</ModalSubtitle>
                         </HeaderText>
                     </HeaderContent>
                     <CloseButton onClick={onClose}>
@@ -428,11 +222,11 @@ const InvoiceItemsModal: React.FC<InvoiceItemsModalProps> = ({
                     <InstructionsCard>
                         <InstructionsIcon>💡</InstructionsIcon>
                         <InstructionsText>
-                            <InstructionsTitle>Edytuj pozycje faktury</InstructionsTitle>
+                            <InstructionsTitle>Edytuj nazwy pozycji faktury</InstructionsTitle>
                             <InstructionsDescription>
-                                Możesz edytować nazwy i ceny poszczególnych usług, które pojawią się na fakturze,
+                                Możesz edytować tylko nazwy poszczególnych usług, które pojawią się na fakturze,
                                 lub połączyć wszystkie usługi w jedną pozycję dla uproszczenia dokumentu.
-                                Zmiany zostaną zastosowane dopiero po zatwierdzeniu płatności.
+                                Ceny pozycji pozostają niezmienione. Zmiany zostaną zastosowane dopiero po zatwierdzeniu płatności.
                             </InstructionsDescription>
                         </InstructionsText>
                     </InstructionsCard>
@@ -459,8 +253,6 @@ const InvoiceItemsModal: React.FC<InvoiceItemsModalProps> = ({
                             <TableHead>
                                 <TableRow>
                                     <TableHeader>Nazwa usługi</TableHeader>
-                                    <TableHeader>Cena bazowa</TableHeader>
-                                    <TableHeader>Rabat</TableHeader>
                                     <TableHeader>Cena końcowa</TableHeader>
                                     <TableHeader>Akcje</TableHeader>
                                 </TableRow>
@@ -468,7 +260,7 @@ const InvoiceItemsModal: React.FC<InvoiceItemsModalProps> = ({
                             <TableBody>
                                 {editedServices.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={5}>
+                                        <TableCell colSpan={3}>
                                             <EmptyState>
                                                 <EmptyIcon>
                                                     <FaFileInvoice />
@@ -478,181 +270,80 @@ const InvoiceItemsModal: React.FC<InvoiceItemsModalProps> = ({
                                         </TableCell>
                                     </TableRow>
                                 ) : (
-                                    editedServices.map((service, index) => {
-                                        const extendedType = extendedDiscountTypes[service.id] ||
-                                            mapFromStandardDiscountType(service.discountType);
-
-                                        return (
-                                            <TableRow key={service.id}>
-                                                {isEditing === index ? (
-                                                    <>
-                                                        <TableCell>
-                                                            <EditInput
-                                                                type="text"
-                                                                value={editName}
-                                                                onChange={(e) => setEditName(e.target.value)}
-                                                                placeholder="Nazwa usługi"
-                                                            />
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <PriceEditContainer>
-                                                                <EditPriceInput
-                                                                    type="text"
-                                                                    value={editPrice}
-                                                                    onChange={(e) => {
-                                                                        const value = e.target.value;
-                                                                        if (value === '' || /^[0-9]*[.,]?[0-9]*$/.test(value)) {
-                                                                            setEditPrice(value);
-                                                                        }
-                                                                    }}
-                                                                    placeholder={`Cena ${isPriceGross ? 'brutto' : 'netto'}`}
-                                                                />
-                                                                <PriceTypeToggle>
-                                                                    <PriceTypeButton
-                                                                        $selected={isPriceGross}
-                                                                        onClick={() => setIsPriceGross(true)}
-                                                                    >
-                                                                        Brutto
-                                                                    </PriceTypeButton>
-                                                                    <PriceTypeButton
-                                                                        $selected={!isPriceGross}
-                                                                        onClick={() => setIsPriceGross(false)}
-                                                                    >
-                                                                        Netto
-                                                                    </PriceTypeButton>
-                                                                </PriceTypeToggle>
-                                                            </PriceEditContainer>
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <DiscountPreview>
-                                                                {service.discountValue > 0 ?
-                                                                    service.discountType === DiscountType.PERCENTAGE ?
-                                                                        `${service.discountValue}%` :
-                                                                        `${service.discountValue} zł`
-                                                                    : 'Bez rabatu'
-                                                                }
-                                                            </DiscountPreview>
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <PricePreview>
-                                                                <PriceValue>
-                                                                    {isPriceGross ?
-                                                                        parseFloat(editPrice || '0').toFixed(2) :
-                                                                        calculateGrossPrice(parseFloat(editPrice || '0')).toFixed(2)
-                                                                    } zł
-                                                                </PriceValue>
-                                                                <PriceType>brutto</PriceType>
-                                                            </PricePreview>
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <ActionsContainer>
-                                                                <ActionButton onClick={handleSaveEdit} $variant="success">
-                                                                    <FaCheck />
-                                                                </ActionButton>
-                                                                <ActionButton onClick={handleCancelEdit} $variant="danger">
-                                                                    <FaTimes />
-                                                                </ActionButton>
-                                                            </ActionsContainer>
-                                                        </TableCell>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <TableCell>
-                                                            <ServiceInfo>
-                                                                <ServiceName>
-                                                                    {service.name}
-                                                                    {service.isModified && (
-                                                                        <ModifiedBadge>zmodyfikowano</ModifiedBadge>
-                                                                    )}
-                                                                </ServiceName>
-                                                                {service.note && (
-                                                                    <ServiceNote>{service.note}</ServiceNote>
+                                    editedServices.map((service, index) => (
+                                        <TableRow key={service.id}>
+                                            {isEditing === index ? (
+                                                <>
+                                                    <TableCell>
+                                                        <EditInput
+                                                            type="text"
+                                                            value={editName}
+                                                            onChange={(e) => setEditName(e.target.value)}
+                                                            placeholder="Nazwa usługi"
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <PriceDisplay>
+                                                            <PriceValue>{service.finalPrice.toFixed(2)} zł</PriceValue>
+                                                            <PriceType>kwota stała</PriceType>
+                                                        </PriceDisplay>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <ActionsContainer>
+                                                            <ActionButton
+                                                                onClick={handleSaveEdit}
+                                                                $variant="success"
+                                                                disabled={!editName.trim()}
+                                                            >
+                                                                <FaCheck />
+                                                            </ActionButton>
+                                                            <ActionButton onClick={handleCancelEdit} $variant="danger">
+                                                                <FaTimes />
+                                                            </ActionButton>
+                                                        </ActionsContainer>
+                                                    </TableCell>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <TableCell>
+                                                        <ServiceInfo>
+                                                            <ServiceName>
+                                                                {service.name}
+                                                                {service.isModified && (
+                                                                    <ModifiedBadge>zmodyfikowano</ModifiedBadge>
                                                                 )}
-                                                            </ServiceInfo>
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <PriceDisplay>
-                                                                <PriceValue>{service.price.toFixed(2)} zł</PriceValue>
-                                                                <PriceType>brutto</PriceType>
-                                                                <PriceValue>{calculateNetPrice(service.price).toFixed(2)} zł</PriceValue>
-                                                                <PriceType>netto</PriceType>
-                                                            </PriceDisplay>
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <DiscountControls>
-                                                                <DiscountSelect
-                                                                    value={extendedType}
-                                                                    onChange={(e) => handleExtendedDiscountTypeChange(
-                                                                        service.id,
-                                                                        e.target.value as ExtendedDiscountType
-                                                                    )}
-                                                                >
-                                                                    {Object.entries(DiscountTypeLabelsExtended).map(([value, label]) => (
-                                                                        <option key={value} value={value}>{label}</option>
-                                                                    ))}
-                                                                </DiscountSelect>
-                                                                <DiscountInputContainer>
-                                                                    <DiscountInput
-                                                                        type="number"
-                                                                        min="0"
-                                                                        max={service.discountType === DiscountType.PERCENTAGE ? 100 : undefined}
-                                                                        value={service.discountValue}
-                                                                        onChange={(e) => handleDiscountValueChange(
-                                                                            service.id,
-                                                                            parseFloat(e.target.value) || 0
-                                                                        )}
-                                                                    />
-                                                                    {service.discountType === DiscountType.PERCENTAGE && (
-                                                                        <DiscountAmount>
-                                                                            ({(service.price * service.discountValue / 100).toFixed(2)} zł)
-                                                                        </DiscountAmount>
-                                                                    )}
-                                                                </DiscountInputContainer>
-                                                            </DiscountControls>
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <PriceDisplay>
-                                                                <PriceValue>{service.finalPrice.toFixed(2)} zł</PriceValue>
-                                                                <PriceType>brutto</PriceType>
-                                                                <PriceValue>{calculateNetPrice(service.finalPrice).toFixed(2)} zł</PriceValue>
-                                                                <PriceType>netto</PriceType>
-                                                            </PriceDisplay>
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <ActionsContainer>
-                                                                <ActionButton onClick={() => handleStartEdit(index)} $variant="primary">
-                                                                    <FaPencilAlt />
-                                                                </ActionButton>
-                                                                <ActionButton onClick={() => handleRemoveItem(index)} $variant="danger">
-                                                                    <FaTrash />
-                                                                </ActionButton>
-                                                            </ActionsContainer>
-                                                        </TableCell>
-                                                    </>
-                                                )}
-                                            </TableRow>
-                                        );
-                                    })
+                                                            </ServiceName>
+                                                            {service.note && (
+                                                                <ServiceNote>{service.note}</ServiceNote>
+                                                            )}
+                                                        </ServiceInfo>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <PriceDisplay>
+                                                            <PriceValue>{service.finalPrice.toFixed(2)} zł</PriceValue>
+                                                            <PriceType>cena końcowa</PriceType>
+                                                        </PriceDisplay>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <ActionsContainer>
+                                                            <ActionButton onClick={() => handleStartEdit(index)} $variant="primary">
+                                                                <FaPencilAlt />
+                                                            </ActionButton>
+                                                            <ActionButton onClick={() => handleRemoveItem(index)} $variant="danger">
+                                                                <FaTrash />
+                                                            </ActionButton>
+                                                        </ActionsContainer>
+                                                    </TableCell>
+                                                </>
+                                            )}
+                                        </TableRow>
+                                    ))
                                 )}
                             </TableBody>
                             <TableFoot>
                                 <TableRow>
                                     <TableFooterCell>
-                                        <TotalLabel>Podsumowanie:</TotalLabel>
-                                    </TableFooterCell>
-                                    <TableFooterCell>
-                                        <TotalPriceDisplay>
-                                            <TotalValue>{totalPrice.toFixed(2)} zł</TotalValue>
-                                            <PriceType>brutto</PriceType>
-                                            <TotalValue>{calculateNetPrice(totalPrice).toFixed(2)} zł</TotalValue>
-                                            <PriceType>netto</PriceType>
-                                        </TotalPriceDisplay>
-                                    </TableFooterCell>
-                                    <TableFooterCell>
-                                        <TotalPriceDisplay>
-                                            <TotalValue>{totalDiscount.toFixed(2)} zł</TotalValue>
-                                            <PriceType>oszczędności</PriceType>
-                                        </TotalPriceDisplay>
+                                        <TotalLabel>PODSUMOWANIE:</TotalLabel>
                                     </TableFooterCell>
                                     <TableFooterCell>
                                         <TotalPriceDisplay>
@@ -685,7 +376,7 @@ const InvoiceItemsModal: React.FC<InvoiceItemsModalProps> = ({
     );
 };
 
-// Styled Components - Professional Automotive CRM Design
+// Styled Components - uproszczone bez rabatów
 const ModalOverlay = styled.div`
     position: fixed;
     top: 0;
@@ -710,7 +401,7 @@ const ModalContainer = styled.div`
    background: ${brandTheme.surface};
    border-radius: ${brandTheme.radius.xl};
    box-shadow: ${brandTheme.shadow.xl};
-   width: 1200px;
+   width: 900px;
    max-width: 95%;
    max-height: 90vh;
    display: flex;
@@ -807,7 +498,6 @@ const ModalBody = styled.div`
    flex-direction: column;
    gap: ${brandTheme.spacing.xl};
 
-   /* Custom scrollbar */
    &::-webkit-scrollbar {
        width: 6px;
    }
@@ -1062,59 +752,6 @@ const PriceType = styled.div`
    letter-spacing: 0.5px;
 `;
 
-const DiscountControls = styled.div`
-   display: flex;
-   flex-direction: column;
-   gap: ${brandTheme.spacing.sm};
-   min-width: 150px;
-`;
-
-const DiscountSelect = styled.select`
-   padding: ${brandTheme.spacing.sm};
-   border: 1px solid ${brandTheme.border};
-   border-radius: ${brandTheme.radius.sm};
-   font-size: 12px;
-   background: ${brandTheme.surface};
-   color: ${brandTheme.text.primary};
-   cursor: pointer;
-
-   &:focus {
-       outline: none;
-       border-color: ${brandTheme.primary};
-       box-shadow: 0 0 0 2px ${brandTheme.primaryGhost};
-   }
-`;
-
-const DiscountInputContainer = styled.div`
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.xs};
-`;
-
-const DiscountInput = styled.input`
-   width: 70px;
-   padding: ${brandTheme.spacing.sm};
-   border: 1px solid ${brandTheme.border};
-   border-radius: ${brandTheme.radius.sm};
-   font-size: 12px;
-   text-align: right;
-   background: ${brandTheme.surface};
-   color: ${brandTheme.text.primary};
-
-   &:focus {
-       outline: none;
-       border-color: ${brandTheme.primary};
-       box-shadow: 0 0 0 2px ${brandTheme.primaryGhost};
-   }
-`;
-
-const DiscountAmount = styled.span`
-   font-size: 11px;
-   color: ${brandTheme.text.muted};
-   white-space: nowrap;
-   font-variant-numeric: tabular-nums;
-`;
-
 const ActionsContainer = styled.div`
    display: flex;
    gap: ${brandTheme.spacing.sm};
@@ -1153,7 +790,7 @@ const ActionButton = styled.button<{ $variant: 'primary' | 'success' | 'danger' 
    transition: all ${brandTheme.transitions.normal};
    font-size: 12px;
 
-   &:hover {
+   &:hover:not(:disabled) {
        border-color: ${props => {
     switch (props.$variant) {
         case 'success': return brandTheme.status.success;
@@ -1163,6 +800,12 @@ const ActionButton = styled.button<{ $variant: 'primary' | 'success' | 'danger' 
 }};
        transform: translateY(-1px);
        box-shadow: ${brandTheme.shadow.sm};
+   }
+
+   &:disabled {
+       opacity: 0.5;
+       cursor: not-allowed;
+       transform: none;
    }
 `;
 
@@ -1186,54 +829,6 @@ const EditInput = styled.input`
        color: ${brandTheme.text.muted};
        font-weight: 400;
    }
-`;
-
-const PriceEditContainer = styled.div`
-   display: flex;
-   flex-direction: column;
-   gap: ${brandTheme.spacing.sm};
-`;
-
-const EditPriceInput = styled(EditInput)`
-   margin-bottom: 0;
-`;
-
-const PriceTypeToggle = styled.div`
-   display: flex;
-   gap: ${brandTheme.spacing.xs};
-   border-radius: ${brandTheme.radius.sm};
-   overflow: hidden;
-   border: 1px solid ${brandTheme.border};
-`;
-
-const PriceTypeButton = styled.button<{ $selected: boolean }>`
-   flex: 1;
-   padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
-   background: ${props => props.$selected ? brandTheme.primary : brandTheme.surface};
-   color: ${props => props.$selected ? 'white' : brandTheme.text.muted};
-   border: none;
-   font-size: 11px;
-   font-weight: 600;
-   cursor: pointer;
-   transition: all ${brandTheme.transitions.normal};
-   text-transform: uppercase;
-   letter-spacing: 0.5px;
-
-   &:hover {
-       background: ${props => props.$selected ? brandTheme.primaryDark : brandTheme.surfaceHover};
-   }
-`;
-
-const DiscountPreview = styled.div`
-   font-size: 13px;
-   color: ${brandTheme.text.muted};
-   font-weight: 500;
-`;
-
-const PricePreview = styled.div`
-   display: flex;
-   flex-direction: column;
-   gap: 2px;
 `;
 
 const TotalLabel = styled.div`
