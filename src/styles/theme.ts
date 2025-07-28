@@ -15,18 +15,26 @@ export const theme = {
     surfaceActive: '#f1f5f9',
     surfaceAlt: '#fafbfc',
 
+    status: {
+        success: '#059669',
+        error: '#dc2626',
+        errorLight: '#fee2e2'
+    },
+
     // Typography System
     text: {
         primary: '#0f172a',
         secondary: '#334155',
         tertiary: '#64748b',
-        muted: '#94a3b8'
+        muted: '#94a3b8',
+        disabled: '#cbd5e1'
     },
 
     // Border System
     border: '#e2e8f0',
     borderLight: '#f1f5f9',
     borderActive: '#cbd5e1',
+    borderHover: '#cbd5e1',
 
     // Status Colors - Professional Grade
     success: '#059669',
@@ -65,6 +73,13 @@ export const theme = {
         lg: '12px',
         xl: '16px',
         xxl: '20px'
+    },
+
+    transitions: {
+        fast: '0.15s ease',
+        normal: '0.2s ease',
+        slow: '0.3s ease',
+        spring: '0.2s cubic-bezier(0.4, 0, 0.2, 1)'
     }
 } as const;
 
