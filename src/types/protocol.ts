@@ -79,6 +79,7 @@ export interface CarReceptionProtocol {
     taxId?: string;
     email: string;
     phone: string;
+    address: string;
     notes?: string;
     selectedServices: SelectedService[];
     status: ProtocolStatus;

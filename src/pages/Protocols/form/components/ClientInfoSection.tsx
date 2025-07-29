@@ -79,7 +79,7 @@ const ClientInfoSection: React.FC<ClientInfoSectionProps> = ({
         <FormSection>
             <SectionTitle>Dane właściciela pojazdu</SectionTitle>
             <FormRow className="responsive-row">
-                <FormGroup>
+                <FormGroup style={{ gridColumn: '1 / 3' }}>
                     <LabelWithBadge htmlFor="ownerName" required badgeVariant="modern">
                         Imię i nazwisko właściciela
                     </LabelWithBadge>
@@ -90,28 +90,6 @@ const ClientInfoSection: React.FC<ClientInfoSectionProps> = ({
                         "np. Jan Kowalski",
                         true,
                         errors.ownerName
-                    )}
-                </FormGroup>
-            </FormRow>
-
-            <FormRow className="responsive-row">
-                <FormGroup>
-                        Nazwa firmy
-                    {renderField(
-                        "companyName",
-                        "companyName",
-                        formData.companyName || '',
-                        "np. AutoDetailing Sp. z o.o."
-                    )}
-                </FormGroup>
-
-                <FormGroup>
-                        NIP firmy
-                    {renderField(
-                        "taxId",
-                        "taxId",
-                        formData.taxId || '',
-                        "np. 1234567890"
                     )}
                 </FormGroup>
             </FormRow>
@@ -154,6 +132,61 @@ const ClientInfoSection: React.FC<ClientInfoSectionProps> = ({
                         !formData.email,
                         errors.phone,
                         'phone'
+                    )}
+                </FormGroup>
+            </FormRow>
+
+            <FormRow className="responsive-row">
+                <FormGroup style={{ gridColumn: '1 / 3' }}>
+                    <label htmlFor="address">
+                        Adres
+                    </label>
+                    {readOnly ? (
+                        <Input
+                            id="address"
+                            name="address"
+                            value={formData.address || ''}
+                            placeholder="np. ul. Przykładowa 123, 00-001 Warszawa"
+                            readOnly={true}
+                            style={{ backgroundColor: '#f9f9f9', cursor: 'not-allowed' }}
+                            $hasError={!!errors.address}
+                        />
+                    ) : (
+                        <Input
+                            id="address"
+                            name="address"
+                            value={formData.address || ''}
+                            onChange={onChange}
+                            placeholder="np. ul. Przykładowa 123, 00-001 Warszawa"
+                            $hasError={!!errors.address}
+                        />
+                    )}
+                    {errors.address && <ErrorText>{errors.address}</ErrorText>}
+                </FormGroup>
+            </FormRow>
+
+            <FormRow className="responsive-row">
+                <FormGroup>
+                    <label htmlFor="companyName">
+                        Nazwa firmy
+                    </label>
+                    {renderField(
+                        "companyName",
+                        "companyName",
+                        formData.companyName || '',
+                        "np. AutoDetailing Sp. z o.o."
+                    )}
+                </FormGroup>
+
+                <FormGroup>
+                    <label htmlFor="taxId">
+                        NIP firmy
+                    </label>
+                    {renderField(
+                        "taxId",
+                        "taxId",
+                        formData.taxId || '',
+                        "np. 1234567890"
                     )}
                 </FormGroup>
             </FormRow>
