@@ -1,18 +1,6 @@
-// src/pages/Protocols/form/hooks/useVehicleSearch.ts
-/**
- * Production-ready hook for vehicle search operations in protocol forms
- * Handles search, selection, and form data population with proper error handling
- *
- * UPDATED LOGIC: Always show modals when results are found (consistent with client search)
- */
-
 import { useState, useCallback } from 'react';
 import { CarReceptionProtocol, ClientExpanded, VehicleExpanded } from '../../../../types';
 import { formSearchService, SearchCriteria } from '../../shared/services/FormSearchService';
-
-// ========================================================================================
-// TYPE DEFINITIONS
-// ========================================================================================
 
 export interface UseVehicleSearchResult {
     foundVehicles: VehicleExpanded[];
@@ -29,43 +17,12 @@ export interface UseVehicleSearchResult {
     clearSearchResults: () => void;
 }
 
-// ========================================================================================
-// HOOK IMPLEMENTATION
-// ========================================================================================
-
-/**
- * Hook for handling vehicle search operations in protocol forms
- *
- * @param formData - Current form data state
- * @param setFormData - Form data setter function
- * @param availableClients - Pre-loaded clients for fallback operations
- * @returns Object with search state and handlers
- *
- * @example
- * ```typescript
- * const {
- *   foundVehicles,
- *   searchError,
- *   handleSearchByVehicleField,
- *   handleVehicleSelect
- * } = useVehicleSearch(formData, setFormData);
- *
- * // Search by license plate
- * await handleSearchByVehicleField('licensePlate');
- *
- * // Handle vehicle selection
- * handleVehicleSelect(selectedVehicle);
- * ```
- */
 export const useVehicleSearch = (
     formData: Partial<CarReceptionProtocol>,
     setFormData: React.Dispatch<React.SetStateAction<Partial<CarReceptionProtocol>>>,
-    availableClients: ClientExpanded[] = []
+    availableClients: ClientExpanded[] = [],
+    setIsClientFromSearch?: (value: boolean) => void
 ): UseVehicleSearchResult => {
-
-    // ========================================================================================
-    // STATE MANAGEMENT
-    // ========================================================================================
 
     const [foundVehicles, setFoundVehicles] = useState<VehicleExpanded[]>([]);
     const [foundVehicleOwners, setFoundVehicleOwners] = useState<ClientExpanded[]>([]);
@@ -74,13 +31,6 @@ export const useVehicleSearch = (
     const [searchError, setSearchError] = useState<string | null>(null);
     const [searchLoading, setSearchLoading] = useState(false);
 
-    // ========================================================================================
-    // FORM DATA POPULATION HANDLERS
-    // ========================================================================================
-
-    /**
-     * Populates form with vehicle data
-     */
     const populateVehicleData = useCallback((vehicle: VehicleExpanded): void => {
         try {
             const vehicleData = formSearchService.mapVehicleToFormData(vehicle);
@@ -95,16 +45,14 @@ export const useVehicleSearch = (
         }
     }, [setFormData]);
 
-    /**
-     * Populates form with client data
-     */
     const populateClientData = useCallback((client: ClientExpanded): void => {
         try {
             const clientData = formSearchService.mapClientToFormData(client);
 
             setFormData(prev => ({
                 ...prev,
-                ...clientData
+                ...clientData,
+                referralSource: 'regular_customer'
             }));
         } catch (error) {
             console.error('[useVehicleSearch] Failed to populate client data:', error);
@@ -112,17 +60,9 @@ export const useVehicleSearch = (
         }
     }, [setFormData]);
 
-    // ========================================================================================
-    // SEARCH OPERATIONS
-    // ========================================================================================
-
-    /**
-     * Handles search by vehicle field (currently only license plate)
-     */
     const handleSearchByVehicleField = useCallback(async (field: 'licensePlate'): Promise<void> => {
         const fieldValue = formData[field] as string;
 
-        // Validate input
         if (!fieldValue || fieldValue.trim() === '') {
             setSearchError('Pole wyszukiwania jest puste');
             return;
@@ -137,7 +77,6 @@ export const useVehicleSearch = (
 
             setFoundVehicles(results.vehicles);
 
-            // Handle search results based on what was found
             await handleSearchResults(results);
 
         } catch (error) {
@@ -152,9 +91,6 @@ export const useVehicleSearch = (
         }
     }, [formData]);
 
-    /**
-     * Processes search results and determines appropriate UI flow
-     */
     const handleSearchResults = useCallback(async (results: { vehicles: VehicleExpanded[], clients: ClientExpanded[] }): Promise<void> => {
         const { vehicles, clients } = results;
 
@@ -163,28 +99,16 @@ export const useVehicleSearch = (
             return;
         }
 
-        // NOWA LOGIKA: Zawsze pokazuj modal jeśli znajdziesz pojazdy
         if (vehicles.length >= 1) {
-            // Jeśli znaleziono pojazdy - pokaż modal wyboru pojazdu
             setShowVehicleModal(true);
         }
     }, []);
 
-    // ========================================================================================
-    // SELECTION HANDLERS
-    // ========================================================================================
-
-    /**
-     * Handles vehicle selection from modal
-     */
     const handleVehicleSelect = useCallback((vehicle: VehicleExpanded): void => {
         populateVehicleData(vehicle);
         setShowVehicleModal(false);
 
-        // Po wyborze pojazdu, sprawdź właścicieli
-        // NOWA LOGIKA: Jeśli są właściciele, zawsze pokaż modal wyboru
         if (vehicle.owners && vehicle.owners.length > 0) {
-            // Konwertuj VehicleOwnerSummary na ClientExpanded
             const ownersAsClients: ClientExpanded[] = vehicle.owners.map(owner => ({
                 id: owner.id.toString(),
                 firstName: owner.firstName || '',
@@ -193,7 +117,6 @@ export const useVehicleSearch = (
                 email: owner.email || '',
                 phone: owner.phone || '',
 
-                // Wymagane pola z domyślnymi wartościami
                 totalVisits: 0,
                 totalTransactions: 0,
                 abandonedSales: 0,
@@ -202,7 +125,6 @@ export const useVehicleSearch = (
                 vehicles: []
             }));
 
-            // Zawsze pokaż modal wyboru właściciela
             setFoundVehicleOwners(ownersAsClients);
             setShowClientModal(true);
         } else {
@@ -210,21 +132,15 @@ export const useVehicleSearch = (
         }
     }, [populateVehicleData]);
 
-    /**
-     * Handles client selection from modal (vehicle owner)
-     */
     const handleClientSelect = useCallback((client: ClientExpanded): void => {
         populateClientData(client);
         setShowClientModal(false);
-    }, [populateClientData]);
 
-    // ========================================================================================
-    // UTILITY FUNCTIONS
-    // ========================================================================================
+        if (setIsClientFromSearch) {
+            setIsClientFromSearch(true);
+        }
+    }, [populateClientData, setIsClientFromSearch]);
 
-    /**
-     * Clears all search results and resets state
-     */
     const clearSearchResults = useCallback((): void => {
         setFoundVehicles([]);
         setFoundVehicleOwners([]);
@@ -232,10 +148,6 @@ export const useVehicleSearch = (
         setShowVehicleModal(false);
         setShowClientModal(false);
     }, []);
-
-    // ========================================================================================
-    // RETURN INTERFACE
-    // ========================================================================================
 
     return {
         foundVehicles,

@@ -5,14 +5,12 @@ import {
     SelectedService
 } from '../../../../types';
 
-// Custom hooks
 import { useFormData } from '../hooks/useFormData';
 import { useClientSearch } from '../hooks/useClientSearch';
 import { useVehicleSearch } from '../hooks/useVehicleSearch';
 import { useFormSubmit } from '../hooks/useFormSubmit';
 import { useServiceCalculations } from '../hooks/useServiceCalculations';
 
-// Components
 import FormHeader from '../components/FormHeader';
 import VisitTitleSection from '../components/VisitTitleSection';
 import VehicleInfoSection from '../components/VehicleInfoSection';
@@ -24,7 +22,6 @@ import FormActions from '../components/FormActions';
 import ClientSelectionModal from "../../shared/modals/ClientSelectionModal";
 import VehicleSelectionModal from "../../shared/modals/VehicleSelectionModal";
 
-// Styles
 import {
     FormContainer,
     Form,
@@ -45,7 +42,7 @@ interface EditProtocolFormProps {
     isFullProtocol?: boolean;
     onSave: (protocol: CarReceptionProtocol, showConfirmationModal: boolean) => void;
     onCancel: () => void;
-    onServiceAdded?: () => void; // Funkcja callback do odświeżenia listy usług
+    onServiceAdded?: () => void;
 }
 
 export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
@@ -58,7 +55,6 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
                                                                       onCancel,
                                                                       onServiceAdded
                                                                   }) => {
-    // Custom hooks for form management
     const {
         formData,
         setFormData,
@@ -68,10 +64,11 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
         handleChange,
         handleReferralSourceChange,
         handleOtherSourceDetailsChange,
-        handleImagesChange
+        handleImagesChange,
+        isClientFromSearch,
+        setIsClientFromSearch
     } = useFormData(protocol, initialData);
 
-    // Custom hook for client search with extended functionality
     const {
         foundClients,
         foundVehicles: clientVehicles,
@@ -83,9 +80,8 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
         handleVehicleSelect: handleClientVehicleSelect,
         setShowClientModal,
         setShowVehicleModal: setShowClientVehiclesModal
-    } = useClientSearch(formData, setFormData);
+    } = useClientSearch(formData, setFormData, setIsClientFromSearch);
 
-    // Custom hook for vehicle search with extended functionality
     const {
         foundVehicles,
         foundVehicleOwners,
@@ -99,7 +95,6 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
         setShowClientModal: setShowVehicleOwnersModal
     } = useVehicleSearch(formData, setFormData, foundClients);
 
-    // Custom hook for form submission
     const {
         loading,
         error: submitError,
@@ -108,7 +103,6 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
         handleSubmit
     } = useFormSubmit(formData, protocol, appointmentId, onSave, false);
 
-    // Custom hook for service calculations
     const {
         services,
         setServices,
@@ -121,16 +115,13 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
         updateServiceNote,
     } = useServiceCalculations(formData.selectedServices || []);
 
-    // State for service search
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<Array<{ id: string; name: string; price: number }>>([]);
     const [showResults, setShowResults] = useState(false);
     const [selectedServiceToAdd, setSelectedServiceToAdd] = useState<{ id: string; name: string; price: number } | null>(null);
 
-    // Aggregate all errors
     const error = submitError || clientSearchError || vehicleSearchError;
 
-    // Sync services with form state
     React.useEffect(() => {
         setFormData(prev => ({
             ...prev,
@@ -138,13 +129,11 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
         }));
     }, [services, setFormData]);
 
-    // Handle search change
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchQuery(e.target.value);
         setShowResults(true);
         setSelectedServiceToAdd(null);
 
-        // Filter available services
         if (e.target.value.trim() === '') {
             setSearchResults([]);
             return;
@@ -153,24 +142,20 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
         const query = e.target.value.toLowerCase();
         const results = availableServices.filter(service =>
             service.name.toLowerCase().includes(query) &&
-            // Exclude already selected services
             !services.some(selected => selected.id === service.id)
         );
 
         setSearchResults(results);
     };
 
-    // Select service from search results
     const handleSelectService = (service: { id: string; name: string; price: number }) => {
         setSelectedServiceToAdd(service);
         setSearchQuery(service.name);
         setShowResults(false);
     };
 
-    // Add selected service to table
     const handleAddService = () => {
         if (selectedServiceToAdd) {
-            // Add selected existing service
             const newService: Omit<SelectedService, 'finalPrice'> = {
                 id: selectedServiceToAdd.id,
                 name: selectedServiceToAdd.name,
@@ -182,12 +167,11 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
 
             addService(newService);
         } else if (searchQuery.trim() !== '') {
-            // Add custom service
-            const customId = `custom-${Date.now()}`; // Generate unique ID
+            const customId = `custom-${Date.now()}`;
             const newService: Omit<SelectedService, 'finalPrice'> = {
                 id: customId,
                 name: searchQuery.trim(),
-                price: 0, // Default price zero, user will update
+                price: 0,
                 discountType: "PERCENTAGE" as any,
                 discountValue: 0,
                 approvalStatus: undefined,
@@ -196,13 +180,11 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
             addService(newService);
         }
 
-        // Reset search field
         setSearchQuery('');
         setSelectedServiceToAdd(null);
         clearFieldError('selectedServices');
     };
 
-    // Add service directly
     const handleAddServiceDirect = (service: { id: string; name: string; price: number }) => {
         const newService: Omit<SelectedService, 'finalPrice'> = {
             id: service.id,
@@ -215,14 +197,12 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
 
         addService(newService);
 
-        // Reset search
         setSearchQuery('');
         setSelectedServiceToAdd(null);
         clearFieldError('selectedServices');
         setShowResults(false);
     };
 
-    // Wywołanie funkcji odświeżającej po dodaniu nowej usługi
     const handleServiceAdded = () => {
         if (onServiceAdded) {
             onServiceAdded();
@@ -242,7 +222,7 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
             <Form onSubmit={handleSubmit}>
                 <VisitTitleSection
                     title={formData.title || ''}
-                    selectedColorId={formData.calendarColorId} // Dodane pole calendarColorId
+                    selectedColorId={formData.calendarColorId}
                     onChange={handleChange}
                     error={errors.title}
                 />
@@ -262,12 +242,14 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
                     onSearchByField={handleSearchByClientField}
                 />
 
-                <ReferralSourceSection
-                    referralSource={formData.referralSource || null}
-                    otherSourceDetails={formData.otherSourceDetails || ''}
-                    onSourceChange={handleReferralSourceChange}
-                    onOtherDetailsChange={handleOtherSourceDetailsChange}
-                />
+                {!isClientFromSearch && (
+                    <ReferralSourceSection
+                        referralSource={formData.referralSource || null}
+                        otherSourceDetails={formData.otherSourceDetails || ''}
+                        onSourceChange={handleReferralSourceChange}
+                        onOtherDetailsChange={handleOtherSourceDetailsChange}
+                    />
+                )}
 
                 <ServiceSection
                     searchQuery={searchQuery}
@@ -303,7 +285,6 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
                 />
             </Form>
 
-            {/* Client selection modal */}
             {showClientModal && (
                 <ClientSelectionModal
                     clients={foundClients}
@@ -312,7 +293,6 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
                 />
             )}
 
-            {/* Vehicle owners selection modal (from vehicle search) */}
             {showVehicleOwnersModal && (
                 <ClientSelectionModal
                     clients={foundVehicleOwners}
@@ -321,7 +301,6 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
                 />
             )}
 
-            {/* Vehicle selection modal (from license plate) */}
             {showVehicleModal && (
                 <VehicleSelectionModal
                     vehicles={foundVehicles}
@@ -330,7 +309,6 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
                 />
             )}
 
-            {/* Client's vehicles selection modal (from client search) */}
             {showClientVehiclesModal && (
                 <VehicleSelectionModal
                     vehicles={clientVehicles}
@@ -339,7 +317,6 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
                 />
             )}
 
-            {/* Confirmation dialog for zero price services */}
             {pendingSubmit && (
                 <ConfirmationDialog>
                     <DialogContent>

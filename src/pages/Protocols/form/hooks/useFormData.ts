@@ -13,13 +13,14 @@ interface UseFormDataResult {
     handleReferralSourceChange: (source: ReferralSource | null) => void;
     handleOtherSourceDetailsChange: (details: string) => void;
     handleImagesChange: (images: VehicleImage[]) => void;
+    isClientFromSearch: boolean;
+    setIsClientFromSearch: (value: boolean) => void;
 }
 
-// Funkcja pomocnicza do inicjalizacji dat z odpowiednim formatem
 const initializeDates = () => {
     const today = new Date().toISOString().split('T')[0];
-    const startTime = '08:00:00'; // Domyślna godzina rozpoczęcia - 8:00 rano
-    const endTime = '23:59:59';   // Koniec dnia dla daty zakończenia
+    const startTime = '08:00:00';
+    const endTime = '23:59:59';
 
     return {
         startDate: `${today}T${startTime}`,
@@ -31,12 +32,11 @@ export const useFormData = (
     protocol: CarReceptionProtocol | null,
     initialData?: Partial<CarReceptionProtocol>
 ): UseFormDataResult => {
-    // Inicjalizacja formularza z danymi protokołu, danymi z wizyty lub pustym obiektem
     const [formData, setFormData] = useState<Partial<CarReceptionProtocol>>(
         protocol || initialData || {
             ...initializeDates(),
             title: '',
-            calendarColorId: '', // Dodane nowe pole
+            calendarColorId: '',
             licensePlate: '',
             make: '',
             model: '',
@@ -58,47 +58,33 @@ export const useFormData = (
         }
     );
 
-    // Użycie custom hooka walidacji
+    const [isClientFromSearch, setIsClientFromSearch] = useState(false);
+
     const { errors, validateForm, clearFieldError } = useFormValidation(formData);
 
-    // Efekt do obsługi startDate z kalendarza
     useEffect(() => {
         if (initialData?.startDate) {
-            // Logujemy wartość daty początkowej dla celów diagnostycznych
-            console.log('Inicjalizacja formularza z datą początkową:', initialData.startDate);
-
-            // Sprawdzamy format daty
             let startDateWithTime: string = initialData.startDate;
 
-            // Jeśli mamy pełną datę ISO, używamy jej bezpośrednio
             if (startDateWithTime.includes('T')) {
-                // Data już ma format ISO z czasem, nie modyfikujemy
-                console.log('Użycie pełnej daty ISO z czasem');
+                // Data już ma format ISO z czasem
             } else {
-                // Jeśli mamy tylko datę YYYY-MM-DD, dodajemy domyślny czas (8:00)
                 startDateWithTime = `${startDateWithTime}T08:00:00`;
-                console.log('Dodanie domyślnego czasu 08:00 do daty');
             }
 
-            // Dla endDate zawsze ustawiamy koniec dnia
             let endDateWithTime: string;
 
             if (initialData.endDate) {
                 endDateWithTime = initialData.endDate;
 
                 if (!endDateWithTime.includes('T')) {
-                    // Jeśli endDate jest tylko datą (YYYY-MM-DD), dodajemy koniec dnia
                     endDateWithTime = `${endDateWithTime}T23:59:59`;
                 } else if (!endDateWithTime.endsWith('23:59:59')) {
-                    // Jeśli już ma czas, ale nie jest to koniec dnia, zmieniamy na koniec dnia
                     endDateWithTime = `${endDateWithTime.split('T')[0]}T23:59:59`;
                 }
             } else {
-                // Jeśli nie ma endDate, ustawiamy na ten sam dzień co startDate, ale na koniec dnia
                 endDateWithTime = `${startDateWithTime.split('T')[0]}T23:59:59`;
             }
-
-            console.log('Ustawiona data końcowa:', endDateWithTime);
 
             setFormData(prev => ({
                 ...prev,
@@ -108,7 +94,6 @@ export const useFormData = (
         }
     }, [initialData?.startDate, initialData?.endDate]);
 
-    // Obsługuje zmianę danych formularza
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
 
@@ -124,10 +109,9 @@ export const useFormData = (
                 [name]: value ? parseInt(value, 10) : 0
             });
         } else if (name === 'startDate' || name === 'endDate') {
-            // Specjalna obsługa dla pól daty, które teraz zawierają również czas
             setFormData({
                 ...formData,
-                [name]: value // Wartość już powinna być w formacie ISO
+                [name]: value
             });
         } else {
             setFormData({
@@ -136,13 +120,10 @@ export const useFormData = (
             });
         }
 
-        // Usuwanie błędów przy edycji pola
         clearFieldError(name);
     };
 
-    // Obsługa zmiany źródła polecenia
     const handleReferralSourceChange = (source: ReferralSource | null) => {
-        // Use type assertion to tell TypeScript this is a valid value
         const referralValue = source as CarReceptionProtocol['referralSource'];
 
         setFormData({
@@ -151,7 +132,6 @@ export const useFormData = (
         });
     };
 
-    // Obsługa zmiany szczegółów innego źródła
     const handleOtherSourceDetailsChange = (details: string) => {
         setFormData({
             ...formData,
@@ -159,7 +139,6 @@ export const useFormData = (
         });
     };
 
-    // Obsługa aktualizacji zdjęć
     const handleImagesChange = (images: VehicleImage[]) => {
         setFormData(prev => ({
             ...prev,
@@ -176,6 +155,8 @@ export const useFormData = (
         handleChange,
         handleReferralSourceChange,
         handleOtherSourceDetailsChange,
-        handleImagesChange
+        handleImagesChange,
+        isClientFromSearch,
+        setIsClientFromSearch
     };
 };
