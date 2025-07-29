@@ -5,9 +5,10 @@ import {CarReceptionProtocol, SelectedService} from '../types';
 import {apiClientNew} from "./apiClientNew";
 
 interface ReleaseVehicleData {
-    paymentMethod: 'cash' | 'card';
+    paymentMethod: 'cash' | 'card' | 'transfer';
     documentType: 'invoice' | 'receipt' | 'other';
-    overridenItems?: SelectedService[]; // Dodane nowe pole
+    paymentDays?: number;
+    overridenItems?: SelectedService[];
 }
 
 interface ServicesUpdateCommand {

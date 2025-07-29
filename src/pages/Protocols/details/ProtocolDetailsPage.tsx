@@ -295,7 +295,7 @@ const ProtocolDetailsPage: React.FC = () => {
             const releaseData = {
                 paymentMethod: paymentData.paymentMethod,
                 documentType: paymentData.documentType,
-                // Dodajemy overridenItems tylko jeśli zostały przekazane
+                ...(paymentData.paymentDays ? { paymentDays: paymentData.paymentDays } : {}),
                 ...(paymentData.overridenItems ? { overridenItems: paymentData.overridenItems } : {})
             };
 
