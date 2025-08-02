@@ -1,5 +1,15 @@
-// src/api/invoiceSignatureApi.ts
 import { apiClientNew } from './apiClientNew';
+
+export interface CreateServiceCommand {
+    name: string;
+    price: number;
+    quantity?: number;
+    discountType?: 'PERCENTAGE' | 'FIXED_PRICE' | 'AMOUNT' | null;
+    discountValue?: number | null;
+    finalPrice?: number | null;
+    approvalStatus?: 'PENDING' | 'APPROVED' | 'REJECTED' | null;
+    note?: string | null;
+}
 
 export interface InvoiceSignatureFromVisitRequest {
     visitId: string;
@@ -8,6 +18,9 @@ export interface InvoiceSignatureFromVisitRequest {
     signatureTitle?: string;
     instructions?: string;
     timeoutMinutes?: number;
+    paymentMethod?: 'cash' | 'card' | 'transfer';
+    overridenItems?: CreateServiceCommand[];
+    paymentDays?: number;
 }
 
 export interface InvoiceSignatureResponse {
@@ -45,15 +58,7 @@ export interface CancelInvoiceSignatureRequest {
     reason?: string;
 }
 
-/**
- * Production-ready Invoice Signature API
- * Handles all invoice signature operations with proper error handling and status polling
- */
 export const invoiceSignatureApi = {
-    /**
-     * Request invoice signature from visit
-     * Uses the new backend endpoint that matches the controller structure
-     */
     requestInvoiceSignatureFromVisit: async (request: InvoiceSignatureFromVisitRequest): Promise<InvoiceSignatureResponse> => {
         try {
             console.log('🔧 Requesting invoice signature from visit...', request);
@@ -72,10 +77,6 @@ export const invoiceSignatureApi = {
         }
     },
 
-    /**
-     * Get invoice signature status with polling support
-     * This method should be called repeatedly to track signature progress
-     */
     getInvoiceSignatureStatus: async (sessionId: string, invoiceId: string): Promise<InvoiceSignatureStatusResponse> => {
         try {
             const response = await apiClientNew.get<InvoiceSignatureStatusResponse>(
@@ -91,9 +92,6 @@ export const invoiceSignatureApi = {
         }
     },
 
-    /**
-     * Cancel invoice signature session
-     */
     cancelInvoiceSignatureSession: async (
         sessionId: string,
         invoiceId: string,
@@ -121,9 +119,6 @@ export const invoiceSignatureApi = {
         }
     },
 
-    /**
-     * Download signed invoice document
-     */
     getSignedInvoice: async (sessionId: string, invoiceId: string): Promise<Blob> => {
         try {
             console.log('🔧 Downloading signed invoice...', { sessionId, invoiceId });
@@ -152,9 +147,6 @@ export const invoiceSignatureApi = {
         }
     },
 
-    /**
-     * Download signature image
-     */
     getSignatureImage: async (sessionId: string, invoiceId: string): Promise<Blob> => {
         try {
             console.log('🔧 Downloading signature image...', { sessionId, invoiceId });
@@ -183,9 +175,6 @@ export const invoiceSignatureApi = {
         }
     },
 
-    /**
-     * Download current invoice from financial documents API
-     */
     downloadCurrentInvoice: async (invoiceId: string): Promise<Blob> => {
         try {
             console.log('🔧 Downloading current invoice...', invoiceId);

@@ -1,9 +1,15 @@
-// src/pages/Protocols/details/modals/InvoiceSignatureConfirmationModal.tsx
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { FaFileInvoice, FaSignature, FaTimes, FaCheck, FaTabletAlt, FaExclamationTriangle } from 'react-icons/fa';
 import InvoiceSignatureRequestModal from './InvoiceSignatureRequestModal';
 import InvoiceSignatureStatusModal from './InvoiceSignatureStatusModal';
+import { CreateServiceCommand } from '../../../../api/invoiceSignatureApi';
+
+interface PaymentData {
+    paymentMethod?: 'cash' | 'card' | 'transfer';
+    paymentDays?: number;
+    overridenItems?: CreateServiceCommand[];
+}
 
 interface InvoiceSignatureConfirmationModalProps {
     isOpen: boolean;
@@ -12,6 +18,7 @@ interface InvoiceSignatureConfirmationModalProps {
     visitId: string;
     customerName: string;
     customerEmail?: string;
+    paymentData?: PaymentData;
 }
 
 enum SignatureModalStep {
@@ -26,7 +33,8 @@ const InvoiceSignatureConfirmationModal: React.FC<InvoiceSignatureConfirmationMo
                                                                                                  onConfirm,
                                                                                                  visitId,
                                                                                                  customerName,
-                                                                                                 customerEmail
+                                                                                                 customerEmail,
+                                                                                                 paymentData
                                                                                              }) => {
     const [currentStep, setCurrentStep] = useState<SignatureModalStep>(SignatureModalStep.CONFIRMATION);
     const [signatureSessionId, setSignatureSessionId] = useState<string>('');
@@ -69,7 +77,6 @@ const InvoiceSignatureConfirmationModal: React.FC<InvoiceSignatureConfirmationMo
 
     if (!isOpen) return null;
 
-    // Render confirmation modal
     if (currentStep === SignatureModalStep.CONFIRMATION) {
         return (
             <ModalOverlay>
@@ -90,6 +97,39 @@ const InvoiceSignatureConfirmationModal: React.FC<InvoiceSignatureConfirmationMo
                     </ModalHeader>
 
                     <ModalBody>
+                        {paymentData && (
+                            <PaymentDataSection>
+                                <PaymentDataTitle>Dane płatności do załączenia</PaymentDataTitle>
+                                <PaymentDataGrid>
+                                    <PaymentDataItem>
+                                        <PaymentDataLabel>Metoda płatności:</PaymentDataLabel>
+                                        <PaymentDataValue>
+                                            {paymentData.paymentMethod === 'cash' ? 'Gotówka' :
+                                                paymentData.paymentMethod === 'card' ? 'Karta płatnicza' :
+                                                    paymentData.paymentMethod === 'transfer' ? 'Przelew bankowy' : 'Nie określono'}
+                                        </PaymentDataValue>
+                                    </PaymentDataItem>
+                                    {paymentData.paymentMethod === 'transfer' && paymentData.paymentDays && (
+                                        <PaymentDataItem>
+                                            <PaymentDataLabel>Termin płatności:</PaymentDataLabel>
+                                            <PaymentDataValue>{paymentData.paymentDays} dni</PaymentDataValue>
+                                        </PaymentDataItem>
+                                    )}
+                                    {paymentData.overridenItems && paymentData.overridenItems.length > 0 && (
+                                        <PaymentDataItem>
+                                            <PaymentDataLabel>Pozycje faktury:</PaymentDataLabel>
+                                            <PaymentDataValue>
+                                                {paymentData.overridenItems.length} dostosowanych pozycji
+                                            </PaymentDataValue>
+                                        </PaymentDataItem>
+                                    )}
+                                </PaymentDataGrid>
+                                <PaymentDataNote>
+                                    Te dane zostaną automatycznie uwzględnione w fakturze podczas procesu podpisu cyfrowego.
+                                </PaymentDataNote>
+                            </PaymentDataSection>
+                        )}
+
                         <QuestionSection>
                             <QuestionIcon>
                                 <FaSignature />
@@ -114,6 +154,11 @@ const InvoiceSignatureConfirmationModal: React.FC<InvoiceSignatureConfirmationMo
                                     <OptionTitle>Tak, zbierz podpis cyfrowy</OptionTitle>
                                     <OptionDescription>
                                         Klient podpisze fakturę na tablecie. Podpisany dokument zostanie automatycznie zapisany.
+                                        {paymentData && (
+                                            <PaymentIncluded>
+                                                Dane płatności zostaną uwzględnione w fakturze.
+                                            </PaymentIncluded>
+                                        )}
                                     </OptionDescription>
                                 </OptionContent>
                                 <OptionArrow>→</OptionArrow>
@@ -127,6 +172,11 @@ const InvoiceSignatureConfirmationModal: React.FC<InvoiceSignatureConfirmationMo
                                     <OptionTitle>Nie, kontynuuj bez podpisu</OptionTitle>
                                     <OptionDescription>
                                         Faktura zostanie wystawiona bez podpisu cyfrowego klienta.
+                                        {paymentData && (
+                                            <PaymentIncluded>
+                                                Dane płatności zostaną uwzględnione standardowo.
+                                            </PaymentIncluded>
+                                        )}
                                     </OptionDescription>
                                 </OptionContent>
                                 <OptionArrow>→</OptionArrow>
@@ -142,6 +192,9 @@ const InvoiceSignatureConfirmationModal: React.FC<InvoiceSignatureConfirmationMo
                                 <InfoDescription>
                                     Podpis cyfrowy nie jest wymagany do wystawienia faktury, ale może być przydatny
                                     jako potwierdzenie odbioru usług przez klienta.
+                                    {paymentData && (
+                                        <> Dane płatności będą dołączone niezależnie od wyboru.</>
+                                    )}
                                 </InfoDescription>
                             </InfoText>
                         </InfoSection>
@@ -157,7 +210,6 @@ const InvoiceSignatureConfirmationModal: React.FC<InvoiceSignatureConfirmationMo
         );
     }
 
-    // Render tablet selection modal
     if (currentStep === SignatureModalStep.TABLET_REQUEST) {
         return (
             <InvoiceSignatureRequestModal
@@ -166,11 +218,11 @@ const InvoiceSignatureConfirmationModal: React.FC<InvoiceSignatureConfirmationMo
                 visitId={visitId}
                 customerName={customerName}
                 onSignatureRequested={handleSignatureRequested}
+                paymentData={paymentData}
             />
         );
     }
 
-    // Render signature status modal
     if (currentStep === SignatureModalStep.SIGNATURE_STATUS && signatureSessionId && signatureInvoiceId) {
         return (
             <InvoiceSignatureStatusModal
@@ -187,7 +239,6 @@ const InvoiceSignatureConfirmationModal: React.FC<InvoiceSignatureConfirmationMo
     return null;
 };
 
-// Professional Brand Theme
 const brandTheme = {
     primary: '#1a365d',
     primaryLight: '#2c5aa0',
@@ -232,7 +283,6 @@ const brandTheme = {
     }
 };
 
-// Styled Components
 const ModalOverlay = styled.div`
     position: fixed;
     top: 0;
@@ -357,6 +407,61 @@ const ModalBody = styled.div`
     flex: 1;
 `;
 
+const PaymentDataSection = styled.div`
+    background: ${brandTheme.status.infoLight};
+    border: 1px solid ${brandTheme.status.info}30;
+    border-radius: ${brandTheme.radius.lg};
+    padding: ${brandTheme.spacing.lg};
+`;
+
+const PaymentDataTitle = styled.h3`
+    margin: 0 0 ${brandTheme.spacing.md} 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: ${brandTheme.status.info};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+`;
+
+const PaymentDataGrid = styled.div`
+    display: grid;
+    gap: ${brandTheme.spacing.sm};
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    margin-bottom: ${brandTheme.spacing.md};
+`;
+
+const PaymentDataItem = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+    background: white;
+    border-radius: ${brandTheme.radius.sm};
+    border: 1px solid ${brandTheme.status.info}20;
+`;
+
+const PaymentDataLabel = styled.span`
+    font-size: 13px;
+    color: ${brandTheme.text.secondary};
+    font-weight: 500;
+`;
+
+const PaymentDataValue = styled.span`
+    font-size: 13px;
+    color: ${brandTheme.text.primary};
+    font-weight: 600;
+`;
+
+const PaymentDataNote = styled.div`
+    font-size: 12px;
+    color: ${brandTheme.status.info};
+    font-style: italic;
+    padding: ${brandTheme.spacing.sm};
+    background: white;
+    border-radius: ${brandTheme.radius.sm};
+    border: 1px solid ${brandTheme.status.info}20;
+`;
+
 const QuestionSection = styled.div`
     display: flex;
     align-items: flex-start;
@@ -464,6 +569,18 @@ const OptionDescription = styled.p`
     font-size: 13px;
     color: ${brandTheme.text.secondary};
     line-height: 1.4;
+`;
+
+const PaymentIncluded = styled.div`
+    font-size: 12px;
+    color: ${brandTheme.status.info};
+    font-weight: 500;
+    font-style: italic;
+    margin-top: ${brandTheme.spacing.xs};
+    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
+    background: ${brandTheme.status.infoLight};
+    border-radius: ${brandTheme.radius.sm};
+    border: 1px solid ${brandTheme.status.info}30;
 `;
 
 const OptionArrow = styled.div`

@@ -1,4 +1,3 @@
-// src/hooks/useInvoiceSignature.ts
 import { useState, useCallback, useRef, useEffect } from 'react';
 import {
     invoiceSignatureApi,
@@ -8,15 +7,12 @@ import {
 } from '../api/invoiceSignatureApi';
 
 interface UseInvoiceSignatureResult {
-    // States
     isRequesting: boolean;
     isPolling: boolean;
     error: string | null;
     currentSession: string | null;
     currentInvoiceId: string | null;
     currentStatus: InvoiceSignatureStatusResponse | null;
-
-    // Actions
     requestSignatureFromVisit: (request: InvoiceSignatureFromVisitRequest) => Promise<{ sessionId: string; invoiceId: string } | null>;
     startStatusPolling: (sessionId: string, invoiceId: string) => void;
     stopStatusPolling: () => void;
@@ -30,10 +26,6 @@ interface UseInvoiceSignatureResult {
     isSignatureFailed: boolean;
 }
 
-/**
- * Production-ready hook for managing invoice signature workflow
- * Provides status polling and complete lifecycle management
- */
 export const useInvoiceSignature = (): UseInvoiceSignatureResult => {
     const [isRequesting, setIsRequesting] = useState(false);
     const [isPolling, setIsPolling] = useState(false);
@@ -45,35 +37,62 @@ export const useInvoiceSignature = (): UseInvoiceSignatureResult => {
     const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const isPollingActiveRef = useRef(false);
 
-    // Derived states
     const isSignatureCompleted = currentStatus?.status === InvoiceSignatureStatus.COMPLETED;
     const isSignatureFailed = currentStatus?.status === InvoiceSignatureStatus.ERROR ||
         currentStatus?.status === InvoiceSignatureStatus.EXPIRED ||
         currentStatus?.status === InvoiceSignatureStatus.CANCELLED;
 
-    // Cleanup polling on unmount
     useEffect(() => {
         return () => {
             stopStatusPolling();
         };
     }, []);
 
-    /**
-     * Request signature from visit - initiates the signature process
-     */
     const requestSignatureFromVisit = useCallback(async (request: InvoiceSignatureFromVisitRequest): Promise<{ sessionId: string; invoiceId: string } | null> => {
         try {
             setIsRequesting(true);
             setError(null);
 
-            console.log('🔧 Requesting invoice signature from visit...', request);
+            console.log('🔧 Requesting invoice signature from visit with enhanced data...', {
+                visitId: request.visitId,
+                tabletId: request.tabletId,
+                customerName: request.customerName,
+                paymentMethod: request.paymentMethod,
+                paymentDays: request.paymentDays,
+                overridenItems: request.overridenItems ? `${request.overridenItems.length} items` : 'none',
+                signatureTitle: request.signatureTitle,
+                timeoutMinutes: request.timeoutMinutes
+            });
+
+            if (!request.visitId || !request.tabletId || !request.customerName) {
+                throw new Error('Wymagane pola: visitId, tabletId, customerName');
+            }
+
+            if (request.paymentMethod) {
+                console.log('💳 Payment method included:', request.paymentMethod);
+            }
+
+            if (request.paymentDays && request.paymentMethod === 'transfer') {
+                console.log('📅 Payment days for transfer:', request.paymentDays);
+            }
+
+            if (request.overridenItems && request.overridenItems.length > 0) {
+                console.log('📋 Overridden items included:', {
+                    count: request.overridenItems.length,
+                    totalValue: request.overridenItems.reduce((sum, item) => sum + (item.finalPrice || item.price), 0)
+                });
+            }
 
             const response = await invoiceSignatureApi.requestInvoiceSignatureFromVisit(request);
 
             if (response.success) {
                 setCurrentSession(response.sessionId);
                 setCurrentInvoiceId(response.invoiceId);
-                console.log('✅ Invoice signature requested successfully:', { sessionId: response.sessionId, invoiceId: response.invoiceId });
+                console.log('✅ Invoice signature request successful:', {
+                    sessionId: response.sessionId,
+                    invoiceId: response.invoiceId,
+                    includesPaymentData: !!(request.paymentMethod || request.overridenItems || request.paymentDays)
+                });
                 return { sessionId: response.sessionId, invoiceId: response.invoiceId };
             } else {
                 setError(response.message || 'Nie udało się wysłać żądania podpisu faktury');
@@ -82,6 +101,15 @@ export const useInvoiceSignature = (): UseInvoiceSignatureResult => {
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Nie udało się wysłać żądania podpisu faktury';
             console.error('❌ Error requesting invoice signature:', err);
+
+            if (request.paymentMethod || request.overridenItems) {
+                console.error('❌ Request included payment data:', {
+                    paymentMethod: request.paymentMethod,
+                    paymentDays: request.paymentDays,
+                    overridenItemsCount: request.overridenItems?.length || 0
+                });
+            }
+
             setError(errorMessage);
             return null;
         } finally {
@@ -89,9 +117,6 @@ export const useInvoiceSignature = (): UseInvoiceSignatureResult => {
         }
     }, []);
 
-    /**
-     * Poll status - checks signature status periodically
-     */
     const pollStatus = useCallback(async (sessionId: string, invoiceId: string): Promise<void> => {
         if (!isPollingActiveRef.current) {
             return;
@@ -105,7 +130,6 @@ export const useInvoiceSignature = (): UseInvoiceSignatureResult => {
 
             console.log('📊 Invoice signature status updated:', statusResponse.status);
 
-            // Stop polling if signature is completed or failed
             if (statusResponse.status === InvoiceSignatureStatus.COMPLETED ||
                 statusResponse.status === InvoiceSignatureStatus.ERROR ||
                 statusResponse.status === InvoiceSignatureStatus.EXPIRED ||
@@ -117,7 +141,6 @@ export const useInvoiceSignature = (): UseInvoiceSignatureResult => {
         } catch (err) {
             console.error('❌ Error polling signature status:', err);
 
-            // Continue polling on network errors, but stop on authentication errors
             if (err instanceof Error && err.message.includes('401')) {
                 setError('Sesja wygasła. Zaloguj się ponownie.');
                 stopStatusPolling();
@@ -125,13 +148,9 @@ export const useInvoiceSignature = (): UseInvoiceSignatureResult => {
         }
     }, []);
 
-    /**
-     * Start status polling - begins checking signature status periodically
-     */
     const startStatusPolling = useCallback((sessionId: string, invoiceId: string): void => {
         console.log('▶️ Starting invoice signature status polling...', { sessionId, invoiceId });
 
-        // Clear any existing polling
         stopStatusPolling();
 
         setIsPolling(true);
@@ -139,18 +158,13 @@ export const useInvoiceSignature = (): UseInvoiceSignatureResult => {
         setCurrentSession(sessionId);
         setCurrentInvoiceId(invoiceId);
 
-        // Initial status check
         pollStatus(sessionId, invoiceId);
 
-        // Set up polling interval (every 3 seconds)
         pollingIntervalRef.current = setInterval(() => {
             pollStatus(sessionId, invoiceId);
         }, 3000);
     }, [pollStatus]);
 
-    /**
-     * Stop status polling - stops checking signature status
-     */
     const stopStatusPolling = useCallback((): void => {
         console.log('⏹️ Stopping invoice signature status polling...');
 
@@ -163,13 +177,10 @@ export const useInvoiceSignature = (): UseInvoiceSignatureResult => {
         setIsPolling(false);
     }, []);
 
-    /**
-     * Cancel signature session
-     */
     const cancelSignature = useCallback(async (sessionId: string, invoiceId: string, reason?: string): Promise<boolean> => {
         try {
             setError(null);
-            stopStatusPolling(); // Stop polling before cancelling
+            stopStatusPolling();
 
             console.log('🔧 Cancelling invoice signature session...', { sessionId, invoiceId, reason });
 
@@ -193,9 +204,6 @@ export const useInvoiceSignature = (): UseInvoiceSignatureResult => {
         }
     }, [stopStatusPolling]);
 
-    /**
-     * Download signed invoice
-     */
     const downloadSignedInvoice = useCallback(async (sessionId: string, invoiceId: string): Promise<boolean> => {
         try {
             setError(null);
@@ -204,7 +212,6 @@ export const useInvoiceSignature = (): UseInvoiceSignatureResult => {
 
             const blob = await invoiceSignatureApi.getSignedInvoice(sessionId, invoiceId);
 
-            // Create download link
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
@@ -225,9 +232,6 @@ export const useInvoiceSignature = (): UseInvoiceSignatureResult => {
         }
     }, []);
 
-    /**
-     * Download signature image
-     */
     const downloadSignatureImage = useCallback(async (sessionId: string, invoiceId: string): Promise<boolean> => {
         try {
             setError(null);
@@ -236,7 +240,6 @@ export const useInvoiceSignature = (): UseInvoiceSignatureResult => {
 
             const blob = await invoiceSignatureApi.getSignatureImage(sessionId, invoiceId);
 
-            // Create download link
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
@@ -257,9 +260,6 @@ export const useInvoiceSignature = (): UseInvoiceSignatureResult => {
         }
     }, []);
 
-    /**
-     * Download current invoice
-     */
     const downloadCurrentInvoice = useCallback(async (invoiceId: string): Promise<boolean> => {
         try {
             setError(null);
@@ -268,7 +268,6 @@ export const useInvoiceSignature = (): UseInvoiceSignatureResult => {
 
             const blob = await invoiceSignatureApi.downloadCurrentInvoice(invoiceId);
 
-            // Create download link
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
@@ -289,16 +288,10 @@ export const useInvoiceSignature = (): UseInvoiceSignatureResult => {
         }
     }, []);
 
-    /**
-     * Clear error state
-     */
     const clearError = useCallback(() => {
         setError(null);
     }, []);
 
-    /**
-     * Clear session and stop polling
-     */
     const clearSession = useCallback(() => {
         stopStatusPolling();
         setCurrentSession(null);
@@ -307,15 +300,12 @@ export const useInvoiceSignature = (): UseInvoiceSignatureResult => {
     }, [stopStatusPolling]);
 
     return {
-        // States
         isRequesting,
         isPolling,
         error,
         currentSession,
         currentInvoiceId,
         currentStatus,
-
-        // Actions
         requestSignatureFromVisit,
         startStatusPolling,
         stopStatusPolling,
@@ -325,8 +315,6 @@ export const useInvoiceSignature = (): UseInvoiceSignatureResult => {
         downloadCurrentInvoice,
         clearError,
         clearSession,
-
-        // Derived states
         isSignatureCompleted,
         isSignatureFailed
     };

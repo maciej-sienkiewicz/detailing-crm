@@ -1,10 +1,15 @@
-// src/pages/Protocols/details/modals/InvoiceSignatureRequestModal.tsx
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { FaTabletAlt, FaSignature, FaTimes, FaSpinner, FaExclamationTriangle, FaClock, FaArrowRight, FaFileInvoice } from 'react-icons/fa';
 import { tabletsApi, TabletDevice } from '../../../../api/tabletsApi';
-import { InvoiceSignatureFromVisitRequest } from '../../../../api/invoiceSignatureApi';
+import { InvoiceSignatureFromVisitRequest, CreateServiceCommand } from '../../../../api/invoiceSignatureApi';
 import { useInvoiceSignature } from '../../../../hooks/useInvoiceSignature';
+
+interface PaymentData {
+    paymentMethod?: 'cash' | 'card' | 'transfer';
+    paymentDays?: number;
+    overridenItems?: CreateServiceCommand[];
+}
 
 interface InvoiceSignatureRequestModalProps {
     isOpen: boolean;
@@ -12,6 +17,7 @@ interface InvoiceSignatureRequestModalProps {
     visitId: string;
     customerName: string;
     onSignatureRequested: (sessionId: string, invoiceId: string) => void;
+    paymentData?: PaymentData;
 }
 
 const InvoiceSignatureRequestModal: React.FC<InvoiceSignatureRequestModalProps> = ({
@@ -19,7 +25,8 @@ const InvoiceSignatureRequestModal: React.FC<InvoiceSignatureRequestModalProps> 
                                                                                        onClose,
                                                                                        visitId,
                                                                                        customerName,
-                                                                                       onSignatureRequested
+                                                                                       onSignatureRequested,
+                                                                                       paymentData
                                                                                    }) => {
     const [tablets, setTablets] = useState<TabletDevice[]>([]);
     const [selectedTabletId, setSelectedTabletId] = useState<string>('');
@@ -32,14 +39,12 @@ const InvoiceSignatureRequestModal: React.FC<InvoiceSignatureRequestModalProps> 
 
     const { requestSignatureFromVisit, isRequesting, error: signatureError } = useInvoiceSignature();
 
-    // Load tablets on modal open
     useEffect(() => {
         if (isOpen) {
             loadTablets();
         }
     }, [isOpen]);
 
-    // Handle signature errors
     useEffect(() => {
         if (signatureError) {
             setError(signatureError);
@@ -62,7 +67,6 @@ const InvoiceSignatureRequestModal: React.FC<InvoiceSignatureRequestModalProps> 
 
             setTablets(onlineTablets);
 
-            // Auto-select first online tablet
             if (onlineTablets.length > 0) {
                 setSelectedTabletId(onlineTablets[0].id);
             } else {
@@ -88,7 +92,10 @@ const InvoiceSignatureRequestModal: React.FC<InvoiceSignatureRequestModalProps> 
         try {
             setError(null);
 
-            console.log('🔧 Sending invoice signature request to tablet:', selectedTabletId);
+            console.log('🔧 Sending invoice signature request to tablet with payment data:', {
+                tabletId: selectedTabletId,
+                paymentData
+            });
 
             const request: InvoiceSignatureFromVisitRequest = {
                 visitId,
@@ -96,17 +103,20 @@ const InvoiceSignatureRequestModal: React.FC<InvoiceSignatureRequestModalProps> 
                 customerName,
                 signatureTitle: signatureTitle.trim() || 'Podpis faktury',
                 instructions: instructions.trim() || undefined,
-                timeoutMinutes
+                timeoutMinutes,
+                ...(paymentData?.paymentMethod && { paymentMethod: paymentData.paymentMethod }),
+                ...(paymentData?.paymentDays && { paymentDays: paymentData.paymentDays }),
+                ...(paymentData?.overridenItems && { overridenItems: paymentData.overridenItems })
             };
+
+            console.log('🔧 Complete signature request:', request);
 
             const result = await requestSignatureFromVisit(request);
 
             if (result) {
                 console.log('✅ Signature request successful, proceeding to status modal...', result);
-                // Don't call onClose() here - proceed to next step
                 onSignatureRequested(result.sessionId, result.invoiceId);
             } else {
-                // Error handling - allow user to continue without signature
                 setShowContinueOption(true);
             }
         } catch (err) {
@@ -119,7 +129,7 @@ const InvoiceSignatureRequestModal: React.FC<InvoiceSignatureRequestModalProps> 
 
     const handleContinueWithoutSignature = () => {
         console.log('🔧 Continuing invoice process without digital signature...');
-        onClose(); // This will cause the process to continue without signature
+        onClose();
     };
 
     const handleClose = () => {
@@ -140,7 +150,17 @@ const InvoiceSignatureRequestModal: React.FC<InvoiceSignatureRequestModalProps> 
                         </SignatureIcon>
                         <HeaderText>
                             <ModalTitle>Żądanie podpisu faktury</ModalTitle>
-                            <ModalSubtitle>Wizyta #{visitId} - {customerName}</ModalSubtitle>
+                            <ModalSubtitle>
+                                Wizyta #{visitId} - {customerName}
+                                {paymentData?.paymentMethod && (
+                                    <PaymentInfo>
+                                        Płatność: {paymentData.paymentMethod === 'cash' ? 'Gotówka' :
+                                        paymentData.paymentMethod === 'card' ? 'Karta' : 'Przelew'}
+                                        {paymentData.paymentMethod === 'transfer' && paymentData.paymentDays &&
+                                            ` (${paymentData.paymentDays} dni)`}
+                                    </PaymentInfo>
+                                )}
+                            </ModalSubtitle>
                         </HeaderText>
                     </HeaderContent>
                     <CloseButton onClick={handleClose} disabled={isRequesting}>
@@ -149,6 +169,35 @@ const InvoiceSignatureRequestModal: React.FC<InvoiceSignatureRequestModalProps> 
                 </ModalHeader>
 
                 <ModalBody>
+                    {paymentData && (
+                        <PaymentSummarySection>
+                            <PaymentSummaryTitle>Dane płatności dołączone do faktury</PaymentSummaryTitle>
+                            <PaymentSummaryGrid>
+                                <PaymentSummaryItem>
+                                    <PaymentSummaryLabel>Metoda płatności:</PaymentSummaryLabel>
+                                    <PaymentSummaryValue>
+                                        {paymentData.paymentMethod === 'cash' ? 'Gotówka' :
+                                            paymentData.paymentMethod === 'card' ? 'Karta płatnicza' : 'Przelew bankowy'}
+                                    </PaymentSummaryValue>
+                                </PaymentSummaryItem>
+                                {paymentData.paymentMethod === 'transfer' && paymentData.paymentDays && (
+                                    <PaymentSummaryItem>
+                                        <PaymentSummaryLabel>Termin płatności:</PaymentSummaryLabel>
+                                        <PaymentSummaryValue>{paymentData.paymentDays} dni</PaymentSummaryValue>
+                                    </PaymentSummaryItem>
+                                )}
+                                {paymentData.overridenItems && (
+                                    <PaymentSummaryItem>
+                                        <PaymentSummaryLabel>Pozycje faktury:</PaymentSummaryLabel>
+                                        <PaymentSummaryValue>
+                                            {paymentData.overridenItems.length} zmodyfikowanych pozycji
+                                        </PaymentSummaryValue>
+                                    </PaymentSummaryItem>
+                                )}
+                            </PaymentSummaryGrid>
+                        </PaymentSummarySection>
+                    )}
+
                     {loading ? (
                         <LoadingSection>
                             <LoadingSpinner>
@@ -215,7 +264,7 @@ const InvoiceSignatureRequestModal: React.FC<InvoiceSignatureRequestModalProps> 
                                 <InstructionsInput
                                     value={instructions}
                                     onChange={(e) => setInstructions(e.target.value)}
-                                    placeholder="Wprowadź instrukcje, które zobacży klient na tablecie"
+                                    placeholder="Wprowadź instrukcje, które zobacczy klient na tablecie"
                                     rows={3}
                                 />
                             </Section>
@@ -298,7 +347,6 @@ const InvoiceSignatureRequestModal: React.FC<InvoiceSignatureRequestModalProps> 
     );
 };
 
-// Professional Brand Theme
 const brandTheme = {
     primary: '#1a365d',
     primaryLight: '#2c5aa0',
@@ -316,7 +364,9 @@ const brandTheme = {
     status: {
         success: '#059669',
         error: '#dc2626',
-        errorLight: '#fef2f2'
+        errorLight: '#fef2f2',
+        info: '#0369a1',
+        infoLight: '#f0f9ff'
     },
     spacing: {
         xs: '4px',
@@ -332,183 +382,239 @@ const brandTheme = {
     }
 };
 
-// Styled Components
-const ModalOverlay = styled.div`
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(15, 23, 42, 0.6);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1201;
-    backdrop-filter: blur(4px);
-    animation: fadeIn 0.15s ease-out;
+const PaymentSummarySection = styled.div`
+   background: ${brandTheme.status.infoLight};
+   border: 1px solid ${brandTheme.status.info}30;
+   border-radius: ${brandTheme.radius.lg};
+   padding: ${brandTheme.spacing.lg};
+   margin-bottom: ${brandTheme.spacing.lg};
+`;
 
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-    }
+const PaymentSummaryTitle = styled.h4`
+   margin: 0 0 ${brandTheme.spacing.md} 0;
+   font-size: 14px;
+   font-weight: 600;
+   color: ${brandTheme.status.info};
+   text-transform: uppercase;
+   letter-spacing: 0.5px;
+`;
+
+const PaymentSummaryGrid = styled.div`
+   display: grid;
+   gap: ${brandTheme.spacing.sm};
+   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+`;
+
+const PaymentSummaryItem = styled.div`
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   padding: ${brandTheme.spacing.sm};
+   background: white;
+   border-radius: ${brandTheme.radius.sm};
+   border: 1px solid ${brandTheme.status.info}20;
+`;
+
+const PaymentSummaryLabel = styled.span`
+   font-size: 13px;
+   color: ${brandTheme.text.secondary};
+   font-weight: 500;
+`;
+
+const PaymentSummaryValue = styled.span`
+   font-size: 13px;
+   color: ${brandTheme.text.primary};
+   font-weight: 600;
+`;
+
+const PaymentInfo = styled.div`
+   font-size: 12px;
+   color: ${brandTheme.status.info};
+   font-weight: 500;
+   margin-top: 2px;
+`;
+
+const ModalOverlay = styled.div`
+   position: fixed;
+   top: 0;
+   left: 0;
+   right: 0;
+   bottom: 0;
+   background: rgba(15, 23, 42, 0.6);
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   z-index: 1201;
+   backdrop-filter: blur(4px);
+   animation: fadeIn 0.15s ease-out;
+
+   @keyframes fadeIn {
+       from { opacity: 0; }
+       to { opacity: 1; }
+   }
 `;
 
 const ModalContainer = styled.div`
-    background: ${brandTheme.surface};
-    border-radius: ${brandTheme.radius.lg};
-    width: 600px;
-    max-width: 95%;
-    max-height: 90vh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    border: 1px solid ${brandTheme.border};
-    animation: slideUp 0.2s ease-out;
+   background: ${brandTheme.surface};
+   border-radius: ${brandTheme.radius.lg};
+   width: 600px;
+   max-width: 95%;
+   max-height: 90vh;
+   display: flex;
+   flex-direction: column;
+   overflow: hidden;
+   border: 1px solid ${brandTheme.border};
+   animation: slideUp 0.2s ease-out;
 
-    @keyframes slideUp {
-        from {
-            opacity: 0;
-            transform: translateY(10px) scale(0.98);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-        }
-    }
+   @keyframes slideUp {
+       from {
+           opacity: 0;
+           transform: translateY(10px) scale(0.98);
+       }
+       to {
+           opacity: 1;
+           transform: translateY(0) scale(1);
+       }
+   }
 `;
 
 const ModalHeader = styled.div`
-    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
-    border-bottom: 1px solid ${brandTheme.border};
-    background: ${brandTheme.surfaceElevated};
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+   padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
+   border-bottom: 1px solid ${brandTheme.border};
+   background: ${brandTheme.surfaceElevated};
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
 `;
 
 const HeaderContent = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.md};
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.md};
+   flex: 1;
 `;
 
 const SignatureIcon = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    background: ${brandTheme.primary};
-    color: white;
-    border-radius: ${brandTheme.radius.md};
-    font-size: 18px;
-    flex-shrink: 0;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   width: 40px;
+   height: 40px;
+   background: ${brandTheme.primary};
+   color: white;
+   border-radius: ${brandTheme.radius.md};
+   font-size: 18px;
+   flex-shrink: 0;
 `;
 
 const HeaderText = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${brandTheme.spacing.xs};
+   display: flex;
+   flex-direction: column;
+   gap: ${brandTheme.spacing.xs};
+   flex: 1;
 `;
 
 const ModalTitle = styled.h2`
-    margin: 0;
-    font-size: 18px;
-    font-weight: 600;
-    color: ${brandTheme.text.primary};
+   margin: 0;
+   font-size: 18px;
+   font-weight: 600;
+   color: ${brandTheme.text.primary};
 `;
 
-const ModalSubtitle = styled.p`
-    margin: 0;
-    font-size: 14px;
-    color: ${brandTheme.text.secondary};
+const ModalSubtitle = styled.div`
+   margin: 0;
+   font-size: 14px;
+   color: ${brandTheme.text.secondary};
+   display: flex;
+   flex-direction: column;
+   gap: 2px;
 `;
 
 const CloseButton = styled.button`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    background: none;
-    border: none;
-    color: ${brandTheme.text.tertiary};
-    cursor: pointer;
-    border-radius: ${brandTheme.radius.sm};
-    transition: all 0.15s ease;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   width: 32px;
+   height: 32px;
+   background: none;
+   border: none;
+   color: ${brandTheme.text.tertiary};
+   cursor: pointer;
+   border-radius: ${brandTheme.radius.sm};
+   transition: all 0.15s ease;
 
-    &:hover:not(:disabled) {
-        background: ${brandTheme.surfaceHover};
-        color: ${brandTheme.text.primary};
-    }
+   &:hover:not(:disabled) {
+       background: ${brandTheme.surfaceHover};
+       color: ${brandTheme.text.primary};
+   }
 
-    &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
+   &:disabled {
+       opacity: 0.5;
+       cursor: not-allowed;
+   }
 `;
 
 const ModalBody = styled.div`
-    padding: ${brandTheme.spacing.xl};
-    display: flex;
-    flex-direction: column;
-    gap: ${brandTheme.spacing.lg};
-    overflow-y: auto;
-    flex: 1;
+   padding: ${brandTheme.spacing.xl};
+   display: flex;
+   flex-direction: column;
+   gap: ${brandTheme.spacing.lg};
+   overflow-y: auto;
+   flex: 1;
 `;
 
 const LoadingSection = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: ${brandTheme.spacing.md};
-    padding: ${brandTheme.spacing.xl} 0;
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: ${brandTheme.spacing.md};
+   padding: ${brandTheme.spacing.xl} 0;
 `;
 
 const LoadingSpinner = styled.div`
-    .spinner {
-        animation: spin 1s linear infinite;
-        font-size: 24px;
-        color: ${brandTheme.primary};
-    }
+   .spinner {
+       animation: spin 1s linear infinite;
+       font-size: 24px;
+       color: ${brandTheme.primary};
+   }
 
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
+   @keyframes spin {
+       from { transform: rotate(0deg); }
+       to { transform: rotate(360deg); }
+   }
 `;
 
 const LoadingMessage = styled.div`
-    color: ${brandTheme.text.secondary};
-    font-size: 14px;
+   color: ${brandTheme.text.secondary};
+   font-size: 14px;
 `;
 
 const ErrorSection = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: ${brandTheme.spacing.md};
-    padding: ${brandTheme.spacing.xl} 0;
-    text-align: center;
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: ${brandTheme.spacing.md};
+   padding: ${brandTheme.spacing.xl} 0;
+   text-align: center;
 `;
 
 const ErrorIcon = styled.div`
-    font-size: 32px;
-    color: ${brandTheme.status.error};
+   font-size: 32px;
+   color: ${brandTheme.status.error};
 `;
 
 const ErrorMessage = styled.div`
-    color: ${brandTheme.status.error};
-    font-size: 14px;
-    line-height: 1.5;
-    font-weight: 600;
+   color: ${brandTheme.status.error};
+   font-size: 14px;
+   line-height: 1.5;
+   font-weight: 600;
 `;
 
 const ErrorDescription = styled.div`
-    color: ${brandTheme.text.secondary};
-    font-size: 13px;
-    line-height: 1.5;
-    font-style: italic;
+   color: ${brandTheme.text.secondary};
+   font-size: 13px;
+   line-height: 1.5;
+   font-style: italic;
 `;
 
 const ErrorActions = styled.div`
@@ -518,324 +624,324 @@ const ErrorActions = styled.div`
 `;
 
 const RetryButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
-    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
-    background: ${brandTheme.surface};
-    color: ${brandTheme.text.secondary};
-    border: 1px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.sm};
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.15s ease;
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.sm};
+   padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+   background: ${brandTheme.surface};
+   color: ${brandTheme.text.secondary};
+   border: 1px solid ${brandTheme.border};
+   border-radius: ${brandTheme.radius.sm};
+   font-size: 14px;
+   font-weight: 500;
+   cursor: pointer;
+   transition: all 0.15s ease;
 
-    &:hover:not(:disabled) {
-        background: ${brandTheme.surfaceHover};
-    }
+   &:hover:not(:disabled) {
+       background: ${brandTheme.surfaceHover};
+   }
 
-    &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
+   &:disabled {
+       opacity: 0.5;
+       cursor: not-allowed;
+   }
 
-    .spinner {
-        animation: spin 1s linear infinite;
-    }
+   .spinner {
+       animation: spin 1s linear infinite;
+   }
 
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
+   @keyframes spin {
+       from { transform: rotate(0deg); }
+       to { transform: rotate(360deg); }
+   }
 `;
 
 const ContinueButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
-    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
-    background: ${brandTheme.status.success};
-    color: white;
-    border: none;
-    border-radius: ${brandTheme.radius.sm};
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s ease;
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.sm};
+   padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+   background: ${brandTheme.status.success};
+   color: white;
+   border: none;
+   border-radius: ${brandTheme.radius.sm};
+   font-size: 14px;
+   font-weight: 600;
+   cursor: pointer;
+   transition: all 0.15s ease;
 
-    &:hover {
-        opacity: 0.9;
-        transform: translateY(-1px);
-    }
+   &:hover {
+       opacity: 0.9;
+       transform: translateY(-1px);
+   }
 `;
 
 const Section = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${brandTheme.spacing.md};
+   display: flex;
+   flex-direction: column;
+   gap: ${brandTheme.spacing.md};
 `;
 
 const SectionTitle = styled.h3`
-    margin: 0;
-    font-size: 15px;
-    font-weight: 600;
-    color: ${brandTheme.text.primary};
+   margin: 0;
+   font-size: 15px;
+   font-weight: 600;
+   color: ${brandTheme.text.primary};
 `;
 
 const TabletsList = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${brandTheme.spacing.sm};
+   display: flex;
+   flex-direction: column;
+   gap: ${brandTheme.spacing.sm};
 `;
 
 const TabletItem = styled.div<{ selected: boolean }>`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.md};
-    padding: ${brandTheme.spacing.md};
-    border: 2px solid ${props => props.selected ? brandTheme.primary : brandTheme.borderLight};
-    border-radius: ${brandTheme.radius.md};
-    cursor: pointer;
-    transition: all 0.15s ease;
-    background: ${props => props.selected ? brandTheme.primary + '08' : brandTheme.surface};
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.md};
+   padding: ${brandTheme.spacing.md};
+   border: 2px solid ${props => props.selected ? brandTheme.primary : brandTheme.borderLight};
+   border-radius: ${brandTheme.radius.md};
+   cursor: pointer;
+   transition: all 0.15s ease;
+   background: ${props => props.selected ? brandTheme.primary + '08' : brandTheme.surface};
 
-    &:hover {
-        border-color: ${brandTheme.primary};
-        background: ${brandTheme.primary + '08'};
-    }
+   &:hover {
+       border-color: ${brandTheme.primary};
+       background: ${brandTheme.primary + '08'};
+   }
 `;
 
 const TabletIcon = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    background: ${brandTheme.primary + '15'};
-    color: ${brandTheme.primary};
-    border-radius: ${brandTheme.radius.sm};
-    font-size: 14px;
-    flex-shrink: 0;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   width: 32px;
+   height: 32px;
+   background: ${brandTheme.primary + '15'};
+   color: ${brandTheme.primary};
+   border-radius: ${brandTheme.radius.sm};
+   font-size: 14px;
+   flex-shrink: 0;
 `;
 
 const TabletInfo = styled.div`
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: ${brandTheme.spacing.xs};
+   flex: 1;
+   display: flex;
+   flex-direction: column;
+   gap: ${brandTheme.spacing.xs};
 `;
 
 const TabletName = styled.div`
-    font-weight: 600;
-    color: ${brandTheme.text.primary};
-    font-size: 14px;
+   font-weight: 600;
+   color: ${brandTheme.text.primary};
+   font-size: 14px;
 `;
 
 const TabletDetails = styled.div`
-    font-size: 12px;
-    color: ${brandTheme.text.tertiary};
+   font-size: 12px;
+   color: ${brandTheme.text.tertiary};
 `;
 
 const StatusIndicator = styled.div<{ online: boolean }>`
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: ${props => props.online ? brandTheme.status.success : brandTheme.status.error};
-    flex-shrink: 0;
+   width: 8px;
+   height: 8px;
+   border-radius: 50%;
+   background: ${props => props.online ? brandTheme.status.success : brandTheme.status.error};
+   flex-shrink: 0;
 `;
 
 const TitleInput = styled.input`
-    width: 100%;
-    padding: ${brandTheme.spacing.md};
-    border: 1px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.md};
-    font-size: 14px;
-    font-family: inherit;
-    transition: border-color 0.15s ease;
+   width: 100%;
+   padding: ${brandTheme.spacing.md};
+   border: 1px solid ${brandTheme.border};
+   border-radius: ${brandTheme.radius.md};
+   font-size: 14px;
+   font-family: inherit;
+   transition: border-color 0.15s ease;
 
-    &:focus {
-        outline: none;
-        border-color: ${brandTheme.primary};
-    }
+   &:focus {
+       outline: none;
+       border-color: ${brandTheme.primary};
+   }
 
-    &::placeholder {
-        color: ${brandTheme.text.muted};
-    }
+   &::placeholder {
+       color: ${brandTheme.text.muted};
+   }
 `;
 
 const InstructionsInput = styled.textarea`
-    width: 100%;
-    min-height: 80px;
-    padding: ${brandTheme.spacing.md};
-    border: 1px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.md};
-    font-size: 14px;
-    font-family: inherit;
-    resize: vertical;
-    transition: border-color 0.15s ease;
+   width: 100%;
+   min-height: 80px;
+   padding: ${brandTheme.spacing.md};
+   border: 1px solid ${brandTheme.border};
+   border-radius: ${brandTheme.radius.md};
+   font-size: 14px;
+   font-family: inherit;
+   resize: vertical;
+   transition: border-color 0.15s ease;
 
-    &:focus {
-        outline: none;
-        border-color: ${brandTheme.primary};
-    }
+   &:focus {
+       outline: none;
+       border-color: ${brandTheme.primary};
+   }
 
-    &::placeholder {
-        color: ${brandTheme.text.muted};
-    }
+   &::placeholder {
+       color: ${brandTheme.text.muted};
+   }
 `;
 
 const TimeoutContainer = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.sm};
 `;
 
 const TimeoutIcon = styled.div`
-    color: ${brandTheme.text.tertiary};
-    font-size: 14px;
+   color: ${brandTheme.text.tertiary};
+   font-size: 14px;
 `;
 
 const TimeoutInput = styled.input`
-    width: 80px;
-    padding: ${brandTheme.spacing.sm};
-    border: 1px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.sm};
-    font-size: 14px;
-    text-align: center;
+   width: 80px;
+   padding: ${brandTheme.spacing.sm};
+   border: 1px solid ${brandTheme.border};
+   border-radius: ${brandTheme.radius.sm};
+   font-size: 14px;
+   text-align: center;
 
-    &:focus {
-        outline: none;
-        border-color: ${brandTheme.primary};
-    }
+   &:focus {
+       outline: none;
+       border-color: ${brandTheme.primary};
+   }
 `;
 
 const TimeoutLabel = styled.span`
-    font-size: 14px;
-    color: ${brandTheme.text.secondary};
+   font-size: 14px;
+   color: ${brandTheme.text.secondary};
 `;
 
 const TimeoutDescription = styled.div`
-    font-size: 12px;
-    color: ${brandTheme.text.tertiary};
-    font-style: italic;
+   font-size: 12px;
+   color: ${brandTheme.text.tertiary};
+   font-style: italic;
 `;
 
 const ErrorBanner = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
-    padding: ${brandTheme.spacing.md};
-    background: ${brandTheme.status.errorLight};
-    border: 1px solid ${brandTheme.status.error};
-    border-radius: ${brandTheme.radius.md};
-    color: ${brandTheme.status.error};
-    font-size: 14px;
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.sm};
+   padding: ${brandTheme.spacing.md};
+   background: ${brandTheme.status.errorLight};
+   border: 1px solid ${brandTheme.status.error};
+   border-radius: ${brandTheme.radius.md};
+   color: ${brandTheme.status.error};
+   font-size: 14px;
 `;
 
 const ModalFooter = styled.div`
-    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
-    border-top: 1px solid ${brandTheme.border};
-    background: ${brandTheme.surfaceElevated};
+   padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
+   border-top: 1px solid ${brandTheme.border};
+   background: ${brandTheme.surfaceElevated};
 `;
 
 const ButtonGroup = styled.div`
-    display: flex;
-    justify-content: flex-end;
-    gap: ${brandTheme.spacing.sm};
+   display: flex;
+   justify-content: flex-end;
+   gap: ${brandTheme.spacing.sm};
 `;
 
 const SecondaryButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
-    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
-    background: ${brandTheme.surface};
-    color: ${brandTheme.text.secondary};
-    border: 1px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.sm};
-    font-weight: 500;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    min-height: 40px;
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.sm};
+   padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+   background: ${brandTheme.surface};
+   color: ${brandTheme.text.secondary};
+   border: 1px solid ${brandTheme.border};
+   border-radius: ${brandTheme.radius.sm};
+   font-weight: 500;
+   font-size: 14px;
+   cursor: pointer;
+   transition: all 0.15s ease;
+   min-height: 40px;
 
-    &:hover:not(:disabled) {
-        background: ${brandTheme.surfaceHover};
-        border-color: ${brandTheme.text.muted};
-    }
+   &:hover:not(:disabled) {
+       background: ${brandTheme.surfaceHover};
+       border-color: ${brandTheme.text.muted};
+   }
 
-    &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
+   &:disabled {
+       opacity: 0.5;
+       cursor: not-allowed;
+   }
 `;
 
 const ContinueWithoutButton = styled.button`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: ${brandTheme.spacing.sm};
-    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
-    background: ${brandTheme.status.success};
-    color: white;
-    border: 1px solid ${brandTheme.status.success};
-    border-radius: ${brandTheme.radius.sm};
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    min-height: 40px;
-    min-width: 160px;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   gap: ${brandTheme.spacing.sm};
+   padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+   background: ${brandTheme.status.success};
+   color: white;
+   border: 1px solid ${brandTheme.status.success};
+   border-radius: ${brandTheme.radius.sm};
+   font-weight: 600;
+   font-size: 14px;
+   cursor: pointer;
+   transition: all 0.15s ease;
+   min-height: 40px;
+   min-width: 160px;
 
-    &:hover:not(:disabled) {
-        opacity: 0.9;
-        transform: translateY(-1px);
-    }
+&:hover:not(:disabled) {
+       opacity: 0.9;
+       transform: translateY(-1px);
+   }
 
-    &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: none;
-    }
+   &:disabled {
+       opacity: 0.6;
+       cursor: not-allowed;
+       transform: none;
+   }
 `;
 
 const PrimaryButton = styled.button`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: ${brandTheme.spacing.sm};
-    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.lg};
-    background: ${brandTheme.primary};
-    color: white;
-    border: 1px solid ${brandTheme.primary};
-    border-radius: ${brandTheme.radius.sm};
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    min-height: 40px;
-    min-width: 180px;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   gap: ${brandTheme.spacing.sm};
+   padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.lg};
+   background: ${brandTheme.primary};
+   color: white;
+   border: 1px solid ${brandTheme.primary};
+   border-radius: ${brandTheme.radius.sm};
+   font-weight: 600;
+   font-size: 14px;
+   cursor: pointer;
+   transition: all 0.15s ease;
+   min-height: 40px;
+   min-width: 180px;
 
-    &:hover:not(:disabled) {
-        background: ${brandTheme.primaryLight};
-    }
+   &:hover:not(:disabled) {
+       background: ${brandTheme.primaryLight};
+   }
 
-    &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        background: ${brandTheme.text.muted};
-        border-color: ${brandTheme.text.muted};
-    }
+   &:disabled {
+       opacity: 0.6;
+       cursor: not-allowed;
+       background: ${brandTheme.text.muted};
+       border-color: ${brandTheme.text.muted};
+   }
 
-    .spinner {
-        animation: spin 1s linear infinite;
-    }
+   .spinner {
+       animation: spin 1s linear infinite;
+   }
 
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
+   @keyframes spin {
+       from { transform: rotate(0deg); }
+       to { transform: rotate(360deg); }
+   }
 `;
 
 export default InvoiceSignatureRequestModal;
