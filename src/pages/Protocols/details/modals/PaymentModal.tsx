@@ -1,3 +1,4 @@
+// src/pages/Protocols/details/modals/PaymentModal.tsx
 import React, { useState, useEffect } from 'react';
 import { FaTimes, FaCheck } from 'react-icons/fa';
 import { useToast } from "../../../../components/common/Toast/Toast";
@@ -14,12 +15,14 @@ interface PaymentModalProps {
         documentType: 'invoice' | 'receipt' | 'other';
         paymentDays?: number;
         overridenItems?: SelectedService[];
-        invoiceSignatureSessionId?: string; // Nowe pole dla ID sesji podpisu faktury
+        invoiceSignatureSessionId?: string;
     }) => void;
     totalAmount: number;
     services: SelectedService[];
     onServicesChange: (services: SelectedService[]) => void;
     protocolId: string;
+    customerName?: string;
+    customerEmail?: string;
 }
 
 const PaymentModal: React.FC<PaymentModalProps> = ({
@@ -29,7 +32,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                                                        totalAmount: initialTotalAmount,
                                                        services,
                                                        onServicesChange,
-                                                       protocolId
+                                                       protocolId,
+                                                       customerName = 'Klient',
+                                                       customerEmail
                                                    }) => {
     const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'transfer'>('cash');
     const [documentType, setDocumentType] = useState<'invoice' | 'receipt' | 'other'>('receipt');
@@ -101,26 +106,39 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     };
 
     const handleConfirm = () => {
-        // Jeśli wybrano fakturę, pokaż modal z pytaniem o podpis
+        // If invoice is selected, show signature confirmation modal
         if (documentType === 'invoice') {
             setShowInvoiceSignatureModal(true);
             return;
         }
 
-        // Dla innych typów dokumentów, kontynuuj normalnie
+        // For other document types, proceed normally
         finalizePayment(false);
     };
 
+    /**
+     * Handle invoice signature confirmation
+     * This is called from the InvoiceSignatureConfirmationModal
+     */
     const handleInvoiceSignatureConfirm = (withSignature: boolean, sessionId?: string) => {
+        console.log('🔧 Invoice signature confirmation:', { withSignature, sessionId });
+
         if (withSignature && sessionId) {
             setInvoiceSignatureSessionId(sessionId);
             showToast('success', 'Podpis cyfrowy został zebrany i dołączony do faktury.', 4000);
+        } else if (withSignature && !sessionId) {
+            // This shouldn't happen, but handle gracefully
+            console.warn('⚠️ Expected signature but no session ID provided');
+            showToast('warning', 'Podpis nie został zebrany, kontynuowanie bez podpisu.', 3000);
         }
 
         setShowInvoiceSignatureModal(false);
         finalizePayment(withSignature, sessionId);
     };
 
+    /**
+     * Finalize the payment process
+     */
     const finalizePayment = (withInvoiceSignature: boolean, sessionId?: string) => {
         const itemsWereModified = areItemsModified(services, pendingInvoiceItems);
 
@@ -132,6 +150,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             ...(withInvoiceSignature && sessionId ? { invoiceSignatureSessionId: sessionId } : {})
         };
 
+        // Confirm if items were modified significantly
         if (itemsWereModified && pendingInvoiceItems) {
             const originalTotal = initialTotalAmount;
             const customTotal = pendingInvoiceItems.reduce((sum, item) => sum + item.finalPrice, 0);
@@ -147,6 +166,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             }
         }
 
+        // Show appropriate success messages
         if (paymentMethod === 'cash') {
             showToast('success', 'Dodano nowy rekord w kasie.', 3000);
         }
@@ -156,6 +176,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             showToast('success', `Dodano nową pozycję w archiwum faktur${signatureMsg}`, 3000);
         }
 
+        // Call the parent confirmation handler
         onConfirm(paymentData);
     };
 
@@ -365,6 +386,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 </S.ModalContainer>
             </S.ModalOverlay>
 
+            {/* Invoice Items Modal */}
             <InvoiceItemsModal
                 isOpen={showInvoiceItemsModal}
                 onClose={handleCloseInvoiceModal}
@@ -373,13 +395,14 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 protocolId={protocolId}
             />
 
+            {/* Invoice Signature Confirmation Modal */}
             <InvoiceSignatureConfirmationModal
                 isOpen={showInvoiceSignatureModal}
                 onClose={handleCloseInvoiceSignatureModal}
                 onConfirm={handleInvoiceSignatureConfirm}
-                invoiceId={protocolId} // Używamy protocolId jako invoiceId
-                customerName="Klient" // Możesz przekazać rzeczywiste dane klienta
-                customerEmail="klient@example.com" // Możesz przekazać rzeczywisty email klienta
+                visitId={protocolId}
+                customerName={customerName}
+                customerEmail={customerEmail}
             />
         </>
     );

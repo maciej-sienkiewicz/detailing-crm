@@ -9,7 +9,7 @@ interface InvoiceSignatureConfirmationModalProps {
     isOpen: boolean;
     onClose: () => void;
     onConfirm: (withSignature: boolean, sessionId?: string) => void;
-    invoiceId: string;
+    visitId: string;
     customerName: string;
     customerEmail?: string;
 }
@@ -24,12 +24,13 @@ const InvoiceSignatureConfirmationModal: React.FC<InvoiceSignatureConfirmationMo
                                                                                                  isOpen,
                                                                                                  onClose,
                                                                                                  onConfirm,
-                                                                                                 invoiceId,
+                                                                                                 visitId,
                                                                                                  customerName,
                                                                                                  customerEmail
                                                                                              }) => {
     const [currentStep, setCurrentStep] = useState<SignatureModalStep>(SignatureModalStep.CONFIRMATION);
     const [signatureSessionId, setSignatureSessionId] = useState<string>('');
+    const [signatureInvoiceId, setSignatureInvoiceId] = useState<string>('');
 
     const handleWithoutSignature = () => {
         onConfirm(false);
@@ -40,8 +41,10 @@ const InvoiceSignatureConfirmationModal: React.FC<InvoiceSignatureConfirmationMo
         setCurrentStep(SignatureModalStep.TABLET_REQUEST);
     };
 
-    const handleSignatureRequested = (sessionId: string) => {
+    const handleSignatureRequested = (sessionId: string, invoiceId: string) => {
+        console.log('🔧 Signature requested, transitioning to status modal...', { sessionId, invoiceId });
         setSignatureSessionId(sessionId);
+        setSignatureInvoiceId(invoiceId);
         setCurrentStep(SignatureModalStep.SIGNATURE_STATUS);
     };
 
@@ -53,6 +56,7 @@ const InvoiceSignatureConfirmationModal: React.FC<InvoiceSignatureConfirmationMo
     const handleBackToConfirmation = () => {
         setCurrentStep(SignatureModalStep.CONFIRMATION);
         setSignatureSessionId('');
+        setSignatureInvoiceId('');
     };
 
     const handleModalClose = () => {
@@ -65,7 +69,7 @@ const InvoiceSignatureConfirmationModal: React.FC<InvoiceSignatureConfirmationMo
 
     if (!isOpen) return null;
 
-    // Renderowanie modala potwierdzenia
+    // Render confirmation modal
     if (currentStep === SignatureModalStep.CONFIRMATION) {
         return (
             <ModalOverlay>
@@ -77,7 +81,7 @@ const InvoiceSignatureConfirmationModal: React.FC<InvoiceSignatureConfirmationMo
                             </HeaderIcon>
                             <HeaderText>
                                 <ModalTitle>Podpis faktury</ModalTitle>
-                                <ModalSubtitle>Faktura #{invoiceId} - {customerName}</ModalSubtitle>
+                                <ModalSubtitle>Wizyta #{visitId} - {customerName}</ModalSubtitle>
                             </HeaderText>
                         </HeaderContent>
                         <CloseButton onClick={handleModalClose}>
@@ -153,27 +157,27 @@ const InvoiceSignatureConfirmationModal: React.FC<InvoiceSignatureConfirmationMo
         );
     }
 
-    // Renderowanie modala wyboru tabletu
+    // Render tablet selection modal
     if (currentStep === SignatureModalStep.TABLET_REQUEST) {
         return (
             <InvoiceSignatureRequestModal
                 isOpen={true}
                 onClose={handleBackToConfirmation}
-                invoiceId={invoiceId}
+                visitId={visitId}
                 customerName={customerName}
                 onSignatureRequested={handleSignatureRequested}
             />
         );
     }
 
-    // Renderowanie modala statusu podpisu
-    if (currentStep === SignatureModalStep.SIGNATURE_STATUS && signatureSessionId) {
+    // Render signature status modal
+    if (currentStep === SignatureModalStep.SIGNATURE_STATUS && signatureSessionId && signatureInvoiceId) {
         return (
             <InvoiceSignatureStatusModal
                 isOpen={true}
                 onClose={handleBackToConfirmation}
                 sessionId={signatureSessionId}
-                invoiceId={invoiceId}
+                invoiceId={signatureInvoiceId}
                 onCompleted={handleSignatureCompleted}
                 onProceedNext={() => handleSignatureCompleted()}
             />
@@ -200,9 +204,10 @@ const brandTheme = {
     },
     border: '#e2e8f0',
     borderLight: '#f1f5f9',
+    divider: '#e5e7eb',
     status: {
         success: '#059669',
-        successLight: '#f0fdf4',
+        successLight: '#d1fae5',
         info: '#0369a1',
         infoLight: '#f0f9ff',
         warning: '#d97706',

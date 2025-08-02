@@ -3,20 +3,21 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { FaTabletAlt, FaSignature, FaTimes, FaSpinner, FaExclamationTriangle, FaClock, FaArrowRight, FaFileInvoice } from 'react-icons/fa';
 import { tabletsApi, TabletDevice } from '../../../../api/tabletsApi';
-import { invoiceSignatureApi, InvoiceSignatureRequest } from '../../../../api/invoiceSignatureApi';
+import { InvoiceSignatureFromVisitRequest } from '../../../../api/invoiceSignatureApi';
+import { useInvoiceSignature } from '../../../../hooks/useInvoiceSignature';
 
 interface InvoiceSignatureRequestModalProps {
     isOpen: boolean;
     onClose: () => void;
-    invoiceId: string;
+    visitId: string;
     customerName: string;
-    onSignatureRequested: (sessionId: string) => void;
+    onSignatureRequested: (sessionId: string, invoiceId: string) => void;
 }
 
 const InvoiceSignatureRequestModal: React.FC<InvoiceSignatureRequestModalProps> = ({
                                                                                        isOpen,
                                                                                        onClose,
-                                                                                       invoiceId,
+                                                                                       visitId,
                                                                                        customerName,
                                                                                        onSignatureRequested
                                                                                    }) => {
@@ -26,16 +27,25 @@ const InvoiceSignatureRequestModal: React.FC<InvoiceSignatureRequestModalProps> 
     const [instructions, setInstructions] = useState<string>('Proszę podpisać fakturę za otrzymane usługi');
     const [timeoutMinutes, setTimeoutMinutes] = useState<number>(10);
     const [loading, setLoading] = useState(true);
-    const [sending, setSending] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showContinueOption, setShowContinueOption] = useState(false);
 
-    // Ładowanie listy tabletów
+    const { requestSignatureFromVisit, isRequesting, error: signatureError } = useInvoiceSignature();
+
+    // Load tablets on modal open
     useEffect(() => {
         if (isOpen) {
             loadTablets();
         }
     }, [isOpen]);
+
+    // Handle signature errors
+    useEffect(() => {
+        if (signatureError) {
+            setError(signatureError);
+            setShowContinueOption(true);
+        }
+    }, [signatureError]);
 
     const loadTablets = async () => {
         try {
@@ -76,12 +86,12 @@ const InvoiceSignatureRequestModal: React.FC<InvoiceSignatureRequestModalProps> 
         }
 
         try {
-            setSending(true);
             setError(null);
 
             console.log('🔧 Sending invoice signature request to tablet:', selectedTabletId);
 
-            const request: InvoiceSignatureRequest = {
+            const request: InvoiceSignatureFromVisitRequest = {
+                visitId,
                 tabletId: selectedTabletId,
                 customerName,
                 signatureTitle: signatureTitle.trim() || 'Podpis faktury',
@@ -89,33 +99,31 @@ const InvoiceSignatureRequestModal: React.FC<InvoiceSignatureRequestModalProps> 
                 timeoutMinutes
             };
 
-            const response = await invoiceSignatureApi.requestInvoiceSignature(invoiceId, request);
+            const result = await requestSignatureFromVisit(request);
 
-            if (response.success) {
-                console.log('✅ Invoice signature request sent successfully:', response.sessionId);
-                onSignatureRequested(response.sessionId);
-                onClose();
+            if (result) {
+                console.log('✅ Signature request successful, proceeding to status modal...', result);
+                // Don't call onClose() here - proceed to next step
+                onSignatureRequested(result.sessionId, result.invoiceId);
             } else {
-                console.error('❌ Failed to send invoice signature request:', response.message);
-                setError(response.message || 'Nie udało się wysłać żądania podpisu');
+                // Error handling - allow user to continue without signature
                 setShowContinueOption(true);
             }
         } catch (err) {
             console.error('❌ Error sending invoice signature request:', err);
-            setError(err instanceof Error ? err.message : 'Nie udało się wysłać żądania podpisu');
+            const errorMessage = err instanceof Error ? err.message : 'Nie udało się wysłać żądania podpisu';
+            setError(errorMessage);
             setShowContinueOption(true);
-        } finally {
-            setSending(false);
         }
     };
 
     const handleContinueWithoutSignature = () => {
         console.log('🔧 Continuing invoice process without digital signature...');
-        onClose(); // To spowoduje kontynuację procesu bez podpisu
+        onClose(); // This will cause the process to continue without signature
     };
 
     const handleClose = () => {
-        if (!sending) {
+        if (!isRequesting) {
             onClose();
         }
     };
@@ -132,10 +140,10 @@ const InvoiceSignatureRequestModal: React.FC<InvoiceSignatureRequestModalProps> 
                         </SignatureIcon>
                         <HeaderText>
                             <ModalTitle>Żądanie podpisu faktury</ModalTitle>
-                            <ModalSubtitle>Faktura #{invoiceId} - {customerName}</ModalSubtitle>
+                            <ModalSubtitle>Wizyta #{visitId} - {customerName}</ModalSubtitle>
                         </HeaderText>
                     </HeaderContent>
-                    <CloseButton onClick={handleClose} disabled={sending}>
+                    <CloseButton onClick={handleClose} disabled={isRequesting}>
                         <FaTimes />
                     </CloseButton>
                 </ModalHeader>
@@ -246,30 +254,30 @@ const InvoiceSignatureRequestModal: React.FC<InvoiceSignatureRequestModalProps> 
                     <ButtonGroup>
                         {tablets.length === 0 && !loading ? (
                             <>
-                                <SecondaryButton onClick={handleClose} disabled={sending}>
+                                <SecondaryButton onClick={handleClose} disabled={isRequesting}>
                                     Anuluj proces
                                 </SecondaryButton>
-                                <ContinueWithoutButton onClick={handleContinueWithoutSignature} disabled={sending}>
+                                <ContinueWithoutButton onClick={handleContinueWithoutSignature} disabled={isRequesting}>
                                     <FaArrowRight />
                                     Kontynuuj bez podpisu
                                 </ContinueWithoutButton>
                             </>
                         ) : (
                             <>
-                                <SecondaryButton onClick={handleClose} disabled={sending}>
+                                <SecondaryButton onClick={handleClose} disabled={isRequesting}>
                                     Anuluj
                                 </SecondaryButton>
                                 {showContinueOption && (
-                                    <ContinueWithoutButton onClick={handleContinueWithoutSignature} disabled={sending}>
+                                    <ContinueWithoutButton onClick={handleContinueWithoutSignature} disabled={isRequesting}>
                                         <FaArrowRight />
                                         Kontynuuj bez podpisu
                                     </ContinueWithoutButton>
                                 )}
                                 <PrimaryButton
                                     onClick={handleSendSignatureRequest}
-                                    disabled={loading || !selectedTabletId || sending || tablets.length === 0}
+                                    disabled={loading || !selectedTabletId || isRequesting || tablets.length === 0}
                                 >
-                                    {sending ? (
+                                    {isRequesting ? (
                                         <>
                                             <FaSpinner className="spinner" />
                                             Wysyłanie...
@@ -290,7 +298,7 @@ const InvoiceSignatureRequestModal: React.FC<InvoiceSignatureRequestModalProps> 
     );
 };
 
-// Professional Brand Theme (pozostaje bez zmian)
+// Professional Brand Theme
 const brandTheme = {
     primary: '#1a365d',
     primaryLight: '#2c5aa0',
@@ -308,8 +316,7 @@ const brandTheme = {
     status: {
         success: '#059669',
         error: '#dc2626',
-        errorLight: '#fef2f2',
-        warning: '#d97706'
+        errorLight: '#fef2f2'
     },
     spacing: {
         xs: '4px',
@@ -325,7 +332,7 @@ const brandTheme = {
     }
 };
 
-// Styled Components (pozostają bez zmian - już zdefiniowane w poprzednim artefakcie)
+// Styled Components
 const ModalOverlay = styled.div`
     position: fixed;
     top: 0;
@@ -369,9 +376,6 @@ const ModalContainer = styled.div`
         }
     }
 `;
-
-// Tutaj zdefiniowałbym wszystkie pozostałe styled components,
-// ale dla zwięzłości przykładu przeskoczę je - są identyczne jak w poprzednim artefakcie
 
 const ModalHeader = styled.div`
     padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
@@ -453,9 +457,6 @@ const ModalBody = styled.div`
     flex: 1;
 `;
 
-// ... (pozostałe styled components - identyczne jak w poprzednim artefakcie)
-
-// Skrócone wersje dla przykładu
 const LoadingSection = styled.div`
     display: flex;
     flex-direction: column;
@@ -564,7 +565,6 @@ const ContinueButton = styled.button`
     transition: all 0.15s ease;
 
     &:hover {
-        background: ${brandTheme.status.success};
         opacity: 0.9;
         transform: translateY(-1px);
     }
@@ -789,7 +789,6 @@ const ContinueWithoutButton = styled.button`
     min-width: 160px;
 
     &:hover:not(:disabled) {
-        background: ${brandTheme.status.success};
         opacity: 0.9;
         transform: translateY(-1px);
     }

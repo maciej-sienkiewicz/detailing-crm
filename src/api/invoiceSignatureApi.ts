@@ -1,7 +1,8 @@
 // src/api/invoiceSignatureApi.ts
-import { apiClient } from './apiClient';
+import { apiClientNew } from './apiClientNew';
 
-export interface InvoiceSignatureRequest {
+export interface InvoiceSignatureFromVisitRequest {
+    visitId: string;
     tabletId: string;
     customerName: string;
     signatureTitle?: string;
@@ -15,29 +16,52 @@ export interface InvoiceSignatureResponse {
     message: string;
     invoiceId: string;
     expiresAt: string;
-    invoicePreviewUrl?: string;
+    documentPreviewUrl?: string;
 }
 
 export interface InvoiceSignatureStatusResponse {
     success: boolean;
     sessionId: string;
     invoiceId: string;
-    status: 'PENDING' | 'SENT_TO_TABLET' | 'VIEWING_INVOICE' | 'SIGNING_IN_PROGRESS' | 'COMPLETED' | 'EXPIRED' | 'CANCELLED' | 'ERROR';
+    status: InvoiceSignatureStatus;
     signedAt?: string;
     signedInvoiceUrl?: string;
     signatureImageUrl?: string;
     timestamp: string;
 }
 
-export const invoiceSignatureApi = {
-    // Wysłanie żądania podpisu faktury
-    requestInvoiceSignature: async (invoiceId: string, request: InvoiceSignatureRequest): Promise<InvoiceSignatureResponse> => {
-        try {
-            console.log('🔧 Requesting invoice signature...', { invoiceId, request });
+export enum InvoiceSignatureStatus {
+    PENDING = 'PENDING',
+    SENT_TO_TABLET = 'SENT_TO_TABLET',
+    VIEWING_INVOICE = 'VIEWING_INVOICE',
+    SIGNING_IN_PROGRESS = 'SIGNING_IN_PROGRESS',
+    COMPLETED = 'COMPLETED',
+    EXPIRED = 'EXPIRED',
+    CANCELLED = 'CANCELLED',
+    ERROR = 'ERROR'
+}
 
-            const response = await apiClient.post<InvoiceSignatureResponse>(
-                `/invoices/${invoiceId}/signature/request`,
-                request
+export interface CancelInvoiceSignatureRequest {
+    reason?: string;
+}
+
+/**
+ * Production-ready Invoice Signature API
+ * Handles all invoice signature operations with proper error handling and status polling
+ */
+export const invoiceSignatureApi = {
+    /**
+     * Request invoice signature from visit
+     * Uses the new backend endpoint that matches the controller structure
+     */
+    requestInvoiceSignatureFromVisit: async (request: InvoiceSignatureFromVisitRequest): Promise<InvoiceSignatureResponse> => {
+        try {
+            console.log('🔧 Requesting invoice signature from visit...', request);
+
+            const response = await apiClientNew.post<InvoiceSignatureResponse>(
+                `/invoice-signatures/request-from-visit`,
+                request,
+                { timeout: 30000 }
             );
 
             console.log('✅ Invoice signature request sent:', response);
@@ -48,88 +72,145 @@ export const invoiceSignatureApi = {
         }
     },
 
-    // Sprawdzenie statusu podpisu faktury
-    getInvoiceSignatureStatus: async (invoiceId: string, sessionId: string): Promise<InvoiceSignatureStatusResponse> => {
+    /**
+     * Get invoice signature status with polling support
+     * This method should be called repeatedly to track signature progress
+     */
+    getInvoiceSignatureStatus: async (sessionId: string, invoiceId: string): Promise<InvoiceSignatureStatusResponse> => {
         try {
-            return await apiClient.get<InvoiceSignatureStatusResponse>(
-                `/invoices/${invoiceId}/signature/${sessionId}/status`
+            const response = await apiClientNew.get<InvoiceSignatureStatusResponse>(
+                `/invoice-signatures/sessions/${sessionId}/status`,
+                { invoiceId },
+                { timeout: 15000 }
             );
+
+            return response;
         } catch (error) {
             console.error('❌ Error getting invoice signature status:', error);
             throw error;
         }
     },
 
-    // Anulowanie sesji podpisu faktury
-    cancelInvoiceSignatureSession: async (invoiceId: string, sessionId: string, reason?: string): Promise<{ success: boolean; message: string }> => {
+    /**
+     * Cancel invoice signature session
+     */
+    cancelInvoiceSignatureSession: async (
+        sessionId: string,
+        invoiceId: string,
+        reason?: string
+    ): Promise<{ success: boolean; message: string; timestamp: string }> => {
         try {
-            const params = reason ? `?reason=${encodeURIComponent(reason)}` : '';
-            return await apiClient.delete(
-                `/invoices/${invoiceId}/signature/${sessionId}${params}`
+            console.log('🔧 Cancelling invoice signature session...', { sessionId, invoiceId, reason });
+
+            const response = await apiClientNew.post<{ success: boolean; message: string; timestamp: string }>(
+                `/invoice-signatures/sessions/${sessionId}/cancel`,
+                { reason },
+                {
+                    timeout: 15000,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                }
             );
+
+            console.log('✅ Invoice signature session cancelled:', response);
+            return response;
         } catch (error) {
             console.error('❌ Error cancelling invoice signature session:', error);
             throw error;
         }
     },
 
-    // Pobranie podpisanej faktury
-    getSignedInvoice: async (invoiceId: string, sessionId: string): Promise<Blob> => {
+    /**
+     * Download signed invoice document
+     */
+    getSignedInvoice: async (sessionId: string, invoiceId: string): Promise<Blob> => {
         try {
-            const response = await fetch(`${apiClient.getBaseUrl()}/invoices/${invoiceId}/signature/${sessionId}/signed-document`, {
-                headers: {
-                    'Authorization': `Bearer ${apiClient.getAuthToken()}`
+            console.log('🔧 Downloading signed invoice...', { sessionId, invoiceId });
+
+            const response = await fetch(
+                `${apiClientNew['baseUrl']}/invoice-signatures/sessions/${sessionId}/signed-document?invoiceId=${encodeURIComponent(invoiceId)}`,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+                        'Accept': 'application/pdf'
+                    }
                 }
-            });
+            );
 
             if (!response.ok) {
-                throw new Error('Failed to download signed invoice');
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
 
-            return await response.blob();
+            const blob = await response.blob();
+            console.log('✅ Signed invoice downloaded successfully');
+
+            return blob;
         } catch (error) {
             console.error('❌ Error downloading signed invoice:', error);
             throw error;
         }
     },
 
-    // Pobranie obrazu podpisu
-    getSignatureImage: async (invoiceId: string, sessionId: string): Promise<Blob> => {
+    /**
+     * Download signature image
+     */
+    getSignatureImage: async (sessionId: string, invoiceId: string): Promise<Blob> => {
         try {
-            const response = await fetch(`${apiClient.getBaseUrl()}/invoices/${invoiceId}/signature/${sessionId}/signature-image`, {
-                headers: {
-                    'Authorization': `Bearer ${apiClient.getAuthToken()}`
+            console.log('🔧 Downloading signature image...', { sessionId, invoiceId });
+
+            const response = await fetch(
+                `${apiClientNew['baseUrl']}/invoice-signatures/sessions/${sessionId}/signature-image?invoiceId=${encodeURIComponent(invoiceId)}`,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+                        'Accept': 'image/png'
+                    }
                 }
-            });
+            );
 
             if (!response.ok) {
-                throw new Error('Failed to download signature image');
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
 
-            return await response.blob();
+            const blob = await response.blob();
+            console.log('✅ Signature image downloaded successfully');
+
+            return blob;
         } catch (error) {
             console.error('❌ Error downloading signature image:', error);
             throw error;
         }
     },
 
-    // Pobranie aktualnej wersji faktury z głównego API dokumentów finansowych
+    /**
+     * Download current invoice from financial documents API
+     */
     downloadCurrentInvoice: async (invoiceId: string): Promise<Blob> => {
         try {
-            const response = await fetch(`${apiClient.getBaseUrl()}/financial-documents/${invoiceId}/attachment`, {
-                headers: {
-                    'Authorization': `Bearer ${apiClient.getAuthToken()}`
+            console.log('🔧 Downloading current invoice...', invoiceId);
+
+            const response = await fetch(
+                `${apiClientNew['baseUrl']}/financial-documents/${invoiceId}/attachment`,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+                        'Accept': 'application/pdf'
+                    }
                 }
-            });
+            );
 
             if (!response.ok) {
-                throw new Error('Failed to download current invoice');
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
 
-            return await response.blob();
+            const blob = await response.blob();
+            console.log('✅ Current invoice downloaded successfully');
+
+            return blob;
         } catch (error) {
             console.error('❌ Error downloading current invoice:', error);
             throw error;
         }
-    },
+    }
 };

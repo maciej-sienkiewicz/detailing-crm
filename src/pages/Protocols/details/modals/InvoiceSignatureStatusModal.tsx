@@ -1,8 +1,9 @@
 // src/pages/Protocols/details/modals/InvoiceSignatureStatusModal.tsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { FaSignature, FaTimes, FaSpinner, FaCheck, FaExclamationTriangle, FaClock, FaDownload, FaTabletAlt, FaArrowRight, FaFileInvoice } from 'react-icons/fa';
-import { invoiceSignatureApi, InvoiceSignatureStatusResponse } from '../../../../api/invoiceSignatureApi';
+import { useInvoiceSignature } from '../../../../hooks/useInvoiceSignature';
+import { InvoiceSignatureStatus } from '../../../../api/invoiceSignatureApi';
 
 interface InvoiceSignatureStatusModalProps {
     isOpen: boolean;
@@ -21,62 +22,53 @@ const InvoiceSignatureStatusModal: React.FC<InvoiceSignatureStatusModalProps> = 
                                                                                      onCompleted,
                                                                                      onProceedNext
                                                                                  }) => {
-    const [status, setStatus] = useState<InvoiceSignatureStatusResponse | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [isCompleted, setIsCompleted] = useState(false);
     const [showProceedButton, setShowProceedButton] = useState(false);
-    const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
+    const {
+        isPolling,
+        currentStatus,
+        error,
+        startStatusPolling,
+        stopStatusPolling,
+        cancelSignature,
+        downloadSignedInvoice,
+        isSignatureCompleted,
+        isSignatureFailed
+    } = useInvoiceSignature();
+
+    // Start polling when modal opens
     useEffect(() => {
-        if (isOpen && sessionId) {
-            loadStatus();
-            startPolling();
+        if (isOpen && sessionId && invoiceId) {
+            console.log('🔧 Starting invoice signature status polling...', { sessionId, invoiceId });
+            startStatusPolling(sessionId, invoiceId);
+            setShowProceedButton(false);
         }
 
         return () => {
-            stopPolling();
-        };
-    }, [isOpen, sessionId]);
-
-    const loadStatus = async () => {
-        try {
-            setError(null);
-            const statusData = await invoiceSignatureApi.getInvoiceSignatureStatus(invoiceId, sessionId);
-            setStatus(statusData);
-
-            if (statusData.status === 'COMPLETED') {
-                setIsCompleted(true);
-                setShowProceedButton(true);
-                stopPolling();
-                // Nie wywołujemy automatycznie onCompleted - użytkownik musi sam zatwierdzić
-            } else if (statusData.status === 'EXPIRED' || statusData.status === 'CANCELLED' || statusData.status === 'ERROR') {
-                setShowProceedButton(true); // Pozwalamy przejść dalej mimo błędu
-                stopPolling();
+            if (isOpen) {
+                console.log('🔧 Cleaning up invoice signature status polling...');
+                stopStatusPolling();
             }
-        } catch (err) {
-            console.error('Error loading invoice signature status:', err);
-            setError('Nie udało się pobrać statusu podpisu faktury');
-            setShowProceedButton(true); // Pozwalamy przejść dalej mimo błędu
-        } finally {
-            setLoading(false);
-        }
-    };
+        };
+    }, [isOpen, sessionId, invoiceId, startStatusPolling, stopStatusPolling]);
 
-    const startPolling = () => {
-        intervalRef.current = setInterval(loadStatus, 3000); // Poll every 3 seconds
-    };
+    // Handle completion or failure
+    useEffect(() => {
+        console.log('🔧 Status change detected:', {
+            status: currentStatus?.status,
+            isCompleted: isSignatureCompleted,
+            isFailed: isSignatureFailed
+        });
 
-    const stopPolling = () => {
-        if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
+        if (isSignatureCompleted || isSignatureFailed) {
+            console.log('🔧 Signature process finished, showing proceed button');
+            setShowProceedButton(true);
         }
-    };
+    }, [isSignatureCompleted, isSignatureFailed, currentStatus]);
 
     const handleCancel = async () => {
         try {
-            await invoiceSignatureApi.cancelInvoiceSignatureSession(invoiceId, sessionId, 'Anulowane przez użytkownika');
+            await cancelSignature(sessionId, invoiceId, 'Anulowane przez użytkownika');
         } catch (err) {
             console.error('Error cancelling invoice signature session:', err);
         }
@@ -84,35 +76,38 @@ const InvoiceSignatureStatusModal: React.FC<InvoiceSignatureStatusModalProps> = 
     };
 
     const handleProceedNext = () => {
-        if (isCompleted) {
-            onCompleted(status?.signedInvoiceUrl);
+        stopStatusPolling();
+
+        if (isSignatureCompleted) {
+            onCompleted(currentStatus?.signedInvoiceUrl);
         }
-        onProceedNext(); // Przejdź do następnego kroku niezależnie od rezultatu podpisu
+        onProceedNext(); // Proceed to next step regardless of signature result
     };
 
     const handleDownload = async () => {
-        if (!status?.signedInvoiceUrl) return;
+        if (!currentStatus?.signedInvoiceUrl) return;
 
         try {
-            const blob = await invoiceSignatureApi.getSignedInvoice(invoiceId, sessionId);
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `faktura-${invoiceId}-podpisana.pdf`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
+            await downloadSignedInvoice(sessionId, invoiceId);
         } catch (err) {
             console.error('Error downloading signed invoice:', err);
         }
     };
 
     const getStatusInfo = () => {
-        if (!status) return null;
+        if (!currentStatus) {
+            return {
+                icon: <FaSpinner />,
+                title: 'Sprawdzanie statusu...',
+                description: 'Ładowanie informacji o statusie podpisu faktury...',
+                color: '#6b7280',
+                showSpinner: true,
+                canProceed: false
+            };
+        }
 
-        switch (status.status) {
-            case 'PENDING':
+        switch (currentStatus.status) {
+            case InvoiceSignatureStatus.PENDING:
                 return {
                     icon: <FaClock />,
                     title: 'Przygotowywanie żądania',
@@ -121,7 +116,7 @@ const InvoiceSignatureStatusModal: React.FC<InvoiceSignatureStatusModalProps> = 
                     showSpinner: true,
                     canProceed: false
                 };
-            case 'SENT_TO_TABLET':
+            case InvoiceSignatureStatus.SENT_TO_TABLET:
                 return {
                     icon: <FaTabletAlt />,
                     title: 'Wysłano do tableta',
@@ -130,7 +125,7 @@ const InvoiceSignatureStatusModal: React.FC<InvoiceSignatureStatusModalProps> = 
                     showSpinner: true,
                     canProceed: false
                 };
-            case 'VIEWING_INVOICE':
+            case InvoiceSignatureStatus.VIEWING_INVOICE:
                 return {
                     icon: <FaFileInvoice />,
                     title: 'Klient przegląda fakturę',
@@ -139,7 +134,7 @@ const InvoiceSignatureStatusModal: React.FC<InvoiceSignatureStatusModalProps> = 
                     showSpinner: true,
                     canProceed: false
                 };
-            case 'SIGNING_IN_PROGRESS':
+            case InvoiceSignatureStatus.SIGNING_IN_PROGRESS:
                 return {
                     icon: <FaSignature />,
                     title: 'Trwa składanie podpisu',
@@ -148,7 +143,7 @@ const InvoiceSignatureStatusModal: React.FC<InvoiceSignatureStatusModalProps> = 
                     showSpinner: true,
                     canProceed: false
                 };
-            case 'COMPLETED':
+            case InvoiceSignatureStatus.COMPLETED:
                 return {
                     icon: <FaCheck />,
                     title: 'Faktura podpisana!',
@@ -157,7 +152,7 @@ const InvoiceSignatureStatusModal: React.FC<InvoiceSignatureStatusModalProps> = 
                     showSpinner: false,
                     canProceed: true
                 };
-            case 'EXPIRED':
+            case InvoiceSignatureStatus.EXPIRED:
                 return {
                     icon: <FaClock />,
                     title: 'Czas minął',
@@ -166,7 +161,7 @@ const InvoiceSignatureStatusModal: React.FC<InvoiceSignatureStatusModalProps> = 
                     showSpinner: false,
                     canProceed: true
                 };
-            case 'CANCELLED':
+            case InvoiceSignatureStatus.CANCELLED:
                 return {
                     icon: <FaExclamationTriangle />,
                     title: 'Anulowano',
@@ -175,7 +170,7 @@ const InvoiceSignatureStatusModal: React.FC<InvoiceSignatureStatusModalProps> = 
                     showSpinner: false,
                     canProceed: true
                 };
-            case 'ERROR':
+            case InvoiceSignatureStatus.ERROR:
                 return {
                     icon: <FaExclamationTriangle />,
                     title: 'Wystąpił błąd',
@@ -199,6 +194,12 @@ const InvoiceSignatureStatusModal: React.FC<InvoiceSignatureStatusModalProps> = 
     if (!isOpen) return null;
 
     const statusInfo = getStatusInfo();
+    const canCancel = currentStatus?.status && [
+        InvoiceSignatureStatus.PENDING,
+        InvoiceSignatureStatus.SENT_TO_TABLET,
+        InvoiceSignatureStatus.VIEWING_INVOICE,
+        InvoiceSignatureStatus.SIGNING_IN_PROGRESS
+    ].includes(currentStatus.status);
 
     return (
         <ModalOverlay>
@@ -219,14 +220,7 @@ const InvoiceSignatureStatusModal: React.FC<InvoiceSignatureStatusModalProps> = 
                 </ModalHeader>
 
                 <ModalBody>
-                    {loading && !status ? (
-                        <LoadingSection>
-                            <LoadingSpinner>
-                                <FaSpinner className="spinner" />
-                            </LoadingSpinner>
-                            <LoadingMessage>Sprawdzanie statusu...</LoadingMessage>
-                        </LoadingSection>
-                    ) : error && !status ? (
+                    {error && !currentStatus ? (
                         <ErrorSection>
                             <ErrorIcon>
                                 <FaExclamationTriangle />
@@ -236,7 +230,7 @@ const InvoiceSignatureStatusModal: React.FC<InvoiceSignatureStatusModalProps> = 
                                 Mimo błędu możesz kontynuować proces bez podpisu cyfrowego.
                             </ErrorDescription>
                         </ErrorSection>
-                    ) : statusInfo ? (
+                    ) : (
                         <StatusSection>
                             <StatusIconContainer color={statusInfo.color}>
                                 {statusInfo.showSpinner ? (
@@ -252,21 +246,27 @@ const InvoiceSignatureStatusModal: React.FC<InvoiceSignatureStatusModalProps> = 
                                 <StatusTitle>{statusInfo.title}</StatusTitle>
                                 <StatusDescription>{statusInfo.description}</StatusDescription>
 
-                                {status?.signedAt && (
+                                {currentStatus?.signedAt && (
                                     <SignedAtInfo>
-                                        Podpisano: {new Date(status.signedAt).toLocaleString('pl-PL')}
+                                        Podpisano: {new Date(currentStatus.signedAt).toLocaleString('pl-PL')}
                                     </SignedAtInfo>
+                                )}
+
+                                {currentStatus?.timestamp && (
+                                    <TimestampInfo>
+                                        Ostatnia aktualizacja: {new Date(currentStatus.timestamp).toLocaleString('pl-PL')}
+                                    </TimestampInfo>
                                 )}
                             </StatusContent>
 
-                            {status?.status === 'COMPLETED' && (
+                            {currentStatus?.status === InvoiceSignatureStatus.COMPLETED && (
                                 <CompletedActions>
                                     <SuccessMessage>
                                         <FaCheck />
                                         Faktura została pomyślnie podpisana!
                                     </SuccessMessage>
 
-                                    {status.signedInvoiceUrl && (
+                                    {currentStatus.signedInvoiceUrl && (
                                         <DownloadButton onClick={handleDownload}>
                                             <FaDownload />
                                             Pobierz podpisaną fakturę
@@ -275,33 +275,35 @@ const InvoiceSignatureStatusModal: React.FC<InvoiceSignatureStatusModalProps> = 
                                 </CompletedActions>
                             )}
 
-                            {(status?.status === 'EXPIRED' || status?.status === 'CANCELLED' || status?.status === 'ERROR') && (
+                            {(currentStatus?.status === InvoiceSignatureStatus.EXPIRED ||
+                                currentStatus?.status === InvoiceSignatureStatus.CANCELLED ||
+                                currentStatus?.status === InvoiceSignatureStatus.ERROR) && (
                                 <WarningMessage>
                                     <FaExclamationTriangle />
                                     Proces może być kontynuowany bez podpisu cyfrowego
                                 </WarningMessage>
                             )}
                         </StatusSection>
-                    ) : null}
+                    )}
                 </ModalBody>
 
                 <ModalFooter>
                     <ButtonGroup>
-                        {status?.status && ['PENDING', 'SENT_TO_TABLET', 'VIEWING_INVOICE', 'SIGNING_IN_PROGRESS'].includes(status.status) ? (
+                        {canCancel && (
                             <CancelButton onClick={handleCancel}>
                                 Anuluj żądanie
                             </CancelButton>
-                        ) : null}
+                        )}
 
-                        {showProceedButton || (error && !status) ? (
+                        {(showProceedButton || (error && !currentStatus)) && (
                             <ProceedButton onClick={handleProceedNext}>
                                 <FaArrowRight />
-                                {isCompleted ? 'Kontynuuj z podpisem' : 'Kontynuuj bez podpisu'}
+                                {isSignatureCompleted ? 'Kontynuuj z podpisem' : 'Kontynuuj bez podpisu'}
                             </ProceedButton>
-                        ) : null}
+                        )}
 
                         <CloseModalButton onClick={onClose}>
-                            {showProceedButton || (error && !status) ? 'Anuluj proces' : 'Zamknij'}
+                            {(showProceedButton || (error && !currentStatus)) ? 'Anuluj proces' : 'Zamknij'}
                         </CloseModalButton>
                     </ButtonGroup>
                 </ModalFooter>
@@ -432,32 +434,6 @@ const ModalBody = styled.div`
     gap: 24px;
 `;
 
-const LoadingSection = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 16px;
-    padding: 24px 0;
-`;
-
-const LoadingSpinner = styled.div`
-    .spinner {
-        animation: spin 1s linear infinite;
-        font-size: 24px;
-        color: #1a365d;
-    }
-
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
-`;
-
-const LoadingMessage = styled.div`
-    color: #475569;
-    font-size: 14px;
-`;
-
 const ErrorSection = styled.div`
     display: flex;
     flex-direction: column;
@@ -547,6 +523,13 @@ const SignedAtInfo = styled.div`
     color: #059669;
     font-size: 13px;
     font-weight: 500;
+`;
+
+const TimestampInfo = styled.div`
+    font-size: 12px;
+    color: #94a3b8;
+    font-style: italic;
+    margin-top: 4px;
 `;
 
 const CompletedActions = styled.div`
