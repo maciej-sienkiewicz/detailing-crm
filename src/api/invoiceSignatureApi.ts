@@ -23,6 +23,15 @@ export interface InvoiceSignatureFromVisitRequest {
     paymentDays?: number;
 }
 
+export interface InvoiceGenerationFromVisitRequest {
+    visitId: string;
+    overridenItems?: CreateServiceCommand[];
+    paymentDays?: number;
+    paymentMethod?: string;
+    invoiceTitle?: string;
+    notes?: string;
+}
+
 export interface InvoiceSignatureResponse {
     success: boolean;
     sessionId: string;
@@ -30,6 +39,14 @@ export interface InvoiceSignatureResponse {
     invoiceId: string;
     expiresAt: string;
     documentPreviewUrl?: string;
+}
+
+export interface InvoiceGenerationResponse {
+    success: boolean;
+    invoiceId: string;
+    message: string;
+    documentUrl?: string;
+    timestamp: string;
 }
 
 export interface InvoiceSignatureStatusResponse {
@@ -73,6 +90,24 @@ export const invoiceSignatureApi = {
             return response;
         } catch (error) {
             console.error('❌ Error requesting invoice signature:', error);
+            throw error;
+        }
+    },
+
+    generateInvoiceFromVisit: async (request: InvoiceGenerationFromVisitRequest): Promise<InvoiceGenerationResponse> => {
+        try {
+            console.log('🔧 Generating invoice from visit without signature...', request);
+
+            const response = await apiClientNew.post<InvoiceGenerationResponse>(
+                `/financial-documents/generate-from-visit`,
+                request,
+                { timeout: 30000 }
+            );
+
+            console.log('✅ Invoice generated successfully:', response);
+            return response;
+        } catch (error) {
+            console.error('❌ Error generating invoice from visit:', error);
             throw error;
         }
     },

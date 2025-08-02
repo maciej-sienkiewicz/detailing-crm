@@ -2,18 +2,22 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import {
     invoiceSignatureApi,
     InvoiceSignatureFromVisitRequest,
+    InvoiceGenerationFromVisitRequest,
     InvoiceSignatureStatusResponse,
+    InvoiceGenerationResponse,
     InvoiceSignatureStatus
 } from '../api/invoiceSignatureApi';
 
 interface UseInvoiceSignatureResult {
     isRequesting: boolean;
     isPolling: boolean;
+    isGenerating: boolean;
     error: string | null;
     currentSession: string | null;
     currentInvoiceId: string | null;
     currentStatus: InvoiceSignatureStatusResponse | null;
     requestSignatureFromVisit: (request: InvoiceSignatureFromVisitRequest) => Promise<{ sessionId: string; invoiceId: string } | null>;
+    generateInvoiceFromVisit: (request: InvoiceGenerationFromVisitRequest) => Promise<{ invoiceId: string } | null>;
     startStatusPolling: (sessionId: string, invoiceId: string) => void;
     stopStatusPolling: () => void;
     cancelSignature: (sessionId: string, invoiceId: string, reason?: string) => Promise<boolean>;
@@ -29,6 +33,7 @@ interface UseInvoiceSignatureResult {
 export const useInvoiceSignature = (): UseInvoiceSignatureResult => {
     const [isRequesting, setIsRequesting] = useState(false);
     const [isPolling, setIsPolling] = useState(false);
+    const [isGenerating, setIsGenerating] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [currentSession, setCurrentSession] = useState<string | null>(null);
     const [currentInvoiceId, setCurrentInvoiceId] = useState<string | null>(null);
@@ -114,6 +119,71 @@ export const useInvoiceSignature = (): UseInvoiceSignatureResult => {
             return null;
         } finally {
             setIsRequesting(false);
+        }
+    }, []);
+
+    const generateInvoiceFromVisit = useCallback(async (request: InvoiceGenerationFromVisitRequest): Promise<{ invoiceId: string } | null> => {
+        try {
+            setIsGenerating(true);
+            setError(null);
+
+            console.log('🔧 Generating invoice from visit without signature...', {
+                visitId: request.visitId,
+                paymentMethod: request.paymentMethod,
+                paymentDays: request.paymentDays,
+                overridenItems: request.overridenItems ? `${request.overridenItems.length} items` : 'none',
+                invoiceTitle: request.invoiceTitle,
+                notes: request.notes
+            });
+
+            if (!request.visitId) {
+                throw new Error('Wymagane pole: visitId');
+            }
+
+            if (request.paymentMethod) {
+                console.log('💳 Payment method for invoice:', request.paymentMethod);
+            }
+
+            if (request.paymentDays) {
+                console.log('📅 Payment days for invoice:', request.paymentDays);
+            }
+
+            if (request.overridenItems && request.overridenItems.length > 0) {
+                console.log('📋 Overridden items for invoice:', {
+                    count: request.overridenItems.length,
+                    totalValue: request.overridenItems.reduce((sum, item) => sum + (item.finalPrice || item.price), 0)
+                });
+            }
+
+            const response = await invoiceSignatureApi.generateInvoiceFromVisit(request);
+
+            if (response.success) {
+                setCurrentInvoiceId(response.invoiceId);
+                console.log('✅ Invoice generation successful:', {
+                    invoiceId: response.invoiceId,
+                    includesPaymentData: !!(request.paymentMethod || request.overridenItems || request.paymentDays)
+                });
+                return { invoiceId: response.invoiceId };
+            } else {
+                setError(response.message || 'Nie udało się wygenerować faktury');
+                return null;
+            }
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Nie udało się wygenerować faktury';
+            console.error('❌ Error generating invoice from visit:', err);
+
+            if (request.paymentMethod || request.overridenItems) {
+                console.error('❌ Invoice generation request included payment data:', {
+                    paymentMethod: request.paymentMethod,
+                    paymentDays: request.paymentDays,
+                    overridenItemsCount: request.overridenItems?.length || 0
+                });
+            }
+
+            setError(errorMessage);
+            return null;
+        } finally {
+            setIsGenerating(false);
         }
     }, []);
 
@@ -302,11 +372,13 @@ export const useInvoiceSignature = (): UseInvoiceSignatureResult => {
     return {
         isRequesting,
         isPolling,
+        isGenerating,
         error,
         currentSession,
         currentInvoiceId,
         currentStatus,
         requestSignatureFromVisit,
+        generateInvoiceFromVisit,
         startStatusPolling,
         stopStatusPolling,
         cancelSignature,

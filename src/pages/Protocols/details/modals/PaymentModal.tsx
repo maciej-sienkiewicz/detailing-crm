@@ -16,6 +16,7 @@ interface PaymentModalProps {
         paymentDays?: number;
         overridenItems?: SelectedService[];
         invoiceSignatureSessionId?: string;
+        invoiceId?: string;
     }) => void;
     totalAmount: number;
     services: SelectedService[];
@@ -43,6 +44,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     const [showInvoiceSignatureModal, setShowInvoiceSignatureModal] = useState(false);
     const [pendingInvoiceItems, setPendingInvoiceItems] = useState<SelectedService[] | null>(null);
     const [invoiceSignatureSessionId, setInvoiceSignatureSessionId] = useState<string>('');
+    const [generatedInvoiceId, setGeneratedInvoiceId] = useState<string>('');
 
     const { showToast } = useToast();
 
@@ -52,7 +54,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             price: service.price,
             quantity: 1,
             discountType: service.discountType === 'PERCENTAGE' ? 'PERCENTAGE' :
-                service.discountType === 'FIXED_PRICE' ? 'FIXED_PRICE' : null,
+                service.discountType === 'FIXED_PRICE' ? 'FIXED_PRICE' : service.discountType === 'AMOUNT' ? 'AMOUNT' : null,
             discountValue: service.discountValue || null,
             finalPrice: service.finalPrice,
             approvalStatus: service.approvalStatus === 'APPROVED' ? 'APPROVED' :
@@ -68,6 +70,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 setDocumentType('receipt');
                 setPaymentDays(7);
                 setInvoiceSignatureSessionId('');
+                setGeneratedInvoiceId('');
             }
         }
     }, [isOpen]);
@@ -79,6 +82,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             setDocumentType('receipt');
             setPaymentDays(7);
             setInvoiceSignatureSessionId('');
+            setGeneratedInvoiceId('');
         }
     }, [isOpen]);
 
@@ -129,22 +133,25 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         finalizePayment(false);
     };
 
-    const handleInvoiceSignatureConfirm = (withSignature: boolean, sessionId?: string) => {
-        console.log('🔧 Invoice signature confirmation:', { withSignature, sessionId });
+    const handleInvoiceSignatureConfirm = (withSignature: boolean, sessionId?: string, invoiceId?: string) => {
+        console.log('🔧 Invoice signature confirmation:', { withSignature, sessionId, invoiceId });
 
         if (withSignature && sessionId) {
             setInvoiceSignatureSessionId(sessionId);
             showToast('success', 'Podpis cyfrowy został zebrany i dołączony do faktury.', 4000);
         } else if (withSignature && !sessionId) {
             console.warn('⚠️ Expected signature but no session ID provided');
-            showToast('error', 'Podpis nie został zebrany, kontynuowanie bez podpisu.', 3000);
+            showToast('info', 'Podpis nie został zebrany, kontynuowanie bez podpisu.', 3000);
+        } else if (!withSignature && invoiceId) {
+            setGeneratedInvoiceId(invoiceId);
+            showToast('success', 'Faktura została wygenerowana bez podpisu cyfrowego.', 4000);
         }
 
         setShowInvoiceSignatureModal(false);
-        finalizePayment(withSignature, sessionId);
+        finalizePayment(withSignature, sessionId, invoiceId);
     };
 
-    const finalizePayment = (withInvoiceSignature: boolean, sessionId?: string) => {
+    const finalizePayment = (withInvoiceSignature: boolean, sessionId?: string, invoiceId?: string) => {
         const itemsWereModified = areItemsModified(services, pendingInvoiceItems);
 
         const paymentData = {
@@ -152,7 +159,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             documentType,
             ...(paymentMethod === 'transfer' ? { paymentDays } : {}),
             ...(itemsWereModified && pendingInvoiceItems ? { overridenItems: pendingInvoiceItems } : {}),
-            ...(withInvoiceSignature && sessionId ? { invoiceSignatureSessionId: sessionId } : {})
+            ...(withInvoiceSignature && sessionId ? { invoiceSignatureSessionId: sessionId } : {}),
+            ...(invoiceId ? { invoiceId } : {})
         };
 
         if (itemsWereModified && pendingInvoiceItems) {

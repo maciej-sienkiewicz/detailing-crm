@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { FaFileInvoice, FaSignature, FaTimes, FaCheck, FaTabletAlt, FaExclamationTriangle } from 'react-icons/fa';
+import { FaFileInvoice, FaSignature, FaTimes, FaCheck, FaTabletAlt, FaExclamationTriangle, FaSpinner } from 'react-icons/fa';
 import InvoiceSignatureRequestModal from './InvoiceSignatureRequestModal';
 import InvoiceSignatureStatusModal from './InvoiceSignatureStatusModal';
-import { CreateServiceCommand } from '../../../../api/invoiceSignatureApi';
+import { CreateServiceCommand, InvoiceGenerationFromVisitRequest } from '../../../../api/invoiceSignatureApi';
+import { useInvoiceSignature } from '../../../../hooks/useInvoiceSignature';
 
 interface PaymentData {
     paymentMethod?: 'cash' | 'card' | 'transfer';
@@ -14,7 +15,7 @@ interface PaymentData {
 interface InvoiceSignatureConfirmationModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onConfirm: (withSignature: boolean, sessionId?: string) => void;
+    onConfirm: (withSignature: boolean, sessionId?: string, invoiceId?: string) => void;
     visitId: string;
     customerName: string;
     customerEmail?: string;
@@ -40,8 +41,33 @@ const InvoiceSignatureConfirmationModal: React.FC<InvoiceSignatureConfirmationMo
     const [signatureSessionId, setSignatureSessionId] = useState<string>('');
     const [signatureInvoiceId, setSignatureInvoiceId] = useState<string>('');
 
-    const handleWithoutSignature = () => {
-        onConfirm(false);
+    const { generateInvoiceFromVisit, isGenerating, error } = useInvoiceSignature();
+
+    const handleWithoutSignature = async () => {
+        try {
+            console.log('🔧 Generating invoice without signature...', { visitId, paymentData });
+
+            const request: InvoiceGenerationFromVisitRequest = {
+                visitId,
+                ...(paymentData?.paymentMethod && { paymentMethod: paymentData.paymentMethod }),
+                ...(paymentData?.paymentDays && { paymentDays: paymentData.paymentDays }),
+                ...(paymentData?.overridenItems && { overridenItems: paymentData.overridenItems }),
+                invoiceTitle: 'Faktura za usługi',
+                notes: 'Wygenerowano bez podpisu cyfrowego'
+            };
+
+            const result = await generateInvoiceFromVisit(request);
+
+            if (result) {
+                console.log('✅ Invoice generated successfully without signature:', result);
+                onConfirm(false, undefined, result.invoiceId);
+            } else {
+                console.error('❌ Failed to generate invoice without signature');
+            }
+        } catch (err) {
+            console.error('❌ Error generating invoice without signature:', err);
+        }
+
         onClose();
     };
 
@@ -57,7 +83,7 @@ const InvoiceSignatureConfirmationModal: React.FC<InvoiceSignatureConfirmationMo
     };
 
     const handleSignatureCompleted = (signedInvoiceUrl?: string) => {
-        onConfirm(true, signatureSessionId);
+        onConfirm(true, signatureSessionId, signatureInvoiceId);
         onClose();
     };
 
@@ -91,7 +117,7 @@ const InvoiceSignatureConfirmationModal: React.FC<InvoiceSignatureConfirmationMo
                                 <ModalSubtitle>Wizyta #{visitId} - {customerName}</ModalSubtitle>
                             </HeaderText>
                         </HeaderContent>
-                        <CloseButton onClick={handleModalClose}>
+                        <CloseButton onClick={handleModalClose} disabled={isGenerating}>
                             <FaTimes />
                         </CloseButton>
                     </ModalHeader>
@@ -125,9 +151,15 @@ const InvoiceSignatureConfirmationModal: React.FC<InvoiceSignatureConfirmationMo
                                     )}
                                 </PaymentDataGrid>
                                 <PaymentDataNote>
-                                    Te dane zostaną automatycznie uwzględnione w fakturze podczas procesu podpisu cyfrowego.
+                                    Te dane zostaną automatycznie uwzględnione w fakturze niezależnie od wyboru.
                                 </PaymentDataNote>
                             </PaymentDataSection>
+                        )}
+
+                        {error && (
+                            <ErrorSection>
+                                <ErrorMessage>{error}</ErrorMessage>
+                            </ErrorSection>
                         )}
 
                         <QuestionSection>
@@ -146,7 +178,7 @@ const InvoiceSignatureConfirmationModal: React.FC<InvoiceSignatureConfirmationMo
                         </QuestionSection>
 
                         <OptionsSection>
-                            <OptionCard onClick={handleWithSignature}>
+                            <OptionCard onClick={handleWithSignature} disabled={isGenerating}>
                                 <OptionIcon $variant="primary">
                                     <FaTabletAlt />
                                 </OptionIcon>
@@ -164,22 +196,27 @@ const InvoiceSignatureConfirmationModal: React.FC<InvoiceSignatureConfirmationMo
                                 <OptionArrow>→</OptionArrow>
                             </OptionCard>
 
-                            <OptionCard onClick={handleWithoutSignature}>
+                            <OptionCard onClick={handleWithoutSignature} disabled={isGenerating}>
                                 <OptionIcon $variant="secondary">
-                                    <FaFileInvoice />
+                                    {isGenerating ? <FaSpinner className="spinner" /> : <FaFileInvoice />}
                                 </OptionIcon>
                                 <OptionContent>
-                                    <OptionTitle>Nie, kontynuuj bez podpisu</OptionTitle>
+                                    <OptionTitle>
+                                        {isGenerating ? 'Generowanie faktury...' : 'Nie, kontynuuj bez podpisu'}
+                                    </OptionTitle>
                                     <OptionDescription>
-                                        Faktura zostanie wystawiona bez podpisu cyfrowego klienta.
-                                        {paymentData && (
+                                        {isGenerating ?
+                                            'Faktura jest generowana bez podpisu cyfrowego klienta.' :
+                                            'Faktura zostanie wystawiona bez podpisu cyfrowego klienta.'
+                                        }
+                                        {paymentData && !isGenerating && (
                                             <PaymentIncluded>
                                                 Dane płatności zostaną uwzględnione standardowo.
                                             </PaymentIncluded>
                                         )}
                                     </OptionDescription>
                                 </OptionContent>
-                                <OptionArrow>→</OptionArrow>
+                                {!isGenerating && <OptionArrow>→</OptionArrow>}
                             </OptionCard>
                         </OptionsSection>
 
@@ -201,8 +238,8 @@ const InvoiceSignatureConfirmationModal: React.FC<InvoiceSignatureConfirmationMo
                     </ModalBody>
 
                     <ModalFooter>
-                        <SecondaryButton onClick={handleModalClose}>
-                            Anuluj
+                        <SecondaryButton onClick={handleModalClose} disabled={isGenerating}>
+                            {isGenerating ? 'Trwa generowanie...' : 'Anuluj'}
                         </SecondaryButton>
                     </ModalFooter>
                 </ModalContainer>
@@ -262,7 +299,9 @@ const brandTheme = {
         info: '#0369a1',
         infoLight: '#f0f9ff',
         warning: '#d97706',
-        warningLight: '#fffbeb'
+        warningLight: '#fffbeb',
+        error: '#dc2626',
+        errorLight: '#fef2f2'
     },
     shadow: {
         soft: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
@@ -284,388 +323,423 @@ const brandTheme = {
 };
 
 const ModalOverlay = styled.div`
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(15, 23, 42, 0.7);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1200;
-    backdrop-filter: blur(4px);
-    animation: fadeIn 0.2s ease;
+   position: fixed;
+   top: 0;
+   left: 0;
+   right: 0;
+   bottom: 0;
+   background: rgba(15, 23, 42, 0.7);
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   z-index: 1200;
+   backdrop-filter: blur(4px);
+   animation: fadeIn 0.2s ease;
 
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-    }
+   @keyframes fadeIn {
+       from { opacity: 0; }
+       to { opacity: 1; }
+   }
 `;
 
 const ModalContainer = styled.div`
-    background: ${brandTheme.surface};
-    border-radius: ${brandTheme.radius.xl};
-    box-shadow: ${brandTheme.shadow.elevated};
-    width: 600px;
-    max-width: 95%;
-    max-height: 90vh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    border: 1px solid ${brandTheme.border};
-    animation: slideUp 0.3s ease;
+   background: ${brandTheme.surface};
+   border-radius: ${brandTheme.radius.xl};
+   box-shadow: ${brandTheme.shadow.elevated};
+   width: 600px;
+   max-width: 95%;
+   max-height: 90vh;
+   display: flex;
+   flex-direction: column;
+   overflow: hidden;
+   border: 1px solid ${brandTheme.border};
+   animation: slideUp 0.3s ease;
 
-    @keyframes slideUp {
-        from {
-            opacity: 0;
-            transform: translateY(20px) scale(0.95);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-        }
-    }
+   @keyframes slideUp {
+       from {
+           opacity: 0;
+           transform: translateY(20px) scale(0.95);
+       }
+       to {
+           opacity: 1;
+           transform: translateY(0) scale(1);
+       }
+   }
 `;
 
 const ModalHeader = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
-    border-bottom: 1px solid ${brandTheme.border};
-    background: ${brandTheme.surfaceElevated};
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
+   border-bottom: 1px solid ${brandTheme.border};
+   background: ${brandTheme.surfaceElevated};
 `;
 
 const HeaderContent = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.md};
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.md};
 `;
 
 const HeaderIcon = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    background: ${brandTheme.primary};
-    color: white;
-    border-radius: ${brandTheme.radius.md};
-    font-size: 18px;
-    flex-shrink: 0;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   width: 40px;
+   height: 40px;
+   background: ${brandTheme.primary};
+   color: white;
+   border-radius: ${brandTheme.radius.md};
+   font-size: 18px;
+   flex-shrink: 0;
 `;
 
 const HeaderText = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${brandTheme.spacing.xs};
+   display: flex;
+   flex-direction: column;
+   gap: ${brandTheme.spacing.xs};
 `;
 
 const ModalTitle = styled.h2`
-    margin: 0;
-    font-size: 18px;
-    font-weight: 600;
-    color: ${brandTheme.text.primary};
-    letter-spacing: -0.01em;
+   margin: 0;
+   font-size: 18px;
+   font-weight: 600;
+   color: ${brandTheme.text.primary};
+   letter-spacing: -0.01em;
 `;
 
 const ModalSubtitle = styled.p`
-    margin: 0;
-    font-size: 14px;
-    color: ${brandTheme.text.secondary};
-    font-weight: 400;
+   margin: 0;
+   font-size: 14px;
+   color: ${brandTheme.text.secondary};
+   font-weight: 400;
 `;
 
 const CloseButton = styled.button`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    background: ${brandTheme.surfaceHover};
-    border: 1px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.sm};
-    color: ${brandTheme.text.muted};
-    cursor: pointer;
-    transition: all 0.2s ease;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   width: 32px;
+   height: 32px;
+   background: ${brandTheme.surfaceHover};
+   border: 1px solid ${brandTheme.border};
+   border-radius: ${brandTheme.radius.sm};
+   color: ${brandTheme.text.muted};
+   cursor: pointer;
+   transition: all 0.2s ease;
 
-    &:hover {
-        background: #fef2f2;
-        border-color: #dc2626;
-        color: #dc2626;
-        transform: translateY(-1px);
-    }
+   &:hover:not(:disabled) {
+       background: #fef2f2;
+       border-color: #dc2626;
+       color: #dc2626;
+       transform: translateY(-1px);
+   }
+
+   &:disabled {
+       opacity: 0.5;
+       cursor: not-allowed;
+       transform: none;
+   }
 `;
 
 const ModalBody = styled.div`
-    padding: ${brandTheme.spacing.xl};
-    display: flex;
-    flex-direction: column;
-    gap: ${brandTheme.spacing.xl};
-    overflow-y: auto;
-    flex: 1;
+   padding: ${brandTheme.spacing.xl};
+   display: flex;
+   flex-direction: column;
+   gap: ${brandTheme.spacing.xl};
+   overflow-y: auto;
+   flex: 1;
+`;
+
+const ErrorSection = styled.div`
+   background: ${brandTheme.status.errorLight};
+   border: 1px solid ${brandTheme.status.error};
+   border-radius: ${brandTheme.radius.md};
+   padding: ${brandTheme.spacing.md};
+`;
+
+const ErrorMessage = styled.div`
+   color: ${brandTheme.status.error};
+   font-size: 14px;
+   font-weight: 500;
 `;
 
 const PaymentDataSection = styled.div`
-    background: ${brandTheme.status.infoLight};
-    border: 1px solid ${brandTheme.status.info}30;
-    border-radius: ${brandTheme.radius.lg};
-    padding: ${brandTheme.spacing.lg};
+   background: ${brandTheme.status.infoLight};
+   border: 1px solid ${brandTheme.status.info}30;
+   border-radius: ${brandTheme.radius.lg};
+   padding: ${brandTheme.spacing.lg};
 `;
 
 const PaymentDataTitle = styled.h3`
-    margin: 0 0 ${brandTheme.spacing.md} 0;
-    font-size: 15px;
-    font-weight: 600;
-    color: ${brandTheme.status.info};
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+   margin: 0 0 ${brandTheme.spacing.md} 0;
+   font-size: 15px;
+   font-weight: 600;
+   color: ${brandTheme.status.info};
+   text-transform: uppercase;
+   letter-spacing: 0.5px;
 `;
 
 const PaymentDataGrid = styled.div`
-    display: grid;
-    gap: ${brandTheme.spacing.sm};
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    margin-bottom: ${brandTheme.spacing.md};
+   display: grid;
+   gap: ${brandTheme.spacing.sm};
+   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+   margin-bottom: ${brandTheme.spacing.md};
 `;
 
 const PaymentDataItem = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
-    background: white;
-    border-radius: ${brandTheme.radius.sm};
-    border: 1px solid ${brandTheme.status.info}20;
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+   background: white;
+   border-radius: ${brandTheme.radius.sm};
+   border: 1px solid ${brandTheme.status.info}20;
 `;
 
 const PaymentDataLabel = styled.span`
-    font-size: 13px;
-    color: ${brandTheme.text.secondary};
-    font-weight: 500;
+   font-size: 13px;
+   color: ${brandTheme.text.secondary};
+   font-weight: 500;
 `;
 
 const PaymentDataValue = styled.span`
-    font-size: 13px;
-    color: ${brandTheme.text.primary};
-    font-weight: 600;
+   font-size: 13px;
+   color: ${brandTheme.text.primary};
+   font-weight: 600;
 `;
 
 const PaymentDataNote = styled.div`
-    font-size: 12px;
-    color: ${brandTheme.status.info};
-    font-style: italic;
-    padding: ${brandTheme.spacing.sm};
-    background: white;
-    border-radius: ${brandTheme.radius.sm};
-    border: 1px solid ${brandTheme.status.info}20;
+   font-size: 12px;
+   color: ${brandTheme.status.info};
+   font-style: italic;
+   padding: ${brandTheme.spacing.sm};
+   background: white;
+   border-radius: ${brandTheme.radius.sm};
+   border: 1px solid ${brandTheme.status.info}20;
 `;
 
 const QuestionSection = styled.div`
-    display: flex;
-    align-items: flex-start;
-    gap: ${brandTheme.spacing.lg};
-    padding: ${brandTheme.spacing.lg};
-    background: ${brandTheme.status.infoLight};
-    border: 1px solid ${brandTheme.status.info}30;
-    border-radius: ${brandTheme.radius.lg};
+   display: flex;
+   align-items: flex-start;
+   gap: ${brandTheme.spacing.lg};
+   padding: ${brandTheme.spacing.lg};
+   background: ${brandTheme.status.infoLight};
+   border: 1px solid ${brandTheme.status.info}30;
+   border-radius: ${brandTheme.radius.lg};
 `;
 
 const QuestionIcon = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 48px;
-    height: 48px;
-    background: ${brandTheme.status.info};
-    color: white;
-    border-radius: ${brandTheme.radius.lg};
-    font-size: 20px;
-    flex-shrink: 0;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   width: 48px;
+   height: 48px;
+   background: ${brandTheme.status.info};
+   color: white;
+   border-radius: ${brandTheme.radius.lg};
+   font-size: 20px;
+   flex-shrink: 0;
 `;
 
 const QuestionContent = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${brandTheme.spacing.sm};
+   display: flex;
+   flex-direction: column;
+   gap: ${brandTheme.spacing.sm};
 `;
 
 const QuestionTitle = styled.h3`
-    margin: 0;
-    font-size: 16px;
-    font-weight: 600;
-    color: ${brandTheme.text.primary};
-    line-height: 1.4;
+   margin: 0;
+   font-size: 16px;
+   font-weight: 600;
+   color: ${brandTheme.text.primary};
+   line-height: 1.4;
 `;
 
 const QuestionDescription = styled.p`
-    margin: 0;
-    font-size: 14px;
-    color: ${brandTheme.text.secondary};
-    line-height: 1.5;
+   margin: 0;
+   font-size: 14px;
+   color: ${brandTheme.text.secondary};
+   line-height: 1.5;
 
-    strong {
-        color: ${brandTheme.text.primary};
-        font-weight: 600;
-    }
+   strong {
+       color: ${brandTheme.text.primary};
+       font-weight: 600;
+   }
 `;
 
 const OptionsSection = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${brandTheme.spacing.md};
+   display: flex;
+   flex-direction: column;
+   gap: ${brandTheme.spacing.md};
 `;
 
-const OptionCard = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.lg};
-    padding: ${brandTheme.spacing.lg};
-    border: 2px solid ${brandTheme.borderLight};
-    border-radius: ${brandTheme.radius.lg};
-    cursor: pointer;
-    transition: all 0.2s ease;
-    background: ${brandTheme.surface};
+const OptionCard = styled.div<{ disabled?: boolean }>`
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.lg};
+   padding: ${brandTheme.spacing.lg};
+   border: 2px solid ${brandTheme.borderLight};
+   border-radius: ${brandTheme.radius.lg};
+   cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+   transition: all 0.2s ease;
+   background: ${brandTheme.surface};
+   opacity: ${props => props.disabled ? 0.6 : 1};
 
-    &:hover {
-        border-color: ${brandTheme.primary};
-        background: ${brandTheme.primaryGhost};
-        transform: translateY(-2px);
-        box-shadow: ${brandTheme.shadow.elevated};
-    }
+   &:hover:not(:disabled) {
+       border-color: ${brandTheme.primary};
+       background: ${brandTheme.primaryGhost};
+       transform: translateY(-2px);
+       box-shadow: ${brandTheme.shadow.elevated};
+   }
+
+   .spinner {
+       animation: spin 1s linear infinite;
+   }
+
+   @keyframes spin {
+       from { transform: rotate(0deg); }
+       to { transform: rotate(360deg); }
+   }
 `;
 
 const OptionIcon = styled.div<{ $variant: 'primary' | 'secondary' }>`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 48px;
-    height: 48px;
-    background: ${props => props.$variant === 'primary' ? brandTheme.primary + '15' : brandTheme.text.muted + '15'};
-    color: ${props => props.$variant === 'primary' ? brandTheme.primary : brandTheme.text.muted};
-    border-radius: ${brandTheme.radius.lg};
-    font-size: 20px;
-    flex-shrink: 0;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   width: 48px;
+   height: 48px;
+   background: ${props => props.$variant === 'primary' ? brandTheme.primary + '15' : brandTheme.text.muted + '15'};
+   color: ${props => props.$variant === 'primary' ? brandTheme.primary : brandTheme.text.muted};
+   border-radius: ${brandTheme.radius.lg};
+   font-size: 20px;
+   flex-shrink: 0;
 `;
 
 const OptionContent = styled.div`
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: ${brandTheme.spacing.xs};
+   flex: 1;
+   display: flex;
+   flex-direction: column;
+   gap: ${brandTheme.spacing.xs};
 `;
 
 const OptionTitle = styled.h4`
-    margin: 0;
-    font-size: 16px;
-    font-weight: 600;
-    color: ${brandTheme.text.primary};
-    line-height: 1.3;
+   margin: 0;
+   font-size: 16px;
+   font-weight: 600;
+   color: ${brandTheme.text.primary};
+   line-height: 1.3;
 `;
 
 const OptionDescription = styled.p`
-    margin: 0;
-    font-size: 13px;
-    color: ${brandTheme.text.secondary};
-    line-height: 1.4;
+   margin: 0;
+   font-size: 13px;
+   color: ${brandTheme.text.secondary};
+   line-height: 1.4;
 `;
 
 const PaymentIncluded = styled.div`
-    font-size: 12px;
-    color: ${brandTheme.status.info};
-    font-weight: 500;
-    font-style: italic;
-    margin-top: ${brandTheme.spacing.xs};
-    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
-    background: ${brandTheme.status.infoLight};
-    border-radius: ${brandTheme.radius.sm};
-    border: 1px solid ${brandTheme.status.info}30;
+   font-size: 12px;
+   color: ${brandTheme.status.info};
+   font-weight: 500;
+   font-style: italic;
+   margin-top: ${brandTheme.spacing.xs};
+   padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
+   background: ${brandTheme.status.infoLight};
+   border-radius: ${brandTheme.radius.sm};
+   border: 1px solid ${brandTheme.status.info}30;
 `;
 
 const OptionArrow = styled.div`
-    font-size: 18px;
-    color: ${brandTheme.text.muted};
-    font-weight: bold;
-    transition: all 0.2s ease;
+   font-size: 18px;
+   color: ${brandTheme.text.muted};
+   font-weight: bold;
+   transition: all 0.2s ease;
 
-    ${OptionCard}:hover & {
-        color: ${brandTheme.primary};
-        transform: translateX(4px);
-    }
+   ${OptionCard}:hover:not(:disabled) & {
+       color: ${brandTheme.primary};
+       transform: translateX(4px);
+   }
 `;
 
 const InfoSection = styled.div`
-    display: flex;
-    align-items: flex-start;
-    gap: ${brandTheme.spacing.md};
-    padding: ${brandTheme.spacing.md};
-    background: ${brandTheme.status.warningLight};
-    border: 1px solid ${brandTheme.status.warning}30;
-    border-radius: ${brandTheme.radius.md};
+   display: flex;
+   align-items: flex-start;
+   gap: ${brandTheme.spacing.md};
+   padding: ${brandTheme.spacing.md};
+   background: ${brandTheme.status.warningLight};
+   border: 1px solid ${brandTheme.status.warning}30;
+   border-radius: ${brandTheme.radius.md};
 `;
 
 const InfoIcon = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 20px;
-    color: ${brandTheme.status.warning};
-    font-size: 14px;
-    flex-shrink: 0;
-    margin-top: 2px;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   width: 20px;
+   height: 20px;
+   color: ${brandTheme.status.warning};
+   font-size: 14px;
+   flex-shrink: 0;
+   margin-top: 2px;
 `;
 
 const InfoText = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${brandTheme.spacing.xs};
+   display: flex;
+   flex-direction: column;
+   gap: ${brandTheme.spacing.xs};
 `;
 
 const InfoTitle = styled.div`
-    font-size: 13px;
-    font-weight: 600;
-    color: ${brandTheme.status.warning};
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+   font-size: 13px;
+   font-weight: 600;
+   color: ${brandTheme.status.warning};
+   text-transform: uppercase;
+   letter-spacing: 0.5px;
 `;
 
 const InfoDescription = styled.div`
-    font-size: 13px;
-    color: ${brandTheme.text.secondary};
-    line-height: 1.4;
+   font-size: 13px;
+   color: ${brandTheme.text.secondary};
+   line-height: 1.4;
 `;
 
 const ModalFooter = styled.div`
-    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
-    border-top: 1px solid ${brandTheme.border};
-    background: ${brandTheme.surfaceElevated};
-    display: flex;
-    justify-content: flex-end;
+   padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
+   border-top: 1px solid ${brandTheme.border};
+   background: ${brandTheme.surfaceElevated};
+   display: flex;
+   justify-content: flex-end;
 `;
 
 const SecondaryButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
-    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.lg};
-    background: ${brandTheme.surface};
-    color: ${brandTheme.text.secondary};
-    border: 1px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.sm};
-    font-weight: 500;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    min-height: 40px;
-    min-width: 80px;
+   display: flex;
+   align-items: center;
+   gap: ${brandTheme.spacing.sm};
+   padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.lg};
+   background: ${brandTheme.surface};
+   color: ${brandTheme.text.secondary};
+   border: 1px solid ${brandTheme.border};
+   border-radius: ${brandTheme.radius.sm};
+   font-weight: 500;
+   font-size: 14px;
+   cursor: pointer;
+   transition: all 0.2s ease;
+   min-height: 40px;
+   min-width: 80px;
 
-    &:hover {
-        background: ${brandTheme.surfaceHover};
-        border-color: ${brandTheme.text.muted};
-        transform: translateY(-1px);
-    }
+   &:hover:not(:disabled) {
+       background: ${brandTheme.surfaceHover};
+       border-color: ${brandTheme.text.muted};
+       transform: translateY(-1px);
+   }
+
+   &:disabled {
+       opacity: 0.5;
+       cursor: not-allowed;
+       transform: none;
+   }
 `;
 
 export default InvoiceSignatureConfirmationModal;
