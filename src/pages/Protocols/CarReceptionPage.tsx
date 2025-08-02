@@ -101,7 +101,7 @@ const CarReceptionPage: React.FC = () => {
     const endDateFromCalendar = location.state?.endDate; // Dodana obsługa daty końcowej z kalendarza
     const isFullProtocolFromNav = location.state?.isFullProtocol !== undefined
         ? location.state.isFullProtocol
-        : true; // domyślnie true, jeśli nie określono
+        : true;
 
     const [isFullProtocol, setIsFullProtocol] = useState(isFullProtocolFromNav);
 
@@ -225,7 +225,7 @@ const CarReceptionPage: React.FC = () => {
                             <BackButton onClick={handleFormCancel}>
                                 <FaArrowLeft />
                             </BackButton>
-                            <h1>{editingProtocol ? 'Edycja protokołu' : 'Wizyta'}</h1>
+                            <h1>{editingProtocol ? 'Edycja protokołu' : 'Rezerwacja'}</h1>
                         </HeaderLeft>
                     </>
                 ) : (

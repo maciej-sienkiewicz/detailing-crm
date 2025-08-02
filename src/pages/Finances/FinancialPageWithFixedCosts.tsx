@@ -30,11 +30,17 @@ import { useDocumentActions } from './hooks/useDocumentActions';
 // Import types
 import { DocumentType } from '../../types/finance';
 
+
 // Import styles and utilities
 import { brandTheme } from './styles/theme';
 import { useToast } from '../../components/common/Toast/Toast';
 import Pagination from '../../components/common/Pagination';
 import { companySettingsApi } from "../../api/companySettingsApi";
+import {useInvoiceSignature} from "../../hooks/useInvoiceSignature";
+import {protocolSignatureApi} from "../../api/protocolSignatureApi";
+import {invoicesApi} from "../../api/invoicesApi";
+import {invoiceSignatureApi} from "../../api/invoiceSignatureApi";
+import {documentPrintService} from "../../api/documentPrintService";
 
 type ActiveTab = 'documents' | 'fixed-costs' | 'reports';
 
@@ -175,13 +181,14 @@ const FinancialPageWithFixedCosts: React.FC = () => {
     }, [handleDeleteDocument, handleError]);
 
     // Handle download attachment
-    const handleDownloadAttachment = useCallback((documentId: string) => {
+    const handleDownloadAttachment = useCallback(async (documentId: string) => {
         try {
-            const attachmentUrl = `http://localhost:8080/api/financial-documents/${documentId}/attachment`;
-            window.open(attachmentUrl, '_blank');
-        } catch (error) {
-            console.error('Error downloading attachment:', error);
-            handleError('Nie udało się pobrać załącznika');
+            const result = await documentPrintService.downloadDocument(documentId);
+            return true;
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Nie udało się pobrać podpisanego dokumentu';
+            console.error('❌ Error downloading signed document:', err);
+            return false;
         }
     }, [handleError]);
 

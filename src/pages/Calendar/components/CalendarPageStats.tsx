@@ -1,13 +1,13 @@
-// src/pages/Calendar/components/CalendarPageStats.tsx
+// src/pages/Calendar/components/CalendarPageStats.tsx - ZAKTUALIZOWANA WERSJA
 import React from 'react';
 import styled from 'styled-components';
-import { FaCalendarAlt, FaChartLine, FaClock, FaSignOutAlt, FaUsers, FaInfoCircle } from 'react-icons/fa';
+import { FaCalendarAlt, FaChartLine, FaClock, FaSignOutAlt, FaUsers, FaInfoCircle, FaSync } from 'react-icons/fa';
 import { useCalendarPageContext } from '../CalendarPageProvider';
 import { Tooltip } from '../../../components/common/Tooltip';
 import { theme } from '../../../styles/theme';
 
 export const CalendarPageStats: React.FC = () => {
-    const { stats } = useCalendarPageContext();
+    const { stats, actions } = useCalendarPageContext();
 
     const tooltipContent = {
         inProgress: "Pojazdy aktualnie znajdujące się na terenie zakładu, które są w trakcie realizacji usług detailingowych lub naprawczych.",
@@ -19,12 +19,13 @@ export const CalendarPageStats: React.FC = () => {
 
     return (
         <StatsSection>
+
             <StatsGrid>
                 <Tooltip text={tooltipContent.inProgress} position="bottom">
                     <StatCard>
                         <StatIcon $color={theme.text.primary}><FaClock /></StatIcon>
                         <StatContent>
-                            <StatValue>{stats.inProgress}</StatValue>
+                            <StatValue>{stats.loading ? '...' : stats.inProgress}</StatValue>
                             <StatLabel>W trakcie realizacji</StatLabel>
                         </StatContent>
                         <StatTooltipIcon>
@@ -37,7 +38,7 @@ export const CalendarPageStats: React.FC = () => {
                     <StatCard>
                         <StatIcon $color={theme.text.primary}><FaUsers /></StatIcon>
                         <StatContent>
-                            <StatValue>{stats.today}</StatValue>
+                            <StatValue>{stats.loading ? '...' : stats.today}</StatValue>
                             <StatLabel>Do przyjęcia dzisiaj</StatLabel>
                         </StatContent>
                         <StatTooltipIcon>
@@ -50,7 +51,7 @@ export const CalendarPageStats: React.FC = () => {
                     <StatCard>
                         <StatIcon $color={theme.text.primary}><FaClock /></StatIcon>
                         <StatContent>
-                            <StatValue>{stats.readyForPickup}</StatValue>
+                            <StatValue>{stats.loading ? '...' : stats.readyForPickup}</StatValue>
                             <StatLabel>Oczekujące na odbiór</StatLabel>
                         </StatContent>
                         <StatTooltipIcon>
@@ -63,7 +64,7 @@ export const CalendarPageStats: React.FC = () => {
                     <StatCard>
                         <StatIcon $color={theme.text.primary}><FaChartLine /></StatIcon>
                         <StatContent>
-                            <StatValue>{stats.thisWeek}</StatValue>
+                            <StatValue>{stats.loading ? '...' : stats.thisWeek}</StatValue>
                             <StatLabel>Łącznie w tym tygodniu</StatLabel>
                         </StatContent>
                         <StatTooltipIcon>
@@ -76,7 +77,7 @@ export const CalendarPageStats: React.FC = () => {
                     <StatCard>
                         <StatIcon $color={theme.text.primary}><FaSignOutAlt /></StatIcon>
                         <StatContent>
-                            <StatValue>{stats.cancelled}</StatValue>
+                            <StatValue>{stats.loading ? '...' : stats.cancelled}</StatValue>
                             <StatLabel>Wczoraj przucono</StatLabel>
                         </StatContent>
                         <StatTooltipIcon>
@@ -85,6 +86,12 @@ export const CalendarPageStats: React.FC = () => {
                     </StatCard>
                 </Tooltip>
             </StatsGrid>
+
+            {stats.error && (
+                <ErrorMessage>
+                    ⚠️ {stats.error}
+                </ErrorMessage>
+            )}
         </StatsSection>
     );
 };
@@ -100,6 +107,55 @@ const StatsSection = styled.section`
 
     @media (max-width: 768px) {
         padding: ${theme.spacing.md} ${theme.spacing.md} 0;
+    }
+`;
+
+const StatsHeader = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: ${theme.spacing.lg};
+`;
+
+const StatsTitle = styled.h2`
+    font-size: 20px;
+    font-weight: 600;
+    color: ${theme.text.primary};
+    margin: 0;
+    letter-spacing: -0.025em;
+`;
+
+const RefreshButton = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: ${theme.surface};
+    border: 1px solid ${theme.border};
+    border-radius: ${theme.radius.md};
+    color: ${theme.text.secondary};
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover:not(:disabled) {
+        background: ${theme.surfaceHover};
+        color: ${theme.primary};
+        border-color: ${theme.primary};
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .spinning {
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
     }
 `;
 
@@ -213,4 +269,14 @@ const StatLabel = styled.div`
     color: ${theme.text.secondary};
     font-weight: 500;
     line-height: 1.3;
+`;
+
+const ErrorMessage = styled.div`
+    background: ${theme.errorBg};
+    color: ${theme.error};
+    padding: ${theme.spacing.md};
+    border-radius: ${theme.radius.md};
+    font-size: 14px;
+    text-align: center;
+    margin-bottom: ${theme.spacing.lg};
 `;

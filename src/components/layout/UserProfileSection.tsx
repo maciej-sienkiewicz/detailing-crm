@@ -109,37 +109,11 @@ const UserProfileSection: React.FC = () => {
                         <HeaderInfo>
                             <HeaderName>{`${user.firstName} ${user.lastName}`}</HeaderName>
                             <HeaderEmail>{user.email}</HeaderEmail>
-                            <HeaderCompany>{user.companyName || 'Detailing Studio'}</HeaderCompany>
                         </HeaderInfo>
                     </MenuHeader>
 
                     <MenuDivider />
 
-                    <MenuItems>
-                        <MenuItem>
-                            <MenuItemIcon><FaUser /></MenuItemIcon>
-                            <MenuItemText>Profil</MenuItemText>
-                        </MenuItem>
-
-                        <MenuItem>
-                            <MenuItemIcon><FaCog /></MenuItemIcon>
-                            <MenuItemText>Ustawienia</MenuItemText>
-                        </MenuItem>
-
-                        <MenuItem>
-                            <MenuItemIcon><FaEnvelope /></MenuItemIcon>
-                            <MenuItemText>Wiadomości</MenuItemText>
-                            <NotificationBadge>3</NotificationBadge>
-                        </MenuItem>
-
-                        <MenuItem>
-                            <MenuItemIcon><FaBell /></MenuItemIcon>
-                            <MenuItemText>Powiadomienia</MenuItemText>
-                            <NotificationBadge>7</NotificationBadge>
-                        </MenuItem>
-                    </MenuItems>
-
-                    <MenuDivider />
 
                     <MenuItem onClick={handleLogout} $isLogout>
                         <MenuItemIcon><FaSignOutAlt /></MenuItemIcon>

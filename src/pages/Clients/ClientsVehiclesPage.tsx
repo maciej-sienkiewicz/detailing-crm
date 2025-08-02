@@ -292,7 +292,7 @@ const ClientsVehiclesPage: React.FC = () => {
                             </HeaderTitle>
                             <HeaderSubtitle>
                                 {activeTab === 'owners'
-                                    ? 'Zarządzanie relacjami z klientami detailingu'
+                                    ? 'Zarządzanie relacjami z klientami'
                                     : 'Zarządzanie flotą pojazdów klientów'
                                 }
                                 {/* Show current selection in subtitle */}

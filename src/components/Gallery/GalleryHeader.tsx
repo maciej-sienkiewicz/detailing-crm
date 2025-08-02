@@ -28,9 +28,6 @@ const HeaderContainer = styled.header`
   background: rgba(255, 255, 255, 0.95);
   border-bottom: 1px solid ${theme.border};
   box-shadow: ${theme.shadow.sm};
-  position: sticky;
-  top: 0;
-  z-index: 100;
   backdrop-filter: blur(8px);
 `;
 

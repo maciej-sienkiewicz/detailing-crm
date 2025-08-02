@@ -279,47 +279,11 @@ const TabletManagementDashboard: React.FC<TabletManagementDashboardProps> = ({
                                                 <DetailLabel>Status:</DetailLabel>
                                                 <DetailValue>{tablet.status}</DetailValue>
                                             </DetailRow>
-                                            <DetailRow>
-                                                <DetailLabel>Lokalizacja:</DetailLabel>
-                                                <DetailValue>{tablet.locationId || 'Brak'}</DetailValue>
-                                            </DetailRow>
                                         </TabletDetails>
 
                                         <TabletActions>
                                             <ActionButton
-                                                onClick={() => handleRequestSignature(tablet)}
-                                                disabled={!tablet.isOnline}
-                                                title="Poproś o podpis"
-                                                $variant="view"
-                                            >
-                                                <FaSignature />
-                                            </ActionButton>
-                                            <ActionButton
-                                                onClick={() => handleSendSignatureRequest(tablet)}
-                                                disabled={!tablet.isOnline}
-                                                title="Wyślij żądanie podpisu"
-                                                $variant="view"
-                                            >
-                                                <FaPaperPlane />
-                                            </ActionButton>
-                                            <ActionButton
-                                                onClick={() => handleTestTablet(tablet.id)}
-                                                disabled={!tablet.isOnline}
-                                                title="Test tabletu"
-                                                $variant="view"
-                                            >
-                                                <FaEye />
-                                            </ActionButton>
-                                            <ActionButton
-                                                title="Edytuj"
-                                                disabled
-                                                $variant="edit"
-                                            >
-                                                <FaEdit />
-                                            </ActionButton>
-                                            <ActionButton
                                                 title="Usuń"
-                                                disabled
                                                 $variant="delete"
                                             >
                                                 <FaTrash />
