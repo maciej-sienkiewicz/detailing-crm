@@ -5,8 +5,8 @@ import styled from 'styled-components';
 import { FaUsers, FaCar, FaPlus, FaExchangeAlt, FaFileExport } from 'react-icons/fa';
 
 // Import existing components
-import OwnersPageContent from './OwnersPage';
 import VehiclesPageContent from './VehiclesPage';
+import OwnersPageContent from "./index";
 
 // Professional Brand Theme - Premium Automotive CRM
 const brandTheme = {

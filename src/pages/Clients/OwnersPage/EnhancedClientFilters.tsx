@@ -1,22 +1,16 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import styled from 'styled-components';
 import { FaFilter, FaTimes, FaSearch, FaCheck, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 
-// Professional Brand Theme - Premium Automotive CRM
 const brandTheme = {
-    // Primary Colors - Professional Blue Palette
     primary: 'var(--brand-primary, #1a365d)',
     primaryLight: 'var(--brand-primary-light, #2c5aa0)',
     primaryDark: 'var(--brand-primary-dark, #0f2027)',
     primaryGhost: 'var(--brand-primary-ghost, rgba(26, 54, 93, 0.04))',
-
-    // Surface Colors - Clean & Minimal
     surface: '#ffffff',
     surfaceAlt: '#fafbfc',
     surfaceElevated: '#f8fafc',
     surfaceHover: '#f1f5f9',
-
-    // Typography Colors
     text: {
         primary: '#0f172a',
         secondary: '#475569',
@@ -24,13 +18,9 @@ const brandTheme = {
         muted: '#94a3b8',
         disabled: '#cbd5e1'
     },
-
-    // Border Colors
     border: '#e2e8f0',
     borderLight: '#f1f5f9',
     borderHover: '#cbd5e1',
-
-    // Status Colors - Automotive Grade
     status: {
         success: '#059669',
         successLight: '#d1fae5',
@@ -41,8 +31,6 @@ const brandTheme = {
         info: '#0ea5e9',
         infoLight: '#e0f2fe'
     },
-
-    // Shadows - Professional Depth
     shadow: {
         xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
         sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
@@ -50,8 +38,6 @@ const brandTheme = {
         lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
         xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
     },
-
-    // Spacing Scale
     spacing: {
         xs: '4px',
         sm: '8px',
@@ -60,8 +46,6 @@ const brandTheme = {
         xl: '32px',
         xxl: '48px'
     },
-
-    // Border Radius
     radius: {
         sm: '6px',
         md: '8px',
@@ -71,43 +55,93 @@ const brandTheme = {
     }
 };
 
-// Client filters interface - UPDATED: Changed minTransactions to minVehicles
 export interface ClientFilters {
     name: string;
     email: string;
     phone: string;
     minVisits: string;
-    minVehicles: string; // CHANGED: from minTransactions to minVehicles
+    minVehicles: string;
     minRevenue: string;
 }
 
-interface ClientFiltersProps {
+interface EnhancedClientFilters {
     filters: ClientFilters;
+    appliedFilters: ClientFilters;
     showFilters: boolean;
     onToggleFilters: () => void;
-    onFilterChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    onFiltersChange: (filters: ClientFilters) => void;
+    onApplyFilters: () => void;
     onResetFilters: () => void;
     resultCount: number;
 }
 
-const ClientFilters: React.FC<ClientFiltersProps> = ({
-                                                         filters,
-                                                         showFilters,
-                                                         onToggleFilters,
-                                                         onFilterChange,
-                                                         onResetFilters,
-                                                         resultCount
-                                                     }) => {
-    // Check if any filters are active
-    const hasActiveFilters = () => {
-        return Object.values(filters).some(val => val !== '');
-    };
+const EnhancedClientFilters: React.FC<EnhancedClientFilters> = ({
+                                                                         filters,
+                                                                         appliedFilters,
+                                                                         showFilters,
+                                                                         onToggleFilters,
+                                                                         onFiltersChange,
+                                                                         onApplyFilters,
+                                                                         onResetFilters,
+                                                                         resultCount
+                                                                     }) => {
+    const [localFilters, setLocalFilters] = useState<ClientFilters>(filters);
 
-    const activeFilterCount = Object.values(filters).filter(val => val !== '').length;
+    const hasActiveFilters = useCallback(() => {
+        return Object.values(appliedFilters).some(val => val !== '');
+    }, [appliedFilters]);
+
+    const hasChanges = useCallback(() => {
+        return Object.keys(localFilters).some(key =>
+            localFilters[key as keyof ClientFilters] !== appliedFilters[key as keyof ClientFilters]
+        );
+    }, [localFilters, appliedFilters]);
+
+    const activeFilterCount = Object.values(appliedFilters).filter(val => val !== '').length;
+
+    const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        const newFilters = {
+            ...localFilters,
+            [name]: value
+        };
+        setLocalFilters(newFilters);
+        onFiltersChange(newFilters);
+    }, [localFilters, onFiltersChange]);
+
+    const handleApplyFilters = useCallback(() => {
+        onApplyFilters();
+    }, [onApplyFilters]);
+
+    const handleResetFilters = useCallback(() => {
+        const emptyFilters = {
+            name: '',
+            email: '',
+            phone: '',
+            minVisits: '',
+            minVehicles: '',
+            minRevenue: ''
+        };
+        setLocalFilters(emptyFilters);
+        onResetFilters();
+    }, [onResetFilters]);
+
+    const clearField = useCallback((fieldName: keyof ClientFilters) => {
+        const newFilters = {
+            ...localFilters,
+            [fieldName]: ''
+        };
+        setLocalFilters(newFilters);
+        onFiltersChange(newFilters);
+    }, [localFilters, onFiltersChange]);
+
+    // Sync local filters when external filters change
+    React.useEffect(() => {
+        setLocalFilters(filters);
+    }, [filters]);
 
     return (
         <FiltersContainer $expanded={showFilters}>
-            {/* Filter Toggle Header */}
             <FiltersToggle onClick={onToggleFilters} $hasActiveFilters={hasActiveFilters()}>
                 <ToggleLeft>
                     <FilterIcon $active={hasActiveFilters()}>
@@ -134,7 +168,7 @@ const ClientFilters: React.FC<ClientFiltersProps> = ({
                         <ClearFiltersButton
                             onClick={(e) => {
                                 e.stopPropagation();
-                                onResetFilters();
+                                handleResetFilters();
                             }}
                         >
                             <FaTimes />
@@ -147,7 +181,6 @@ const ClientFilters: React.FC<ClientFiltersProps> = ({
                 </ToggleActions>
             </FiltersToggle>
 
-            {/* Expanded Filters Content */}
             {showFilters && (
                 <FiltersContent>
                     <FiltersGrid>
@@ -162,17 +195,13 @@ const ClientFilters: React.FC<ClientFiltersProps> = ({
                                 <FilterInput
                                     id="name"
                                     name="name"
-                                    value={filters.name}
-                                    onChange={onFilterChange}
+                                    value={localFilters.name}
+                                    onChange={handleInputChange}
                                     placeholder="Wyszukaj po imieniu i nazwisku..."
-                                    $hasValue={!!filters.name}
+                                    $hasValue={!!localFilters.name}
                                 />
-                                {filters.name && (
-                                    <ClearInputButton
-                                        onClick={() => onFilterChange({
-                                            target: { name: 'name', value: '' }
-                                        } as React.ChangeEvent<HTMLInputElement>)}
-                                    >
+                                {localFilters.name && (
+                                    <ClearInputButton onClick={() => clearField('name')}>
                                         <FaTimes />
                                     </ClearInputButton>
                                 )}
@@ -191,17 +220,13 @@ const ClientFilters: React.FC<ClientFiltersProps> = ({
                                     id="email"
                                     name="email"
                                     type="email"
-                                    value={filters.email}
-                                    onChange={onFilterChange}
+                                    value={localFilters.email}
+                                    onChange={handleInputChange}
                                     placeholder="Wyszukaj po adresie email..."
-                                    $hasValue={!!filters.email}
+                                    $hasValue={!!localFilters.email}
                                 />
-                                {filters.email && (
-                                    <ClearInputButton
-                                        onClick={() => onFilterChange({
-                                            target: { name: 'email', value: '' }
-                                        } as React.ChangeEvent<HTMLInputElement>)}
-                                    >
+                                {localFilters.email && (
+                                    <ClearInputButton onClick={() => clearField('email')}>
                                         <FaTimes />
                                     </ClearInputButton>
                                 )}
@@ -219,17 +244,13 @@ const ClientFilters: React.FC<ClientFiltersProps> = ({
                                 <FilterInput
                                     id="phone"
                                     name="phone"
-                                    value={filters.phone}
-                                    onChange={onFilterChange}
+                                    value={localFilters.phone}
+                                    onChange={handleInputChange}
                                     placeholder="Wyszukaj po numerze telefonu..."
-                                    $hasValue={!!filters.phone}
+                                    $hasValue={!!localFilters.phone}
                                 />
-                                {filters.phone && (
-                                    <ClearInputButton
-                                        onClick={() => onFilterChange({
-                                            target: { name: 'phone', value: '' }
-                                        } as React.ChangeEvent<HTMLInputElement>)}
-                                    >
+                                {localFilters.phone && (
+                                    <ClearInputButton onClick={() => clearField('phone')}>
                                         <FaTimes />
                                     </ClearInputButton>
                                 )}
@@ -249,17 +270,13 @@ const ClientFilters: React.FC<ClientFiltersProps> = ({
                                     name="minVisits"
                                     type="number"
                                     min="0"
-                                    value={filters.minVisits}
-                                    onChange={onFilterChange}
+                                    value={localFilters.minVisits}
+                                    onChange={handleInputChange}
                                     placeholder="Min. liczba wizyt..."
-                                    $hasValue={!!filters.minVisits}
+                                    $hasValue={!!localFilters.minVisits}
                                 />
-                                {filters.minVisits && (
-                                    <ClearInputButton
-                                        onClick={() => onFilterChange({
-                                            target: { name: 'minVisits', value: '' }
-                                        } as React.ChangeEvent<HTMLInputElement>)}
-                                    >
+                                {localFilters.minVisits && (
+                                    <ClearInputButton onClick={() => clearField('minVisits')}>
                                         <FaTimes />
                                     </ClearInputButton>
                                 )}
@@ -279,17 +296,13 @@ const ClientFilters: React.FC<ClientFiltersProps> = ({
                                     name="minVehicles"
                                     type="number"
                                     min="0"
-                                    value={filters.minVehicles}
-                                    onChange={onFilterChange}
+                                    value={localFilters.minVehicles}
+                                    onChange={handleInputChange}
                                     placeholder="Min. liczba pojazdów..."
-                                    $hasValue={!!filters.minVehicles}
+                                    $hasValue={!!localFilters.minVehicles}
                                 />
-                                {filters.minVehicles && (
-                                    <ClearInputButton
-                                        onClick={() => onFilterChange({
-                                            target: { name: 'minVehicles', value: '' }
-                                        } as React.ChangeEvent<HTMLInputElement>)}
-                                    >
+                                {localFilters.minVehicles && (
+                                    <ClearInputButton onClick={() => clearField('minVehicles')}>
                                         <FaTimes />
                                     </ClearInputButton>
                                 )}
@@ -310,17 +323,13 @@ const ClientFilters: React.FC<ClientFiltersProps> = ({
                                     type="number"
                                     min="0"
                                     step="0.01"
-                                    value={filters.minRevenue}
-                                    onChange={onFilterChange}
+                                    value={localFilters.minRevenue}
+                                    onChange={handleInputChange}
                                     placeholder="Min. kwota przychodów..."
-                                    $hasValue={!!filters.minRevenue}
+                                    $hasValue={!!localFilters.minRevenue}
                                 />
-                                {filters.minRevenue && (
-                                    <ClearInputButton
-                                        onClick={() => onFilterChange({
-                                            target: { name: 'minRevenue', value: '' }
-                                        } as React.ChangeEvent<HTMLInputElement>)}
-                                    >
+                                {localFilters.minRevenue && (
+                                    <ClearInputButton onClick={() => clearField('minRevenue')}>
                                         <FaTimes />
                                     </ClearInputButton>
                                 )}
@@ -342,24 +351,25 @@ const ClientFilters: React.FC<ClientFiltersProps> = ({
                                 </ResultsWithIcon>
                             ) : (
                                 <ResultsInfo>
-                                    Skonfiguruj filtry aby zawęzić wyniki wyszukiwania
+                                    Wprowadź kryteria i kliknij "Zastosuj filtry"
                                 </ResultsInfo>
                             )}
                         </ResultsSection>
 
                         <FiltersActions>
                             {hasActiveFilters() && (
-                                <SecondaryButton onClick={onResetFilters}>
+                                <SecondaryButton onClick={handleResetFilters}>
                                     <FaTimes />
                                     <span>Wyczyść wszystkie</span>
                                 </SecondaryButton>
                             )}
                             <PrimaryButton
-                                onClick={onToggleFilters}
-                                $hasFilters={hasActiveFilters()}
+                                onClick={handleApplyFilters}
+                                $hasChanges={hasChanges()}
+                                disabled={!hasChanges()}
                             >
                                 <FaSearch />
-                                <span>Zamknij filtry</span>
+                                <span>Zastosuj filtry</span>
                             </PrimaryButton>
                         </FiltersActions>
                     </FiltersFooter>
@@ -369,7 +379,7 @@ const ClientFilters: React.FC<ClientFiltersProps> = ({
     );
 };
 
-// Professional Styled Components - Premium Automotive Design
+// Styled Components
 const FiltersContainer = styled.div<{ $expanded: boolean }>`
     background: ${brandTheme.surface};
     border-radius: ${brandTheme.radius.xl};
@@ -687,6 +697,12 @@ const BaseButton = styled.button`
         transform: translateY(0);
     }
 
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
+
     span {
         @media (max-width: 480px) {
             display: none;
@@ -708,21 +724,21 @@ const SecondaryButton = styled(BaseButton)`
     }
 `;
 
-const PrimaryButton = styled(BaseButton)<{ $hasFilters: boolean }>`
-    background: ${props => props.$hasFilters
+const PrimaryButton = styled(BaseButton)<{ $hasChanges: boolean }>`
+    background: ${props => props.$hasChanges
     ? `linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%)`
     : brandTheme.surfaceElevated
 };
-    color: ${props => props.$hasFilters ? 'white' : brandTheme.text.tertiary};
-    box-shadow: ${props => props.$hasFilters ? brandTheme.shadow.sm : brandTheme.shadow.xs};
+    color: ${props => props.$hasChanges ? 'white' : brandTheme.text.tertiary};
+    box-shadow: ${props => props.$hasChanges ? brandTheme.shadow.sm : brandTheme.shadow.xs};
 
-    &:hover {
-        background: ${props => props.$hasFilters
+    &:hover:not(:disabled) {
+        background: ${props => props.$hasChanges
     ? `linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%)`
     : brandTheme.surfaceHover
 };
-        box-shadow: ${props => props.$hasFilters ? brandTheme.shadow.md : brandTheme.shadow.sm};
+        box-shadow: ${props => props.$hasChanges ? brandTheme.shadow.md : brandTheme.shadow.sm};
     }
 `;
 
-export default ClientFilters;
+export default EnhancedClientFilters;

@@ -1,18 +1,18 @@
-// ClientListTable/styles/components.ts - Updated with new components
+// ClientListTable/styles/components-fixed.ts - Fixed height constraints
 import styled from 'styled-components';
 import { brandTheme } from './theme';
 
-// Main Container Components
+// Main Container Components - FIXED: Remove height constraints
 export const ListContainer = styled.div`
     background: ${brandTheme.surface};
     border-radius: ${brandTheme.radius.xl};
     border: 1px solid ${brandTheme.border};
     overflow: hidden;
     box-shadow: ${brandTheme.shadow.sm};
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
+
+    /* FIXED: Remove flex: 1, display: flex, flex-direction: column, min-height: 0 */
+    /* Allow natural content expansion */
+    width: 100%;
 `;
 
 export const ListHeader = styled.div`
@@ -33,65 +33,19 @@ export const ListTitle = styled.h3`
     letter-spacing: -0.025em;
 `;
 
-// Tooltip Component
-export const TooltipWrapper = styled.div<{ title: string }>`
-    position: relative;
-    display: inline-flex;
-
-    &:hover::after {
-        content: attr(title);
-        position: absolute;
-        bottom: calc(100% + 8px);
-        left: 50%;
-        transform: translateX(-50%);
-        background: ${brandTheme.text.primary};
-        color: white;
-        padding: 8px 12px;
-        border-radius: ${brandTheme.radius.md};
-        font-size: 12px;
-        font-weight: 500;
-        white-space: nowrap;
-        z-index: 1000;
-        box-shadow: ${brandTheme.shadow.lg};
-        animation: tooltipFadeIn 0.2s ease-out;
-    }
-
-    &:hover::before {
-        content: '';
-        position: absolute;
-        bottom: calc(100% + 2px);
-        left: 50%;
-        transform: translateX(-50%);
-        border: 4px solid transparent;
-        border-top-color: ${brandTheme.text.primary};
-        z-index: 1000;
-        animation: tooltipFadeIn 0.2s ease-out;
-    }
-
-    @keyframes tooltipFadeIn {
-        from {
-            opacity: 0;
-            transform: translateX(-50%) translateY(4px);
-        }
-        to {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-        }
-    }
-`;
-
-// Table Components
+// Table Components - FIXED: Remove height constraints
 export const TableWrapper = styled.div`
-    flex: 1;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
+    width: 100%;
+
+    /* FIXED: Remove flex: 1, overflow: hidden, display: flex, flex-direction: column */
+    /* Allow table to expand naturally to show all rows */
 `;
 
 export const TableContainer = styled.div`
-    flex: 1;
-    overflow: auto;
-    min-height: 0;
+    width: 100%;
+
+    /* FIXED: Remove flex: 1, overflow: auto, min-height: 0 */
+    /* Allow natural content flow */
 `;
 
 export const TableHeader = styled.div`
@@ -168,6 +122,9 @@ export const SortIcon = styled.div<{ $active: boolean }>`
 
 export const TableBody = styled.div`
     background: ${brandTheme.surface};
+
+    /* FIXED: Remove any height constraints */
+    /* Allow all rows to be visible */
 `;
 
 export const StyledTableRow = styled.div<{ $selected?: boolean }>`
@@ -198,6 +155,53 @@ export const TableCell = styled.div<{ $width?: string }>`
 
     &:last-child {
         border-right: none;
+    }
+`;
+
+// Tooltip Component
+export const TooltipWrapper = styled.div<{ title: string }>`
+    position: relative;
+    display: inline-flex;
+
+    &:hover::after {
+        content: attr(title);
+        position: absolute;
+        bottom: calc(100% + 8px);
+        left: 50%;
+        transform: translateX(-50%);
+        background: ${brandTheme.text.primary};
+        color: white;
+        padding: 8px 12px;
+        border-radius: ${brandTheme.radius.md};
+        font-size: 12px;
+        font-weight: 500;
+        white-space: nowrap;
+        z-index: 1000;
+        box-shadow: ${brandTheme.shadow.lg};
+        animation: tooltipFadeIn 0.2s ease-out;
+    }
+
+    &:hover::before {
+        content: '';
+        position: absolute;
+        bottom: calc(100% + 2px);
+        left: 50%;
+        transform: translateX(-50%);
+        border: 4px solid transparent;
+        border-top-color: ${brandTheme.text.primary};
+        z-index: 1000;
+        animation: tooltipFadeIn 0.2s ease-out;
+    }
+
+    @keyframes tooltipFadeIn {
+        from {
+            opacity: 0;
+            transform: translateX(-50%) translateY(4px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
     }
 `;
 
@@ -323,7 +327,7 @@ export const EmptyCompany = styled.div`
     font-size: 13px;
 `;
 
-// New Vehicle Count Component
+// Vehicle Count Component
 export const VehicleCount = styled.div`
     display: flex;
     align-items: center;
@@ -342,7 +346,7 @@ export const VehicleCount = styled.div`
     }
 `;
 
-// New Last Visit Date Component
+// Last Visit Date Component
 export const LastVisitDate = styled.div`
     display: flex;
     align-items: center;
