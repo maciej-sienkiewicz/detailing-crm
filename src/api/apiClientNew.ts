@@ -130,11 +130,21 @@ const requestUtils = {
     buildQueryString: (params: Record<string, any>): string => {
         const filtered = Object.entries(params)
             .filter(([_, value]) => value !== undefined && value !== null && value !== '')
-            .map(([key, value]) => [key, String(value)]);
+            .flatMap(([key, value]) => {
+                if (Array.isArray(value)) {
+                    // Dla tablic tworzymy wiele parametrów: serviceIds=1&serviceIds=2
+                    return value.map(item => [key, String(item)]);
+                }
+                return [[key, String(value)]];
+            });
 
         if (filtered.length === 0) return '';
 
-        const searchParams = new URLSearchParams(filtered);
+        const searchParams = new URLSearchParams();
+        filtered.forEach(([key, value]) => {
+            searchParams.append(key, value);
+        });
+
         return `?${searchParams.toString()}`;
     },
 

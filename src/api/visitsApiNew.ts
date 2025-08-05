@@ -76,12 +76,12 @@ export interface VisitServiceSummary {
 export interface VisitFilterParams {
     clientName?: string;
     licensePlate?: string;
-    status?: ProtocolStatus;
     startDate?: string;
     endDate?: string;
     make?: string;
     model?: string;
     serviceName?: string;
+    serviceIds?: string[];
     minPrice?: number;
     maxPrice?: number;
 }
@@ -152,24 +152,44 @@ class VisitsApi {
 
             // Prepare filter parameters for the API
             const apiParams = this.prepareFilterParams(filterParams);
+            console.log('🎯 Prepared API params:', apiParams);
 
             // Call the API
-            const response = await apiClientNew.getWithPagination<VisitListItem>(
+            const response = await apiClientNew.getWithPagination<any>(
                 `/v1/protocols/list`,
                 apiParams,
                 { page, size },
                 { timeout: 15000 } // 15 second timeout for list operations
             );
 
+            console.log('✅ Raw API response:', response);
+
+            // Transform the data to match expected interface
+            const transformedData = this.transformVisitListData(response.data);
+
+            const transformedResponse: PaginatedApiResponse<VisitListItem> = {
+                data: transformedData,
+                pagination: {
+                    currentPage: response.pagination?.currentPage || page,
+                    pageSize: response.pagination?.pageSize || size,
+                    totalItems: response.pagination?.totalItems || 0,
+                    totalPages: response.pagination?.totalPages || 0,
+                    hasNext: response.pagination?.hasNext || false,
+                    hasPrevious: response.pagination?.hasPrevious || false
+                },
+                success: true,
+                message: response.message
+            };
+
             console.log('✅ Successfully fetched visits list:', {
-                count: response.data.length,
-                totalItems: response.pagination.totalItems,
-                currentPage: response.pagination.currentPage
+                count: transformedData.length,
+                totalItems: transformedResponse.pagination.totalItems,
+                currentPage: transformedResponse.pagination.currentPage
             });
 
             return {
                 success: true,
-                data: response
+                data: transformedResponse
             };
 
         } catch (error) {
@@ -275,6 +295,95 @@ class VisitsApi {
     // ========================================================================================
 
     /**
+     * Transforms raw API data to match VisitListItem interface
+     */
+    private transformVisitListData(rawData: any[]): VisitListItem[] {
+        if (!Array.isArray(rawData)) {
+            console.warn('Raw data is not an array:', rawData);
+            return [];
+        }
+
+        return rawData.map(item => {
+            try {
+                const transformed: VisitListItem = {
+                    id: item.id?.toString() || '',
+                    title: item.title || '',
+                    vehicle: {
+                        make: item.vehicle?.make || '',
+                        model: item.vehicle?.model || '',
+                        licensePlate: item.vehicle?.licensePlate || item.vehicle?.license_plate || '',
+                        productionYear: item.vehicle?.productionYear || item.vehicle?.production_year || 0,
+                        color: item.vehicle?.color || undefined
+                    },
+                    period: {
+                        startDate: item.period?.startDate || item.period?.start_date || '',
+                        endDate: item.period?.endDate || item.period?.end_date || ''
+                    },
+                    owner: {
+                        name: item.client?.name || item.owner?.name || '',
+                        companyName: item.client?.companyName || item.client?.company_name || item.owner?.companyName || undefined
+                    },
+                    status: item.status as ProtocolStatus,
+                    totalAmount: parseFloat(item.totalAmount?.toString() || item.total_amount?.toString() || '0'),
+                    lastUpdate: item.lastUpdate || item.last_update || '',
+                    calendarColorId: item.calendarColorId || item.calendar_color_id || '',
+                    selectedServices: this.transformServices(item.services || item.selected_services || []),
+                    totalServiceCount: parseInt(item.totalServiceCount?.toString() || item.total_service_count?.toString() || '0')
+                };
+
+                return transformed;
+            } catch (error) {
+                console.error('Error transforming visit item:', error, item);
+                // Return a fallback object instead of failing
+                return {
+                    id: item.id?.toString() || 'unknown',
+                    title: item.title || 'Unknown Visit',
+                    vehicle: {
+                        make: 'Unknown',
+                        model: 'Unknown',
+                        licensePlate: 'Unknown',
+                        productionYear: 0
+                    },
+                    period: {
+                        startDate: '',
+                        endDate: ''
+                    },
+                    owner: {
+                        name: 'Unknown Client'
+                    },
+                    status: ProtocolStatus.SCHEDULED,
+                    totalAmount: 0,
+                    lastUpdate: '',
+                    calendarColorId: '1',
+                    selectedServices: [],
+                    totalServiceCount: 0
+                } as VisitListItem;
+            }
+        });
+    }
+
+    /**
+     * Transforms services data
+     */
+    private transformServices(services: any[]): VisitServiceSummary[] {
+        if (!Array.isArray(services)) {
+            return [];
+        }
+
+        return services.map(service => ({
+            id: service.id?.toString() || '',
+            name: service.name || '',
+            price: parseFloat(service.price?.toString() || '0'),
+            finalPrice: parseFloat(service.finalPrice?.toString() || service.final_price?.toString() || service.price?.toString() || '0'),
+            quantity: parseInt(service.quantity?.toString() || '1'),
+            discountType: service.discountType || service.discount_type,
+            discountValue: service.discountValue || service.discount_value,
+            approvalStatus: service.approvalStatus || service.approval_status,
+            note: service.note
+        }));
+    }
+
+    /**
      * Prepares filter parameters for API call
      * Converts client-side parameter names to server-expected format
      */
@@ -284,7 +393,6 @@ class VisitsApi {
         // Map client params to server params
         if (params.clientName) apiParams.clientName = params.clientName;
         if (params.licensePlate) apiParams.licensePlate = params.licensePlate;
-        if (params.status) apiParams.status = params.status;
         if (params.startDate) apiParams.startDate = params.startDate;
         if (params.endDate) apiParams.endDate = params.endDate;
         if (params.make) apiParams.make = params.make;
@@ -293,6 +401,13 @@ class VisitsApi {
         if (params.minPrice !== undefined) apiParams.minPrice = params.minPrice;
         if (params.maxPrice !== undefined) apiParams.maxPrice = params.maxPrice;
 
+        // Handle serviceIds array - this is the key fix!
+        if (params.serviceIds && Array.isArray(params.serviceIds) && params.serviceIds.length > 0) {
+            apiParams.serviceIds = params.serviceIds;
+            console.log('🔧 Added serviceIds to API params:', params.serviceIds);
+        }
+
+        console.log('📋 Final prepared params:', apiParams);
         return apiParams;
     }
 

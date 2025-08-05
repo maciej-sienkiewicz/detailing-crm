@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { FaSearch, FaChevronDown, FaChevronUp, FaTimes, FaFilter } from 'react-icons/fa';
-import { ProtocolStatus } from '../../../types';
 import { format, isValid, parseISO } from 'date-fns';
 import { useToast } from '../../../components/common/Toast/Toast';
 
