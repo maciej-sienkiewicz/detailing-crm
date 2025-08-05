@@ -1,7 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { ProtocolStatus } from '../../../types';
 
-// Rozszerzony interfejs filtrów dla wizyt
 export interface VisitFilterParams {
     clientName?: string;
     licensePlate?: string;
@@ -19,7 +18,6 @@ export interface VisitFilterParams {
 
 export interface VisitsFilterState extends VisitFilterParams {
     quickSearch?: string;
-    title?: string;
 }
 
 export interface UseVisitsFiltersReturn {
@@ -46,17 +44,34 @@ export const useVisitsFilters = (initialFilters: VisitsFilterState = {}): UseVis
     const [filters, setFilters] = useState<VisitsFilterState>(initialFilters);
 
     const updateFilter = useCallback((key: keyof VisitsFilterState, value: any) => {
-        setFilters(prev => ({
-            ...prev,
-            [key]: value
-        }));
+        setFilters(prev => {
+            if (isFilterEmpty(value)) {
+                const newFilters = { ...prev };
+                delete newFilters[key];
+                return newFilters;
+            }
+            return {
+                ...prev,
+                [key]: value
+            };
+        });
     }, []);
 
     const updateFilters = useCallback((newFilters: Partial<VisitsFilterState>) => {
-        setFilters(prev => ({
-            ...prev,
-            ...newFilters
-        }));
+        setFilters(prev => {
+            const updated = { ...prev };
+
+            Object.entries(newFilters).forEach(([key, value]) => {
+                const filterKey = key as keyof VisitsFilterState;
+                if (isFilterEmpty(value)) {
+                    delete updated[filterKey];
+                } else {
+                    (updated as any)[filterKey] = value;
+                }
+            });
+
+            return updated;
+        });
     }, []);
 
     const clearFilter = useCallback((key: keyof VisitsFilterState) => {
@@ -76,7 +91,6 @@ export const useVisitsFilters = (initialFilters: VisitsFilterState = {}): UseVis
 
         const cleanFilters: VisitFilterParams = {};
 
-        // Przetwarzamy wszystkie filtry oprócz quickSearch
         Object.entries(apiFilters).forEach(([key, value]) => {
             if (!isFilterEmpty(value)) {
                 const filterKey = key as keyof VisitFilterParams;
@@ -84,21 +98,24 @@ export const useVisitsFilters = (initialFilters: VisitsFilterState = {}): UseVis
             }
         });
 
-        // Obsługa quickSearch - dodajemy do wielu pól jednocześnie
         if (quickSearch && quickSearch.trim()) {
-            cleanFilters.clientName = quickSearch.trim();
-            cleanFilters.licensePlate = quickSearch.trim();
-            cleanFilters.make = quickSearch.trim();
-            cleanFilters.model = quickSearch.trim();
+            const searchTerm = quickSearch.trim();
+            cleanFilters.clientName = searchTerm;
+            cleanFilters.licensePlate = searchTerm;
+            cleanFilters.make = searchTerm;
+            cleanFilters.model = searchTerm;
         }
 
-        console.log('🔍 Generated API filters:', cleanFilters);
         return cleanFilters;
     }, [filters]);
 
-    const activeFilters = Object.entries(filters).filter(([_, value]) => !isFilterEmpty(value));
-    const activeFiltersCount = activeFilters.length;
-    const hasActiveFilters = activeFiltersCount > 0;
+    const { activeFiltersCount, hasActiveFilters } = useMemo(() => {
+        const activeFilters = Object.entries(filters).filter(([_, value]) => !isFilterEmpty(value));
+        return {
+            activeFiltersCount: activeFilters.length,
+            hasActiveFilters: activeFilters.length > 0
+        };
+    }, [filters]);
 
     return {
         filters,

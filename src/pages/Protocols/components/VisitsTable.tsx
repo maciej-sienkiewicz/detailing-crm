@@ -1,23 +1,10 @@
 import React from 'react';
 import styled from 'styled-components';
-import { FaEye, FaEdit, FaTrash, FaCheck, FaSpinner } from 'react-icons/fa';
+import { FaEye, FaEdit, FaTrash, FaSpinner } from 'react-icons/fa';
 import { VisitListItem } from '../../../api/visitsApiNew';
 import { ProtocolStatusBadge } from '../../Protocols/shared/components/ProtocolStatusBadge';
 import { UseVisitsSelectionReturn } from '../hooks/useVisitsSelection';
-
-const brandTheme = {
-    primary: 'var(--brand-primary, #1a365d)',
-    primaryLight: 'var(--brand-primary-light, #2c5aa0)',
-    primaryGhost: 'var(--brand-primary-ghost, rgba(26, 54, 93, 0.04))',
-    neutral: '#64748b',
-    surface: '#ffffff',
-    surfaceAlt: '#f1f5f9',
-    border: '#e2e8f0',
-    shadow: {
-        sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
-        md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-    }
-};
+import { theme } from '../../../styles/theme';
 
 interface VisitsTableProps {
     visits: VisitListItem[];
@@ -74,8 +61,10 @@ export const VisitsTable: React.FC<VisitsTableProps> = ({
         return (
             <TableContainer>
                 <LoadingState>
-                    <FaSpinner className="spinner" />
-                    <span>Ładowanie wizyt...</span>
+                    <LoadingSpinner>
+                        <FaSpinner />
+                    </LoadingSpinner>
+                    <LoadingText>Ładowanie wizyt...</LoadingText>
                 </LoadingState>
             </TableContainer>
         );
@@ -226,253 +215,258 @@ export const VisitsTable: React.FC<VisitsTableProps> = ({
 };
 
 const TableContainer = styled.div`
-  background: ${brandTheme.surface};
-  border-radius: 16px;
-  border: 1px solid ${brandTheme.border};
-  overflow: hidden;
-  box-shadow: ${brandTheme.shadow.sm};
+    background: ${theme.surface};
+    border-radius: ${theme.radius.xl};
+    border: 1px solid ${theme.border};
+    overflow: hidden;
+    box-shadow: ${theme.shadow.sm};
 `;
 
 const Table = styled.div`
-  width: 100%;
-  display: table;
+    width: 100%;
+    display: table;
 `;
 
 const TableHeader = styled.div`
-  display: table-header-group;
-  background: ${brandTheme.surfaceAlt};
-  border-bottom: 2px solid ${brandTheme.border};
+    display: table-header-group;
+    background: ${theme.surfaceAlt};
+    border-bottom: 2px solid ${theme.border};
 `;
 
 const HeaderRow = styled.div`
-  display: table-row;
+    display: table-row;
 `;
 
 const HeaderCell = styled.div<{ $width: string }>`
-  display: table-cell;
-  width: ${props => props.$width};
-  padding: 16px 12px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #374151;
-  text-align: left;
-  vertical-align: middle;
-  border-right: 1px solid ${brandTheme.border};
+    display: table-cell;
+    width: ${props => props.$width};
+    padding: ${theme.spacing.lg} ${theme.spacing.lg};
+    font-size: 14px;
+    font-weight: 600;
+    color: ${theme.text.secondary};
+    text-align: left;
+    vertical-align: middle;
+    border-right: 1px solid ${theme.border};
 
-  &:last-child {
-    border-right: none;
-  }
+    &:last-child {
+        border-right: none;
+    }
 `;
 
 const TableBody = styled.div`
-  display: table-row-group;
-  background: ${brandTheme.surface};
+    display: table-row-group;
+    background: ${theme.surface};
 `;
 
 const TableRow = styled.div<{ $clickable?: boolean }>`
-  display: table-row;
-  transition: all 0.2s ease;
-  cursor: ${props => props.$clickable ? 'pointer' : 'default'};
+    display: table-row;
+    transition: all ${theme.transitions.normal};
+    cursor: ${props => props.$clickable ? 'pointer' : 'default'};
 
-  &:hover {
-    background: ${brandTheme.surfaceAlt};
-  }
+    &:hover {
+        background: ${theme.surfaceAlt};
+    }
 
-  &:not(:last-child) {
-    border-bottom: 1px solid ${brandTheme.border};
-  }
+    &:not(:last-child) {
+        border-bottom: 1px solid ${theme.border};
+    }
 `;
 
 const TableCell = styled.div<{ $width: string }>`
-  display: table-cell;
-  width: ${props => props.$width};
-  padding: 16px 12px;
-  vertical-align: middle;
-  border-right: 1px solid ${brandTheme.border};
+    display: table-cell;
+    width: ${props => props.$width};
+    padding: ${theme.spacing.lg};
+    vertical-align: middle;
+    border-right: 1px solid ${theme.border};
 
-  &:last-child {
-    border-right: none;
-  }
+    &:last-child {
+        border-right: none;
+    }
 `;
 
 const LoadingState = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
-  gap: 16px;
-  color: ${brandTheme.neutral};
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px ${theme.spacing.xl};
+    gap: ${theme.spacing.lg};
+    color: ${theme.text.tertiary};
+`;
 
-  .spinner {
+const LoadingSpinner = styled.div`
     font-size: 24px;
     animation: spin 1s linear infinite;
-  }
 
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+`;
+
+const LoadingText = styled.div`
+    font-size: 16px;
+    font-weight: 500;
 `;
 
 const EmptyState = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
-  text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px ${theme.spacing.xl};
+    text-align: center;
 `;
 
 const EmptyIcon = styled.div`
-  font-size: 48px;
-  margin-bottom: 16px;
+    font-size: 48px;
+    margin-bottom: ${theme.spacing.lg};
 `;
 
 const EmptyTitle = styled.h3`
-  font-size: 20px;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0 0 8px 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: ${theme.text.primary};
+    margin: 0 0 ${theme.spacing.sm} 0;
 `;
 
 const EmptyDescription = styled.p`
-  font-size: 16px;
-  color: ${brandTheme.neutral};
-  margin: 0;
+    font-size: 16px;
+    color: ${theme.text.tertiary};
+    margin: 0;
 `;
 
 const Checkbox = styled.input`
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
 `;
 
 const VehicleInfo = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: ${theme.spacing.xs};
 `;
 
 const VehicleName = styled.div`
-  font-weight: 600;
-  color: #1e293b;
-  font-size: 14px;
+    font-weight: 600;
+    color: ${theme.text.primary};
+    font-size: 14px;
 `;
 
 const VehicleYear = styled.div`
-  font-size: 13px;
-  color: ${brandTheme.neutral};
+    font-size: 13px;
+    color: ${theme.text.tertiary};
 `;
 
 const LicensePlate = styled.div`
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 8px;
-  background: ${brandTheme.primaryGhost};
-  border: 1px solid rgba(37, 99, 235, 0.2);
-  border-radius: 6px;
-  font-weight: 700;
-  color: ${brandTheme.primary};
-  font-size: 13px;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    padding: ${theme.spacing.xs} ${theme.spacing.sm};
+    background: ${theme.primaryGhost};
+    border: 1px solid rgba(37, 99, 235, 0.2);
+    border-radius: ${theme.radius.sm};
+    font-weight: 700;
+    color: ${theme.primary};
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
 `;
 
 const ClientInfo = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: ${theme.spacing.xs};
 `;
 
 const ClientName = styled.div`
-  font-weight: 600;
-  color: #1e293b;
-  font-size: 14px;
+    font-weight: 600;
+    color: ${theme.text.primary};
+    font-size: 14px;
 `;
 
 const CompanyName = styled.div`
-  font-size: 13px;
-  color: ${brandTheme.neutral};
+    font-size: 13px;
+    color: ${theme.text.tertiary};
 `;
 
 const DateRange = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 13px;
+    display: flex;
+    flex-direction: column;
+    gap: ${theme.spacing.xs};
+    font-size: 13px;
 `;
 
 const DateFrom = styled.div`
-  color: #1e293b;
-  font-weight: 600;
+    color: ${theme.text.primary};
+    font-weight: 600;
 `;
 
 const DateTo = styled.div`
-  color: ${brandTheme.neutral};
+    color: ${theme.text.tertiary};
 `;
 
 const PriceValue = styled.div`
-  font-weight: 700;
-  color: #1e293b;
-  font-size: 14px;
+    font-weight: 700;
+    color: ${theme.text.primary};
+    font-size: 14px;
 `;
 
 const LastUpdate = styled.div`
-  font-size: 13px;
-  color: ${brandTheme.neutral};
+    font-size: 13px;
+    color: ${theme.text.tertiary};
 `;
 
 const ActionButtons = styled.div`
-  display: flex;
-  gap: 6px;
-  align-items: center;
+    display: flex;
+    gap: ${theme.spacing.sm};
+    align-items: center;
 `;
 
 const ActionButton = styled.button<{ $variant: 'view' | 'edit' | 'delete' }>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: ${theme.radius.sm};
+    cursor: pointer;
+    transition: all ${theme.transitions.normal};
+    font-size: 14px;
 
-  ${({ $variant }) => {
+    ${({ $variant }) => {
     switch ($variant) {
         case 'view':
             return `
-          background: ${brandTheme.primaryGhost};
-          color: ${brandTheme.primary};
-          &:hover {
-            background: ${brandTheme.primary};
-            color: white;
-            transform: translateY(-1px);
-          }
-        `;
+                    background: ${theme.primaryGhost};
+                    color: ${theme.primary};
+                    &:hover {
+                        background: ${theme.primary};
+                        color: white;
+                        transform: translateY(-1px);
+                    }
+                `;
         case 'edit':
             return `
-          background: rgba(245, 158, 11, 0.1);
-          color: #f59e0b;
-          &:hover {
-            background: #f59e0b;
-            color: white;
-            transform: translateY(-1px);
-          }
-        `;
+                    background: ${theme.warningBg};
+                    color: ${theme.warning};
+                    &:hover {
+                        background: ${theme.warning};
+                        color: white;
+                        transform: translateY(-1px);
+                    }
+                `;
         case 'delete':
             return `
-          background: rgba(239, 68, 68, 0.1);
-          color: #ef4444;
-          &:hover {
-            background: #ef4444;
-            color: white;
-            transform: translateY(-1px);
-          }
-        `;
+                    background: ${theme.errorBg};
+                    color: ${theme.error};
+                    &:hover {
+                        background: ${theme.error};
+                        color: white;
+                        transform: translateY(-1px);
+                    }
+                `;
     }
 }}
 `;

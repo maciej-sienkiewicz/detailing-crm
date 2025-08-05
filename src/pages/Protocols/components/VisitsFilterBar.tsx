@@ -3,22 +3,13 @@ import styled from 'styled-components';
 import { FaSearch, FaFilter, FaChevronDown, FaChevronUp, FaTimes } from 'react-icons/fa';
 import { VisitsFilterState } from '../hooks/useVisitsFilters';
 import { ServiceAutocomplete, ServiceOption } from './ServiceAutocomplete';
-
-const brandTheme = {
-    primary: 'var(--brand-primary, #2563eb)',
-    primaryLight: 'var(--brand-primary-light, #3b82f6)',
-    primaryGhost: 'var(--brand-primary-ghost, rgba(37, 99, 235, 0.08))',
-    neutral: '#64748b',
-    surface: '#ffffff',
-    surfaceAlt: '#f1f5f9',
-    border: '#e2e8f0'
-};
+import { theme } from '../../../styles/theme';
 
 interface VisitsFilterBarProps {
     filters: VisitsFilterState;
     onFiltersChange: (filters: Partial<VisitsFilterState>) => void;
-    onSearch: () => void;
-    onClear: () => void;
+    onApplyFilters: () => void;
+    onClearAll: () => void;
     loading?: boolean;
     availableServices?: ServiceOption[];
 }
@@ -26,8 +17,8 @@ interface VisitsFilterBarProps {
 export const VisitsFilterBar: React.FC<VisitsFilterBarProps> = ({
                                                                     filters,
                                                                     onFiltersChange,
-                                                                    onSearch,
-                                                                    onClear,
+                                                                    onApplyFilters,
+                                                                    onClearAll,
                                                                     loading = false,
                                                                     availableServices = []
                                                                 }) => {
@@ -38,23 +29,40 @@ export const VisitsFilterBar: React.FC<VisitsFilterBarProps> = ({
     };
 
     const handleFilterChange = (key: keyof VisitsFilterState, value: any) => {
-        console.log(`🔧 Filter change: ${key} =`, value);
         onFiltersChange({ [key]: value });
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        onSearch();
+    const handleClearQuickSearch = () => {
+        onFiltersChange({ quickSearch: '' });
     };
 
-    const hasActiveFilters = Object.values(filters).some(value =>
-        value !== undefined && value !== null && value !== ''
-    );
+    const handleClearAllFilters = () => {
+        onClearAll();
+    };
+
+    const handleQuickSearchSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        onApplyFilters();
+    };
+
+    const handleQuickSearchBlur = () => {
+        if (filters.quickSearch?.trim()) {
+            onApplyFilters();
+        }
+    };
+
+    const hasQuickSearch = Boolean(filters.quickSearch?.trim());
+    const hasAdvancedFilters = Object.entries(filters).some(([key, value]) => {
+        if (key === 'quickSearch') return false;
+        if (value === undefined || value === null || value === '') return false;
+        if (Array.isArray(value) && value.length === 0) return false;
+        return true;
+    });
 
     return (
         <FilterContainer>
             <QuickSearchSection>
-                <SearchForm onSubmit={handleSubmit}>
+                <form onSubmit={handleQuickSearchSubmit}>
                     <SearchInputWrapper>
                         <SearchIcon>
                             <FaSearch />
@@ -63,13 +71,14 @@ export const VisitsFilterBar: React.FC<VisitsFilterBarProps> = ({
                             type="text"
                             value={filters.quickSearch || ''}
                             onChange={(e) => handleQuickSearchChange(e.target.value)}
+                            onBlur={handleQuickSearchBlur}
                             placeholder="Szybkie wyszukiwanie - klient, pojazd, numer rejestracyjny..."
                             disabled={loading}
                         />
-                        {filters.quickSearch && (
+                        {hasQuickSearch && (
                             <ClearButton
                                 type="button"
-                                onClick={() => handleQuickSearchChange('')}
+                                onClick={handleClearQuickSearch}
                                 disabled={loading}
                             >
                                 <FaTimes />
@@ -80,15 +89,23 @@ export const VisitsFilterBar: React.FC<VisitsFilterBarProps> = ({
                     <SearchButton type="submit" disabled={loading}>
                         {loading ? 'Szukam...' : 'Szukaj'}
                     </SearchButton>
-                </SearchForm>
+                </form>
 
                 <AdvancedToggle
                     type="button"
                     onClick={() => setIsExpanded(!isExpanded)}
                     $expanded={isExpanded}
+                    $hasFilters={hasAdvancedFilters}
                 >
                     <FaFilter />
                     Filtry zaawansowane
+                    {hasAdvancedFilters && <FilterIndicator>{Object.keys(filters).filter(key => {
+                        const value = filters[key as keyof typeof filters];
+                        if (key === 'quickSearch') return false;
+                        if (value === undefined || value === null || value === '') return false;
+                        if (Array.isArray(value) && value.length === 0) return false;
+                        return true;
+                    }).length}</FilterIndicator>}
                     {isExpanded ? <FaChevronUp /> : <FaChevronDown />}
                 </AdvancedToggle>
             </QuickSearchSection>
@@ -201,15 +218,15 @@ export const VisitsFilterBar: React.FC<VisitsFilterBarProps> = ({
                     <FilterActions>
                         <ClearAllButton
                             type="button"
-                            onClick={onClear}
-                            disabled={loading || !hasActiveFilters}
+                            onClick={handleClearAllFilters}
+                            disabled={loading}
                         >
                             <FaTimes />
                             Wyczyść filtry
                         </ClearAllButton>
                         <ApplyButton
                             type="button"
-                            onClick={onSearch}
+                            onClick={onApplyFilters}
                             disabled={loading}
                         >
                             <FaSearch />
@@ -223,24 +240,24 @@ export const VisitsFilterBar: React.FC<VisitsFilterBarProps> = ({
 };
 
 const FilterContainer = styled.div`
-    background: ${brandTheme.surface};
-    border-radius: 12px;
+    background: ${theme.surface};
+    border-radius: ${theme.radius.lg};
     overflow: hidden;
 `;
 
 const QuickSearchSection = styled.div`
-    padding: 20px 24px;
+    padding: ${theme.spacing.xl} ${theme.spacing.xxl};
     display: flex;
     align-items: center;
-    gap: 16px;
-    border-bottom: 1px solid ${brandTheme.border};
-`;
+    gap: ${theme.spacing.lg};
+    border-bottom: 1px solid ${theme.border};
 
-const SearchForm = styled.form`
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex: 1;
+    form {
+        display: flex;
+        align-items: center;
+        gap: ${theme.spacing.lg};
+        flex: 1;
+    }
 `;
 
 const SearchInputWrapper = styled.div`
@@ -251,10 +268,10 @@ const SearchInputWrapper = styled.div`
 
 const SearchIcon = styled.div`
     position: absolute;
-    left: 16px;
+    left: ${theme.spacing.lg};
     top: 50%;
     transform: translateY(-50%);
-    color: ${brandTheme.neutral};
+    color: ${theme.text.tertiary};
     font-size: 16px;
     z-index: 2;
 `;
@@ -263,22 +280,22 @@ const SearchInput = styled.input`
     width: 100%;
     height: 48px;
     padding: 0 48px 0 48px;
-    border: 2px solid ${brandTheme.border};
-    border-radius: 12px;
+    border: 2px solid ${theme.border};
+    border-radius: ${theme.radius.lg};
     font-size: 16px;
     font-weight: 500;
-    background: ${brandTheme.surface};
-    color: #374151;
-    transition: all 0.2s ease;
+    background: ${theme.surface};
+    color: ${theme.text.secondary};
+    transition: all ${theme.transitions.normal};
 
     &:focus {
         outline: none;
-        border-color: ${brandTheme.primary};
-        box-shadow: 0 0 0 3px ${brandTheme.primaryGhost};
+        border-color: ${theme.primary};
+        box-shadow: 0 0 0 3px ${theme.primaryGhost};
     }
 
     &::placeholder {
-        color: ${brandTheme.neutral};
+        color: ${theme.text.tertiary};
         font-weight: 400;
     }
 
@@ -290,24 +307,24 @@ const SearchInput = styled.input`
 
 const ClearButton = styled.button`
     position: absolute;
-    right: 16px;
+    right: ${theme.spacing.lg};
     top: 50%;
     transform: translateY(-50%);
     width: 24px;
     height: 24px;
     border: none;
-    background: ${brandTheme.surfaceAlt};
-    color: ${brandTheme.neutral};
+    background: ${theme.surfaceAlt};
+    color: ${theme.text.tertiary};
     border-radius: 50%;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 12px;
-    transition: all 0.2s ease;
+    transition: all ${theme.transitions.normal};
 
     &:hover:not(:disabled) {
-        background: #ef4444;
+        background: ${theme.error};
         color: white;
     }
 
@@ -317,62 +334,52 @@ const ClearButton = styled.button`
     }
 `;
 
-const SearchButton = styled.button`
-    height: 48px;
-    padding: 0 24px;
-    border: none;
-    background: ${brandTheme.primary};
-    color: white;
-    border-radius: 12px;
+const AdvancedToggle = styled.button<{ $expanded: boolean; $hasFilters: boolean }>`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.sm};
+    padding: ${theme.spacing.lg} ${theme.spacing.xl};
+    border: 2px solid ${props => props.$expanded || props.$hasFilters ? theme.primary : theme.border};
+    background: ${props => props.$expanded || props.$hasFilters ? theme.primaryGhost : theme.surface};
+    color: ${props => props.$expanded || props.$hasFilters ? theme.primary : theme.text.tertiary};
+    border-radius: ${theme.radius.md};
     font-weight: 600;
     font-size: 14px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all ${theme.transitions.normal};
     white-space: nowrap;
+    position: relative;
 
-    &:hover:not(:disabled) {
-        background: ${brandTheme.primaryLight};
-        transform: translateY(-1px);
-    }
-
-    &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: none;
+    &:hover {
+        border-color: ${theme.primary};
+        color: ${theme.primary};
     }
 `;
 
-const AdvancedToggle = styled.button<{ $expanded: boolean }>`
+const FilterIndicator = styled.span`
+    background: ${theme.primary};
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 10px;
+    min-width: 18px;
+    height: 18px;
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 12px 20px;
-    border: 2px solid ${props => props.$expanded ? brandTheme.primary : brandTheme.border};
-    background: ${props => props.$expanded ? brandTheme.primaryGhost : brandTheme.surface};
-    color: ${props => props.$expanded ? brandTheme.primary : brandTheme.neutral};
-    border-radius: 10px;
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-
-    &:hover {
-        border-color: ${brandTheme.primary};
-        color: ${brandTheme.primary};
-    }
+    justify-content: center;
 `;
 
 const AdvancedSection = styled.div`
-    padding: 24px;
-    background: ${brandTheme.surfaceAlt};
+    padding: ${theme.spacing.xxl};
+    background: ${theme.surfaceAlt};
 `;
 
 const FiltersGrid = styled.div`
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px 24px;
-    margin-bottom: 24px;
+    gap: ${theme.spacing.xl} ${theme.spacing.xxl};
+    margin-bottom: ${theme.spacing.xxl};
 
     @media (max-width: 1200px) {
         grid-template-columns: repeat(2, 1fr);
@@ -386,42 +393,42 @@ const FiltersGrid = styled.div`
 const FilterGroup = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: ${theme.spacing.sm};
 `;
 
 const PriceGroup = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: ${theme.spacing.sm};
 `;
 
 const FilterLabel = styled.label`
     font-size: 14px;
     font-weight: 600;
-    color: #374151;
+    color: ${theme.text.secondary};
 `;
 
 const FilterInput = styled.input`
     height: 44px;
-    padding: 0 16px;
-    border: 2px solid ${brandTheme.border};
-    border-radius: 8px;
+    padding: 0 ${theme.spacing.lg};
+    border: 2px solid ${theme.border};
+    border-radius: ${theme.radius.md};
     font-size: 14px;
     font-weight: 500;
-    background: ${brandTheme.surface};
-    color: #374151;
-    transition: all 0.2s ease;
+    background: ${theme.surface};
+    color: ${theme.text.secondary};
+    transition: all ${theme.transitions.normal};
     width: 100%;
     box-sizing: border-box;
 
     &:focus {
         outline: none;
-        border-color: ${brandTheme.primary};
-        box-shadow: 0 0 0 3px ${brandTheme.primaryGhost};
+        border-color: ${theme.primary};
+        box-shadow: 0 0 0 3px ${theme.primaryGhost};
     }
 
     &::placeholder {
-        color: ${brandTheme.neutral};
+        color: ${theme.text.tertiary};
         font-weight: 400;
     }
 
@@ -431,10 +438,61 @@ const FilterInput = styled.input`
     }
 `;
 
+const SearchButton = styled.button`
+    height: 48px;
+    padding: 0 ${theme.spacing.xxl};
+    border: none;
+    background: ${theme.primary};
+    color: white;
+    border-radius: ${theme.radius.lg};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all ${theme.transitions.normal};
+    white-space: nowrap;
+
+    &:hover:not(:disabled) {
+        background: ${theme.primaryLight};
+        transform: translateY(-1px);
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+`;
+
+const ApplyButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.sm};
+    padding: ${theme.spacing.lg} ${theme.spacing.xxl};
+    border: none;
+    background: ${theme.primary};
+    color: white;
+    border-radius: ${theme.radius.md};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all ${theme.transitions.normal};
+
+    &:hover:not(:disabled) {
+        background: ${theme.primaryLight};
+        transform: translateY(-1px);
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+`;
+
 const PriceInputs = styled.div`
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: ${theme.spacing.sm};
     width: 100%;
 
     input {
@@ -445,67 +503,41 @@ const PriceInputs = styled.div`
 
 const PriceSeparator = styled.span`
     font-weight: 600;
-    color: ${brandTheme.neutral};
+    color: ${theme.text.tertiary};
     flex-shrink: 0;
-    padding: 0 4px;
+    padding: 0 ${theme.spacing.xs};
 `;
 
 const FilterActions = styled.div`
     display: flex;
     justify-content: flex-end;
-    gap: 12px;
-    padding-top: 20px;
-    border-top: 1px solid ${brandTheme.border};
+    gap: ${theme.spacing.lg};
+    padding-top: ${theme.spacing.xl};
+    border-top: 1px solid ${theme.border};
 `;
 
 const ClearAllButton = styled.button`
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 12px 20px;
-    border: 2px solid ${brandTheme.border};
-    background: ${brandTheme.surface};
-    color: ${brandTheme.neutral};
-    border-radius: 8px;
+    gap: ${theme.spacing.sm};
+    padding: ${theme.spacing.lg} ${theme.spacing.xl};
+    border: 2px solid ${theme.border};
+    background: ${theme.surface};
+    color: ${theme.text.tertiary};
+    border-radius: ${theme.radius.md};
     font-weight: 600;
     font-size: 14px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all ${theme.transitions.normal};
 
     &:hover:not(:disabled) {
-        border-color: #ef4444;
-        color: #ef4444;
-        background: #fef2f2;
+        border-color: ${theme.error};
+        color: ${theme.error};
+        background: ${theme.errorBg};
     }
 
     &:disabled {
         opacity: 0.5;
         cursor: not-allowed;
-    }
-`;
-
-const ApplyButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 24px;
-    border: none;
-    background: ${brandTheme.primary};
-    color: white;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover:not(:disabled) {
-        background: ${brandTheme.primaryLight};
-        transform: translateY(-1px);
-    }
-
-    &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: none;
     }
 `;

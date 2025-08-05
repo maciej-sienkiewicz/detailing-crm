@@ -1,10 +1,11 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import styled from 'styled-components';
 import { FaClipboardCheck, FaPlus } from 'react-icons/fa';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { VisitListItem } from '../../api/visitsApiNew';
 import { ProtocolStatus } from '../../types';
 import { servicesApi } from '../../api/servicesApi';
+import { protocolsApi } from '../../api/protocolsApi';
 import { useVisitsData } from './hooks/useVisitsData';
 import { useVisitsFilters, VisitFilterParams } from './hooks/useVisitsFilters';
 import { useVisitsSelection } from './hooks/useVisitsSelection';
@@ -14,23 +15,15 @@ import { VisitsActiveFilters } from './components/VisitsActiveFilters';
 import { VisitsTable } from './components/VisitsTable';
 import { ServiceOption } from './components/ServiceAutocomplete';
 import Pagination from '../../components/common/Pagination';
-
-const brandTheme = {
-    primary: 'var(--brand-primary, #2563eb)',
-    primaryLight: 'var(--brand-primary-light, #3b82f6)',
-    primaryDark: 'var(--brand-primary-dark, #1d4ed8)',
-    accent: '#f8fafc',
-    neutral: '#64748b',
-    surface: '#ffffff',
-    surfaceAlt: '#f1f5f9',
-    border: '#e2e8f0',
-    shadow: {
-        sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
-        md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-    }
-};
+import { theme } from '../../styles/theme';
 
 type StatusFilterType = 'all' | ProtocolStatus;
+
+interface AppData {
+    services: ServiceOption[];
+    counters: Record<string, number>;
+    loading: boolean;
+}
 
 export const VisitsPageContainer: React.FC = () => {
     const navigate = useNavigate();
@@ -38,11 +31,15 @@ export const VisitsPageContainer: React.FC = () => {
 
     const [activeStatusFilter, setActiveStatusFilter] = useState<StatusFilterType>('all');
     const [hasInitialLoad, setHasInitialLoad] = useState(false);
-    const [availableServices, setAvailableServices] = useState<ServiceOption[]>([]);
+    const [appData, setAppData] = useState<AppData>({
+        services: [],
+        counters: {},
+        loading: true
+    });
 
     const {
         visits,
-        loading,
+        loading: visitsLoading,
         error,
         pagination,
         searchVisits,
@@ -63,15 +60,46 @@ export const VisitsPageContainer: React.FC = () => {
 
     const selection = useVisitsSelection();
 
-    const performSearch = useCallback(async () => {
-        const apiFilters: VisitFilterParams = getApiFilters();
+    const loadAppData = useCallback(async () => {
+        if (!appData.loading && appData.services.length > 0) return;
+
+        setAppData(prev => ({ ...prev, loading: true }));
+
+        try {
+            const [servicesData, countersData] = await Promise.all([
+                servicesApi.fetchServices(),
+                protocolsApi.getProtocolCounters()
+            ]);
+
+            const serviceOptions: ServiceOption[] = servicesData.map(service => ({
+                id: service.id,
+                name: service.name
+            }));
+
+            setAppData({
+                services: serviceOptions,
+                counters: {
+                    all: countersData.all || 0,
+                    [ProtocolStatus.SCHEDULED]: countersData.scheduled || 0,
+                    [ProtocolStatus.IN_PROGRESS]: countersData.inProgress || 0,
+                    [ProtocolStatus.READY_FOR_PICKUP]: countersData.readyForPickup || 0,
+                    [ProtocolStatus.COMPLETED]: countersData.completed || 0,
+                    [ProtocolStatus.CANCELLED]: countersData.cancelled || 0
+                },
+                loading: false
+            });
+        } catch (error) {
+            console.error('Error loading app data:', error);
+            setAppData(prev => ({ ...prev, loading: false }));
+        }
+    }, [appData.loading, appData.services.length]);
+
+    const performSearch = useCallback(async (customFilters?: VisitFilterParams) => {
+        const apiFilters: VisitFilterParams = customFilters || getApiFilters();
 
         if (activeStatusFilter !== 'all') {
             apiFilters.status = activeStatusFilter;
         }
-
-        console.log('🎯 Final search filters:', apiFilters);
-        console.log('📊 Active status filter:', activeStatusFilter);
 
         await searchVisits(apiFilters, {
             page: 0,
@@ -79,16 +107,18 @@ export const VisitsPageContainer: React.FC = () => {
         });
     }, [getApiFilters, activeStatusFilter, searchVisits, pagination.size]);
 
+    const handleFiltersChange = useCallback((newFilters: Partial<typeof filters>) => {
+        updateFilters(newFilters);
+    }, [updateFilters]);
+
+    const handleApplyFilters = useCallback(async () => {
+        await performSearch();
+    }, [performSearch]);
+
     const handleStatusFilterChange = useCallback((status: StatusFilterType) => {
         setActiveStatusFilter(status);
         selection.clearSelection();
     }, [selection]);
-
-    const handleFiltersChange = useCallback((newFilters: Partial<typeof filters>) => {
-        console.log('📝 Updating filters with:', newFilters);
-        console.log('🗂️ Current filters before update:', filters);
-        updateFilters(newFilters);
-    }, [updateFilters, filters]);
 
     const handleClearAllFilters = useCallback(() => {
         clearAllFilters();
@@ -132,32 +162,18 @@ export const VisitsPageContainer: React.FC = () => {
     }, [navigate]);
 
     useEffect(() => {
-        const fetchServices = async () => {
-            try {
-                const servicesData = await servicesApi.fetchServices();
-                const serviceOptions: ServiceOption[] = servicesData.map(service => ({
-                    id: service.id,
-                    name: service.name
-                }));
-                setAvailableServices(serviceOptions);
-            } catch (error) {
-                console.error('Error fetching services:', error);
-                setAvailableServices([]);
-            }
-        };
-
-        fetchServices();
-    }, []);
+        loadAppData();
+    }, [loadAppData]);
 
     useEffect(() => {
-        if (!hasInitialLoad) {
+        if (!hasInitialLoad && !appData.loading) {
             performSearch();
             setHasInitialLoad(true);
         }
-    }, [hasInitialLoad, performSearch]);
+    }, [hasInitialLoad, appData.loading, performSearch]);
 
     useEffect(() => {
-        if (hasInitialLoad) {
+        if (hasInitialLoad && !appData.loading) {
             performSearch();
         }
     }, [activeStatusFilter]);
@@ -192,23 +208,27 @@ export const VisitsPageContainer: React.FC = () => {
                 <VisitsStatusFilters
                     activeStatus={activeStatusFilter}
                     onStatusChange={handleStatusFilterChange}
+                    counters={appData.counters}
+                    loading={appData.loading}
                 />
 
                 <FiltersSection>
                     <VisitsFilterBar
                         filters={filters}
                         onFiltersChange={handleFiltersChange}
-                        onSearch={performSearch}
-                        onClear={handleClearAllFilters}
-                        loading={loading}
-                        availableServices={availableServices}
+                        onApplyFilters={handleApplyFilters}
+                        onClearAll={handleClearAllFilters}
+                        loading={visitsLoading}
+                        availableServices={appData.services}
                     />
 
-                    <VisitsActiveFilters
-                        filters={filters}
-                        onRemoveFilter={clearFilter}
-                        onClearAll={handleClearAllFilters}
-                    />
+                    {hasActiveFilters && (
+                        <VisitsActiveFilters
+                            filters={filters}
+                            onRemoveFilter={clearFilter}
+                            onClearAll={handleClearAllFilters}
+                        />
+                    )}
                 </FiltersSection>
 
                 <ResultsSection>
@@ -220,7 +240,7 @@ export const VisitsPageContainer: React.FC = () => {
 
                     <VisitsTable
                         visits={visits}
-                        loading={loading}
+                        loading={visitsLoading}
                         selection={selection}
                         onVisitClick={handleVisitClick}
                         onViewVisit={handleViewVisit}
@@ -247,15 +267,15 @@ export const VisitsPageContainer: React.FC = () => {
 };
 
 const PageContainer = styled.div`
-    background: ${brandTheme.accent};
+    background: ${theme.surfaceHover};
     min-height: 100vh;
     padding: 0;
 `;
 
 const HeaderContainer = styled.header`
-    background: ${brandTheme.surface};
-    border-bottom: 1px solid ${brandTheme.border};
-    box-shadow: ${brandTheme.shadow.sm};
+    background: ${theme.surface};
+    border-bottom: 1px solid ${theme.border};
+    box-shadow: ${theme.shadow.sm};
     position: sticky;
     top: 0;
     z-index: 100;
@@ -266,54 +286,54 @@ const HeaderContainer = styled.header`
 const PageHeader = styled.div`
     max-width: 1600px;
     margin: 0 auto;
-    padding: 24px 32px;
+    padding: ${theme.spacing.xxl} ${theme.spacing.xxxl};
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 24px;
+    gap: ${theme.spacing.xxl};
 
     @media (max-width: 1024px) {
-        padding: 16px 24px;
+        padding: ${theme.spacing.lg} ${theme.spacing.xxl};
         flex-direction: column;
         align-items: stretch;
-        gap: 16px;
+        gap: ${theme.spacing.lg};
     }
 
     @media (max-width: 768px) {
-        padding: 16px;
+        padding: ${theme.spacing.lg};
     }
 `;
 
 const HeaderTitle = styled.div`
     display: flex;
     align-items: center;
-    gap: 24px;
+    gap: ${theme.spacing.xxl};
 `;
 
 const TitleIcon = styled.div`
     width: 56px;
     height: 56px;
-    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-    border-radius: 12px;
+    background: linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryLight} 100%);
+    border-radius: ${theme.radius.lg};
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
     font-size: 24px;
-    box-shadow: ${brandTheme.shadow.md};
+    box-shadow: ${theme.shadow.md};
     flex-shrink: 0;
 `;
 
 const TitleContent = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: ${theme.spacing.xs};
 `;
 
 const MainTitle = styled.h1`
     font-size: 32px;
     font-weight: 700;
-    color: #0f172a;
+    color: ${theme.text.primary};
     margin: 0;
     letter-spacing: -0.5px;
     line-height: 1.2;
@@ -325,30 +345,30 @@ const MainTitle = styled.h1`
 
 const Subtitle = styled.div`
     font-size: 16px;
-    color: ${brandTheme.neutral};
+    color: ${theme.text.tertiary};
     font-weight: 500;
 `;
 
 const PrimaryAction = styled.button`
     display: flex;
     align-items: center;
-    gap: 8px;
-    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+    gap: ${theme.spacing.sm};
+    background: linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryLight} 100%);
     color: white;
     border: none;
-    border-radius: 8px;
-    padding: 12px 20px;
+    border-radius: ${theme.radius.md};
+    padding: ${theme.spacing.lg} ${theme.spacing.xl};
     font-weight: 600;
     font-size: 14px;
     cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: ${brandTheme.shadow.sm};
+    transition: all ${theme.transitions.normal};
+    box-shadow: ${theme.shadow.sm};
     white-space: nowrap;
     min-height: 44px;
 
     &:hover {
-        background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
-        box-shadow: ${brandTheme.shadow.md};
+        background: linear-gradient(135deg, ${theme.primaryDark} 0%, ${theme.primary} 100%);
+        box-shadow: ${theme.shadow.md};
         transform: translateY(-1px);
     }
 
@@ -364,20 +384,20 @@ const PrimaryAction = styled.button`
 const ContentContainer = styled.div`
     max-width: 1600px;
     margin: 0 auto;
-    padding: 24px 32px;
+    padding: ${theme.spacing.xxl} ${theme.spacing.xxxl};
     position: relative;
 
     @media (max-width: 1024px) {
-        padding: 16px 24px;
+        padding: ${theme.spacing.lg} ${theme.spacing.xxl};
     }
 
     @media (max-width: 768px) {
-        padding: 16px;
+        padding: ${theme.spacing.lg};
     }
 `;
 
 const FiltersSection = styled.div`
-    margin-bottom: 24px;
+    margin-bottom: ${theme.spacing.xxl};
     position: relative;
     z-index: 10;
 `;
@@ -385,24 +405,24 @@ const FiltersSection = styled.div`
 const ResultsSection = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: ${theme.spacing.xl};
 `;
 
 const ErrorMessage = styled.div`
-    background: linear-gradient(135deg, #fef2f2 0%, #fdf2f8 100%);
-    color: #dc2626;
-    padding: 16px 20px;
-    border-radius: 12px;
-    border: 1px solid #fecaca;
+    background: ${theme.errorBg};
+    color: ${theme.error};
+    padding: ${theme.spacing.lg} ${theme.spacing.xl};
+    border-radius: ${theme.radius.lg};
+    border: 1px solid ${theme.border};
     font-weight: 500;
-    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.1);
+    box-shadow: ${theme.shadow.sm};
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: ${theme.spacing.lg};
 `;
 
 const PaginationWrapper = styled.div`
-    padding: 20px 0;
+    padding: ${theme.spacing.xl} 0;
     display: flex;
     justify-content: center;
 `;
