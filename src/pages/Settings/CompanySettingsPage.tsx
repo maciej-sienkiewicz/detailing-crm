@@ -1,6 +1,7 @@
 // src/pages/Settings/CompanySettingsPage.tsx
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import styled from 'styled-components';
+import { UserSignatureCard } from './UserSignatureCard';
 import {
     FaBuilding,
     FaEnvelope,
@@ -1066,6 +1067,11 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                         )}
                     </CardBody>
                 </SettingsCard>
+
+                <UserSignatureCard
+                    onSuccess={setSuccessMessage}
+                    onError={setError}
+                />
 
             </ContentContainer>
         </PageContainer>
