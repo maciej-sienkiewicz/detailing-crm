@@ -97,6 +97,7 @@ export const VisitsPageContainer: React.FC = () => {
     const performSearch = useCallback(async (customFilters?: VisitFilterParams) => {
         const apiFilters: VisitFilterParams = customFilters || getApiFilters();
 
+        // FIXED: Dodaj status do filtrów tylko jeśli nie jest 'all'
         if (activeStatusFilter !== 'all') {
             apiFilters.status = activeStatusFilter;
         }
@@ -115,10 +116,23 @@ export const VisitsPageContainer: React.FC = () => {
         await performSearch();
     }, [performSearch]);
 
-    const handleStatusFilterChange = useCallback((status: StatusFilterType) => {
+    // FIXED: Poprawiona obsługa zmiany statusu
+    const handleStatusFilterChange = useCallback(async (status: StatusFilterType) => {
+        console.log('🔄 Status filter changed:', status);
         setActiveStatusFilter(status);
         selection.clearSelection();
-    }, [selection]);
+
+        // Natychmiast wykonaj wyszukiwanie z nowym statusem
+        const apiFilters: VisitFilterParams = getApiFilters();
+        if (status !== 'all') {
+            apiFilters.status = status;
+        }
+
+        await searchVisits(apiFilters, {
+            page: 0,
+            size: pagination.size
+        });
+    }, [selection, getApiFilters, searchVisits, pagination.size]);
 
     const handleClearAllFilters = useCallback(() => {
         clearAllFilters();
@@ -157,8 +171,15 @@ export const VisitsPageContainer: React.FC = () => {
         }
     }, [refreshVisits]);
 
+    // FIXED: Poprawiona obsługa dodawania nowej wizyty
     const handleAddVisit = useCallback(() => {
-        navigate('/visits/new');
+        // Przekieruj do strony głównej protokołów z parametrem dla nowej wizyty
+        navigate('/protocols', {
+            state: {
+                action: 'new',
+                isFullProtocol: true
+            }
+        });
     }, [navigate]);
 
     useEffect(() => {
@@ -172,11 +193,8 @@ export const VisitsPageContainer: React.FC = () => {
         }
     }, [hasInitialLoad, appData.loading, performSearch]);
 
-    useEffect(() => {
-        if (hasInitialLoad && !appData.loading) {
-            performSearch();
-        }
-    }, [activeStatusFilter]);
+    // FIXED: Usunięto dodatkowy useEffect który powodował podwójne wyszukiwanie
+    // Status filter change jest teraz obsługiwany bezpośrednio w handleStatusFilterChange
 
     useEffect(() => {
         resetData();

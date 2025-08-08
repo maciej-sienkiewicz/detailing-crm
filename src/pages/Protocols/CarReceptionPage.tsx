@@ -88,10 +88,17 @@ const CarReceptionPage: React.FC = () => {
         ? location.state.isFullProtocol
         : true;
 
+    // FIXED: Dodana obsługa akcji "new" dla nowych wizyt
+    const actionFromState = location.state?.action;
+
     const [isFullProtocol, setIsFullProtocol] = useState(isFullProtocolFromNav);
 
     useEffect(() => {
-        if (startDateFromCalendar) {
+        // FIXED: Sprawdź czy to jest żądanie nowej wizyty
+        if (actionFromState === 'new') {
+            console.log('🆕 Otwieranie formularza nowej wizyty');
+            setShowForm(true);
+        } else if (startDateFromCalendar) {
             setShowForm(true);
             console.log('Data z kalendarza początkowa:', startDateFromCalendar);
         }
@@ -110,7 +117,7 @@ const CarReceptionPage: React.FC = () => {
         };
 
         fetchServices();
-    }, []);
+    }, [actionFromState, startDateFromCalendar, endDateFromCalendar]);
 
     const refreshServices = async () => {
         try {
@@ -128,9 +135,12 @@ const CarReceptionPage: React.FC = () => {
     };
 
     useEffect(() => {
-        setShowForm(false);
-        refreshProtocolsList();
-    }, [location.key]);
+        // FIXED: Nie resetuj formy automatycznie jeśli to żądanie nowej wizyty
+        if (actionFromState !== 'new') {
+            setShowForm(false);
+            refreshProtocolsList();
+        }
+    }, [location.key, actionFromState]);
 
     useEffect(() => {
         const handleRedirectData = async () => {
@@ -139,12 +149,13 @@ const CarReceptionPage: React.FC = () => {
             console.log('startDateFromCalendar:', !!startDateFromCalendar);
             console.log('endDateFromCalendar:', !!endDateFromCalendar);
             console.log('editProtocolId:', editProtocolId);
+            console.log('actionFromState:', actionFromState);
 
             if (protocolDataFromAppointment) {
                 setShowForm(true);
             }
 
-            if (startDateFromCalendar) {
+            if (startDateFromCalendar && actionFromState !== 'new') {
                 setShowForm(true);
             }
 
@@ -162,7 +173,7 @@ const CarReceptionPage: React.FC = () => {
         };
 
         handleRedirectData();
-    }, [protocolDataFromAppointment, editProtocolId, startDateFromCalendar, endDateFromCalendar]);
+    }, [protocolDataFromAppointment, editProtocolId, startDateFromCalendar, endDateFromCalendar, actionFromState]);
 
     const availableServiceNames = availableServices
         .map(service => service.name)

@@ -66,6 +66,14 @@ export const VisitsStatusFilters: React.FC<VisitsStatusFiltersProps> = ({
         ProtocolStatus.CANCELLED
     ];
 
+    // FIXED: Dodana obsługa kliknięcia z logowaniem
+    const handleFilterClick = (status: StatusFilterType) => {
+        console.log('🎯 Filter clicked:', status, 'Current:', activeStatus);
+        if (status !== activeStatus) {
+            onStatusChange(status);
+        }
+    };
+
     return (
         <FiltersContainer>
             <FiltersGrid>
@@ -80,7 +88,7 @@ export const VisitsStatusFilters: React.FC<VisitsStatusFiltersProps> = ({
                             $active={isActive}
                             $color={config.color}
                             $lightColor={config.lightColor}
-                            onClick={() => onStatusChange(status)}
+                            onClick={() => handleFilterClick(status)}
                         >
                             <FilterContent>
                                 <FilterLabel>{config.label}</FilterLabel>

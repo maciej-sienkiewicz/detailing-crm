@@ -86,11 +86,13 @@ export const useVisitsFilters = (initialFilters: VisitsFilterState = {}): UseVis
         setFilters({});
     }, []);
 
+    // FIXED: Poprawiona logika getApiFilters - nie duplikuj quickSearch w innych polach
     const getApiFilters = useCallback((): VisitFilterParams => {
         const { quickSearch, ...apiFilters } = filters;
 
         const cleanFilters: VisitFilterParams = {};
 
+        // Najpierw dodaj wszystkie filtry zaawansowane (bez quickSearch)
         Object.entries(apiFilters).forEach(([key, value]) => {
             if (!isFilterEmpty(value)) {
                 const filterKey = key as keyof VisitFilterParams;
@@ -98,14 +100,23 @@ export const useVisitsFilters = (initialFilters: VisitsFilterState = {}): UseVis
             }
         });
 
+        // FIXED: Jeśli jest quickSearch i nie ma innych filtrów tekstowych,
+        // użyj quickSearch jako głównego filtra wyszukiwania
         if (quickSearch && quickSearch.trim()) {
-            const searchTerm = quickSearch.trim();
-            cleanFilters.clientName = searchTerm;
-            cleanFilters.licensePlate = searchTerm;
-            cleanFilters.make = searchTerm;
-            cleanFilters.model = searchTerm;
+            // Sprawdź czy nie ma już ustawionych konkretnych filtrów tekstowych
+            const hasSpecificTextFilters = cleanFilters.clientName ||
+                cleanFilters.licensePlate ||
+                cleanFilters.make ||
+                cleanFilters.model;
+
+            if (!hasSpecificTextFilters) {
+                // Użyj quickSearch jako ogólnego wyszukiwania
+                // Backend powinien obsługiwać to jako wyszukiwanie po wszystkich polach
+                cleanFilters.clientName = quickSearch.trim();
+            }
         }
 
+        console.log('🔍 Generated API filters:', cleanFilters);
         return cleanFilters;
     }, [filters]);
 

@@ -84,6 +84,7 @@ export interface VisitFilterParams {
     serviceIds?: string[];
     minPrice?: number;
     maxPrice?: number;
+    status?: ProtocolStatus; // FIXED: Dodano status do filtrów
 }
 
 /**
@@ -150,7 +151,7 @@ class VisitsApi {
 
             const { page = 0, size = 10, ...filterParams } = params;
 
-            // Prepare filter parameters for the API
+            // FIXED: Prepare filter parameters for the API with better status handling
             const apiParams = this.prepareFilterParams(filterParams);
             console.log('🎯 Prepared API params:', apiParams);
 
@@ -184,7 +185,8 @@ class VisitsApi {
             console.log('✅ Successfully fetched visits list:', {
                 count: transformedData.length,
                 totalItems: transformedResponse.pagination.totalItems,
-                currentPage: transformedResponse.pagination.currentPage
+                currentPage: transformedResponse.pagination.currentPage,
+                appliedFilters: apiParams
             });
 
             return {
@@ -384,7 +386,7 @@ class VisitsApi {
     }
 
     /**
-     * Prepares filter parameters for API call
+     * FIXED: Improved filter parameters preparation with better status mapping
      * Converts client-side parameter names to server-expected format
      */
     private prepareFilterParams(params: VisitFilterParams): Record<string, any> {
@@ -401,7 +403,13 @@ class VisitsApi {
         if (params.minPrice !== undefined) apiParams.minPrice = params.minPrice;
         if (params.maxPrice !== undefined) apiParams.maxPrice = params.maxPrice;
 
-        // Handle serviceIds array - this is the key fix!
+        // FIXED: Handle status filter properly
+        if (params.status) {
+            apiParams.status = params.status;
+            console.log('🎯 Added status filter:', params.status);
+        }
+
+        // Handle serviceIds array
         if (params.serviceIds && Array.isArray(params.serviceIds) && params.serviceIds.length > 0) {
             apiParams.serviceIds = params.serviceIds;
             console.log('🔧 Added serviceIds to API params:', params.serviceIds);
