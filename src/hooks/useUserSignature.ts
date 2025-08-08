@@ -1,4 +1,4 @@
-// src/hooks/useUserSignature.ts - Simplified hook for signature management
+// src/hooks/useUserSignature.ts - Fixed hook for signature management
 import { useState, useEffect, useCallback } from 'react';
 import {
     userSignatureApi,
@@ -27,11 +27,12 @@ interface UseUserSignatureReturn {
 
     // Helpers
     clearError: () => void;
+    refreshSignature: () => Promise<void>;
 }
 
 /**
- * Simplified hook for user signature management
- * Handles single drawn signature per user
+ * Enhanced hook for user signature management
+ * Handles single drawn signature per user with base64 storage
  */
 export const useUserSignature = (): UseUserSignatureReturn => {
     // State management
@@ -40,6 +41,7 @@ export const useUserSignature = (): UseUserSignatureReturn => {
     const [saving, setSaving] = useState(false);
     const [validating, setValidating] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
 
     // Computed values
     const hasSignature = signature !== null;
@@ -49,15 +51,42 @@ export const useUserSignature = (): UseUserSignatureReturn => {
         try {
             setLoading(true);
             setError(null);
+
             const data = await userSignatureApi.getUserSignature();
             setSignature(data);
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Nie udało się załadować podpisu';
-            setError(errorMessage);
             console.error('Error loading signature:', err);
+            setError(errorMessage);
+            // Don't throw here - let component handle the error state
         } finally {
             setLoading(false);
+            setHasInitiallyLoaded(true);
         }
+    }, []);
+
+    // Refresh signature (alias for loadSignature for clarity)
+    const refreshSignature = useCallback(async () => {
+        await loadSignature();
+    }, [loadSignature]);
+
+    // Validate signature content before submission (updated for base64)
+    const performValidation = useCallback((signatureData: string): { valid: boolean; error?: string } => {
+        if (!signatureData?.trim()) {
+            return { valid: false, error: 'Podpis nie może być pusty' };
+        }
+
+        // Check if it's a valid base64 data URL
+        if (!signatureData.startsWith('data:image/')) {
+            return { valid: false, error: 'Nieprawidłowy format podpisu (oczekiwano base64)' };
+        }
+
+        // Check size (limit to 1MB for base64 image)
+        if (signatureData.length > 1000000) {
+            return { valid: false, error: 'Podpis jest zbyt duży (max 1MB)' };
+        }
+
+        return { valid: true };
     }, []);
 
     // Create new signature
@@ -66,25 +95,29 @@ export const useUserSignature = (): UseUserSignatureReturn => {
             setSaving(true);
             setError(null);
 
-            // Validate SVG content before sending
-            const validation = signatureValidation.validateSignatureContent(svgContent);
+            // Client-side validation
+            const validation = performValidation(svgContent);
             if (!validation.valid) {
                 setError(validation.error || 'Nieprawidłowy podpis');
                 return null;
             }
 
-            const newSignature = await userSignatureApi.createSignature({ content: svgContent });
-            setSignature(newSignature);
+            // Create signature via API
+            const newSignature = await userSignatureApi.createSignature({
+                content: svgContent.trim()
+            });
 
+            setSignature(newSignature);
             return newSignature;
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Nie udało się utworzyć podpisu';
+            console.error('Error creating signature:', err);
             setError(errorMessage);
             return null;
         } finally {
             setSaving(false);
         }
-    }, []);
+    }, [performValidation]);
 
     // Update existing signature
     const updateSignature = useCallback(async (svgContent: string): Promise<UserSignature | null> => {
@@ -92,25 +125,29 @@ export const useUserSignature = (): UseUserSignatureReturn => {
             setSaving(true);
             setError(null);
 
-            // Validate SVG content before sending
-            const validation = signatureValidation.validateSignatureContent(svgContent);
+            // Client-side validation
+            const validation = performValidation(svgContent);
             if (!validation.valid) {
                 setError(validation.error || 'Nieprawidłowy podpis');
                 return null;
             }
 
-            const updatedSignature = await userSignatureApi.updateSignature({ content: svgContent });
-            setSignature(updatedSignature);
+            // Update signature via API
+            const updatedSignature = await userSignatureApi.updateSignature({
+                content: svgContent.trim()
+            });
 
+            setSignature(updatedSignature);
             return updatedSignature;
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Nie udało się zaktualizować podpisu';
+            console.error('Error updating signature:', err);
             setError(errorMessage);
             return null;
         } finally {
             setSaving(false);
         }
-    }, []);
+    }, [performValidation]);
 
     // Delete signature
     const deleteSignature = useCallback(async (): Promise<boolean> => {
@@ -120,10 +157,10 @@ export const useUserSignature = (): UseUserSignatureReturn => {
 
             await userSignatureApi.deleteSignature();
             setSignature(null);
-
             return true;
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Nie udało się usunąć podpisu';
+            console.error('Error deleting signature:', err);
             setError(errorMessage);
             return false;
         } finally {
@@ -131,14 +168,14 @@ export const useUserSignature = (): UseUserSignatureReturn => {
         }
     }, []);
 
-    // Validate signature data
-    const validateSignatureData = useCallback(async (svgContent: string): Promise<SignatureValidationResponse> => {
+    // Validate signature data (updated for base64)
+    const validateSignatureData = useCallback(async (signatureData: string): Promise<SignatureValidationResponse> => {
         try {
             setValidating(true);
             setError(null);
 
             // Client-side validation first
-            const clientValidation = signatureValidation.validateSignatureContent(svgContent);
+            const clientValidation = performValidation(signatureData);
             if (!clientValidation.valid) {
                 return {
                     isValid: false,
@@ -147,28 +184,40 @@ export const useUserSignature = (): UseUserSignatureReturn => {
             }
 
             // Server-side validation
-            const serverValidation = await userSignatureApi.validateSignature({ content: svgContent });
+            const serverValidation = await userSignatureApi.validateSignature({
+                content: signatureData.trim()
+            });
+
             return serverValidation;
         } catch (err) {
             console.error('Error validating signature:', err);
             return {
                 isValid: false,
-                errors: ['Błąd walidacji podpisu']
+                errors: ['Błąd walidacji podpisu na serwerze']
             };
         } finally {
             setValidating(false);
         }
-    }, []);
+    }, [performValidation]);
 
-    // Helper functions
+    // Clear error state
     const clearError = useCallback(() => {
         setError(null);
     }, []);
 
-    // Load data on mount
+    // Load signature on mount
     useEffect(() => {
-        loadSignature();
-    }, [loadSignature]);
+        if (!hasInitiallyLoaded) {
+            loadSignature();
+        }
+    }, [loadSignature, hasInitiallyLoaded]);
+
+    // Clear error when signature changes (successful operation)
+    useEffect(() => {
+        if (signature && error) {
+            setError(null);
+        }
+    }, [signature, error]);
 
     return {
         // State
@@ -187,6 +236,7 @@ export const useUserSignature = (): UseUserSignatureReturn => {
         validateSignatureData,
 
         // Helpers
-        clearError
+        clearError,
+        refreshSignature
     };
 };
