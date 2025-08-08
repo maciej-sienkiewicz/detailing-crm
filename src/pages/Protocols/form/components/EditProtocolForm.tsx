@@ -93,7 +93,12 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
         handleClientSelect: handleVehicleOwnerSelect,
         setShowVehicleModal,
         setShowClientModal: setShowVehicleOwnersModal
-    } = useVehicleSearch(formData, setFormData, foundClients);
+    } = useVehicleSearch(
+        formData,
+        setFormData,
+        foundClients,
+        setIsClientFromSearch  // DODANE: Przekazanie setIsClientFromSearch
+    );
 
     const {
         loading,

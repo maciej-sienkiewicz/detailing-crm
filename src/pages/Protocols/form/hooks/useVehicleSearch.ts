@@ -1,3 +1,4 @@
+// src/pages/Protocols/form/hooks/useVehicleSearch.ts - ZAKTUALIZOWANE
 import { useState, useCallback } from 'react';
 import { CarReceptionProtocol, ClientExpanded, VehicleExpanded } from '../../../../types';
 import { formSearchService, SearchCriteria } from '../../shared/services/FormSearchService';
@@ -136,6 +137,8 @@ export const useVehicleSearch = (
         populateClientData(client);
         setShowClientModal(false);
 
+        // DODANE: Ustawienie flagi że klient pochodzi z wyszukiwania
+        // Ta sama logika co w useClientSearch
         if (setIsClientFromSearch) {
             setIsClientFromSearch(true);
         }
