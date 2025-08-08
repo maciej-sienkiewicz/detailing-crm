@@ -40,7 +40,7 @@ export const useFormData = (
             licensePlate: '',
             make: '',
             model: '',
-            productionYear: new Date().getFullYear(),
+            productionYear: null,
             mileage: 0,
             keysProvided: true,
             documentsProvided: true,

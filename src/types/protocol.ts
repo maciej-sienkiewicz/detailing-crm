@@ -69,7 +69,7 @@ export interface CarReceptionProtocol {
     licensePlate: string;
     make: string;
     model: string;
-    productionYear: number;
+    productionYear: number | null;
     mileage: number;
     keysProvided: boolean;
     documentsProvided: boolean;

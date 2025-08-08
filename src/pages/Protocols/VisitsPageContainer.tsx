@@ -1,6 +1,7 @@
+// src/pages/Protocols/VisitsPageContainer.tsx - FIXED VERSION
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import styled from 'styled-components';
-import { FaClipboardCheck, FaPlus } from 'react-icons/fa';
+import { FaClipboardCheck, FaPlus, FaArrowLeft } from 'react-icons/fa';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { VisitListItem } from '../../api/visitsApiNew';
 import { ProtocolStatus } from '../../types';
@@ -17,6 +18,10 @@ import { ServiceOption } from './components/ServiceAutocomplete';
 import Pagination from '../../components/common/Pagination';
 import { theme } from '../../styles/theme';
 
+// Import form components
+import { EditProtocolForm } from './form/components/EditProtocolForm';
+import ProtocolConfirmationModal from './shared/modals/ProtocolConfirmationModal';
+
 type StatusFilterType = 'all' | ProtocolStatus;
 
 interface AppData {
@@ -28,6 +33,13 @@ interface AppData {
 export const VisitsPageContainer: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
+
+    // Form state
+    const [showForm, setShowForm] = useState(false);
+    const [editingVisit, setEditingVisit] = useState<any>(null);
+    const [availableServices, setAvailableServices] = useState<any[]>([]);
+    const [isShowingConfirmationModal, setIsShowingConfirmationModal] = useState(false);
+    const [currentProtocol, setCurrentProtocol] = useState<any>(null);
 
     const [activeStatusFilter, setActiveStatusFilter] = useState<StatusFilterType>('all');
     const [hasInitialLoad, setHasInitialLoad] = useState(false);
@@ -76,6 +88,8 @@ export const VisitsPageContainer: React.FC = () => {
                 name: service.name
             }));
 
+            setAvailableServices(servicesData); // Store full services data
+
             setAppData({
                 services: serviceOptions,
                 counters: {
@@ -97,7 +111,6 @@ export const VisitsPageContainer: React.FC = () => {
     const performSearch = useCallback(async (customFilters?: VisitFilterParams) => {
         const apiFilters: VisitFilterParams = customFilters || getApiFilters();
 
-        // FIXED: Dodaj status do filtrów tylko jeśli nie jest 'all'
         if (activeStatusFilter !== 'all') {
             apiFilters.status = activeStatusFilter;
         }
@@ -116,23 +129,10 @@ export const VisitsPageContainer: React.FC = () => {
         await performSearch();
     }, [performSearch]);
 
-    // FIXED: Poprawiona obsługa zmiany statusu
-    const handleStatusFilterChange = useCallback(async (status: StatusFilterType) => {
-        console.log('🔄 Status filter changed:', status);
+    const handleStatusFilterChange = useCallback((status: StatusFilterType) => {
         setActiveStatusFilter(status);
         selection.clearSelection();
-
-        // Natychmiast wykonaj wyszukiwanie z nowym statusem
-        const apiFilters: VisitFilterParams = getApiFilters();
-        if (status !== 'all') {
-            apiFilters.status = status;
-        }
-
-        await searchVisits(apiFilters, {
-            page: 0,
-            size: pagination.size
-        });
-    }, [selection, getApiFilters, searchVisits, pagination.size]);
+    }, [selection]);
 
     const handleClearAllFilters = useCallback(() => {
         clearAllFilters();
@@ -171,16 +171,61 @@ export const VisitsPageContainer: React.FC = () => {
         }
     }, [refreshVisits]);
 
-    // FIXED: Poprawiona obsługa dodawania nowej wizyty
+    // FIXED: Proper handleAddVisit logic
     const handleAddVisit = useCallback(() => {
-        // Przekieruj do strony głównej protokołów z parametrem dla nowej wizyty
-        navigate('/protocols', {
-            state: {
-                action: 'new',
-                isFullProtocol: true
-            }
-        });
-    }, [navigate]);
+        setEditingVisit(null);
+        setShowForm(true);
+    }, []);
+
+    // Form handlers
+    const handleFormCancel = useCallback(() => {
+        setShowForm(false);
+        setEditingVisit(null);
+    }, []);
+
+    const handleSaveProtocol = useCallback((protocol: any, showConfirmationModal: boolean) => {
+        setCurrentProtocol(protocol);
+
+        if (showConfirmationModal) {
+            setIsShowingConfirmationModal(true);
+        } else {
+            // Direct completion without modal
+            setShowForm(false);
+            setEditingVisit(null);
+            refreshVisits();
+            navigate(`/visits/${protocol.id}`);
+        }
+    }, [navigate, refreshVisits]);
+
+    const handleConfirmationClose = useCallback(() => {
+        setIsShowingConfirmationModal(false);
+        if (currentProtocol) {
+            setShowForm(false);
+            setEditingVisit(null);
+            refreshVisits();
+            navigate(`/visits/${currentProtocol.id}`);
+        }
+    }, [currentProtocol, navigate, refreshVisits]);
+
+    const handleConfirmationConfirm = useCallback((options: { print: boolean; sendEmail: boolean }) => {
+        // Handle print and email options if needed
+        handleConfirmationClose();
+    }, [handleConfirmationClose]);
+
+    const refreshServices = useCallback(async () => {
+        try {
+            const servicesData = await servicesApi.fetchServices();
+            setAvailableServices(prevServices => {
+                if (!servicesData || servicesData.length === 0) {
+                    console.warn("Pobrano pustą listę usług, zachowuję poprzedni stan");
+                    return prevServices;
+                }
+                return servicesData;
+            });
+        } catch (err) {
+            console.error('Error refreshing services list:', err);
+        }
+    }, []);
 
     useEffect(() => {
         loadAppData();
@@ -193,8 +238,11 @@ export const VisitsPageContainer: React.FC = () => {
         }
     }, [hasInitialLoad, appData.loading, performSearch]);
 
-    // FIXED: Usunięto dodatkowy useEffect który powodował podwójne wyszukiwanie
-    // Status filter change jest teraz obsługiwany bezpośrednio w handleStatusFilterChange
+    useEffect(() => {
+        if (hasInitialLoad && !appData.loading) {
+            performSearch();
+        }
+    }, [activeStatusFilter]);
 
     useEffect(() => {
         resetData();
@@ -203,6 +251,47 @@ export const VisitsPageContainer: React.FC = () => {
         clearAllFilters();
     }, [location.pathname, resetData, clearAllFilters]);
 
+    // If form is shown, render the form view
+    if (showForm) {
+        return (
+            <PageContainer>
+                <HeaderContainer>
+                    <PageHeader>
+                        <HeaderLeft>
+                            <BackButton onClick={handleFormCancel}>
+                                <FaArrowLeft />
+                            </BackButton>
+                            <h1>{editingVisit ? 'Edycja wizyty' : 'Nowa wizyta'}</h1>
+                        </HeaderLeft>
+                    </PageHeader>
+                </HeaderContainer>
+
+                <EditProtocolForm
+                    protocol={editingVisit}
+                    availableServices={availableServices}
+                    initialData={undefined}
+                    appointmentId={undefined}
+                    isFullProtocol={true}
+                    onSave={handleSaveProtocol}
+                    onCancel={handleFormCancel}
+                    onServiceAdded={refreshServices}
+                />
+
+                {/* Confirmation Modal */}
+                {isShowingConfirmationModal && currentProtocol && (
+                    <ProtocolConfirmationModal
+                        isOpen={isShowingConfirmationModal}
+                        onClose={handleConfirmationClose}
+                        protocolId={currentProtocol.id}
+                        clientEmail={currentProtocol.email || ''}
+                        onConfirm={handleConfirmationConfirm}
+                    />
+                )}
+            </PageContainer>
+        );
+    }
+
+    // Regular visits list view
     return (
         <PageContainer>
             <HeaderContainer>
@@ -284,6 +373,46 @@ export const VisitsPageContainer: React.FC = () => {
     );
 };
 
+// Additional styled components for form view
+const BackButton = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: ${theme.surface};
+    border: 1px solid ${theme.border};
+    border-radius: ${theme.radius.md};
+    color: ${theme.text.secondary};
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: ${theme.surfaceHover};
+        color: ${theme.primary};
+        border-color: ${theme.primary};
+        transform: translateX(-2px);
+    }
+
+    svg {
+        font-size: 16px;
+    }
+`;
+
+const HeaderLeft = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.lg};
+
+    h1 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 700;
+        color: ${theme.text.primary};
+    }
+`;
+
+// Existing styled components...
 const PageContainer = styled.div`
     background: ${theme.surfaceHover};
     min-height: 100vh;

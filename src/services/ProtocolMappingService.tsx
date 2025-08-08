@@ -48,7 +48,7 @@ export const mapAppointmentToProtocol = (appointment: Appointment): Partial<CarR
         licensePlate: '',
         make: '',
         model: '',
-        productionYear: new Date().getFullYear(), // Domyślny rok produkcji
+        productionYear: null, // Domyślny rok produkcji
         mileage: 0, // Domyślny przebieg
         keysProvided: true,
         documentsProvided: true,
