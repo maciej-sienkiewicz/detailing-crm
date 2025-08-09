@@ -16,8 +16,10 @@ import {
     FaTimesCircle,
     FaExclamationTriangle,
     FaPaperPlane,
-    FaSpinner, FaTimes
+    FaSpinner,
+    FaTimes
 } from 'react-icons/fa';
+import Modal from "../../components/common/Modal";
 
 // Professional Brand Theme - Consistent with the application
 const brandTheme = {
@@ -92,6 +94,7 @@ interface TabletManagementDashboardProps {
     tablets: TabletDevice[];
     sessions: SignatureSession[];
     onSessionClick: (session: SignatureSession) => void;
+    onDataRefresh?: () => void; // Dodaj callback do odświeżania danych z rodzica
     realtimeStats: {
         connectedTablets: number;
         pendingSessions: number;
@@ -106,11 +109,19 @@ const TabletManagementDashboard: React.FC<TabletManagementDashboardProps> = ({
                                                                                  onSessionClick,
                                                                                  realtimeStats
                                                                              }) => {
-    const { createSignatureSession, testTablet, loading } = useTablets();
+    const { createSignatureSession, testTablet, loading, unpairTablet, refreshData } = useTablets();
     const [activeTab, setActiveTab] = useState<'tablets' | 'sessions'>('tablets');
     const [showSignatureModal, setShowSignatureModal] = useState(false);
     const [selectedTablet, setSelectedTablet] = useState<TabletDevice | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [deletingTabletId, setDeletingTabletId] = useState<string | null>(null);
+
+    // Modal states for confirmation and success
+    const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+    const [showDeleteSuccessModal, setShowDeleteSuccessModal] = useState(false);
+    const [showDeleteErrorModal, setShowDeleteErrorModal] = useState(false);
+    const [tabletToDelete, setTabletToDelete] = useState<{ id: string; name: string } | null>(null);
+    const [deleteErrorMessage, setDeleteErrorMessage] = useState<string>('');
 
     const generateWorkstationId = () => {
         return generateUUID();
@@ -123,6 +134,15 @@ const TabletManagementDashboard: React.FC<TabletManagementDashboardProps> = ({
         if (status === 'MAINTENANCE') return brandTheme.status.info;
         if (status === 'ERROR') return brandTheme.status.error;
         return brandTheme.text.muted;
+    };
+
+    const getStatusLabel = (status: string, isOnline?: boolean) => {
+        if (status === 'ACTIVE' && isOnline) return 'Aktywny';
+        if (status === 'ACTIVE' && !isOnline) return 'Nieaktywny';
+        if (status === 'INACTIVE') return 'Wyłączony';
+        if (status === 'MAINTENANCE') return 'Konserwacja';
+        if (status === 'ERROR') return 'Błąd';
+        return 'Nieznany';
     };
 
     const getSessionStatusColor = (status: string) => {
@@ -161,6 +181,49 @@ const TabletManagementDashboard: React.FC<TabletManagementDashboardProps> = ({
             alert('Failed to test tablet');
             console.error('Error testing tablet:', error);
         }
+    };
+
+    const handleDeleteTablet = async (tabletId: string, tabletName: string, event: React.MouseEvent) => {
+        event.stopPropagation();
+
+        // Zapisz dane tabletu do usunięcia i pokaż modal potwierdzenia
+        setTabletToDelete({ id: tabletId, name: tabletName });
+        setShowDeleteConfirmModal(true);
+    };
+
+    const confirmDeleteTablet = async () => {
+        if (!tabletToDelete) return;
+
+        setDeletingTabletId(tabletToDelete.id);
+        setShowDeleteConfirmModal(false);
+
+        try {
+            // Używamy unpairTablet z hook'a
+            const result = await unpairTablet(tabletToDelete.id);
+
+            if (result.success) {
+                // Odśwież dane i pokaż modal sukcesu
+                await refreshData();
+                setShowDeleteSuccessModal(true);
+                // NIE resetuj tabletToDelete tutaj - potrzebujemy nazwy w modalu sukcesu
+            } else {
+                throw new Error(result.message || 'Nie udało się usunąć tabletu');
+            }
+        } catch (error) {
+            console.error('Error deleting tablet:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Nieznany błąd';
+            setDeleteErrorMessage(`Nie udało się usunąć tabletu "${tabletToDelete.name}". ${errorMessage}`);
+            setShowDeleteErrorModal(true);
+            // Reset tylko przy błędzie
+            setTabletToDelete(null);
+        } finally {
+            setDeletingTabletId(null);
+        }
+    };
+
+    const cancelDeleteTablet = () => {
+        setShowDeleteConfirmModal(false);
+        setTabletToDelete(null);
     };
 
     const handleRequestSignature = (tablet: TabletDevice) => {
@@ -277,18 +340,30 @@ const TabletManagementDashboard: React.FC<TabletManagementDashboardProps> = ({
                                         <TabletDetails>
                                             <DetailRow>
                                                 <DetailLabel>Status:</DetailLabel>
-                                                <DetailValue>{tablet.status}</DetailValue>
+                                                <DetailValue>{getStatusLabel(tablet.status, tablet.isOnline)}</DetailValue>
+                                            </DetailRow>
+                                            <DetailRow>
+                                                <DetailLabel>Lokalizacja ID:</DetailLabel>
+                                                <DetailValue style={{ fontFamily: 'monospace', fontSize: '12px' }}>
+                                                    {tablet.locationId || 'Brak'}
+                                                </DetailValue>
                                             </DetailRow>
                                         </TabletDetails>
 
-                                        <TabletActions>
-                                            <ActionButton
-                                                title="Usuń"
-                                                $variant="delete"
+                                        {/* Delete Overlay */}
+                                        <DeleteOverlay>
+                                            <DeleteButton
+                                                onClick={(e) => handleDeleteTablet(tablet.id, tablet.friendlyName, e)}
+                                                disabled={deletingTabletId === tablet.id}
+                                                title={`Usuń tablet ${tablet.friendlyName}`}
                                             >
-                                                <FaTrash />
-                                            </ActionButton>
-                                        </TabletActions>
+                                                {deletingTabletId === tablet.id ? (
+                                                    <FaSpinner className="spin" />
+                                                ) : (
+                                                    <FaTrash />
+                                                )}
+                                            </DeleteButton>
+                                        </DeleteOverlay>
                                     </TabletCard>
                                 ))
                             )}
@@ -391,7 +466,7 @@ const TabletManagementDashboard: React.FC<TabletManagementDashboardProps> = ({
             {/* Signature Request Modal */}
             {showSignatureModal && selectedTablet && (
                 <ModalOverlay onClick={() => setShowSignatureModal(false)}>
-                    <Modal onClick={e => e.stopPropagation()}>
+                    <ModalX onClick={e => e.stopPropagation()}>
                         <ModalHeader>
                             <ModalTitle>
                                 <FaSignature />
@@ -494,9 +569,96 @@ const TabletManagementDashboard: React.FC<TabletManagementDashboardProps> = ({
                                 </ModalActions>
                             </SignatureForm>
                         </ModalContent>
-                    </Modal>
+                    </ModalX>
                 </ModalOverlay>
             )}
+
+            {/* Delete Confirmation Modal */}
+            <Modal
+                isOpen={showDeleteConfirmModal}
+                onClose={cancelDeleteTablet}
+                title="Potwierdzenie usunięcia"
+                size="md"
+            >
+                <ConfirmationModalContent>
+                    <ConfirmationIcon>
+                        <FaExclamationTriangle />
+                    </ConfirmationIcon>
+                    <ConfirmationMessage>
+                        Czy na pewno chcesz usunąć tablet <strong>"{tabletToDelete?.name}"</strong>?
+                        <br /><br />
+                        Ta operacja jest nieodwracalna i rozłączy tablet z systemem.
+                    </ConfirmationMessage>
+                    <ConfirmationActions>
+                        <CancelButton onClick={cancelDeleteTablet}>
+                            <FaTimes />
+                            Anuluj
+                        </CancelButton>
+                        <DeleteConfirmButton onClick={confirmDeleteTablet}>
+                            <FaTrash />
+                            Usuń tablet
+                        </DeleteConfirmButton>
+                    </ConfirmationActions>
+                </ConfirmationModalContent>
+            </Modal>
+
+            {/* Delete Success Modal */}
+            <Modal
+                isOpen={showDeleteSuccessModal}
+                onClose={() => {
+                    setShowDeleteSuccessModal(false);
+                    setTabletToDelete(null); // Reset dopiero tutaj, po zamknięciu modala
+                }}
+                title="Tablet usunięty"
+                size="sm"
+            >
+                <SuccessModalContent>
+                    <SuccessIcon>
+                        <FaCheckCircle />
+                    </SuccessIcon>
+                    <SuccessMessage>
+                        Tablet <strong>"{tabletToDelete?.name}"</strong> został pomyślnie usunięty z systemu.
+                    </SuccessMessage>
+                    <SuccessActions>
+                        <SuccessButton onClick={() => {
+                            setShowDeleteSuccessModal(false);
+                            setTabletToDelete(null); // Reset przy kliknięciu OK
+                        }}>
+                            <FaCheckCircle />
+                            OK
+                        </SuccessButton>
+                    </SuccessActions>
+                </SuccessModalContent>
+            </Modal>
+
+            {/* Delete Error Modal */}
+            <Modal
+                isOpen={showDeleteErrorModal}
+                onClose={() => {
+                    setShowDeleteErrorModal(false);
+                    setTabletToDelete(null); // Reset przy zamknięciu modala błędu
+                }}
+                title="Błąd usuwania"
+                size="md"
+            >
+                <ErrorModalContent>
+                    <ErrorIcon>
+                        <FaTimesCircle />
+                    </ErrorIcon>
+                    <ErrorMessage>
+                        {deleteErrorMessage}
+                    </ErrorMessage>
+                    <ErrorActions>
+                        <ErrorButton onClick={() => {
+                            setShowDeleteErrorModal(false);
+                            setTabletToDelete(null); // Reset przy zamknięciu
+                        }}>
+                            <FaTimes />
+                            Zamknij
+                        </ErrorButton>
+                    </ErrorActions>
+                </ErrorModalContent>
+            </Modal>
 
             <style>{`
                 .spin {
@@ -591,7 +753,7 @@ const ContentArea = styled.div`
     overflow-y: auto;
     padding: ${brandTheme.spacing.lg};
     min-height: 0;
-    
+
     /* Custom scrollbar */
     &::-webkit-scrollbar {
         width: 6px;
@@ -664,6 +826,7 @@ const TabletCard = styled.div<{ $status: string; $isOnline: boolean }>`
     transition: all 0.2s ease;
     position: relative;
     overflow: hidden;
+    cursor: default;
 
     &::before {
         content: '';
@@ -752,10 +915,66 @@ const DetailValue = styled.span`
     text-align: right;
 `;
 
-const TabletActions = styled.div`
+// Delete Overlay - nowy komponent dla hover effect
+const DeleteOverlay = styled.div`
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
     display: flex;
-    gap: ${brandTheme.spacing.sm};
-    justify-content: flex-end;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 10;
+    backdrop-filter: blur(4px);
+    border-radius: ${brandTheme.radius.lg};
+
+    ${TabletCard}:hover & {
+        opacity: 1;
+        visibility: visible;
+    }
+`;
+
+const DeleteButton = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, ${brandTheme.status.error} 0%, #b91c1c 100%);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 28px;
+    box-shadow: ${brandTheme.shadow.xl};
+    transform: scale(0.8);
+    border: 3px solid rgba(255, 255, 255, 0.3);
+
+    &:hover:not(:disabled) {
+        transform: scale(1);
+        box-shadow: 0 20px 40px rgba(239, 68, 68, 0.4);
+        background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+    }
+
+    &:active:not(:disabled) {
+        transform: scale(0.95);
+    }
+
+    &:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: scale(0.8);
+    }
+
+    svg {
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+    }
 `;
 
 const ActionButton = styled.button<{
@@ -776,9 +995,9 @@ const ActionButton = styled.button<{
     overflow: hidden;
 
     ${({ $variant }) => {
-    switch ($variant) {
-        case 'view':
-            return `
+        switch ($variant) {
+            case 'view':
+                return `
                     background: ${brandTheme.primaryGhost};
                     color: ${brandTheme.primary};
                     &:hover:not(:disabled) {
@@ -788,8 +1007,8 @@ const ActionButton = styled.button<{
                         box-shadow: ${brandTheme.shadow.md};
                     }
                 `;
-        case 'edit':
-            return `
+            case 'edit':
+                return `
                     background: ${brandTheme.status.warningLight};
                     color: ${brandTheme.status.warning};
                     &:hover:not(:disabled) {
@@ -799,8 +1018,8 @@ const ActionButton = styled.button<{
                         box-shadow: ${brandTheme.shadow.md};
                     }
                 `;
-        case 'delete':
-            return `
+            case 'delete':
+                return `
                     background: ${brandTheme.status.errorLight};
                     color: ${brandTheme.status.error};
                     &:hover:not(:disabled) {
@@ -810,8 +1029,8 @@ const ActionButton = styled.button<{
                         box-shadow: ${brandTheme.shadow.md};
                     }
                 `;
-    }
-}}
+        }
+    }}
 
     &:disabled {
         opacity: 0.5;
@@ -941,12 +1160,12 @@ const ModalOverlay = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: ${1050};
+    z-index: 1050;
     backdrop-filter: blur(4px);
     padding: ${brandTheme.spacing.lg};
 `;
 
-const Modal = styled.div`
+const ModalX = styled.div`
     background: ${brandTheme.surface};
     border-radius: ${brandTheme.radius.xl};
     box-shadow: ${brandTheme.shadow.xl};
@@ -1218,3 +1437,195 @@ const SubmitButton = styled.button`
 `;
 
 export default TabletManagementDashboard;
+
+// Modal Content Styles
+const ConfirmationModalContent = styled.div`
+    padding: ${brandTheme.spacing.xl};
+    text-align: center;
+`;
+
+const ConfirmationIcon = styled.div`
+    width: 80px;
+    height: 80px;
+    background: ${brandTheme.status.warningLight};
+    color: ${brandTheme.status.warning};
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    margin: 0 auto ${brandTheme.spacing.xl};
+    border: 3px solid ${brandTheme.status.warning}30;
+    box-shadow: ${brandTheme.shadow.lg};
+`;
+
+const ConfirmationMessage = styled.div`
+    font-size: 16px;
+    color: ${brandTheme.text.secondary};
+    line-height: 1.6;
+    margin-bottom: ${brandTheme.spacing.xl};
+
+    strong {
+        color: ${brandTheme.text.primary};
+        font-weight: 600;
+    }
+`;
+
+const ConfirmationActions = styled.div`
+    display: flex;
+    gap: ${brandTheme.spacing.md};
+    justify-content: center;
+
+    @media (max-width: 480px) {
+        flex-direction: column;
+    }
+`;
+
+const DeleteConfirmButton = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.xl};
+    background: linear-gradient(135deg, ${brandTheme.status.error} 0%, #b91c1c 100%);
+    color: white;
+    border: none;
+    border-radius: ${brandTheme.radius.md};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: ${brandTheme.shadow.sm};
+    min-height: 44px;
+    min-width: 140px;
+
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow: ${brandTheme.shadow.lg};
+        background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+    }
+
+    &:active {
+        transform: translateY(0);
+    }
+`;
+
+const SuccessModalContent = styled.div`
+    padding: ${brandTheme.spacing.xl};
+    text-align: center;
+`;
+
+const SuccessIcon = styled.div`
+    width: 80px;
+    height: 80px;
+    background: ${brandTheme.status.successLight};
+    color: ${brandTheme.status.success};
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    margin: 0 auto ${brandTheme.spacing.xl};
+    border: 3px solid ${brandTheme.status.success}30;
+    box-shadow: ${brandTheme.shadow.lg};
+`;
+
+const SuccessMessage = styled.div`
+    font-size: 16px;
+    color: ${brandTheme.text.secondary};
+    line-height: 1.6;
+    margin-bottom: ${brandTheme.spacing.xl};
+
+    strong {
+        color: ${brandTheme.text.primary};
+        font-weight: 600;
+    }
+`;
+
+const SuccessActions = styled.div`
+    display: flex;
+    justify-content: center;
+`;
+
+const SuccessButton = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.xl};
+    background: linear-gradient(135deg, ${brandTheme.status.success} 0%, #047857 100%);
+    color: white;
+    border: none;
+    border-radius: ${brandTheme.radius.md};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: ${brandTheme.shadow.sm};
+    min-height: 44px;
+    min-width: 100px;
+
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow: ${brandTheme.shadow.lg};
+        background: linear-gradient(135deg, #059669 0%, #065f46 100%);
+    }
+`;
+
+const ErrorModalContent = styled.div`
+    padding: ${brandTheme.spacing.xl};
+    text-align: center;
+`;
+
+const ErrorIcon = styled.div`
+    width: 80px;
+    height: 80px;
+    background: ${brandTheme.status.errorLight};
+    color: ${brandTheme.status.error};
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    margin: 0 auto ${brandTheme.spacing.xl};
+    border: 3px solid ${brandTheme.status.error}30;
+    box-shadow: ${brandTheme.shadow.lg};
+`;
+
+const ErrorMessage = styled.div`
+    font-size: 16px;
+    color: ${brandTheme.text.secondary};
+    line-height: 1.6;
+    margin-bottom: ${brandTheme.spacing.xl};
+`;
+
+const ErrorActions = styled.div`
+    display: flex;
+    justify-content: center;
+`;
+
+const ErrorButton = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.xl};
+    background: ${brandTheme.surface};
+    color: ${brandTheme.text.secondary};
+    border: 2px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.md};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 44px;
+    min-width: 100px;
+
+    &:hover {
+        background: ${brandTheme.surfaceHover};
+        border-color: ${brandTheme.borderHover};
+        color: ${brandTheme.text.primary};
+        transform: translateY(-1px);
+        box-shadow: ${brandTheme.shadow.sm};
+    }
+`;
