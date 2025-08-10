@@ -94,7 +94,7 @@ interface TabletManagementDashboardProps {
     tablets: TabletDevice[];
     sessions: SignatureSession[];
     onSessionClick: (session: SignatureSession) => void;
-    onDataRefresh?: () => void; // Dodaj callback do odświeżania danych z rodzica
+    onDataRefresh?: () => void; // Już istnieje - będziemy go używać
     realtimeStats: {
         connectedTablets: number;
         pendingSessions: number;
@@ -107,6 +107,7 @@ const TabletManagementDashboard: React.FC<TabletManagementDashboardProps> = ({
                                                                                  tablets,
                                                                                  sessions,
                                                                                  onSessionClick,
+                                                                                 onDataRefresh,
                                                                                  realtimeStats
                                                                              }) => {
     const { createSignatureSession, testTablet, loading, unpairTablet, refreshData } = useTablets();
@@ -167,6 +168,15 @@ const TabletManagementDashboard: React.FC<TabletManagementDashboardProps> = ({
         const diffHours = Math.floor(diffMins / 60);
         if (diffHours < 24) return `${diffHours}h temu`;
         return `${Math.floor(diffHours / 24)}d temu`;
+    };
+
+    const handleSuccessModalClose = () => {
+        setShowDeleteSuccessModal(false);
+        setTabletToDelete(null);
+        // Wywołaj odświeżenie danych po pomyślnym usunięciu
+        if (onDataRefresh) {
+            onDataRefresh();
+        }
     };
 
     const handleTestTablet = async (tabletId: string) => {
@@ -341,12 +351,6 @@ const TabletManagementDashboard: React.FC<TabletManagementDashboardProps> = ({
                                             <DetailRow>
                                                 <DetailLabel>Status:</DetailLabel>
                                                 <DetailValue>{getStatusLabel(tablet.status, tablet.isOnline)}</DetailValue>
-                                            </DetailRow>
-                                            <DetailRow>
-                                                <DetailLabel>Lokalizacja ID:</DetailLabel>
-                                                <DetailValue style={{ fontFamily: 'monospace', fontSize: '12px' }}>
-                                                    {tablet.locationId || 'Brak'}
-                                                </DetailValue>
                                             </DetailRow>
                                         </TabletDetails>
 
@@ -605,10 +609,7 @@ const TabletManagementDashboard: React.FC<TabletManagementDashboardProps> = ({
             {/* Delete Success Modal */}
             <Modal
                 isOpen={showDeleteSuccessModal}
-                onClose={() => {
-                    setShowDeleteSuccessModal(false);
-                    setTabletToDelete(null); // Reset dopiero tutaj, po zamknięciu modala
-                }}
+                onClose={handleSuccessModalClose}
                 title="Tablet usunięty"
                 size="sm"
             >
@@ -620,10 +621,7 @@ const TabletManagementDashboard: React.FC<TabletManagementDashboardProps> = ({
                         Tablet <strong>"{tabletToDelete?.name}"</strong> został pomyślnie usunięty z systemu.
                     </SuccessMessage>
                     <SuccessActions>
-                        <SuccessButton onClick={() => {
-                            setShowDeleteSuccessModal(false);
-                            setTabletToDelete(null); // Reset przy kliknięciu OK
-                        }}>
+                        <SuccessButton onClick={handleSuccessModalClose}>
                             <FaCheckCircle />
                             OK
                         </SuccessButton>

@@ -103,7 +103,8 @@ const TabletIntegrationPage: React.FC = () => {
         generatePairingCode,
         clearPairingState,
         retrySignatureSession,
-        cancelSignatureSession
+        cancelSignatureSession,
+        refreshData
     } = useTablets();
 
     const [selectedSession, setSelectedSession] = useState<any>(null);
@@ -251,6 +252,17 @@ const TabletIntegrationPage: React.FC = () => {
         }
     };
 
+    const handleDataRefresh = async () => {
+        try {
+            // Wywołaj odświeżenie danych z hooka useTablets
+            await refreshData();
+            showToast('success', 'Lista tabletów została odświeżona');
+        } catch (error) {
+            console.error('Error refreshing data:', error);
+            showToast('error', 'Nie udało się odświeżyć listy tabletów');
+        }
+    };
+
     const formatTime = (seconds: number): string => {
         if (seconds <= 0) return '0:00';
 
@@ -344,6 +356,7 @@ const TabletIntegrationPage: React.FC = () => {
                     tablets={tablets}
                     sessions={sessions}
                     onSessionClick={handleSessionClick}
+                    onDataRefresh={handleDataRefresh} // Dodaj ten prop
                     realtimeStats={realtimeStats}
                 />
             </ContentContainer>
