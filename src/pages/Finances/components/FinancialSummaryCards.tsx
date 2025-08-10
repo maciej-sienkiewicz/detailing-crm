@@ -9,10 +9,13 @@ import {
     FaExclamationTriangle,
     FaUniversity,
     FaFileInvoiceDollar,
-    FaEdit
+    FaEdit,
+    FaHistory
 } from 'react-icons/fa';
 import { UnifiedDocumentSummary } from '../../../types/finance';
 import { brandTheme } from '../styles/theme';
+import BalanceHistoryModal from './BalanceHistoryModal';
+import { BalanceType } from '../../../api/balanceOverrideApi';
 
 interface FinancialSummaryCardsProps {
     summary: UnifiedDocumentSummary;
@@ -29,6 +32,8 @@ const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({
                                                                      }) => {
     const [showEditModal, setShowEditModal] = useState(false);
     const [editType, setEditType] = useState<'cash' | 'bank'>('cash');
+    const [showHistoryModal, setShowHistoryModal] = useState(false);
+    const [historyBalanceType, setHistoryBalanceType] = useState<BalanceType | undefined>();
 
     // Format amount
     const formatAmount = (amount: number): string => {
@@ -43,6 +48,11 @@ const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({
     const handleEditBalance = (type: 'cash' | 'bank') => {
         setEditType(type);
         setShowEditModal(true);
+    };
+
+    const handleShowHistory = (type: BalanceType) => {
+        setHistoryBalanceType(type);
+        setShowHistoryModal(true);
     };
 
     const handleBalanceSaved = (newCashBalance: number, newBankBalance: number) => {
@@ -74,14 +84,22 @@ const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({
                         <CardLabel>Stan kasy</CardLabel>
                         <CardDetail>Gotówka w kasie</CardDetail>
                     </CardContent>
-                    <EditIconContainer>
-                        <EditIcon
+                    <CardActions>
+                        <ActionIcon
+                            onClick={() => handleShowHistory(BalanceType.CASH)}
+                            title="Zobacz historię zmian kasy"
+                            className="history-icon"
+                        >
+                            <FaHistory />
+                        </ActionIcon>
+                        <ActionIcon
                             onClick={() => handleEditBalance('cash')}
                             title="Edytuj stan kasy"
+                            className="edit-icon"
                         >
                             <FaEdit />
-                        </EditIcon>
-                    </EditIconContainer>
+                        </ActionIcon>
+                    </CardActions>
                 </SummaryCard>
 
                 <SummaryCard $type="bank">
@@ -93,14 +111,22 @@ const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({
                         <CardLabel>Stan konta</CardLabel>
                         <CardDetail>Środki na koncie bankowym</CardDetail>
                     </CardContent>
-                    <EditIconContainer>
-                        <EditIcon
+                    <CardActions>
+                        <ActionIcon
+                            onClick={() => handleShowHistory(BalanceType.BANK)}
+                            title="Zobacz historię zmian konta bankowego"
+                            className="history-icon"
+                        >
+                            <FaHistory />
+                        </ActionIcon>
+                        <ActionIcon
                             onClick={() => handleEditBalance('bank')}
                             title="Edytuj stan konta bankowego"
+                            className="edit-icon"
                         >
                             <FaEdit />
-                        </EditIcon>
-                    </EditIconContainer>
+                        </ActionIcon>
+                    </CardActions>
                 </SummaryCard>
 
                 <SummaryCard $type="income">
@@ -167,11 +193,17 @@ const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({
                     onClose={() => setShowEditModal(false)}
                 />
             )}
+
+            <BalanceHistoryModal
+                isOpen={showHistoryModal}
+                onClose={() => setShowHistoryModal(false)}
+                balanceType={historyBalanceType}
+            />
         </SummarySection>
     );
 };
 
-// Modal Component
+// Modal Component - Updated without reason selection
 interface BalanceEditModalProps {
     isOpen: boolean;
     balanceType: 'cash' | 'bank';
@@ -192,7 +224,6 @@ const BalanceEditModal: React.FC<BalanceEditModalProps> = ({
     const [newBalance, setNewBalance] = useState(
         balanceType === 'cash' ? currentCashBalance : currentBankBalance
     );
-    const [reason, setReason] = useState<string>('MANAGER_ADJUSTMENT');
     const [description, setDescription] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -201,18 +232,23 @@ const BalanceEditModal: React.FC<BalanceEditModalProps> = ({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!description.trim()) {
+            setError('Opis jest wymagany');
+            return;
+        }
+
         setLoading(true);
         setError(null);
 
         try {
             // Import balanceOverrideApi dynamically to avoid circular dependencies
-            const { balanceOverrideApi, BalanceType, OverrideReason } = await import('../../../api/balanceOverrideApi');
+            const { balanceOverrideApi, BalanceType } = await import('../../../api/balanceOverrideApi');
 
             const result = await balanceOverrideApi.manualOverride({
                 balanceType: balanceType === 'cash' ? BalanceType.CASH : BalanceType.BANK,
                 newBalance,
-                reason: reason as keyof typeof OverrideReason,
-                description: description || undefined
+                description: description.trim()
             });
 
             if (result.success) {
@@ -296,41 +332,25 @@ const BalanceEditModal: React.FC<BalanceEditModalProps> = ({
                         )}
 
                         <FormGroup>
-                            <Label htmlFor="reason">Powód zmiany *</Label>
-                            <Select
-                                id="reason"
-                                value={reason}
-                                onChange={(e) => setReason(e.target.value)}
-                                required
-                            >
-                                <option value="MANAGER_ADJUSTMENT">Korekta menedżerska</option>
-                                <option value="CASH_TO_SAFE">Przeniesienie gotówki do sejfu</option>
-                                <option value="CASH_FROM_SAFE">Pobranie gotówki z sejfu</option>
-                                <option value="BANK_STATEMENT_RECONCILIATION">Uzgodnienie z wyciągiem bankowym</option>
-                                <option value="INVENTORY_COUNT">Rezultat inwentaryzacji kasy</option>
-                                <option value="ERROR_CORRECTION">Korekta błędu księgowego</option>
-                                <option value="EXTERNAL_PAYMENT">Płatność zewnętrzna nie odnotowana w systemie</option>
-                                <option value="SYSTEM_MIGRATION">Migracja danych systemowych</option>
-                                <option value="OTHER">Inna przyczyna</option>
-                            </Select>
-                        </FormGroup>
-
-                        <FormGroup>
-                            <Label htmlFor="description">Opis (opcjonalnie)</Label>
+                            <Label htmlFor="description">Opis zmiany *</Label>
                             <Textarea
                                 id="description"
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
-                                placeholder="Dodatkowy opis przyczyny zmiany salda"
-                                rows={3}
+                                placeholder="Opisz powód zmiany salda (np. korekta po inwentaryzacji, uzgodnienie z wyciągiem bankowym, itp.)"
+                                rows={4}
+                                required
                             />
+                            <FieldHint>
+                                Podaj szczegółowy opis przyczyny zmiany salda. Informacja zostanie zapisana w historii operacji.
+                            </FieldHint>
                         </FormGroup>
 
                         <FormActions>
                             <CancelButton type="button" onClick={onClose}>
                                 Anuluj
                             </CancelButton>
-                            <SaveButton type="submit" disabled={loading}>
+                            <SaveButton type="submit" disabled={loading || !description.trim()}>
                                 {loading ? 'Zapisywanie...' : 'Zapisz zmiany'}
                             </SaveButton>
                         </FormActions>
@@ -341,7 +361,7 @@ const BalanceEditModal: React.FC<BalanceEditModalProps> = ({
     );
 };
 
-// Styled Components - Updated to match VehiclesPage style
+// Styled Components - Updated to include action buttons
 const SummarySection = styled.section`
     max-width: 1600px;
     margin: 0 auto;
@@ -399,6 +419,7 @@ const SummaryCard = styled.div<SummaryCardProps>`
         border-color: ${brandTheme.borderHover};
         
         ${props => (props.$type === 'balance' || props.$type === 'bank') && `
+            .history-icon,
             .edit-icon {
                 opacity: 1;
                 transform: scale(1);
@@ -497,39 +518,6 @@ const CardDetail = styled.div`
     align-items: center;
 `;
 
-const EditIconContainer = styled.div`
-    position: absolute;
-    top: ${brandTheme.spacing.sm};
-    right: ${brandTheme.spacing.sm};
-`;
-
-const EditIcon = styled.button.attrs({ className: 'edit-icon' })`
-    width: 32px;
-    height: 32px;
-    border: none;
-    background: ${brandTheme.primary};
-    color: white;
-    border-radius: ${brandTheme.radius.md};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    opacity: 0;
-    transform: scale(0.8);
-    transition: all 0.2s ease;
-    font-size: 14px;
-    box-shadow: ${brandTheme.shadow.md};
-
-    &:hover {
-        background: ${brandTheme.primaryDark};
-        transform: scale(1.1);
-    }
-
-    &:active {
-        transform: scale(0.95);
-    }
-`;
-
 const WarningText = styled.span`
     color: ${brandTheme.status.error};
     display: flex;
@@ -543,148 +531,34 @@ const WarningText = styled.span`
     }
 `;
 
-const SkeletonCard = styled.div`
-    background: ${brandTheme.surface};
-    border-radius: ${brandTheme.radius.xl};
-    border: 1px solid ${brandTheme.border};
-    padding: ${brandTheme.spacing.lg};
-    height: 110px;
-    box-shadow: ${brandTheme.shadow.sm};
-    position: relative;
-    overflow: hidden;
-
-    &::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        right: 0;
-        bottom: 0;
-        left: 0;
-        transform: translateX(-100%);
-        background-image: linear-gradient(
-                90deg,
-                rgba(255, 255, 255, 0) 0,
-                rgba(255, 255, 255, 0.2) 20%,
-                rgba(255, 255, 255, 0.5) 60%,
-                rgba(255, 255, 255, 0)
-        );
-        animation: shimmer 2s infinite;
-    }
-
-    @keyframes shimmer {
-        100% {
-            transform: translateX(100%);
-        }
-    }
-`;
-
-// Modal Styled Components
-const ModalOverlay = styled.div`
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
+const CardActions = styled.div`
+    position: absolute;
+    top: ${brandTheme.spacing.sm};
+    right: ${brandTheme.spacing.sm};
     display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: ${brandTheme.zIndex.modal};
-    padding: ${brandTheme.spacing.lg};
-    backdrop-filter: blur(4px);
-    animation: fadeIn 0.2s ease;
-
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-    }
+    gap: ${brandTheme.spacing.xs};
 `;
 
-const ModalContainer = styled.div`
-    background-color: ${brandTheme.surface};
-    border-radius: ${brandTheme.radius.xl};
-    box-shadow: ${brandTheme.shadow.xl};
-    width: 95vw;
-    max-width: 500px;
-    max-height: 95vh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    animation: slideUp 0.3s ease;
-
-    @keyframes slideUp {
-        from {
-            opacity: 0;
-            transform: translateY(20px) scale(0.95);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-        }
-    }
-
-    @media (max-width: ${brandTheme.breakpoints.md}) {
-        width: 100vw;
-        height: 100vh;
-        max-height: 100vh;
-        border-radius: 0;
-    }
-`;
-
-const ModalHeader = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
-    border-bottom: 1px solid ${brandTheme.border};
-    background: ${brandTheme.surfaceAlt};
-    flex-shrink: 0;
-`;
-
-const ModalTitle = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.md};
-`;
-
-const TitleIcon = styled.div`
-    width: 40px;
-    height: 40px;
-    background: ${brandTheme.primaryGhost};
-    border-radius: ${brandTheme.radius.md};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: ${brandTheme.primary};
-    font-size: 18px;
-`;
-
-const TitleText = styled.h2`
-    margin: 0;
-    font-size: 18px;
-    font-weight: 700;
-    color: ${brandTheme.text.primary};
-    letter-spacing: -0.025em;
-`;
-
-const CloseButton = styled.button`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
+const ActionIcon = styled.button`
+    width: 28px;
+    height: 28px;
     border: none;
-    background: ${brandTheme.surfaceHover};
-    color: ${brandTheme.text.secondary};
-    border-radius: ${brandTheme.radius.md};
+    background: ${brandTheme.primary};
+    color: white;
+    border-radius: ${brandTheme.radius.sm};
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
-    transition: all ${brandTheme.transitions.normal};
-    font-size: 20px;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.2s ease;
+    font-size: 12px;
+    box-shadow: ${brandTheme.shadow.md};
 
     &:hover {
-        background: ${brandTheme.status.errorLight};
-        color: ${brandTheme.status.error};
-        transform: scale(1.05);
+        background: ${brandTheme.primaryDark};
+        transform: scale(1.1);
     }
 
     &:active {
@@ -793,25 +667,6 @@ const Input = styled.input`
     }
 `;
 
-const Select = styled.select`
-    height: 44px;
-    padding: 0 ${brandTheme.spacing.md};
-    border: 2px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.md};
-    font-size: 14px;
-    font-weight: 500;
-    background: ${brandTheme.surface};
-    color: ${brandTheme.text.primary};
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:focus {
-        outline: none;
-        border-color: ${brandTheme.primary};
-        box-shadow: 0 0 0 3px ${brandTheme.primaryGhost};
-    }
-`;
-
 const Textarea = styled.textarea`
     padding: ${brandTheme.spacing.md};
     border: 2px solid ${brandTheme.border};
@@ -821,7 +676,7 @@ const Textarea = styled.textarea`
     background: ${brandTheme.surface};
     color: ${brandTheme.text.primary};
     resize: vertical;
-    min-height: 80px;
+    min-height: 100px;
     font-family: inherit;
     transition: all 0.2s ease;
 
@@ -835,6 +690,13 @@ const Textarea = styled.textarea`
         color: ${brandTheme.text.muted};
         font-weight: 400;
     }
+`;
+
+const FieldHint = styled.div`
+    font-size: 12px;
+    color: ${brandTheme.text.secondary};
+    margin-top: ${brandTheme.spacing.xs};
+    line-height: 1.4;
 `;
 
 const DifferenceInfo = styled.div<{ $isPositive: boolean }>`
@@ -922,6 +784,154 @@ const SaveButton = styled(BaseButton)`
     &:hover:not(:disabled) {
         background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
         box-shadow: ${brandTheme.shadow.md};
+    }
+`;
+
+const ModalOverlay = styled.div`
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: ${brandTheme.zIndex.modalEdit};
+    padding: ${brandTheme.spacing.lg};
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.2s ease;
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+`;
+
+const ModalContainer = styled.div`
+    background-color: ${brandTheme.surface};
+    border-radius: ${brandTheme.radius.xl};
+    box-shadow: ${brandTheme.shadow.xl};
+    width: 95vw;
+    max-width: 500px;
+    max-height: 95vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: slideUp 0.3s ease;
+
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    @media (max-width: ${brandTheme.breakpoints.md}) {
+        width: 100vw;
+        height: 100vh;
+        max-height: 100vh;
+        border-radius: 0;
+    }
+`;
+
+const ModalHeader = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
+    border-bottom: 1px solid ${brandTheme.border};
+    background: ${brandTheme.surfaceAlt};
+    flex-shrink: 0;
+`;
+
+const ModalTitle = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.md};
+`;
+
+const TitleIcon = styled.div`
+    width: 40px;
+    height: 40px;
+    background: ${brandTheme.primaryGhost};
+    border-radius: ${brandTheme.radius.md};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${brandTheme.primary};
+    font-size: 18px;
+`;
+
+const TitleText = styled.h2`
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: ${brandTheme.text.primary};
+    letter-spacing: -0.025em;
+`;
+
+const SkeletonCard = styled.div`
+    background: ${brandTheme.surface};
+    border-radius: ${brandTheme.radius.xl};
+    border: 1px solid ${brandTheme.border};
+    padding: ${brandTheme.spacing.lg};
+    height: 110px;
+    box-shadow: ${brandTheme.shadow.sm};
+    position: relative;
+    overflow: hidden;
+
+    &::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        transform: translateX(-100%);
+        background-image: linear-gradient(
+                90deg,
+                rgba(255, 255, 255, 0) 0,
+                rgba(255, 255, 255, 0.2) 20%,
+                rgba(255, 255, 255, 0.5) 60%,
+                rgba(255, 255, 255, 0)
+        );
+        animation: shimmer 2s infinite;
+    }
+
+    @keyframes shimmer {
+        100% {
+            transform: translateX(100%);
+        }
+    }
+`;
+
+const CloseButton = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: ${brandTheme.surfaceHover};
+    color: ${brandTheme.text.secondary};
+    border-radius: ${brandTheme.radius.md};
+    cursor: pointer;
+    transition: all ${brandTheme.transitions.normal};
+    font-size: 20px;
+
+    &:hover {
+        background: ${brandTheme.status.errorLight};
+        color: ${brandTheme.status.error};
+        transform: scale(1.05);
+    }
+
+    &:active {
+        transform: scale(0.95);
     }
 `;
 

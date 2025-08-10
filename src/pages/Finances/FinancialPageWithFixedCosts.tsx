@@ -7,7 +7,8 @@ import {
     FaChartLine,
     FaExchangeAlt,
     FaSpinner,
-    FaSync
+    FaSync,
+    FaHistory
 } from 'react-icons/fa';
 
 // Import existing components
@@ -23,13 +24,15 @@ import FixedCostsIntegration from './components/FixedCostsIntegration';
 // Import new Reports component
 import FinancialReportsPage from "./FinancialReportsPage";
 
+// Import Balance History component
+import BalanceHistoryModal from './components/BalanceHistoryModal';
+
 // Import hooks
 import { useFinancialData } from './hooks/useFinancialData';
 import { useDocumentActions } from './hooks/useDocumentActions';
 
 // Import types
 import { DocumentType } from '../../types/finance';
-
 
 // Import styles and utilities
 import { brandTheme } from './styles/theme';
@@ -42,7 +45,7 @@ import {invoicesApi} from "../../api/invoicesApi";
 import {invoiceSignatureApi} from "../../api/invoiceSignatureApi";
 import {documentPrintService} from "../../api/documentPrintService";
 
-type ActiveTab = 'documents' | 'fixed-costs' | 'reports';
+type ActiveTab = 'documents' | 'fixed-costs' | 'reports' | 'balance-history';
 
 const FinancialPageWithFixedCosts: React.FC = () => {
     const { showToast } = useToast();
@@ -51,6 +54,9 @@ const FinancialPageWithFixedCosts: React.FC = () => {
     // State for Fixed Costs integration
     const [fixedCostsRef, setFixedCostsRef] = useState<{ handleAddFixedCost?: () => void }>({});
     const [backingUp, setBackingUp] = useState(false);
+
+    // State for Balance History
+    const [showBalanceHistoryModal, setShowBalanceHistoryModal] = useState(false);
 
     // Error handling callback
     const handleError = useCallback((message: string) => {
@@ -92,7 +98,7 @@ const FinancialPageWithFixedCosts: React.FC = () => {
         handleCloseModals
     } = useDocumentActions(refreshData, showToast);
 
-    // Tab configuration
+    // Tab configuration - updated to include balance history
     const tabs = [
         {
             id: 'documents' as ActiveTab,
@@ -105,6 +111,12 @@ const FinancialPageWithFixedCosts: React.FC = () => {
             label: 'Koszty stałe',
             icon: FaBuilding,
             description: 'Zarządzanie kosztami stałymi firmy'
+        },
+        {
+            id: 'balance-history' as ActiveTab,
+            label: 'Historia sald',
+            icon: FaHistory,
+            description: 'Przegląd zmian stanów kasy i konta'
         },
         {
             id: 'reports' as ActiveTab,
@@ -192,6 +204,11 @@ const FinancialPageWithFixedCosts: React.FC = () => {
         }
     }, [handleError]);
 
+    // Handle show balance history
+    const handleShowBalanceHistory = useCallback(() => {
+        setShowBalanceHistoryModal(true);
+    }, []);
+
     // Loading state for initial load
     if (loading && documents.length === 0 && activeTab === 'documents') {
         return (
@@ -243,6 +260,13 @@ const FinancialPageWithFixedCosts: React.FC = () => {
                                 <FaBuilding />
                                 <span>Dodaj koszt stały</span>
                             </PrimaryButton>
+                        )}
+
+                        {activeTab === 'balance-history' && (
+                            <SecondaryButton onClick={handleShowBalanceHistory}>
+                                <FaHistory />
+                                <span>Pokaż pełną historię</span>
+                            </SecondaryButton>
                         )}
 
                         {activeTab === 'reports' && (
@@ -368,15 +392,44 @@ const FinancialPageWithFixedCosts: React.FC = () => {
                     <FixedCostsIntegration onSetRef={handleSetFixedCostsRef} />
                 )}
 
+                {activeTab === 'balance-history' && (
+                    <BalanceHistoryContainer>
+                        <BalanceHistoryHeader>
+                            <HistoryHeaderText>
+                                <HistoryTitle>Historia zmian sald</HistoryTitle>
+                                <HistorySubtitle>
+                                    Przegląd wszystkich operacji wpływających na stan kasy i konta bankowego
+                                </HistorySubtitle>
+                            </HistoryHeaderText>
+                        </BalanceHistoryHeader>
+                        <BalanceHistoryContent>
+                            <HistoryDescription>
+                                W tej sekcji możesz przeglądać szczegółową historię wszystkich zmian sald w systemie.
+                                Historia obejmuje zarówno operacje automatyczne (z dokumentów finansowych) jak i manualne korekty.
+                            </HistoryDescription>
+                            <HistoryActionButton onClick={handleShowBalanceHistory}>
+                                <FaHistory />
+                                Otwórz pełną historię sald
+                            </HistoryActionButton>
+                        </BalanceHistoryContent>
+                    </BalanceHistoryContainer>
+                )}
+
                 {activeTab === 'reports' && (
                     <FinancialReportsPage />
                 )}
             </ContentContainer>
+
+            {/* Balance History Modal */}
+            <BalanceHistoryModal
+                isOpen={showBalanceHistoryModal}
+                onClose={() => setShowBalanceHistoryModal(false)}
+            />
         </PageContainer>
     );
 };
 
-// Styled Components
+// Styled Components - Updated with new balance history tab styles
 const PageContainer = styled.div`
     min-height: 100vh;
     background: ${brandTheme.surfaceAlt};
@@ -767,6 +820,91 @@ const PaginationContainer = styled.div`
     display: flex;
     justify-content: center;
     padding: ${brandTheme.spacing.lg} 0;
+`;
+
+// New styled components for Balance History tab
+const BalanceHistoryContainer = styled.div`
+    background: ${brandTheme.surface};
+    border-radius: ${brandTheme.radius.xl};
+    border: 1px solid ${brandTheme.border};
+    overflow: hidden;
+    box-shadow: ${brandTheme.shadow.sm};
+`;
+
+const BalanceHistoryHeader = styled.div`
+    background: ${brandTheme.surfaceAlt};
+    padding: ${brandTheme.spacing.xl};
+    border-bottom: 1px solid ${brandTheme.border};
+`;
+
+const HistoryHeaderText = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.sm};
+`;
+
+const HistoryTitle = styled.h2`
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    color: ${brandTheme.text.primary};
+    letter-spacing: -0.025em;
+`;
+
+const HistorySubtitle = styled.p`
+    margin: 0;
+    font-size: 16px;
+    color: ${brandTheme.text.secondary};
+    line-height: 1.5;
+`;
+
+const BalanceHistoryContent = styled.div`
+    padding: ${brandTheme.spacing.xl};
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: ${brandTheme.spacing.xl};
+    text-align: center;
+    min-height: 300px;
+    justify-content: center;
+`;
+
+const HistoryDescription = styled.p`
+    margin: 0;
+    font-size: 16px;
+    color: ${brandTheme.text.secondary};
+    line-height: 1.6;
+    max-width: 600px;
+`;
+
+const HistoryActionButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.md};
+    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
+    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+    color: white;
+    border: none;
+    border-radius: ${brandTheme.radius.lg};
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: ${brandTheme.shadow.md};
+
+    &:hover {
+        background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
+        transform: translateY(-2px);
+        box-shadow: ${brandTheme.shadow.lg};
+    }
+
+    &:active {
+        transform: translateY(0);
+    }
+
+    svg {
+        font-size: 20px;
+    }
 `;
 
 export default FinancialPageWithFixedCosts;
