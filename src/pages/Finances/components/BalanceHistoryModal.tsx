@@ -9,68 +9,15 @@ import {
     FaChevronLeft,
     FaChevronRight,
     FaFilter,
-    FaCalendarAlt,
     FaSearch,
-    FaUser,
-    FaFileAlt,
-    FaArrowUp,
-    FaArrowDown,
-    FaSpinner
+    FaSpinner,
+    FaDownload,
+    FaCalendarAlt,
+    FaFileExport
 } from 'react-icons/fa';
 import { brandTheme } from '../styles/theme';
 import { balanceOverrideApi, BalanceType, BalanceHistoryResponse, BalanceHistorySearchRequest, SpringPageResponse } from '../../../api/balanceOverrideApi';
-
-// Operation type utilities inline (can be moved to separate file later)
-const OperationTypeLabels: Record<string, string> = {
-    'ADD': 'Dodanie środków',
-    'SUBTRACT': 'Odjęcie środków',
-    'CORRECTION': 'Korekta sald',
-    'MANUAL_OVERRIDE': 'Ręczne nadpisanie',
-    'CASH_WITHDRAWAL': 'Wypłata gotówki',
-    'CASH_DEPOSIT': 'Wpłata gotówki',
-    'BANK_RECONCILIATION': 'Uzgodnienie bankowe',
-    'INVENTORY_ADJUSTMENT': 'Korekta inwentarzowa',
-    'CASH_TO_SAFE': 'Przeniesienie do sejfu',
-    'CASH_FROM_SAFE': 'Pobranie z sejfu'
-};
-
-const OperationTypeColors: Record<string, string> = {
-    'ADD': brandTheme.status.success,
-    'SUBTRACT': brandTheme.status.error,
-    'CORRECTION': brandTheme.status.warning,
-    'MANUAL_OVERRIDE': brandTheme.primary,
-    'CASH_WITHDRAWAL': brandTheme.status.error,
-    'CASH_DEPOSIT': brandTheme.status.success,
-    'BANK_RECONCILIATION': brandTheme.status.info,
-    'INVENTORY_ADJUSTMENT': brandTheme.status.warning,
-    'CASH_TO_SAFE': brandTheme.status.info,
-    'CASH_FROM_SAFE': brandTheme.status.info
-};
-
-const OperationTypeDescriptions: Record<string, string> = {
-    'ADD': 'Automatyczne dodanie środków na podstawie dokumentu finansowego',
-    'SUBTRACT': 'Automatyczne odjęcie środków na podstawie dokumentu finansowego',
-    'CORRECTION': 'Korekta błędów w saldach przeprowadzona przez system',
-    'MANUAL_OVERRIDE': 'Ręczna zmiana salda przez uprawnionego użytkownika',
-    'CASH_WITHDRAWAL': 'Wypłata gotówki z kasy',
-    'CASH_DEPOSIT': 'Wpłata gotówki do kasy',
-    'BANK_RECONCILIATION': 'Uzgodnienie salda z wyciągiem bankowym',
-    'INVENTORY_ADJUSTMENT': 'Korekta na podstawie inwentaryzacji fizycznej',
-    'CASH_TO_SAFE': 'Przeniesienie gotówki z kasy do sejfu',
-    'CASH_FROM_SAFE': 'Pobranie gotówki z sejfu do kasy'
-};
-
-const getOperationTypeLabel = (operationType: string): string => {
-    return OperationTypeLabels[operationType] || operationType;
-};
-
-const getOperationTypeColor = (operationType: string): string => {
-    return OperationTypeColors[operationType] || brandTheme.text.secondary;
-};
-
-const getOperationTypeDescription = (operationType: string): string => {
-    return OperationTypeDescriptions[operationType] || 'Nieznany typ operacji';
-};
+import { getOperationTypeLabel, getOperationTypeColor } from '../utils/operationTypeUtils';
 
 interface BalanceHistoryModalProps {
     isOpen: boolean;
@@ -93,12 +40,11 @@ const BalanceHistoryModal: React.FC<BalanceHistoryModalProps> = ({
     const [totalElements, setTotalElements] = useState(0);
     const [showFilters, setShowFilters] = useState(false);
 
-    // Filtry - jeśli balanceType jest przekazany, nie pozwalamy na jego zmianę
     const [filters, setFilters] = useState<BalanceHistorySearchRequest>({
         balanceType: balanceType,
         documentId: initialDocumentId,
         page: 0,
-        size: 10
+        size: 20
     });
 
     const fetchHistory = useCallback(async () => {
@@ -111,16 +57,15 @@ const BalanceHistoryModal: React.FC<BalanceHistoryModalProps> = ({
             const response = await balanceOverrideApi.getBalanceHistory(
                 { ...filters, page: currentPage },
                 currentPage,
-                10
+                20
             );
 
-            // Backend zwraca Spring Data Page format
             setHistory(response.content || []);
             setTotalPages(response.totalPages || 0);
             setTotalElements(response.totalElements || 0);
         } catch (err) {
             console.error('Error fetching balance history:', err);
-            setError('Nie udało się załadować historii zmian sald');
+            setError('Nie udało się załadować historii operacji');
         } finally {
             setLoading(false);
         }
@@ -135,24 +80,22 @@ const BalanceHistoryModal: React.FC<BalanceHistoryModalProps> = ({
     useEffect(() => {
         if (isOpen) {
             setCurrentPage(0);
-            // Zawsze wymuszamy oryginalny balanceType, jeśli został przekazany
             const newFilters = {
                 ...filters,
                 documentId: initialDocumentId,
                 page: 0
             };
             if (balanceType) {
-                newFilters.balanceType = balanceType; // NIGDY nie pozwalamy na zmianę
+                newFilters.balanceType = balanceType;
             }
             setFilters(newFilters);
         }
     }, [isOpen, balanceType, initialDocumentId]);
 
     const handleFilterChange = (newFilters: Partial<BalanceHistorySearchRequest>) => {
-        // Jeśli component został otwarty dla konkretnego typu salda, nie pozwalamy na jego zmianę
         const updatedFilters = { ...filters, ...newFilters };
         if (balanceType) {
-            updatedFilters.balanceType = balanceType; // Zawsze wymuszamy oryginalny typ
+            updatedFilters.balanceType = balanceType;
         }
         setFilters(updatedFilters);
         setCurrentPage(0);
@@ -171,60 +114,40 @@ const BalanceHistoryModal: React.FC<BalanceHistoryModalProps> = ({
         }).format(amount);
     };
 
-    const formatDateTime = (dateString: string): string => {
+    const formatDateTime = (dateString: string) => {
         const date = new Date(dateString);
-        return new Intl.DateTimeFormat('pl-PL', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-        }).format(date);
-    };
-
-    const getBalanceTypeIcon = (type: string) => {
-        return type === 'CASH' ? <FaMoneyBillWave /> : <FaUniversity />;
-    };
-
-    const getBalanceTypeLabel = (type: string) => {
-        return type === 'CASH' ? 'Kasa' : 'Konto bankowe';
-    };
-
-    const getChangeIcon = (amount: number) => {
-        return amount >= 0 ? <FaArrowUp /> : <FaArrowDown />;
-    };
-
-    const getOperationTypeLabel = (operationType: string) => {
-        const labels: Record<string, string> = {
-            'ADD': 'Dodanie',
-            'SUBTRACT': 'Odjęcie',
-            'CORRECTION': 'Korekta',
-            'MANUAL_OVERRIDE': 'Ręczne nadpisanie',
-            'CASH_WITHDRAWAL': 'Wypłata gotówki',
-            'CASH_DEPOSIT': 'Wpłata gotówki',
-            'BANK_RECONCILIATION': 'Uzgodnienie bankowe',
-            'INVENTORY_ADJUSTMENT': 'Korekta inwentarzowa',
-            'CASH_TO_SAFE': 'Przeniesienie do sejfu',
-            'CASH_FROM_SAFE': 'Pobranie z sejfu'
+        return {
+            date: new Intl.DateTimeFormat('pl-PL', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            }).format(date),
+            time: new Intl.DateTimeFormat('pl-PL', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            }).format(date)
         };
-        return labels[operationType] || operationType;
     };
 
-    const getOperationTypeColor = (operationType: string) => {
-        const colors: Record<string, string> = {
-            'ADD': brandTheme.status.success,
-            'SUBTRACT': brandTheme.status.error,
-            'CORRECTION': brandTheme.status.warning,
-            'MANUAL_OVERRIDE': brandTheme.primary,
-            'CASH_WITHDRAWAL': brandTheme.status.error,
-            'CASH_DEPOSIT': brandTheme.status.success,
-            'BANK_RECONCILIATION': brandTheme.status.info,
-            'INVENTORY_ADJUSTMENT': brandTheme.status.warning,
-            'CASH_TO_SAFE': brandTheme.status.info,
-            'CASH_FROM_SAFE': brandTheme.status.info
-        };
-        return colors[operationType] || brandTheme.text.secondary;
+    const getBalanceTypeInfo = (type: string) => {
+        return type === 'CASH'
+            ? { label: 'Kasa', icon: FaMoneyBillWave, color: '#10B981' }
+            : { label: 'Bank', icon: FaUniversity, color: '#3B82F6' };
+    };
+
+    const exportData = () => {
+        // TODO: Implement export functionality
+        console.log('Export data');
+    };
+
+    const clearFilters = () => {
+        setFilters({
+            balanceType: balanceType,
+            page: 0,
+            size: 20
+        });
+        setCurrentPage(0);
     };
 
     if (!isOpen) return null;
@@ -233,438 +156,581 @@ const BalanceHistoryModal: React.FC<BalanceHistoryModalProps> = ({
         <ModalOverlay onClick={onClose}>
             <ModalContainer onClick={(e) => e.stopPropagation()}>
                 <ModalHeader>
-                    <HeaderLeft>
-                        <HeaderIcon>
-                            <FaHistory />
-                        </HeaderIcon>
-                        <HeaderText>
-                            <HeaderTitle>Historia zmian sald</HeaderTitle>
-                            <HeaderSubtitle>
-                                {balanceType ? `Tylko ${getBalanceTypeLabel(balanceType)}` : 'Wszystkie typy sald'}
-                            </HeaderSubtitle>
-                        </HeaderText>
-                    </HeaderLeft>
-                    <HeaderActions>
-                        <FilterButton
-                            onClick={() => setShowFilters(!showFilters)}
-                            $active={showFilters}
-                        >
-                            <FaFilter />
-                        </FilterButton>
-                        <CloseButton onClick={onClose}>
-                            <FaTimes />
-                        </CloseButton>
-                    </HeaderActions>
+                    <HeaderContent>
+                        <HeaderLeft>
+                            <HeaderIconContainer>
+                                <FaHistory />
+                            </HeaderIconContainer>
+                            <HeaderTextContent>
+                                <ModalTitle>Historia operacji finansowych</ModalTitle>
+                                <ModalSubtitle>
+                                    {balanceType
+                                        ? `${getBalanceTypeInfo(balanceType).label} • ${totalElements} operacji`
+                                        : `Wszystkie konta • ${totalElements} operacji`
+                                    }
+                                </ModalSubtitle>
+                            </HeaderTextContent>
+                        </HeaderLeft>
+
+                        <HeaderActions>
+                            <ActionButton
+                                onClick={() => setShowFilters(!showFilters)}
+                                $variant={showFilters ? "primary" : "secondary"}
+                            >
+                                <FaFilter />
+                                Filtry
+                            </ActionButton>
+                            <CloseButton onClick={onClose}>
+                                <FaTimes />
+                            </CloseButton>
+                        </HeaderActions>
+                    </HeaderContent>
+
+                    {showFilters && (
+                        <FiltersSection>
+                            <FiltersContainer>
+                                {!balanceType && (
+                                    <FilterGroup>
+                                        <FilterLabel>Typ konta</FilterLabel>
+                                        <SelectInput
+                                            value={filters.balanceType || ''}
+                                            onChange={(e) => handleFilterChange({
+                                                balanceType: e.target.value || undefined
+                                            })}
+                                        >
+                                            <option value="">Wszystkie konta</option>
+                                            <option value="CASH">Kasa</option>
+                                            <option value="BANK">Konto bankowe</option>
+                                        </SelectInput>
+                                    </FilterGroup>
+                                )}
+
+                                <FilterGroup>
+                                    <FilterLabel>Od daty</FilterLabel>
+                                    <DateInput
+                                        type="date"
+                                        value={filters.startDate?.split('T')[0] || ''}
+                                        onChange={(e) => handleFilterChange({
+                                            startDate: e.target.value ? `${e.target.value}T00:00:00` : undefined
+                                        })}
+                                    />
+                                </FilterGroup>
+
+                                <FilterGroup>
+                                    <FilterLabel>Do daty</FilterLabel>
+                                    <DateInput
+                                        type="date"
+                                        value={filters.endDate?.split('T')[0] || ''}
+                                        onChange={(e) => handleFilterChange({
+                                            endDate: e.target.value ? `${e.target.value}T23:59:59` : undefined
+                                        })}
+                                    />
+                                </FilterGroup>
+
+                                <FilterGroup>
+                                    <FilterLabel>Wyszukaj w opisie</FilterLabel>
+                                    <SearchInputContainer>
+                                        <SearchIcon><FaSearch /></SearchIcon>
+                                        <SearchInput
+                                            type="text"
+                                            placeholder="Wprowadź frazę..."
+                                            value={filters.searchText || ''}
+                                            onChange={(e) => handleFilterChange({
+                                                searchText: e.target.value || undefined
+                                            })}
+                                        />
+                                    </SearchInputContainer>
+                                </FilterGroup>
+
+                                <FilterActions>
+                                    <ClearFiltersButton onClick={clearFilters}>
+                                        Wyczyść
+                                    </ClearFiltersButton>
+                                </FilterActions>
+                            </FiltersContainer>
+                        </FiltersSection>
+                    )}
                 </ModalHeader>
 
-                {showFilters && (
-                    <FiltersContainer>
-                        <FiltersGrid $hasBalanceTypeFilter={!balanceType}>
-                            {/* Pokazuj filtr typu salda tylko gdy nie ma predefiniowanego typu */}
-                            {!balanceType && (
-                                <FilterGroup>
-                                    <FilterLabel>Typ salda</FilterLabel>
-                                    <FilterSelect
-                                        value={filters.balanceType || ''}
-                                        onChange={(e) => handleFilterChange({
-                                            balanceType: e.target.value || undefined
-                                        })}
-                                    >
-                                        <option value="">Wszystkie</option>
-                                        <option value="CASH">Kasa</option>
-                                        <option value="BANK">Konto bankowe</option>
-                                    </FilterSelect>
-                                </FilterGroup>
-                            )}
-
-                            <FilterGroup>
-                                <FilterLabel>Data od</FilterLabel>
-                                <FilterInput
-                                    type="datetime-local"
-                                    value={filters.startDate || ''}
-                                    onChange={(e) => handleFilterChange({
-                                        startDate: e.target.value || undefined
-                                    })}
-                                />
-                            </FilterGroup>
-
-                            <FilterGroup>
-                                <FilterLabel>Data do</FilterLabel>
-                                <FilterInput
-                                    type="datetime-local"
-                                    value={filters.endDate || ''}
-                                    onChange={(e) => handleFilterChange({
-                                        endDate: e.target.value || undefined
-                                    })}
-                                />
-                            </FilterGroup>
-
-                            <FilterGroup>
-                                <FilterLabel>Szukaj w opisie</FilterLabel>
-                                <FilterInput
-                                    type="text"
-                                    placeholder="Wpisz tekst do wyszukania..."
-                                    value={filters.searchText || ''}
-                                    onChange={(e) => handleFilterChange({
-                                        searchText: e.target.value || undefined
-                                    })}
-                                />
-                            </FilterGroup>
-                        </FiltersGrid>
-                    </FiltersContainer>
-                )}
-
-                <ModalContent>
+                <ModalBody>
                     {error && (
-                        <ErrorMessage>
-                            <span>{error}</span>
-                            <button onClick={fetchHistory}>Spróbuj ponownie</button>
-                        </ErrorMessage>
+                        <ErrorContainer>
+                            <ErrorMessage>{error}</ErrorMessage>
+                            <RetryButton onClick={fetchHistory}>Ponów próbę</RetryButton>
+                        </ErrorContainer>
                     )}
 
                     {loading ? (
-                        <LoadingContainer>
-                            <FaSpinner className="spinning" />
-                            <span>Ładowanie historii...</span>
-                        </LoadingContainer>
+                        <LoadingState>
+                            <LoadingSpinner><FaSpinner /></LoadingSpinner>
+                            <LoadingText>Ładowanie danych...</LoadingText>
+                        </LoadingState>
                     ) : history.length === 0 ? (
                         <EmptyState>
-                            <EmptyIcon>
-                                <FaHistory />
-                            </EmptyIcon>
-                            <EmptyTitle>Brak danych</EmptyTitle>
+                            <EmptyIcon><FaHistory /></EmptyIcon>
+                            <EmptyTitle>Brak operacji</EmptyTitle>
                             <EmptyDescription>
-                                Nie znaleziono żadnych operacji spełniających kryteria wyszukiwania.
+                                Nie znaleziono operacji spełniających wybrane kryteria
                             </EmptyDescription>
                         </EmptyState>
                     ) : (
-                        <>
-                            <HistoryList>
-                                {history.map((item) => (
-                                    <HistoryItem key={item.operationId}>
-                                        <ItemHeader>
-                                            <ItemLeft>
-                                                <BalanceTypeIcon $type={item.balanceType}>
-                                                    {getBalanceTypeIcon(item.balanceType)}
-                                                </BalanceTypeIcon>
-                                                <ItemInfo>
-                                                    <ItemTitle>
-                                                        {getBalanceTypeLabel(item.balanceType)} - Operacja #{item.operationId}
-                                                    </ItemTitle>
-                                                    <ItemTime>
-                                                        <FaCalendarAlt />
-                                                        {formatDateTime(item.timestamp)}
-                                                    </ItemTime>
-                                                </ItemInfo>
-                                            </ItemLeft>
-                                            <AmountChange
-                                                $positive={item.amountChanged >= 0}
-                                                $color={getOperationTypeColor(item.operationType)}
-                                            >
-                                                {getChangeIcon(item.amountChanged)}
-                                                {formatAmount(Math.abs(item.amountChanged))}
-                                            </AmountChange>
-                                        </ItemHeader>
+                        <TableContainer>
+                            <Table>
+                                <thead>
+                                <tr>
+                                    <TableHeader $width="140px" $align="left">Data</TableHeader>
+                                    <TableHeader $width="200px" $align="left">Typ operacji</TableHeader>
+                                    <TableHeader $width="140px" $align="left">Saldo przed</TableHeader>
+                                    <TableHeader $width="140px" $align="left">Zmiana</TableHeader>
+                                    <TableHeader $width="140px" $align="left">Saldo po</TableHeader>
+                                    <TableHeader $align="left">Opis operacji</TableHeader>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {history.map((item, index) => {
+                                    const dateTime = formatDateTime(item.timestamp);
 
-                                        <ItemBody>
-                                            <Description>
-                                                {item.operationDescription}
-                                            </Description>
+                                    return (
+                                        <TableRow key={item.operationId} $index={index}>
+                                            <TableCell $align="left">
+                                                <DateTimeDisplay>
+                                                    <DateText>{dateTime.date}</DateText>
+                                                    <TimeText>{dateTime.time}</TimeText>
+                                                </DateTimeDisplay>
+                                            </TableCell>
 
-                                            <OperationTypeInfo>
-                                                <OperationTypeBadge $color={getOperationTypeColor(item.operationType)}>
-                                                    {getOperationTypeLabel(item.operationType)}
-                                                </OperationTypeBadge>
-                                                <OperationTypeDesc>
-                                                    {getOperationTypeDescription(item.operationType)}
-                                                </OperationTypeDesc>
-                                            </OperationTypeInfo>
+                                            <TableCell $align="left">
+                                                <DateText> {getOperationTypeLabel(item.operationType)} </DateText>
+                                            </TableCell>
 
-                                            <BalanceInfo>
-                                                <BalanceItem>
-                                                    <BalanceLabel>Saldo przed:</BalanceLabel>
-                                                    <BalanceValue>{formatAmount(item.balanceBefore)}</BalanceValue>
-                                                </BalanceItem>
-                                                <BalanceArrow>→</BalanceArrow>
-                                                <BalanceItem>
-                                                    <BalanceLabel>Saldo po:</BalanceLabel>
-                                                    <BalanceValue>{formatAmount(item.balanceAfter)}</BalanceValue>
-                                                </BalanceItem>
-                                            </BalanceInfo>
+                                            <TableCell $align="right">
+                                                <AmountDisplay $type="neutral">
+                                                    {formatAmount(item.balanceBefore)}
+                                                </AmountDisplay>
+                                            </TableCell>
 
-                                            {(item.documentId || item.userId || item.operationId) && (
-                                                <MetaInfo>
-                                                    <MetaItem>
-                                                        <FaFileAlt />
-                                                        <span>ID operacji: {item.operationId}</span>
-                                                    </MetaItem>
+                                            <TableCell $align="right">
+                                                <AmountDisplay $type={item.amountChanged >= 0 ? 'positive' : 'negative'}>
+                                                    {item.amountChanged >= 0 ? '+' : ''}{formatAmount(item.amountChanged)}
+                                                </AmountDisplay>
+                                            </TableCell>
+
+                                            <TableCell $align="left">
+                                                <AmountDisplay $type="primary" $bold>
+                                                    {formatAmount(item.balanceAfter)}
+                                                </AmountDisplay>
+                                            </TableCell>
+
+                                            <TableCell $align="left">
+                                                <DescriptionContainer>
+                                                    <DescriptionText>{item.operationDescription}</DescriptionText>
                                                     {item.documentId && (
-                                                        <MetaItem>
-                                                            <FaFileAlt />
-                                                            <span>Dokument: {item.documentId}</span>
-                                                        </MetaItem>
+                                                        <DocumentReference>Dok. {item.documentId}</DocumentReference>
                                                     )}
-                                                    {item.userId && (
-                                                        <MetaItem>
-                                                            <FaUser />
-                                                            <span>Użytkownik: {item.userId}</span>
-                                                        </MetaItem>
-                                                    )}
-                                                    {item.ipAddress && (
-                                                        <MetaItem>
-                                                            <span>IP: {item.ipAddress}</span>
-                                                        </MetaItem>
-                                                    )}
-                                                </MetaInfo>
-                                            )}
-                                        </ItemBody>
-                                    </HistoryItem>
-                                ))}
-                            </HistoryList>
-
-                            {totalPages > 1 && (
-                                <PaginationContainer>
-                                    <PaginationInfo>
-                                        Strona {currentPage + 1} z {totalPages}
-                                        ({totalElements} {totalElements === 1 ? 'operacja' : totalElements < 5 ? 'operacje' : 'operacji'})
-                                    </PaginationInfo>
-                                    <PaginationControls>
-                                        <PaginationButton
-                                            onClick={() => handlePageChange(currentPage - 1)}
-                                            disabled={currentPage === 0}
-                                        >
-                                            <FaChevronLeft />
-                                        </PaginationButton>
-                                        <PaginationButton
-                                            onClick={() => handlePageChange(currentPage + 1)}
-                                            disabled={currentPage >= totalPages - 1}
-                                        >
-                                            <FaChevronRight />
-                                        </PaginationButton>
-                                    </PaginationControls>
-                                </PaginationContainer>
-                            )}
-                        </>
+                                                </DescriptionContainer>
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })}
+                                </tbody>
+                            </Table>
+                        </TableContainer>
                     )}
-                </ModalContent>
+                </ModalBody>
+
+                {totalPages > 1 && (
+                    <PaginationFooter>
+                        <PaginationInfo>
+                            Wyniki {(currentPage * 20) + 1}–{Math.min((currentPage + 1) * 20, totalElements)} z {totalElements}
+                        </PaginationInfo>
+
+                        <PaginationControls>
+                            <PaginationButton
+                                onClick={() => handlePageChange(0)}
+                                disabled={currentPage === 0}
+                                $variant="navigation"
+                            >
+                                Pierwsza
+                            </PaginationButton>
+
+                            <PaginationButton
+                                onClick={() => handlePageChange(currentPage - 1)}
+                                disabled={currentPage === 0}
+                                $variant="icon"
+                            >
+                                <FaChevronLeft />
+                            </PaginationButton>
+
+                            <PageIndicator>
+                                <CurrentPage>{currentPage + 1}</CurrentPage>
+                                <PageSeparator>z</PageSeparator>
+                                <TotalPages>{totalPages}</TotalPages>
+                            </PageIndicator>
+
+                            <PaginationButton
+                                onClick={() => handlePageChange(currentPage + 1)}
+                                disabled={currentPage >= totalPages - 1}
+                                $variant="icon"
+                            >
+                                <FaChevronRight />
+                            </PaginationButton>
+
+                            <PaginationButton
+                                onClick={() => handlePageChange(totalPages - 1)}
+                                disabled={currentPage >= totalPages - 1}
+                                $variant="navigation"
+                            >
+                                Ostatnia
+                            </PaginationButton>
+                        </PaginationControls>
+                    </PaginationFooter>
+                )}
             </ModalContainer>
         </ModalOverlay>
     );
 };
 
-// Styled Components
+// Premium Styled Components
 const ModalOverlay = styled.div`
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.6);
+    inset: 0;
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(8px);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: ${brandTheme.zIndex.modal};
-    padding: ${brandTheme.spacing.lg};
-    backdrop-filter: blur(4px);
+    padding: 2rem;
+    animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
 `;
 
 const ModalContainer = styled.div`
-    background-color: ${brandTheme.surface};
-    border-radius: ${brandTheme.radius.xl};
-    box-shadow: ${brandTheme.shadow.xl};
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow:
+            0 25px 50px -12px rgba(0, 0, 0, 0.25),
+            0 0 0 1px rgba(255, 255, 255, 0.05);
     width: 95vw;
-    max-width: 900px;
-    max-height: 90vh;
+    max-width: 1600px;
+    max-height: 95vh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(8px) scale(0.98);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
 `;
 
-const ModalHeader = styled.div`
+const ModalHeader = styled.header`
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-bottom: 1px solid #e2e8f0;
+`;
+
+const HeaderContent = styled.div`
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
-    border-bottom: 1px solid ${brandTheme.border};
-    background: ${brandTheme.surfaceAlt};
-    flex-shrink: 0;
+    justify-content: space-between;
+    padding: 2rem 2.5rem;
 `;
 
 const HeaderLeft = styled.div`
     display: flex;
     align-items: center;
-    gap: ${brandTheme.spacing.md};
+    gap: 1.5rem;
 `;
 
-const HeaderIcon = styled.div`
-    width: 48px;
-    height: 48px;
-    background: ${brandTheme.primaryGhost};
-    border-radius: ${brandTheme.radius.md};
+const HeaderIconContainer = styled.div`
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: ${brandTheme.primary};
-    font-size: 20px;
+    color: white;
+    font-size: 24px;
+    box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.4);
 `;
 
-const HeaderText = styled.div``;
+const HeaderTextContent = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+`;
 
-const HeaderTitle = styled.h2`
-    margin: 0 0 ${brandTheme.spacing.xs} 0;
-    font-size: 20px;
+const ModalTitle = styled.h1`
+    font-size: 1.75rem;
     font-weight: 700;
-    color: ${brandTheme.text.primary};
+    color: #0f172a;
+    letter-spacing: -0.025em;
+    margin: 0;
 `;
 
-const HeaderSubtitle = styled.p`
+const ModalSubtitle = styled.p`
+    font-size: 0.95rem;
+    color: #64748b;
+    font-weight: 500;
     margin: 0;
-    font-size: 14px;
-    color: ${brandTheme.text.secondary};
 `;
 
 const HeaderActions = styled.div`
     display: flex;
-    gap: ${brandTheme.spacing.sm};
+    align-items: center;
+    gap: 0.75rem;
 `;
 
-const FilterButton = styled.button<{ $active: boolean }>`
-    width: 40px;
-    height: 40px;
-    border: none;
-    background: ${props => props.$active ? brandTheme.primary : brandTheme.surfaceHover};
-    color: ${props => props.$active ? 'white' : brandTheme.text.secondary};
-    border-radius: ${brandTheme.radius.md};
-    cursor: pointer;
-    transition: all 0.2s ease;
+const ActionButton = styled.button<{ $variant: 'primary' | 'secondary' }>`
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid;
 
-    &:hover {
-        background: ${props => props.$active ? brandTheme.primaryDark : brandTheme.primaryGhost};
-        color: ${props => props.$active ? 'white' : brandTheme.primary};
+    ${props => props.$variant === 'primary' ? `
+        background: #3b82f6;
+        border-color: #3b82f6;
+        color: white;
+        box-shadow: 0 4px 12px -2px rgba(59, 130, 246, 0.4);
+        
+        &:hover {
+            background: #2563eb;
+            border-color: #2563eb;
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px -4px rgba(59, 130, 246, 0.5);
+        }
+    ` : `
+        background: white;
+        border-color: #e2e8f0;
+        color: #475569;
+        
+        &:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+            transform: translateY(-1px);
+        }
+    `}
+
+    &:active {
+        transform: translateY(0);
     }
 `;
 
 const CloseButton = styled.button`
-    width: 40px;
-    height: 40px;
-    border: none;
-    background: ${brandTheme.surfaceHover};
-    color: ${brandTheme.text.secondary};
-    border-radius: ${brandTheme.radius.md};
+    width: 44px;
+    height: 44px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    color: #64748b;
+    border-radius: 8px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 1.125rem;
 
     &:hover {
-        background: ${brandTheme.status.errorLight};
-        color: ${brandTheme.status.error};
+        background: #fef2f2;
+        border-color: #fecaca;
+        color: #dc2626;
+        transform: translateY(-1px);
     }
 `;
 
-const FiltersContainer = styled.div`
-    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
-    background: ${brandTheme.surfaceElevated};
-    border-bottom: 1px solid ${brandTheme.border};
+const FiltersSection = styled.div`
+    border-top: 1px solid #e2e8f0;
+    background: #f8fafc;
 `;
 
-const FiltersGrid = styled.div<{ $hasBalanceTypeFilter?: boolean }>`
+const FiltersContainer = styled.div`
     display: grid;
-    grid-template-columns: ${props => props.$hasBalanceTypeFilter ? 'repeat(auto-fit, minmax(200px, 1fr))' : 'repeat(auto-fit, minmax(250px, 1fr))'};
-    gap: ${brandTheme.spacing.md};
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    padding: 1.5rem 2.5rem;
+    align-items: end;
 `;
 
 const FilterGroup = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${brandTheme.spacing.xs};
+    gap: 0.5rem;
 `;
 
 const FilterLabel = styled.label`
-    font-size: 12px;
+    font-size: 0.875rem;
     font-weight: 600;
-    color: ${brandTheme.text.secondary};
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    color: #374151;
+    letter-spacing: -0.025em;
 `;
 
-const FilterInput = styled.input`
-    height: 36px;
-    padding: 0 ${brandTheme.spacing.sm};
-    border: 1px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.sm};
-    font-size: 14px;
-    background: ${brandTheme.surface};
-    color: ${brandTheme.text.primary};
+const SelectInput = styled.select`
+    height: 44px;
+    padding: 0 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    background: white;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.2s ease;
 
     &:focus {
         outline: none;
-        border-color: ${brandTheme.primary};
-        box-shadow: 0 0 0 2px ${brandTheme.primaryGhost};
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
     }
 `;
 
-const FilterSelect = styled.select`
-    height: 36px;
-    padding: 0 ${brandTheme.spacing.sm};
-    border: 1px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.sm};
-    font-size: 14px;
-    background: ${brandTheme.surface};
-    color: ${brandTheme.text.primary};
+const DateInput = styled.input`
+    height: 44px;
+    padding: 0 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    background: white;
+    color: #374151;
+    transition: all 0.2s ease;
 
     &:focus {
         outline: none;
-        border-color: ${brandTheme.primary};
-        box-shadow: 0 0 0 2px ${brandTheme.primaryGhost};
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
     }
 `;
 
-const ModalContent = styled.div`
-    flex: 1;
-    overflow-y: auto;
-    min-height: 0;
+const SearchInputContainer = styled.div`
+    position: relative;
 `;
 
-const ErrorMessage = styled.div`
+const SearchIcon = styled.div`
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+    font-size: 0.875rem;
+    pointer-events: none;
+`;
+
+const SearchInput = styled.input`
+    height: 44px;
+    padding: 0 1rem 0 2.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    background: white;
+    color: #374151;
+    width: 100%;
+    transition: all 0.2s ease;
+
+    &:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    &::placeholder {
+        color: #9ca3af;
+    }
+`;
+
+const FilterActions = styled.div`
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin: ${brandTheme.spacing.lg};
-    padding: ${brandTheme.spacing.md};
-    background: ${brandTheme.status.errorLight};
-    color: ${brandTheme.status.error};
-    border-radius: ${brandTheme.radius.md};
-    border: 1px solid ${brandTheme.status.error}30;
+    align-items: end;
+`;
 
-    button {
-        background: ${brandTheme.status.error};
-        color: white;
-        border: none;
-        padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
-        border-radius: ${brandTheme.radius.sm};
-        cursor: pointer;
-        font-size: 12px;
-        font-weight: 600;
+const ClearFiltersButton = styled.button`
+    height: 44px;
+    padding: 0 1.5rem;
+    border: 1px solid #e5e7eb;
+    background: white;
+    color: #6b7280;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: #f9fafb;
+        border-color: #d1d5db;
+        color: #374151;
     }
 `;
 
-const LoadingContainer = styled.div`
+const ModalBody = styled.div`
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+`;
+
+const ErrorContainer = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 1.5rem 2.5rem;
+    padding: 1rem 1.5rem;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+`;
+
+const ErrorMessage = styled.span`
+    color: #dc2626;
+    font-weight: 500;
+`;
+
+const RetryButton = styled.button`
+    background: #dc2626;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+
+    &:hover {
+        background: #b91c1c;
+    }
+`;
+
+const LoadingState = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: ${brandTheme.spacing.xxl};
-    gap: ${brandTheme.spacing.md};
-    color: ${brandTheme.text.secondary};
+    padding: 4rem 2rem;
+    gap: 1rem;
+`;
 
-    .spinning {
+const LoadingSpinner = styled.div`
+    font-size: 2rem;
+    color: #3b82f6;
+
+    svg {
         animation: spin 1s linear infinite;
-        font-size: 24px;
     }
 
     @keyframes spin {
@@ -673,272 +739,281 @@ const LoadingContainer = styled.div`
     }
 `;
 
+const LoadingText = styled.span`
+    font-size: 1rem;
+    color: #64748b;
+    font-weight: 500;
+`;
+
 const EmptyState = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: ${brandTheme.spacing.xxl};
+    padding: 4rem 2rem;
     text-align: center;
 `;
 
 const EmptyIcon = styled.div`
-    width: 64px;
-    height: 64px;
-    background: ${brandTheme.surfaceAlt};
+    width: 80px;
+    height: 80px;
+    background: #f1f5f9;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: ${brandTheme.text.muted};
-    font-size: 24px;
-    margin-bottom: ${brandTheme.spacing.lg};
+    color: #94a3b8;
+    font-size: 2rem;
+    margin-bottom: 1.5rem;
 `;
 
 const EmptyTitle = styled.h3`
-    margin: 0 0 ${brandTheme.spacing.sm} 0;
-    font-size: 18px;
+    font-size: 1.25rem;
     font-weight: 600;
-    color: ${brandTheme.text.primary};
+    color: #374151;
+    margin: 0 0 0.5rem 0;
 `;
 
 const EmptyDescription = styled.p`
+    font-size: 1rem;
+    color: #6b7280;
     margin: 0;
-    font-size: 14px;
-    color: ${brandTheme.text.secondary};
-    max-width: 300px;
+    max-width: 400px;
 `;
 
-const HistoryList = styled.div`
-    padding: ${brandTheme.spacing.lg};
-    display: flex;
-    flex-direction: column;
-    gap: ${brandTheme.spacing.md};
+const TableContainer = styled.div`
+    flex: 1;
+    overflow: auto;
+    padding: 1.5rem 2.5rem;
+
+    &::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: #f1f5f9;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
 `;
 
-const HistoryItem = styled.div`
-    background: ${brandTheme.surface};
-    border: 1px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.lg};
+const Table = styled.table`
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.9rem;
+    margin: 1rem 0;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
     overflow: hidden;
-    transition: all 0.2s ease;
+    background: white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+`;
+
+const TableHeader = styled.th<{ $width?: string; $align?: 'left' | 'center' | 'right' }>`
+    background: #f9fafb;
+    padding: 1.25rem 1.5rem;
+    text-align: ${props => props.$align || 'left'};
+    font-weight: 600;
+    color: #111827;
+    border-bottom: 1px solid #e5e7eb;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    ${props => props.$width && `width: ${props.$width};`}
+    white-space: nowrap;
+    font-size: 0.875rem;
+    letter-spacing: -0.025em;
+`;
+
+const TableRow = styled.tr<{ $index: number }>`
+    background: white;
+    border-bottom: 1px solid #f3f4f6;
+    transition: background-color 0.15s ease;
 
     &:hover {
-        border-color: ${brandTheme.borderHover};
-        box-shadow: ${brandTheme.shadow.sm};
+        background: #f8fafc;
+    }
+
+    &:last-child {
+        border-bottom: none;
     }
 `;
 
-const ItemHeader = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-    background: ${brandTheme.surfaceAlt};
-    border-bottom: 1px solid ${brandTheme.border};
+const TableCell = styled.td<{ $align?: 'left' | 'center' | 'right' }>`
+    padding: 1.25rem 1.5rem;
+    text-align: ${props => props.$align || 'left'};
+    vertical-align: middle;
+    font-size: 0.875rem;
 `;
 
-const ItemLeft = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.md};
-`;
-
-const BalanceTypeIcon = styled.div<{ $type: string }>`
-    width: 40px;
-    height: 40px;
-    background: ${props => props.$type === 'CASH' ? brandTheme.status.successLight : brandTheme.status.infoLight};
-    color: ${props => props.$type === 'CASH' ? brandTheme.status.success : brandTheme.status.info};
-    border-radius: ${brandTheme.radius.md};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-`;
-
-const ItemInfo = styled.div`
+const DateTimeDisplay = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${brandTheme.spacing.xs};
+    gap: 0.25rem;
 `;
 
-const ItemTitle = styled.div`
-    font-size: 14px;
+const DateText = styled.div`
     font-weight: 600;
-    color: ${brandTheme.text.primary};
+    color: #111827;
+    font-size: 0.875rem;
 `;
 
-const ItemTime = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.xs};
-    font-size: 12px;
-    color: ${brandTheme.text.secondary};
-
-    svg {
-        font-size: 10px;
-    }
-`;
-
-const AmountChange = styled.div<{ $positive: boolean; $color: string }>`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.xs};
-    font-size: 16px;
-    font-weight: 700;
-    color: ${props => props.$color};
-
-    svg {
-        font-size: 14px;
-    }
-`;
-
-const ItemBody = styled.div`
-    padding: ${brandTheme.spacing.lg};
-    display: flex;
-    flex-direction: column;
-    gap: ${brandTheme.spacing.md};
-`;
-
-const Description = styled.div`
-    font-size: 14px;
-    color: ${brandTheme.text.primary};
-    line-height: 1.5;
-    background: ${brandTheme.surfaceAlt};
-    padding: ${brandTheme.spacing.md};
-    border-radius: ${brandTheme.radius.md};
-    border-left: 3px solid ${brandTheme.primary};
-`;
-
-const OperationTypeInfo = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${brandTheme.spacing.sm};
+const TimeText = styled.div`
+    font-size: 0.8rem;
+    color: #6b7280;
+    font-family: system-ui, sans-serif;
 `;
 
 const OperationTypeBadge = styled.div<{ $color: string }>`
-    display: inline-flex;
-    align-items: center;
-    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
-    background: ${props => props.$color}20;
+    background: ${props => props.$color}10;
     color: ${props => props.$color};
-    border: 1px solid ${props => props.$color}40;
-    border-radius: ${brandTheme.radius.md};
-    font-size: 12px;
+    border: 1px solid ${props => props.$color}20;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    align-self: flex-start;
+    text-align: center;
+    white-space: nowrap;
+    display: inline-block;
 `;
 
-const OperationTypeDesc = styled.div`
-    font-size: 12px;
-    color: ${brandTheme.text.secondary};
-    font-style: italic;
-    line-height: 1.4;
+const AmountDisplay = styled.div<{
+    $type: 'positive' | 'negative' | 'neutral' | 'primary';
+    $bold?: boolean;
+}>`
+    font-family: system-ui, sans-serif;
+    font-weight: ${props => props.$bold ? 700 : 600};
+    font-size: 0.875rem;
+    color: ${props => {
+        switch (props.$type) {
+            case 'positive': return '#059669';
+            case 'negative': return '#dc2626';
+            case 'primary': return '#111827';
+            default: return '#6b7280';
+        }
+    }};
 `;
 
-const BalanceInfo = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: ${brandTheme.spacing.md};
-    padding: ${brandTheme.spacing.md};
-    background: ${brandTheme.surfaceElevated};
-    border-radius: ${brandTheme.radius.md};
-`;
-
-const BalanceItem = styled.div`
+const DescriptionContainer = styled.div`
     display: flex;
     flex-direction: column;
+    gap: 0.5rem;
+`;
+
+const DescriptionText = styled.div`
+    color: #374151;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    word-wrap: break-word;
+`;
+
+const DocumentReference = styled.div`
+    background: #f0f9ff;
+    color: #0369a1;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: inline-flex;
     align-items: center;
-    gap: ${brandTheme.spacing.xs};
+    align-self: flex-start;
+    font-family: system-ui, sans-serif;
 `;
 
-const BalanceLabel = styled.div`
-    font-size: 12px;
-    color: ${brandTheme.text.secondary};
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-`;
-
-const BalanceValue = styled.div`
-    font-size: 16px;
-    font-weight: 700;
-    color: ${brandTheme.text.primary};
-`;
-
-const BalanceArrow = styled.div`
-    font-size: 18px;
-    color: ${brandTheme.text.muted};
-    font-weight: 600;
-`;
-
-const MetaInfo = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    gap: ${brandTheme.spacing.md};
-`;
-
-const MetaItem = styled.div`
+const PaginationFooter = styled.footer`
     display: flex;
     align-items: center;
-    gap: ${brandTheme.spacing.xs};
-    font-size: 12px;
-    color: ${brandTheme.text.secondary};
-    background: ${brandTheme.surfaceAlt};
-    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
-    border-radius: ${brandTheme.radius.sm};
-
-    svg {
-        font-size: 10px;
-    }
-`;
-
-const PaginationContainer = styled.div`
-    display: flex;
     justify-content: space-between;
-    align-items: center;
-    padding: ${brandTheme.spacing.lg};
-    border-top: 1px solid ${brandTheme.border};
-    background: ${brandTheme.surfaceAlt};
+    padding: 1.5rem 2.5rem;
+    border-top: 1px solid #e2e8f0;
+    background: #f8fafc;
 `;
 
 const PaginationInfo = styled.div`
-    font-size: 14px;
-    color: ${brandTheme.text.secondary};
+    font-size: 0.875rem;
+    color: #6b7280;
     font-weight: 500;
+    letter-spacing: -0.025em;
 `;
 
 const PaginationControls = styled.div`
     display: flex;
-    gap: ${brandTheme.spacing.xs};
+    align-items: center;
+    gap: 0.5rem;
 `;
 
-const PaginationButton = styled.button`
-    width: 32px;
-    height: 32px;
-    border: 1px solid ${brandTheme.border};
-    background: ${brandTheme.surface};
-    color: ${brandTheme.text.secondary};
-    border-radius: ${brandTheme.radius.sm};
+const PaginationButton = styled.button<{ $variant: 'navigation' | 'icon' }>`
+    ${props => props.$variant === 'navigation' ? `
+        padding: 0.625rem 1rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        min-width: 80px;
+    ` : `
+        width: 40px;
+        height: 40px;
+        font-size: 0.875rem;
+    `}
+
+    border: 1px solid #d1d5db;
+    background: white;
+    color: #374151;
+    border-radius: 8px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     align-items: center;
     justify-content: center;
 
     &:hover:not(:disabled) {
-        background: ${brandTheme.primary};
-        color: white;
-        border-color: ${brandTheme.primary};
+        background: #f9fafb;
+        border-color: #9ca3af;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.1);
     }
 
     &:disabled {
-        opacity: 0.5;
+        opacity: 0.4;
         cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
     }
+
+    &:active:not(:disabled) {
+        transform: translateY(0);
+    }
+`;
+
+const PageIndicator = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+`;
+
+const CurrentPage = styled.span`
+    color: #3b82f6;
+    font-weight: 700;
+`;
+
+const PageSeparator = styled.span`
+    color: #9ca3af;
+    font-weight: 400;
+`;
+
+const TotalPages = styled.span`
+    color: #6b7280;
 `;
 
 export default BalanceHistoryModal;
