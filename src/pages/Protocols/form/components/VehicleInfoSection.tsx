@@ -1,5 +1,6 @@
 // src/pages/Protocols/form/components/VehicleInfoSection.tsx
 import React, { useState, useEffect } from 'react';
+import styled from 'styled-components';
 import { CarReceptionProtocol } from '../../../../types';
 import { FormErrors } from '../hooks/useFormValidation';
 import {
@@ -13,7 +14,8 @@ import {
     CheckboxLabel,
     Checkbox,
     ErrorText,
-    DateTimeContainer
+    DateTimeContainer,
+    brandTheme
 } from '../styles';
 
 // Import our SearchField component instead of LicensePlateField
@@ -71,6 +73,7 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
     const { showToast } = useToast();
     const [dateError, setDateError] = useState<string | null>(null);
     const [licensePlateError, setLicensePlateError] = useState<string | null>(null);
+    const [isAllDay, setIsAllDay] = useState(false);
 
     const handleSearchClick = (field: 'licensePlate') => {
         if (onSearchByField && !readOnly) {
@@ -126,6 +129,40 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
         }
     };
 
+    // Handle all day toggle
+    const handleAllDayToggle = () => {
+        const newIsAllDay = !isAllDay;
+        setIsAllDay(newIsAllDay);
+
+        if (newIsAllDay) {
+            // Set to all day - from 00:00 to 23:59
+            const currentDate = formData.startDate ? formData.startDate.split('T')[0] : new Date().toISOString().split('T')[0];
+
+            const startDateTime = `${currentDate}T00:00:00`;
+            const endDateTime = `${currentDate}T23:59:59`;
+
+            // Update start date
+            const startEvent = {
+                target: {
+                    name: 'startDate',
+                    value: startDateTime,
+                    type: 'text'
+                }
+            } as React.ChangeEvent<HTMLInputElement>;
+            onChange(startEvent);
+
+            // Update end date
+            const endEvent = {
+                target: {
+                    name: 'endDate',
+                    value: endDateTime,
+                    type: 'text'
+                }
+            } as React.ChangeEvent<HTMLInputElement>;
+            onChange(endEvent);
+        }
+    };
+
     // Handle date change with validation
     const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -133,7 +170,7 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
         // For end date, add validation
         if (name === 'endDate') {
             if (value) {
-                const newDateTime = `${value}T23:59:59`;
+                const newDateTime = isAllDay ? `${value}T23:59:59` : `${value}T23:59:59`;
                 const syntheticEvent = {
                     target: {
                         name: 'endDate',
@@ -210,13 +247,28 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                 <SectionTitle>Harmonogram wizyty</SectionTitle>
                 <FormRow className="responsive-row">
                     <FormGroup className="date-time-group">
-                        <LabelWithBadge
-                            htmlFor="phone"
-                            required={true}
-                            badgeVariant="modern"
-                        >
-                        <Label htmlFor="startDate">Data i godzina rozpoczęcia</Label>
-                        </LabelWithBadge>
+                        <DateLabelContainer>
+                            <InlineLabelContainer>
+                                <LabelWithBadge
+                                    htmlFor="startDate"
+                                    required={true}
+                                    badgeVariant="modern"
+                                >
+                                    Data i godzina rozpoczęcia
+                                </LabelWithBadge>
+                                <AllDayToggleContainer>
+                                    <AllDayLabel>Cały dzień</AllDayLabel>
+                                    <ToggleSwitch
+                                        $isActive={isAllDay}
+                                        onClick={handleAllDayToggle}
+                                        type="button"
+                                    >
+                                        <ToggleSlider $isActive={isAllDay} />
+                                    </ToggleSwitch>
+                                </AllDayToggleContainer>
+                            </InlineLabelContainer>
+                        </DateLabelContainer>
+
                         <DateTimeContainer>
                             <Input
                                 id="startDate"
@@ -228,37 +280,39 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                                 className="date-input"
                                 $hasError={!!errors.startDate}
                             />
-                            <Input
-                                id="startTime"
-                                name="startTime"
-                                type="time"
-                                value={formData.startDate ? (formData.startDate.split('T')[1]?.substring(0, 5) || '08:00') : '08:00'}
-                                onChange={(e) => {
-                                    const date = formData.startDate ? formData.startDate.split('T')[0] : new Date().toISOString().split('T')[0];
-                                    const newDateTime = `${date}T${e.target.value}:00`;
-                                    const syntheticEvent = {
-                                        target: {
-                                            name: 'startDate',
-                                            value: newDateTime,
-                                            type: 'text'
-                                        }
-                                    } as React.ChangeEvent<HTMLInputElement>;
-                                    onChange(syntheticEvent);
-                                }}
-                                required
-                                className="time-input"
-                            />
+                            {!isAllDay && (
+                                <Input
+                                    id="startTime"
+                                    name="startTime"
+                                    type="time"
+                                    value={formData.startDate ? (formData.startDate.split('T')[1]?.substring(0, 5) || '08:00') : '08:00'}
+                                    onChange={(e) => {
+                                        const date = formData.startDate ? formData.startDate.split('T')[0] : new Date().toISOString().split('T')[0];
+                                        const newDateTime = `${date}T${e.target.value}:00`;
+                                        const syntheticEvent = {
+                                            target: {
+                                                name: 'startDate',
+                                                value: newDateTime,
+                                                type: 'text'
+                                            }
+                                        } as React.ChangeEvent<HTMLInputElement>;
+                                        onChange(syntheticEvent);
+                                    }}
+                                    required
+                                    className="time-input"
+                                />
+                            )}
                         </DateTimeContainer>
                         {errors.startDate && <ErrorText>{errors.startDate}</ErrorText>}
                     </FormGroup>
 
                     <FormGroup>
                         <LabelWithBadge
-                            htmlFor="phone"
+                            htmlFor="endDate"
                             required={true}
                             badgeVariant="modern"
                         >
-                        <Label htmlFor="endDate">Data zakończenia</Label>
+                            Data zakończenia
                         </LabelWithBadge>
                         <Input
                             id="endDate"
@@ -280,11 +334,11 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                 <FormRow className="responsive-row">
                     <FormGroup>
                         <LabelWithBadge
-                            htmlFor="phone"
+                            htmlFor="licensePlate"
                             required={true}
                             badgeVariant="modern"
                         >
-                        <Label htmlFor="licensePlate">Tablica rejestracyjna</Label>
+                            Tablica rejestracyjna
                         </LabelWithBadge>
                         {readOnly ? (
                             <Input
@@ -311,11 +365,11 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
 
                     <FormGroup>
                         <LabelWithBadge
-                            htmlFor="brand"
+                            htmlFor="make"
                             required={true}
                             badgeVariant="modern"
                         >
-                        <Label htmlFor="make">Marka pojazdu</Label>
+                            Marka pojazdu
                         </LabelWithBadge>
                         <Input
                             id="make"
@@ -337,11 +391,11 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
 
                     <FormGroup>
                         <LabelWithBadge
-                            htmlFor="phone"
+                            htmlFor="model"
                             required={true}
                             badgeVariant="modern"
                         >
-                        <Label htmlFor="model">Model pojazdu*</Label>
+                            Model pojazdu
                         </LabelWithBadge>
                         <Input
                             id="model"
@@ -420,5 +474,62 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
         </>
     );
 };
+
+// Styled Components for All Day Toggle
+const DateLabelContainer = styled.div`
+    margin-bottom: ${brandTheme.spacing.xs};
+`;
+
+const InlineLabelContainer = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.lg};
+    width: 100%;
+`;
+
+const AllDayToggleContainer = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    margin-left: auto; /* Przesuwa toggle na prawą stronę */
+`;
+
+const AllDayLabel = styled.span`
+    font-size: 13px;
+    font-weight: 500;
+    color: ${brandTheme.text.secondary};
+`;
+
+const ToggleSwitch = styled.button<{ $isActive: boolean }>`
+    position: relative;
+    width: 44px;
+    height: 22px;
+    background: ${props => props.$isActive ? brandTheme.primary : brandTheme.text.muted};
+    border: none;
+    border-radius: 11px;
+    cursor: pointer;
+    transition: all ${brandTheme.transitions.normal};
+    outline: none;
+    
+    &:hover {
+        background: ${props => props.$isActive ? brandTheme.primaryDark : brandTheme.text.secondary};
+    }
+
+    &:focus {
+        box-shadow: 0 0 0 3px ${props => props.$isActive ? brandTheme.primaryGhost : 'rgba(148, 163, 184, 0.2)'};
+    }
+`;
+
+const ToggleSlider = styled.div<{ $isActive: boolean }>`
+    position: absolute;
+    top: 2px;
+    left: ${props => props.$isActive ? '24px' : '2px'};
+    width: 18px;
+    height: 18px;
+    background: white;
+    border-radius: 50%;
+    transition: all ${brandTheme.transitions.spring};
+    box-shadow: ${brandTheme.shadow.sm};
+`;
 
 export default VehicleInfoSection;

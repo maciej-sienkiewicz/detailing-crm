@@ -186,15 +186,6 @@ export const VisitsTable: React.FC<VisitsTableProps> = ({
                                             <FaEye />
                                         </ActionButton>
                                     )}
-                                    {onEditVisit && (
-                                        <ActionButton
-                                            onClick={(e) => handleActionClick(e, () => onEditVisit(visit.id))}
-                                            title="Edytuj"
-                                            $variant="edit"
-                                        >
-                                            <FaEdit />
-                                        </ActionButton>
-                                    )}
                                     {onDeleteVisit && (
                                         <ActionButton
                                             onClick={(e) => handleActionClick(e, () => onDeleteVisit(visit.id))}

@@ -5,7 +5,6 @@ import { CalendarColor } from '../../../../types/calendar';
 import {
     FormSection,
     SectionTitle,
-    FormRow,
     FormGroup,
     Label,
     Input,
@@ -81,11 +80,13 @@ const VisitTitleSection: React.FC<VisitTitleSectionProps> = ({
     return (
         <FormSection>
             <SectionTitle>Informacje o wizycie</SectionTitle>
-            <FormRow>
-                <FormGroup>
-                    <Label htmlFor="title">
-                        Tytuł wizyty
-                    </Label>
+            <TitleAndColorRow>
+                <TitleFormGroup>
+                    <TitleLabelContainer>
+                        <Label htmlFor="title">
+                            Tytuł wizyty
+                        </Label>
+                    </TitleLabelContainer>
                     <Input
                         id="title"
                         name="title"
@@ -94,23 +95,26 @@ const VisitTitleSection: React.FC<VisitTitleSectionProps> = ({
                         placeholder="np. Kompleksowe mycie i woskowanie - BMW X5"
                         $hasError={!!error}
                     />
-                    {error && <ErrorText>{error}</ErrorText>}
-                    <HelpText>
-                        Jeśli pozostawisz puste, tytuł zostanie wygenerowany automatycznie na podstawie
-                        wybranych usług i danych klienta.
-                    </HelpText>
-                </FormGroup>
+                    <FieldFooter>
+                        {error && <ErrorText>{error}</ErrorText>}
+                        <HelpText>
+                            Jeśli pozostawisz puste, tytuł zostanie wygenerowany automatycznie na podstawie
+                            wybranych usług i danych klienta.
+                        </HelpText>
+                    </FieldFooter>
+                </TitleFormGroup>
 
-                <FormGroup>
-                    <Label htmlFor="calendarColorId">
-                        <LabelWithBadge
-                            htmlFor="phone"
-                            required={!selectedColorId}
-                            badgeVariant="modern"
-                        >
-                        Kolor w kalendarzu
-                        </LabelWithBadge>
-                    </Label>
+                <ColorFormGroup>
+                    <ColorLabelContainer>
+                        <InlineLabelWithBadge>
+                            <Label htmlFor="calendarColorId">
+                                Kolor w kalendarzu
+                            </Label>
+                            {!selectedColorId && (
+                                <RequiredBadgeInline>Wymagane</RequiredBadgeInline>
+                            )}
+                        </InlineLabelWithBadge>
+                    </ColorLabelContainer>
                     <ColorSelectContainer>
                         <ColorSquare $color={selectedColor} $hasColor={!!selectedColor} />
                         <StyledSelect
@@ -144,39 +148,94 @@ const VisitTitleSection: React.FC<VisitTitleSectionProps> = ({
                             </LoadingSpinner>
                         )}
                     </ColorSelectContainer>
-                    {colorsError && <ErrorText>{colorsError}</ErrorText>}
-                    <HelpText>
-                        Kolor pomoże w łatwym rozpoznawaniu wizyty w kalendarzu zespołu.
-                    </HelpText>
-                </FormGroup>
-            </FormRow>
+                    <FieldFooter>
+                        {colorsError && <ErrorText>{colorsError}</ErrorText>}
+                        <HelpText>
+                            Kolor pomoże w łatwym rozpoznawaniu wizyty w kalendarzu zespołu.
+                        </HelpText>
+                    </FieldFooter>
+                </ColorFormGroup>
+            </TitleAndColorRow>
         </FormSection>
     );
 };
 
-// Styled Components - dopasowane do brandTheme ze styles.ts
-const OptionalTag = styled.span`
-    background: ${brandTheme.text.muted};
-    color: white;
-    font-size: 10px;
-    font-weight: 600;
-    padding: 2px 6px;
-    border-radius: ${brandTheme.radius.sm};
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-left: auto;
+// Styled Components - równomierny układ poziomy z wyrównanymi elementami
+const TitleAndColorRow = styled.div`
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: ${brandTheme.spacing.lg};
+    align-items: start;
+
+    @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+        gap: ${brandTheme.spacing.md};
+    }
 `;
 
-const RequiredTag = styled.span`
-    background: ${brandTheme.status.error};
+const TitleFormGroup = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.xs};
+`;
+
+const ColorFormGroup = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.xs};
+`;
+
+// Kontener na label - zapewnia jednakową wysokość labeli
+const TitleLabelContainer = styled.div`
+    min-height: 22px; /* Wysokość zwykłego labela */
+    display: flex;
+    align-items: center;
+    padding-bottom: ${brandTheme.spacing.xs};
+`;
+
+const ColorLabelContainer = styled.div`
+    min-height: 22px; /* Jednakowa wysokość z title label */
+    display: flex;
+    align-items: center;
+    padding-bottom: ${brandTheme.spacing.xs};
+`;
+
+// Inline label z badge'em w tej samej linii
+const InlineLabelWithBadge = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    width: 100%;
+`;
+
+// Badge w stylu modern, ale dopasowany do inline
+const RequiredBadgeInline = styled.span`
+    background: ${brandTheme.primaryLight};
     color: white;
     font-size: 10px;
-    font-weight: 600;
+    font-weight: 700;
     padding: 2px 6px;
-    border-radius: ${brandTheme.radius.sm};
+    border-radius: 10px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-left: auto;
+    flex-shrink: 0;
+    box-shadow: 0 1px 2px ${brandTheme.primary}30;
+    transition: all ${brandTheme.transitions.spring};
+    opacity: 0.8;
+
+    &:hover {
+        opacity: 1;
+        transform: translateY(-1px);
+    }
+`;
+
+// Kontener na footer (error + help text) - zapewnia jednakową wysokość footerów
+const FieldFooter = styled.div`
+    min-height: 50px; /* Zapewnia miejsce na error text + help text */
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.xs};
+    margin-top: ${brandTheme.spacing.xs};
 `;
 
 const ColorSelectContainer = styled.div`
@@ -247,7 +306,6 @@ const StyledSelect = styled.select<{ $hasError?: boolean; $hasValue?: boolean }>
         opacity: 0.6;
     }
 
-    /* Lepsze stylowanie opcji w dropdown */
     option {
         padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
         font-weight: 500;
@@ -255,7 +313,6 @@ const StyledSelect = styled.select<{ $hasError?: boolean; $hasValue?: boolean }>
         color: ${brandTheme.text.primary};
     }
 
-    /* Style dla różnych przeglądarek */
     &::-ms-expand {
         display: none;
     }
@@ -268,7 +325,6 @@ const ColorOption = styled.option`
     color: ${brandTheme.text.primary};
     line-height: 1.5;
     
-    /* Dodatkowe style dla lepszego wyglądu w dropdown */
     &:hover {
         background: ${brandTheme.surfaceHover};
     }
@@ -317,7 +373,6 @@ const HelpText = styled.div`
     font-size: 12px;
     color: ${brandTheme.text.muted};
     line-height: 1.4;
-    margin-top: ${brandTheme.spacing.xs};
     font-weight: 400;
 `;
 

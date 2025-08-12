@@ -5,7 +5,7 @@ import { VehiclesPageState, VehicleFilters, VehicleStats } from './types';
 import {clientApi} from "../../../api/clientsApi";
 import {VehicleExpanded} from "../../../types";
 
-const DEFAULT_PAGE_SIZE = 2;
+const DEFAULT_PAGE_SIZE = 25;
 
 const initialFilters: VehicleFilters = {
     licensePlate: '',
