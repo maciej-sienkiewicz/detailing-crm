@@ -107,7 +107,6 @@ export const TemplatesTable: React.FC<TemplatesTableProps> = ({
                                         {template.description && (
                                             <TemplateDescription>{template.description}</TemplateDescription>
                                         )}
-                                        <TemplateVersion>v{template.metadata.version}</TemplateVersion>
                                     </TemplateInfo>
                                 </TableCell>
 
@@ -164,7 +163,7 @@ export const TemplatesTable: React.FC<TemplatesTableProps> = ({
                                             </ActionButton>
                                         )}
 
-                                        {template.templateType === 'COMPANY_CUSTOM' && !template.isActive && (
+                                        {!template.isActive && (
                                             <ActionButton
                                                 onClick={() => onDelete(template.id)}
                                                 disabled={isDeleting === template.id}
