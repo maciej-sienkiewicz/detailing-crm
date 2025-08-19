@@ -460,7 +460,7 @@ export const carReceptionApi = {
      */
     deleteVehicleImage: async (protocolId: string, imageId: string): Promise<boolean> => {
         try {
-            await apiClient.delete(`/receptions/${protocolId}/image/${imageId}`);
+            await apiClient.delete(`/v1/protocols/${protocolId}/image/${imageId}`);
             return true;
         } catch (error) {
             console.error(`Error deleting image ${imageId} from protocol ${protocolId}:`, error);

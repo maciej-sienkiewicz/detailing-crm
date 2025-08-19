@@ -89,7 +89,7 @@ interface ProtocolCommentsProps {
 const ProtocolComments: React.FC<ProtocolCommentsProps> = ({ protocol, onProtocolUpdate }) => {
     const [comments, setComments] = useState<Comment[]>([]);
     const [newComment, setNewComment] = useState('');
-    const [commentType, setCommentType] = useState<'internal' | 'customer'>('internal');
+    const [commentType, setCommentType] = useState<'INTERNAL' | 'CUSTOMER'>('INTERNAL');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -163,9 +163,9 @@ const ProtocolComments: React.FC<ProtocolCommentsProps> = ({ protocol, onProtoco
         new Date(b.timestamp || '').getTime() - new Date(a.timestamp || '').getTime()
     );
 
-    const internalComments = sortedComments.filter(c => c.type === 'internal');
-    const customerComments = sortedComments.filter(c => c.type === 'customer');
-    const systemComments = sortedComments.filter(c => c.type === 'system');
+    const internalComments = sortedComments.filter(c => c.type === 'INTERNAL');
+    const customerComments = sortedComments.filter(c => c.type === 'CUSTOMER');
+    const systemComments = sortedComments.filter(c => c.type === 'SYSTEM');
 
     return (
         <CommunicationPanel>
@@ -176,15 +176,15 @@ const ProtocolComments: React.FC<ProtocolCommentsProps> = ({ protocol, onProtoco
                     <InputTitle>Nowy wpis</InputTitle>
                     <TypeSelector>
                         <TypeOption
-                            $active={commentType === 'internal'}
-                            onClick={() => setCommentType('internal')}
+                            $active={commentType === 'INTERNAL'}
+                            onClick={() => setCommentType('INTERNAL')}
                         >
                             <FaLock />
                             Zespół wewnętrzny
                         </TypeOption>
                         <TypeOption
-                            $active={commentType === 'customer'}
-                            onClick={() => setCommentType('customer')}
+                            $active={commentType === 'CUSTOMER'}
+                            onClick={() => setCommentType('CUSTOMER')}
                             disabled={protocol.status === ProtocolStatus.CANCELLED}
                         >
                             <FaShare />
@@ -197,7 +197,7 @@ const ProtocolComments: React.FC<ProtocolCommentsProps> = ({ protocol, onProtoco
                     <CommentInput
                         value={newComment}
                         onChange={(e) => setNewComment(e.target.value)}
-                        placeholder={commentType === 'internal'
+                        placeholder={commentType === 'INTERNAL'
                             ? "Dodaj notatkę wewnętrzną dla zespołu..."
                             : "Wpisz informację do przekazania klientowi..."
                         }
@@ -207,7 +207,7 @@ const ProtocolComments: React.FC<ProtocolCommentsProps> = ({ protocol, onProtoco
 
                     <InputFooter>
                         <InputMeta>
-                            {commentType === 'customer'
+                            {commentType === 'CUSTOMER'
                                 ? 'Informacja zostanie wysłana do klienta'
                                 : 'Wpis widoczny tylko dla zespołu'
                             }
@@ -269,7 +269,7 @@ const ProtocolComments: React.FC<ProtocolCommentsProps> = ({ protocol, onProtoco
                                 {sortedComments.map(comment => {
                                     const isRecent = comment.id === recentlyAddedId;
 
-                                    if (comment.type === 'system') {
+                                    if (comment.type === 'SYSTEM') {
                                         return (
                                             <SystemEntry key={comment.id} $isRecent={isRecent}>
                                                 <SystemIcon>
@@ -287,19 +287,19 @@ const ProtocolComments: React.FC<ProtocolCommentsProps> = ({ protocol, onProtoco
                                     return (
                                         <CommentEntry
                                             key={comment.id}
-                                            $type={comment.type === 'customer' ? 'external' : 'internal'}
+                                            $type={comment.type === 'CUSTOMER' ? 'EXTERNAL' : 'INTERNAL'}
                                             $isRecent={isRecent}
                                         >
                                             <CommentMeta>
                                                 <AuthorInfo>
-                                                    <Avatar $type={comment.type === 'customer' ? 'external' : 'internal'}>
+                                                    <Avatar $type={comment.type === 'CUSTOMER' ? 'EXTERNAL' : 'INTERNAL'}>
                                                         <FaUser />
                                                     </Avatar>
                                                     <AuthorDetails>
                                                         <AuthorName>
                                                             {comment.author}
                                                             <CommentTypeLabel $type={comment.type}>
-                                                                {comment.type === 'customer' ? 'Komunikacja z klientem' : 'Zespół wewnętrzny'}
+                                                                {comment.type === 'CUSTOMER' ? 'Komunikacja z klientem' : 'Zespół wewnętrzny'}
                                                             </CommentTypeLabel>
                                                         </AuthorName>
                                                         <Timestamp>{formatDateTime(comment.timestamp || '')}</Timestamp>
@@ -394,12 +394,12 @@ const InputBody = styled.div`
     padding: ${enterprise.space.xl};
 `;
 
-const CommentInput = styled.textarea<{ $type: 'internal' | 'customer' }>`
+const CommentInput = styled.textarea<{ $type: 'INTERNAL' | 'CUSTOMER' }>`
     width: 100%;
     min-height: 120px;
     padding: ${enterprise.space.md};
     border: 1px solid ${enterprise.border};
-    border-left: 3px solid ${props => props.$type === 'customer' ? enterprise.external.primary : enterprise.primary};
+    border-left: 3px solid ${props => props.$type === 'CUSTOMER' ? enterprise.external.primary : enterprise.primary};
     border-radius: ${enterprise.radius.md};
     background: ${enterprise.surface};
     font-size: ${enterprise.fontSize.sm};
@@ -410,8 +410,8 @@ const CommentInput = styled.textarea<{ $type: 'internal' | 'customer' }>`
 
     &:focus {
         outline: none;
-        border-color: ${props => props.$type === 'customer' ? enterprise.external.primary : enterprise.primary};
-        box-shadow: 0 0 0 3px ${props => props.$type === 'customer' ? 'rgba(51, 65, 85, 0.1)' : 'rgba(37, 99, 235, 0.1)'};
+        border-color: ${props => props.$type === 'CUSTOMER' ? enterprise.external.primary : enterprise.primary};
+        box-shadow: 0 0 0 3px ${props => props.$type === 'CUSTOMER' ? 'rgba(51, 65, 85, 0.1)' : 'rgba(37, 99, 235, 0.1)'};
     }
 
     &::placeholder {
@@ -432,12 +432,12 @@ const InputMeta = styled.div`
     font-weight: 500;
 `;
 
-const SubmitButton = styled.button<{ $type: 'internal' | 'customer' }>`
+const SubmitButton = styled.button<{ $type: 'INTERNAL' | 'CUSTOMER' }>`
     display: flex;
     align-items: center;
     gap: ${enterprise.space.sm};
     padding: ${enterprise.space.sm} ${enterprise.space.lg};
-    background: ${props => props.$type === 'customer' ? enterprise.external.primary : enterprise.primary};
+    background: ${props => props.$type === 'CUSTOMER' ? enterprise.external.primary : enterprise.primary};
     color: white;
     border: none;
     border-radius: ${enterprise.radius.md};
@@ -447,7 +447,7 @@ const SubmitButton = styled.button<{ $type: 'internal' | 'customer' }>`
     transition: all 0.2s ease;
 
     &:hover:not(:disabled) {
-        background: ${props => props.$type === 'customer' ? '#1e293b' : enterprise.primaryDark};
+        background: ${props => props.$type === 'CUSTOMER' ? '#1e293b' : enterprise.primaryDark};
         transform: translateY(-1px);
         box-shadow: ${enterprise.shadow.md};
     }
@@ -588,10 +588,10 @@ const CommentsList = styled.div`
     gap: ${enterprise.space.md};
 `;
 
-const CommentEntry = styled.div<{ $type: 'internal' | 'external'; $isRecent?: boolean }>`
+const CommentEntry = styled.div<{ $type: 'INTERNAL' | 'EXTERNAL'; $isRecent?: boolean }>`
     background: ${enterprise.surface};
-    border: 1px solid ${props => props.$isRecent ? (props.$type === 'external' ? enterprise.external.primary : enterprise.primary) : enterprise.border};
-    border-left: 3px solid ${props => props.$type === 'external' ? enterprise.external.primary : enterprise.primary};
+    border: 1px solid ${props => props.$isRecent ? (props.$type === 'EXTERNAL' ? enterprise.external.primary : enterprise.primary) : enterprise.border};
+    border-left: 3px solid ${props => props.$type === 'EXTERNAL' ? enterprise.external.primary : enterprise.primary};
     border-radius: ${enterprise.radius.md};
     padding: ${enterprise.space.lg};
     transition: all 0.3s ease;
@@ -599,17 +599,17 @@ const CommentEntry = styled.div<{ $type: 'internal' | 'external'; $isRecent?: bo
 
     ${props => props.$isRecent && `
         animation: highlightNew 0.6s ease-out;
-        box-shadow: 0 0 0 3px ${props.$type === 'external' ? 'rgba(51, 65, 85, 0.1)' : 'rgba(37, 99, 235, 0.1)'};
+        box-shadow: 0 0 0 3px ${props.$type === 'EXTERNAL' ? 'rgba(51, 65, 85, 0.1)' : 'rgba(37, 99, 235, 0.1)'};
     `}
 
     &:hover {
         box-shadow: ${enterprise.shadow.sm};
-        border-color: ${props => props.$type === 'external' ? enterprise.external.primary : enterprise.primary};
+        border-color: ${props => props.$type === 'EXTERNAL' ? enterprise.external.primary : enterprise.primary};
     }
 
     @keyframes highlightNew {
         0% {
-            background: ${props => props.$type === 'external' ? 'rgba(51, 65, 85, 0.05)' : 'rgba(37, 99, 235, 0.05)'};
+            background: ${props => props.$type === 'EXTERNAL' ? 'rgba(51, 65, 85, 0.05)' : 'rgba(37, 99, 235, 0.05)'};
             transform: translateY(-2px);
         }
         100% {
@@ -629,13 +629,13 @@ const AuthorInfo = styled.div`
     gap: ${enterprise.space.md};
 `;
 
-const Avatar = styled.div<{ $type: 'internal' | 'external' }>`
+const Avatar = styled.div<{ $type: 'INTERNAL' | 'EXTERNAL' }>`
     display: flex;
     align-items: center;
     justify-content: center;
     width: 32px;
     height: 32px;
-    background: ${props => props.$type === 'external' ? enterprise.external.primary : enterprise.primary};
+    background: ${props => props.$type === 'EXTERNAL' ? enterprise.external.primary : enterprise.primary};
     color: white;
     border-radius: 50%;
     font-size: ${enterprise.fontSize.sm};
@@ -658,12 +658,12 @@ const Timestamp = styled.div`
     color: ${enterprise.textTertiary};
 `;
 
-const CommentTypeLabel = styled.div<{ $type: 'internal' | 'customer' }>`
+const CommentTypeLabel = styled.div<{ $type: 'INTERNAL' | 'CUSTOMER' }>`
     display: inline-flex;
     align-items: center;
     margin-left: ${enterprise.space.sm};
     padding: 2px ${enterprise.space.sm};
-    background: ${props => props.$type === 'customer' ? enterprise.external.primary : enterprise.primary};
+    background: ${props => props.$type === 'CUSTOMER' ? enterprise.external.primary : enterprise.primary};
     color: white;
     border-radius: ${enterprise.radius.sm};
     font-size: 10px;

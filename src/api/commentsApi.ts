@@ -7,7 +7,7 @@ export interface Comment {
     author: string;
     content: string;
     timestamp?: string;
-    type: 'internal' | 'customer' | 'system';
+    type: 'INTERNAL' | 'CUSTOMER' | 'SYSTEM';
 }
 
 // Konwersja snake_case na camelCase dla odpowiedzi z API

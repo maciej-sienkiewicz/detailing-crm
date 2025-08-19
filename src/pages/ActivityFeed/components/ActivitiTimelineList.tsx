@@ -200,7 +200,6 @@ const ActivityTimelineList: React.FC<ActivityTimelineListProps> = ({ activities,
                                             <ActivityTime>
                                                 {format(new Date(activity.timestamp), 'HH:mm')}
                                             </ActivityTime>
-
                                             {activity.userName && (
                                                 <UserInfo>
                                                     <UserAvatar $color={activity.userColor || '#64748b'}>
@@ -228,6 +227,14 @@ const ActivityTimelineList: React.FC<ActivityTimelineListProps> = ({ activities,
                                                     ))}
                                                 </EntitiesList>
                                             </EntitiesSection>
+                                        )}
+
+                                        {activity.description && (
+                                            <MetadataSection>
+                                                {activity.description && (
+                                                    <MetadataNotes>{activity.description}</MetadataNotes>
+                                                )}
+                                            </MetadataSection>
                                         )}
 
                                         {activity.metadata && (

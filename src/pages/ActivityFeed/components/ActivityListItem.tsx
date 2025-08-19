@@ -37,7 +37,7 @@ const ActivityListItem: React.FC<ActivityListItemProps> = ({ activity, icon }) =
         if (!activity.metadata) return null;
 
         // Przykładowe renderowanie dla różnych typów metadanych
-        if (activity.category === 'call' && activity.metadata.callDuration) {
+        if (activity.category === 'COMMENT' && activity.metadata.callDuration) {
             return (
                 <MetadataInfo>
                     <MetadataItem>
