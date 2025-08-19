@@ -1,7 +1,8 @@
-// src/services/ProtocolCalendarService.ts - FIXED VERSION
-import { protocolsApi } from '../api/protocolsApi';
+// src/services/ProtocolCalendarService.ts - UPDATED VERSION WITH visitsApiNew
+import { visitsApi } from '../api/visitsApiNew';
 import { Appointment, AppointmentStatus } from '../types';
-import { ProtocolListItem, ProtocolStatus, CarReceptionProtocol } from '../types/protocol';
+import { ProtocolStatus, CarReceptionProtocol } from '../types/protocol';
+import { VisitListItem } from '../api/visitsApiNew';
 
 // Helper function to check if date is in range
 const isDateInRange = (date: Date, range?: { start: Date; end: Date }): boolean => {
@@ -27,31 +28,32 @@ const mapProtocolStatusToAppointmentStatus = (protocolStatus: ProtocolStatus): A
     }
 };
 
-// Convert ProtocolListItem to Appointment for calendar display
-const convertProtocolListItemToAppointment = (protocol: ProtocolListItem): Appointment => {
+// Convert VisitListItem to Appointment for calendar display
+const convertVisitListItemToAppointment = (visit: VisitListItem): Appointment => {
     // Bezpieczne parsowanie dat z zagnieżdżonego obiektu period
-    const startDate = new Date(protocol.period.startDate);
-    const endDate = new Date(protocol.period.endDate);
+    const startDate = new Date(visit.period.startDate);
+    const endDate = new Date(visit.period.endDate);
 
     // Tworzenie czytelnego opisu pojazdu
-    const vehicleDescription = `${protocol.vehicle.make} ${protocol.vehicle.model} ${protocol.vehicle.licensePlate}`.trim();
+    const vehicleDescription = `${visit.vehicle.make} ${visit.vehicle.model} ${visit.vehicle.licensePlate}`.trim();
 
     // Nazwa klienta (może być firma lub osoba prywatna)
-    const clientName = protocol.owner.companyName || protocol.owner.name;
+    const clientName = visit.owner.companyName || visit.owner.name;
 
     return {
-        id: `protocol-${protocol.id}`,
-        title: protocol.title || `${clientName} - ${protocol.vehicle.licensePlate}`,
+        id: visit.id,
+        title: visit.title || `${clientName} - ${visit.vehicle.licensePlate}`,
         start: startDate,
         end: endDate,
         customerId: clientName,
         vehicleId: vehicleDescription,
         serviceType: 'protocol',
-        status: mapProtocolStatusToAppointmentStatus(protocol.status),
-        notes: '', // ProtocolListItem nie ma description/notes
+        status: mapProtocolStatusToAppointmentStatus(visit.status),
+        notes: '', // VisitListItem nie ma description/notes
         isProtocol: true,
-        statusUpdatedAt: protocol.lastUpdate,
-        services: protocol.selectedServices?.map(service => ({
+        statusUpdatedAt: visit.lastUpdate,
+        calendarColorId: visit.calendarColorId,
+        services: visit.selectedServices?.map(service => ({
             id: service.id,
             name: service.name,
             price: service.price,
@@ -99,7 +101,7 @@ const convertCarReceptionProtocolToAppointment = (protocol: CarReceptionProtocol
 };
 
 /**
- * Fetch protocols and convert them to appointments for calendar display
+ * Fetch protocols and convert them to appointments for calendar display using new visitsApiNew
  * @param dateRange Optional date range filter
  * @returns Promise<Appointment[]>
  */
@@ -108,15 +110,40 @@ export const fetchProtocolsAsAppointments = async (dateRange?: { start: Date; en
         // Prepare filter parameters based on date range
         const filterParams = dateRange ? {
             startDate: dateRange.start.toISOString().split('T')[0],
-            endDate: dateRange.end.toISOString().split('T')[0]
-        } : {};
+            endDate: dateRange.end.toISOString().split('T')[0],
+            page: 0,
+            size: 1000 // Set pagination to 1000 records per page
+        } : {
+            page: 0,
+            size: 1000 // Set pagination to 1000 records per page
+        };
 
-        // Fetch protocols from API
-        const protocolsResponse = await protocolsApi.getProtocolsListWithoutPagination(filterParams);
+        console.log('🚀 Fetching visits using visitsApiNew with params:', filterParams);
 
-        // Convert protocols to appointments
-        const appointments = protocolsResponse
-            .map(convertProtocolListItemToAppointment)
+        // Fetch visits using new API
+        const visitsResult = await visitsApi.getVisitsList(filterParams);
+
+        if (!visitsResult.success || !visitsResult.data) {
+            console.error('❌ Failed to fetch visits:', visitsResult.error);
+            return [];
+        }
+
+        const visits = visitsResult.data.data; // Extract visits from paginated response
+
+        console.log('✅ Successfully fetched visits:', {
+            count: visits.length,
+            totalItems: visitsResult.data.pagination.totalItems,
+            currentPage: visitsResult.data.pagination.currentPage,
+            hasNext: visitsResult.data.pagination.hasNext,
+            dateRange: dateRange ? {
+                start: dateRange.start.toISOString().split('T')[0],
+                end: dateRange.end.toISOString().split('T')[0]
+            } : 'no date range'
+        });
+
+        // Convert visits to appointments
+        const appointments = visits
+            .map(convertVisitListItemToAppointment)
             .filter(appointment => {
                 // Additional client-side filtering if needed
                 if (dateRange) {
@@ -126,15 +153,21 @@ export const fetchProtocolsAsAppointments = async (dateRange?: { start: Date; en
                 return true;
             });
 
-        console.log(`Loaded ${appointments.length} protocols as appointments`, {
+        console.log(`📅 Converted ${appointments.length} visits to appointments`, {
             dateRange,
-            totalProtocols: protocolsResponse.length,
-            convertedAppointments: appointments.length
+            totalVisits: visits.length,
+            convertedAppointments: appointments.length,
+            sampleAppointments: appointments.slice(0, 3).map(apt => ({
+                id: apt.id,
+                title: apt.title,
+                status: apt.status,
+                start: apt.start.toISOString().split('T')[0]
+            }))
         });
 
         return appointments;
     } catch (error) {
-        console.error('Error fetching protocols as appointments:', error);
+        console.error('❌ Error fetching visits as appointments:', error);
 
         // Return empty array instead of throwing to prevent calendar from breaking
         return [];
@@ -142,12 +175,15 @@ export const fetchProtocolsAsAppointments = async (dateRange?: { start: Date; en
 };
 
 /**
- * Get a single protocol as an appointment
+ * Get a single protocol as an appointment - using legacy protocolsApi for detailed view
  * @param protocolId Protocol ID
  * @returns Promise<Appointment | null>
  */
 export const getProtocolAsAppointment = async (protocolId: string): Promise<Appointment | null> => {
     try {
+        // Import legacy API for detailed protocol view
+        const { protocolsApi } = await import('../api/protocolsApi');
+
         const protocol = await protocolsApi.getProtocolDetails(protocolId);
         if (!protocol) {
             return null;
@@ -162,7 +198,7 @@ export const getProtocolAsAppointment = async (protocolId: string): Promise<Appo
 };
 
 /**
- * Update protocol status through calendar interface
+ * Update protocol status through calendar interface - using legacy protocolsApi
  * @param protocolId Protocol ID (without protocol- prefix)
  * @param newStatus New appointment status
  * @returns Promise<Appointment | null>
@@ -172,6 +208,9 @@ export const updateProtocolStatusFromCalendar = async (
     newStatus: AppointmentStatus
 ): Promise<Appointment | null> => {
     try {
+        // Import legacy API for status updates
+        const { protocolsApi } = await import('../api/protocolsApi');
+
         // Convert appointment status back to protocol status
         let protocolStatus: ProtocolStatus;
         switch (newStatus) {

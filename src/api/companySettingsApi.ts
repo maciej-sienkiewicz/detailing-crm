@@ -158,7 +158,7 @@ export const companySettingsApi = {
      */
     async getCompanySettings(): Promise<CompanySettingsResponse> {
         try {
-            const response = await apiClient.get<CompanySettingsResponse>('/company-settings');
+            const response = await apiClient.get<CompanySettingsResponse>('/company');
             return response;
         } catch (error) {
             console.error('Error fetching company settings:', error);
@@ -172,7 +172,7 @@ export const companySettingsApi = {
      */
     async updateCompanySettings(data: UpdateCompanySettingsRequest): Promise<CompanySettingsResponse> {
         try {
-            const response = await apiClient.put<CompanySettingsResponse>('/company-settings', data);
+            const response = await apiClient.put<CompanySettingsResponse>('/company', data);
             return response;
         } catch (error) {
             console.error('Error updating company settings:', error);
@@ -468,7 +468,7 @@ export const companySettingsApi = {
      */
     async deleteLogo(): Promise<CompanySettingsResponse> {
         try {
-            const response = await apiClient.delete<CompanySettingsResponse>('/company-settings/logo');
+            const response = await apiClient.delete<CompanySettingsResponse>('/company/logo');
             return response;
         } catch (error) {
             console.error('Error deleting logo:', error);
