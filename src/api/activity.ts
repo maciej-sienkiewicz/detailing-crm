@@ -8,7 +8,7 @@ import {
     apiClientNew,
     PaginationParams,
     ApiError,
-    RequestConfig
+    RequestConfig, PaginatedApiResponse
 } from './apiClientNew';
 import {
     ActivityItem,
@@ -125,7 +125,7 @@ class ActivityApi {
      * Fetches paginated list of activities with advanced filtering and sorting
      * Primary method for the activity feed
      */
-    async getActivities(params: ActivitySearchParams = {}): Promise<ActivityApiResult<ActivityPaginatedResponse>> {
+    async getActivities(params: ActivitySearchParams = {}): Promise<ActivityApiResult<PaginatedApiResponse<ActivityItem>>> {
         try {
             console.log('🔍 Fetching activities with params:', params);
 
@@ -137,16 +137,12 @@ class ActivityApi {
                 ...filterParams
             } = params;
 
-            // Build query parameters
             const queryParams = this.buildQueryParams({
                 ...filterParams,
                 sortBy,
-                sortOrder,
-                page,
-                size
+                sortOrder
             });
 
-            // Check cache for historical data (older than today)
             const cacheKey = `activities-${JSON.stringify(params)}`;
             const cachedResult = this.getCachedResult(cacheKey);
             if (cachedResult && !this.includesRecentData(params)) {
@@ -154,33 +150,73 @@ class ActivityApi {
                 return cachedResult;
             }
 
-            // Fetch from API - now expecting new response structure
-            const serverResponse = await apiClientNew.get<ServerActivityResponse>(
+            // ✅ POPRAWKA: Używamy zwykłego get zamiast getWithPagination
+            const allParams = { ...queryParams, page, size };
+            const response = await apiClientNew.get<any>(
                 this.baseEndpoint,
-                queryParams,
+                allParams,
                 {
                     timeout: 15000,
                     retries: 2
                 }
             );
 
-            // Transform server response to client format
-            const transformedData = this.transformServerResponse(serverResponse);
+            // 🐛 DEBUG: Sprawdźmy co zwraca API
+            console.log('🐛 RAW API RESPONSE:', {
+                responseKeys: Object.keys(response),
+                hasContent: 'content' in response,
+                contentLength: response.content?.length || 0,
+                firstItem: response.content?.[0],
+                firstItemKeys: response.content?.[0] ? Object.keys(response.content[0]) : [],
+                firstItemRelatedEntities: response.content?.[0]?.related_entities
+            });
 
-            const result: ActivityApiResult<ActivityPaginatedResponse> = {
-                success: true,
-                data: transformedData
+            // ✅ POPRAWKA: Obsługa formatu Spring Boot z 'content'
+            const activities = response.content || [];
+
+            // Process and enhance activity data
+            const processedActivities = activities.map((activity: any) => {
+                const enhanced = this.enhanceActivityItem(activity);
+                return enhanced;
+            });
+
+            // 🐛 DEBUG: Sprawdźmy co mamy po enhancement
+            console.log('🐛 AFTER ENHANCEMENT:', {
+                processedLength: processedActivities.length,
+                firstProcessed: processedActivities[0],
+                firstProcessedKeys: processedActivities[0] ? Object.keys(processedActivities[0]) : [],
+                firstProcessedRelatedEntities: processedActivities[0]?.related_entities,
+                firstProcessedRelatedEntitiesCamel: processedActivities[0]?.relatedEntities,
+                firstProcessedEntities: processedActivities[0]?.entities
+            });
+
+            // ✅ POPRAWKA: Tworzymy własną strukturę paginacji
+            const paginationInfo = {
+                currentPage: response.page || page,
+                pageSize: response.size || size,
+                totalItems: response.total_elements || 0,
+                totalPages: response.total_pages || 0,
+                hasNext: !response.is_last,
+                hasPrevious: response.page > 0
             };
 
-            // Cache historical data
+            const result: ActivityApiResult<PaginatedApiResponse<ActivityItem>> = {
+                success: true,
+                data: {
+                    data: processedActivities,
+                    pagination: paginationInfo,
+                    success: true
+                }
+            };
+
             if (!this.includesRecentData(params)) {
                 this.setCachedResult(cacheKey, result);
             }
 
             console.log('✅ Successfully fetched activities:', {
-                count: transformedData.data.length,
-                totalItems: transformedData.pagination.totalItems,
-                currentPage: transformedData.pagination.currentPage
+                count: processedActivities.length,
+                totalItems: paginationInfo.totalItems,
+                currentPage: paginationInfo.currentPage
             });
 
             return result;
@@ -300,18 +336,66 @@ class ActivityApi {
         };
     }
 
+    private enhanceActivityItem(activity: ActivityItem): ActivityItem {
+        // 🐛 DEBUG: Sprawdźmy co otrzymujemy z API
+        console.log('🐛 BEFORE enhance:', {
+            id: activity.id,
+            keys: Object.keys(activity),
+            related_entities: activity.related_entities,
+            relatedEntities: activity.relatedEntities,
+            entities: activity.entities
+        });
+
+        const enhanced = {
+            ...activity,
+            // Ensure timestamp is properly formatted
+            timestamp: new Date(activity.timestamp).toISOString(),
+
+            // ✅ POPRAWKA: Konwertujemy related_entities na relatedEntities (camelCase)
+            relatedEntities: activity.related_entities || activity.relatedEntities || [],
+
+            // ✅ POPRAWKA: Zachowujemy też oryginalne pole dla kompatybilności
+            related_entities: activity.related_entities || [],
+
+            // ✅ POPRAWKA: Mapowanie na starą strukturę entities dla kompatybilności
+            entities: (activity.related_entities || activity.relatedEntities || []).map((entity: any) => ({
+                id: entity.id,
+                type: entity.type,
+                displayName: entity.name,
+                relatedId: entity.id
+            })),
+
+            // ✅ POPRAWKA: Mapowanie user_name na userName dla kompatybilności
+            userName: activity.user_name || activity.userName,
+
+            // ✅ POPRAWKA: Mapowanie status_text na statusText dla kompatybilności
+            statusText: activity.status_text || activity.statusText
+        };
+
+        // 🐛 DEBUG: Sprawdźmy co zwracamy
+        console.log('🐛 AFTER enhance:', {
+            id: enhanced.id,
+            keys: Object.keys(enhanced),
+            related_entities: enhanced.related_entities,
+            relatedEntities: enhanced.relatedEntities,
+            entities: enhanced.entities
+        });
+
+        return enhanced;
+    }
+
     /**
      * Normalizes category from server format (uppercase) to client format
      */
     private normalizeCategory(serverCategory: string): ActivityCategory {
         const categoryMap: Record<string, ActivityCategory> = {
-            'SYSTEM': 'system',
+            'SYSTEM': 'SYSTEM',
             'APPOINTMENT': 'APPOINTMENT',
-            'PROTOCOL': 'protocol',
-            'COMMENT': 'comment',
-            'CLIENT': 'client',
-            'VEHICLE': 'vehicle',
-            'NOTIFICATION': 'notification'
+            'PROTOCOL': 'PROTOCOL',
+            'COMMENT': 'COMMENT',
+            'CLIENT': 'CLIENT',
+            'VEHICLE': 'VEHICLE',
+            'NOTIFICATION': 'NOTIFICATION'
         };
 
         return categoryMap[serverCategory.toUpperCase()] || 'system';

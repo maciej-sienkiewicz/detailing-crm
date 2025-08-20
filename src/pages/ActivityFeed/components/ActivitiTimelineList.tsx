@@ -1,3 +1,4 @@
+// src/pages/ActivityFeed/components/ActivitiTimelineList.tsx
 import React, { useMemo } from 'react';
 import styled from 'styled-components';
 import { format, isToday, isYesterday } from 'date-fns';
@@ -17,7 +18,7 @@ import {
 import { ActivityItem } from '../../../types/activity';
 import { Link } from 'react-router-dom';
 
-// Brand Theme
+// Brand Theme (bez zmian)
 const brandTheme = {
     primary: 'var(--brand-primary, #2563eb)',
     primaryLight: 'var(--brand-primary-light, #3b82f6)',
@@ -55,7 +56,7 @@ interface ActivityTimelineListProps {
 }
 
 const ActivityTimelineList: React.FC<ActivityTimelineListProps> = ({ activities, loading }) => {
-    // Grupowanie aktywności według dat
+    // Grupowanie aktywności według dat (bez zmian)
     const groupedActivities = useMemo(() => {
         const groups: { [key: string]: ActivityItem[] } = {};
 
@@ -69,7 +70,6 @@ const ActivityTimelineList: React.FC<ActivityTimelineListProps> = ({ activities,
             groups[dateKey].push(activity);
         });
 
-        // Sortowanie aktywności w grupach (najnowsze pierwsze)
         Object.keys(groups).forEach(key => {
             groups[key].sort((a, b) =>
                 new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
@@ -79,14 +79,12 @@ const ActivityTimelineList: React.FC<ActivityTimelineListProps> = ({ activities,
         return groups;
     }, [activities]);
 
-    // Sortowanie dat (najnowsze pierwsze)
     const sortedDates = useMemo(() => {
         return Object.keys(groupedActivities).sort((a, b) =>
             new Date(b).getTime() - new Date(a).getTime()
         );
     }, [groupedActivities]);
 
-    // Formatowanie nazwy dnia
     const formatDayLabel = (dateStr: string): string => {
         const date = new Date(dateStr);
 
@@ -99,7 +97,6 @@ const ActivityTimelineList: React.FC<ActivityTimelineListProps> = ({ activities,
         }
     };
 
-    // Ikona dla kategorii aktywności
     const getCategoryIcon = (category: string) => {
         switch (category) {
             case 'APPOINTMENT':
@@ -108,20 +105,15 @@ const ActivityTimelineList: React.FC<ActivityTimelineListProps> = ({ activities,
                 return <FaClipboardCheck />;
             case 'COMMENT':
                 return <FaComment />;
-            case 'client':
+            case 'CLIENT':
                 return <FaUser />;
-            case 'vehicle':
-                return <FaCar />;
-            case 'notification':
-                return <FaBell />;
-            case 'system':
+            case 'SYSTEM':
                 return <FaCog />;
             default:
                 return <FaInfoCircle />;
         }
     };
 
-    // Kolor dla kategorii
     const getCategoryColor = (category: string): string => {
         switch (category) {
             case 'APPOINTMENT':
@@ -130,20 +122,16 @@ const ActivityTimelineList: React.FC<ActivityTimelineListProps> = ({ activities,
                 return '#2ecc71';
             case 'COMMENT':
                 return '#9b59b6';
-            case 'client':
+            case 'CLIENT':
                 return '#f39c12';
-            case 'vehicle':
-                return '#1abc9c';
-            case 'notification':
-                return '#34495e';
-            case 'system':
+            case 'SYSTEM':
                 return '#95a5a6';
             default:
                 return '#bdc3c7';
         }
     };
 
-    // Generowanie linku do encji
+    // ✅ POPRAWKA: Aktualizacja funkcji generowania linków dla nowej struktury danych
     const getEntityLink = (entity: any) => {
         if (!entity) return '#';
 
@@ -157,7 +145,7 @@ const ActivityTimelineList: React.FC<ActivityTimelineListProps> = ({ activities,
             case 'PROTOCOL':
                 return `/visits/${entity.id}`;
             default:
-                return '/clients-vehicles?tab=vehicles&vehicleId=2';
+                return '/clients-vehicles';
         }
     };
 
@@ -200,6 +188,7 @@ const ActivityTimelineList: React.FC<ActivityTimelineListProps> = ({ activities,
                                             <ActivityTime>
                                                 {format(new Date(activity.timestamp), 'HH:mm')}
                                             </ActivityTime>
+
                                             {activity.userName && (
                                                 <UserInfo>
                                                     <UserAvatar $color={activity.userColor || '#64748b'}>
@@ -212,16 +201,17 @@ const ActivityTimelineList: React.FC<ActivityTimelineListProps> = ({ activities,
 
                                         <ActivityMessage>{activity.message}</ActivityMessage>
 
-                                        {activity.entities && activity.entities.length > 0 && (
+                                        {/* ✅ POPRAWKA: Używamy relatedEntities (camelCase po konwersji) */}
+                                        {(activity.relatedEntities || activity.related_entities) && (activity.relatedEntities || activity.related_entities).length > 0 && (
                                             <EntitiesSection>
                                                 <EntitiesLabel>Powiązane:</EntitiesLabel>
                                                 <EntitiesList>
-                                                    {activity.entities.map((entity, entityIndex) => (
+                                                    {(activity.relatedEntities || activity.related_entities)?.map((entity, entityIndex) => (
                                                         <EntityLink
                                                             key={entity.id}
                                                             to={getEntityLink(entity)}
                                                         >
-                                                            <EntityName>{entity.displayName}</EntityName>
+                                                            <EntityName>{entity.name}</EntityName>
                                                             <FaChevronRight />
                                                         </EntityLink>
                                                     ))}
@@ -231,17 +221,7 @@ const ActivityTimelineList: React.FC<ActivityTimelineListProps> = ({ activities,
 
                                         {activity.description && (
                                             <MetadataSection>
-                                                {activity.description && (
-                                                    <MetadataNotes>{activity.description}</MetadataNotes>
-                                                )}
-                                            </MetadataSection>
-                                        )}
-
-                                        {activity.metadata && (
-                                            <MetadataSection>
-                                                {activity.metadata.notes && (
-                                                    <MetadataNotes>{activity.metadata.notes}</MetadataNotes>
-                                                )}
+                                                <MetadataNotes>{activity.description}</MetadataNotes>
                                             </MetadataSection>
                                         )}
                                     </ActivityCard>
@@ -255,7 +235,7 @@ const ActivityTimelineList: React.FC<ActivityTimelineListProps> = ({ activities,
     );
 };
 
-// Styled Components
+// Styled Components (bez zmian)
 const TimelineContainer = styled.div`
     display: flex;
     flex-direction: column;
@@ -290,46 +270,6 @@ const LoadingSpinner = styled.div`
 const LoadingText = styled.p`
     font-size: 16px;
     margin: 0;
-`;
-
-const EmptyContainer = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: ${brandTheme.spacing.xl};
-    background: ${brandTheme.surface};
-    border-radius: ${brandTheme.radius.lg};
-    border: 2px dashed ${brandTheme.border};
-    text-align: center;
-    min-height: 300px;
-`;
-
-const EmptyIcon = styled.div`
-    width: 64px;
-    height: 64px;
-    background: ${brandTheme.surfaceAlt};
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    color: ${brandTheme.text.muted};
-    margin-bottom: ${brandTheme.spacing.lg};
-`;
-
-const EmptyTitle = styled.h3`
-    font-size: 18px;
-    font-weight: 600;
-    color: ${brandTheme.text.primary};
-    margin: 0 0 ${brandTheme.spacing.sm} 0;
-`;
-
-const EmptyDescription = styled.p`
-    font-size: 14px;
-    color: ${brandTheme.text.muted};
-    margin: 0;
-    line-height: 1.5;
 `;
 
 const DayGroup = styled.div`
