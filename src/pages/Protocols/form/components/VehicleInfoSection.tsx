@@ -21,36 +21,9 @@ import {
 import { useToast } from "../../../../components/common/Toast/Toast";
 import { LabelWithBadge } from './LabelWithBadge';
 import {AutocompleteField, AutocompleteOption} from "../../components/AutocompleteField";
+import {BrandAutocomplete} from "../../components/BrandAutocomplete";
 
-// List of car brands
-const carBrands = [
-    "Abarth", "Acura", "Aito", "Aiways", "Aixam", "Alfa Romeo", "Alpine",
-    "Arcfox", "Asia", "Aston Martin", "Audi", "Austin", "Autobianchi",
-    "AVATR", "Baic", "BAW", "Bentley", "Bestune", "Biro", "BMW",
-    "BMW-ALPINA", "Brilliance", "Bugatti", "Buick", "BYD", "Cadillac",
-    "Casalini", "Caterham", "Cenntro", "Changan", "Chatenet", "Chery",
-    "Chevrolet", "Chrysler", "Citroën", "Cupra", "Dacia", "Daewoo",
-    "Daihatsu", "DeLorean", "Denza", "DFM", "DFSK", "DKW", "Dodge",
-    "Doosan", "DR MOTOR", "DS Automobiles", "e.GO", "Elaris", "FAW",
-    "FENDT", "Ferrari", "Fiat", "Fisker", "Ford", "Forthing", "Gaz",
-    "Geely", "Genesis", "GMC", "GWM", "HiPhi", "Honda", "Hongqi",
-    "Hummer", "Hyundai", "iamelectric", "Ineos", "Infiniti", "Isuzu",
-    "Iveco", "JAC", "Jaecoo", "Jaguar", "Jeep", "Jetour", "Jinpeng",
-    "Kia", "KTM", "Lada", "Lamborghini", "Lancia", "Land Rover",
-    "Leapmotor", "LEVC", "Lexus", "Li", "Ligier", "Lincoln", "Lixiang",
-    "Lotus", "LTI", "Lucid", "Lynk & Co", "MAN", "Maserati", "MAXIMUS",
-    "Maxus", "Maybach", "Mazda", "McLaren", "Mercedes-Benz", "Mercury",
-    "MG", "Microcar", "MINI", "Mitsubishi", "Morgan", "NIO", "Nissan",
-    "Nysa", "Oldsmobile", "Omoda", "Opel", "Peugeot", "Piaggio",
-    "Plymouth", "Polestar", "Polonez", "Pontiac", "Porsche", "RAM",
-    "Renault", "Rolls-Royce", "Rover", "Saab", "SARINI", "Saturn",
-    "Seat", "Seres", "Shuanghuan", "Skoda", "Skywell", "Skyworth",
-    "Smart", "SsangYong/KGM", "Subaru", "Suzuki", "Syrena", "Tarpan",
-    "Tata", "Tesla", "Toyota", "Trabant", "Triumph", "TUATARA", "Uaz",
-    "Vauxhall", "VELEX", "Volkswagen", "Volvo", "Voyah", "WALTRA",
-    "Warszawa", "Wartburg", "Wey", "Wołga", "Xiaomi", "XPeng",
-    "Zaporożec", "Zastava", "ZEEKR", "Zefir", "Zhidou", "Żuk"
-];
+// List of car brands - moved to BrandAutocomplete component
 
 interface VehicleInfoSectionProps {
     formData: Partial<CarReceptionProtocol>;
@@ -416,22 +389,34 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                         >
                             Marka pojazdu
                         </LabelWithBadge>
-                        <Input
-                            id="make"
-                            name="make"
-                            list="carBrandsList"
-                            value={formData.make || ''}
-                            onChange={onChange}
-                            placeholder="Wybierz lub wpisz markę"
-                            required
-                            $hasError={!!errors.make}
-                        />
-                        <datalist id="carBrandsList">
-                            {carBrands.map(brand => (
-                                <option key={brand.toLowerCase().replace(/[^a-z0-9]/g, '-')} value={brand} />
-                            ))}
-                        </datalist>
-                        {errors.make && <ErrorText>{errors.make}</ErrorText>}
+                        {readOnly ? (
+                            <Input
+                                id="make"
+                                name="make"
+                                value={formData.make || ''}
+                                placeholder="Wybierz lub wpisz markę"
+                                readOnly={true}
+                                style={{ backgroundColor: '#f9f9f9', cursor: 'not-allowed' }}
+                                $hasError={!!errors.make}
+                            />
+                        ) : (
+                            <BrandAutocomplete
+                                value={formData.make || ''}
+                                onChange={(value) => {
+                                    const syntheticEvent = {
+                                        target: {
+                                            name: 'make',
+                                            value: value,
+                                            type: 'text'
+                                        }
+                                    } as React.ChangeEvent<HTMLInputElement>;
+                                    onChange(syntheticEvent);
+                                }}
+                                placeholder="Wybierz lub wpisz markę"
+                                required
+                                error={errors.make}
+                            />
+                        )}
                     </FormGroup>
 
                     <FormGroup>
