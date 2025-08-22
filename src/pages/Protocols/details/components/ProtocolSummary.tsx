@@ -34,6 +34,7 @@ import {
     FaGem, FaEdit
 } from 'react-icons/fa';
 import {clientApi} from "../../../../api/clientsApi";
+import {servicesApi} from "../../../../api/servicesApi";
 import {
     CarReceptionProtocol,
     ClientExpanded,
@@ -114,11 +115,13 @@ interface ProtocolSummaryProps {
 
 const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolUpdate }) => {
     const [showAddServiceModal, setShowAddServiceModal] = useState(false);
-    const [showEditPricesModal, setShowEditPricesModal] = useState(false); // Nowy stan
+    const [showEditPricesModal, setShowEditPricesModal] = useState(false);
     const [client, setClient] = useState<ClientExpanded | null>(null);
     const [clientStats, setClientStats] = useState<ClientStatistics | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [availableServices, setAvailableServices] = useState<Array<{ id: string; name: string; price: number }>>([]);
+    const [servicesLoading, setServicesLoading] = useState(false);
 
     const handleEditPrices = () => {
         setShowEditPricesModal(true);
@@ -185,6 +188,33 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
             loadClientData();
         }
     }, [protocol.ownerId]);
+
+    // Load available services
+    React.useEffect(() => {
+        const loadServices = async () => {
+            try {
+                setServicesLoading(true);
+                const services = await servicesApi.fetchServices();
+
+                // Map services to the format expected by AddServiceModal
+                const mappedServices = services.map(service => ({
+                    id: service.id,
+                    name: service.name,
+                    price: service.price
+                }));
+
+                setAvailableServices(mappedServices);
+            } catch (err) {
+                console.error('Error loading services:', err);
+                // Don't show error to user, just log it
+                setAvailableServices([]);
+            } finally {
+                setServicesLoading(false);
+            }
+        };
+
+        loadServices();
+    }, []);
 
     // Handler for adding new services
     const handleAddService = () => {
@@ -566,9 +596,9 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                             </EditPricesButton>
                         )}
 
-                        <AddServiceButton onClick={handleAddService}>
+                        <AddServiceButton onClick={handleAddService} disabled={servicesLoading}>
                             <FaPlus />
-                            <span>Dodaj usługę</span>
+                            <span>{servicesLoading ? 'Ładowanie...' : 'Dodaj usługę'}</span>
                         </AddServiceButton>
                     </HeaderActions>
                 </SectionHeader>
@@ -673,7 +703,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                 isOpen={showAddServiceModal}
                 onClose={() => setShowAddServiceModal(false)}
                 onAddServices={handleSaveServices}
-                availableServices={[]} // You should pass actual available services here
+                availableServices={availableServices}
                 customerPhone={protocol.phone}
             />
 

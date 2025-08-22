@@ -7,10 +7,11 @@ import {
     FaArrowDown,
     FaChartLine,
     FaExclamationTriangle,
-    FaUniversity,
     FaFileInvoiceDollar,
     FaEdit,
-    FaHistory
+    FaHistory,
+    FaHandHoldingUsd,
+    FaCreditCard
 } from 'react-icons/fa';
 import { UnifiedDocumentSummary } from '../../../types/finance';
 import { brandTheme } from '../styles/theme';
@@ -31,7 +32,6 @@ const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({
                                                                          onBalanceUpdate
                                                                      }) => {
     const [showEditModal, setShowEditModal] = useState(false);
-    const [editType, setEditType] = useState<'cash' | 'bank'>('cash');
     const [showHistoryModal, setShowHistoryModal] = useState(false);
     const [historyBalanceType, setHistoryBalanceType] = useState<BalanceType | undefined>();
 
@@ -45,8 +45,7 @@ const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({
         }).format(amount);
     };
 
-    const handleEditBalance = (type: 'cash' | 'bank') => {
-        setEditType(type);
+    const handleEditBalance = () => {
         setShowEditModal(true);
     };
 
@@ -93,35 +92,8 @@ const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({
                             <FaHistory />
                         </ActionIcon>
                         <ActionIcon
-                            onClick={() => handleEditBalance('cash')}
+                            onClick={handleEditBalance}
                             title="Edytuj stan kasy"
-                            className="edit-icon"
-                        >
-                            <FaEdit />
-                        </ActionIcon>
-                    </CardActions>
-                </SummaryCard>
-
-                <SummaryCard $type="bank">
-                    <CardIcon $color={brandTheme.primary}>
-                        <FaUniversity />
-                    </CardIcon>
-                    <CardContent>
-                        <CardValue>{formatAmount(summary.bankAccountBalance)}</CardValue>
-                        <CardLabel>Stan konta</CardLabel>
-                        <CardDetail>Środki na koncie bankowym</CardDetail>
-                    </CardContent>
-                    <CardActions>
-                        <ActionIcon
-                            onClick={() => handleShowHistory(BalanceType.BANK)}
-                            title="Zobacz historię zmian konta bankowego"
-                            className="history-icon"
-                        >
-                            <FaHistory />
-                        </ActionIcon>
-                        <ActionIcon
-                            onClick={() => handleEditBalance('bank')}
-                            title="Edytuj stan konta bankowego"
                             className="edit-icon"
                         >
                             <FaEdit />
@@ -171,6 +143,26 @@ const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({
                     </CardContent>
                 </SummaryCard>
 
+                <SummaryCard $type="liabilities">
+                    <CardIcon $color={brandTheme.primary}>
+                        <FaCreditCard />
+                    </CardIcon>
+                    <CardContent>
+                        <CardValue>{formatAmount(summary.liabilities)}</CardValue>
+                        <CardLabel>Zobowiązania</CardLabel>
+                        <CardDetail>
+                            {summary.liabilitiesOverdue > 0 ? (
+                                <WarningText>
+                                    <FaExclamationTriangle />
+                                    Przeterminowane: {formatAmount(summary.liabilitiesOverdue)}
+                                </WarningText>
+                            ) : (
+                                <span>Brak przeterminowanych</span>
+                            )}
+                        </CardDetail>
+                    </CardContent>
+                </SummaryCard>
+
                 <SummaryCard $type="profit">
                     <CardIcon $color={brandTheme.primary}>
                         <FaChartLine />
@@ -186,9 +178,9 @@ const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({
             {showEditModal && (
                 <BalanceEditModal
                     isOpen={showEditModal}
-                    balanceType={editType}
+                    balanceType="cash"
                     currentCashBalance={summary.cashBalance}
-                    currentBankBalance={summary.bankAccountBalance}
+                    currentBankBalance={0} // Nie używamy już konta bankowego
                     onSave={handleBalanceSaved}
                     onClose={() => setShowEditModal(false)}
                 />
@@ -221,9 +213,7 @@ const BalanceEditModal: React.FC<BalanceEditModalProps> = ({
                                                                onSave,
                                                                onClose
                                                            }) => {
-    const [newBalance, setNewBalance] = useState(
-        balanceType === 'cash' ? currentCashBalance : currentBankBalance
-    );
+    const [newBalance, setNewBalance] = useState(currentCashBalance); // Zawsze edytujemy kasę
     const [description, setDescription] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -246,17 +236,13 @@ const BalanceEditModal: React.FC<BalanceEditModalProps> = ({
             const { balanceOverrideApi, BalanceType } = await import('../../../api/balanceOverrideApi');
 
             const result = await balanceOverrideApi.manualOverride({
-                balanceType: balanceType === 'cash' ? BalanceType.CASH : BalanceType.BANK,
+                balanceType: BalanceType.CASH, // Zawsze kasa
                 newBalance,
                 description: description.trim()
             });
 
             if (result.success) {
-                // Calculate new balances
-                const newCashBalance = balanceType === 'cash' ? newBalance : currentCashBalance;
-                const newBankBalance = balanceType === 'bank' ? newBalance : currentBankBalance;
-
-                onSave(newCashBalance, newBankBalance);
+                onSave(newBalance, currentBankBalance);
             } else {
                 setError(result.error || 'Nie udało się zaktualizować salda');
             }
@@ -275,8 +261,7 @@ const BalanceEditModal: React.FC<BalanceEditModalProps> = ({
         }).format(amount);
     };
 
-    const currentBalance = balanceType === 'cash' ? currentCashBalance : currentBankBalance;
-    const difference = newBalance - currentBalance;
+    const difference = newBalance - currentCashBalance;
 
     return (
         <ModalOverlay onClick={onClose}>
@@ -284,10 +269,10 @@ const BalanceEditModal: React.FC<BalanceEditModalProps> = ({
                 <ModalHeader>
                     <ModalTitle>
                         <TitleIcon>
-                            {balanceType === 'cash' ? <FaMoneyBillWave /> : <FaUniversity />}
+                            <FaMoneyBillWave />
                         </TitleIcon>
                         <TitleText>
-                            Edytuj {balanceType === 'cash' ? 'stan kasy' : 'stan konta bankowego'}
+                            Edytuj stan kasy
                         </TitleText>
                     </ModalTitle>
                     <CloseButton onClick={onClose}>×</CloseButton>
@@ -296,7 +281,7 @@ const BalanceEditModal: React.FC<BalanceEditModalProps> = ({
                 <ModalContent>
                     <CurrentBalanceInfo>
                         <InfoLabel>Aktualny stan:</InfoLabel>
-                        <InfoValue>{formatAmount(currentBalance)} PLN</InfoValue>
+                        <InfoValue>{formatAmount(currentCashBalance)} PLN</InfoValue>
                     </CurrentBalanceInfo>
 
                     {error && (
@@ -396,7 +381,7 @@ const CardsContainer = styled.div`
 `;
 
 interface SummaryCardProps {
-    $type: 'balance' | 'income' | 'expense' | 'receivables' | 'bank' | 'profit';
+    $type: 'balance' | 'income' | 'expense' | 'receivables' | 'liabilities' | 'profit';
 }
 
 const SummaryCard = styled.div<SummaryCardProps>`
@@ -417,8 +402,8 @@ const SummaryCard = styled.div<SummaryCardProps>`
         transform: translateY(-1px);
         box-shadow: ${brandTheme.shadow.sm};
         border-color: ${brandTheme.borderHover};
-        
-        ${props => (props.$type === 'balance' || props.$type === 'bank') && `
+
+        ${props => props.$type === 'balance' && `
             .history-icon,
             .edit-icon {
                 opacity: 1;
@@ -473,17 +458,17 @@ const CardValue = styled.div<{ $profit?: number; $type?: string }>`
     font-size: 20px;
     font-weight: 600;
     color: ${props => {
-    if (props.$profit !== undefined) {
-        return props.$profit >= 0 ? brandTheme.status.success : brandTheme.status.error;
-    }
-    if (props.$type === 'income') {
-        return brandTheme.status.success;
-    }
-    if (props.$type === 'expense') {
-        return brandTheme.status.error;
-    }
-    return brandTheme.text.primary;
-}};
+        if (props.$profit !== undefined) {
+            return props.$profit >= 0 ? brandTheme.status.success : brandTheme.status.error;
+        }
+        if (props.$type === 'income') {
+            return brandTheme.status.success;
+        }
+        if (props.$type === 'expense') {
+            return brandTheme.status.error;
+        }
+        return brandTheme.text.primary;
+    }};
     margin-bottom: ${brandTheme.spacing.xs};
     letter-spacing: -0.025em;
     line-height: 1.2;
@@ -570,20 +555,20 @@ const ModalContent = styled.div`
     padding: ${brandTheme.spacing.xl};
     overflow-y: auto;
     flex: 1;
-    
+
     &::-webkit-scrollbar {
         width: 8px;
     }
-    
+
     &::-webkit-scrollbar-track {
         background: ${brandTheme.surfaceAlt};
     }
-    
+
     &::-webkit-scrollbar-thumb {
         background: ${brandTheme.border};
         border-radius: 4px;
     }
-    
+
     &::-webkit-scrollbar-thumb:hover {
         background: ${brandTheme.borderHover};
     }

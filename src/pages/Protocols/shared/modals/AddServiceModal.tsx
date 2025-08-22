@@ -405,6 +405,9 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
 
     if (!isOpen) return null;
 
+    const hasSearchResults = showResults && searchResults.length > 0;
+    const hasSearchQuery = showResults && searchQuery.trim() !== '';
+
     return (
         <ModalOverlay>
             <ModalContainer>
@@ -425,46 +428,49 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                     {/* Wyszukiwarka usług */}
                     <SearchSection>
                         <SectionTitle>Wyszukaj usługę</SectionTitle>
-                        <SearchInputContainer>
-                            <SearchIconWrapper>
-                                <FaSearch />
-                            </SearchIconWrapper>
-                            <SearchInput
-                                type="text"
-                                value={searchQuery}
-                                onChange={handleSearchChange}
-                                placeholder="Wpisz nazwę usługi..."
-                                disabled={customServiceMode}
-                            />
-                        </SearchInputContainer>
+                        <SearchContainer>
+                            <SearchInputContainer>
+                                <SearchIconWrapper>
+                                    <FaSearch />
+                                </SearchIconWrapper>
+                                <SearchInput
+                                    type="text"
+                                    value={searchQuery}
+                                    onChange={handleSearchChange}
+                                    placeholder="Wpisz nazwę usługi..."
+                                    disabled={customServiceMode}
+                                    $hasResults={hasSearchResults || hasSearchQuery}
+                                />
+                            </SearchInputContainer>
 
-                        {/* Wyniki wyszukiwania */}
-                        {showResults && searchResults.length > 0 && (
-                            <SearchResultsContainer>
-                                {searchResults.map(service => (
-                                    <SearchResultItem
-                                        key={service.id}
-                                        onClick={() => handleAddServiceFromSearch(service)}
-                                    >
-                                        <SearchResultContent>
-                                            <SearchResultName>{service.name}</SearchResultName>
-                                            <SearchResultPrices>
-                                                <PriceValue>{service.price.toFixed(2)} zł</PriceValue>
-                                                <PriceType>brutto</PriceType>
-                                                <PriceValue>{calculateNetPrice(service.price).toFixed(2)} zł</PriceValue>
-                                                <PriceType>netto</PriceType>
-                                            </SearchResultPrices>
-                                        </SearchResultContent>
-                                    </SearchResultItem>
-                                ))}
-                            </SearchResultsContainer>
-                        )}
+                            {/* Wyniki wyszukiwania */}
+                            {hasSearchResults && (
+                                <SearchResultsContainer>
+                                    {searchResults.map(service => (
+                                        <SearchResultItem
+                                            key={service.id}
+                                            onClick={() => handleAddServiceFromSearch(service)}
+                                        >
+                                            <SearchResultContent>
+                                                <SearchResultName>{service.name}</SearchResultName>
+                                                <SearchResultPrices>
+                                                    <PriceValue>{service.price.toFixed(2)} zł</PriceValue>
+                                                    <PriceType>brutto</PriceType>
+                                                    <PriceValue>{calculateNetPrice(service.price).toFixed(2)} zł</PriceValue>
+                                                    <PriceType>netto</PriceType>
+                                                </SearchResultPrices>
+                                            </SearchResultContent>
+                                        </SearchResultItem>
+                                    ))}
+                                </SearchResultsContainer>
+                            )}
 
-                        {showResults && searchResults.length === 0 && searchQuery.trim() !== '' && (
-                            <NoResultsMessage>
-                                Nie znaleziono usług. Możesz dodać nową usługę.
-                            </NoResultsMessage>
-                        )}
+                            {hasSearchQuery && !hasSearchResults && (
+                                <NoResultsMessage>
+                                    Nie znaleziono usług. Możesz dodać nową usługę.
+                                </NoResultsMessage>
+                            )}
+                        </SearchContainer>
                     </SearchSection>
 
                     {/* Przycisk przełączający do trybu dodawania niestandardowej usługi */}
@@ -733,7 +739,7 @@ const ModalContainer = styled.div`
     background: ${brandTheme.surface};
     border-radius: ${brandTheme.radius.xl};
     box-shadow: ${brandTheme.shadow.xl};
-    width: 900px;
+    width: 1300px;
     max-width: 95%;
     max-height: 90vh;
     display: flex;
@@ -771,90 +777,94 @@ const ModalTitle = styled.h2`
 `;
 
 const CloseButton = styled.button`
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   width: 32px;
-   height: 32px;
-   background: ${brandTheme.surfaceHover};
-   border: 1px solid ${brandTheme.border};
-   border-radius: ${brandTheme.radius.sm};
-   color: ${brandTheme.text.muted};
-   cursor: pointer;
-   transition: all ${brandTheme.transitions.normal};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: ${brandTheme.surfaceHover};
+    border: 1px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.sm};
+    color: ${brandTheme.text.muted};
+    cursor: pointer;
+    transition: all ${brandTheme.transitions.normal};
 
-   &:hover {
-       background: ${brandTheme.status.errorLight};
-       border-color: ${brandTheme.status.error};
-       color: ${brandTheme.status.error};
-       transform: translateY(-1px);
-   }
+    &:hover {
+        background: ${brandTheme.status.errorLight};
+        border-color: ${brandTheme.status.error};
+        color: ${brandTheme.status.error};
+        transform: translateY(-1px);
+    }
 `;
 
 const ModalBody = styled.div`
-   padding: ${brandTheme.spacing.xl};
-   overflow-y: auto;
-   max-height: calc(90vh - 200px);
-   display: flex;
-   flex-direction: column;
-   gap: ${brandTheme.spacing.xl};
+    padding: ${brandTheme.spacing.xl};
+    overflow-y: auto;
+    max-height: calc(90vh - 200px);
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.xl};
 
-   /* Custom scrollbar */
-   &::-webkit-scrollbar {
-       width: 6px;
-   }
+    /* Custom scrollbar */
+    &::-webkit-scrollbar {
+        width: 6px;
+    }
 
-   &::-webkit-scrollbar-track {
-       background: ${brandTheme.surfaceAlt};
-   }
+    &::-webkit-scrollbar-track {
+        background: ${brandTheme.surfaceAlt};
+    }
 
-   &::-webkit-scrollbar-thumb {
-       background: ${brandTheme.border};
-       border-radius: 3px;
-   }
+    &::-webkit-scrollbar-thumb {
+        background: ${brandTheme.border};
+        border-radius: 3px;
+    }
 `;
 
 const InfoMessage = styled.div`
-   background: linear-gradient(135deg, ${brandTheme.status.infoLight} 0%, rgba(59, 130, 246, 0.05) 100%);
-   color: ${brandTheme.status.info};
-   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-   border-radius: ${brandTheme.radius.lg};
-   border: 1px solid rgba(59, 130, 246, 0.2);
-   font-size: 14px;
-   font-weight: 500;
-   box-shadow: ${brandTheme.shadow.xs};
+    background: linear-gradient(135deg, ${brandTheme.status.infoLight} 0%, rgba(59, 130, 246, 0.05) 100%);
+    color: ${brandTheme.status.info};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    border-radius: ${brandTheme.radius.lg};
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: ${brandTheme.shadow.xs};
 
-   strong {
-       font-weight: 700;
-   }
+    strong {
+        font-weight: 700;
+    }
 `;
 
 const SearchSection = styled.div`
-   display: flex;
-   flex-direction: column;
-   gap: ${brandTheme.spacing.md};
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.md};
 `;
 
 const SectionTitle = styled.h3`
-   font-size: 16px;
-   font-weight: 600;
-   color: ${brandTheme.text.primary};
-   margin: 0;
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.sm};
+    font-size: 16px;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
 
-   &::before {
-       content: '';
-       width: 3px;
-       height: 16px;
-       background: ${brandTheme.primary};
-       border-radius: 2px;
-   }
+    &::before {
+        content: '';
+        width: 3px;
+        height: 16px;
+        background: ${brandTheme.primary};
+        border-radius: 2px;
+    }
+`;
+
+const SearchContainer = styled.div`
+    position: relative;
 `;
 
 const SearchInputContainer = styled.div`
-   position: relative;
+    position: relative;
 `;
 
 const SearchIconWrapper = styled.div`
@@ -867,7 +877,7 @@ const SearchIconWrapper = styled.div`
    z-index: 2;
 `;
 
-const SearchInput = styled.input`
+const SearchInput = styled.input<{ $hasResults?: boolean }>`
    width: 100%;
    height: 48px;
    padding: 0 ${brandTheme.spacing.md} 0 48px;
@@ -879,10 +889,20 @@ const SearchInput = styled.input`
    color: ${brandTheme.text.primary};
    transition: all ${brandTheme.transitions.normal};
 
+   ${props => props.$hasResults && `
+       border-bottom-left-radius: 0;
+       border-bottom-right-radius: 0;
+       border-bottom-color: transparent;
+   `}
+
    &:focus {
        outline: none;
        border-color: ${brandTheme.primary};
        box-shadow: 0 0 0 3px ${brandTheme.primaryGhost};
+       
+       ${props => props.$hasResults && `
+           border-bottom-color: transparent;
+       `}
    }
 
    &::placeholder {
@@ -898,25 +918,44 @@ const SearchInput = styled.input`
 `;
 
 const SearchResultsContainer = styled.div`
-   background: ${brandTheme.surface};
-   border: 1px solid ${brandTheme.border};
-   border-radius: ${brandTheme.radius.lg};
-   box-shadow: ${brandTheme.shadow.lg};
-   max-height: 300px;
-   overflow-y: auto;
+    background: ${brandTheme.surface};
+    border: 2px solid ${brandTheme.primary};
+    border-top: none;
+    border-radius: 0 0 ${brandTheme.radius.lg} ${brandTheme.radius.lg};
+    box-shadow: ${brandTheme.shadow.lg};
+    max-height: 300px;
+    overflow-y: auto;
+    position: absolute;
+    top: 46px;
+    left: 0;
+    right: 0;
+    z-index: 100;
 
-   &::-webkit-scrollbar {
-       width: 6px;
-   }
+    &::-webkit-scrollbar {
+        width: 6px;
+    }
 
-   &::-webkit-scrollbar-track {
-       background: ${brandTheme.surfaceAlt};
-   }
+    &::-webkit-scrollbar-track {
+        background: ${brandTheme.surfaceAlt};
+    }
 
-   &::-webkit-scrollbar-thumb {
-       background: ${brandTheme.border};
-       border-radius: 3px;
-   }
+    &::-webkit-scrollbar-thumb {
+        background: ${brandTheme.border};
+        border-radius: 3px;
+    }
+
+    animation: slideDown 0.2s ease;
+
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
 `;
 
 const SearchResultItem = styled.div`
@@ -927,39 +966,36 @@ const SearchResultItem = styled.div`
 
    &:last-child {
        border-bottom: none;
+       border-bottom-left-radius: ${brandTheme.radius.lg};
+       border-bottom-right-radius: ${brandTheme.radius.lg};
    }
 
    &:hover {
-       background: ${brandTheme.surfaceHover};
+       background: ${brandTheme.primaryGhost};
+       color: ${brandTheme.primary};
    }
 
-   &:first-child {
-       border-top-left-radius: ${brandTheme.radius.lg};
-       border-top-right-radius: ${brandTheme.radius.lg};
-   }
-
-   &:last-child {
-       border-bottom-left-radius: ${brandTheme.radius.lg};
-       border-bottom-right-radius: ${brandTheme.radius.lg};
+   &:active {
+       background: ${brandTheme.primary}20;
    }
 `;
 
 const SearchResultContent = styled.div`
-   display: flex;
-   justify-content: space-between;
-   align-items: center;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 `;
 
 const SearchResultName = styled.div`
-   font-size: 14px;
-   color: ${brandTheme.text.primary};
-   font-weight: 500;
+    font-size: 14px;
+    color: inherit;
+    font-weight: 500;
 `;
 
 const SearchResultPrices = styled.div`
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.sm};
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
 `;
 
 const NoResultsMessage = styled.div`
@@ -968,6 +1004,15 @@ const NoResultsMessage = styled.div`
    padding: ${brandTheme.spacing.xl};
    font-size: 14px;
    font-style: italic;
+   background: ${brandTheme.surfaceAlt};
+   border: 2px solid ${brandTheme.primary};
+   border-top: none;
+   border-radius: 0 0 ${brandTheme.radius.lg} ${brandTheme.radius.lg};
+   position: absolute;
+   top: 46px;
+   left: 0;
+   right: 0;
+   z-index: 100;
 `;
 
 const ToggleSection = styled.div`
@@ -1002,29 +1047,29 @@ const ToggleButton = styled.button<{ secondary?: boolean }>`
 `;
 
 const CustomServiceSection = styled.div`
-   background: ${brandTheme.surfaceAlt};
-   padding: ${brandTheme.spacing.xl};
-   border-radius: ${brandTheme.radius.lg};
-   border: 1px solid ${brandTheme.border};
-   display: flex;
-   flex-direction: column;
-   gap: ${brandTheme.spacing.lg};
+    background: ${brandTheme.surfaceAlt};
+    padding: ${brandTheme.spacing.xl};
+    border-radius: ${brandTheme.radius.lg};
+    border: 1px solid ${brandTheme.border};
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.lg};
 `;
 
 const FormRow = styled.div`
-   display: grid;
-   grid-template-columns: 1fr 1fr;
-   gap: ${brandTheme.spacing.lg};
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: ${brandTheme.spacing.lg};
 
-   @media (max-width: 768px) {
-       grid-template-columns: 1fr;
-   }
+    @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+    }
 `;
 
 const FormGroup = styled.div`
-   display: flex;
-   flex-direction: column;
-   gap: ${brandTheme.spacing.xs};
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.xs};
 `;
 
 const Label = styled.label`
@@ -1098,68 +1143,68 @@ const AddCustomButton = styled.button`
 `;
 
 const SelectedServicesSection = styled.div`
-   display: flex;
-   flex-direction: column;
-   gap: ${brandTheme.spacing.md};
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.md};
 `;
 
 const EmptyState = styled.div`
-   display: flex;
-   flex-direction: column;
-   align-items: center;
-   justify-content: center;
-   padding: ${brandTheme.spacing.xxl};
-   background: ${brandTheme.surfaceAlt};
-   border-radius: ${brandTheme.radius.lg};
-   border: 2px dashed ${brandTheme.border};
-   text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: ${brandTheme.spacing.xxl};
+    background: ${brandTheme.surfaceAlt};
+    border-radius: ${brandTheme.radius.lg};
+    border: 2px dashed ${brandTheme.border};
+    text-align: center;
 `;
 
 const EmptyStateIcon = styled.div`
-   width: 64px;
-   height: 64px;
-   background: ${brandTheme.primaryGhost};
-   border-radius: 50%;
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   margin-bottom: ${brandTheme.spacing.lg};
-   font-size: 24px;
-   color: ${brandTheme.primary};
+    width: 64px;
+    height: 64px;
+    background: ${brandTheme.primaryGhost};
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: ${brandTheme.spacing.lg};
+    font-size: 24px;
+    color: ${brandTheme.primary};
 `;
 
 const EmptyStateTitle = styled.h4`
-   font-size: 18px;
-   font-weight: 600;
-   color: ${brandTheme.text.primary};
-   margin: 0 0 ${brandTheme.spacing.sm} 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+    margin: 0 0 ${brandTheme.spacing.sm} 0;
 `;
 
 const EmptyStateDescription = styled.p`
-   font-size: 14px;
-   color: ${brandTheme.text.muted};
-   margin: 0;
-   line-height: 1.5;
+    font-size: 14px;
+    color: ${brandTheme.text.muted};
+    margin: 0;
+    line-height: 1.5;
 `;
 
 const ServicesTableContainer = styled.div`
-   background: ${brandTheme.surface};
-   border-radius: ${brandTheme.radius.lg};
-   border: 1px solid ${brandTheme.border};
-   overflow: hidden;
-   box-shadow: ${brandTheme.shadow.sm};
+    background: ${brandTheme.surface};
+    border-radius: ${brandTheme.radius.lg};
+    border: 1px solid ${brandTheme.border};
+    overflow: hidden;
+    box-shadow: ${brandTheme.shadow.sm};
 `;
 
 const ServicesTable = styled.div`
-   width: 100%;
-   display: flex;
-   flex-direction: column;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
 `;
 
 const TableHeader = styled.div`
-   display: flex;
-   background: ${brandTheme.surfaceAlt};
-   border-bottom: 2px solid ${brandTheme.border};
+    display: flex;
+    background: ${brandTheme.surfaceAlt};
+    border-bottom: 2px solid ${brandTheme.border};
 `;
 
 const HeaderCell = styled.div<{ width: string }>`
@@ -1177,73 +1222,73 @@ const HeaderCell = styled.div<{ width: string }>`
 `;
 
 const TableBody = styled.div`
-   display: flex;
-   flex-direction: column;
+    display: flex;
+    flex-direction: column;
 `;
 
 const TableRow = styled.div`
-   display: flex;
-   align-items: center;
-   border-bottom: 1px solid ${brandTheme.borderLight};
-   transition: all ${brandTheme.transitions.fast};
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid ${brandTheme.borderLight};
+    transition: all ${brandTheme.transitions.fast};
 
-   &:last-child {
-       border-bottom: none;
-   }
+    &:last-child {
+        border-bottom: none;
+    }
 
-   &:hover {
-       background: ${brandTheme.surfaceHover};
-   }
+    &:hover {
+        background: ${brandTheme.surfaceHover};
+    }
 `;
 
 const TableCell = styled.div<{ width: string }>`
-   flex: 0 0 ${props => props.width};
-   width: ${props => props.width};
-   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-   font-size: 14px;
-   border-right: 1px solid ${brandTheme.borderLight};
+    flex: 0 0 ${props => props.width};
+    width: ${props => props.width};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    font-size: 14px;
+    border-right: 1px solid ${brandTheme.borderLight};
 
-   &:last-child {
-       border-right: none;
-   }
+    &:last-child {
+        border-right: none;
+    }
 `;
 
 const ServiceNameContainer = styled.div`
-   display: flex;
-   flex-direction: column;
-   gap: ${brandTheme.spacing.xs};
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.xs};
 `;
 
 const ServiceName = styled.span`
-   font-weight: 500;
-   color: ${brandTheme.text.primary};
-   line-height: 1.4;
+    font-weight: 500;
+    color: ${brandTheme.text.primary};
+    line-height: 1.4;
 `;
 
 const ServiceNote = styled.span`
-   font-size: 12px;
-   color: ${brandTheme.text.tertiary};
-   font-style: italic;
-   line-height: 1.3;
+    font-size: 12px;
+    color: ${brandTheme.text.tertiary};
+    font-style: italic;
+    line-height: 1.3;
 `;
 
 const PriceWrapper = styled.div`
-   display: flex;
-   flex-direction: column;
-   gap: 2px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 `;
 
 const PriceValue = styled.span`
-   font-weight: 600;
-   color: ${brandTheme.text.primary};
-   font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+    font-variant-numeric: tabular-nums;
 `;
 
 const PriceType = styled.span`
-   font-size: 11px;
-   color: ${brandTheme.text.muted};
-   text-transform: uppercase;
-   font-weight: 500;
+    font-size: 11px;
+    color: ${brandTheme.text.muted};
+    text-transform: uppercase;
+    font-weight: 500;
 `;
 
 const DiscountContainer = styled.div`
@@ -1304,33 +1349,33 @@ const DiscountInput = styled.input`
 `;
 
 const DiscountPercentage = styled.span`
-   font-size: 11px;
-   color: ${brandTheme.text.tertiary};
-   font-weight: 500;
-   font-variant-numeric: tabular-nums;
+    font-size: 11px;
+    color: ${brandTheme.text.tertiary};
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
 `;
 
 const ActionButtons = styled.div`
-   display: flex;
-   gap: ${brandTheme.spacing.sm};
-   justify-content: center;
+    display: flex;
+    gap: ${brandTheme.spacing.sm};
+    justify-content: center;
 `;
 
 const ActionButton = styled.button<{ danger?: boolean }>`
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   width: 32px;
-   height: 32px;
-   border: none;
-   border-radius: ${brandTheme.radius.sm};
-   cursor: pointer;
-   transition: all ${brandTheme.transitions.spring};
-   font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: ${brandTheme.radius.sm};
+    cursor: pointer;
+    transition: all ${brandTheme.transitions.spring};
+    font-size: 14px;
 
-   ${({ danger }) => {
-    if (danger) {
-        return `
+    ${({ danger }) => {
+        if (danger) {
+            return `
                background: ${brandTheme.status.errorLight};
                color: ${brandTheme.status.error};
                
@@ -1341,9 +1386,9 @@ const ActionButton = styled.button<{ danger?: boolean }>`
                    box-shadow: ${brandTheme.shadow.md};
                }
            `;
-    }
+        }
 
-    return `
+        return `
            background: ${brandTheme.primaryGhost};
            color: ${brandTheme.primary};
            
@@ -1354,41 +1399,41 @@ const ActionButton = styled.button<{ danger?: boolean }>`
                box-shadow: ${brandTheme.shadow.md};
            }
        `;
-}}
+    }}
 
-   &:active {
-       transform: translateY(0);
-   }
+    &:active {
+        transform: translateY(0);
+    }
 `;
 
 const TableFooter = styled.div`
-   display: flex;
-   background: ${brandTheme.surfaceAlt};
-   border-top: 2px solid ${brandTheme.border};
-   font-weight: 600;
+    display: flex;
+    background: ${brandTheme.surfaceAlt};
+    border-top: 2px solid ${brandTheme.border};
+    font-weight: 600;
 `;
 
 const FooterCell = styled.div<{ width: string }>`
-   flex: 0 0 ${props => props.width};
-   width: ${props => props.width};
-   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-   font-size: 14px;
-   border-right: 1px solid ${brandTheme.border};
+    flex: 0 0 ${props => props.width};
+    width: ${props => props.width};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    font-size: 14px;
+    border-right: 1px solid ${brandTheme.border};
 
-   &:last-child {
-       border-right: none;
-   }
+    &:last-child {
+        border-right: none;
+    }
 `;
 
 const TotalLabel = styled.span`
-   font-weight: 700;
-   color: ${brandTheme.text.primary};
+    font-weight: 700;
+    color: ${brandTheme.text.primary};
 `;
 
 const TotalValue = styled.span<{ highlight?: boolean }>`
-   font-weight: ${props => props.highlight ? 700 : 600};
-   color: ${props => props.highlight ? brandTheme.primary : brandTheme.text.primary};
-   font-variant-numeric: tabular-nums;
+    font-weight: ${props => props.highlight ? 700 : 600};
+    color: ${props => props.highlight ? brandTheme.primary : brandTheme.text.primary};
+    font-variant-numeric: tabular-nums;
 `;
 
 const ModalFooter = styled.div`
@@ -1401,27 +1446,27 @@ const ModalFooter = styled.div`
 `;
 
 const SecondaryButton = styled.button`
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.sm};
-   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-   background: ${brandTheme.surface};
-   color: ${brandTheme.text.secondary};
-   border: 2px solid ${brandTheme.border};
-   border-radius: ${brandTheme.radius.md};
-   font-weight: 600;
-   font-size: 14px;
-   cursor: pointer;
-   transition: all ${brandTheme.transitions.spring};
-   min-height: 44px;
-   min-width: 120px;
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    background: ${brandTheme.surface};
+    color: ${brandTheme.text.secondary};
+    border: 2px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.md};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all ${brandTheme.transitions.spring};
+    min-height: 44px;
+    min-width: 120px;
 
-   &:hover {
-       background: ${brandTheme.surfaceHover};
-       color: ${brandTheme.text.primary};
-       border-color: ${brandTheme.borderHover};
-       box-shadow: ${brandTheme.shadow.sm};
-   }
+    &:hover {
+        background: ${brandTheme.surfaceHover};
+        color: ${brandTheme.text.primary};
+        border-color: ${brandTheme.borderHover};
+        box-shadow: ${brandTheme.shadow.sm};
+    }
 `;
 
 const PrimaryButton = styled.button`
@@ -1462,80 +1507,80 @@ const PrimaryButton = styled.button`
 
 // Komponenty modalu notatki
 const NoteModalOverlay = styled.div`
-   position: fixed;
-   top: 0;
-   left: 0;
-   right: 0;
-   bottom: 0;
-   background: rgba(0, 0, 0, 0.6);
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   z-index: 1100;
-   backdrop-filter: blur(4px);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1100;
+    backdrop-filter: blur(4px);
 `;
 
 const NoteModalContainer = styled.div`
-   background: ${brandTheme.surface};
-   border-radius: ${brandTheme.radius.xl};
-   box-shadow: ${brandTheme.shadow.xl};
-   width: 500px;
-   max-width: 90%;
-   display: flex;
-   flex-direction: column;
-   animation: slideUp 0.3s ease;
+    background: ${brandTheme.surface};
+    border-radius: ${brandTheme.radius.xl};
+    box-shadow: ${brandTheme.shadow.xl};
+    width: 500px;
+    max-width: 90%;
+    display: flex;
+    flex-direction: column;
+    animation: slideUp 0.3s ease;
 `;
 
 const NoteModalHeader = styled.div`
-   display: flex;
-   align-items: center;
-   justify-content: space-between;
-   padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
-   border-bottom: 2px solid ${brandTheme.border};
-   background: ${brandTheme.surfaceAlt};
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
+    border-bottom: 2px solid ${brandTheme.border};
+    background: ${brandTheme.surfaceAlt};
 `;
 
 const NoteModalTitle = styled.h3`
-   margin: 0;
-   font-size: 18px;
-   font-weight: 600;
-   color: ${brandTheme.text.primary};
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
 `;
 
 const NoteModalBody = styled.div`
-   padding: ${brandTheme.spacing.xl};
+    padding: ${brandTheme.spacing.xl};
 `;
 
 const NoteTextarea = styled.textarea`
-   width: 100%;
-   padding: ${brandTheme.spacing.md};
-   border: 2px solid ${brandTheme.border};
-   border-radius: ${brandTheme.radius.md};
-   resize: vertical;
-   font-size: 14px;
-   font-family: inherit;
-   min-height: 120px;
-   transition: all ${brandTheme.transitions.normal};
+    width: 100%;
+    padding: ${brandTheme.spacing.md};
+    border: 2px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.md};
+    resize: vertical;
+    font-size: 14px;
+    font-family: inherit;
+    min-height: 120px;
+    transition: all ${brandTheme.transitions.normal};
 
-   &:focus {
-       outline: none;
-       border-color: ${brandTheme.primary};
-       box-shadow: 0 0 0 3px ${brandTheme.primaryGhost};
-   }
+    &:focus {
+        outline: none;
+        border-color: ${brandTheme.primary};
+        box-shadow: 0 0 0 3px ${brandTheme.primaryGhost};
+    }
 
-   &::placeholder {
-       color: ${brandTheme.text.muted};
-       font-weight: 400;
-   }
+    &::placeholder {
+        color: ${brandTheme.text.muted};
+        font-weight: 400;
+    }
 `;
 
 const NoteModalFooter = styled.div`
-   display: flex;
-   justify-content: flex-end;
-   gap: ${brandTheme.spacing.md};
-   padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
-   border-top: 2px solid ${brandTheme.border};
-   background: ${brandTheme.surfaceAlt};
+    display: flex;
+    justify-content: flex-end;
+    gap: ${brandTheme.spacing.md};
+    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
+    border-top: 2px solid ${brandTheme.border};
+    background: ${brandTheme.surfaceAlt};
 `;
 
-export default AddServiceModal;
+export default AddServiceModal

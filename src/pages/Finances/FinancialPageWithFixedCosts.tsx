@@ -113,12 +113,6 @@ const FinancialPageWithFixedCosts: React.FC = () => {
             description: 'Zarządzanie kosztami stałymi firmy'
         },
         {
-            id: 'balance-history' as ActiveTab,
-            label: 'Historia sald',
-            icon: FaHistory,
-            description: 'Przegląd zmian stanów kasy i konta'
-        },
-        {
             id: 'reports' as ActiveTab,
             label: 'Raporty',
             icon: FaChartLine,
