@@ -1,4 +1,4 @@
-// src/pages/Protocols/form/components/VehicleInfoSection.tsx
+// src/pages/Protocols/form/components/VehicleInfoSectionWithAutocomplete.tsx
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { CarReceptionProtocol } from '../../../../types';
@@ -18,10 +18,9 @@ import {
     brandTheme
 } from '../styles';
 
-// Import our SearchField component instead of LicensePlateField
-import SearchField from './SearchField';
 import { useToast } from "../../../../components/common/Toast/Toast";
 import { LabelWithBadge } from './LabelWithBadge';
+import {AutocompleteField, AutocompleteOption} from "../../components/AutocompleteField";
 
 // List of car brands
 const carBrands = [
@@ -57,29 +56,26 @@ interface VehicleInfoSectionProps {
     formData: Partial<CarReceptionProtocol>;
     errors: FormErrors;
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
-    onSearchByField?: (field: 'licensePlate') => void;
     isFullProtocol?: boolean;
     readOnly?: boolean;
+    // Autocomplete props
+    autocompleteOptions: AutocompleteOption[];
+    onAutocompleteSelect: (option: AutocompleteOption, fieldType: string) => void;
 }
 
 const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
-                                                                   formData,
-                                                                   errors,
-                                                                   onChange,
-                                                                   onSearchByField,
-                                                                   isFullProtocol = true,
-                                                                   readOnly = false
-                                                               }) => {
+                                                                                                   formData,
+                                                                                                   errors,
+                                                                                                   onChange,
+                                                                                                   isFullProtocol = true,
+                                                                                                   readOnly = false,
+                                                                                                   autocompleteOptions,
+                                                                                                   onAutocompleteSelect
+                                                                                               }) => {
     const { showToast } = useToast();
     const [dateError, setDateError] = useState<string | null>(null);
     const [licensePlateError, setLicensePlateError] = useState<string | null>(null);
     const [isAllDay, setIsAllDay] = useState(false);
-
-    const handleSearchClick = (field: 'licensePlate') => {
-        if (onSearchByField && !readOnly) {
-            onSearchByField(field);
-        }
-    };
 
     // Enhanced license plate change handler with validation
     const handleLicensePlateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -163,13 +159,12 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
         }
     };
 
-    // Handle date change with validation - NAPRAWIONO FORMATOWANIE DAT
+    // Handle date change with validation
     const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
 
         if (name === 'endDate') {
             if (value) {
-                // NAPRAWKA: Dla pola date zawsze dodajemy czas 23:59:59
                 const newDateTime = `${value}T23:59:59`;
                 const syntheticEvent = {
                     target: {
@@ -194,7 +189,6 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
 
                 onChange(syntheticEvent);
             } else {
-                // If value is empty, just pass an empty string
                 const syntheticEvent = {
                     target: {
                         name: 'endDate',
@@ -207,9 +201,7 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                 setDateError(null);
             }
         } else if (name === 'startDate') {
-            // NAPRAWKA: Dla startDate również sprawdź czy to tylko data czy data z czasem
             if (value) {
-                // Jeśli to pole date (tylko data), dodaj domyślny czas
                 const newDateTime = value.includes('T') ? value : `${value}T08:00:00`;
                 const syntheticEvent = {
                     target: {
@@ -223,27 +215,20 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                 onChange(e);
             }
         } else {
-            // For other inputs, just pass the event as is
             onChange(e);
         }
     };
 
-    // Efekt ustawiający aktualną datę i godzinę dla pełnego protokołu
+    // Effect to set current date and time for full protocol
     useEffect(() => {
         if (isFullProtocol && !formData.startDate) {
-            // Pobieramy aktualną datę i czas tylko jeśli startDate nie jest ustawione
             const now = new Date();
-            const currentDate = now.toISOString().split('T')[0]; // Format YYYY-MM-DD
-
-            // Formatujemy godzinę jako HH:MM
+            const currentDate = now.toISOString().split('T')[0];
             const hours = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
             const currentTime = `${hours}:${minutes}`;
-
-            // Tworzymy pełną datę w formacie ISO
             const fullDateTime = `${currentDate}T${currentTime}:00`;
 
-            // Tworzymy syntetyczne zdarzenie dla formularza
             const syntheticEvent = {
                 target: {
                     name: 'startDate',
@@ -252,31 +237,26 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                 }
             } as React.ChangeEvent<HTMLInputElement>;
 
-            // Wywołujemy funkcję obsługi zmiany
             onChange(syntheticEvent);
         }
     }, [isFullProtocol, formData.startDate, onChange]);
 
-    // NAPRAWKA: Funkcja do bezpiecznego wyciągnięcia daty z różnych formatów
+    // Function to safely extract date from different formats
     const extractDateFromISO = (dateString: string): string => {
         if (!dateString) return '';
 
-        // Format z T: "2025-08-19T21:57:00" -> "2025-08-19"
         if (dateString.includes('T')) {
             return dateString.split('T')[0];
         }
 
-        // Format z spacją: "2025-08-19 21:57:00" -> "2025-08-19"
         if (dateString.includes(' ')) {
             return dateString.split(' ')[0];
         }
 
-        // Jeśli to już sama data w formacie YYYY-MM-DD, zwróć ją
         if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
             return dateString;
         }
 
-        // Fallback - spróbuj sparsować jako Date i wyciągnij datę
         try {
             const date = new Date(dateString);
             if (!isNaN(date.getTime())) {
@@ -336,12 +316,10 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                                     value={(() => {
                                         if (!formData.startDate) return '08:00';
 
-                                        // Obsługa formatu z T: "2025-08-19T21:57:00"
                                         if (formData.startDate.includes('T')) {
                                             return formData.startDate.split('T')[1]?.substring(0, 5) || '08:00';
                                         }
 
-                                        // Obsługa formatu z spacją: "2025-08-19 21:57:00"
                                         if (formData.startDate.includes(' ')) {
                                             const timePart = formData.startDate.split(' ')[1];
                                             return timePart?.substring(0, 5) || '08:00';
@@ -369,7 +347,6 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                         {errors.startDate && <ErrorText>{errors.startDate}</ErrorText>}
                     </FormGroup>
 
-                    {/* NAPRAWKA: Ukryj pole daty zakończenia gdy isAllDay jest aktywne */}
                     {!isAllDay && (
                         <FormGroup>
                             <LabelWithBadge
@@ -416,15 +393,17 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                                 style={{ backgroundColor: '#f9f9f9', cursor: 'not-allowed' }}
                             />
                         ) : (
-                            <SearchField
+                            <AutocompleteField
                                 id="licensePlate"
                                 name="licensePlate"
                                 value={formData.licensePlate || ''}
                                 onChange={handleLicensePlateChange}
                                 placeholder="np. WA12345"
-                                onSearchClick={() => handleSearchClick('licensePlate')}
-                                error={errors.licensePlate || licensePlateError || undefined}
                                 required
+                                error={errors.licensePlate || licensePlateError || undefined}
+                                options={autocompleteOptions}
+                                onSelectOption={(option) => onAutocompleteSelect(option, 'licensePlate')}
+                                fieldType="licensePlate"
                             />
                         )}
                     </FormGroup>
@@ -557,7 +536,7 @@ const AllDayToggleContainer = styled.div`
     display: flex;
     align-items: center;
     gap: ${brandTheme.spacing.sm};
-    margin-left: auto; /* Przesuwa toggle na prawą stronę */
+    margin-left: auto;
 `;
 
 const AllDayLabel = styled.span`

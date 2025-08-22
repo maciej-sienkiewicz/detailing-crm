@@ -1,3 +1,4 @@
+// src/pages/Protocols/form/components/ClientInfoSectionWithAutocomplete.tsx
 import React from 'react';
 import { CarReceptionProtocol } from '../../../../types';
 import { FormErrors } from '../hooks/useFormValidation';
@@ -10,33 +11,30 @@ import {
     Input,
 } from '../styles';
 
-import SearchField from './SearchField';
-import {LabelWithBadge} from "./LabelWithBadge";
+import { LabelWithBadge } from "./LabelWithBadge";
+import {AutocompleteField, AutocompleteOption} from "../../components/AutocompleteField";
 
 interface ClientInfoSectionProps {
     formData: Partial<CarReceptionProtocol>;
     errors: FormErrors;
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
-    onSearchByField?: (field: 'ownerName' | 'companyName' | 'taxId' | 'email' | 'phone') => void;
     readOnly?: boolean;
+    // Autocomplete props
+    autocompleteOptions: AutocompleteOption[];
+    onAutocompleteSelect: (option: AutocompleteOption, fieldType: string) => void;
 }
 
 const ClientInfoSection: React.FC<ClientInfoSectionProps> = ({
-                                                                 formData,
-                                                                 errors,
-                                                                 onChange,
-                                                                 onSearchByField,
-                                                                 readOnly = false
-                                                             }) => {
-    const handleSearchClick = (field: 'ownerName' | 'companyName' | 'taxId' | 'email' | 'phone') => {
-        if (onSearchByField && !readOnly) {
-            onSearchByField(field);
-        }
-    };
-
+                                                                                                 formData,
+                                                                                                 errors,
+                                                                                                 onChange,
+                                                                                                 readOnly = false,
+                                                                                                 autocompleteOptions,
+                                                                                                 onAutocompleteSelect
+                                                                                             }) => {
     const hasContactInfo = !!formData.phone || !!formData.email;
 
-    const renderField = (
+    const renderAutocompleteField = (
         id: string,
         name: 'ownerName' | 'companyName' | 'taxId' | 'email' | 'phone',
         value: string,
@@ -61,16 +59,18 @@ const ClientInfoSection: React.FC<ClientInfoSectionProps> = ({
         }
 
         return (
-            <SearchField
+            <AutocompleteField
                 id={id}
                 name={name}
                 value={value || ''}
                 onChange={onChange}
                 placeholder={placeholder}
                 required={required}
-                onSearchClick={() => handleSearchClick(name)}
                 error={error}
                 type={type}
+                options={autocompleteOptions}
+                onSelectOption={(option) => onAutocompleteSelect(option, name)}
+                fieldType={name}
             />
         );
     };
@@ -83,7 +83,7 @@ const ClientInfoSection: React.FC<ClientInfoSectionProps> = ({
                     <LabelWithBadge htmlFor="ownerName" required badgeVariant="modern">
                         Imię i nazwisko właściciela
                     </LabelWithBadge>
-                    {renderField(
+                    {renderAutocompleteField(
                         "ownerName",
                         "ownerName",
                         formData.ownerName || '',
@@ -104,7 +104,7 @@ const ClientInfoSection: React.FC<ClientInfoSectionProps> = ({
                     >
                         Adres e-mail
                     </LabelWithBadge>
-                    {renderField(
+                    {renderAutocompleteField(
                         "email",
                         "email",
                         formData.email || '',
@@ -124,7 +124,7 @@ const ClientInfoSection: React.FC<ClientInfoSectionProps> = ({
                     >
                         Numer telefonu
                     </LabelWithBadge>
-                    {renderField(
+                    {renderAutocompleteField(
                         "phone",
                         "phone",
                         formData.phone || '',
@@ -170,7 +170,7 @@ const ClientInfoSection: React.FC<ClientInfoSectionProps> = ({
                     <label htmlFor="companyName">
                         Nazwa firmy
                     </label>
-                    {renderField(
+                    {renderAutocompleteField(
                         "companyName",
                         "companyName",
                         formData.companyName || '',
@@ -182,7 +182,7 @@ const ClientInfoSection: React.FC<ClientInfoSectionProps> = ({
                     <label htmlFor="taxId">
                         NIP firmy
                     </label>
-                    {renderField(
+                    {renderAutocompleteField(
                         "taxId",
                         "taxId",
                         formData.taxId || '',

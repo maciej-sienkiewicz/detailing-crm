@@ -73,7 +73,7 @@ const tabsConfig: TabConfig[] = [
     },
     {
         id: 'invoices',
-        label: 'Koszta wizyty',
+        label: 'Koszta zlecenia',
         icon: <FaFileInvoiceDollar />
     },
     {

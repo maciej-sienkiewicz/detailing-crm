@@ -1,3 +1,4 @@
+// src/pages/Protocols/form/components/EditProtocolFormWithAutocomplete.tsx
 import React, { useState } from 'react';
 import {
     CarReceptionProtocol,
@@ -5,21 +6,15 @@ import {
     SelectedService
 } from '../../../../types';
 
-import { useFormData } from '../hooks/useFormData';
-import { useClientSearch } from '../hooks/useClientSearch';
-import { useVehicleSearch } from '../hooks/useVehicleSearch';
 import { useFormSubmit } from '../hooks/useFormSubmit';
 import { useServiceCalculations } from '../hooks/useServiceCalculations';
 
 import FormHeader from '../components/FormHeader';
 import VisitTitleSection from '../components/VisitTitleSection';
-import VehicleInfoSection from '../components/VehicleInfoSection';
-import ClientInfoSection from '../components/ClientInfoSection';
 import ReferralSourceSection from '../components/ReferralSourceSection';
 import ServiceSection from '../components/ServiceSection';
 import NotesSection from '../components/NotesSection';
 import FormActions from '../components/FormActions';
-import ClientSelectionModal from "../../shared/modals/ClientSelectionModal";
 import VehicleSelectionModal from "../../shared/modals/VehicleSelectionModal";
 
 import {
@@ -33,6 +28,9 @@ import {
     DialogActions,
     Button
 } from '../styles';
+import {useFormDataWithAutocomplete} from "../hooks/useFormData";
+import VehicleInfoSection from "./VehicleInfoSection";
+import ClientInfoSection from "./ClientInfoSection";
 
 interface EditProtocolFormProps {
     protocol: CarReceptionProtocol | null;
@@ -46,15 +44,15 @@ interface EditProtocolFormProps {
 }
 
 export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
-                                                                      protocol,
-                                                                      availableServices,
-                                                                      initialData,
-                                                                      appointmentId,
-                                                                      isFullProtocol = true,
-                                                                      onSave,
-                                                                      onCancel,
-                                                                      onServiceAdded
-                                                                  }) => {
+                                                                                                      protocol,
+                                                                                                      availableServices,
+                                                                                                      initialData,
+                                                                                                      appointmentId,
+                                                                                                      isFullProtocol = true,
+                                                                                                      onSave,
+                                                                                                      onCancel,
+                                                                                                      onServiceAdded
+                                                                                                  }) => {
     const {
         formData,
         setFormData,
@@ -66,39 +64,15 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
         handleOtherSourceDetailsChange,
         handleImagesChange,
         isClientFromSearch,
-        setIsClientFromSearch
-    } = useFormData(protocol, initialData);
-
-    const {
-        foundClients,
-        foundVehicles: clientVehicles,
-        showClientModal,
-        showVehicleModal: showClientVehiclesModal,
-        searchError: clientSearchError,
-        handleSearchByClientField,
-        handleClientSelect,
-        handleVehicleSelect: handleClientVehicleSelect,
-        setShowClientModal,
-        setShowVehicleModal: setShowClientVehiclesModal
-    } = useClientSearch(formData, setFormData, setIsClientFromSearch);
-
-    const {
-        foundVehicles,
-        foundVehicleOwners,
+        setIsClientFromSearch,
+        autocompleteOptions,
+        loadingAutocompleteData,
+        handleAutocompleteSelect,
         showVehicleModal,
-        showClientModal: showVehicleOwnersModal,
-        searchError: vehicleSearchError,
-        handleSearchByVehicleField,
-        handleVehicleSelect,
-        handleClientSelect: handleVehicleOwnerSelect,
         setShowVehicleModal,
-        setShowClientModal: setShowVehicleOwnersModal
-    } = useVehicleSearch(
-        formData,
-        setFormData,
-        foundClients,
-        setIsClientFromSearch  // DODANE: Przekazanie setIsClientFromSearch
-    );
+        vehicleModalOptions,
+        handleVehicleModalSelect
+    } = useFormDataWithAutocomplete(protocol, initialData);
 
     const {
         loading,
@@ -125,7 +99,7 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
     const [showResults, setShowResults] = useState(false);
     const [selectedServiceToAdd, setSelectedServiceToAdd] = useState<{ id: string; name: string; price: number } | null>(null);
 
-    const error = submitError || clientSearchError || vehicleSearchError;
+    const error = submitError;
 
     React.useEffect(() => {
         setFormData(prev => ({
@@ -214,6 +188,16 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
         }
     };
 
+    if (loadingAutocompleteData) {
+        return (
+            <FormContainer>
+                <div style={{ padding: '2rem', textAlign: 'center' }}>
+                    Ładowanie danych klientów i pojazdów...
+                </div>
+            </FormContainer>
+        );
+    }
+
     return (
         <FormContainer>
             <FormHeader
@@ -236,15 +220,17 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
                     formData={formData}
                     errors={errors}
                     onChange={handleChange}
-                    onSearchByField={handleSearchByVehicleField}
                     isFullProtocol={isFullProtocol}
+                    autocompleteOptions={autocompleteOptions}
+                    onAutocompleteSelect={handleAutocompleteSelect}
                 />
 
                 <ClientInfoSection
                     formData={formData}
                     errors={errors}
                     onChange={handleChange}
-                    onSearchByField={handleSearchByClientField}
+                    autocompleteOptions={autocompleteOptions}
+                    onAutocompleteSelect={handleAutocompleteSelect}
                 />
 
                 {!isClientFromSearch && (
@@ -290,35 +276,11 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
                 />
             </Form>
 
-            {showClientModal && (
-                <ClientSelectionModal
-                    clients={foundClients}
-                    onSelect={handleClientSelect}
-                    onCancel={() => setShowClientModal(false)}
-                />
-            )}
-
-            {showVehicleOwnersModal && (
-                <ClientSelectionModal
-                    clients={foundVehicleOwners}
-                    onSelect={handleVehicleOwnerSelect}
-                    onCancel={() => setShowVehicleOwnersModal(false)}
-                />
-            )}
-
             {showVehicleModal && (
                 <VehicleSelectionModal
-                    vehicles={foundVehicles}
-                    onSelect={handleVehicleSelect}
+                    vehicles={vehicleModalOptions}
+                    onSelect={handleVehicleModalSelect}
                     onCancel={() => setShowVehicleModal(false)}
-                />
-            )}
-
-            {showClientVehiclesModal && (
-                <VehicleSelectionModal
-                    vehicles={clientVehicles}
-                    onSelect={handleClientVehicleSelect}
-                    onCancel={() => setShowClientVehiclesModal(false)}
                 />
             )}
 

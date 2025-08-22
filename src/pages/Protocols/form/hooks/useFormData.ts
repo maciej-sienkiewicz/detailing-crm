@@ -1,9 +1,13 @@
-import { useState, useEffect } from 'react';
-import { CarReceptionProtocol, ProtocolStatus, VehicleImage } from '../../../../types';
+// src/pages/Protocols/form/hooks/useFormDataWithAutocomplete.ts
+import { useState, useEffect, useCallback } from 'react';
+import { CarReceptionProtocol, ProtocolStatus, VehicleImage, ClientExpanded, VehicleExpanded } from '../../../../types';
 import { FormErrors, useFormValidation } from './useFormValidation';
 import { ReferralSource } from '../components/ReferralSourceSection';
+import { AutocompleteOption } from '../components/AutocompleteField';
+import { clientsApi } from '../../../../api/clientsApi';
+import { vehicleApi } from '../../../../api/vehiclesApi';
 
-interface UseFormDataResult {
+interface UseFormDataWithAutocompleteResult {
     formData: Partial<CarReceptionProtocol>;
     setFormData: React.Dispatch<React.SetStateAction<Partial<CarReceptionProtocol>>>;
     errors: FormErrors;
@@ -15,6 +19,14 @@ interface UseFormDataResult {
     handleImagesChange: (images: VehicleImage[]) => void;
     isClientFromSearch: boolean;
     setIsClientFromSearch: (value: boolean) => void;
+    // Autocomplete specific
+    autocompleteOptions: AutocompleteOption[];
+    loadingAutocompleteData: boolean;
+    handleAutocompleteSelect: (option: AutocompleteOption, fieldType: string) => void;
+    showVehicleModal: boolean;
+    setShowVehicleModal: (show: boolean) => void;
+    vehicleModalOptions: VehicleExpanded[];
+    handleVehicleModalSelect: (vehicle: VehicleExpanded) => void;
 }
 
 const initializeDates = () => {
@@ -28,10 +40,10 @@ const initializeDates = () => {
     };
 };
 
-export const useFormData = (
+export const useFormDataWithAutocomplete = (
     protocol: CarReceptionProtocol | null,
     initialData?: Partial<CarReceptionProtocol>
-): UseFormDataResult => {
+): UseFormDataWithAutocompleteResult => {
     const [formData, setFormData] = useState<Partial<CarReceptionProtocol>>(
         protocol || initialData || {
             ...initializeDates(),
@@ -59,9 +71,78 @@ export const useFormData = (
     );
 
     const [isClientFromSearch, setIsClientFromSearch] = useState(false);
+    const [autocompleteOptions, setAutocompleteOptions] = useState<AutocompleteOption[]>([]);
+    const [loadingAutocompleteData, setLoadingAutocompleteData] = useState(false);
+    const [allClients, setAllClients] = useState<ClientExpanded[]>([]);
+    const [allVehicles, setAllVehicles] = useState<VehicleExpanded[]>([]);
+
+    // Modal state for vehicle selection
+    const [showVehicleModal, setShowVehicleModal] = useState(false);
+    const [vehicleModalOptions, setVehicleModalOptions] = useState<VehicleExpanded[]>([]);
 
     const { errors, validateForm, clearFieldError } = useFormValidation(formData);
 
+    // Load all clients and vehicles for autocomplete
+    useEffect(() => {
+        const loadAutocompleteData = async () => {
+            setLoadingAutocompleteData(true);
+            try {
+                const [clientsResult, vehiclesResult] = await Promise.allSettled([
+                    clientsApi.fetchClients(),
+                    vehicleApi.fetchVehicles()
+                ]);
+
+                let clients: ClientExpanded[] = [];
+                let vehicles: VehicleExpanded[] = [];
+
+                if (clientsResult.status === 'fulfilled') {
+                    clients = clientsResult.value;
+                    setAllClients(clients);
+                } else {
+                    console.error('Failed to load clients:', clientsResult.reason);
+                }
+
+                if (vehiclesResult.status === 'fulfilled') {
+                    vehicles = vehiclesResult.value;
+                    setAllVehicles(vehicles);
+                } else {
+                    console.error('Failed to load vehicles:', vehiclesResult.reason);
+                }
+
+                // Create autocomplete options
+                const options: AutocompleteOption[] = [
+                    // Client options
+                    ...clients.map(client => ({
+                        id: client.id,
+                        label: `${client.firstName} ${client.lastName}`.trim(),
+                        value: `${client.firstName} ${client.lastName}`.trim(),
+                        type: 'client' as const,
+                        data: client,
+                        description: [client.email, client.phone, client.company].filter(Boolean).join(' • ')
+                    })),
+                    // Vehicle options
+                    ...vehicles.map(vehicle => ({
+                        id: vehicle.id,
+                        label: `${vehicle.make} ${vehicle.model} - ${vehicle.licensePlate}`,
+                        value: vehicle.licensePlate,
+                        type: 'vehicle' as const,
+                        data: vehicle,
+                        description: `${vehicle.make} ${vehicle.model} • ${vehicle.year || 'Nieznany rok'}`
+                    }))
+                ];
+
+                setAutocompleteOptions(options);
+            } catch (error) {
+                console.error('Error loading autocomplete data:', error);
+            } finally {
+                setLoadingAutocompleteData(false);
+            }
+        };
+
+        loadAutocompleteData();
+    }, []);
+
+    // Handle initial data dates
     useEffect(() => {
         if (initialData?.startDate) {
             let startDateWithTime: string = initialData.startDate;
@@ -146,6 +227,82 @@ export const useFormData = (
         }));
     };
 
+    // Populate form data from client
+    const populateClientData = useCallback((client: ClientExpanded) => {
+        setFormData(prev => ({
+            ...prev,
+            ownerName: `${client.firstName} ${client.lastName}`.trim(),
+            email: client.email || '',
+            phone: client.phone || '',
+            companyName: client.company || '',
+            taxId: client.taxId || '',
+            address: client.address || '',
+            referralSource: 'regular_customer'
+        }));
+        setIsClientFromSearch(true);
+    }, []);
+
+    // Populate form data from vehicle
+    const populateVehicleData = useCallback((vehicle: VehicleExpanded) => {
+        setFormData(prev => ({
+            ...prev,
+            licensePlate: vehicle.licensePlate,
+            make: vehicle.make,
+            model: vehicle.model,
+            productionYear: vehicle.year || null,
+            vin: vehicle.vin || '',
+            color: vehicle.color || ''
+        }));
+    }, []);
+
+    // Handle autocomplete selection
+    const handleAutocompleteSelect = useCallback((option: AutocompleteOption, fieldType: string) => {
+        if (option.type === 'client') {
+            const client = option.data as ClientExpanded;
+            populateClientData(client);
+
+            // Check if client has vehicles
+            const clientVehicles = allVehicles.filter(vehicle =>
+                    vehicle.owners && vehicle.owners.some(owner =>
+                        owner.id.toString() === client.id ||
+                        owner.fullName === `${client.firstName} ${client.lastName}`.trim()
+                    )
+            );
+
+            if (clientVehicles.length > 1) {
+                // Show vehicle selection modal
+                setVehicleModalOptions(clientVehicles);
+                setShowVehicleModal(true);
+            } else if (clientVehicles.length === 1) {
+                // Auto-populate vehicle data
+                populateVehicleData(clientVehicles[0]);
+            }
+        } else if (option.type === 'vehicle') {
+            const vehicle = option.data as VehicleExpanded;
+            populateVehicleData(vehicle);
+
+            // Auto-populate owner data if available
+            if (vehicle.owners && vehicle.owners.length > 0) {
+                const owner = vehicle.owners[0];
+                setFormData(prev => ({
+                    ...prev,
+                    ownerName: owner.fullName || `${owner.firstName || ''} ${owner.lastName || ''}`.trim(),
+                    email: owner.email || '',
+                    phone: owner.phone || '',
+                    referralSource: 'regular_customer'
+                }));
+                setIsClientFromSearch(true);
+            }
+        }
+    }, [populateClientData, populateVehicleData, allVehicles]);
+
+    // Handle vehicle modal selection
+    const handleVehicleModalSelect = useCallback((vehicle: VehicleExpanded) => {
+        populateVehicleData(vehicle);
+        setShowVehicleModal(false);
+        setVehicleModalOptions([]);
+    }, [populateVehicleData]);
+
     return {
         formData,
         setFormData,
@@ -157,6 +314,13 @@ export const useFormData = (
         handleOtherSourceDetailsChange,
         handleImagesChange,
         isClientFromSearch,
-        setIsClientFromSearch
+        setIsClientFromSearch,
+        autocompleteOptions,
+        loadingAutocompleteData,
+        handleAutocompleteSelect,
+        showVehicleModal,
+        setShowVehicleModal,
+        vehicleModalOptions,
+        handleVehicleModalSelect
     };
 };
