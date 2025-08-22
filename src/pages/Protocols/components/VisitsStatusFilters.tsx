@@ -12,11 +12,6 @@ interface StatusFilterConfig {
 }
 
 const statusConfig: Record<StatusFilterType, StatusFilterConfig> = {
-    all: {
-        label: 'Wszystkie',
-        color: theme.primary,
-        lightColor: theme.primaryGhost
-    },
     [ProtocolStatus.IN_PROGRESS]: {
         label: 'W realizacji',
         color: '#9b59b6',
@@ -41,7 +36,12 @@ const statusConfig: Record<StatusFilterType, StatusFilterConfig> = {
         label: 'Anulowane',
         color: theme.error,
         lightColor: theme.errorBg
-    }
+    },
+    all: {
+        label: 'Wszystkie',
+        color: theme.primary,
+        lightColor: theme.primaryGhost
+    },
 };
 
 interface VisitsStatusFiltersProps {
@@ -58,12 +58,12 @@ export const VisitsStatusFilters: React.FC<VisitsStatusFiltersProps> = ({
                                                                             loading
                                                                         }) => {
     const filterOrder: StatusFilterType[] = [
-        'all',
         ProtocolStatus.IN_PROGRESS,
         ProtocolStatus.READY_FOR_PICKUP,
         ProtocolStatus.SCHEDULED,
         ProtocolStatus.COMPLETED,
-        ProtocolStatus.CANCELLED
+        ProtocolStatus.CANCELLED,
+        'all',
     ];
 
     // FIXED: Dodana obsługa kliknięcia z logowaniem

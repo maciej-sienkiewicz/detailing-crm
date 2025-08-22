@@ -135,7 +135,7 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
         setIsAllDay(newIsAllDay);
 
         if (newIsAllDay) {
-            // Set to all day - from 00:00 to 23:59
+            // Set to all day - from 00:00 to 23:59, but use the same date for start and end
             const currentDate = formData.startDate ? formData.startDate.split('T')[0] : new Date().toISOString().split('T')[0];
 
             const startDateTime = `${currentDate}T00:00:00`;
@@ -151,7 +151,7 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
             } as React.ChangeEvent<HTMLInputElement>;
             onChange(startEvent);
 
-            // Update end date
+            // Update end date to the same day
             const endEvent = {
                 target: {
                     name: 'endDate',
@@ -163,14 +163,14 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
         }
     };
 
-    // Handle date change with validation
+    // Handle date change with validation - NAPRAWIONO FORMATOWANIE DAT
     const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
 
-        // For end date, add validation
         if (name === 'endDate') {
             if (value) {
-                const newDateTime = isAllDay ? `${value}T23:59:59` : `${value}T23:59:59`;
+                // NAPRAWKA: Dla pola date zawsze dodajemy czas 23:59:59
+                const newDateTime = `${value}T23:59:59`;
                 const syntheticEvent = {
                     target: {
                         name: 'endDate',
@@ -181,7 +181,7 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
 
                 // Check if end date is valid compared to start date
                 if (formData.startDate) {
-                    const startDateObj = new Date(formData.startDate);
+                    const startDateObj = new Date(formData.startDate.replace(' ', 'T'));
                     const endDateObj = new Date(newDateTime);
 
                     if (endDateObj < startDateObj) {
@@ -206,6 +206,22 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                 onChange(syntheticEvent);
                 setDateError(null);
             }
+        } else if (name === 'startDate') {
+            // NAPRAWKA: Dla startDate również sprawdź czy to tylko data czy data z czasem
+            if (value) {
+                // Jeśli to pole date (tylko data), dodaj domyślny czas
+                const newDateTime = value.includes('T') ? value : `${value}T08:00:00`;
+                const syntheticEvent = {
+                    target: {
+                        name: 'startDate',
+                        value: newDateTime,
+                        type: 'text'
+                    }
+                } as React.ChangeEvent<HTMLInputElement>;
+                onChange(syntheticEvent);
+            } else {
+                onChange(e);
+            }
         } else {
             // For other inputs, just pass the event as is
             onChange(e);
@@ -214,8 +230,8 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
 
     // Efekt ustawiający aktualną datę i godzinę dla pełnego protokołu
     useEffect(() => {
-        if (isFullProtocol) {
-            // Pobieramy aktualną datę i czas
+        if (isFullProtocol && !formData.startDate) {
+            // Pobieramy aktualną datę i czas tylko jeśli startDate nie jest ustawione
             const now = new Date();
             const currentDate = now.toISOString().split('T')[0]; // Format YYYY-MM-DD
 
@@ -239,7 +255,39 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
             // Wywołujemy funkcję obsługi zmiany
             onChange(syntheticEvent);
         }
-    }, [isFullProtocol]);
+    }, [isFullProtocol, formData.startDate, onChange]);
+
+    // NAPRAWKA: Funkcja do bezpiecznego wyciągnięcia daty z różnych formatów
+    const extractDateFromISO = (dateString: string): string => {
+        if (!dateString) return '';
+
+        // Format z T: "2025-08-19T21:57:00" -> "2025-08-19"
+        if (dateString.includes('T')) {
+            return dateString.split('T')[0];
+        }
+
+        // Format z spacją: "2025-08-19 21:57:00" -> "2025-08-19"
+        if (dateString.includes(' ')) {
+            return dateString.split(' ')[0];
+        }
+
+        // Jeśli to już sama data w formacie YYYY-MM-DD, zwróć ją
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+            return dateString;
+        }
+
+        // Fallback - spróbuj sparsować jako Date i wyciągnij datę
+        try {
+            const date = new Date(dateString);
+            if (!isNaN(date.getTime())) {
+                return date.toISOString().split('T')[0];
+            }
+        } catch (e) {
+            console.warn('Nie można sparsować daty:', dateString);
+        }
+
+        return '';
+    };
 
     return (
         <>
@@ -274,8 +322,8 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                                 id="startDate"
                                 name="startDate"
                                 type="date"
-                                value={formData.startDate ? formData.startDate.split('T')[0] : ''}
-                                onChange={onChange}
+                                value={extractDateFromISO(formData.startDate || '')}
+                                onChange={handleDateChange}
                                 required
                                 className="date-input"
                                 $hasError={!!errors.startDate}
@@ -285,9 +333,24 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                                     id="startTime"
                                     name="startTime"
                                     type="time"
-                                    value={formData.startDate ? (formData.startDate.split('T')[1]?.substring(0, 5) || '08:00') : '08:00'}
+                                    value={(() => {
+                                        if (!formData.startDate) return '08:00';
+
+                                        // Obsługa formatu z T: "2025-08-19T21:57:00"
+                                        if (formData.startDate.includes('T')) {
+                                            return formData.startDate.split('T')[1]?.substring(0, 5) || '08:00';
+                                        }
+
+                                        // Obsługa formatu z spacją: "2025-08-19 21:57:00"
+                                        if (formData.startDate.includes(' ')) {
+                                            const timePart = formData.startDate.split(' ')[1];
+                                            return timePart?.substring(0, 5) || '08:00';
+                                        }
+
+                                        return '08:00';
+                                    })()}
                                     onChange={(e) => {
-                                        const date = formData.startDate ? formData.startDate.split('T')[0] : new Date().toISOString().split('T')[0];
+                                        const date = extractDateFromISO(formData.startDate || new Date().toISOString());
                                         const newDateTime = `${date}T${e.target.value}:00`;
                                         const syntheticEvent = {
                                             target: {
@@ -306,26 +369,29 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                         {errors.startDate && <ErrorText>{errors.startDate}</ErrorText>}
                     </FormGroup>
 
-                    <FormGroup>
-                        <LabelWithBadge
-                            htmlFor="endDate"
-                            required={true}
-                            badgeVariant="modern"
-                        >
-                            Data zakończenia
-                        </LabelWithBadge>
-                        <Input
-                            id="endDate"
-                            name="endDate"
-                            type="date"
-                            value={formData.endDate ? formData.endDate.split('T')[0] : ''}
-                            onChange={handleDateChange}
-                            required
-                            $hasError={!!(errors.endDate || dateError)}
-                        />
-                        {errors.endDate && <ErrorText>{errors.endDate}</ErrorText>}
-                        {dateError && <ErrorText>{dateError}</ErrorText>}
-                    </FormGroup>
+                    {/* NAPRAWKA: Ukryj pole daty zakończenia gdy isAllDay jest aktywne */}
+                    {!isAllDay && (
+                        <FormGroup>
+                            <LabelWithBadge
+                                htmlFor="endDate"
+                                required={true}
+                                badgeVariant="modern"
+                            >
+                                Data zakończenia
+                            </LabelWithBadge>
+                            <Input
+                                id="endDate"
+                                name="endDate"
+                                type="date"
+                                value={extractDateFromISO(formData.endDate || '')}
+                                onChange={handleDateChange}
+                                required
+                                $hasError={!!(errors.endDate || dateError)}
+                            />
+                            {errors.endDate && <ErrorText>{errors.endDate}</ErrorText>}
+                            {dateError && <ErrorText>{dateError}</ErrorText>}
+                        </FormGroup>
+                    )}
                 </FormRow>
             </FormSection>
 
@@ -510,7 +576,7 @@ const ToggleSwitch = styled.button<{ $isActive: boolean }>`
     cursor: pointer;
     transition: all ${brandTheme.transitions.normal};
     outline: none;
-    
+
     &:hover {
         background: ${props => props.$isActive ? brandTheme.primaryDark : brandTheme.text.secondary};
     }

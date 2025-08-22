@@ -345,11 +345,6 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                                         $hasValue={!!formData.licensePlate}
                                         style={{ textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '600' }}
                                     />
-                                    {formData.licensePlate && (
-                                        <LicensePlatePreview>
-                                            {formData.licensePlate}
-                                        </LicensePlatePreview>
-                                    )}
                                 </LicensePlateInputWrapper>
                                 {errors.licensePlate && (
                                     <ErrorMessage>{errors.licensePlate}</ErrorMessage>

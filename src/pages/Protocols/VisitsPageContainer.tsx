@@ -41,7 +41,7 @@ export const VisitsPageContainer: React.FC = () => {
     const [isShowingConfirmationModal, setIsShowingConfirmationModal] = useState(false);
     const [currentProtocol, setCurrentProtocol] = useState<any>(null);
 
-    const [activeStatusFilter, setActiveStatusFilter] = useState<StatusFilterType>('all');
+    const [activeStatusFilter, setActiveStatusFilter] = useState<StatusFilterType>(ProtocolStatus.IN_PROGRESS);
     const [hasInitialLoad, setHasInitialLoad] = useState(false);
     const [appData, setAppData] = useState<AppData>({
         services: [],
@@ -136,7 +136,7 @@ export const VisitsPageContainer: React.FC = () => {
 
     const handleClearAllFilters = useCallback(() => {
         clearAllFilters();
-        setActiveStatusFilter('all');
+        setActiveStatusFilter(ProtocolStatus.IN_PROGRESS);
         selection.clearSelection();
     }, [clearAllFilters, selection]);
 
@@ -247,7 +247,7 @@ export const VisitsPageContainer: React.FC = () => {
     useEffect(() => {
         resetData();
         setHasInitialLoad(false);
-        setActiveStatusFilter('all');
+        setActiveStatusFilter(ProtocolStatus.IN_PROGRESS);
         clearAllFilters();
     }, [location.pathname, resetData, clearAllFilters]);
 

@@ -867,8 +867,16 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                                         <DocumentRowMeta>
                                             <DocumentRowInfo>
                                                 <FaClock />
-                                                <span>{document.createdAt}</span>
-                                            </DocumentRowInfo>
+                                                <span>
+  {new Date(document.createdAt).toLocaleString('sv-SE', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+  }).replace('T', ' ')}
+</span>                                            </DocumentRowInfo>
                                             <DocumentRowInfo>
                                                 <FaUser />
                                                 <span>{document.uploadedBy}</span>

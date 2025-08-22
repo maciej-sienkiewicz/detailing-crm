@@ -32,22 +32,52 @@ export const useFormSubmit = (
 
     const { validateForm } = useFormValidation(formData);
 
+    // NAPRAWKA: Całkowicie przepisana funkcja formatowania dat
     const cleanDateFormat = (dateString: string): string => {
         if (!dateString) return '';
 
-        // Jeśli data zawiera 'Z' na końcu (format ISO z UTC)
-        if (dateString.endsWith('Z')) {
-            // Usuń 'Z' i ewentualne milisekundy (.000)
-            const dateParts = dateString.substring(0, dateString.length - 1).split('.');
-            return dateParts[0]; // Zwróć część bez milisekund i Z
-        }
+        try {
+            // Usuń 'Z' i milisekundy jeśli są
+            let cleanedDate = dateString.replace('Z', '').split('.')[0];
 
-        // Jeśli zawiera milisekundy, ale bez Z
-        if (dateString.includes('.')) {
-            return dateString.split('.')[0];
-        }
+            console.log('cleanDateFormat input:', dateString);
+            console.log('cleanDateFormat after initial clean:', cleanedDate);
 
-        return dateString;
+            // Przypadek 1: Format z błędną mieszanką - "2025-08-19 21:57:00T23:59:59"
+            if (cleanedDate.includes(' ') && cleanedDate.includes('T')) {
+                // Wyciągnij tylko część daty
+                const datePart = cleanedDate.split(' ')[0]; // "2025-08-19"
+                console.log('cleanDateFormat - mixed format, extracted date:', datePart);
+                return datePart;
+            }
+
+            // Przypadek 2: Format ze spacją - "2025-08-19 21:57:00"
+            if (cleanedDate.includes(' ') && !cleanedDate.includes('T')) {
+                // Zamień spację na T
+                cleanedDate = cleanedDate.replace(' ', 'T');
+                console.log('cleanDateFormat - space format, converted to T:', cleanedDate);
+                return cleanedDate;
+            }
+
+            // Przypadek 3: Format z T - "2025-08-19T21:57:00"
+            if (cleanedDate.includes('T')) {
+                console.log('cleanDateFormat - T format, returning as is:', cleanedDate);
+                return cleanedDate;
+            }
+
+            // Przypadek 4: Tylko data - "2025-08-19"
+            if (/^\d{4}-\d{2}-\d{2}$/.test(cleanedDate)) {
+                console.log('cleanDateFormat - date only format:', cleanedDate);
+                return cleanedDate;
+            }
+
+            console.log('cleanDateFormat - fallback, returning as is:', cleanedDate);
+            return cleanedDate;
+
+        } catch (error) {
+            console.error('Błąd podczas czyszczenia formatu daty:', error, dateString);
+            return '';
+        }
     };
 
     // Obsługa zapisania formularza
@@ -60,28 +90,53 @@ export const useFormSubmit = (
             ...formData
         };
 
+        console.log('=== RAW FORM DATA ===');
+        console.log('Original formData.startDate:', formData.startDate);
+        console.log('Original formData.endDate:', formData.endDate);
+        console.log('====================');
+
+        // NAPRAWKA: Zdecydowanie uproszczona obsługa dat - zawsze format ISO z T
         if (updatedFormData.startDate) {
-            updatedFormData.startDate = cleanDateFormat(updatedFormData.startDate);
-            console.log('Cleaned startDate:', updatedFormData.startDate);
+            const cleanedStartDate = cleanDateFormat(updatedFormData.startDate);
+            console.log('Processing startDate - cleaned:', cleanedStartDate);
+
+            if (cleanedStartDate) {
+                if (cleanedStartDate.includes('T')) {
+                    // Już ma poprawny format z T
+                    updatedFormData.startDate = cleanedStartDate;
+                } else {
+                    // Tylko data, dodaj domyślny czas
+                    updatedFormData.startDate = `${cleanedStartDate}T08:00:00`;
+                }
+            }
+
+            console.log('Final startDate:', updatedFormData.startDate);
         }
 
         if (updatedFormData.endDate) {
-            updatedFormData.endDate = cleanDateFormat(updatedFormData.endDate);
-            console.log('Cleaned endDate:', updatedFormData.endDate);
+            const cleanedEndDate = cleanDateFormat(updatedFormData.endDate);
+            console.log('Processing endDate - cleaned:', cleanedEndDate);
+
+            if (cleanedEndDate) {
+                // Zawsze wyciągnij tylko datę i dodaj 23:59:59
+                let datePart;
+
+                if (cleanedEndDate.includes('T')) {
+                    datePart = cleanedEndDate.split('T')[0];
+                } else {
+                    datePart = cleanedEndDate;
+                }
+
+                updatedFormData.endDate = `${datePart}T23:59:59`;
+            }
+
+            console.log('Final endDate:', updatedFormData.endDate);
         }
 
-        // Sprawdźmy format startDate - dodajemy domyślny czas, jeśli go nie ma
-        if (updatedFormData.startDate && !updatedFormData.startDate.includes('T')) {
-            updatedFormData.startDate = `${updatedFormData.startDate}T08:00:00`;
-        }
-
-        // Dla endDate zawsze ustawiamy koniec dnia
-        if (updatedFormData.endDate && !updatedFormData.endDate.includes('T')) {
-            updatedFormData.endDate = `${updatedFormData.endDate}T23:59:59`;
-        } else if (updatedFormData.endDate && !updatedFormData.endDate.endsWith('23:59:59')) {
-            // Jeśli już ma czas, ale nie jest to koniec dnia, zmieniamy na koniec dnia
-            updatedFormData.endDate = `${updatedFormData.endDate.split('T')[0]}T23:59:59`;
-        }
+        console.log('=== FINAL DATA BEFORE API CALL ===');
+        console.log('updatedFormData.startDate:', updatedFormData.startDate);
+        console.log('updatedFormData.endDate:', updatedFormData.endDate);
+        console.log('================================');
 
         // Automatycznie ustaw tytuł, jeśli pole jest puste
         if (!updatedFormData.title || updatedFormData.title.trim() === '') {
@@ -156,6 +211,11 @@ export const useFormSubmit = (
                     showConfirmationModal = true;
                 }
 
+                console.log('=== DATA BEING SENT TO API ===');
+                console.log('protocolToUpdate.startDate:', protocolToUpdate.startDate);
+                console.log('protocolToUpdate.endDate:', protocolToUpdate.endDate);
+                console.log('==============================');
+
                 // Używamy API do aktualizacji protokołu
                 savedProtocol = await carReceptionApi.updateCarReceptionProtocol(protocolToUpdate);
 
@@ -182,6 +242,11 @@ export const useFormSubmit = (
                     statusUpdatedAt: now,
                     appointmentId: appointmentId // Powiązanie z wizytą, jeśli tworzymy z wizyty
                 } as Omit<CarReceptionProtocol, 'id' | 'createdAt' | 'updatedAt'>;
+
+                console.log('=== NEW PROTOCOL DATA BEING SENT TO API ===');
+                console.log('newProtocolData.startDate:', newProtocolData.startDate);
+                console.log('newProtocolData.endDate:', newProtocolData.endDate);
+                console.log('==========================================');
 
                 // Używamy API do utworzenia protokołu
                 savedProtocol = await carReceptionApi.createCarReceptionProtocol(newProtocolData);

@@ -61,6 +61,54 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
         updateServiceNote
     } = useServiceCalculations(formData.selectedServices || []);
 
+    // NAPRAWKA: Funkcja do formatowania dat - kopiowana z useFormSubmit
+    const formatDateForAPI = (dateString: string): string => {
+        if (!dateString) return '';
+
+        try {
+            // Usuń 'Z' i milisekundy jeśli są
+            let cleanedDate = dateString.replace('Z', '').split('.')[0];
+
+            console.log('formatDateForAPI input:', dateString);
+            console.log('formatDateForAPI after initial clean:', cleanedDate);
+
+            // Przypadek 1: Format z błędną mieszanką - "2025-08-19 21:57:00T23:59:59"
+            if (cleanedDate.includes(' ') && cleanedDate.includes('T')) {
+                // Wyciągnij tylko część daty
+                const datePart = cleanedDate.split(' ')[0]; // "2025-08-19"
+                console.log('formatDateForAPI - mixed format, extracted date:', datePart);
+                return datePart;
+            }
+
+            // Przypadek 2: Format ze spacją - "2025-08-19 21:57:00"
+            if (cleanedDate.includes(' ') && !cleanedDate.includes('T')) {
+                // Zamień spację na T
+                cleanedDate = cleanedDate.replace(' ', 'T');
+                console.log('formatDateForAPI - space format, converted to T:', cleanedDate);
+                return cleanedDate;
+            }
+
+            // Przypadek 3: Format z T - "2025-08-19T21:57:00"
+            if (cleanedDate.includes('T')) {
+                console.log('formatDateForAPI - T format, returning as is:', cleanedDate);
+                return cleanedDate;
+            }
+
+            // Przypadek 4: Tylko data - "2025-08-19"
+            if (/^\d{4}-\d{2}-\d{2}$/.test(cleanedDate)) {
+                console.log('formatDateForAPI - date only format:', cleanedDate);
+                return cleanedDate;
+            }
+
+            console.log('formatDateForAPI - fallback, returning as is:', cleanedDate);
+            return cleanedDate;
+
+        } catch (error) {
+            console.error('Błąd podczas formatowania daty:', error, dateString);
+            return '';
+        }
+    };
+
     // Ustawienie początkowego statusu w zależności od kontekstu
     useEffect(() => {
         setFormData(prev => ({
@@ -78,9 +126,11 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
         }));
     }, [services]);
 
-    // Obsługa zmiany formularza
+    // NAPRAWKA: Obsługa zmiany formularza z prawidłowym formatowaniem dat
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
+
+        console.log('handleChange called:', { name, value, type });
 
         if (type === 'checkbox') {
             const checkbox = e.target as HTMLInputElement;
@@ -93,6 +143,44 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
                 ...formData,
                 [name]: value ? parseInt(value, 10) : 0
             });
+        } else if (name === 'startDate' || name === 'endDate') {
+            // NAPRAWKA: Specjalna obsługa dla dat
+            console.log(`Processing ${name} with value:`, value);
+
+            // Dla endDate zawsze ustawiamy 23:59:59
+            if (name === 'endDate') {
+                const cleanedDate = formatDateForAPI(value);
+                let finalDate;
+
+                if (cleanedDate.includes('T')) {
+                    const datePart = cleanedDate.split('T')[0];
+                    finalDate = `${datePart}T23:59:59`;
+                } else {
+                    finalDate = `${cleanedDate}T23:59:59`;
+                }
+
+                console.log(`Final ${name}:`, finalDate);
+                setFormData({
+                    ...formData,
+                    [name]: finalDate
+                });
+            } else {
+                // Dla startDate formatuj do T jeśli potrzeba
+                const cleanedDate = formatDateForAPI(value);
+                let finalDate;
+
+                if (cleanedDate.includes('T')) {
+                    finalDate = cleanedDate;
+                } else {
+                    finalDate = `${cleanedDate}T08:00:00`;
+                }
+
+                console.log(`Final ${name}:`, finalDate);
+                setFormData({
+                    ...formData,
+                    [name]: finalDate
+                });
+            }
         } else {
             setFormData({
                 ...formData,
@@ -157,20 +245,55 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
         setShowResults(false);
     };
 
-    // Zapisanie formularza
+    // NAPRAWKA: Zapisanie formularza z dodatkowym formatowaniem dat
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        console.log('=== START VISIT FORM DATA ===');
+        console.log('formData.startDate:', formData.startDate);
+        console.log('formData.endDate:', formData.endDate);
+        console.log('============================');
 
         try {
             setLoading(true);
             setError(null);
 
+            // NAPRAWKA: Upewnij się że daty są w poprawnym formacie przed wysłaniem
+            let processedStartDate = formData.startDate;
+            let processedEndDate = formData.endDate;
+
+            // Formatuj startDate
+            if (processedStartDate) {
+                const cleanedStartDate = formatDateForAPI(processedStartDate);
+                if (cleanedStartDate.includes('T')) {
+                    processedStartDate = cleanedStartDate;
+                } else {
+                    processedStartDate = `${cleanedStartDate}T08:00:00`;
+                }
+            }
+
+            // Formatuj endDate - zawsze 23:59:59
+            if (processedEndDate) {
+                const cleanedEndDate = formatDateForAPI(processedEndDate);
+                const datePart = cleanedEndDate.includes('T')
+                    ? cleanedEndDate.split('T')[0]
+                    : cleanedEndDate;
+                processedEndDate = `${datePart}T23:59:59`;
+            }
+
             // Aktualizacja statusu na IN_PROGRESS
             const updatedProtocol: CarReceptionProtocol = {
                 ...formData,
+                startDate: processedStartDate,
+                endDate: processedEndDate,
                 status: ProtocolStatus.IN_PROGRESS,
                 statusUpdatedAt: new Date().toISOString()
             };
+
+            console.log('=== UPDATED PROTOCOL DATA ===');
+            console.log('updatedProtocol.startDate:', updatedProtocol.startDate);
+            console.log('updatedProtocol.endDate:', updatedProtocol.endDate);
+            console.log('=============================');
 
             let savedProtocol;
 

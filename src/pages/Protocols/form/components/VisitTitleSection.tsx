@@ -50,6 +50,25 @@ const VisitTitleSection: React.FC<VisitTitleSectionProps> = ({
         fetchColors();
     }, []);
 
+    // NOWA LOGIKA: Automatyczny wybór koloru gdy jest tylko jedna opcja
+    useEffect(() => {
+        if (calendarColors.length === 1 && !selectedColorId && !colorsLoading) {
+            const singleColor = calendarColors[0];
+            console.log('Auto-selecting single calendar color:', singleColor);
+
+            // Symulujemy zmianę select-a
+            const syntheticEvent = {
+                target: {
+                    name: 'calendarColorId',
+                    value: singleColor.id
+                }
+            } as React.ChangeEvent<HTMLSelectElement>;
+
+            onChange(syntheticEvent);
+            setSelectedColor(singleColor.color);
+        }
+    }, [calendarColors, selectedColorId, colorsLoading, onChange]);
+
     // Ustawianie aktualnie wybranego koloru
     useEffect(() => {
         if (selectedColorId && calendarColors.length > 0) {
@@ -122,13 +141,20 @@ const VisitTitleSection: React.FC<VisitTitleSectionProps> = ({
                             name="calendarColorId"
                             value={selectedColorId || ''}
                             onChange={handleColorChange}
-                            disabled={colorsLoading}
+                            disabled={colorsLoading || calendarColors.length === 1}
                             required={true}
                             $hasError={!!colorsError}
                             $hasValue={!!selectedColorId}
                         >
                             <option value="">
-                                {colorsLoading ? 'Ładowanie kolorów...' : 'Wybierz kolor wizyty...'}
+                                {colorsLoading
+                                    ? 'Ładowanie kolorów...'
+                                    : calendarColors.length === 0
+                                        ? 'Brak dostępnych kolorów'
+                                        : calendarColors.length === 1
+                                            ? 'Wybrano automatycznie'
+                                            : 'Wybierz kolor wizyty...'
+                                }
                             </option>
                             {calendarColors.map(color => (
                                 <ColorOption
@@ -151,7 +177,10 @@ const VisitTitleSection: React.FC<VisitTitleSectionProps> = ({
                     <FieldFooter>
                         {colorsError && <ErrorText>{colorsError}</ErrorText>}
                         <HelpText>
-                            Kolor pomoże w łatwym rozpoznawaniu wizyty w kalendarzu zespołu.
+                            {calendarColors.length === 1
+                                ? 'Dostępny jest tylko jeden kolor, więc został automatycznie wybrany.'
+                                : 'Kolor pomoże w łatwym rozpoznawaniu wizyty w kalendarzu zespołu.'
+                            }
                         </HelpText>
                     </FieldFooter>
                 </ColorFormGroup>
