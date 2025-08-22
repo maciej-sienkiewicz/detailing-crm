@@ -1,11 +1,11 @@
-// src/pages/Protocols/form/hooks/useFormDataWithAutocomplete.ts
+// src/pages/Protocols/form/hooks/useFormData.ts - ZAKTUALIZOWANA WERSJA
 import { useState, useEffect, useCallback } from 'react';
-import { CarReceptionProtocol, ProtocolStatus, VehicleImage, ClientExpanded, VehicleExpanded } from '../../../../types';
+import { CarReceptionProtocol, ProtocolStatus, VehicleImage, ClientExpanded, VehicleExpanded, DeliveryPerson } from '../../../../types';
 import { FormErrors, useFormValidation } from './useFormValidation';
 import { ReferralSource } from '../components/ReferralSourceSection';
-import { AutocompleteOption } from '../components/AutocompleteField';
 import { clientsApi } from '../../../../api/clientsApi';
 import { vehicleApi } from '../../../../api/vehiclesApi';
+import {AutocompleteOption} from "../../components/AutocompleteField";
 
 interface UseFormDataWithAutocompleteResult {
     formData: Partial<CarReceptionProtocol>;
@@ -27,6 +27,12 @@ interface UseFormDataWithAutocompleteResult {
     setShowVehicleModal: (show: boolean) => void;
     vehicleModalOptions: VehicleExpanded[];
     handleVehicleModalSelect: (vehicle: VehicleExpanded) => void;
+    // NOWE: Delivery Person
+    isDeliveryPersonDifferent: boolean;
+    handleDeliveryPersonToggle: (enabled: boolean) => void;
+    handleDeliveryPersonNameChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    handleDeliveryPersonPhoneChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    handleDeliveryPersonAutocompleteSelect: (option: AutocompleteOption, fieldType: string) => void;
 }
 
 const initializeDates = () => {
@@ -66,7 +72,8 @@ export const useFormDataWithAutocomplete = (
             status: ProtocolStatus.SCHEDULED,
             vehicleImages: [],
             referralSource: undefined,
-            otherSourceDetails: ''
+            otherSourceDetails: '',
+            deliveryPerson: null // NOWE: inicjalizacja delivery person
         }
     );
 
@@ -79,6 +86,9 @@ export const useFormDataWithAutocomplete = (
     // Modal state for vehicle selection
     const [showVehicleModal, setShowVehicleModal] = useState(false);
     const [vehicleModalOptions, setVehicleModalOptions] = useState<VehicleExpanded[]>([]);
+
+    // NOWE: Stan dla delivery person
+    const [isDeliveryPersonDifferent, setIsDeliveryPersonDifferent] = useState(false);
 
     const { errors, validateForm, clearFieldError } = useFormValidation(formData);
 
@@ -141,6 +151,13 @@ export const useFormDataWithAutocomplete = (
 
         loadAutocompleteData();
     }, []);
+
+    // NOWE: Efekt do ustawiania stanu delivery person na podstawie danych z protokołu
+    useEffect(() => {
+        if (protocol?.deliveryPerson || formData.deliveryPerson) {
+            setIsDeliveryPersonDifferent(true);
+        }
+    }, [protocol, formData.deliveryPerson]);
 
     // Handle initial data dates
     useEffect(() => {
@@ -227,6 +244,90 @@ export const useFormDataWithAutocomplete = (
         }));
     };
 
+    // NOWE: Obsługa delivery person toggle
+    const handleDeliveryPersonToggle = useCallback((enabled: boolean) => {
+        setIsDeliveryPersonDifferent(enabled);
+
+        if (enabled) {
+            // Inicjalizuj delivery person jeśli jest włączony
+            setFormData(prev => ({
+                ...prev,
+                deliveryPerson: prev.deliveryPerson || { id: null, name: '', phone: '' }
+            }));
+        } else {
+            // Wyczyść delivery person jeśli jest wyłączony
+            setFormData(prev => ({
+                ...prev,
+                deliveryPerson: null
+            }));
+            // Wyczyść błędy walidacji
+            clearFieldError('deliveryPersonName');
+            clearFieldError('deliveryPersonPhone');
+        }
+    }, [clearFieldError]);
+
+    // NOWE: Obsługa zmiany imienia delivery person
+    const handleDeliveryPersonNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const { value } = e.target;
+
+        setFormData(prev => ({
+            ...prev,
+            deliveryPerson: {
+                id: null, // Reset ID gdy użytkownik wpisuje manualnie
+                name: value,
+                phone: prev.deliveryPerson?.phone || ''
+            }
+        }));
+
+        clearFieldError('deliveryPersonName');
+    }, [clearFieldError]);
+
+    // NOWE: Obsługa zmiany telefonu delivery person
+    const handleDeliveryPersonPhoneChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const { value } = e.target;
+
+        setFormData(prev => ({
+            ...prev,
+            deliveryPerson: {
+                id: prev.deliveryPerson?.id || null,
+                name: prev.deliveryPerson?.name || '',
+                phone: value
+            }
+        }));
+
+        clearFieldError('deliveryPersonPhone');
+    }, [clearFieldError]);
+
+    // NOWE: Obsługa autocomplete dla delivery person
+    const handleDeliveryPersonAutocompleteSelect = useCallback((option: AutocompleteOption, fieldType: string) => {
+        if (option.type === 'client') {
+            const client = option.data as ClientExpanded;
+
+            if (fieldType === 'deliveryPersonName') {
+                setFormData(prev => ({
+                    ...prev,
+                    deliveryPerson: {
+                        id: client.id,
+                        name: `${client.firstName} ${client.lastName}`.trim(),
+                        phone: client.phone || prev.deliveryPerson?.phone || ''
+                    }
+                }));
+            } else if (fieldType === 'deliveryPersonPhone') {
+                setFormData(prev => ({
+                    ...prev,
+                    deliveryPerson: {
+                        id: client.id,
+                        name: prev.deliveryPerson?.name || `${client.firstName} ${client.lastName}`.trim(),
+                        phone: client.phone || ''
+                    }
+                }));
+            }
+
+            clearFieldError('deliveryPersonName');
+            clearFieldError('deliveryPersonPhone');
+        }
+    }, [clearFieldError]);
+
     // Populate form data from client
     const populateClientData = useCallback((client: ClientExpanded) => {
         setFormData(prev => ({
@@ -257,6 +358,13 @@ export const useFormDataWithAutocomplete = (
 
     // Handle autocomplete selection
     const handleAutocompleteSelect = useCallback((option: AutocompleteOption, fieldType: string) => {
+        // NOWE: Obsługa delivery person fields
+        if (fieldType === 'deliveryPersonName' || fieldType === 'deliveryPersonPhone') {
+            handleDeliveryPersonAutocompleteSelect(option, fieldType);
+            return;
+        }
+
+        // Istniejąca logika dla zwykłych pól
         if (option.type === 'client') {
             const client = option.data as ClientExpanded;
             populateClientData(client);
@@ -294,7 +402,7 @@ export const useFormDataWithAutocomplete = (
                 setIsClientFromSearch(true);
             }
         }
-    }, [populateClientData, populateVehicleData, allVehicles]);
+    }, [populateClientData, populateVehicleData, allVehicles, handleDeliveryPersonAutocompleteSelect]);
 
     // Handle vehicle modal selection
     const handleVehicleModalSelect = useCallback((vehicle: VehicleExpanded) => {
@@ -321,6 +429,12 @@ export const useFormDataWithAutocomplete = (
         showVehicleModal,
         setShowVehicleModal,
         vehicleModalOptions,
-        handleVehicleModalSelect
+        handleVehicleModalSelect,
+        // NOWE: Delivery Person
+        isDeliveryPersonDifferent,
+        handleDeliveryPersonToggle,
+        handleDeliveryPersonNameChange,
+        handleDeliveryPersonPhoneChange,
+        handleDeliveryPersonAutocompleteSelect
     };
 };

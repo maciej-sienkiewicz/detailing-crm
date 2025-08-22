@@ -89,7 +89,8 @@ export interface CarReceptionProtocol {
     appointmentId?: string;
     referralSource?: 'regular_customer' | 'recommendation' | 'search_engine' | 'social_media' | 'local_ad' | 'other';
     otherSourceDetails?: string;
-    protocolDocuments?: ProtocolDocument[]; // Dodaj to pole
+    protocolDocuments?: ProtocolDocument[];
+    deliveryPerson?: DeliveryPerson | null;
 
     // Dodatkowe pola
     comments?: any[];
@@ -169,4 +170,10 @@ export interface ClientProtocolHistory {
     carModel: string;
     licensePlate: string;
     totalAmount: number;
+}
+
+export interface DeliveryPerson {
+    id: string | null;
+    name: string;
+    phone: string;
 }

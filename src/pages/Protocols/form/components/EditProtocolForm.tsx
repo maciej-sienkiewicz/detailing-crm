@@ -1,4 +1,4 @@
-// src/pages/Protocols/form/components/EditProtocolFormWithAutocomplete.tsx
+// src/pages/Protocols/form/components/EditProtocolForm.tsx - ZAKTUALIZOWANA WERSJA
 import React, { useState } from 'react';
 import {
     CarReceptionProtocol,
@@ -16,6 +16,7 @@ import ServiceSection from '../components/ServiceSection';
 import NotesSection from '../components/NotesSection';
 import FormActions from '../components/FormActions';
 import VehicleSelectionModal from "../../shared/modals/VehicleSelectionModal";
+import { DeliveryPersonSection } from './DeliveryPersonSection'; // NOWY IMPORT
 
 import {
     FormContainer,
@@ -44,15 +45,15 @@ interface EditProtocolFormProps {
 }
 
 export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
-                                                                                                      protocol,
-                                                                                                      availableServices,
-                                                                                                      initialData,
-                                                                                                      appointmentId,
-                                                                                                      isFullProtocol = true,
-                                                                                                      onSave,
-                                                                                                      onCancel,
-                                                                                                      onServiceAdded
-                                                                                                  }) => {
+                                                                      protocol,
+                                                                      availableServices,
+                                                                      initialData,
+                                                                      appointmentId,
+                                                                      isFullProtocol = true,
+                                                                      onSave,
+                                                                      onCancel,
+                                                                      onServiceAdded
+                                                                  }) => {
     const {
         formData,
         setFormData,
@@ -71,7 +72,13 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
         showVehicleModal,
         setShowVehicleModal,
         vehicleModalOptions,
-        handleVehicleModalSelect
+        handleVehicleModalSelect,
+        // NOWE: Delivery Person
+        isDeliveryPersonDifferent,
+        handleDeliveryPersonToggle,
+        handleDeliveryPersonNameChange,
+        handleDeliveryPersonPhoneChange,
+        handleDeliveryPersonAutocompleteSelect
     } = useFormDataWithAutocomplete(protocol, initialData);
 
     const {
@@ -231,6 +238,18 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
                     onChange={handleChange}
                     autocompleteOptions={autocompleteOptions}
                     onAutocompleteSelect={handleAutocompleteSelect}
+                />
+
+                {/* NOWA SEKCJA: Delivery Person */}
+                <DeliveryPersonSection
+                    isDeliveryPersonDifferent={isDeliveryPersonDifferent}
+                    deliveryPerson={formData.deliveryPerson || null}
+                    errors={errors}
+                    onDeliveryPersonToggle={handleDeliveryPersonToggle}
+                    onDeliveryPersonNameChange={handleDeliveryPersonNameChange}
+                    onDeliveryPersonPhoneChange={handleDeliveryPersonPhoneChange}
+                    autocompleteOptions={autocompleteOptions}
+                    onAutocompleteSelect={handleDeliveryPersonAutocompleteSelect}
                 />
 
                 {!isClientFromSearch && (

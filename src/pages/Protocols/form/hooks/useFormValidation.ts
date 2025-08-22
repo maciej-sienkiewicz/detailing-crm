@@ -1,3 +1,4 @@
+// src/pages/Protocols/form/hooks/useFormValidation.ts - ZAKTUALIZOWANA WERSJA
 import { useState } from 'react';
 import { CarReceptionProtocol } from '../../../../types';
 
@@ -38,6 +39,26 @@ export const useFormValidation = (formData: Partial<CarReceptionProtocol>) => {
         } else {
             if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
                 newErrors.email = 'Podaj prawidłowy adres email';
+            }
+        }
+
+        // NOWA: Walidacja delivery person
+        if (formData.deliveryPerson !== null && formData.deliveryPerson !== undefined) {
+            // Jeśli deliveryPerson jest ustawiony (checkbox zaznaczony)
+            if (!formData.deliveryPerson.name?.trim()) {
+                newErrors.deliveryPersonName = 'Imię i nazwisko osoby odbierającej jest wymagane';
+            } else if (formData.deliveryPerson.name.split(' ').length < 2) {
+                newErrors.deliveryPersonName = 'Podaj pełne imię i nazwisko osoby odbierającej';
+            }
+
+            if (!formData.deliveryPerson.phone?.trim()) {
+                newErrors.deliveryPersonPhone = 'Numer telefonu osoby odbierającej jest wymagany';
+            } else {
+                // Podstawowa walidacja numeru telefonu
+                const phoneRegex = /^[\+]?[0-9\s\-\(\)]{9,15}$/;
+                if (!phoneRegex.test(formData.deliveryPerson.phone.trim())) {
+                    newErrors.deliveryPersonPhone = 'Podaj prawidłowy numer telefonu';
+                }
             }
         }
 

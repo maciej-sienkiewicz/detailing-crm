@@ -1,3 +1,4 @@
+// src/pages/Protocols/form/hooks/useFormSubmit.ts - ZAKTUALIZOWANA WERSJA
 import { useState } from 'react';
 import { CarReceptionProtocol, ProtocolStatus, ServiceApprovalStatus } from '../../../../types';
 import { carReceptionApi } from '../../../../api/carReceptionApi';
@@ -80,6 +81,24 @@ export const useFormSubmit = (
         }
     };
 
+    // NOWA: Funkcja do przygotowania delivery person dla API
+    const prepareDeliveryPersonForApi = (formData: Partial<CarReceptionProtocol>) => {
+        if (!formData.deliveryPerson) {
+            return null;
+        }
+
+        // Sprawdź czy pola są wypełnione
+        if (!formData.deliveryPerson.name?.trim() || !formData.deliveryPerson.phone?.trim()) {
+            return null;
+        }
+
+        return {
+            id: formData.deliveryPerson.id, // może być null jeśli ręcznie wpisane
+            name: formData.deliveryPerson.name.trim(),
+            phone: formData.deliveryPerson.phone.trim()
+        };
+    };
+
     // Obsługa zapisania formularza
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -93,6 +112,7 @@ export const useFormSubmit = (
         console.log('=== RAW FORM DATA ===');
         console.log('Original formData.startDate:', formData.startDate);
         console.log('Original formData.endDate:', formData.endDate);
+        console.log('Original formData.deliveryPerson:', formData.deliveryPerson);
         console.log('====================');
 
         // NAPRAWKA: Zdecydowanie uproszczona obsługa dat - zawsze format ISO z T
@@ -133,9 +153,14 @@ export const useFormSubmit = (
             console.log('Final endDate:', updatedFormData.endDate);
         }
 
+        // NOWA: Przygotowanie delivery person dla API
+        updatedFormData.deliveryPerson = prepareDeliveryPersonForApi(updatedFormData);
+        console.log('Prepared deliveryPerson for API:', updatedFormData.deliveryPerson);
+
         console.log('=== FINAL DATA BEFORE API CALL ===');
         console.log('updatedFormData.startDate:', updatedFormData.startDate);
         console.log('updatedFormData.endDate:', updatedFormData.endDate);
+        console.log('updatedFormData.deliveryPerson:', updatedFormData.deliveryPerson);
         console.log('================================');
 
         // Automatycznie ustaw tytuł, jeśli pole jest puste
@@ -214,6 +239,7 @@ export const useFormSubmit = (
                 console.log('=== DATA BEING SENT TO API ===');
                 console.log('protocolToUpdate.startDate:', protocolToUpdate.startDate);
                 console.log('protocolToUpdate.endDate:', protocolToUpdate.endDate);
+                console.log('protocolToUpdate.deliveryPerson:', protocolToUpdate.deliveryPerson);
                 console.log('==============================');
 
                 // Używamy API do aktualizacji protokołu
@@ -246,6 +272,7 @@ export const useFormSubmit = (
                 console.log('=== NEW PROTOCOL DATA BEING SENT TO API ===');
                 console.log('newProtocolData.startDate:', newProtocolData.startDate);
                 console.log('newProtocolData.endDate:', newProtocolData.endDate);
+                console.log('newProtocolData.deliveryPerson:', newProtocolData.deliveryPerson);
                 console.log('==========================================');
 
                 // Używamy API do utworzenia protokołu
