@@ -1,6 +1,9 @@
+// src/pages/Protocols/start-visit/components/StartVisitForm.tsx - ZAKTUALIZOWANA WERSJA
 import React, { useState, useEffect } from 'react';
-import { CarReceptionProtocol, ProtocolStatus, ServiceApprovalStatus } from '../../../../types';
+import { CarReceptionProtocol, ProtocolStatus, ServiceApprovalStatus, DeliveryPerson, ClientExpanded, VehicleExpanded } from '../../../../types';
 import { protocolsApi } from '../../../../api/protocolsApi';
+import { clientsApi } from '../../../../api/clientsApi';
+import { vehicleApi } from '../../../../api/vehiclesApi';
 
 // Sekcje formularza
 import FormHeader from '../../form/components/FormHeader';
@@ -10,6 +13,7 @@ import ClientInfoSection from '../../form/components/ClientInfoSection';
 import ServiceSection from '../../form/components/ServiceSection';
 import ImageUploadSection from '../../form/components/ImageUploadSection';
 import NotesSection from '../../form/components/NotesSection';
+import { DeliveryPersonSection } from '../../form/components/DeliveryPersonSection'; // NOWY IMPORT
 
 // Hooks
 import { useServiceCalculations } from '../../form/hooks/useServiceCalculations';
@@ -23,12 +27,15 @@ import {
     Button
 } from '../../form/styles';
 
+// Types
+import { AutocompleteOption } from '../../components/AutocompleteField';
+
 interface StartVisitFormProps {
     protocol: CarReceptionProtocol;
     availableServices: Array<{ id: string; name: string; price: number }>;
     onSave: (protocol: CarReceptionProtocol) => void;
     onCancel: () => void;
-    isRestoringCancelled?: boolean; // Nowa właściwość wskazująca, czy przywracamy anulowaną wizytę
+    isRestoringCancelled?: boolean;
 }
 
 const StartVisitForm: React.FC<StartVisitFormProps> = ({
@@ -48,6 +55,11 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
     const [showResults, setShowResults] = useState(false);
     const [selectedServiceToAdd, setSelectedServiceToAdd] = useState<{ id: string; name: string; price: number } | null>(null);
 
+    // NOWE: Stan dla delivery person
+    const [isDeliveryPersonDifferent, setIsDeliveryPersonDifferent] = useState(false);
+    const [autocompleteOptions, setAutocompleteOptions] = useState<AutocompleteOption[]>([]);
+    const [loadingAutocompleteData, setLoadingAutocompleteData] = useState(false);
+
     // Custom hook dla obliczeń usług
     const {
         services,
@@ -60,6 +72,71 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
         updateDiscountValue,
         updateServiceNote
     } = useServiceCalculations(formData.selectedServices || []);
+
+    // NOWE: Efekt do ładowania danych autocomplete
+    useEffect(() => {
+        const loadAutocompleteData = async () => {
+            setLoadingAutocompleteData(true);
+            try {
+                const [clientsResult, vehiclesResult] = await Promise.allSettled([
+                    clientsApi.fetchClients(),
+                    vehicleApi.fetchVehicles()
+                ]);
+
+                let clients: ClientExpanded[] = [];
+                let vehicles: VehicleExpanded[] = [];
+
+                if (clientsResult.status === 'fulfilled') {
+                    clients = clientsResult.value;
+                } else {
+                    console.error('Failed to load clients:', clientsResult.reason);
+                }
+
+                if (vehiclesResult.status === 'fulfilled') {
+                    vehicles = vehiclesResult.value;
+                } else {
+                    console.error('Failed to load vehicles:', vehiclesResult.reason);
+                }
+
+                // Create autocomplete options
+                const options: AutocompleteOption[] = [
+                    // Client options
+                    ...clients.map(client => ({
+                        id: client.id,
+                        label: `${client.firstName} ${client.lastName}`.trim(),
+                        value: `${client.firstName} ${client.lastName}`.trim(),
+                        type: 'client' as const,
+                        data: client,
+                        description: [client.email, client.phone, client.company].filter(Boolean).join(' • ')
+                    })),
+                    // Vehicle options
+                    ...vehicles.map(vehicle => ({
+                        id: vehicle.id,
+                        label: `${vehicle.make} ${vehicle.model} - ${vehicle.licensePlate}`,
+                        value: vehicle.licensePlate,
+                        type: 'vehicle' as const,
+                        data: vehicle,
+                        description: `${vehicle.make} ${vehicle.model} • ${vehicle.year || 'Nieznany rok'}`
+                    }))
+                ];
+
+                setAutocompleteOptions(options);
+            } catch (error) {
+                console.error('Error loading autocomplete data:', error);
+            } finally {
+                setLoadingAutocompleteData(false);
+            }
+        };
+
+        loadAutocompleteData();
+    }, []);
+
+    // NOWE: Efekt do ustawiania stanu delivery person na podstawie danych z protokołu
+    useEffect(() => {
+        if (protocol?.deliveryPerson || formData.deliveryPerson) {
+            setIsDeliveryPersonDifferent(true);
+        }
+    }, [protocol, formData.deliveryPerson]);
 
     // NAPRAWKA: Funkcja do formatowania dat - kopiowana z useFormSubmit
     const formatDateForAPI = (dateString: string): string => {
@@ -109,6 +186,24 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
         }
     };
 
+    // NOWE: Funkcja do przygotowania delivery person dla API
+    const prepareDeliveryPersonForApi = (formData: CarReceptionProtocol) => {
+        if (!formData.deliveryPerson) {
+            return null;
+        }
+
+        // Sprawdź czy pola są wypełnione
+        if (!formData.deliveryPerson.name?.trim() || !formData.deliveryPerson.phone?.trim()) {
+            return null;
+        }
+
+        return {
+            id: formData.deliveryPerson.id, // może być null jeśli ręcznie wpisane
+            name: formData.deliveryPerson.name.trim(),
+            phone: formData.deliveryPerson.phone.trim()
+        };
+    };
+
     // Ustawienie początkowego statusu w zależności od kontekstu
     useEffect(() => {
         setFormData(prev => ({
@@ -125,6 +220,80 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
             status: ProtocolStatus.IN_PROGRESS // Zawsze ustawiamy status na IN_PROGRESS przy rozpoczynaniu wizyty
         }));
     }, [services]);
+
+    // NOWE: Obsługa delivery person toggle
+    const handleDeliveryPersonToggle = (enabled: boolean) => {
+        setIsDeliveryPersonDifferent(enabled);
+
+        if (enabled) {
+            // Inicjalizuj delivery person jeśli jest włączony
+            setFormData(prev => ({
+                ...prev,
+                deliveryPerson: prev.deliveryPerson || { id: null, name: '', phone: '' }
+            }));
+        } else {
+            // Wyczyść delivery person jeśli jest wyłączony
+            setFormData(prev => ({
+                ...prev,
+                deliveryPerson: null
+            }));
+        }
+    };
+
+    // NOWE: Obsługa zmiany imienia delivery person
+    const handleDeliveryPersonNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { value } = e.target;
+
+        setFormData(prev => ({
+            ...prev,
+            deliveryPerson: {
+                id: null, // Reset ID gdy użytkownik wpisuje manualnie
+                name: value,
+                phone: prev.deliveryPerson?.phone || ''
+            }
+        }));
+    };
+
+    // NOWE: Obsługa zmiany telefonu delivery person
+    const handleDeliveryPersonPhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { value } = e.target;
+
+        setFormData(prev => ({
+            ...prev,
+            deliveryPerson: {
+                id: prev.deliveryPerson?.id || null,
+                name: prev.deliveryPerson?.name || '',
+                phone: value
+            }
+        }));
+    };
+
+    // NOWE: Obsługa autocomplete dla delivery person
+    const handleDeliveryPersonAutocompleteSelect = (option: AutocompleteOption, fieldType: string) => {
+        if (option.type === 'client') {
+            const client = option.data as ClientExpanded;
+
+            if (fieldType === 'deliveryPersonName') {
+                setFormData(prev => ({
+                    ...prev,
+                    deliveryPerson: {
+                        id: client.id,
+                        name: `${client.firstName} ${client.lastName}`.trim(),
+                        phone: client.phone || prev.deliveryPerson?.phone || ''
+                    }
+                }));
+            } else if (fieldType === 'deliveryPersonPhone') {
+                setFormData(prev => ({
+                    ...prev,
+                    deliveryPerson: {
+                        id: client.id,
+                        name: prev.deliveryPerson?.name || `${client.firstName} ${client.lastName}`.trim(),
+                        phone: client.phone || ''
+                    }
+                }));
+            }
+        }
+    };
 
     // NAPRAWKA: Obsługa zmiany formularza z prawidłowym formatowaniem dat
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -252,6 +421,7 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
         console.log('=== START VISIT FORM DATA ===');
         console.log('formData.startDate:', formData.startDate);
         console.log('formData.endDate:', formData.endDate);
+        console.log('formData.deliveryPerson:', formData.deliveryPerson); // NOWE
         console.log('============================');
 
         try {
@@ -287,12 +457,14 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
                 startDate: processedStartDate,
                 endDate: processedEndDate,
                 status: ProtocolStatus.IN_PROGRESS,
-                statusUpdatedAt: new Date().toISOString()
+                statusUpdatedAt: new Date().toISOString(),
+                deliveryPerson: prepareDeliveryPersonForApi(formData) // NOWE: dodanie delivery person
             };
 
             console.log('=== UPDATED PROTOCOL DATA ===');
             console.log('updatedProtocol.startDate:', updatedProtocol.startDate);
             console.log('updatedProtocol.endDate:', updatedProtocol.endDate);
+            console.log('updatedProtocol.deliveryPerson:', updatedProtocol.deliveryPerson); // NOWE
             console.log('=============================');
 
             let savedProtocol;
@@ -327,6 +499,16 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
         }
     };
 
+    if (loadingAutocompleteData) {
+        return (
+            <FormContainer>
+                <div style={{ padding: '2rem', textAlign: 'center' }}>
+                    Ładowanie danych klientów i pojazdów...
+                </div>
+            </FormContainer>
+        );
+    }
+
     return (
         <FormContainer>
             <FormHeader
@@ -340,7 +522,7 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
             <Form onSubmit={handleSubmit}>
                 <VisitTitleSection
                     title={formData.title || ''}
-                    selectedColorId={formData.calendarColorId} // Dodane pole calendarColorId
+                    selectedColorId={formData.calendarColorId}
                     onChange={handleChange}
                     error={undefined}
                 />
@@ -350,14 +532,30 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
                     errors={{}}
                     onChange={handleChange}
                     isFullProtocol={true}
-                    readOnly={true} // Tylko do odczytu, nie można edytować danych pojazdu
+                    readOnly={true}
+                    autocompleteOptions={[]} // Puste opcje bo jest readonly
+                    onAutocompleteSelect={() => {}} // Pusta funkcja bo jest readonly
                 />
 
                 <ClientInfoSection
                     formData={formData}
                     errors={{}}
                     onChange={handleChange}
-                    readOnly={true} // Tylko do odczytu, nie można edytować danych klienta
+                    readOnly={true}
+                    autocompleteOptions={[]} // Puste opcje bo jest readonly
+                    onAutocompleteSelect={() => {}} // Pusta funkcja bo jest readonly
+                />
+
+                {/* NOWA SEKCJA: Delivery Person */}
+                <DeliveryPersonSection
+                    isDeliveryPersonDifferent={isDeliveryPersonDifferent}
+                    deliveryPerson={formData.deliveryPerson || null}
+                    errors={{}} // Brak walidacji w start visit form
+                    onDeliveryPersonToggle={handleDeliveryPersonToggle}
+                    onDeliveryPersonNameChange={handleDeliveryPersonNameChange}
+                    onDeliveryPersonPhoneChange={handleDeliveryPersonPhoneChange}
+                    autocompleteOptions={autocompleteOptions}
+                    onAutocompleteSelect={handleDeliveryPersonAutocompleteSelect}
                 />
 
                 <ServiceSection
@@ -378,6 +576,11 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
                     calculateTotals={calculateTotals}
                     allowCustomService={true}
                     onAddServiceDirect={handleAddServiceDirect}
+                />
+
+                <ImageUploadSection
+                    images={formData.vehicleImages || []}
+                    onImagesChange={handleImagesChange}
                 />
 
                 <NotesSection

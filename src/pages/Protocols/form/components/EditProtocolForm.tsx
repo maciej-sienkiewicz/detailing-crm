@@ -240,18 +240,6 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
                     onAutocompleteSelect={handleAutocompleteSelect}
                 />
 
-                {/* NOWA SEKCJA: Delivery Person */}
-                <DeliveryPersonSection
-                    isDeliveryPersonDifferent={isDeliveryPersonDifferent}
-                    deliveryPerson={formData.deliveryPerson || null}
-                    errors={errors}
-                    onDeliveryPersonToggle={handleDeliveryPersonToggle}
-                    onDeliveryPersonNameChange={handleDeliveryPersonNameChange}
-                    onDeliveryPersonPhoneChange={handleDeliveryPersonPhoneChange}
-                    autocompleteOptions={autocompleteOptions}
-                    onAutocompleteSelect={handleDeliveryPersonAutocompleteSelect}
-                />
-
                 {!isClientFromSearch && (
                     <ReferralSourceSection
                         referralSource={formData.referralSource || null}
