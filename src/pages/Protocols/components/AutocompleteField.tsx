@@ -85,7 +85,7 @@ export const AutocompleteField: React.FC<AutocompleteFieldProps> = ({
 
     // Filter options based on current input value and field type
     const filteredOptions = useMemo(() => {
-        if (!value || value.length < 2) return [];
+        if (!value || value.length < 1) return []; // Zmienione z 2 na 1
 
         const searchValue = value.toLowerCase().trim();
 
@@ -144,10 +144,10 @@ export const AutocompleteField: React.FC<AutocompleteFieldProps> = ({
         onChange(e);
         setHighlightedIndex(-1);
 
-        if (!isOpen && e.target.value.length >= 2) {
+        if (!isOpen && e.target.value.length >= 1) { // Zmienione z 2 na 1
             setIsOpen(true);
             updateDropdownPosition();
-        } else if (e.target.value.length < 2) {
+        } else if (e.target.value.length < 1) { // Zmienione z 2 na 1
             setIsOpen(false);
         }
     };
@@ -175,7 +175,7 @@ export const AutocompleteField: React.FC<AutocompleteFieldProps> = ({
         switch (e.key) {
             case 'ArrowDown':
                 e.preventDefault();
-                if (!isOpen && value.length >= 2) {
+                if (!isOpen && value.length >= 1) { // Zmienione z 2 na 1
                     setIsOpen(true);
                     updateDropdownPosition();
                 } else {
@@ -205,7 +205,7 @@ export const AutocompleteField: React.FC<AutocompleteFieldProps> = ({
     };
 
     const handleInputFocus = () => {
-        if (!disabled && value.length >= 2) {
+        if (!disabled && value.length >= 1) { // Zmienione z 2 na 1
             setIsOpen(true);
             updateDropdownPosition();
         }
@@ -291,6 +291,12 @@ export const AutocompleteField: React.FC<AutocompleteFieldProps> = ({
                     placeholder={placeholder}
                     required={required}
                     disabled={disabled}
+                    autoComplete="new-password"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
+                    data-lpignore="true"
+                    data-form-type="other"
                 />
 
                 {value && !disabled && (
@@ -386,10 +392,10 @@ const InputContainer = styled.div<{ $isOpen: boolean; $disabled: boolean; $hasEr
     height: 44px;
     background: ${brandTheme.surface};
     border: 2px solid ${props => {
-    if (props.$hasError) return '#dc2626';
-    if (props.$isOpen) return brandTheme.primary;
-    return brandTheme.border;
-}};
+        if (props.$hasError) return '#dc2626';
+        if (props.$isOpen) return brandTheme.primary;
+        return brandTheme.border;
+    }};
     border-radius: ${brandTheme.radius.md};
     transition: all ${brandTheme.transitions.normal};
     opacity: ${props => props.$disabled ? 0.6 : 1};
