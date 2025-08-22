@@ -289,33 +289,6 @@ const TabletManagementDashboard: React.FC<TabletManagementDashboardProps> = ({
     return (
         <DashboardContainer>
             <DashboardCard>
-                <TabNavigation>
-                    <TabButton
-                        $active={activeTab === 'tablets'}
-                        onClick={() => setActiveTab('tablets')}
-                    >
-                        <TabIcon>
-                            <FaTabletAlt />
-                        </TabIcon>
-                        <TabContent>
-                            <TabLabel>Tablety</TabLabel>
-                            <TabCount>({tablets.length})</TabCount>
-                        </TabContent>
-                    </TabButton>
-                    <TabButton
-                        $active={activeTab === 'sessions'}
-                        onClick={() => setActiveTab('sessions')}
-                    >
-                        <TabIcon>
-                            <FaSignature />
-                        </TabIcon>
-                        <TabContent>
-                            <TabLabel>Sesje Podpisów</TabLabel>
-                            <TabCount>({sessions.length})</TabCount>
-                        </TabContent>
-                    </TabButton>
-                </TabNavigation>
-
                 <ContentArea>
                     {activeTab === 'tablets' ? (
                         <TabletsGrid>
@@ -749,8 +722,9 @@ const TabCount = styled.span`
 const ContentArea = styled.div`
     flex: 1;
     overflow-y: auto;
-    padding: ${brandTheme.spacing.lg};
     min-height: 0;
+    display: flex;
+    flex-direction: column;
 
     /* Custom scrollbar */
     &::-webkit-scrollbar {
@@ -770,9 +744,10 @@ const EmptyState = styled.div`
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: ${brandTheme.spacing.xxl};
     text-align: center;
-    min-height: 400px;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
 `;
 
 const EmptyStateIcon = styled.div`
@@ -814,6 +789,8 @@ const TabletsGrid = styled.div`
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
     gap: ${brandTheme.spacing.lg};
+    padding: ${brandTheme.spacing.lg};
+    flex: 1;
 `;
 
 const TabletCard = styled.div<{ $status: string; $isOnline: boolean }>`
@@ -1042,6 +1019,8 @@ const SessionsContainer = styled.div`
     display: flex;
     flex-direction: column;
     gap: ${brandTheme.spacing.md};
+    padding: ${brandTheme.spacing.lg};
+    flex: 1;
 `;
 
 const SessionsList = styled.div`

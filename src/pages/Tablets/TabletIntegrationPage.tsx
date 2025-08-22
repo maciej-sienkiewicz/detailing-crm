@@ -738,19 +738,17 @@ const ContentContainer = styled.div`
     flex: 1;
     max-width: 1600px;
     margin: 0 auto;
-    padding: 0 ${brandTheme.spacing.xl} ${brandTheme.spacing.xl};
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: ${brandTheme.spacing.lg};
     min-height: 0;
 
     @media (max-width: 1024px) {
-        padding: 0 ${brandTheme.spacing.lg} ${brandTheme.spacing.lg};
+        // Usuń padding tutaj
     }
 
     @media (max-width: 768px) {
-        padding: 0 ${brandTheme.spacing.md} ${brandTheme.spacing.md};
+        // Usuń padding tutaj
         gap: ${brandTheme.spacing.md};
     }
 `;

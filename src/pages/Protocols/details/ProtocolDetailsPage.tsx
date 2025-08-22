@@ -284,10 +284,13 @@ const ProtocolDetailsPage: React.FC = () => {
     };
 
     // Handle payment confirm
+// Zaktualizowana funkcja handlePaymentConfirm do wstawienia w ProtocolDetailsPage.tsx
+
     const handlePaymentConfirm = async (paymentData: {
-        paymentMethod: 'cash' | 'card';
+        paymentMethod: 'cash' | 'card' | 'transfer';
         documentType: 'invoice' | 'receipt' | 'other';
-        overridenItems?: SelectedService[]; // Dodane nowe pole
+        paymentDays?: number;
+        overridenItems?: SelectedService[];
     }) => {
         try {
             setShowPaymentModal(false);
@@ -498,6 +501,8 @@ const ProtocolDetailsPage: React.FC = () => {
                 services={protocol?.selectedServices || []}
                 onServicesChange={handleServiceItemsChange}
                 protocolId={protocol.id}
+                customerName={protocol?.clientName}
+                customerEmail={protocol?.email}
             />
 
             {showPdfPreview && protocol && (

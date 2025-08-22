@@ -62,35 +62,6 @@ export const VisitsFilterBar: React.FC<VisitsFilterBarProps> = ({
     return (
         <FilterContainer>
             <QuickSearchSection>
-                <form onSubmit={handleQuickSearchSubmit}>
-                    <SearchInputWrapper>
-                        <SearchIcon>
-                            <FaSearch />
-                        </SearchIcon>
-                        <SearchInput
-                            type="text"
-                            value={filters.quickSearch || ''}
-                            onChange={(e) => handleQuickSearchChange(e.target.value)}
-                            onBlur={handleQuickSearchBlur}
-                            placeholder="Szybkie wyszukiwanie - klient, pojazd, numer rejestracyjny..."
-                            disabled={loading}
-                        />
-                        {hasQuickSearch && (
-                            <ClearButton
-                                type="button"
-                                onClick={handleClearQuickSearch}
-                                disabled={loading}
-                            >
-                                <FaTimes />
-                            </ClearButton>
-                        )}
-                    </SearchInputWrapper>
-
-                    <SearchButton type="submit" disabled={loading}>
-                        {loading ? 'Szukam...' : 'Szukaj'}
-                    </SearchButton>
-                </form>
-
                 <AdvancedToggle
                     type="button"
                     onClick={() => setIsExpanded(!isExpanded)}
@@ -98,7 +69,7 @@ export const VisitsFilterBar: React.FC<VisitsFilterBarProps> = ({
                     $hasFilters={hasAdvancedFilters}
                 >
                     <FaFilter />
-                    Filtry zaawansowane
+                    Filtrowanie
                     {hasAdvancedFilters && <FilterIndicator>{Object.keys(filters).filter(key => {
                         const value = filters[key as keyof typeof filters];
                         if (key === 'quickSearch') return false;

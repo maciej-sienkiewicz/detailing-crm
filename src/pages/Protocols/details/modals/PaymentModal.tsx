@@ -2,9 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FaTimes, FaCheck } from 'react-icons/fa';
 import { useToast } from "../../../../components/common/Toast/Toast";
 import { SelectedService } from "../../../../types";
-import { CreateServiceCommand } from "../../../../api/invoiceSignatureApi";
 import InvoiceItemsModal from "./InvoiceItemsModal";
-import InvoiceSignatureConfirmationModal from "./InvoiceSignatureConfirmationModal";
 import * as S from './PaymentModalStyles';
 
 interface PaymentModalProps {
@@ -15,8 +13,6 @@ interface PaymentModalProps {
         documentType: 'invoice' | 'receipt' | 'other';
         paymentDays?: number;
         overridenItems?: SelectedService[];
-        invoiceSignatureSessionId?: string;
-        invoiceId?: string;
     }) => void;
     totalAmount: number;
     services: SelectedService[];
@@ -41,36 +37,16 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     const [documentType, setDocumentType] = useState<'invoice' | 'receipt' | 'other'>('receipt');
     const [paymentDays, setPaymentDays] = useState<number>(7);
     const [showInvoiceItemsModal, setShowInvoiceItemsModal] = useState(false);
-    const [showInvoiceSignatureModal, setShowInvoiceSignatureModal] = useState(false);
     const [pendingInvoiceItems, setPendingInvoiceItems] = useState<SelectedService[] | null>(null);
-    const [invoiceSignatureSessionId, setInvoiceSignatureSessionId] = useState<string>('');
-    const [generatedInvoiceId, setGeneratedInvoiceId] = useState<string>('');
 
     const { showToast } = useToast();
 
-    const convertToCreateServiceCommand = (service: SelectedService): CreateServiceCommand => {
-        return {
-            name: service.name,
-            price: service.price,
-            quantity: 1,
-            discountType: service.discountType === 'PERCENTAGE' ? 'PERCENTAGE' :
-                service.discountType === 'FIXED_PRICE' ? 'FIXED_PRICE' : service.discountType === 'AMOUNT' ? 'AMOUNT' : null,
-            discountValue: service.discountValue || null,
-            finalPrice: service.finalPrice,
-            approvalStatus: service.approvalStatus === 'APPROVED' ? 'APPROVED' :
-                service.approvalStatus === 'REJECTED' ? 'REJECTED' : 'PENDING',
-            note: service.note || null
-        };
-    };
-
     useEffect(() => {
-        if (isOpen && !showInvoiceItemsModal && !showInvoiceSignatureModal) {
+        if (isOpen && !showInvoiceItemsModal) {
             if (!pendingInvoiceItems) {
                 setPaymentMethod('cash');
                 setDocumentType('receipt');
                 setPaymentDays(7);
-                setInvoiceSignatureSessionId('');
-                setGeneratedInvoiceId('');
             }
         }
     }, [isOpen]);
@@ -81,8 +57,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             setPaymentMethod('cash');
             setDocumentType('receipt');
             setPaymentDays(7);
-            setInvoiceSignatureSessionId('');
-            setGeneratedInvoiceId('');
         }
     }, [isOpen]);
 
@@ -125,42 +99,13 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     };
 
     const handleConfirm = () => {
-        if (documentType === 'invoice') {
-            setShowInvoiceSignatureModal(true);
-            return;
-        }
-
-        finalizePayment(false);
-    };
-
-    const handleInvoiceSignatureConfirm = (withSignature: boolean, sessionId?: string, invoiceId?: string) => {
-        console.log('🔧 Invoice signature confirmation:', { withSignature, sessionId, invoiceId });
-
-        if (withSignature && sessionId) {
-            setInvoiceSignatureSessionId(sessionId);
-            showToast('success', 'Podpis cyfrowy został zebrany i dołączony do faktury.', 4000);
-        } else if (withSignature && !sessionId) {
-            console.warn('⚠️ Expected signature but no session ID provided');
-            showToast('info', 'Podpis nie został zebrany, kontynuowanie bez podpisu.', 3000);
-        } else if (!withSignature && invoiceId) {
-            setGeneratedInvoiceId(invoiceId);
-            showToast('success', 'Faktura została wygenerowana bez podpisu cyfrowego.', 4000);
-        }
-
-        setShowInvoiceSignatureModal(false);
-        finalizePayment(withSignature, sessionId, invoiceId);
-    };
-
-    const finalizePayment = (withInvoiceSignature: boolean, sessionId?: string, invoiceId?: string) => {
         const itemsWereModified = areItemsModified(services, pendingInvoiceItems);
 
         const paymentData = {
             paymentMethod,
             documentType,
             ...(paymentMethod === 'transfer' ? { paymentDays } : {}),
-            ...(itemsWereModified && pendingInvoiceItems ? { overridenItems: pendingInvoiceItems } : {}),
-            ...(withInvoiceSignature && sessionId ? { invoiceSignatureSessionId: sessionId } : {}),
-            ...(invoiceId ? { invoiceId } : {})
+            ...(itemsWereModified && pendingInvoiceItems ? { overridenItems: pendingInvoiceItems } : {})
         };
 
         if (itemsWereModified && pendingInvoiceItems) {
@@ -183,8 +128,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         }
 
         if (documentType === 'invoice') {
-            const signatureMsg = withInvoiceSignature ? ' z podpisem cyfrowym' : '';
-            showToast('success', `Dodano nową pozycję w archiwum faktur${signatureMsg}`, 3000);
+            showToast('success', 'Dodano nową pozycję w archiwum faktur', 3000);
         }
 
         onConfirm(paymentData);
@@ -192,22 +136,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
     const handleCloseInvoiceModal = () => {
         setShowInvoiceItemsModal(false);
-    };
-
-    const handleCloseInvoiceSignatureModal = () => {
-        setShowInvoiceSignatureModal(false);
-    };
-
-    const prepareInvoiceSignatureData = () => {
-        const itemsToSend = pendingInvoiceItems || services;
-
-        return {
-            paymentMethod,
-            paymentDays: paymentMethod === 'transfer' ? paymentDays : undefined,
-            overridenItems: areItemsModified(services, pendingInvoiceItems)
-                ? itemsToSend.map(convertToCreateServiceCommand)
-                : undefined
-        };
     };
 
     const paymentOptions = [
@@ -402,7 +330,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                         </S.SecondaryButton>
                         <S.PrimaryButton onClick={handleConfirm}>
                             <FaCheck />
-                            {documentType === 'invoice' ? 'Wystaw fakturę' : 'Zatwierdź i wydaj pojazd'}
+                            {documentType === 'invoice' ? 'Wystaw fakturę i wydaj pojazd' : 'Zatwierdź i wydaj pojazd'}
                         </S.PrimaryButton>
                     </S.ModalFooter>
                 </S.ModalContainer>
@@ -414,16 +342,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 onSave={handleInvoiceItemsSave}
                 services={pendingInvoiceItems || services}
                 protocolId={protocolId}
-            />
-
-            <InvoiceSignatureConfirmationModal
-                isOpen={showInvoiceSignatureModal}
-                onClose={handleCloseInvoiceSignatureModal}
-                onConfirm={handleInvoiceSignatureConfirm}
-                visitId={protocolId}
-                customerName={customerName}
-                customerEmail={customerEmail}
-                paymentData={prepareInvoiceSignatureData()}
             />
         </>
     );
