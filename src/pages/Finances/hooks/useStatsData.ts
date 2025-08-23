@@ -5,10 +5,9 @@ import {
     UncategorizedService,
     Category,
     CreateCategoryRequest,
-    AddToCategoryRequest,
     CategoryService,
     ServiceStatsResponse,
-    TimeGranularity
+    TimeGranularity, CategoryStatsResponse
 } from '../../../api/statsApi';
 
 export const useStatsData = () => {
@@ -175,7 +174,7 @@ export const useStatsData = () => {
     };
 };
 
-// Hook for service statistics
+//Hook for service statistics
 export const useServiceStats = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -207,6 +206,44 @@ export const useServiceStats = () => {
 
     return {
         fetchServiceStats,
+        loading,
+        error,
+        clearError
+    };
+};
+
+// Hook for category statistics
+export const useCategoryStats = () => {
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const fetchCategoryStats = useCallback(async (
+        categoryId: number,
+        startDate: string,
+        endDate: string,
+        granularity: TimeGranularity = TimeGranularity.MONTHLY
+    ): Promise<CategoryStatsResponse | null> => {
+        try {
+            setLoading(true);
+            setError(null);
+
+            const stats = await statsApi.getCategoryStats(categoryId, startDate, endDate, granularity);
+            return stats;
+        } catch (err) {
+            console.error('Error fetching category stats:', err);
+            setError(err instanceof Error ? err.message : 'Nie udało się pobrać statystyk kategorii');
+            return null;
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    const clearError = useCallback(() => {
+        setError(null);
+    }, []);
+
+    return {
+        fetchCategoryStats,
         loading,
         error,
         clearError

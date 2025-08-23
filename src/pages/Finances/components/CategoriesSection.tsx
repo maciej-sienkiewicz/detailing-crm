@@ -1,7 +1,7 @@
 // src/pages/Finances/components/CategoriesSection.tsx
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { FaPlus, FaFolder, FaChevronDown, FaChevronRight } from 'react-icons/fa';
+import {FaPlus, FaFolder, FaChevronDown, FaChevronRight, FaCalendarAlt} from 'react-icons/fa';
 import { Category, CategoryService } from '../../../api/statsApi';
 import { CategoryServicesTable } from './CategoryServicesTable';
 
@@ -45,6 +45,7 @@ interface CategoryPanelProps {
     loadingServices: boolean;
     onLoadServices: (categoryId: number) => Promise<CategoryService[]>;
     onShowStats: (serviceId: string, serviceName: string) => void;
+    onShowCategoryStats: (categoryId: number, categoryName: string) => void;
 }
 
 const CategoryPanel: React.FC<CategoryPanelProps> = ({
@@ -54,7 +55,8 @@ const CategoryPanel: React.FC<CategoryPanelProps> = ({
                                                          services,
                                                          loadingServices,
                                                          onLoadServices,
-                                                         onShowStats
+                                                         onShowStats,
+                                                         onShowCategoryStats
                                                      }) => {
     const handleToggle = async () => {
         if (!isExpanded) {
@@ -62,6 +64,11 @@ const CategoryPanel: React.FC<CategoryPanelProps> = ({
             await onLoadServices(category.id);
         }
         onToggle();
+    };
+
+    const handleCategoryStatsClick = (e: React.MouseEvent) => {
+        e.stopPropagation(); // Prevent panel toggle
+        onShowCategoryStats(category.id, category.name);
     };
 
     return (
@@ -80,6 +87,12 @@ const CategoryPanel: React.FC<CategoryPanelProps> = ({
                     </CategoryInfo>
                 </PanelHeaderLeft>
                 <PanelHeaderRight>
+                    <CategoryStatsButton
+                        onClick={handleCategoryStatsClick}
+                        title="Statystyki kategorii"
+                    >
+                        <FaCalendarAlt />
+                    </CategoryStatsButton>
                     <CategoryCount>{category.servicesCount}</CategoryCount>
                 </PanelHeaderRight>
             </PanelHeader>
@@ -105,6 +118,7 @@ interface CategoriesSectionProps {
     onCreateCategory: () => void;
     onFetchCategoryServices: (categoryId: number) => Promise<CategoryService[]>;
     onShowServiceStats: (serviceId: string, serviceName: string) => void;
+    onShowCategoryStats: (categoryId: number, categoryName: string) => void;
     creatingCategory: boolean;
 }
 
@@ -115,6 +129,7 @@ export const CategoriesSection: React.FC<CategoriesSectionProps> = ({
                                                                         onCreateCategory,
                                                                         onFetchCategoryServices,
                                                                         onShowServiceStats,
+                                                                        onShowCategoryStats,
                                                                         creatingCategory
                                                                     }) => {
     const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set());
@@ -189,6 +204,7 @@ export const CategoriesSection: React.FC<CategoriesSectionProps> = ({
                             loadingServices={loadingCategoryServices.has(category.id)}
                             onLoadServices={onFetchCategoryServices}
                             onShowStats={onShowServiceStats}
+                            onShowCategoryStats={onShowCategoryStats}
                         />
                     ))
                 )}
@@ -463,4 +479,31 @@ const EmptyStateDescription = styled.p`
     margin: 0;
     line-height: 1.5;
     max-width: 400px;
+`;
+
+const CategoryStatsButton = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: ${brandTheme.status.infoLight};
+    color: ${brandTheme.status.info};
+    border: 1px solid ${brandTheme.status.info}30;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-right: 8px;
+    font-size: 14px;
+
+    &:hover {
+        background: ${brandTheme.status.info};
+        color: white;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    &:active {
+        transform: translateY(0);
+    }
 `;

@@ -1,4 +1,4 @@
-// src/pages/Finances/components/ServiceStatsModal.tsx
+// src/pages/Finances/components/CategoryStatsModal.tsx
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { Line, Bar } from 'react-chartjs-2';
@@ -14,10 +14,10 @@ import {
     Legend,
     ChartOptions
 } from 'chart.js';
-import { FaTimes, FaChartLine, FaSync, FaCalendarAlt, FaShoppingCart } from 'react-icons/fa';
+import { FaTimes, FaFolder, FaSync, FaCalendarAlt, FaShoppingCart } from 'react-icons/fa';
 import Modal from '../../../components/common/Modal';
-import { useServiceStats } from '../hooks/useStatsData';
-import { TimeGranularity, TimeGranularityLabels, ServiceStatsResponse } from '../../../api/statsApi';
+import { useCategoryStats } from '../hooks/useStatsData';
+import { TimeGranularity, TimeGranularityLabels, CategoryStatsResponse } from '../../../api/statsApi';
 
 ChartJS.register(
     CategoryScale,
@@ -46,21 +46,21 @@ const chartTheme = {
     }
 };
 
-interface ServiceStatsModalProps {
+interface CategoryStatsModalProps {
     isOpen: boolean;
     onClose: () => void;
-    serviceId: string;
-    serviceName: string;
+    categoryId: number;
+    categoryName: string;
 }
 
-export const ServiceStatsModal: React.FC<ServiceStatsModalProps> = ({
-                                                                        isOpen,
-                                                                        onClose,
-                                                                        serviceId,
-                                                                        serviceName
-                                                                    }) => {
-    const { fetchServiceStats, loading, error } = useServiceStats();
-    const [statsData, setStatsData] = useState<ServiceStatsResponse | null>(null);
+export const CategoryStatsModal: React.FC<CategoryStatsModalProps> = ({
+                                                                          isOpen,
+                                                                          onClose,
+                                                                          categoryId,
+                                                                          categoryName
+                                                                      }) => {
+    const { fetchCategoryStats, loading, error } = useCategoryStats();
+    const [statsData, setStatsData] = useState<CategoryStatsResponse | null>(null);
     const [selectedGranularity, setSelectedGranularity] = useState<TimeGranularity>(TimeGranularity.MONTHLY);
     const [dateRange, setDateRange] = useState({
         startDate: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 1 year ago
@@ -69,14 +69,14 @@ export const ServiceStatsModal: React.FC<ServiceStatsModalProps> = ({
 
     // Load stats data when modal opens
     useEffect(() => {
-        if (isOpen && serviceId) {
+        if (isOpen && categoryId) {
             loadStats();
         }
-    }, [isOpen, serviceId, selectedGranularity, dateRange]);
+    }, [isOpen, categoryId, selectedGranularity, dateRange]);
 
     const loadStats = async () => {
-        const stats = await fetchServiceStats(
-            serviceId,
+        const stats = await fetchCategoryStats(
+            categoryId,
             dateRange.startDate,
             dateRange.endDate,
             selectedGranularity
@@ -219,11 +219,11 @@ export const ServiceStatsModal: React.FC<ServiceStatsModalProps> = ({
                 <ModalHeader>
                     <HeaderLeft>
                         <HeaderIcon>
-                            <FaChartLine />
+                            <FaFolder />
                         </HeaderIcon>
                         <HeaderText>
-                            <ModalTitle>Statystyki usługi</ModalTitle>
-                            <ServiceTitle>{serviceName}</ServiceTitle>
+                            <ModalTitle>Statystyki kategorii</ModalTitle>
+                            <CategoryTitle>{categoryName}</CategoryTitle>
                         </HeaderText>
                     </HeaderLeft>
                     <HeaderRight>
@@ -272,7 +272,7 @@ export const ServiceStatsModal: React.FC<ServiceStatsModalProps> = ({
                 {loading ? (
                     <LoadingContainer>
                         <FaSync className="spinning" />
-                        <LoadingText>Ładowanie statystyk...</LoadingText>
+                        <LoadingText>Ładowanie statystyk kategorii...</LoadingText>
                     </LoadingContainer>
                 ) : error ? (
                     <ErrorContainer>
@@ -284,11 +284,11 @@ export const ServiceStatsModal: React.FC<ServiceStatsModalProps> = ({
                         <SummarySection>
                             <SummaryCard>
                                 <SummaryIcon $color={chartTheme.primary}>
-                                    <FaShoppingCart />
+                                    <FaCalendarAlt />
                                 </SummaryIcon>
                                 <SummaryContent>
                                     <SummaryValue>{formatCurrency(totalRevenue)}</SummaryValue>
-                                    <SummaryLabel>Łączny przychód</SummaryLabel>
+                                    <SummaryLabel>Łączny przychód kategorii</SummaryLabel>
                                 </SummaryContent>
                             </SummaryCard>
                             <SummaryCard>
@@ -297,7 +297,7 @@ export const ServiceStatsModal: React.FC<ServiceStatsModalProps> = ({
                                 </SummaryIcon>
                                 <SummaryContent>
                                     <SummaryValue>{totalOrders}</SummaryValue>
-                                    <SummaryLabel>Łączna liczba zamówień</SummaryLabel>
+                                    <SummaryLabel>Łączne zamówienia</SummaryLabel>
                                 </SummaryContent>
                             </SummaryCard>
                         </SummarySection>
@@ -306,7 +306,7 @@ export const ServiceStatsModal: React.FC<ServiceStatsModalProps> = ({
                         <ChartsSection>
                             <ChartContainer>
                                 <ChartTitle>
-                                    <ChartTitleText>Przychody w czasie</ChartTitleText>
+                                    <ChartTitleText>Przychody kategorii w czasie</ChartTitleText>
                                     <ChartSubtitle>{dataPoints} okresów</ChartSubtitle>
                                 </ChartTitle>
                                 <ChartWrapper>
@@ -333,7 +333,7 @@ export const ServiceStatsModal: React.FC<ServiceStatsModalProps> = ({
 
                             <ChartContainer>
                                 <ChartTitle>
-                                    <ChartTitleText>Liczba zamówień</ChartTitleText>
+                                    <ChartTitleText>Zamówienia kategorii</ChartTitleText>
                                     <ChartSubtitle>według okresów</ChartSubtitle>
                                 </ChartTitle>
                                 <ChartWrapper>
@@ -364,7 +364,7 @@ export const ServiceStatsModal: React.FC<ServiceStatsModalProps> = ({
     );
 };
 
-// Styled Components
+// Styled Components - same as ServiceStatsModal but with category-specific styling
 const ModalContent = styled.div`
     display: flex;
     flex-direction: column;
@@ -408,7 +408,7 @@ const ModalTitle = styled.h2`
     margin: 0 0 4px 0;
 `;
 
-const ServiceTitle = styled.div`
+const CategoryTitle = styled.div`
     font-size: 16px;
     color: ${chartTheme.text.secondary};
     font-weight: 500;
@@ -541,6 +541,7 @@ const GranularityButton = styled.button<{ $active: boolean }>`
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
+    white-space: nowrap;
 
     &:not(:last-child) {
         border-right: 1px solid ${chartTheme.border};

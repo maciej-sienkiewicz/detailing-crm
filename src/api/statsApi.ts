@@ -53,6 +53,13 @@ export interface CategoryService {
     totalRevenue: number;
 }
 
+export interface CategoryStatsResponse {
+    categoryId: number;
+    categoryName: string;
+    granularity: TimeGranularity;
+    data: TimeSeriesDataPoint[];
+}
+
 export enum TimeGranularity {
     DAILY = 'DAILY',
     WEEKLY = 'WEEKLY',
@@ -60,6 +67,15 @@ export enum TimeGranularity {
     QUARTERLY = 'QUARTERLY',
     YEARLY = 'YEARLY'
 }
+
+// Polish translations for granularity
+export const TimeGranularityLabels: Record<TimeGranularity, string> = {
+    [TimeGranularity.DAILY]: 'Dzienne',
+    [TimeGranularity.WEEKLY]: 'Tygodniowe',
+    [TimeGranularity.MONTHLY]: 'Miesięczne',
+    [TimeGranularity.QUARTERLY]: 'Kwartalne',
+    [TimeGranularity.YEARLY]: 'Roczne'
+};
 
 export interface StatsApiResponse<T> {
     success: boolean;
@@ -190,8 +206,35 @@ class StatsApi {
     }
 
     /**
-     * Get service statistics time series
+     * Get category statistics time series
      */
+    async getCategoryStats(
+        categoryId: number,
+        startDate: string,
+        endDate: string,
+        granularity: TimeGranularity = TimeGranularity.MONTHLY
+    ): Promise<CategoryStatsResponse> {
+        try {
+            console.log('🔍 Fetching category stats:', { categoryId, startDate, endDate, granularity });
+
+            const params = {
+                startDate,
+                endDate,
+                granularity
+            };
+
+            const response = await apiClientNew.get<CategoryStatsResponse>(
+                `${this.baseEndpoint}/categories/${categoryId}/timeseries`,
+                params
+            );
+
+            console.log('✅ Successfully fetched category stats:', response);
+            return response;
+        } catch (error) {
+            console.error('❌ Error fetching category stats:', error);
+            throw new Error('Nie udało się pobrać statystyk kategorii');
+        }
+    }
     async getServiceStats(
         serviceId: string,
         startDate: string,

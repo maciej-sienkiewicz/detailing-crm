@@ -7,6 +7,7 @@ import { AssignToCategoryModal } from './components/AssignToCategoryModal';
 import { CategoriesSection } from './components/CategoriesSection';
 import { UncategorizedServicesTable } from './components/UncategorizedServicesTable';
 import { ServiceStatsModal } from './components/ServiceStatsModal';
+import { CategoryStatsModal } from './components/CategoryStatsModal';
 import {
     StatsContainer,
     Header,
@@ -83,8 +84,10 @@ const FinancialReportsPage: React.FC = () => {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showAssignModal, setShowAssignModal] = useState(false);
     const [showStatsModal, setShowStatsModal] = useState(false);
+    const [showCategoryStatsModal, setShowCategoryStatsModal] = useState(false);
     const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
     const [selectedService, setSelectedService] = useState<{id: string, name: string} | null>(null);
+    const [selectedCategory, setSelectedCategory] = useState<{id: number, name: string} | null>(null);
 
     // Handle create category
     const handleCreateCategory = () => {
@@ -126,9 +129,20 @@ const FinancialReportsPage: React.FC = () => {
         setShowStatsModal(true);
     };
 
+    // Handle show category statistics
+    const handleShowCategoryStats = (categoryId: number, categoryName: string) => {
+        setSelectedCategory({ id: categoryId, name: categoryName });
+        setShowCategoryStatsModal(true);
+    };
+
     const handleCloseStatsModal = () => {
         setShowStatsModal(false);
         setSelectedService(null);
+    };
+
+    const handleCloseCategoryStatsModal = () => {
+        setShowCategoryStatsModal(false);
+        setSelectedCategory(null);
     };
 
     // Handle refresh
@@ -195,6 +209,7 @@ const FinancialReportsPage: React.FC = () => {
                 onCreateCategory={handleCreateCategory}
                 onFetchCategoryServices={handleFetchCategoryServices}
                 onShowServiceStats={handleShowServiceStats}
+                onShowCategoryStats={handleShowCategoryStats}
                 creatingCategory={creatingCategory}
             />
 
@@ -230,6 +245,15 @@ const FinancialReportsPage: React.FC = () => {
                     onClose={handleCloseStatsModal}
                     serviceId={selectedService.id}
                     serviceName={selectedService.name}
+                />
+            )}
+
+            {selectedCategory && (
+                <CategoryStatsModal
+                    isOpen={showCategoryStatsModal}
+                    onClose={handleCloseCategoryStatsModal}
+                    categoryId={selectedCategory.id}
+                    categoryName={selectedCategory.name}
                 />
             )}
         </StatsContainer>
