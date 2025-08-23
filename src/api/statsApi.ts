@@ -3,7 +3,7 @@ import { apiClientNew } from './apiClientNew';
 
 // Type definitions based on server responses
 export interface UncategorizedService {
-    id: string;
+    id: string; // Changed from number to string to match backend
     name: string;
     servicesCount: number;
     totalRevenue: number;
@@ -20,7 +20,45 @@ export interface CreateCategoryRequest {
 }
 
 export interface AddToCategoryRequest {
-    serviceIds: number[];
+    serviceIds: string[]; // Changed from number[] to string[] based on backend
+}
+
+export interface CategoryStatsSummary {
+    categoryId: number;
+    categoryName: string;
+    totalOrders: number;
+    totalRevenue: number;
+    servicesCount: number;
+}
+
+export interface TimeSeriesDataPoint {
+    period: string;
+    periodStart: string;
+    periodEnd: string;
+    orders: number;
+    revenue: number;
+}
+
+export interface ServiceStatsResponse {
+    serviceId: string;
+    serviceName: string;
+    granularity: TimeGranularity;
+    data: TimeSeriesDataPoint[];
+}
+
+export interface CategoryService {
+    id: string;
+    name: string;
+    servicesCount: number;
+    totalRevenue: number;
+}
+
+export enum TimeGranularity {
+    DAILY = 'DAILY',
+    WEEKLY = 'WEEKLY',
+    MONTHLY = 'MONTHLY',
+    QUARTERLY = 'QUARTERLY',
+    YEARLY = 'YEARLY'
 }
 
 export interface StatsApiResponse<T> {
@@ -106,6 +144,79 @@ class StatsApi {
         } catch (error) {
             console.error('❌ Error adding services to category:', error);
             throw new Error('Nie udało się przypisać usług do kategorii');
+        }
+    }
+
+    /**
+     * Get category summary stats
+     */
+    async getCategorySummary(categoryId: number): Promise<CategoryStatsSummary> {
+        try {
+            console.log('🔍 Fetching category summary:', categoryId);
+
+            const response = await apiClientNew.get<CategoryStatsSummary>(
+                `${this.baseEndpoint}/categories/${categoryId}/summary`
+            );
+
+            console.log('✅ Successfully fetched category summary:', response);
+            return response;
+        } catch (error) {
+            console.error('❌ Error fetching category summary:', error);
+            throw new Error('Nie udało się pobrać podsumowania kategorii');
+        }
+    }
+
+    /**
+     * Get services for a specific category
+     */
+    async getCategoryServices(categoryId: number): Promise<CategoryService[]> {
+        try {
+            console.log('🔍 Fetching category services:', categoryId);
+
+            // Using the actual backend endpoint: GET /api/stats/services/{categoryId}
+            const response = await apiClientNew.get<CategoryService[]>(
+                `${this.baseEndpoint}/services/${categoryId}`
+            );
+
+            console.log('✅ Successfully fetched category services:', response.length);
+            return Array.isArray(response) ? response : [];
+        } catch (error) {
+            console.error('❌ Error fetching category services:', error);
+
+            // Return empty array instead of throwing to prevent UI crashes
+            console.log('📝 Returning empty array for category services due to error');
+            return [];
+        }
+    }
+
+    /**
+     * Get service statistics time series
+     */
+    async getServiceStats(
+        serviceId: string,
+        startDate: string,
+        endDate: string,
+        granularity: TimeGranularity = TimeGranularity.MONTHLY
+    ): Promise<ServiceStatsResponse> {
+        try {
+            console.log('🔍 Fetching service stats:', { serviceId, startDate, endDate, granularity });
+
+            const params = {
+                startDate,
+                endDate,
+                granularity
+            };
+
+            const response = await apiClientNew.get<ServiceStatsResponse>(
+                `${this.baseEndpoint}/services/${serviceId}/timeseries`,
+                params
+            );
+
+            console.log('✅ Successfully fetched service stats:', response);
+            return response;
+        } catch (error) {
+            console.error('❌ Error fetching service stats:', error);
+            throw new Error('Nie udało się pobrać statystyk usługi');
         }
     }
 }

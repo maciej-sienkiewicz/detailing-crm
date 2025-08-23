@@ -1,17 +1,28 @@
 // src/pages/Finances/hooks/useStatsData.ts
 import { useState, useEffect, useCallback } from 'react';
-import { statsApi, UncategorizedService, Category, CreateCategoryRequest, AddToCategoryRequest } from '../../../api/statsApi';
+import {
+    statsApi,
+    UncategorizedService,
+    Category,
+    CreateCategoryRequest,
+    AddToCategoryRequest,
+    CategoryService,
+    ServiceStatsResponse,
+    TimeGranularity
+} from '../../../api/statsApi';
 
 export const useStatsData = () => {
     // State
     const [uncategorizedServices, setUncategorizedServices] = useState<UncategorizedService[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
+    const [categoryServices, setCategoryServices] = useState<Record<number, CategoryService[]>>({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     // Operations state
     const [creatingCategory, setCreatingCategory] = useState(false);
     const [assigningToCategory, setAssigningToCategory] = useState(false);
+    const [loadingCategoryServices, setLoadingCategoryServices] = useState<Set<number>>(new Set());
 
     // Fetch uncategorized services
     const fetchUncategorizedServices = useCallback(async () => {
@@ -32,6 +43,28 @@ export const useStatsData = () => {
         } catch (err) {
             console.error('Error fetching categories:', err);
             setError(err instanceof Error ? err.message : 'Błąd pobierania kategorii');
+        }
+    }, []);
+
+    // Fetch services for a specific category
+    const fetchCategoryServices = useCallback(async (categoryId: number): Promise<CategoryService[]> => {
+        try {
+            setLoadingCategoryServices(prev => new Set([...prev, categoryId]));
+
+            const services = await statsApi.getCategoryServices(categoryId);
+            setCategoryServices(prev => ({ ...prev, [categoryId]: services }));
+
+            return services;
+        } catch (err) {
+            console.error('Error fetching category services:', err);
+            setError(err instanceof Error ? err.message : 'Błąd pobierania usług kategorii');
+            return [];
+        } finally {
+            setLoadingCategoryServices(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(categoryId);
+                return newSet;
+            });
         }
     }, []);
 
@@ -72,7 +105,7 @@ export const useStatsData = () => {
     }, []);
 
     // Assign services to category
-    const assignToCategory = useCallback(async (categoryId: number, serviceIds: number[]): Promise<boolean> => {
+    const assignToCategory = useCallback(async (categoryId: number, serviceIds: string[]): Promise<boolean> => {
         try {
             setAssigningToCategory(true);
             setError(null);
@@ -92,6 +125,13 @@ export const useStatsData = () => {
                         : category
                 )
             );
+
+            // Clear cached category services to force refresh
+            setCategoryServices(prev => {
+                const newServices = { ...prev };
+                delete newServices[categoryId];
+                return newServices;
+            });
 
             return true;
         } catch (err) {
@@ -117,17 +157,58 @@ export const useStatsData = () => {
         // Data
         uncategorizedServices,
         categories,
+        categoryServices,
         loading,
         error,
 
         // Operation states
         creatingCategory,
         assigningToCategory,
+        loadingCategoryServices,
 
         // Actions
         refreshData,
+        fetchCategoryServices,
         createCategory,
         assignToCategory,
+        clearError
+    };
+};
+
+// Hook for service statistics
+export const useServiceStats = () => {
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const fetchServiceStats = useCallback(async (
+        serviceId: string,
+        startDate: string,
+        endDate: string,
+        granularity: TimeGranularity = TimeGranularity.MONTHLY
+    ): Promise<ServiceStatsResponse | null> => {
+        try {
+            setLoading(true);
+            setError(null);
+
+            const stats = await statsApi.getServiceStats(serviceId, startDate, endDate, granularity);
+            return stats;
+        } catch (err) {
+            console.error('Error fetching service stats:', err);
+            setError(err instanceof Error ? err.message : 'Nie udało się pobrać statystyk usługi');
+            return null;
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    const clearError = useCallback(() => {
+        setError(null);
+    }, []);
+
+    return {
+        fetchServiceStats,
+        loading,
+        error,
         clearError
     };
 };

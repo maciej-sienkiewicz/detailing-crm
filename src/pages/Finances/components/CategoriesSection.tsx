@@ -2,7 +2,8 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { FaPlus, FaFolder, FaChevronDown, FaChevronRight } from 'react-icons/fa';
-import { Category } from '../../../api/statsApi';
+import { Category, CategoryService } from '../../../api/statsApi';
+import { CategoryServicesTable } from './CategoryServicesTable';
 
 // Brand Theme System - consistent with ClientListTable
 const brandTheme = {
@@ -40,12 +41,32 @@ interface CategoryPanelProps {
     category: Category;
     isExpanded: boolean;
     onToggle: () => void;
+    services: CategoryService[];
+    loadingServices: boolean;
+    onLoadServices: (categoryId: number) => Promise<CategoryService[]>;
+    onShowStats: (serviceId: string, serviceName: string) => void;
 }
 
-const CategoryPanel: React.FC<CategoryPanelProps> = ({ category, isExpanded, onToggle }) => {
+const CategoryPanel: React.FC<CategoryPanelProps> = ({
+                                                         category,
+                                                         isExpanded,
+                                                         onToggle,
+                                                         services,
+                                                         loadingServices,
+                                                         onLoadServices,
+                                                         onShowStats
+                                                     }) => {
+    const handleToggle = async () => {
+        if (!isExpanded) {
+            // Load services when expanding
+            await onLoadServices(category.id);
+        }
+        onToggle();
+    };
+
     return (
         <PanelContainer>
-            <PanelHeader onClick={onToggle}>
+            <PanelHeader onClick={handleToggle}>
                 <PanelHeaderLeft>
                     <ExpandIcon $expanded={isExpanded}>
                         {isExpanded ? <FaChevronDown /> : <FaChevronRight />}
@@ -65,14 +86,12 @@ const CategoryPanel: React.FC<CategoryPanelProps> = ({ category, isExpanded, onT
 
             {isExpanded && (
                 <PanelContent>
-                    <ContentPlaceholder>
-                        <PlaceholderText>
-                            Tutaj będą wyświetlane usługi przypisane do kategorii "{category.name}"
-                        </PlaceholderText>
-                        <PlaceholderSubtext>
-                            Funkcjonalność zostanie dodana w przyszłości
-                        </PlaceholderSubtext>
-                    </ContentPlaceholder>
+                    <CategoryServicesTable
+                        services={services}
+                        categoryName={category.name}
+                        loading={loadingServices}
+                        onShowStats={onShowStats}
+                    />
                 </PanelContent>
             )}
         </PanelContainer>
@@ -81,18 +100,26 @@ const CategoryPanel: React.FC<CategoryPanelProps> = ({ category, isExpanded, onT
 
 interface CategoriesSectionProps {
     categories: Category[];
+    categoryServices: Record<number, CategoryService[]>;
+    loadingCategoryServices: Set<number>;
     onCreateCategory: () => void;
+    onFetchCategoryServices: (categoryId: number) => Promise<CategoryService[]>;
+    onShowServiceStats: (serviceId: string, serviceName: string) => void;
     creatingCategory: boolean;
 }
 
 export const CategoriesSection: React.FC<CategoriesSectionProps> = ({
                                                                         categories,
+                                                                        categoryServices,
+                                                                        loadingCategoryServices,
                                                                         onCreateCategory,
+                                                                        onFetchCategoryServices,
+                                                                        onShowServiceStats,
                                                                         creatingCategory
                                                                     }) => {
-    const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+    const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set());
 
-    const toggleCategory = (categoryId: string) => {
+    const toggleCategory = (categoryId: number) => {
         setExpandedCategories(prev => {
             const newSet = new Set(prev);
             if (newSet.has(categoryId)) {
@@ -120,6 +147,16 @@ export const CategoriesSection: React.FC<CategoriesSectionProps> = ({
                     <CategoryCounter>({categories.length})</CategoryCounter>
                 </HeaderLeft>
                 <HeaderRight>
+                    {categories.length > 0 && (
+                        <ExpandControls>
+                            <ExpandButton onClick={expandAll}>
+                                Rozwiń wszystkie
+                            </ExpandButton>
+                            <ExpandButton onClick={collapseAll}>
+                                Zwiń wszystkie
+                            </ExpandButton>
+                        </ExpandControls>
+                    )}
                     <CreateCategoryButton
                         onClick={onCreateCategory}
                         disabled={creatingCategory}
@@ -148,6 +185,10 @@ export const CategoriesSection: React.FC<CategoriesSectionProps> = ({
                             category={category}
                             isExpanded={expandedCategories.has(category.id)}
                             onToggle={() => toggleCategory(category.id)}
+                            services={categoryServices[category.id] || []}
+                            loadingServices={loadingCategoryServices.has(category.id)}
+                            onLoadServices={onFetchCategoryServices}
+                            onShowStats={onShowServiceStats}
                         />
                     ))
                 )}
@@ -381,31 +422,9 @@ const PanelContent = styled.div`
         }
         to {
             opacity: 1;
-            max-height: 200px;
+            max-height: 500px;
         }
     }
-`;
-
-const ContentPlaceholder = styled.div`
-    padding: 32px 24px;
-    text-align: center;
-    border: 2px dashed ${brandTheme.border};
-    margin: 16px 24px;
-    border-radius: 8px;
-    background: ${brandTheme.surface};
-`;
-
-const PlaceholderText = styled.div`
-    font-size: 14px;
-    color: ${brandTheme.neutral};
-    margin-bottom: 8px;
-    font-weight: 500;
-`;
-
-const PlaceholderSubtext = styled.div`
-    font-size: 12px;
-    color: ${brandTheme.neutral};
-    opacity: 0.8;
 `;
 
 // Empty State

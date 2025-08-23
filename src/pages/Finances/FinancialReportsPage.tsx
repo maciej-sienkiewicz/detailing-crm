@@ -6,6 +6,7 @@ import { CreateCategoryModal } from './components/CreateCategoryModal';
 import { AssignToCategoryModal } from './components/AssignToCategoryModal';
 import { CategoriesSection } from './components/CategoriesSection';
 import { UncategorizedServicesTable } from './components/UncategorizedServicesTable';
+import { ServiceStatsModal } from './components/ServiceStatsModal';
 import {
     StatsContainer,
     Header,
@@ -65,11 +66,14 @@ const FinancialReportsPage: React.FC = () => {
     const {
         uncategorizedServices,
         categories,
+        categoryServices,
         loading,
         error,
         creatingCategory,
         assigningToCategory,
+        loadingCategoryServices,
         refreshData,
+        fetchCategoryServices,
         createCategory,
         assignToCategory,
         clearError
@@ -78,7 +82,9 @@ const FinancialReportsPage: React.FC = () => {
     // Modal states
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showAssignModal, setShowAssignModal] = useState(false);
-    const [selectedServiceIds, setSelectedServiceIds] = useState<number[]>([]);
+    const [showStatsModal, setShowStatsModal] = useState(false);
+    const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
+    const [selectedService, setSelectedService] = useState<{id: string, name: string} | null>(null);
 
     // Handle create category
     const handleCreateCategory = () => {
@@ -97,7 +103,7 @@ const FinancialReportsPage: React.FC = () => {
     };
 
     // Handle assign to category
-    const handleAssignToCategory = (serviceIds: number[]) => {
+    const handleAssignToCategory = (serviceIds: string[]) => {
         setSelectedServiceIds(serviceIds);
         setShowAssignModal(true);
     };
@@ -114,12 +120,28 @@ const FinancialReportsPage: React.FC = () => {
         }
     };
 
+    // Handle show service statistics
+    const handleShowServiceStats = (serviceId: string, serviceName: string) => {
+        setSelectedService({ id: serviceId, name: serviceName });
+        setShowStatsModal(true);
+    };
+
+    const handleCloseStatsModal = () => {
+        setShowStatsModal(false);
+        setSelectedService(null);
+    };
+
     // Handle refresh
     const handleRefresh = async () => {
         await refreshData();
         if (error) {
             showToast('error', error);
         }
+    };
+
+    // Handle fetch category services
+    const handleFetchCategoryServices = async (categoryId: number) => {
+        return await fetchCategoryServices(categoryId);
     };
 
     // Clear error when it changes
@@ -134,10 +156,45 @@ const FinancialReportsPage: React.FC = () => {
 
     return (
         <StatsContainer>
+            <Header>
+                <HeaderTop>
+                    <HeaderContent>
+                        <Title>Statystyki i Kategorie Usług</Title>
+                        <Subtitle>
+                            Zarządzaj kategoriami usług i przypisuj niekategoryzowane usługi
+                        </Subtitle>
+                    </HeaderContent>
+                    <HeaderActions>
+                        <RefreshButton onClick={handleRefresh} disabled={loading}>
+                            <FaSync className={loading ? 'spinning' : ''} />
+                        </RefreshButton>
+                    </HeaderActions>
+                </HeaderTop>
+
+                {/* Error display */}
+                {error && (
+                    <div style={{
+                        backgroundColor: '#fee2e2',
+                        border: '1px solid #dc2626',
+                        borderRadius: '8px',
+                        padding: '12px 16px',
+                        color: '#dc2626',
+                        fontSize: '14px',
+                        marginTop: '16px'
+                    }}>
+                        {error}
+                    </div>
+                )}
+            </Header>
+
             {/* Categories Section */}
             <CategoriesSection
                 categories={categories}
+                categoryServices={categoryServices}
+                loadingCategoryServices={loadingCategoryServices}
                 onCreateCategory={handleCreateCategory}
+                onFetchCategoryServices={handleFetchCategoryServices}
+                onShowServiceStats={handleShowServiceStats}
                 creatingCategory={creatingCategory}
             />
 
@@ -166,6 +223,15 @@ const FinancialReportsPage: React.FC = () => {
                 selectedServicesCount={selectedServiceIds.length}
                 loading={assigningToCategory}
             />
+
+            {selectedService && (
+                <ServiceStatsModal
+                    isOpen={showStatsModal}
+                    onClose={handleCloseStatsModal}
+                    serviceId={selectedService.id}
+                    serviceName={selectedService.name}
+                />
+            )}
         </StatsContainer>
     );
 };
