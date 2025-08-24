@@ -29,14 +29,15 @@ interface AppData {
     counters: Record<string, number>;
     servicesLoading: boolean;
     countersLoading: boolean;
-    servicesLoaded: boolean; // Dodano flagę czy dane zostały załadowane
+    servicesLoaded: boolean;
     countersLoaded: boolean;
 }
 
 export const VisitsPageContainer: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const isFirstLoad = useRef(true); // Ref do śledzenia pierwszego ładowania
+    const isFirstLoad = useRef(true);
+    const lastStatusFilter = useRef<StatusFilterType>(ProtocolStatus.IN_PROGRESS);
 
     // Form state
     const [showForm, setShowForm] = useState(false);
@@ -47,7 +48,6 @@ export const VisitsPageContainer: React.FC = () => {
 
     const [activeStatusFilter, setActiveStatusFilter] = useState<StatusFilterType>(ProtocolStatus.IN_PROGRESS);
 
-    // Poprawione zarządzanie stanem aplikacji
     const [appData, setAppData] = useState<AppData>({
         services: [],
         counters: {},
@@ -82,7 +82,6 @@ export const VisitsPageContainer: React.FC = () => {
 
     // POPRAWIONE: Stabilne funkcje ładowania z flagami kontrolnymi
     const loadServices = useCallback(async () => {
-        // Nie ładuj ponownie jeśli już załadowano lub jest w trakcie ładowania
         if (appData.servicesLoaded || appData.servicesLoading) return;
 
         setAppData(prev => ({ ...prev, servicesLoading: true }));
@@ -99,20 +98,19 @@ export const VisitsPageContainer: React.FC = () => {
                 ...prev,
                 services: serviceOptions,
                 servicesLoading: false,
-                servicesLoaded: true // Oznacz jako załadowane
+                servicesLoaded: true
             }));
         } catch (error) {
             console.error('Error loading services:', error);
             setAppData(prev => ({
                 ...prev,
                 servicesLoading: false,
-                servicesLoaded: false // Reset flagi przy błędzie
+                servicesLoaded: false
             }));
         }
     }, [appData.servicesLoaded, appData.servicesLoading]);
 
     const loadCounters = useCallback(async () => {
-        // Nie ładuj ponownie jeśli już załadowano lub jest w trakcie ładowania
         if (appData.countersLoaded || appData.countersLoading) return;
 
         setAppData(prev => ({ ...prev, countersLoading: true }));
@@ -130,35 +128,36 @@ export const VisitsPageContainer: React.FC = () => {
                     [ProtocolStatus.CANCELLED]: countersData.cancelled || 0
                 },
                 countersLoading: false,
-                countersLoaded: true // Oznacz jako załadowane
+                countersLoaded: true
             }));
         } catch (error) {
             console.error('Error loading counters:', error);
             setAppData(prev => ({
                 ...prev,
                 countersLoading: false,
-                countersLoaded: false // Reset flagi przy błędzie
+                countersLoaded: false
             }));
         }
     }, [appData.countersLoaded, appData.countersLoading]);
 
-    // POPRAWIONE: Stabilna funkcja performSearch z useMemo dla filtrów
-    const apiFilters = useMemo(() => {
-        const filters = getApiFilters();
-        if (activeStatusFilter !== 'all') {
-            filters.status = activeStatusFilter;
-        }
-        return filters;
-    }, [getApiFilters, activeStatusFilter]);
+    // FIXED: Funkcja wykonująca wyszukiwanie z aktualnym statusem
+    const performSearch = useCallback(async () => {
+        console.log('🔍 Performing search with status:', activeStatusFilter);
 
-    const performSearch = useCallback(async (customFilters?: VisitFilterParams) => {
-        const searchFilters = customFilters || apiFilters;
+        const searchFilters = getApiFilters();
+
+        // Dodaj status filtr jeśli nie jest 'all'
+        if (activeStatusFilter !== 'all') {
+            searchFilters.status = activeStatusFilter;
+        }
+
+        console.log('📋 Final search filters:', searchFilters);
 
         await searchVisits(searchFilters, {
             page: 0,
-            size: pagination.size
+            size: pagination.size || 10
         });
-    }, [apiFilters, searchVisits, pagination.size]);
+    }, [activeStatusFilter, getApiFilters, searchVisits, pagination.size]);
 
     const handleFiltersChange = useCallback((newFilters: Partial<typeof filters>) => {
         updateFilters(newFilters);
@@ -168,24 +167,57 @@ export const VisitsPageContainer: React.FC = () => {
         await performSearch();
     }, [performSearch]);
 
-    const handleStatusFilterChange = useCallback((status: StatusFilterType) => {
-        setActiveStatusFilter(status);
-        selection.clearSelection();
-    }, [selection]);
+    // FIXED: Obsługa zmiany statusu z automatycznym wyszukiwaniem
+    const handleStatusFilterChange = useCallback(async (status: StatusFilterType) => {
+        console.log('🎯 Status filter changed from', activeStatusFilter, 'to', status);
 
-    const handleClearAllFilters = useCallback(() => {
+        if (status === activeStatusFilter) {
+            console.log('📝 Status unchanged, skipping search');
+            return;
+        }
+
+        setActiveStatusFilter(status);
+        lastStatusFilter.current = status;
+        selection.clearSelection();
+
+        // Natychmiastowe wyszukiwanie z nowym statusem
+        const searchFilters = getApiFilters();
+        if (status !== 'all') {
+            searchFilters.status = status;
+        }
+
+        console.log('🔎 Searching with new status filter:', searchFilters);
+
+        await searchVisits(searchFilters, {
+            page: 0,
+            size: pagination.size || 10
+        });
+    }, [activeStatusFilter, getApiFilters, searchVisits, selection, pagination.size]);
+
+    const handleClearAllFilters = useCallback(async () => {
         clearAllFilters();
         setActiveStatusFilter(ProtocolStatus.IN_PROGRESS);
+        lastStatusFilter.current = ProtocolStatus.IN_PROGRESS;
         selection.clearSelection();
-    }, [clearAllFilters, selection]);
+
+        // Wykonaj wyszukiwanie z resetowanymi filtrami
+        await searchVisits({ status: ProtocolStatus.IN_PROGRESS }, {
+            page: 0,
+            size: pagination.size || 10
+        });
+    }, [clearAllFilters, selection, searchVisits, pagination.size]);
 
     const handlePageChange = useCallback(async (page: number) => {
-        const searchFilters = { ...apiFilters };
+        const searchFilters = getApiFilters();
+        if (activeStatusFilter !== 'all') {
+            searchFilters.status = activeStatusFilter;
+        }
+
         await searchVisits(searchFilters, {
             page: page - 1,
             size: pagination.size
         });
-    }, [apiFilters, searchVisits, pagination.size]);
+    }, [getApiFilters, activeStatusFilter, searchVisits, pagination.size]);
 
     const handleVisitClick = useCallback((visit: VisitListItem) => {
         navigate(`/visits/${visit.id}`);
@@ -272,43 +304,48 @@ export const VisitsPageContainer: React.FC = () => {
         }
     }, []);
 
-    // POPRAWIONE: Efekty bez nieskończonych pętli
+    // EFFECTS
 
-    // 1. Ładowanie danych przy pierwszym załadowaniu komponentu
+    // 1. Initial data loading
     useEffect(() => {
         if (isFirstLoad.current) {
+            console.log('🚀 Initial load - loading services and counters');
             loadServices();
             loadCounters();
             isFirstLoad.current = false;
         }
-    }, []); // Pusta tablica zależności - tylko raz
+    }, [loadServices, loadCounters]);
 
-    // 2. Pierwsze wyszukiwanie po załadowaniu danych
+    // 2. First search after data is loaded
     useEffect(() => {
         const canPerformSearch = appData.servicesLoaded && appData.countersLoaded &&
-            !appData.servicesLoading && !appData.countersLoading;
+            !appData.servicesLoading && !appData.countersLoading && !isFirstLoad.current;
 
-        if (canPerformSearch && isFirstLoad.current === false) {
+        if (canPerformSearch) {
+            console.log('📊 Data loaded, performing initial search with status:', activeStatusFilter);
             performSearch();
         }
     }, [appData.servicesLoaded, appData.countersLoaded, appData.servicesLoading, appData.countersLoading, performSearch]);
 
-    // 3. Wyszukiwanie przy zmianie filtru statusu
+    // 3. Reset on location change
     useEffect(() => {
-        // Wykonuj wyszukiwanie tylko jeśli dane są już załadowane
-        if (appData.servicesLoaded && appData.countersLoaded && !isFirstLoad.current) {
-            performSearch();
-        }
-    }, [activeStatusFilter]); // Usunięto performSearch z zależności
-
-    // 4. Reset przy zmianie ścieżki - UPROSZCZONE
-    useEffect(() => {
-        // Reset tylko przy zmianie ścieżki, nie resetuj stanów ładowania
+        console.log('🔄 Location changed, resetting data');
         resetData();
         setActiveStatusFilter(ProtocolStatus.IN_PROGRESS);
         clearAllFilters();
-        isFirstLoad.current = true; // Reset flagi pierwszego ładowania
-    }, [location.pathname]); // Usunięto resetData i clearAllFilters z zależności
+        isFirstLoad.current = true;
+    }, [location.pathname, resetData, clearAllFilters]);
+
+    // Debug log for current state
+    useEffect(() => {
+        console.log('📈 Current state:', {
+            visits: visits.length,
+            loading: visitsLoading,
+            error,
+            activeStatusFilter,
+            pagination
+        });
+    }, [visits.length, visitsLoading, error, activeStatusFilter, pagination]);
 
     // If form is shown, render the form view
     if (showForm) {

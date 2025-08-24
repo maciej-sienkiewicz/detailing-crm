@@ -84,7 +84,7 @@ export interface VisitFilterParams {
     serviceIds?: string[];
     minPrice?: number;
     maxPrice?: number;
-    status?: ProtocolStatus; // FIXED: Dodano status do filtrów
+    status?: ProtocolStatus;
 }
 
 /**
@@ -127,23 +127,6 @@ class VisitsApi {
 
     /**
      * Fetches a paginated list of visits with optional filtering
-     *
-     * @param params - Search and filter parameters
-     * @returns Promise<VisitsApiResult<PaginatedApiResponse<VisitListItem>>>
-     *
-     * @example
-     * ```typescript
-     * const result = await visitsApi.getVisitsList({
-     *   status: ProtocolStatus.IN_PROGRESS,
-     *   page: 0,
-     *   size: 20
-     * });
-     *
-     * if (result.success) {
-     *   console.log('Visits:', result.data);
-     *   console.log('Total:', result.pagination.totalItems);
-     * }
-     * ```
      */
     async getVisitsList(params: VisitSearchParams = {}): Promise<VisitsApiResult<PaginatedApiResponse<VisitListItem>>> {
         try {
@@ -151,7 +134,7 @@ class VisitsApi {
 
             const { page = 0, size = 10, ...filterParams } = params;
 
-            // FIXED: Prepare filter parameters for the API with better status handling
+            // Prepare filter parameters for the API
             const apiParams = this.prepareFilterParams(filterParams);
             console.log('🎯 Prepared API params:', apiParams);
 
@@ -160,7 +143,7 @@ class VisitsApi {
                 `/v1/protocols/list`,
                 apiParams,
                 { page, size },
-                { timeout: 15000 } // 15 second timeout for list operations
+                { timeout: 15000 }
             );
 
             console.log('✅ Raw API response:', response);
@@ -222,20 +205,6 @@ class VisitsApi {
 
     /**
      * Fetches client visit history for display in client detail panel
-     *
-     * @param clientId - ID of the client
-     * @param params - Optional pagination parameters (defaults to 5 most recent visits)
-     * @returns Promise<VisitsApiResult<PaginatedApiResponse<ClientVisitHistoryItem>>>
-     *
-     * @example
-     * ```typescript
-     * const result = await visitsApi.getClientVisitHistory('123', { size: 5 });
-     *
-     * if (result.success) {
-     *   console.log('Client visits:', result.data.data);
-     *   console.log('Total visits:', result.data.pagination.totalItems);
-     * }
-     * ```
      */
     async getClientVisitHistory(
         clientId: string,
@@ -251,7 +220,7 @@ class VisitsApi {
                 `/v1/protocols/client/${clientId}`,
                 {},
                 { page, size },
-                { timeout: 10000 } // 10 second timeout for client history
+                { timeout: 10000 }
             );
 
             console.log('✅ Successfully fetched client visit history:', {
@@ -297,7 +266,7 @@ class VisitsApi {
     // ========================================================================================
 
     /**
-     * Transforms raw API data to match VisitListItem interface
+     * FIXED: Transforms raw API data to match VisitListItem interface
      */
     private transformVisitListData(rawData: any[]): VisitListItem[] {
         if (!Array.isArray(rawData)) {
@@ -307,6 +276,9 @@ class VisitsApi {
 
         return rawData.map(item => {
             try {
+                // Log individual item for debugging
+                console.log('📋 Transforming visit item:', item);
+
                 const transformed: VisitListItem = {
                     id: item.id?.toString() || '',
                     title: item.title || '',
@@ -322,43 +294,46 @@ class VisitsApi {
                         endDate: item.period?.endDate || item.period?.end_date || ''
                     },
                     owner: {
+                        // FIXED: Obsługa właściwego pola 'client' z odpowiedzi serwera
                         name: item.client?.name || item.owner?.name || '',
                         companyName: item.client?.companyName || item.client?.company_name || item.owner?.companyName || undefined
                     },
                     status: item.status as ProtocolStatus,
                     totalAmount: parseFloat(item.totalAmount?.toString() || item.total_amount?.toString() || '0'),
                     lastUpdate: item.lastUpdate || item.last_update || '',
-                    calendarColorId: item.calendarColorId || item.calendar_color_id || '',
+                    calendarColorId: item.calendarColorId || item.calendar_color_id || '1',
+                    // FIXED: Obsługa właściwego pola 'services' z odpowiedzi serwera
                     selectedServices: this.transformServices(item.services || item.selected_services || []),
                     totalServiceCount: parseInt(item.totalServiceCount?.toString() || item.total_service_count?.toString() || '0')
                 };
 
+                console.log('✅ Transformed visit item:', transformed);
                 return transformed;
             } catch (error) {
-                console.error('Error transforming visit item:', error, item);
+                console.error('❌ Error transforming visit item:', error, item);
                 // Return a fallback object instead of failing
                 return {
                     id: item.id?.toString() || 'unknown',
                     title: item.title || 'Unknown Visit',
                     vehicle: {
-                        make: 'Unknown',
-                        model: 'Unknown',
-                        licensePlate: 'Unknown',
-                        productionYear: 0
+                        make: item.vehicle?.make || 'Unknown',
+                        model: item.vehicle?.model || 'Unknown',
+                        licensePlate: item.vehicle?.licensePlate || item.vehicle?.license_plate || 'Unknown',
+                        productionYear: item.vehicle?.productionYear || item.vehicle?.production_year || 0
                     },
                     period: {
-                        startDate: '',
-                        endDate: ''
+                        startDate: item.period?.startDate || item.period?.start_date || '',
+                        endDate: item.period?.endDate || item.period?.end_date || ''
                     },
                     owner: {
-                        name: 'Unknown Client'
+                        name: item.client?.name || item.owner?.name || 'Unknown Client'
                     },
-                    status: ProtocolStatus.SCHEDULED,
-                    totalAmount: 0,
-                    lastUpdate: '',
-                    calendarColorId: '1',
-                    selectedServices: [],
-                    totalServiceCount: 0
+                    status: (item.status as ProtocolStatus) || ProtocolStatus.SCHEDULED,
+                    totalAmount: parseFloat(item.totalAmount?.toString() || item.total_amount?.toString() || '0'),
+                    lastUpdate: item.lastUpdate || item.last_update || '',
+                    calendarColorId: item.calendarColorId || item.calendar_color_id || '1',
+                    selectedServices: this.transformServices(item.services || item.selected_services || []),
+                    totalServiceCount: parseInt(item.totalServiceCount?.toString() || item.total_service_count?.toString() || '0')
                 } as VisitListItem;
             }
         });
@@ -387,7 +362,6 @@ class VisitsApi {
 
     /**
      * FIXED: Improved filter parameters preparation with better status mapping
-     * Converts client-side parameter names to server-expected format
      */
     private prepareFilterParams(params: VisitFilterParams): Record<string, any> {
         const apiParams: Record<string, any> = {};
@@ -403,7 +377,7 @@ class VisitsApi {
         if (params.minPrice !== undefined) apiParams.minPrice = params.minPrice;
         if (params.maxPrice !== undefined) apiParams.maxPrice = params.maxPrice;
 
-        // FIXED: Handle status filter properly
+        // Handle status filter properly
         if (params.status) {
             apiParams.status = params.status;
             console.log('🎯 Added status filter:', params.status);
