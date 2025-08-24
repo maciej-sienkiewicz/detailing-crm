@@ -28,7 +28,7 @@ const getAuthToken = (): string | null => {
 };
 
 // Bazowy URL API - teraz wskazuje na lokalny serwer Spring Boot
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = '/api';
 
 // Podstawowe opcje dla wszystkich żądań API
 const getDefaultOptions = (): RequestInit => ({
