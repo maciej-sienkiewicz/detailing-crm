@@ -14,7 +14,7 @@ import {
     Legend,
     ChartOptions
 } from 'chart.js';
-import { FaTimes, FaFolder, FaSync, FaCalendarAlt, FaShoppingCart } from 'react-icons/fa';
+import { FaFolder, FaSync, FaCalendarAlt, FaShoppingCart } from 'react-icons/fa';
 import Modal from '../../../components/common/Modal';
 import { useCategoryStats } from '../hooks/useStatsData';
 import { TimeGranularity, TimeGranularityLabels, CategoryStatsResponse } from '../../../api/statsApi';
@@ -30,7 +30,7 @@ ChartJS.register(
     Legend
 );
 
-// Unified theme - identical to ServiceStatsModal
+// Unified theme - identyczny jak w ServiceStatsModal
 const theme = {
     primary: '#1a365d',
     primaryLight: '#2c5aa0',
@@ -69,6 +69,83 @@ interface CategoryStatsModalProps {
     categoryName: string;
 }
 
+// Helper functions - identyczne jak w ServiceStatsModal
+const getDefaultDateRange = (granularity: TimeGranularity) => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+
+    switch (granularity) {
+        case TimeGranularity.DAILY:
+        case TimeGranularity.WEEKLY:
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            return {
+                startDate: firstDay.toISOString().split('T')[0],
+                endDate: lastDay.toISOString().split('T')[0]
+            };
+
+        case TimeGranularity.MONTHLY:
+        case TimeGranularity.QUARTERLY:
+            return {
+                startDate: new Date(year, 1, 1).toISOString().split('T')[0],
+                endDate: new Date(year, 11, 31).toISOString().split('T')[0]
+            };
+
+        case TimeGranularity.YEARLY:
+            return {
+                startDate: new Date(year, 1, 1).toISOString().split('T')[0],
+                endDate: new Date(year, 11, 31).toISOString().split('T')[0]
+            };
+
+        default:
+            return {
+                startDate: new Date(year - 1, month, 1).toISOString().split('T')[0],
+                endDate: now.toISOString().split('T')[0]
+            };
+    }
+};
+
+const formatDateForInput = (dateStr: string, granularity: TimeGranularity): string => {
+    const date = new Date(dateStr);
+
+    switch (granularity) {
+        case TimeGranularity.MONTHLY:
+        case TimeGranularity.QUARTERLY:
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+
+        case TimeGranularity.YEARLY:
+            return String(date.getFullYear());
+
+        default:
+            return dateStr;
+    }
+};
+
+const parseDateFromInput = (inputValue: string, granularity: TimeGranularity, isEndDate: boolean = false): string => {
+    switch (granularity) {
+        case TimeGranularity.MONTHLY:
+        case TimeGranularity.QUARTERLY:
+            const [year, month] = inputValue.split('-').map(Number);
+            if (isEndDate) {
+                return new Date(year, month, 0).toISOString().split('T')[0];
+            } else {
+                return new Date(year, month - 1, 1).toISOString().split('T')[0];
+            }
+
+        case TimeGranularity.YEARLY:
+            const yearNum = Number(inputValue);
+            if (isEndDate) {
+                return new Date(yearNum, 11, 31).toISOString().split('T')[0];
+            } else {
+                return new Date(yearNum, 0, 1).toISOString().split('T')[0];
+            }
+
+        default:
+            return inputValue;
+    }
+};
+
 export const CategoryStatsModal: React.FC<CategoryStatsModalProps> = ({
                                                                           isOpen,
                                                                           onClose,
@@ -78,12 +155,18 @@ export const CategoryStatsModal: React.FC<CategoryStatsModalProps> = ({
     const { fetchCategoryStats, loading, error } = useCategoryStats();
     const [statsData, setStatsData] = useState<CategoryStatsResponse | null>(null);
     const [selectedGranularity, setSelectedGranularity] = useState<TimeGranularity>(TimeGranularity.MONTHLY);
-    const [dateRange, setDateRange] = useState({
-        startDate: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        endDate: new Date().toISOString().split('T')[0]
-    });
+    const [dateRange, setDateRange] = useState(() => getDefaultDateRange(TimeGranularity.MONTHLY));
 
-    // Load stats data when modal opens
+    const [displayStartDate, setDisplayStartDate] = useState('');
+    const [displayEndDate, setDisplayEndDate] = useState('');
+
+    useEffect(() => {
+        const newRange = getDefaultDateRange(selectedGranularity);
+        setDateRange(newRange);
+        setDisplayStartDate(formatDateForInput(newRange.startDate, selectedGranularity));
+        setDisplayEndDate(formatDateForInput(newRange.endDate, selectedGranularity));
+    }, [selectedGranularity]);
+
     useEffect(() => {
         if (isOpen && categoryId) {
             loadStats();
@@ -100,6 +183,41 @@ export const CategoryStatsModal: React.FC<CategoryStatsModalProps> = ({
         setStatsData(stats);
     };
 
+    const handleStartDateChange = (value: string) => {
+        setDisplayStartDate(value);
+        const actualStartDate = parseDateFromInput(value, selectedGranularity, false);
+        setDateRange(prev => ({ ...prev, startDate: actualStartDate }));
+    };
+
+    const handleEndDateChange = (value: string) => {
+        setDisplayEndDate(value);
+        const actualEndDate = parseDateFromInput(value, selectedGranularity, true);
+        setDateRange(prev => ({ ...prev, endDate: actualEndDate }));
+    };
+
+    const getInputType = (granularity: TimeGranularity): string => {
+        switch (granularity) {
+            case TimeGranularity.MONTHLY:
+            case TimeGranularity.QUARTERLY:
+                return 'month';
+            case TimeGranularity.YEARLY:
+                return 'number';
+            default:
+                return 'date';
+        }
+    };
+
+    const getInputProps = (granularity: TimeGranularity) => {
+        if (granularity === TimeGranularity.YEARLY) {
+            return {
+                min: 2020,
+                max: new Date().getFullYear() + 1,
+                step: 1
+            };
+        }
+        return {};
+    };
+
     const formatCurrency = (amount: number): string => {
         return new Intl.NumberFormat('pl-PL', {
             style: 'currency',
@@ -113,7 +231,6 @@ export const CategoryStatsModal: React.FC<CategoryStatsModalProps> = ({
         return period;
     };
 
-    // Professional chart configuration - identical to ServiceStatsModal
     const commonChartOptions: ChartOptions<'line' | 'bar'> = {
         responsive: true,
         maintainAspectRatio: false,
@@ -193,7 +310,6 @@ export const CategoryStatsModal: React.FC<CategoryStatsModalProps> = ({
         }
     };
 
-    // Chart data preparation
     const revenueChartData = {
         labels: statsData?.data.map(d => formatPeriod(d.period)) || [],
         datasets: [{
@@ -217,7 +333,6 @@ export const CategoryStatsModal: React.FC<CategoryStatsModalProps> = ({
         }]
     };
 
-    // Calculate summary metrics
     const totalRevenue = statsData?.data.reduce((sum, d) => sum + Number(d.revenue), 0) || 0;
     const totalOrders = statsData?.data.reduce((sum, d) => sum + Number(d.orders), 0) || 0;
     const dataPoints = statsData?.data.length || 0;
@@ -228,9 +343,10 @@ export const CategoryStatsModal: React.FC<CategoryStatsModalProps> = ({
             onClose={onClose}
             size="xl"
             closeOnBackdropClick={true}
+            showCloseButton={false}
         >
             <ModalContent>
-                {/* Compact Header - identical structure to ServiceStatsModal */}
+                {/* Professional Header - tylko jeden przycisk zamknięcia */}
                 <ModalHeader>
                     <HeaderLeft>
                         <HeaderIcon>
@@ -241,30 +357,58 @@ export const CategoryStatsModal: React.FC<CategoryStatsModalProps> = ({
                             <CategoryTitle>{categoryName}</CategoryTitle>
                         </HeaderText>
                     </HeaderLeft>
-                    <CloseButton onClick={onClose}>
-                        <FaTimes />
-                    </CloseButton>
+                    <HeaderRight>
+                        <RefreshButton onClick={loadStats} disabled={loading} title="Odśwież dane">
+                            <FaSync className={loading ? 'spinning' : ''} />
+                        </RefreshButton>
+                        <CloseButton onClick={onClose} title="Zamknij">
+                            ✕
+                        </CloseButton>
+                    </HeaderRight>
                 </ModalHeader>
 
-                {/* Compact Filters - identical to ServiceStatsModal */}
+                {/* Smooth Filters - stała wysokość, bez przeskoków */}
                 <FiltersSection>
                     <FilterRow>
                         <FilterGroup>
                             <FilterLabel>Okres:</FilterLabel>
-                            <DateInputs>
-                                <DateInput
-                                    type="date"
-                                    value={dateRange.startDate}
-                                    onChange={(e) => setDateRange(prev => ({ ...prev, startDate: e.target.value }))}
-                                />
-                                <DateSeparator>-</DateSeparator>
-                                <DateInput
-                                    type="date"
-                                    value={dateRange.endDate}
-                                    onChange={(e) => setDateRange(prev => ({ ...prev, endDate: e.target.value }))}
-                                />
-                            </DateInputs>
+                            <DateInputsContainer>
+                                {selectedGranularity === TimeGranularity.YEARLY ? (
+                                    <YearInputsWrapper>
+                                        <YearInput
+                                            type="number"
+                                            value={displayStartDate}
+                                            onChange={(e) => handleStartDateChange(e.target.value)}
+                                            placeholder="Od"
+                                            {...getInputProps(selectedGranularity)}
+                                        />
+                                        <DateSeparator>-</DateSeparator>
+                                        <YearInput
+                                            type="number"
+                                            value={displayEndDate}
+                                            onChange={(e) => handleEndDateChange(e.target.value)}
+                                            placeholder="Do"
+                                            {...getInputProps(selectedGranularity)}
+                                        />
+                                    </YearInputsWrapper>
+                                ) : (
+                                    <DateInputsWrapper>
+                                        <DateInput
+                                            type={getInputType(selectedGranularity)}
+                                            value={displayStartDate}
+                                            onChange={(e) => handleStartDateChange(e.target.value)}
+                                        />
+                                        <DateSeparator>-</DateSeparator>
+                                        <DateInput
+                                            type={getInputType(selectedGranularity)}
+                                            value={displayEndDate}
+                                            onChange={(e) => handleEndDateChange(e.target.value)}
+                                        />
+                                    </DateInputsWrapper>
+                                )}
+                            </DateInputsContainer>
                         </FilterGroup>
+
                         <FilterGroup>
                             <FilterLabel>Grupowanie:</FilterLabel>
                             <GranularitySelector>
@@ -279,15 +423,12 @@ export const CategoryStatsModal: React.FC<CategoryStatsModalProps> = ({
                                 ))}
                             </GranularitySelector>
                         </FilterGroup>
-                        <RefreshButton onClick={loadStats} disabled={loading}>
-                            <FaSync className={loading ? 'spinning' : ''} />
-                        </RefreshButton>
                     </FilterRow>
                 </FiltersSection>
 
                 {loading ? (
                     <LoadingContainer>
-                        <FaSync className="spinning" />
+                        <LoadingSpinner />
                         <LoadingText>Ładowanie statystyk kategorii...</LoadingText>
                     </LoadingContainer>
                 ) : error ? (
@@ -296,7 +437,6 @@ export const CategoryStatsModal: React.FC<CategoryStatsModalProps> = ({
                     </ErrorContainer>
                 ) : statsData ? (
                     <>
-                        {/* Compact Summary Cards */}
                         <SummarySection>
                             <SummaryCard>
                                 <SummaryIcon $color={theme.primary}>
@@ -318,7 +458,6 @@ export const CategoryStatsModal: React.FC<CategoryStatsModalProps> = ({
                             </SummaryCard>
                         </SummarySection>
 
-                        {/* Charts */}
                         <ChartsSection>
                             <ChartContainer>
                                 <ChartHeader>
@@ -378,7 +517,7 @@ export const CategoryStatsModal: React.FC<CategoryStatsModalProps> = ({
     );
 };
 
-// Styled Components - identical to ServiceStatsModal
+// Styled Components - identyczne jak w ServiceStatsModal dla spójności
 const ModalContent = styled.div`
     display: flex;
     flex-direction: column;
@@ -393,6 +532,7 @@ const ModalHeader = styled.div`
     padding: ${theme.spacing.lg} ${theme.spacing.xl};
     border-bottom: 1px solid ${theme.border};
     background: ${theme.surface};
+    flex-shrink: 0;
 `;
 
 const HeaderLeft = styled.div`
@@ -428,108 +568,10 @@ const CategoryTitle = styled.div`
     font-weight: 500;
 `;
 
-const CloseButton = styled.button`
-    width: 36px;
-    height: 36px;
-    border: 1px solid ${theme.border};
-    background: ${theme.surface};
-    border-radius: ${theme.radius.md};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: ${theme.text.muted};
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-        background: #fee2e2;
-        color: #dc2626;
-        border-color: #dc2626;
-    }
-`;
-
-const FiltersSection = styled.div`
-    padding: ${theme.spacing.md} ${theme.spacing.xl};
-    background: ${theme.surfaceAlt};
-    border-bottom: 1px solid ${theme.border};
-`;
-
-const FilterRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.xl};
-
-    @media (max-width: 768px) {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: ${theme.spacing.md};
-    }
-`;
-
-const FilterGroup = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.md};
-`;
-
-const FilterLabel = styled.label`
-    font-size: 14px;
-    font-weight: 500;
-    color: ${theme.text.secondary};
-    white-space: nowrap;
-`;
-
-const DateInputs = styled.div`
+const HeaderRight = styled.div`
     display: flex;
     align-items: center;
     gap: ${theme.spacing.sm};
-`;
-
-const DateInput = styled.input`
-    padding: ${theme.spacing.sm} ${theme.spacing.md};
-    border: 1px solid ${theme.border};
-    border-radius: ${theme.radius.sm};
-    font-size: 14px;
-    color: ${theme.text.primary};
-
-    &:focus {
-        outline: none;
-        border-color: ${theme.primary};
-        box-shadow: 0 0 0 3px ${theme.primary}15;
-    }
-`;
-
-const DateSeparator = styled.span`
-    color: ${theme.text.muted};
-    font-weight: 500;
-`;
-
-const GranularitySelector = styled.div`
-    display: flex;
-    border: 1px solid ${theme.border};
-    border-radius: ${theme.radius.sm};
-    overflow: hidden;
-`;
-
-const GranularityButton = styled.button<{ $active: boolean }>`
-    padding: ${theme.spacing.sm} ${theme.spacing.md};
-    border: none;
-    background: ${props => props.$active ? theme.primary : theme.surface};
-    color: ${props => props.$active ? 'white' : theme.text.secondary};
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-
-    &:not(:last-child) {
-        border-right: 1px solid ${theme.border};
-    }
-
-    &:hover:not([data-active="true"]) {
-        background: ${theme.primary}10;
-        color: ${theme.primary};
-    }
 `;
 
 const RefreshButton = styled.button`
@@ -566,17 +608,188 @@ const RefreshButton = styled.button`
     }
 `;
 
+const CloseButton = styled.button`
+    width: 36px;
+    height: 36px;
+    border: 1px solid ${theme.border};
+    background: ${theme.surface};
+    border-radius: ${theme.radius.sm};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${theme.text.muted};
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 18px;
+    font-weight: 400;
+
+    &:hover {
+        background: #fee2e2;
+        color: #dc2626;
+        border-color: #dc2626;
+    }
+`;
+
+const FiltersSection = styled.div`
+    padding: ${theme.spacing.md} ${theme.spacing.xl};
+    background: ${theme.surfaceAlt};
+    border-bottom: 1px solid ${theme.border};
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+`;
+
+const FilterRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.xl};
+    width: 100%;
+
+    @media (max-width: 1024px) {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: ${theme.spacing.lg};
+    }
+`;
+
+const FilterGroup = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.md};
+`;
+
+const FilterLabel = styled.label`
+    font-size: 14px;
+    font-weight: 500;
+    color: ${theme.text.secondary};
+    white-space: nowrap;
+    min-width: 50px;
+`;
+
+const DateInputsContainer = styled.div`
+    min-width: 300px;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+`;
+
+const DateInputsWrapper = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.sm};
+    transition: all 0.3s ease;
+`;
+
+const YearInputsWrapper = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.sm};
+    transition: all 0.3s ease;
+`;
+
+const DateInput = styled.input`
+    padding: ${theme.spacing.sm} ${theme.spacing.md};
+    border: 1px solid ${theme.border};
+    border-radius: ${theme.radius.sm};
+    font-size: 14px;
+    color: ${theme.text.primary};
+    width: 140px;
+    height: 40px;
+    transition: all 0.2s ease;
+
+    &:focus {
+        outline: none;
+        border-color: ${theme.primary};
+        box-shadow: 0 0 0 3px ${theme.primary}15;
+    }
+`;
+
+const YearInput = styled.input`
+    padding: ${theme.spacing.sm} ${theme.spacing.md};
+    border: 1px solid ${theme.border};
+    border-radius: ${theme.radius.sm};
+    font-size: 14px;
+    color: ${theme.text.primary};
+    width: 100px;
+    height: 40px;
+    text-align: center;
+    transition: all 0.2s ease;
+
+    &:focus {
+        outline: none;
+        border-color: ${theme.primary};
+        box-shadow: 0 0 0 3px ${theme.primary}15;
+    }
+
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    &[type=number] {
+        -moz-appearance: textfield;
+    }
+`;
+
+const DateSeparator = styled.span`
+    color: ${theme.text.muted};
+    font-weight: 500;
+    font-size: 16px;
+    margin: 0 4px;
+`;
+
+const GranularitySelector = styled.div`
+    display: flex;
+    border: 1px solid ${theme.border};
+    border-radius: ${theme.radius.sm};
+    overflow: hidden;
+    height: 40px;
+`;
+
+const GranularityButton = styled.button<{ $active: boolean }>`
+    padding: 0 ${theme.spacing.md};
+    border: none;
+    background: ${props => props.$active ? theme.primary : theme.surface};
+    color: ${props => props.$active ? 'white' : theme.text.secondary};
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    height: 38px;
+    display: flex;
+    align-items: center;
+
+    &:not(:last-child) {
+        border-right: 1px solid ${theme.border};
+    }
+
+    &:hover:not([data-active="true"]) {
+        background: ${theme.primary}10;
+        color: ${theme.primary};
+    }
+`;
+
 const LoadingContainer = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     padding: ${theme.spacing.xxl};
-    gap: ${theme.spacing.md};
+    gap: ${theme.spacing.lg};
+    flex: 1;
+`;
 
-    .spinning {
-        animation: spin 1s linear infinite;
-    }
+const LoadingSpinner = styled.div`
+    width: 32px;
+    height: 32px;
+    border: 3px solid ${theme.border};
+    border-top: 3px solid ${theme.primary};
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
 
     @keyframes spin {
         from { transform: rotate(0deg); }
@@ -592,6 +805,10 @@ const LoadingText = styled.div`
 const ErrorContainer = styled.div`
     padding: ${theme.spacing.xxl};
     text-align: center;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 `;
 
 const ErrorText = styled.div`
@@ -605,6 +822,7 @@ const SummarySection = styled.div`
     gap: ${theme.spacing.lg};
     padding: ${theme.spacing.lg} ${theme.spacing.xl};
     background: ${theme.surface};
+    flex-shrink: 0;
 `;
 
 const SummaryCard = styled.div`
@@ -628,6 +846,7 @@ const SummaryIcon = styled.div<{ $color: string }>`
     align-items: center;
     justify-content: center;
     font-size: 18px;
+    flex-shrink: 0;
 `;
 
 const SummaryContent = styled.div`
@@ -654,6 +873,7 @@ const ChartsSection = styled.div`
     padding: ${theme.spacing.lg} ${theme.spacing.xl};
     flex: 1;
     overflow-y: auto;
+    min-height: 0;
 
     @media (max-width: 1024px) {
         grid-template-columns: 1fr;
@@ -665,13 +885,16 @@ const ChartContainer = styled.div`
     border: 1px solid ${theme.border};
     border-radius: ${theme.radius.lg};
     overflow: hidden;
-    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+    min-height: 320px;
 `;
 
 const ChartHeader = styled.div`
     padding: ${theme.spacing.lg};
     border-bottom: 1px solid ${theme.border};
     background: ${theme.surfaceAlt};
+    flex-shrink: 0;
 `;
 
 const ChartTitle = styled.h3`
@@ -682,7 +905,8 @@ const ChartTitle = styled.h3`
 `;
 
 const ChartWrapper = styled.div`
-    height: 250px;
-    position: relative;
+    flex: 1;
     padding: ${theme.spacing.lg};
+    position: relative;
+    min-height: 250px;
 `;
