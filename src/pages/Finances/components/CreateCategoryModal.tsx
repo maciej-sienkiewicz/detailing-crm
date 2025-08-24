@@ -1,8 +1,39 @@
 // src/pages/Finances/components/CreateCategoryModal.tsx
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { FaTimes, FaFolder } from 'react-icons/fa';
-import { theme } from '../../../styles/theme';
+import { FaTimes, FaFolder, FaPlus } from 'react-icons/fa';
+
+// Unified theme
+const theme = {
+    primary: '#1a365d',
+    primaryLight: '#2c5aa0',
+    primaryGhost: 'rgba(26, 54, 93, 0.04)',
+    surface: '#ffffff',
+    surfaceAlt: '#fafbfc',
+    border: '#e2e8f0',
+    text: {
+        primary: '#0f172a',
+        secondary: '#475569',
+        muted: '#94a3b8',
+        disabled: '#cbd5e1'
+    },
+    error: '#dc2626',
+    spacing: {
+        xs: '4px',
+        sm: '8px',
+        md: '12px',
+        lg: '16px',
+        xl: '24px'
+    },
+    radius: {
+        sm: '6px',
+        md: '8px',
+        lg: '12px'
+    },
+    shadow: {
+        lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+    }
+};
 
 interface CreateCategoryModalProps {
     isOpen: boolean;
@@ -71,13 +102,17 @@ export const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({
     return (
         <Overlay onClick={onClose}>
             <ModalContainer onClick={e => e.stopPropagation()} onKeyDown={handleKeyDown}>
+                {/* Compact Header - consistent with stats modals */}
                 <ModalHeader>
-                    <HeaderContent>
-                        <ModalIcon>
-                            <FaFolder />
-                        </ModalIcon>
-                        <ModalTitle>Utwórz nową kategorię</ModalTitle>
-                    </HeaderContent>
+                    <HeaderLeft>
+                        <HeaderIcon>
+                            <FaPlus />
+                        </HeaderIcon>
+                        <HeaderText>
+                            <ModalTitle>Utwórz nową kategorię</ModalTitle>
+                            <ModalSubtitle>Dodaj kategorię do grupowania usług</ModalSubtitle>
+                        </HeaderText>
+                    </HeaderLeft>
                     <CloseButton onClick={onClose} disabled={loading}>
                         <FaTimes />
                     </CloseButton>
@@ -145,7 +180,7 @@ const Overlay = styled.div`
 const ModalContainer = styled.div`
     background: ${theme.surface};
     border-radius: ${theme.radius.lg};
-    box-shadow: ${theme.shadow.xl};
+    box-shadow: ${theme.shadow.lg};
     width: 100%;
     max-width: 480px;
     max-height: 90vh;
@@ -168,18 +203,18 @@ const ModalHeader = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: ${theme.spacing.xl};
+    padding: ${theme.spacing.lg} ${theme.spacing.xl};
     border-bottom: 1px solid ${theme.border};
-    background: ${theme.surfaceElevated};
+    background: ${theme.surface};
 `;
 
-const HeaderContent = styled.div`
+const HeaderLeft = styled.div`
     display: flex;
     align-items: center;
     gap: ${theme.spacing.md};
 `;
 
-const ModalIcon = styled.div`
+const HeaderIcon = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
@@ -188,32 +223,40 @@ const ModalIcon = styled.div`
     background: ${theme.primaryGhost};
     border-radius: ${theme.radius.md};
     color: ${theme.primary};
-    font-size: 18px;
+    font-size: 16px;
 `;
+
+const HeaderText = styled.div``;
 
 const ModalTitle = styled.h2`
     font-size: 20px;
     font-weight: 600;
     color: ${theme.text.primary};
-    margin: 0;
+    margin: 0 0 4px 0;
+`;
+
+const ModalSubtitle = styled.div`
+    font-size: 14px;
+    color: ${theme.text.secondary};
 `;
 
 const CloseButton = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
-    background: transparent;
-    border: none;
-    border-radius: ${theme.radius.sm};
+    width: 36px;
+    height: 36px;
+    background: ${theme.surface};
+    border: 1px solid ${theme.border};
+    border-radius: ${theme.radius.md};
     color: ${theme.text.muted};
     cursor: pointer;
-    transition: ${theme.transitions.fast};
+    transition: all 0.2s ease;
 
     &:hover:not(:disabled) {
-        background: ${theme.surfaceHover};
-        color: ${theme.text.primary};
+        background: #fee2e2;
+        color: #dc2626;
+        border-color: #dc2626;
     }
 
     &:disabled {
@@ -250,7 +293,7 @@ const Input = styled.input`
     font-size: 14px;
     color: ${theme.text.primary};
     background: ${theme.surface};
-    transition: ${theme.transitions.fast};
+    transition: all 0.2s ease;
 
     &:focus {
         outline: none;
@@ -259,7 +302,7 @@ const Input = styled.input`
     }
 
     &:disabled {
-        background: ${theme.surfaceElevated};
+        background: ${theme.surfaceAlt};
         color: ${theme.text.disabled};
         cursor: not-allowed;
     }
@@ -272,13 +315,13 @@ const Input = styled.input`
 const ErrorMessage = styled.div`
     color: ${theme.error};
     font-size: 12px;
-    margin-top: ${theme.spacing.xs};
+    margin-top: ${theme.spacing.sm};
 `;
 
 const HelperText = styled.div`
     color: ${theme.text.muted};
     font-size: 12px;
-    margin-top: ${theme.spacing.xs};
+    margin-top: ${theme.spacing.sm};
 `;
 
 const ModalFooter = styled.div`
@@ -297,10 +340,10 @@ const CancelButton = styled.button`
     font-weight: 500;
     font-size: 14px;
     cursor: pointer;
-    transition: ${theme.transitions.fast};
+    transition: all 0.2s ease;
 
     &:hover:not(:disabled) {
-        background: ${theme.surfaceHover};
+        background: ${theme.surfaceAlt};
         color: ${theme.text.primary};
     }
 
@@ -319,7 +362,7 @@ const SubmitButton = styled.button`
     font-weight: 500;
     font-size: 14px;
     cursor: pointer;
-    transition: ${theme.transitions.fast};
+    transition: all 0.2s ease;
 
     &:hover:not(:disabled) {
         background: ${theme.primaryLight};

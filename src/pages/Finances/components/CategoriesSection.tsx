@@ -5,36 +5,37 @@ import {FaPlus, FaFolder, FaChevronDown, FaChevronRight, FaCalendarAlt} from 're
 import { Category, CategoryService } from '../../../api/statsApi';
 import { CategoryServicesTable } from './CategoryServicesTable';
 
-// Brand Theme System - consistent with ClientListTable
-const brandTheme = {
-    primary: 'var(--brand-primary, #1a365d)',
-    primaryLight: 'var(--brand-primary-light, #2c5aa0)',
-    primaryDark: 'var(--brand-primary-dark, #0f2027)',
-    primaryGhost: 'var(--brand-primary-ghost, rgba(26, 54, 93, 0.04))',
-    accent: '#f8fafc',
-    neutral: '#64748b',
+// Unified theme
+const theme = {
+    primary: '#1a365d',
+    primaryLight: '#2c5aa0',
+    primaryGhost: 'rgba(26, 54, 93, 0.04)',
     surface: '#ffffff',
-    surfaceAlt: '#f1f5f9',
+    surfaceAlt: '#fafbfc',
     border: '#e2e8f0',
-
-    shadow: {
-        xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-        sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
-        md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-        lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-        xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+    text: {
+        primary: '#0f172a',
+        secondary: '#475569',
+        muted: '#94a3b8'
     },
-
     status: {
-        success: '#059669',
-        successLight: '#d1fae5',
-        warning: '#d97706',
-        warningLight: '#fef3c7',
-        error: '#dc2626',
-        errorLight: '#fee2e2',
         info: '#0ea5e9',
         infoLight: '#e0f2fe'
     },
+    spacing: {
+        xs: '4px',
+        sm: '8px',
+        md: '12px',
+        lg: '16px',
+        xl: '24px'
+    },
+    radius: {
+        md: '8px',
+        lg: '12px'
+    },
+    shadow: {
+        sm: '0 1px 3px rgba(0, 0, 0, 0.1)'
+    }
 };
 
 interface CategoryPanelProps {
@@ -60,14 +61,13 @@ const CategoryPanel: React.FC<CategoryPanelProps> = ({
                                                      }) => {
     const handleToggle = async () => {
         if (!isExpanded) {
-            // Load services when expanding
             await onLoadServices(category.id);
         }
         onToggle();
     };
 
     const handleCategoryStatsClick = (e: React.MouseEvent) => {
-        e.stopPropagation(); // Prevent panel toggle
+        e.stopPropagation();
         onShowCategoryStats(category.id, category.name);
     };
 
@@ -154,6 +154,7 @@ export const CategoriesSection: React.FC<CategoriesSectionProps> = ({
         setExpandedCategories(new Set());
     };
 
+    // Don't show the create button in the section header - it's now in the main page header
     return (
         <CategoriesContainer>
             <SectionHeader>
@@ -161,8 +162,8 @@ export const CategoriesSection: React.FC<CategoriesSectionProps> = ({
                     <SectionTitle>Utworzone kategorie</SectionTitle>
                     <CategoryCounter>({categories.length})</CategoryCounter>
                 </HeaderLeft>
-                <HeaderRight>
-                    {categories.length > 0 && (
+                {categories.length > 0 && (
+                    <HeaderRight>
                         <ExpandControls>
                             <ExpandButton onClick={expandAll}>
                                 Rozwiń wszystkie
@@ -171,15 +172,8 @@ export const CategoriesSection: React.FC<CategoriesSectionProps> = ({
                                 Zwiń wszystkie
                             </ExpandButton>
                         </ExpandControls>
-                    )}
-                    <CreateCategoryButton
-                        onClick={onCreateCategory}
-                        disabled={creatingCategory}
-                    >
-                        <FaPlus />
-                        {creatingCategory ? 'Tworzenie...' : 'Utwórz kategorię'}
-                    </CreateCategoryButton>
-                </HeaderRight>
+                    </HeaderRight>
+                )}
             </SectionHeader>
 
             <PanelsContainer>
@@ -190,7 +184,7 @@ export const CategoriesSection: React.FC<CategoriesSectionProps> = ({
                         </EmptyStateIcon>
                         <EmptyStateTitle>Brak utworzonych kategorii</EmptyStateTitle>
                         <EmptyStateDescription>
-                            Kliknij "Utwórz kategorię" aby dodać pierwszą kategorię dla swoich usług
+                            Kliknij "Nowa kategoria" powyżej, aby dodać pierwszą kategorię dla swoich usług
                         </EmptyStateDescription>
                     </EmptyState>
                 ) : (
@@ -215,39 +209,38 @@ export const CategoriesSection: React.FC<CategoriesSectionProps> = ({
 
 // Styled Components
 const CategoriesContainer = styled.div`
-    background: ${brandTheme.surface};
-    border-radius: 16px;
-    border: 1px solid ${brandTheme.border};
+    background: ${theme.surface};
+    border-radius: ${theme.radius.lg};
+    border: 1px solid ${theme.border};
     overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    margin-bottom: 24px;
+    box-shadow: ${theme.shadow.sm};
 `;
 
 const SectionHeader = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 24px;
-    border-bottom: 1px solid ${brandTheme.border};
-    background: ${brandTheme.surfaceAlt};
+    padding: ${theme.spacing.lg} ${theme.spacing.xl};
+    border-bottom: 1px solid ${theme.border};
+    background: ${theme.surfaceAlt};
 
     @media (max-width: 768px) {
         flex-direction: column;
         align-items: flex-start;
-        gap: 16px;
+        gap: ${theme.spacing.md};
     }
 `;
 
 const HeaderLeft = styled.div`
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: ${theme.spacing.sm};
 `;
 
 const HeaderRight = styled.div`
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: ${theme.spacing.md};
 
     @media (max-width: 768px) {
         width: 100%;
@@ -258,19 +251,19 @@ const HeaderRight = styled.div`
 const SectionTitle = styled.h3`
     font-size: 18px;
     font-weight: 600;
-    color: #1e293b;
+    color: ${theme.text.primary};
     margin: 0;
 `;
 
 const CategoryCounter = styled.span`
     font-size: 14px;
-    color: ${brandTheme.neutral};
+    color: ${theme.text.secondary};
     font-weight: 500;
 `;
 
 const ExpandControls = styled.div`
     display: flex;
-    gap: 8px;
+    gap: ${theme.spacing.sm};
 
     @media (max-width: 768px) {
         display: none;
@@ -278,59 +271,29 @@ const ExpandControls = styled.div`
 `;
 
 const ExpandButton = styled.button`
-    padding: 6px 12px;
+    padding: ${theme.spacing.sm} ${theme.spacing.md};
     background: transparent;
-    border: 1px solid ${brandTheme.border};
-    border-radius: 6px;
-    color: ${brandTheme.neutral};
+    border: 1px solid ${theme.border};
+    border-radius: ${theme.radius.md};
+    color: ${theme.text.secondary};
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
 
     &:hover {
-        background: ${brandTheme.primaryGhost};
-        color: ${brandTheme.primary};
-        border-color: ${brandTheme.primary};
-    }
-`;
-
-const CreateCategoryButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    background: ${brandTheme.primary};
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-weight: 500;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover:not(:disabled) {
-        background: ${brandTheme.primaryLight};
-        transform: translateY(-1px);
-    }
-
-    &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: none;
-    }
-
-    svg {
-        font-size: 12px;
+        background: ${theme.primaryGhost};
+        color: ${theme.primary};
+        border-color: ${theme.primary};
     }
 `;
 
 const PanelsContainer = styled.div`
-    background: ${brandTheme.surface};
+    background: ${theme.surface};
 `;
 
 const PanelContainer = styled.div`
-    border-bottom: 1px solid ${brandTheme.border};
+    border-bottom: 1px solid ${theme.border};
     transition: all 0.2s ease;
 
     &:last-child {
@@ -338,7 +301,7 @@ const PanelContainer = styled.div`
     }
 
     &:hover {
-        background: ${brandTheme.surfaceAlt};
+        background: ${theme.surfaceAlt};
     }
 `;
 
@@ -346,26 +309,27 @@ const PanelHeader = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 24px;
+    padding: ${theme.spacing.lg} ${theme.spacing.xl};
     cursor: pointer;
     transition: all 0.2s ease;
     user-select: none;
 
     &:hover {
-        background: ${brandTheme.primaryGhost};
+        background: ${theme.primaryGhost};
     }
 `;
 
 const PanelHeaderLeft = styled.div`
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: ${theme.spacing.md};
     flex: 1;
 `;
 
 const PanelHeaderRight = styled.div`
     display: flex;
     align-items: center;
+    gap: ${theme.spacing.sm};
 `;
 
 const ExpandIcon = styled.div<{ $expanded: boolean }>`
@@ -374,61 +338,86 @@ const ExpandIcon = styled.div<{ $expanded: boolean }>`
     justify-content: center;
     width: 20px;
     height: 20px;
-    color: ${brandTheme.neutral};
+    color: ${theme.text.secondary};
     font-size: 12px;
     transition: all 0.2s ease;
-    transform: ${props => props.$expanded ? 'rotate(0deg)' : 'rotate(0deg)'};
 `;
 
 const CategoryIcon = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
-    background: ${brandTheme.primaryGhost};
-    border-radius: 8px;
-    color: ${brandTheme.primary};
-    font-size: 14px;
+    width: 36px;
+    height: 36px;
+    background: ${theme.primaryGhost};
+    border-radius: ${theme.radius.md};
+    color: ${theme.primary};
+    font-size: 16px;
 `;
 
 const CategoryInfo = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: ${theme.spacing.xs};
 `;
 
 const CategoryName = styled.div`
     font-weight: 600;
-    font-size: 15px;
-    color: #1e293b;
+    font-size: 16px;
+    color: ${theme.text.primary};
     line-height: 1.3;
 `;
 
 const CategoryMeta = styled.div`
-    font-size: 12px;
-    color: ${brandTheme.neutral};
+    font-size: 13px;
+    color: ${theme.text.secondary};
     font-weight: 500;
+`;
+
+const CategoryStatsButton = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: ${theme.status.infoLight};
+    color: ${theme.status.info};
+    border: 1px solid ${theme.status.info}30;
+    border-radius: ${theme.radius.md};
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+
+    &:hover {
+        background: ${theme.status.info};
+        color: white;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    &:active {
+        transform: translateY(0);
+    }
 `;
 
 const CategoryCount = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 32px;
-    height: 24px;
-    padding: 0 8px;
-    background: ${brandTheme.primaryGhost};
-    border: 1px solid ${brandTheme.border};
-    border-radius: 12px;
-    font-size: 12px;
+    min-width: 36px;
+    height: 28px;
+    padding: 0 ${theme.spacing.md};
+    background: ${theme.primaryGhost};
+    border: 1px solid ${theme.border};
+    border-radius: ${theme.radius.lg};
+    font-size: 13px;
     font-weight: 600;
-    color: ${brandTheme.primary};
+    color: ${theme.primary};
 `;
 
 const PanelContent = styled.div`
-    background: ${brandTheme.surfaceAlt};
-    border-top: 1px solid ${brandTheme.border};
+    background: ${theme.surfaceAlt};
+    border-top: 1px solid ${theme.border};
     animation: slideDown 0.2s ease-out;
 
     @keyframes slideDown {
@@ -449,61 +438,34 @@ const EmptyState = styled.div`
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 60px 40px;
+    padding: ${theme.spacing.xl} 40px;
     text-align: center;
 `;
 
 const EmptyStateIcon = styled.div`
-    width: 64px;
-    height: 64px;
-    background: ${brandTheme.surfaceAlt};
+    width: 56px;
+    height: 56px;
+    background: ${theme.surfaceAlt};
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
-    color: ${brandTheme.neutral};
-    margin-bottom: 20px;
+    font-size: 22px;
+    color: ${theme.text.muted};
+    margin-bottom: ${theme.spacing.lg};
 `;
 
 const EmptyStateTitle = styled.h3`
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 600;
-    color: #1e293b;
-    margin: 0 0 8px 0;
+    color: ${theme.text.primary};
+    margin: 0 0 ${theme.spacing.sm} 0;
 `;
 
 const EmptyStateDescription = styled.p`
-    font-size: 16px;
-    color: ${brandTheme.neutral};
+    font-size: 14px;
+    color: ${theme.text.secondary};
     margin: 0;
     line-height: 1.5;
     max-width: 400px;
-`;
-
-const CategoryStatsButton = styled.button`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    background: ${brandTheme.status.infoLight};
-    color: ${brandTheme.status.info};
-    border: 1px solid ${brandTheme.status.info}30;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    margin-right: 8px;
-    font-size: 14px;
-
-    &:hover {
-        background: ${brandTheme.status.info};
-        color: white;
-        transform: translateY(-1px);
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    &:active {
-        transform: translateY(0);
-    }
 `;

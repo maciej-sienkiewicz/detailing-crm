@@ -1,9 +1,41 @@
 // src/pages/Finances/components/AssignToCategoryModal.tsx
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { FaTimes, FaFolder, FaCheck } from 'react-icons/fa';
-import { theme } from '../../../styles/theme';
+import { FaTimes, FaFolderPlus, FaCheck, FaFolder } from 'react-icons/fa';
 import { Category } from '../../../api/statsApi';
+
+// Unified theme
+const theme = {
+    primary: '#1a365d',
+    primaryLight: '#2c5aa0',
+    primaryGhost: 'rgba(26, 54, 93, 0.04)',
+    surface: '#ffffff',
+    surfaceAlt: '#fafbfc',
+    border: '#e2e8f0',
+    text: {
+        primary: '#0f172a',
+        secondary: '#475569',
+        muted: '#94a3b8',
+        disabled: '#cbd5e1'
+    },
+    success: '#059669',
+    error: '#dc2626',
+    spacing: {
+        xs: '4px',
+        sm: '8px',
+        md: '12px',
+        lg: '16px',
+        xl: '24px'
+    },
+    radius: {
+        sm: '6px',
+        md: '8px',
+        lg: '12px'
+    },
+    shadow: {
+        lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+    }
+};
 
 interface AssignToCategoryModalProps {
     isOpen: boolean;
@@ -64,18 +96,19 @@ export const AssignToCategoryModal: React.FC<AssignToCategoryModalProps> = ({
     return (
         <Overlay onClick={onClose}>
             <ModalContainer onClick={e => e.stopPropagation()} onKeyDown={handleKeyDown}>
+                {/* Compact Header - consistent with other modals */}
                 <ModalHeader>
-                    <HeaderContent>
-                        <ModalIcon>
-                            <FaFolder />
-                        </ModalIcon>
-                        <div>
+                    <HeaderLeft>
+                        <HeaderIcon>
+                            <FaFolderPlus />
+                        </HeaderIcon>
+                        <HeaderText>
                             <ModalTitle>Przypisz do kategorii</ModalTitle>
                             <ModalSubtitle>
                                 Wybrane usługi: {selectedServicesCount}
                             </ModalSubtitle>
-                        </div>
-                    </HeaderContent>
+                        </HeaderText>
+                    </HeaderLeft>
                     <CloseButton onClick={onClose} disabled={loading}>
                         <FaTimes />
                     </CloseButton>
@@ -109,6 +142,9 @@ export const AssignToCategoryModal: React.FC<AssignToCategoryModalProps> = ({
                                             onClick={() => setSelectedCategoryId(category.id)}
                                         >
                                             <CategoryOptionContent>
+                                                <CategoryIcon>
+                                                    <FaFolder />
+                                                </CategoryIcon>
                                                 <CategoryInfo>
                                                     <CategoryName>{category.name}</CategoryName>
                                                     <CategoryMeta>
@@ -169,7 +205,7 @@ const Overlay = styled.div`
 const ModalContainer = styled.div`
     background: ${theme.surface};
     border-radius: ${theme.radius.lg};
-    box-shadow: ${theme.shadow.xl};
+    box-shadow: ${theme.shadow.lg};
     width: 100%;
     max-width: 540px;
     max-height: 90vh;
@@ -192,18 +228,18 @@ const ModalHeader = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: ${theme.spacing.xl};
+    padding: ${theme.spacing.lg} ${theme.spacing.xl};
     border-bottom: 1px solid ${theme.border};
-    background: ${theme.surfaceElevated};
+    background: ${theme.surface};
 `;
 
-const HeaderContent = styled.div`
+const HeaderLeft = styled.div`
     display: flex;
     align-items: center;
     gap: ${theme.spacing.md};
 `;
 
-const ModalIcon = styled.div`
+const HeaderIcon = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
@@ -212,14 +248,16 @@ const ModalIcon = styled.div`
     background: ${theme.success}20;
     border-radius: ${theme.radius.md};
     color: ${theme.success};
-    font-size: 18px;
+    font-size: 16px;
 `;
+
+const HeaderText = styled.div``;
 
 const ModalTitle = styled.h2`
     font-size: 20px;
     font-weight: 600;
     color: ${theme.text.primary};
-    margin: 0 0 ${theme.spacing.xs} 0;
+    margin: 0 0 4px 0;
 `;
 
 const ModalSubtitle = styled.div`
@@ -231,18 +269,19 @@ const CloseButton = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
-    background: transparent;
-    border: none;
-    border-radius: ${theme.radius.sm};
+    width: 36px;
+    height: 36px;
+    background: ${theme.surface};
+    border: 1px solid ${theme.border};
+    border-radius: ${theme.radius.md};
     color: ${theme.text.muted};
     cursor: pointer;
-    transition: ${theme.transitions.fast};
+    transition: all 0.2s ease;
 
     &:hover:not(:disabled) {
-        background: ${theme.surfaceHover};
-        color: ${theme.text.primary};
+        background: #fee2e2;
+        color: #dc2626;
+        border-color: #dc2626;
     }
 
     &:disabled {
@@ -276,29 +315,41 @@ const Required = styled.span`
 const CategoriesList = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${theme.spacing.sm};
+    gap: ${theme.spacing.md};
     max-height: 300px;
     overflow-y: auto;
 `;
 
 const CategoryOption = styled.div<{ $selected: boolean }>`
-    padding: ${theme.spacing.md};
+    padding: ${theme.spacing.lg};
     border: 1px solid ${props => props.$selected ? theme.success : theme.border};
     border-radius: ${theme.radius.md};
     background: ${props => props.$selected ? theme.success + '10' : theme.surface};
     cursor: pointer;
-    transition: ${theme.transitions.fast};
+    transition: all 0.2s ease;
 
     &:hover {
         border-color: ${props => props.$selected ? theme.success : theme.primary};
-        background: ${props => props.$selected ? theme.success + '15' : theme.surfaceHover};
+        background: ${props => props.$selected ? theme.success + '15' : theme.primaryGhost};
     }
 `;
 
 const CategoryOptionContent = styled.div`
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: ${theme.spacing.md};
+`;
+
+const CategoryIcon = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: ${theme.primaryGhost};
+    border-radius: ${theme.radius.md};
+    color: ${theme.primary};
+    font-size: 16px;
 `;
 
 const CategoryInfo = styled.div`
@@ -306,13 +357,14 @@ const CategoryInfo = styled.div`
 `;
 
 const CategoryName = styled.div`
-    font-weight: 500;
+    font-weight: 600;
     color: ${theme.text.primary};
     margin-bottom: ${theme.spacing.xs};
+    font-size: 15px;
 `;
 
 const CategoryMeta = styled.div`
-    font-size: 12px;
+    font-size: 13px;
     color: ${theme.text.muted};
 `;
 
@@ -320,8 +372,8 @@ const CheckIcon = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     background: ${theme.success};
     color: ${theme.surface};
     border-radius: 50%;
@@ -333,11 +385,11 @@ const EmptyState = styled.div`
     padding: ${theme.spacing.xl};
     border: 2px dashed ${theme.border};
     border-radius: ${theme.radius.md};
-    background: ${theme.surfaceElevated};
+    background: ${theme.surfaceAlt};
 `;
 
 const EmptyStateIcon = styled.div`
-    font-size: 32px;
+    font-size: 28px;
     color: ${theme.text.muted};
     margin-bottom: ${theme.spacing.md};
 `;
@@ -345,18 +397,20 @@ const EmptyStateIcon = styled.div`
 const EmptyStateText = styled.div`
     font-size: 16px;
     color: ${theme.text.secondary};
-    margin-bottom: ${theme.spacing.xs};
+    margin-bottom: ${theme.spacing.sm};
+    font-weight: 500;
 `;
 
 const EmptyStateSubtext = styled.div`
     font-size: 14px;
     color: ${theme.text.muted};
+    line-height: 1.4;
 `;
 
 const ErrorMessage = styled.div`
     color: ${theme.error};
     font-size: 12px;
-    margin-top: ${theme.spacing.sm};
+    margin-top: ${theme.spacing.md};
 `;
 
 const ModalFooter = styled.div`
@@ -375,10 +429,10 @@ const CancelButton = styled.button`
     font-weight: 500;
     font-size: 14px;
     cursor: pointer;
-    transition: ${theme.transitions.fast};
+    transition: all 0.2s ease;
 
     &:hover:not(:disabled) {
-        background: ${theme.surfaceHover};
+        background: ${theme.surfaceAlt};
         color: ${theme.text.primary};
     }
 
@@ -397,7 +451,7 @@ const SubmitButton = styled.button`
     font-weight: 500;
     font-size: 14px;
     cursor: pointer;
-    transition: ${theme.transitions.fast};
+    transition: all 0.2s ease;
 
     &:hover:not(:disabled) {
         background: ${theme.success};
