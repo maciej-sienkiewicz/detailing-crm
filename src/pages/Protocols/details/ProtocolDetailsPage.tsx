@@ -270,7 +270,7 @@ const ProtocolDetailsPage: React.FC = () => {
 
     // Handle vehicle release
     const handleReleaseVehicle = () => {
-        if(comments != null && comments.filter(c => c.type === 'customer').length > 0) {
+        if(comments != null && comments.filter(c => c.type === 'CUSTOMER').length > 0) {
             setShowClientCommentsModal(true);
         } else {
             setShowPaymentModal(true);
@@ -501,7 +501,7 @@ const ProtocolDetailsPage: React.FC = () => {
                 services={protocol?.selectedServices || []}
                 onServicesChange={handleServiceItemsChange}
                 protocolId={protocol.id}
-                customerName={protocol?.clientName}
+                customerName={protocol?.ownerName}
                 customerEmail={protocol?.email}
             />
 

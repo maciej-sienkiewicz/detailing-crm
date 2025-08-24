@@ -27,8 +27,10 @@ import { apiClient } from '../../../../api/apiClient';
 import { carReceptionApi } from '../../../../api/carReceptionApi';
 import ImagePreviewModal from "../../shared/modals/ImagePreviewModal";
 import ImageEditModal from "../../shared/modals/ImageEditModal";
+
 import {format} from "date-fns";
 import {pl} from "date-fns/locale";
+import DocumentPreviewModal from "./DocumentPreviewModal";
 
 // Enterprise Design System - Professional Automotive Gallery
 const enterprise = {
@@ -137,6 +139,10 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
     const documentInputRef = useRef<HTMLInputElement>(null);
     const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
 
+    // Document preview modal state
+    const [showDocumentPreviewModal, setShowDocumentPreviewModal] = useState(false);
+    const [previewDocument, setPreviewDocument] = useState<ProtocolDocument | null>(null);
+
     // Document upload modal state
     const [showDocumentUploadModal, setShowDocumentUploadModal] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -173,6 +179,12 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
         downloadDocument: (documentId: string): string => {
             return carReceptionApi.getProtocolDocumentDownloadUrl(documentId);
         }
+    };
+
+    // Handle document preview
+    const handlePreviewDocument = (document: ProtocolDocument) => {
+        setPreviewDocument(document);
+        setShowDocumentPreviewModal(true);
     };
 
     // Synchronize images with protocol.vehicleImages
@@ -895,6 +907,12 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
 
                                     <DocumentRowActions>
                                         <ActionButton
+                                            onClick={() => handlePreviewDocument(document)}
+                                            title="Podgląd"
+                                        >
+                                            <FaEye />
+                                        </ActionButton>
+                                        <ActionButton
                                             onClick={() => handleDownloadDocument(document)}
                                             title="Pobierz"
                                         >
@@ -1007,6 +1025,19 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
             )}
 
             {/* Existing Modals */}
+            {/* Document Preview Modal */}
+            {showDocumentPreviewModal && previewDocument && (
+                <DocumentPreviewModal
+                    isOpen={showDocumentPreviewModal}
+                    onClose={() => {
+                        setShowDocumentPreviewModal(false);
+                        setPreviewDocument(null);
+                    }}
+                    document={previewDocument}
+                    onDownload={handleDownloadDocument}
+                />
+            )}
+
             <ImagePreviewModal
                 isOpen={showPreviewModal}
                 onClose={() => setShowPreviewModal(false)}
