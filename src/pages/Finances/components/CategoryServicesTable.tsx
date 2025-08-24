@@ -157,11 +157,11 @@ export const CategoryServicesTable: React.FC<CategoryServicesTableProps> = ({
 const TableWrapper = styled.div`
     width: 100%;
     background: ${theme.surfaceAlt};
-    padding: ${theme.spacing.xl} 0;
+    padding: ${theme.spacing.lg} 0;
 `;
 
 const TableContainer = styled.div`
-    margin: 0 ${theme.spacing.xl} ${theme.spacing.xl} ${theme.spacing.xl};
+    margin: 0 ${theme.spacing.lg} ${theme.spacing.lg} ${theme.spacing.lg};
     background: ${theme.surface};
     border: 1px solid ${theme.border};
     border-radius: ${theme.radius.lg};

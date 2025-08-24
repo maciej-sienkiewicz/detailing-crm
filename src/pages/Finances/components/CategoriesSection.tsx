@@ -72,7 +72,7 @@ const CategoryPanel: React.FC<CategoryPanelProps> = ({
     };
 
     return (
-        <PanelContainer>
+        <PanelContainer data-expanded={isExpanded}>
             <PanelHeader onClick={handleToggle}>
                 <PanelHeaderLeft>
                     <ExpandIcon $expanded={isExpanded}>
@@ -374,22 +374,10 @@ const RefreshButton = styled.button`
 `;
 
 const PanelsContainer = styled.div`
-    background: ${theme.surface};
+    background: ${theme.surfaceAlt};
+    padding: ${theme.spacing.lg};
 `;
 
-const PanelContainer = styled.div`
-    border-bottom: 1px solid ${theme.border};
-    transition: all 0.2s ease;
-    background: ${theme.surface};
-
-    &:last-child {
-        border-bottom: none;
-    }
-
-    &:hover {
-        background: ${theme.surface};
-    }
-`;
 
 const PanelHeader = styled.div`
     display: flex;
@@ -403,6 +391,38 @@ const PanelHeader = styled.div`
 
     &:hover {
         background: ${theme.primaryGhost};
+    }
+`;
+
+const PanelContainer = styled.div`
+    border-bottom: 1px solid ${theme.border};
+    transition: all 0.2s ease;
+    background: ${theme.surface};
+    margin-bottom: ${theme.spacing.md};
+    border-radius: ${theme.radius.lg};
+    overflow: hidden;
+    box-shadow: ${theme.shadow.sm};
+
+    &:last-child {
+        margin-bottom: 0;
+    }
+
+    &:hover:not([data-expanded="true"]) {
+        background: ${theme.surface};
+        
+        ${PanelHeader} {
+            background: ${theme.primaryGhost};
+        }
+    }
+
+    /* Wyraźniejsza separacja gdy rozwinięte */
+    &[data-expanded="true"] {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        border: 1px solid ${theme.border};
+        
+        &:not(:last-child) {
+            margin-bottom: ${theme.spacing.xl};
+        }
     }
 `;
 
@@ -505,6 +525,7 @@ const CategoryCount = styled.div`
 const PanelContent = styled.div`
     background: ${theme.surfaceAlt};
     border-top: 1px solid ${theme.border};
+    padding: 0;
     animation: slideDown 0.2s ease-out;
 
     @keyframes slideDown {
