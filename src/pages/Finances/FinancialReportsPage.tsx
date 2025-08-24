@@ -170,36 +170,6 @@ const FinancialReportsPage: React.FC = () => {
 
     return (
         <StatsContainer>
-            <Header>
-                <HeaderTop>
-                    <HeaderContent>
-                        <Title>Statystyki i Kategorie Usług</Title>
-                        <Subtitle>
-                            Zarządzaj kategoriami usług i przypisuj niekategoryzowane usługi
-                        </Subtitle>
-                    </HeaderContent>
-                    <HeaderActions>
-                        <RefreshButton onClick={handleRefresh} disabled={loading}>
-                            <FaSync className={loading ? 'spinning' : ''} />
-                        </RefreshButton>
-                    </HeaderActions>
-                </HeaderTop>
-
-                {/* Error display */}
-                {error && (
-                    <div style={{
-                        backgroundColor: '#fee2e2',
-                        border: '1px solid #dc2626',
-                        borderRadius: '8px',
-                        padding: '12px 16px',
-                        color: '#dc2626',
-                        fontSize: '14px',
-                        marginTop: '16px'
-                    }}>
-                        {error}
-                    </div>
-                )}
-            </Header>
 
             {/* Categories Section */}
             <CategoriesSection
