@@ -162,7 +162,7 @@ const ProtocolDetailsPage: React.FC = () => {
 
     const handleCancelProtocol = async (reason: CancellationReason) => {
         try {
-            await protocolsApi.updateProtocolStatus(protocol.id, ProtocolStatus.CANCELLED, reason);
+            await protocolsApi.updateProtocolStatus(protocol!!.id, ProtocolStatus.CANCELLED, reason);
 
             setProtocol({
                 ...protocol,

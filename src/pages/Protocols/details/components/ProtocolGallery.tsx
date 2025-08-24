@@ -906,12 +906,14 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                                     </DocumentRowContent>
 
                                     <DocumentRowActions>
-                                        <ActionButton
+                                        {(document.contentType == "application/pdf") &&  (
+                                            <ActionButton
                                             onClick={() => handlePreviewDocument(document)}
                                             title="Podgląd"
                                         >
                                             <FaEye />
                                         </ActionButton>
+                                        )}
                                         <ActionButton
                                             onClick={() => handleDownloadDocument(document)}
                                             title="Pobierz"
