@@ -3,7 +3,6 @@ import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {Appointment, AppointmentStatus, ProtocolStatus} from "../types";
 import {useToast} from "../components/common/Toast/Toast";
-import {mapAppointmentToProtocol} from "../services/ProtocolMappingService";
 
 interface UseCalendarModalsProps {
     updateAppointmentData: (appointment: Appointment) => Promise<void>;
@@ -53,23 +52,6 @@ export const useCalendarModals = ({
         if (selectedAppointment.isProtocol) {
             showToast('info', 'To wydarzenie jest już protokołem', 3000);
             return;
-        }
-
-        try {
-            const protocolData = mapAppointmentToProtocol(selectedAppointment);
-            setShowAppointmentDetailsModal(false);
-
-            navigate('/visits/car-reception?createFromAppointment=true', {
-                state: {
-                    protocolData,
-                    appointmentId: selectedAppointment.id
-                }
-            });
-
-            showToast('info', 'Przekierowanie do tworzenia protokołu...', 2000);
-        } catch (err) {
-            console.error('Error creating protocol from appointment:', err);
-            showToast('error', 'Nie udało się utworzyć protokołu z wizyty', 5000);
         }
     }, [selectedAppointment, navigate, showToast]);
 
