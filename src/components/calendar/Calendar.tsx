@@ -170,6 +170,15 @@ const AppointmentCalendar: React.FC<CalendarProps> = React.memo(({
         }
     }, []); // Empty deps - runs only once
 
+    // Configuration for filter buttons with colors
+    const filterConfig = {
+        scheduled: { label: 'Zaplanowane', color: theme.primary },
+        inProgress: { label: 'W trakcie', color: theme.primary },
+        readyForPickup: { label: 'Gotowe', color: theme.primary },
+        completed: { label: 'Zakończone', color: theme.primary },
+        cancelled: { label: 'Anulowane', color: theme.primary }
+    };
+
     return (
         <CalendarContainer>
             {/* Controls */}
@@ -218,36 +227,35 @@ const AppointmentCalendar: React.FC<CalendarProps> = React.memo(({
 
                 <ControlsRight>
                     <QuickFiltersContainer>
-                        <FilterButton
-                            $active={quickFilters.scheduled}
-                            onClick={() => toggleFilter('scheduled')}
-                        >
-                            Zaplanowane
-                        </FilterButton>
-                        <FilterButton
-                            $active={quickFilters.inProgress}
-                            onClick={() => toggleFilter('inProgress')}
-                        >
-                            W trakcie
-                        </FilterButton>
-                        <FilterButton
-                            $active={quickFilters.readyForPickup}
-                            onClick={() => toggleFilter('readyForPickup')}
-                        >
-                            Gotowe
-                        </FilterButton>
-                        <FilterButton
-                            $active={quickFilters.completed}
-                            onClick={() => toggleFilter('completed')}
-                        >
-                            Zakończone
-                        </FilterButton>
-                        <FilterButton
-                            $active={quickFilters.cancelled}
-                            onClick={() => toggleFilter('cancelled')}
-                        >
-                            Anulowane
-                        </FilterButton>
+                        {Object.entries(filterConfig).map(([key, config]) => {
+                            const isActive = quickFilters[key as keyof QuickFilters];
+                            return (
+                                <FilterButton
+                                    key={key}
+                                    $active={isActive}
+                                    $color={config.color}
+                                    onClick={() => toggleFilter(key as keyof QuickFilters)}
+                                >
+                                    <FilterContent>
+                                        <FilterLabel>{config.label}</FilterLabel>
+                                        <CheckIcon $active={isActive} $color={config.color}>
+                                            <svg
+                                                width="14"
+                                                height="14"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="3"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                            >
+                                                <polyline points="20,6 9,17 4,12" />
+                                            </svg>
+                                        </CheckIcon>
+                                    </FilterContent>
+                                </FilterButton>
+                            );
+                        })}
                     </QuickFiltersContainer>
                 </ControlsRight>
             </CalendarControls>
@@ -341,7 +349,7 @@ const AppointmentCalendar: React.FC<CalendarProps> = React.memo(({
 
 AppointmentCalendar.displayName = 'AppointmentCalendar';
 
-// Styled Components (same as before, truncated for brevity)
+// Styled Components
 const CalendarContainer = styled.div`
     display: flex;
     flex-direction: column;
@@ -468,21 +476,49 @@ const QuickFiltersContainer = styled.div`
     gap: ${theme.spacing.sm};
 `;
 
-const FilterButton = styled.button<{ $active: boolean }>`
-    padding: ${theme.spacing.sm} ${theme.spacing.lg};
-    background: ${props => props.$active ? theme.primary : theme.surface};
-    color: ${props => props.$active ? 'white' : theme.text.secondary};
-    border: 1px solid ${props => props.$active ? theme.primary : theme.border};
-    border-radius: ${theme.radius.md};
-    font-weight: 500;
-    font-size: 13px;
+const FilterButton = styled.button<{ $active: boolean; $color: string }>`
+    padding: ${theme.spacing.sm} ${theme.spacing.md};
+    background: ${theme.surface};
+    border: 2px solid ${props => props.$active ? props.$color : '#e2e8f0'};
+    border-radius: ${theme.radius.sm};
     cursor: pointer;
     transition: all 0.2s ease;
+    min-width: 120px;
 
     &:hover {
-        background: ${props => props.$active ? theme.primary : theme.primaryGhost};
-        border-color: ${theme.primary};
-        color: ${props => props.$active ? 'white' : theme.primary};
+        transform: translateY(-1px);
+        box-shadow: ${theme.shadow.xs};
+        border-color: ${props => props.$color};
+    }
+`;
+
+const FilterContent = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: ${theme.spacing.sm};
+`;
+
+const FilterLabel = styled.div`
+    font-size: 13px;
+    font-weight: 600;
+    color: ${theme.text.secondary};
+    text-align: center;
+`;
+
+const CheckIcon = styled.div<{ $active: boolean; $color: string }>`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    color: ${props => props.$active ? props.$color : '#94a3b8'};
+    transition: all 0.2s ease;
+    
+    svg {
+        transition: all 0.2s ease;
+        transform: ${props => props.$active ? 'scale(1)' : 'scale(0.8)'};
+        opacity: ${props => props.$active ? 1 : 0.6};
     }
 `;
 

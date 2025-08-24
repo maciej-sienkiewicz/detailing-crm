@@ -17,9 +17,9 @@ export interface QuickFilters {
 export const DEFAULT_QUICK_FILTERS: QuickFilters = {
     scheduled: true,
     inProgress: true,
-    readyForPickup: true,
-    completed: true,
-    cancelled: true
+    readyForPickup: false,
+    completed: false,
+    cancelled: false
 };
 
 export const getStatusKey = (status: AppointmentStatus): keyof QuickFilters => {
