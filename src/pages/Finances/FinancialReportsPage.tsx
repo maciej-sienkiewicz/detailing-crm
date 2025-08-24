@@ -191,7 +191,6 @@ const FinancialReportsPage: React.FC = () => {
 
     return (
         <PageContainer>
-            {/* Main Content */}
             <ContentArea>
                 {/* Categories Section */}
                 <CategoriesSection

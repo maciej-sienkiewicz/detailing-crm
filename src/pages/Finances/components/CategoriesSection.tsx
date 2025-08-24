@@ -1,7 +1,7 @@
 // src/pages/Finances/components/CategoriesSection.tsx
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import {FaPlus, FaFolder, FaChevronDown, FaChevronRight, FaCalendarAlt} from 'react-icons/fa';
+import {FaPlus, FaFolder, FaChevronDown, FaChevronRight, FaCalendarAlt, FaSync} from 'react-icons/fa';
 import { Category, CategoryService } from '../../../api/statsApi';
 import { CategoryServicesTable } from './CategoryServicesTable';
 
@@ -120,6 +120,8 @@ interface CategoriesSectionProps {
     onShowServiceStats: (serviceId: string, serviceName: string) => void;
     onShowCategoryStats: (categoryId: number, categoryName: string) => void;
     creatingCategory: boolean;
+    onRefresh: () => void;
+    loading: boolean;
 }
 
 export const CategoriesSection: React.FC<CategoriesSectionProps> = ({
@@ -130,7 +132,9 @@ export const CategoriesSection: React.FC<CategoriesSectionProps> = ({
                                                                         onFetchCategoryServices,
                                                                         onShowServiceStats,
                                                                         onShowCategoryStats,
-                                                                        creatingCategory
+                                                                        creatingCategory,
+                                                                        onRefresh,
+                                                                        loading
                                                                     }) => {
     const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set());
 
@@ -154,7 +158,6 @@ export const CategoriesSection: React.FC<CategoriesSectionProps> = ({
         setExpandedCategories(new Set());
     };
 
-    // Don't show the create button in the section header - it's now in the main page header
     return (
         <CategoriesContainer>
             <SectionHeader>
@@ -171,7 +174,17 @@ export const CategoriesSection: React.FC<CategoriesSectionProps> = ({
                             <ExpandButton onClick={collapseAll}>
                                 Zwiń wszystkie
                             </ExpandButton>
+                            <CreateCategoryButton
+                                onClick={onCreateCategory}
+                                disabled={creatingCategory}
+                            >
+                                <FaPlus />
+                                {creatingCategory ? 'Tworzenie...' : 'Nowa kategoria'}
+                            </CreateCategoryButton>
                         </ExpandControls>
+                        <RefreshButton onClick={onRefresh} disabled={loading}>
+                            <FaSync className={loading ? 'spinning' : ''} />
+                        </RefreshButton>
                     </HeaderRight>
                 )}
             </SectionHeader>
@@ -184,8 +197,15 @@ export const CategoriesSection: React.FC<CategoriesSectionProps> = ({
                         </EmptyStateIcon>
                         <EmptyStateTitle>Brak utworzonych kategorii</EmptyStateTitle>
                         <EmptyStateDescription>
-                            Kliknij "Nowa kategoria" powyżej, aby dodać pierwszą kategorię dla swoich usług
+                            Utwórz pierwszą kategorię dla swoich usług
                         </EmptyStateDescription>
+                        <CreateCategoryButton
+                            onClick={onCreateCategory}
+                            disabled={creatingCategory}
+                        >
+                            <FaPlus />
+                            {creatingCategory ? 'Tworzenie...' : 'Utwórz pierwszą kategorię'}
+                        </CreateCategoryButton>
                     </EmptyState>
                 ) : (
                     categories.map((category) => (
@@ -289,6 +309,70 @@ const ExpandButton = styled.button`
     }
 `;
 
+const CreateCategoryButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.sm};
+    padding: ${theme.spacing.sm} ${theme.spacing.md};
+    background: ${theme.primary};
+    color: white;
+    border: none;
+    border-radius: ${theme.radius.md};
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover:not(:disabled) {
+        background: ${theme.primaryLight};
+        transform: translateY(-1px);
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    svg {
+        font-size: 12px;
+    }
+`;
+
+const RefreshButton = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: ${theme.surface};
+    border: 1px solid ${theme.border};
+    border-radius: ${theme.radius.md};
+    color: ${theme.text.secondary};
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover:not(:disabled) {
+        background: ${theme.primaryGhost};
+        color: ${theme.primary};
+        border-color: ${theme.primary};
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .spinning {
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+`;
+
 const PanelsContainer = styled.div`
     background: ${theme.surface};
 `;
@@ -315,6 +399,7 @@ const PanelHeader = styled.div`
     cursor: pointer;
     transition: all 0.2s ease;
     user-select: none;
+    background: ${theme.surface};
 
     &:hover {
         background: ${theme.primaryGhost};
@@ -442,6 +527,7 @@ const EmptyState = styled.div`
     justify-content: center;
     padding: ${theme.spacing.xl} 40px;
     text-align: center;
+    gap: ${theme.spacing.md};
 `;
 
 const EmptyStateIcon = styled.div`
