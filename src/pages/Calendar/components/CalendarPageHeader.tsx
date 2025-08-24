@@ -11,24 +11,18 @@ export const CalendarPageHeader: React.FC = () => {
     return (
         <HeaderContainer>
             <PageHeader>
-                <HeaderLeft>
-                    <HeaderTitle>
-                        <TitleIcon>
-                            <FaCalendarAlt />
-                        </TitleIcon>
-                        <TitleContent>
-                            <MainTitle>Kalendarz wizyt</MainTitle>
-                            <Subtitle>Zarządzanie terminami i protokołami</Subtitle>
-                        </TitleContent>
-                    </HeaderTitle>
-                </HeaderLeft>
-
-                <HeaderActions>
-                    <PrimaryAction onClick={actions.handleNewAppointmentClick}>
-                        <FaPlus />
-                        <span>Nowa wizyta</span>
-                    </PrimaryAction>
-                </HeaderActions>
+                <HeaderTitle>
+                    <TitleIcon>
+                        <FaCalendarAlt />
+                    </TitleIcon>
+                    <TitleContent>
+                        <MainTitle>Kalendarz wizyt</MainTitle>
+                        <Subtitle>Zarządzanie terminami i protokołami</Subtitle>
+                    </TitleContent>
+                </HeaderTitle>
+                <PrimaryAction onClick={actions.handleNewAppointmentClick}>
+                    <FaPlus /> Nowa wizyta
+                </PrimaryAction>
             </PageHeader>
         </HeaderContainer>
     );
@@ -38,6 +32,9 @@ const HeaderContainer = styled.header`
     background: ${theme.surface};
     border-bottom: 1px solid ${theme.border};
     box-shadow: ${theme.shadow.sm};
+    position: sticky;
+    top: 0;
+    z-index: 100;
     backdrop-filter: blur(8px);
     background: rgba(255, 255, 255, 0.95);
 `;
@@ -45,36 +42,28 @@ const HeaderContainer = styled.header`
 const PageHeader = styled.div`
     max-width: 1600px;
     margin: 0 auto;
-    padding: ${theme.spacing.lg} ${theme.spacing.xl};
+    padding: ${theme.spacing.xxl} ${theme.spacing.xxxl};
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: ${theme.spacing.lg};
+    gap: ${theme.spacing.xxl};
 
     @media (max-width: 1024px) {
-        padding: ${theme.spacing.md} ${theme.spacing.lg};
+        padding: ${theme.spacing.lg} ${theme.spacing.xxl};
         flex-direction: column;
         align-items: stretch;
-        gap: ${theme.spacing.md};
+        gap: ${theme.spacing.lg};
     }
 
     @media (max-width: 768px) {
-        padding: ${theme.spacing.md};
+        padding: ${theme.spacing.lg};
     }
-`;
-
-const HeaderLeft = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.md};
-    min-width: 0;
-    flex: 1;
 `;
 
 const HeaderTitle = styled.div`
     display: flex;
     align-items: center;
-    gap: ${theme.spacing.lg};
+    gap: ${theme.spacing.xxl};
 `;
 
 const TitleIcon = styled.div`
@@ -116,42 +105,22 @@ const Subtitle = styled.div`
     font-weight: 500;
 `;
 
-const HeaderActions = styled.div`
-    display: flex;
-    gap: ${theme.spacing.lg};
-    align-items: center;
-
-    @media (max-width: 1024px) {
-        width: 100%;
-        justify-content: flex-start;
-    }
-
-    @media (max-width: 768px) {
-        flex-direction: column;
-        gap: ${theme.spacing.md};
-
-        > * {
-            width: 100%;
-        }
-    }
-`;
-
 const PrimaryAction = styled.button`
     display: flex;
     align-items: center;
     gap: ${theme.spacing.sm};
-    padding: ${theme.spacing.sm} ${theme.spacing.md};
+    background: linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryLight} 100%);
+    color: white;
+    border: none;
     border-radius: ${theme.radius.md};
+    padding: ${theme.spacing.lg} ${theme.spacing.xl};
     font-weight: 600;
     font-size: 14px;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 1px solid transparent;
+    transition: all ${theme.transitions.normal};
+    box-shadow: ${theme.shadow.sm};
     white-space: nowrap;
     min-height: 44px;
-    background: linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryLight} 100%);
-    color: white;
-    box-shadow: ${theme.shadow.sm};
 
     &:hover {
         background: linear-gradient(135deg, ${theme.primaryDark} 0%, ${theme.primary} 100%);

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
-import { FaSearch, FaChevronDown, FaTimes, FaCheck } from 'react-icons/fa';
+import { FaSearch, FaChevronDown, FaTimes, FaCheck, FaSpinner } from 'react-icons/fa';
 
 const brandTheme = {
     primary: 'var(--brand-primary, #2563eb)',
@@ -24,6 +24,7 @@ interface ServiceAutocompleteProps {
     options: ServiceOption[];
     disabled?: boolean;
     placeholder?: string;
+    loading?: boolean; // Dodano prop loading
 }
 
 export const ServiceAutocomplete: React.FC<ServiceAutocompleteProps> = ({
@@ -31,7 +32,8 @@ export const ServiceAutocomplete: React.FC<ServiceAutocompleteProps> = ({
                                                                             onChange,
                                                                             options,
                                                                             disabled = false,
-                                                                            placeholder = "Wybierz usługi..."
+                                                                            placeholder = "Wybierz usługi...",
+                                                                            loading = false // Dodano loading prop
                                                                         }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -63,7 +65,7 @@ export const ServiceAutocomplete: React.FC<ServiceAutocompleteProps> = ({
         setSearchTerm(newValue);
         setHighlightedIndex(-1);
 
-        if (!isOpen) {
+        if (!isOpen && !loading) { // Nie otwieraj jeśli dane się ładują
             setIsOpen(true);
             updateDropdownPosition();
         }
@@ -77,9 +79,6 @@ export const ServiceAutocomplete: React.FC<ServiceAutocompleteProps> = ({
         onChange(newValue);
         setSearchTerm('');
         setHighlightedIndex(-1);
-
-        // Nie zamykamy dropdown dla wielokrotnego wyboru
-        // setIsOpen(false);
     };
 
     const handleRemoveSelected = (optionId: string) => {
@@ -95,7 +94,7 @@ export const ServiceAutocomplete: React.FC<ServiceAutocompleteProps> = ({
     };
 
     const handleToggle = () => {
-        if (disabled) return;
+        if (disabled || loading) return; // Zablokuj jeśli ładuje się
 
         const newIsOpen = !isOpen;
         setIsOpen(newIsOpen);
@@ -108,7 +107,7 @@ export const ServiceAutocomplete: React.FC<ServiceAutocompleteProps> = ({
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (disabled) return;
+        if (disabled || loading) return; // Zablokuj podczas ładowania
 
         switch (e.key) {
             case 'ArrowDown':
@@ -142,16 +141,23 @@ export const ServiceAutocomplete: React.FC<ServiceAutocompleteProps> = ({
         }
     };
 
+    // Zamknij dropdown gdy loading się zmieni na true
+    useEffect(() => {
+        if (loading && isOpen) {
+            setIsOpen(false);
+            setSearchTerm('');
+            setHighlightedIndex(-1);
+        }
+    }, [loading, isOpen]);
+
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             const target = event.target as Node;
 
-            // Sprawdź czy kliknięcie było w kontenerze input-a
             if (containerRef.current && containerRef.current.contains(target)) {
                 return;
             }
 
-            // Sprawdź czy kliknięcie było w dropdown (w portalu)
             const dropdownElements = document.querySelectorAll('[data-dropdown-portal]');
             for (const dropdown of dropdownElements) {
                 if (dropdown.contains(target)) {
@@ -159,7 +165,6 @@ export const ServiceAutocomplete: React.FC<ServiceAutocompleteProps> = ({
                 }
             }
 
-            // Jeśli kliknięcie było poza komponentem, zamknij dropdown
             setIsOpen(false);
             setSearchTerm('');
             setHighlightedIndex(-1);
@@ -202,11 +207,17 @@ export const ServiceAutocomplete: React.FC<ServiceAutocompleteProps> = ({
 
     return (
         <Container ref={containerRef}>
-            <InputContainer $isOpen={isOpen} $disabled={disabled}>
+            <InputContainer $isOpen={isOpen} $disabled={disabled || loading}>
                 <InputWrapper>
-                    <SearchIcon>
-                        <FaSearch />
-                    </SearchIcon>
+                    {loading ? (
+                        <LoadingIcon>
+                            <FaSpinner />
+                        </LoadingIcon>
+                    ) : (
+                        <SearchIcon>
+                            <FaSearch />
+                        </SearchIcon>
+                    )}
 
                     <SelectedTags>
                         {selectedOptions.map(option => (
@@ -218,6 +229,7 @@ export const ServiceAutocomplete: React.FC<ServiceAutocompleteProps> = ({
                                         handleRemoveSelected(option.id);
                                     }}
                                     type="button"
+                                    disabled={loading}
                                 >
                                     <FaTimes />
                                 </TagRemove>
@@ -231,14 +243,20 @@ export const ServiceAutocomplete: React.FC<ServiceAutocompleteProps> = ({
                         value={searchTerm}
                         onChange={handleInputChange}
                         onKeyDown={handleKeyDown}
-                        onFocus={() => !disabled && setIsOpen(true)}
-                        placeholder={selectedOptions.length === 0 ? placeholder : ''}
-                        disabled={disabled}
+                        onFocus={() => !disabled && !loading && setIsOpen(true)}
+                        placeholder={
+                            loading
+                                ? "Ładowanie usług..."
+                                : selectedOptions.length === 0
+                                    ? placeholder
+                                    : ''
+                        }
+                        disabled={disabled || loading}
                     />
                 </InputWrapper>
 
                 <ButtonsContainer>
-                    {selectedOptions.length > 0 && !disabled && (
+                    {selectedOptions.length > 0 && !disabled && !loading && (
                         <ClearButton onClick={handleClearAll} type="button">
                             <FaTimes />
                         </ClearButton>
@@ -248,14 +266,15 @@ export const ServiceAutocomplete: React.FC<ServiceAutocompleteProps> = ({
                         onClick={handleToggle}
                         type="button"
                         $isOpen={isOpen}
-                        disabled={disabled}
+                        disabled={disabled || loading}
+                        $loading={loading}
                     >
-                        <FaChevronDown />
+                        {loading ? <FaSpinner /> : <FaChevronDown />}
                     </ToggleButton>
                 </ButtonsContainer>
             </InputContainer>
 
-            {isOpen && !disabled && createPortal(
+            {isOpen && !disabled && !loading && createPortal(
                 <DropdownContainer
                     data-dropdown-portal="true"
                     style={{
@@ -346,27 +365,27 @@ const HighlightedText: React.FC<{ text: string; highlight: string }> = ({ text, 
 };
 
 const Container = styled.div`
-  position: relative;
-  width: 100%;
+    position: relative;
+    width: 100%;
 `;
 
 const InputContainer = styled.div<{ $isOpen: boolean; $disabled: boolean }>`
-  position: relative;
-  display: flex;
-  align-items: center;
-  min-height: 44px;
-  background: ${brandTheme.surface};
-  border: 2px solid ${props => props.$isOpen ? brandTheme.primary : brandTheme.border};
-  border-radius: 8px;
-  transition: all 0.2s ease;
-  opacity: ${props => props.$disabled ? 0.6 : 1};
-  padding: 4px 8px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    background: ${brandTheme.surface};
+    border: 2px solid ${props => props.$isOpen ? brandTheme.primary : brandTheme.border};
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    opacity: ${props => props.$disabled ? 0.6 : 1};
+    padding: 4px 8px;
 
-  &:hover:not(:has(input:disabled)) {
-    border-color: ${brandTheme.primary};
-  }
+    &:hover:not(:has(input:disabled)) {
+        border-color: ${brandTheme.primary};
+    }
 
-  ${props => props.$isOpen && `
+    ${props => props.$isOpen && `
     box-shadow: 0 0 0 3px ${brandTheme.primaryGhost};
   `}
 `;
@@ -386,6 +405,23 @@ const SearchIcon = styled.div`
     font-size: 14px;
     margin-right: 8px;
     flex-shrink: 0;
+`;
+
+// Nowy styled component dla spinnera
+const LoadingIcon = styled.div`
+    color: ${brandTheme.primary};
+    font-size: 14px;
+    margin-right: 8px;
+    flex-shrink: 0;
+
+    svg {
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
 `;
 
 const SelectedTags = styled.div`
@@ -429,9 +465,14 @@ const TagRemove = styled.button`
     font-size: 8px;
     transition: all 0.2s ease;
 
-    &:hover {
+    &:hover:not(:disabled) {
         background: ${brandTheme.primary};
         color: white;
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
     }
 `;
 
@@ -485,7 +526,7 @@ const ClearButton = styled.button`
     }
 `;
 
-const ToggleButton = styled.button<{ $isOpen: boolean }>`
+const ToggleButton = styled.button<{ $isOpen: boolean; $loading?: boolean }>`
     width: 24px;
     height: 24px;
     border: none;
@@ -497,7 +538,7 @@ const ToggleButton = styled.button<{ $isOpen: boolean }>`
     justify-content: center;
     font-size: 12px;
     transition: all 0.2s ease;
-    transform: ${props => props.$isOpen ? 'rotate(180deg)' : 'rotate(0deg)'};
+    transform: ${props => props.$isOpen && !props.$loading ? 'rotate(180deg)' : 'rotate(0deg)'};
 
     &:hover:not(:disabled) {
         color: ${brandTheme.primary};
@@ -506,6 +547,17 @@ const ToggleButton = styled.button<{ $isOpen: boolean }>`
     &:disabled {
         cursor: not-allowed;
     }
+
+    ${props => props.$loading && `
+        svg {
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    `}
 `;
 
 const DropdownContainer = styled.div`
@@ -623,18 +675,18 @@ const SelectedCount = styled.div`
 `;
 
 const FooterClearButton = styled.button`
-  background: none;
-  border: none;
-  color: ${brandTheme.neutral};
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
-  transition: all 0.2s ease;
+    background: none;
+    border: none;
+    color: ${brandTheme.neutral};
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
 
-  &:hover {
-    background: #ef4444;
-    color: white;
-  }
+    &:hover {
+        background: #ef4444;
+        color: white;
+    }
 `;

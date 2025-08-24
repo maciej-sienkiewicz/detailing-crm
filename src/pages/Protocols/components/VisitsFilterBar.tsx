@@ -12,6 +12,7 @@ interface VisitsFilterBarProps {
     onClearAll: () => void;
     loading?: boolean;
     availableServices?: ServiceOption[];
+    servicesLoading?: boolean; // Dodano prop dla ładowania usług
 }
 
 export const VisitsFilterBar: React.FC<VisitsFilterBarProps> = ({
@@ -20,7 +21,8 @@ export const VisitsFilterBar: React.FC<VisitsFilterBarProps> = ({
                                                                     onApplyFilters,
                                                                     onClearAll,
                                                                     loading = false,
-                                                                    availableServices = []
+                                                                    availableServices = [],
+                                                                    servicesLoading = false // Dodano prop
                                                                 }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
@@ -135,6 +137,7 @@ export const VisitsFilterBar: React.FC<VisitsFilterBarProps> = ({
                                 onChange={(value) => handleFilterChange('serviceIds', value)}
                                 options={availableServices}
                                 disabled={loading}
+                                loading={servicesLoading} // Przekazano prop loading
                                 placeholder="Wyszukaj usługi..."
                             />
                         </FilterGroup>

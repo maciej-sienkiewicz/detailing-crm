@@ -8,38 +8,7 @@ import { pl } from 'date-fns/locale';
 import { activityApi } from '../../api/activity';
 import ActivityFiltersPanel from "./components/ActivityFiltersPanelProps";
 import ActivityTimelineList from "./components/ActivitiTimelineList";
-
-// Brand Theme
-const brandTheme = {
-    primary: 'var(--brand-primary, #2563eb)',
-    primaryLight: 'var(--brand-primary-light, #3b82f6)',
-    primaryGhost: 'var(--brand-primary-ghost, rgba(37, 99, 235, 0.08))',
-    surface: '#ffffff',
-    surfaceAlt: '#f8fafc',
-    neutral: '#64748b',
-    border: '#e2e8f0',
-    text: {
-        primary: '#1e293b',
-        secondary: '#475569',
-        muted: '#64748b'
-    },
-    spacing: {
-        xs: '4px',
-        sm: '8px',
-        md: '16px',
-        lg: '24px',
-        xl: '32px'
-    },
-    radius: {
-        sm: '6px',
-        md: '8px',
-        lg: '12px'
-    },
-    shadow: {
-        xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-        sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)'
-    }
-};
+import { theme } from '../../styles/theme';
 
 const ActivityFeedPage: React.FC = () => {
     // Stan aplikacji
@@ -237,24 +206,24 @@ const ActivityFeedPage: React.FC = () => {
     return (
         <PageContainer>
             {/* Header */}
-            <HeaderSection>
-                <HeaderContent>
-                    <HeaderLeft>
-                        <HeaderIcon>
+            <HeaderContainer>
+                <PageHeader>
+                    <HeaderTitle>
+                        <TitleIcon>
                             <FaRss />
-                        </HeaderIcon>
-                        <HeaderText>
-                            <HeaderTitle>Aktywności firmy</HeaderTitle>
-                            <HeaderSubtitle>
+                        </TitleIcon>
+                        <TitleContent>
+                            <MainTitle>Aktywności firmy</MainTitle>
+                            <Subtitle>
                                 {getDateRangeTitle()} • {filteredActivities.length} {filteredActivities.length === 1 ? 'aktywność' : 'aktywności'}
                                 {lastRefresh && (
                                     <LastRefreshInfo $fresh={isDataFresh}>
                                         • Aktualizacja: {format(lastRefresh, 'HH:mm:ss')}
                                     </LastRefreshInfo>
                                 )}
-                            </HeaderSubtitle>
-                        </HeaderText>
-                    </HeaderLeft>
+                            </Subtitle>
+                        </TitleContent>
+                    </HeaderTitle>
 
                     <HeaderActions>
                         <RefreshButton
@@ -275,8 +244,8 @@ const ActivityFeedPage: React.FC = () => {
                             <FaChevronDown className={showFilters ? 'rotated' : ''} />
                         </FiltersToggle>
                     </HeaderActions>
-                </HeaderContent>
-            </HeaderSection>
+                </PageHeader>
+            </HeaderContainer>
 
             {/* Main Content */}
             <ContentContainer>
@@ -334,98 +303,103 @@ const ActivityFeedPage: React.FC = () => {
     );
 };
 
-// Styled Components (rozszerzone o nowe style)
+// Styled Components - zgodne z VisitsPageContainer i CalendarPageHeader
 const PageContainer = styled.div`
-    display: flex;
-    flex-direction: column;
+    background: ${theme.surfaceHover};
     min-height: 100vh;
-    background: ${brandTheme.surfaceAlt};
+    padding: 0;
 `;
 
-const HeaderSection = styled.div`
-    background: ${brandTheme.surface};
-    border-bottom: 1px solid ${brandTheme.border};
-    box-shadow: ${brandTheme.shadow.xs};
+const HeaderContainer = styled.header`
+    background: ${theme.surface};
+    border-bottom: 1px solid ${theme.border};
+    box-shadow: ${theme.shadow.sm};
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(8px);
+    background: rgba(255, 255, 255, 0.95);
 `;
 
-const HeaderContent = styled.div`
+const PageHeader = styled.div`
     max-width: 1600px;
     margin: 0 auto;
-    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
+    padding: ${theme.spacing.xxl} ${theme.spacing.xxxl};
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: ${brandTheme.spacing.lg};
+    gap: ${theme.spacing.xxl};
 
-    @media (max-width: 768px) {
-        padding: ${brandTheme.spacing.md};
+    @media (max-width: 1024px) {
+        padding: ${theme.spacing.lg} ${theme.spacing.xxl};
         flex-direction: column;
         align-items: stretch;
-        gap: ${brandTheme.spacing.md};
+        gap: ${theme.spacing.lg};
+    }
+
+    @media (max-width: 768px) {
+        padding: ${theme.spacing.lg};
     }
 `;
 
-const HeaderLeft = styled.div`
+const HeaderTitle = styled.div`
     display: flex;
     align-items: center;
-    gap: ${brandTheme.spacing.md};
-    min-width: 0;
-    flex: 1;
+    gap: ${theme.spacing.xxl};
 `;
 
-const HeaderIcon = styled.div`
-    width: 48px;
-    height: 48px;
-    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-    border-radius: ${brandTheme.radius.lg};
+const TitleIcon = styled.div`
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryLight} 100%);
+    border-radius: ${theme.radius.lg};
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 20px;
-    box-shadow: ${brandTheme.shadow.sm};
+    font-size: 24px;
+    box-shadow: ${theme.shadow.md};
     flex-shrink: 0;
 `;
 
-const HeaderText = styled.div`
-    min-width: 0;
-    flex: 1;
+const TitleContent = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${theme.spacing.xs};
 `;
 
-const HeaderTitle = styled.h1`
-    font-size: 28px;
+const MainTitle = styled.h1`
+    font-size: 32px;
     font-weight: 700;
-    color: ${brandTheme.text.primary};
-    margin: 0 0 4px 0;
-    letter-spacing: -0.025em;
+    color: ${theme.text.primary};
+    margin: 0;
+    letter-spacing: -0.5px;
     line-height: 1.2;
 
     @media (max-width: 768px) {
-        font-size: 24px;
+        font-size: 28px;
     }
 `;
 
-const HeaderSubtitle = styled.p`
-    color: ${brandTheme.text.secondary};
-    margin: 0;
-    font-size: 14px;
+const Subtitle = styled.div`
+    font-size: 16px;
+    color: ${theme.text.tertiary};
     font-weight: 500;
-    line-height: 1.4;
     display: flex;
     align-items: center;
-    gap: ${brandTheme.spacing.xs};
+    gap: ${theme.spacing.xs};
     flex-wrap: wrap;
 `;
 
 const LastRefreshInfo = styled.span<{ $fresh: boolean }>`
-    color: ${props => props.$fresh ? '#22c55e' : brandTheme.text.muted};
-    font-size: 12px;
+    color: ${props => props.$fresh ? '#22c55e' : theme.text.muted};
+    font-size: 14px;
     font-weight: 400;
 `;
 
 const HeaderActions = styled.div`
     display: flex;
-    gap: ${brandTheme.spacing.sm};
+    gap: ${theme.spacing.sm};
     align-items: center;
 
     @media (max-width: 768px) {
@@ -437,22 +411,23 @@ const HeaderActions = styled.div`
 const RefreshButton = styled.button<{ $fresh?: boolean }>`
     display: flex;
     align-items: center;
-    gap: ${brandTheme.spacing.sm};
-    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
-    background: ${props => props.$fresh ? '#f0fdf4' : brandTheme.surface};
-    color: ${props => props.$fresh ? '#22c55e' : brandTheme.text.secondary};
-    border: 1px solid ${props => props.$fresh ? '#22c55e' : brandTheme.border};
-    border-radius: ${brandTheme.radius.md};
+    gap: ${theme.spacing.sm};
+    padding: ${theme.spacing.lg} ${theme.spacing.xl};
+    background: ${props => props.$fresh ? '#f0fdf4' : theme.surface};
+    color: ${props => props.$fresh ? '#22c55e' : theme.text.secondary};
+    border: 1px solid ${props => props.$fresh ? '#22c55e' : theme.border};
+    border-radius: ${theme.radius.md};
     font-weight: 600;
     font-size: 14px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all ${theme.transitions.normal};
     min-height: 44px;
+    white-space: nowrap;
 
     &:hover:not(:disabled) {
-        background: ${props => props.$fresh ? '#dcfce7' : brandTheme.surfaceAlt};
-        color: ${brandTheme.text.primary};
-        border-color: ${brandTheme.neutral};
+        background: ${props => props.$fresh ? '#dcfce7' : theme.surfaceHover};
+        color: ${theme.text.primary};
+        border-color: ${theme.borderHover};
     }
 
     &:disabled {
@@ -468,27 +443,32 @@ const RefreshButton = styled.button<{ $fresh?: boolean }>`
         from { transform: rotate(0deg); }
         to { transform: rotate(360deg); }
     }
+
+    @media (max-width: 768px) {
+        justify-content: center;
+    }
 `;
 
 const FiltersToggle = styled.button<{ $active: boolean }>`
     display: flex;
     align-items: center;
-    gap: ${brandTheme.spacing.sm};
-    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
-    background: ${props => props.$active ? brandTheme.primaryGhost : brandTheme.surface};
-    color: ${props => props.$active ? brandTheme.primary : brandTheme.text.secondary};
-    border: 1px solid ${props => props.$active ? brandTheme.primary : brandTheme.border};
-    border-radius: ${brandTheme.radius.md};
+    gap: ${theme.spacing.sm};
+    padding: ${theme.spacing.lg} ${theme.spacing.xl};
+    background: ${props => props.$active ? theme.primaryGhost : theme.surface};
+    color: ${props => props.$active ? theme.primary : theme.text.secondary};
+    border: 1px solid ${props => props.$active ? theme.primary : theme.border};
+    border-radius: ${theme.radius.md};
     font-weight: 600;
     font-size: 14px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all ${theme.transitions.normal};
     min-height: 44px;
+    white-space: nowrap;
 
     &:hover {
-        background: ${props => props.$active ? brandTheme.primaryGhost : brandTheme.surfaceAlt};
-        color: ${brandTheme.primary};
-        border-color: ${brandTheme.primary};
+        background: ${props => props.$active ? theme.primaryGhost : theme.surfaceHover};
+        color: ${theme.primary};
+        border-color: ${theme.primary};
     }
 
     .rotated {
@@ -498,29 +478,35 @@ const FiltersToggle = styled.button<{ $active: boolean }>`
     svg:last-child {
         transition: transform 0.2s ease;
     }
+
+    @media (max-width: 768px) {
+        justify-content: center;
+    }
 `;
 
 const ContentContainer = styled.div`
-    flex: 1;
     max-width: 1600px;
     margin: 0 auto;
-    width: 100%;
-    padding: 0 ${brandTheme.spacing.xl};
+    padding: ${theme.spacing.xxl} ${theme.spacing.xxxl};
+    position: relative;
+
+    @media (max-width: 1024px) {
+        padding: ${theme.spacing.lg} ${theme.spacing.xxl};
+    }
 
     @media (max-width: 768px) {
-        padding: 0 ${brandTheme.spacing.md};
+        padding: ${theme.spacing.lg};
     }
 `;
 
 const MainLayout = styled.div`
     display: flex;
-    gap: ${brandTheme.spacing.lg};
-    padding: ${brandTheme.spacing.lg} 0;
+    gap: ${theme.spacing.lg};
     align-items: flex-start;
 
     @media (max-width: 992px) {
         flex-direction: column;
-        gap: ${brandTheme.spacing.md};
+        gap: ${theme.spacing.md};
     }
 `;
 
@@ -546,14 +532,14 @@ const ActivityContent = styled.main<{ $hasFilters: boolean }>`
 const ErrorAlert = styled.div`
     display: flex;
     align-items: flex-start;
-    gap: ${brandTheme.spacing.md};
-    background: #fef2f2;
-    color: #dc2626;
-    padding: ${brandTheme.spacing.lg};
-    border-radius: ${brandTheme.radius.lg};
-    border: 1px solid #fecaca;
-    margin-bottom: ${brandTheme.spacing.lg};
-    box-shadow: ${brandTheme.shadow.sm};
+    gap: ${theme.spacing.md};
+    background: ${theme.errorBg};
+    color: ${theme.error};
+    padding: ${theme.spacing.lg};
+    border-radius: ${theme.radius.lg};
+    border: 1px solid ${theme.border};
+    margin-bottom: ${theme.spacing.lg};
+    box-shadow: ${theme.shadow.sm};
 `;
 
 const ErrorIcon = styled.div`
@@ -566,7 +552,7 @@ const ErrorContent = styled.div`
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: ${brandTheme.spacing.sm};
+    gap: ${theme.spacing.sm};
 `;
 
 const ErrorMessage = styled.div`
@@ -576,18 +562,18 @@ const ErrorMessage = styled.div`
 
 const RetryButton = styled.button`
     align-self: flex-start;
-    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.md};
-    background: #dc2626;
+    padding: ${theme.spacing.xs} ${theme.spacing.md};
+    background: ${theme.error};
     color: white;
     border: none;
-    border-radius: ${brandTheme.radius.md};
+    border-radius: ${theme.radius.md};
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
 
     &:hover {
-        background: #b91c1c;
+        background: ${theme.primaryDark};
     }
 `;
 
@@ -596,30 +582,30 @@ const EmptyState = styled.div`
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: ${brandTheme.spacing.xl} ${brandTheme.spacing.lg};
-    background: ${brandTheme.surface};
-    border-radius: ${brandTheme.radius.lg};
-    border: 2px dashed ${brandTheme.border};
+    padding: ${theme.spacing.xl} ${theme.spacing.lg};
+    background: ${theme.surface};
+    border-radius: ${theme.radius.lg};
+    border: 2px dashed ${theme.border};
     text-align: center;
     min-height: 300px;
 `;
 
 const EmptyIcon = styled.div`
     font-size: 48px;
-    margin-bottom: ${brandTheme.spacing.lg};
+    margin-bottom: ${theme.spacing.lg};
     opacity: 0.5;
 `;
 
 const EmptyTitle = styled.h3`
     font-size: 18px;
     font-weight: 600;
-    color: ${brandTheme.text.primary};
-    margin: 0 0 ${brandTheme.spacing.sm} 0;
+    color: ${theme.text.primary};
+    margin: 0 0 ${theme.spacing.sm} 0;
 `;
 
 const EmptyDescription = styled.p`
     font-size: 14px;
-    color: ${brandTheme.text.muted};
+    color: ${theme.text.muted};
     margin: 0;
     line-height: 1.5;
     max-width: 400px;

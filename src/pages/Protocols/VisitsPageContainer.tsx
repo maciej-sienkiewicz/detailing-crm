@@ -1,5 +1,5 @@
 // src/pages/Protocols/VisitsPageContainer.tsx - FIXED VERSION
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import styled from 'styled-components';
 import { FaClipboardCheck, FaPlus, FaArrowLeft } from 'react-icons/fa';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -27,12 +27,16 @@ type StatusFilterType = 'all' | ProtocolStatus;
 interface AppData {
     services: ServiceOption[];
     counters: Record<string, number>;
-    loading: boolean;
+    servicesLoading: boolean;
+    countersLoading: boolean;
+    servicesLoaded: boolean; // Dodano flagę czy dane zostały załadowane
+    countersLoaded: boolean;
 }
 
 export const VisitsPageContainer: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const isFirstLoad = useRef(true); // Ref do śledzenia pierwszego ładowania
 
     // Form state
     const [showForm, setShowForm] = useState(false);
@@ -42,11 +46,15 @@ export const VisitsPageContainer: React.FC = () => {
     const [currentProtocol, setCurrentProtocol] = useState<any>(null);
 
     const [activeStatusFilter, setActiveStatusFilter] = useState<StatusFilterType>(ProtocolStatus.IN_PROGRESS);
-    const [hasInitialLoad, setHasInitialLoad] = useState(false);
+
+    // Poprawione zarządzanie stanem aplikacji
     const [appData, setAppData] = useState<AppData>({
         services: [],
         counters: {},
-        loading: true
+        servicesLoading: false,
+        countersLoading: false,
+        servicesLoaded: false,
+        countersLoaded: false
     });
 
     const {
@@ -72,26 +80,47 @@ export const VisitsPageContainer: React.FC = () => {
 
     const selection = useVisitsSelection();
 
-    const loadAppData = useCallback(async () => {
-        if (!appData.loading && appData.services.length > 0) return;
+    // POPRAWIONE: Stabilne funkcje ładowania z flagami kontrolnymi
+    const loadServices = useCallback(async () => {
+        // Nie ładuj ponownie jeśli już załadowano lub jest w trakcie ładowania
+        if (appData.servicesLoaded || appData.servicesLoading) return;
 
-        setAppData(prev => ({ ...prev, loading: true }));
+        setAppData(prev => ({ ...prev, servicesLoading: true }));
 
         try {
-            const [servicesData, countersData] = await Promise.all([
-                servicesApi.fetchServices(),
-                protocolsApi.getProtocolCounters()
-            ]);
-
+            const servicesData = await servicesApi.fetchServices();
             const serviceOptions: ServiceOption[] = servicesData.map(service => ({
                 id: service.id,
                 name: service.name
             }));
 
-            setAvailableServices(servicesData); // Store full services data
-
-            setAppData({
+            setAvailableServices(servicesData);
+            setAppData(prev => ({
+                ...prev,
                 services: serviceOptions,
+                servicesLoading: false,
+                servicesLoaded: true // Oznacz jako załadowane
+            }));
+        } catch (error) {
+            console.error('Error loading services:', error);
+            setAppData(prev => ({
+                ...prev,
+                servicesLoading: false,
+                servicesLoaded: false // Reset flagi przy błędzie
+            }));
+        }
+    }, [appData.servicesLoaded, appData.servicesLoading]);
+
+    const loadCounters = useCallback(async () => {
+        // Nie ładuj ponownie jeśli już załadowano lub jest w trakcie ładowania
+        if (appData.countersLoaded || appData.countersLoading) return;
+
+        setAppData(prev => ({ ...prev, countersLoading: true }));
+
+        try {
+            const countersData = await protocolsApi.getProtocolCounters();
+            setAppData(prev => ({
+                ...prev,
                 counters: {
                     all: countersData.all || 0,
                     [ProtocolStatus.SCHEDULED]: countersData.scheduled || 0,
@@ -100,26 +129,36 @@ export const VisitsPageContainer: React.FC = () => {
                     [ProtocolStatus.COMPLETED]: countersData.completed || 0,
                     [ProtocolStatus.CANCELLED]: countersData.cancelled || 0
                 },
-                loading: false
-            });
+                countersLoading: false,
+                countersLoaded: true // Oznacz jako załadowane
+            }));
         } catch (error) {
-            console.error('Error loading app data:', error);
-            setAppData(prev => ({ ...prev, loading: false }));
+            console.error('Error loading counters:', error);
+            setAppData(prev => ({
+                ...prev,
+                countersLoading: false,
+                countersLoaded: false // Reset flagi przy błędzie
+            }));
         }
-    }, [appData.loading, appData.services.length]);
+    }, [appData.countersLoaded, appData.countersLoading]);
+
+    // POPRAWIONE: Stabilna funkcja performSearch z useMemo dla filtrów
+    const apiFilters = useMemo(() => {
+        const filters = getApiFilters();
+        if (activeStatusFilter !== 'all') {
+            filters.status = activeStatusFilter;
+        }
+        return filters;
+    }, [getApiFilters, activeStatusFilter]);
 
     const performSearch = useCallback(async (customFilters?: VisitFilterParams) => {
-        const apiFilters: VisitFilterParams = customFilters || getApiFilters();
+        const searchFilters = customFilters || apiFilters;
 
-        if (activeStatusFilter !== 'all') {
-            apiFilters.status = activeStatusFilter;
-        }
-
-        await searchVisits(apiFilters, {
+        await searchVisits(searchFilters, {
             page: 0,
             size: pagination.size
         });
-    }, [getApiFilters, activeStatusFilter, searchVisits, pagination.size]);
+    }, [apiFilters, searchVisits, pagination.size]);
 
     const handleFiltersChange = useCallback((newFilters: Partial<typeof filters>) => {
         updateFilters(newFilters);
@@ -141,17 +180,12 @@ export const VisitsPageContainer: React.FC = () => {
     }, [clearAllFilters, selection]);
 
     const handlePageChange = useCallback(async (page: number) => {
-        const apiFilters: VisitFilterParams = getApiFilters();
-
-        if (activeStatusFilter !== 'all') {
-            apiFilters.status = activeStatusFilter;
-        }
-
-        await searchVisits(apiFilters, {
+        const searchFilters = { ...apiFilters };
+        await searchVisits(searchFilters, {
             page: page - 1,
             size: pagination.size
         });
-    }, [getApiFilters, activeStatusFilter, searchVisits, pagination.size]);
+    }, [apiFilters, searchVisits, pagination.size]);
 
     const handleVisitClick = useCallback((visit: VisitListItem) => {
         navigate(`/visits/${visit.id}`);
@@ -171,7 +205,6 @@ export const VisitsPageContainer: React.FC = () => {
         }
     }, [refreshVisits]);
 
-    // FIXED: Proper handleAddVisit logic
     const handleAddVisit = useCallback(() => {
         setEditingVisit(null);
         setShowForm(true);
@@ -189,7 +222,6 @@ export const VisitsPageContainer: React.FC = () => {
         if (showConfirmationModal) {
             setIsShowingConfirmationModal(true);
         } else {
-            // Direct completion without modal
             setShowForm(false);
             setEditingVisit(null);
             refreshVisits();
@@ -208,48 +240,75 @@ export const VisitsPageContainer: React.FC = () => {
     }, [currentProtocol, navigate, refreshVisits]);
 
     const handleConfirmationConfirm = useCallback((options: { print: boolean; sendEmail: boolean }) => {
-        // Handle print and email options if needed
         handleConfirmationClose();
     }, [handleConfirmationClose]);
 
     const refreshServices = useCallback(async () => {
         try {
+            setAppData(prev => ({ ...prev, servicesLoading: true, servicesLoaded: false }));
             const servicesData = await servicesApi.fetchServices();
-            setAvailableServices(prevServices => {
-                if (!servicesData || servicesData.length === 0) {
-                    console.warn("Pobrano pustą listę usług, zachowuję poprzedni stan");
-                    return prevServices;
-                }
-                return servicesData;
-            });
+
+            if (!servicesData || servicesData.length === 0) {
+                console.warn("Pobrano pustą listę usług, zachowuję poprzedni stan");
+                setAppData(prev => ({ ...prev, servicesLoading: false, servicesLoaded: true }));
+                return;
+            }
+
+            const serviceOptions: ServiceOption[] = servicesData.map(service => ({
+                id: service.id,
+                name: service.name
+            }));
+
+            setAvailableServices(servicesData);
+            setAppData(prev => ({
+                ...prev,
+                services: serviceOptions,
+                servicesLoading: false,
+                servicesLoaded: true
+            }));
         } catch (err) {
             console.error('Error refreshing services list:', err);
+            setAppData(prev => ({ ...prev, servicesLoading: false }));
         }
     }, []);
 
-    useEffect(() => {
-        loadAppData();
-    }, [loadAppData]);
+    // POPRAWIONE: Efekty bez nieskończonych pętli
 
+    // 1. Ładowanie danych przy pierwszym załadowaniu komponentu
     useEffect(() => {
-        if (!hasInitialLoad && !appData.loading) {
-            performSearch();
-            setHasInitialLoad(true);
+        if (isFirstLoad.current) {
+            loadServices();
+            loadCounters();
+            isFirstLoad.current = false;
         }
-    }, [hasInitialLoad, appData.loading, performSearch]);
+    }, []); // Pusta tablica zależności - tylko raz
 
+    // 2. Pierwsze wyszukiwanie po załadowaniu danych
     useEffect(() => {
-        if (hasInitialLoad && !appData.loading) {
+        const canPerformSearch = appData.servicesLoaded && appData.countersLoaded &&
+            !appData.servicesLoading && !appData.countersLoading;
+
+        if (canPerformSearch && isFirstLoad.current === false) {
             performSearch();
         }
-    }, [activeStatusFilter]);
+    }, [appData.servicesLoaded, appData.countersLoaded, appData.servicesLoading, appData.countersLoading, performSearch]);
 
+    // 3. Wyszukiwanie przy zmianie filtru statusu
     useEffect(() => {
+        // Wykonuj wyszukiwanie tylko jeśli dane są już załadowane
+        if (appData.servicesLoaded && appData.countersLoaded && !isFirstLoad.current) {
+            performSearch();
+        }
+    }, [activeStatusFilter]); // Usunięto performSearch z zależności
+
+    // 4. Reset przy zmianie ścieżki - UPROSZCZONE
+    useEffect(() => {
+        // Reset tylko przy zmianie ścieżki, nie resetuj stanów ładowania
         resetData();
-        setHasInitialLoad(false);
         setActiveStatusFilter(ProtocolStatus.IN_PROGRESS);
         clearAllFilters();
-    }, [location.pathname, resetData, clearAllFilters]);
+        isFirstLoad.current = true; // Reset flagi pierwszego ładowania
+    }, [location.pathname]); // Usunięto resetData i clearAllFilters z zależności
 
     // If form is shown, render the form view
     if (showForm) {
@@ -277,7 +336,6 @@ export const VisitsPageContainer: React.FC = () => {
                     onServiceAdded={refreshServices}
                 />
 
-                {/* Confirmation Modal */}
                 {isShowingConfirmationModal && currentProtocol && (
                     <ProtocolConfirmationModal
                         isOpen={isShowingConfirmationModal}
@@ -316,7 +374,7 @@ export const VisitsPageContainer: React.FC = () => {
                     activeStatus={activeStatusFilter}
                     onStatusChange={handleStatusFilterChange}
                     counters={appData.counters}
-                    loading={appData.loading}
+                    loading={appData.countersLoading}
                 />
 
                 <FiltersSection>
@@ -327,6 +385,7 @@ export const VisitsPageContainer: React.FC = () => {
                         onClearAll={handleClearAllFilters}
                         loading={visitsLoading}
                         availableServices={appData.services}
+                        servicesLoading={appData.servicesLoading}
                     />
 
                     {hasActiveFilters && (
@@ -373,7 +432,7 @@ export const VisitsPageContainer: React.FC = () => {
     );
 };
 
-// Additional styled components for form view
+// Styled components remain the same...
 const BackButton = styled.button`
     display: flex;
     align-items: center;
@@ -412,7 +471,6 @@ const HeaderLeft = styled.div`
     }
 `;
 
-// Existing styled components...
 const PageContainer = styled.div`
     background: ${theme.surfaceHover};
     min-height: 100vh;
@@ -423,9 +481,6 @@ const HeaderContainer = styled.header`
     background: ${theme.surface};
     border-bottom: 1px solid ${theme.border};
     box-shadow: ${theme.shadow.sm};
-    position: sticky;
-    top: 0;
-    z-index: 100;
     backdrop-filter: blur(8px);
     background: rgba(255, 255, 255, 0.95);
 `;
