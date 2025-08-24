@@ -144,35 +144,7 @@ export const useClientFilters = () => {
         }
     }, [buildApiParams, showToast]);
 
-    // NEW: Separate function to load global statistics (unfiltered)
-    const loadGlobalStats = useCallback(async (): Promise<ClientStats> => {
-        try {
-            // Load ALL clients (large page size) to calculate global stats
-            const result = await clientsApi.getClients({
-                page: 0,
-                size: 10000 // Large number to get all clients for stats
-            });
-
-            if (result.success && result.data) {
-                const allClients = result.data.data;
-                const totalRevenue = allClients.reduce((sum, client) => sum + (client.totalRevenue || 0), 0);
-                const vipCount = allClients.filter(client => (client.totalRevenue || 0) > 50000).length;
-
-                return {
-                    totalClients: result.data.pagination.totalItems,
-                    vipClients: vipCount,
-                    totalRevenue,
-                    averageRevenue: allClients.length > 0 ? totalRevenue / allClients.length : 0
-                };
-            } else {
-                return initialStats;
-            }
-        } catch (err) {
-            return initialStats;
-        }
-    }, []);
-
-    return { loadClients, loadGlobalStats };
+    return { loadClients };
 };
 
 export const useClientOperations = () => {

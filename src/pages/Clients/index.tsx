@@ -14,7 +14,6 @@ import {
     useClientSelection
 } from './OwnersPage/hooks';
 import {
-    StatsDisplay,
     ClientSelectionBar,
     SearchResultsDisplay,
     LoadingDisplay,
@@ -39,7 +38,7 @@ const OwnersPageContent = forwardRef<OwnersPageRef, OwnersPageContentProps>(({
                                                                                  onClientClosed
                                                                              }, ref) => {
     const { state, updateState } = useOwnersPageState();
-    const { loadClients, loadGlobalStats } = useClientFilters();
+    const { loadClients } = useClientFilters();
     const {
         editClient,
         deleteClient,
@@ -129,16 +128,6 @@ const OwnersPageContent = forwardRef<OwnersPageRef, OwnersPageContentProps>(({
         }
     }, [initialClientId, state.selectedClient?.id, updateState]);
 
-    // FIXED: Load global stats only once, independent of filters
-    useEffect(() => {
-        const initializeGlobalStats = async () => {
-            const globalStats = await loadGlobalStats();
-            updateState({ stats: globalStats });
-        };
-
-        initializeGlobalStats();
-    }, [loadGlobalStats, updateState]);
-
     // Load clients function - FIXED: No longer updates stats
     const performLoadClients = useCallback(async (page: number = 0, filters: ClientFilters = state.appliedFilters) => {
         updateState({ loading: true });
@@ -215,9 +204,7 @@ const OwnersPageContent = forwardRef<OwnersPageRef, OwnersPageContentProps>(({
 
         // Reload both current page and global stats
         await performLoadClients(state.currentPage, state.appliedFilters);
-        const globalStats = await loadGlobalStats();
-        updateState({ stats: globalStats });
-    }, [updateState, performLoadClients, state.currentPage, state.appliedFilters, loadGlobalStats]);
+    }, [updateState, performLoadClients, state.currentPage, state.appliedFilters]);
 
     const handleDeleteClick = useCallback((clientId: string) => {
         const client = state.clients.find(c => c.id === clientId);
@@ -311,8 +298,6 @@ const OwnersPageContent = forwardRef<OwnersPageRef, OwnersPageContentProps>(({
 
     return (
         <ContentContainer>
-            <StatsDisplay stats={state.stats} />
-
             <MainContent>
                 <EnhancedClientFilters
                     filters={state.filters}

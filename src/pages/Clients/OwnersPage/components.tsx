@@ -44,68 +44,6 @@ import {
     SecondaryButton
 } from './styles';
 
-interface StatsDisplayProps {
-    stats: ClientStats;
-}
-
-export const StatsDisplay: React.FC<StatsDisplayProps> = ({ stats }) => {
-    const { formatCurrency } = useFormatters();
-
-    return (
-        <StatsSection>
-            <StatsGrid>
-                <TooltipWrapper title="Całkowita liczba klientów zarejestrowanych w systemie CRM">
-                    <StatCard>
-                        <StatIcon $color="#475569">
-                            <FaUsers />
-                        </StatIcon>
-                        <StatContent>
-                            <StatValue>{stats.totalClients}</StatValue>
-                            <StatLabel>Łączna liczba klientów</StatLabel>
-                        </StatContent>
-                    </StatCard>
-                </TooltipWrapper>
-
-                <TooltipWrapper title="Klienci z przychodami powyżej 50 000 PLN - najwartościowsi klienci firmy">
-                    <StatCard>
-                        <StatIcon $color="#475569">
-                            <FaUsers />
-                        </StatIcon>
-                        <StatContent>
-                            <StatValue>{stats.vipClients}</StatValue>
-                            <StatLabel>Klienci VIP (50k+ PLN)</StatLabel>
-                        </StatContent>
-                    </StatCard>
-                </TooltipWrapper>
-
-                <TooltipWrapper title="Suma wszystkich przychodów wszystkich zakończonych wizyt w całej historii firmy">
-                    <StatCard>
-                        <StatIcon $color="#475569">
-                            <FaUsers />
-                        </StatIcon>
-                        <StatContent>
-                            <StatValue>{formatCurrency(stats.totalRevenue)}</StatValue>
-                            <StatLabel>Łączne przychody</StatLabel>
-                        </StatContent>
-                    </StatCard>
-                </TooltipWrapper>
-
-                <TooltipWrapper title="Średnia wartość przychodów przypadająca na jednego klienta">
-                    <StatCard>
-                        <StatIcon $color="#475569">
-                            <FaUsers />
-                        </StatIcon>
-                        <StatContent>
-                            <StatValue>{formatCurrency(stats.averageRevenue)}</StatValue>
-                            <StatLabel>Średni przychód na klienta</StatLabel>
-                        </StatContent>
-                    </StatCard>
-                </TooltipWrapper>
-            </StatsGrid>
-        </StatsSection>
-    );
-};
-
 interface ClientSelectionBarProps {
     clients: ClientExpanded[];
     selectedClientIds: string[];

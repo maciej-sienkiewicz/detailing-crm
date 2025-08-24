@@ -10,7 +10,6 @@ import {
     useVehicleOperations
 } from './hooks';
 import {
-    StatsDisplay,
     LoadingDisplay
 } from './components';
 import {
@@ -111,16 +110,6 @@ const VehiclesPageContent = forwardRef<VehiclesPageRef, VehiclesPageContentProps
         }
     }, [initialVehicleId, state.selectedVehicle?.id, updateState]);
 
-    useEffect(() => {
-        if (!filterByOwnerId) {
-            const initializeGlobalStats = async () => {
-                const globalStats = await loadCompanyStatistics();
-                updateState({ stats: globalStats });
-            };
-            initializeGlobalStats();
-        }
-    }, [loadCompanyStatistics, updateState, filterByOwnerId]);
-
     const performLoadVehicles = useCallback(async (page: number = 0, filters: VehicleFilters = state.appliedFilters) => {
         updateState({ loading: true, error: null });
 
@@ -191,11 +180,6 @@ const VehiclesPageContent = forwardRef<VehiclesPageRef, VehiclesPageContentProps
             updateState({ showAddModal: false });
             await performLoadVehicles(state.currentPage, state.appliedFilters);
 
-            if (!filterByOwnerId) {
-                const globalStats = await loadCompanyStatistics();
-                updateState({ stats: globalStats });
-            }
-
             if (state.showDetailDrawer && result.vehicle) {
                 updateState({ selectedVehicle: result.vehicle });
             }
@@ -228,11 +212,6 @@ const VehiclesPageContent = forwardRef<VehiclesPageRef, VehiclesPageContentProps
             }
 
             await performLoadVehicles(state.currentPage, state.appliedFilters);
-
-            if (!filterByOwnerId) {
-                const globalStats = await loadCompanyStatistics();
-                updateState({ stats: globalStats });
-            }
         }
     }, [state.selectedVehicle, state.showDetailDrawer, state.currentPage, state.appliedFilters, deleteVehicle, updateState, closeVehicleDetail, performLoadVehicles, filterByOwnerId, loadCompanyStatistics]);
 
@@ -275,10 +254,6 @@ const VehiclesPageContent = forwardRef<VehiclesPageRef, VehiclesPageContentProps
                         <OwnerName>{state.ownerName}</OwnerName>
                     </OwnerInfo>
                 </BackSection>
-            )}
-
-            {!filterByOwnerId && (
-                <StatsDisplay stats={state.stats} />
             )}
 
             <MainContent>
