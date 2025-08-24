@@ -157,6 +157,7 @@ export const CategoryServicesTable: React.FC<CategoryServicesTableProps> = ({
 const TableWrapper = styled.div`
     width: 100%;
     background: ${theme.surfaceAlt};
+    padding: ${theme.spacing.xl} 0;
 `;
 
 const TableContainer = styled.div`
