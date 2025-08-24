@@ -21,25 +21,24 @@ export const CalendarPageStats: React.FC = () => {
         <StatsSection>
 
             <StatsGrid>
-                <Tooltip text={tooltipContent.inProgress} position="bottom">
-                    <StatCard>
-                        <StatIcon $color={theme.text.primary}><FaClock /></StatIcon>
-                        <StatContent>
-                            <StatValue>{stats.loading ? '...' : stats.inProgress}</StatValue>
-                            <StatLabel>W trakcie realizacji</StatLabel>
-                        </StatContent>
-                        <StatTooltipIcon>
-                            <FaInfoCircle />
-                        </StatTooltipIcon>
-                    </StatCard>
-                </Tooltip>
-
                 <Tooltip text={tooltipContent.today} position="bottom">
                     <StatCard>
                         <StatIcon $color={theme.text.primary}><FaUsers /></StatIcon>
                         <StatContent>
                             <StatValue>{stats.loading ? '...' : stats.today}</StatValue>
                             <StatLabel>Do przyjęcia dzisiaj</StatLabel>
+                        </StatContent>
+                        <StatTooltipIcon>
+                            <FaInfoCircle />
+                        </StatTooltipIcon>
+                    </StatCard>
+                </Tooltip>
+                <Tooltip text={tooltipContent.inProgress} position="bottom">
+                    <StatCard>
+                        <StatIcon $color={theme.text.primary}><FaClock /></StatIcon>
+                        <StatContent>
+                            <StatValue>{stats.loading ? '...' : stats.inProgress}</StatValue>
+                            <StatLabel>W trakcie realizacji</StatLabel>
                         </StatContent>
                         <StatTooltipIcon>
                             <FaInfoCircle />

@@ -12,6 +12,11 @@ interface StatusFilterConfig {
 }
 
 const statusConfig: Record<StatusFilterType, StatusFilterConfig> = {
+    [ProtocolStatus.SCHEDULED]: {
+        label: 'Zaplanowane',
+        color: theme.info,
+        lightColor: theme.infoBg
+    },
     [ProtocolStatus.IN_PROGRESS]: {
         label: 'W realizacji',
         color: '#9b59b6',
@@ -22,18 +27,13 @@ const statusConfig: Record<StatusFilterType, StatusFilterConfig> = {
         color: theme.success,
         lightColor: theme.successBg
     },
-    [ProtocolStatus.SCHEDULED]: {
-        label: 'Zaplanowane',
-        color: theme.info,
-        lightColor: theme.infoBg
-    },
     [ProtocolStatus.COMPLETED]: {
         label: 'Zakończone',
         color: theme.text.tertiary,
         lightColor: 'rgba(100, 116, 139, 0.1)'
     },
     [ProtocolStatus.CANCELLED]: {
-        label: 'Anulowane',
+        label: 'Porzucone',
         color: theme.error,
         lightColor: theme.errorBg
     },
@@ -58,9 +58,9 @@ export const VisitsStatusFilters: React.FC<VisitsStatusFiltersProps> = ({
                                                                             loading
                                                                         }) => {
     const filterOrder: StatusFilterType[] = [
+        ProtocolStatus.SCHEDULED,
         ProtocolStatus.IN_PROGRESS,
         ProtocolStatus.READY_FOR_PICKUP,
-        ProtocolStatus.SCHEDULED,
         ProtocolStatus.COMPLETED,
         ProtocolStatus.CANCELLED,
         'all',

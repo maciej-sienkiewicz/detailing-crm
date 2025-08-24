@@ -191,29 +191,6 @@ const FinancialReportsPage: React.FC = () => {
 
     return (
         <PageContainer>
-            {/* Compact Header */}
-            <PageHeader>
-                <HeaderContent>
-                    <PageIcon>
-                        <FaChartLine />
-                    </PageIcon>
-                    <HeaderText>
-                        <PageTitle>Raporty finansowe</PageTitle>
-                        <PageSubtitle>Zarządzaj kategoriami usług i przeglądaj statystyki</PageSubtitle>
-                    </HeaderText>
-                </HeaderContent>
-                <HeaderActions>
-                    <ActionButton onClick={handleRefresh} disabled={loading} variant="secondary">
-                        <FaSync className={loading ? 'spinning' : ''} />
-                        Odśwież
-                    </ActionButton>
-                    <ActionButton onClick={handleCreateCategory} disabled={creatingCategory} variant="primary">
-                        <FaPlus />
-                        {creatingCategory ? 'Tworzenie...' : 'Nowa kategoria'}
-                    </ActionButton>
-                </HeaderActions>
-            </PageHeader>
-
             {/* Main Content */}
             <ContentArea>
                 {/* Categories Section */}
@@ -226,6 +203,8 @@ const FinancialReportsPage: React.FC = () => {
                     onShowServiceStats={handleShowServiceStats}
                     onShowCategoryStats={handleShowCategoryStats}
                     creatingCategory={creatingCategory}
+                    onRefresh={handleRefresh}
+                    loading={loading}
                 />
 
                 {/* Uncategorized Services Table */}
@@ -293,100 +272,6 @@ const PageContainer = styled.div`
     @keyframes spin {
         from { transform: rotate(0deg); }
         to { transform: rotate(360deg); }
-    }
-`;
-
-const PageHeader = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: ${theme.spacing.lg};
-    padding: ${theme.spacing.lg};
-    background: ${theme.surface};
-    border-radius: ${theme.radius.lg};
-    border: 1px solid ${theme.border};
-    box-shadow: ${theme.shadow.sm};
-
-    @media (max-width: 768px) {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: ${theme.spacing.md};
-    }
-`;
-
-const HeaderContent = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.md};
-`;
-
-const PageIcon = styled.div`
-    width: 48px;
-    height: 48px;
-    background: ${theme.primaryGhost};
-    border-radius: ${theme.radius.md};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: ${theme.primary};
-    font-size: 20px;
-`;
-
-const HeaderText = styled.div``;
-
-const PageTitle = styled.h1`
-    font-size: 24px;
-    font-weight: 600;
-    color: ${theme.text.primary};
-    margin: 0 0 4px 0;
-`;
-
-const PageSubtitle = styled.p`
-    font-size: 14px;
-    color: ${theme.text.secondary};
-    margin: 0;
-`;
-
-const HeaderActions = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.md};
-
-    @media (max-width: 768px) {
-        width: 100%;
-        justify-content: flex-end;
-    }
-`;
-
-const ActionButton = styled.button<{ variant: 'primary' | 'secondary' }>`
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.sm};
-    padding: ${theme.spacing.sm} ${theme.spacing.md};
-    border: 1px solid ${props => props.variant === 'primary' ? theme.primary : theme.border};
-    background: ${props => props.variant === 'primary' ? theme.primary : theme.surface};
-    color: ${props => props.variant === 'primary' ? 'white' : theme.text.secondary};
-    border-radius: ${theme.radius.md};
-    font-weight: 500;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover:not(:disabled) {
-        background: ${props => props.variant === 'primary' ? theme.primaryLight : theme.surfaceAlt};
-        color: ${props => props.variant === 'primary' ? 'white' : theme.text.primary};
-        transform: translateY(-1px);
-        box-shadow: ${theme.shadow.md};
-    }
-
-    &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: none;
-    }
-
-    svg {
-        font-size: 14px;
     }
 `;
 

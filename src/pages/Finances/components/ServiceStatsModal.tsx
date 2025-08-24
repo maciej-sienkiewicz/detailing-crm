@@ -241,9 +241,6 @@ export const ServiceStatsModal: React.FC<ServiceStatsModalProps> = ({
                             <ServiceTitle>{serviceName}</ServiceTitle>
                         </HeaderText>
                     </HeaderLeft>
-                    <CloseButton onClick={onClose}>
-                        <FaTimes />
-                    </CloseButton>
                 </ModalHeader>
 
                 {/* Compact Filters */}

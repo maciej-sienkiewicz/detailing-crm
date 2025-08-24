@@ -264,6 +264,7 @@ const CategoryCounter = styled.span`
 const ExpandControls = styled.div`
     display: flex;
     gap: ${theme.spacing.sm};
+    align-items: center;
 
     @media (max-width: 768px) {
         display: none;
@@ -295,13 +296,14 @@ const PanelsContainer = styled.div`
 const PanelContainer = styled.div`
     border-bottom: 1px solid ${theme.border};
     transition: all 0.2s ease;
+    background: ${theme.surface};
 
     &:last-child {
         border-bottom: none;
     }
 
     &:hover {
-        background: ${theme.surfaceAlt};
+        background: ${theme.surface};
     }
 `;
 

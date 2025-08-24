@@ -71,7 +71,7 @@ export const PaymentStatusLabels = {
     PAID: 'Opłacone',
     PENDING: 'Oczekujące',
     OVERDUE: 'Przeterminowane',
-    CANCELLED: 'Anulowane'
+    CANCELLED: 'Porzucone'
 };
 
 export interface SupplierInfo {
