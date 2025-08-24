@@ -174,7 +174,7 @@ const AppointmentCalendar: React.FC<CalendarProps> = React.memo(({
     const filterConfig = {
         scheduled: { label: 'Zaplanowane', color: theme.primary },
         inProgress: { label: 'W trakcie', color: theme.primary },
-        readyForPickup: { label: 'Gotowe', color: theme.primary },
+        readyForPickup: { label: 'Oczekujące na odbiór', color: theme.primary },
         completed: { label: 'Zakończone', color: theme.primary },
         cancelled: { label: 'Anulowane', color: theme.primary }
     };
@@ -240,8 +240,8 @@ const AppointmentCalendar: React.FC<CalendarProps> = React.memo(({
                                         <FilterLabel>{config.label}</FilterLabel>
                                         <CheckIcon $active={isActive} $color={config.color}>
                                             <svg
-                                                width="14"
-                                                height="14"
+                                                width="12"
+                                                height="12"
                                                 viewBox="0 0 24 24"
                                                 fill="none"
                                                 stroke="currentColor"
@@ -480,14 +480,14 @@ const FilterButton = styled.button<{ $active: boolean; $color: string }>`
     padding: ${theme.spacing.sm} ${theme.spacing.md};
     background: ${theme.surface};
     border: 2px solid ${props => props.$active ? props.$color : '#e2e8f0'};
-    border-radius: ${theme.radius.sm};
+    border-radius: ${theme.radius.md};
     cursor: pointer;
     transition: all 0.2s ease;
-    min-width: 120px;
+    min-width: 100px;
 
     &:hover {
         transform: translateY(-1px);
-        box-shadow: ${theme.shadow.xs};
+        box-shadow: ${theme.shadow.sm};
         border-color: ${props => props.$color};
     }
 `;
@@ -496,11 +496,11 @@ const FilterContent = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: ${theme.spacing.sm};
+    gap: ${theme.spacing.xs};
 `;
 
 const FilterLabel = styled.div`
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     color: ${theme.text.secondary};
     text-align: center;
@@ -510,11 +510,11 @@ const CheckIcon = styled.div<{ $active: boolean; $color: string }>`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
     color: ${props => props.$active ? props.$color : '#94a3b8'};
     transition: all 0.2s ease;
-    
+
     svg {
         transition: all 0.2s ease;
         transform: ${props => props.$active ? 'scale(1)' : 'scale(0.8)'};
