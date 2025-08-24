@@ -181,7 +181,7 @@ class ApiClientNew {
     private readonly defaultRetries: number;
 
     constructor() {
-        this.baseUrl = 'http://localhost:8080/api';
+        this.baseUrl = '/api';
         this.defaultTimeout = 30000;
         this.defaultRetries = 3;
     }
