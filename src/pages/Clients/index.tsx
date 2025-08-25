@@ -4,7 +4,6 @@ import Pagination from '../../components/common/Pagination';
 import ClientListTable from './components/ClientListTable';
 import ClientDetailDrawer from './components/ClientDetailDrawer';
 import ClientFormModal from './components/ClientFormModal';
-import ContactAttemptModal from './components/ContactAttemptModal';
 import DeleteConfirmationModal from "./modals/DeleteConfirmationModal";
 
 import {
@@ -375,14 +374,6 @@ const OwnersPageContent = forwardRef<OwnersPageRef, OwnersPageContentProps>(({
                     client={state.selectedClient}
                     onSave={handleSaveClient}
                     onCancel={() => updateState({ showAddModal: false })}
-                />
-            )}
-
-            {state.showContactModal && state.selectedClient && (
-                <ContactAttemptModal
-                    client={state.selectedClient}
-                    onSave={handleContactSaved}
-                    onCancel={() => updateState({ showContactModal: false })}
                 />
             )}
 

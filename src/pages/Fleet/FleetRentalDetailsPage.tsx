@@ -1,41 +1,35 @@
 // src/pages/Fleet/FleetRentalDetailsPage.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { useParams, useNavigate } from 'react-router-dom';
-import {
-    FleetRental,
-    FleetRentalStatus,
-    FleetRentalStatusLabels,
-    FleetImage
-} from '../../types/fleetRental';
-import { FleetVehicle, FleetVehicleStatus } from '../../types/fleet';
-import { ClientExpanded } from '../../types/client';
-import { fleetRentalApi } from '../../api/fleetRentalApi';
-import { fleetVehicleApi } from '../../api/fleetApi';
-import { clientApi } from '../../api/clientsApi';
+import {useNavigate, useParams} from 'react-router-dom';
+import {FleetImage, FleetRental, FleetRentalStatus} from '../../types/fleetRental';
+import {FleetVehicle, FleetVehicleStatus} from '../../types/fleet';
+import {ClientExpanded} from '../../types';
+import {fleetRentalApi} from '../../api/fleetRentalApi';
+import {fleetVehicleApi} from '../../api/fleetApi';
+import {clientApi} from '../../api/clientsApi';
 import FleetStatusBadge from '../../components/fleet/common/FleetStatusBadge';
 import FuelLevelIndicator from '../../components/fleet/common/FuelLevelIndicator';
 import ConfirmationDialog from '../../components/common/ConfirmationDialog';
-import { useToast } from '../../components/common/Toast/Toast';
-import { format, isAfter, parseISO } from 'date-fns';
-import { pl } from 'date-fns/locale';
+import {useToast} from '../../components/common/Toast/Toast';
+import {format, isAfter} from 'date-fns';
+import {pl} from 'date-fns/locale';
 import {
-    FaExchangeAlt,
     FaArrowLeft,
-    FaPrint,
-    FaFileAlt,
-    FaMapMarkerAlt,
     FaCalendarAlt,
-    FaCar,
-    FaUser,
-    FaTachometerAlt,
-    FaGasPump,
-    FaExclamationTriangle,
-    FaCheck,
     FaCamera,
+    FaCar,
+    FaCheck,
+    FaExchangeAlt,
+    FaExclamationTriangle,
+    FaFileAlt,
+    FaGasPump,
     FaMobileAlt,
-    FaTimes
+    FaPrint,
+    FaTachometerAlt,
+    FaTimes,
+    FaUser
 } from 'react-icons/fa';
 
 const FleetRentalDetailsPage: React.FC = () => {
@@ -163,9 +157,7 @@ const FleetRentalDetailsPage: React.FC = () => {
 
         // Obliczanie różnicy w dniach
         const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-        return diffDays;
+        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     };
 
     const checkIsOverdue = (): boolean => {

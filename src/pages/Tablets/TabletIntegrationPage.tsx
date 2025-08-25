@@ -188,7 +188,7 @@ const TabletIntegrationPage: React.FC = () => {
 
             // POPRAWKA: Użyj właściwej nazwy pola z serwera
             const startTime = Date.now();
-            const duration = pairingCodeResponse.expiresin || pairingCodeResponse.expiresIn || 300; // fallback na 300 sekund
+            const duration = pairingCodeResponse.expiresIn || 300; // fallback na 300 sekund
 
             console.log('🔍 Timer setup:', {
                 startTime: new Date(startTime).toISOString(),

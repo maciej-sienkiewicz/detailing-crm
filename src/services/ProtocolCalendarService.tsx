@@ -1,6 +1,6 @@
 // src/services/ProtocolCalendarService.ts - UPDATED VERSION WITH visitsApiNew
 import { visitsApi } from '../api/visitsApiNew';
-import { Appointment, AppointmentStatus } from '../types';
+import {Appointment, AppointmentStatus, DiscountType, ServiceApprovalStatus} from '../types';
 import { ProtocolStatus, CarReceptionProtocol } from '../types/protocol';
 import { VisitListItem } from '../api/visitsApiNew';
 
@@ -49,7 +49,7 @@ const convertVisitListItemToAppointment = (visit: VisitListItem): Appointment =>
         vehicleId: vehicleDescription,
         serviceType: 'protocol',
         status: mapProtocolStatusToAppointmentStatus(visit.status),
-        notes: '', // VisitListItem nie ma description/notes
+        notes: '',
         isProtocol: true,
         statusUpdatedAt: visit.lastUpdate,
         calendarColorId: visit.calendarColorId,
@@ -57,10 +57,10 @@ const convertVisitListItemToAppointment = (visit: VisitListItem): Appointment =>
             id: service.id,
             name: service.name,
             price: service.price,
-            discountType: service.discountType,
-            discountValue: service.discountValue,
+            discountType: (service.discountType as DiscountType) || DiscountType.PERCENTAGE,
+            discountValue: service.discountValue || 0,
             finalPrice: service.finalPrice,
-            approvalStatus: service.approvalStatus
+            approvalStatus: (service.approvalStatus as ServiceApprovalStatus) || ServiceApprovalStatus.PENDING
         })) || []
     };
 };

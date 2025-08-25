@@ -313,7 +313,7 @@ class ActivityApi {
             category: this.normalizeCategory(serverItem.category),
             message: serverItem.message,
             description: serverItem.description,
-            userId: serverItem.user_id,
+            user_id: serverItem.user_id,
             userName: serverItem.userName,
             userColor: this.generateUserColor(serverItem.userName),
             status: this.normalizeStatus(serverItem.status),

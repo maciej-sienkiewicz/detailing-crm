@@ -10,7 +10,7 @@ import {
     InvoiceTypeLabels,
     PaymentMethod,
     PaymentMethodLabels,
-    InvoiceAttachment
+    InvoiceAttachment, TransactionDirection, DocumentType
 } from '../../../types';
 import { HelpText } from "../../Settings/styles/ModalStyles";
 import { invoicesApi, ExtractedInvoiceData } from '../../../api/invoicesApi';
@@ -35,7 +35,7 @@ const emptyInvoice: Partial<Invoice> = {
     buyerTaxId: '',
     buyerAddress: '',
     status: InvoiceStatus.NOT_PAID,
-    type: InvoiceType.INCOME,
+    type: DocumentType.INVOICE,
     paymentMethod: PaymentMethod.BANK_TRANSFER,
     totalNet: 0,
     totalTax: 0,
@@ -90,14 +90,14 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, initialData = {}, on
     };
 
     // Obsługa usuwania pozycji
-    const handleRemoveItem = (itemId: string) => {
+    const handleRemoveItem = (itemId: string | undefined) => {
         setItems(prev => prev.filter(item => item.id !== itemId));
         recalculateTotals();
     };
 
     // Obsługa zmiany danych pozycji
     // Obsługa zmiany danych pozycji
-    const handleItemChange = (itemId: string, field: keyof InvoiceItem, value: any) => {
+    const handleItemChange = (itemId: string | undefined, field: keyof InvoiceItem, value: any) => {
         setItems(prev => {
             const updatedItems = prev.map(item => {
                 if (item.id === itemId) {

@@ -28,7 +28,8 @@ const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({
     if (!isOpen) return null;
 
     // Funkcja do formatowania daty
-    const formatDate = (dateString: string): string => {
+    const formatDate = (dateString: string | undefined): string => {
+        if(!dateString) return ""
         const date = new Date(dateString);
         return date.toLocaleDateString('pl-PL');
     };

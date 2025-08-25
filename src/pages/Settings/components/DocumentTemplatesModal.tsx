@@ -615,7 +615,7 @@ const EmptyState = styled.div`
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: ${brandTheme.spacing.xl};
+    padding: ${brandTheme.spacing.md};
     text-align: center;
     color: ${brandTheme.text.muted};
 `;

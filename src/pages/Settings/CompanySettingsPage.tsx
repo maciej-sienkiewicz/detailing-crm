@@ -54,13 +54,22 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
     const handleInputChange = (section: keyof CompanySettingsResponse, field: string, value: any) => {
         if (!formData) return;
 
-        setFormData(prev => ({
-            ...prev!,
-            [section]: {
-                ...prev![section],
-                [field]: value
+        setFormData(prev => {
+            if (!prev) return null;
+
+            const currentSection = prev[section];
+            if (!currentSection || typeof currentSection !== 'object') {
+                return prev;
             }
-        }));
+
+            return {
+                ...prev,
+                [section]: {
+                    ...(currentSection as Record<string, any>),
+                    [field]: value
+                }
+            };
+        });
     };
 
     const handleSaveAll = async () => {

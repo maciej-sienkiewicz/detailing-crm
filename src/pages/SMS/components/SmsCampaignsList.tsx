@@ -760,10 +760,6 @@ export const SmsCampaignsList: React.FC<SmsCampaignsListProps> = ({ onOpenNewCam
                                                     <TableRow key={message.id}>
                                                         <TableCell>{message.recipientName}</TableCell>
                                                         <TableCell>
-                                                            <MessageStatusBadge color={SmsStatusColors[message.status]}>
-                                                                {getStatusIcon(message.status)}
-                                                                {SmsStatusLabels[message.status]}
-                                                            </MessageStatusBadge>
                                                         </TableCell>
                                                         <TableCell>{formatDate(message.sentDate || message.createdAt)}</TableCell>
                                                     </TableRow>

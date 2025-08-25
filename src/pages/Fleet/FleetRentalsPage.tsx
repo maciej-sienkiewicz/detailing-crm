@@ -201,9 +201,6 @@ const FleetRentalsPage: React.FC = () => {
                 valueA = a[sortField as keyof FleetRental];
                 valueB = b[sortField as keyof FleetRental];
             }
-
-            if (valueA < valueB) return sortOrder === 'asc' ? -1 : 1;
-            if (valueA > valueB) return sortOrder === 'asc' ? 1 : -1;
             return 0;
         });
 

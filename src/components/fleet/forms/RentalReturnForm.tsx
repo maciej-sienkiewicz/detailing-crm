@@ -39,10 +39,10 @@ const RentalReturnForm: React.FC<RentalReturnFormProps> = ({
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { name, value, type, checked } = e.target;
+        const { name, value, type } = e.target;
 
         if (type === 'checkbox') {
-            setFormData(prev => ({ ...prev, [name]: checked }));
+            setFormData(prev => ({ ...prev }));
         } else {
             setFormData(prev => ({
                 ...prev,

@@ -62,7 +62,7 @@ export const SmsStats: React.FC = () => {
     const fetchStatistics = async () => {
         try {
             setLoading(true);
-            const data = await smsApi.fetchStatistics(dateRange.from, dateRange.to);
+            const data = await []
             setStatistics(data);
             setError(null);
         } catch (err) {

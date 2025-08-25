@@ -264,7 +264,6 @@ const FixedCostsPage: React.FC<FixedCostsPageProps> = ({
                     const success = await fixedCostsApi.deleteFixedCost(id);
                     if (success) {
                         showToast('success', 'Koszt stały został usunięty');
-                        await refreshData();
                     } else {
                         showToast('error', 'Nie udało się usunąć kosztu stałego');
                     }
@@ -610,7 +609,7 @@ const FixedCostsPage: React.FC<FixedCostsPageProps> = ({
                                                 </NameCell>
                                             </TableCell>
                                             <TableCell>
-                                                <FrequencyBadge category={cost.category}>
+                                                <FrequencyBadge>
                                                     {cost.categoryDisplay}
                                                 </FrequencyBadge>
                                             </TableCell>
@@ -633,7 +632,7 @@ const FixedCostsPage: React.FC<FixedCostsPageProps> = ({
                                                     <MainAmount>{formatAmount(cost.calculatedMonthlyAmount)}</MainAmount>
                                                     {cost.calculatedMonthlyAmount !== cost.monthlyAmount && (
                                                         <OriginalAmount>
-                                                        (bazowa: {formatAmount(cost.monthlyAmount)})
+                                                        (bazowa {formatAmount(cost.monthlyAmount)})
                                                         </OriginalAmount>
                                                         )}
                                                 </AmountCell>

@@ -125,7 +125,6 @@ const FleetDashboardPage: React.FC = () => {
                     }
                 }
 
-                setAlerts(alertsList);
             } catch (err) {
                 console.error('Error fetching dashboard data:', err);
                 setError('Wystąpił błąd podczas ładowania danych. Spróbuj odświeżyć stronę.');

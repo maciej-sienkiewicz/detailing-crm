@@ -662,9 +662,6 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
         }
     }, []);
 
-    /**
-     * Uploads a document for an employee
-     */
     const uploadDocument = useCallback(async (
         employeeId: string,
         file: File,
@@ -678,7 +675,7 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
                 documentError: null
             }));
 
-            console.log('📤 Uploading document for employee:', employeeId);
+            console.log('Uploading document for employee:', employeeId);
 
             const result = await employeesApi.uploadEmployeeDocument({
                 employeeId,
@@ -688,17 +685,23 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
             });
 
             if (result.success && result.data) {
-                // 🔧 FIX: Sprawdź czy dokument jest dla aktualnie wybranego pracownika
+                // ✅ Konwertuj DocumentUploadResponse na EmployeeDocument
+                const uploadedDocument: EmployeeDocument = {
+                    id: result.data.id,
+                    employeeId: employeeId,
+                    name: name,
+                    type: type,
+                    uploadDate: new Date().toISOString(),
+                };
+
                 setState(prev => {
-                    // Tylko dodaj dokument jeśli to ten sam pracownik
                     if (prev.selectedEmployee?.id === employeeId) {
                         return {
                             ...prev,
-                            documents: [...prev.documents, result.data!],
+                            documents: [...prev.documents, uploadedDocument], // ✅ Poprawny typ
                             isLoadingDocuments: false
                         };
                     } else {
-                        // Jeśli to inny pracownik, tylko zakończ loading
                         return {
                             ...prev,
                             isLoadingDocuments: false
@@ -706,13 +709,13 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
                     }
                 });
 
-                console.log('✅ Successfully uploaded document:', result.data.id);
-                return result.data;
+                console.log('Successfully uploaded document:', uploadedDocument.id);
+                return uploadedDocument; // ✅ Zwraca EmployeeDocument
             } else {
                 throw new Error(result.error || 'Failed to upload document');
             }
         } catch (error: any) {
-            console.error('❌ Error in uploadDocument:', error);
+            console.error('Error in uploadDocument:', error);
             setState(prev => ({
                 ...prev,
                 isLoadingDocuments: false,

@@ -68,7 +68,7 @@ const FixedCostViewModal: React.FC<FixedCostViewModalProps> = ({
     };
 
     // Helper function to format datetime from backend array format
-    const formatDateTimeFromArray = (dateTimeArray: number[]): string => {
+    const formatDateTimeFromArray = (dateTimeArray: number[] | undefined): string => {
         if (!dateTimeArray || !Array.isArray(dateTimeArray) || dateTimeArray.length < 6) {
             return '-';
         }
@@ -95,21 +95,21 @@ const FixedCostViewModal: React.FC<FixedCostViewModalProps> = ({
                         <ActionButton
                             onClick={() => onEdit(fixedCost)}
                             title="Edytuj koszt stały"
-                            $variant="view"
+                            $variant="edit"
                         >
                             <FaEdit />
                         </ActionButton>
                         <ActionButton
                             onClick={() => onRecordPayment(fixedCost)}
                             title="Zarejestruj płatność"
-                            $variant="view"
+                            $variant="payment"
                         >
                             <FaFileInvoiceDollar />
                         </ActionButton>
                         <ActionButton
                             onClick={() => onDelete(fixedCost.id, fixedCost.name)}
                             title="Usuń koszt stały"
-                            $variant="view"
+                            $variant="delete"
                         >
                             <FaTrashAlt />
                         </ActionButton>
@@ -152,7 +152,7 @@ const FixedCostViewModal: React.FC<FixedCostViewModalProps> = ({
                                     </AmountDisplay>
                                     {fixedCost.calculatedMonthlyAmount !== fixedCost.monthlyAmount && (
                                         <OriginalAmount>
-                                        (bazowa: {formatAmount(fixedCost.monthlyAmount)})
+                                        (bazowa {formatAmount(fixedCost.monthlyAmount)})
                                         </OriginalAmount>
                                         )}
                                 </InfoValue>
@@ -351,17 +351,6 @@ const FixedCostViewModal: React.FC<FixedCostViewModalProps> = ({
                         </InfoSection>
                     )}
 
-                    {/* Metadata */}
-                    <MetadataSection>
-                        <MetadataItem>
-                            <MetadataLabel>Utworzono:</MetadataLabel>
-                            <MetadataValue>{formatDateTimeFromArray(fixedCost.createdAt)}</MetadataValue>
-                        </MetadataItem>
-                        <MetadataItem>
-                            <MetadataLabel>Ostatnia modyfikacja:</MetadataLabel>
-                            <MetadataValue>{formatDateTimeFromArray(fixedCost.updatedAt)}</MetadataValue>
-                        </MetadataItem>
-                    </MetadataSection>
                 </ModalContent>
             </ModalContainer>
         </ModalOverlay>

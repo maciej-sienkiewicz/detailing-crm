@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { FaComment, FaInfoCircle, FaCheck, FaTimes, FaUser, FaClock } from 'react-icons/fa';
+import {Comment} from "../../../../api/commentsApi";
 
 // Professional Corporate Theme
 const corporateTheme = {
@@ -46,25 +47,20 @@ const corporateTheme = {
 interface ClientCommentsModalProps {
     isOpen: boolean;
     onClose: () => void;
-    comments: Array<{
-        id: string;
-        author: string;
-        content: string;
-        timestamp: string;
-        type: 'internal' | 'customer' | 'system';
-    }>;
+    comments: Comment[] | null
 }
 
 const ClientCommentsModal: React.FC<ClientCommentsModalProps> = ({
                                                                      isOpen,
                                                                      onClose,
-                                                                     comments = []
+                                                                     comments
                                                                  }) => {
     if (!isOpen) return null;
 
-    const customerComments = comments.filter(comment => comment.type === 'customer');
+    const customerComments = (comments || []).filter(comment => comment.type === 'CUSTOMER');
 
-    const formatDate = (dateString: string): string => {
+    const formatDate = (dateString: string | undefined): string => {
+        if(!dateString) return '';
         const date = new Date(dateString);
         return date.toLocaleDateString('pl-PL', {
             day: '2-digit',
@@ -132,7 +128,7 @@ const ClientCommentsModal: React.FC<ClientCommentsModalProps> = ({
                                                 </AuthorInfo>
                                                 <TimeInfo>
                                                     <FaClock />
-                                                    <CommentDate>{formatDate(comment.timestamp)}</CommentDate>
+                                                    <CommentDate>{formatDate(comment!!.timestamp)}</CommentDate>
                                                 </TimeInfo>
                                             </CommentHeader>
                                             <CommentContent>{comment.content}</CommentContent>

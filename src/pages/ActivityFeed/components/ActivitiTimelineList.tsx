@@ -202,7 +202,7 @@ const ActivityTimelineList: React.FC<ActivityTimelineListProps> = ({ activities,
                                         <ActivityMessage>{activity.message}</ActivityMessage>
 
                                         {/* ✅ POPRAWKA: Używamy relatedEntities (camelCase po konwersji) */}
-                                        {(activity.relatedEntities || activity.related_entities) && (activity.relatedEntities || activity.related_entities).length > 0 && (
+                                        {(activity.relatedEntities || activity.related_entities) && (activity.relatedEntities || activity.related_entities)!!.length > 0 && (
                                             <EntitiesSection>
                                                 <EntitiesLabel>Powiązane:</EntitiesLabel>
                                                 <EntitiesList>

@@ -1,6 +1,3 @@
-// src/types/activity.ts
-// Typy aktywności w systemie CRM dla firmy motoryzacyjno-detailingowej
-
 // Kategorie aktywności
 export type ActivityCategory =
     | 'APPOINTMENT'  // Wizyty/rezerwacje

@@ -2,7 +2,7 @@ import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
 import {format} from 'date-fns';
 import {pl} from 'date-fns/locale';
-import {FaCalendarAlt, FaPaperPlane, FaSpinner, FaUser, FaExclamationTriangle, FaLock, FaShare} from 'react-icons/fa';
+import {FaCalendarAlt, FaPaperPlane, FaUser, FaExclamationTriangle, FaLock, FaShare} from 'react-icons/fa';
 import {CarReceptionProtocol, ProtocolStatus} from '../../../../types';
 import {Comment, commentsApi} from '../../../../api/commentsApi';
 
@@ -86,14 +86,14 @@ interface ProtocolCommentsProps {
     onProtocolUpdate: (updatedProtocol: CarReceptionProtocol) => void;
 }
 
-const ProtocolComments: React.FC<ProtocolCommentsProps> = ({ protocol, onProtocolUpdate }) => {
+const ProtocolComments: React.FC<ProtocolCommentsProps> = ({ protocol }) => {
     const [comments, setComments] = useState<Comment[]>([]);
     const [newComment, setNewComment] = useState('');
     const [commentType, setCommentType] = useState<'INTERNAL' | 'CUSTOMER'>('INTERNAL');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [recentlyAddedId, setRecentlyAddedId] = useState<string | null>(null);
+    const [recentlyAddedId, setRecentlyAddedId] = useState<string | undefined>(undefined);
 
     useEffect(() => {
         const fetchComments = async () => {
@@ -116,7 +116,7 @@ const ProtocolComments: React.FC<ProtocolCommentsProps> = ({ protocol, onProtoco
     useEffect(() => {
         if (recentlyAddedId) {
             const timer = setTimeout(() => {
-                setRecentlyAddedId(null);
+                setRecentlyAddedId(undefined);
             }, 3000);
             return () => clearTimeout(timer);
         }
@@ -162,10 +162,6 @@ const ProtocolComments: React.FC<ProtocolCommentsProps> = ({ protocol, onProtoco
     const sortedComments = [...comments].sort((a, b) =>
         new Date(b.timestamp || '').getTime() - new Date(a.timestamp || '').getTime()
     );
-
-    const internalComments = sortedComments.filter(c => c.type === 'INTERNAL');
-    const customerComments = sortedComments.filter(c => c.type === 'CUSTOMER');
-    const systemComments = sortedComments.filter(c => c.type === 'SYSTEM');
 
     return (
         <CommunicationPanel>

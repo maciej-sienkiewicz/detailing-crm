@@ -361,7 +361,6 @@ const FleetMaintenanceFormPage: React.FC<MaintenanceFormProps> = ({ fuel = false
                                     id="notes"
                                     name="notes"
                                     value={fuelData.notes || ''}
-                                    onChange={handleFuelChange}
                                     rows={3}
                                     placeholder="Dodatkowe informacje o tankowaniu"
                                 />

@@ -206,8 +206,8 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
 
     if (images.length === 0) {
         return (
-            <ModalOverlay>
-                <ModalContainer>
+            <ModalOverlay $isFullscreen={false}> {/* ✅ Dodana wymagana właściwość */}
+                <ModalContainer $isFullscreen={false}> {/* ✅ Dodana wymagana właściwość */}
                     <CloseButton onClick={onClose}>
                         <FaTimes />
                     </CloseButton>

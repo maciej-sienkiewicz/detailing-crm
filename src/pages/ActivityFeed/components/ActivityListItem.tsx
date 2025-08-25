@@ -32,42 +32,6 @@ const ActivityListItem: React.FC<ActivityListItemProps> = ({ activity, icon }) =
         );
     };
 
-    // Renderowanie dodatkowych informacji z metadata
-    const renderMetadata = () => {
-        if (!activity.metadata) return null;
-
-        // Przykładowe renderowanie dla różnych typów metadanych
-        if (activity.category === 'COMMENT' && activity.metadata.callDuration) {
-            return (
-                <MetadataInfo>
-                    <MetadataItem>
-                        <MetadataLabel>Czas rozmowy:</MetadataLabel>
-                        <MetadataValue>{activity.metadata.callDuration}</MetadataValue>
-                    </MetadataItem>
-                    {activity.metadata.callNotes && (
-                        <MetadataNotes>{activity.metadata.callNotes}</MetadataNotes>
-                    )}
-                </MetadataInfo>
-            );
-        }
-
-        if (activity.category === 'notification' && activity.metadata.notificationType) {
-            return (
-                <MetadataInfo>
-                    <MetadataItem>
-                        <MetadataLabel>Typ powiadomienia:</MetadataLabel>
-                        <MetadataValue>{activity.metadata.notificationType}</MetadataValue>
-                    </MetadataItem>
-                    {activity.metadata.notificationContent && (
-                        <MetadataNotes>{activity.metadata.notificationContent}</MetadataNotes>
-                    )}
-                </MetadataInfo>
-            );
-        }
-
-        return null;
-    };
-
     return (
         <ActivityItemContainer>
             <ActivityHeader>
@@ -78,7 +42,6 @@ const ActivityListItem: React.FC<ActivityListItemProps> = ({ activity, icon }) =
                 <ActivityContent>
                     <ActivityMessage>{activity.message}</ActivityMessage>
                     {renderEntities()}
-                    {renderMetadata()}
                 </ActivityContent>
 
                 <ActivityTime>
@@ -86,7 +49,7 @@ const ActivityListItem: React.FC<ActivityListItemProps> = ({ activity, icon }) =
                 </ActivityTime>
             </ActivityHeader>
 
-            {activity.userId && (
+            {activity.user_id && (
                 <ActivityFooter>
                     <UserInfo>
                         <UserAvatar color={activity.userColor || '#7f8c8d'}>

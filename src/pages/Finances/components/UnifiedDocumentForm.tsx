@@ -1,5 +1,5 @@
 // src/pages/Finances/components/UnifiedDocumentForm.tsx
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import styled from 'styled-components';
 import { FaPlus, FaTrash, FaFileUpload, FaFilePdf, FaSpinner, FaFileInvoiceDollar, FaReceipt, FaExchangeAlt } from 'react-icons/fa';
 import {
@@ -14,9 +14,8 @@ import {
     PaymentMethod,
     PaymentMethodLabels,
     DocumentAttachment
-} from '../../../types/finance';
+} from '../../../types';
 import { unifiedFinancialApi } from '../../../api/unifiedFinancialApi';
-import Modal from '../../../components/common/Modal';
 import ConfirmationDialog from '../../../components/common/ConfirmationDialog';
 
 interface UnifiedDocumentFormProps {
@@ -264,6 +263,11 @@ const UnifiedDocumentForm: React.FC<UnifiedDocumentFormProps> = ({
                     totalGross: item.totalGross
                 }));
 
+                // ✅ Bezpieczna konwersja String na TransactionDirection
+                const extractedDirection = result.direction === 'INCOME' ? TransactionDirection.INCOME :
+                    result.direction === 'EXPENSE' ? TransactionDirection.EXPENSE :
+                        TransactionDirection.INCOME; // fallback
+
                 setFormData(prev => ({
                     ...prev,
                     title: extractedData.generalInfo.title || '',
@@ -279,7 +283,7 @@ const UnifiedDocumentForm: React.FC<UnifiedDocumentFormProps> = ({
                     totalTax: extractedData.summary.totalTax,
                     totalGross: extractedData.summary.totalGross,
                     notes: extractedData.notes || '',
-                    direction: result.direction || TransactionDirection.INCOME,
+                    direction: extractedDirection // ✅ Poprawny typ TransactionDirection
                 }));
 
                 setItems(mappedItems);

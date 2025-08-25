@@ -170,7 +170,7 @@ export const unifiedFinancialApi = {
     // Tworzenie nowego dokumentu
     createDocument: async (
         documentData: any,
-        attachmentFile?: File
+        attachmentFile?: File | null
     ): Promise<UnifiedFinancialDocument | null> => {
         try {
             const normalizedData = normalizeDocumentData(documentData);
@@ -194,7 +194,7 @@ export const unifiedFinancialApi = {
     updateDocument: async (
         id: string,
         documentData: any,
-        attachmentFile?: File
+        attachmentFile?: File | null
     ): Promise<UnifiedFinancialDocument | null> => {
         try {
             const normalizedData = normalizeDocumentData(documentData);

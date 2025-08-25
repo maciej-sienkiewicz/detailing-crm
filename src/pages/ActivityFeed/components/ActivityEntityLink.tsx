@@ -25,25 +25,25 @@ const ActivityEntityLink: React.FC<ActivityEntityLinkProps> = ({ entity }) => {
                     path: `/calendar?id=${entity.id}`,
                     text: entity.displayName || 'Wizyta'
                 };
-            case 'client':
+            case 'CLIENT':
                 return {
                     icon: <FaUser />,
                     path: `/clients/owners?id=${entity.id}`,
                     text: entity.displayName || 'Klient'
                 };
-            case 'vehicle':
+            case 'VEHICLE':
                 return {
                     icon: <FaCar />,
                     path: `/clients/vehicles?id=${entity.id}`,
                     text: entity.displayName || 'Pojazd'
                 };
-            case 'protocol':
+            case 'PROTOCOL':
                 return {
                     icon: <FaClipboardCheck />,
                     path: `/visits/${entity.id}`,
                     text: entity.displayName || 'Protokół'
                 };
-            case 'invoice':
+            case 'INVOICE':
                 return {
                     icon: <FaFileInvoiceDollar />,
                     path: `/finances/invoices?id=${entity.id}`,

@@ -595,49 +595,6 @@ export const smsApi = {
         }
     },
 
-    // STATYSTYKI SMS
-
-    // Pobieranie statystyk SMS
-    fetchStatistics: async (dateFrom?: string, dateTo?: string): Promise<SmsStatistics> => {
-        try {
-            const params: Record<string, any> = {};
-            if (dateFrom) params.dateFrom = dateFrom;
-            if (dateTo) params.dateTo = dateTo;
-
-            return await apiClient.get<SmsStatistics>('/sms/statistics', params);
-        } catch (error) {
-            console.error('Error fetching SMS statistics:', error);
-            const smsStatisticsMock: SmsStatistics = {
-                totalSent: 15000,
-                totalDelivered: 14800,
-                totalFailed: 200,
-                deliveryRate: 98.67,
-                averageDailyCount: 500,
-                monthlyCounts: [
-                    { month: 'January', count: 4500 },
-                    { month: 'February', count: 4800 },
-                    { month: 'March', count: 4500 },
-                    { month: 'April', count: 1200 }, // Zdecydowanie mniej, np. w związku z jakimś problemem
-                ],
-                byStatus: {
-                    [SmsStatus.DELIVERED]: 14800
-                },
-                byTemplate: [
-                    { templateId: 'TEMPL-001', templateName: 'Welcome SMS', count: 5000 },
-                    { templateId: 'TEMPL-002', templateName: 'Promotion', count: 7000 },
-                    { templateId: 'TEMPL-003', templateName: 'Reminder', count: 3000 },
-                ],
-                byCampaign: [
-                    { campaignId: 'CAMPAIGN-001', campaignName: 'Summer Sale', count: 7000, deliveryRate: 99.0 },
-                    { campaignId: 'CAMPAIGN-002', campaignName: 'Black Friday', count: 5000, deliveryRate: 98.5 },
-                    { campaignId: 'CAMPAIGN-003', campaignName: 'New Year Offer', count: 3000, deliveryRate: 98.0 },
-                ],
-            };
-
-            return smsStatisticsMock;
-        }
-    },
-
     // Pobieranie salda SMS
     fetchSmsBalance: async (): Promise<{ balance: number, usedThisMonth: number, limit: number }> => {
         try {

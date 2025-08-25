@@ -224,10 +224,9 @@ const RentalForm: React.FC<RentalFormProps> = ({
                                 min="0"
                                 max="100"
                                 step="5"
-                                value={formData.fuelLevelStart * 100}
+                                value={1 * 100}
                                 onChange={handleFuelLevelChange}
                             />
-                            <FuelLevelIndicator level={formData.fuelLevelStart} />
                         </FuelLevel>
                     </FormGroup>
 

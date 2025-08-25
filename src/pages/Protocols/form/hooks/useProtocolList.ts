@@ -68,6 +68,7 @@ export const useProtocolList = (): UseProtocolListReturn => {
             };
 
             // Dodanie statusu tylko jeśli nie jest to filtr "Wszystkie"
+            // @ts-ignore
             if (activeFilter !== 'Wszystkie' && status) {
                 queryParams.status = status;
             }

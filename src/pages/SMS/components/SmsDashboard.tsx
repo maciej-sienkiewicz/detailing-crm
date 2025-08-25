@@ -9,14 +9,13 @@ import {
     FaCalendarAlt,
     FaMoneyBillWave,
     FaChartLine,
-    FaListAlt,
     FaRobot,
     FaUserFriends,
     FaHistory,
     FaClock
 } from 'react-icons/fa';
 import { smsApi } from '../../../api/smsApi';
-import { SmsStatus, SmsStatusColors, SmsStatusLabels } from '../../../types/sms';
+import { SmsStatus } from '../../../types/sms';
 
 export const SmsDashboard: React.FC = () => {
     const navigate = useNavigate();
@@ -24,7 +23,7 @@ export const SmsDashboard: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
 
     // Statystyki i saldo SMS
-    const [stats, setStats] = useState({
+    const [stats] = useState({
         totalSent: 0,
         totalDelivered: 0,
         totalFailed: 0,
@@ -38,7 +37,7 @@ export const SmsDashboard: React.FC = () => {
 
     // Ostatnie wiadomości i zaplanowane
     const [recentMessages, setRecentMessages] = useState<any[]>([]);
-    const [upcomingMessages, setUpcomingMessages] = useState<any[]>([]);
+    const [upcomingMessages] = useState<any[]>([]);
 
     // Pobieranie danych
     useEffect(() => {
@@ -48,23 +47,14 @@ export const SmsDashboard: React.FC = () => {
 
             try {
                 // Pobieranie danych równolegle
-                const [statisticsData, balanceData, recentMessagesData, upcomingMessagesData] = await Promise.all([
-                    smsApi.fetchStatistics(),
+                const [balanceData, recentMessagesData] = await Promise.all([
                     smsApi.fetchSmsBalance(),
                     smsApi.fetchMessages({ status: SmsStatus.SENT }, 0, 5),
                     smsApi.fetchMessages({ status: SmsStatus.SCHEDULED }, 0, 5)
                 ]);
 
-                setStats({
-                    totalSent: statisticsData.totalSent,
-                    totalDelivered: statisticsData.totalDelivered,
-                    totalFailed: statisticsData.totalFailed,
-                    deliveryRate: statisticsData.deliveryRate
-                });
-
                 setBalance(balanceData);
                 setRecentMessages(recentMessagesData.data);
-                setUpcomingMessages(upcomingMessagesData.data);
             } catch (err) {
                 console.error('Error fetching dashboard data:', err);
                 setError('Nie udało się pobrać danych. Sprawdź połączenie z internetem i spróbuj ponownie.');
@@ -264,8 +254,8 @@ export const SmsDashboard: React.FC = () => {
                                 <MessageItem key={message.id}>
                                     <MessageHeader>
                                         <MessageRecipient>{message.recipientName}</MessageRecipient>
-                                        <MessageStatus color={SmsStatusColors[message.status]}>
-                                            {SmsStatusLabels[message.status]}
+                                        <MessageStatus color="red">
+                                            OK
                                         </MessageStatus>
                                     </MessageHeader>
                                     <MessageContent>{message.content}</MessageContent>
@@ -619,5 +609,3 @@ const ErrorButton = styled.button`
         background-color: #2980b9;
     }
 `;
-
-export default SmsDashboard;

@@ -165,6 +165,10 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
         }
     };
 
+    const isSessionSentToTablet = (status: string): boolean => {
+        return ['SENT_TO_TABLET', 'SIGNED', 'EXPIRED', 'CANCELLED'].includes(status);
+    };
+
     return (
         <ModalOverlay onClick={onClose}>
             <Modal onClick={e => e.stopPropagation()}>
@@ -337,16 +341,16 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
                                 </TimelineContent>
                             </TimelineItem>
 
-                            {session.status !== 'PENDING' && (
-                                <TimelineItem completed={session.status !== 'PENDING'}>
-                                    <TimelineIcon color={session.status !== 'PENDING' ? '#3b82f6' : '#e5e7eb'}>
+                            {isSessionSentToTablet(session.status) && (
+                                <TimelineItem completed={true}>
+                                    <TimelineIcon color="#3b82f6">
                                         <FaTabletAlt />
                                     </TimelineIcon>
                                     <TimelineContent>
                                         <TimelineTitle>Wysłano do tabletu</TimelineTitle>
                                         <TimelineTime>
                                             <FaCalendarAlt />
-                                            {session.status !== 'PENDING' ? 'Wysłano' : 'Oczekuje'}
+                                            Wysłano
                                         </TimelineTime>
                                     </TimelineContent>
                                 </TimelineItem>

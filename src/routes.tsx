@@ -2,14 +2,11 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import CalendarPage from './pages/Calendar/CalendarPage';
-import ServicesPage from './pages/Settings/ServicesPage';
 import EmployeesPage from './pages/Settings/EmployeesPage';
 import CarReceptionPage from './pages/Protocols/CarReceptionPage';
 import ActivityFeedPage from "./pages/ActivityFeed/ActivityFeedPage";
 import ProtocolDetailsPage from "./pages/Protocols/details/ProtocolDetailsPage";
 import StartVisitPage from "./pages/Protocols/start-visit/StartVisitPage";
-import CalendarColorsPage from "./pages/Settings/CalendarColorsPage";
-import MailPage from "./pages/Mail/MailPage";
 import ModernLoginPage from './pages/Auth/LoginPage';
 import OnboardingPage from './pages/Auth/OnboardingPage';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -64,9 +61,6 @@ const AppRoutes: React.FC = () => {
 
                 {/* Ścieżki finansowe */}
                 <Route path="/finances" element={<FinancialPageWithFixedCosts />} />
-
-                {/* Strona poczty */}
-                <Route path="/mail" element={<MailPage />} />
 
                 {/* UPDATED: Unified Clients/Vehicles page */}
                 <Route path="/clients-vehicles" element={<ClientsVehiclesPage />} />

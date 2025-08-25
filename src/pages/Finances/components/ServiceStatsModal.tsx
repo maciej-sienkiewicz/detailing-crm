@@ -497,11 +497,12 @@ export const ServiceStatsModal: React.FC<ServiceStatsModalProps> = ({
                                             scales: {
                                                 ...commonChartOptions.scales,
                                                 y: {
-                                                    ...commonChartOptions.scales?.y,
-                                                    beginAtZero: true,
+                                                    type: 'linear', // Wymuś liniową skalę numeryczną
+                                                    min: 0,
                                                     ticks: {
                                                         ...commonChartOptions.scales?.y?.ticks,
-                                                        stepSize: 1
+                                                        maxTicksLimit: 10,
+                                                        precision: 0
                                                     }
                                                 }
                                             }

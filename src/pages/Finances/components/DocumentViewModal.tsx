@@ -648,16 +648,16 @@ const DocumentDescription = styled.div`
     font-style: italic;
 `;
 
-const DirectionBadge = styled.div<{ direction: any }>`
+const DirectionBadge = styled.div<{ direction: TransactionDirection }>`
     display: inline-flex;
     align-items: center;
     padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
     border-radius: ${brandTheme.radius.md};
     font-size: 12px;
     font-weight: 600;
-    background-color: ${props => `${TransactionDirectionColors[props.direction]}22`};
-    color: ${props => TransactionDirectionColors[props.direction]};
-    border: 1px solid ${props => `${TransactionDirectionColors[props.direction]}44`};
+    background-color: ${props => `${TransactionDirectionColors[props.direction as TransactionDirection]}22`};
+    color: ${props => TransactionDirectionColors[props.direction as TransactionDirection]};
+    border: 1px solid ${props => `${TransactionDirectionColors[props.direction as TransactionDirection]}44`};
 `;
 
 const DocumentDetails = styled.div`
