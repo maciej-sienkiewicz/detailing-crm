@@ -31,7 +31,10 @@ import {
     FaHistory,
     FaUserTie,
     FaAward,
-    FaGem, FaEdit
+    FaGem,
+    FaEdit,
+    FaStickyNote,
+    FaUserCheck
 } from 'react-icons/fa';
 import {clientApi} from "../../../../api/clientsApi";
 import {servicesApi} from "../../../../api/servicesApi";
@@ -41,7 +44,9 @@ import {
     ClientStatistics,
     ServiceApprovalStatus,
     DiscountType,
-    SelectedService, ProtocolStatus
+    SelectedService,
+    ProtocolStatus,
+    DeliveryPerson
 } from "../../../../types";
 import AddServiceModal from "../../shared/modals/AddServiceModal";
 import EditPricesModal from "./EditPricesModal";
@@ -332,6 +337,11 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
 
     const currentStatus = getStatusInfo(protocol.status);
 
+    // Helper functions to check if notes or delivery person exist
+    const hasNotes = protocol.notes && protocol.notes.trim() !== '';
+    const hasDeliveryPerson = protocol.deliveryPerson && protocol.deliveryPerson.name && protocol.deliveryPerson.name.trim() !== '';
+    const shouldShowAdditionalSection = hasNotes || hasDeliveryPerson;
+
     if (loading) {
         return (
             <LoadingContainer>
@@ -578,6 +588,57 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                 </ClientCard>
             </ContentGrid>
 
+            {/* NEW: Notes and Delivery Person Section */}
+            {shouldShowAdditionalSection && (
+                <AdditionalInfoSection>
+                    <AdditionalInfoGrid $fullWidth={!hasNotes || !hasDeliveryPerson}>
+                        {/* Notes Section */}
+                        {hasNotes && (
+                            <NotesCard>
+                                <CardHeader>
+                                    <HeaderIcon $color="#8b5cf6">
+                                        <FaStickyNote />
+                                    </HeaderIcon>
+                                    <HeaderContent>
+                                        <CardTitle>Notatki</CardTitle>
+                                        <CardSubtitle>Dodatkowe informacje</CardSubtitle>
+                                    </HeaderContent>
+                                </CardHeader>
+                                <NotesContent>
+                                    <NotesText>{protocol.notes}</NotesText>
+                                </NotesContent>
+                            </NotesCard>
+                        )}
+
+                        {/* Delivery Person Section */}
+                        {hasDeliveryPerson && (
+                            <DeliveryPersonCard>
+                                <CardHeader>
+                                    <HeaderIcon $color="#10b981">
+                                        <FaUserCheck />
+                                    </HeaderIcon>
+                                    <HeaderContent>
+                                        <CardTitle>Osoba odbierająca</CardTitle>
+                                        <CardSubtitle>Dane odbierającego pojazd</CardSubtitle>
+                                    </HeaderContent>
+                                </CardHeader>
+                                <DeliveryPersonContent>
+                                    <DeliveryPersonInfo>
+                                        <PersonName>{protocol.deliveryPerson!!.name}</PersonName>
+                                        {protocol.deliveryPerson!!.phone && (
+                                            <PersonContact>
+                                                <FaPhone />
+                                                <span>{protocol.deliveryPerson!!.phone}</span>
+                                            </PersonContact>
+                                        )}
+                                    </DeliveryPersonInfo>
+                                </DeliveryPersonContent>
+                            </DeliveryPersonCard>
+                        )}
+                    </AdditionalInfoGrid>
+                </AdditionalInfoSection>
+            )}
+
             {/* Services Section */}
             <ServicesSection>
                 <SectionHeader>
@@ -720,113 +781,446 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
 
 // Professional Styled Components
 const Container = styled.div`
-   display: flex;
-   flex-direction: column;
-   gap: ${brand.space.xxxl};
-   max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: ${brand.space.xxxl};
+    max-width: 100%;
 `;
 
 const StatusSection = styled.div`
-   background: ${brand.surface};
-   border: 1px solid ${brand.border};
-   border-radius: ${brand.radius.xl};
-   padding: ${brand.space.xxl};
-   box-shadow: ${brand.shadow.soft};
+    background: ${brand.surface};
+    border: 1px solid ${brand.border};
+    border-radius: ${brand.radius.xl};
+    padding: ${brand.space.xxl};
+    box-shadow: ${brand.shadow.soft};
 `;
 
 const StatusHeader = styled.div`
-   display: flex;
-   justify-content: space-between;
-   align-items: center;
-   margin-bottom: ${brand.space.xl};
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: ${brand.space.xl};
 `;
 
 const StatusTitle = styled.h3`
-   font-size: 18px;
-   font-weight: 600;
-   color: ${brand.textPrimary};
-   margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: ${brand.textPrimary};
+    margin: 0;
 `;
 
 const StatusProgress = styled.div`
-   font-size: 14px;
-   font-weight: 500;
-   color: ${brand.textTertiary};
-   padding: ${brand.space.sm} ${brand.space.md};
-   background: ${brand.surfaceSubtle};
-   border-radius: ${brand.radius.md};
+    font-size: 14px;
+    font-weight: 500;
+    color: ${brand.textTertiary};
+    padding: ${brand.space.sm} ${brand.space.md};
+    background: ${brand.surfaceSubtle};
+    border-radius: ${brand.radius.md};
 `;
 
 const StatusTimeline = styled.div`
-   display: flex;
-   align-items: center;
-   margin-bottom: ${brand.space.xl};
+    display: flex;
+    align-items: center;
+    margin-bottom: ${brand.space.xl};
 `;
 
 const StatusStep = styled.div<{ $active: boolean; $completed: boolean }>`
-   display: flex;
-   flex-direction: column;
-   align-items: center;
-   gap: ${brand.space.sm};
-   opacity: ${props => props.$active || props.$completed ? 1 : 0.4};
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: ${brand.space.sm};
+    opacity: ${props => props.$active || props.$completed ? 1 : 0.4};
 `;
 
 const StepIcon = styled.div<{ $active: boolean; $completed: boolean }>`
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   width: 48px;
-   height: 48px;
-   border-radius: 50%;
-   background: ${props => {
-    if (props.$completed) return brand.success;
-    if (props.$active) return brand.primary;
-    return brand.surfaceSubtle;
-}};
-   color: ${props => {
-    if (props.$completed || props.$active) return 'white';
-    return brand.textMuted;
-}};
-   border: 3px solid ${props => {
-    if (props.$completed) return brand.success;
-    if (props.$active) return brand.primary;
-    return brand.border;
-}};
-   font-size: 18px;
-   transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: ${props => {
+        if (props.$completed) return brand.success;
+        if (props.$active) return brand.primary;
+        return brand.surfaceSubtle;
+    }};
+    color: ${props => {
+        if (props.$completed || props.$active) return 'white';
+        return brand.textMuted;
+    }};
+    border: 3px solid ${props => {
+        if (props.$completed) return brand.success;
+        if (props.$active) return brand.primary;
+        return brand.border;
+    }};
+    font-size: 18px;
+    transition: all 0.3s ease;
 `;
 
 const StepLabel = styled.div`
-   font-size: 13px;
-   font-weight: 600;
-   color: ${brand.textSecondary};
-   text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: ${brand.textSecondary};
+    text-align: center;
 `;
 
 const StatusConnector = styled.div<{ $active: boolean }>`
-   flex: 1;
-   height: 3px;
-   background: ${props => props.$active ? brand.success : brand.border};
-   margin: 0 ${brand.space.lg};
-   transition: background 0.3s ease;
+    flex: 1;
+    height: 3px;
+    background: ${props => props.$active ? brand.success : brand.border};
+    margin: 0 ${brand.space.lg};
+    transition: background 0.3s ease;
 `;
 
 const AlertBanner = styled.div`
-   display: flex;
-   align-items: center;
-   gap: ${brand.space.md};
-   padding: ${brand.space.md} ${brand.space.lg};
-   background: ${brand.warningBg};
-   border: 1px solid rgba(217, 119, 6, 0.3);
-   border-radius: ${brand.radius.md};
-   color: ${brand.warning};
-   font-size: 14px;
-   font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: ${brand.space.md};
+    padding: ${brand.space.md} ${brand.space.lg};
+    background: ${brand.warningBg};
+    border: 1px solid rgba(217, 119, 6, 0.3);
+    border-radius: ${brand.radius.md};
+    color: ${brand.warning};
+    font-size: 14px;
+    font-weight: 500;
 `;
 
 const ContentGrid = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: ${brand.space.xxxl};
+
+    @media (max-width: 1024px) {
+        grid-template-columns: 1fr;
+    }
+`;
+
+const VehicleCard = styled.div`
+    background: ${brand.surface};
+    border: 1px solid ${brand.border};
+    border-radius: ${brand.radius.xl};
+    overflow: hidden;
+    box-shadow: ${brand.shadow.soft};
+`;
+
+const ClientCard = styled.div`
+    background: ${brand.surface};
+    border: 1px solid ${brand.border};
+    border-radius: ${brand.radius.xl};
+    overflow: hidden;
+    box-shadow: ${brand.shadow.soft};
+`;
+
+const CardHeader = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brand.space.lg};
+    padding: ${brand.space.xl} ${brand.space.xxl};
+    background: ${brand.surfaceElevated};
+    border-bottom: 1px solid ${brand.borderLight};
+`;
+
+const HeaderIcon = styled.div<{ $color: string }>`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background: ${props => props.$color}15;
+    color: ${props => props.$color};
+    border-radius: ${brand.radius.lg};
+    font-size: 20px;
+`;
+
+const HeaderContent = styled.div`
+    flex: 1;
+`;
+
+const CardTitle = styled.h3`
+    font-size: 16px;
+    font-weight: 600;
+    color: ${brand.textPrimary};
+    margin: 0 0 ${brand.space.xs} 0;
+`;
+
+const CardSubtitle = styled.div`
+    font-size: 13px;
+    color: ${brand.textTertiary};
+    font-weight: 500;
+`;
+
+const ClientTierBadge = styled.div<{ $color: string; $bgColor: string }>`
+    display: flex;
+    align-items: center;
+    gap: ${brand.space.sm};
+    padding: ${brand.space.xs} ${brand.space.sm};
+    background: ${props => props.$bgColor};
+    color: ${props => props.$color};
+    border: 1px solid ${props => props.$color}30;
+    border-radius: ${brand.radius.md};
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    width: fit-content;
+
+    svg {
+        font-size: 10px;
+    }
+`;
+
+const VehicleMainInfo = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: ${brand.space.xxl};
+    border-bottom: 1px solid ${brand.borderLight};
+`;
+
+const VehicleIdentity = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${brand.space.xs};
+`;
+
+const VehicleModel = styled.div`
+    font-size: 20px;
+    font-weight: 700;
+    color: ${brand.textPrimary};
+`;
+
+const VehicleYear = styled.div`
+    font-size: 14px;
+    color: ${brand.textTertiary};
+    font-weight: 500;
+`;
+
+/* ENHANCED LICENSE PLATE - Professional European Design */
+const LicensePlateContainer = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+`;
+
+const LicensePlate = styled.div`
+    display: flex;
+    align-items: center;
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border: 2px solid #2c3e50;
+    border-radius: ${brand.radius.sm};
+    box-shadow:
+            0 2px 4px rgba(0, 0, 0, 0.1),
+            inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    overflow: hidden;
+    font-family: 'Courier New', 'Monaco', monospace;
+    font-weight: 700;
+    height: 52px;
+`;
+
+const PlateFlag = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #003399 0%, #004da6 100%);
+    color: #ffd700;
+    padding: 0 ${brand.space.sm};
+    height: 100%;
+    min-width: 32px;
+    position: relative;
+`;
+
+const EUStars = styled.div`
+    font-size: 6px;
+    line-height: 1;
+    text-align: center;
+    margin-bottom: 1px;
+    text-shadow: 0 0 1px rgba(0, 0, 0, 0.3);
+`;
+
+const CountryCode = styled.div`
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    text-shadow: 0 0 1px rgba(0, 0, 0, 0.3);
+`;
+
+const PlateNumber = styled.div`
+    padding: 0 ${brand.space.lg};
+    color: #2c3e50;
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-align: center;
+    min-width: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+`;
+
+const VehicleDetails = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${brand.space.lg};
+    padding: ${brand.space.xxl};
+`;
+
+const DetailItem = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brand.space.md};
+`;
+
+const DetailIcon = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: ${brand.surfaceSubtle};
+    color: ${brand.textTertiary};
+    border-radius: ${brand.radius.md};
+    font-size: 14px;
+`;
+
+const DetailContent = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${brand.space.xs};
+    flex: 1;
+`;
+
+const DetailLabel = styled.div`
+    font-size: 12px;
+    color: ${brand.textMuted};
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+`;
+
+const DetailValue = styled.div<{ $status?: string }>`
+    font-size: 14px;
+    font-weight: 600;
+    color: ${props => props.$status === 'provided' ? brand.success : brand.textPrimary};
+`;
+
+/* CLIENT CARD COMPONENTS */
+const ClientMainInfo = styled.div`
+    padding: ${brand.space.xxl};
+    border-bottom: 1px solid ${brand.borderLight};
+`;
+
+const ClientName = styled.div`
+    font-size: 20px;
+    font-weight: 700;
+    color: ${brand.textPrimary};
+    margin-bottom: ${brand.space.sm};
+`;
+
+const CompanyName = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brand.space.sm};
+    font-size: 14px;
+    color: ${brand.textTertiary};
+    font-weight: 500;
+
+    svg {
+        font-size: 12px;
+    }
+`;
+
+const BusinessMetrics = styled.div`
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: ${brand.space.lg};
+    padding: ${brand.space.xl} ${brand.space.xxl};
+    border-bottom: 1px solid ${brand.borderLight};
+`;
+
+const MetricCard = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: ${brand.space.md};
+`;
+
+const MetricIcon = styled.div<{ $color: string }>`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: ${props => props.$color}15;
+    color: ${props => props.$color};
+    border-radius: ${brand.radius.lg};
+    font-size: 16px;
+`;
+
+const MetricContent = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${brand.space.xs};
+`;
+
+const MetricValue = styled.div`
+    font-size: 18px;
+    font-weight: 700;
+    color: ${brand.textPrimary};
+`;
+
+const MetricLabel = styled.div`
+    font-size: 11px;
+    color: ${brand.textMuted};
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+`;
+
+const ContactSection = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${brand.space.lg};
+    padding: ${brand.space.xl} ${brand.space.xxl};
+    border-bottom: 1px solid ${brand.borderLight};
+`;
+
+const ContactItem = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brand.space.md};
+`;
+
+const ContactIcon = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    color: ${brand.textMuted};
+    font-size: 12px;
+`;
+
+const ContactValue = styled.div`
+    font-size: 14px;
+    color: ${brand.textSecondary};
+    font-weight: 500;
+    flex: 1;
+`;
+
+// NEW STYLED COMPONENTS FOR ADDITIONAL INFO SECTION
+const AdditionalInfoSection = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${brand.space.lg};
+`;
+
+const AdditionalInfoGrid = styled.div<{ $fullWidth: boolean }>`
    display: grid;
-   grid-template-columns: 1fr 1fr;
+   grid-template-columns: ${props => props.$fullWidth ? '1fr' : '1fr 1fr'};
    gap: ${brand.space.xxxl};
 
    @media (max-width: 1024px) {
@@ -834,353 +1228,65 @@ const ContentGrid = styled.div`
    }
 `;
 
-const VehicleCard = styled.div`
-   background: ${brand.surface};
-   border: 1px solid ${brand.border};
-   border-radius: ${brand.radius.xl};
-   overflow: hidden;
-   box-shadow: ${brand.shadow.soft};
+const NotesCard = styled.div`
+    background: ${brand.surface};
+    border: 1px solid ${brand.border};
+    border-radius: ${brand.radius.xl};
+    overflow: hidden;
+    box-shadow: ${brand.shadow.soft};
 `;
 
-const ClientCard = styled.div`
-   background: ${brand.surface};
-   border: 1px solid ${brand.border};
-   border-radius: ${brand.radius.xl};
-   overflow: hidden;
-   box-shadow: ${brand.shadow.soft};
+const DeliveryPersonCard = styled.div`
+    background: ${brand.surface};
+    border: 1px solid ${brand.border};
+    border-radius: ${brand.radius.xl};
+    overflow: hidden;
+    box-shadow: ${brand.shadow.soft};
 `;
 
-const CardHeader = styled.div`
-   display: flex;
-   align-items: center;
-   gap: ${brand.space.lg};
-   padding: ${brand.space.xl} ${brand.space.xxl};
-   background: ${brand.surfaceElevated};
-   border-bottom: 1px solid ${brand.borderLight};
+const NotesContent = styled.div`
+    padding: ${brand.space.xxl};
 `;
 
-const HeaderIcon = styled.div<{ $color: string }>`
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   width: 48px;
-   height: 48px;
-   background: ${props => props.$color}15;
-   color: ${props => props.$color};
-   border-radius: ${brand.radius.lg};
-   font-size: 20px;
+const NotesText = styled.div`
+    font-size: 15px;
+    color: ${brand.textSecondary};
+    line-height: 1.6;
+    background: ${brand.surfaceSubtle};
+    padding: ${brand.space.lg};
+    border-radius: ${brand.radius.md};
+    border-left: 4px solid #8b5cf6;
+    font-style: italic;
 `;
 
-const HeaderContent = styled.div`
-   flex: 1;
-`;
-
-const CardTitle = styled.h3`
-   font-size: 16px;
-   font-weight: 600;
-   color: ${brand.textPrimary};
-   margin: 0 0 ${brand.space.xs} 0;
-`;
-
-const CardSubtitle = styled.div`
-   font-size: 13px;
-   color: ${brand.textTertiary};
-   font-weight: 500;
-`;
-
-const ClientTierBadge = styled.div<{ $color: string; $bgColor: string }>`
-   display: flex;
-   align-items: center;
-   gap: ${brand.space.sm};
-   padding: ${brand.space.xs} ${brand.space.sm};
-   background: ${props => props.$bgColor};
-   color: ${props => props.$color};
-   border: 1px solid ${props => props.$color}30;
-   border-radius: ${brand.radius.md};
-   font-size: 12px;
-   font-weight: 600;
-   text-transform: uppercase;
-   letter-spacing: 0.5px;
-   width: fit-content;
-
-   svg {
-       font-size: 10px;
-   }
-`;
-
-const VehicleMainInfo = styled.div`
-   display: flex;
-   justify-content: space-between;
-   align-items: center;
-   padding: ${brand.space.xxl};
-   border-bottom: 1px solid ${brand.borderLight};
-`;
-
-const VehicleIdentity = styled.div`
-   display: flex;
-   flex-direction: column;
-   gap: ${brand.space.xs};
-`;
-
-const VehicleModel = styled.div`
-   font-size: 20px;
-   font-weight: 700;
-   color: ${brand.textPrimary};
-`;
-
-const VehicleYear = styled.div`
-   font-size: 14px;
-   color: ${brand.textTertiary};
-   font-weight: 500;
-`;
-
-/* ENHANCED LICENSE PLATE - Professional European Design */
-const LicensePlateContainer = styled.div`
-   display: flex;
-   align-items: center;
-   justify-content: center;
-`;
-
-const LicensePlate = styled.div`
-   display: flex;
-   align-items: center;
-   background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-   border: 2px solid #2c3e50;
-   border-radius: ${brand.radius.sm};
-   box-shadow: 
-       0 2px 4px rgba(0, 0, 0, 0.1),
-       inset 0 1px 0 rgba(255, 255, 255, 0.7);
-   overflow: hidden;
-   font-family: 'Courier New', 'Monaco', monospace;
-   font-weight: 700;
-   height: 52px;
-`;
-
-const PlateFlag = styled.div`
-   display: flex;
-   flex-direction: column;
-   align-items: center;
-   justify-content: center;
-   background: linear-gradient(135deg, #003399 0%, #004da6 100%);
-   color: #ffd700;
-   padding: 0 ${brand.space.sm};
-   height: 100%;
-   min-width: 32px;
-   position: relative;
-`;
-
-const EUStars = styled.div`
-   font-size: 6px;
-   line-height: 1;
-   text-align: center;
-   margin-bottom: 1px;
-   text-shadow: 0 0 1px rgba(0, 0, 0, 0.3);
-`;
-
-const CountryCode = styled.div`
-   font-size: 9px;
-   font-weight: 800;
-   letter-spacing: 0.5px;
-   text-shadow: 0 0 1px rgba(0, 0, 0, 0.3);
-`;
-
-const PlateNumber = styled.div`
-   padding: 0 ${brand.space.lg};
-   color: #2c3e50;
-   font-size: 18px;
-   font-weight: 800;
-   letter-spacing: 2px;
-   text-align: center;
-   min-width: 120px;
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-   text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
-`;
-
-const VehicleDetails = styled.div`
-   display: flex;
-   flex-direction: column;
-   gap: ${brand.space.lg};
+const DeliveryPersonContent = styled.div`
    padding: ${brand.space.xxl};
 `;
 
-const DetailItem = styled.div`
-   display: flex;
-   align-items: center;
-   gap: ${brand.space.md};
+const DeliveryPersonInfo = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${brand.space.md};
 `;
 
-const DetailIcon = styled.div`
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   width: 32px;
-   height: 32px;
-   background: ${brand.surfaceSubtle};
-   color: ${brand.textTertiary};
-   border-radius: ${brand.radius.md};
-   font-size: 14px;
-`;
-
-const DetailContent = styled.div`
-   display: flex;
-   flex-direction: column;
-   gap: ${brand.space.xs};
-   flex: 1;
-`;
-
-const DetailLabel = styled.div`
-   font-size: 12px;
-   color: ${brand.textMuted};
-   font-weight: 500;
-   text-transform: uppercase;
-   letter-spacing: 0.5px;
-`;
-
-const DetailValue = styled.div<{ $status?: string }>`
-   font-size: 14px;
-   font-weight: 600;
-   color: ${props => props.$status === 'provided' ? brand.success : brand.textPrimary};
-`;
-
-/* CLIENT CARD COMPONENTS */
-const ClientMainInfo = styled.div`
-   padding: ${brand.space.xxl};
-   border-bottom: 1px solid ${brand.borderLight};
-`;
-
-const ClientName = styled.div`
-   font-size: 20px;
-   font-weight: 700;
-   color: ${brand.textPrimary};
-   margin-bottom: ${brand.space.sm};
-`;
-
-const CompanyName = styled.div`
-   display: flex;
-   align-items: center;
-   gap: ${brand.space.sm};
-   font-size: 14px;
-   color: ${brand.textTertiary};
-   font-weight: 500;
-
-   svg {
-       font-size: 12px;
-   }
-`;
-
-const BusinessMetrics = styled.div`
-   display: grid;
-   grid-template-columns: repeat(3, 1fr);
-   gap: ${brand.space.lg};
-   padding: ${brand.space.xl} ${brand.space.xxl};
-   border-bottom: 1px solid ${brand.borderLight};
-`;
-
-const MetricCard = styled.div`
-   display: flex;
-   flex-direction: column;
-   align-items: center;
-   text-align: center;
-   gap: ${brand.space.md};
-`;
-
-const MetricIcon = styled.div<{ $color: string }>`
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   width: 40px;
-   height: 40px;
-   background: ${props => props.$color}15;
-   color: ${props => props.$color};
-   border-radius: ${brand.radius.lg};
-   font-size: 16px;
-`;
-
-const MetricContent = styled.div`
-   display: flex;
-   flex-direction: column;
-   gap: ${brand.space.xs};
-`;
-
-const MetricValue = styled.div`
+const PersonName = styled.div`
    font-size: 18px;
    font-weight: 700;
    color: ${brand.textPrimary};
 `;
 
-const MetricLabel = styled.div`
-   font-size: 11px;
-   color: ${brand.textMuted};
-   font-weight: 500;
-   text-transform: uppercase;
-   letter-spacing: 0.5px;
-`;
+const PersonContact = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brand.space.sm};
+    font-size: 14px;
+    color: ${brand.textSecondary};
+    font-weight: 500;
 
-const ContactSection = styled.div`
-   display: flex;
-   flex-direction: column;
-   gap: ${brand.space.lg};
-   padding: ${brand.space.xl} ${brand.space.xxl};
-   border-bottom: 1px solid ${brand.borderLight};
-`;
-
-const ContactItem = styled.div`
-   display: flex;
-   align-items: center;
-   gap: ${brand.space.md};
-`;
-
-const ContactIcon = styled.div`
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   width: 24px;
-   height: 24px;
-   color: ${brand.textMuted};
-   font-size: 12px;
-`;
-
-const ContactValue = styled.div`
-   font-size: 14px;
-   color: ${brand.textSecondary};
-   font-weight: 500;
-   flex: 1;
-`;
-
-const ClientActions = styled.div`
-   display: flex;
-   gap: ${brand.space.md};
-   padding: ${brand.space.xl} ${brand.space.xxl};
-`;
-
-const ActionButton = styled.button<{ $variant: 'primary' | 'secondary' }>`
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   gap: ${brand.space.sm};
-   padding: ${brand.space.md} ${brand.space.lg};
-   border: 1px solid ${props => props.$variant === 'primary' ? brand.primary : brand.border};
-   background: ${props => props.$variant === 'primary' ? brand.primary : brand.surface};
-   color: ${props => props.$variant === 'primary' ? 'white' : brand.textSecondary};
-   border-radius: ${brand.radius.md};
-   font-size: 13px;
-   font-weight: 600;
-   cursor: pointer;
-   transition: all 0.2s ease;
-   flex: 1;
-
-   &:hover {
-       background: ${props => props.$variant === 'primary' ? brand.primaryDark : brand.surfaceHover};
-       transform: translateY(-1px);
-       box-shadow: ${brand.shadow.moderate};
-   }
-
-   svg {
-       font-size: 12px;
-   }
+    svg {
+        font-size: 12px;
+        color: ${brand.textMuted};
+    }
 `;
 
 /* SERVICES SECTION */
@@ -1193,26 +1299,66 @@ const ServicesSection = styled.div`
 `;
 
 const SectionHeader = styled.div`
-   display: flex;
-   justify-content: space-between;
-   align-items: center;
-   padding: ${brand.space.xl} ${brand.space.xxl};
-   background: ${brand.surfaceElevated};
-   border-bottom: 1px solid ${brand.borderLight};
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: ${brand.space.xl} ${brand.space.xxl};
+    background: ${brand.surfaceElevated};
+    border-bottom: 1px solid ${brand.borderLight};
 `;
 
 const SectionTitle = styled.h3`
-   font-size: 18px;
-   font-weight: 600;
-   color: ${brand.textPrimary};
-   margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: ${brand.textPrimary};
+    margin: 0;
 `;
 
 const SectionStats = styled.div`
-   font-size: 13px;
-   color: ${brand.textTertiary};
-   font-weight: 500;
-   margin-top: ${brand.space.xs};
+    font-size: 13px;
+    color: ${brand.textTertiary};
+    font-weight: 500;
+    margin-top: ${brand.space.xs};
+`;
+
+const HeaderActions = styled.div`
+    display: flex;
+    gap: ${brand.space.sm};
+    align-items: center;
+`;
+
+const EditPricesButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: ${brand.space.sm};
+    padding: ${brand.space.md} ${brand.space.lg};
+    background: ${brand.primaryGhost};
+    color: ${brand.primary};
+    border: 2px solid ${brand.primary}40;
+    border-radius: ${brand.radius.md};
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: ${brand.primary}20;
+        border-color: ${brand.primary};
+        transform: translateY(-1px);
+        box-shadow: ${brand.shadow.moderate};
+    }
+
+    svg {
+        font-size: 12px;
+    }
+
+    @media (max-width: 768px) {
+        span {
+            display: none;
+        }
+        
+        padding: ${brand.space.md};
+    }
 `;
 
 const AddServiceButton = styled.button`
@@ -1241,56 +1387,56 @@ const AddServiceButton = styled.button`
 `;
 
 const ServicesTable = styled.table`
-   width: 100%;
-   border-collapse: collapse;
+    width: 100%;
+    border-collapse: collapse;
 `;
 
 const TableHeader = styled.thead``;
 
 const HeaderCell = styled.th`
-   padding: ${brand.space.lg} ${brand.space.xxl};
-   text-align: left;
-   font-size: 12px;
-   font-weight: 600;
-   color: ${brand.textMuted};
-   text-transform: uppercase;
-   letter-spacing: 0.5px;
-   background: ${brand.surfaceElevated};
-   border-bottom: 1px solid ${brand.borderLight};
+    padding: ${brand.space.lg} ${brand.space.xxl};
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    color: ${brand.textMuted};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: ${brand.surfaceElevated};
+    border-bottom: 1px solid ${brand.borderLight};
 `;
 
 const TableBody = styled.tbody``;
 
 const ServiceRow = styled.tr<{ $pending?: boolean }>`
-   border-bottom: 1px solid ${brand.borderLight};
-   transition: background-color 0.2s ease;
+    border-bottom: 1px solid ${brand.borderLight};
+    transition: background-color 0.2s ease;
 
-   ${props => props.$pending && `
+    ${props => props.$pending && `
        background: ${brand.pendingBg};
    `}
 
-   &:hover {
-       background: ${brand.surfaceHover};
-   }
+    &:hover {
+        background: ${brand.surfaceHover};
+    }
 
-   &:last-child {
-       border-bottom: none;
-   }
+    &:last-child {
+        border-bottom: none;
+    }
 `;
 
 const ServiceCell = styled.td`
-   padding: ${brand.space.lg} ${brand.space.xxl};
-   vertical-align: top;
+    padding: ${brand.space.lg} ${brand.space.xxl};
+    vertical-align: top;
 `;
 
 const PriceCell = styled.td`
-   padding: ${brand.space.lg} ${brand.space.xxl};
-   vertical-align: top;
+    padding: ${brand.space.lg} ${brand.space.xxl};
+    vertical-align: top;
 `;
 
 const DiscountCell = styled.td`
-   padding: ${brand.space.lg} ${brand.space.xxl};
-   vertical-align: top;
+    padding: ${brand.space.lg} ${brand.space.xxl};
+    vertical-align: top;
 `;
 
 const FinalPriceCell = styled.td`
@@ -1299,13 +1445,13 @@ const FinalPriceCell = styled.td`
 `;
 
 const StatusCell = styled.td`
-   padding: ${brand.space.lg} ${brand.space.xxl};
-   vertical-align: top;
+    padding: ${brand.space.lg} ${brand.space.xxl};
+    vertical-align: top;
 `;
 
 const ActionsCell = styled.td`
-   padding: ${brand.space.lg} ${brand.space.xxl};
-   vertical-align: top;
+    padding: ${brand.space.lg} ${brand.space.xxl};
+    vertical-align: top;
 `;
 
 const ServiceName = styled.div`
@@ -1315,91 +1461,99 @@ const ServiceName = styled.div`
    line-height: 1.4;
 `;
 
+const ServiceNote = styled.div`
+    font-size: 13px;
+    color: ${brand.textMuted};
+    font-style: italic;
+    margin-top: ${brand.space.xs};
+    line-height: 1.4;
+`;
+
 const PriceAmount = styled.div`
-   font-size: 15px;
-   font-weight: 600;
-   color: ${brand.textPrimary};
+    font-size: 15px;
+    font-weight: 600;
+    color: ${brand.textPrimary};
 `;
 
 const DiscountInfo = styled.div`
-   display: flex;
-   flex-direction: column;
-   gap: 2px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 `;
 
 const DiscountAmount = styled.div`
-   font-size: 14px;
-   font-weight: 600;
-   color: ${brand.error};
+    font-size: 14px;
+    font-weight: 600;
+    color: ${brand.error};
 `;
 
 const SavingsAmount = styled.div`
-   font-size: 12px;
-   color: ${brand.success};
-   font-weight: 500;
+    font-size: 12px;
+    color: ${brand.success};
+    font-weight: 500;
 `;
 
 const NoDiscount = styled.div`
-   font-size: 15px;
-   color: ${brand.textMuted};
-   font-weight: 300;
+    font-size: 15px;
+    color: ${brand.textMuted};
+    font-weight: 300;
 `;
 
 const FinalPrice = styled.div`
-   font-size: 16px;
-   font-weight: 700;
-   color: ${brand.primary};
+    font-size: 16px;
+    font-weight: 700;
+    color: ${brand.primary};
 `;
 
 const ServiceStatus = styled.div<{ $status: string }>`
-   display: flex;
-   align-items: center;
-   gap: ${brand.space.xs};
-   padding: ${brand.space.xs} ${brand.space.sm};
-   background: ${props => props.$status === 'PENDING' ? brand.pendingBg : brand.successBg};
-   color: ${props => props.$status === 'PENDING' ? brand.pending : brand.success};
-   border: 1px solid ${props => props.$status === 'PENDING' ? `${brand.pending}30` : `${brand.success}30`};
-   border-radius: ${brand.radius.sm};
-   font-size: 12px;
-   font-weight: 500;
-   width: fit-content;
+    display: flex;
+    align-items: center;
+    gap: ${brand.space.xs};
+    padding: ${brand.space.xs} ${brand.space.sm};
+    background: ${props => props.$status === 'PENDING' ? brand.pendingBg : brand.successBg};
+    color: ${props => props.$status === 'PENDING' ? brand.pending : brand.success};
+    border: 1px solid ${props => props.$status === 'PENDING' ? `${brand.pending}30` : `${brand.success}30`};
+    border-radius: ${brand.radius.sm};
+    font-size: 12px;
+    font-weight: 500;
+    width: fit-content;
 
-   span {
-       font-size: 11px;
-   }
+    span {
+        font-size: 11px;
+    }
 
-   svg {
-       font-size: 10px;
-   }
+    svg {
+        font-size: 10px;
+    }
 `;
 
 const ServiceActions = styled.div`
-   display: flex;
-   gap: ${brand.space.xs};
-   opacity: 0.7;
-   transition: opacity 0.2s ease;
+    display: flex;
+    gap: ${brand.space.xs};
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
 
-   ${ServiceRow}:hover & {
-       opacity: 1;
-   }
+    ${ServiceRow}:hover & {
+        opacity: 1;
+    }
 `;
 
 const ActionIcon = styled.button<{ $type: 'notify' | 'delete' }>`
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   width: 28px;
-   height: 28px;
-   border: none;
-   border-radius: ${brand.radius.sm};
-   cursor: pointer;
-   transition: all 0.2s ease;
-   font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: ${brand.radius.sm};
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 11px;
 
-   ${props => {
-    switch (props.$type) {
-        case 'notify':
-            return `
+    ${props => {
+        switch (props.$type) {
+            case 'notify':
+                return `
                    background: ${brand.primary}20;
                    color: ${brand.primary};
                    &:hover {
@@ -1408,8 +1562,8 @@ const ActionIcon = styled.button<{ $type: 'notify' | 'delete' }>`
                        transform: translateY(-1px);
                    }
                `;
-        case 'delete':
-            return `
+            case 'delete':
+                return `
                    background: ${brand.error}20;
                    color: ${brand.error};
                    &:hover {
@@ -1418,8 +1572,8 @@ const ActionIcon = styled.button<{ $type: 'notify' | 'delete' }>`
                        transform: translateY(-1px);
                    }
                `;
-    }
-}}
+        }
+    }}
 `;
 
 const TableFooter = styled.tfoot``;
@@ -1491,54 +1645,6 @@ const ErrorState = styled.div`
    border: 1px solid rgba(220, 38, 38, 0.3);
    border-radius: ${brand.radius.md};
    margin: ${brand.space.xl} ${brand.space.xxl};
-`;
-
-const ServiceNote = styled.div`
-   font-size: 13px;
-   color: ${brand.textMuted};
-   font-style: italic;
-   margin-top: ${brand.space.xs};
-   line-height: 1.4;
-`;
-
-const HeaderActions = styled.div`
-    display: flex;
-    gap: ${brand.space.sm};
-    align-items: center;
-`;
-
-const EditPricesButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: ${brand.space.sm};
-    padding: ${brand.space.md} ${brand.space.lg};
-    background: ${brand.primaryGhost};
-    color: ${brand.primary};
-    border: 2px solid ${brand.primary}40;
-    border-radius: ${brand.radius.md};
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-        background: ${brand.primary}20;
-        border-color: ${brand.primary};
-        transform: translateY(-1px);
-        box-shadow: ${brand.shadow.moderate};
-    }
-
-    svg {
-        font-size: 12px;
-    }
-
-    @media (max-width: 768px) {
-        span {
-            display: none;
-        }
-        
-        padding: ${brand.space.md};
-    }
 `;
 
 export default ProtocolSummary;

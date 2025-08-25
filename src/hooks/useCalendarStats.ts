@@ -2,7 +2,6 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { Appointment, AppointmentStatus } from '../types';
 import { fetchProtocolsAsAppointments } from '../services/ProtocolCalendarService';
-import { fetchAppointments } from '../api/mocks/appointmentMocks';
 
 interface CalendarStats {
     total: number;
@@ -155,12 +154,6 @@ export const useCalendarStats = (): CalendarStats & {
                     end: endRange.toISOString().split('T')[0]
                 });
 
-                // Pobierz dane z szerszego zakresu dla statystyk
-                const appointmentsPromise = fetchAppointments().catch(err => {
-                    console.error('Error fetching appointments for stats:', err);
-                    return [];
-                });
-
                 const protocolsPromise = fetchProtocolsAsAppointments({
                     start: startRange,
                     end: endRange
@@ -169,19 +162,16 @@ export const useCalendarStats = (): CalendarStats & {
                     return [];
                 });
 
-                const [appointments, protocols] = await Promise.all([
-                    appointmentsPromise,
+                const [protocols] = await Promise.all([
                     protocolsPromise
                 ]);
 
                 // Combine data - cast to our mixed type to handle different date formats
                 const combinedData: MixedAppointmentData[] = [
-                    ...appointments.map(a => ({ ...a } as MixedAppointmentData)),
                     ...protocols.map(p => ({ ...p } as MixedAppointmentData))
                 ];
 
                 console.log('📊 Stats data loaded:', {
-                    appointmentsCount: appointments.length,
                     protocolsCount: protocols.length,
                     totalCount: combinedData.length,
                     sampleProtocols: protocols.slice(0, 3).map(p => ({

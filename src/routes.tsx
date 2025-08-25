@@ -5,7 +5,6 @@ import CalendarPage from './pages/Calendar/CalendarPage';
 import ServicesPage from './pages/Settings/ServicesPage';
 import EmployeesPage from './pages/Settings/EmployeesPage';
 import CarReceptionPage from './pages/Protocols/CarReceptionPage';
-import ReportsPage from "./pages/Reports/ReportsPage";
 import ActivityFeedPage from "./pages/ActivityFeed/ActivityFeedPage";
 import ProtocolDetailsPage from "./pages/Protocols/details/ProtocolDetailsPage";
 import StartVisitPage from "./pages/Protocols/start-visit/StartVisitPage";
@@ -78,9 +77,6 @@ const AppRoutes: React.FC = () => {
 
                 {/* Inne strony */}
                 <Route path="/warehouse" element={<PlaceholderPage title="Magazyn" />} />
-
-                {/* Raporty */}
-                <Route path="/reports" element={<ReportsPage />} />
 
                 {/* Strony ustawień */}
                 <Route path="/settings" element={<SettingsPageWithTabs />} />

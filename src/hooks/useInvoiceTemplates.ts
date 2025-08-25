@@ -124,8 +124,7 @@ export const useInvoiceTemplates = () => {
             const query = filters.searchQuery.toLowerCase();
             filtered = filtered.filter(template =>
                 template.name.toLowerCase().includes(query) ||
-                template.description?.toLowerCase().includes(query) ||
-                template.metadata.tags.some(tag => tag.toLowerCase().includes(query))
+                template.description?.toLowerCase().includes(query)
             );
         }
 
@@ -138,10 +137,6 @@ export const useInvoiceTemplates = () => {
                     case 'name':
                         aValue = a.name.toLowerCase();
                         bValue = b.name.toLowerCase();
-                        break;
-                    case 'templateType':
-                        aValue = a.templateType;
-                        bValue = b.templateType;
                         break;
                     case 'isActive':
                         aValue = a.isActive;

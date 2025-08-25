@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { FaListAlt, FaEdit, FaInfoCircle, FaArrowLeft, FaArrowRight } from 'react-icons/fa';
-import { SmsTemplate } from '../../../../types/sms';
 import {
     StepContainer,
     StepTitle,
@@ -159,7 +158,7 @@ const Step3Content: React.FC<Step3ContentProps> = ({
                             </FormSelect>
                         )}
 
-                        {selectedTemplate?.variables?.length > 0 && (
+                        {(selectedTemplate && selectedTemplate.variables) && selectedTemplate.variables.length > 0 && (
                             <TemplateVariablesInfo>
                                 <VariablesTitle>Dostępne zmienne w szablonie:</VariablesTitle>
                                 <VariablesList>
@@ -238,6 +237,7 @@ const Step3Content: React.FC<Step3ContentProps> = ({
 
 // Styled components
 import styled from 'styled-components';
+import {SmsTemplate} from "../../../../../types/sms";
 
 const CharacterCounter = styled.div`
     display: flex;

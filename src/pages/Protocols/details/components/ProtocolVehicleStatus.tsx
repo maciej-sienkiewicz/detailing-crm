@@ -12,7 +12,6 @@ import {
     FaCheck
 } from 'react-icons/fa';
 import { CarReceptionProtocol } from '../../../../types';
-import { updateCarReceptionProtocol } from '../../../../api/mocks/carReceptionMocks';
 
 // Define vehicle issue type
 interface VehicleIssue {
@@ -67,102 +66,6 @@ const ProtocolVehicleStatus: React.FC<ProtocolVehicleStatusProps> = ({ protocol,
     const formatDateTime = (dateString: string): string => {
         if (!dateString) return '';
         return format(new Date(dateString), 'dd MMM yyyy, HH:mm', { locale: pl });
-    };
-
-    // Handle mileage update
-    const handleUpdateMileage = async () => {
-        if (mileage === protocol.mileage) return;
-
-        setIsSavingMileage(true);
-        try {
-            const updatedProtocol = {
-                ...protocol,
-                mileage,
-                updatedAt: new Date().toISOString()
-            };
-
-            // Save to backend
-            const savedProtocol = await updateCarReceptionProtocol(updatedProtocol);
-            onProtocolUpdate(savedProtocol);
-        } catch (error) {
-            console.error('Error updating mileage:', error);
-            // Reset to original value if update fails
-            setMileage(protocol.mileage);
-        } finally {
-            setIsSavingMileage(false);
-        }
-    };
-
-    // Handle adding a new vehicle issue
-    const handleAddIssue = async () => {
-        if (!newIssue.location.trim() || !newIssue.description.trim()) return;
-
-        try {
-            // Create new issue
-            const issue: VehicleIssue = {
-                id: `issue_${Date.now()}`,
-                ...newIssue,
-                resolved: false,
-                createdAt: new Date().toISOString()
-            };
-
-            // Add to local state
-            const updatedIssues = [...vehicleIssues, issue];
-            setVehicleIssues(updatedIssues);
-
-            // Update protocol with new issue
-            const updatedProtocol = {
-                ...protocol,
-                vehicleIssues: updatedIssues,
-                updatedAt: new Date().toISOString()
-            };
-
-            // Save to backend
-            const savedProtocol = await updateCarReceptionProtocol(updatedProtocol);
-            onProtocolUpdate(savedProtocol);
-
-            // Reset form
-            setNewIssue({
-                location: '',
-                description: '',
-                severity: 'medium'
-            });
-            setShowAddIssueForm(false);
-        } catch (error) {
-            console.error('Error adding vehicle issue:', error);
-        }
-    };
-
-    // Handle resolving an issue
-    const handleToggleIssueResolved = async (issueId: string) => {
-        try {
-            // Update the issue in local state
-            const updatedIssues = vehicleIssues.map(issue => {
-                if (issue.id === issueId) {
-                    return {
-                        ...issue,
-                        resolved: !issue.resolved,
-                        resolvedAt: issue.resolved ? undefined : new Date().toISOString()
-                    };
-                }
-                return issue;
-            });
-
-            setVehicleIssues(updatedIssues);
-
-            // Update protocol with updated issues
-            const updatedProtocol = {
-                ...protocol,
-                vehicleIssues: updatedIssues,
-                updatedAt: new Date().toISOString()
-            };
-
-            // Save to backend
-            const savedProtocol = await updateCarReceptionProtocol(updatedProtocol);
-            onProtocolUpdate(savedProtocol);
-        } catch (error) {
-            console.error('Error updating issue status:', error);
-        }
     };
 
     return (

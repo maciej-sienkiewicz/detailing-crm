@@ -4,7 +4,7 @@ import styled from 'styled-components';
 import { FaSearch, FaUserAlt, FaTimes } from 'react-icons/fa';
 import { ClientExpanded } from '../../types';
 import { clientApi } from '../../api/clientsApi';
-import { useDebounce } from '../../hooks/useDebounce';
+import {useDebounce} from "../../pages/Mail/hooks/useDebounce";
 
 interface ClientSearchInputProps {
     value?: string;

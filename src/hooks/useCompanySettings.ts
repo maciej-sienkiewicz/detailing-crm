@@ -4,7 +4,6 @@ import {
     companySettingsApi,
     CompanySettingsResponse,
     UpdateCompanySettingsRequest,
-    EmailTestResponse,
     NipValidationResponse,
     GoogleDriveFolderSettings,
     GoogleDriveSystemInfo,
@@ -24,166 +23,12 @@ interface UseCompanySettingsReturn {
     updateSettings: (data: UpdateCompanySettingsRequest) => Promise<boolean>;
     uploadLogo: (file: File) => Promise<boolean>;
     deleteLogo: () => Promise<boolean>;
-    testEmailConnection: (emailData: any) => Promise<EmailTestResponse>;
     validateNIP: (nip: string) => Promise<NipValidationResponse>;
 
     // Helpery
     clearError: () => void;
     hasUnsavedChanges: (formData: any) => boolean;
 }
-
-/**
- * Custom hook do zarządzania ustawieniami firmy
- * Zapewnia prosty interfejs do wszystkich operacji na ustawieniach
- */
-export const useCompanySettings = (): UseCompanySettingsReturn => {
-    const [settings, setSettings] = useState<CompanySettingsResponse | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    // Ładowanie ustawień
-    const loadSettings = useCallback(async () => {
-        try {
-            setLoading(true);
-            setError(null);
-            const data = await companySettingsApi.getCompanySettings();
-            setSettings(data);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Nie udało się załadować ustawień');
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    // Aktualizacja ustawień
-    const updateSettings = useCallback(async (data: UpdateCompanySettingsRequest): Promise<boolean> => {
-        try {
-            setSaving(true);
-            setError(null);
-            const updatedSettings = await companySettingsApi.updateCompanySettings(data);
-            setSettings(updatedSettings);
-            return true;
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Nie udało się zaktualizować ustawień');
-            return false;
-        } finally {
-            setSaving(false);
-        }
-    }, []);
-
-    // Upload logo
-    const uploadLogo = useCallback(async (file: File): Promise<boolean> => {
-        try {
-            setSaving(true);
-            setError(null);
-            const updatedSettings = await companySettingsApi.uploadLogo(file);
-            setSettings(prev => prev ? { ...prev, logoSettings: updatedSettings.logoSettings } : null);
-            return true;
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Nie udało się przesłać logo');
-            return false;
-        } finally {
-            setSaving(false);
-        }
-    }, []);
-
-    // Usuwanie logo
-    const deleteLogo = useCallback(async (): Promise<boolean> => {
-        try {
-            setSaving(true);
-            setError(null);
-            const updatedSettings = await companySettingsApi.deleteLogo();
-            setSettings(prev => prev ? { ...prev, logoSettings: updatedSettings.logoSettings } : null);
-            return true;
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Nie udało się usunąć logo');
-            return false;
-        } finally {
-            setSaving(false);
-        }
-    }, []);
-
-    // Test połączenia email
-    const testEmailConnection = useCallback(async (emailData: any): Promise<EmailTestResponse> => {
-        try {
-            setError(null);
-            return await companySettingsApi.testEmailConnection(emailData);
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Błąd testu połączenia email';
-            setError(errorMessage);
-            return {
-                success: false,
-                message: errorMessage
-            };
-        }
-    }, []);
-
-    // Walidacja NIP
-    const validateNIP = useCallback(async (nip: string): Promise<NipValidationResponse> => {
-        try {
-            setError(null);
-            return await companySettingsApi.validateNIP(nip);
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Błąd walidacji NIP';
-            setError(errorMessage);
-            return {
-                nip,
-                valid: false,
-                message: errorMessage
-            };
-        }
-    }, []);
-
-    // Czyszczenie błędów
-    const clearError = useCallback(() => {
-        setError(null);
-    }, []);
-
-    // Sprawdzanie czy są niezapisane zmiany
-    const hasUnsavedChanges = useCallback((formData: any): boolean => {
-        if (!settings) return false;
-
-        // Porównaj formData z aktualnymi ustawieniami
-        // Implementacja może być dostosowana do specyficznych potrzeb
-        const currentData = {
-            basicInfo: settings.basicInfo,
-            bankSettings: settings.bankSettings,
-            emailSettings: {
-                ...settings.emailSettings,
-                smtpPassword: '', // Hasła zawsze są puste w formularzu
-                imapPassword: ''
-            }
-        };
-
-        return JSON.stringify(formData) !== JSON.stringify(currentData);
-    }, [settings]);
-
-    // Ładowanie przy montowaniu
-    useEffect(() => {
-        loadSettings();
-    }, [loadSettings]);
-
-    return {
-        // Stan
-        settings,
-        loading,
-        saving,
-        error,
-
-        // Akcje
-        loadSettings,
-        updateSettings,
-        uploadLogo,
-        deleteLogo,
-        testEmailConnection,
-        validateNIP,
-
-        // Helpery
-        clearError,
-        hasUnsavedChanges
-    };
-};
 
 // ==========================================
 // NOWY HOOK DLA GOOGLE DRIVE

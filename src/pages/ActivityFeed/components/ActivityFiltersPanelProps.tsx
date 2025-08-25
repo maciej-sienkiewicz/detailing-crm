@@ -15,7 +15,6 @@ import {
     FaCheck
 } from 'react-icons/fa';
 import { ActivityFilter } from '../../../types/activity';
-import { fetchEmployees } from '../../../api/mocks/employeesMocks';
 import { Employee } from '../../../types';
 
 // Brand Theme
@@ -116,7 +115,7 @@ const ActivityFiltersPanel: React.FC<ActivityFiltersPanelProps> = ({
     useEffect(() => {
         const loadEmployees = async () => {
             try {
-                const employeesList = await fetchEmployees();
+                const employeesList = ([] as Employee[]);
                 setEmployees(employeesList);
             } catch (error) {
                 console.error('Error loading employees:', error);
@@ -284,7 +283,7 @@ const ActivityFiltersPanel: React.FC<ActivityFiltersPanelProps> = ({
                                     $active={isFilterActive('user', employee.id)}
                                     onClick={() => handleFilterChange('user', employee.id)}
                                 >
-                                    <UserAvatar $color={employee.color}>
+                                    <UserAvatar $color="red">
                                         {employee.fullName.split(' ').map(name => name[0]).join('')}
                                     </UserAvatar>
                                     <OptionLabel>{employee.fullName}</OptionLabel>

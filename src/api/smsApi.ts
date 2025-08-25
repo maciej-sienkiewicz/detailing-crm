@@ -620,8 +620,7 @@ export const smsApi = {
                     { month: 'April', count: 1200 }, // Zdecydowanie mniej, np. w związku z jakimś problemem
                 ],
                 byStatus: {
-                    'DELIVERED': 14800,
-                    'FAILED': 200,
+                    [SmsStatus.DELIVERED]: 14800
                 },
                 byTemplate: [
                     { templateId: 'TEMPL-001', templateName: 'Welcome SMS', count: 5000 },

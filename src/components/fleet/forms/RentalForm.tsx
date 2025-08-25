@@ -58,12 +58,11 @@ const RentalForm: React.FC<RentalFormProps> = ({
     }, [formData.vehicleId, vehicles, initialData.id]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        const { name, value, type, checked } = e.target;
+        const { name, value, type } = e.target;
 
         if (type === 'checkbox') {
             setFormData(prev => ({
                 ...prev,
-                [name]: checked
             }));
         } else {
             setFormData(prev => ({

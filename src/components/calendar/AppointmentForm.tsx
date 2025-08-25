@@ -46,7 +46,7 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
             end: editingAppointment ? editingAppointment.end : endTime,
             notes: note,
             serviceType: 'reservation', // Domyślny typ
-            status: AppointmentStatus.PENDING_APPROVAL // Domyślny status
+            status: AppointmentStatus.SCHEDULED
         };
 
         onSave(appointmentData);
