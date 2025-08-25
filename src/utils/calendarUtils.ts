@@ -1,8 +1,8 @@
 // src/utils/calendarUtils.ts
-import { Appointment, AppointmentStatus, AppointmentStatusColors } from '../types';
-import { CalendarColor } from '../types/calendar';
-import { format } from 'date-fns';
-import { pl } from 'date-fns/locale';
+import {Appointment, AppointmentStatus, AppointmentStatusColors} from '../types';
+import {CalendarColor} from '../types/calendar';
+import {format} from 'date-fns';
+import {pl} from 'date-fns/locale';
 
 export type CalendarView = 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listWeek';
 

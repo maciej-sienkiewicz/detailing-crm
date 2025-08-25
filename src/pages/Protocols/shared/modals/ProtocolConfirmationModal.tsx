@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { FaPrint, FaEnvelope, FaCheck, FaTimes, FaSpinner, FaFileAlt, FaDownload } from 'react-icons/fa';
+import {FaCheck, FaEnvelope, FaFileAlt, FaPrint, FaSpinner} from 'react-icons/fa';
 import PDFViewer from "../../../../components/PdfViewer";
 import TabletSignatureRequestModal from './TabletSignatureRequestModal';
 import SignatureStatusModal from './SignatureStatusModal';
-import { protocolsApi } from '../../../../api/protocolsApi';
+import {protocolsApi} from '../../../../api/protocolsApi';
 
 // Professional Corporate Theme
 const corporateTheme = {

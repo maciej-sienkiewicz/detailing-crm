@@ -1,34 +1,29 @@
 // src/pages/Fleet/FleetRentalsPage.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { useNavigate } from 'react-router-dom';
-import {
-    FleetRental,
-    FleetRentalStatus,
-    FleetRentalStatusLabels,
-    FleetRentalStatusColors
-} from '../../types/fleetRental';
-import { fleetRentalApi } from '../../api/fleetRentalApi';
-import { fleetVehicleApi } from '../../api/fleetApi';
-import { clientApi } from '../../api/clientsApi';
+import {useNavigate} from 'react-router-dom';
+import {FleetRental, FleetRentalStatus, FleetRentalStatusLabels} from '../../types/fleetRental';
+import {fleetRentalApi} from '../../api/fleetRentalApi';
+import {fleetVehicleApi} from '../../api/fleetApi';
+import {clientApi} from '../../api/clientsApi';
 import FleetStatusBadge from '../../components/fleet/common/FleetStatusBadge';
-import { useToast } from '../../components/common/Toast/Toast';
-import { format, isAfter, parseISO } from 'date-fns';
-import { pl } from 'date-fns/locale';
+import {useToast} from '../../components/common/Toast/Toast';
+import {format, isAfter, parseISO} from 'date-fns';
+import {pl} from 'date-fns/locale';
 import {
-    FaExchangeAlt,
-    FaPlus,
-    FaSearch,
-    FaFilter,
-    FaTimes,
+    FaArrowRight,
     FaCalendarAlt,
     FaCar,
-    FaUser,
-    FaArrowRight,
     FaChevronDown,
     FaChevronUp,
-    FaMobileAlt
+    FaExchangeAlt,
+    FaFilter,
+    FaMobileAlt,
+    FaPlus,
+    FaSearch,
+    FaTimes,
+    FaUser
 } from 'react-icons/fa';
 
 const FleetRentalsPage: React.FC = () => {

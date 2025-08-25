@@ -1,13 +1,13 @@
 // src/pages/Fleet/FleetVehicleFormPage.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { useParams, useNavigate } from 'react-router-dom';
-import { FleetVehicle } from '../../types/fleet';
-import { fleetVehicleApi } from '../../api/fleetApi';
+import {useNavigate, useParams} from 'react-router-dom';
+import {FleetVehicle} from '../../types/fleet';
+import {fleetVehicleApi} from '../../api/fleetApi';
 import VehicleForm from '../../components/fleet/forms/VehicleForm';
-import { useToast } from '../../components/common/Toast/Toast';
-import { FaCar, FaPlus, FaEdit } from 'react-icons/fa';
+import {useToast} from '../../components/common/Toast/Toast';
+import {FaEdit, FaPlus} from 'react-icons/fa';
 
 const FleetVehicleFormPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();

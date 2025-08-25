@@ -1,5 +1,5 @@
-import { Service } from '../types';
-import { apiClient } from './apiClient';
+import {Service} from '../types';
+import {apiClient} from './apiClient';
 
 // Konwersja snake_case na camelCase dla odpowiedzi z API
 const convertSnakeToCamel = (data: any): any => {

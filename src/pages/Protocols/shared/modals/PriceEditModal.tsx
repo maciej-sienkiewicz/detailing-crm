@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { FaTimes, FaEuroSign } from 'react-icons/fa';
+import {FaEuroSign, FaTimes} from 'react-icons/fa';
 
 // Professional Brand Theme
 const brandTheme = {

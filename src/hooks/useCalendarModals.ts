@@ -1,6 +1,6 @@
 // src/pages/Calendar/hooks/useCalendarModals.ts
-import { useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import {useCallback, useState} from 'react';
+import {useNavigate} from 'react-router-dom';
 import {Appointment, AppointmentStatus, ProtocolStatus} from "../types";
 import {useToast} from "../components/common/Toast/Toast";
 

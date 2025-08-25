@@ -1,8 +1,8 @@
-import React, { useRef } from 'react';
+import React, {useRef} from 'react';
 import styled from 'styled-components';
-import { FaTimes, FaFilePdf, FaEdit, FaDownload, FaPrint, FaTrashAlt } from 'react-icons/fa';
-import { Invoice, InvoiceStatus, InvoiceStatusLabels, InvoiceStatusColors, PaymentMethodLabels } from '../../../types';
-import { pdfInvoiceService } from '../../../api/pdfInvoiceService';
+import {FaDownload, FaEdit, FaFilePdf, FaPrint, FaTimes, FaTrashAlt} from 'react-icons/fa';
+import {Invoice, InvoiceStatus, InvoiceStatusColors, InvoiceStatusLabels, PaymentMethodLabels} from '../../../types';
+import {pdfInvoiceService} from '../../../api/pdfInvoiceService';
 
 interface InvoiceViewModalProps {
     isOpen: boolean;

@@ -1,9 +1,15 @@
 // src/pages/Protocols/start-visit/components/StartVisitForm.tsx - ZAKTUALIZOWANA WERSJA
-import React, { useState, useEffect } from 'react';
-import { CarReceptionProtocol, ProtocolStatus, ServiceApprovalStatus, DeliveryPerson, ClientExpanded, VehicleExpanded } from '../../../../types';
-import { protocolsApi } from '../../../../api/protocolsApi';
-import { clientsApi } from '../../../../api/clientsApi';
-import { vehicleApi } from '../../../../api/vehiclesApi';
+import React, {useEffect, useState} from 'react';
+import {
+    CarReceptionProtocol,
+    ClientExpanded,
+    ProtocolStatus,
+    ServiceApprovalStatus,
+    VehicleExpanded
+} from '../../../../types';
+import {protocolsApi} from '../../../../api/protocolsApi';
+import {clientsApi} from '../../../../api/clientsApi';
+import {vehicleApi} from '../../../../api/vehiclesApi';
 
 // Sekcje formularza
 import FormHeader from '../../form/components/FormHeader';
@@ -11,24 +17,16 @@ import VisitTitleSection from '../../form/components/VisitTitleSection';
 import VehicleInfoSection from '../../form/components/VehicleInfoSection';
 import ClientInfoSection from '../../form/components/ClientInfoSection';
 import ServiceSection from '../../form/components/ServiceSection';
-import ImageUploadSection from '../../form/components/ImageUploadSection';
 import NotesSection from '../../form/components/NotesSection';
-import { DeliveryPersonSection } from '../../form/components/DeliveryPersonSection'; // NOWY IMPORT
-
+import {DeliveryPersonSection} from '../../form/components/DeliveryPersonSection'; // NOWY IMPORT
 // Hooks
-import { useServiceCalculations } from '../../form/hooks/useServiceCalculations';
+import {useServiceCalculations} from '../../form/hooks/useServiceCalculations';
 
 // Style
-import {
-    FormContainer,
-    Form,
-    ErrorMessage,
-    FormActions,
-    Button
-} from '../../form/styles';
+import {Button, ErrorMessage, Form, FormActions, FormContainer} from '../../form/styles';
 
 // Types
-import { AutocompleteOption } from '../../components/AutocompleteField';
+import {AutocompleteOption} from '../../components/AutocompleteField';
 
 interface StartVisitFormProps {
     protocol: CarReceptionProtocol;

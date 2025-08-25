@@ -1,7 +1,7 @@
 // src/types/employeeTypes.ts
 // Rozszerzone typy dla modułu pracowników - zaktualizowane
 
-import { Employee, EmployeeDocument } from './employee';
+import {Employee} from './employee';
 
 // Typy uprawnień użytkowników
 export enum UserRole {

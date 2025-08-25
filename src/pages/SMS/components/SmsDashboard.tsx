@@ -1,21 +1,21 @@
 // src/pages/SMS/components/SmsDashboard.tsx
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { useNavigate } from 'react-router-dom';
+import {useNavigate} from 'react-router-dom';
 import {
-    FaEnvelope,
-    FaCheckCircle,
-    FaExclamationTriangle,
     FaCalendarAlt,
-    FaMoneyBillWave,
     FaChartLine,
-    FaRobot,
-    FaUserFriends,
+    FaCheckCircle,
+    FaClock,
+    FaEnvelope,
+    FaExclamationTriangle,
     FaHistory,
-    FaClock
+    FaMoneyBillWave,
+    FaRobot,
+    FaUserFriends
 } from 'react-icons/fa';
-import { smsApi } from '../../../api/smsApi';
-import { SmsStatus } from '../../../types/sms';
+import {smsApi} from '../../../api/smsApi';
+import {SmsStatus} from '../../../types/sms';
 
 export const SmsDashboard: React.FC = () => {
     const navigate = useNavigate();

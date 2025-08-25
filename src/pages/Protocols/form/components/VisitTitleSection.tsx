@@ -1,17 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { calendarColorsApi } from '../../../../api/calendarColorsApi';
-import { CalendarColor } from '../../../../types/calendar';
-import {
-    FormSection,
-    SectionTitle,
-    FormGroup,
-    Label,
-    Input,
-    ErrorText,
-    brandTheme
-} from '../styles';
-import { LabelWithBadge } from './LabelWithBadge';
+import {calendarColorsApi} from '../../../../api/calendarColorsApi';
+import {CalendarColor} from '../../../../types/calendar';
+import {brandTheme, ErrorText, FormSection, Input, Label, SectionTitle} from '../styles';
+import {LabelWithBadge} from './LabelWithBadge';
 
 interface VisitTitleSectionProps {
     title: string;

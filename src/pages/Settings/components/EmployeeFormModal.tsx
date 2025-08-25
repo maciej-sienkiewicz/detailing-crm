@@ -1,24 +1,24 @@
 // src/pages/Settings/components/EmployeeFormModal.tsx - Updated with API Integration
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { FaUser, FaShieldAlt, FaEye, FaEyeSlash, FaSpinner } from 'react-icons/fa';
-import { ExtendedEmployee, UserRole, UserRoleLabels, ContractType } from '../../../types/employeeTypes';
+import {FaEye, FaEyeSlash, FaShieldAlt, FaSpinner, FaUser} from 'react-icons/fa';
+import {ContractType, ExtendedEmployee, UserRole, UserRoleLabels} from '../../../types/employeeTypes';
 import {
-    ModalOverlay,
-    ModalContainer,
-    ModalHeader,
-    ModalBody,
+    Button,
+    ButtonGroup,
     CloseButton,
+    ErrorText,
     Form,
     FormGroup,
     FormRow,
-    Label,
-    Input,
-    Select,
     HelpText,
-    ButtonGroup,
-    Button,
-    ErrorText
+    Input,
+    Label,
+    ModalBody,
+    ModalContainer,
+    ModalHeader,
+    ModalOverlay,
+    Select
 } from '../styles/ModalStyles';
 
 // Brand Theme

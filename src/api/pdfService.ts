@@ -1,5 +1,5 @@
 // src/api/pdfService.ts
-import { apiClient } from './apiClient';
+import {apiClient} from './apiClient';
 
 export const pdfService = {
     /**

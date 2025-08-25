@@ -1,34 +1,32 @@
 // src/pages/SMS/components/SmsCampaignsList.tsx
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, {useEffect, useState} from 'react';
+import {useNavigate} from 'react-router-dom';
 import styled from 'styled-components';
 import {
-    FaUserFriends,
-    FaPlus,
-    FaEdit,
-    FaTrash,
-    FaCopy,
-    FaSearch,
-    FaFilter,
     FaCalendarAlt,
+    FaChartLine,
     FaCheckCircle,
+    FaClock,
+    FaCopy,
+    FaEdit,
+    FaEnvelope,
     FaExclamationTriangle,
+    FaEye,
+    FaFilter,
+    FaInfoCircle,
+    FaPlay,
+    FaPlus,
     FaRegListAlt,
     FaSpinner,
-    FaEnvelope,
-    FaPlay,
     FaTimes,
-    FaEye,
-    FaRegClock,
-    FaClock,
-    FaUsers,
-    FaInfoCircle,
-    FaChartLine
+    FaTrash,
+    FaUserFriends,
+    FaUsers
 } from 'react-icons/fa';
-import { smsApi } from '../../../api/smsApi';
-import { SmsCampaign, SmsStatus, SmsStatusColors, SmsStatusLabels } from '../../../types/sms';
+import {smsApi} from '../../../api/smsApi';
+import {SmsCampaign, SmsStatus, SmsStatusColors, SmsStatusLabels} from '../../../types/sms';
 import Modal from '../../../components/common/Modal';
-import { useToast } from '../../../components/common/Toast/Toast';
+import {useToast} from '../../../components/common/Toast/Toast';
 
 interface SmsCampaignsListProps {
     onOpenNewCampaignModal: () => void;

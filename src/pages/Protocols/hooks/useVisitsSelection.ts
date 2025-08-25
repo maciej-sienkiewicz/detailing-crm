@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react';
-import { VisitListItem } from '../../../api/visitsApiNew';
+import {useCallback, useState} from 'react';
+import {VisitListItem} from '../../../api/visitsApiNew';
 
 export interface UseVisitsSelectionReturn {
     selectedVisits: Set<string>;

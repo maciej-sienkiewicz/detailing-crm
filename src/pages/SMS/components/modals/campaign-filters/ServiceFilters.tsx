@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { FaWrench, FaInfoCircle, FaCheck } from 'react-icons/fa';
+import React, {useEffect, useState} from 'react';
+import {FaInfoCircle} from 'react-icons/fa';
 import {
+    CheckboxGroup,
     FilterGrid,
-    FormGroup,
-    FormLabel,
-    FormSelect,
-    FormCheckboxWrapper,
     FormCheckbox,
     FormCheckboxLabel,
+    FormCheckboxWrapper,
+    FormGroup,
     FormHelp,
-    CheckboxGroup
+    FormLabel,
+    FormSelect
 } from '../campaign-common/styled/FormComponents';
 
 interface ServiceFiltersProps {

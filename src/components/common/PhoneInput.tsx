@@ -1,7 +1,7 @@
 // src/components/common/PhoneInput.tsx
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import styled from 'styled-components';
-import { useToast } from './Toast/Toast';
+import {useToast} from './Toast/Toast';
 
 interface PhoneInputProps {
     id: string;

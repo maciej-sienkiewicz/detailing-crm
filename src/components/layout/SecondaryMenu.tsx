@@ -1,28 +1,8 @@
 // src/components/layout/SecondaryMenu.tsx
 import React from 'react';
 import styled from 'styled-components';
-import { Link, useLocation } from 'react-router-dom';
-import {
-    FaCog,
-    FaUsers,
-    FaMoneyBillWave,
-    FaClipboardList,
-    FaPercent,
-    FaTags,
-    FaRegListAlt,
-    FaCalendarCheck,
-    FaCarSide,
-    FaEye,
-    FaWrench,
-    FaWindowClose,
-    FaTimes,
-    FaCalendar,
-    FaCalendarDay,
-    FaCalendarAlt,
-    FaArchive,
-    FaChevronRight,
-    FaPalette
-} from 'react-icons/fa';
+import {Link, useLocation} from 'react-router-dom';
+import {FaArchive, FaCalendarAlt} from 'react-icons/fa';
 import {FaCarRear} from "react-icons/fa6";
 
 // Brand Theme System

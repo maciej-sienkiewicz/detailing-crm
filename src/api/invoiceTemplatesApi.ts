@@ -1,5 +1,5 @@
-import { apiClientNew } from './apiClientNew';
-import { InvoiceTemplate, TemplateUploadData } from '../types/invoiceTemplate';
+import {apiClientNew} from './apiClientNew';
+import {InvoiceTemplate, TemplateUploadData} from '../types/invoiceTemplate';
 
 class InvoiceTemplatesApi {
     private readonly baseEndpoint = '/invoice-templates';

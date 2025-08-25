@@ -1,4 +1,4 @@
-import { Appointment, AppointmentStatus } from '../../types';
+import {Appointment, AppointmentStatus} from '../../types';
 
 // Pomocnicza funkcja do generowania dat
 const createDate = (year: number, month: number, day: number, hour: number = 0, minute: number = 0) => {

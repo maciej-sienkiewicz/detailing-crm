@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
-import { FaCar, FaCalendarAlt, FaTachometerAlt, FaCheck, FaTimes, FaIdCard } from 'react-icons/fa';
-import { VehicleExpanded } from '../../../../types';
+import {FaCalendarAlt, FaCar, FaCheck, FaIdCard, FaTimes} from 'react-icons/fa';
+import {VehicleExpanded} from '../../../../types';
 
 // Professional Brand Theme
 const brandTheme = {

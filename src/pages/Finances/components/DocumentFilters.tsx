@@ -1,26 +1,24 @@
 // src/pages/Finances/components/DocumentFilters.tsx
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import styled from 'styled-components';
 import {
-    FaFileInvoiceDollar,
-    FaReceipt,
-    FaExchangeAlt,
-    FaFilter,
     FaChevronDown,
     FaChevronUp,
+    FaExchangeAlt,
+    FaFileInvoiceDollar,
+    FaFilter,
+    FaReceipt,
     FaSearch,
     FaTimes
 } from 'react-icons/fa';
 import {
+    DocumentStatusLabels,
     DocumentType,
     DocumentTypeLabels,
-    UnifiedDocumentFilters,
-    DocumentStatus,
-    DocumentStatusLabels,
-    TransactionDirection,
-    TransactionDirectionLabels
+    TransactionDirectionLabels,
+    UnifiedDocumentFilters
 } from '../../../types/finance';
-import { brandTheme } from '../styles/theme';
+import {brandTheme} from '../styles/theme';
 
 type FilterType = DocumentType | 'ALL';
 

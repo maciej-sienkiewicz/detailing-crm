@@ -1,25 +1,25 @@
 // src/pages/Protocols/VisitsPageContainer.tsx - FIXED VERSION
-import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from 'styled-components';
-import { FaClipboardCheck, FaPlus, FaArrowLeft } from 'react-icons/fa';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { VisitListItem } from '../../api/visitsApiNew';
-import { ProtocolStatus } from '../../types';
-import { servicesApi } from '../../api/servicesApi';
-import { protocolsApi } from '../../api/protocolsApi';
-import { useVisitsData } from './hooks/useVisitsData';
-import { useVisitsFilters, VisitFilterParams } from './hooks/useVisitsFilters';
-import { useVisitsSelection } from './hooks/useVisitsSelection';
-import { VisitsFilterBar } from './components/VisitsFilterBar';
-import { VisitsStatusFilters } from './components/VisitsStatusFilters';
-import { VisitsActiveFilters } from './components/VisitsActiveFilters';
-import { VisitsTable } from './components/VisitsTable';
-import { ServiceOption } from './components/ServiceAutocomplete';
+import {FaArrowLeft, FaClipboardCheck, FaPlus} from 'react-icons/fa';
+import {useLocation, useNavigate} from 'react-router-dom';
+import {VisitListItem} from '../../api/visitsApiNew';
+import {ProtocolStatus} from '../../types';
+import {servicesApi} from '../../api/servicesApi';
+import {protocolsApi} from '../../api/protocolsApi';
+import {useVisitsData} from './hooks/useVisitsData';
+import {useVisitsFilters} from './hooks/useVisitsFilters';
+import {useVisitsSelection} from './hooks/useVisitsSelection';
+import {VisitsFilterBar} from './components/VisitsFilterBar';
+import {VisitsStatusFilters} from './components/VisitsStatusFilters';
+import {VisitsActiveFilters} from './components/VisitsActiveFilters';
+import {VisitsTable} from './components/VisitsTable';
+import {ServiceOption} from './components/ServiceAutocomplete';
 import Pagination from '../../components/common/Pagination';
-import { theme } from '../../styles/theme';
+import {theme} from '../../styles/theme';
 
 // Import form components
-import { EditProtocolForm } from './form/components/EditProtocolForm';
+import {EditProtocolForm} from './form/components/EditProtocolForm';
 import ProtocolConfirmationModal from './shared/modals/ProtocolConfirmationModal';
 
 type StatusFilterType = 'all' | ProtocolStatus;

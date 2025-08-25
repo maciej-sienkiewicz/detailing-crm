@@ -1,27 +1,11 @@
 // src/pages/SMS/components/SmsTemplatesList.tsx
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import {
-    FaListAlt,
-    FaPlus,
-    FaEdit,
-    FaTrash,
-    FaCopy,
-    FaSearch,
-    FaSort,
-    FaTags,
-    FaCheck,
-    FaEye,
-    FaInfoCircle
-} from 'react-icons/fa';
-import { smsApi } from '../../../api/smsApi';
-import {
-    SmsTemplate,
-    SmsTemplateCategory,
-    SmsTemplateCategoryLabels
-} from '../../../types/sms';
+import {FaCheck, FaCopy, FaEdit, FaEye, FaListAlt, FaPlus, FaSort, FaTags, FaTrash} from 'react-icons/fa';
+import {smsApi} from '../../../api/smsApi';
+import {SmsTemplate, SmsTemplateCategory, SmsTemplateCategoryLabels} from '../../../types/sms';
 import Modal from '../../../components/common/Modal';
-import { useToast } from '../../../components/common/Toast/Toast';
+import {useToast} from '../../../components/common/Toast/Toast';
 
 // Definicja zmiennej dynamicznej
 interface TemplateVariable {

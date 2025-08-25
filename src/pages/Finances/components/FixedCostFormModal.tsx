@@ -1,19 +1,18 @@
 // src/pages/Finances/components/FixedCostFormModal.tsx
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { FaTimes, FaSave, FaBuilding, FaCalendarAlt } from 'react-icons/fa';
-import { brandTheme } from '../styles/theme';
+import {FaBuilding, FaSave, FaTimes} from 'react-icons/fa';
+import {brandTheme} from '../styles/theme';
 import {
-    FixedCost,
+    CostFrequency,
+    CostFrequencyLabels,
     CreateFixedCostRequest,
-    UpdateFixedCostRequest,
+    FixedCost,
     FixedCostCategory,
     FixedCostCategoryLabels,
     FixedCostStatus,
     FixedCostStatusLabels,
-    CostFrequency,
-    CostFrequencyLabels,
-    SupplierInfo
+    UpdateFixedCostRequest
 } from '../../../api/fixedCostsApi';
 
 interface FixedCostFormModalProps {

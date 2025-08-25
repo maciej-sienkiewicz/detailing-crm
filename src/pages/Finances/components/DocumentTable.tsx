@@ -1,35 +1,35 @@
 // src/pages/Finances/components/DocumentTable.tsx
-import React, { useState, useMemo, useCallback } from 'react';
+import React, {useCallback, useMemo, useState} from 'react';
 import styled from 'styled-components';
 import {
-    FaFileInvoiceDollar,
-    FaReceipt,
+    FaDownload,
+    FaEdit,
     FaExchangeAlt,
     FaEye,
-    FaEdit,
-    FaTrashAlt,
+    FaFileInvoiceDollar,
     FaList,
-    FaTable,
-    FaSort,
-    FaSortUp,
-    FaSortDown,
     FaPrint,
-    FaDownload,
-    FaSpinner // <-- Dodaj ten import
+    FaReceipt,
+    FaSort,
+    FaSortDown,
+    FaSortUp,
+    FaSpinner,
+    FaTable,
+    FaTrashAlt
 } from 'react-icons/fa';
 import {
-    UnifiedFinancialDocument,
+    DocumentStatus,
+    DocumentStatusColors,
+    DocumentStatusLabels,
     DocumentType,
     DocumentTypeLabels,
-    DocumentStatus,
-    DocumentStatusLabels,
-    DocumentStatusColors,
     TransactionDirection,
-    TransactionDirectionLabels,
     TransactionDirectionColors,
+    TransactionDirectionLabels,
+    UnifiedFinancialDocument,
 } from '../../../types/finance';
-import { brandTheme } from '../styles/theme';
-import { useDocumentOperations } from '../hooks/useDocumentOperations';
+import {brandTheme} from '../styles/theme';
+import {useDocumentOperations} from '../hooks/useDocumentOperations';
 
 type ViewMode = 'table' | 'cards';
 type SortField = 'issuedDate' | 'totalGross' | 'buyerName' | 'number';

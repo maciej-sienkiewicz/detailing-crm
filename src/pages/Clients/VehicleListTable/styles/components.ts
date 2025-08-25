@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import { brandTheme } from './themes';
+import {brandTheme} from './themes';
 
 export const ListContainer = styled.div`
     background: ${brandTheme.surface};

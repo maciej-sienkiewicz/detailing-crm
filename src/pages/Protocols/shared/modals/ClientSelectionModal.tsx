@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
-import { FaUser, FaBuilding, FaIdCard, FaPhone, FaEnvelope, FaCheck, FaTimes } from 'react-icons/fa';
-import { ClientExpanded } from '../../../../types';
+import {FaBuilding, FaCheck, FaEnvelope, FaIdCard, FaPhone, FaTimes, FaUser} from 'react-icons/fa';
+import {ClientExpanded} from '../../../../types';
 
 // Professional Brand Theme
 const brandTheme = {

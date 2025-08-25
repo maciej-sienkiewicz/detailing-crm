@@ -1,17 +1,17 @@
 // src/pages/Fleet/FleetCalendarPage.tsx
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { useNavigate } from 'react-router-dom';
-import { FleetVehicle, FleetVehicleStatus } from '../../types/fleet';
-import { fleetVehicleApi } from '../../api/fleetApi';
-import { fleetRentalApi } from '../../api/fleetRentalApi';
+import {useNavigate} from 'react-router-dom';
+import {FleetVehicle, FleetVehicleStatus} from '../../types/fleet';
+import {fleetVehicleApi} from '../../api/fleetApi';
+import {fleetRentalApi} from '../../api/fleetRentalApi';
 import FleetCalendar from '../../components/fleet/FleetCalendar';
 import AvailabilitySearch from '../../components/fleet/calendar/AvailabilitySearch';
 import VehicleSidebar from '../../components/fleet/calendar/VehicleSidebar';
 import SelectedVehicleInfo from '../../components/fleet/calendar/SelectedVehicleInfo';
 import AvailabilityModal from '../../components/fleet/calendar/AvailabilityModal';
-import { format, addDays } from 'date-fns';
-import { FaCalendarAlt, FaPlus, FaArrowLeft } from 'react-icons/fa';
+import {addDays, format} from 'date-fns';
+import {FaArrowLeft, FaCalendarAlt, FaPlus} from 'react-icons/fa';
 
 const FleetCalendarPage: React.FC = () => {
     const navigate = useNavigate();

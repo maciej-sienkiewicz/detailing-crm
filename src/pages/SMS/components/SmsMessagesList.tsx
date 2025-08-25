@@ -1,29 +1,27 @@
 // src/pages/SMS/components/SmsMessagesList.tsx
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, {useEffect, useState} from 'react';
+import {useNavigate} from 'react-router-dom';
 import styled from 'styled-components';
 import {
-    FaEnvelope,
-    FaPlus,
-    FaSearch,
-    FaFilter,
     FaCalendarAlt,
-    FaExclamationTriangle,
     FaCheckCircle,
     FaClock,
-    FaSpinner,
-    FaTrash,
-    FaSync,
+    FaCopy,
+    FaEnvelope,
+    FaExclamationTriangle,
     FaEye,
-    FaUserFriends,
-    FaTimes,
-    FaPhoneAlt,
+    FaFilter,
     FaInfoCircle,
-    FaCopy
+    FaPhoneAlt,
+    FaSpinner,
+    FaSync,
+    FaTimes,
+    FaTrash,
+    FaUserFriends
 } from 'react-icons/fa';
-import { smsApi } from '../../../api/smsApi';
-import { SmsMessage, SmsStatus, SmsStatusColors, SmsStatusLabels } from '../../../types/sms';
-import { useToast } from '../../../components/common/Toast/Toast';
+import {smsApi} from '../../../api/smsApi';
+import {SmsMessage, SmsStatus, SmsStatusColors, SmsStatusLabels} from '../../../types/sms';
+import {useToast} from '../../../components/common/Toast/Toast';
 import Modal from '../../../components/common/Modal';
 import Pagination from '../../../components/common/Pagination';
 import NewSmsMessageModal from './modals/NewSmsMessageModal';

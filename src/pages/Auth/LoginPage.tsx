@@ -1,20 +1,13 @@
 // src/pages/Auth/ModernLoginPage.tsx
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import styled, { keyframes } from 'styled-components';
-import {
-    FaUserAlt,
-    FaLock,
-    FaSignInAlt,
-    FaCarSide,
-    FaRegCheckCircle,
-    FaChevronRight
-} from 'react-icons/fa';
-import { useAuth } from '../../context/AuthContext';
+import React, {useEffect, useState} from 'react';
+import {useNavigate} from 'react-router-dom';
+import styled, {keyframes} from 'styled-components';
+import {FaCarSide, FaChevronRight, FaLock, FaRegCheckCircle, FaSignInAlt, FaUserAlt} from 'react-icons/fa';
+import {useAuth} from '../../context/AuthContext';
 import AnimatedBackground from '../../components/common/AnimatedBackground';
 import AnimatedGradientBackground from '../../components/common/AnimatedGradientBackground';
 import ParticlesNetwork from '../../components/common/ParticlesNetwork';
-import { useToast } from '../../components/common/Toast/Toast';
+import {useToast} from '../../components/common/Toast/Toast';
 
 const LoginPage: React.FC = () => {
     const navigate = useNavigate();

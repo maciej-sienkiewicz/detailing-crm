@@ -1,7 +1,7 @@
 // components/modals/DeleteConfirmationModal.tsx
 import React from 'react';
 import styled from 'styled-components';
-import { FaExclamationTriangle, FaTimes, FaTrash } from 'react-icons/fa';
+import {FaExclamationTriangle, FaTimes, FaTrash} from 'react-icons/fa';
 import {ClientExpanded} from "../../../types";
 import Modal from "../../../components/common/Modal";
 

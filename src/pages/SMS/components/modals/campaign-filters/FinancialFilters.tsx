@@ -1,15 +1,12 @@
-import React, { useEffect } from 'react';
-import { FaMoneyBillWave, FaInfoCircle, FaInfinity } from 'react-icons/fa';
+import React, {useEffect} from 'react';
+import {FaInfinity, FaInfoCircle} from 'react-icons/fa';
 import {
-    FilterGrid,
     FormGroup,
-    FormLabel,
-    FormInput,
-    FormSelect,
     FormHelp,
-    FormRangeContainer,
+    FormInput,
+    FormLabel,
     FormRangeInput,
-    FormRangeValue
+    FormSelect
 } from '../campaign-common/styled/FormComponents';
 import styled from 'styled-components';
 

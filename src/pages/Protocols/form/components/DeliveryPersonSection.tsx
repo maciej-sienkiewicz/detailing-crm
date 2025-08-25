@@ -1,21 +1,19 @@
 // src/pages/Protocols/form/components/DeliveryPersonSection.tsx
 import React from 'react';
-import { AutocompleteOption } from '../../components/AutocompleteField';
-import { AutocompleteField } from '../../components/AutocompleteField';
-import { FormErrors } from '../hooks/useFormValidation';
-import { DeliveryPerson } from '../../../../types';
+import {AutocompleteField, AutocompleteOption} from '../../components/AutocompleteField';
+import {FormErrors} from '../hooks/useFormValidation';
+import {DeliveryPerson} from '../../../../types';
 import {
-    FormSection,
-    SectionTitle,
-    FormRow,
-    FormGroup,
+    Checkbox,
     CheckboxGroup,
     CheckboxLabel,
-    Checkbox,
     ErrorText,
-    brandTheme
+    FormGroup,
+    FormRow,
+    FormSection,
+    SectionTitle
 } from '../styles';
-import { LabelWithBadge } from './LabelWithBadge';
+import {LabelWithBadge} from './LabelWithBadge';
 
 interface DeliveryPersonSectionProps {
     isDeliveryPersonDifferent: boolean;

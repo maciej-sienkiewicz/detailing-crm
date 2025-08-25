@@ -1,8 +1,8 @@
 import React from 'react';
 import styled from 'styled-components';
-import { format } from 'date-fns';
-import { pl } from 'date-fns/locale';
-import { ActivityItem } from '../../../types/activity';
+import {format} from 'date-fns';
+import {pl} from 'date-fns/locale';
+import {ActivityItem} from '../../../types/activity';
 import ActivityEntityLink from './ActivityEntityLink';
 
 interface ActivityListItemProps {

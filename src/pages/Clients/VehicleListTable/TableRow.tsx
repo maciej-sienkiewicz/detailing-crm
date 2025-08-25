@@ -1,32 +1,27 @@
 import React from 'react';
+import {FaCalendarAlt, FaEdit, FaEye, FaTrash} from 'react-icons/fa';
+import {TableColumn} from './types';
+import {formatCurrency, formatDate, getVehicleStatus} from './utils/vehicleUtils';
 import {
-    FaEye,
-    FaEdit,
-    FaTrash,
-    FaCalendarAlt
-} from 'react-icons/fa';
-import { TableColumn } from './types';
-import { getVehicleStatus, formatCurrency, formatDate } from './utils/vehicleUtils';
-import {
+    ActionButton,
+    ActionButtons,
+    EmptyDate,
+    EmptyOwners,
+    LastServiceDate,
+    LicensePlateCell,
+    OwnerName,
+    OwnersInfo,
+    RevenueDisplay,
+    ServiceCount,
+    StatusBadge,
     StyledTableRow,
     TableCell,
-    LicensePlateCell,
+    TooltipWrapper,
     VehicleInfo,
     VehicleName,
-    StatusBadge,
-    VehicleYear,
-    OwnersInfo,
-    OwnerName,
-    EmptyOwners,
-    ServiceCount,
-    LastServiceDate,
-    EmptyDate,
-    RevenueDisplay,
-    ActionButtons,
-    ActionButton,
-    TooltipWrapper
+    VehicleYear
 } from './styles/components';
-import { VehicleExpanded } from "../../../types";
+import {VehicleExpanded} from "../../../types";
 
 interface TableRowProps {
     vehicle: VehicleExpanded;

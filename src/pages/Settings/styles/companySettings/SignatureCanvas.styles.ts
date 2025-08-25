@@ -1,6 +1,6 @@
 // src/pages/Settings/styles/SignatureCanvas.styles.ts
 import styled from 'styled-components';
-import { theme } from '../../../../styles/theme';
+import {theme} from '../../../../styles/theme';
 
 export const SignatureContainer = styled.div`
     display: flex;

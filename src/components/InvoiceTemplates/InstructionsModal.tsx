@@ -1,40 +1,34 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
+import {FaCheckCircle, FaCode, FaExclamationTriangle, FaFileAlt, FaInfoCircle} from 'react-icons/fa';
 import {
-    FaInfoCircle,
-    FaCode,
-    FaCheckCircle,
-    FaFileAlt,
-    FaExclamationTriangle
-} from 'react-icons/fa';
-import {
-    ModalOverlay,
+    CloseButton,
+    ModalBody,
     ModalContainer,
     ModalHeader,
-    CloseButton,
-    ModalBody
+    ModalOverlay
 } from '../../pages/Settings/styles/ModalStyles';
 import {
+    CodeBlock,
+    InfoBox,
+    InstructionItem,
     InstructionsContent,
-    InstructionsTabs,
+    InstructionsList,
     InstructionsTab,
     InstructionsTabContent,
-    TabPanel,
+    InstructionsTabs,
+    RequirementGroup,
+    RequirementItem,
+    RequirementsList,
+    RequirementTitle,
     SectionTitle,
-    InstructionsList,
-    InstructionItem,
-    CodeBlock,
-    WarningBox,
-    InfoBox,
-    VariableGroup,
-    VariableGroupTitle,
-    VariablesList,
-    VariableItem,
+    TabPanel,
     VariableCode,
     VariableDescription,
-    RequirementGroup,
-    RequirementTitle,
-    RequirementsList,
-    RequirementItem
+    VariableGroup,
+    VariableGroupTitle,
+    VariableItem,
+    VariablesList,
+    WarningBox
 } from './InstructionsModal.styles';
 
 interface InstructionsModalProps {

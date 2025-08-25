@@ -1,13 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import {
-    FaInfo,
-    FaComments,
-    FaFileInvoiceDollar,
-    FaUser,
-    FaCarSide,
-    FaImages
-} from 'react-icons/fa';
+import {FaComments, FaFileInvoiceDollar, FaImages, FaInfo} from 'react-icons/fa';
 
 // Automotive-Grade Design System
 const automotiveTheme = {

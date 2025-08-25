@@ -1,23 +1,17 @@
 // src/pages/Fleet/FleetRentalFormPage.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { useNavigate, useLocation } from 'react-router-dom';
-import {
-    FleetRental,
-    FleetRentalStatus
-} from '../../types/fleetRental';
-import {
-    FleetVehicle,
-    FleetVehicleStatus
-} from '../../types/fleet';
-import { ClientExpanded } from '../../types/client';
-import { fleetVehicleApi } from '../../api/fleetApi';
-import { fleetRentalApi } from '../../api/fleetRentalApi';
-import { clientApi } from '../../api/clientsApi';
+import {useLocation, useNavigate} from 'react-router-dom';
+import {FleetRental, FleetRentalStatus} from '../../types/fleetRental';
+import {FleetVehicle, FleetVehicleStatus} from '../../types/fleet';
+import {ClientExpanded} from '../../types/client';
+import {fleetVehicleApi} from '../../api/fleetApi';
+import {fleetRentalApi} from '../../api/fleetRentalApi';
+import {clientApi} from '../../api/clientsApi';
 import RentalForm from '../../components/fleet/forms/RentalForm';
-import { useToast } from '../../components/common/Toast/Toast';
-import { FaPlus, FaArrowLeft } from 'react-icons/fa';
+import {useToast} from '../../components/common/Toast/Toast';
+import {FaArrowLeft, FaPlus} from 'react-icons/fa';
 
 const FleetRentalFormPage: React.FC = () => {
     const navigate = useNavigate();

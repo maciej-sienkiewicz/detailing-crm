@@ -1,10 +1,10 @@
 // src/components/Gallery/GalleryStats.tsx
 import React from 'react';
 import styled from 'styled-components';
-import { FaImages, FaDatabase, FaTags, FaCubes } from 'react-icons/fa';
-import { GalleryStats } from '../../api/galleryApi';
-import { formatFileSize } from '../../utils/galleryUtils';
-import { theme } from '../../styles/theme';
+import {FaCubes, FaDatabase, FaImages, FaTags} from 'react-icons/fa';
+import {GalleryStats} from '../../api/galleryApi';
+import {formatFileSize} from '../../utils/galleryUtils';
+import {theme} from '../../styles/theme';
 
 interface GalleryStatsProps {
     stats: GalleryStats;

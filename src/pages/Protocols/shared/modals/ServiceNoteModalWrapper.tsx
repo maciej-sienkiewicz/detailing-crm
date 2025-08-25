@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { FaPencilAlt } from 'react-icons/fa';
+import {FaPencilAlt} from 'react-icons/fa';
 
 interface ServiceNoteModalWrapperProps {
     isOpen: boolean;

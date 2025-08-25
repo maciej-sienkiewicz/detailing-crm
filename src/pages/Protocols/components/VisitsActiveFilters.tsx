@@ -1,8 +1,8 @@
 import React from 'react';
 import styled from 'styled-components';
-import { FaTimes, FaFilter, FaCheck } from 'react-icons/fa';
-import { VisitsFilterState } from '../hooks/useVisitsFilters';
-import { theme } from '../../../styles/theme';
+import {FaCheck, FaFilter, FaTimes} from 'react-icons/fa';
+import {VisitsFilterState} from '../hooks/useVisitsFilters';
+import {theme} from '../../../styles/theme';
 
 interface VisitsActiveFiltersProps {
     filters: VisitsFilterState;

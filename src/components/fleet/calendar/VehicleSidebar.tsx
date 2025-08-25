@@ -1,16 +1,8 @@
 // src/components/fleet/calendar/VehicleSidebar.tsx
 import React from 'react';
 import styled from 'styled-components';
-import { FleetVehicle, FleetVehicleStatus } from '../../../types/fleet';
-import {
-    FaCar,
-    FaSearch,
-    FaFilter,
-    FaTimes,
-    FaTags,
-    FaCheck,
-    FaExclamationTriangle
-} from 'react-icons/fa';
+import {FleetVehicle, FleetVehicleStatus} from '../../../types/fleet';
+import {FaCar, FaCheck, FaExclamationTriangle, FaFilter, FaSearch, FaTags} from 'react-icons/fa';
 
 interface VehicleSidebarProps {
     vehicles: FleetVehicle[];

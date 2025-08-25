@@ -1,17 +1,9 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import styled from 'styled-components';
-import { format } from 'date-fns';
-import { pl } from 'date-fns/locale';
-import {
-    FaCarSide,
-    FaTachometerAlt,
-    FaCalendarAlt,
-    FaSave,
-    FaPlus,
-    FaExclamationTriangle,
-    FaCheck
-} from 'react-icons/fa';
-import { CarReceptionProtocol } from '../../../../types';
+import {format} from 'date-fns';
+import {pl} from 'date-fns/locale';
+import {FaCarSide} from 'react-icons/fa';
+import {CarReceptionProtocol} from '../../../../types';
 
 // Define vehicle issue type
 interface VehicleIssue {

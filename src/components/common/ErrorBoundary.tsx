@@ -1,7 +1,7 @@
 // src/components/common/ErrorBoundary.tsx
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, {Component, ErrorInfo, ReactNode} from 'react';
 import styled from 'styled-components';
-import { theme } from '../../styles/theme';
+import {theme} from '../../styles/theme';
 
 interface Props {
     children: ReactNode;

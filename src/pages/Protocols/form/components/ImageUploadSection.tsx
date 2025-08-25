@@ -1,12 +1,22 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import styled from 'styled-components';
-import { FaCamera, FaUpload, FaTrash, FaImage, FaExclamationCircle, FaEye, FaEdit, FaTags, FaSpinner } from 'react-icons/fa';
-import { VehicleImage } from '../../../../types';
-import { apiClient } from '../../../../api/apiClient';
-import { carReceptionApi } from '../../../../api/carReceptionApi';
+import {
+    FaCamera,
+    FaEdit,
+    FaExclamationCircle,
+    FaEye,
+    FaImage,
+    FaSpinner,
+    FaTags,
+    FaTrash,
+    FaUpload
+} from 'react-icons/fa';
+import {VehicleImage} from '../../../../types';
+import {apiClient} from '../../../../api/apiClient';
+import {carReceptionApi} from '../../../../api/carReceptionApi';
 import ImagePreviewModal from "../../shared/modals/ImagePreviewModal";
 import ImageEditModal from "../../shared/modals/ImageEditModal";
-import { brandTheme } from '../styles';
+import {brandTheme} from '../styles';
 
 interface ImageUploadSectionProps {
     images: VehicleImage[];

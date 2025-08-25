@@ -1,4 +1,4 @@
-import { apiClientNew } from './apiClientNew';
+import {apiClientNew} from './apiClientNew';
 
 export interface CreateServiceCommand {
     name: string;

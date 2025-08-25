@@ -1,6 +1,6 @@
 import React from 'react';
-import { ProtocolStatus, ProtocolStatusLabels } from '../../../../types';
-import { StatusBadge } from '../../styles';
+import {ProtocolStatus, ProtocolStatusLabels} from '../../../../types';
+import {StatusBadge} from '../../styles';
 
 interface ProtocolStatusBadgeProps {
     status: ProtocolStatus;

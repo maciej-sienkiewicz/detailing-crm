@@ -1,35 +1,30 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import styled from 'styled-components';
 import {
-    FaCamera,
-    FaUpload,
-    FaTrash,
-    FaImage,
+    FaClock,
+    FaDownload,
+    FaEdit,
     FaExclamationCircle,
     FaEye,
-    FaEdit,
-    FaTags,
-    FaPlus,
-    FaTimes,
-    FaFileImage,
     FaFileAlt,
+    FaFileExcel,
+    FaFileImage,
     FaFilePdf,
     FaFileWord,
-    FaFileExcel,
-    FaFile,
-    FaDownload,
-    FaClock,
-    FaUser,
-    FaFolder
+    FaFolder,
+    FaImage,
+    FaPlus,
+    FaTags,
+    FaTimes,
+    FaTrash,
+    FaUpload,
+    FaUser
 } from 'react-icons/fa';
-import { CarReceptionProtocol, VehicleImage } from '../../../../types';
-import { apiClient } from '../../../../api/apiClient';
-import { carReceptionApi } from '../../../../api/carReceptionApi';
+import {CarReceptionProtocol, VehicleImage} from '../../../../types';
+import {apiClient} from '../../../../api/apiClient';
+import {carReceptionApi} from '../../../../api/carReceptionApi';
 import ImagePreviewModal from "../../shared/modals/ImagePreviewModal";
 import ImageEditModal from "../../shared/modals/ImageEditModal";
-
-import {format} from "date-fns";
-import {pl} from "date-fns/locale";
 import DocumentPreviewModal from "./DocumentPreviewModal";
 
 // Enterprise Design System - Professional Automotive Gallery

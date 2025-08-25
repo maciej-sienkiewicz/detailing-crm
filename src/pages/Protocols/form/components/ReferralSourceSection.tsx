@@ -1,14 +1,5 @@
-import React, { useState } from 'react';
-import {
-    FormSection,
-    SectionTitle,
-    FormRow,
-    FormGroup,
-    Label,
-    Input,
-    Textarea,
-    brandTheme
-} from '../styles';
+import React from 'react';
+import {brandTheme, FormGroup, FormSection, Input, Label, SectionTitle} from '../styles';
 import styled from 'styled-components';
 
 // Typy źródeł polecenia

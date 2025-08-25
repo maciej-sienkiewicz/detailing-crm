@@ -1,20 +1,20 @@
 // src/pages/Settings/ServicesPage.tsx
-import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import React, {forwardRef, useEffect, useImperativeHandle, useState} from 'react';
 import styled from 'styled-components';
 import {
-    FaEdit,
-    FaTrash,
-    FaFilter,
-    FaTimes,
-    FaSearch,
     FaChevronDown,
     FaChevronUp,
-    FaWrench,
-    FaSave
+    FaEdit,
+    FaFilter,
+    FaSave,
+    FaSearch,
+    FaTimes,
+    FaTrash,
+    FaWrench
 } from 'react-icons/fa';
-import { Service } from '../../types';
-import { servicesApi } from '../../api/servicesApi';
-import { settingsTheme } from './styles/theme';
+import {Service} from '../../types';
+import {servicesApi} from '../../api/servicesApi';
+import {settingsTheme} from './styles/theme';
 
 // Interfejs dla filtrów
 interface ServiceFilters {

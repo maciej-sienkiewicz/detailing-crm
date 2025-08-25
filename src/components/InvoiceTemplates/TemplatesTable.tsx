@@ -2,17 +2,17 @@ import React from 'react';
 import styled from 'styled-components';
 import {
     FaCheckCircle,
-    FaTimesCircle,
-    FaEye,
     FaDownload,
-    FaTrash,
-    FaSpinner,
+    FaEye,
     FaSort,
+    FaSortDown,
     FaSortUp,
-    FaSortDown
+    FaSpinner,
+    FaTimesCircle,
+    FaTrash
 } from 'react-icons/fa';
-import { InvoiceTemplate, SortField, SortDirection } from '../../types/invoiceTemplate';
-import { settingsTheme } from '../../pages/Settings/styles/theme';
+import {InvoiceTemplate, SortDirection, SortField} from '../../types/invoiceTemplate';
+import {settingsTheme} from '../../pages/Settings/styles/theme';
 
 interface TemplatesTableProps {
     templates: InvoiceTemplate[];

@@ -1,41 +1,40 @@
 // src/pages/Fleet/FleetVehicleDetailsPage.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { useParams, useNavigate } from 'react-router-dom';
+import {useNavigate, useParams} from 'react-router-dom';
 import {
     FleetVehicle,
-    FleetVehicleStatus,
-    FleetVehicleStatusLabels,
     FleetVehicleCategoryLabels,
+    FleetVehicleStatus,
     FleetVehicleUsageTypeLabels
 } from '../../types/fleet';
-import { FleetMaintenance, FleetMaintenanceTypeLabels } from '../../types/fleetMaintenance';
-import { fleetVehicleApi } from '../../api/fleetApi';
-import { fleetMaintenanceApi } from '../../api/fleetMaintenanceApi';
-import { fleetRentalApi } from '../../api/fleetRentalApi';
-import { fleetImageApi } from '../../api/fleetImageApi';
+import {FleetMaintenance, FleetMaintenanceTypeLabels} from '../../types/fleetMaintenance';
+import {fleetVehicleApi} from '../../api/fleetApi';
+import {fleetMaintenanceApi} from '../../api/fleetMaintenanceApi';
+import {fleetRentalApi} from '../../api/fleetRentalApi';
+import {fleetImageApi} from '../../api/fleetImageApi';
 import FleetStatusBadge from '../../components/fleet/common/FleetStatusBadge';
 import ConfirmationDialog from '../../components/common/ConfirmationDialog';
-import { useToast } from '../../components/common/Toast/Toast';
+import {useToast} from '../../components/common/Toast/Toast';
 import EnhancedFuelLevelIndicator from '../../components/fleet/common/EnhancedFuelLevelIndicator';
 
 import {
+    FaCalendarAlt,
+    FaCamera,
     FaCar,
     FaEdit,
-    FaTrash,
     FaExchangeAlt,
-    FaTools,
-    FaGasPump,
-    FaTachometerAlt,
-    FaCalendarAlt,
     FaFileAlt,
+    FaGasPump,
     FaHistory,
     FaPlus,
-    FaCamera
+    FaTachometerAlt,
+    FaTools,
+    FaTrash
 } from 'react-icons/fa';
-import { format } from 'date-fns';
-import { pl } from 'date-fns/locale';
+import {format} from 'date-fns';
+import {pl} from 'date-fns/locale';
 
 const FleetVehicleDetailsPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();

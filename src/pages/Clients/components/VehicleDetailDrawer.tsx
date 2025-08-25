@@ -1,32 +1,29 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, {useEffect, useState} from 'react';
+import {useNavigate} from 'react-router-dom';
 import styled from 'styled-components';
 import {
-    FaTimes,
-    FaCar,
-    FaIdCard,
-    FaCalendarAlt,
-    FaTools,
-    FaMoneyBillWave,
-    FaUser,
-    FaPalette,
-    FaBarcode,
-    FaUsers,
     FaArrowRight,
+    FaBarcode,
+    FaCalendarAlt,
+    FaCar,
     FaCheckCircle,
     FaClock,
-    FaExclamationTriangle,
     FaEnvelope,
-    FaPhone
+    FaExclamationTriangle,
+    FaIdCard,
+    FaMoneyBillWave,
+    FaPalette,
+    FaPhone,
+    FaTimes,
+    FaTools,
+    FaUser,
+    FaUsers
 } from 'react-icons/fa';
-import {
-    VehicleExpanded,
-    VehicleStatistics
-} from '../../../types';
-import { vehicleApi } from '../../../api/vehiclesApi';
-import { visitsApi, ClientVisitHistoryItem } from '../../../api/visitsApiNew';
-import { clientsApi } from '../../../api/clientsApi';
-import { ProtocolStatus, ProtocolStatusLabels, ProtocolStatusColors } from '../../../types/protocol';
+import {VehicleExpanded, VehicleStatistics} from '../../../types';
+import {vehicleApi} from '../../../api/vehiclesApi';
+import {ClientVisitHistoryItem, visitsApi} from '../../../api/visitsApiNew';
+import {clientsApi} from '../../../api/clientsApi';
+import {ProtocolStatus, ProtocolStatusColors, ProtocolStatusLabels} from '../../../types/protocol';
 
 const brandTheme = {
     primary: 'var(--brand-primary, #1a365d)',

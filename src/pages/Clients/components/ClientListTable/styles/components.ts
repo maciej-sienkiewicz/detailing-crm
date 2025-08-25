@@ -1,6 +1,6 @@
 // ClientListTable/styles/components-fixed.ts - Fixed height constraints
 import styled from 'styled-components';
-import { brandTheme } from './theme';
+import {brandTheme} from './theme';
 
 // Main Container Components - FIXED: Remove height constraints
 export const ListContainer = styled.div`

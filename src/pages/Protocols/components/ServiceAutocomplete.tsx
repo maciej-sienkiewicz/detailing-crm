@@ -1,7 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { createPortal } from 'react-dom';
+import React, {useEffect, useRef, useState} from 'react';
+import {createPortal} from 'react-dom';
 import styled from 'styled-components';
-import { FaSearch, FaChevronDown, FaTimes, FaCheck, FaSpinner } from 'react-icons/fa';
+import {FaCheck, FaChevronDown, FaSearch, FaSpinner, FaTimes} from 'react-icons/fa';
 
 const brandTheme = {
     primary: 'var(--brand-primary, #2563eb)',

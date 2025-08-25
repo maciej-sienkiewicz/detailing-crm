@@ -1,6 +1,6 @@
 // src/context/PersistentLogoCacheContext.tsx - POPRAWIONA WERSJA
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { companySettingsApi, type LogoSettings } from '../api/companySettingsApi';
+import React, {createContext, ReactNode, useCallback, useContext, useEffect, useState} from 'react';
+import {companySettingsApi, type LogoSettings} from '../api/companySettingsApi';
 
 interface LogoCacheData {
     logoDataUrl: string | null;

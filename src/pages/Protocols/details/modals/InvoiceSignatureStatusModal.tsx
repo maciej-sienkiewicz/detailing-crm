@@ -1,9 +1,20 @@
 // src/pages/Protocols/details/modals/InvoiceSignatureStatusModal.tsx
-import React, { useState, useEffect } from 'react';
-import styled, { keyframes } from 'styled-components';
-import { FaSignature, FaTimes, FaSpinner, FaCheck, FaExclamationTriangle, FaClock, FaDownload, FaTabletAlt, FaArrowRight, FaFileInvoice } from 'react-icons/fa';
-import { useInvoiceSignature } from '../../../../hooks/useInvoiceSignature';
-import { InvoiceSignatureStatus } from '../../../../api/invoiceSignatureApi';
+import React, {useEffect, useState} from 'react';
+import styled, {keyframes} from 'styled-components';
+import {
+    FaArrowRight,
+    FaCheck,
+    FaClock,
+    FaDownload,
+    FaExclamationTriangle,
+    FaFileInvoice,
+    FaSignature,
+    FaSpinner,
+    FaTabletAlt,
+    FaTimes
+} from 'react-icons/fa';
+import {useInvoiceSignature} from '../../../../hooks/useInvoiceSignature';
+import {InvoiceSignatureStatus} from '../../../../api/invoiceSignatureApi';
 
 interface InvoiceSignatureStatusModalProps {
     isOpen: boolean;

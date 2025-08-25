@@ -1,26 +1,24 @@
 // src/pages/SMS/components/modals/NewSmsMessageModal.tsx
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
 import {
-    FaEnvelope,
-    FaSave,
-    FaTimes,
-    FaInfoCircle,
-    FaSearch,
     FaCalendarAlt,
-    FaUserFriends,
-    FaListAlt,
-    FaUser,
-    FaPhone,
     FaCar,
-    FaHistory, FaPlus
+    FaEnvelope,
+    FaHistory,
+    FaPhone,
+    FaPlus,
+    FaSearch,
+    FaTimes,
+    FaUser,
+    FaUserFriends
 } from 'react-icons/fa';
 import Modal from '../../../../components/common/Modal';
-import { smsApi } from '../../../../api/smsApi';
-import { SmsMessage, SmsStatus, SmsTemplate, SmsTemplateCategory } from '../../../../types/sms';
-import { clientApi } from '../../../../api/clientsApi';
-import { ClientExpanded } from '../../../../types/client';
-import { useToast } from '../../../../components/common/Toast/Toast';
+import {smsApi} from '../../../../api/smsApi';
+import {SmsMessage, SmsTemplate} from '../../../../types/sms';
+import {clientApi} from '../../../../api/clientsApi';
+import {ClientExpanded} from '../../../../types/client';
+import {useToast} from '../../../../components/common/Toast/Toast';
 
 interface NewSmsMessageModalProps {
     isOpen: boolean;

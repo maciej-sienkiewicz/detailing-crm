@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import styled from 'styled-components';
-import { format } from 'date-fns';
-import { pl } from 'date-fns/locale';
-import { CarReceptionProtocol, ProtocolStatus, ProtocolStatusLabels } from '../../../../types';
-import { protocolsApi } from '../../../../api/protocolsApi';
+import {format} from 'date-fns';
+import {pl} from 'date-fns/locale';
+import {CarReceptionProtocol, ProtocolStatus} from '../../../../types';
+import {protocolsApi} from '../../../../api/protocolsApi';
 import ProtocolConfirmationModal from '../../shared/modals/ProtocolConfirmationModal';
 
 interface ProtocolHeaderProps {

@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { FaUser, FaBuilding, FaPhone } from 'react-icons/fa';
+import {FaBuilding, FaPhone, FaUser} from 'react-icons/fa';
 import {ClientExpanded} from "../../../../../types";
 
 interface RecipientsListProps {

@@ -1,8 +1,8 @@
 // src/pages/Finances/components/UncategorizedServicesTable.tsx
-import React, { useState, useCallback } from 'react';
+import React, {useCallback, useState} from 'react';
 import styled from 'styled-components';
-import { FaSync, FaFolderPlus, FaTable, FaGripVertical, FaEye, FaEdit, FaTrash, FaCheckSquare, FaSquare } from 'react-icons/fa';
-import { UncategorizedService } from '../../../api/statsApi';
+import {FaCheckSquare, FaFolderPlus, FaGripVertical, FaSquare, FaSync, FaTable} from 'react-icons/fa';
+import {UncategorizedService} from '../../../api/statsApi';
 
 // Brand Theme System - consistent with ClientListTable
 const brandTheme = {

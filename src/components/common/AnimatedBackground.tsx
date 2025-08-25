@@ -1,7 +1,7 @@
 // src/components/common/AnimatedBackground.tsx
 
 import React from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled, {keyframes} from 'styled-components';
 
 interface AnimatedBackgroundProps {
     type?: 'hexagons' | 'particles' | 'waves';

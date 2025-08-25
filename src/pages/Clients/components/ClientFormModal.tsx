@@ -1,8 +1,19 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import styled from 'styled-components';
-import { FaUser, FaBuilding, FaStickyNote, FaCheck, FaTimes, FaSpinner, FaEnvelope, FaPhone, FaMapMarkerAlt, FaIdCard } from 'react-icons/fa';
-import { ClientExpanded } from '../../../types';
-import { ClientData, clientsApi } from '../../../api/clientsApi'; // Używamy Twojego API
+import {
+    FaBuilding,
+    FaCheck,
+    FaEnvelope,
+    FaIdCard,
+    FaMapMarkerAlt,
+    FaPhone,
+    FaSpinner,
+    FaStickyNote,
+    FaTimes,
+    FaUser
+} from 'react-icons/fa';
+import {ClientExpanded} from '../../../types';
+import {ClientData, clientsApi} from '../../../api/clientsApi'; // Używamy Twojego API
 import Modal from '../../../components/common/Modal';
 import {useToast} from "../../../components/common/Toast/Toast";
 

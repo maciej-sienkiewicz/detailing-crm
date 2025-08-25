@@ -1,15 +1,15 @@
 import React from 'react';
-import { FaUsers, FaInfoCircle } from 'react-icons/fa';
+import {FaInfoCircle} from 'react-icons/fa';
 import {
     FilterGrid,
-    FormGroup,
-    FormLabel,
-    FormInput,
-    FormSelect,
-    FormCheckboxWrapper,
     FormCheckbox,
     FormCheckboxLabel,
-    FormHelp
+    FormCheckboxWrapper,
+    FormGroup,
+    FormHelp,
+    FormInput,
+    FormLabel,
+    FormSelect
 } from '../campaign-common/styled/FormComponents';
 
 interface ClientFiltersProps {

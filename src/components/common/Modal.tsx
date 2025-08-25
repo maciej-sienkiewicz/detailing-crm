@@ -1,7 +1,7 @@
 // components/common/Modal.tsx - Enhanced with Backdrop Blur
-import React, { useEffect } from 'react';
-import styled, { keyframes } from 'styled-components';
-import { FaTimes } from 'react-icons/fa';
+import React, {useEffect} from 'react';
+import styled, {keyframes} from 'styled-components';
+import {FaTimes} from 'react-icons/fa';
 
 // Professional Brand Theme
 const brandTheme = {

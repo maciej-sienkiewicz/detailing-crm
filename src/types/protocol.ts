@@ -1,7 +1,7 @@
 // src/types/protocol.ts
 // Typy związane z protokołami przyjęcia pojazdów
 
-import { SelectedService } from './common';
+import {SelectedService} from './common';
 
 export interface PaginationInfo {
     totalItems: number;

@@ -1,5 +1,5 @@
 // src/services/invoiceExtractService.ts
-import { apiClient } from '../api/apiClient';
+import {apiClient} from '../api/apiClient';
 
 export interface ExtractedInvoiceData {
     generalInfo: {

@@ -1,21 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { format, subDays } from 'date-fns';
-import { pl } from 'date-fns/locale';
+import {format, subDays} from 'date-fns';
+import {pl} from 'date-fns/locale';
 import {
-    FaFilter,
-    FaCalendarAlt,
-    FaClipboardCheck,
-    FaComment,
-    FaUser,
-    FaCar,
     FaBell,
+    FaCalendarAlt,
+    FaCar,
+    FaCheck,
+    FaClipboardCheck,
     FaCog,
+    FaComment,
+    FaFilter,
     FaTimes,
-    FaCheck
+    FaUser
 } from 'react-icons/fa';
-import { ActivityFilter } from '../../../types/activity';
-import { Employee } from '../../../types';
+import {ActivityFilter} from '../../../types/activity';
+import {Employee} from '../../../types';
 
 // Brand Theme
 const brandTheme = {

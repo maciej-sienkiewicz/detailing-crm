@@ -1,6 +1,16 @@
 import styled from 'styled-components';
-import { FaMoneyBill, FaCreditCard, FaFileInvoice, FaReceipt, FaFileAlt, FaEdit, FaListAlt, FaCalculator, FaUniversity } from 'react-icons/fa';
-import { theme } from '../../../../styles/theme';
+import {
+    FaCalculator,
+    FaCreditCard,
+    FaEdit,
+    FaFileAlt,
+    FaFileInvoice,
+    FaListAlt,
+    FaMoneyBill,
+    FaReceipt,
+    FaUniversity
+} from 'react-icons/fa';
+import {theme} from '../../../../styles/theme';
 
 export const ModalOverlay = styled.div`
     position: fixed;

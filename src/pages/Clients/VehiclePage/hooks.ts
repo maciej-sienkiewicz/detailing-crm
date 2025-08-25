@@ -1,7 +1,7 @@
-import { useState, useCallback, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { vehicleApi, VehicleTableFilters, VehicleCompanyStatisticsResponse } from '../../../api/vehiclesApi';
-import { VehiclesPageState, VehicleFilters, VehicleStats } from './types';
+import {useCallback, useState} from 'react';
+import {useNavigate} from 'react-router-dom';
+import {vehicleApi, VehicleTableFilters} from '../../../api/vehiclesApi';
+import {VehicleFilters, VehiclesPageState, VehicleStats} from './types';
 import {clientApi} from "../../../api/clientsApi";
 import {VehicleExpanded} from "../../../types";
 

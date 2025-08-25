@@ -1,6 +1,6 @@
 // src/pages/Settings/styles/GoogleDrive.styles.ts
 import styled from 'styled-components';
-import { theme } from '../../../../styles/theme';
+import {theme} from '../../../../styles/theme';
 
 export const ConfigStatusBanner = styled.div<{ $configured: boolean }>`
     display: flex;

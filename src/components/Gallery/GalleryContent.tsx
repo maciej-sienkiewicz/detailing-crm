@@ -1,9 +1,9 @@
 // src/components/Gallery/GalleryContent.tsx
 import React from 'react';
 import styled from 'styled-components';
-import { FaSearch } from 'react-icons/fa';
-import { GalleryImage } from '../../api/galleryApi';
-import { theme } from '../../styles/theme';
+import {FaSearch} from 'react-icons/fa';
+import {GalleryImage} from '../../api/galleryApi';
+import {theme} from '../../styles/theme';
 import ImageCard from './ImageCard';
 import Pagination from '../common/Pagination';
 

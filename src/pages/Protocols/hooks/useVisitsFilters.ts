@@ -1,5 +1,5 @@
-import { useState, useCallback, useMemo } from 'react';
-import { ProtocolStatus } from '../../../types';
+import {useCallback, useMemo, useState} from 'react';
+import {ProtocolStatus} from '../../../types';
 
 export interface VisitFilterParams {
     clientName?: string;

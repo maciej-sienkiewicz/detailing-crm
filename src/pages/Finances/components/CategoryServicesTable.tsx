@@ -1,8 +1,8 @@
 // src/pages/Finances/components/CategoryServicesTable.tsx
-import React, { useState, useMemo } from 'react';
+import React, {useMemo, useState} from 'react';
 import styled from 'styled-components';
-import { FaSync, FaChartLine, FaSort, FaSortUp, FaSortDown, FaTable } from 'react-icons/fa';
-import { CategoryService } from '../../../api/statsApi';
+import {FaChartLine, FaSort, FaSortDown, FaSortUp, FaSync, FaTable} from 'react-icons/fa';
+import {CategoryService} from '../../../api/statsApi';
 
 // Unified theme
 const theme = {

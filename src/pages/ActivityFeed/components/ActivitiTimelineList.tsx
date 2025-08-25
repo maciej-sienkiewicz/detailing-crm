@@ -1,22 +1,11 @@
 // src/pages/ActivityFeed/components/ActivitiTimelineList.tsx
-import React, { useMemo } from 'react';
+import React, {useMemo} from 'react';
 import styled from 'styled-components';
-import { format, isToday, isYesterday } from 'date-fns';
-import { pl } from 'date-fns/locale';
-import {
-    FaSpinner,
-    FaCalendarAlt,
-    FaClipboardCheck,
-    FaComment,
-    FaUser,
-    FaCar,
-    FaBell,
-    FaCog,
-    FaInfoCircle,
-    FaChevronRight
-} from 'react-icons/fa';
-import { ActivityItem } from '../../../types/activity';
-import { Link } from 'react-router-dom';
+import {format, isToday, isYesterday} from 'date-fns';
+import {pl} from 'date-fns/locale';
+import {FaCalendarAlt, FaChevronRight, FaClipboardCheck, FaCog, FaComment, FaInfoCircle, FaUser} from 'react-icons/fa';
+import {ActivityItem} from '../../../types/activity';
+import {Link} from 'react-router-dom';
 
 // Brand Theme (bez zmian)
 const brandTheme = {

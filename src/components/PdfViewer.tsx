@@ -1,7 +1,7 @@
 // src/components/PDFViewer.tsx
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { FaPrint, FaDownload, FaTimes, FaSpinner } from 'react-icons/fa';
+import {FaSpinner, FaTimes} from 'react-icons/fa';
 
 interface PDFViewerProps {
     protocolId: string;

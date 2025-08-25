@@ -1,49 +1,43 @@
 // ClientListTable/TableRow.tsx - Updated with new columns and tooltips
 import React from 'react';
 import {
-    FaCheckSquare,
-    FaSquare,
-    FaEye,
-    FaEdit,
-    FaTrash,
-    FaCar,
-    FaHistory,
-    FaSms,
-    FaEnvelope,
-    FaPhone,
     FaBuilding,
     FaCalendarAlt,
-    FaMoneyBillWave
+    FaCheckSquare,
+    FaEdit,
+    FaEnvelope,
+    FaEye,
+    FaPhone,
+    FaSquare,
+    FaTrash
 } from 'react-icons/fa';
-import { TableColumn } from './types';
-import { getClientStatus, formatCurrency, formatDate } from './utils/clientUtils';
+import {TableColumn} from './types';
+import {formatCurrency, formatDate, getClientStatus} from './utils/clientUtils';
 import {
-    StyledTableRow,
-    TableCell,
-    SelectionCheckbox,
+    ActionButton,
+    ActionButtons,
     ClientInfo,
     ClientName,
-    StatusBadge,
-    LastVisit,
-    ContactInfo,
-    ContactItem,
-    ContactIcon,
-    ContactText,
     CompanyInfo,
     CompanyName,
-    TaxId,
+    ContactIcon,
+    ContactInfo,
+    ContactItem,
+    ContactText,
     EmptyCompany,
-    MetricsContainer,
-    MetricItem,
-    MetricValue,
-    MetricLabel,
-    MetricSeparator,
-    RevenueDisplay,
-    RevenueAmount,
-    ActionButtons,
-    ActionButton,
-    VehicleCount,
     LastVisitDate,
+    MetricItem,
+    MetricLabel,
+    MetricsContainer,
+    MetricSeparator,
+    MetricValue,
+    RevenueAmount,
+    RevenueDisplay,
+    SelectionCheckbox,
+    StatusBadge,
+    StyledTableRow,
+    TableCell,
+    TaxId,
     TooltipWrapper
 } from './styles/components';
 import {ClientExpanded} from "../../../../types";

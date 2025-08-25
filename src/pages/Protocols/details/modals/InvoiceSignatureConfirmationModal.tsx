@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import styled from 'styled-components';
-import { FaFileInvoice, FaSignature, FaTimes, FaCheck, FaTabletAlt, FaExclamationTriangle, FaSpinner } from 'react-icons/fa';
+import {FaExclamationTriangle, FaFileInvoice, FaSignature, FaSpinner, FaTabletAlt, FaTimes} from 'react-icons/fa';
 import InvoiceSignatureRequestModal from './InvoiceSignatureRequestModal';
 import InvoiceSignatureStatusModal from './InvoiceSignatureStatusModal';
-import { CreateServiceCommand, InvoiceGenerationFromVisitRequest } from '../../../../api/invoiceSignatureApi';
-import { useInvoiceSignature } from '../../../../hooks/useInvoiceSignature';
+import {CreateServiceCommand, InvoiceGenerationFromVisitRequest} from '../../../../api/invoiceSignatureApi';
+import {useInvoiceSignature} from '../../../../hooks/useInvoiceSignature';
 
 interface PaymentData {
     paymentMethod?: 'cash' | 'card' | 'transfer';

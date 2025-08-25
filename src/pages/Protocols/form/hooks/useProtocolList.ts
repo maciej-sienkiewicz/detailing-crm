@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
-import { FilterType } from '../../list/ProtocolFilters';
-import { ProtocolListItem, ProtocolStatus } from '../../../../types';
-import { protocolsApi } from '../../../../api/protocolsApi';
-import { SearchCriteria } from '../../list/ProtocolSearchFilters';
+import {useCallback, useEffect, useState} from 'react';
+import {FilterType} from '../../list/ProtocolFilters';
+import {ProtocolStatus} from '../../../../types';
+import {protocolsApi} from '../../../../api/protocolsApi';
+import {SearchCriteria} from '../../list/ProtocolSearchFilters';
 import visitsApiNew, {VisitListItem} from "../../../../api/visitsApiNew";
 
 interface UseProtocolListReturn {

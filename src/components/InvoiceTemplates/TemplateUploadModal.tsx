@@ -1,26 +1,26 @@
-import React, { useState } from 'react';
-import { FaUpload, FaSpinner, FaExclamationTriangle } from 'react-icons/fa';
-import { TemplateUploadData } from '../../types/invoiceTemplate';
+import React, {useState} from 'react';
+import {FaExclamationTriangle, FaSpinner, FaUpload} from 'react-icons/fa';
+import {TemplateUploadData} from '../../types/invoiceTemplate';
 import {
-    ModalOverlay,
-    ModalContainer,
-    ModalHeader,
+    Button,
+    ButtonGroup,
     CloseButton,
-    ModalBody,
+    ErrorText,
     Form,
     FormGroup,
-    Label,
     Input,
-    ButtonGroup,
-    Button,
-    ErrorText
+    Label,
+    ModalBody,
+    ModalContainer,
+    ModalHeader,
+    ModalOverlay
 } from '../../pages/Settings/styles/ModalStyles';
 import {
-    FileUploadArea,
     FileInput,
+    FileUploadArea,
     FileUploadContent,
-    FileUploadText,
-    FileUploadHint
+    FileUploadHint,
+    FileUploadText
 } from './TemplateUploadModal.styles';
 
 interface TemplateUploadModalProps {

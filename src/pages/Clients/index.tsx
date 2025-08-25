@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useImperativeHandle, forwardRef, useCallback, useMemo } from 'react';
+import React, {forwardRef, useCallback, useEffect, useImperativeHandle, useMemo} from 'react';
 import Modal from '../../components/common/Modal';
 import Pagination from '../../components/common/Pagination';
 import ClientListTable from './components/ClientListTable';
@@ -6,26 +6,16 @@ import ClientDetailDrawer from './components/ClientDetailDrawer';
 import ClientFormModal from './components/ClientFormModal';
 import DeleteConfirmationModal from "./modals/DeleteConfirmationModal";
 
+import {useClientFilters, useClientOperations, useClientSelection, useOwnersPageState} from './OwnersPage/hooks';
 import {
-    useOwnersPageState,
-    useClientFilters,
-    useClientOperations,
-    useClientSelection
-} from './OwnersPage/hooks';
-import {
+    BulkSmsModalContent,
     ClientSelectionBar,
-    SearchResultsDisplay,
-    LoadingDisplay,
     EmptyStateDisplay,
-    BulkSmsModalContent
+    LoadingDisplay,
+    SearchResultsDisplay
 } from './OwnersPage/components';
-import {
-    ContentContainer,
-    MainContent,
-    TableContainer,
-    PaginationContainer
-} from './OwnersPage/styles';
-import { OwnersPageContentProps, OwnersPageRef, ClientFilters } from './OwnersPage/types';
+import {ContentContainer, MainContent, PaginationContainer, TableContainer} from './OwnersPage/styles';
+import {ClientFilters, OwnersPageContentProps, OwnersPageRef} from './OwnersPage/types';
 import EnhancedClientFilters from "./OwnersPage/EnhancedClientFilters";
 
 const OwnersPageContent = forwardRef<OwnersPageRef, OwnersPageContentProps>(({

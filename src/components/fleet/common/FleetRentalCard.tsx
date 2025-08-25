@@ -2,12 +2,12 @@
 
 import React from 'react';
 import styled from 'styled-components';
-import { useNavigate } from 'react-router-dom';
-import { FleetRental } from '../../../types/fleetRental';
+import {useNavigate} from 'react-router-dom';
+import {FleetRental} from '../../../types/fleetRental';
 import FleetStatusBadge from './FleetStatusBadge';
-import { format } from 'date-fns';
-import { pl } from 'date-fns/locale';
-import { FaCalendarAlt, FaUser, FaCar } from 'react-icons/fa';
+import {format} from 'date-fns';
+import {pl} from 'date-fns/locale';
+import {FaCalendarAlt, FaCar, FaUser} from 'react-icons/fa';
 
 interface FleetRentalCardProps {
     rental: FleetRental;

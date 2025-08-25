@@ -1,11 +1,7 @@
 // src/types/fleetFilters.ts
 
-import {
-    FleetVehicleStatus,
-    FleetVehicleCategory,
-    FleetVehicleUsageType
-} from './fleet';
-import { FleetRentalStatus } from './fleetRental';
+import {FleetVehicleCategory, FleetVehicleStatus, FleetVehicleUsageType} from './fleet';
+import {FleetRentalStatus} from './fleetRental';
 
 // Filtr dla pojazdów flotowych
 export interface FleetVehicleFilter {

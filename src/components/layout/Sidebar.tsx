@@ -1,34 +1,24 @@
 // src/components/layout/Sidebar.tsx - Updated with persistent logo cache
 import React from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import {useLocation, useNavigate} from 'react-router-dom';
 import styled from 'styled-components';
 import {
     FaCalendarAlt,
-    FaUsers,
     FaCar,
-    FaClipboardList,
-    FaCog,
-    FaMoneyBillWave,
-    FaWarehouse,
-    FaPercentage,
-    FaRegListAlt,
-    FaUsersCog,
-    FaFileAlt,
     FaCarSide,
-    FaSearchPlus,
-    FaCogs,
-    FaWindowMaximize,
+    FaChevronRight,
     FaClipboardCheck,
-    FaChartBar,
-    FaRss,
-    FaTimes,
-    FaSms,
+    FaCog,
     FaImages,
+    FaMoneyBillWave,
+    FaRss,
+    FaSms,
     FaTabletAlt,
-    FaChevronRight
+    FaTimes,
+    FaUsers
 } from 'react-icons/fa';
 import UserProfileSection from './UserProfileSection';
-import { useCompanyLogoPersistent } from '../../context/PersistentLogoCacheContext'; // Zmieniony import
+import {useCompanyLogoPersistent} from '../../context/PersistentLogoCacheContext'; // Zmieniony import
 
 // Brand Theme System - możliwość konfiguracji przez klienta
 const brandTheme = {

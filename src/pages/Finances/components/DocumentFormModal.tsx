@@ -1,8 +1,8 @@
 // src/pages/Finances/components/DocumentFormModal.tsx
 import React from 'react';
 import styled from 'styled-components';
-import { FaTimes } from 'react-icons/fa';
-import { UnifiedFinancialDocument } from '../../../types/finance';
+import {FaTimes} from 'react-icons/fa';
+import {UnifiedFinancialDocument} from '../../../types/finance';
 import UnifiedDocumentForm from './UnifiedDocumentForm';
 import {brandTheme} from "../styles/theme";
 

@@ -1,13 +1,13 @@
 // src/hooks/useCompanySettings.ts - Zaktualizowany hook z nowym Google Drive API
-import { useState, useEffect, useCallback } from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import {
     companySettingsApi,
     CompanySettingsResponse,
-    UpdateCompanySettingsRequest,
-    NipValidationResponse,
+    ConfigureFolderRequest,
     GoogleDriveFolderSettings,
     GoogleDriveSystemInfo,
-    ConfigureFolderRequest,
+    NipValidationResponse,
+    UpdateCompanySettingsRequest,
     ValidateFolderResponse
 } from '../api/companySettingsApi';
 

@@ -1,47 +1,37 @@
 import React from 'react';
-import { FaUsers, FaCheckSquare, FaSquare, FaSms, FaTimes } from 'react-icons/fa';
-import { TooltipWrapper } from '../components/ClientListTable/styles/components';
-import { ClientFilters, ClientStats } from './types';
-import { ClientExpanded } from '../../../types';
-import { useFormatters } from './hooks';
+import {FaCheckSquare, FaSms, FaSquare} from 'react-icons/fa';
+import {ClientExpanded} from '../../../types';
+import {useFormatters} from './hooks';
 import {
-    StatsSection,
-    StatsGrid,
-    StatCard,
-    StatIcon,
-    StatContent,
-    StatValue,
-    StatLabel,
-    SelectionBar,
-    SelectAllCheckbox,
-    SelectionInfo,
-    SearchResultsInfo,
-    SearchIcon,
-    SearchText,
-    SearchSubtext,
-    LoadingContainer,
-    LoadingSpinner,
-    LoadingText,
-    EmptyStateContainer,
-    EmptyStateIcon,
-    EmptyStateTitle,
-    EmptyStateDescription,
-    EmptyStateAction,
-    PaginationContainer,
+    BulkSmsActions,
     BulkSmsContent,
     BulkSmsHeader,
     BulkSmsIcon,
     BulkSmsInfo,
-    BulkSmsTitle,
     BulkSmsSubtitle,
-    SmsFormSection,
-    SmsFormGroup,
-    SmsLabel,
-    SmsTextarea,
-    SmsCharacterCounter,
-    BulkSmsActions,
+    BulkSmsTitle,
+    EmptyStateAction,
+    EmptyStateContainer,
+    EmptyStateDescription,
+    EmptyStateIcon,
+    EmptyStateTitle,
+    LoadingContainer,
+    LoadingSpinner,
+    LoadingText,
     PrimaryButton,
-    SecondaryButton
+    SearchIcon,
+    SearchResultsInfo,
+    SearchSubtext,
+    SearchText,
+    SecondaryButton,
+    SelectAllCheckbox,
+    SelectionBar,
+    SelectionInfo,
+    SmsCharacterCounter,
+    SmsFormGroup,
+    SmsFormSection,
+    SmsLabel,
+    SmsTextarea
 } from './styles';
 
 interface ClientSelectionBarProps {

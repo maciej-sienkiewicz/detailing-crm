@@ -2,23 +2,18 @@
 import React from 'react';
 import styled from 'styled-components';
 import {
-    FaTimes,
-    FaEdit,
-    FaTrashAlt,
-    FaFileInvoiceDollar,
     FaBuilding,
     FaCalendarAlt,
-    FaUser,
-    FaFileContract,
+    FaEdit,
+    FaFileInvoiceDollar,
+    FaHistory,
     FaStickyNote,
-    FaHistory
+    FaTimes,
+    FaTrashAlt,
+    FaUser
 } from 'react-icons/fa';
-import { brandTheme } from '../styles/theme';
-import {
-    FixedCost,
-    FixedCostStatusColors,
-    FixedCostStatusLabels
-} from '../../../api/fixedCostsApi';
+import {brandTheme} from '../styles/theme';
+import {FixedCost, FixedCostStatusColors} from '../../../api/fixedCostsApi';
 
 interface FixedCostViewModalProps {
     isOpen: boolean;

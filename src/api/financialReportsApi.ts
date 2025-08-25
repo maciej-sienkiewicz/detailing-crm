@@ -1,5 +1,5 @@
 // src/api/financialReportsApi.ts
-import { apiClient, PaginatedResponse } from './apiClient';
+import {apiClient} from './apiClient';
 
 // Types for time period analysis
 export interface TimePeriodComparison {

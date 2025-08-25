@@ -1,38 +1,33 @@
 // src/pages/SMS/components/SmsAutomationsList.tsx
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, {useEffect, useState} from 'react';
+import {useNavigate} from 'react-router-dom';
 import styled from 'styled-components';
 import {
-    FaRobot,
-    FaPlus,
-    FaEdit,
-    FaTrash,
-    FaCopy,
-    FaToggleOn,
-    FaToggleOff,
-    FaSearch,
-    FaFilter,
+    FaArrowRight,
+    FaBirthdayCake,
     FaCalendarAlt,
-    FaListAlt,
-    FaEnvelope,
+    FaCarSide,
+    FaChartLine,
     FaCheckCircle,
     FaClock,
-    FaArrowRight,
-    FaTags,
-    FaBirthdayCake,
-    FaCarSide,
+    FaCopy,
+    FaEdit,
+    FaEnvelope,
+    FaFilter,
     FaHistory,
-    FaChartLine,
-    FaInfoCircle, FaTimes
+    FaInfoCircle,
+    FaListAlt,
+    FaPlus,
+    FaRobot,
+    FaTimes,
+    FaToggleOff,
+    FaToggleOn,
+    FaTrash
 } from 'react-icons/fa';
-import { smsApi } from '../../../api/smsApi';
-import {
-    SmsAutomation,
-    SmsAutomationTrigger,
-    SmsAutomationTriggerLabels
-} from '../../../types/sms';
+import {smsApi} from '../../../api/smsApi';
+import {SmsAutomation, SmsAutomationTrigger, SmsAutomationTriggerLabels} from '../../../types/sms';
 import Modal from '../../../components/common/Modal';
-import { useToast } from '../../../components/common/Toast/Toast';
+import {useToast} from '../../../components/common/Toast/Toast';
 import NewSmsAutomationModal from '../components/modals/NewSmsAutomationModal';
 
 export const SmsAutomationsList: React.FC = () => {

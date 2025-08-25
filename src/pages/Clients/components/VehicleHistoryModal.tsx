@@ -1,14 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import {
-    FaCalendarAlt,
-    FaTools,
-    FaClipboardList,
-    FaMoneyBillWave,
-    FaExternalLinkAlt
-} from 'react-icons/fa';
-import { VehicleExpanded } from '../../../types';
-import { vehicleApi, ServiceHistoryResponse } from '../../../api/vehiclesApi';
+import {FaCalendarAlt, FaClipboardList, FaExternalLinkAlt, FaMoneyBillWave, FaTools} from 'react-icons/fa';
+import {VehicleExpanded} from '../../../types';
+import {ServiceHistoryResponse, vehicleApi} from '../../../api/vehiclesApi';
 import Modal from '../../../components/common/Modal';
 
 interface VehicleHistoryModalProps {

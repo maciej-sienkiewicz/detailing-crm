@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import styled from 'styled-components';
-import { format, subDays, isValid } from 'date-fns';
-import { pl } from 'date-fns/locale';
-import { FaCalendarAlt, FaChevronDown } from 'react-icons/fa';
+import {format, isValid, subDays} from 'date-fns';
+import {pl} from 'date-fns/locale';
+import {FaCalendarAlt, FaChevronDown} from 'react-icons/fa';
 
 interface ActivityDateRangeProps {
     dateRange: {

@@ -1,11 +1,11 @@
 import React from 'react';
-import { FaCar } from 'react-icons/fa';
+import {FaCar} from 'react-icons/fa';
 import {
+    EmptyStateAction,
     EmptyStateContainer,
-    EmptyStateIcon,
-    EmptyStateTitle,
     EmptyStateDescription,
-    EmptyStateAction
+    EmptyStateIcon,
+    EmptyStateTitle
 } from './styles/components';
 
 export const EmptyState: React.FC = () => {

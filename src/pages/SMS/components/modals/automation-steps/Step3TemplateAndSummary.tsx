@@ -1,9 +1,9 @@
 // src/pages/SMS/components/modals/automation-steps/Step3TemplateAndSummary.tsx
 import React from 'react';
 import styled from 'styled-components';
-import { FaArrowLeft, FaSave, FaToggleOn, FaTimes } from 'react-icons/fa';
-import { Step3Props, StatusValueProps, SummaryItemProps } from '../automation-types';
-import { SmsAutomationTriggerLabels } from '../../../../../types/sms';
+import {FaArrowLeft, FaSave, FaTimes, FaToggleOn} from 'react-icons/fa';
+import {StatusValueProps, Step3Props, SummaryItemProps} from '../automation-types';
+import {SmsAutomationTriggerLabels} from '../../../../../types/sms';
 
 /**
  * Krok 3: Wybór szablonu i podsumowanie automatyzacji

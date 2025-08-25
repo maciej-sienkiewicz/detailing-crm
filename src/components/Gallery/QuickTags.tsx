@@ -1,8 +1,8 @@
 // src/components/Gallery/QuickTags.tsx
 import React from 'react';
 import styled from 'styled-components';
-import { FaTags } from 'react-icons/fa';
-import { theme } from '../../styles/theme';
+import {FaTags} from 'react-icons/fa';
+import {theme} from '../../styles/theme';
 
 interface QuickTagsProps {
     availableTags: string[];

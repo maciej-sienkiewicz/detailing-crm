@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { FaTimes, FaRegCalendar, FaRegClock } from 'react-icons/fa';
+import {FaRegCalendar, FaRegClock, FaTimes} from 'react-icons/fa';
 
 export type RestoreOption = 'SCHEDULED' | 'REALTIME';
 

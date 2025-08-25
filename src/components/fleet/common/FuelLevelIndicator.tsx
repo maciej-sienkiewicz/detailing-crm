@@ -2,7 +2,7 @@
 
 import React from 'react';
 import styled from 'styled-components';
-import { FaGasPump } from 'react-icons/fa';
+import {FaGasPump} from 'react-icons/fa';
 
 interface FuelLevelIndicatorProps {
     level: number; // 0-1 (procent)

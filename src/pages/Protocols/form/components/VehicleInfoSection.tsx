@@ -1,25 +1,25 @@
 // src/pages/Protocols/form/components/VehicleInfoSectionWithAutocomplete.tsx
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { CarReceptionProtocol } from '../../../../types';
-import { FormErrors } from '../hooks/useFormValidation';
+import {CarReceptionProtocol} from '../../../../types';
+import {FormErrors} from '../hooks/useFormValidation';
 import {
-    FormSection,
-    SectionTitle,
-    FormRow,
-    FormGroup,
-    Label,
-    Input,
+    brandTheme,
+    Checkbox,
     CheckboxGroup,
     CheckboxLabel,
-    Checkbox,
-    ErrorText,
     DateTimeContainer,
-    brandTheme
+    ErrorText,
+    FormGroup,
+    FormRow,
+    FormSection,
+    Input,
+    Label,
+    SectionTitle
 } from '../styles';
 
-import { useToast } from "../../../../components/common/Toast/Toast";
-import { LabelWithBadge } from './LabelWithBadge';
+import {useToast} from "../../../../components/common/Toast/Toast";
+import {LabelWithBadge} from './LabelWithBadge';
 import {AutocompleteField, AutocompleteOption} from "../../components/AutocompleteField";
 import {BrandAutocomplete} from "../../components/BrandAutocomplete";
 

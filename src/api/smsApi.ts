@@ -2,14 +2,16 @@
 // API dla modułu SMS
 
 import {
-    SmsMessage,
-    SmsTemplate,
-    SmsCampaign,
     SmsAutomation,
+    SmsAutomationTrigger,
+    SmsCampaign,
     SmsFilters,
-    SmsStatistics, SmsAutomationTrigger, SmsStatus, SmsTemplateCategory
+    SmsMessage,
+    SmsStatus,
+    SmsTemplate,
+    SmsTemplateCategory
 } from '../types/sms';
-import { apiClient, PaginatedResponse } from './apiClient';
+import {apiClient, PaginatedResponse} from './apiClient';
 
 // API dla operacji związanych z SMS
 export const smsApi = {

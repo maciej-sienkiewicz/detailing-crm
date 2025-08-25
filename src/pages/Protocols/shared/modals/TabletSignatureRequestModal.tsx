@@ -1,9 +1,17 @@
 // src/pages/Protocols/shared/modals/TabletSignatureRequestModal.tsx
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { FaTabletAlt, FaSignature, FaTimes, FaSpinner, FaCheck, FaExclamationTriangle, FaClock, FaArrowRight } from 'react-icons/fa';
-import { tabletsApi, TabletDevice } from '../../../../api/tabletsApi';
-import { protocolSignatureApi, ProtocolSignatureRequest } from '../../../../api/protocolSignatureApi';
+import {
+    FaArrowRight,
+    FaClock,
+    FaExclamationTriangle,
+    FaSignature,
+    FaSpinner,
+    FaTabletAlt,
+    FaTimes
+} from 'react-icons/fa';
+import {TabletDevice, tabletsApi} from '../../../../api/tabletsApi';
+import {protocolSignatureApi, ProtocolSignatureRequest} from '../../../../api/protocolSignatureApi';
 
 interface TabletSignatureRequestModalProps {
     isOpen: boolean;

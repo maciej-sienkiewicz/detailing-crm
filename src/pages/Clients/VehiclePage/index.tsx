@@ -1,30 +1,24 @@
-import React, { useState, useEffect, useImperativeHandle, forwardRef, useCallback, useMemo } from 'react';
-import { FaArrowLeft, FaExclamationTriangle } from 'react-icons/fa';
+import React, {forwardRef, useCallback, useEffect, useImperativeHandle, useMemo} from 'react';
+import {FaArrowLeft, FaExclamationTriangle} from 'react-icons/fa';
 import VehicleDetailDrawer from '../components/VehicleDetailDrawer';
 import VehicleFormModal from '../components/VehicleFormModal';
 import VehicleHistoryModal from '../components/VehicleHistoryModal';
 
+import {useVehicleFilters, useVehicleOperations, useVehiclesPageState} from './hooks';
+import {LoadingDisplay} from './components';
 import {
-    useVehiclesPageState,
-    useVehicleFilters,
-    useVehicleOperations
-} from './hooks';
-import {
-    LoadingDisplay
-} from './components';
-import {
-    ContentContainer,
-    BackSection,
     BackButton,
-    OwnerInfo,
-    OwnerTitle,
-    OwnerName,
-    MainContent,
+    BackSection,
+    ContentContainer,
     ErrorMessage,
-    TableContainer,
-    PaginationContainer
+    MainContent,
+    OwnerInfo,
+    OwnerName,
+    OwnerTitle,
+    PaginationContainer,
+    TableContainer
 } from './styles';
-import { VehiclesPageContentProps, VehiclesPageRef, VehicleFilters } from './types';
+import {VehicleFilters, VehiclesPageContentProps, VehiclesPageRef} from './types';
 import EnhancedVehicleFilters from './EnhancedVehicleFilters';
 import Modal from "../../../components/common/Modal";
 import VehicleListTable from "../VehicleListTable";

@@ -1,9 +1,9 @@
-import { useState, useCallback, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ClientExpanded } from '../../../types';
-import { clientsApi } from '../../../api/clientsApi';
-import { useToast } from '../../../components/common/Toast/Toast';
-import { ClientFilters, ClientStats, OwnersPageState } from './types';
+import {useCallback, useState} from 'react';
+import {useNavigate} from 'react-router-dom';
+import {ClientExpanded} from '../../../types';
+import {clientsApi} from '../../../api/clientsApi';
+import {useToast} from '../../../components/common/Toast/Toast';
+import {ClientFilters, ClientStats, OwnersPageState} from './types';
 
 const DEFAULT_PAGE_SIZE = 25;
 

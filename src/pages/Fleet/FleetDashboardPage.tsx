@@ -1,18 +1,16 @@
 // src/pages/Fleet/FleetDashboardPage.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { useNavigate } from 'react-router-dom';
-import { FleetVehicle, FleetVehicleStatus } from '../../types/fleet';
-import { FleetRental, FleetRentalStatus } from '../../types/fleetRental';
-import { fleetVehicleApi } from '../../api/fleetApi';
-import { fleetRentalApi } from '../../api/fleetRentalApi';
-import FleetStatusBadge from '../../components/fleet/common/FleetStatusBadge';
+import {useNavigate} from 'react-router-dom';
+import {FleetVehicle, FleetVehicleStatus} from '../../types/fleet';
+import {FleetRental, FleetRentalStatus} from '../../types/fleetRental';
+import {fleetVehicleApi} from '../../api/fleetApi';
+import {fleetRentalApi} from '../../api/fleetRentalApi';
 import FleetVehicleCard from '../../components/fleet/common/FleetVehicleCard';
 import FleetRentalCard from '../../components/fleet/common/FleetRentalCard';
-import { FaCar, FaExchangeAlt, FaCalendarAlt, FaTools, FaBell } from 'react-icons/fa';
-import { format, addDays } from 'date-fns';
-import { pl } from 'date-fns/locale';
+import {FaBell, FaCalendarAlt, FaCar, FaExchangeAlt, FaTools} from 'react-icons/fa';
+import {addDays, format} from 'date-fns';
 
 const FleetDashboardPage: React.FC = () => {
     const navigate = useNavigate();

@@ -1,5 +1,5 @@
-import { VehicleStatus } from '../types';
-import { brandTheme } from '../styles/themes';
+import {VehicleStatus} from '../types';
+import {brandTheme} from '../styles/themes';
 import {VehicleExpanded} from "../../../../types";
 
 export const formatDate = (dateString: string): string => {

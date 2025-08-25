@@ -1,8 +1,8 @@
 // src/components/common/LicensePlateField.tsx
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import styled from 'styled-components';
-import { FaSearch } from 'react-icons/fa';
-import { useToast } from './Toast/Toast';
+import {FaSearch} from 'react-icons/fa';
+import {useToast} from './Toast/Toast';
 
 interface LicensePlateFieldProps {
     id: string;

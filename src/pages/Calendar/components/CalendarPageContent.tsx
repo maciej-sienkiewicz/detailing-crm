@@ -1,10 +1,10 @@
 // src/pages/Calendar/components/CalendarPageContent.tsx
 import React from 'react';
 import styled from 'styled-components';
-import { FaSync } from 'react-icons/fa';
+import {FaSync} from 'react-icons/fa';
 import AppointmentCalendar from '../../../components/calendar/Calendar';
-import { useCalendarPageContext } from '../CalendarPageProvider';
-import { theme } from '../../../styles/theme';
+import {useCalendarPageContext} from '../CalendarPageProvider';
+import {theme} from '../../../styles/theme';
 
 export const CalendarPageContent: React.FC = () => {
     const {

@@ -1,30 +1,24 @@
 // src/pages/SMS/components/modals/TemplateEditorModal.tsx
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
 import {
-    FaListAlt,
-    FaSave,
-    FaTimes,
-    FaCheck,
-    FaTags,
-    FaInfoCircle,
-    FaQuestionCircle,
-    FaCaretRight,
-    FaUser,
-    FaEnvelope,
     FaBuilding,
-    FaCar,
     FaCalendarAlt,
-    FaClock,
-    FaPercentage,
+    FaCar,
+    FaCaretRight,
+    FaCheck,
     FaCode,
     FaEye,
-    FaPlus
+    FaInfoCircle,
+    FaPercentage,
+    FaSave,
+    FaTimes,
+    FaUser
 } from 'react-icons/fa';
 import Modal from '../../../../components/common/Modal';
-import { smsApi } from '../../../../api/smsApi';
-import { SmsTemplate, SmsTemplateCategory, SmsTemplateCategoryLabels } from '../../../../types/sms';
-import { useToast } from '../../../../components/common/Toast/Toast';
+import {smsApi} from '../../../../api/smsApi';
+import {SmsTemplate, SmsTemplateCategory, SmsTemplateCategoryLabels} from '../../../../types/sms';
+import {useToast} from '../../../../components/common/Toast/Toast';
 
 // Interfejs dla zmiennych dynamicznych
 interface TemplateVariable {

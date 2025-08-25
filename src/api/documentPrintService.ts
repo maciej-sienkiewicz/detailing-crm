@@ -1,5 +1,5 @@
 // src/api/documentPrintService.ts
-import { apiClientNew, ApiError } from '../api/apiClientNew';
+import {apiClientNew, ApiError} from '../api/apiClientNew';
 
 export interface PrintDocumentOptions {
     documentId: string;

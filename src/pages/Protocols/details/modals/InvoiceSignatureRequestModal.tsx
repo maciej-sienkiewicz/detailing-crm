@@ -1,9 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { FaTabletAlt, FaSignature, FaTimes, FaSpinner, FaExclamationTriangle, FaClock, FaArrowRight, FaFileInvoice } from 'react-icons/fa';
-import { tabletsApi, TabletDevice } from '../../../../api/tabletsApi';
-import { InvoiceSignatureFromVisitRequest, CreateServiceCommand } from '../../../../api/invoiceSignatureApi';
-import { useInvoiceSignature } from '../../../../hooks/useInvoiceSignature';
+import {
+    FaArrowRight,
+    FaClock,
+    FaExclamationTriangle,
+    FaFileInvoice,
+    FaSignature,
+    FaSpinner,
+    FaTabletAlt,
+    FaTimes
+} from 'react-icons/fa';
+import {TabletDevice, tabletsApi} from '../../../../api/tabletsApi';
+import {CreateServiceCommand, InvoiceSignatureFromVisitRequest} from '../../../../api/invoiceSignatureApi';
+import {useInvoiceSignature} from '../../../../hooks/useInvoiceSignature';
 
 interface PaymentData {
     paymentMethod?: 'cash' | 'card' | 'transfer';

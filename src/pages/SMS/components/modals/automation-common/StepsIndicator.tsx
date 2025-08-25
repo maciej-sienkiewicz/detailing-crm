@@ -1,7 +1,7 @@
 // src/pages/SMS/components/modals/automation-common/StepsIndicator.tsx
 import React from 'react';
 import styled from 'styled-components';
-import { FaCheck } from 'react-icons/fa';
+import {FaCheck} from 'react-icons/fa';
 
 interface StepsIndicatorProps {
     currentStep: number;

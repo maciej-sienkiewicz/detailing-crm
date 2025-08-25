@@ -1,8 +1,8 @@
 // src/components/Gallery/GalleryHeader.tsx
 import React from 'react';
 import styled from 'styled-components';
-import { FaImages } from 'react-icons/fa';
-import { theme } from '../../styles/theme';
+import {FaImages} from 'react-icons/fa';
+import {theme} from '../../styles/theme';
 
 const GalleryHeader: React.FC = () => {
     return (

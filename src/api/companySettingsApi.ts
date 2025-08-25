@@ -1,5 +1,5 @@
 // src/api/companySettingsApi.ts - Poprawiona wersja zgodna z backendem
-import { apiClient } from './apiClient';
+import {apiClient} from './apiClient';
 
 // Nowe interfejsy dla systemowego Google Drive
 export interface GoogleDriveFolderSettings {

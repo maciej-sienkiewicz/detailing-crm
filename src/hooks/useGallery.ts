@@ -1,7 +1,7 @@
 // src/hooks/useGallery.ts
-import { useState, useEffect } from 'react';
-import { galleryApi, GalleryImage, GalleryFilters, GalleryStats } from '../api/galleryApi';
-import { carReceptionApi } from '../api/carReceptionApi';
+import {useEffect, useState} from 'react';
+import {galleryApi, GalleryFilters, GalleryImage, GalleryStats} from '../api/galleryApi';
+import {carReceptionApi} from '../api/carReceptionApi';
 
 export const useGallery = () => {
     const [images, setImages] = useState<GalleryImage[]>([]);

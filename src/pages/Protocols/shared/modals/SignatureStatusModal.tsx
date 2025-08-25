@@ -1,8 +1,17 @@
 // src/pages/Protocols/shared/modals/SignatureStatusModal.tsx
-import React, { useState, useEffect, useRef } from 'react';
-import styled, { keyframes } from 'styled-components';
-import { FaSignature, FaTimes, FaSpinner, FaCheck, FaExclamationTriangle, FaClock, FaDownload, FaTabletAlt, FaArrowRight } from 'react-icons/fa';
-import { protocolSignatureApi, ProtocolSignatureStatusResponse } from '../../../../api/protocolSignatureApi';
+import React, {useEffect, useRef, useState} from 'react';
+import styled, {keyframes} from 'styled-components';
+import {
+    FaArrowRight,
+    FaCheck,
+    FaClock,
+    FaExclamationTriangle,
+    FaSignature,
+    FaSpinner,
+    FaTabletAlt,
+    FaTimes
+} from 'react-icons/fa';
+import {protocolSignatureApi, ProtocolSignatureStatusResponse} from '../../../../api/protocolSignatureApi';
 
 interface SignatureStatusModalProps {
     isOpen: boolean;

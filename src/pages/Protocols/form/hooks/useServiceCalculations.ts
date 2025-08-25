@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { DiscountType, SelectedService } from '../../../../types';
+import {useState} from 'react';
+import {DiscountType, SelectedService} from '../../../../types';
 
 export const useServiceCalculations = (initialServices: SelectedService[] = []) => {
     // Upewniamy się, że wszystkie usługi mają pole quantity z wartością przynajmniej 1

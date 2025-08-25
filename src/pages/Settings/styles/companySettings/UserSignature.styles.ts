@@ -1,6 +1,6 @@
 // src/pages/Settings/styles/UserSignature.styles.ts
 import styled from 'styled-components';
-import { theme } from '../../../../styles/theme';
+import {theme} from '../../../../styles/theme';
 
 export const SignatureCreator = styled.div`
     background: ${theme.surfaceElevated};

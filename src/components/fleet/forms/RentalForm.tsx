@@ -1,14 +1,10 @@
 // src/components/fleet/forms/RentalForm.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import {
-    FleetRental,
-    FleetRentalStatus
-} from '../../../types/fleetRental';
-import { FleetVehicle } from '../../../types/fleet';
-import { ClientExpanded } from '../../../types/client';
-import FuelLevelIndicator from '../common/FuelLevelIndicator';
+import {FleetRental, FleetRentalStatus} from '../../../types/fleetRental';
+import {FleetVehicle} from '../../../types/fleet';
+import {ClientExpanded} from '../../../types/client';
 
 interface RentalFormProps {
     initialData?: Partial<FleetRental>;

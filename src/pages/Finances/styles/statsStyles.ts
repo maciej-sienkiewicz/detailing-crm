@@ -1,6 +1,6 @@
 // src/pages/Finances/styles/statsStyles.ts
 import styled from 'styled-components';
-import { theme } from '../../../styles/theme';
+import {theme} from '../../../styles/theme';
 
 // Main container
 export const StatsContainer = styled.div`

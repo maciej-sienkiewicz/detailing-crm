@@ -1,7 +1,7 @@
 // src/hooks/useCalendarStats.ts - CAŁKOWICIE PRZEPISANA WERSJA
-import { useMemo, useState, useEffect, useCallback } from 'react';
-import { Appointment, AppointmentStatus } from '../types';
-import { fetchProtocolsAsAppointments } from '../services/ProtocolCalendarService';
+import {useCallback, useEffect, useMemo, useState} from 'react';
+import {AppointmentStatus} from '../types';
+import {fetchProtocolsAsAppointments} from '../services/ProtocolCalendarService';
 
 interface CalendarStats {
     total: number;

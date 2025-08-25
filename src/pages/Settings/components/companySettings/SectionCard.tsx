@@ -1,19 +1,19 @@
 // src/pages/Settings/components/SectionCard.tsx
 import React from 'react';
-import { IconType } from 'react-icons';
-import { FaEdit, FaSave, FaTimes, FaSpinner } from 'react-icons/fa';
+import {IconType} from 'react-icons';
+import {FaEdit, FaSave, FaSpinner, FaTimes} from 'react-icons/fa';
 import {
-    SettingsCard,
-    CardHeader,
+    ActionButton,
+    ActionGroup,
     CardBody,
+    CardHeader,
+    HeaderActions,
     HeaderContent,
     HeaderIcon,
+    HeaderSubtitle,
     HeaderText,
     HeaderTitle,
-    HeaderSubtitle,
-    HeaderActions,
-    ActionButton,
-    ActionGroup
+    SettingsCard
 } from '../../styles/companySettings/SectionCard.styles';
 
 interface ActionItem {

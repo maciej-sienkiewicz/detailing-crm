@@ -1,5 +1,5 @@
 // src/hooks/useNotifications.ts
-import { useState, useCallback } from 'react';
+import {useCallback, useState} from 'react';
 
 interface Notification {
     id: string;

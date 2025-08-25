@@ -1,8 +1,8 @@
 // src/pages/SMS/components/modals/automation-steps/Step1BasicInfo.tsx
 import React from 'react';
 import styled from 'styled-components';
-import { FaArrowRight, FaTimes } from 'react-icons/fa';
-import { Step1Props } from '../automation-types';
+import {FaArrowRight, FaTimes} from 'react-icons/fa';
+import {Step1Props} from '../automation-types';
 
 /**
  * Krok 1: Podstawowe informacje automatyzacji

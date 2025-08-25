@@ -1,5 +1,4 @@
 import styled from 'styled-components';
-import { FaCalendarAlt, FaEnvelope, FaPhone } from 'react-icons/fa';
 
 // Style głównej strony pracowników
 export const PageContainer = styled.div`

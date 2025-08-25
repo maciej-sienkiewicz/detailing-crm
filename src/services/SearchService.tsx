@@ -1,6 +1,6 @@
-import { ClientExpanded, VehicleExpanded } from '../types';
-import { clientApi } from '../api/clientsApi';
-import { vehicleApi } from '../api/vehiclesApi';
+import {ClientExpanded, VehicleExpanded} from '../types';
+import {clientApi} from '../api/clientsApi';
+import {vehicleApi} from '../api/vehiclesApi';
 
 // Interfejs dla wyników wyszukiwania
 export interface SearchResults {

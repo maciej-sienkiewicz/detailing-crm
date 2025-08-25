@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import styled from 'styled-components';
-import { FaTimes, FaExclamationTriangle } from 'react-icons/fa';
+import {FaExclamationTriangle, FaTimes} from 'react-icons/fa';
 
 // Professional Corporate Theme
 const corporateTheme = {

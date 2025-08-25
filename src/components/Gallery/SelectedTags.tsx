@@ -1,8 +1,8 @@
 // src/components/Gallery/SelectedTags.tsx
 import React from 'react';
 import styled from 'styled-components';
-import { FaTags, FaTimes } from 'react-icons/fa';
-import { theme } from '../../styles/theme';
+import {FaTags, FaTimes} from 'react-icons/fa';
+import {theme} from '../../styles/theme';
 
 interface SelectedTagsProps {
     selectedTags: string[];

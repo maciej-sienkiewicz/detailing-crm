@@ -1,6 +1,6 @@
 // src/pages/Protocols/form/components/FormHeader.tsx
 import React from 'react';
-import { FormHeader as HeaderContainer } from '../styles';
+import {FormHeader as HeaderContainer} from '../styles';
 
 interface FormHeaderProps {
     isEditing: boolean;

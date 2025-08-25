@@ -1,15 +1,8 @@
 import React from 'react';
 import styled from 'styled-components';
-import { Link } from 'react-router-dom';
-import {
-    FaCalendarAlt,
-    FaUser,
-    FaCar,
-    FaClipboardCheck,
-    FaFileInvoiceDollar,
-    FaComments
-} from 'react-icons/fa';
-import { ActivityEntity } from '../../../types/activity';
+import {Link} from 'react-router-dom';
+import {FaCalendarAlt, FaCar, FaClipboardCheck, FaComments, FaFileInvoiceDollar, FaUser} from 'react-icons/fa';
+import {ActivityEntity} from '../../../types/activity';
 
 interface ActivityEntityLinkProps {
     entity: ActivityEntity;

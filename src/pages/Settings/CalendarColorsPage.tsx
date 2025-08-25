@@ -1,24 +1,11 @@
 // src/pages/Settings/CalendarColorsPage.tsx
-import React, { useState, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
+import React, {forwardRef, useCallback, useEffect, useImperativeHandle, useState} from 'react';
 import styled from 'styled-components';
-import {
-    FaPlus,
-    FaEdit,
-    FaTrash,
-    FaTimes,
-    FaSave,
-    FaSearch,
-    FaPalette,
-    FaEye,
-    FaChevronDown,
-    FaChevronUp,
-    FaFilter,
-    FaCheck
-} from 'react-icons/fa';
-import { calendarColorsApi } from '../../api/calendarColorsApi';
+import {FaEdit, FaPalette, FaSave, FaSearch, FaTimes, FaTrash} from 'react-icons/fa';
+import {calendarColorsApi} from '../../api/calendarColorsApi';
 import ConfirmationDialog from '../../components/common/ConfirmationDialog';
-import { CalendarColor } from "../../types/calendar";
-import { settingsTheme } from './styles/theme';
+import {CalendarColor} from "../../types/calendar";
+import {settingsTheme} from './styles/theme';
 
 // Poprawna składnia forwardRef z TypeScript
 const CalendarColorsPage = forwardRef<{ handleAddColor: () => void }, {}>((props, ref) => {

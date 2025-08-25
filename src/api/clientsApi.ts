@@ -1,11 +1,5 @@
-import {
-    apiClientNew,
-    PaginatedApiResponse,
-    PaginationParams,
-    ApiError,
-    RequestConfig
-} from './apiClientNew';
-import { ClientExpanded, ClientStatistics, ContactAttempt } from '../types';
+import {apiClientNew, ApiError, PaginatedApiResponse, PaginationParams} from './apiClientNew';
+import {ClientExpanded, ClientStatistics, ContactAttempt} from '../types';
 
 interface RawClientData {
     id: string | number;

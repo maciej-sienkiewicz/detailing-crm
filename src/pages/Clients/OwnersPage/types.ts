@@ -1,4 +1,4 @@
-import { ClientExpanded } from '../../../types';
+import {ClientExpanded} from '../../../types';
 
 export interface OwnersPageContentProps {
     onSetRef?: (ref: {

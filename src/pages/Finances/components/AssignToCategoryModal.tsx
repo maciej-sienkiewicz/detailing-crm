@@ -1,8 +1,8 @@
 // src/pages/Finances/components/AssignToCategoryModal.tsx
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { FaTimes, FaFolderPlus, FaCheck, FaFolder } from 'react-icons/fa';
-import { Category } from '../../../api/statsApi';
+import {FaCheck, FaFolder, FaFolderPlus, FaTimes} from 'react-icons/fa';
+import {Category} from '../../../api/statsApi';
 
 // Unified theme
 const theme = {

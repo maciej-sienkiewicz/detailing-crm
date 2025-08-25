@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import styled from 'styled-components';
-import { FaSearch, FaFilter, FaChevronDown, FaChevronUp, FaTimes } from 'react-icons/fa';
-import { VisitsFilterState } from '../hooks/useVisitsFilters';
-import { ServiceAutocomplete, ServiceOption } from './ServiceAutocomplete';
-import { theme } from '../../../styles/theme';
+import {FaChevronDown, FaChevronUp, FaFilter, FaSearch, FaTimes} from 'react-icons/fa';
+import {VisitsFilterState} from '../hooks/useVisitsFilters';
+import {ServiceAutocomplete, ServiceOption} from './ServiceAutocomplete';
+import {theme} from '../../../styles/theme';
 
 interface VisitsFilterBarProps {
     filters: VisitsFilterState;

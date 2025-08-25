@@ -1,17 +1,10 @@
 // src/pages/Protocols/form/components/ClientInfoSectionWithAutocomplete.tsx
 import React from 'react';
-import { CarReceptionProtocol } from '../../../../types';
-import { FormErrors } from '../hooks/useFormValidation';
-import {
-    FormSection,
-    SectionTitle,
-    FormRow,
-    FormGroup,
-    ErrorText,
-    Input,
-} from '../styles';
+import {CarReceptionProtocol} from '../../../../types';
+import {FormErrors} from '../hooks/useFormValidation';
+import {ErrorText, FormGroup, FormRow, FormSection, Input, SectionTitle,} from '../styles';
 
-import { LabelWithBadge } from "./LabelWithBadge";
+import {LabelWithBadge} from "./LabelWithBadge";
 import {AutocompleteField, AutocompleteOption} from "../../components/AutocompleteField";
 
 interface ClientInfoSectionProps {

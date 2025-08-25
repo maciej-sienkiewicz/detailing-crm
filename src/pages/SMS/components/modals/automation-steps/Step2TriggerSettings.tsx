@@ -2,21 +2,21 @@
 import React from 'react';
 import styled from 'styled-components';
 import {
-    FaArrowRight,
     FaArrowLeft,
-    FaInfoCircle,
-    FaCalendarAlt,
-    FaCaretRight,
+    FaArrowRight,
     FaBirthdayCake,
+    FaCalendarAlt,
+    FaCar,
+    FaCaretRight,
     FaClock,
     FaFileInvoiceDollar,
-    FaCar,
-    FaTachometerAlt,
-    FaRobot
+    FaInfoCircle,
+    FaRobot,
+    FaTachometerAlt
 } from 'react-icons/fa';
-import { Step2Props } from '../automation-types';
-import { SmsAutomationTrigger, SmsAutomationTriggerLabels } from '../../../../../types/sms';
-import { getTriggerDescription } from '../automation-common/AutomationUtils';
+import {Step2Props} from '../automation-types';
+import {SmsAutomationTrigger, SmsAutomationTriggerLabels} from '../../../../../types/sms';
+import {getTriggerDescription} from '../automation-common/AutomationUtils';
 
 /**
  * Krok 2: Ustawienia wyzwalacza automatyzacji

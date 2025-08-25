@@ -1,8 +1,8 @@
 // src/pages/Protocols/form/components/BrandAutocomplete.tsx
-import React, { useState, useRef, useEffect } from 'react';
-import { createPortal } from 'react-dom';
+import React, {useEffect, useRef, useState} from 'react';
+import {createPortal} from 'react-dom';
 import styled from 'styled-components';
-import { FaSearch, FaChevronDown, FaTimes, FaCheck } from 'react-icons/fa';
+import {FaChevronDown, FaSearch, FaTimes} from 'react-icons/fa';
 
 const brandTheme = {
     primary: 'var(--brand-primary, #2563eb)',

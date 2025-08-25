@@ -2,7 +2,7 @@ import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
 import {format} from 'date-fns';
 import {pl} from 'date-fns/locale';
-import {FaCalendarAlt, FaPaperPlane, FaUser, FaExclamationTriangle, FaLock, FaShare} from 'react-icons/fa';
+import {FaCalendarAlt, FaExclamationTriangle, FaLock, FaPaperPlane, FaShare, FaUser} from 'react-icons/fa';
 import {CarReceptionProtocol, ProtocolStatus} from '../../../../types';
 import {Comment, commentsApi} from '../../../../api/commentsApi';
 

@@ -1,12 +1,12 @@
 // ClientListTable/EmptyState.tsx
 import React from 'react';
-import { FaList } from 'react-icons/fa';
+import {FaList} from 'react-icons/fa';
 import {
+    EmptyStateAction,
     EmptyStateContainer,
-    EmptyStateIcon,
-    EmptyStateTitle,
     EmptyStateDescription,
-    EmptyStateAction
+    EmptyStateIcon,
+    EmptyStateTitle
 } from './styles/components';
 
 export const EmptyState: React.FC = () => {

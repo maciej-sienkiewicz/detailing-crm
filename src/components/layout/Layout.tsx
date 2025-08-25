@@ -1,7 +1,7 @@
 // src/components/layout/Layout.tsx
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { FaBars, FaTimes } from 'react-icons/fa';
+import {FaBars} from 'react-icons/fa';
 import Sidebar from './Sidebar';
 import SecondaryMenu from './SecondaryMenu';
 

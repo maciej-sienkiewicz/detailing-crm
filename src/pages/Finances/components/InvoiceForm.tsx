@@ -1,20 +1,20 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, {useRef, useState} from 'react';
 import styled from 'styled-components';
-import { FaPlus, FaTrash, FaFileUpload, FaFilePdf, FaSpinner } from 'react-icons/fa';
+import {FaFilePdf, FaFileUpload, FaPlus, FaSpinner, FaTrash} from 'react-icons/fa';
 import {
+    DocumentType,
     Invoice,
+    InvoiceAttachment,
     InvoiceItem,
     InvoiceStatus,
     InvoiceStatusLabels,
     InvoiceType,
     InvoiceTypeLabels,
     PaymentMethod,
-    PaymentMethodLabels,
-    InvoiceAttachment, TransactionDirection, DocumentType
+    PaymentMethodLabels
 } from '../../../types';
-import { HelpText } from "../../Settings/styles/ModalStyles";
-import { invoicesApi, ExtractedInvoiceData } from '../../../api/invoicesApi';
-import Modal from '../../../components/common/Modal';
+import {HelpText} from "../../Settings/styles/ModalStyles";
+import {invoicesApi} from '../../../api/invoicesApi';
 import ConfirmationDialog from '../../../components/common/ConfirmationDialog';
 
 interface InvoiceFormProps {

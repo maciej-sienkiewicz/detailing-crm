@@ -1,6 +1,6 @@
 // src/components/common/ParticlesNetwork.tsx
 
-import React, { useEffect, useRef } from 'react';
+import React, {useEffect, useRef} from 'react';
 import styled from 'styled-components';
 
 interface ParticlesNetworkProps {

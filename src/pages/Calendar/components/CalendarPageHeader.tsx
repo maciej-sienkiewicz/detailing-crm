@@ -1,9 +1,9 @@
 // src/pages/Calendar/components/CalendarPageHeader.tsx
 import React from 'react';
 import styled from 'styled-components';
-import { FaCalendarAlt, FaPlus } from 'react-icons/fa';
-import { useCalendarPageContext } from '../CalendarPageProvider';
-import { theme } from '../../../styles/theme';
+import {FaCalendarAlt, FaPlus} from 'react-icons/fa';
+import {useCalendarPageContext} from '../CalendarPageProvider';
+import {theme} from '../../../styles/theme';
 
 export const CalendarPageHeader: React.FC = () => {
     const { actions } = useCalendarPageContext();

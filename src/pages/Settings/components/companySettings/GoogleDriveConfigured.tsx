@@ -1,22 +1,22 @@
 // src/pages/Settings/components/GoogleDriveConfigured.tsx
 import React from 'react';
-import { FaEdit, FaTrashAlt, FaExternalLinkAlt, FaInfoCircle, FaCheckCircle } from 'react-icons/fa';
-import type { GoogleDriveFolderSettings } from '../../../../api/companySettingsApi';
-import { ActionButton } from '../../styles/companySettings/SectionCard.styles';
+import {FaEdit, FaExternalLinkAlt, FaInfoCircle, FaTrashAlt} from 'react-icons/fa';
+import type {GoogleDriveFolderSettings} from '../../../../api/companySettingsApi';
+import {ActionButton} from '../../styles/companySettings/SectionCard.styles';
 import {
+    ActionGroup,
+    ExternalLink,
+    GoogleDriveActions,
+    GoogleDriveHelp,
     GoogleDriveInfo,
+    HelpItem,
+    HelpList,
+    HelpTitle,
     InfoGrid,
     InfoItem,
     InfoLabel,
     InfoValue,
-    StatusBadge,
-    GoogleDriveActions,
-    ActionGroup,
-    GoogleDriveHelp,
-    HelpTitle,
-    HelpList,
-    HelpItem,
-    ExternalLink
+    StatusBadge
 } from '../../styles/companySettings/GoogleDrive.styles';
 
 interface GoogleDriveConfiguredProps {

@@ -1,18 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
-import { format } from 'date-fns';
-import { pl } from 'date-fns/locale';
-import {
-    FaCalendarCheck,
-    FaTools,
-    FaClock,
-    FaCarSide
-} from 'react-icons/fa';
-import {
-    CarReceptionProtocol,
-    ProtocolStatus,
-    ProtocolStatusLabels
-} from '../../../../types';
+import {FaCalendarCheck, FaCarSide, FaClock, FaTools} from 'react-icons/fa';
+import {CarReceptionProtocol, ProtocolStatus, ProtocolStatusLabels} from '../../../../types';
 
 interface StatusHistoryItem {
     status: ProtocolStatus;

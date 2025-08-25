@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { FaFilter, FaTimes, FaSearch, FaCheck, FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import {FaCheck, FaChevronDown, FaChevronUp, FaFilter, FaSearch, FaTimes} from 'react-icons/fa';
 
 // Professional Brand Theme - Premium Automotive CRM
 const brandTheme = {

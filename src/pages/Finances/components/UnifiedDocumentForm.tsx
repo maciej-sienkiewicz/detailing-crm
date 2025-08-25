@@ -1,21 +1,30 @@
 // src/pages/Finances/components/UnifiedDocumentForm.tsx
-import React, { useState, useRef } from 'react';
+import React, {useRef, useState} from 'react';
 import styled from 'styled-components';
-import { FaPlus, FaTrash, FaFileUpload, FaFilePdf, FaSpinner, FaFileInvoiceDollar, FaReceipt, FaExchangeAlt } from 'react-icons/fa';
 import {
-    UnifiedFinancialDocument,
+    FaExchangeAlt,
+    FaFileInvoiceDollar,
+    FaFilePdf,
+    FaFileUpload,
+    FaPlus,
+    FaReceipt,
+    FaSpinner,
+    FaTrash
+} from 'react-icons/fa';
+import {
+    DocumentAttachment,
     DocumentItem,
     DocumentStatus,
     DocumentStatusLabels,
     DocumentType,
     DocumentTypeLabels,
-    TransactionDirection,
-    TransactionDirectionLabels,
     PaymentMethod,
     PaymentMethodLabels,
-    DocumentAttachment
+    TransactionDirection,
+    TransactionDirectionLabels,
+    UnifiedFinancialDocument
 } from '../../../types';
-import { unifiedFinancialApi } from '../../../api/unifiedFinancialApi';
+import {unifiedFinancialApi} from '../../../api/unifiedFinancialApi';
 import ConfirmationDialog from '../../../components/common/ConfirmationDialog';
 
 interface UnifiedDocumentFormProps {

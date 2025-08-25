@@ -1,23 +1,20 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import styled from 'styled-components';
-import { useTablets } from '../../hooks/useTablets';
-import { TabletDevice, SignatureSession, CreateSignatureSessionRequest, tabletsApi } from '../../api/tabletsApi';
-import { generateUUID } from '../../utils/uuidHelper';
+import {useTablets} from '../../hooks/useTablets';
+import {CreateSignatureSessionRequest, SignatureSession, TabletDevice, tabletsApi} from '../../api/tabletsApi';
+import {generateUUID} from '../../utils/uuidHelper';
 import {
-    FaTabletAlt,
-    FaWifi,
-    FaMapMarkerAlt,
-    FaEdit,
-    FaTrash,
+    FaCheckCircle,
+    FaClock,
+    FaExclamationTriangle,
     FaEye,
     FaSignature,
-    FaClock,
-    FaCheckCircle,
-    FaTimesCircle,
-    FaExclamationTriangle,
-    FaPaperPlane,
     FaSpinner,
-    FaTimes
+    FaTabletAlt,
+    FaTimes,
+    FaTimesCircle,
+    FaTrash,
+    FaWifi
 } from 'react-icons/fa';
 import Modal from "../../components/common/Modal";
 

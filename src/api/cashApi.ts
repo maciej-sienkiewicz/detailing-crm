@@ -1,6 +1,6 @@
 // src/api/cashApi.ts
-import { apiClient, PaginatedResponse } from './apiClient';
-import { CashTransaction, CashTransactionFilters, TransactionType } from '../types/cash';
+import {apiClient, PaginatedResponse} from './apiClient';
+import {CashTransaction, CashTransactionFilters} from '../types/cash';
 
 /**
  * API do zarządzania transakcjami gotówkowymi

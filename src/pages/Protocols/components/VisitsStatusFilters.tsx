@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
-import { ProtocolStatus } from '../../../types';
-import { theme } from '../../../styles/theme';
+import {ProtocolStatus} from '../../../types';
+import {theme} from '../../../styles/theme';
 
 type StatusFilterType = 'all' | ProtocolStatus;
 

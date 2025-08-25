@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { FaTimes, FaPlus, FaTags, FaImage, FaSpinner } from 'react-icons/fa';
-import { carReceptionApi } from '../../../../api/carReceptionApi';
+import {FaImage, FaPlus, FaSpinner, FaTags, FaTimes} from 'react-icons/fa';
+import {carReceptionApi} from '../../../../api/carReceptionApi';
 
 // Professional Brand Theme
 const brandTheme = {

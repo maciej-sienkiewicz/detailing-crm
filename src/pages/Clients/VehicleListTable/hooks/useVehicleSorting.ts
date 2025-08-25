@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { SortDirection } from '../types';
+import {useEffect, useState} from 'react';
+import {SortDirection} from '../types';
 import {VehicleExpanded} from "../../../../types";
 
 export const useVehicleSorting = (vehicles: VehicleExpanded[]) => {

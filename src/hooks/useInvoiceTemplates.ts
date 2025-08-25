@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { InvoiceTemplate, TemplateUploadData, InvoiceTemplateFilters } from '../types/invoiceTemplate';
-import { invoiceTemplatesApi } from '../api/invoiceTemplatesApi';
+import {useCallback, useEffect, useState} from 'react';
+import {InvoiceTemplate, InvoiceTemplateFilters, TemplateUploadData} from '../types/invoiceTemplate';
+import {invoiceTemplatesApi} from '../api/invoiceTemplatesApi';
 
 export const useInvoiceTemplates = () => {
     const [templates, setTemplates] = useState<InvoiceTemplate[]>([]);

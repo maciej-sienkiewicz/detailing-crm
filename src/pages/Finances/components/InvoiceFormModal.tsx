@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
-import { FaTimes } from 'react-icons/fa';
-import { Invoice } from '../../../types';
+import {FaTimes} from 'react-icons/fa';
+import {Invoice} from '../../../types';
 import InvoiceForm from './InvoiceForm';
 
 interface InvoiceFormModalProps {

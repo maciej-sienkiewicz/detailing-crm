@@ -1,14 +1,14 @@
 // src/pages/ActivityFeed/ActivityFeedPage.tsx
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from 'styled-components';
-import { FaRss, FaFilter, FaSync, FaChevronDown, FaExclamationTriangle } from 'react-icons/fa';
-import { ActivityItem, ActivityFilter } from '../../types/activity';
-import { format, subDays } from 'date-fns';
-import { pl } from 'date-fns/locale';
-import { activityApi } from '../../api/activity';
+import {FaChevronDown, FaExclamationTriangle, FaFilter, FaRss, FaSync} from 'react-icons/fa';
+import {ActivityFilter, ActivityItem} from '../../types/activity';
+import {format, subDays} from 'date-fns';
+import {pl} from 'date-fns/locale';
+import {activityApi} from '../../api/activity';
 import ActivityFiltersPanel from "./components/ActivityFiltersPanelProps";
 import ActivityTimelineList from "./components/ActivitiTimelineList";
-import { theme } from '../../styles/theme';
+import {theme} from '../../styles/theme';
 
 const ActivityFeedPage: React.FC = () => {
     // Stan aplikacji

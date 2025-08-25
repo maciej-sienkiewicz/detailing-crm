@@ -1,6 +1,6 @@
 // src/hooks/useCalendarColors.ts - Hook with caching for calendar colors
-import { useState, useEffect, useCallback } from 'react';
-import { CalendarColor } from '../types/calendar';
+import {useCallback, useEffect, useState} from 'react';
+import {CalendarColor} from '../types/calendar';
 
 // Global cache for calendar colors
 let calendarColorsCache: {

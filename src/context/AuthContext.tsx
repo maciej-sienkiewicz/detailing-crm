@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { authApi } from '../api/authApi';
+import React, {createContext, ReactNode, useContext, useEffect, useState} from 'react';
+import {useNavigate} from 'react-router-dom';
+import {authApi} from '../api/authApi';
 
 // Definicja typu danych użytkownika
 export interface User {

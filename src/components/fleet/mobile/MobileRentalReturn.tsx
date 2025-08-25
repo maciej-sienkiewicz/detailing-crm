@@ -1,22 +1,22 @@
 // src/components/fleet/mobile/MobileRentalReturn.tsx
 
-import React, { useState, useRef } from 'react';
+import React, {useRef, useState} from 'react';
 import styled from 'styled-components';
-import { FleetRental, FleetRentalStatus } from '../../../types/fleetRental';
-import { FleetVehicle } from '../../../types/fleet';
+import {FleetRental, FleetRentalStatus} from '../../../types/fleetRental';
+import {FleetVehicle} from '../../../types/fleet';
 import FuelLevelIndicator from '../common/FuelLevelIndicator';
-import { useToast } from '../../../components/common/Toast/Toast';
-import { fleetRentalApi } from '../../../api/fleetRentalApi';
-import { format } from 'date-fns';
-import { pl } from 'date-fns/locale';
+import {useToast} from '../../../components/common/Toast/Toast';
+import {fleetRentalApi} from '../../../api/fleetRentalApi';
+import {format} from 'date-fns';
+import {pl} from 'date-fns/locale';
 import {
-    FaCar,
-    FaTachometerAlt,
-    FaGasPump,
+    FaCalendarAlt,
     FaCamera,
+    FaCar,
     FaExclamationTriangle,
-    FaUser,
-    FaCalendarAlt
+    FaGasPump,
+    FaTachometerAlt,
+    FaUser
 } from 'react-icons/fa';
 
 interface MobileRentalReturnProps {

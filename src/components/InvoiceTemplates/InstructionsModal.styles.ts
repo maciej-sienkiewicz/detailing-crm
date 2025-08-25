@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import { settingsTheme } from '../../pages/Settings/styles/theme';
+import {settingsTheme} from '../../pages/Settings/styles/theme';
 
 export const InstructionsContent = styled.div`
     display: flex;

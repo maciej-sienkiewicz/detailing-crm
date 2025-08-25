@@ -1,13 +1,6 @@
 // src/hooks/useUserSignature.ts - Fixed hook for signature management
-import { useState, useEffect, useCallback } from 'react';
-import {
-    userSignatureApi,
-    signatureValidation,
-    type UserSignature,
-    type CreateSignatureRequest,
-    type UpdateSignatureRequest,
-    type SignatureValidationResponse
-} from '../api/userSignatureApi';
+import {useCallback, useEffect, useState} from 'react';
+import {type SignatureValidationResponse, type UserSignature, userSignatureApi} from '../api/userSignatureApi';
 
 interface UseUserSignatureReturn {
     // State

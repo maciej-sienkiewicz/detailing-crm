@@ -1,9 +1,9 @@
 // src/pages/Finances/components/CategoriesSection.tsx
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import styled from 'styled-components';
-import {FaPlus, FaFolder, FaChevronDown, FaChevronRight, FaCalendarAlt, FaSync} from 'react-icons/fa';
-import { Category, CategoryService } from '../../../api/statsApi';
-import { CategoryServicesTable } from './CategoryServicesTable';
+import {FaCalendarAlt, FaChevronDown, FaChevronRight, FaFolder, FaPlus, FaSync} from 'react-icons/fa';
+import {Category, CategoryService} from '../../../api/statsApi';
+import {CategoryServicesTable} from './CategoryServicesTable';
 
 // Unified theme
 const theme = {

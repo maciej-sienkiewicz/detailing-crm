@@ -1,11 +1,11 @@
 // src/pages/Protocols/list/ActiveFiltersDisplay.tsx
 import React from 'react';
 import styled from 'styled-components';
-import { FaTimes, FaFilter, FaCheck } from 'react-icons/fa';
-import { SearchCriteria } from './ProtocolSearchFilters';
-import { ProtocolStatus, ProtocolStatusLabels } from '../../../types';
-import { format } from 'date-fns';
-import { pl } from 'date-fns/locale';
+import {FaCheck, FaFilter, FaTimes} from 'react-icons/fa';
+import {SearchCriteria} from './ProtocolSearchFilters';
+import {ProtocolStatus, ProtocolStatusLabels} from '../../../types';
+import {format} from 'date-fns';
+import {pl} from 'date-fns/locale';
 
 // Brand Theme System
 const brandTheme = {

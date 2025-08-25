@@ -1,10 +1,10 @@
 // VehicleListTable.tsx - Enhanced with ProtocolList styling and structure
-import React, { useState, useEffect, useRef } from 'react';
-import { DndProvider, useDrag, useDrop } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
+import React, {useEffect, useRef, useState} from 'react';
+import {DndProvider, useDrag, useDrop} from 'react-dnd';
+import {HTML5Backend} from 'react-dnd-html5-backend';
 import styled from 'styled-components';
-import { FaGripVertical, FaEye, FaEdit, FaTrash, FaList, FaTable, FaCar, FaCalendarAlt } from 'react-icons/fa';
-import { VehicleExpanded } from '../../../types';
+import {FaCalendarAlt, FaCar, FaEdit, FaEye, FaGripVertical, FaList, FaTable, FaTrash} from 'react-icons/fa';
+import {VehicleExpanded} from '../../../types';
 
 // Brand Theme System - consistent with ProtocolList
 const brandTheme = {

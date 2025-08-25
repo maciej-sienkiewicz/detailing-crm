@@ -1,5 +1,5 @@
 import React from 'react';
-import { FormActions as ActionsContainer, Button } from '../styles';
+import {Button, FormActions as ActionsContainer} from '../styles';
 
 interface FormActionsProps {
     onCancel: () => void;

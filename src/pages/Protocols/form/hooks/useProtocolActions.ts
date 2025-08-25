@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { NavigateFunction } from 'react-router-dom';
+import {useState} from 'react';
+import {NavigateFunction} from 'react-router-dom';
 import {CarReceptionProtocol, ProtocolListItem, ProtocolStatus} from '../../../../types';
-import { protocolsApi } from '../../../../api/protocolsApi';
+import {protocolsApi} from '../../../../api/protocolsApi';
+
 interface UseProtocolActionsResult {
     editingProtocol: CarReceptionProtocol | null;
     formData: Partial<CarReceptionProtocol>;

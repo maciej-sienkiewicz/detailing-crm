@@ -1,8 +1,8 @@
 // src/components/fleet/calendar/AvailabilitySearch.tsx
 import React from 'react';
 import styled from 'styled-components';
-import { FaCalendarCheck, FaSearch } from 'react-icons/fa';
-import { format } from 'date-fns';
+import {FaCalendarCheck, FaSearch} from 'react-icons/fa';
+import {format} from 'date-fns';
 
 interface AvailabilitySearchProps {
     startDate: string;

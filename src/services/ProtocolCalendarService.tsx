@@ -1,8 +1,7 @@
 // src/services/ProtocolCalendarService.ts - UPDATED VERSION WITH visitsApiNew
-import { visitsApi } from '../api/visitsApiNew';
+import {VisitListItem, visitsApi} from '../api/visitsApiNew';
 import {Appointment, AppointmentStatus, DiscountType, ServiceApprovalStatus} from '../types';
-import { ProtocolStatus, CarReceptionProtocol } from '../types/protocol';
-import { VisitListItem } from '../api/visitsApiNew';
+import {CarReceptionProtocol, ProtocolStatus} from '../types/protocol';
 
 // Helper function to check if date is in range
 const isDateInRange = (date: Date, range?: { start: Date; end: Date }): boolean => {

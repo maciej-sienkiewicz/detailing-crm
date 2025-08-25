@@ -1,5 +1,5 @@
 // src/api/userSignatureApi.ts - Updated for base64 signature storage
-import { apiClient } from './apiClient';
+import {apiClient} from './apiClient';
 
 // Updated interfaces for base64 storage
 export interface UserSignature {

@@ -1,6 +1,6 @@
 // src/api/carReceptionApi.ts - Poprawiona wersja z autoryzacją
-import { CarReceptionProtocol, ClientProtocolHistory, ProtocolListItem, VehicleImage } from '../types';
-import { apiClient } from './apiClient';
+import {CarReceptionProtocol, ClientProtocolHistory, VehicleImage} from '../types';
+import {apiClient} from './apiClient';
 
 export interface ProtocolDocument {
     storageId: string;

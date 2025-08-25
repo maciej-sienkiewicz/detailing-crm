@@ -1,11 +1,11 @@
 // src/pages/Settings/sections/BasicInfoSection.tsx
-import React, { useState } from 'react';
-import { FaBuilding, FaMapMarkerAlt, FaPhone, FaGlobe, FaCheckCircle, FaExclamationTriangle, FaSpinner } from 'react-icons/fa';
-import { companySettingsApi } from '../../../../api/companySettingsApi';
-import { SectionCard } from '../../components/companySettings/SectionCard';
-import { FormField } from '../../components/companySettings/FormField';
-import { ValidationStatus } from '../../components/companySettings/ValidationStatus';
-import { FormGrid, DisplayValue, WebsiteLink } from '../../styles/companySettings/Form.styles';
+import React, {useState} from 'react';
+import {FaBuilding, FaGlobe, FaMapMarkerAlt, FaPhone} from 'react-icons/fa';
+import {companySettingsApi} from '../../../../api/companySettingsApi';
+import {SectionCard} from '../../components/companySettings/SectionCard';
+import {FormField} from '../../components/companySettings/FormField';
+import {ValidationStatus} from '../../components/companySettings/ValidationStatus';
+import {DisplayValue, FormGrid, WebsiteLink} from '../../styles/companySettings/Form.styles';
 
 interface BasicInfo {
     companyName?: string;

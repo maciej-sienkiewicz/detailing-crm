@@ -1,26 +1,27 @@
 import React from 'react';
-import { FaCalendarAlt, FaPlay, FaCheck, FaArrowLeft, FaInfoCircle, FaSave, FaUsers, FaEnvelope, FaClock } from 'react-icons/fa';
+import {FaArrowLeft, FaCalendarAlt, FaClock, FaEnvelope, FaInfoCircle, FaPlay, FaSave, FaUsers} from 'react-icons/fa';
 import {
-    StepContainer,
-    StepTitle,
-    StepNumber,
     FormSection,
-    SectionTitle,
-    LoadingContainer,
     LoadingSpinner,
-    StepActions,
+    PrimaryButton,
     SecondaryButton,
-    PrimaryButton
+    SectionTitle,
+    StepActions,
+    StepContainer,
+    StepNumber,
+    StepTitle
 } from '../campaign-common/styled/LayoutComponents';
 import {
-    FormGroup,
-    FormLabel,
-    FormInput,
-    FormCheckboxWrapper,
     FormCheckbox,
     FormCheckboxLabel,
-    FormHelp
+    FormCheckboxWrapper,
+    FormGroup,
+    FormHelp,
+    FormInput,
+    FormLabel
 } from '../campaign-common/styled/FormComponents';
+// Styled components
+import styled from 'styled-components';
 
 interface Step4SummaryProps {
     campaign: any;
@@ -239,9 +240,6 @@ const Step4Summary: React.FC<Step4SummaryProps> = ({
         </StepContainer>
     );
 };
-
-// Styled components
-import styled from 'styled-components';
 
 const SummaryGrid = styled.div`
     display: grid;

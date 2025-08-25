@@ -1,5 +1,5 @@
 // src/pages/SMS/components/modals/automation-types.ts
-import { SmsAutomation, SmsAutomationTrigger, SmsTemplate } from '../../../../types/sms';
+import {SmsAutomation, SmsAutomationTrigger, SmsTemplate} from '../../../../types/sms';
 
 /**
  * Interfejs dla wartości formularza automatyzacji

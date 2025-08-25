@@ -1,23 +1,25 @@
 // src/pages/Finances/components/BalanceHistoryModal.tsx
-import React, { useState, useEffect, useCallback } from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import styled from 'styled-components';
 import {
-    FaTimes,
-    FaHistory,
-    FaMoneyBillWave,
-    FaUniversity,
     FaChevronLeft,
     FaChevronRight,
     FaFilter,
+    FaHistory,
+    FaMoneyBillWave,
     FaSearch,
     FaSpinner,
-    FaDownload,
-    FaCalendarAlt,
-    FaFileExport
+    FaTimes,
+    FaUniversity
 } from 'react-icons/fa';
-import { brandTheme } from '../styles/theme';
-import { balanceOverrideApi, BalanceType, BalanceHistoryResponse, BalanceHistorySearchRequest, SpringPageResponse } from '../../../api/balanceOverrideApi';
-import { getOperationTypeLabel, getOperationTypeColor } from '../utils/operationTypeUtils';
+import {brandTheme} from '../styles/theme';
+import {
+    BalanceHistoryResponse,
+    BalanceHistorySearchRequest,
+    balanceOverrideApi,
+    BalanceType
+} from '../../../api/balanceOverrideApi';
+import {getOperationTypeLabel} from '../utils/operationTypeUtils';
 
 interface BalanceHistoryModalProps {
     isOpen: boolean;

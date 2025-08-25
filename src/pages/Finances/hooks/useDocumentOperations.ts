@@ -1,7 +1,7 @@
 // src/pages/Finances/hooks/useDocumentOperations.ts
-import { useCallback, useState } from 'react';
-import { documentPrintService } from '../../../api/documentPrintService';
-import { UnifiedFinancialDocument } from '../../../types/finance';
+import {useCallback, useState} from 'react';
+import {documentPrintService} from '../../../api/documentPrintService';
+import {UnifiedFinancialDocument} from '../../../types/finance';
 
 interface UseDocumentOperationsProps {
     onError: (message: string) => void;

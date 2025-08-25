@@ -1,16 +1,9 @@
 // src/components/fleet/calendar/AvailabilityModal.tsx
 import React from 'react';
 import styled from 'styled-components';
-import { FleetVehicle } from '../../../types/fleet';
+import {FleetVehicle} from '../../../types/fleet';
 import EnhancedFuelLevelIndicator from '../common/EnhancedFuelLevelIndicator';
-import {
-    FaTimes,
-    FaMapMarkerAlt,
-    FaTachometerAlt,
-    FaCalendarCheck,
-    FaExclamationTriangle,
-    FaCarAlt
-} from 'react-icons/fa';
+import {FaCarAlt, FaExclamationTriangle, FaMapMarkerAlt, FaTachometerAlt, FaTimes} from 'react-icons/fa';
 
 interface AvailabilityModalProps {
     availableVehicles: FleetVehicle[];

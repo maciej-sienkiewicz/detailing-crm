@@ -1,7 +1,7 @@
 // src/components/DocumentPreviewModal.tsx
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { FaTimes, FaSpinner, FaDownload, FaFileAlt, FaExclamationTriangle } from 'react-icons/fa';
+import {FaDownload, FaExclamationTriangle, FaFileAlt, FaTimes} from 'react-icons/fa';
 import {apiClient} from "../../../../api/apiClient";
 
 interface ProtocolDocument {

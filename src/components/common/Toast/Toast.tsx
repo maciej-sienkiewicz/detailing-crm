@@ -1,7 +1,7 @@
 // src/components/common/Toast/Toast.tsx
-import React, { useState, useEffect } from 'react';
-import styled, { keyframes, css } from 'styled-components';
-import { FaCheckCircle, FaExclamationTriangle, FaInfoCircle, FaTimes } from 'react-icons/fa';
+import React, {useEffect, useState} from 'react';
+import styled, {css, keyframes} from 'styled-components';
+import {FaCheckCircle, FaExclamationTriangle, FaInfoCircle, FaTimes} from 'react-icons/fa';
 
 export type ToastType = 'success' | 'error' | 'info';
 

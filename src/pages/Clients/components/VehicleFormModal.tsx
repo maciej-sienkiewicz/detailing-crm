@@ -1,8 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { FaCar, FaUser, FaIdCard, FaCheck, FaTimes, FaSpinner, FaCalendarAlt, FaMoneyBillWave, FaTools, FaPalette, FaBarcode, FaEye } from 'react-icons/fa';
-import { VehicleExpanded } from '../../../types/vehicle';
-import { clientsApi } from '../../../api/clientsApi';
+import {
+    FaBarcode,
+    FaCalendarAlt,
+    FaCar,
+    FaCheck,
+    FaEye,
+    FaIdCard,
+    FaPalette,
+    FaSpinner,
+    FaTimes,
+    FaUser
+} from 'react-icons/fa';
+import {VehicleExpanded} from '../../../types/vehicle';
+import {clientsApi} from '../../../api/clientsApi';
 import Modal from '../../../components/common/Modal';
 
 const brandTheme = {

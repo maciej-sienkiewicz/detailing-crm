@@ -1,20 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { FaSearch, FaPlus } from 'react-icons/fa';
+import React, {useEffect, useState} from 'react';
+import {FaPlus, FaSearch} from 'react-icons/fa';
 import {
+    AddServiceButton,
+    CustomServiceInfo,
     SearchContainer,
-    SearchInputGroup,
-    SearchInputWrapper,
     SearchIcon,
     SearchInput,
-    SearchResultsList,
+    SearchInputGroup,
+    SearchInputWrapper,
     SearchResultItem,
     SearchResultPrice,
-    AddServiceButton,
-    CustomServiceInfo
+    SearchResultsList
 } from '../styles';
 import PriceEditModal from "../../shared/modals/PriceEditModal";
-import { Service } from '../../../../types';
-import { servicesApi } from "../../../../api/servicesApi";
+import {Service} from '../../../../types';
+import {servicesApi} from "../../../../api/servicesApi";
 
 interface ServiceSearchProps {
     searchQuery: string;

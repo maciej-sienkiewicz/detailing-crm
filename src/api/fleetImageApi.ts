@@ -1,7 +1,7 @@
 // src/api/fleetImageApi.ts
 
-import { apiClient } from './apiClient';
-import { FleetImage } from '../types/fleetRental';
+import {apiClient} from './apiClient';
+import {FleetImage} from '../types/fleetRental';
 
 export const fleetImageApi = {
     // Dodawanie zdjęcia pojazdu

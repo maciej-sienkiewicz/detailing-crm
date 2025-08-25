@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { FaCar, FaInfoCircle } from 'react-icons/fa';
+import React, {useEffect, useState} from 'react';
+import {FaInfoCircle} from 'react-icons/fa';
 import {
     FilterGrid,
     FormGroup,
-    FormLabel,
+    FormHelp,
     FormInput,
-    FormSelect,
-    FormHelp
+    FormLabel,
+    FormSelect
 } from '../campaign-common/styled/FormComponents';
 
 interface VehicleFiltersProps {

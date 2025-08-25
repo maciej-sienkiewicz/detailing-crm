@@ -1,28 +1,19 @@
 // src/pages/SMS/SmsMainPage.tsx
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { useNavigate, useLocation } from 'react-router-dom';
-import {
-    FaSms,
-    FaEnvelope,
-    FaUserFriends,
-    FaChartLine,
-    FaCog,
-    FaListAlt,
-    FaRobot,
-    FaPlus
-} from 'react-icons/fa';
-import { SmsDashboard } from './components/SmsDashboard';
-import { SmsMessagesList } from './components/SmsMessagesList';
-import { SmsAutomationsList } from './components/SmsAutomationsList';
-import { SmsStats } from './components/SmsStats';
-import { SmsSettings } from './components/SmsSettings';
+import {useLocation, useNavigate} from 'react-router-dom';
+import {FaChartLine, FaCog, FaEnvelope, FaListAlt, FaRobot, FaSms, FaUserFriends} from 'react-icons/fa';
+import {SmsDashboard} from './components/SmsDashboard';
+import {SmsMessagesList} from './components/SmsMessagesList';
+import {SmsAutomationsList} from './components/SmsAutomationsList';
+import {SmsStats} from './components/SmsStats';
+import {SmsSettings} from './components/SmsSettings';
 import SmsTemplatesList from "./components/SmsTemplatesList";
 import SmsCampaignsList from "./components/SmsCampaignsList";
 import NewSmsMessageModal from './components/modals/NewSmsMessageModal';
 import NewSmsCampaignModal from './components/modals/NewSmsCampaignModal';
-import { SmsMessage, SmsCampaign } from '../../types/sms';
-import { useToast } from '../../components/common/Toast/Toast';
+import {SmsCampaign, SmsMessage} from '../../types/sms';
+import {useToast} from '../../components/common/Toast/Toast';
 
 // Typ opcji nawigacji
 type NavOption = 'dashboard' | 'messages' | 'templates' | 'campaigns' | 'automations' | 'stats' | 'settings';

@@ -1,20 +1,20 @@
 import React from 'react';
-import { FaEdit, FaEye } from 'react-icons/fa';
-import { getVehicleStatus, formatCurrency } from './utils/vehicleUtils';
+import {FaEdit, FaEye} from 'react-icons/fa';
+import {formatCurrency, getVehicleStatus} from './utils/vehicleUtils';
 import {
-    CardsContainer,
-    VehicleCard,
-    CardHeader,
-    CardTitle,
-    StatusBadge,
-    CardActions,
     ActionButton,
+    CardActions,
     CardContent,
-    CardRow,
+    CardHeader,
     CardLabel,
-    CardValue
+    CardRow,
+    CardsContainer,
+    CardTitle,
+    CardValue,
+    StatusBadge,
+    VehicleCard
 } from './styles/components';
-import { VehicleExpanded } from "../../../types";
+import {VehicleExpanded} from "../../../types";
 
 interface CardsViewProps {
     vehicles: VehicleExpanded[];

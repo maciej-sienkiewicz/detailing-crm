@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { FaTimes, FaCheck } from 'react-icons/fa';
-import { useToast } from "../../../../components/common/Toast/Toast";
-import { SelectedService } from "../../../../types";
+import React, {useEffect, useState} from 'react';
+import {FaCheck, FaTimes} from 'react-icons/fa';
+import {useToast} from "../../../../components/common/Toast/Toast";
+import {SelectedService} from "../../../../types";
 import InvoiceItemsModal from "./InvoiceItemsModal";
 import * as S from './PaymentModalStyles';
 

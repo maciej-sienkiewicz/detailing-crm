@@ -1,15 +1,7 @@
 import React from 'react';
-import { ProtocolListItem } from '../../../types';
-import {
-    CarInfo,
-    DateRange,
-    OwnerInfo,
-    CompanyInfo,
-    ActionButtons,
-    ActionButton,
-    StatusBadge
-} from '../styles';
-import { ProtocolStatusBadge } from "../shared/components/ProtocolStatusBadge";
+import {ProtocolListItem} from '../../../types';
+import {CarInfo, CompanyInfo, DateRange, OwnerInfo} from '../styles';
+import {ProtocolStatusBadge} from "../shared/components/ProtocolStatusBadge";
 
 interface ProtocolItemProps {
     protocol: ProtocolListItem;

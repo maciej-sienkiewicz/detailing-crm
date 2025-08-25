@@ -1,6 +1,6 @@
-import React, { useState, useCallback } from 'react';
+import React, {useCallback, useState} from 'react';
 import styled from 'styled-components';
-import { FaFilter, FaTimes, FaSearch, FaCheck, FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import {FaCheck, FaChevronDown, FaChevronUp, FaFilter, FaSearch, FaTimes} from 'react-icons/fa';
 
 const brandTheme = {
     primary: 'var(--brand-primary, #1a365d)',

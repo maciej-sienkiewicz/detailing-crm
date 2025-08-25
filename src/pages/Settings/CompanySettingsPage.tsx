@@ -1,21 +1,21 @@
 // src/pages/Settings/CompanySettingsPage.tsx
-import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
-import { companySettingsApi, type CompanySettingsResponse } from '../../api/companySettingsApi';
-import { useNotifications } from '../../hooks/useNotifications';
-import { BasicInfoSection } from './sections/companySettings/BasicInfoSection';
-import { BankSettingsSection } from './sections/companySettings/BankSettingsSection';
-import { GoogleDriveSection } from './sections/companySettings/GoogleDriveSection';
-import { EmailSettingsCard } from './components/companySettings/EmailSettingsCard';
-import { UserSignatureCard } from './components/companySettings/UserSignatureCard';
+import React, {forwardRef, useEffect, useImperativeHandle, useState} from 'react';
+import {companySettingsApi, type CompanySettingsResponse} from '../../api/companySettingsApi';
+import {useNotifications} from '../../hooks/useNotifications';
+import {BasicInfoSection} from './sections/companySettings/BasicInfoSection';
+import {BankSettingsSection} from './sections/companySettings/BankSettingsSection';
+import {GoogleDriveSection} from './sections/companySettings/GoogleDriveSection';
+import {EmailSettingsCard} from './components/companySettings/EmailSettingsCard';
+import {UserSignatureCard} from './components/companySettings/UserSignatureCard';
 import {
-    PageContainer,
     ContentContainer,
+    ErrorContainer,
     LoadingContainer,
-    ErrorContainer
+    PageContainer
 } from './styles/companySettings/CompanySettings.styles';
-import { LoadingSpinner } from './components/companySettings/LoadingSpinner';
-import { ErrorDisplay } from './components/companySettings/ErrorDisplay';
-import { NotificationManager } from './components/companySettings/NotificationManager';
+import {LoadingSpinner} from './components/companySettings/LoadingSpinner';
+import {ErrorDisplay} from './components/companySettings/ErrorDisplay';
+import {NotificationManager} from './components/companySettings/NotificationManager';
 
 export type EditingSection = 'basic' | 'bank' | 'email' | null;
 

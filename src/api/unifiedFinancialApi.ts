@@ -1,11 +1,10 @@
 // src/api/unifiedFinancialApi.ts
-import { apiClient, PaginatedResponse } from './apiClient';
+import {apiClient, PaginatedResponse} from './apiClient';
 import {
-    UnifiedFinancialDocument,
+    DocumentStatus,
     UnifiedDocumentFilters,
     UnifiedDocumentSummary,
-    DocumentType,
-    DocumentStatus
+    UnifiedFinancialDocument
 } from '../types/finance';
 
 // Typ odpowiedzi dla ekstrahowanych danych z dokumentu

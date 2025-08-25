@@ -1,11 +1,28 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, {useEffect, useState} from 'react';
+import {useNavigate} from 'react-router-dom';
 import styled from 'styled-components';
-import { FaTimes, FaUser, FaBuilding, FaIdCard, FaMapMarkerAlt, FaEnvelope, FaPhone, FaCalendarAlt, FaMoneyBillWave, FaCar, FaEye, FaStickyNote, FaCheckCircle, FaClock, FaExclamationTriangle, FaArrowRight } from 'react-icons/fa';
+import {
+    FaArrowRight,
+    FaBuilding,
+    FaCalendarAlt,
+    FaCar,
+    FaCheckCircle,
+    FaClock,
+    FaEnvelope,
+    FaExclamationTriangle,
+    FaEye,
+    FaIdCard,
+    FaMapMarkerAlt,
+    FaMoneyBillWave,
+    FaPhone,
+    FaStickyNote,
+    FaTimes,
+    FaUser
+} from 'react-icons/fa';
 import {ClientExpanded, ClientStatistics} from '../../../types';
 import {clientApi} from "../../../api/clientsApi";
-import { visitsApi, ClientVisitHistoryItem } from '../../../api/visitsApiNew';
-import { ProtocolStatus, ProtocolStatusLabels, ProtocolStatusColors } from '../../../types/protocol';
+import {ClientVisitHistoryItem, visitsApi} from '../../../api/visitsApiNew';
+import {ProtocolStatus, ProtocolStatusColors, ProtocolStatusLabels} from '../../../types/protocol';
 
 // Professional Brand Theme - Premium Automotive CRM
 const brandTheme = {

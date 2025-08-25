@@ -1,7 +1,7 @@
 // VehicleFilters.tsx - Zaktualizowane filtry dla nowego API
 import React from 'react';
 import styled from 'styled-components';
-import { FaFilter, FaTimes, FaSearch, FaCheck, FaChevronDown, FaChevronUp, FaCar, FaCalendarAlt, FaUser, FaEye } from 'react-icons/fa';
+import {FaCar, FaCheck, FaChevronDown, FaChevronUp, FaEye, FaFilter, FaSearch, FaTimes, FaUser} from 'react-icons/fa';
 
 // Professional Brand Theme - Premium Automotive CRM
 const brandTheme = {

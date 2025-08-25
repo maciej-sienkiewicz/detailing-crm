@@ -1,15 +1,15 @@
 // src/pages/Settings/BrandThemeSettingsPage.tsx - Updated with persistent logo cache
-import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
+import React, {forwardRef, useEffect, useImperativeHandle, useRef, useState} from 'react';
 import styled from 'styled-components';
-import { FaPalette, FaSave, FaUndo, FaEye, FaCar, FaCheck, FaImage, FaUpload, FaTrash, FaInfoCircle } from 'react-icons/fa';
-import { settingsTheme } from './styles/theme';
+import {FaCar, FaCheck, FaEye, FaImage, FaPalette, FaSave, FaTrash, FaUndo, FaUpload} from 'react-icons/fa';
+import {settingsTheme} from './styles/theme';
 import OptimizedLogoDisplay from '../../components/common/OptimizedLogoDisplay';
 import {
     companySettingsApi,
-    companySettingsValidation,
-    type CompanySettingsResponse
+    type CompanySettingsResponse,
+    companySettingsValidation
 } from '../../api/companySettingsApi';
-import { usePersistentLogoCache } from '../../context/PersistentLogoCacheContext'; // Zmieniony import
+import {usePersistentLogoCache} from '../../context/PersistentLogoCacheContext'; // Zmieniony import
 
 interface BrandPreset {
     id: string;

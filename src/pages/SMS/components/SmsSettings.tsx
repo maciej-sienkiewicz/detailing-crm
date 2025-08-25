@@ -1,28 +1,25 @@
 // src/pages/SMS/components/SmsSettings.tsx
-import React, { useState, useEffect } from 'react';
+import React, {useState} from 'react';
 import styled from 'styled-components';
 import {
-    FaCog,
-    FaSave,
-    FaSync,
-    FaKey,
-    FaUser,
     FaBell,
-    FaCheck,
-    FaInfoCircle,
-    FaQuestionCircle,
-    FaTimes,
-    FaLock,
-    FaUnlock,
+    FaCog,
+    FaEnvelope,
+    FaExclamationCircle,
     FaGlobe,
+    FaInfoCircle,
+    FaKey,
+    FaLock,
     FaMobileAlt,
     FaPhone,
+    FaSave,
     FaShieldAlt,
-    FaEnvelope,
     FaSignature,
-    FaExclamationCircle
+    FaSync,
+    FaTimes,
+    FaUnlock
 } from 'react-icons/fa';
-import { useToast } from '../../../components/common/Toast/Toast';
+import {useToast} from '../../../components/common/Toast/Toast';
 
 // Interfejs dla ustawień SMS
 interface SmsSettings {

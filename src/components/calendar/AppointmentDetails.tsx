@@ -1,24 +1,23 @@
 // src/components/calendar/AppointmentDetails.tsx - REFACTORED VERSION
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import styled from 'styled-components';
-import { format } from 'date-fns';
-import { pl } from 'date-fns/locale';
+import {format} from 'date-fns';
+import {pl} from 'date-fns/locale';
 import {
     FaCalendarAlt,
-    FaClock,
-    FaUser,
-    FaEdit,
-    FaTrash,
     FaCar,
     FaClipboardCheck,
+    FaClock,
+    FaEdit,
     FaExternalLinkAlt,
+    FaTimes,
     FaTools,
-    FaCheck,
-    FaTimes
+    FaTrash,
+    FaUser
 } from 'react-icons/fa';
-import { Appointment, ProtocolStatus } from '../../types';
-import { useNavigate } from 'react-router-dom';
-import { theme } from '../../styles/theme';
+import {Appointment, ProtocolStatus} from '../../types';
+import {useNavigate} from 'react-router-dom';
+import {theme} from '../../styles/theme';
 
 interface AppointmentDetailsProps {
     appointment: Appointment;

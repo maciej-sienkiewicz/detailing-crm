@@ -1,13 +1,13 @@
 // src/components/fleet/forms/VehicleForm.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, {useState} from 'react';
 import styled from 'styled-components';
 import {
     FleetVehicle,
     FleetVehicleCategory,
-    FleetVehicleUsageType,
-    FleetVehicleStatus,
     FleetVehicleCategoryLabels,
+    FleetVehicleStatus,
+    FleetVehicleUsageType,
     FleetVehicleUsageTypeLabels
 } from '../../../types/fleet';
 

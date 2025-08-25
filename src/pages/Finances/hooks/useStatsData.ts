@@ -1,13 +1,14 @@
 // src/pages/Finances/hooks/useStatsData.ts
-import { useState, useEffect, useCallback } from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import {
-    statsApi,
-    UncategorizedService,
     Category,
-    CreateCategoryRequest,
     CategoryService,
+    CategoryStatsResponse,
+    CreateCategoryRequest,
     ServiceStatsResponse,
-    TimeGranularity, CategoryStatsResponse
+    statsApi,
+    TimeGranularity,
+    UncategorizedService
 } from '../../../api/statsApi';
 
 export const useStatsData = () => {

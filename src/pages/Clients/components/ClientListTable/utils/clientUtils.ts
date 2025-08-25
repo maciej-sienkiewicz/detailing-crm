@@ -1,6 +1,6 @@
 // ClientListTable/utils/clientUtils.ts
-import { ClientStatus } from '../types';
-import { brandTheme } from '../styles/theme';
+import {ClientStatus} from '../types';
+import {brandTheme} from '../styles/theme';
 import {ClientExpanded} from "../../../../../types";
 
 export const formatDate = (dateString: string): string => {

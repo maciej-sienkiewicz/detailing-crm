@@ -1,18 +1,7 @@
 // src/pages/Settings/SettingsPageWithTabs.tsx
-import React, { useState, useRef } from 'react';
+import React, {useRef, useState} from 'react';
 import styled from 'styled-components';
-import {
-    FaCog,
-    FaUsers,
-    FaWrench,
-    FaPalette,
-    FaCalendarAlt,
-    FaUser,
-    FaPlus,
-    FaBuilding,
-    FaExchangeAlt,
-    FaSave, FaFileInvoice
-} from 'react-icons/fa';
+import {FaBuilding, FaCalendarAlt, FaCog, FaFileInvoice, FaPalette, FaSave, FaUser, FaWrench} from 'react-icons/fa';
 
 // Import existing components
 import EmployeesPage from './EmployeesPage';
@@ -22,7 +11,7 @@ import CalendarColorsPage from './CalendarColorsPage';
 import CompanySettingsPage from './CompanySettingsPage';
 
 // Import styles and utilities
-import { settingsTheme } from './styles/theme';
+import {settingsTheme} from './styles/theme';
 import InvoiceTemplatesPage from "./InvoiceTemplatesPage";
 
 type ActiveTab = 'company' | 'employees' | 'services' | 'visual-personalization' | 'calendar-colors' | 'invoice-templates';

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { FaPlus, FaTimes, FaSearch, FaSpinner, FaStickyNote, FaEdit } from 'react-icons/fa';
+import {FaPlus, FaSearch, FaStickyNote, FaTimes} from 'react-icons/fa';
 import {DiscountType} from "../../../../types";
 
 // Professional Brand Theme - Premium Automotive CRM

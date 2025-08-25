@@ -1,7 +1,7 @@
 import React from 'react';
 import Modal from '../../../components/common/Modal';
 import AppointmentDetails from '../../../components/calendar/AppointmentDetails';
-import { useCalendarPageContext } from '../CalendarPageProvider';
+import {useCalendarPageContext} from '../CalendarPageProvider';
 
 export const CalendarPageModals: React.FC = () => {
     const { modals, actions } = useCalendarPageContext();

@@ -1,29 +1,29 @@
-import React, { useState } from 'react';
-import { FaFilter, FaUsers, FaInfoCircle, FaExclamationTriangle, FaArrowLeft, FaArrowRight } from 'react-icons/fa';
-import { ClientFilters } from '../campaign-filters/ClientFilters';
-import { VehicleFilters } from '../campaign-filters/VehicleFilters';
-import { FinancialFilters } from '../campaign-filters/FinancialFilters';
-import { ServiceFilters } from '../campaign-filters/ServiceFilters';
-import { FilterPreview } from '../campaign-filters/FilterPreview';
-import { RecipientsList } from '../campaign-common/RecipientsList';
+import React, {useState} from 'react';
+import {FaArrowLeft, FaArrowRight, FaExclamationTriangle, FaFilter, FaUsers} from 'react-icons/fa';
+import {ClientFilters} from '../campaign-filters/ClientFilters';
+import {VehicleFilters} from '../campaign-filters/VehicleFilters';
+import {FinancialFilters} from '../campaign-filters/FinancialFilters';
+import {ServiceFilters} from '../campaign-filters/ServiceFilters';
+import {FilterPreview} from '../campaign-filters/FilterPreview';
+import {RecipientsList} from '../campaign-common/RecipientsList';
 import {
-    StepContainer,
-    StepTitle,
-    StepNumber,
-    FormSection,
-    SectionTitle,
-    FilterTabs,
-    FilterTabButton,
     ApplyFiltersButton,
-    RecipientsInfo,
+    FilterTabButton,
+    FilterTabs,
+    FormSection,
+    LoadingContainer,
+    LoadingSpinner,
+    NoRecipientsMessage,
+    PrimaryButton,
     RecipientCount,
     RecipientPreviewToggle,
-    NoRecipientsMessage,
-    StepActions,
+    RecipientsInfo,
     SecondaryButton,
-    PrimaryButton,
-    LoadingContainer,
-    LoadingSpinner
+    SectionTitle,
+    StepActions,
+    StepContainer,
+    StepNumber,
+    StepTitle
 } from '../campaign-common/styled/LayoutComponents';
 import {ClientExpanded} from "../../../../../types";
 

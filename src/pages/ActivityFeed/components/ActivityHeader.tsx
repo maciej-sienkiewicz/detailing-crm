@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { FaRss, FaQuestion, FaInfoCircle } from 'react-icons/fa';
+import {FaRss} from 'react-icons/fa';
 
 const ActivityHeader: React.FC = () => {
     return (

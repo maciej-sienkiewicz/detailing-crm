@@ -1,8 +1,8 @@
 // src/pages/Auth/OnboardingPage.tsx
 import React from 'react';
 import styled from 'styled-components';
-import { Link } from 'react-router-dom';
-import { FaCarSide, FaCalendarAlt, FaUsers, FaMoneyBillWave, FaChartBar, FaArrowRight } from 'react-icons/fa';
+import {Link} from 'react-router-dom';
+import {FaArrowRight, FaCalendarAlt, FaCarSide, FaChartBar, FaMoneyBillWave, FaUsers} from 'react-icons/fa';
 
 const OnboardingPage: React.FC = () => {
     return (

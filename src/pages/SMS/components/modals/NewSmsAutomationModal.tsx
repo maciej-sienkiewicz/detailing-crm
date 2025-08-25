@@ -1,14 +1,9 @@
 // src/pages/SMS/components/modals/NewSmsAutomationModal.tsx
-import React, { useState, useEffect } from 'react';
-import { FaRobot } from 'react-icons/fa';
+import React, {useEffect, useState} from 'react';
 import Modal from '../../../../components/common/Modal';
-import { useToast } from '../../../../components/common/Toast/Toast';
-import {
-    SmsAutomation,
-    SmsAutomationTrigger,
-    SmsTemplate
-} from '../../../../types/sms';
-import { smsApi } from '../../../../api/smsApi';
+import {useToast} from '../../../../components/common/Toast/Toast';
+import {SmsAutomation, SmsAutomationTrigger, SmsTemplate} from '../../../../types/sms';
+import {smsApi} from '../../../../api/smsApi';
 
 // Importy komponentów kroków
 import Step2TriggerSettings from './automation-steps/Step2TriggerSettings';

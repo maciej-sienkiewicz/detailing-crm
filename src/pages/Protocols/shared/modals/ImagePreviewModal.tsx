@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { FaTimes, FaTrash, FaArrowLeft, FaArrowRight, FaSpinner, FaImage, FaDownload, FaExpand } from 'react-icons/fa';
-import { VehicleImage } from '../../../../types';
-import { carReceptionApi } from '../../../../api/carReceptionApi';
+import {FaArrowLeft, FaArrowRight, FaDownload, FaExpand, FaImage, FaSpinner, FaTimes, FaTrash} from 'react-icons/fa';
+import {VehicleImage} from '../../../../types';
+import {carReceptionApi} from '../../../../api/carReceptionApi';
 
 // Professional Brand Theme
 const brandTheme = {

@@ -1,6 +1,6 @@
 // src/pages/Calendar/hooks/useCalendarNavigation.ts
-import { useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import {useCallback, useState} from 'react';
+import {useNavigate} from 'react-router-dom';
 import {useToast} from "../components/common/Toast/Toast";
 import {Appointment} from "../types";
 

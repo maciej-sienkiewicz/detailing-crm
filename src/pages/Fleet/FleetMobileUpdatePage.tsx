@@ -1,13 +1,13 @@
 // src/pages/Fleet/FleetMobileUpdatePage.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { useParams, useNavigate } from 'react-router-dom';
-import { FleetVehicle } from '../../types/fleet';
-import { fleetVehicleApi } from '../../api/fleetApi';
+import {useNavigate, useParams} from 'react-router-dom';
+import {FleetVehicle} from '../../types/fleet';
+import {fleetVehicleApi} from '../../api/fleetApi';
 import MobileVehicleUpdate from '../../components/fleet/mobile/MobileVehicleUpdate';
-import { useToast } from '../../components/common/Toast/Toast';
-import { FaArrowLeft } from 'react-icons/fa';
+import {useToast} from '../../components/common/Toast/Toast';
+import {FaArrowLeft} from 'react-icons/fa';
 
 const FleetMobileUpdatePage: React.FC = () => {
     const { id } = useParams<{ id: string }>();

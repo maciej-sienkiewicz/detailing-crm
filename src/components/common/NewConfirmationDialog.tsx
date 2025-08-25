@@ -1,8 +1,8 @@
 // src/components/common/ConfirmationDialog.tsx
 import React from 'react';
-import styled, { keyframes } from 'styled-components';
-import { FaExclamationTriangle, FaCheck, FaTimes, FaInfoCircle } from 'react-icons/fa';
-import { theme } from '../../styles/theme';
+import styled, {keyframes} from 'styled-components';
+import {FaCheck, FaExclamationTriangle, FaInfoCircle, FaTimes} from 'react-icons/fa';
+import {theme} from '../../styles/theme';
 
 interface ConfirmationDialogProps {
     isOpen: boolean;

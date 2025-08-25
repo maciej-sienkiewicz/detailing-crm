@@ -1,19 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
+import React, {useEffect, useState} from 'react';
+import {DndProvider} from 'react-dnd';
+import {HTML5Backend} from 'react-dnd-html5-backend';
 import styled from 'styled-components';
-import { FaTable, FaList } from 'react-icons/fa';
-import { VehicleExpanded } from '../../../types';
-import { useVehicleTableConfiguration } from './hooks/useVehicleTableConfiguration';
-import { useVehicleSorting } from './hooks/useVehicleSorting';
-import { TableView } from './TableView';
-import { CardsView } from './CardsView';
-import { EmptyState } from './EmptyState';
-import {
-    ListContainer,
-    ListHeader,
-    ListTitle
-} from './styles/components';
+import {FaList, FaTable} from 'react-icons/fa';
+import {VehicleExpanded} from '../../../types';
+import {useVehicleTableConfiguration} from './hooks/useVehicleTableConfiguration';
+import {useVehicleSorting} from './hooks/useVehicleSorting';
+import {TableView} from './TableView';
+import {CardsView} from './CardsView';
+import {EmptyState} from './EmptyState';
+import {ListContainer, ListHeader, ListTitle} from './styles/components';
 
 type ViewMode = 'table' | 'cards';
 const VIEW_MODE_KEY = 'vehicle_view_mode';

@@ -1,7 +1,7 @@
 // src/api/pdfInvoiceService.ts
-import { apiClient } from './apiClient';
-import { Invoice, InvoiceAttachment } from '../types';
-import { invoicesApi } from './invoicesApi';
+import {apiClient} from './apiClient';
+import {Invoice} from '../types';
+import {invoicesApi} from './invoicesApi';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 

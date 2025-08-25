@@ -1,11 +1,11 @@
 // src/pages/Gallery/GalleryPage.tsx
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, {useState} from 'react';
+import {useNavigate} from 'react-router-dom';
 import styled from 'styled-components';
-import { GalleryImage } from '../../api/galleryApi';
-import { theme } from '../../styles/theme';
-import { useGallery } from '../../hooks/useGallery';
-import { useImageDownload } from '../../hooks/useImageDownload';
+import {GalleryImage} from '../../api/galleryApi';
+import {theme} from '../../styles/theme';
+import {useGallery} from '../../hooks/useGallery';
+import {useImageDownload} from '../../hooks/useImageDownload';
 import GalleryHeader from '../../components/Gallery/GalleryHeader';
 import GalleryStatsComponent from '../../components/Gallery/GalleryStats';
 import GalleryFiltersComponent from '../../components/Gallery/GalleryFilters';

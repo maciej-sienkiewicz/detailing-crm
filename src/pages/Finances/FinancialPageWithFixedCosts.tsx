@@ -1,14 +1,14 @@
 // src/pages/Finances/FinancialPageWithFixedCosts.tsx
-import React, { useState, useCallback } from 'react';
+import React, {useCallback, useState} from 'react';
 import styled from 'styled-components';
 import {
-    FaFileInvoiceDollar,
     FaBuilding,
     FaChartLine,
     FaExchangeAlt,
+    FaFileInvoiceDollar,
+    FaHistory,
     FaSpinner,
-    FaSync,
-    FaHistory
+    FaSync
 } from 'react-icons/fa';
 
 // Import existing components
@@ -28,17 +28,17 @@ import FinancialReportsPage from "./FinancialReportsPage";
 import BalanceHistoryModal from './components/BalanceHistoryModal';
 
 // Import hooks
-import { useFinancialData } from './hooks/useFinancialData';
-import { useDocumentActions } from './hooks/useDocumentActions';
+import {useFinancialData} from './hooks/useFinancialData';
+import {useDocumentActions} from './hooks/useDocumentActions';
 
 // Import types
-import { DocumentType } from '../../types/finance';
+import {DocumentType} from '../../types/finance';
 
 // Import styles and utilities
-import { brandTheme } from './styles/theme';
-import { useToast } from '../../components/common/Toast/Toast';
+import {brandTheme} from './styles/theme';
+import {useToast} from '../../components/common/Toast/Toast';
 import Pagination from '../../components/common/Pagination';
-import { companySettingsApi } from "../../api/companySettingsApi";
+import {companySettingsApi} from "../../api/companySettingsApi";
 import {useInvoiceSignature} from "../../hooks/useInvoiceSignature";
 import {protocolSignatureApi} from "../../api/protocolSignatureApi";
 import {invoicesApi} from "../../api/invoicesApi";

@@ -1,27 +1,26 @@
 // src/pages/Settings/components/EmailSettingsCard.tsx
-import React, { useState, useEffect } from 'react';
-import { FaEnvelope, FaEye, FaEyeSlash, FaLightbulb } from 'react-icons/fa';
-import { useEmailSettings } from '../../../../hooks/useEmailSettings';
-import { SectionCard } from './SectionCard';
-import { FormField } from './FormField';
-import { LoadingSpinner } from './LoadingSpinner';
+import React, {useEffect, useState} from 'react';
+import {FaEnvelope, FaEye, FaEyeSlash, FaLightbulb} from 'react-icons/fa';
+import {useEmailSettings} from '../../../../hooks/useEmailSettings';
+import {SectionCard} from './SectionCard';
+import {FormField} from './FormField';
+import {LoadingSpinner} from './LoadingSpinner';
 import {
-    StatusBanner,
-    ReadOnlyView,
+    ErrorBox,
+    ErrorText,
+    FormContainer,
+    FormGrid,
     InfoGrid,
     InfoItem,
     InfoLabel,
     InfoValue,
-    StatusBadge,
-    FormContainer,
-    FormGrid,
-    PasswordContainer,
     PasswordToggle,
-    SuggestionBox,
-    SecuritySection,
+    ReadOnlyView,
     SecurityOption,
-    ErrorBox,
-    ErrorText
+    SecuritySection,
+    StatusBadge,
+    StatusBanner,
+    SuggestionBox
 } from '../../styles/companySettings/EmailSettings.styles';
 
 interface EmailSettingsCardProps {

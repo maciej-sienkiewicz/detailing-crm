@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
-import { CarReceptionProtocol, ClientExpanded, VehicleExpanded } from '../../../../types';
-import { formSearchService, SearchCriteria } from '../../shared/services/FormSearchService';
+import {useCallback, useState} from 'react';
+import {CarReceptionProtocol, ClientExpanded, VehicleExpanded} from '../../../../types';
+import {formSearchService, SearchCriteria} from '../../shared/services/FormSearchService';
 
 export interface UseClientSearchResult {
     foundClients: ClientExpanded[];

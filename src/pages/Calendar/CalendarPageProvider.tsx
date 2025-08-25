@@ -1,10 +1,10 @@
 // src/pages/Calendar/CalendarPageProvider.tsx - ZAKTUALIZOWANA WERSJA
-import React, { createContext, useContext, useCallback, useMemo } from 'react';
-import { useCalendar } from '../../hooks/useCalendar';
-import { useCalendarStats } from '../../hooks/useCalendarStats';
-import { Appointment, AppointmentStatus } from '../../types';
-import { useCalendarNavigation } from "../../hooks/useCalendarNavigation";
-import { useCalendarModals } from "../../hooks/useCalendarModals";
+import React, {createContext, useCallback, useContext, useMemo} from 'react';
+import {useCalendar} from '../../hooks/useCalendar';
+import {useCalendarStats} from '../../hooks/useCalendarStats';
+import {Appointment, AppointmentStatus} from '../../types';
+import {useCalendarNavigation} from "../../hooks/useCalendarNavigation";
+import {useCalendarModals} from "../../hooks/useCalendarModals";
 
 interface CalendarPageContextType {
     // Data

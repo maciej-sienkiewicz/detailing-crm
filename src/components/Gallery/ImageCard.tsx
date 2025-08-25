@@ -1,10 +1,10 @@
 // src/components/Gallery/ImageCard.tsx
 import React from 'react';
 import styled from 'styled-components';
-import { FaEye, FaDownload, FaTags } from 'react-icons/fa';
-import { GalleryImage } from '../../api/galleryApi';
-import { formatFileSize, formatDate, parseJavaLocalDateTime } from '../../utils/galleryUtils';
-import { theme } from '../../styles/theme';
+import {FaDownload, FaEye, FaTags} from 'react-icons/fa';
+import {GalleryImage} from '../../api/galleryApi';
+import {formatDate, formatFileSize, parseJavaLocalDateTime} from '../../utils/galleryUtils';
+import {theme} from '../../styles/theme';
 
 interface ImageCardProps {
     image: GalleryImage;

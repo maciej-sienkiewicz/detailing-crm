@@ -1,6 +1,6 @@
 // src/pages/SMS/components/modals/automation-common/AutomationUtils.ts
-import { SmsAutomationTrigger } from '../../../../../types/sms';
-import { AutomationFormValues } from '../automation-types';
+import {SmsAutomationTrigger} from '../../../../../types/sms';
+import {AutomationFormValues} from '../automation-types';
 
 /**
  * Generuje domyślne parametry dla różnych typów wyzwalaczy automatyzacji SMS

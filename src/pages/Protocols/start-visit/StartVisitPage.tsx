@@ -1,18 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { FaArrowLeft } from 'react-icons/fa';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { CarReceptionProtocol, ProtocolStatus } from '../../../types';
-import { protocolsApi } from '../../../api/protocolsApi';
-import { servicesApi } from '../../../api/servicesApi';
+import React, {useEffect, useState} from 'react';
+import {FaArrowLeft} from 'react-icons/fa';
+import {useLocation, useNavigate, useParams} from 'react-router-dom';
+import {CarReceptionProtocol, ProtocolStatus} from '../../../types';
+import {protocolsApi} from '../../../api/protocolsApi';
+import {servicesApi} from '../../../api/servicesApi';
 
-import {
-    PageContainer,
-    PageHeader,
-    HeaderLeft,
-    BackButton,
-    LoadingMessage,
-    ErrorMessage
-} from '../styles';
+import {BackButton, ErrorMessage, HeaderLeft, LoadingMessage, PageContainer, PageHeader} from '../styles';
 
 // Komponenty
 import StartVisitForm from './components/StartVisitForm';

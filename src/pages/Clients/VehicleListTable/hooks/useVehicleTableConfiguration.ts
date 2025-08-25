@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { TableColumn } from '../types';
+import {useEffect, useState} from 'react';
+import {TableColumn} from '../types';
 
 const COLUMN_ORDER_KEY = 'vehicle_table_columns_order';
 

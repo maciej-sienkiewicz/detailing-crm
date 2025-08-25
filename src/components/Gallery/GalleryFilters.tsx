@@ -1,9 +1,9 @@
 // src/components/Gallery/GalleryFilters.tsx
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import styled from 'styled-components';
-import { FaFilter, FaTimes, FaTags } from 'react-icons/fa';
-import { GalleryFilters } from '../../api/galleryApi';
-import { theme } from '../../styles/theme';
+import {FaFilter, FaTags, FaTimes} from 'react-icons/fa';
+import {GalleryFilters} from '../../api/galleryApi';
+import {theme} from '../../styles/theme';
 import SelectedTags from './SelectedTags';
 import TagDropdown from './TagDropdown';
 import QuickTags from './QuickTags';

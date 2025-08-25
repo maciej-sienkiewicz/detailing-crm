@@ -1,7 +1,7 @@
 // src/api/fleetMaintenanceApi.ts
 
-import { apiClient } from './apiClient';
-import {FleetMaintenance, FleetFuelEntry, FleetFuelStatus} from '../types/fleetMaintenance';
+import {apiClient} from './apiClient';
+import {FleetFuelEntry, FleetFuelStatus, FleetMaintenance} from '../types/fleetMaintenance';
 
 export const fleetMaintenanceApi = {
     // Pobieranie historii serwisowej pojazdu

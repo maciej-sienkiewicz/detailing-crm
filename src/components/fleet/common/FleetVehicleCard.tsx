@@ -3,15 +3,11 @@
 
 import React from 'react';
 import styled from 'styled-components';
-import { useNavigate } from 'react-router-dom';
-import {
-    FleetVehicle,
-    FleetVehicleCategoryLabels,
-    FleetVehicleUsageTypeLabels
-} from '../../../types/fleet';
+import {useNavigate} from 'react-router-dom';
+import {FleetVehicle, FleetVehicleCategoryLabels, FleetVehicleUsageTypeLabels} from '../../../types/fleet';
 import FleetStatusBadge from './FleetStatusBadge';
 import EnhancedFuelLevelIndicator from './EnhancedFuelLevelIndicator';
-import { FaCar, FaGasPump, FaRoad, FaCalendarAlt } from 'react-icons/fa';
+import {FaCalendarAlt, FaCar, FaRoad} from 'react-icons/fa';
 
 interface FleetVehicleCardProps {
     vehicle: FleetVehicle;

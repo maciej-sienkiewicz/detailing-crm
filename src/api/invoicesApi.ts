@@ -1,12 +1,6 @@
 // src/api/invoicesApi.ts
-import { apiClient } from './apiClient';
-import {
-    Invoice,
-    InvoiceType,
-    InvoiceStatus,
-    InvoiceFilters,
-    InvoiceAttachment
-} from '../types';
+import {apiClient} from './apiClient';
+import {Invoice, InvoiceFilters, InvoiceStatus} from '../types';
 
 // Typ odpowiedzi dla ekstrahowanych danych z faktury
 export interface ExtractedInvoiceData {

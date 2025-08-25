@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { FaTrash, FaPlus, FaEdit, FaStickyNote } from 'react-icons/fa';
-import { DiscountType, DiscountTypeLabels, SelectedService } from '../../../../types';
+import React, {useState} from 'react';
+import {FaEdit, FaStickyNote, FaTrash} from 'react-icons/fa';
+import {DiscountType, SelectedService} from '../../../../types';
 import styled from 'styled-components';
 import ServiceNoteModal from "../../shared/modals/SerivceNoteModal";
 

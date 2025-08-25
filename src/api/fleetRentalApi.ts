@@ -1,8 +1,8 @@
 // src/api/fleetRentalApi.ts
 
-import { apiClient } from './apiClient';
-import { FleetRental, FleetRentalStatus, FleetImage } from '../types/fleetRental';
-import { FleetRentalFilter } from '../types/fleetFilters';
+import {apiClient} from './apiClient';
+import {FleetImage, FleetRental, FleetRentalStatus} from '../types/fleetRental';
+import {FleetRentalFilter} from '../types/fleetFilters';
 
 export const fleetRentalApi = {
     // Pobieranie wypożyczeń z filtrami

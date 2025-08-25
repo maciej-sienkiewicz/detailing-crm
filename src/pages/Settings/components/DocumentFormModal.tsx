@@ -1,24 +1,23 @@
 // src/pages/Settings/components/DocumentFormModal.tsx - FIXED: File upload functionality
-import React, { useState, useRef } from 'react';
-import { FaFileUpload, FaFile, FaTimes } from 'react-icons/fa';
-import { EmployeeDocument } from '../../../types';
+import React, {useRef, useState} from 'react';
+import {FaFile, FaFileUpload, FaTimes} from 'react-icons/fa';
 import {
-    ModalOverlay,
-    ModalContainer,
-    ModalHeader,
-    ModalBody,
+    Button,
+    ButtonGroup,
     CloseButton,
+    ErrorText,
+    FileInput,
+    FileUploadButton,
     Form,
     FormGroup,
-    Label,
-    Input,
-    Select,
     HelpText,
-    ButtonGroup,
-    Button,
-    ErrorText,
-    FileUploadButton,
-    FileInput
+    Input,
+    Label,
+    ModalBody,
+    ModalContainer,
+    ModalHeader,
+    ModalOverlay,
+    Select
 } from '../styles/ModalStyles';
 import styled from 'styled-components';
 

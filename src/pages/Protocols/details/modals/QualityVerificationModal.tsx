@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { FaCheck, FaTimesCircle, FaTasks, FaClipboardCheck, FaExclamationTriangle, FaBan, FaTimes, FaCheckCircle } from 'react-icons/fa';
-import { CarReceptionProtocol } from "../../../../types";
+import {FaCheck, FaCheckCircle, FaClipboardCheck, FaTimes} from 'react-icons/fa';
+import {CarReceptionProtocol} from "../../../../types";
 
 // Professional Corporate Theme
 const corporateTheme = {

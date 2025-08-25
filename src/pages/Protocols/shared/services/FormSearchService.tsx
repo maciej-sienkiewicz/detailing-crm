@@ -4,9 +4,9 @@
  * Handles search operations for protocol forms with proper error handling and logging
  */
 
-import { ClientExpanded, VehicleExpanded } from '../../../../types';
-import { clientsApi } from '../../../../api/clientsApi';
-import { vehicleApi } from '../../../../api/vehiclesApi';
+import {ClientExpanded, VehicleExpanded} from '../../../../types';
+import {clientsApi} from '../../../../api/clientsApi';
+import {vehicleApi} from '../../../../api/vehiclesApi';
 
 // ========================================================================================
 // TYPE DEFINITIONS

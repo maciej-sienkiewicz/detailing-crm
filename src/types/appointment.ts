@@ -2,7 +2,6 @@
 // Typy związane z wizytami i terminarzem
 
 // Statusy wizyt
-import {Service} from "./service";
 import {SelectedService} from "./common";
 
 export enum AppointmentStatus {

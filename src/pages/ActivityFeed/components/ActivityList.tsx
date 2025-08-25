@@ -1,20 +1,20 @@
-import React, { useMemo } from 'react';
+import React, {useMemo} from 'react';
 import styled from 'styled-components';
-import { format } from 'date-fns';
-import { pl } from 'date-fns/locale';
+import {format} from 'date-fns';
+import {pl} from 'date-fns/locale';
 import {
-    FaSpinner,
-    FaInfoCircle,
-    FaCalendarAlt,
-    FaClipboardCheck,
-    FaComment,
-    FaPhone,
-    FaUser,
-    FaCar,
     FaBell,
-    FaCog
+    FaCalendarAlt,
+    FaCar,
+    FaClipboardCheck,
+    FaCog,
+    FaComment,
+    FaInfoCircle,
+    FaPhone,
+    FaSpinner,
+    FaUser
 } from 'react-icons/fa';
-import { ActivityItem } from '../../../types/activity';
+import {ActivityItem} from '../../../types/activity';
 import ActivityGroup from './ActivityGroup';
 import ActivityListItem from './ActivityListItem';
 

@@ -1,8 +1,8 @@
 // src/components/fleet/forms/RentalReturnForm.tsx
 
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import styled from 'styled-components';
-import { FleetRental } from '../../../types/fleetRental';
+import {FleetRental} from '../../../types/fleetRental';
 import FuelLevelIndicator from '../common/FuelLevelIndicator';
 
 interface RentalReturnFormProps {

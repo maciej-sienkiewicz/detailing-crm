@@ -1,21 +1,15 @@
 import React from 'react';
-import { FaTimes, FaArrowRight } from 'react-icons/fa';
+import {FaArrowRight, FaTimes} from 'react-icons/fa';
 import {
-    StepContainer,
-    StepTitle,
-    StepNumber,
     FormSection,
-    StepActions,
+    PrimaryButton,
     SecondaryButton,
-    PrimaryButton
+    StepActions,
+    StepContainer,
+    StepNumber,
+    StepTitle
 } from '../campaign-common/styled/LayoutComponents';
-import {
-    FormGroup,
-    FormLabel,
-    FormInput,
-    FormTextarea,
-    RequiredLabel
-} from '../campaign-common/styled/FormComponents';
+import {FormGroup, FormInput, FormLabel, FormTextarea, RequiredLabel} from '../campaign-common/styled/FormComponents';
 import {SmsCampaign} from "../../../../../types/sms";
 
 interface Step1BasicInfoProps {

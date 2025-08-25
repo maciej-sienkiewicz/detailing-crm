@@ -1,25 +1,25 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import styled from 'styled-components';
 import {
-    FaFileDownload,
-    FaFileWord,
-    FaFilePdf,
-    FaFileExcel,
     FaCalendarAlt,
-    FaUserTie,
-    FaShieldAlt,
     FaClipboardList,
+    FaFileDownload,
+    FaFileExcel,
+    FaFilePdf,
+    FaFileWord,
     FaSearch,
-    FaTimes
+    FaShieldAlt,
+    FaTimes,
+    FaUserTie
 } from 'react-icons/fa';
 import {
-    ModalOverlay,
+    Button,
+    ButtonGroup,
+    CloseButton,
+    ModalBody,
     ModalContainer,
     ModalHeader,
-    ModalBody,
-    CloseButton,
-    ButtonGroup,
-    Button
+    ModalOverlay
 } from '../styles/ModalStyles';
 
 // Brand Theme

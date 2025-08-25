@@ -1,6 +1,5 @@
-
 // src/api/protocolSignatureApi.ts
-import { apiClient } from './apiClient';
+import {apiClient} from './apiClient';
 
 export interface ProtocolSignatureRequest {
     protocolId: number;

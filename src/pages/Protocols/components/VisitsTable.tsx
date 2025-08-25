@@ -1,10 +1,10 @@
 import React from 'react';
 import styled from 'styled-components';
-import { FaEye, FaEdit, FaTrash, FaSpinner } from 'react-icons/fa';
-import { VisitListItem } from '../../../api/visitsApiNew';
-import { ProtocolStatusBadge } from '../../Protocols/shared/components/ProtocolStatusBadge';
-import { UseVisitsSelectionReturn } from '../hooks/useVisitsSelection';
-import { theme } from '../../../styles/theme';
+import {FaEye, FaSpinner, FaTrash} from 'react-icons/fa';
+import {VisitListItem} from '../../../api/visitsApiNew';
+import {ProtocolStatusBadge} from '../../Protocols/shared/components/ProtocolStatusBadge';
+import {UseVisitsSelectionReturn} from '../hooks/useVisitsSelection';
+import {theme} from '../../../styles/theme';
 
 interface VisitsTableProps {
     visits: VisitListItem[];

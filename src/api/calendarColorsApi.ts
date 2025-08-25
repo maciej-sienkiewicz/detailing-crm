@@ -1,5 +1,5 @@
-import { apiClient } from './apiClient';
-import { CalendarColor } from "../types/calendar";
+import {apiClient} from './apiClient';
+import {CalendarColor} from "../types/calendar";
 
 /**
  * API do zarządzania kolorami kalendarza

@@ -15,7 +15,7 @@
  * @version 2.0.0
  */
 
-import { apiClientNew, PaginatedApiResponse, PaginationParams, ApiError } from './apiClientNew';
+import {apiClientNew, ApiError} from './apiClientNew';
 
 // ========================================================================================
 // CORE TYPE DEFINITIONS

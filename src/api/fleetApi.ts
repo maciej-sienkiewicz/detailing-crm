@@ -1,8 +1,8 @@
 // src/api/fleetApi.ts
 
-import { apiClient } from './apiClient';
-import { FleetVehicle, FleetVehicleCategory, FleetVehicleStatus, FleetVehicleUsageType } from '../types/fleet';
-import { FleetVehicleFilter } from '../types/fleetFilters';
+import {apiClient} from './apiClient';
+import {FleetVehicle, FleetVehicleCategory, FleetVehicleStatus, FleetVehicleUsageType} from '../types/fleet';
+import {FleetVehicleFilter} from '../types/fleetFilters';
 
 // API dla pojazdów flotowych
 export const fleetVehicleApi = {

@@ -1,6 +1,6 @@
 // src/pages/Settings/styles/ModalStyles.tsx
 import styled from 'styled-components';
-import { settingsTheme } from './theme';
+import {settingsTheme} from './theme';
 
 export const ModalOverlay = styled.div`
     position: fixed;

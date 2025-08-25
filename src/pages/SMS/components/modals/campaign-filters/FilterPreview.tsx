@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { FaTimes, FaFilter, FaInfoCircle } from 'react-icons/fa';
+import {FaFilter, FaInfoCircle} from 'react-icons/fa';
 
 interface FilterPreviewProps {
     filters: any;

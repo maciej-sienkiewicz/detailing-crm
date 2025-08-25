@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { FaUserFriends, FaSave, FaTimes } from 'react-icons/fa';
+import React, {useEffect, useState} from 'react';
 import Modal from '../../../../components/common/Modal';
-import { useToast } from '../../../../components/common/Toast/Toast';
+import {useToast} from '../../../../components/common/Toast/Toast';
 import {SmsCampaign, SmsStatus, SmsTemplate} from '../../../../types/sms';
-import { ClientExpanded } from '../../../../types/client';
-import { smsApi } from '../../../../api/smsApi';
-import { clientApi } from '../../../../api/clientsApi';
+import {ClientExpanded} from '../../../../types/client';
+import {smsApi} from '../../../../api/smsApi';
+import {clientApi} from '../../../../api/clientsApi';
 
 // Importy komponentów kroków
 import Step1BasicInfo from './campaign-steps/Step1BasicInfo';

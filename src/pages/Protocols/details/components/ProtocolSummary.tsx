@@ -1,40 +1,33 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import styled from 'styled-components';
 import {
+    FaAward,
     FaBell,
-    FaCarSide,
-    FaPlus,
-    FaTimesCircle,
-    FaTrash,
-    FaClock,
-    FaCheckCircle,
-    FaKey,
-    FaFileAlt,
-    FaUser,
-    FaPhone,
-    FaEnvelope,
     FaBuilding,
-    FaIdCard,
-    FaExclamationTriangle,
-    FaChartLine,
-    FaTachometerAlt,
     FaCalendarCheck,
-    FaTools,
-    FaCarCrash,
-    FaPercent,
-    FaStar,
-    FaCalendarAlt,
+    FaCarSide,
+    FaCheckCircle,
+    FaClock,
     FaCrown,
-    FaShieldAlt,
+    FaEdit,
+    FaEnvelope,
+    FaExclamationTriangle,
+    FaFileAlt,
+    FaGem,
+    FaHistory,
+    FaIdCard,
+    FaKey,
     FaMapMarkerAlt,
     FaMoneyBillWave,
-    FaHistory,
-    FaUserTie,
-    FaAward,
-    FaGem,
-    FaEdit,
+    FaPhone,
+    FaPlus,
+    FaShieldAlt,
     FaStickyNote,
-    FaUserCheck
+    FaTachometerAlt,
+    FaTools,
+    FaTrash,
+    FaUserCheck,
+    FaUserTie
 } from 'react-icons/fa';
 import {clientApi} from "../../../../api/clientsApi";
 import {servicesApi} from "../../../../api/servicesApi";
@@ -42,11 +35,10 @@ import {
     CarReceptionProtocol,
     ClientExpanded,
     ClientStatistics,
-    ServiceApprovalStatus,
     DiscountType,
-    SelectedService,
     ProtocolStatus,
-    DeliveryPerson
+    SelectedService,
+    ServiceApprovalStatus
 } from "../../../../types";
 import AddServiceModal from "../../shared/modals/AddServiceModal";
 import EditPricesModal from "./EditPricesModal";

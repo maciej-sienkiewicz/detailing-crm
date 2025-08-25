@@ -1,19 +1,12 @@
-import React, { useState, forwardRef, useImperativeHandle } from 'react';
+import React, {forwardRef, useImperativeHandle, useState} from 'react';
 import styled from 'styled-components';
-import {
-    FaFileInvoice,
-    FaExclamationTriangle,
-    FaSpinner,
-    FaTimes,
-    FaInfoCircle,
-    FaPlus
-} from 'react-icons/fa';
-import { useInvoiceTemplates } from '../../hooks/useInvoiceTemplates';
-import { TemplatesTable } from '../../components/InvoiceTemplates/TemplatesTable';
-import { TemplateUploadModal } from '../../components/InvoiceTemplates/TemplateUploadModal';
-import { InstructionsModal } from '../../components/InvoiceTemplates/InstructionsModal';
-import { SortField } from '../../types/invoiceTemplate';
-import { settingsTheme } from './styles/theme';
+import {FaExclamationTriangle, FaFileInvoice, FaInfoCircle, FaPlus, FaSpinner, FaTimes} from 'react-icons/fa';
+import {useInvoiceTemplates} from '../../hooks/useInvoiceTemplates';
+import {TemplatesTable} from '../../components/InvoiceTemplates/TemplatesTable';
+import {TemplateUploadModal} from '../../components/InvoiceTemplates/TemplateUploadModal';
+import {InstructionsModal} from '../../components/InvoiceTemplates/InstructionsModal';
+import {SortField} from '../../types/invoiceTemplate';
+import {settingsTheme} from './styles/theme';
 
 interface InvoiceTemplatesPageRef {
     handleAddTemplate: () => void;

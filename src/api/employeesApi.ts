@@ -1,6 +1,6 @@
-import { apiClientNew, PaginatedApiResponse, PaginationParams, ApiError } from './apiClientNew';
-import { Employee, EmployeeDocument } from '../types';
-import { ExtendedEmployee, UserRole, ContractType, EmployeeFilters } from '../types/employeeTypes';
+import {apiClientNew, ApiError, PaginatedApiResponse, PaginationParams} from './apiClientNew';
+import {EmployeeDocument} from '../types';
+import {ContractType, EmployeeFilters, ExtendedEmployee, UserRole} from '../types/employeeTypes';
 
 export interface EmployeeListItem {
     id: string;

@@ -4,20 +4,8 @@
  * Updated for new server response model
  */
 
-import {
-    apiClientNew,
-    PaginationParams,
-    ApiError,
-    RequestConfig, PaginatedApiResponse
-} from './apiClientNew';
-import {
-    ActivityItem,
-    ActivityCategory,
-    ActivityFilter,
-    DailySummaryData,
-    EntityType,
-    ActivityStatus
-} from '../types/activity';
+import {apiClientNew, ApiError, PaginatedApiResponse, PaginationParams} from './apiClientNew';
+import {ActivityCategory, ActivityItem, ActivityStatus, EntityType} from '../types/activity';
 
 // ========================================================================================
 // TYPE DEFINITIONS - New types for updated server response model

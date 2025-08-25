@@ -1,17 +1,17 @@
 // src/pages/Finances/components/FixedCostsIntegration.tsx
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import styled from 'styled-components';
 import FixedCostsPage from '../FixedCostsPage';
 import FixedCostFormModal from './FixedCostFormModal';
 import PaymentRecordModal from './PaymentRecordModal';
 import {
-    fixedCostsApi,
-    FixedCost,
     CreateFixedCostRequest,
-    UpdateFixedCostRequest,
-    RecordPaymentRequest
+    FixedCost,
+    fixedCostsApi,
+    RecordPaymentRequest,
+    UpdateFixedCostRequest
 } from '../../../api/fixedCostsApi';
-import { useToast } from '../../../components/common/Toast/Toast';
+import {useToast} from '../../../components/common/Toast/Toast';
 import FixedCostViewModal from "./FixedCostViewModal";
 
 interface FixedCostsIntegrationProps {

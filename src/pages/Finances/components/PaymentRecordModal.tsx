@@ -1,14 +1,9 @@
 // src/pages/Finances/components/PaymentRecordModal.tsx
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { FaTimes, FaSave, FaFileInvoiceDollar, FaExclamationTriangle } from 'react-icons/fa';
-import { brandTheme } from '../styles/theme';
-import {
-    FixedCost,
-    RecordPaymentRequest,
-    PaymentStatus,
-    PaymentStatusLabels
-} from '../../../api/fixedCostsApi';
+import {FaExclamationTriangle, FaFileInvoiceDollar, FaSave, FaTimes} from 'react-icons/fa';
+import {brandTheme} from '../styles/theme';
+import {FixedCost, PaymentStatus, PaymentStatusLabels, RecordPaymentRequest} from '../../../api/fixedCostsApi';
 
 interface PaymentRecordModalProps {
     isOpen: boolean;

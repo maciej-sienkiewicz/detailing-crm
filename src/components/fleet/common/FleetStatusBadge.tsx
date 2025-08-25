@@ -2,16 +2,8 @@
 
 import React from 'react';
 import styled from 'styled-components';
-import {
-    FleetVehicleStatus,
-    FleetVehicleStatusLabels,
-    FleetVehicleStatusColors
-} from '../../../types/fleet';
-import {
-    FleetRentalStatus,
-    FleetRentalStatusLabels,
-    FleetRentalStatusColors
-} from '../../../types/fleetRental';
+import {FleetVehicleStatus, FleetVehicleStatusColors, FleetVehicleStatusLabels} from '../../../types/fleet';
+import {FleetRentalStatus, FleetRentalStatusColors, FleetRentalStatusLabels} from '../../../types/fleetRental';
 
 interface StatusBadgeProps {
     status: FleetVehicleStatus | FleetRentalStatus;

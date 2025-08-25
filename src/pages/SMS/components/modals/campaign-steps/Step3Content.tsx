@@ -1,28 +1,29 @@
-import React, { useState } from 'react';
-import { FaListAlt, FaEdit, FaInfoCircle, FaArrowLeft, FaArrowRight } from 'react-icons/fa';
+import React, {useState} from 'react';
+import {FaArrowLeft, FaArrowRight, FaEdit, FaInfoCircle} from 'react-icons/fa';
 import {
-    StepContainer,
-    StepTitle,
-    StepNumber,
     FormSection,
-    SectionTitle,
     LoadingContainer,
     LoadingSpinner,
-    StepActions,
+    PrimaryButton,
     SecondaryButton,
-    PrimaryButton
+    SectionTitle,
+    StepActions,
+    StepContainer,
+    StepNumber,
+    StepTitle
 } from '../campaign-common/styled/LayoutComponents';
 import {
-    FormGroup,
-    FormLabel,
-    FormInput,
-    FormTextarea,
-    FormSelect,
-    FormCheckboxWrapper,
     FormCheckbox,
     FormCheckboxLabel,
-    FormHelp
+    FormCheckboxWrapper,
+    FormGroup,
+    FormLabel,
+    FormSelect,
+    FormTextarea
 } from '../campaign-common/styled/FormComponents';
+// Styled components
+import styled from 'styled-components';
+import {SmsTemplate} from "../../../../../types/sms";
 
 interface Step3ContentProps {
     campaign: any;
@@ -234,10 +235,6 @@ const Step3Content: React.FC<Step3ContentProps> = ({
         </StepContainer>
     );
 };
-
-// Styled components
-import styled from 'styled-components';
-import {SmsTemplate} from "../../../../../types/sms";
 
 const CharacterCounter = styled.div`
     display: flex;

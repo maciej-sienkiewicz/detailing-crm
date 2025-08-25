@@ -1,14 +1,14 @@
 // src/pages/Fleet/FleetMaintenanceFormPage.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { fleetVehicleApi } from '../../api/fleetApi';
-import { fleetMaintenanceApi } from '../../api/fleetMaintenanceApi';
-import { FleetVehicle } from '../../types/fleet';
-import { FleetMaintenance, FleetMaintenanceTypeLabels, FleetFuelEntry } from '../../types/fleetMaintenance';
-import { useToast } from '../../components/common/Toast/Toast';
-import { FaTools, FaGasPump, FaArrowLeft } from 'react-icons/fa';
+import {useLocation, useNavigate, useParams} from 'react-router-dom';
+import {fleetVehicleApi} from '../../api/fleetApi';
+import {fleetMaintenanceApi} from '../../api/fleetMaintenanceApi';
+import {FleetVehicle} from '../../types/fleet';
+import {FleetFuelEntry, FleetMaintenance, FleetMaintenanceTypeLabels} from '../../types/fleetMaintenance';
+import {useToast} from '../../components/common/Toast/Toast';
+import {FaArrowLeft, FaGasPump, FaTools} from 'react-icons/fa';
 
 interface MaintenanceFormProps {
     fuel?: boolean;

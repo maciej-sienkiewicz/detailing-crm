@@ -1,9 +1,9 @@
 // src/pages/Protocols/list/ProtocolSearchFilters.tsx
-import React, { useState, useEffect } from 'react';
+import React, {useState} from 'react';
 import styled from 'styled-components';
-import { FaSearch, FaChevronDown, FaChevronUp, FaTimes, FaFilter } from 'react-icons/fa';
-import { format, isValid, parseISO } from 'date-fns';
-import { useToast } from '../../../components/common/Toast/Toast';
+import {FaChevronDown, FaChevronUp, FaFilter, FaSearch, FaTimes} from 'react-icons/fa';
+import {format, isValid, parseISO} from 'date-fns';
+import {useToast} from '../../../components/common/Toast/Toast';
 
 // Brand Theme System
 const brandTheme = {

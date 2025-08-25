@@ -1,12 +1,12 @@
 // src/pages/Calendar/CalendarPage.tsx - PRODUCTION READY VERSION
 import React from 'react';
 import styled from 'styled-components';
-import { CalendarPageProvider } from './CalendarPageProvider';
-import { CalendarPageHeader } from './components/CalendarPageHeader';
-import { CalendarPageStats } from './components/CalendarPageStats';
-import { CalendarPageContent } from './components/CalendarPageContent';
-import { CalendarPageModals } from './components/CalendarPageModals';
-import { theme } from '../../styles/theme';
+import {CalendarPageProvider} from './CalendarPageProvider';
+import {CalendarPageHeader} from './components/CalendarPageHeader';
+import {CalendarPageStats} from './components/CalendarPageStats';
+import {CalendarPageContent} from './components/CalendarPageContent';
+import {CalendarPageModals} from './components/CalendarPageModals';
+import {theme} from '../../styles/theme';
 import {ErrorBoundary} from "../../components/common/ErrorBoundary";
 
 /**

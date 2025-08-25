@@ -1,8 +1,8 @@
 // src/pages/Protocols/details/components/EditPricesModal.tsx
 import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import {FaCheck, FaTimes, FaPencilAlt, FaCalculator, FaMoneyBillWave} from 'react-icons/fa';
-import {SelectedService, ServiceApprovalStatus, DiscountType} from '../../../../types';
+import {FaCalculator, FaCheck, FaMoneyBillWave, FaPencilAlt, FaTimes} from 'react-icons/fa';
+import {DiscountType, SelectedService} from '../../../../types';
 import {useToast} from "../../../../components/common/Toast/Toast";
 import {protocolsApi} from "../../../../api/protocolsApi";
 

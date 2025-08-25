@@ -1,6 +1,6 @@
 // src/routes.tsx - Updated to include unified Clients/Vehicles
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import {Navigate, Route, Routes} from 'react-router-dom';
 import CalendarPage from './pages/Calendar/CalendarPage';
 import EmployeesPage from './pages/Settings/EmployeesPage';
 import CarReceptionPage from './pages/Protocols/CarReceptionPage';
@@ -23,11 +23,9 @@ import FleetRentalFormPage from "./pages/Fleet/FleetRentalFormPage";
 import FleetCalendarPage from "./pages/Fleet/FleetCalendarPage";
 import GalleryPage from "./pages/Gallery/GalleryPage";
 import TabletIntegrationPage from "./pages/Tablets/TabletIntegrationPage";
-import BrandThemeSettingsPage from "./pages/Settings/BrandThemeSettingsPage";
 
 // Updated Financial imports
 import FinancialPageWithFixedCosts from "./pages/Finances/FinancialPageWithFixedCosts";
-import FixedCostsIntegration from "./pages/Finances/components/FixedCostsIntegration";
 import SettingsPageWithTabs from './pages/Settings/SettingsPageWithTabs';
 
 // NEW: Unified Clients/Vehicles component

@@ -1,13 +1,9 @@
 import React from 'react';
-import { DiscountType, SelectedService } from '../../../../types';
-import { FormErrors } from '../hooks/useFormValidation';
+import {DiscountType, SelectedService} from '../../../../types';
+import {FormErrors} from '../hooks/useFormValidation';
 import ServiceSearch from './ServiceSearch';
 import ServiceTable from './ServiceTable';
-import {
-    FormSection,
-    SectionTitle,
-    ErrorText
-} from '../styles';
+import {ErrorText, FormSection, SectionTitle} from '../styles';
 
 interface ServiceSectionProps {
     searchQuery: string;

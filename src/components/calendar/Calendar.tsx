@@ -1,5 +1,5 @@
 // src/components/calendar/Calendar.tsx - PRODUCTION READY VERSION
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from 'styled-components';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -7,17 +7,17 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import listPlugin from '@fullcalendar/list';
 import plLocale from '@fullcalendar/core/locales/pl';
-import { Appointment } from '../../types';
-import { addMinutes } from 'date-fns';
-import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
-import { theme } from '../../styles/theme';
-import { useCalendarColors } from '../../hooks/useCalendarColors';
+import {Appointment} from '../../types';
+import {addMinutes} from 'date-fns';
+import {FaChevronLeft, FaChevronRight} from 'react-icons/fa';
+import {theme} from '../../styles/theme';
+import {useCalendarColors} from '../../hooks/useCalendarColors';
 import {
     CalendarView,
-    QuickFilters,
     DEFAULT_QUICK_FILTERS,
     getCurrentPeriodTitle,
-    mapAppointmentsToFullCalendarEvents
+    mapAppointmentsToFullCalendarEvents,
+    QuickFilters
 } from '../../utils/calendarUtils';
 
 interface CalendarProps {

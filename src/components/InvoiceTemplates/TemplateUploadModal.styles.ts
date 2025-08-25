@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import { settingsTheme } from '../../pages/Settings/styles/theme';
+import {settingsTheme} from '../../pages/Settings/styles/theme';
 
 export const FileUploadArea = styled.div`
     position: relative;

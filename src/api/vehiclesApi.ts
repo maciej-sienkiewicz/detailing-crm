@@ -1,6 +1,6 @@
 // src/api/vehiclesApi.ts - Naprawione API dla nowych endpointów - POPRAWIONE
-import { VehicleExpanded, VehicleOwner, VehicleStatistics } from '../types';
-import { apiClientNew, PaginatedApiResponse, PaginationParams } from './apiClientNew';
+import {VehicleExpanded, VehicleOwner, VehicleStatistics} from '../types';
+import {apiClientNew, PaginatedApiResponse, PaginationParams} from './apiClientNew';
 
 // Interfejsy dostosowane do rzeczywistego formatu API - NAPRAWIONE TYPY
 export interface VehicleTableResponse {

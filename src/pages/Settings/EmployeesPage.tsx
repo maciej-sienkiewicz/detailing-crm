@@ -1,53 +1,44 @@
 // src/pages/Settings/EmployeesPage.tsx - Refactored with Real API
-import React, { useState, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
+import React, {forwardRef, useCallback, useEffect, useImperativeHandle, useState} from 'react';
 import styled from 'styled-components';
 import {
-    FaEdit,
-    FaTrash,
-    FaFileAlt,
     FaCalendarAlt,
-    FaEnvelope,
-    FaPhone,
-    FaUser,
-    FaSearch,
+    FaCheckCircle,
     FaChevronDown,
     FaChevronUp,
-    FaFilter,
-    FaTimes,
-    FaEye,
-    FaShieldAlt,
-    FaMoneyBillWave,
-    FaFileDownload,
-    FaSort,
-    FaSortUp,
-    FaSortDown,
-    FaEyeSlash,
     FaClock,
-    FaUserTie,
-    FaCircle,
-    FaCheckCircle,
+    FaEdit,
+    FaExclamationTriangle,
+    FaEye,
+    FaFileDownload,
+    FaFilter,
+    FaMoneyBillWave,
+    FaPhone,
+    FaSearch,
+    FaShieldAlt,
+    FaSort,
+    FaSortDown,
+    FaSortUp,
+    FaTimes,
     FaTimesCircle,
-    FaPlus,
+    FaTrash,
+    FaUser,
     FaUserPlus,
-    FaDownload,
-    FaSpinner,
-    FaExclamationTriangle
+    FaUserTie
 } from 'react-icons/fa';
-
-import { Employee, EmployeeDocument } from '../../types';
 import {
+    ContractType,
+    EmployeeFilters,
+    EmployeeHelpers,
     ExtendedEmployee,
     UserRole,
-    UserRoleLabels,
-    ContractType,
-    EmployeeHelpers,
-    EmployeeFilters
+    UserRoleLabels
 } from '../../types/employeeTypes';
-import { useAuth } from '../../context/AuthContext';
-import { useEmployees } from '../../hooks/useEmployees';
-import { EmployeeFormModal } from './components/EmployeeFormModal';
-import { DocumentTemplatesModal } from './components/DocumentTemplatesModal';
-import { EmployeeDetailsModal } from './components/EmployeeDetailsModal';
+import {useAuth} from '../../context/AuthContext';
+import {useEmployees} from '../../hooks/useEmployees';
+import {EmployeeFormModal} from './components/EmployeeFormModal';
+import {DocumentTemplatesModal} from './components/DocumentTemplatesModal';
+import {EmployeeDetailsModal} from './components/EmployeeDetailsModal';
 
 // Professional Brand Theme
 const brandTheme = {

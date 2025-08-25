@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { FaComment, FaInfoCircle, FaCheck, FaTimes, FaUser, FaClock } from 'react-icons/fa';
+import {FaCheck, FaClock, FaComment, FaInfoCircle, FaTimes, FaUser} from 'react-icons/fa';
 import {Comment} from "../../../../api/commentsApi";
 
 // Professional Corporate Theme

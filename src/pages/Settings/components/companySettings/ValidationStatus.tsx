@@ -1,6 +1,6 @@
 // src/pages/Settings/components/ValidationStatus.tsx
 import React from 'react';
-import { FaSpinner, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
+import {FaCheckCircle, FaExclamationTriangle, FaSpinner} from 'react-icons/fa';
 import styled from 'styled-components';
 
 interface ValidationStatusProps {

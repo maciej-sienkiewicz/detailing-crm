@@ -1,25 +1,20 @@
 // src/pages/SMS/components/SmsStats.tsx
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
 import {
-    FaChartLine,
-    FaChartBar,
-    FaCalendarAlt,
-    FaCheckCircle,
-    FaTimes,
-    FaEnvelope,
-    FaMoneyBillWave,
-    FaArrowUp,
     FaArrowDown,
-    FaPercentage,
+    FaArrowUp,
+    FaCalendarAlt,
+    FaChartLine,
+    FaCheckCircle,
+    FaEnvelope,
+    FaExclamationTriangle,
     FaListAlt,
-    FaFilter,
-    FaClock,
-    FaDownload,
-    FaExclamationTriangle
+    FaMoneyBillWave,
+    FaPercentage
 } from 'react-icons/fa';
-import { smsApi } from '../../../api/smsApi';
-import { SmsStatus, SmsStatusColors, SmsStatusLabels } from '../../../types/sms';
+import {smsApi} from '../../../api/smsApi';
+import {SmsStatus, SmsStatusColors, SmsStatusLabels} from '../../../types/sms';
 
 export const SmsStats: React.FC = () => {
     // Stan komponentu

@@ -1,11 +1,5 @@
 import React from 'react';
-import {
-    FormSection,
-    SectionTitle,
-    FormGroup,
-    Label,
-    Textarea
-} from '../styles';
+import {FormGroup, FormSection, Label, SectionTitle, Textarea} from '../styles';
 
 interface NotesSectionProps {
     notes: string;

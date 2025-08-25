@@ -1,28 +1,25 @@
 // src/components/fleet/FleetCalendar.tsx
-import React, { useState, useEffect, useCallback } from 'react';
-import styled, { css } from 'styled-components';
+import React, {useCallback, useEffect, useState} from 'react';
+import styled from 'styled-components';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import { FleetRental, FleetRentalStatus, FleetRentalStatusColors } from '../../types/fleetRental';
-import { FleetVehicle } from '../../types/fleet';
-import { fleetRentalApi } from '../../api/fleetRentalApi';
-import { fleetVehicleApi } from '../../api/fleetApi';
-import { clientApi } from '../../api/clientsApi';
-import { format } from 'date-fns';
-import { pl } from 'date-fns/locale';
+import {FleetRental, FleetRentalStatus, FleetRentalStatusColors} from '../../types/fleetRental';
+import {fleetRentalApi} from '../../api/fleetRentalApi';
+import {fleetVehicleApi} from '../../api/fleetApi';
+import {clientApi} from '../../api/clientsApi';
+import {format} from 'date-fns';
+import {pl} from 'date-fns/locale';
 import {
     FaCalendarAlt,
     FaCarSide,
-    FaUser,
-    FaUserClock,
+    FaChevronRight,
     FaExchangeAlt,
     FaInfoCircle,
-    FaChevronRight,
-    FaCheck,
     FaTimes,
-    FaChevronLeft
+    FaUser,
+    FaUserClock
 } from 'react-icons/fa';
 
 interface FleetCalendarProps {

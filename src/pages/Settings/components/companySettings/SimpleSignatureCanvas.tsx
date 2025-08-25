@@ -1,27 +1,27 @@
 // src/pages/Settings/components/SimpleSignatureCanvas.tsx
-import React, { useRef, useEffect, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
+import React, {forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState} from 'react';
 import SignatureCanvas from 'react-signature-canvas';
-import { FaPen, FaEraser, FaUndo, FaRedo, FaExpand, FaCompress } from 'react-icons/fa';
+import {FaCompress, FaEraser, FaExpand, FaPen, FaRedo, FaUndo} from 'react-icons/fa';
 import {
-    SignatureContainer,
     CanvasHeader,
-    HeaderTitle,
-    ControlsGroup,
-    ControlButton,
-    CanvasWrapper,
     CanvasOverlay,
+    CanvasWrapper,
+    ControlButton,
+    ControlsGroup,
+    HeaderTitle,
+    OverlayHint,
     OverlayIcon,
     OverlayText,
-    OverlayHint,
     PenStyleSelector,
-    StyleLabel,
-    StyleButtons,
-    StyleButton,
-    StylePreview,
+    SignatureContainer,
     SignatureStats,
     StatItem,
     StatLabel,
-    StatValue
+    StatValue,
+    StyleButton,
+    StyleButtons,
+    StyleLabel,
+    StylePreview
 } from '../../styles/companySettings/SignatureCanvas.styles';
 
 interface SimpleSignatureCanvasProps {

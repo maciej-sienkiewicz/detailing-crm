@@ -1,8 +1,7 @@
 // src/pages/Protocols/list/ProtocolFilters.tsx
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { protocolsApi } from '../../../api/protocolsApi';
-import { ProtocolStatus } from '../../../types';
+import {protocolsApi} from '../../../api/protocolsApi';
 
 // Brand Theme System
 const brandTheme = {

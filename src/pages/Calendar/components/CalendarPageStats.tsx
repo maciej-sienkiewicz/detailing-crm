@@ -1,10 +1,10 @@
 // src/pages/Calendar/components/CalendarPageStats.tsx - ZAKTUALIZOWANA WERSJA
 import React from 'react';
 import styled from 'styled-components';
-import { FaCalendarAlt, FaChartLine, FaClock, FaSignOutAlt, FaUsers, FaInfoCircle, FaSync } from 'react-icons/fa';
-import { useCalendarPageContext } from '../CalendarPageProvider';
-import { Tooltip } from '../../../components/common/Tooltip';
-import { theme } from '../../../styles/theme';
+import {FaChartLine, FaClock, FaInfoCircle, FaSignOutAlt, FaUsers} from 'react-icons/fa';
+import {useCalendarPageContext} from '../CalendarPageProvider';
+import {Tooltip} from '../../../components/common/Tooltip';
+import {theme} from '../../../styles/theme';
 
 export const CalendarPageStats: React.FC = () => {
     const { stats, actions } = useCalendarPageContext();

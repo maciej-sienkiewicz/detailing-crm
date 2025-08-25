@@ -1,5 +1,5 @@
 // src/pages/Finances/utils/operationTypeUtils.ts
-import { brandTheme } from '../styles/theme';
+import {brandTheme} from '../styles/theme';
 
 export enum OperationType {
     ADD = 'ADD',

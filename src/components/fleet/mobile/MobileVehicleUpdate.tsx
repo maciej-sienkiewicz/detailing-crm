@@ -1,14 +1,13 @@
 // src/components/fleet/mobile/MobileVehicleUpdate.tsx
 
-import React, { useState, useRef } from 'react';
+import React, {useRef, useState} from 'react';
 import styled from 'styled-components';
-import { FleetVehicle } from '../../../types/fleet';
-import { FleetImage } from '../../../types/fleetRental';
+import {FleetVehicle} from '../../../types/fleet';
 import FuelLevelIndicator from '../common/FuelLevelIndicator';
-import { FaCar, FaTachometerAlt, FaGasPump, FaCamera, FaExclamationTriangle } from 'react-icons/fa';
-import { fleetVehicleApi } from '../../../api/fleetApi';
-import { fleetImageApi } from '../../../api/fleetImageApi';
-import { useToast } from '../../../components/common/Toast/Toast';
+import {FaCamera, FaCar, FaExclamationTriangle, FaGasPump, FaTachometerAlt} from 'react-icons/fa';
+import {fleetVehicleApi} from '../../../api/fleetApi';
+import {fleetImageApi} from '../../../api/fleetImageApi';
+import {useToast} from '../../../components/common/Toast/Toast';
 import {fleetMaintenanceApi} from "../../../api/fleetMaintenanceApi";
 
 interface MobileVehicleUpdateProps {

@@ -1,14 +1,8 @@
-import React, { useRef } from 'react';
-import { useDrag, useDrop } from 'react-dnd';
-import { FaGripVertical, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
-import { TableColumn } from './types';
-import {
-    ModernHeaderCell,
-    HeaderContent,
-    DragHandle,
-    HeaderLabel,
-    SortIcon
-} from './styles/components';
+import React, {useRef} from 'react';
+import {useDrag, useDrop} from 'react-dnd';
+import {FaGripVertical, FaSort, FaSortDown, FaSortUp} from 'react-icons/fa';
+import {TableColumn} from './types';
+import {DragHandle, HeaderContent, HeaderLabel, ModernHeaderCell, SortIcon} from './styles/components';
 
 const COLUMN_TYPE = 'column';
 type SortDirection = 'asc' | 'desc' | null;

@@ -1,46 +1,37 @@
 // src/pages/Finances/components/FixedCostsPage.tsx
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
 import {
     FaBuilding,
-    FaPlus,
-    FaFilter,
     FaChartPie,
-    FaCalendarAlt,
-    FaExclamationTriangle,
-    FaClock,
-    FaEye,
-    FaEdit,
-    FaTrashAlt,
-    FaFileInvoiceDollar,
-    FaSearch,
-    FaTimes,
     FaChevronDown,
     FaChevronUp,
+    FaClock,
+    FaEdit,
+    FaExclamationTriangle,
+    FaEye,
+    FaFileInvoiceDollar,
+    FaFilter,
+    FaSearch,
     FaSort,
+    FaSortDown,
     FaSortUp,
-    FaSortDown
+    FaTimes,
+    FaTrashAlt
 } from 'react-icons/fa';
 import {
-    fixedCostsApi,
-    FixedCost,
-    FixedCostFilters,
     CategorySummary,
-    UpcomingPayments,
-    FixedCostCategory,
+    FixedCost,
     FixedCostCategoryLabels,
-    FixedCostStatus,
-    FixedCostStatusLabels,
+    FixedCostFilters,
+    fixedCostsApi,
     FixedCostStatusColors,
-    CostFrequency,
-    CostFrequencyLabels,
-    CreateFixedCostRequest,
-    UpdateFixedCostRequest,
-    RecordPaymentRequest
+    FixedCostStatusLabels,
+    UpcomingPayments
 } from '../../api/fixedCostsApi';
-import { useToast } from '../../components/common/Toast/Toast';
+import {useToast} from '../../components/common/Toast/Toast';
 import Pagination from '../../components/common/Pagination';
-import { brandTheme } from './styles/theme';
+import {brandTheme} from './styles/theme';
 
 type SortField = 'name' | 'monthlyAmount' | 'startDate' | 'category' | 'status';
 type SortDirection = 'asc' | 'desc' | null;

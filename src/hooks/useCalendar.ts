@@ -1,15 +1,15 @@
 // src/hooks/useCalendar.ts - OPTIMIZED VERSION
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { Appointment, AppointmentStatus } from '../types';
-import { useToast } from '../components/common/Toast/Toast';
+import {useCallback, useEffect, useRef, useState} from 'react';
+import {Appointment, AppointmentStatus} from '../types';
+import {useToast} from '../components/common/Toast/Toast';
 import {
-    fetchAppointments,
     addAppointment,
-    updateAppointment,
     deleteAppointment,
+    fetchAppointments,
+    updateAppointment,
     updateAppointmentStatus
 } from '../api/mocks/appointmentMocks';
-import { fetchProtocolsAsAppointments } from '../services/ProtocolCalendarService';
+import {fetchProtocolsAsAppointments} from '../services/ProtocolCalendarService';
 
 interface UseCalendarReturn {
     appointments: Appointment[];

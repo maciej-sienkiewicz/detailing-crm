@@ -1,22 +1,21 @@
 // src/pages/Finances/components/FinancialSummaryCards.tsx
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import styled from 'styled-components';
 import {
-    FaMoneyBillWave,
-    FaArrowUp,
     FaArrowDown,
+    FaArrowUp,
     FaChartLine,
+    FaCreditCard,
+    FaEdit,
     FaExclamationTriangle,
     FaFileInvoiceDollar,
-    FaEdit,
     FaHistory,
-    FaHandHoldingUsd,
-    FaCreditCard
+    FaMoneyBillWave
 } from 'react-icons/fa';
-import { UnifiedDocumentSummary } from '../../../types/finance';
-import { brandTheme } from '../styles/theme';
+import {UnifiedDocumentSummary} from '../../../types/finance';
+import {brandTheme} from '../styles/theme';
 import BalanceHistoryModal from './BalanceHistoryModal';
-import { BalanceType } from '../../../api/balanceOverrideApi';
+import {BalanceType} from '../../../api/balanceOverrideApi';
 
 interface FinancialSummaryCardsProps {
     summary: UnifiedDocumentSummary;

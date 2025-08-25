@@ -1,14 +1,9 @@
 // ClientListTable/TableView.tsx
 import React from 'react';
-import { TableColumn } from './types';
-import { ColumnHeader } from './ColumnHeader';
-import { TableRow } from './TableRow';
-import {
-    TableWrapper,
-    TableContainer,
-    TableHeader,
-    TableBody
-} from './styles/components';
+import {TableColumn} from './types';
+import {ColumnHeader} from './ColumnHeader';
+import {TableRow} from './TableRow';
+import {TableBody, TableContainer, TableHeader, TableWrapper} from './styles/components';
 import {ClientExpanded} from "../../../../types";
 
 type SortDirection = 'asc' | 'desc' | null;

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import styled from 'styled-components';
-import { FaPaperPlane, FaMobileAlt, FaEnvelope, FaTimes, FaCheck, FaExclamationCircle, FaBell } from 'react-icons/fa';
+import {FaBell, FaCheck, FaEnvelope, FaMobileAlt, FaTimes} from 'react-icons/fa';
 
 // Professional Corporate Theme
 const corporateTheme = {

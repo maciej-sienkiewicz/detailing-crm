@@ -1,21 +1,21 @@
 // src/pages/Fleet/FleetVehiclesPage.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { useNavigate } from 'react-router-dom';
+import {useNavigate} from 'react-router-dom';
 import {
     FleetVehicle,
-    FleetVehicleStatus,
-    FleetVehicleStatusLabels,
     FleetVehicleCategory,
     FleetVehicleCategoryLabels,
+    FleetVehicleStatus,
+    FleetVehicleStatusLabels,
     FleetVehicleUsageType,
     FleetVehicleUsageTypeLabels
 } from '../../types/fleet';
-import { fleetVehicleApi } from '../../api/fleetApi';
+import {fleetVehicleApi} from '../../api/fleetApi';
 import FleetVehicleCard from '../../components/fleet/common/FleetVehicleCard';
-import { FaCar, FaPlus, FaSearch, FaFilter, FaTimesCircle } from 'react-icons/fa';
-import { useToast } from '../../components/common/Toast/Toast';
+import {FaCar, FaFilter, FaPlus, FaSearch, FaTimesCircle} from 'react-icons/fa';
+import {useToast} from '../../components/common/Toast/Toast';
 
 const FleetVehiclesPage: React.FC = () => {
     const navigate = useNavigate();

@@ -1,7 +1,7 @@
 // src/components/fleet/calendar/SelectedVehicleInfo.tsx
 import React from 'react';
 import styled from 'styled-components';
-import { FleetVehicle, FleetVehicleStatus } from '../../../types/fleet';
+import {FleetVehicle, FleetVehicleStatus} from '../../../types/fleet';
 
 interface SelectedVehicleInfoProps {
     vehicle: FleetVehicle;

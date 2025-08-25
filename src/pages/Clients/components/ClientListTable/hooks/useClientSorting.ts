@@ -1,6 +1,6 @@
 // ClientListTable/hooks/useClientSorting.ts - Updated with new columns
-import { useState, useEffect } from 'react';
-import { SortDirection } from '../types';
+import {useEffect, useState} from 'react';
+import {SortDirection} from '../types';
 import {ClientExpanded} from "../../../../../types";
 
 export const useClientSorting = (clients: ClientExpanded[]) => {

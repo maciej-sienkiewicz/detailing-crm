@@ -2,31 +2,31 @@
 import React from 'react';
 import styled from 'styled-components';
 import {
-    FaTimes,
-    FaFilePdf,
-    FaEdit,
     FaDownload,
-    FaPrint,
-    FaTrashAlt,
-    FaFileInvoiceDollar,
-    FaReceipt,
+    FaEdit,
     FaExchangeAlt,
-    FaSpinner // <-- Dodaj ten import
+    FaFileInvoiceDollar,
+    FaFilePdf,
+    FaPrint,
+    FaReceipt,
+    FaSpinner,
+    FaTimes,
+    FaTrashAlt
 } from 'react-icons/fa';
 import {
-    UnifiedFinancialDocument,
     DocumentStatus,
-    DocumentStatusLabels,
     DocumentStatusColors,
+    DocumentStatusLabels,
     DocumentType,
     DocumentTypeLabels,
+    PaymentMethodLabels,
     TransactionDirection,
-    TransactionDirectionLabels,
     TransactionDirectionColors,
-    PaymentMethodLabels
+    TransactionDirectionLabels,
+    UnifiedFinancialDocument
 } from '../../../types/finance';
-import { brandTheme } from '../styles/theme';
-import { useDocumentOperations } from '../hooks/useDocumentOperations';
+import {brandTheme} from '../styles/theme';
+import {useDocumentOperations} from '../hooks/useDocumentOperations';
 
 interface DocumentViewModalProps {
     isOpen: boolean;

@@ -1,8 +1,8 @@
 // src/pages/Protocols/form/components/SearchField.tsx
 import React from 'react';
 import styled from 'styled-components';
-import { FaSearch } from 'react-icons/fa';
-import { brandTheme } from '../styles';
+import {FaSearch} from 'react-icons/fa';
+import {brandTheme} from '../styles';
 
 interface SearchFieldProps {
     id: string;

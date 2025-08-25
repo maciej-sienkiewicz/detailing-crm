@@ -1,11 +1,7 @@
 // src/pages/Finances/hooks/useDocumentActions.ts
-import { useState, useCallback } from 'react';
-import {
-    UnifiedFinancialDocument,
-    DocumentType,
-    DocumentStatus
-} from '../../../types/finance';
-import { unifiedFinancialApi } from '../../../api/unifiedFinancialApi';
+import {useCallback, useState} from 'react';
+import {DocumentStatus, DocumentType, UnifiedFinancialDocument} from '../../../types/finance';
+import {unifiedFinancialApi} from '../../../api/unifiedFinancialApi';
 
 // Użyj dokładnie tego samego typu co w Toast.tsx
 type ToastType = 'success' | 'error' | 'info';

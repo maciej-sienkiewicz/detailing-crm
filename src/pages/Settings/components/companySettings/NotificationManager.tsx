@@ -1,7 +1,7 @@
 // src/pages/Settings/components/NotificationManager.tsx
 import React from 'react';
 import styled from 'styled-components';
-import { useNotifications } from '../../../../hooks/useNotifications';
+import {useNotifications} from '../../../../hooks/useNotifications';
 
 export const NotificationManager: React.FC = () => {
     const { notifications, clearNotification } = useNotifications();

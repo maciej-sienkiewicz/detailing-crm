@@ -1,15 +1,12 @@
 // src/pages/Settings/sections/GoogleDriveSection.tsx
-import React, { useState, useEffect } from 'react';
-import { FaGoogleDrive, FaCloud, FaSync, FaSpinner } from 'react-icons/fa';
-import { companySettingsApi } from '../../../../api/companySettingsApi';
-import { SectionCard } from '../../components/companySettings/SectionCard';
-import { GoogleDriveConfigured } from '../../components/companySettings/GoogleDriveConfigured';
-import { GoogleDriveSetup } from '../../components/companySettings/GoogleDriveSetup';
-import { ConfigStatusBanner } from '../../styles/companySettings/GoogleDrive.styles';
-import type {
-    GoogleDriveFolderSettings,
-    GoogleDriveSystemInfo,
-} from '../../../../api/companySettingsApi';
+import React, {useEffect, useState} from 'react';
+import {FaCloud, FaGoogleDrive, FaSpinner, FaSync} from 'react-icons/fa';
+import type {GoogleDriveFolderSettings, GoogleDriveSystemInfo,} from '../../../../api/companySettingsApi';
+import {companySettingsApi} from '../../../../api/companySettingsApi';
+import {SectionCard} from '../../components/companySettings/SectionCard';
+import {GoogleDriveConfigured} from '../../components/companySettings/GoogleDriveConfigured';
+import {GoogleDriveSetup} from '../../components/companySettings/GoogleDriveSetup';
+import {ConfigStatusBanner} from '../../styles/companySettings/GoogleDrive.styles';
 
 interface GoogleDriveSectionProps {
     onSuccess?: (message: string) => void;

@@ -1,10 +1,10 @@
 // src/components/Gallery/ImagePreviewModal.tsx
 import React from 'react';
 import styled from 'styled-components';
-import { FaDownload } from 'react-icons/fa';
-import { GalleryImage } from '../../api/galleryApi';
-import { formatFileSize, formatDate, parseJavaLocalDateTime } from '../../utils/galleryUtils';
-import { theme } from '../../styles/theme';
+import {FaDownload} from 'react-icons/fa';
+import {GalleryImage} from '../../api/galleryApi';
+import {formatDate, formatFileSize, parseJavaLocalDateTime} from '../../utils/galleryUtils';
+import {theme} from '../../styles/theme';
 import Modal from '../common/Modal';
 
 interface ImagePreviewModalProps {

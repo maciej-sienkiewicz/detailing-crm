@@ -1,8 +1,8 @@
 // src/pages/Protocols/form/components/AutocompleteField.tsx
-import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { createPortal } from 'react-dom';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
+import {createPortal} from 'react-dom';
 import styled from 'styled-components';
-import { FaSearch, FaChevronDown, FaTimes, FaUser, FaCar } from 'react-icons/fa';
+import {FaCar, FaChevronDown, FaSearch, FaTimes, FaUser} from 'react-icons/fa';
 import {ClientExpanded, VehicleExpanded} from "../../../types";
 
 const brandTheme = {

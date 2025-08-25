@@ -1,6 +1,6 @@
 // src/pages/Settings/styles/EmailSettings.styles.ts
 import styled from 'styled-components';
-import { theme } from '../../../../styles/theme';
+import {theme} from '../../../../styles/theme';
 
 export const StatusBanner = styled.div<{ $configured: boolean }>`
     display: flex;

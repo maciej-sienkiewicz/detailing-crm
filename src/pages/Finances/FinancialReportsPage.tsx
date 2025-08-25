@@ -1,13 +1,12 @@
 // src/pages/Finances/FinancialReportsPage.tsx
-import React, { useState } from 'react';
-import { FaChartLine, FaSync, FaPlus } from 'react-icons/fa';
-import { useStatsData } from './hooks/useStatsData';
-import { CreateCategoryModal } from './components/CreateCategoryModal';
-import { AssignToCategoryModal } from './components/AssignToCategoryModal';
-import { CategoriesSection } from './components/CategoriesSection';
-import { UncategorizedServicesTable } from './components/UncategorizedServicesTable';
-import { ServiceStatsModal } from './components/ServiceStatsModal';
-import { CategoryStatsModal } from './components/CategoryStatsModal';
+import React, {useState} from 'react';
+import {useStatsData} from './hooks/useStatsData';
+import {CreateCategoryModal} from './components/CreateCategoryModal';
+import {AssignToCategoryModal} from './components/AssignToCategoryModal';
+import {CategoriesSection} from './components/CategoriesSection';
+import {UncategorizedServicesTable} from './components/UncategorizedServicesTable';
+import {ServiceStatsModal} from './components/ServiceStatsModal';
+import {CategoryStatsModal} from './components/CategoryStatsModal';
 import styled from 'styled-components';
 
 // Unified professional theme

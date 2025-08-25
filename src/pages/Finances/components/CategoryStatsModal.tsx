@@ -1,23 +1,23 @@
 // src/pages/Finances/components/CategoryStatsModal.tsx
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { Line, Bar } from 'react-chartjs-2';
+import {Bar, Line} from 'react-chartjs-2';
 import {
-    Chart as ChartJS,
-    CategoryScale,
-    LinearScale,
-    PointElement,
-    LineElement,
     BarElement,
-    Title,
-    Tooltip,
+    CategoryScale,
+    Chart as ChartJS,
+    ChartOptions,
     Legend,
-    ChartOptions
+    LinearScale,
+    LineElement,
+    PointElement,
+    Title,
+    Tooltip
 } from 'chart.js';
-import { FaFolder, FaSync, FaCalendarAlt, FaShoppingCart } from 'react-icons/fa';
+import {FaCalendarAlt, FaFolder, FaShoppingCart, FaSync} from 'react-icons/fa';
 import Modal from '../../../components/common/Modal';
-import { useCategoryStats } from '../hooks/useStatsData';
-import { TimeGranularity, TimeGranularityLabels, CategoryStatsResponse } from '../../../api/statsApi';
+import {useCategoryStats} from '../hooks/useStatsData';
+import {CategoryStatsResponse, TimeGranularity, TimeGranularityLabels} from '../../../api/statsApi';
 
 ChartJS.register(
     CategoryScale,

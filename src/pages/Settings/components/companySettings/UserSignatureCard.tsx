@@ -1,33 +1,33 @@
 // src/pages/Settings/components/UserSignatureCard.tsx - Fixed component
-import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { FaPen, FaCheck, FaEye, FaEdit, FaPlus, FaTrashAlt, FaCheckCircle } from 'react-icons/fa';
-import { useUserSignature } from '../../../../hooks/useUserSignature';
-import { SectionCard } from './SectionCard';
-import { SimpleSignatureCanvas } from './SimpleSignatureCanvas'; // Changed import
-import { LoadingSpinner } from './LoadingSpinner';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
+import {FaCheck, FaCheckCircle, FaEdit, FaEye, FaPen, FaPlus, FaTrashAlt} from 'react-icons/fa';
+import {useUserSignature} from '../../../../hooks/useUserSignature';
+import {SectionCard} from './SectionCard';
+import {SimpleSignatureCanvas} from './SimpleSignatureCanvas'; // Changed import
+import {LoadingSpinner} from './LoadingSpinner';
 import {
-    SignatureCreator,
+    ActionButton,
+    CanvasContainer,
+    CompactStatus,
+    CreatorActions,
     CreatorHeader,
     CreatorTitle,
-    CreatorActions,
-    CanvasContainer,
-    PreviewSection,
-    PreviewHeader,
-    PreviewTitle,
-    PreviewMeta,
-    PreviewContent,
-    SignatureDisplay,
-    PreviewActions,
-    EmptyState,
-    EmptyIcon,
-    EmptyTitle,
-    EmptyDescription,
     EmptyActions,
-    CompactStatus,
-    StatusRow,
+    EmptyDescription,
+    EmptyIcon,
+    EmptyState,
+    EmptyTitle,
+    PreviewActions,
+    PreviewContent,
+    PreviewHeader,
+    PreviewMeta,
+    PreviewSection,
+    PreviewTitle,
+    SignatureCreator,
+    SignatureDisplay,
     StatusLabel,
-    StatusValue,
-    ActionButton
+    StatusRow,
+    StatusValue
 } from '../../styles/companySettings/UserSignature.styles';
 
 interface UserSignatureCardProps {

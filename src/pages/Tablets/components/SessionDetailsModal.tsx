@@ -1,21 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
 import {
-    FaSignature,
-    FaUser,
-    FaCar,
-    FaTabletAlt,
-    FaClock,
-    FaCheckCircle,
-    FaTimesCircle,
-    FaExclamationTriangle,
-    FaDownload,
-    FaEye,
-    FaRedo,
-    FaTimes,
     FaCalendarAlt,
+    FaCar,
+    FaCheckCircle,
+    FaClock,
+    FaDownload,
+    FaExclamationTriangle,
+    FaEye,
+    FaFileAlt,
     FaMapMarkerAlt,
-    FaFileAlt
+    FaRedo,
+    FaSignature,
+    FaTabletAlt,
+    FaTimes,
+    FaTimesCircle,
+    FaUser
 } from 'react-icons/fa';
 
 interface SignatureSessionDetails {

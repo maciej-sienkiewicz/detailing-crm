@@ -1,45 +1,45 @@
 // src/pages/Settings/components/GoogleDriveSetup.tsx
-import React, { useState } from 'react';
-import { FaSpinner, FaCheckCircle, FaSave, FaExclamationTriangle, FaFileArchive, FaClipboard } from 'react-icons/fa';
-import { companySettingsApi, companySettingsValidation } from '../../../../api/companySettingsApi';
-import type { GoogleDriveSystemInfo, ValidateFolderResponse } from '../../../../api/companySettingsApi';
-import { ActionButton } from '../../styles/companySettings/SectionCard.styles';
-import { FormField } from './FormField';
-import { FormGrid } from '../../styles/companySettings/Form.styles';
+import React, {useState} from 'react';
+import {FaCheckCircle, FaClipboard, FaExclamationTriangle, FaFileArchive, FaSave, FaSpinner} from 'react-icons/fa';
+import type {GoogleDriveSystemInfo, ValidateFolderResponse} from '../../../../api/companySettingsApi';
+import {companySettingsApi, companySettingsValidation} from '../../../../api/companySettingsApi';
+import {ActionButton} from '../../styles/companySettings/SectionCard.styles';
+import {FormField} from './FormField';
+import {FormGrid} from '../../styles/companySettings/Form.styles';
 import {
-    GoogleDriveSetupContainer,
-    SetupSteps,
-    SetupTitle,
-    StepsList,
-    SetupStep,
-    StepNumber,
-    StepContent,
-    StepTitle,
-    StepDescription,
+    ActionGroup,
+    CopyButton,
     EmailCopyBox,
     EmailText,
-    CopyButton,
     ExampleUrl,
+    ExternalLink,
+    GoogleDriveSetupContainer,
     HighlightText,
+    InstructionItem,
+    InstructionsList,
+    InstructionTitle,
+    RequirementItem,
+    RequirementsBox,
+    RequirementsList,
+    RequirementsTitle,
+    SetupStep,
+    SetupSteps,
+    SetupTitle,
+    StepContent,
+    StepDescription,
+    StepNumber,
+    StepsList,
+    StepTitle,
     UploadArea,
     UploadContent,
+    UploadDescription,
     UploadIcon,
     UploadTitle,
-    UploadDescription,
-    ActionGroup,
-    ValidationResultBox,
     ValidationIcon,
-    ValidationText,
-    ValidationMessage,
     ValidationInstructions,
-    InstructionTitle,
-    InstructionsList,
-    InstructionItem,
-    RequirementsBox,
-    RequirementsTitle,
-    RequirementsList,
-    RequirementItem,
-    ExternalLink
+    ValidationMessage,
+    ValidationResultBox,
+    ValidationText
 } from '../../styles/companySettings/GoogleDrive.styles';
 
 interface GoogleDriveSetupProps {

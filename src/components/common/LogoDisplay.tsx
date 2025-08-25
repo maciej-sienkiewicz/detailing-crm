@@ -1,5 +1,5 @@
 // src/components/common/StableLogo.tsx - Naprawiona wersja bez infinite loop
-import React, { useState, useEffect, useRef } from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import styled from 'styled-components';
 
 interface StableLogoProps {

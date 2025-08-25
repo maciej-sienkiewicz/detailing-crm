@@ -1,27 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { FaArrowLeft, FaClipboardCheck, FaPlus } from 'react-icons/fa';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { servicesApi } from '../../api/servicesApi';
+import React, {useEffect, useState} from 'react';
+import {FaArrowLeft} from 'react-icons/fa';
+import {useLocation, useNavigate} from 'react-router-dom';
+import {servicesApi} from '../../api/servicesApi';
 import {
-    PageContainer,
-    HeaderContainer,
-    PageHeader,
-    HeaderLeft,
     BackButton,
-    LoadingMessage,
     ErrorMessage,
-    HeaderTitle,
-    TitleContent,
-    MainTitle,
-    Subtitle,
-    TitleIcon,
-    PrimaryAction
+    HeaderContainer,
+    HeaderLeft,
+    LoadingMessage,
+    PageContainer,
+    PageHeader
 } from './styles';
-import { useProtocolList } from "./form/hooks/useProtocolList";
-import { useProtocolActions } from "./form/hooks/useProtocolActions";
+import {useProtocolList} from "./form/hooks/useProtocolList";
+import {useProtocolActions} from "./form/hooks/useProtocolActions";
 import ProtocolConfirmationModal from "./shared/modals/ProtocolConfirmationModal";
-import { EditProtocolForm } from "./form/components/EditProtocolForm";
-import { VisitsPageContainer } from './VisitsPageContainer';
+import {EditProtocolForm} from "./form/components/EditProtocolForm";
+import {VisitsPageContainer} from './VisitsPageContainer';
 
 const CarReceptionPage: React.FC = () => {
     const location = useLocation();

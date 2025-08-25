@@ -1,11 +1,10 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {
+    InvoiceGenerationFromVisitRequest,
     invoiceSignatureApi,
     InvoiceSignatureFromVisitRequest,
-    InvoiceGenerationFromVisitRequest,
-    InvoiceSignatureStatusResponse,
-    InvoiceGenerationResponse,
-    InvoiceSignatureStatus
+    InvoiceSignatureStatus,
+    InvoiceSignatureStatusResponse
 } from '../api/invoiceSignatureApi';
 
 interface UseInvoiceSignatureResult {

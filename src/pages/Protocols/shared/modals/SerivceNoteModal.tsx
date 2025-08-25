@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { FaPencilAlt, FaTimes, FaStickyNote } from 'react-icons/fa';
+import {FaPencilAlt, FaStickyNote, FaTimes} from 'react-icons/fa';
 
 // Professional Brand Theme
 const brandTheme = {

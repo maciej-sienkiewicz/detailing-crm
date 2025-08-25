@@ -1,40 +1,38 @@
 // src/pages/Settings/components/EmployeeDetailsModal.tsx - FIXED: Infinite loop issue
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from 'styled-components';
 import {
-    FaUser,
-    FaCalendarAlt,
-    FaEnvelope,
-    FaPhone,
-    FaClock,
-    FaMoneyBillWave,
-    FaShieldAlt,
-    FaEdit,
-    FaUserTie,
-    FaIdCard,
-    FaBriefcase,
-    FaHeart,
-    FaFileAlt,
-    FaPlus,
-    FaTrash,
-    FaDownload,
-    FaEye,
-    FaHistory,
-    FaSpinner,
-    FaExclamationTriangle,
     FaAirFreshener,
+    FaBriefcase,
+    FaCalendarAlt,
+    FaClock,
+    FaDownload,
+    FaEdit,
+    FaEnvelope,
+    FaExclamationTriangle,
+    FaEye,
+    FaFileAlt,
+    FaHistory,
+    FaMoneyBillWave,
+    FaPhone,
+    FaPlus,
+    FaShieldAlt,
+    FaSpinner,
+    FaTrash,
+    FaUser,
+    FaUserTie,
 } from 'react-icons/fa';
-import { EmployeeDocument } from '../../../types';
-import { ExtendedEmployee, EmployeeHelpers, UserRoleLabels } from '../../../types/employeeTypes';
-import { DocumentFormModal } from './DocumentFormModal';
+import {EmployeeDocument} from '../../../types';
+import {EmployeeHelpers, ExtendedEmployee, UserRoleLabels} from '../../../types/employeeTypes';
+import {DocumentFormModal} from './DocumentFormModal';
 import {
-    ModalOverlay,
+    Button,
+    ButtonGroup,
+    CloseButton,
+    ModalBody,
     ModalContainer,
     ModalHeader,
-    ModalBody,
-    CloseButton,
-    ButtonGroup,
-    Button
+    ModalOverlay
 } from '../styles/ModalStyles';
 import {useEmployees} from "../../../hooks/useEmployees";
 

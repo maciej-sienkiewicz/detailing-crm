@@ -1,9 +1,9 @@
 // src/pages/Settings/sections/BankSettingsSection.tsx
 import React from 'react';
-import { FaCreditCard } from 'react-icons/fa';
-import { SectionCard } from '../../components/companySettings/SectionCard';
-import { FormField } from '../../components/companySettings/FormField';
-import { FormGrid } from '../../styles/companySettings/Form.styles';
+import {FaCreditCard} from 'react-icons/fa';
+import {SectionCard} from '../../components/companySettings/SectionCard';
+import {FormField} from '../../components/companySettings/FormField';
+import {FormGrid} from '../../styles/companySettings/Form.styles';
 
 interface BankSettings {
     bankAccountNumber?: string;

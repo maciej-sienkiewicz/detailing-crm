@@ -1,7 +1,7 @@
 // src/components/common/AnimatedGradientBackground.tsx
 
-import React, { useEffect, useRef } from 'react';
-import styled, { keyframes } from 'styled-components';
+import React, {useEffect, useRef} from 'react';
+import styled from 'styled-components';
 
 interface AnimatedGradientBackgroundProps {
     children: React.ReactNode;

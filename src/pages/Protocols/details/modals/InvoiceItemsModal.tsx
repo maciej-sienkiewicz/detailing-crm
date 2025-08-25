@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import {FaCheck, FaTimesCircle, FaTimes, FaPencilAlt, FaTrash, FaLayerGroup, FaFileInvoice, FaCalculator} from 'react-icons/fa';
+import {FaCalculator, FaCheck, FaFileInvoice, FaLayerGroup, FaPencilAlt, FaTimes, FaTrash} from 'react-icons/fa';
 import {SelectedService, ServiceApprovalStatus} from '../../../../types';
 import {useToast} from "../../../../components/common/Toast/Toast";
 

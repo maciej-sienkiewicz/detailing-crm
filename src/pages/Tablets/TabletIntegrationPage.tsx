@@ -1,18 +1,10 @@
 // src/pages/Tablets/TabletIntegrationPage.tsx
-import React, { useState, useCallback } from 'react';
+import React, {useCallback, useState} from 'react';
 import styled from 'styled-components';
 import TabletManagementDashboard from './TabletManagementDashboard';
 import SessionDetailsModal from './components/SessionDetailsModal';
-import { useTablets } from '../../hooks/useTablets';
-import {
-    FaTabletAlt,
-    FaWifi,
-    FaPlus,
-    FaTimes,
-    FaSpinner,
-    FaExclamationTriangle,
-    FaCheckCircle
-} from 'react-icons/fa';
+import {useTablets} from '../../hooks/useTablets';
+import {FaExclamationTriangle, FaPlus, FaSpinner, FaTabletAlt, FaTimes, FaWifi} from 'react-icons/fa';
 
 // Professional Brand Theme - Consistent with Finance module
 const brandTheme = {

@@ -1,6 +1,6 @@
 // src/pages/Protocols/styles.ts
 import styled from 'styled-components';
-import { ProtocolStatus } from '../../types';
+import {ProtocolStatus} from '../../types';
 
 // Brand Theme System - modern and consistent
 const brandTheme = {

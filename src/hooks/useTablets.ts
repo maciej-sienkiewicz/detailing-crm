@@ -1,12 +1,11 @@
 // src/hooks/useTablets.ts
-import { useState, useEffect, useCallback } from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import {
-    tabletsApi,
-    TabletDevice,
-    SignatureSession,
     CreateSignatureSessionRequest,
     PairingCodeResponse,
-    TabletStatsResponse
+    SignatureSession,
+    TabletDevice,
+    tabletsApi
 } from '../api/tabletsApi';
 
 interface RealtimeStats {

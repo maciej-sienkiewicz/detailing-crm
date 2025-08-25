@@ -1,9 +1,9 @@
 // src/components/layout/UserProfileSection.tsx
-import React, { useState, useRef, useEffect } from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import styled from 'styled-components';
-import { FaUser, FaSignOutAlt, FaCog, FaEnvelope, FaBell, FaChevronDown } from 'react-icons/fa';
-import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import {FaChevronDown, FaSignOutAlt} from 'react-icons/fa';
+import {useAuth} from '../../context/AuthContext';
+import {useNavigate} from 'react-router-dom';
 
 // Brand Theme System
 const brandTheme = {

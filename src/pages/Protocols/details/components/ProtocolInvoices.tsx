@@ -1,37 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { format } from 'date-fns';
-import { pl } from 'date-fns/locale';
-import { useNavigate } from 'react-router-dom';
+import {format} from 'date-fns';
+import {pl} from 'date-fns/locale';
+import {useNavigate} from 'react-router-dom';
 import {
-    FaPlus,
-    FaFileInvoiceDollar,
     FaBuilding,
     FaCalendarAlt,
-    FaTag,
-    FaMoneyBillWave,
-    FaTrashAlt,
-    FaFileDownload,
+    FaEdit,
     FaEye,
-    FaExternalLinkAlt,
+    FaFileDownload,
+    FaFileInvoiceDollar,
     FaPercent,
+    FaPlus,
     FaSitemap,
-    FaEdit
+    FaTrashAlt
 } from 'react-icons/fa';
-import {
-    CarReceptionProtocol
-} from '../../../../types';
-import {
-    UnifiedFinancialDocument,
-    DocumentType,
-    TransactionDirection,
-    DocumentStatus
-} from '../../../../types/finance';
-import { unifiedFinancialApi } from '../../../../api/unifiedFinancialApi';
+import {CarReceptionProtocol} from '../../../../types';
+import {DocumentStatus, DocumentType, TransactionDirection, UnifiedFinancialDocument} from '../../../../types/finance';
+import {unifiedFinancialApi} from '../../../../api/unifiedFinancialApi';
 import InvoiceFormModal from '../../../Finances/components/InvoiceFormModal';
 import InvoiceViewModal from '../../../Finances/components/InvoiceViewModal';
-import { useToast } from '../../../../components/common/Toast/Toast';
-import {dark} from "@mui/material/styles/createPalette";
+import {useToast} from '../../../../components/common/Toast/Toast';
 
 interface ProtocolInvoicesProps {
     protocol: CarReceptionProtocol;

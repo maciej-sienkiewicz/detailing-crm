@@ -1,6 +1,6 @@
 // src/pages/Protocols/form/hooks/useFormValidation.ts - ZAKTUALIZOWANA WERSJA
-import { useState } from 'react';
-import { CarReceptionProtocol } from '../../../../types';
+import {useState} from 'react';
+import {CarReceptionProtocol} from '../../../../types';
 
 export interface FormErrors {
     [key: string]: string;

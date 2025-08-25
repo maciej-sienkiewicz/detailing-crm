@@ -11,16 +11,10 @@
  * - Pagination management
  */
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import {
-    employeesApi,
-    EmployeeSearchParams,
-    EmployeeCreatePayload,
-    EmployeeUpdatePayload,
-    EmployeesApiResult
-} from '../api/employeesApi';
-import { ExtendedEmployee, EmployeeFilters } from '../types/employeeTypes';
-import { EmployeeDocument } from '../types';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {EmployeeCreatePayload, employeesApi, EmployeeSearchParams, EmployeeUpdatePayload} from '../api/employeesApi';
+import {EmployeeFilters, ExtendedEmployee} from '../types/employeeTypes';
+import {EmployeeDocument} from '../types';
 
 // ========================================================================================
 // TYPES AND INTERFACES
