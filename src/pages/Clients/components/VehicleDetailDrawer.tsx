@@ -1,3 +1,4 @@
+// src/pages/Clients/components/VehicleDetailDrawer.tsx - NAPRAWIONE
 import React, {useEffect, useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import styled from 'styled-components';
@@ -21,9 +22,11 @@ import {
 } from 'react-icons/fa';
 import {VehicleExpanded, VehicleStatistics} from '../../../types';
 import {vehicleApi} from '../../../api/vehiclesApi';
-import {ClientVisitHistoryItem, visitsApi} from '../../../api/visitsApiNew';
 import {clientsApi} from '../../../api/clientsApi';
 import {ProtocolStatus, ProtocolStatusColors, ProtocolStatusLabels} from '../../../types/protocol';
+
+// NAPRAWIONY: Nowe API dla wizyt pojazdów
+import {apiClientNew} from '../../../api/apiClientNew';
 
 const brandTheme = {
     primary: 'var(--brand-primary, #1a365d)',
@@ -93,6 +96,30 @@ interface FullOwnerInfo {
     fullName: string;
 }
 
+// NAPRAWIONY: Interfejs odpowiadający VisitResponse z backendu
+interface VehicleVisitHistoryItem {
+    id: string;
+    title: string;
+    client_id: string;
+    vehicle_id: string;
+    start_date: string;
+    end_date: string;
+    status: ProtocolStatus;
+    total_amount: number;
+    service_count: number;
+    notes?: string;
+    created_at: string;
+    updated_at: string;
+}
+
+interface VehicleVisitsResponse {
+    content: VehicleVisitHistoryItem[];
+    totalElements: number;
+    totalPages: number;
+    number: number;
+    size: number;
+}
+
 const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
                                                                      isOpen,
                                                                      vehicle,
@@ -101,7 +128,7 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
     const navigate = useNavigate();
     const [owners, setOwners] = useState<FullOwnerInfo[]>([]);
     const [loadingOwners, setLoadingOwners] = useState(false);
-    const [visitHistory, setVisitHistory] = useState<ClientVisitHistoryItem[]>([]);
+    const [visitHistory, setVisitHistory] = useState<VehicleVisitHistoryItem[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [vehicleStats, setVehicleStats] = useState<VehicleStatistics | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -173,41 +200,37 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
         loadOwnersDetails();
     }, [vehicle]);
 
+    // NAPRAWIONY: Nowa funkcja do pobierania wizyt pojazdu
     useEffect(() => {
-        const loadVisitHistory = async () => {
-            if (vehicle && owners.length > 0) {
-                setLoadingHistory(true);
-                try {
-                    const allVisitPromises = owners.map(async (owner) => {
-                        const visitResult = await visitsApi.getClientVisitHistory(owner.id, { size: 20 });
-                        if (visitResult.success && visitResult.data) {
-                            return visitResult.data.data.filter(visit =>
-                                visit.licensePlate === vehicle.licensePlate
-                            );
-                        }
-                        return [];
-                    });
+        const loadVehicleVisitHistory = async () => {
+            if (!vehicle) return;
 
-                    const allVisitResults = await Promise.all(allVisitPromises);
-                    const allVisits = allVisitResults.flat();
+            setLoadingHistory(true);
+            try {
+                // NAPRAWIONE: Używamy prawidłowego endpointa /api/v1/protocols/vehicles/{id}
+                const response = await apiClientNew.get<VehicleVisitsResponse>(
+                    `/v1/protocols/vehicles/${vehicle.id}`,
+                    { page: 0, size: 5 }, // Pobieramy tylko 5 najnowszych wizyt
+                    { timeout: 10000 }
+                );
 
-                    const uniqueVisits = allVisits.filter((visit, index, arr) =>
-                        arr.findIndex(v => v.id === visit.id) === index
-                    ).sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
-
-                    setVisitHistory(uniqueVisits);
-                } catch (error) {
-                    setError('Nie udało się załadować historii wizyt');
-                } finally {
-                    setLoadingHistory(false);
+                if (response && response.content) {
+                    setVisitHistory(response.content);
+                } else {
+                    setVisitHistory([]);
                 }
+
+            } catch (error) {
+                console.error('Error loading vehicle visit history:', error);
+                setError('Nie udało się załadować historii wizyt pojazdu');
+                setVisitHistory([]);
+            } finally {
+                setLoadingHistory(false);
             }
         };
 
-        if (owners.length > 0) {
-            loadVisitHistory();
-        }
-    }, [vehicle, owners]);
+        loadVehicleVisitHistory();
+    }, [vehicle]);
 
     const formatDate = (dateString: string): string => {
         if (!dateString) return '';
@@ -417,23 +440,23 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
 
                 <SectionTitle>
                     <SectionTitleIcon><FaCalendarAlt /></SectionTitleIcon>
-                    Historia rezerwacji
+                    Historia wizyt
                 </SectionTitle>
 
                 {loadingHistory ? (
                     <LoadingContainer>
                         <LoadingSpinner />
-                        <LoadingText>Ładowanie historii rezerwacji...</LoadingText>
+                        <LoadingText>Ładowanie historii wizyt...</LoadingText>
                     </LoadingContainer>
                 ) : visitHistory.length === 0 ? (
                     <EmptyMessage>
                         <EmptyIcon><FaCar /></EmptyIcon>
-                        <EmptyText>Brak historii rezerwacji</EmptyText>
-                        <EmptySubtext>Ten pojazd nie ma jeszcze żadnej historii rezerwacji w systemie</EmptySubtext>
+                        <EmptyText>Brak historii wizyt</EmptyText>
+                        <EmptySubtext>Ten pojazd nie ma jeszcze żadnej historii wizyt w systemie</EmptySubtext>
                     </EmptyMessage>
                 ) : (
                     <VisitHistoryList>
-                        {visitHistory.slice(0, 5).map(visit => {
+                        {visitHistory.map(visit => {
                             const statusInfo = getStatusInfo(visit.status);
                             return (
                                 <VisitHistoryCard
@@ -444,7 +467,7 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
                                     <VisitCardHeader>
                                         <VisitMetadata>
                                             <VisitDate>
-                                                {formatDate(visit.startDate)}
+                                                {formatDate(visit.start_date)}
                                             </VisitDate>
                                             <VisitTitle>
                                                 {visit.title}
@@ -458,8 +481,8 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
 
                                     <VisitVehicleSection>
                                         <VehicleInfo>
-                                            <VehicleBrand>{visit.make} {visit.model}</VehicleBrand>
-                                            <VehiclePlateDisplay>{visit.licensePlate}</VehiclePlateDisplay>
+                                            <VehicleBrand>{vehicle.make} {vehicle.model}</VehicleBrand>
+                                            <VehiclePlateDisplay>{vehicle.licensePlate}</VehiclePlateDisplay>
                                         </VehicleInfo>
                                     </VisitVehicleSection>
 
@@ -467,7 +490,7 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
                                         <VisitAmount>
                                             <AmountLabel>Wartość</AmountLabel>
                                             <AmountValue>
-                                                {formatCurrency(visit.totalAmount)}
+                                                {formatCurrency(visit.total_amount)}
                                             </AmountValue>
                                         </VisitAmount>
                                         <VisitActionIcon>
@@ -490,6 +513,7 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
     );
 };
 
+// Styled Components - bez zmian, użyj istniejących stylów...
 const DrawerContainer = styled.div<{ isOpen: boolean }>`
     position: fixed;
     top: 0;

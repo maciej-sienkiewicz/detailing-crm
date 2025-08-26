@@ -1,3 +1,4 @@
+// src/pages/Clients/OwnersPage/hooks.ts - NAPRAWIONE
 import {useCallback, useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {ClientExpanded} from '../../../types';
@@ -81,10 +82,12 @@ export const useClientFilters = () => {
             }
         }
 
+        // NAPRAWIONE: Prawidłowe mapowanie minVehicles
         if (filters.minVehicles) {
             const minVehicles = parseInt(filters.minVehicles);
             if (!isNaN(minVehicles) && minVehicles > 0) {
-                params.hasVehicles = true;
+                // Przekazujemy liczbę zamiast flagi hasVehicles
+                params.minVehicles = minVehicles;
             }
         }
 
@@ -101,11 +104,19 @@ export const useClientFilters = () => {
     const loadClients = useCallback(async (page: number = 0, filters: ClientFilters) => {
         try {
             const apiParams = buildApiParams(page, filters);
+
+            console.log('🔍 Loading clients with params:', apiParams); // Debug log
+
             const result = await clientsApi.getClients(apiParams);
 
             if (result.success && result.data) {
                 const clientsData = result.data.data;
                 const pagination = result.data.pagination;
+
+                console.log('✅ Clients loaded successfully:', {
+                    count: clientsData.length,
+                    pagination
+                }); // Debug log
 
                 return {
                     success: true,
@@ -113,6 +124,7 @@ export const useClientFilters = () => {
                     pagination
                 };
             } else {
+                console.error('❌ Failed to load clients:', result.error);
                 showToast('error', result.error || 'Nie udało się załadować listy klientów');
                 return {
                     success: false,
@@ -128,6 +140,7 @@ export const useClientFilters = () => {
                 };
             }
         } catch (err) {
+            console.error('❌ Error loading clients:', err);
             showToast('error', 'Nie udało się załadować listy klientów');
             return {
                 success: false,
@@ -153,14 +166,21 @@ export const useClientOperations = () => {
 
     const editClient = useCallback(async (client: ClientExpanded) => {
         try {
+            console.log('🔧 Editing client:', client.id); // Debug log
+
+            // NAPRAWIONE: Używamy getClientById który zwraca prawidłowe dane
             const result = await clientsApi.getClientById(client.id);
+
             if (result.success && result.data) {
+                console.log('✅ Client data loaded for editing:', result.data); // Debug log
                 return { success: true, client: result.data };
             } else {
+                console.error('❌ Failed to load client for editing:', result.error);
                 showToast('error', result.error || 'Nie udało się pobrać danych klienta');
                 return { success: false, client };
             }
         } catch (error) {
+            console.error('❌ Error loading client for editing:', error);
             showToast('error', 'Błąd podczas pobierania danych klienta');
             return { success: false, client };
         }
@@ -168,21 +188,28 @@ export const useClientOperations = () => {
 
     const deleteClient = useCallback(async (clientId: string) => {
         try {
+            console.log('🗑️ Deleting client:', clientId); // Debug log
+
             const result = await clientsApi.deleteClient(clientId);
             if (result.success) {
+                console.log('✅ Client deleted successfully'); // Debug log
                 showToast('success', 'Klient został usunięty');
                 return { success: true };
             } else {
+                console.error('❌ Failed to delete client:', result.error);
                 showToast('error', result.error || 'Nie udało się usunąć klienta');
                 return { success: false };
             }
         } catch (err) {
+            console.error('❌ Error deleting client:', err);
             showToast('error', 'Nie udało się usunąć klienta');
             return { success: false };
         }
     }, [showToast]);
 
     const navigateToVehicles = useCallback((clientId: string, onNavigateToVehiclesByOwner?: (ownerId: string) => void) => {
+        console.log('🚗 Navigating to vehicles for client:', clientId); // Debug log
+
         if (onNavigateToVehiclesByOwner) {
             onNavigateToVehiclesByOwner(clientId);
         } else {
@@ -192,21 +219,27 @@ export const useClientOperations = () => {
 
     const updateContactAttempt = useCallback(async (clientId: string) => {
         try {
+            console.log('📞 Updating contact attempt for client:', clientId); // Debug log
+
             const result = await clientsApi.getClientById(clientId);
             if (result.success && result.data) {
+                console.log('✅ Contact attempt updated'); // Debug log
                 return { success: true, client: result.data };
             }
             return { success: false, client: null };
         } catch (error) {
+            console.error('❌ Error updating contact attempt:', error);
             return { success: false, client: null };
         }
     }, []);
 
     const exportClients = useCallback(() => {
+        console.log('📤 Exporting clients...'); // Debug log
         showToast('info', 'Eksport danych klientów - funkcjonalność w przygotowaniu');
     }, [showToast]);
 
     const sendSMS = useCallback((client: ClientExpanded) => {
+        console.log('📱 Sending SMS to client:', client.id); // Debug log
         showToast('info', `Symulacja wysyłania SMS do: ${client.firstName} ${client.lastName} (${client.phone})`);
     }, [showToast]);
 
@@ -225,6 +258,8 @@ export const useClientSelection = () => {
     const [selectAll, setSelectAll] = useState(false);
 
     const toggleClientSelection = useCallback((clientId: string) => {
+        console.log('☑️ Toggling client selection:', clientId); // Debug log
+
         setSelectedClientIds(currentSelected => {
             if (currentSelected.includes(clientId)) {
                 return currentSelected.filter(id => id !== clientId);
@@ -236,6 +271,8 @@ export const useClientSelection = () => {
 
     const toggleSelectAll = useCallback((clients: ClientExpanded[]) => {
         const newSelectAll = !selectAll;
+        console.log('☑️ Toggling select all:', newSelectAll); // Debug log
+
         setSelectAll(newSelectAll);
 
         if (newSelectAll) {
@@ -246,6 +283,7 @@ export const useClientSelection = () => {
     }, [selectAll]);
 
     const clearSelection = useCallback(() => {
+        console.log('🧹 Clearing selection'); // Debug log
         setSelectedClientIds([]);
         setSelectAll(false);
     }, []);

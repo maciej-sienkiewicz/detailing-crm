@@ -1,5 +1,30 @@
+// src/api/clientsApi.ts - NAPRAWIONE WERSJA
 import {apiClientNew, ApiError, PaginatedApiResponse, PaginationParams} from './apiClientNew';
 import {ClientExpanded, ClientStatistics, ContactAttempt} from '../types';
+
+// Interfejs odpowiadający strukturze z serwera - ClientWithStatisticsResponse
+interface BackendClientWithStatistics {
+    client: {
+        id: string;
+        first_name: string;
+        last_name: string;
+        full_name: string;
+        email: string;
+        phone: string;
+        address?: string;
+        company?: string;
+        tax_id?: string;
+        notes?: string;
+        created_at: string;
+        updated_at: string;
+    };
+    statistics?: {
+        visit_count: number;
+        total_revenue: number;
+        vehicle_count: number;
+        last_visit_date?: string;
+    };
+}
 
 interface RawClientData {
     id: string | number;
@@ -46,7 +71,8 @@ export interface ClientSearchParams extends PaginationParams {
     email?: string;
     phone?: string;
     company?: string;
-    hasVehicles?: boolean;
+    // NAPRAWIONE: Zmienione z hasVehicles na minVehicles
+    minVehicles?: number;
     minTotalRevenue?: number;
     maxTotalRevenue?: number;
     minVisits?: number;
@@ -224,10 +250,9 @@ class ClientsApi {
             );
         }
 
-        if (params.hasVehicles !== undefined) {
-            result = result.filter(client =>
-                params.hasVehicles ? (client.vehicles?.length || 0) > 0 : (client.vehicles?.length || 0) === 0
-            );
+        // NAPRAWIONE: Filtrowanie po minimalnej liczbie pojazdów
+        if (params.minVehicles !== undefined) {
+            result = result.filter(client => (client.vehicles?.length || 0) >= params.minVehicles!);
         }
 
         if (params.minTotalRevenue !== undefined) {
@@ -249,6 +274,7 @@ class ClientsApi {
         return result;
     }
 
+    // NAPRAWIONE: getClientById używa prawidłowego endpointa i mapuje odpowiedź
     async getClientById(id: number | string): Promise<ClientApiResult<ClientExpanded>> {
         try {
             if (!id) {
@@ -258,13 +284,15 @@ class ClientsApi {
                 };
             }
 
-            const response = await apiClientNew.get<any>(
+            // Używamy endpointa /api/clients/{id} który zwraca ClientWithStatisticsResponse
+            const response = await apiClientNew.get<BackendClientWithStatistics>(
                 `${this.baseEndpoint}/${id}`,
                 undefined,
                 { timeout: 10000 }
             );
 
-            const enrichedClient = this.enrichClientData(response);
+            // Mapujemy odpowiedź z serwera na ClientExpanded
+            const enrichedClient = this.mapBackendClientToExpanded(response);
 
             return {
                 success: true,
@@ -274,6 +302,37 @@ class ClientsApi {
         } catch (error) {
             return this.handleApiError(error, 'pobierania danych klienta');
         }
+    }
+
+    // NOWA FUNKCJA: Mapuje odpowiedź z backendu na ClientExpanded
+    private mapBackendClientToExpanded(backendResponse: BackendClientWithStatistics): ClientExpanded {
+        const client = backendResponse.client;
+        const stats = backendResponse.statistics;
+
+        return {
+            id: client.id,
+            firstName: client.first_name,
+            lastName: client.last_name,
+            fullName: client.full_name,
+            email: client.email,
+            phone: client.phone,
+            address: client.address,
+            company: client.company,
+            taxId: client.tax_id,
+            notes: client.notes,
+
+            // Mapujemy statystyki jeśli istnieją
+            totalVisits: stats?.visit_count || 0,
+            totalTransactions: 0, // Nie ma w API, domyślnie 0
+            abandonedSales: 0, // Nie ma w API, domyślnie 0
+            totalRevenue: Number(stats?.total_revenue || 0),
+            contactAttempts: 0, // Nie ma w API, domyślnie 0
+            lastVisitDate: stats?.last_visit_date,
+            vehicles: [], // UWAGA: Brak informacji o pojazdach w tym endpoincie
+
+            createdAt: client.created_at,
+            updatedAt: client.updated_at
+        };
     }
 
     async createClient(clientData: ClientData): Promise<ClientApiResult<ClientExpanded>> {
@@ -510,12 +569,18 @@ class ClientsApi {
         };
     }
 
+    // NAPRAWIONE: buildQueryParams prawidłowo obsługuje minVehicles
     private buildQueryParams(params: Record<string, any>): Record<string, any> {
         const queryParams: Record<string, any> = {};
 
         Object.entries(params).forEach(([key, value]) => {
             if (value !== undefined && value !== null && value !== '') {
-                queryParams[key] = value;
+                // NAPRAWIONE: Specjalna obsługa dla minVehicles
+                if (key === 'minVehicles' && typeof value === 'number' && value > 0) {
+                    queryParams['min_vehicles'] = value;
+                } else {
+                    queryParams[key] = value;
+                }
             }
         });
 
