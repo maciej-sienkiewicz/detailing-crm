@@ -368,7 +368,7 @@ const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
                 {/* Visit History */}
                 <SectionTitle>
                     <SectionTitleIcon><FaCar /></SectionTitleIcon>
-                    Historia wizyt
+                    5 ostatnich wizyt
                 </SectionTitle>
 
                 {loading ? (
