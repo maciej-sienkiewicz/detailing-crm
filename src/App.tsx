@@ -1,13 +1,36 @@
-// src/App.tsx - Updated with PersistentLogoCacheProvider
+// src/App.tsx - Updated with React Query Provider
 import React from 'react';
-import {BrowserRouter as Router} from 'react-router-dom';
-import {createGlobalStyle} from 'styled-components';
-import {ToastProvider} from "./components/common/Toast/Toast";
-import {AuthProvider} from './context/AuthContext';
-import {PersistentLogoCacheProvider} from './context/PersistentLogoCacheContext'; // Zmieniony import
+import { BrowserRouter as Router } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { createGlobalStyle } from 'styled-components';
+import { ToastProvider } from "./components/common/Toast/Toast";
+import { AuthProvider } from './context/AuthContext';
 import AppRoutes from './routes';
 
-// Globalne style dla całej aplikacji
+// Create a client
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            staleTime: 5 * 60 * 1000, // 5 minutes
+            gcTime: 10 * 60 * 1000, // 10 minutes (previously cacheTime)
+            retry: (failureCount, error: any) => {
+                // Don't retry on authentication errors
+                if (error?.status === 401 || error?.status === 403) {
+                    return false;
+                }
+                // Retry up to 2 times for other errors
+                return failureCount < 2;
+            },
+            refetchOnWindowFocus: false, // Disable refetch on window focus for better UX
+        },
+        mutations: {
+            retry: 1,
+        }
+    }
+});
+
+// Global styles remain the same
 const GlobalStyle = createGlobalStyle`
     * {
         box-sizing: border-box;
@@ -66,7 +89,7 @@ const GlobalStyle = createGlobalStyle`
         font-family: inherit;
     }
 
-    /* Dodatkowe style dla lepszej responsywności tabel */
+    /* Additional styles for better table responsiveness */
     table {
         width: 100%;
         border-collapse: collapse;
@@ -81,31 +104,33 @@ const GlobalStyle = createGlobalStyle`
         }
     }
 
-    /* Style dla lepszej responsywności formularzy */
+    /* Better form responsiveness */
     input, select, textarea {
         max-width: 100%;
     }
 
-    /* Poprawa widoczności przycisków na urządzeniach dotykowych */
+    /* Better button visibility on touch devices */
     @media (max-width: 576px) {
         button {
-            min-height: 44px; /* Zalecana minimalna wysokość dla elementów dotykowych */
+            min-height: 44px;
         }
     }
 `;
 
 const App: React.FC = () => {
     return (
-        <Router>
-            <ToastProvider>
-                <GlobalStyle />
-                <AuthProvider>
-                    <PersistentLogoCacheProvider>
+        <QueryClientProvider client={queryClient}>
+            <Router>
+                <ToastProvider>
+                    <GlobalStyle />
+                    <AuthProvider>
                         <AppRoutes />
-                    </PersistentLogoCacheProvider>
-                </AuthProvider>
-            </ToastProvider>
-        </Router>
+                    </AuthProvider>
+                    {/* React Query DevTools - only in development */}
+                    {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
+                </ToastProvider>
+            </Router>
+        </QueryClientProvider>
     );
 };
 

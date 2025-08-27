@@ -72,6 +72,7 @@ export interface CompanyBasicInfo {
     address?: string;
     phone?: string;
     website?: string;
+    logoId?: string;
 }
 
 export interface BankSettings {
