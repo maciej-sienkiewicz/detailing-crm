@@ -6,14 +6,14 @@ import {ClientExpanded, ClientStatistics, ContactAttempt} from '../types';
 interface BackendClientWithStatistics {
     client: {
         id: string;
-        first_name: string;
-        last_name: string;
+        firstName: string;
+        lastName: string;
         full_name: string;
         email: string;
         phone: string;
         address?: string;
         company?: string;
-        tax_id?: string;
+        taxId?: string;
         notes?: string;
         created_at: string;
         updated_at: string;
@@ -311,14 +311,14 @@ class ClientsApi {
 
         return {
             id: client.id,
-            firstName: client.first_name,
-            lastName: client.last_name,
+            firstName: client.firstName,
+            lastName: client.lastName,
             fullName: client.full_name,
             email: client.email,
             phone: client.phone,
             address: client.address,
             company: client.company,
-            taxId: client.tax_id,
+            taxId: client.taxId,
             notes: client.notes,
 
             // Mapujemy statystyki jeśli istnieją
