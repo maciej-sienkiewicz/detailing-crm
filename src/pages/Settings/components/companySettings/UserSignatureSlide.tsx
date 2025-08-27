@@ -1,12 +1,9 @@
-// src/pages/Settings/sections/companySettings/UserSignatureSlide.tsx
+// src/pages/Settings/components/companySettings/UserSignatureSlide.tsx
 import React from 'react';
-import { FaPen } from 'react-icons/fa';
 import { type CompanySettingsResponse } from '../../../../api/companySettingsApi';
-import { UserSignatureCard } from '../../components/companySettings/UserSignatureCard';
+import { UserSignatureCard } from './UserSignatureCard';
 import {
     SlideContainer,
-    SlideHeader,
-    SlideTitle,
     SlideContent
 } from '../../styles/companySettings/SlideComponents.styles';
 
@@ -28,10 +25,6 @@ export const UserSignatureSlide: React.FC<UserSignatureSlideProps> = ({
                                                                       }) => {
     return (
         <SlideContainer>
-            <SlideHeader>
-                <SlideTitle>Podpis elektroniczny</SlideTitle>
-            </SlideHeader>
-
             <SlideContent>
                 <UserSignatureCard
                     onSuccess={onSuccess}

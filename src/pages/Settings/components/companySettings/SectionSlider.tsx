@@ -1,6 +1,6 @@
 // src/pages/Settings/components/companySettings/SectionSlider.tsx
 import React from 'react';
-import { FaChevronLeft, FaChevronRight, FaEdit, FaSave, FaTimes } from 'react-icons/fa';
+import { FaChevronLeft, FaChevronRight, FaEdit, FaSave, FaTimes, FaInfoCircle } from 'react-icons/fa';
 import {
     SliderContainer,
     SliderHeader,
@@ -40,6 +40,7 @@ interface SectionSliderProps {
     onSave?: () => void;
     onCancel?: () => void;
     showEditControls?: boolean;
+    onShowInstruction?: () => void; // Nowa prop dla Google Drive instrukcji
 }
 
 export const SectionSlider: React.FC<SectionSliderProps> = ({
@@ -55,10 +56,26 @@ export const SectionSlider: React.FC<SectionSliderProps> = ({
                                                                 onStartEdit,
                                                                 onSave,
                                                                 onCancel,
-                                                                showEditControls = false
+                                                                showEditControls = false,
+                                                                onShowInstruction
                                                             }) => {
     const currentSection = sections[currentIndex];
     const progress = ((currentIndex + 1) / sections.length) * 100;
+
+    const renderInstructionButton = () => {
+        if (currentSection.id === 'google-drive' && onShowInstruction) {
+            return (
+                <ActionButton
+                    $secondary
+                    onClick={onShowInstruction}
+                >
+                    <FaInfoCircle />
+                    Instrukcja
+                </ActionButton>
+            );
+        }
+        return null;
+    };
 
     const renderActionButtons = () => {
         if (!showEditControls) return null;
@@ -124,6 +141,7 @@ export const SectionSlider: React.FC<SectionSliderProps> = ({
                     </NavigationContainer>
 
                     <ActionButtonsContainer>
+                        {renderInstructionButton()}
                         {renderActionButtons()}
                     </ActionButtonsContainer>
                 </HeaderRight>

@@ -1,5 +1,5 @@
 // src/pages/Settings/CompanySettingsPage.tsx
-import React, { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
+import React, { forwardRef, useEffect, useImperativeHandle, useState, useRef } from 'react';
 import { companySettingsApi, type CompanySettingsResponse } from '../../api/companySettingsApi';
 import { useNotifications } from '../../hooks/useNotifications';
 import { SectionSlider } from './components/companySettings/SectionSlider';
@@ -9,16 +9,17 @@ import {
     PageContainer,
     SlideContainer
 } from './styles/companySettings/CompanySettingsRedesigned.styles';
-import {BankSettingsSlide} from "./components/companySettings/BankSettingsSlide";
-import {EmailSettingsSlide} from "./components/companySettings/EmailSettingsSlide";
-import {GoogleDriveSlide} from "./components/companySettings/GoogleDriveSlide";
-import {UserSignatureSlide} from "./components/companySettings/UserSignatureSlide";
-import {BasicInfoSlide} from "./components/companySettings/BasicInfoSlide";
+import { BankSettingsSlide } from "./components/companySettings/BankSettingsSlide";
+import { EmailSettingsSlide } from "./components/companySettings/EmailSettingsSlide";
+import { UserSignatureSlide } from "./components/companySettings/UserSignatureSlide";
+import { BasicInfoSlide } from "./components/companySettings/BasicInfoSlide";
+import GoogleDriveSlide from "./components/companySettings/GoogleDriveSlide";
 
 export type EditingSection = 'basic' | 'bank' | 'email' | null;
 
 const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) => {
     const { showSuccess, showError } = useNotifications();
+    const googleDriveSlideRef = useRef<{ showInstructionModal: () => void }>(null);
     const [formData, setFormData] = useState<CompanySettingsResponse | null>(null);
     const [originalData, setOriginalData] = useState<CompanySettingsResponse | null>(null);
     const [editingSection, setEditingSection] = useState<EditingSection>(null);
@@ -26,6 +27,10 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
+
+    const handleShowGoogleDriveInstruction = () => {
+        googleDriveSlideRef.current?.showInstructionModal();
+    };
 
     const sections = [
         {
@@ -159,7 +164,7 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
 
     const handleStartEdit = () => {
         const currentSectionId = sections[currentSectionIndex].id;
-        if (currentSectionId === 'basic' || currentSectionId === 'bank') {
+        if (currentSectionId === 'basic' || currentSectionId === 'bank' || currentSectionId === 'email') {
             setEditingSection(currentSectionId as EditingSection);
         }
     };
@@ -173,7 +178,7 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
     };
 
     const currentSectionId = sections[currentSectionIndex].id;
-    const showEditControls = currentSectionId === 'basic' || currentSectionId === 'bank';
+    const showEditControls = currentSectionId === 'basic' || currentSectionId === 'bank' || currentSectionId === 'email';
     const isCurrentSectionEditing = editingSection === currentSectionId;
 
     if (loading) {
@@ -197,6 +202,19 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
 
     const CurrentSlideComponent = sections[currentSectionIndex].component;
 
+    // Wspólne props dla wszystkich komponentów
+    const commonProps = {
+        data: formData,
+        isEditing: isCurrentSectionEditing,
+        saving: saving,
+        onStartEdit: handleStartEdit,
+        onSave: handleSaveCurrentSection,
+        onCancel: handleCancelCurrentSection,
+        onChange: handleInputChange,
+        onSuccess: showSuccess,
+        onError: showError
+    };
+
     return (
         <PageContainer>
             <SectionSlider
@@ -213,20 +231,29 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                 onSave={handleSaveCurrentSection}
                 onCancel={handleCancelCurrentSection}
                 showEditControls={showEditControls}
+                onShowInstruction={handleShowGoogleDriveInstruction}
             />
 
             <SlideContainer>
-                <CurrentSlideComponent
-                    data={formData}
-                    isEditing={isCurrentSectionEditing}
-                    saving={saving}
-                    onStartEdit={handleStartEdit}
-                    onSave={handleSaveCurrentSection}
-                    onCancel={handleCancelCurrentSection}
-                    onChange={handleInputChange}
-                    onSuccess={showSuccess}
-                    onError={showError}
-                />
+                {/* Renderuj komponenty warunkowo z odpowiednimi props */}
+                {currentSectionId === 'basic' && (
+                    <BasicInfoSlide {...commonProps} />
+                )}
+                {currentSectionId === 'bank' && (
+                    <BankSettingsSlide {...commonProps} />
+                )}
+                {currentSectionId === 'email' && (
+                    <EmailSettingsSlide {...commonProps} />
+                )}
+                {currentSectionId === 'google-drive' && (
+                    <GoogleDriveSlide
+                        ref={googleDriveSlideRef}
+                        {...commonProps}
+                    />
+                )}
+                {currentSectionId === 'signature' && (
+                    <UserSignatureSlide {...commonProps} />
+                )}
             </SlideContainer>
         </PageContainer>
     );

@@ -138,13 +138,6 @@ const SettingsPageWithTabs: React.FC = () => {
                     </HeaderLeft>
 
                     <HeaderActions>
-                        {activeTab === 'company' && (
-                            <PrimaryButton onClick={handleCompanySaveSettings}>
-                                <FaSave />
-                                <span>Zapisz ustawienia</span>
-                            </PrimaryButton>
-                        )}
-
                         {/* Updated button text for visual personalization */}
                         {activeTab === 'visual-personalization' && (
                             <PrimaryButton onClick={handleSaveBrandTheme}>
