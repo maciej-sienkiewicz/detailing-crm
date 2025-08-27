@@ -1,14 +1,10 @@
 // src/pages/Settings/sections/companySettings/BankSettingsSlide.tsx
 import React from 'react';
-import { FaCreditCard, FaUniversity, FaCode, FaUser, FaEdit, FaSave, FaTimes } from 'react-icons/fa';
+import { FaCreditCard, FaUniversity, FaCode, FaUser } from 'react-icons/fa';
 import { type CompanySettingsResponse } from '../../../../api/companySettingsApi';
 import { UnifiedFormField } from '../../components/companySettings/UnifiedFormField';
 import {
     SlideContainer,
-    SlideHeader,
-    SlideTitle,
-    SlideActions,
-    ActionButton,
     SlideContent,
     FormGrid
 } from '../../styles/companySettings/SlideComponents.styles';
@@ -50,29 +46,6 @@ export const BankSettingsSlide: React.FC<BankSettingsSlideProps> = ({
 
     return (
         <SlideContainer>
-            <SlideHeader>
-                <SlideTitle>Dane bankowe firmy</SlideTitle>
-                <SlideActions>
-                    {isEditing ? (
-                        <>
-                            <ActionButton $secondary onClick={onCancel} disabled={saving}>
-                                <FaTimes />
-                                Anuluj
-                            </ActionButton>
-                            <ActionButton $primary onClick={onSave} disabled={saving}>
-                                <FaSave />
-                                {saving ? 'Zapisywanie...' : 'Zapisz'}
-                            </ActionButton>
-                        </>
-                    ) : (
-                        <ActionButton $primary onClick={onStartEdit}>
-                            <FaEdit />
-                            Edytuj
-                        </ActionButton>
-                    )}
-                </SlideActions>
-            </SlideHeader>
-
             <SlideContent>
                 <FormGrid>
                     <UnifiedFormField

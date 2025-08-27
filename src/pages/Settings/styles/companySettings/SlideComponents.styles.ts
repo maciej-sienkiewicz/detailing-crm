@@ -17,65 +17,15 @@ export const SlideContainer = styled.div`
 `;
 
 export const SlideHeader = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 40px 0 32px;
-    position: relative;
-
-    &::after {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 1px;
-        background: linear-gradient(90deg, transparent 0%, #e1e7ef 20%, #e1e7ef 80%, transparent 100%);
-    }
-
-    @media (max-width: 768px) {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 20px;
-        padding: 32px 0 24px;
-    }
+    display: none;
 `;
 
 export const SlideTitle = styled.h3`
-    font-size: 28px;
-    font-weight: 700;
-    background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin: 0;
-    letter-spacing: -0.025em;
-    position: relative;
-
-    &::before {
-        content: '';
-        position: absolute;
-        bottom: -8px;
-        left: 0;
-        width: 60px;
-        height: 3px;
-        background: linear-gradient(90deg, #1a365d 0%, #3b82f6 100%);
-        border-radius: 2px;
-    }
+    display: none;
 `;
 
 export const SlideActions = styled.div`
-    display: flex;
-    gap: 16px;
-    align-items: center;
-
-    @media (max-width: 768px) {
-        width: 100%;
-
-        > * {
-            flex: 1;
-        }
-    }
+    display: none;
 `;
 
 export const ActionButton = styled.button<{
@@ -115,7 +65,7 @@ export const ActionButton = styled.button<{
         opacity: 0.6;
         cursor: not-allowed;
         transform: none;
-
+        
         &::before {
             display: none;
         }
@@ -123,7 +73,7 @@ export const ActionButton = styled.button<{
 
     &:not(:disabled):hover {
         transform: translateY(-2px);
-
+        
         &::before {
             left: 100%;
         }
@@ -189,36 +139,36 @@ export const ActionButton = styled.button<{
 export const SlideContent = styled.div`
     flex: 1;
     overflow-y: auto;
-    padding: 40px 0;
-
+    padding: 50px 0 40px;
+    
     /* Custom scrollbar styling */
     &::-webkit-scrollbar {
         width: 10px;
     }
-
+    
     &::-webkit-scrollbar-track {
         background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
         border-radius: 5px;
         margin: 8px 0;
     }
-
+    
     &::-webkit-scrollbar-thumb {
         background: linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%);
         border-radius: 5px;
         border: 2px solid transparent;
         background-clip: padding-box;
-
+        
         &:hover {
             background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
         }
     }
-
+    
     &::-webkit-scrollbar-corner {
         background: #f1f5f9;
     }
 
     @media (max-width: 768px) {
-        padding: 32px 0;
+        padding: 40px 0 32px;
     }
 `;
 
@@ -228,24 +178,30 @@ export const FormGrid = styled.div`
     gap: 40px 32px;
     align-items: start;
     background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
-    padding: 40px;
-    border-radius: 20px;
+    padding: 50px;
+    border-radius: 24px;
     border: 1px solid rgba(226, 232, 240, 0.6);
-    box-shadow:
-            0 4px 24px rgba(15, 23, 42, 0.04),
-            0 2px 8px rgba(15, 23, 42, 0.02),
-            inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    box-shadow: 
+        0 8px 32px rgba(15, 23, 42, 0.06),
+        0 4px 16px rgba(15, 23, 42, 0.04),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
     position: relative;
     overflow: hidden;
-
+    
     &::before {
         content: '';
         position: absolute;
         top: 0;
         left: 0;
         right: 0;
-        height: 1px;
-        background: linear-gradient(90deg, transparent 0%, rgba(59, 130, 246, 0.3) 50%, transparent 100%);
+        height: 2px;
+        background: linear-gradient(90deg, 
+            transparent 0%, 
+            rgba(59, 130, 246, 0.3) 25%, 
+            rgba(26, 54, 93, 0.4) 50%,
+            rgba(59, 130, 246, 0.3) 75%, 
+            transparent 100%
+        );
     }
 
     &::after {
@@ -255,13 +211,14 @@ export const FormGrid = styled.div`
         left: 0;
         width: 100%;
         height: 100%;
-        background:
-                radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.02) 0%, transparent 50%),
-                radial-gradient(circle at 80% 80%, rgba(26, 54, 93, 0.02) 0%, transparent 50%);
+        background: 
+            radial-gradient(circle at 15% 15%, rgba(59, 130, 246, 0.015) 0%, transparent 40%),
+            radial-gradient(circle at 85% 85%, rgba(26, 54, 93, 0.015) 0%, transparent 40%),
+            radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.01) 0%, transparent 60%);
         pointer-events: none;
         z-index: 0;
     }
-
+    
     > * {
         position: relative;
         z-index: 1;
@@ -270,6 +227,11 @@ export const FormGrid = styled.div`
     @media (max-width: 768px) {
         grid-template-columns: 1fr;
         gap: 32px;
+        padding: 40px 32px;
+        border-radius: 20px;
+    }
+
+    @media (max-width: 480px) {
         padding: 32px 24px;
         border-radius: 16px;
     }

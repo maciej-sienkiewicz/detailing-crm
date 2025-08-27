@@ -1,12 +1,9 @@
 // src/pages/Settings/sections/companySettings/EmailSettingsSlide.tsx
 import React from 'react';
-import { FaEnvelope } from 'react-icons/fa';
 import { type CompanySettingsResponse } from '../../../../api/companySettingsApi';
 import { EmailSettingsCard } from '../../components/companySettings/EmailSettingsCard';
 import {
     SlideContainer,
-    SlideHeader,
-    SlideTitle,
     SlideContent
 } from '../../styles/companySettings/SlideComponents.styles';
 
@@ -28,10 +25,6 @@ export const EmailSettingsSlide: React.FC<EmailSettingsSlideProps> = ({
                                                                       }) => {
     return (
         <SlideContainer>
-            <SlideHeader>
-                <SlideTitle>Konfiguracja email</SlideTitle>
-            </SlideHeader>
-
             <SlideContent>
                 <EmailSettingsCard
                     onSuccess={onSuccess}

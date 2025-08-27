@@ -10,10 +10,10 @@ import {
     SlideContainer
 } from './styles/companySettings/CompanySettingsRedesigned.styles';
 import {BankSettingsSlide} from "./components/companySettings/BankSettingsSlide";
-import {BasicInfoSlide} from "./components/companySettings/BasicInfoSlide";
 import {EmailSettingsSlide} from "./components/companySettings/EmailSettingsSlide";
 import {GoogleDriveSlide} from "./components/companySettings/GoogleDriveSlide";
 import {UserSignatureSlide} from "./components/companySettings/UserSignatureSlide";
+import {BasicInfoSlide} from "./components/companySettings/BasicInfoSlide";
 
 export type EditingSection = 'basic' | 'bank' | 'email' | null;
 
@@ -144,15 +144,37 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
 
     const handlePrevious = () => {
         setCurrentSectionIndex(prev => Math.max(0, prev - 1));
+        setEditingSection(null);
     };
 
     const handleNext = () => {
         setCurrentSectionIndex(prev => Math.min(sections.length - 1, prev + 1));
+        setEditingSection(null);
     };
 
     const handleSectionChange = (index: number) => {
         setCurrentSectionIndex(index);
+        setEditingSection(null);
     };
+
+    const handleStartEdit = () => {
+        const currentSectionId = sections[currentSectionIndex].id;
+        if (currentSectionId === 'basic' || currentSectionId === 'bank') {
+            setEditingSection(currentSectionId as EditingSection);
+        }
+    };
+
+    const handleSaveCurrentSection = () => {
+        handleSaveSection(editingSection);
+    };
+
+    const handleCancelCurrentSection = () => {
+        handleCancelSection(editingSection);
+    };
+
+    const currentSectionId = sections[currentSectionIndex].id;
+    const showEditControls = currentSectionId === 'basic' || currentSectionId === 'bank';
+    const isCurrentSectionEditing = editingSection === currentSectionId;
 
     if (loading) {
         return (
@@ -185,16 +207,22 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                 onSectionChange={handleSectionChange}
                 canNavigatePrev={currentSectionIndex > 0}
                 canNavigateNext={currentSectionIndex < sections.length - 1}
+                isEditing={isCurrentSectionEditing}
+                saving={saving}
+                onStartEdit={handleStartEdit}
+                onSave={handleSaveCurrentSection}
+                onCancel={handleCancelCurrentSection}
+                showEditControls={showEditControls}
             />
 
             <SlideContainer>
                 <CurrentSlideComponent
                     data={formData}
-                    isEditing={editingSection === sections[currentSectionIndex].id}
+                    isEditing={isCurrentSectionEditing}
                     saving={saving}
-                    onStartEdit={() => setEditingSection(sections[currentSectionIndex].id as EditingSection)}
-                    onSave={() => handleSaveSection(sections[currentSectionIndex].id as EditingSection)}
-                    onCancel={() => handleCancelSection(sections[currentSectionIndex].id as EditingSection)}
+                    onStartEdit={handleStartEdit}
+                    onSave={handleSaveCurrentSection}
+                    onCancel={handleCancelCurrentSection}
                     onChange={handleInputChange}
                     onSuccess={showSuccess}
                     onError={showError}

@@ -1,14 +1,10 @@
 // src/pages/Settings/sections/companySettings/BasicInfoSlide.tsx
 import React, { useState } from 'react';
-import { FaBuilding, FaMapMarkerAlt, FaPhone, FaGlobe, FaEdit, FaSave, FaTimes } from 'react-icons/fa';
+import { FaBuilding, FaMapMarkerAlt, FaPhone, FaGlobe } from 'react-icons/fa';
 import { companySettingsApi, type CompanySettingsResponse } from '../../../../api/companySettingsApi';
 import { UnifiedFormField } from '../../components/companySettings/UnifiedFormField';
 import {
     SlideContainer,
-    SlideHeader,
-    SlideTitle,
-    SlideActions,
-    ActionButton,
     SlideContent,
     FormGrid
 } from '../../styles/companySettings/SlideComponents.styles';
@@ -81,29 +77,6 @@ export const BasicInfoSlide: React.FC<BasicInfoSlideProps> = ({
 
     return (
         <SlideContainer>
-            <SlideHeader>
-                <SlideTitle>Dane podstawowe firmy</SlideTitle>
-                <SlideActions>
-                    {isEditing ? (
-                        <>
-                            <ActionButton $secondary onClick={onCancel} disabled={saving}>
-                                <FaTimes />
-                                Anuluj
-                            </ActionButton>
-                            <ActionButton $primary onClick={onSave} disabled={saving}>
-                                <FaSave />
-                                {saving ? 'Zapisywanie...' : 'Zapisz'}
-                            </ActionButton>
-                        </>
-                    ) : (
-                        <ActionButton $primary onClick={onStartEdit}>
-                            <FaEdit />
-                            Edytuj
-                        </ActionButton>
-                    )}
-                </SlideActions>
-            </SlideHeader>
-
             <SlideContent>
                 <FormGrid>
                     <UnifiedFormField
