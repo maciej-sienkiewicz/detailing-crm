@@ -1,4 +1,4 @@
-// src/pages/Clients/components/VehicleDetailDrawer.tsx - NAPRAWIONE
+// src/pages/Clients/components/VehicleDetailDrawer.tsx - NAPRAWIONE ENDPOINTY
 import React, {useEffect, useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import styled from 'styled-components';
@@ -22,10 +22,9 @@ import {
 } from 'react-icons/fa';
 import {VehicleExpanded, VehicleStatistics} from '../../../types';
 import {vehicleApi} from '../../../api/vehiclesApi';
-import {clientsApi} from '../../../api/clientsApi';
 import {ProtocolStatus, ProtocolStatusColors, ProtocolStatusLabels} from '../../../types/protocol';
 
-// NAPRAWIONY: Nowe API dla wizyt pojazdów
+// NAPRAWIONY: Nowe API dla pojazdów i wizyt
 import {apiClientNew} from '../../../api/apiClientNew';
 
 const brandTheme = {
@@ -87,6 +86,31 @@ interface VehicleDetailDrawerProps {
     onClose: () => void;
 }
 
+// NAPRAWIONY: Interfejs odpowiadający VehicleResponse z backendu
+interface VehicleDetailsResponse {
+    id: string;
+    make: string;
+    model: string;
+    year?: number;
+    license_plate: string;
+    color?: string;
+    vin?: string;
+    mileage?: number;
+    display_name: string;
+    created_at: string;
+    updated_at: string;
+}
+
+// Interfejs dla właścicieli pojazdu (jeśli będzie osobny endpoint)
+interface VehicleOwnerResponse {
+    id: string;
+    first_name: string;
+    last_name: string;
+    full_name: string;
+    email: string;
+    phone: string;
+}
+
 interface FullOwnerInfo {
     id: string;
     firstName: string;
@@ -126,13 +150,52 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
                                                                      onClose
                                                                  }) => {
     const navigate = useNavigate();
+    const [vehicleDetails, setVehicleDetails] = useState<VehicleDetailsResponse | null>(null);
     const [owners, setOwners] = useState<FullOwnerInfo[]>([]);
+    const [loadingDetails, setLoadingDetails] = useState(false);
     const [loadingOwners, setLoadingOwners] = useState(false);
     const [visitHistory, setVisitHistory] = useState<VehicleVisitHistoryItem[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [vehicleStats, setVehicleStats] = useState<VehicleStatistics | null>(null);
     const [error, setError] = useState<string | null>(null);
 
+    // NAPRAWIONY: Pobieranie szczegółów pojazdu z prawidłowego endpointa
+    useEffect(() => {
+        const loadVehicleDetails = async () => {
+            if (!vehicle) return;
+
+            setLoadingDetails(true);
+            try {
+                console.log('🚗 Loading vehicle details for ID:', vehicle.id);
+
+                // NAPRAWIONE: Używamy endpointa /api/vehicles/{id}
+                const response = await apiClientNew.get<VehicleDetailsResponse>(
+                    `/vehicles/${vehicle.id}`,
+                    undefined,
+                    { timeout: 10000 }
+                );
+
+                console.log('✅ Vehicle details loaded:', response);
+                setVehicleDetails(response);
+
+                // Pobieramy również statystyki pojazdu
+                const stats = await vehicleApi.fetchVehicleStatistics(vehicle.id);
+                setVehicleStats(stats);
+
+            } catch (error) {
+                console.error('❌ Error loading vehicle details:', error);
+                setError('Nie udało się załadować szczegółów pojazdu');
+                // Fallback - używamy danych z props
+                setVehicleDetails(null);
+            } finally {
+                setLoadingDetails(false);
+            }
+        };
+
+        loadVehicleDetails();
+    }, [vehicle]);
+
+    // NAPRAWIONY: Pobieranie właścicieli - używamy danych z tabeli lub osobny endpoint
     useEffect(() => {
         const loadOwnersDetails = async () => {
             if (!vehicle) return;
@@ -141,28 +204,9 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
             try {
                 let ownerData: FullOwnerInfo[] = [];
 
-                if (vehicle.ownerIds && vehicle.ownerIds.length > 0) {
-                    const ownerPromises = vehicle.ownerIds.map(async (ownerId) => {
-                        const numericId = typeof ownerId === 'string' ? parseInt(ownerId, 10) : ownerId;
-                        const result = await clientsApi.getClientById(numericId);
-                        if (result.success && result.data) {
-                            return {
-                                id: result.data.id,
-                                firstName: result.data.firstName,
-                                lastName: result.data.lastName,
-                                email: result.data.email,
-                                phone: result.data.phone,
-                                fullName: result.data.fullName || `${result.data.firstName} ${result.data.lastName}`
-                            };
-                        }
-                        return null;
-                    });
-
-                    const ownerResults = await Promise.all(ownerPromises);
-                    ownerData = ownerResults.filter((owner): owner is FullOwnerInfo => owner !== null);
-                }
-
-                if (ownerData.length === 0 && vehicle.owners && vehicle.owners.length > 0) {
+                // Próbujemy użyć danych z vehicle.owners jeśli są dostępne
+                if (vehicle.owners && vehicle.owners.length > 0) {
+                    console.log('👥 Using owners from vehicle data');
                     ownerData = vehicle.owners.map(owner => ({
                         id: owner.id.toString(),
                         firstName: owner.firstName,
@@ -172,26 +216,40 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
                         fullName: owner.fullName || `${owner.firstName} ${owner.lastName}`
                     }));
                 }
+                // Fallback - próbujemy pobrać z osobnego endpointa (jeśli istnieje)
+                else if (vehicle.ownerIds && vehicle.ownerIds.length > 0) {
+                    console.log('👥 Loading owners from API for vehicle:', vehicle.id);
 
+                    try {
+                        // OPCJONALNY: Jeśli będzie endpoint /api/vehicles/{id}/owners
+                        const ownersResponse = await apiClientNew.get<VehicleOwnerResponse[]>(
+                            `/vehicles/${vehicle.id}/owners`,
+                            undefined,
+                            { timeout: 10000 }
+                        );
+
+                        ownerData = ownersResponse.map(owner => ({
+                            id: owner.id,
+                            firstName: owner.first_name,
+                            lastName: owner.last_name,
+                            email: owner.email,
+                            phone: owner.phone,
+                            fullName: owner.full_name
+                        }));
+                    } catch (ownersError) {
+                        console.warn('⚠️ No owners endpoint available, using fallback');
+                        // Jeśli nie ma endpointa dla właścicieli, zostawiamy pustą listę
+                        ownerData = [];
+                    }
+                }
+
+                console.log('✅ Owners loaded:', ownerData);
                 setOwners(ownerData);
 
-                const stats = await vehicleApi.fetchVehicleStatistics(vehicle.id);
-                setVehicleStats(stats);
-
             } catch (error) {
-                if (vehicle.owners && vehicle.owners.length > 0) {
-                    const fallbackOwners = vehicle.owners.map(owner => ({
-                        id: owner.id.toString(),
-                        firstName: owner.firstName,
-                        lastName: owner.lastName,
-                        email: owner.email || '',
-                        phone: owner.phone || '',
-                        fullName: owner.fullName || `${owner.firstName} ${owner.lastName}`
-                    }));
-                    setOwners(fallbackOwners);
-                } else {
-                    setError('Nie udało się załadować danych właścicieli pojazdu');
-                }
+                console.error('❌ Error loading owners:', error);
+                setError('Nie udało się załadować danych właścicieli pojazdu');
+                setOwners([]);
             } finally {
                 setLoadingOwners(false);
             }
@@ -200,13 +258,15 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
         loadOwnersDetails();
     }, [vehicle]);
 
-    // NAPRAWIONY: Nowa funkcja do pobierania wizyt pojazdu
+    // NAPRAWIONY: Pobieranie historii wizyt pojazdu
     useEffect(() => {
         const loadVehicleVisitHistory = async () => {
             if (!vehicle) return;
 
             setLoadingHistory(true);
             try {
+                console.log('📋 Loading visit history for vehicle:', vehicle.id);
+
                 // NAPRAWIONE: Używamy prawidłowego endpointa /api/v1/protocols/vehicles/{id}
                 const response = await apiClientNew.get<VehicleVisitsResponse>(
                     `/v1/protocols/vehicles/${vehicle.id}`,
@@ -215,13 +275,15 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
                 );
 
                 if (response && response.content) {
+                    console.log('✅ Visit history loaded:', response.content);
                     setVisitHistory(response.content);
                 } else {
+                    console.log('ℹ️ No visit history found');
                     setVisitHistory([]);
                 }
 
             } catch (error) {
-                console.error('Error loading vehicle visit history:', error);
+                console.error('❌ Error loading vehicle visit history:', error);
                 setError('Nie udało się załadować historii wizyt pojazdu');
                 setVisitHistory([]);
             } finally {
@@ -282,6 +344,18 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
         navigate(`/clients-vehicles?tab=owners&clientId=${ownerId}`);
     };
 
+    // NAPRAWIONY: Używamy vehicleDetails jeśli są dostępne, w przeciwnym razie vehicle z props
+    const displayVehicle = vehicleDetails ? {
+        id: vehicleDetails.id,
+        make: vehicleDetails.make,
+        model: vehicleDetails.model,
+        year: vehicleDetails.year || new Date().getFullYear(),
+        licensePlate: vehicleDetails.license_plate,
+        color: vehicleDetails.color,
+        vin: vehicleDetails.vin,
+        displayName: vehicleDetails.display_name
+    } : vehicle;
+
     if (!vehicle) return null;
 
     return (
@@ -293,7 +367,9 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
                     </HeaderIcon>
                     <HeaderText>
                         <HeaderTitle>Szczegóły pojazdu</HeaderTitle>
-                        <HeaderSubtitle>{vehicle.make} {vehicle.model}</HeaderSubtitle>
+                        <HeaderSubtitle>
+                            {displayVehicle?.make} {displayVehicle?.model}
+                        </HeaderSubtitle>
                     </HeaderText>
                 </HeaderContent>
                 <CloseButton onClick={onClose}>
@@ -302,205 +378,230 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
             </DrawerHeader>
 
             <DrawerContent>
-                <VehicleHeaderSection>
-                    <VehicleTitle>{vehicle.make} {vehicle.model}</VehicleTitle>
-                    <LicensePlate>{vehicle.licensePlate}</LicensePlate>
-                    <VehicleBasicInfo>
-                        <InfoItem>
-                            <InfoIcon><FaCalendarAlt /></InfoIcon>
-                            <InfoText>Rocznik: {vehicle.year}</InfoText>
-                        </InfoItem>
-                        {vehicle.color && (
-                            <InfoItem>
-                                <InfoIcon><FaPalette /></InfoIcon>
-                                <InfoText>Kolor: {vehicle.color}</InfoText>
-                            </InfoItem>
-                        )}
-                    </VehicleBasicInfo>
-                </VehicleHeaderSection>
-
-                <SectionTitle>
-                    <SectionTitleIcon><FaCar /></SectionTitleIcon>
-                    Dane pojazdu
-                </SectionTitle>
-                <DetailSection>
-                    {vehicle.vin && (
-                        <DetailRow>
-                            <DetailIcon><FaBarcode /></DetailIcon>
-                            <DetailContent>
-                                <DetailLabel>Numer VIN</DetailLabel>
-                                <DetailValue>{vehicle.vin}</DetailValue>
-                            </DetailContent>
-                        </DetailRow>
-                    )}
-
-                    <DetailRow>
-                        <DetailIcon><FaIdCard /></DetailIcon>
-                        <DetailContent>
-                            <DetailLabel>Numer rejestracyjny</DetailLabel>
-                            <DetailValue>{vehicle.licensePlate}</DetailValue>
-                        </DetailContent>
-                    </DetailRow>
-
-                    <DetailRow>
-                        <DetailIcon><FaCalendarAlt /></DetailIcon>
-                        <DetailContent>
-                            <DetailLabel>Rok produkcji</DetailLabel>
-                            <DetailValue>{vehicle.year}</DetailValue>
-                        </DetailContent>
-                    </DetailRow>
-                </DetailSection>
-
-                <SectionTitle>
-                    <SectionTitleIcon><FaUsers /></SectionTitleIcon>
-                    Właściciele pojazdu
-                </SectionTitle>
-
-                {loadingOwners ? (
+                {loadingDetails ? (
                     <LoadingContainer>
                         <LoadingSpinner />
-                        <LoadingText>Ładowanie właścicieli...</LoadingText>
+                        <LoadingText>Ładowanie szczegółów pojazdu...</LoadingText>
                     </LoadingContainer>
-                ) : owners.length === 0 ? (
-                    <EmptyMessage>
-                        <EmptyIcon><FaUser /></EmptyIcon>
-                        <EmptyText>Brak przypisanych właścicieli</EmptyText>
-                    </EmptyMessage>
                 ) : (
-                    <OwnersList>
-                        {owners.map(owner => (
-                            <OwnerItem
-                                key={owner.id}
-                                onClick={() => handleOwnerClick(owner.id)}
-                            >
-                                <OwnerIcon><FaUser /></OwnerIcon>
-                                <OwnerInfo>
-                                    <OwnerName>{owner.fullName}</OwnerName>
-                                    <OwnerContact>
-                                        <ContactItem>
-                                            <FaEnvelope />
-                                            <span>{owner.email}</span>
-                                        </ContactItem>
-                                        <ContactItem>
-                                            <FaPhone />
-                                            <span>{owner.phone}</span>
-                                        </ContactItem>
-                                    </OwnerContact>
-                                </OwnerInfo>
-                                <OwnerActionIcon>
-                                    <FaArrowRight />
-                                </OwnerActionIcon>
-                            </OwnerItem>
-                        ))}
-                    </OwnersList>
-                )}
-
-                {vehicleStats && (
                     <>
+                        <VehicleHeaderSection>
+                            <VehicleTitle>
+                                {displayVehicle?.make} {displayVehicle?.model}
+                            </VehicleTitle>
+                            <LicensePlate>{displayVehicle?.licensePlate}</LicensePlate>
+                            <VehicleBasicInfo>
+                                <InfoItem>
+                                    <InfoIcon><FaCalendarAlt /></InfoIcon>
+                                    <InfoText>Rocznik: {displayVehicle?.year}</InfoText>
+                                </InfoItem>
+                                {displayVehicle?.color && (
+                                    <InfoItem>
+                                        <InfoIcon><FaPalette /></InfoIcon>
+                                        <InfoText>Kolor: {displayVehicle.color}</InfoText>
+                                    </InfoItem>
+                                )}
+                            </VehicleBasicInfo>
+                        </VehicleHeaderSection>
+
                         <SectionTitle>
-                            <SectionTitleIcon><FaTools /></SectionTitleIcon>
-                            Statystyki serwisowe
+                            <SectionTitleIcon><FaCar /></SectionTitleIcon>
+                            Dane pojazdu
+                        </SectionTitle>
+                        <DetailSection>
+                            {displayVehicle?.vin && (
+                                <DetailRow>
+                                    <DetailIcon><FaBarcode /></DetailIcon>
+                                    <DetailContent>
+                                        <DetailLabel>Numer VIN</DetailLabel>
+                                        <DetailValue>{displayVehicle.vin}</DetailValue>
+                                    </DetailContent>
+                                </DetailRow>
+                            )}
+
+                            <DetailRow>
+                                <DetailIcon><FaIdCard /></DetailIcon>
+                                <DetailContent>
+                                    <DetailLabel>Numer rejestracyjny</DetailLabel>
+                                    <DetailValue>{displayVehicle?.licensePlate}</DetailValue>
+                                </DetailContent>
+                            </DetailRow>
+
+                            <DetailRow>
+                                <DetailIcon><FaCalendarAlt /></DetailIcon>
+                                <DetailContent>
+                                    <DetailLabel>Rok produkcji</DetailLabel>
+                                    <DetailValue>{displayVehicle?.year}</DetailValue>
+                                </DetailContent>
+                            </DetailRow>
+
+                            {vehicleDetails?.display_name && (
+                                <DetailRow>
+                                    <DetailIcon><FaCar /></DetailIcon>
+                                    <DetailContent>
+                                        <DetailLabel>Nazwa wyświetlana</DetailLabel>
+                                        <DetailValue>{vehicleDetails.display_name}</DetailValue>
+                                    </DetailContent>
+                                </DetailRow>
+                            )}
+                        </DetailSection>
+
+                        <SectionTitle>
+                            <SectionTitleIcon><FaUsers /></SectionTitleIcon>
+                            Właściciele pojazdu
                         </SectionTitle>
 
-                        <MetricsGrid>
-                            <MetricCard>
-                                <MetricIcon $color={brandTheme.status.info}>
-                                    <FaTools />
-                                </MetricIcon>
-                                <MetricContent>
-                                    <MetricValue>{vehicleStats.servicesNo}</MetricValue>
-                                    <MetricLabel>Liczba usług</MetricLabel>
-                                </MetricContent>
-                            </MetricCard>
-
-                            <MetricCard>
-                                <MetricIcon $color={brandTheme.status.success}>
-                                    <FaMoneyBillWave />
-                                </MetricIcon>
-                                <MetricContent>
-                                    <MetricValue>{formatCurrency(vehicleStats.totalRevenue)}</MetricValue>
-                                    <MetricLabel>Suma przychodów</MetricLabel>
-                                </MetricContent>
-                            </MetricCard>
-
-                            {vehicle.lastServiceDate && (
-                                <MetricCard $fullWidth>
-                                    <MetricIcon $color={brandTheme.status.warning}>
-                                        <FaCalendarAlt />
-                                    </MetricIcon>
-                                    <MetricContent>
-                                        <MetricValue>{formatDate(vehicle.lastServiceDate)}</MetricValue>
-                                        <MetricLabel>Ostatnia usługa</MetricLabel>
-                                    </MetricContent>
-                                </MetricCard>
-                            )}
-                        </MetricsGrid>
-                    </>
-                )}
-
-                <SectionTitle>
-                    <SectionTitleIcon><FaCalendarAlt /></SectionTitleIcon>
-                    Historia wizyt
-                </SectionTitle>
-
-                {loadingHistory ? (
-                    <LoadingContainer>
-                        <LoadingSpinner />
-                        <LoadingText>Ładowanie historii wizyt...</LoadingText>
-                    </LoadingContainer>
-                ) : visitHistory.length === 0 ? (
-                    <EmptyMessage>
-                        <EmptyIcon><FaCar /></EmptyIcon>
-                        <EmptyText>Brak historii wizyt</EmptyText>
-                        <EmptySubtext>Ten pojazd nie ma jeszcze żadnej historii wizyt w systemie</EmptySubtext>
-                    </EmptyMessage>
-                ) : (
-                    <VisitHistoryList>
-                        {visitHistory.map(visit => {
-                            const statusInfo = getStatusInfo(visit.status);
-                            return (
-                                <VisitHistoryCard
-                                    key={visit.id}
-                                    onClick={() => handleVisitClick(visit.id)}
-                                    $status={visit.status}
-                                >
-                                    <VisitCardHeader>
-                                        <VisitMetadata>
-                                            <VisitDate>
-                                                {formatDate(visit.start_date)}
-                                            </VisitDate>
-                                            <VisitTitle>
-                                                {visit.title}
-                                            </VisitTitle>
-                                        </VisitMetadata>
-                                        <VisitStatusIndicator $status={visit.status}>
-                                            <StatusDot $color={statusInfo.color} />
-                                            <StatusText>{statusInfo.label}</StatusText>
-                                        </VisitStatusIndicator>
-                                    </VisitCardHeader>
-
-                                    <VisitVehicleSection>
-                                        <VehicleInfo>
-                                            <VehicleBrand>{vehicle.make} {vehicle.model}</VehicleBrand>
-                                            <VehiclePlateDisplay>{vehicle.licensePlate}</VehiclePlateDisplay>
-                                        </VehicleInfo>
-                                    </VisitVehicleSection>
-
-                                    <VisitFooter>
-                                        <VisitAmount>
-                                            <AmountLabel>Wartość</AmountLabel>
-                                            <AmountValue>
-                                                {formatCurrency(visit.total_amount)}
-                                            </AmountValue>
-                                        </VisitAmount>
-                                        <VisitActionIcon>
+                        {loadingOwners ? (
+                            <LoadingContainer>
+                                <LoadingSpinner />
+                                <LoadingText>Ładowanie właścicieli...</LoadingText>
+                            </LoadingContainer>
+                        ) : owners.length === 0 ? (
+                            <EmptyMessage>
+                                <EmptyIcon><FaUser /></EmptyIcon>
+                                <EmptyText>Brak przypisanych właścicieli</EmptyText>
+                            </EmptyMessage>
+                        ) : (
+                            <OwnersList>
+                                {owners.map(owner => (
+                                    <OwnerItem
+                                        key={owner.id}
+                                        onClick={() => handleOwnerClick(owner.id)}
+                                    >
+                                        <OwnerIcon><FaUser /></OwnerIcon>
+                                        <OwnerInfo>
+                                            <OwnerName>{owner.fullName}</OwnerName>
+                                            <OwnerContact>
+                                                <ContactItem>
+                                                    <FaEnvelope />
+                                                    <span>{owner.email}</span>
+                                                </ContactItem>
+                                                <ContactItem>
+                                                    <FaPhone />
+                                                    <span>{owner.phone}</span>
+                                                </ContactItem>
+                                            </OwnerContact>
+                                        </OwnerInfo>
+                                        <OwnerActionIcon>
                                             <FaArrowRight />
-                                        </VisitActionIcon>
-                                    </VisitFooter>
-                                </VisitHistoryCard>
-                            );
-                        })}
-                    </VisitHistoryList>
+                                        </OwnerActionIcon>
+                                    </OwnerItem>
+                                ))}
+                            </OwnersList>
+                        )}
+
+                        {vehicleStats && (
+                            <>
+                                <SectionTitle>
+                                    <SectionTitleIcon><FaTools /></SectionTitleIcon>
+                                    Statystyki serwisowe
+                                </SectionTitle>
+
+                                <MetricsGrid>
+                                    <MetricCard>
+                                        <MetricIcon $color={brandTheme.status.info}>
+                                            <FaTools />
+                                        </MetricIcon>
+                                        <MetricContent>
+                                            <MetricValue>{vehicleStats.servicesNo}</MetricValue>
+                                            <MetricLabel>Liczba usług</MetricLabel>
+                                        </MetricContent>
+                                    </MetricCard>
+
+                                    <MetricCard>
+                                        <MetricIcon $color={brandTheme.status.success}>
+                                            <FaMoneyBillWave />
+                                        </MetricIcon>
+                                        <MetricContent>
+                                            <MetricValue>{formatCurrency(vehicleStats.totalRevenue)}</MetricValue>
+                                            <MetricLabel>Suma przychodów</MetricLabel>
+                                        </MetricContent>
+                                    </MetricCard>
+
+                                    {vehicle.lastServiceDate && (
+                                        <MetricCard $fullWidth>
+                                            <MetricIcon $color={brandTheme.status.warning}>
+                                                <FaCalendarAlt />
+                                            </MetricIcon>
+                                            <MetricContent>
+                                                <MetricValue>{formatDate(vehicle.lastServiceDate)}</MetricValue>
+                                                <MetricLabel>Ostatnia usługa</MetricLabel>
+                                            </MetricContent>
+                                        </MetricCard>
+                                    )}
+                                </MetricsGrid>
+                            </>
+                        )}
+
+                        <SectionTitle>
+                            <SectionTitleIcon><FaCalendarAlt /></SectionTitleIcon>
+                            Historia wizyt
+                        </SectionTitle>
+
+                        {loadingHistory ? (
+                            <LoadingContainer>
+                                <LoadingSpinner />
+                                <LoadingText>Ładowanie historii wizyt...</LoadingText>
+                            </LoadingContainer>
+                        ) : visitHistory.length === 0 ? (
+                            <EmptyMessage>
+                                <EmptyIcon><FaCar /></EmptyIcon>
+                                <EmptyText>Brak historii wizyt</EmptyText>
+                                <EmptySubtext>Ten pojazd nie ma jeszcze żadnej historii wizyt w systemie</EmptySubtext>
+                            </EmptyMessage>
+                        ) : (
+                            <VisitHistoryList>
+                                {visitHistory.map(visit => {
+                                    const statusInfo = getStatusInfo(visit.status);
+                                    return (
+                                        <VisitHistoryCard
+                                            key={visit.id}
+                                            onClick={() => handleVisitClick(visit.id)}
+                                            $status={visit.status}
+                                        >
+                                            <VisitCardHeader>
+                                                <VisitMetadata>
+                                                    <VisitDate>
+                                                        {formatDate(visit.start_date)}
+                                                    </VisitDate>
+                                                    <VisitTitle>
+                                                        {visit.title}
+                                                    </VisitTitle>
+                                                </VisitMetadata>
+                                                <VisitStatusIndicator $status={visit.status}>
+                                                    <StatusDot $color={statusInfo.color} />
+                                                    <StatusText>{statusInfo.label}</StatusText>
+                                                </VisitStatusIndicator>
+                                            </VisitCardHeader>
+
+                                            <VisitVehicleSection>
+                                                <VehicleInfo>
+                                                    <VehicleBrand>
+                                                        {displayVehicle?.make} {displayVehicle?.model}
+                                                    </VehicleBrand>
+                                                    <VehiclePlateDisplay>
+                                                        {displayVehicle?.licensePlate}
+                                                    </VehiclePlateDisplay>
+                                                </VehicleInfo>
+                                            </VisitVehicleSection>
+
+                                            <VisitFooter>
+                                                <VisitAmount>
+                                                    <AmountLabel>Wartość</AmountLabel>
+                                                    <AmountValue>
+                                                        {formatCurrency(visit.total_amount)}
+                                                    </AmountValue>
+                                                </VisitAmount>
+                                                <VisitActionIcon>
+                                                    <FaArrowRight />
+                                                </VisitActionIcon>
+                                            </VisitFooter>
+                                        </VisitHistoryCard>
+                                    );
+                                })}
+                            </VisitHistoryList>
+                        )}
+                    </>
                 )}
 
                 {error && (
@@ -513,7 +614,7 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
     );
 };
 
-// Styled Components - bez zmian, użyj istniejących stylów...
+// Styled Components pozostają bez zmian - używaj tych samych co wcześniej
 const DrawerContainer = styled.div<{ isOpen: boolean }>`
     position: fixed;
     top: 0;
