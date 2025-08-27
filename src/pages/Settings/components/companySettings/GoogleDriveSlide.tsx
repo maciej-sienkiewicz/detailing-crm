@@ -49,20 +49,8 @@ interface GoogleDriveSlideProps {
     onError?: (message: string) => void;
 }
 
-interface GoogleDriveSlideProps {
-    data: CompanySettingsResponse;
-    isEditing: boolean;
-    saving: boolean;
-    onStartEdit: () => void;
-    onSave: () => void;
-    onCancel: () => void;
-    onChange: (section: keyof CompanySettingsResponse, field: string, value: any) => void;
-    onSuccess?: (message: string) => void;
-    onError?: (message: string) => void;
-}
-
 const GoogleDriveSlide = forwardRef<{ showInstructionModal: () => void }, GoogleDriveSlideProps>((props, ref) => {
-    const { onSuccess, onError } = props;
+    const { isEditing, saving, onSave, onCancel, onSuccess, onError } = props;
     const [googleDriveSettings, setGoogleDriveSettings] = useState<GoogleDriveFolderSettings | null>(null);
     const [googleDriveSystemInfo, setGoogleDriveSystemInfo] = useState<GoogleDriveSystemInfo | null>(null);
     const [testingGoogleDrive, setTestingGoogleDrive] = useState(false);
@@ -82,6 +70,38 @@ const GoogleDriveSlide = forwardRef<{ showInstructionModal: () => void }, Google
         loadGoogleDriveSettings();
         loadGoogleDriveSystemInfo();
     }, []);
+
+    const handleSaveFromParent = async () => {
+        if (folderIdInput.trim() && folderValidationResult?.valid) {
+            const success = await handleConfigureFolder();
+            if (success) {
+                onSave();
+            }
+        } else if (folderIdInput.trim()) {
+            await handleValidateFolder();
+            if (folderValidationResult?.valid) {
+                const success = await handleConfigureFolder();
+                if (success) {
+                    onSave();
+                }
+            }
+        } else {
+            onError?.('Wprowadź ID folderu przed zapisaniem');
+        }
+    };
+
+    const handleCancelFromParent = () => {
+        setFolderIdInput('');
+        setFolderNameInput('');
+        setFolderValidationResult(null);
+        onCancel();
+    };
+
+    useEffect(() => {
+        if (isEditing && saving) {
+            handleSaveFromParent();
+        }
+    }, [saving, isEditing]);
 
     const loadGoogleDriveSettings = async () => {
         try {
@@ -194,12 +214,14 @@ const GoogleDriveSlide = forwardRef<{ showInstructionModal: () => void }, Google
     const handleConfigureFolder = async () => {
         if (!folderIdInput.trim()) {
             onError?.('Wprowadź ID folderu');
-            return;
+            return false;
         }
 
         if (!folderValidationResult?.valid) {
             await handleValidateFolder();
-            return;
+            if (!folderValidationResult?.valid) {
+                return false;
+            }
         }
 
         try {
@@ -215,13 +237,16 @@ const GoogleDriveSlide = forwardRef<{ showInstructionModal: () => void }, Google
                 setFolderIdInput('');
                 setFolderNameInput('');
                 setFolderValidationResult(null);
-                loadGoogleDriveSettings();
+                await loadGoogleDriveSettings();
+                return true;
             } else {
                 onError?.(result.message || 'Nie udało się skonfigurować folderu');
+                return false;
             }
         } catch (err) {
             console.error('Error configuring folder:', err);
             onError?.('Nie udało się skonfigurować folderu');
+            return false;
         } finally {
             setConfiguringFolder(false);
         }
@@ -239,13 +264,12 @@ const GoogleDriveSlide = forwardRef<{ showInstructionModal: () => void }, Google
                     }
                 </ConfigStatusBanner>
 
-                {/* Sekcja dla skonfigurowanych ustawień */}
-                {isConfigured && (
+                {isConfigured && !isEditing && (
                     <>
                         <FormGrid>
                             <UnifiedFormField
                                 label="Folder"
-                                isEditing={false}
+                                isEditing={isEditing}
                                 value={googleDriveSettings?.folderName || googleDriveSettings?.folderId || ''}
                                 onChange={() => {}}
                                 displayFormatter={(value) => (
@@ -260,7 +284,7 @@ const GoogleDriveSlide = forwardRef<{ showInstructionModal: () => void }, Google
 
                             <UnifiedFormField
                                 label="Status"
-                                isEditing={false}
+                                isEditing={isEditing}
                                 value={googleDriveSettings?.systemServiceAvailable ? 'Aktywny' : 'Niedostępny'}
                                 onChange={() => {}}
                                 displayFormatter={(value) => (
@@ -352,14 +376,16 @@ const GoogleDriveSlide = forwardRef<{ showInstructionModal: () => void }, Google
                     </>
                 )}
 
-                {/* Główna sekcja konfiguracji - zawsze widoczna */}
                 <UploadArea>
                     <UploadContent>
                         <UploadIcon>
                             <FaCloud />
                         </UploadIcon>
                         <UploadTitle>
-                            {isConfigured ? 'Zmień konfigurację folderu' : 'Konfiguracja folderu Google Drive'}
+                            {isEditing
+                                ? 'Edytuj konfigurację folderu'
+                                : (isConfigured ? 'Zmień konfigurację folderu' : 'Konfiguracja folderu Google Drive')
+                            }
                         </UploadTitle>
                         <UploadDescription>
                             Wprowadź ID folderu który udostępniłeś dla konta systemowego
@@ -369,7 +395,7 @@ const GoogleDriveSlide = forwardRef<{ showInstructionModal: () => void }, Google
                             <UnifiedFormField
                                 label="ID folderu Google Drive"
                                 required
-                                isEditing={true}
+                                isEditing={isEditing}
                                 value={folderIdInput}
                                 onChange={setFolderIdInput}
                                 placeholder="1PqsrjjfVbc-wMOCsrqPtjpiB2rPqgs4v"
@@ -379,7 +405,7 @@ const GoogleDriveSlide = forwardRef<{ showInstructionModal: () => void }, Google
 
                             <UnifiedFormField
                                 label="Nazwa folderu (opcjonalnie)"
-                                isEditing={true}
+                                isEditing={isEditing}
                                 value={folderNameInput}
                                 onChange={setFolderNameInput}
                                 placeholder="Faktury CRM - Backup"
@@ -388,27 +414,29 @@ const GoogleDriveSlide = forwardRef<{ showInstructionModal: () => void }, Google
                             />
                         </FormGrid>
 
-                        <ActionGroup style={{ marginTop: '24px', justifyContent: 'center' }}>
-                            <ActionButton
-                                $secondary
-                                onClick={handleValidateFolder}
-                                disabled={validatingFolder || !folderIdInput.trim()}
-                            >
-                                {validatingFolder ? <FaSpinner className="spinning" /> : <FaCheckCircle />}
-                                {validatingFolder ? 'Sprawdzanie...' : 'Sprawdź folder'}
-                            </ActionButton>
-
-                            {folderValidationResult?.valid && (
+                        {!isEditing && (
+                            <ActionGroup style={{ marginTop: '24px', justifyContent: 'center' }}>
                                 <ActionButton
-                                    $primary
-                                    onClick={handleConfigureFolder}
-                                    disabled={configuringFolder}
+                                    $secondary
+                                    onClick={handleValidateFolder}
+                                    disabled={validatingFolder || !folderIdInput.trim()}
                                 >
-                                    {configuringFolder ? <FaSpinner className="spinning" /> : <FaSave />}
-                                    {configuringFolder ? 'Konfigurowanie...' : (isConfigured ? 'Zapisz zmiany' : 'Skonfiguruj')}
+                                    {validatingFolder ? <FaSpinner className="spinning" /> : <FaCheckCircle />}
+                                    {validatingFolder ? 'Sprawdzanie...' : 'Sprawdź folder'}
                                 </ActionButton>
-                            )}
-                        </ActionGroup>
+
+                                {folderValidationResult?.valid && (
+                                    <ActionButton
+                                        $primary
+                                        onClick={handleConfigureFolder}
+                                        disabled={configuringFolder}
+                                    >
+                                        {configuringFolder ? <FaSpinner className="spinning" /> : <FaSave />}
+                                        {configuringFolder ? 'Konfigurowanie...' : (isConfigured ? 'Zapisz zmiany' : 'Skonfiguruj')}
+                                    </ActionButton>
+                                )}
+                            </ActionGroup>
+                        )}
 
                         {folderValidationResult && (
                             <ValidationResultBox $success={folderValidationResult.valid}>

@@ -15,7 +15,7 @@ import { UserSignatureSlide } from "./components/companySettings/UserSignatureSl
 import { BasicInfoSlide } from "./components/companySettings/BasicInfoSlide";
 import GoogleDriveSlide from "./components/companySettings/GoogleDriveSlide";
 
-export type EditingSection = 'basic' | 'bank' | 'email' | null;
+export type EditingSection = 'basic' | 'bank' | 'email' | 'google-drive' | null;
 
 const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) => {
     const { showSuccess, showError } = useNotifications();
@@ -164,7 +164,7 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
 
     const handleStartEdit = () => {
         const currentSectionId = sections[currentSectionIndex].id;
-        if (currentSectionId === 'basic' || currentSectionId === 'bank' || currentSectionId === 'email') {
+        if (currentSectionId === 'basic' || currentSectionId === 'bank' || currentSectionId === 'email' || currentSectionId === 'google-drive') {
             setEditingSection(currentSectionId as EditingSection);
         }
     };
@@ -178,7 +178,7 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
     };
 
     const currentSectionId = sections[currentSectionIndex].id;
-    const showEditControls = currentSectionId === 'basic' || currentSectionId === 'bank' || currentSectionId === 'email';
+    const showEditControls = currentSectionId === 'basic' || currentSectionId === 'bank' || currentSectionId === 'email' || currentSectionId === 'google-drive';
     const isCurrentSectionEditing = editingSection === currentSectionId;
 
     if (loading) {
