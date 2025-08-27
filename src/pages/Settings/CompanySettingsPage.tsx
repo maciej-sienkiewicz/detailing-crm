@@ -1,32 +1,64 @@
 // src/pages/Settings/CompanySettingsPage.tsx
-import React, {forwardRef, useEffect, useImperativeHandle, useState} from 'react';
-import {companySettingsApi, type CompanySettingsResponse} from '../../api/companySettingsApi';
-import {useNotifications} from '../../hooks/useNotifications';
-import {BasicInfoSection} from './sections/companySettings/BasicInfoSection';
-import {BankSettingsSection} from './sections/companySettings/BankSettingsSection';
-import {GoogleDriveSection} from './sections/companySettings/GoogleDriveSection';
-import {EmailSettingsCard} from './components/companySettings/EmailSettingsCard';
-import {UserSignatureCard} from './components/companySettings/UserSignatureCard';
+import React, { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
+import { companySettingsApi, type CompanySettingsResponse } from '../../api/companySettingsApi';
+import { useNotifications } from '../../hooks/useNotifications';
+import { SectionSlider } from './components/companySettings/SectionSlider';
+import { LoadingOverlay } from './components/companySettings/LoadingOverlay';
+import { ErrorOverlay } from './components/companySettings/ErrorOverlay';
 import {
-    ContentContainer,
-    ErrorContainer,
-    LoadingContainer,
-    PageContainer
-} from './styles/companySettings/CompanySettings.styles';
-import {LoadingSpinner} from './components/companySettings/LoadingSpinner';
-import {ErrorDisplay} from './components/companySettings/ErrorDisplay';
-import {NotificationManager} from './components/companySettings/NotificationManager';
+    PageContainer,
+    SlideContainer
+} from './styles/companySettings/CompanySettingsRedesigned.styles';
+import {BankSettingsSlide} from "./components/companySettings/BankSettingsSlide";
+import {BasicInfoSlide} from "./components/companySettings/BasicInfoSlide";
+import {EmailSettingsSlide} from "./components/companySettings/EmailSettingsSlide";
+import {GoogleDriveSlide} from "./components/companySettings/GoogleDriveSlide";
+import {UserSignatureSlide} from "./components/companySettings/UserSignatureSlide";
 
 export type EditingSection = 'basic' | 'bank' | 'email' | null;
 
 const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) => {
-    const { showSuccess, showError, clearNotifications } = useNotifications();
+    const { showSuccess, showError } = useNotifications();
     const [formData, setFormData] = useState<CompanySettingsResponse | null>(null);
     const [originalData, setOriginalData] = useState<CompanySettingsResponse | null>(null);
     const [editingSection, setEditingSection] = useState<EditingSection>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
+
+    const sections = [
+        {
+            id: 'basic',
+            title: 'Dane podstawowe',
+            subtitle: 'Podstawowe informacje identyfikacyjne firmy',
+            component: BasicInfoSlide
+        },
+        {
+            id: 'bank',
+            title: 'Dane bankowe',
+            subtitle: 'Informacje o koncie bankowym dla faktur',
+            component: BankSettingsSlide
+        },
+        {
+            id: 'email',
+            title: 'Konfiguracja email',
+            subtitle: 'Ustawienia automatycznych powiadomień email',
+            component: EmailSettingsSlide
+        },
+        {
+            id: 'google-drive',
+            title: 'Google Drive',
+            subtitle: 'Automatyczne kopie zapasowe w chmurze',
+            component: GoogleDriveSlide
+        },
+        {
+            id: 'signature',
+            title: 'Podpis elektroniczny',
+            subtitle: 'Profesjonalny podpis do dokumentów',
+            component: UserSignatureSlide
+        }
+    ];
 
     useImperativeHandle(ref, () => ({
         handleSave: handleSaveAll
@@ -77,7 +109,6 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
 
         try {
             setSaving(true);
-            clearNotifications();
 
             const updateRequest = {
                 basicInfo: formData.basicInfo,
@@ -111,12 +142,22 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
         setError(null);
     };
 
+    const handlePrevious = () => {
+        setCurrentSectionIndex(prev => Math.max(0, prev - 1));
+    };
+
+    const handleNext = () => {
+        setCurrentSectionIndex(prev => Math.min(sections.length - 1, prev + 1));
+    };
+
+    const handleSectionChange = (index: number) => {
+        setCurrentSectionIndex(index);
+    };
+
     if (loading) {
         return (
             <PageContainer>
-                <LoadingContainer>
-                    <LoadingSpinner />
-                </LoadingContainer>
+                <LoadingOverlay />
             </PageContainer>
         );
     }
@@ -124,56 +165,41 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
     if (!formData) {
         return (
             <PageContainer>
-                <ErrorContainer>
-                    <ErrorDisplay
-                        error={error || 'Nie udało się załadować danych'}
-                        onRetry={loadCompanySettings}
-                    />
-                </ErrorContainer>
+                <ErrorOverlay
+                    error={error || 'Nie udało się załadować danych'}
+                    onRetry={loadCompanySettings}
+                />
             </PageContainer>
         );
     }
 
+    const CurrentSlideComponent = sections[currentSectionIndex].component;
+
     return (
         <PageContainer>
-            <NotificationManager />
+            <SectionSlider
+                sections={sections}
+                currentIndex={currentSectionIndex}
+                onPrevious={handlePrevious}
+                onNext={handleNext}
+                onSectionChange={handleSectionChange}
+                canNavigatePrev={currentSectionIndex > 0}
+                canNavigateNext={currentSectionIndex < sections.length - 1}
+            />
 
-            <ContentContainer>
-                <BasicInfoSection
-                    data={formData.basicInfo}
-                    isEditing={editingSection === 'basic'}
+            <SlideContainer>
+                <CurrentSlideComponent
+                    data={formData}
+                    isEditing={editingSection === sections[currentSectionIndex].id}
                     saving={saving}
-                    onStartEdit={() => setEditingSection('basic')}
-                    onSave={() => handleSaveSection('basic')}
-                    onCancel={() => handleCancelSection('basic')}
-                    onChange={(field, value) => handleInputChange('basicInfo', field, value)}
-                />
-
-                <BankSettingsSection
-                    data={formData.bankSettings}
-                    isEditing={editingSection === 'bank'}
-                    saving={saving}
-                    onStartEdit={() => setEditingSection('bank')}
-                    onSave={() => handleSaveSection('bank')}
-                    onCancel={() => handleCancelSection('bank')}
-                    onChange={(field, value) => handleInputChange('bankSettings', field, value)}
-                />
-
-                <EmailSettingsCard
+                    onStartEdit={() => setEditingSection(sections[currentSectionIndex].id as EditingSection)}
+                    onSave={() => handleSaveSection(sections[currentSectionIndex].id as EditingSection)}
+                    onCancel={() => handleCancelSection(sections[currentSectionIndex].id as EditingSection)}
+                    onChange={handleInputChange}
                     onSuccess={showSuccess}
                     onError={showError}
                 />
-
-                <GoogleDriveSection
-                    onSuccess={showSuccess}
-                    onError={showError}
-                />
-
-                <UserSignatureCard
-                    onSuccess={showSuccess}
-                    onError={showError}
-                />
-            </ContentContainer>
+            </SlideContainer>
         </PageContainer>
     );
 });
