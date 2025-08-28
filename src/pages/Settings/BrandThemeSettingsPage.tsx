@@ -1,7 +1,6 @@
 // src/pages/Settings/BrandThemeSettingsPage.tsx - Przeprojektowana wersja
 import React, { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 import styled from 'styled-components';
-import { FaSave, FaCheck } from 'react-icons/fa';
 import { settingsTheme } from './styles/theme';
 import ColorSelector from "../Protocols/components/brandTheme/ColorSelector";
 import LogoManager from "../Protocols/components/brandTheme/LogoManager";
@@ -77,57 +76,6 @@ const Container = styled.div`
     @media (max-width: 768px) {
         padding: 0 ${settingsTheme.spacing.md} ${settingsTheme.spacing.md};
         gap: ${settingsTheme.spacing.md};
-    }
-`;
-
-const Header = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: ${settingsTheme.spacing.lg};
-
-    @media (max-width: 768px) {
-        flex-direction: column;
-        align-items: stretch;
-        gap: ${settingsTheme.spacing.md};
-    }
-`;
-
-const HeaderText = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${settingsTheme.spacing.xs};
-`;
-
-const HeaderTitle = styled.h2`
-    font-size: 24px;
-    font-weight: 700;
-    color: ${settingsTheme.text.primary};
-    margin: 0;
-    letter-spacing: -0.025em;
-`;
-
-const HeaderSubtitle = styled.p`
-    font-size: 16px;
-    color: ${settingsTheme.text.secondary};
-    margin: 0;
-    font-weight: 500;
-`;
-
-const AutoSaveIndicator = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${settingsTheme.spacing.sm};
-    padding: ${settingsTheme.spacing.sm} ${settingsTheme.spacing.md};
-    background: ${settingsTheme.status.successLight};
-    color: ${settingsTheme.status.success};
-    border-radius: ${settingsTheme.radius.md};
-    font-weight: 500;
-    font-size: 14px;
-    border: 1px solid ${settingsTheme.status.success}30;
-
-    @media (max-width: 768px) {
-        justify-content: center;
     }
 `;
 

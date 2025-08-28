@@ -253,7 +253,7 @@ export const ActionButton = styled.button<{
     }
 
     ${props => props.$primary && `
-        background: linear-gradient(135deg, #1a365d 0%, #2c5aa0 100%);
+        background: var(--brand-primary, #1a365d);
         color: white;
         box-shadow: 0 4px 12px rgba(26, 54, 93, 0.2);
 

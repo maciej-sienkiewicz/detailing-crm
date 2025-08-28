@@ -3,10 +3,10 @@
 
 export const theme = {
     // Brand Color System - Professional Automotive
-    primary: '#1a365d',
-    primaryLight: '#2c5aa0',
-    primaryDark: '#0f2027',
-    primaryGhost: 'rgba(26, 54, 93, 0.08)',
+    primary: 'var(--brand-primary, #1a365d)',
+    primaryLight: 'var(--brand-primary-light, #2c5aa0)',
+    primaryDark: 'var(--brand-primary-dark, #0f2027)',
+    primaryGhost: 'var(--brand-primary-ghost, rgba(26, 54, 93, 0.04))',
 
     // Professional Surfaces
     surface: '#ffffff',

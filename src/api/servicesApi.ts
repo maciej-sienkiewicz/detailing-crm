@@ -142,7 +142,7 @@ export const servicesApi = {
     // Pobieranie domyślnej stawki VAT
     fetchDefaultVatRate: async (): Promise<number> => {
         try {
-            return 30; // Domyślna wartość jako fallback
+            return 23; // Domyślna wartość jako fallback
         } catch (error) {
             console.error('Error fetching default VAT rate:', error);
             return 23; // Zwracamy domyślną wartość w przypadku błędu
