@@ -1,4 +1,4 @@
-// src/pages/Protocols/VisitsPageContainer.tsx - FIXED VERSION
+// src/pages/Protocols/VisitsPageContainer.tsx
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from 'styled-components';
 import {FaArrowLeft, FaClipboardCheck, FaPlus} from 'react-icons/fa';
@@ -16,9 +16,9 @@ import {VisitsActiveFilters} from './components/VisitsActiveFilters';
 import {VisitsTable} from './components/VisitsTable';
 import {ServiceOption} from './components/ServiceAutocomplete';
 import Pagination from '../../components/common/Pagination';
+import {PageHeader, PrimaryButton} from '../../components/common/PageHeader';
 import {theme} from '../../styles/theme';
 
-// Import form components
 import {EditProtocolForm} from './form/components/EditProtocolForm';
 import ProtocolConfirmationModal from './shared/modals/ProtocolConfirmationModal';
 
@@ -39,7 +39,6 @@ export const VisitsPageContainer: React.FC = () => {
     const isFirstLoad = useRef(true);
     const lastStatusFilter = useRef<StatusFilterType>(ProtocolStatus.IN_PROGRESS);
 
-    // Form state
     const [showForm, setShowForm] = useState(false);
     const [editingVisit, setEditingVisit] = useState<any>(null);
     const [availableServices, setAvailableServices] = useState<any[]>([]);
@@ -80,7 +79,6 @@ export const VisitsPageContainer: React.FC = () => {
 
     const selection = useVisitsSelection();
 
-    // POPRAWIONE: Stabilne funkcje ładowania z flagami kontrolnymi
     const loadServices = useCallback(async () => {
         if (appData.servicesLoaded || appData.servicesLoading) return;
 
@@ -140,13 +138,11 @@ export const VisitsPageContainer: React.FC = () => {
         }
     }, [appData.countersLoaded, appData.countersLoading]);
 
-    // FIXED: Funkcja wykonująca wyszukiwanie z aktualnym statusem
     const performSearch = useCallback(async () => {
         console.log('🔍 Performing search with status:', activeStatusFilter);
 
         const searchFilters = getApiFilters();
 
-        // Dodaj status filtr jeśli nie jest 'all'
         if (activeStatusFilter !== 'all') {
             searchFilters.status = activeStatusFilter;
         }
@@ -167,7 +163,6 @@ export const VisitsPageContainer: React.FC = () => {
         await performSearch();
     }, [performSearch]);
 
-    // FIXED: Obsługa zmiany statusu z automatycznym wyszukiwaniem
     const handleStatusFilterChange = useCallback(async (status: StatusFilterType) => {
         console.log('🎯 Status filter changed from', activeStatusFilter, 'to', status);
 
@@ -180,7 +175,6 @@ export const VisitsPageContainer: React.FC = () => {
         lastStatusFilter.current = status;
         selection.clearSelection();
 
-        // Natychmiastowe wyszukiwanie z nowym statusem
         const searchFilters = getApiFilters();
         if (status !== 'all') {
             searchFilters.status = status;
@@ -200,7 +194,6 @@ export const VisitsPageContainer: React.FC = () => {
         lastStatusFilter.current = ProtocolStatus.IN_PROGRESS;
         selection.clearSelection();
 
-        // Wykonaj wyszukiwanie z resetowanymi filtrami
         await searchVisits({ status: ProtocolStatus.IN_PROGRESS }, {
             page: 0,
             size: pagination.size || 10
@@ -242,7 +235,6 @@ export const VisitsPageContainer: React.FC = () => {
         setShowForm(true);
     }, []);
 
-    // Form handlers
     const handleFormCancel = useCallback(() => {
         setShowForm(false);
         setEditingVisit(null);
@@ -304,9 +296,6 @@ export const VisitsPageContainer: React.FC = () => {
         }
     }, []);
 
-    // EFFECTS
-
-    // 1. Initial data loading
     useEffect(() => {
         if (isFirstLoad.current) {
             console.log('🚀 Initial load - loading services and counters');
@@ -316,7 +305,6 @@ export const VisitsPageContainer: React.FC = () => {
         }
     }, [loadServices, loadCounters]);
 
-    // 2. First search after data is loaded
     useEffect(() => {
         const canPerformSearch = appData.servicesLoaded && appData.countersLoaded &&
             !appData.servicesLoading && !appData.countersLoading && !isFirstLoad.current;
@@ -327,7 +315,6 @@ export const VisitsPageContainer: React.FC = () => {
         }
     }, [appData.servicesLoaded, appData.countersLoaded, appData.servicesLoading, appData.countersLoading, performSearch]);
 
-    // 3. Reset on location change
     useEffect(() => {
         console.log('🔄 Location changed, resetting data');
         resetData();
@@ -336,7 +323,6 @@ export const VisitsPageContainer: React.FC = () => {
         isFirstLoad.current = true;
     }, [location.pathname, resetData, clearAllFilters]);
 
-    // Debug log for current state
     useEffect(() => {
         console.log('📈 Current state:', {
             visits: visits.length,
@@ -347,20 +333,19 @@ export const VisitsPageContainer: React.FC = () => {
         });
     }, [visits.length, visitsLoading, error, activeStatusFilter, pagination]);
 
-    // If form is shown, render the form view
     if (showForm) {
         return (
             <PageContainer>
-                <HeaderContainer>
-                    <PageHeader>
-                        <HeaderLeft>
-                            <BackButton onClick={handleFormCancel}>
-                                <FaArrowLeft />
-                            </BackButton>
-                            <h1>{editingVisit ? 'Edycja wizyty' : 'Nowa wizyta'}</h1>
-                        </HeaderLeft>
-                    </PageHeader>
-                </HeaderContainer>
+                <PageHeader
+                    icon={FaArrowLeft}
+                    title={editingVisit ? 'Edycja wizyty' : 'Nowa wizyta'}
+                    subtitle=""
+                    actions={
+                        <BackButton onClick={handleFormCancel}>
+                            <FaArrowLeft />
+                        </BackButton>
+                    }
+                />
 
                 <EditProtocolForm
                     protocol={editingVisit}
@@ -386,25 +371,20 @@ export const VisitsPageContainer: React.FC = () => {
         );
     }
 
-    // Regular visits list view
+    const headerActions = (
+        <PrimaryButton onClick={handleAddVisit}>
+            <FaPlus /> Nowa wizyta
+        </PrimaryButton>
+    );
+
     return (
         <PageContainer>
-            <HeaderContainer>
-                <PageHeader>
-                    <HeaderTitle>
-                        <TitleIcon>
-                            <FaClipboardCheck />
-                        </TitleIcon>
-                        <TitleContent>
-                            <MainTitle>Wizyty</MainTitle>
-                            <Subtitle>Zarządzanie wizytami klientów</Subtitle>
-                        </TitleContent>
-                    </HeaderTitle>
-                    <PrimaryAction onClick={handleAddVisit}>
-                        <FaPlus /> Nowa wizyta
-                    </PrimaryAction>
-                </PageHeader>
-            </HeaderContainer>
+            <PageHeader
+                icon={FaClipboardCheck}
+                title="Wizyty"
+                subtitle="Zarządzanie wizytami klientów"
+                actions={headerActions}
+            />
 
             <ContentContainer>
                 <VisitsStatusFilters
@@ -469,7 +449,12 @@ export const VisitsPageContainer: React.FC = () => {
     );
 };
 
-// Styled components remain the same...
+const PageContainer = styled.div`
+    background: ${theme.surfaceHover};
+    min-height: 100vh;
+    padding: 0;
+`;
+
 const BackButton = styled.button`
     display: flex;
     align-items: center;
@@ -495,135 +480,10 @@ const BackButton = styled.button`
     }
 `;
 
-const HeaderLeft = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.lg};
-
-    h1 {
-        margin: 0;
-        font-size: 24px;
-        font-weight: 700;
-        color: ${theme.text.primary};
-    }
-`;
-
-const PageContainer = styled.div`
-    background: ${theme.surfaceHover};
-    min-height: 100vh;
-    padding: 0;
-`;
-
-const HeaderContainer = styled.header`
-    background: ${theme.surface};
-    border-bottom: 1px solid ${theme.border};
-    box-shadow: ${theme.shadow.sm};
-    backdrop-filter: blur(8px);
-    background: rgba(255, 255, 255, 0.95);
-`;
-
-const PageHeader = styled.div`
-    max-width: 1600px;
-    margin: 0 auto;
-    padding: ${theme.spacing.xxl} ${theme.spacing.xxxl};
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: ${theme.spacing.xxl};
-
-    @media (max-width: 1024px) {
-        padding: ${theme.spacing.lg} ${theme.spacing.xxl};
-        flex-direction: column;
-        align-items: stretch;
-        gap: ${theme.spacing.lg};
-    }
-
-    @media (max-width: 768px) {
-        padding: ${theme.spacing.lg};
-    }
-`;
-
-const HeaderTitle = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.xxl};
-`;
-
-const TitleIcon = styled.div`
-    width: 56px;
-    height: 56px;
-    background: linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryLight} 100%);
-    border-radius: ${theme.radius.lg};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 24px;
-    box-shadow: ${theme.shadow.md};
-    flex-shrink: 0;
-`;
-
-const TitleContent = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${theme.spacing.xs};
-`;
-
-const MainTitle = styled.h1`
-    font-size: 32px;
-    font-weight: 700;
-    color: ${theme.text.primary};
-    margin: 0;
-    letter-spacing: -0.5px;
-    line-height: 1.2;
-
-    @media (max-width: 768px) {
-        font-size: 28px;
-    }
-`;
-
-const Subtitle = styled.div`
-    font-size: 16px;
-    color: ${theme.text.tertiary};
-    font-weight: 500;
-`;
-
-const PrimaryAction = styled.button`
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.sm};
-    background: linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryLight} 100%);
-    color: white;
-    border: none;
-    border-radius: ${theme.radius.md};
-    padding: ${theme.spacing.lg} ${theme.spacing.xl};
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all ${theme.transitions.normal};
-    box-shadow: ${theme.shadow.sm};
-    white-space: nowrap;
-    min-height: 44px;
-
-    &:hover {
-        background: linear-gradient(135deg, ${theme.primaryDark} 0%, ${theme.primary} 100%);
-        box-shadow: ${theme.shadow.md};
-        transform: translateY(-1px);
-    }
-
-    &:active {
-        transform: translateY(0);
-    }
-
-    @media (max-width: 768px) {
-        justify-content: center;
-    }
-`;
-
 const ContentContainer = styled.div`
     max-width: 1600px;
     margin: 0 auto;
-    padding: ${theme.spacing.xxl} ${theme.spacing.xxxl};
+    padding: ${theme.spacing.xxl} ${theme.spacing.xxl};
     position: relative;
 
     @media (max-width: 1024px) {

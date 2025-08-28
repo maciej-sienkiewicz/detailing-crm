@@ -10,31 +10,25 @@ import {
     FaSpinner,
     FaSync
 } from 'react-icons/fa';
+import {PageHeader, PrimaryButton, SecondaryButton} from '../../components/common/PageHeader';
 
-// Import existing components
 import FinancialSummaryCards from './components/FinancialSummaryCards';
 import DocumentFilters from './components/DocumentFilters';
 import DocumentTable from './components/DocumentTable';
 import DocumentFormModal from './components/DocumentFormModal';
 import DocumentViewModal from './components/DocumentViewModal';
 
-// Import Fixed Costs components
 import FixedCostsIntegration from './components/FixedCostsIntegration';
 
-// Import new Reports component
 import FinancialReportsPage from "./FinancialReportsPage";
 
-// Import Balance History component
 import BalanceHistoryModal from './components/BalanceHistoryModal';
 
-// Import hooks
 import {useFinancialData} from './hooks/useFinancialData';
 import {useDocumentActions} from './hooks/useDocumentActions';
 
-// Import types
 import {DocumentType} from '../../types/finance';
 
-// Import styles and utilities
 import {brandTheme} from './styles/theme';
 import {useToast} from '../../components/common/Toast/Toast';
 import Pagination from '../../components/common/Pagination';
@@ -51,24 +45,19 @@ const FinancialPageWithFixedCosts: React.FC = () => {
     const { showToast } = useToast();
     const [activeTab, setActiveTab] = useState<ActiveTab>('documents');
 
-    // State for Fixed Costs integration
     const [fixedCostsRef, setFixedCostsRef] = useState<{ handleAddFixedCost?: () => void }>({});
     const [backingUp, setBackingUp] = useState(false);
 
-    // State for Balance History
     const [showBalanceHistoryModal, setShowBalanceHistoryModal] = useState(false);
 
-    // Error handling callback
     const handleError = useCallback((message: string) => {
         showToast('error', message);
     }, [showToast]);
 
-    // Success callback
     const handleSuccess = useCallback((message: string) => {
         showToast('success', message);
     }, [showToast]);
 
-    // Use existing hooks for documents
     const {
         documents,
         filteredDocuments,
@@ -98,7 +87,6 @@ const FinancialPageWithFixedCosts: React.FC = () => {
         handleCloseModals
     } = useDocumentActions(refreshData, showToast);
 
-    // Tab configuration - updated to include balance history
     const tabs = [
         {
             id: 'documents' as ActiveTab,
@@ -120,12 +108,10 @@ const FinancialPageWithFixedCosts: React.FC = () => {
         }
     ];
 
-    // Handle tab change
     const handleTabChange = useCallback((tabId: ActiveTab) => {
         setActiveTab(tabId);
     }, []);
 
-    // Handle export for documents tab
     const handleExportDocuments = useCallback(async () => {
         try {
             setBackingUp(true);
@@ -143,23 +129,19 @@ const FinancialPageWithFixedCosts: React.FC = () => {
         }
     }, [handleError, handleSuccess]);
 
-    // Handle add fixed cost
     const handleAddFixedCost = useCallback(() => {
         if (fixedCostsRef.handleAddFixedCost) {
             fixedCostsRef.handleAddFixedCost();
         }
     }, [fixedCostsRef]);
 
-    // Handle setting fixed costs ref
     const handleSetFixedCostsRef = useCallback((ref: { handleAddFixedCost?: () => void }) => {
         setFixedCostsRef(ref);
     }, []);
 
-    // Handle balance update from FinancialSummaryCards
     const handleBalanceUpdate = useCallback(async (newCashBalance: number, newBankBalance: number) => {
         try {
             handleSuccess('Saldo zostało pomyślnie zaktualizowane');
-            // Refresh data to get updated summary
             await refreshData();
         } catch (error) {
             console.error('Error after balance update:', error);
@@ -167,7 +149,6 @@ const FinancialPageWithFixedCosts: React.FC = () => {
         }
     }, [refreshData, handleSuccess, handleError]);
 
-    // Handle document actions with proper error handling
     const handleDocumentStatusChange = useCallback(async (id: string, status: any) => {
         try {
             await handleStatusChange(id, status);
@@ -186,7 +167,6 @@ const FinancialPageWithFixedCosts: React.FC = () => {
         }
     }, [handleDeleteDocument, handleError]);
 
-    // Handle download attachment
     const handleDownloadAttachment = useCallback(async (documentId: string) => {
         try {
             const result = await documentPrintService.downloadDocument(documentId);
@@ -198,12 +178,10 @@ const FinancialPageWithFixedCosts: React.FC = () => {
         }
     }, [handleError]);
 
-    // Handle show balance history
     const handleShowBalanceHistory = useCallback(() => {
         setShowBalanceHistoryModal(true);
     }, []);
 
-    // Loading state for initial load
     if (loading && documents.length === 0 && activeTab === 'documents') {
         return (
             <PageContainer>
@@ -215,89 +193,91 @@ const FinancialPageWithFixedCosts: React.FC = () => {
         );
     }
 
+    const currentTab = tabs.find(tab => tab.id === activeTab);
+    const headerTitle = 'Moduł Finansów';
+    const headerSubtitle = 'Kompleksowe zarządzanie finansami firmy';
+
+    const getHeaderActions = () => {
+        const actions = [];
+
+        if (activeTab === 'documents') {
+            actions.push(
+                <SecondaryButton key="export" onClick={handleExportDocuments} disabled={backingUp}>
+                    {backingUp ? <FaSpinner className="spinning" /> : <FaExchangeAlt />}
+                    <span>Eksport księgowy</span>
+                </SecondaryButton>
+            );
+
+            actions.push(
+                <PrimaryButton key="add" onClick={() => handleAddDocument(DocumentType.INVOICE)}>
+                    <FaFileInvoiceDollar />
+                    <span>Faktura</span>
+                </PrimaryButton>
+            );
+        }
+
+        if (activeTab === 'fixed-costs') {
+            actions.push(
+                <PrimaryButton key="add" onClick={handleAddFixedCost}>
+                    <FaBuilding />
+                    <span>Dodaj koszt stały</span>
+                </PrimaryButton>
+            );
+        }
+
+        if (activeTab === 'balance-history') {
+            actions.push(
+                <SecondaryButton key="history" onClick={handleShowBalanceHistory}>
+                    <FaHistory />
+                    <span>Pokaż pełną historię</span>
+                </SecondaryButton>
+            );
+        }
+
+        if (activeTab === 'reports') {
+            actions.push(
+                <SecondaryButton key="export-reports" onClick={() => showToast('info', 'Eksport raportów - funkcjonalność w przygotowaniu')}>
+                    <FaExchangeAlt />
+                    <span>Eksport raportów</span>
+                </SecondaryButton>
+            );
+        }
+
+        return <>{actions}</>;
+    };
+
     return (
         <PageContainer>
-            {/* Header with updated navigation */}
-            <HeaderContainer>
-                <HeaderContent>
-                    <HeaderLeft>
-                        <HeaderIcon>
-                            <FaFileInvoiceDollar />
-                        </HeaderIcon>
-                        <HeaderText>
-                            <HeaderTitle>Moduł Finansów</HeaderTitle>
-                            <HeaderSubtitle>
-                                Kompleksowe zarządzanie finansami firmy
-                            </HeaderSubtitle>
-                        </HeaderText>
-                    </HeaderLeft>
+            <PageHeader
+                icon={FaFileInvoiceDollar}
+                title={headerTitle}
+                subtitle={headerSubtitle}
+                actions={getHeaderActions()}
+            />
 
-                    <HeaderActions>
-                        {activeTab === 'documents' && (
-                            <>
-                                <SecondaryButton onClick={handleExportDocuments} disabled={backingUp}>
-                                    {backingUp ? <FaSpinner className="spinning" /> : <FaExchangeAlt />}
-                                    <span>Eksport księgowy</span>
-                                </SecondaryButton>
+            <TabNavigation>
+                <TabsList>
+                    {tabs.map(tab => {
+                        const Icon = tab.icon;
+                        return (
+                            <TabButton
+                                key={tab.id}
+                                $active={activeTab === tab.id}
+                                onClick={() => handleTabChange(tab.id)}
+                            >
+                                <TabIcon>
+                                    <Icon />
+                                </TabIcon>
+                                <TabContent>
+                                    <TabLabel>{tab.label}</TabLabel>
+                                    <TabDescription>{tab.description}</TabDescription>
+                                </TabContent>
+                            </TabButton>
+                        );
+                    })}
+                </TabsList>
+            </TabNavigation>
 
-                                <AddButtonGroup>
-                                    <PrimaryButton onClick={() => handleAddDocument(DocumentType.INVOICE)}>
-                                        <FaFileInvoiceDollar />
-                                        <span>Faktura</span>
-                                    </PrimaryButton>
-                                </AddButtonGroup>
-                            </>
-                        )}
-
-                        {activeTab === 'fixed-costs' && (
-                            <PrimaryButton onClick={handleAddFixedCost}>
-                                <FaBuilding />
-                                <span>Dodaj koszt stały</span>
-                            </PrimaryButton>
-                        )}
-
-                        {activeTab === 'balance-history' && (
-                            <SecondaryButton onClick={handleShowBalanceHistory}>
-                                <FaHistory />
-                                <span>Pokaż pełną historię</span>
-                            </SecondaryButton>
-                        )}
-
-                        {activeTab === 'reports' && (
-                            <SecondaryButton onClick={() => showToast('info', 'Eksport raportów - funkcjonalność w przygotowaniu')}>
-                                <FaExchangeAlt />
-                                <span>Eksport raportów</span>
-                            </SecondaryButton>
-                        )}
-                    </HeaderActions>
-                </HeaderContent>
-
-                {/* Tab Navigation */}
-                <TabNavigation>
-                    <TabsList>
-                        {tabs.map(tab => {
-                            const Icon = tab.icon;
-                            return (
-                                <TabButton
-                                    key={tab.id}
-                                    $active={activeTab === tab.id}
-                                    onClick={() => handleTabChange(tab.id)}
-                                >
-                                    <TabIcon>
-                                        <Icon />
-                                    </TabIcon>
-                                    <TabContent>
-                                        <TabLabel>{tab.label}</TabLabel>
-                                        <TabDescription>{tab.description}</TabDescription>
-                                    </TabContent>
-                                </TabButton>
-                            );
-                        })}
-                    </TabsList>
-                </TabNavigation>
-            </HeaderContainer>
-
-            {/* Summary Cards - only for documents tab with balance edit support */}
             {activeTab === 'documents' && summary && (
                 <SummarySection>
                     <FinancialSummaryCards
@@ -308,11 +288,9 @@ const FinancialPageWithFixedCosts: React.FC = () => {
                 </SummarySection>
             )}
 
-            {/* Tab Content */}
             <ContentContainer>
                 {activeTab === 'documents' && (
                     <>
-                        {/* Document Filters */}
                         <DocumentFilters
                             activeTypeFilter={activeTypeFilter}
                             filters={filters}
@@ -322,7 +300,6 @@ const FinancialPageWithFixedCosts: React.FC = () => {
                             resultCount={filteredDocuments.length}
                         />
 
-                        {/* Error Display */}
                         {error && (
                             <ErrorMessage>
                                 <ErrorIcon>⚠️</ErrorIcon>
@@ -334,7 +311,6 @@ const FinancialPageWithFixedCosts: React.FC = () => {
                             </ErrorMessage>
                         )}
 
-                        {/* Document Table */}
                         <DocumentTable
                             documents={filteredDocuments}
                             loading={loading}
@@ -345,7 +321,6 @@ const FinancialPageWithFixedCosts: React.FC = () => {
                             onError={handleError}
                         />
 
-                        {/* Pagination */}
                         {pagination.totalPages > 1 && (
                             <PaginationContainer>
                                 <Pagination
@@ -359,7 +334,6 @@ const FinancialPageWithFixedCosts: React.FC = () => {
                             </PaginationContainer>
                         )}
 
-                        {/* Document Modals */}
                         <DocumentFormModal
                             isOpen={showFormModal}
                             document={selectedDocument}
@@ -414,16 +388,25 @@ const FinancialPageWithFixedCosts: React.FC = () => {
                 )}
             </ContentContainer>
 
-            {/* Balance History Modal */}
             <BalanceHistoryModal
                 isOpen={showBalanceHistoryModal}
                 onClose={() => setShowBalanceHistoryModal(false)}
             />
+
+            <style>{`
+                .spinning {
+                    animation: spin 1s linear infinite;
+                }
+                
+                @keyframes spin {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+            `}</style>
         </PageContainer>
     );
 };
 
-// Styled Components - Updated with new balance history tab styles
 const PageContainer = styled.div`
     min-height: 100vh;
     background: ${brandTheme.surfaceAlt};
@@ -465,195 +448,12 @@ const LoadingText = styled.div`
     font-weight: 500;
 `;
 
-const HeaderContainer = styled.header`
-    background: ${brandTheme.surface};
-    border-bottom: 1px solid ${brandTheme.border};
-    box-shadow: ${brandTheme.shadow.sm};
-`;
-
-const HeaderContent = styled.div`
-    max-width: 1600px;
-    margin: 0 auto;
-    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: ${brandTheme.spacing.lg};
-
-    @media (max-width: 1024px) {
-        padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-        flex-direction: column;
-        align-items: stretch;
-        gap: ${brandTheme.spacing.md};
-    }
-
-    @media (max-width: 768px) {
-        padding: ${brandTheme.spacing.md};
-    }
-`;
-
-const HeaderLeft = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.md};
-    min-width: 0;
-    flex: 1;
-`;
-
-const HeaderIcon = styled.div`
-    width: 56px;
-    height: 56px;
-    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-    border-radius: ${brandTheme.radius.lg};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 24px;
-    box-shadow: ${brandTheme.shadow.md};
-    flex-shrink: 0;
-`;
-
-const HeaderText = styled.div`
-    min-width: 0;
-    flex: 1;
-`;
-
-const HeaderTitle = styled.h1`
-    font-size: 32px;
-    font-weight: 700;
-    color: ${brandTheme.text.primary};
-    margin: 0 0 ${brandTheme.spacing.xs} 0;
-    letter-spacing: -0.025em;
-    line-height: 1.2;
-
-    @media (max-width: 768px) {
-        font-size: 28px;
-    }
-`;
-
-const HeaderSubtitle = styled.p`
-    color: ${brandTheme.text.secondary};
-    margin: 0;
-    font-size: 16px;
-    font-weight: 500;
-    line-height: 1.4;
-
-    @media (max-width: 768px) {
-        font-size: 14px;
-    }
-`;
-
-const HeaderActions = styled.div`
-    display: flex;
-    gap: ${brandTheme.spacing.sm};
-    align-items: center;
-    flex-wrap: wrap;
-
-    @media (max-width: 1024px) {
-        justify-content: flex-end;
-        width: 100%;
-    }
-
-    @media (max-width: 768px) {
-        flex-direction: column;
-        gap: ${brandTheme.spacing.xs};
-
-        > * {
-            width: 100%;
-        }
-    }
-`;
-
-const AddButtonGroup = styled.div`
-    display: flex;
-    gap: ${brandTheme.spacing.xs};
-
-    @media (max-width: 768px) {
-        flex-direction: column;
-        width: 100%;
-    }
-`;
-
-const BaseButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
-    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
-    border-radius: ${brandTheme.radius.md};
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 1px solid transparent;
-    white-space: nowrap;
-    min-height: 44px;
-    position: relative;
-    overflow: hidden;
-
-    &:hover {
-        transform: translateY(-1px);
-    }
-
-    &:active {
-        transform: translateY(0);
-    }
-
-    &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-        transform: none;
-    }
-
-    span {
-        @media (max-width: 480px) {
-            display: block;
-        }
-    }
-`;
-
-const PrimaryButton = styled(BaseButton)`
-    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-    color: white;
-    box-shadow: ${brandTheme.shadow.sm};
-
-    &:hover {
-        background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
-        box-shadow: ${brandTheme.shadow.md};
-    }
-
-    @media (max-width: 768px) {
-        justify-content: center;
-    }
-`;
-
-const SecondaryButton = styled(BaseButton)`
-    background: ${brandTheme.surface};
-    color: ${brandTheme.text.secondary};
-    border-color: ${brandTheme.border};
-    box-shadow: ${brandTheme.shadow.xs};
-
-    &:hover {
-        background: ${brandTheme.surfaceHover};
-        color: ${brandTheme.text.primary};
-        border-color: ${brandTheme.borderHover};
-        box-shadow: ${brandTheme.shadow.sm};
-    }
-
-    @media (max-width: 768px) {
-        justify-content: center;
-    }
-
-    .spinning {
-        animation: spin 1s linear infinite;
-    }
-`;
-
 const TabNavigation = styled.div`
     max-width: 1600px;
     margin: 0 auto;
     padding: 0 ${brandTheme.spacing.xl};
-    border-top: 1px solid ${brandTheme.border};
+    border-bottom: 1px solid ${brandTheme.border};
+    background: ${brandTheme.surface};
 
     @media (max-width: 1024px) {
         padding: 0 ${brandTheme.spacing.lg};
@@ -816,7 +616,6 @@ const PaginationContainer = styled.div`
     padding: ${brandTheme.spacing.lg} 0;
 `;
 
-// New styled components for Balance History tab
 const BalanceHistoryContainer = styled.div`
     background: ${brandTheme.surface};
     border-radius: ${brandTheme.radius.xl};
