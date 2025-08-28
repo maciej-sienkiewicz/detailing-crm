@@ -214,24 +214,6 @@ const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
             </DrawerHeader>
 
             <DrawerContent>
-                {/* Client Header Section */}
-                <ClientHeaderSection>
-                    <ClientTitle>{client.firstName} {client.lastName}</ClientTitle>
-                    <ClientEmail>{client.email}</ClientEmail>
-                    <ClientBasicInfo>
-                        <InfoItem>
-                            <InfoIcon><FaPhone /></InfoIcon>
-                            <InfoText>{client.phone}</InfoText>
-                        </InfoItem>
-                        {client.address && (
-                            <InfoItem>
-                                <InfoIcon><FaMapMarkerAlt /></InfoIcon>
-                                <InfoText>{client.address}</InfoText>
-                            </InfoItem>
-                        )}
-                    </ClientBasicInfo>
-                </ClientHeaderSection>
-
                 {/* Personal Information */}
                 <SectionTitle>
                     <SectionTitleIcon><FaUser /></SectionTitleIcon>
@@ -247,6 +229,7 @@ const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
                         </DetailContent>
                     </DetailRow>
 
+                    {client.email && (
                     <DetailRow>
                         <DetailIcon><FaEnvelope /></DetailIcon>
                         <DetailContent>
@@ -254,7 +237,9 @@ const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
                             <DetailValue>{client.email}</DetailValue>
                         </DetailContent>
                     </DetailRow>
+                    )}
 
+                    {client.phone && (
                     <DetailRow>
                         <DetailIcon><FaPhone /></DetailIcon>
                         <DetailContent>
@@ -262,6 +247,7 @@ const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
                             <DetailValue>{client.phone}</DetailValue>
                         </DetailContent>
                     </DetailRow>
+                    )}
 
                     {client.address && (
                         <DetailRow>
@@ -303,6 +289,17 @@ const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
                                 </DetailRow>
                             )}
                         </DetailSection>
+                    </>
+                )}
+
+                {/* Notes Section */}
+                {client.notes && (
+                    <>
+                        <SectionTitle>
+                            <SectionTitleIcon><FaStickyNote /></SectionTitleIcon>
+                            Notatki
+                        </SectionTitle>
+                        <NotesContent>{client.notes}</NotesContent>
                     </>
                 )}
 
@@ -354,21 +351,10 @@ const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
                     </MetricCard>
                 </MetricsGrid>
 
-                {/* Notes Section */}
-                {client.notes && (
-                    <>
-                        <SectionTitle>
-                            <SectionTitleIcon><FaStickyNote /></SectionTitleIcon>
-                            Notatki
-                        </SectionTitle>
-                        <NotesContent>{client.notes}</NotesContent>
-                    </>
-                )}
-
                 {/* Visit History */}
                 <SectionTitle>
                     <SectionTitleIcon><FaCar /></SectionTitleIcon>
-                    Historia wizyt
+                    5 ostatnich wizyt
                 </SectionTitle>
 
                 {loading ? (

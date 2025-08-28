@@ -1,32 +1,69 @@
 // src/pages/Settings/CompanySettingsPage.tsx
-import React, {forwardRef, useEffect, useImperativeHandle, useState} from 'react';
-import {companySettingsApi, type CompanySettingsResponse} from '../../api/companySettingsApi';
-import {useNotifications} from '../../hooks/useNotifications';
-import {BasicInfoSection} from './sections/companySettings/BasicInfoSection';
-import {BankSettingsSection} from './sections/companySettings/BankSettingsSection';
-import {GoogleDriveSection} from './sections/companySettings/GoogleDriveSection';
-import {EmailSettingsCard} from './components/companySettings/EmailSettingsCard';
-import {UserSignatureCard} from './components/companySettings/UserSignatureCard';
+import React, { forwardRef, useEffect, useImperativeHandle, useState, useRef } from 'react';
+import { companySettingsApi, type CompanySettingsResponse } from '../../api/companySettingsApi';
+import { useNotifications } from '../../hooks/useNotifications';
+import { SectionSlider } from './components/companySettings/SectionSlider';
+import { LoadingOverlay } from './components/companySettings/LoadingOverlay';
+import { ErrorOverlay } from './components/companySettings/ErrorOverlay';
 import {
-    ContentContainer,
-    ErrorContainer,
-    LoadingContainer,
-    PageContainer
-} from './styles/companySettings/CompanySettings.styles';
-import {LoadingSpinner} from './components/companySettings/LoadingSpinner';
-import {ErrorDisplay} from './components/companySettings/ErrorDisplay';
-import {NotificationManager} from './components/companySettings/NotificationManager';
+    PageContainer,
+    SlideContainer
+} from './styles/companySettings/CompanySettingsRedesigned.styles';
+import { BankSettingsSlide } from "./components/companySettings/BankSettingsSlide";
+import { EmailSettingsSlide } from "./components/companySettings/EmailSettingsSlide";
+import { UserSignatureSlide } from "./components/companySettings/UserSignatureSlide";
+import { BasicInfoSlide } from "./components/companySettings/BasicInfoSlide";
+import GoogleDriveSlide from "./components/companySettings/GoogleDriveSlide";
 
-export type EditingSection = 'basic' | 'bank' | 'email' | null;
+export type EditingSection = 'basic' | 'bank' | 'email' | 'google-drive' | 'signature' | null;
 
 const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) => {
-    const { showSuccess, showError, clearNotifications } = useNotifications();
+    const { showSuccess, showError } = useNotifications();
+    const googleDriveSlideRef = useRef<{ showInstructionModal: () => void }>(null);
     const [formData, setFormData] = useState<CompanySettingsResponse | null>(null);
     const [originalData, setOriginalData] = useState<CompanySettingsResponse | null>(null);
     const [editingSection, setEditingSection] = useState<EditingSection>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
+
+    const handleShowGoogleDriveInstruction = () => {
+        googleDriveSlideRef.current?.showInstructionModal();
+    };
+
+    const sections = [
+        {
+            id: 'basic',
+            title: 'Dane podstawowe',
+            subtitle: 'Podstawowe informacje identyfikacyjne firmy',
+            component: BasicInfoSlide
+        },
+        {
+            id: 'bank',
+            title: 'Dane bankowe',
+            subtitle: 'Informacje o koncie bankowym dla faktur',
+            component: BankSettingsSlide
+        },
+        {
+            id: 'email',
+            title: 'Konfiguracja email',
+            subtitle: 'Ustawienia automatycznych powiadomień email',
+            component: EmailSettingsSlide
+        },
+        {
+            id: 'google-drive',
+            title: 'Google Drive',
+            subtitle: 'Automatyczne kopie zapasowe w chmurze',
+            component: GoogleDriveSlide
+        },
+        {
+            id: 'signature',
+            title: 'Podpis elektroniczny',
+            subtitle: 'Profesjonalny podpis do dokumentów',
+            component: UserSignatureSlide
+        }
+    ];
 
     useImperativeHandle(ref, () => ({
         handleSave: handleSaveAll
@@ -77,10 +114,20 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
 
         try {
             setSaving(true);
-            clearNotifications();
+
+            // Handle different section types
+            if (editingSection === 'signature') {
+                // For signature section, don't return - let the UserSignatureSlide component
+                // handle the save via useEffect that watches the 'saving' state
+                // The component will call handleSignatureSaveComplete() when done
+                return;
+            }
+
+            // Create a copy of basicInfo without taxId to prevent sending it to server
+            const { taxId, ...basicInfoWithoutTaxId } = formData.basicInfo;
 
             const updateRequest = {
-                basicInfo: formData.basicInfo,
+                basicInfo: basicInfoWithoutTaxId, // Send basicInfo without taxId
                 bankSettings: formData.bankSettings,
                 logoSettings: formData.logoSettings
             };
@@ -95,7 +142,11 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
             console.error('Error saving company settings:', err);
             showError('Nie udało się zapisać ustawień');
         } finally {
-            setSaving(false);
+            // Only set saving to false for non-signature sections
+            // For signature, the component itself will handle this via handleSignatureSaveComplete
+            if (editingSection !== 'signature') {
+                setSaving(false);
+            }
         }
     };
 
@@ -105,18 +156,69 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
     };
 
     const handleCancelSection = (section: EditingSection) => {
-        if (!section || !originalData) return;
+        if (!section) return;
+
+        // Handle signature section differently
+        if (section === 'signature') {
+            setEditingSection(null);
+            return;
+        }
+
+        if (!originalData) return;
         setFormData(originalData);
         setEditingSection(null);
         setError(null);
     };
 
+    const handlePrevious = () => {
+        setCurrentSectionIndex(prev => Math.max(0, prev - 1));
+        setEditingSection(null);
+    };
+
+    const handleNext = () => {
+        setCurrentSectionIndex(prev => Math.min(sections.length - 1, prev + 1));
+        setEditingSection(null);
+    };
+
+    const handleSectionChange = (index: number) => {
+        setCurrentSectionIndex(index);
+        setEditingSection(null);
+    };
+
+    const handleStartEdit = () => {
+        const currentSectionId = sections[currentSectionIndex].id;
+        if (currentSectionId === 'basic' || currentSectionId === 'bank' || currentSectionId === 'email' || currentSectionId === 'google-drive' || currentSectionId === 'signature') {
+            setEditingSection(currentSectionId as EditingSection);
+        }
+    };
+
+    const handleSaveCurrentSection = () => {
+        handleSaveSection(editingSection);
+    };
+
+    const handleCancelCurrentSection = () => {
+        handleCancelSection(editingSection);
+    };
+
+    const handleSignatureSaveComplete = () => {
+        // Called by signature component when save is complete
+        setEditingSection(null);
+        setSaving(false);
+    };
+
+    const handleSignatureCancelComplete = () => {
+        // Called by signature component when cancel is complete
+        setEditingSection(null);
+    };
+
+    const currentSectionId = sections[currentSectionIndex].id;
+    const showEditControls = currentSectionId === 'basic' || currentSectionId === 'bank' || currentSectionId === 'email' || currentSectionId === 'google-drive' || currentSectionId === 'signature';
+    const isCurrentSectionEditing = editingSection === currentSectionId;
+
     if (loading) {
         return (
             <PageContainer>
-                <LoadingContainer>
-                    <LoadingSpinner />
-                </LoadingContainer>
+                <LoadingOverlay />
             </PageContainer>
         );
     }
@@ -124,56 +226,79 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
     if (!formData) {
         return (
             <PageContainer>
-                <ErrorContainer>
-                    <ErrorDisplay
-                        error={error || 'Nie udało się załadować danych'}
-                        onRetry={loadCompanySettings}
-                    />
-                </ErrorContainer>
+                <ErrorOverlay
+                    error={error || 'Nie udało się załadować danych'}
+                    onRetry={loadCompanySettings}
+                />
             </PageContainer>
         );
     }
 
+    const CurrentSlideComponent = sections[currentSectionIndex].component;
+
+    // Wspólne props dla wszystkich komponentów
+    const commonProps = {
+        data: formData,
+        isEditing: isCurrentSectionEditing,
+        saving: saving,
+        onStartEdit: handleStartEdit,
+        onSave: handleSaveCurrentSection,
+        onCancel: handleCancelCurrentSection,
+        onChange: handleInputChange,
+        onSuccess: showSuccess,
+        onError: showError
+    };
+
     return (
         <PageContainer>
-            <NotificationManager />
+            <SectionSlider
+                sections={sections}
+                currentIndex={currentSectionIndex}
+                onPrevious={handlePrevious}
+                onNext={handleNext}
+                onSectionChange={handleSectionChange}
+                canNavigatePrev={currentSectionIndex > 0}
+                canNavigateNext={currentSectionIndex < sections.length - 1}
+                isEditing={isCurrentSectionEditing}
+                saving={saving}
+                onStartEdit={handleStartEdit}
+                onSave={handleSaveCurrentSection}
+                onCancel={handleCancelCurrentSection}
+                showEditControls={showEditControls}
+                onShowInstruction={currentSectionId === 'google-drive' ? handleShowGoogleDriveInstruction : undefined}
+            />
 
-            <ContentContainer>
-                <BasicInfoSection
-                    data={formData.basicInfo}
-                    isEditing={editingSection === 'basic'}
-                    saving={saving}
-                    onStartEdit={() => setEditingSection('basic')}
-                    onSave={() => handleSaveSection('basic')}
-                    onCancel={() => handleCancelSection('basic')}
-                    onChange={(field, value) => handleInputChange('basicInfo', field, value)}
-                />
-
-                <BankSettingsSection
-                    data={formData.bankSettings}
-                    isEditing={editingSection === 'bank'}
-                    saving={saving}
-                    onStartEdit={() => setEditingSection('bank')}
-                    onSave={() => handleSaveSection('bank')}
-                    onCancel={() => handleCancelSection('bank')}
-                    onChange={(field, value) => handleInputChange('bankSettings', field, value)}
-                />
-
-                <EmailSettingsCard
-                    onSuccess={showSuccess}
-                    onError={showError}
-                />
-
-                <GoogleDriveSection
-                    onSuccess={showSuccess}
-                    onError={showError}
-                />
-
-                <UserSignatureCard
-                    onSuccess={showSuccess}
-                    onError={showError}
-                />
-            </ContentContainer>
+            <SlideContainer>
+                {/* Renderuj komponenty warunkowo z odpowiednimi props */}
+                {currentSectionId === 'basic' && (
+                    <BasicInfoSlide {...commonProps} />
+                )}
+                {currentSectionId === 'bank' && (
+                    <BankSettingsSlide {...commonProps} />
+                )}
+                {currentSectionId === 'email' && (
+                    <EmailSettingsSlide {...commonProps} />
+                )}
+                {currentSectionId === 'google-drive' && (
+                    <GoogleDriveSlide
+                        ref={googleDriveSlideRef}
+                        {...commonProps}
+                    />
+                )}
+                {currentSectionId === 'signature' && (
+                    <UserSignatureSlide
+                        data={formData}
+                        isEditing={isCurrentSectionEditing}
+                        saving={saving}
+                        onStartEdit={handleStartEdit}
+                        onSave={handleSignatureSaveComplete}
+                        onCancel={handleSignatureCancelComplete}
+                        onChange={handleInputChange}
+                        onSuccess={showSuccess}
+                        onError={showError}
+                    />
+                )}
+            </SlideContainer>
         </PageContainer>
     );
 });

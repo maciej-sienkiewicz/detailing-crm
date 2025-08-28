@@ -188,7 +188,7 @@ export const CategoryServicesTable: React.FC<CategoryServicesTableProps> = ({
                         title="Sortuj po liczbie wykonań"
                     >
                         <HeaderContent>
-                            <HeaderLabel>Liczba wykonań</HeaderLabel>
+                            <HeaderLabel>Liczba zleceń</HeaderLabel>
                             <SortIcon $active={sortConfig.key === 'servicesCount'}>
                                 {getSortIcon('servicesCount')}
                             </SortIcon>
@@ -249,7 +249,7 @@ export const CategoryServicesTable: React.FC<CategoryServicesTableProps> = ({
                 <SortInfo>
                     <SortInfoText>
                         Sortowanie: {sortConfig.key === 'name' ? 'nazwa' :
-                        sortConfig.key === 'servicesCount' ? 'liczba wykonań' :
+                        sortConfig.key === 'servicesCount' ? 'liczba zleceń' :
                             'przychód'}
                         ({sortConfig.direction === 'asc' ? 'rosnąco' : 'malejąco'})
                     </SortInfoText>

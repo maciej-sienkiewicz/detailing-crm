@@ -1,6 +1,6 @@
-// src/components/layout/Sidebar.tsx - Updated with persistent logo cache
+// src/components/layout/Sidebar.tsx - Updated with production logo hook
 import React from 'react';
-import {useLocation, useNavigate} from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import {
     FaCalendarAlt,
@@ -18,11 +18,11 @@ import {
     FaUsers
 } from 'react-icons/fa';
 import UserProfileSection from './UserProfileSection';
-import {useCompanyLogoPersistent} from '../../context/PersistentLogoCacheContext'; // Zmieniony import
+import { useCompanyLogoUrl } from '../../hooks/useCompanyLogo';
 
-// Brand Theme System - możliwość konfiguracji przez klienta
+// Brand Theme System - configurable by client
 const brandTheme = {
-    primary: 'var(--brand-primary, #2563eb)', // Domyślny niebieski, konfigurowalny
+    primary: 'var(--brand-primary, #2563eb)',
     primaryLight: 'var(--brand-primary-light, #3b82f6)',
     primaryDark: 'var(--brand-primary-dark, #1d4ed8)',
     primaryGhost: 'var(--brand-primary-ghost, rgba(37, 99, 235, 0.1))',
@@ -32,7 +32,7 @@ const brandTheme = {
     surfaceAlt: '#f1f5f9'
 };
 
-// Dane menu głównego
+// Main menu data
 interface MainMenuItem {
     id: string;
     label: string;
@@ -45,7 +45,7 @@ interface MainMenuItem {
 }
 
 const mainMenuItems: MainMenuItem[] = [
-    // Codzienne operacje
+    // Daily operations
     {
         id: 'calendar',
         label: 'Kalendarz',
@@ -71,7 +71,7 @@ const mainMenuItems: MainMenuItem[] = [
         category: 'daily',
     },
 
-    // Zarządzanie biznesem
+    // Business management
     {
         id: 'clients',
         label: 'Klienci i pojazdy',
@@ -98,7 +98,7 @@ const mainMenuItems: MainMenuItem[] = [
         category: 'business'
     },
 
-    // Narzędzia i administracja
+    // Tools and administration
     {
         id: 'gallery',
         label: 'Galeria',
@@ -162,32 +162,8 @@ const Sidebar: React.FC<SidebarProps> = ({
     const location = useLocation();
     const navigate = useNavigate();
 
-    // ZMIENIONY HOOK - teraz używa persistentnego cache
-    const { logoUrl, loading: logoLoading, error: logoError, refetchLogo } = useCompanyLogoPersistent();
-
-    // Dodatkowe nasłuchiwanie na zmiany logo - BACKUP
-    React.useEffect(() => {
-        const handleLogoUpdate = () => {
-            console.log('🔄 Sidebar received logo update event');
-            refetchLogo();
-        };
-
-        const handleStorageChange = (e: StorageEvent) => {
-            if (e.key === 'logoLastUpdated') {
-                console.log('🔄 Sidebar detected logo localStorage change');
-                refetchLogo();
-            }
-        };
-
-        // Nasłuchuj na eventy
-        window.addEventListener('logoUpdated', handleLogoUpdate);
-        window.addEventListener('storage', handleStorageChange);
-
-        return () => {
-            window.removeEventListener('logoUpdated', handleLogoUpdate);
-            window.removeEventListener('storage', handleStorageChange);
-        };
-    }, [refetchLogo]);
+    // PRODUCTION LOGO HOOK - simple and clean
+    const { logoUrl, isLoading: logoLoading } = useCompanyLogoUrl();
 
     const handleMenuItemClick = (item: MainMenuItem) => {
         if (item.hasSubmenu) {
@@ -211,26 +187,29 @@ const Sidebar: React.FC<SidebarProps> = ({
     return (
         <>
             <SidebarContainer isOpen={isOpen} isMobile={isMobile}>
-                {/* Header z logo lub fallback */}
+                {/* Header with logo or fallback */}
                 <SidebarHeader>
                     <LogoContainer>
-                        {logoUrl && !logoLoading && !logoError ? (
-                            // Pokaż logo firmy gdy jest dostępne
-                            <CompanyLogoContainer>
-                                <CompanyLogo
-                                    src={logoUrl}
-                                    alt="Logo firmy"
-                                    key={`sidebar-logo-${Date.now()}`} // Force refresh na zmianę
-                                />
-                            </CompanyLogoContainer>
-                        ) : logoLoading ? (
+                        {logoLoading ? (
                             // Loading state
                             <LogoLoadingContainer>
                                 <LogoSpinner />
                                 <CompanyName style={{fontSize: '14px', color: '#64748b'}}>Ładowanie...</CompanyName>
                             </LogoLoadingContainer>
+                        ) : logoUrl ? (
+                            // Show company logo when available
+                            <CompanyLogoContainer>
+                                <CompanyLogo
+                                    src={logoUrl}
+                                    alt="Logo firmy"
+                                    onError={(e) => {
+                                        console.warn('Logo failed to load:', logoUrl);
+                                        // You could set fallback state here if needed
+                                    }}
+                                />
+                            </CompanyLogoContainer>
                         ) : (
-                            // Fallback - zawsze pokaż ikonę i napis gdy nie ma logo
+                            // Fallback - always show icon and text when no logo
                             <>
                                 <LogoIcon>
                                     <FaCarSide />
@@ -248,12 +227,12 @@ const Sidebar: React.FC<SidebarProps> = ({
                     )}
                 </SidebarHeader>
 
-                {/* Profil użytkownika */}
+                {/* User profile section */}
                 <UserProfileSection />
 
                 {/* Navigation */}
                 <Navigation>
-                    {/* Codzienne operacje */}
+                    {/* Daily operations */}
                     <NavSection>
                         <SectionHeader>Dziś</SectionHeader>
                         <MenuList>
@@ -282,7 +261,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         </MenuList>
                     </NavSection>
 
-                    {/* Zarządzanie biznesem */}
+                    {/* Business management */}
                     <NavSection>
                         <SectionHeader>Biznes</SectionHeader>
                         <MenuList>
@@ -310,7 +289,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         </MenuList>
                     </NavSection>
 
-                    {/* Narzędzia */}
+                    {/* Tools */}
                     <NavSection>
                         <SectionHeader>Narzędzia</SectionHeader>
                         <MenuList>
@@ -350,13 +329,13 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </SidebarFooter>
             </SidebarContainer>
 
-            {/* Overlay dla mobile */}
+            {/* Overlay for mobile */}
             {isMobile && isOpen && <Overlay onClick={toggleSidebar} />}
         </>
     );
 };
 
-// Styled Components - identyczne jak wcześniej + nowe style dla loading
+// Styled Components - identical to previous version
 const SidebarContainer = styled.div<{ isOpen: boolean; isMobile: boolean }>`
     position: fixed;
     top: 0;
@@ -400,7 +379,7 @@ const LogoContainer = styled.div`
     min-width: 0;
 `;
 
-// New company logo styles
+// Company logo styles
 const CompanyLogoContainer = styled.div`
     display: flex;
     align-items: center;
@@ -608,17 +587,6 @@ const ProgressBadge = styled.span`
     border-radius: 4px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-`;
-
-const CountBadge = styled.span`
-    background: #ef4444;
-    color: white;
-    font-size: 11px;
-    font-weight: 600;
-    padding: 2px 6px;
-    border-radius: 10px;
-    min-width: 18px;
-    text-align: center;
 `;
 
 const SubmenuArrow = styled.div<{ $expanded: boolean }>`

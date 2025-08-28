@@ -72,6 +72,15 @@ export interface CompanyBasicInfo {
     address?: string;
     phone?: string;
     website?: string;
+    logoId?: string;
+}
+
+export interface UpdateCompanyBasicInfo {
+    companyName: string;
+    address?: string;
+    phone?: string;
+    website?: string;
+    logoId?: string;
 }
 
 export interface BankSettings {
@@ -102,7 +111,7 @@ export interface CompanySettingsResponse {
 
 // ZAKTUALIZOWANO - usunięto emailSettings
 export interface UpdateCompanySettingsRequest {
-    basicInfo: CompanyBasicInfo;
+    basicInfo: UpdateCompanyBasicInfo;
     bankSettings: BankSettings;
     logoSettings?: LogoSettings;
 }

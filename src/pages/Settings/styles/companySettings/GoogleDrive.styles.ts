@@ -268,11 +268,6 @@ export const UploadArea = styled.div`
     background: ${theme.surfaceElevated};
     text-align: center;
     transition: all ${theme.transitions.spring};
-
-    &:hover {
-        border-color: ${theme.primary};
-        background: ${theme.primaryGhost};
-    }
 `;
 
 export const UploadContent = styled.div`

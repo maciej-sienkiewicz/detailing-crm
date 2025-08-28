@@ -1,4 +1,4 @@
-// src/pages/Settings/SettingsPageWithTabs.tsx
+// src/pages/Settings/SettingsPageWithTabs.tsx - Updated for simplified brand theme
 import React, {useRef, useState} from 'react';
 import styled from 'styled-components';
 import {FaBuilding, FaCalendarAlt, FaCog, FaFileInvoice, FaPalette, FaSave, FaUser, FaWrench} from 'react-icons/fa';
@@ -6,17 +6,17 @@ import {FaBuilding, FaCalendarAlt, FaCog, FaFileInvoice, FaPalette, FaSave, FaUs
 // Import existing components
 import EmployeesPage from './EmployeesPage';
 import ServicesPage from './ServicesPage';
-import BrandThemeSettingsPage from './BrandThemeSettingsPage';
+import BrandThemeSettingsPage from './BrandThemeSettingsPage'; // Updated component
 import CalendarColorsPage from './CalendarColorsPage';
 import CompanySettingsPage from './CompanySettingsPage';
+import InvoiceTemplatesPage from "./InvoiceTemplatesPage";
 
 // Import styles and utilities
 import {settingsTheme} from './styles/theme';
-import InvoiceTemplatesPage from "./InvoiceTemplatesPage";
 
 type ActiveTab = 'company' | 'employees' | 'services' | 'visual-personalization' | 'calendar-colors' | 'invoice-templates';
 
-// Interfejsy dla komunikacji z komponentami dzieci - poprawione typy
+// Updated interfaces for ref communication
 interface CompanySettingsRef {
     handleSave: () => void;
 }
@@ -44,7 +44,7 @@ interface BrandThemeSettingsRef {
 const SettingsPageWithTabs: React.FC = () => {
     const [activeTab, setActiveTab] = useState<ActiveTab>('company');
 
-    // Referencje do komponentów dzieci - poprawione typy
+    // Component refs
     const companySettingsRef = useRef<CompanySettingsRef>(null);
     const employeesPageRef = useRef<EmployeesPageRef>(null);
     const servicesPageRef = useRef<ServicesPageRef>(null);
@@ -52,7 +52,7 @@ const SettingsPageWithTabs: React.FC = () => {
     const brandThemeSettingsRef = useRef<BrandThemeSettingsRef>(null);
     const invoiceTemplatesPageRef = useRef<InvoiceTemplatesPageRef>(null);
 
-    // Tab configuration
+    // Tab configuration - Updated description for visual-personalization
     const tabs = [
         {
             id: 'company' as ActiveTab,
@@ -68,9 +68,9 @@ const SettingsPageWithTabs: React.FC = () => {
         },
         {
             id: 'visual-personalization' as ActiveTab,
-            label: 'Personalizacja wizualna',
+            label: 'Personalizacja',
             icon: FaPalette,
-            description: 'Kolory marki i logo firmy'
+            description: 'Kolor marki i logo firmy' // Simplified description
         },
         {
             id: 'calendar-colors' as ActiveTab,
@@ -91,7 +91,7 @@ const SettingsPageWithTabs: React.FC = () => {
         setActiveTab(tabId);
     };
 
-    // Akcje dla poszczególnych zakładek - poprawione z null checking
+    // Action handlers for different tabs
     const handleCompanySaveSettings = () => {
         companySettingsRef.current?.handleSave();
     };
@@ -100,7 +100,8 @@ const SettingsPageWithTabs: React.FC = () => {
         invoiceTemplatesPageRef.current?.handleAddTemplate();
     };
 
-    const handleBrandThemeSaveSettings = () => {
+    // Updated handler name for consistency
+    const handleSaveBrandTheme = () => {
         brandThemeSettingsRef.current?.handleSave();
     };
 
@@ -137,17 +138,11 @@ const SettingsPageWithTabs: React.FC = () => {
                     </HeaderLeft>
 
                     <HeaderActions>
-                        {activeTab === 'company' && (
-                            <PrimaryButton onClick={handleCompanySaveSettings}>
-                                <FaSave />
-                                <span>Zapisz ustawienia</span>
-                            </PrimaryButton>
-                        )}
-
+                        {/* Updated button text for visual personalization */}
                         {activeTab === 'visual-personalization' && (
-                            <PrimaryButton onClick={handleBrandThemeSaveSettings}>
-                                <FaSave />
-                                <span>Zapisz wszystko</span>
+                            <PrimaryButton onClick={handleSaveBrandTheme}>
+                                <FaPalette />
+                                <span>Zapisz personalizację</span>
                             </PrimaryButton>
                         )}
 
@@ -219,7 +214,7 @@ const SettingsPageWithTabs: React.FC = () => {
     );
 };
 
-// Styled Components - identyczne jak wcześniej
+// Styled Components remain the same as in the original file
 const PageContainer = styled.div`
     min-height: 100vh;
     background: ${settingsTheme.surfaceAlt};

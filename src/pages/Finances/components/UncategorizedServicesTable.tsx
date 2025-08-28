@@ -185,7 +185,7 @@ export const UncategorizedServicesTable: React.FC<UncategorizedServicesTableProp
                                 <DragHandle>
                                     <FaGripVertical />
                                 </DragHandle>
-                                <HeaderLabel>Liczba wykonań</HeaderLabel>
+                                <HeaderLabel>Liczba zleceń</HeaderLabel>
                             </HeaderContent>
                         </ModernHeaderCell>
                         <ModernHeaderCell $width="23%">

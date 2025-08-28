@@ -102,7 +102,7 @@ export const LogoCacheProvider: React.FC<LogoCacheProviderProps> = ({ children }
             }
 
             const apiUrl = 'http://localhost:8080/api';
-            const response = await fetch(`${apiUrl}/company-settings/logo/${logoFileId}`, {
+            const response = await fetch(`${apiUrl}/company/logo/${logoFileId}`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
