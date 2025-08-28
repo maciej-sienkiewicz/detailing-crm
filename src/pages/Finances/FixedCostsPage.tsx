@@ -399,23 +399,6 @@ const FixedCostsPage: React.FC<FixedCostsPageProps> = ({
                 {/* Filters */}
                 <FiltersContainer>
                     <QuickSearchSection>
-                        <SearchWrapper>
-                            <SearchIcon>
-                                <FaSearch />
-                            </SearchIcon>
-                            <SearchInput
-                                type="text"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                placeholder="Szybkie wyszukiwanie - nazwa, dostawca, numer umowy..."
-                            />
-                            {searchTerm && (
-                                <ClearSearchButton onClick={() => setSearchTerm('')}>
-                                    <FaTimes />
-                                </ClearSearchButton>
-                            )}
-                        </SearchWrapper>
-
                         <AdvancedToggle
                             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
                             $expanded={showAdvancedFilters}

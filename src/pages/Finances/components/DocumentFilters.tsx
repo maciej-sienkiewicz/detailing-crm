@@ -82,33 +82,6 @@ const DocumentFilters: React.FC<DocumentFiltersProps> = ({
     return (
         <FiltersContainer>
             {/* Quick Search */}
-            <QuickSearchSection>
-                <SearchWrapper>
-                    <SearchIcon>
-                        <FaSearch />
-                    </SearchIcon>
-                    <SearchInput
-                        type="text"
-                        value={searchTerm}
-                        onChange={handleQuickSearch}
-                        placeholder="Szybkie wyszukiwanie - nazwa, kontrahent, numer..."
-                    />
-                    {searchTerm && (
-                        <ClearSearchButton onClick={clearSearch}>
-                            <FaTimes />
-                        </ClearSearchButton>
-                    )}
-                </SearchWrapper>
-
-                <AdvancedToggle
-                    onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                    $expanded={showAdvancedFilters}
-                >
-                    <FaFilter />
-                    Filtry zaawansowane
-                    {showAdvancedFilters ? <FaChevronUp /> : <FaChevronDown />}
-                </AdvancedToggle>
-            </QuickSearchSection>
 
             {/* Type Filters */}
             <TypeFiltersSection>
@@ -127,6 +100,17 @@ const DocumentFilters: React.FC<DocumentFiltersProps> = ({
                     ))}
                 </TypeFiltersGrid>
             </TypeFiltersSection>
+
+            <QuickSearchSection>
+                <AdvancedToggle
+                    onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                    $expanded={showAdvancedFilters}
+                >
+                    <FaFilter />
+                    Filtry zaawansowane
+                    {showAdvancedFilters ? <FaChevronUp /> : <FaChevronDown />}
+                </AdvancedToggle>
+            </QuickSearchSection>
 
             {/* Advanced Filters */}
             {showAdvancedFilters && (
