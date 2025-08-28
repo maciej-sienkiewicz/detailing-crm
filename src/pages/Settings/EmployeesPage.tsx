@@ -399,24 +399,6 @@ const EmployeesPage = forwardRef<EmployeesPageRef>((props, ref) => {
             {/* Enhanced Search and Filters */}
             <FiltersContainer>
                 <QuickSearchSection>
-                    <SearchWrapper>
-                        <SearchIcon>
-                            <FaSearch />
-                        </SearchIcon>
-                        <SearchInput
-                            type="text"
-                            placeholder="Wyszukaj pracownika po nazwisku, emailu, telefonie lub stanowisku..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            disabled={isLoading}
-                        />
-                        {searchQuery && (
-                            <ClearSearchButton onClick={() => setSearchQuery('')}>
-                                <FaTimes />
-                            </ClearSearchButton>
-                        )}
-                    </SearchWrapper>
-
                     <FilterActions>
                         <AdvancedToggle
                             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
