@@ -1,0 +1,406 @@
+// src/components/common/DataTable/components.ts
+import styled from 'styled-components';
+import { dataTableTheme } from './theme';
+
+export const TableContainer = styled.div`
+    background: ${dataTableTheme.surface};
+    border-radius: ${dataTableTheme.radius.xl};
+    border: 1px solid ${dataTableTheme.border};
+    overflow: hidden;
+    box-shadow: ${dataTableTheme.shadow.sm};
+    width: 100%;
+    min-height: 400px;
+`;
+
+export const TableHeader = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: ${dataTableTheme.spacing.lg};
+    border-bottom: 1px solid ${dataTableTheme.border};
+    background: ${dataTableTheme.surfaceAlt};
+    flex-shrink: 0;
+`;
+
+export const TableTitle = styled.h3`
+    font-size: 18px;
+    font-weight: 600;
+    color: ${dataTableTheme.text.primary};
+    margin: 0;
+    letter-spacing: -0.025em;
+`;
+
+export const ViewControls = styled.div`
+    display: flex;
+    border: 2px solid ${dataTableTheme.border};
+    border-radius: ${dataTableTheme.radius.md};
+    overflow: hidden;
+`;
+
+export const ViewButton = styled.button<{ $active: boolean }>`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 36px;
+    border: none;
+    background: ${props => props.$active ? dataTableTheme.primary : dataTableTheme.surface};
+    color: ${props => props.$active ? 'white' : dataTableTheme.text.tertiary};
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+
+    &:hover {
+        background: ${props => props.$active ? dataTableTheme.primaryDark : dataTableTheme.primaryGhost};
+        color: ${props => props.$active ? 'white' : dataTableTheme.primary};
+    }
+
+    &:not(:last-child) {
+        border-right: 1px solid ${dataTableTheme.border};
+    }
+`;
+
+export const TableWrapper = styled.div`
+    width: 100%;
+`;
+
+export const TableContent = styled.div`
+    width: 100%;
+`;
+
+export const TableHeaderRow = styled.div`
+    display: flex;
+    background: ${dataTableTheme.surfaceAlt};
+    border-bottom: 2px solid ${dataTableTheme.border};
+    min-height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+`;
+
+export const HeaderCell = styled.div<{
+    $isDragging?: boolean;
+    $width: string;
+    $sortable?: boolean;
+}>`
+    flex: 0 0 ${props => props.$width};
+    width: ${props => props.$width};
+    display: flex;
+    align-items: center;
+    padding: 0 ${dataTableTheme.spacing.md};
+    background: ${props => props.$isDragging ? dataTableTheme.primaryGhost : dataTableTheme.surfaceAlt};
+    border-right: 1px solid ${dataTableTheme.border};
+    cursor: ${props => props.$sortable ? 'pointer' : props.$isDragging ? 'grabbing' : 'grab'};
+    user-select: none;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: ${dataTableTheme.primaryGhost};
+    }
+
+    &:last-child {
+        border-right: none;
+    }
+`;
+
+export const HeaderContent = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${dataTableTheme.spacing.sm};
+    width: 100%;
+`;
+
+export const DragHandle = styled.div`
+    color: ${dataTableTheme.text.muted};
+    font-size: 12px;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+
+    ${HeaderCell}:hover & {
+        opacity: 1;
+    }
+`;
+
+export const HeaderLabel = styled.span`
+    font-size: 14px;
+    font-weight: 600;
+    color: ${dataTableTheme.text.primary};
+    flex: 1;
+`;
+
+export const SortIcon = styled.div<{ $active: boolean }>`
+    display: flex;
+    align-items: center;
+    color: ${props => props.$active ? dataTableTheme.primary : dataTableTheme.text.muted};
+    font-size: 12px;
+    transition: color 0.2s ease;
+`;
+
+export const TableBody = styled.div`
+    background: ${dataTableTheme.surface};
+`;
+
+export const TableRow = styled.div<{ $selected?: boolean }>`
+    display: flex;
+    border-bottom: 1px solid ${dataTableTheme.borderLight};
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    background: ${props => props.$selected ? dataTableTheme.primaryGhost : dataTableTheme.surface};
+
+    &:hover {
+        background: ${props => props.$selected ? dataTableTheme.primaryGhost : dataTableTheme.surfaceHover};
+        box-shadow: inset 0 0 0 1px ${dataTableTheme.borderHover};
+    }
+
+    &:last-child {
+        border-bottom: none;
+    }
+`;
+
+export const TableCell = styled.div<{ $width?: string }>`
+    flex: 0 0 ${props => props.$width || 'auto'};
+    width: ${props => props.$width || 'auto'};
+    padding: ${dataTableTheme.spacing.md};
+    display: flex;
+    align-items: center;
+    min-height: 80px;
+    border-right: 1px solid ${dataTableTheme.borderLight};
+
+    &:last-child {
+        border-right: none;
+    }
+`;
+
+export const CardsContainer = styled.div`
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: ${dataTableTheme.spacing.md};
+    padding: ${dataTableTheme.spacing.lg};
+
+    @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+        padding: ${dataTableTheme.spacing.md};
+    }
+`;
+
+export const Card = styled.div<{ $selected?: boolean }>`
+    background: ${dataTableTheme.surface};
+    border: 2px solid ${props => props.$selected ? dataTableTheme.primary : dataTableTheme.border};
+    border-radius: ${dataTableTheme.radius.lg};
+    padding: ${dataTableTheme.spacing.lg};
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: ${props => props.$selected ? dataTableTheme.shadow.md : dataTableTheme.shadow.xs};
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+        border-color: ${dataTableTheme.primary};
+    }
+`;
+
+export const EmptyStateContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: ${dataTableTheme.spacing.xxl};
+    background: ${dataTableTheme.surface};
+    border-radius: ${dataTableTheme.radius.xl};
+    border: 2px dashed ${dataTableTheme.border};
+    text-align: center;
+    min-height: 400px;
+`;
+
+export const EmptyStateIcon = styled.div`
+    width: 64px;
+    height: 64px;
+    background: ${dataTableTheme.surfaceAlt};
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: ${dataTableTheme.text.tertiary};
+    margin-bottom: ${dataTableTheme.spacing.lg};
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+`;
+
+export const EmptyStateTitle = styled.h3`
+    font-size: 20px;
+    font-weight: 600;
+    color: ${dataTableTheme.text.primary};
+    margin: 0 0 ${dataTableTheme.spacing.sm} 0;
+    letter-spacing: -0.025em;
+`;
+
+export const EmptyStateDescription = styled.p`
+    font-size: 16px;
+    color: ${dataTableTheme.text.secondary};
+    margin: 0 0 ${dataTableTheme.spacing.sm} 0;
+    line-height: 1.5;
+`;
+
+export const EmptyStateAction = styled.p`
+    font-size: 14px;
+    color: ${dataTableTheme.primary};
+    margin: 0;
+    font-weight: 500;
+`;
+
+export const TooltipWrapper = styled.div<{ title: string }>`
+    position: relative;
+    display: inline-flex;
+
+    &:hover::after {
+        content: attr(title);
+        position: absolute;
+        bottom: calc(100% + 8px);
+        left: 50%;
+        transform: translateX(-50%);
+        background: ${dataTableTheme.text.primary};
+        color: white;
+        padding: 8px 12px;
+        border-radius: ${dataTableTheme.radius.md};
+        font-size: 12px;
+        font-weight: 500;
+        white-space: nowrap;
+        z-index: 1000;
+        box-shadow: ${dataTableTheme.shadow.lg};
+        animation: tooltipFadeIn 0.2s ease-out;
+    }
+
+    &:hover::before {
+        content: '';
+        position: absolute;
+        bottom: calc(100% + 2px);
+        left: 50%;
+        transform: translateX(-50%);
+        border: 4px solid transparent;
+        border-top-color: ${dataTableTheme.text.primary};
+        z-index: 1000;
+        animation: tooltipFadeIn 0.2s ease-out;
+    }
+
+    @keyframes tooltipFadeIn {
+        from {
+            opacity: 0;
+            transform: translateX(-50%) translateY(4px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+    }
+`;
+
+export const ActionButton = styled.button<{
+    $variant: 'view' | 'edit' | 'delete' | 'info' | 'success' | 'secondary';
+    $small?: boolean;
+}>`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: ${props => props.$small ? '28px' : '32px'};
+    height: ${props => props.$small ? '28px' : '32px'};
+    border: none;
+    border-radius: ${dataTableTheme.radius.sm};
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: ${props => props.$small ? '12px' : '13px'};
+    position: relative;
+    overflow: hidden;
+
+    ${({ $variant }) => {
+    switch ($variant) {
+        case 'view':
+            return `
+                    background: ${dataTableTheme.primaryGhost};
+                    color: ${dataTableTheme.primary};
+                    &:hover {
+                        background: ${dataTableTheme.primary};
+                        color: white;
+                        transform: translateY(-1px);
+                        box-shadow: ${dataTableTheme.shadow.md};
+                    }
+                `;
+        case 'edit':
+            return `
+                    background: ${dataTableTheme.status.warningLight};
+                    color: ${dataTableTheme.status.warning};
+                    &:hover {
+                        background: ${dataTableTheme.status.warning};
+                        color: white;
+                        transform: translateY(-1px);
+                        box-shadow: ${dataTableTheme.shadow.md};
+                    }
+                `;
+        case 'info':
+            return `
+                    background: ${dataTableTheme.status.infoLight};
+                    color: ${dataTableTheme.status.info};
+                    &:hover {
+                        background: ${dataTableTheme.status.info};
+                        color: white;
+                        transform: translateY(-1px);
+                        box-shadow: ${dataTableTheme.shadow.md};
+                    }
+                `;
+        case 'success':
+            return `
+                    background: ${dataTableTheme.status.successLight};
+                    color: ${dataTableTheme.status.success};
+                    &:hover {
+                        background: ${dataTableTheme.status.success};
+                        color: white;
+                        transform: translateY(-1px);
+                        box-shadow: ${dataTableTheme.shadow.md};
+                    }
+                `;
+        case 'secondary':
+            return `
+                    background: ${dataTableTheme.surfaceElevated};
+                    color: ${dataTableTheme.text.tertiary};
+                    &:hover {
+                        background: ${dataTableTheme.text.tertiary};
+                        color: white;
+                        transform: translateY(-1px);
+                        box-shadow: ${dataTableTheme.shadow.md};
+                    }
+                `;
+        case 'delete':
+            return `
+                    background: ${dataTableTheme.status.errorLight};
+                    color: ${dataTableTheme.status.error};
+                    &:hover {
+                        background: ${dataTableTheme.status.error};
+                        color: white;
+                        transform: translateY(-1px);
+                        box-shadow: ${dataTableTheme.shadow.md};
+                    }
+                `;
+    }
+}}
+`;
+
+export const ActionButtons = styled.div`
+    display: flex;
+    gap: ${dataTableTheme.spacing.xs};
+    align-items: center;
+    flex-wrap: wrap;
+`;
+
+export const StatusBadge = styled.span<{ $color: string }>`
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: ${dataTableTheme.radius.lg};
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: ${props => props.$color}15;
+    color: ${props => props.$color};
+    border: 1px solid ${props => props.$color}30;
+    white-space: nowrap;
+`;
