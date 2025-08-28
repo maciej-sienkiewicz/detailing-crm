@@ -61,7 +61,7 @@ export const UnifiedFormField: React.FC<UnifiedFormFieldProps> = ({
         onBlur?.(e.target.value);
     };
 
-    const hasValue = value && value.trim().length > 0;
+    const hasValue = (value && value.trim().length > 0) || false;
 
     return (
         <FieldContainer $fullWidth={fullWidth}>
@@ -92,7 +92,7 @@ export const UnifiedFormField: React.FC<UnifiedFormFieldProps> = ({
                         onChange={handleChange}
                         onBlur={handleBlur}
                         placeholder={placeholder}
-                        $hasError={validation && !validation.isValid}
+                        $hasError={(validation && !validation.isValid) || false}
                     />
                 ) : (
                     <DisplayValue $hasValue={hasValue}>
