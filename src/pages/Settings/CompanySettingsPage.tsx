@@ -15,7 +15,7 @@ import { UserSignatureSlide } from "./components/companySettings/UserSignatureSl
 import { BasicInfoSlide } from "./components/companySettings/BasicInfoSlide";
 import GoogleDriveSlide from "./components/companySettings/GoogleDriveSlide";
 
-export type EditingSection = 'basic' | 'bank' | 'email' | 'google-drive' | null;
+export type EditingSection = 'basic' | 'bank' | 'email' | 'google-drive' | 'signature' | null;
 
 const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) => {
     const { showSuccess, showError } = useNotifications();
@@ -115,10 +115,19 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
         try {
             setSaving(true);
 
+            // Handle different section types
+            if (editingSection === 'signature') {
+                // For signature section, don't return - let the UserSignatureSlide component
+                // handle the save via useEffect that watches the 'saving' state
+                // The component will call handleSignatureSaveComplete() when done
+                return;
+            }
+
+            // Create a copy of basicInfo without taxId to prevent sending it to server
             const { taxId, ...basicInfoWithoutTaxId } = formData.basicInfo;
 
             const updateRequest = {
-                basicInfo: basicInfoWithoutTaxId,
+                basicInfo: basicInfoWithoutTaxId, // Send basicInfo without taxId
                 bankSettings: formData.bankSettings,
                 logoSettings: formData.logoSettings
             };
@@ -133,7 +142,11 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
             console.error('Error saving company settings:', err);
             showError('Nie udało się zapisać ustawień');
         } finally {
-            setSaving(false);
+            // Only set saving to false for non-signature sections
+            // For signature, the component itself will handle this via handleSignatureSaveComplete
+            if (editingSection !== 'signature') {
+                setSaving(false);
+            }
         }
     };
 
@@ -143,7 +156,15 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
     };
 
     const handleCancelSection = (section: EditingSection) => {
-        if (!section || !originalData) return;
+        if (!section) return;
+
+        // Handle signature section differently
+        if (section === 'signature') {
+            setEditingSection(null);
+            return;
+        }
+
+        if (!originalData) return;
         setFormData(originalData);
         setEditingSection(null);
         setError(null);
@@ -166,7 +187,7 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
 
     const handleStartEdit = () => {
         const currentSectionId = sections[currentSectionIndex].id;
-        if (currentSectionId === 'basic' || currentSectionId === 'bank' || currentSectionId === 'email' || currentSectionId === 'google-drive') {
+        if (currentSectionId === 'basic' || currentSectionId === 'bank' || currentSectionId === 'email' || currentSectionId === 'google-drive' || currentSectionId === 'signature') {
             setEditingSection(currentSectionId as EditingSection);
         }
     };
@@ -179,8 +200,19 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
         handleCancelSection(editingSection);
     };
 
+    const handleSignatureSaveComplete = () => {
+        // Called by signature component when save is complete
+        setEditingSection(null);
+        setSaving(false);
+    };
+
+    const handleSignatureCancelComplete = () => {
+        // Called by signature component when cancel is complete
+        setEditingSection(null);
+    };
+
     const currentSectionId = sections[currentSectionIndex].id;
-    const showEditControls = currentSectionId === 'basic' || currentSectionId === 'bank' || currentSectionId === 'email' || currentSectionId === 'google-drive';
+    const showEditControls = currentSectionId === 'basic' || currentSectionId === 'bank' || currentSectionId === 'email' || currentSectionId === 'google-drive' || currentSectionId === 'signature';
     const isCurrentSectionEditing = editingSection === currentSectionId;
 
     if (loading) {
@@ -233,7 +265,7 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                 onSave={handleSaveCurrentSection}
                 onCancel={handleCancelCurrentSection}
                 showEditControls={showEditControls}
-                onShowInstruction={handleShowGoogleDriveInstruction}
+                onShowInstruction={currentSectionId === 'google-drive' ? handleShowGoogleDriveInstruction : undefined}
             />
 
             <SlideContainer>
@@ -254,7 +286,17 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                     />
                 )}
                 {currentSectionId === 'signature' && (
-                    <UserSignatureSlide {...commonProps} />
+                    <UserSignatureSlide
+                        data={formData}
+                        isEditing={isCurrentSectionEditing}
+                        saving={saving}
+                        onStartEdit={handleStartEdit}
+                        onSave={handleSignatureSaveComplete}
+                        onCancel={handleSignatureCancelComplete}
+                        onChange={handleInputChange}
+                        onSuccess={showSuccess}
+                        onError={showError}
+                    />
                 )}
             </SlideContainer>
         </PageContainer>

@@ -2,27 +2,6 @@
 import React, {forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState} from 'react';
 import SignatureCanvas from 'react-signature-canvas';
 import {FaCompress, FaEraser, FaExpand, FaPen, FaRedo, FaUndo} from 'react-icons/fa';
-import {
-    CanvasHeader,
-    CanvasOverlay,
-    CanvasWrapper,
-    ControlButton,
-    ControlsGroup,
-    HeaderTitle,
-    OverlayHint,
-    OverlayIcon,
-    OverlayText,
-    PenStyleSelector,
-    SignatureContainer,
-    SignatureStats,
-    StatItem,
-    StatLabel,
-    StatValue,
-    StyleButton,
-    StyleButtons,
-    StyleLabel,
-    StylePreview
-} from '../../styles/companySettings/SignatureCanvas.styles';
 
 interface SimpleSignatureCanvasProps {
     width?: number;
@@ -39,6 +18,243 @@ interface CanvasRef {
     clear: () => void;
     getSignatureBlob?: () => Promise<Blob | null>; // Optional blob conversion
 }
+
+// Styled components for better integration
+const SignatureContainer = React.memo(React.forwardRef<HTMLDivElement, { children: React.ReactNode }>((props, ref) => (
+    <div ref={ref} style={{
+        background: 'transparent',
+        borderRadius: '0',
+        border: 'none',
+        overflow: 'hidden',
+        boxShadow: 'none',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0'
+    }}>
+        {props.children}
+    </div>
+)));
+
+const CanvasHeader = React.memo(({ title, children }: { title: string; children: React.ReactNode }) => (
+    <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '16px 24px',
+        background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+        border: '1px solid #e2e8f0',
+        borderRadius: '12px 12px 0 0',
+    }}>
+        <h3 style={{
+            fontSize: '16px',
+            fontWeight: '600',
+            color: '#1e293b',
+            margin: '0'
+        }}>
+            {title}
+        </h3>
+        {children}
+    </div>
+));
+
+const ControlsGroup = React.memo(({ children }: { children: React.ReactNode }) => (
+    <div style={{
+        display: 'flex',
+        gap: '4px',
+        background: 'rgba(248, 250, 252, 0.8)',
+        padding: '4px',
+        borderRadius: '8px',
+    }}>
+        {children}
+    </div>
+));
+
+const ControlButton = React.memo(({ onClick, disabled, title, children }: {
+    onClick: () => void;
+    disabled?: boolean;
+    title: string;
+    children: React.ReactNode;
+}) => (
+    <button
+        onClick={onClick}
+        disabled={disabled}
+        title={title}
+        style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '36px',
+            height: '36px',
+            background: disabled ? '#f1f5f9' : 'transparent',
+            border: 'none',
+            borderRadius: '6px',
+            color: disabled ? '#cbd5e1' : '#64748b',
+            cursor: disabled ? 'not-allowed' : 'pointer',
+            transition: 'all 0.2s ease',
+            fontSize: '14px'
+        }}
+        onMouseEnter={(e) => {
+            if (!disabled) {
+                e.currentTarget.style.background = '#1a365d';
+                e.currentTarget.style.color = 'white';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+            }
+        }}
+        onMouseLeave={(e) => {
+            if (!disabled) {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = '#64748b';
+                e.currentTarget.style.transform = 'translateY(0)';
+            }
+        }}
+    >
+        {children}
+    </button>
+));
+
+const CanvasWrapper = React.memo(({ isExpanded, children }: {
+    isExpanded: boolean;
+    children: React.ReactNode;
+}) => (
+    <div style={{
+        position: 'relative',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: '0',
+        background: 'transparent',
+        transition: 'all 0.3s ease',
+    }}>
+        {children}
+    </div>
+));
+
+const PenStyleSelector = React.memo(({ currentStyle, styles, onStyleChange }: {
+    currentStyle: string;
+    styles: Record<string, any>;
+    onStyleChange: (style: string) => void;
+}) => (
+    <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '16px',
+        padding: '16px 24px',
+        background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+        border: '1px solid #e2e8f0',
+        borderTop: 'none',
+    }}>
+        <span style={{
+            fontSize: '14px',
+            fontWeight: '600',
+            color: '#64748b',
+            whiteSpace: 'nowrap'
+        }}>
+            Styl pióra:
+        </span>
+        <div style={{
+            display: 'flex',
+            gap: '8px',
+            flexWrap: 'wrap'
+        }}>
+            {Object.entries(styles).map(([style, config]) => (
+                <button
+                    key={style}
+                    onClick={() => onStyleChange(style)}
+                    title={`${style} pen`}
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '6px 12px',
+                        background: currentStyle === style ? '#1a365d' : '#ffffff',
+                        color: currentStyle === style ? 'white' : '#64748b',
+                        border: `1px solid ${currentStyle === style ? '#1a365d' : '#e2e8f0'}`,
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        textTransform: 'capitalize'
+                    }}
+                    onMouseEnter={(e) => {
+                        if (currentStyle !== style) {
+                            e.currentTarget.style.background = '#f8fafc';
+                            e.currentTarget.style.borderColor = '#1a365d';
+                        }
+                    }}
+                    onMouseLeave={(e) => {
+                        if (currentStyle !== style) {
+                            e.currentTarget.style.background = '#ffffff';
+                            e.currentTarget.style.borderColor = '#e2e8f0';
+                        }
+                    }}
+                >
+                    <div style={{
+                        width: '24px',
+                        height: `${config.maxWidth}px`,
+                        backgroundColor: config.penColor,
+                        borderRadius: '2px'
+                    }} />
+                    {style}
+                </button>
+            ))}
+        </div>
+    </div>
+));
+
+const SignatureStats = React.memo(({ isEmpty, isExpanded, historyIndex, historyLength }: {
+    isEmpty: boolean;
+    isExpanded: boolean;
+    historyIndex: number;
+    historyLength: number;
+}) => (
+    <div style={{
+        display: 'flex',
+        justifyContent: 'space-around',
+        padding: '16px 24px',
+        background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+        border: '1px solid #e2e8f0',
+        borderTop: 'none',
+        borderRadius: '0 0 12px 12px',
+    }}>
+        <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontSize: '14px'
+        }}>
+            <span style={{ color: '#64748b', fontWeight: '500' }}>Status:</span>
+            <span style={{
+                color: isEmpty ? '#94a3b8' : '#1e293b',
+                fontWeight: '600'
+            }}>
+                {isEmpty ? 'Pusty' : 'Podpisany'}
+            </span>
+        </div>
+        <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontSize: '14px'
+        }}>
+            <span style={{ color: '#64748b', fontWeight: '500' }}>Rozmiar:</span>
+            <span style={{ color: '#1e293b', fontWeight: '600' }}>
+                {isExpanded ? 'Rozszerzony' : 'Standardowy'}
+            </span>
+        </div>
+        <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontSize: '14px'
+        }}>
+            <span style={{ color: '#64748b', fontWeight: '500' }}>Historia:</span>
+            <span style={{ color: '#1e293b', fontWeight: '600' }}>
+                {historyIndex + 1} / {historyLength}
+            </span>
+        </div>
+    </div>
+));
 
 export const SimpleSignatureCanvas = forwardRef<CanvasRef, SimpleSignatureCanvasProps>(({
                                                                                             width = 600,
@@ -205,8 +421,8 @@ export const SimpleSignatureCanvas = forwardRef<CanvasRef, SimpleSignatureCanvas
     }, []);
 
     // Handle pen style change
-    const handlePenStyleChange = useCallback((style: keyof typeof penStyles) => {
-        setCurrentPenStyle(style);
+    const handlePenStyleChange = useCallback((style: string) => {
+        setCurrentPenStyle(style as keyof typeof penStyles);
     }, []);
 
     // Load signature from base64 data URL
@@ -286,8 +502,7 @@ export const SimpleSignatureCanvas = forwardRef<CanvasRef, SimpleSignatureCanvas
 
     return (
         <SignatureContainer ref={containerRef}>
-            <CanvasHeader>
-                <HeaderTitle>Profesjonalny podpis elektroniczny</HeaderTitle>
+            <CanvasHeader title="Profesjonalny podpis elektroniczny">
                 <ControlsGroup>
                     <ControlButton
                         onClick={undo}
@@ -318,7 +533,7 @@ export const SimpleSignatureCanvas = forwardRef<CanvasRef, SimpleSignatureCanvas
                 </ControlsGroup>
             </CanvasHeader>
 
-            <CanvasWrapper $isExpanded={isExpanded}>
+            <CanvasWrapper isExpanded={isExpanded}>
                 <SignatureCanvas
                     ref={signatureRef}
                     canvasProps={{
@@ -327,10 +542,10 @@ export const SimpleSignatureCanvas = forwardRef<CanvasRef, SimpleSignatureCanvas
                         className: 'signature-canvas',
                         style: {
                             border: '2px solid #e2e8f0',
-                            borderRadius: '8px',
+                            borderRadius: '0',
                             backgroundColor: '#ffffff',
                             cursor: isDrawing ? 'grabbing' : 'crosshair',
-                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                            boxShadow: '0 4px 12px rgba(15, 23, 42, 0.1)',
                             transition: 'all 0.3s ease'
                         }
                     }}
@@ -344,64 +559,62 @@ export const SimpleSignatureCanvas = forwardRef<CanvasRef, SimpleSignatureCanvas
                 />
 
                 {isEmpty() && (
-                    <CanvasOverlay $isExpanded={isExpanded}>
-                        <OverlayIcon>
+                    <div style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '16px',
+                        pointerEvents: 'none',
+                        opacity: 0.4,
+                        textAlign: 'center',
+                        maxWidth: isExpanded ? '400px' : '300px',
+                        zIndex: 1
+                    }}>
+                        <div style={{
+                            fontSize: '48px',
+                            color: '#1a365d',
+                            marginBottom: '16px'
+                        }}>
                             <FaPen />
-                        </OverlayIcon>
-                        <OverlayText>
+                        </div>
+                        <div style={{
+                            fontSize: '16px',
+                            fontWeight: '600',
+                            color: '#1e293b',
+                            lineHeight: '1.4'
+                        }}>
                             {isExpanded
                                 ? 'Narysuj swój podpis w powiększonym obszarze dla większej precyzji'
                                 : 'Narysuj swój podpis używając myszy lub dotyku'
                             }
-                        </OverlayText>
-                        <OverlayHint>
+                        </div>
+                        <div style={{
+                            fontSize: '14px',
+                            color: '#64748b',
+                            fontStyle: 'italic'
+                        }}>
                             Użyj płynnych ruchów dla najlepszego efektu
-                        </OverlayHint>
-                    </CanvasOverlay>
+                        </div>
+                    </div>
                 )}
             </CanvasWrapper>
 
-            <PenStyleSelector>
-                <StyleLabel>Styl pióra:</StyleLabel>
-                <StyleButtons>
-                    {Object.entries(penStyles).map(([style, config]) => (
-                        <StyleButton
-                            key={style}
-                            $active={currentPenStyle === style}
-                            onClick={() => handlePenStyleChange(style as keyof typeof penStyles)}
-                            title={`${style} pen`}
-                        >
-                            <StylePreview style={{
-                                backgroundColor: config.penColor,
-                                height: `${config.maxWidth}px`,
-                                borderRadius: '2px'
-                            }} />
-                            {style}
-                        </StyleButton>
-                    ))}
-                </StyleButtons>
-            </PenStyleSelector>
+            <PenStyleSelector
+                currentStyle={currentPenStyle}
+                styles={penStyles}
+                onStyleChange={handlePenStyleChange}
+            />
 
-            <SignatureStats>
-                <StatItem>
-                    <StatLabel>Status:</StatLabel>
-                    <StatValue $isEmpty={isEmpty()}>
-                        {isEmpty() ? 'Pusty' : 'Podpisany'}
-                    </StatValue>
-                </StatItem>
-                <StatItem>
-                    <StatLabel>Rozmiar:</StatLabel>
-                    <StatValue>
-                        {isExpanded ? 'Rozszerzony' : 'Standardowy'}
-                    </StatValue>
-                </StatItem>
-                <StatItem>
-                    <StatLabel>Historia:</StatLabel>
-                    <StatValue>
-                        {historyIndex + 1} / {history.length}
-                    </StatValue>
-                </StatItem>
-            </SignatureStats>
+            <SignatureStats
+                isEmpty={isEmpty()}
+                isExpanded={isExpanded}
+                historyIndex={historyIndex}
+                historyLength={history.length}
+            />
         </SignatureContainer>
     );
 });
