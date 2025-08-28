@@ -92,7 +92,7 @@ interface VehicleDetailsResponse {
     make: string;
     model: string;
     year?: number;
-    license_plate: string;
+    licensePlate: string;
     color?: string;
     vin?: string;
     mileage?: number;
@@ -350,7 +350,7 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
         make: vehicleDetails.make,
         model: vehicleDetails.model,
         year: vehicleDetails.year || new Date().getFullYear(),
-        licensePlate: vehicleDetails.license_plate,
+        licensePlate: vehicleDetails.licensePlate,
         color: vehicleDetails.color,
         vin: vehicleDetails.vin,
         displayName: vehicleDetails.display_name

@@ -92,18 +92,22 @@ export const TableRow: React.FC<TableRowProps> = ({
             case 'contact':
                 return (
                     <ContactInfo>
-                        <ContactItem>
-                            <ContactIcon>
-                                <FaEnvelope />
-                            </ContactIcon>
-                            <ContactText>{client.email}</ContactText>
-                        </ContactItem>
-                        <ContactItem>
-                            <ContactIcon>
-                                <FaPhone />
-                            </ContactIcon>
-                            <ContactText>{client.phone}</ContactText>
-                        </ContactItem>
+                        {client.email && client.email.trim() != "" && (
+                            <ContactItem>
+                                <ContactIcon>
+                                    <FaEnvelope />
+                                </ContactIcon>
+                                <ContactText>{client.email}</ContactText>
+                            </ContactItem>
+                        )}
+                        {client.phone && client.phone.trim() != "" && (
+                            <ContactItem>
+                                <ContactIcon>
+                                    <FaPhone />
+                                </ContactIcon>
+                                <ContactText>{client.phone}</ContactText>
+                            </ContactItem>
+                        )}
                     </ContactInfo>
                 );
 
