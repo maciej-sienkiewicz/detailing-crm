@@ -1,8 +1,10 @@
+// src/pages/Clients/VehiclePage/index.tsx - Updated to use new VehicleTable
 import React, {forwardRef, useCallback, useEffect, useImperativeHandle, useMemo} from 'react';
 import {FaArrowLeft, FaExclamationTriangle} from 'react-icons/fa';
 import VehicleDetailDrawer from '../components/VehicleDetailDrawer';
 import VehicleFormModal from '../components/VehicleFormModal';
 import VehicleHistoryModal from '../components/VehicleHistoryModal';
+import { VehicleTable } from '../components/VehicleTable';
 
 import {useVehicleFilters, useVehicleOperations, useVehiclesPageState} from './hooks';
 import {LoadingDisplay} from './components';
@@ -21,25 +23,21 @@ import {
 import {VehicleFilters, VehiclesPageContentProps, VehiclesPageRef} from './types';
 import EnhancedVehicleFilters from './EnhancedVehicleFilters';
 import Modal from "../../../components/common/Modal";
-import VehicleListTable from "../VehicleListTable";
 import Pagination from "../../../components/common/Pagination";
 
 const VehiclesPageContent = forwardRef<VehiclesPageRef, VehiclesPageContentProps>(({
                                                                                        onSetRef,
                                                                                        initialVehicleId,
                                                                                        filterByOwnerId,
-                                                                                       onNavigateToClient,
                                                                                        onClearDetailParams,
                                                                                        onVehicleSelected,
                                                                                        onVehicleClosed
                                                                                    }, ref) => {
     const { state, updateState } = useVehiclesPageState();
-    const { loadVehicles, loadCompanyStatistics, convertFiltersToApiFormat } = useVehicleFilters();
+    const { loadVehicles } = useVehicleFilters();
     const {
-        editVehicle,
         deleteVehicle,
         saveVehicle,
-        navigateToClient,
         exportVehicles
     } = useVehicleOperations();
 
@@ -178,7 +176,7 @@ const VehiclesPageContent = forwardRef<VehiclesPageRef, VehiclesPageContentProps
                 updateState({ selectedVehicle: result.vehicle });
             }
         }
-    }, [state.selectedVehicle, state.currentPage, state.appliedFilters, state.showDetailDrawer, saveVehicle, updateState, performLoadVehicles, filterByOwnerId, loadCompanyStatistics]);
+    }, [state.selectedVehicle, state.currentPage, state.appliedFilters, state.showDetailDrawer, saveVehicle, updateState, performLoadVehicles]);
 
     const handleDeleteClick = useCallback((vehicleId: string) => {
         const vehicle = state.vehicles.find(v => v.id === vehicleId);
@@ -207,7 +205,7 @@ const VehiclesPageContent = forwardRef<VehiclesPageRef, VehiclesPageContentProps
 
             await performLoadVehicles(state.currentPage, state.appliedFilters);
         }
-    }, [state.selectedVehicle, state.showDetailDrawer, state.currentPage, state.appliedFilters, deleteVehicle, updateState, closeVehicleDetail, performLoadVehicles, filterByOwnerId, loadCompanyStatistics]);
+    }, [state.selectedVehicle, state.showDetailDrawer, state.currentPage, state.appliedFilters, deleteVehicle, updateState, closeVehicleDetail, performLoadVehicles]);
 
     const handleShowHistory = useCallback((vehicle: any) => {
         updateState({
@@ -276,7 +274,7 @@ const VehiclesPageContent = forwardRef<VehiclesPageRef, VehiclesPageContentProps
                 ) : (
                     <>
                         <TableContainer>
-                            <VehicleListTable
+                            <VehicleTable
                                 vehicles={state.vehicles}
                                 onSelectVehicle={handleSelectVehicle}
                                 onEditVehicle={handleEditVehicle}

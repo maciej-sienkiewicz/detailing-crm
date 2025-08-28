@@ -1,6 +1,11 @@
-import {VehicleStatus} from '../types';
-import {brandTheme} from '../styles/themes';
-import {VehicleExpanded} from "../../../../types";
+// src/pages/Clients/components/VehicleTable/utils.ts
+import { VehicleExpanded } from '../../../../types';
+import { dataTableTheme } from '../../../../components/common/DataTable';
+
+export interface VehicleStatus {
+    label: string;
+    color: string;
+}
 
 export const formatDate = (dateString: string): string => {
     if (!dateString) return '';
@@ -23,17 +28,17 @@ export const getVehicleStatus = (vehicle: VehicleExpanded): VehicleStatus => {
     if (vehicle.totalSpent > 20000) {
         return {
             label: 'Premium',
-            color: brandTheme.status.warning
+            color: dataTableTheme.status.warning
         };
     }
     if (vehicle.totalSpent > 10000) {
         return {
             label: 'VIP',
-            color: brandTheme.status.info
+            color: dataTableTheme.status.info
         };
     }
     return {
         label: 'Standard',
-        color: brandTheme.text.tertiary
+        color: dataTableTheme.text.tertiary
     };
 };

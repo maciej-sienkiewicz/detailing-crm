@@ -1,7 +1,8 @@
+// src/pages/Clients/index.tsx - Updated to use new ClientTable
 import React, {forwardRef, useCallback, useEffect, useImperativeHandle, useMemo} from 'react';
 import Modal from '../../components/common/Modal';
 import Pagination from '../../components/common/Pagination';
-import ClientListTable from './components/ClientListTable';
+import { ClientTable } from './components/ClientTable';
 import ClientDetailDrawer from './components/ClientDetailDrawer';
 import ClientFormModal from './components/ClientFormModal';
 import DeleteConfirmationModal from "./modals/DeleteConfirmationModal";
@@ -45,7 +46,6 @@ const OwnersPageContent = forwardRef<OwnersPageRef, OwnersPageContentProps>(({
         setSelectAll
     } = useClientSelection();
 
-    // Enhanced handlers
     const handleAddClient = useCallback(() => {
         updateState({
             selectedClient: null,
@@ -101,7 +101,6 @@ const OwnersPageContent = forwardRef<OwnersPageRef, OwnersPageContentProps>(({
         }
     }, [onSetRef, refObject]);
 
-    // Handle initial client ID from URL
     useEffect(() => {
         if (initialClientId && state.clients.length > 0 && !state.manuallyClosedDrawer) {
             const client = state.clients.find(c => c.id === initialClientId);
@@ -117,7 +116,6 @@ const OwnersPageContent = forwardRef<OwnersPageRef, OwnersPageContentProps>(({
         }
     }, [initialClientId, state.selectedClient?.id, updateState]);
 
-    // Load clients function - FIXED: No longer updates stats
     const performLoadClients = useCallback(async (page: number = 0, filters: ClientFilters = state.appliedFilters) => {
         updateState({ loading: true });
 
@@ -129,18 +127,15 @@ const OwnersPageContent = forwardRef<OwnersPageRef, OwnersPageContentProps>(({
             totalItems: result.pagination.totalItems,
             totalPages: result.pagination.totalPages,
             loading: false
-            // REMOVED: stats update - stats are now global and independent
         });
 
         clearSelection();
     }, [loadClients, state.appliedFilters, updateState, clearSelection]);
 
-    // Load clients on mount
     useEffect(() => {
         performLoadClients(0);
     }, []);
 
-    // Filter handlers
     const handleFiltersChange = useCallback((filters: ClientFilters) => {
         updateState({ filters });
     }, [updateState]);
@@ -170,14 +165,12 @@ const OwnersPageContent = forwardRef<OwnersPageRef, OwnersPageContentProps>(({
         performLoadClients(0, emptyFilters);
     }, [updateState, performLoadClients]);
 
-    // Page change handler
     const handlePageChange = useCallback((newPage: number) => {
         if (newPage !== state.currentPage + 1 && newPage >= 1 && newPage <= state.totalPages) {
             performLoadClients(newPage - 1, state.appliedFilters);
         }
     }, [state.currentPage, state.totalPages, performLoadClients, state.appliedFilters]);
 
-    // Client operations - FIXED: Reload global stats after operations that affect totals
     const handleEditClient = useCallback(async (client: any) => {
         updateState({ loading: true });
         const result = await editClient(client);
@@ -190,8 +183,6 @@ const OwnersPageContent = forwardRef<OwnersPageRef, OwnersPageContentProps>(({
 
     const handleSaveClient = useCallback(async () => {
         updateState({ showAddModal: false });
-
-        // Reload both current page and global stats
         await performLoadClients(state.currentPage, state.appliedFilters);
     }, [updateState, performLoadClients, state.currentPage, state.appliedFilters]);
 
@@ -272,7 +263,6 @@ const OwnersPageContent = forwardRef<OwnersPageRef, OwnersPageContentProps>(({
             return;
         }
 
-        // Simulate sending SMS
         updateState({
             bulkSmsText: '',
             showBulkSmsModal: false
@@ -280,7 +270,6 @@ const OwnersPageContent = forwardRef<OwnersPageRef, OwnersPageContentProps>(({
         clearSelection();
     }, [state.bulkSmsText, updateState, clearSelection]);
 
-    // Check if any filters are active
     const hasActiveFilters = useMemo(() => {
         return Object.values(state.appliedFilters).some(val => val !== '');
     }, [state.appliedFilters]);
@@ -323,7 +312,7 @@ const OwnersPageContent = forwardRef<OwnersPageRef, OwnersPageContentProps>(({
                                     onResetFilters={handleResetFilters}
                                 />
                             ) : (
-                                <ClientListTable
+                                <ClientTable
                                     clients={state.clients}
                                     selectedClientIds={selectedClientIds}
                                     onToggleSelection={toggleClientSelection}

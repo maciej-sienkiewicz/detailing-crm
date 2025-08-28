@@ -1,12 +1,11 @@
-// ClientListTable/ColumnHeader.tsx
-import React, {useRef} from 'react';
-import {useDrag, useDrop} from 'react-dnd';
-import {FaGripVertical, FaSort, FaSortDown, FaSortUp} from 'react-icons/fa';
-import {TableColumn} from './types';
-import {DragHandle, HeaderContent, HeaderLabel, ModernHeaderCell, SortIcon} from './styles/components';
+// src/components/common/DataTable/TableHeader.tsx
+import React, { useRef } from 'react';
+import { useDrag, useDrop } from 'react-dnd';
+import { FaGripVertical, FaSort, FaSortDown, FaSortUp } from 'react-icons/fa';
+import { TableColumn, SortDirection } from './types';
+import { HeaderCell, HeaderContent, DragHandle, HeaderLabel, SortIcon } from './components';
 
 const COLUMN_TYPE = 'column';
-type SortDirection = 'asc' | 'desc' | null;
 
 interface ColumnHeaderProps {
     column: TableColumn;
@@ -15,6 +14,7 @@ interface ColumnHeaderProps {
     sortColumn: string | null;
     sortDirection: SortDirection;
     onSort: (columnId: string) => void;
+    enableDragAndDrop: boolean;
 }
 
 export const ColumnHeader: React.FC<ColumnHeaderProps> = ({
@@ -23,7 +23,8 @@ export const ColumnHeader: React.FC<ColumnHeaderProps> = ({
                                                               moveColumn,
                                                               sortColumn,
                                                               sortDirection,
-                                                              onSort
+                                                              onSort,
+                                                              enableDragAndDrop
                                                           }) => {
     const ref = useRef<HTMLDivElement>(null);
 
@@ -33,12 +34,13 @@ export const ColumnHeader: React.FC<ColumnHeaderProps> = ({
         collect: (monitor) => ({
             isDragging: monitor.isDragging(),
         }),
+        canDrag: enableDragAndDrop,
     });
 
     const [, drop] = useDrop({
         accept: COLUMN_TYPE,
         hover: (item: any, monitor) => {
-            if (!ref.current) return;
+            if (!ref.current || !enableDragAndDrop) return;
 
             const dragIndex = item.index;
             const hoverIndex = index;
@@ -58,7 +60,9 @@ export const ColumnHeader: React.FC<ColumnHeaderProps> = ({
         },
     });
 
-    drag(drop(ref));
+    if (enableDragAndDrop) {
+        drag(drop(ref));
+    }
 
     const handleSort = () => {
         if (column.sortable) {
@@ -76,7 +80,7 @@ export const ColumnHeader: React.FC<ColumnHeaderProps> = ({
     };
 
     return (
-        <ModernHeaderCell
+        <HeaderCell
             ref={ref}
             $isDragging={isDragging}
             $width={column.width}
@@ -84,9 +88,11 @@ export const ColumnHeader: React.FC<ColumnHeaderProps> = ({
             onClick={handleSort}
         >
             <HeaderContent>
-                <DragHandle>
-                    <FaGripVertical />
-                </DragHandle>
+                {enableDragAndDrop && (
+                    <DragHandle>
+                        <FaGripVertical />
+                    </DragHandle>
+                )}
                 <HeaderLabel>{column.label}</HeaderLabel>
                 {column.sortable && (
                     <SortIcon $active={sortColumn === column.id}>
@@ -94,6 +100,6 @@ export const ColumnHeader: React.FC<ColumnHeaderProps> = ({
                     </SortIcon>
                 )}
             </HeaderContent>
-        </ModernHeaderCell>
+        </HeaderCell>
     );
 };

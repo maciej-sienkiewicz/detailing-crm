@@ -1,7 +1,11 @@
-// ClientListTable/utils/clientUtils.ts
-import {ClientStatus} from '../types';
-import {brandTheme} from '../styles/theme';
-import {ClientExpanded} from "../../../../../types";
+// src/pages/Clients/components/ClientTable/utils.ts
+import { ClientExpanded } from '../../../../types';
+import { dataTableTheme } from '../../../../components/common/DataTable';
+
+export interface ClientStatus {
+    label: string;
+    color: string;
+}
 
 export const formatDate = (dateString: string): string => {
     if (!dateString) return '';
@@ -24,17 +28,17 @@ export const getClientStatus = (client: ClientExpanded): ClientStatus => {
     if (client.totalRevenue > 50000) {
         return {
             label: 'VIP',
-            color: brandTheme.status.error
+            color: dataTableTheme.status.error
         };
     }
     if (client.totalRevenue > 20000) {
         return {
             label: 'Premium',
-            color: brandTheme.status.warning
+            color: dataTableTheme.status.warning
         };
     }
     return {
         label: 'Standard',
-        color: brandTheme.text.tertiary
+        color: dataTableTheme.text.tertiary
     };
 };
