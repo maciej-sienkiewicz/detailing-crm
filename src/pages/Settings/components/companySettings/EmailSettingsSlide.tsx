@@ -216,11 +216,6 @@ export const EmailSettingsSlide: React.FC<EmailSettingsSlideProps> = ({
                                 isEditing={false}
                                 value={getStatusText(configuration.validationStatus)}
                                 onChange={() => {}}
-                                displayFormatter={(value) => (
-                                    <StatusBadge $status={configuration.validationStatus}>
-                                        {value}
-                                    </StatusBadge>
-                                )}
                             />
                         </FormGrid>
                     </ReadOnlyView>
