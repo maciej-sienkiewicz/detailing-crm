@@ -112,6 +112,10 @@ export const SectionSlider: React.FC<SectionSliderProps> = ({
                 </HeaderLeft>
 
                 <HeaderRight>
+                    <ActionButtonsContainer>
+                        {renderInstructionButton()}
+                        {renderActionButtons()}
+                    </ActionButtonsContainer>
                     <NavigationContainer>
                         <NavButton
                             onClick={onPrevious}
@@ -139,11 +143,6 @@ export const SectionSlider: React.FC<SectionSliderProps> = ({
                             <FaChevronRight />
                         </NavButton>
                     </NavigationContainer>
-
-                    <ActionButtonsContainer>
-                        {renderInstructionButton()}
-                        {renderActionButtons()}
-                    </ActionButtonsContainer>
                 </HeaderRight>
             </SliderHeader>
 
