@@ -788,6 +788,10 @@ const TabletsGrid = styled.div`
     gap: ${brandTheme.spacing.lg};
     padding: ${brandTheme.spacing.lg};
     flex: 1;
+
+    & > ${EmptyState} {
+        grid-column: 1 / -1;
+    }
 `;
 
 const TabletCard = styled.div<{ $status: string; $isOnline: boolean }>`
