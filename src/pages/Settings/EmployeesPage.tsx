@@ -2,7 +2,6 @@
 import React, {forwardRef, useCallback, useEffect, useImperativeHandle, useState} from 'react';
 import styled from 'styled-components';
 import {
-    FaCalendarAlt,
     FaCheckCircle,
     FaChevronDown,
     FaChevronUp,
@@ -39,6 +38,8 @@ import {useEmployees} from '../../hooks/useEmployees';
 import {EmployeeFormModal} from './components/EmployeeFormModal';
 import {DocumentTemplatesModal} from './components/DocumentTemplatesModal';
 import {EmployeeDetailsModal} from './components/EmployeeDetailsModal';
+import {PageHeader, SecondaryButton, PrimaryButton} from '../../components/common/PageHeader';
+import {theme} from "../../styles/theme";
 
 // Professional Brand Theme
 const brandTheme = {
@@ -92,7 +93,6 @@ const brandTheme = {
     }
 };
 
-// Export formatDate function
 export const formatDate = (dateString: string): string => {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -115,7 +115,6 @@ const EmployeesPage = forwardRef<EmployeesPageRef>((props, ref) => {
 
     // API Hook with optimized configuration
     const {
-        // Data
         employees,
         filteredEmployees,
         selectedEmployee,
@@ -125,23 +124,15 @@ const EmployeesPage = forwardRef<EmployeesPageRef>((props, ref) => {
         pageSize,
         hasNext,
         hasPrevious,
-
-        // Loading states
         isLoading,
         isCreating,
         isUpdating,
         isDeleting,
         isLoadingDocuments,
-
-        // Error states
         error,
         validationErrors,
-
-        // Documents
         documents,
         documentError,
-
-        // Actions
         fetchEmployees,
         createEmployee,
         updateEmployee,
@@ -164,7 +155,7 @@ const EmployeesPage = forwardRef<EmployeesPageRef>((props, ref) => {
         initialPageSize: 20,
         autoFetch: true,
         enableCaching: true,
-        refreshInterval: 5 * 60 * 1000 // 5 minutes
+        refreshInterval: 5 * 60 * 1000
     });
 
     // Local state for UI
@@ -294,12 +285,10 @@ const EmployeesPage = forwardRef<EmployeesPageRef>((props, ref) => {
         let result: ExtendedEmployee | null = null;
 
         if (employee.id) {
-            // Update existing employee
             result = await updateEmployee({
                 ...employee
             });
         } else {
-            // Create new employee
             result = await createEmployee({
                 fullName: employee.fullName,
                 birthDate: employee.birthDate,
@@ -357,48 +346,57 @@ const EmployeesPage = forwardRef<EmployeesPageRef>((props, ref) => {
         refreshData();
     }, [clearError, refreshData]);
 
+    // Header configuration
+    const teamSubtitle = `Zarządzaj pracownikami i ich uprawnieniami w systemie • ${filteredEmployees.length} ${filteredEmployees.length === 1 ? 'pracownik' : 'pracowników'}`;
+
+    const headerActions = (
+        <>
+            <SecondaryButton
+                onClick={() => setShowTemplatesModal(true)}
+                disabled={isLoading}
+            >
+                <FaFileDownload />
+                Szablony dokumentów
+            </SecondaryButton>
+            <PrimaryButton
+                onClick={handleAddEmployee}
+                disabled={isLoading || isCreating}
+            >
+                {isCreating ? <LoadingSpinner size="small" /> : <FaUserPlus />}
+                Dodaj pracownika
+            </PrimaryButton>
+        </>
+    );
+
     return (
         <ContentContainer>
-            {/* Professional Header */}
-            <PageHeader>
-                <HeaderContent>
-                    <HeaderTitle>
-                        <TitleRow>
-                            <h1>Zespół</h1>
-                            <TeamCounter>
-                                {isLoading ? (
-                                    <LoadingSpinner size="small" />
-                                ) : (
-                                    filteredEmployees.length
-                                )}
-                            </TeamCounter>
-                        </TitleRow>
-                        <HeaderSubtitle>Zarządzaj pracownikami i ich uprawnieniami w systemie</HeaderSubtitle>
-                    </HeaderTitle>
-                    <HeaderActions>
-                        <ActionButton
-                            onClick={() => setShowTemplatesModal(true)}
-                            $variant="secondary"
-                            disabled={isLoading}
-                        >
-                            <FaFileDownload />
-                            Szablony dokumentów
-                        </ActionButton>
-                        <ActionButton
-                            onClick={handleAddEmployee}
-                            $variant="primary"
-                            disabled={isLoading || isCreating}
-                        >
-                            {isCreating ? <LoadingSpinner size="small" /> : <FaUserPlus />}
-                            Dodaj pracownika
-                        </ActionButton>
-                    </HeaderActions>
-                </HeaderContent>
-            </PageHeader>
-
+            <PageHeader
+                icon={FaUser}
+                title="Zespół"
+                subtitle={teamSubtitle}
+                actions={headerActions}
+            />
             {/* Enhanced Search and Filters */}
             <FiltersContainer>
                 <QuickSearchSection>
+                    <SearchWrapper>
+                        <SearchIcon>
+                            <FaSearch />
+                        </SearchIcon>
+                        <SearchInput
+                            type="text"
+                            placeholder="Szukaj pracowników po nazwisku, stanowisku lub emailu..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            disabled={isLoading}
+                        />
+                        {searchQuery && (
+                            <ClearSearchButton onClick={() => setSearchQuery('')}>
+                                <FaTimes />
+                            </ClearSearchButton>
+                        )}
+                    </SearchWrapper>
+
                     <FilterActions>
                         <AdvancedToggle
                             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
@@ -595,7 +593,7 @@ const EmployeesPage = forwardRef<EmployeesPageRef>((props, ref) => {
                                                     <span>{employee.phone}</span>
                                                 </ContactItem>
                                                 <ContactItem>
-                                                    <FaCalendarAlt />
+                                                    <FaUserTie />
                                                     <span>{EmployeeHelpers.calculateAge(employee.birthDate)} lat</span>
                                                 </ContactItem>
                                             </ContactInfo>
@@ -725,10 +723,10 @@ const EmployeesPage = forwardRef<EmployeesPageRef>((props, ref) => {
                             </EmptyStateDescription>
                             {!hasActiveFilters() && (
                                 <EmptyStateAction>
-                                    <ActionButton onClick={handleAddEmployee} $variant="primary">
+                                    <PrimaryButton onClick={handleAddEmployee}>
                                         <FaUserPlus />
                                         Dodaj pierwszego pracownika
-                                    </ActionButton>
+                                    </PrimaryButton>
                                 </EmptyStateAction>
                             )}
                         </EmptyStateContainer>
@@ -784,22 +782,9 @@ const EmployeesPage = forwardRef<EmployeesPageRef>((props, ref) => {
 const ContentContainer = styled.div`
     flex: 1;
     max-width: 1600px;
-    margin: 0 auto;
-    padding: 0 ${brandTheme.spacing.xl} ${brandTheme.spacing.xl};
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: ${brandTheme.spacing.lg};
-    min-height: 0;
-
-    @media (max-width: 1024px) {
-        padding: 0 ${brandTheme.spacing.lg} ${brandTheme.spacing.lg};
-    }
-
-    @media (max-width: 768px) {
-        padding: 0 ${brandTheme.spacing.md} ${brandTheme.spacing.md};
-        gap: ${brandTheme.spacing.md};
-    }
 `;
 
 const LoadingSpinner = styled.div<{ size?: 'small' | 'medium' | 'large' }>`
@@ -816,125 +801,6 @@ const LoadingSpinner = styled.div<{ size?: 'small' | 'medium' | 'large' }>`
     }
 `;
 
-const PageHeader = styled.div`
-    margin-bottom: ${brandTheme.spacing.md};
-`;
-
-const HeaderContent = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: ${brandTheme.spacing.lg};
-
-    @media (max-width: 768px) {
-        flex-direction: column;
-        gap: ${brandTheme.spacing.md};
-    }
-`;
-
-const HeaderTitle = styled.div`
-    flex: 1;
-`;
-
-const TitleRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.md};
-    margin-bottom: ${brandTheme.spacing.xs};
-
-    h1 {
-        font-size: 32px;
-        font-weight: 700;
-        color: ${brandTheme.text.primary};
-        margin: 0;
-        letter-spacing: -0.025em;
-    }
-`;
-
-const TeamCounter = styled.div`
-    background: ${brandTheme.primaryGhost};
-    color: ${brandTheme.primary};
-    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.md};
-    border-radius: ${brandTheme.radius.lg};
-    font-size: 16px;
-    font-weight: 700;
-    border: 1px solid ${brandTheme.primary}20;
-    min-width: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-`;
-
-const HeaderSubtitle = styled.div`
-    font-size: 16px;
-    color: ${brandTheme.text.secondary};
-    font-weight: 500;
-    line-height: 1.5;
-`;
-
-const HeaderActions = styled.div`
-    display: flex;
-    gap: ${brandTheme.spacing.sm};
-
-    @media (max-width: 768px) {
-        width: 100%;
-
-        > * {
-            flex: 1;
-        }
-    }
-`;
-
-const ActionButton = styled.button<{ $variant: 'primary' | 'secondary'; disabled?: boolean }>`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
-    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
-    border-radius: ${brandTheme.radius.md};
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 1px solid transparent;
-    white-space: nowrap;
-    min-height: 44px;
-
-    ${({ $variant }) => {
-        switch ($variant) {
-            case 'primary':
-                return `
-                    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-                    color: white;
-                    box-shadow: ${brandTheme.shadow.sm};
-
-                    &:hover:not(:disabled) {
-                        transform: translateY(-1px);
-                        box-shadow: ${brandTheme.shadow.md};
-                    }
-                `;
-            case 'secondary':
-                return `
-                    background: ${brandTheme.surface};
-                    color: ${brandTheme.text.secondary};
-                    border-color: ${brandTheme.border};
-                    box-shadow: ${brandTheme.shadow.xs};
-
-                    &:hover:not(:disabled) {
-                        background: ${brandTheme.surfaceHover};
-                        color: ${brandTheme.text.primary};
-                        border-color: ${brandTheme.borderHover};
-                        box-shadow: ${brandTheme.shadow.sm};
-                    }
-                `;
-        }
-    }}
-
-    &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: none;
-    }
-`;
 
 // Error handling components
 const ErrorContainer = styled.div`
@@ -990,6 +856,7 @@ const FiltersContainer = styled.div`
     border: 1px solid ${brandTheme.border};
     overflow: hidden;
     box-shadow: ${brandTheme.shadow.sm};
+    margin:  ${brandTheme.spacing.lg};
 `;
 
 const QuickSearchSection = styled.div`

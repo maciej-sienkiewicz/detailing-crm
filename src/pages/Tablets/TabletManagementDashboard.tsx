@@ -645,7 +645,7 @@ const TabletManagementDashboard: React.FC<TabletManagementDashboardProps> = ({
 // Styled Components - Updated to match application theme
 const DashboardContainer = styled.div`
     padding: 0;
-    margin: 0;
+    margin:  ${brandTheme.spacing.lg};
 `;
 
 const DashboardCard = styled.div`
