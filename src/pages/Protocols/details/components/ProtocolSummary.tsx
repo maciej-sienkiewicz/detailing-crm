@@ -46,10 +46,10 @@ import EditPricesModal from "./EditPricesModal";
 // Professional Brand System - Enterprise Automotive Grade
 const brand = {
     // Primary Brand Colors - Professional & Trustworthy
-    primary: '#1e40af',
-    primaryLight: '#3b82f6',
-    primaryDark: '#1e3a8a',
-    primaryGhost: 'rgba(30, 64, 175, 0.04)',
+    primary: 'var(--brand-primary, #1a365d)',
+    primaryLight: 'var(--brand-primary-light, #2c5aa0)',
+    primaryDark: 'var(--brand-primary-dark, #0f2027)',
+    primaryGhost: 'var(--brand-primary-ghost, rgba(26, 54, 93, 0.04))',
 
     // Premium Surface System
     surface: '#ffffff',
