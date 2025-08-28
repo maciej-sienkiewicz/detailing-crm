@@ -115,8 +115,10 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
         try {
             setSaving(true);
 
+            const { taxId, ...basicInfoWithoutTaxId } = formData.basicInfo;
+
             const updateRequest = {
-                basicInfo: formData.basicInfo,
+                basicInfo: basicInfoWithoutTaxId,
                 bankSettings: formData.bankSettings,
                 logoSettings: formData.logoSettings
             };

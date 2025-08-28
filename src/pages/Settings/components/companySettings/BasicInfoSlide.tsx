@@ -93,14 +93,13 @@ export const BasicInfoSlide: React.FC<BasicInfoSlideProps> = ({
                     <UnifiedFormField
                         label="NIP"
                         required
-                        isEditing={isEditing}
+                        isEditing={false} // Always readonly - never editable
                         value={basicInfo.taxId || ''}
-                        onChange={(value) => onChange('basicInfo', 'taxId', value)}
-                        onBlur={(value) => validateNIP(value)}
+                        onChange={() => {}} // No-op function since it's readonly
                         placeholder="123-456-78-90"
                         validation={nipValidation}
                         validating={validatingNip}
-                        helpText="Podaj NIP w formacie 123-456-78-90"
+                        helpText="Pole tylko do odczytu - wartość nie może być zmieniana"
                     />
 
                     <UnifiedFormField
