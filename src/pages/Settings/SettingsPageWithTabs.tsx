@@ -181,18 +181,19 @@ const SettingsPageWithTabs: React.FC = () => {
                     <TabsList>
                         {tabs.map(tab => {
                             const Icon = tab.icon;
+                            const isActive = activeTab === tab.id;
                             return (
                                 <TabButton
                                     key={tab.id}
-                                    $active={activeTab === tab.id}
+                                    $active={isActive}
                                     onClick={() => handleTabChange(tab.id)}
                                 >
-                                    <TabIcon>
+                                    <TabIcon $active={isActive}>
                                         <Icon />
                                     </TabIcon>
                                     <TabContent>
-                                        <TabLabel>{tab.label}</TabLabel>
-                                        <TabDescription>{tab.description}</TabDescription>
+                                        <TabLabel $active={isActive}>{tab.label}</TabLabel>
+                                        <TabDescription $active={isActive}>{tab.description}</TabDescription>
                                     </TabContent>
                                 </TabButton>
                             );
@@ -364,30 +365,57 @@ const PrimaryButton = styled.button`
 const TabNavigation = styled.div`
     max-width: 1600px;
     margin: 0 auto;
-    padding: 0 ${settingsTheme.spacing.xl};
+    padding: ${settingsTheme.spacing.lg} ${settingsTheme.spacing.xl};
+    background: ${settingsTheme.surface};
+    display: flex;
+    justify-content: center;
     border-top: 1px solid ${settingsTheme.border};
 
     @media (max-width: 1024px) {
-        padding: 0 ${settingsTheme.spacing.lg};
+        padding: ${settingsTheme.spacing.md} ${settingsTheme.spacing.lg};
     }
 
     @media (max-width: 768px) {
-        padding: 0 ${settingsTheme.spacing.md};
+        padding: ${settingsTheme.spacing.md};
     }
 `;
 
 const TabsList = styled.div`
     display: flex;
-    gap: ${settingsTheme.spacing.sm};
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    background: ${settingsTheme.surfaceAlt};
+    border: 2px solid ${settingsTheme.border};
+    border-radius: ${settingsTheme.radius.xxl};
+    padding: 6px;
+    box-shadow: ${settingsTheme.shadow.sm};
+    position: relative;
+    overflow: hidden;
+    gap: 4px;
 
-    &::-webkit-scrollbar {
-        display: none;
+    /* Dodajemy subtelny gradient w tle */
+    &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, ${settingsTheme.surfaceAlt} 0%, ${settingsTheme.surfaceElevated} 100%);
+        border-radius: inherit;
+        z-index: 0;
+    }
+
+    /* Obsługa overflow na mobilnych */
+    @media (max-width: 1200px) {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        justify-content: flex-start;
+        width: 100%;
+
+        &::-webkit-scrollbar {
+            display: none;
+        }
     }
 
     @media (max-width: 768px) {
-        gap: ${settingsTheme.spacing.xs};
+        padding: 4px;
+        gap: 2px;
     }
 `;
 
@@ -395,72 +423,124 @@ const TabButton = styled.button<{ $active: boolean }>`
     display: flex;
     align-items: center;
     gap: ${settingsTheme.spacing.md};
-    padding: ${settingsTheme.spacing.md} ${settingsTheme.spacing.lg};
+    padding: ${settingsTheme.spacing.lg} ${settingsTheme.spacing.xl};
     border: none;
-    background: ${props => props.$active ? settingsTheme.surface : 'transparent'};
+    background: ${props => props.$active
+            ? 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)'
+            : 'transparent'
+    };
     color: ${props => props.$active ? settingsTheme.primary : settingsTheme.text.secondary};
-    border-radius: ${settingsTheme.radius.lg} ${settingsTheme.radius.lg} 0 0;
+    border-radius: ${settingsTheme.radius.xl};
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     min-width: 180px;
     white-space: nowrap;
-    border-bottom: 3px solid ${props => props.$active ? settingsTheme.primary : 'transparent'};
+    font-weight: ${props => props.$active ? '700' : '500'};
+    z-index: 1;
+    flex-shrink: 0;
+
+    /* Efekt cienia dla aktywnej zakładki */
+    box-shadow: ${props => props.$active
+            ? `0 4px 12px -2px rgba(26, 54, 93, 0.15), 0 2px 6px -1px rgba(26, 54, 93, 0.1)`
+            : 'none'
+    };
+
+    /* Border highlight dla aktywnej zakładki */
+    ${props => props.$active && `
+        border: 1px solid ${settingsTheme.primary}20;
+        
+        &::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, ${settingsTheme.primary} 0%, ${settingsTheme.primaryLight} 100%);
+            border-radius: ${settingsTheme.radius.sm} ${settingsTheme.radius.sm} 0 0;
+        }
+    `}
 
     &:hover {
-        background: ${props => props.$active ? settingsTheme.surface : settingsTheme.surfaceHover};
-        color: ${props => props.$active ? settingsTheme.primary : settingsTheme.text.primary};
+        background: ${props => props.$active
+                ? 'linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%)'
+                : 'rgba(255, 255, 255, 0.7)'
+        };
+        color: ${props => props.$active ? settingsTheme.primaryDark : settingsTheme.primary};
+        transform: ${props => props.$active ? 'none' : 'translateY(-1px)'};
+
+        ${props => !props.$active && `
+            box-shadow: 0 2px 8px -1px rgba(26, 54, 93, 0.1);
+        `}
+    }
+
+    &:active {
+        transform: translateY(0);
     }
 
     @media (max-width: 768px) {
         min-width: 140px;
-        padding: ${settingsTheme.spacing.sm} ${settingsTheme.spacing.md};
+        padding: ${settingsTheme.spacing.md} ${settingsTheme.spacing.lg};
         gap: ${settingsTheme.spacing.sm};
     }
 `;
 
-const TabIcon = styled.div`
-    width: 32px;
-    height: 32px;
+const TabIcon = styled.div<{ $active?: boolean }>`
+    width: 36px;
+    height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+    font-size: 18px;
     flex-shrink: 0;
+    border-radius: ${settingsTheme.radius.md};
+    background: ${props => props.$active
+            ? `linear-gradient(135deg, ${settingsTheme.primary}15 0%, ${settingsTheme.primary}08 100%)`
+            : 'transparent'
+    };
+    transition: all 0.3s ease;
+
+    ${props => props.$active && `
+        color: ${settingsTheme.primary};
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    `}
 
     @media (max-width: 768px) {
-        width: 24px;
-        height: 24px;
-        font-size: 14px;
-    }
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+}
 `;
 
 const TabContent = styled.div`
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 2px;
+    gap: 4px;
     min-width: 0;
 `;
 
-const TabLabel = styled.div`
-    font-size: 14px;
-    font-weight: 600;
+const TabLabel = styled.div<{ $active?: boolean }>`
+    font-size: 15px;
+    font-weight: ${props => props.$active ? '700' : '600'};
     line-height: 1.2;
+    letter-spacing: ${props => props.$active ? '-0.025em' : '0'};
 
     @media (max-width: 768px) {
-        font-size: 12px;
+        font-size: 13px;
     }
 `;
 
-const TabDescription = styled.div`
+const TabDescription = styled.div<{ $active?: boolean }>`
     font-size: 12px;
-    font-weight: 400;
-    opacity: 0.8;
+    font-weight: 500;
+    opacity: ${props => props.$active ? '0.9' : '0.7'};
     line-height: 1.2;
+    color: ${props => props.$active ? settingsTheme.text.secondary : settingsTheme.text.tertiary};
 
     @media (max-width: 768px) {
-        font-size: 10px;
+        font-size: 11px;
     }
 `;
 

@@ -9,6 +9,7 @@ import OwnersPageContent from "./index";
 import VehiclesPageContent from "./VehiclePage";
 
 import {theme} from '../../styles/theme';
+import {Tab} from "../../components/common/PageHeader/PageHeader";
 
 type ActiveTab = 'owners' | 'vehicles';
 
@@ -78,15 +79,15 @@ const ClientsVehiclesPage: React.FC = () => {
         }
     }, [urlParams.tab]);
 
-    const tabs = [
+    const clientsTabs: Tab<ActiveTab>[] = [
         {
-            id: 'owners' as ActiveTab,
+            id: 'owners',
             label: 'Baza Klientów',
             icon: FaUsers,
             description: 'Zarządzanie relacjami z klientami'
         },
         {
-            id: 'vehicles' as ActiveTab,
+            id: 'vehicles',
             label: 'Baza Pojazdów',
             icon: FaCar,
             description: 'Zarządzanie flotą pojazdów'
@@ -218,7 +219,7 @@ const ClientsVehiclesPage: React.FC = () => {
         updateURL({ vehicleId: undefined });
     }, [updateURL]);
 
-    const currentTab = tabs.find(tab => tab.id === activeTab);
+    const currentTab = clientsTabs.find(tab => tab.id === activeTab);
     const headerTitle = currentTab ? currentTab.label : 'Baza Danych';
     const headerSubtitle = currentTab ? currentTab.description : 'Zarządzanie danymi';
 
@@ -271,35 +272,15 @@ const ClientsVehiclesPage: React.FC = () => {
 
     return (
         <PageContainer>
-            <PageHeader
+            <PageHeader<ActiveTab>
                 icon={activeTab === 'owners' ? FaUsers : FaCar}
                 title={headerTitle}
                 subtitle={headerSubtitle}
                 actions={getHeaderActions()}
+                tabs={clientsTabs}
+                activeTab={activeTab}
+                onTabChange={handleTabChange}
             />
-
-            <TabNavigation>
-                <TabsList>
-                    {tabs.map(tab => {
-                        const Icon = tab.icon;
-                        return (
-                            <TabButton
-                                key={tab.id}
-                                $active={activeTab === tab.id}
-                                onClick={() => handleTabChange(tab.id)}
-                            >
-                                <TabIcon>
-                                    <Icon />
-                                </TabIcon>
-                                <TabContent>
-                                    <TabLabel>{tab.label}</TabLabel>
-                                    <TabDescription>{tab.description}</TabDescription>
-                                </TabContent>
-                            </TabButton>
-                        );
-                    })}
-                </TabsList>
-            </TabNavigation>
 
             <ContentContainer>
                 {activeTab === 'owners' && (
@@ -370,90 +351,6 @@ const BulkActionButton = styled.button`
     }
 `;
 
-const TabNavigation = styled.div`
-    max-width: 1600px;
-    margin: 0 auto;
-    padding: 0 ${theme.spacing.xxl};
-    border-bottom: 1px solid ${theme.border};
-    background: ${theme.surface};
-
-    @media (max-width: 1024px) {
-        padding: 0 ${theme.spacing.lg};
-    }
-
-    @media (max-width: 768px) {
-        padding: 0 ${theme.spacing.md};
-    }
-`;
-
-const TabsList = styled.div`
-    display: flex;
-    gap: ${theme.spacing.sm};
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-
-    &::-webkit-scrollbar {
-        display: none;
-    }
-`;
-
-const TabButton = styled.button<{ $active: boolean }>`
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.md};
-    padding: ${theme.spacing.md} ${theme.spacing.lg};
-    border: none;
-    background: ${props => props.$active ? theme.surface : 'transparent'};
-    color: ${props => props.$active ? theme.primary : theme.text.secondary};
-    border-radius: ${theme.radius.lg} ${theme.radius.lg} 0 0;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    position: relative;
-    min-width: 200px;
-    white-space: nowrap;
-    border-bottom: 3px solid ${props => props.$active ? theme.primary : 'transparent'};
-
-    &:hover {
-        background: ${props => props.$active ? theme.surface : theme.surfaceHover};
-        color: ${props => props.$active ? theme.primary : theme.text.primary};
-    }
-
-    @media (max-width: 768px) {
-        min-width: 160px;
-        padding: ${theme.spacing.sm} ${theme.spacing.md};
-    }
-`;
-
-const TabIcon = styled.div`
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    flex-shrink: 0;
-`;
-
-const TabContent = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
-    min-width: 0;
-`;
-
-const TabLabel = styled.div`
-    font-size: 14px;
-    font-weight: 600;
-    line-height: 1.2;
-`;
-
-const TabDescription = styled.div`
-    font-size: 12px;
-    font-weight: 400;
-    opacity: 0.8;
-    line-height: 1.2;
-`;
 
 const ContentContainer = styled.div`
     flex: 1;

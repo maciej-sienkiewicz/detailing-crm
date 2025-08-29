@@ -38,6 +38,7 @@ import {protocolSignatureApi} from "../../api/protocolSignatureApi";
 import {invoicesApi} from "../../api/invoicesApi";
 import {invoiceSignatureApi} from "../../api/invoiceSignatureApi";
 import {documentPrintService} from "../../api/documentPrintService";
+import {Tab} from "../../components/common/PageHeader/PageHeader";
 
 type ActiveTab = 'documents' | 'fixed-costs' | 'reports' | 'balance-history';
 
@@ -87,21 +88,21 @@ const FinancialPageWithFixedCosts: React.FC = () => {
         handleCloseModals
     } = useDocumentActions(refreshData, showToast);
 
-    const tabs = [
+    const financialTabs: Tab<ActiveTab>[] = [
         {
-            id: 'documents' as ActiveTab,
+            id: 'documents',
             label: 'Dokumenty finansowe',
             icon: FaFileInvoiceDollar,
             description: 'Faktury, paragony i inne dokumenty'
         },
         {
-            id: 'fixed-costs' as ActiveTab,
+            id: 'fixed-costs',
             label: 'Koszty stałe',
             icon: FaBuilding,
             description: 'Zarządzanie kosztami stałymi firmy'
         },
         {
-            id: 'reports' as ActiveTab,
+            id: 'reports',
             label: 'Raporty',
             icon: FaChartLine,
             description: 'Analizy WoW, MoM, YoY i break-even'
@@ -193,10 +194,6 @@ const FinancialPageWithFixedCosts: React.FC = () => {
         );
     }
 
-    const currentTab = tabs.find(tab => tab.id === activeTab);
-    const headerTitle = 'Moduł Finansów';
-    const headerSubtitle = 'Kompleksowe zarządzanie finansami firmy';
-
     const getHeaderActions = () => {
         const actions = [];
 
@@ -250,33 +247,13 @@ const FinancialPageWithFixedCosts: React.FC = () => {
         <PageContainer>
             <PageHeader
                 icon={FaFileInvoiceDollar}
-                title={headerTitle}
-                subtitle={headerSubtitle}
+                title="Moduł Finansów"
+                subtitle="Kompleksowe zarządzanie finansami firmy"
                 actions={getHeaderActions()}
+                tabs={financialTabs}
+                activeTab={activeTab}
+                onTabChange={handleTabChange}
             />
-
-            <TabNavigation>
-                <TabsList>
-                    {tabs.map(tab => {
-                        const Icon = tab.icon;
-                        return (
-                            <TabButton
-                                key={tab.id}
-                                $active={activeTab === tab.id}
-                                onClick={() => handleTabChange(tab.id)}
-                            >
-                                <TabIcon>
-                                    <Icon />
-                                </TabIcon>
-                                <TabContent>
-                                    <TabLabel>{tab.label}</TabLabel>
-                                    <TabDescription>{tab.description}</TabDescription>
-                                </TabContent>
-                            </TabButton>
-                        );
-                    })}
-                </TabsList>
-            </TabNavigation>
 
             {activeTab === 'documents' && summary && (
                 <SummarySection>
@@ -287,6 +264,7 @@ const FinancialPageWithFixedCosts: React.FC = () => {
                     />
                 </SummarySection>
             )}
+
 
             <ContentContainer>
                 {activeTab === 'documents' && (
@@ -446,91 +424,6 @@ const LoadingText = styled.div`
     font-size: 16px;
     color: ${brandTheme.text.secondary};
     font-weight: 500;
-`;
-
-const TabNavigation = styled.div`
-    max-width: 1600px;
-    margin: 0 auto;
-    padding: 0 ${brandTheme.spacing.xl};
-    border-bottom: 1px solid ${brandTheme.border};
-    background: ${brandTheme.surface};
-
-    @media (max-width: 1024px) {
-        padding: 0 ${brandTheme.spacing.lg};
-    }
-
-    @media (max-width: 768px) {
-        padding: 0 ${brandTheme.spacing.md};
-    }
-`;
-
-const TabsList = styled.div`
-    display: flex;
-    gap: ${brandTheme.spacing.sm};
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-
-    &::-webkit-scrollbar {
-        display: none;
-    }
-`;
-
-const TabButton = styled.button<{ $active: boolean }>`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.md};
-    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-    border: none;
-    background: ${props => props.$active ? brandTheme.surface : 'transparent'};
-    color: ${props => props.$active ? brandTheme.primary : brandTheme.text.secondary};
-    border-radius: ${brandTheme.radius.lg} ${brandTheme.radius.lg} 0 0;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    position: relative;
-    min-width: 200px;
-    white-space: nowrap;
-    border-bottom: 3px solid ${props => props.$active ? brandTheme.primary : 'transparent'};
-
-    &:hover {
-        background: ${props => props.$active ? brandTheme.surface : brandTheme.surfaceHover};
-        color: ${props => props.$active ? brandTheme.primary : brandTheme.text.primary};
-    }
-
-    @media (max-width: 768px) {
-        min-width: 160px;
-        padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
-    }
-`;
-
-const TabIcon = styled.div`
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    flex-shrink: 0;
-`;
-
-const TabContent = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
-    min-width: 0;
-`;
-
-const TabLabel = styled.div`
-    font-size: 14px;
-    font-weight: 600;
-    line-height: 1.2;
-`;
-
-const TabDescription = styled.div`
-    font-size: 12px;
-    font-weight: 400;
-    opacity: 0.8;
-    line-height: 1.2;
 `;
 
 const SummarySection = styled.section`
