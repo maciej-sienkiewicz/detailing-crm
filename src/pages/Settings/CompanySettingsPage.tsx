@@ -123,28 +123,43 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                 return;
             }
 
-            // Create a copy of basicInfo without taxId to prevent sending it to server
-            const { taxId, ...basicInfoWithoutTaxId } = formData.basicInfo;
+            if (editingSection === 'email') {
+                // Email settings are handled by EmailSettingsSlide component
+                // The save logic is managed internally by the component
+                return;
+            }
 
-            const updateRequest = {
-                basicInfo: basicInfoWithoutTaxId, // Send basicInfo without taxId
-                bankSettings: formData.bankSettings,
-                logoSettings: formData.logoSettings
-            };
+            if (editingSection === 'google-drive') {
+                // Google Drive settings are handled by GoogleDriveSlide component
+                // The save logic is managed internally by the component
+                return;
+            }
 
-            const updatedData = await companySettingsApi.updateCompanySettings(updateRequest);
+            // For basic and bank settings, save to company settings API
+            if (editingSection === 'basic' || editingSection === 'bank') {
+                // Create a copy of basicInfo without taxId to prevent sending it to server
+                const { taxId, ...basicInfoWithoutTaxId } = formData.basicInfo;
 
-            setFormData(updatedData);
-            setOriginalData(updatedData);
-            setEditingSection(null);
-            showSuccess('Ustawienia zostały zapisane pomyślnie');
+                const updateRequest = {
+                    basicInfo: basicInfoWithoutTaxId, // Send basicInfo without taxId
+                    bankSettings: formData.bankSettings,
+                    logoSettings: formData.logoSettings
+                };
+
+                const updatedData = await companySettingsApi.updateCompanySettings(updateRequest);
+
+                setFormData(updatedData);
+                setOriginalData(updatedData);
+                setEditingSection(null);
+                showSuccess('Ustawienia zostały zapisane pomyślnie');
+            }
         } catch (err) {
             console.error('Error saving company settings:', err);
             showError('Nie udało się zapisać ustawień');
         } finally {
             // Only set saving to false for non-signature sections
-            // For signature, the component itself will handle this via handleSignatureSaveComplete
-            if (editingSection !== 'signature') {
+            // For signature, email, and google-drive, the component itself will handle this via callbacks
+            if (editingSection !== 'signature' && editingSection !== 'email' && editingSection !== 'google-drive') {
                 setSaving(false);
             }
         }
@@ -160,6 +175,18 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
 
         // Handle signature section differently
         if (section === 'signature') {
+            setEditingSection(null);
+            return;
+        }
+
+        // Handle email section differently
+        if (section === 'email') {
+            setEditingSection(null);
+            return;
+        }
+
+        // Handle google-drive section differently
+        if (section === 'google-drive') {
             setEditingSection(null);
             return;
         }
@@ -209,6 +236,28 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
     const handleSignatureCancelComplete = () => {
         // Called by signature component when cancel is complete
         setEditingSection(null);
+    };
+
+    // Email slide callbacks
+    const handleEmailSaveComplete = () => {
+        setEditingSection(null);
+        setSaving(false);
+    };
+
+    const handleEmailCancelComplete = () => {
+        setEditingSection(null);
+        setSaving(false);
+    };
+
+    // Google Drive slide callbacks
+    const handleGoogleDriveSaveComplete = () => {
+        setEditingSection(null);
+        setSaving(false);
+    };
+
+    const handleGoogleDriveCancelComplete = () => {
+        setEditingSection(null);
+        setSaving(false);
     };
 
     const currentSectionId = sections[currentSectionIndex].id;
@@ -277,12 +326,30 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                     <BankSettingsSlide {...commonProps} />
                 )}
                 {currentSectionId === 'email' && (
-                    <EmailSettingsSlide {...commonProps} />
+                    <EmailSettingsSlide
+                        data={formData}
+                        isEditing={isCurrentSectionEditing}
+                        saving={saving}
+                        onStartEdit={handleStartEdit}
+                        onSave={handleEmailSaveComplete}
+                        onCancel={handleEmailCancelComplete}
+                        onChange={handleInputChange}
+                        onSuccess={showSuccess}
+                        onError={showError}
+                    />
                 )}
                 {currentSectionId === 'google-drive' && (
                     <GoogleDriveSlide
                         ref={googleDriveSlideRef}
-                        {...commonProps}
+                        data={formData}
+                        isEditing={isCurrentSectionEditing}
+                        saving={saving}
+                        onStartEdit={handleStartEdit}
+                        onSave={handleGoogleDriveSaveComplete}
+                        onCancel={handleGoogleDriveCancelComplete}
+                        onChange={handleInputChange}
+                        onSuccess={showSuccess}
+                        onError={showError}
                     />
                 )}
                 {currentSectionId === 'signature' && (

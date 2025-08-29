@@ -23,7 +23,7 @@ import {
 
 interface EmailSettingsSlideProps {
     data: CompanySettingsResponse;
-    isEditing: boolean; // To jest przekazywane z CompanySettingsPage
+    isEditing: boolean;
     saving: boolean;
     onStartEdit: () => void;
     onSave: () => void;
@@ -34,7 +34,7 @@ interface EmailSettingsSlideProps {
 }
 
 export const EmailSettingsSlide: React.FC<EmailSettingsSlideProps> = ({
-                                                                          isEditing, // Użyj tego zamiast lokalnego stanu
+                                                                          isEditing,
                                                                           saving,
                                                                           onSave,
                                                                           onCancel,
@@ -54,7 +54,6 @@ export const EmailSettingsSlide: React.FC<EmailSettingsSlideProps> = ({
         isConfigured
     } = useEmailSettings();
 
-    // Usuń lokalny stan isEditing - używaj tego z props
     const [showPassword, setShowPassword] = useState(false);
     const [formData, setFormData] = useState({
         sender_email: '',
@@ -97,24 +96,29 @@ export const EmailSettingsSlide: React.FC<EmailSettingsSlideProps> = ({
         }
     }, [suggestions, isEditing]);
 
+    // Handle save from parent component
+    useEffect(() => {
+        if (isEditing && saving && !emailSaving) {
+            handleSave();
+        }
+    }, [isEditing, saving]);
+
     const handleInputChange = (field: string, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
         clearError();
     };
 
-    // Zmień handleSave żeby korzystał z onSave z props
     const handleSave = async () => {
         const success = await saveConfiguration(formData);
 
         if (success) {
             onSuccess?.('Konfiguracja email została zapisana i przetestowana pomyślnie');
-            onSave(); // Wywołaj callback z CompanySettingsPage
+            onSave();
         } else if (error) {
             onError?.(error);
         }
     };
 
-    // Zmień handleCancel żeby korzystał z onCancel z props
     const handleCancel = () => {
         clearError();
         if (configuration) {
@@ -128,8 +132,15 @@ export const EmailSettingsSlide: React.FC<EmailSettingsSlideProps> = ({
                 send_test_email: false
             });
         }
-        onCancel(); // Wywołaj callback z CompanySettingsPage
+        onCancel();
     };
+
+    // Handle cancel from parent
+    useEffect(() => {
+        if (!isEditing) {
+            handleCancel();
+        }
+    }, [isEditing]);
 
     const getStatusText = (status: string): string => {
         switch (status) {
@@ -141,13 +152,6 @@ export const EmailSettingsSlide: React.FC<EmailSettingsSlideProps> = ({
         }
     };
 
-    const isFormValid = formData.sender_email &&
-        formData.sender_name &&
-        formData.email_password &&
-        formData.smtp_host &&
-        formData.smtp_port > 0;
-
-    // Użyj saving lub emailSaving
     const isSaving = saving || emailSaving;
 
     if (loading) {
@@ -214,8 +218,13 @@ export const EmailSettingsSlide: React.FC<EmailSettingsSlideProps> = ({
                             <UnifiedFormField
                                 label="Status"
                                 isEditing={false}
-                                value={getStatusText(configuration.validationStatus)}
+                                value=""
                                 onChange={() => {}}
+                                displayFormatter={() => (
+                                    <StatusBadge $status={configuration.validationStatus}>
+                                        {getStatusText(configuration.validationStatus)}
+                                    </StatusBadge>
+                                )}
                             />
                         </FormGrid>
                     </ReadOnlyView>
@@ -226,7 +235,7 @@ export const EmailSettingsSlide: React.FC<EmailSettingsSlideProps> = ({
                                 label="Email nadawcy"
                                 icon={FaEnvelope}
                                 required
-                                isEditing={true}
+                                isEditing={isEditing}
                                 value={formData.sender_email}
                                 onChange={(value) => handleInputChange('sender_email', value)}
                                 placeholder="biuro@mojafirma.pl"
@@ -237,7 +246,7 @@ export const EmailSettingsSlide: React.FC<EmailSettingsSlideProps> = ({
                             <UnifiedFormField
                                 label="Nazwa nadawcy"
                                 required
-                                isEditing={true}
+                                isEditing={isEditing}
                                 value={formData.sender_name}
                                 onChange={(value) => handleInputChange('sender_name', value)}
                                 placeholder="Auto Studio"
@@ -246,7 +255,7 @@ export const EmailSettingsSlide: React.FC<EmailSettingsSlideProps> = ({
                             <UnifiedFormField
                                 label="Serwer SMTP"
                                 required
-                                isEditing={true}
+                                isEditing={isEditing}
                                 value={formData.smtp_host}
                                 onChange={(value) => handleInputChange('smtp_host', value)}
                                 placeholder="smtp.gmail.com"
@@ -255,7 +264,7 @@ export const EmailSettingsSlide: React.FC<EmailSettingsSlideProps> = ({
                             <UnifiedFormField
                                 label="Port SMTP"
                                 required
-                                isEditing={true}
+                                isEditing={isEditing}
                                 value={formData.smtp_port.toString()}
                                 onChange={(value) => handleInputChange('smtp_port', parseInt(value) || 587)}
                                 placeholder="587"
@@ -266,7 +275,7 @@ export const EmailSettingsSlide: React.FC<EmailSettingsSlideProps> = ({
                                 <UnifiedFormField
                                     label="Hasło email"
                                     required
-                                    isEditing={true}
+                                    isEditing={isEditing}
                                     value={formData.email_password}
                                     onChange={(value) => handleInputChange('email_password', value)}
                                     placeholder="Hasło do konta email lub hasło aplikacji"
@@ -274,51 +283,55 @@ export const EmailSettingsSlide: React.FC<EmailSettingsSlideProps> = ({
                                     helpText="Dla Gmail, Yahoo używaj hasła aplikacji. Dla własnych serwerów - hasło konta."
                                     fullWidth
                                 />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    style={{
-                                        position: 'absolute',
-                                        right: '16px',
-                                        top: '32px',
-                                        background: 'none',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        color: '#64748b',
-                                        fontSize: '16px'
-                                    }}
-                                >
-                                    {showPassword ? <FaEyeSlash /> : <FaEye />}
-                                </button>
+                                {isEditing && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        style={{
+                                            position: 'absolute',
+                                            right: '16px',
+                                            top: '32px',
+                                            background: 'none',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            color: '#64748b',
+                                            fontSize: '16px'
+                                        }}
+                                    >
+                                        {showPassword ? <FaEyeSlash /> : <FaEye />}
+                                    </button>
+                                )}
                             </div>
                         </FormGrid>
 
-                        {suggestions && (
+                        {suggestions && isEditing && (
                             <SuggestionBox>
                                 <FaLightbulb />
                                 <span>{suggestions.help_text}</span>
                             </SuggestionBox>
                         )}
 
-                        <SecuritySection>
-                            <SecurityOption>
-                                <input
-                                    type="checkbox"
-                                    checked={formData.use_ssl}
-                                    onChange={(e) => handleInputChange('use_ssl', e.target.checked)}
-                                />
-                                <span>Używaj szyfrowania SSL/TLS (zalecane)</span>
-                            </SecurityOption>
+                        {isEditing && (
+                            <SecuritySection>
+                                <SecurityOption>
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.use_ssl}
+                                        onChange={(e) => handleInputChange('use_ssl', e.target.checked)}
+                                    />
+                                    <span>Używaj szyfrowania SSL/TLS (zalecane)</span>
+                                </SecurityOption>
 
-                            <SecurityOption>
-                                <input
-                                    type="checkbox"
-                                    checked={formData.send_test_email}
-                                    onChange={(e) => handleInputChange('send_test_email', e.target.checked)}
-                                />
-                                <span>Wyślij testowy email po zapisaniu</span>
-                            </SecurityOption>
-                        </SecuritySection>
+                                <SecurityOption>
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.send_test_email}
+                                        onChange={(e) => handleInputChange('send_test_email', e.target.checked)}
+                                    />
+                                    <span>Wyślij testowy email po zapisaniu</span>
+                                </SecurityOption>
+                            </SecuritySection>
+                        )}
 
                         {error && (
                             <ErrorBox>
