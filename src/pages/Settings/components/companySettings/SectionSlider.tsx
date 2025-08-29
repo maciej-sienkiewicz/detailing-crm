@@ -1,6 +1,7 @@
-// src/pages/Settings/components/companySettings/SectionSlider.tsx
-import React from 'react';
+// src/pages/Settings/components/companySettings/SectionSlider.tsx - Zaktualizowana wersja
+import React, { useState } from 'react';
 import { FaChevronLeft, FaChevronRight, FaEdit, FaSave, FaTimes, FaInfoCircle } from 'react-icons/fa';
+import { NavigationGuardModal } from '../../../../components/common/NavigationGuardModal';
 import {
     SliderContainer,
     SliderHeader,
@@ -40,7 +41,7 @@ interface SectionSliderProps {
     onSave?: () => void;
     onCancel?: () => void;
     showEditControls?: boolean;
-    onShowInstruction?: () => void; // Nowa prop dla Google Drive instrukcji
+    onShowInstruction?: () => void;
 }
 
 export const SectionSlider: React.FC<SectionSliderProps> = ({
@@ -59,8 +60,57 @@ export const SectionSlider: React.FC<SectionSliderProps> = ({
                                                                 showEditControls = false,
                                                                 onShowInstruction
                                                             }) => {
+    const [showNavigationGuard, setShowNavigationGuard] = useState(false);
+    const [pendingNavigation, setPendingNavigation] = useState<(() => void) | null>(null);
+
     const currentSection = sections[currentIndex];
     const progress = ((currentIndex + 1) / sections.length) * 100;
+
+    // Function to handle navigation with guard check
+    const handleNavigationAttempt = (navigationAction: () => void) => {
+        if (isEditing) {
+            setPendingNavigation(() => navigationAction);
+            setShowNavigationGuard(true);
+        } else {
+            // Allow navigation
+            navigationAction();
+        }
+    };
+
+    // Handle navigation confirmation
+    const handleConfirmNavigation = () => {
+        setShowNavigationGuard(false);
+
+        // Cancel current editing first
+        if (onCancel) {
+            onCancel();
+        }
+
+        // Then execute pending navigation
+        if (pendingNavigation) {
+            pendingNavigation();
+            setPendingNavigation(null);
+        }
+    };
+
+    // Handle navigation cancellation
+    const handleCancelNavigation = () => {
+        setShowNavigationGuard(false);
+        setPendingNavigation(null);
+    };
+
+    // Wrapped navigation functions
+    const handlePreviousClick = () => {
+        handleNavigationAttempt(onPrevious);
+    };
+
+    const handleNextClick = () => {
+        handleNavigationAttempt(onNext);
+    };
+
+    const handleSectionClick = (index: number) => {
+        handleNavigationAttempt(() => onSectionChange(index));
+    };
 
     const renderInstructionButton = () => {
         if (currentSection.id === 'google-drive' && onShowInstruction) {
@@ -68,6 +118,7 @@ export const SectionSlider: React.FC<SectionSliderProps> = ({
                 <ActionButton
                     $secondary
                     onClick={onShowInstruction}
+                    disabled={saving}
                 >
                     <FaInfoCircle />
                     Instrukcja
@@ -83,11 +134,19 @@ export const SectionSlider: React.FC<SectionSliderProps> = ({
         if (isEditing) {
             return (
                 <>
-                    <ActionButton $secondary onClick={onCancel} disabled={saving}>
+                    <ActionButton
+                        $secondary
+                        onClick={onCancel}
+                        disabled={saving}
+                    >
                         <FaTimes />
                         Anuluj
                     </ActionButton>
-                    <ActionButton $primary onClick={onSave} disabled={saving}>
+                    <ActionButton
+                        $primary
+                        onClick={onSave}
+                        disabled={saving}
+                    >
                         <FaSave />
                         {saving ? 'Zapisywanie...' : 'Zapisz'}
                     </ActionButton>
@@ -104,53 +163,76 @@ export const SectionSlider: React.FC<SectionSliderProps> = ({
     };
 
     return (
-        <SliderContainer>
-            <SliderHeader>
-                <HeaderLeft>
-                    <SliderTitle>{currentSection.title}</SliderTitle>
-                    <SliderSubtitle>{currentSection.subtitle}</SliderSubtitle>
-                </HeaderLeft>
+        <>
+            <SliderContainer>
+                <SliderHeader>
+                    <HeaderLeft>
+                        <SliderTitle>{currentSection.title}</SliderTitle>
+                        <SliderSubtitle>{currentSection.subtitle}</SliderSubtitle>
+                    </HeaderLeft>
 
-                <HeaderRight>
-                    <ActionButtonsContainer>
-                        {renderInstructionButton()}
-                        {renderActionButtons()}
-                    </ActionButtonsContainer>
-                    <NavigationContainer>
-                        <NavButton
-                            onClick={onPrevious}
-                            disabled={!canNavigatePrev}
-                            $disabled={!canNavigatePrev}
-                        >
-                            <FaChevronLeft />
-                        </NavButton>
+                    <HeaderRight>
+                        <ActionButtonsContainer>
+                            {renderInstructionButton()}
+                            {renderActionButtons()}
+                        </ActionButtonsContainer>
+                        <NavigationContainer>
+                            <NavButton
+                                onClick={handlePreviousClick}
+                                disabled={!canNavigatePrev || saving}
+                                $disabled={!canNavigatePrev || saving}
+                                title={isEditing ? "Anuluj zmiany aby przejść do poprzedniej sekcji" : "Poprzednia sekcja"}
+                            >
+                                <FaChevronLeft />
+                            </NavButton>
 
-                        <SectionIndicators>
-                            {sections.map((_, index) => (
-                                <SectionDot
-                                    key={index}
-                                    $active={index === currentIndex}
-                                    onClick={() => onSectionChange(index)}
-                                />
-                            ))}
-                        </SectionIndicators>
+                            <SectionIndicators>
+                                {sections.map((_, index) => (
+                                    <SectionDot
+                                        key={index}
+                                        $active={index === currentIndex}
+                                        onClick={() => handleSectionClick(index)}
+                                        disabled={saving}
+                                        title={
+                                            isEditing
+                                                ? "Anuluj zmiany aby przejść do innej sekcji"
+                                                : `Przejdź do sekcji: ${sections[index].title}`
+                                        }
+                                        style={{
+                                            cursor: saving ? 'not-allowed' : 'pointer',
+                                            opacity: saving ? 0.5 : 1
+                                        }}
+                                    />
+                                ))}
+                            </SectionIndicators>
 
-                        <NavButton
-                            onClick={onNext}
-                            disabled={!canNavigateNext}
-                            $disabled={!canNavigateNext}
-                        >
-                            <FaChevronRight />
-                        </NavButton>
-                    </NavigationContainer>
-                </HeaderRight>
-            </SliderHeader>
+                            <NavButton
+                                onClick={handleNextClick}
+                                disabled={!canNavigateNext || saving}
+                                $disabled={!canNavigateNext || saving}
+                                title={isEditing ? "Anuluj zmiany aby przejść do następnej sekcji" : "Następna sekcja"}
+                            >
+                                <FaChevronRight />
+                            </NavButton>
+                        </NavigationContainer>
+                    </HeaderRight>
+                </SliderHeader>
 
-            <ProgressContainer>
-                <ProgressBar>
-                    <ProgressFill $progress={progress} />
-                </ProgressBar>
-            </ProgressContainer>
-        </SliderContainer>
+                <ProgressContainer>
+                    <ProgressBar>
+                        <ProgressFill $progress={progress} />
+                    </ProgressBar>
+                </ProgressContainer>
+            </SliderContainer>
+
+            {/* Modal potwierdzający nawigację */}
+            <NavigationGuardModal
+                isOpen={showNavigationGuard}
+                onConfirm={handleConfirmNavigation}
+                onCancel={handleCancelNavigation}
+                title="Niezapisane zmiany"
+                message="Masz niezapisane zmiany w tej sekcji. Przejście do innej sekcji spowoduje utratę zmian. Czy na pewno chcesz kontynuować?"
+            />
+        </>
     );
 };

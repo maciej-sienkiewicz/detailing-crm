@@ -58,6 +58,14 @@ export interface CompanyBasicInfo {
     logoId?: string;
 }
 
+export interface UpdateGoogleDriveSettingsRequest {
+    folderId: string;
+    folderName: string;
+    enabled?: boolean;
+    autoUploadInvoices?: boolean;
+    autoCreateFolders?: boolean;
+}
+
 export interface UpdateCompanyBasicInfo {
     companyName: string;
     address?: string;
@@ -340,6 +348,60 @@ export const companySettingsApi = {
         }
     },
 
+    async updateGoogleDriveSettings(data: UpdateGoogleDriveSettingsRequest): Promise<CompanySettingsResponse> {
+        try {
+            const driveData = {
+                folder_id: data.folderId,
+                folder_name: data.folderName,
+                enabled: data.enabled ?? true,
+                auto_upload_invoices: data.autoUploadInvoices ?? true,
+                auto_create_folders: data.autoCreateFolders ?? false
+            };
+
+            const response = await apiClientNew.patch<CompanySettingsApiResponse>('/company/google-drive', driveData);
+            return transformApiResponseToViewFormat(response);
+        } catch (error) {
+            console.error('Error updating Google Drive settings:', error);
+            throw new Error('Nie udało się zaktualizować ustawień Google Drive');
+        }
+    },
+
+    // Zaktualizuj istniejącą funkcję dla kompatybilności
+    async configureGoogleDriveFolder(data: ConfigureFolderRequest): Promise<{
+        status: string;
+        message: string;
+        data?: {
+            folderId: string;
+            folderName: string;
+            folderUrl: string;
+            systemEmail: string;
+        };
+    }> {
+        try {
+            const response = await this.updateGoogleDriveSettings({
+                folderId: data.folderId,
+                folderName: data.folderName || 'Backup Folder',
+                enabled: true,
+                autoUploadInvoices: true,
+                autoCreateFolders: false
+            });
+
+            return {
+                status: 'success',
+                message: 'Folder został skonfigurowany pomyślnie',
+                data: {
+                    folderId: data.folderId,
+                    folderName: data.folderName || 'Backup Folder',
+                    folderUrl: `https://drive.google.com/drive/folders/${data.folderId}`,
+                    systemEmail: 'system@carslab.com'
+                }
+            };
+        } catch (error) {
+            console.error('Error configuring Google Drive folder:', error);
+            throw new Error('Nie udało się skonfigurować folderu Google Drive');
+        }
+    },
+
     // ===========================================
     // KONFIGURACJA EMAIL (zgodna z dokumentacją)
     // ===========================================
@@ -445,28 +507,6 @@ export const companySettingsApi = {
     // ===========================================
 
     /**
-     * Aktualizuje ustawienia Google Drive
-     * PATCH /api/company/google-drive
-     */
-    async updateGoogleDriveSettings(data: GoogleDriveSettingsRequest): Promise<CompanySettingsResponse> {
-        try {
-            const driveData = {
-                folderId: data.folderId,
-                folderName: data.folderName,
-                enabled: data.enabled,
-                autoUploadInvoices: data.autoUploadInvoices,
-                autoCreateFolders: data.autoCreateFolders
-            };
-
-            const response = await apiClientNew.patch<CompanySettingsApiResponse>('/company/google-drive', driveData);
-            return transformApiResponseToViewFormat(response);
-        } catch (error) {
-            console.error('Error updating Google Drive settings:', error);
-            throw new Error('Nie udało się zaktualizować ustawień Google Drive');
-        }
-    },
-
-    /**
      * Pobiera status integracji Google Drive (zachowane dla kompatybilności)
      */
     async getGoogleDriveIntegrationStatus(): Promise<GoogleDriveFolderSettings> {
@@ -480,44 +520,6 @@ export const companySettingsApi = {
                 systemEmail: '',
                 systemServiceAvailable: false
             };
-        }
-    },
-
-    /**
-     * Konfiguruje folder Google Drive (zachowane dla kompatybilności)
-     */
-    async configureGoogleDriveFolder(data: ConfigureFolderRequest): Promise<{
-        status: string;
-        message: string;
-        data?: {
-            folderId: string;
-            folderName: string;
-            folderUrl: string;
-            systemEmail: string;
-        };
-    }> {
-        try {
-            await this.updateGoogleDriveSettings({
-                folderId: data.folderId,
-                folderName: data.folderName || 'Backup Folder',
-                enabled: true,
-                autoUploadInvoices: true,
-                autoCreateFolders: false
-            });
-
-            return {
-                status: 'success',
-                message: 'Folder został skonfigurowany pomyślnie',
-                data: {
-                    folderId: data.folderId,
-                    folderName: data.folderName || 'Backup Folder',
-                    folderUrl: `https://drive.google.com/drive/folders/${data.folderId}`,
-                    systemEmail: 'system@carslab.com'
-                }
-            };
-        } catch (error) {
-            console.error('Error configuring Google Drive folder:', error);
-            throw new Error('Nie udało się skonfigurować folderu Google Drive');
         }
     },
 

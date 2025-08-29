@@ -208,7 +208,6 @@ export const GoogleDriveSetup: React.FC<GoogleDriveSetupProps> = ({
                             value={folderIdInput}
                             onChange={setFolderIdInput}
                             placeholder="1PqsrjjfVbc-wMOCsrqPtjpiB2rPqgs4v"
-                            helpText="Skopiuj ID z URL folderu Google Drive (część po '/folders/')"
                             fullWidth
                         />
 

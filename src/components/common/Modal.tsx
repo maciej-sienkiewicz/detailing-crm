@@ -1,7 +1,8 @@
-// components/common/Modal.tsx - Enhanced with Backdrop Blur
-import React, {useEffect} from 'react';
-import styled, {keyframes} from 'styled-components';
-import {FaTimes} from 'react-icons/fa';
+// src/components/common/Modal.tsx - Rozwiązanie z React Portal
+import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import styled, { keyframes } from 'styled-components';
+import { FaTimes } from 'react-icons/fa';
 
 // Professional Brand Theme
 const brandTheme = {
@@ -98,9 +99,11 @@ const Modal: React.FC<ModalProps> = ({
         }
     };
 
+    // Don't render if not open
     if (!isOpen) return null;
 
-    return (
+    // Create modal content
+    const modalContent = (
         <ModalOverlay onClick={handleBackdropClick} className={className}>
             <ModalContainer $size={size}>
                 {(title || showCloseButton) && (
@@ -122,6 +125,10 @@ const Modal: React.FC<ModalProps> = ({
             </ModalContainer>
         </ModalOverlay>
     );
+
+    // Use React Portal to render modal in document.body
+    // This ensures modal is always above all other elements, including sticky headers
+    return createPortal(modalContent, document.body);
 };
 
 // Animation keyframes
@@ -145,14 +152,14 @@ const slideIn = keyframes`
     }
 `;
 
-// Professional Styled Components with Backdrop Blur
+// CRITICAL: Very high z-index to ensure it's above everything
 const ModalOverlay = styled.div`
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 9999;
+    z-index: 999999; /* Extremely high z-index */
 
     /* Premium Backdrop Effect */
     background: rgba(15, 23, 42, 0.4);
@@ -187,31 +194,35 @@ const ModalContainer = styled.div<{ $size: 'sm' | 'md' | 'lg' | 'xl' | 'full' }>
     border-radius: ${brandTheme.radius.xl};
     box-shadow: ${brandTheme.shadow.xl};
     border: 1px solid ${brandTheme.borderLight};
-    
+
     /* Professional glass morphism effect */
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     background: rgba(255, 255, 255, 0.95);
-    
-    /* Original width settings - PRESERVED */
+
+    /* Width settings */
     width: 90%;
     max-width: 1200px;
     max-height: 90vh;
-    
+
     /* Smooth entrance animation */
     animation: ${slideIn} 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    
+
     /* Ensure it doesn't exceed viewport */
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    
+
     /* Premium border glow effect */
-    box-shadow: 
-        ${brandTheme.shadow.xl},
-        0 0 0 1px rgba(255, 255, 255, 0.5),
-        inset 0 1px 0 rgba(255, 255, 255, 0.8);
-    
+    box-shadow:
+            ${brandTheme.shadow.xl},
+            0 0 0 1px rgba(255, 255, 255, 0.5),
+            inset 0 1px 0 rgba(255, 255, 255, 0.8);
+
+    /* Higher z-index than overlay */
+    position: relative;
+    z-index: 1000000;
+
     @media (max-width: 768px) {
         width: 95%;
         max-height: 85vh;
@@ -229,7 +240,7 @@ const ModalHeader = styled.div`
     background: linear-gradient(135deg, ${brandTheme.surfaceAlt} 0%, ${brandTheme.surface} 100%);
     border-radius: ${brandTheme.radius.xl} ${brandTheme.radius.xl} 0 0;
     flex-shrink: 0;
-    
+
     @media (max-width: 768px) {
         padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
         border-radius: ${brandTheme.radius.lg} ${brandTheme.radius.lg} 0 0;
@@ -262,7 +273,7 @@ const CloseButton = styled.button`
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     font-size: 16px;
-    
+
     /* Hover effect */
     &:hover {
         background: ${brandTheme.primaryGhost};
@@ -271,11 +282,11 @@ const CloseButton = styled.button`
         transform: translateY(-1px);
         box-shadow: ${brandTheme.shadow.md};
     }
-    
+
     &:active {
         transform: translateY(0);
     }
-    
+
     /* Focus state for accessibility */
     &:focus-visible {
         outline: 2px solid ${brandTheme.primary};

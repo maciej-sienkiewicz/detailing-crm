@@ -1,7 +1,8 @@
-// src/pages/Settings/CompanySettingsPage.tsx
+// src/pages/Settings/CompanySettingsPage.tsx - Zaktualizowana wersja
 import React, { forwardRef, useEffect, useImperativeHandle, useState, useRef } from 'react';
 import { companySettingsApi, type CompanySettingsResponse } from '../../api/companySettingsApi';
 import { useNotifications } from '../../hooks/useNotifications';
+import { useUnsavedChangesWarning } from '../../hooks/useUnsavedChangesWarning';
 import { SectionSlider } from './components/companySettings/SectionSlider';
 import { LoadingOverlay } from './components/companySettings/LoadingOverlay';
 import { ErrorOverlay } from './components/companySettings/ErrorOverlay';
@@ -27,6 +28,13 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
+
+    // Hook do ostrzegania o niezapisanych zmianach
+    const hasUnsavedChanges = editingSection !== null;
+    useUnsavedChangesWarning({
+        hasUnsavedChanges,
+        message: 'Masz niezapisane zmiany w ustawieniach firmy. Czy na pewno chcesz opuścić tę stronę?'
+    });
 
     const handleShowGoogleDriveInstruction = () => {
         googleDriveSlideRef.current?.showInstructionModal();
@@ -119,19 +127,16 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
             if (editingSection === 'signature') {
                 // For signature section, don't return - let the UserSignatureSlide component
                 // handle the save via useEffect that watches the 'saving' state
-                // The component will call handleSignatureSaveComplete() when done
                 return;
             }
 
             if (editingSection === 'email') {
                 // Email settings are handled by EmailSettingsSlide component
-                // The save logic is managed internally by the component
                 return;
             }
 
             if (editingSection === 'google-drive') {
                 // Google Drive settings are handled by GoogleDriveSlide component
-                // The save logic is managed internally by the component
                 return;
             }
 
@@ -141,7 +146,7 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
                 const { taxId, ...basicInfoWithoutTaxId } = formData.basicInfo;
 
                 const updateRequest = {
-                    basicInfo: basicInfoWithoutTaxId, // Send basicInfo without taxId
+                    basicInfo: basicInfoWithoutTaxId,
                     bankSettings: formData.bankSettings,
                     logoSettings: formData.logoSettings
                 };
@@ -157,8 +162,7 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
             console.error('Error saving company settings:', err);
             showError('Nie udało się zapisać ustawień');
         } finally {
-            // Only set saving to false for non-signature sections
-            // For signature, email, and google-drive, the component itself will handle this via callbacks
+            // Only set saving to false for non-async sections
             if (editingSection !== 'signature' && editingSection !== 'email' && editingSection !== 'google-drive') {
                 setSaving(false);
             }
@@ -197,17 +201,30 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
         setError(null);
     };
 
+    // Navigation handlers with editing check
     const handlePrevious = () => {
+        if (editingSection) {
+            // This will be blocked by SectionSlider guard
+            return;
+        }
         setCurrentSectionIndex(prev => Math.max(0, prev - 1));
         setEditingSection(null);
     };
 
     const handleNext = () => {
+        if (editingSection) {
+            // This will be blocked by SectionSlider guard
+            return;
+        }
         setCurrentSectionIndex(prev => Math.min(sections.length - 1, prev + 1));
         setEditingSection(null);
     };
 
     const handleSectionChange = (index: number) => {
+        if (editingSection) {
+            // This will be blocked by SectionSlider guard
+            return;
+        }
         setCurrentSectionIndex(index);
         setEditingSection(null);
     };
@@ -227,18 +244,16 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
         handleCancelSection(editingSection);
     };
 
+    // Completion callbacks for async sections
     const handleSignatureSaveComplete = () => {
-        // Called by signature component when save is complete
         setEditingSection(null);
         setSaving(false);
     };
 
     const handleSignatureCancelComplete = () => {
-        // Called by signature component when cancel is complete
         setEditingSection(null);
     };
 
-    // Email slide callbacks
     const handleEmailSaveComplete = () => {
         setEditingSection(null);
         setSaving(false);
@@ -249,7 +264,6 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
         setSaving(false);
     };
 
-    // Google Drive slide callbacks
     const handleGoogleDriveSaveComplete = () => {
         setEditingSection(null);
         setSaving(false);
@@ -285,7 +299,7 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
 
     const CurrentSlideComponent = sections[currentSectionIndex].component;
 
-    // Wspólne props dla wszystkich komponentów
+    // Common props for all components
     const commonProps = {
         data: formData,
         isEditing: isCurrentSectionEditing,
@@ -318,7 +332,7 @@ const CompanySettingsPage = forwardRef<{ handleSave: () => void }>((props, ref) 
             />
 
             <SlideContainer>
-                {/* Renderuj komponenty warunkowo z odpowiednimi props */}
+                {/* Render components conditionally with appropriate props */}
                 {currentSectionId === 'basic' && (
                     <BasicInfoSlide {...commonProps} />
                 )}

@@ -1,7 +1,7 @@
 // src/pages/Settings/components/companySettings/EmailSettingsSlide.tsx
 import React, { useEffect, useState } from 'react';
-import { FaEnvelope, FaEye, FaEyeSlash, FaLightbulb, FaSpinner } from 'react-icons/fa';
-import { type CompanySettingsResponse } from '../../../../api/companySettingsApi';
+import { FaEnvelope, FaEye, FaEyeSlash, FaSpinner } from 'react-icons/fa';
+import { type CompanySettingsResponse, EmailConfigurationRequest } from '../../../../api/companySettingsApi';
 import { useEmailSettings } from '../../../../hooks/useEmailSettings';
 import { UnifiedFormField } from './UnifiedFormField';
 import {
@@ -17,7 +17,6 @@ import {
     SecurityOption,
     ErrorBox,
     ErrorText,
-    SuggestionBox,
     StatusBadge
 } from '../../styles/companySettings/EmailSettings.styles';
 
@@ -43,58 +42,40 @@ export const EmailSettingsSlide: React.FC<EmailSettingsSlideProps> = ({
                                                                       }) => {
     const {
         configuration,
-        suggestions,
         loading,
         saving: emailSaving,
-        validating,
         error,
-        getSuggestions,
         saveConfiguration,
         clearError,
         isConfigured
     } = useEmailSettings();
 
     const [showPassword, setShowPassword] = useState(false);
-    const [formData, setFormData] = useState({
-        sender_email: '',
-        sender_name: '',
-        email_password: '',
-        smtp_host: '',
-        smtp_port: 587,
-        use_ssl: true,
-        send_test_email: false
+    const [formData, setFormData] = useState<EmailConfigurationRequest>({
+        smtpServer: '',
+        smtpPort: 587,
+        email: '',
+        emailPassword: '',
+        useTls: false,
+        useSsl: true,
+        fromName: '',
+        enabled: true
     });
 
     useEffect(() => {
         if (configuration) {
             setFormData({
-                sender_email: configuration.senderEmail,
-                sender_name: configuration.senderName,
-                email_password: '',
-                smtp_host: configuration.smtpHost,
-                smtp_port: configuration.smtpPort,
-                use_ssl: configuration.useSsl,
-                send_test_email: false
+                smtpServer: configuration.smtpHost,
+                smtpPort: configuration.smtpPort,
+                email: configuration.senderEmail,
+                emailPassword: '',
+                useTls: !configuration.useSsl, // Assuming TLS is opposite of SSL for this case
+                useSsl: configuration.useSsl,
+                fromName: configuration.senderName,
+                enabled: configuration.isEnabled
             });
         }
     }, [configuration]);
-
-    useEffect(() => {
-        if (isEditing && formData.sender_email) {
-            getSuggestions(formData.sender_email);
-        }
-    }, [formData.sender_email, isEditing, getSuggestions]);
-
-    useEffect(() => {
-        if (suggestions?.has_suggestion && isEditing && !formData.smtp_host) {
-            setFormData(prev => ({
-                ...prev,
-                smtp_host: suggestions.suggested_smtp_host,
-                smtp_port: suggestions.suggested_smtp_port,
-                use_ssl: suggestions.suggested_use_ssl
-            }));
-        }
-    }, [suggestions, isEditing]);
 
     // Handle save from parent component
     useEffect(() => {
@@ -103,7 +84,7 @@ export const EmailSettingsSlide: React.FC<EmailSettingsSlideProps> = ({
         }
     }, [isEditing, saving]);
 
-    const handleInputChange = (field: string, value: any) => {
+    const handleInputChange = (field: keyof EmailConfigurationRequest, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
         clearError();
     };
@@ -123,13 +104,14 @@ export const EmailSettingsSlide: React.FC<EmailSettingsSlideProps> = ({
         clearError();
         if (configuration) {
             setFormData({
-                sender_email: configuration.senderEmail,
-                sender_name: configuration.senderName,
-                email_password: '',
-                smtp_host: configuration.smtpHost,
-                smtp_port: configuration.smtpPort,
-                use_ssl: configuration.useSsl,
-                send_test_email: false
+                smtpServer: configuration.smtpHost,
+                smtpPort: configuration.smtpPort,
+                email: configuration.senderEmail,
+                emailPassword: '',
+                useTls: !configuration.useSsl,
+                useSsl: configuration.useSsl,
+                fromName: configuration.senderName,
+                enabled: configuration.isEnabled
             });
         }
         onCancel();
@@ -169,13 +151,6 @@ export const EmailSettingsSlide: React.FC<EmailSettingsSlideProps> = ({
     return (
         <SlideContainer>
             <SlideContent>
-                <StatusBanner $configured={isConfigured}>
-                    {isConfigured
-                        ? `Email skonfigurowany: ${configuration?.senderEmail}`
-                        : 'Email wymaga konfiguracji'
-                    }
-                </StatusBanner>
-
                 {!isEditing && configuration ? (
                     <ReadOnlyView>
                         <FormGrid>
@@ -236,19 +211,18 @@ export const EmailSettingsSlide: React.FC<EmailSettingsSlideProps> = ({
                                 icon={FaEnvelope}
                                 required
                                 isEditing={isEditing}
-                                value={formData.sender_email}
-                                onChange={(value) => handleInputChange('sender_email', value)}
+                                value={formData.email}
+                                onChange={(value) => handleInputChange('email', value)}
                                 placeholder="biuro@mojafirma.pl"
                                 type="email"
-                                validating={validating}
                             />
 
                             <UnifiedFormField
                                 label="Nazwa nadawcy"
                                 required
                                 isEditing={isEditing}
-                                value={formData.sender_name}
-                                onChange={(value) => handleInputChange('sender_name', value)}
+                                value={formData.fromName || ''}
+                                onChange={(value) => handleInputChange('fromName', value)}
                                 placeholder="Auto Studio"
                             />
 
@@ -256,8 +230,8 @@ export const EmailSettingsSlide: React.FC<EmailSettingsSlideProps> = ({
                                 label="Serwer SMTP"
                                 required
                                 isEditing={isEditing}
-                                value={formData.smtp_host}
-                                onChange={(value) => handleInputChange('smtp_host', value)}
+                                value={formData.smtpServer}
+                                onChange={(value) => handleInputChange('smtpServer', value)}
                                 placeholder="smtp.gmail.com"
                             />
 
@@ -265,8 +239,8 @@ export const EmailSettingsSlide: React.FC<EmailSettingsSlideProps> = ({
                                 label="Port SMTP"
                                 required
                                 isEditing={isEditing}
-                                value={formData.smtp_port.toString()}
-                                onChange={(value) => handleInputChange('smtp_port', parseInt(value) || 587)}
+                                value={formData.smtpPort.toString()}
+                                onChange={(value) => handleInputChange('smtpPort', parseInt(value) || 587)}
                                 placeholder="587"
                                 type="number"
                             />
@@ -276,8 +250,8 @@ export const EmailSettingsSlide: React.FC<EmailSettingsSlideProps> = ({
                                     label="Hasło email"
                                     required
                                     isEditing={isEditing}
-                                    value={formData.email_password}
-                                    onChange={(value) => handleInputChange('email_password', value)}
+                                    value={formData.emailPassword}
+                                    onChange={(value) => handleInputChange('emailPassword', value)}
                                     placeholder="Hasło do konta email lub hasło aplikacji"
                                     type={showPassword ? 'text' : 'password'}
                                     helpText="Dla Gmail, Yahoo używaj hasła aplikacji. Dla własnych serwerów - hasło konta."
@@ -304,20 +278,13 @@ export const EmailSettingsSlide: React.FC<EmailSettingsSlideProps> = ({
                             </div>
                         </FormGrid>
 
-                        {suggestions && isEditing && (
-                            <SuggestionBox>
-                                <FaLightbulb />
-                                <span>{suggestions.help_text}</span>
-                            </SuggestionBox>
-                        )}
-
                         {isEditing && (
                             <SecuritySection>
                                 <SecurityOption>
                                     <input
                                         type="checkbox"
-                                        checked={formData.use_ssl}
-                                        onChange={(e) => handleInputChange('use_ssl', e.target.checked)}
+                                        checked={formData.useSsl}
+                                        onChange={(e) => handleInputChange('useSsl', e.target.checked)}
                                     />
                                     <span>Używaj szyfrowania SSL/TLS (zalecane)</span>
                                 </SecurityOption>
@@ -325,10 +292,10 @@ export const EmailSettingsSlide: React.FC<EmailSettingsSlideProps> = ({
                                 <SecurityOption>
                                     <input
                                         type="checkbox"
-                                        checked={formData.send_test_email}
-                                        onChange={(e) => handleInputChange('send_test_email', e.target.checked)}
+                                        checked={formData.enabled}
+                                        onChange={(e) => handleInputChange('enabled', e.target.checked)}
                                     />
-                                    <span>Wyślij testowy email po zapisaniu</span>
+                                    <span>Aktywuj konfigurację email</span>
                                 </SecurityOption>
                             </SecuritySection>
                         )}
