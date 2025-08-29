@@ -109,7 +109,18 @@ export const EmailSettingsSlide: React.FC<EmailSettingsSlideProps> = ({
     };
 
     const handleSave = async () => {
-        const success = await saveConfiguration(formData);
+        // Map formData to EmailConfigurationRequest format
+        const emailConfigRequest = {
+            email: formData.sender_email,
+            senderName: formData.sender_name,
+            emailPassword: formData.email_password,
+            smtpServer: formData.smtp_host,
+            smtpPort: formData.smtp_port,
+            useSsl: formData.use_ssl,
+            sendTestEmail: formData.send_test_email
+        };
+
+        const success = await saveConfiguration(emailConfigRequest);
 
         if (success) {
             onSuccess?.('Konfiguracja email została zapisana i przetestowana pomyślnie');
