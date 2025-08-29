@@ -150,7 +150,6 @@ const requestUtils = {
 
     createHeaders: (config?: RequestConfig): HeadersInit => {
         const headers: Record<string, string> = {
-            'Content-Type': 'application/json',
             'Accept': 'application/json',
         };
 

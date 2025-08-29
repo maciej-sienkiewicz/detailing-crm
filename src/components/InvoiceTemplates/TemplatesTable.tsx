@@ -143,7 +143,7 @@ export const TemplatesTable: React.FC<TemplatesTableProps> = ({
                                         <ActionButton
                                             onClick={() => onExport(template)}
                                             title="Pobierz szablon"
-                                            $variant="download"
+                                            $variant="view"
                                         >
                                             <FaDownload />
                                         </ActionButton>
@@ -153,7 +153,7 @@ export const TemplatesTable: React.FC<TemplatesTableProps> = ({
                                                 onClick={() => onActivate(template.id)}
                                                 disabled={isActivating === template.id}
                                                 title="Ustaw jako aktywny"
-                                                $variant="activate"
+                                                $variant="view"
                                             >
                                                 {isActivating === template.id ? (
                                                     <FaSpinner className="spinning" />
@@ -168,7 +168,7 @@ export const TemplatesTable: React.FC<TemplatesTableProps> = ({
                                                 onClick={() => onDelete(template.id)}
                                                 disabled={isDeleting === template.id}
                                                 title="Usuń szablon"
-                                                $variant="delete"
+                                                $variant="view"
                                             >
                                                 {isDeleting === template.id ? (
                                                     <FaSpinner className="spinning" />

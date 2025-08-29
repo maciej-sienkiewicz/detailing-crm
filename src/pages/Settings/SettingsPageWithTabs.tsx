@@ -1,20 +1,20 @@
-// src/pages/Settings/SettingsPageWithTabs.tsx - Updated for simplified brand theme
+// src/pages/Settings/SettingsPageWithTabs.tsx - Updated with Templates tab
 import React, {useRef, useState} from 'react';
 import styled from 'styled-components';
-import {FaBuilding, FaCalendarAlt, FaCog, FaFileInvoice, FaPalette, FaSave, FaUser, FaWrench} from 'react-icons/fa';
+import {FaBuilding, FaCalendarAlt, FaCog, FaFileAlt, FaPalette, FaSave, FaUser, FaWrench} from 'react-icons/fa';
 
 // Import existing components
 import EmployeesPage from './EmployeesPage';
 import ServicesPage from './ServicesPage';
-import BrandThemeSettingsPage from './BrandThemeSettingsPage'; // Updated component
+import BrandThemeSettingsPage from './BrandThemeSettingsPage';
 import CalendarColorsPage from './CalendarColorsPage';
 import CompanySettingsPage from './CompanySettingsPage';
-import InvoiceTemplatesPage from "./InvoiceTemplatesPage";
+import TemplatesPage from "./TemplatesPage";
 
 // Import styles and utilities
 import {settingsTheme} from './styles/theme';
 
-type ActiveTab = 'company' | 'employees' | 'services' | 'visual-personalization' | 'calendar-colors' | 'invoice-templates';
+type ActiveTab = 'company' | 'employees' | 'services' | 'visual-personalization' | 'calendar-colors' | 'templates';
 
 // Updated interfaces for ref communication
 interface CompanySettingsRef {
@@ -33,7 +33,7 @@ interface CalendarColorsPageRef {
     handleAddColor: () => void;
 }
 
-interface InvoiceTemplatesPageRef {
+interface TemplatesPageRef {
     handleAddTemplate: () => void;
 }
 
@@ -50,9 +50,9 @@ const SettingsPageWithTabs: React.FC = () => {
     const servicesPageRef = useRef<ServicesPageRef>(null);
     const calendarColorsPageRef = useRef<CalendarColorsPageRef>(null);
     const brandThemeSettingsRef = useRef<BrandThemeSettingsRef>(null);
-    const invoiceTemplatesPageRef = useRef<InvoiceTemplatesPageRef>(null);
+    const templatesPageRef = useRef<TemplatesPageRef>(null);
 
-    // Tab configuration - Updated description for visual-personalization
+    // Tab configuration
     const tabs = [
         {
             id: 'company' as ActiveTab,
@@ -67,22 +67,22 @@ const SettingsPageWithTabs: React.FC = () => {
             description: 'Lista usług i cennik'
         },
         {
+            id: 'templates' as ActiveTab,
+            label: 'Szablony',
+            icon: FaFileAlt,
+            description: 'Zarządzanie szablonami dokumentów'
+        },
+        {
             id: 'visual-personalization' as ActiveTab,
             label: 'Personalizacja',
             icon: FaPalette,
-            description: 'Kolor marki i logo firmy' // Simplified description
+            description: 'Kolor marki i logo firmy'
         },
         {
             id: 'calendar-colors' as ActiveTab,
             label: 'Kolory kalendarza',
             icon: FaCalendarAlt,
             description: 'Kolory dla pracowników i usług'
-        },
-        {
-            id: 'invoice-templates' as ActiveTab,
-            label: 'Szablony faktur',
-            icon: FaFileInvoice,
-            description: 'Zarządzanie szablonami HTML dla faktur'
         }
     ];
 
@@ -96,11 +96,10 @@ const SettingsPageWithTabs: React.FC = () => {
         companySettingsRef.current?.handleSave();
     };
 
-    const handleAddInvoiceTemplate = () => {
-        invoiceTemplatesPageRef.current?.handleAddTemplate();
+    const handleAddTemplate = () => {
+        templatesPageRef.current?.handleAddTemplate();
     };
 
-    // Updated handler name for consistency
     const handleSaveBrandTheme = () => {
         brandThemeSettingsRef.current?.handleSave();
     };
@@ -116,9 +115,6 @@ const SettingsPageWithTabs: React.FC = () => {
     const handleAddCalendarColor = () => {
         calendarColorsPageRef.current?.handleAddColor();
     };
-
-    // Get current tab configuration
-    const currentTab = tabs.find(tab => tab.id === activeTab);
 
     return (
         <PageContainer>
@@ -138,7 +134,6 @@ const SettingsPageWithTabs: React.FC = () => {
                     </HeaderLeft>
 
                     <HeaderActions>
-                        {/* Updated button text for visual personalization */}
                         {activeTab === 'visual-personalization' && (
                             <PrimaryButton onClick={handleSaveBrandTheme}>
                                 <FaPalette />
@@ -167,9 +162,9 @@ const SettingsPageWithTabs: React.FC = () => {
                             </PrimaryButton>
                         )}
 
-                        {activeTab === 'invoice-templates' && (
-                            <PrimaryButton onClick={handleAddInvoiceTemplate}>
-                                <FaFileInvoice />
+                        {activeTab === 'templates' && (
+                            <PrimaryButton onClick={handleAddTemplate}>
+                                <FaFileAlt />
                                 <span>Dodaj szablon</span>
                             </PrimaryButton>
                         )}
@@ -207,9 +202,9 @@ const SettingsPageWithTabs: React.FC = () => {
                 {activeTab === 'company' && <CompanySettingsPage ref={companySettingsRef} />}
                 {activeTab === 'employees' && <EmployeesPage ref={employeesPageRef} />}
                 {activeTab === 'services' && <ServicesPage ref={servicesPageRef} />}
+                {activeTab === 'templates' && <TemplatesPage ref={templatesPageRef} />}
                 {activeTab === 'visual-personalization' && <BrandThemeSettingsPage ref={brandThemeSettingsRef} />}
                 {activeTab === 'calendar-colors' && <CalendarColorsPage ref={calendarColorsPageRef} />}
-                {activeTab === 'invoice-templates' && <InvoiceTemplatesPage ref={invoiceTemplatesPageRef} />}
             </ContentContainer>
         </PageContainer>
     );
@@ -391,7 +386,6 @@ const TabsList = styled.div`
     overflow: hidden;
     gap: 4px;
 
-    /* Dodajemy subtelny gradient w tle */
     &::before {
         content: '';
         position: absolute;
@@ -401,7 +395,6 @@ const TabsList = styled.div`
         z-index: 0;
     }
 
-    /* Obsługa overflow na mobilnych */
     @media (max-width: 1200px) {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
@@ -440,13 +433,11 @@ const TabButton = styled.button<{ $active: boolean }>`
     z-index: 1;
     flex-shrink: 0;
 
-    /* Efekt cienia dla aktywnej zakładki */
     box-shadow: ${props => props.$active
             ? `0 4px 12px -2px rgba(26, 54, 93, 0.15), 0 2px 6px -1px rgba(26, 54, 93, 0.1)`
             : 'none'
     };
 
-    /* Border highlight dla aktywnej zakładki */
     ${props => props.$active && `
         border: 1px solid ${settingsTheme.primary}20;
         
