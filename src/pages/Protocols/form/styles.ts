@@ -97,6 +97,7 @@ export const FormContainer = styled.div`
     box-shadow: ${brandTheme.shadow.sm};
     margin-bottom: ${brandTheme.spacing.lg};
     max-width: 100%;
+    margin-top: 10px;
 
     @media (max-width: 768px) {
         border-radius: ${brandTheme.radius.lg};

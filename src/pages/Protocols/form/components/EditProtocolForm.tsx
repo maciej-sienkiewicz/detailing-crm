@@ -1,10 +1,8 @@
-// src/pages/Protocols/form/components/EditProtocolForm.tsx - ZAKTUALIZOWANA WERSJA
+// src/pages/Protocols/form/components/EditProtocolForm.tsx
 import React, {useState} from 'react';
 import {CarReceptionProtocol, SelectedService} from '../../../../types';
-
 import {useFormSubmit} from '../hooks/useFormSubmit';
 import {useServiceCalculations} from '../hooks/useServiceCalculations';
-
 import FormHeader from '../components/FormHeader';
 import VisitTitleSection from '../components/VisitTitleSection';
 import ReferralSourceSection from '../components/ReferralSourceSection';
@@ -12,7 +10,6 @@ import ServiceSection from '../components/ServiceSection';
 import NotesSection from '../components/NotesSection';
 import FormActions from '../components/FormActions';
 import VehicleSelectionModal from "../../shared/modals/VehicleSelectionModal";
-import {DeliveryPersonSection} from './DeliveryPersonSection'; // NOWY IMPORT
 import {
     Button,
     ConfirmationDialog,
@@ -27,6 +24,7 @@ import {
 import {useFormDataWithAutocomplete} from "../hooks/useFormData";
 import VehicleInfoSection from "./VehicleInfoSection";
 import ClientInfoSection from "./ClientInfoSection";
+import ScheduleSection from "./ScheduleSection"; // NOWY IMPORT
 
 interface EditProtocolFormProps {
     protocol: CarReceptionProtocol | null;
@@ -53,27 +51,18 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
         formData,
         setFormData,
         errors,
-        validateForm,
         clearFieldError,
         handleChange,
         handleReferralSourceChange,
         handleOtherSourceDetailsChange,
-        handleImagesChange,
         isClientFromSearch,
-        setIsClientFromSearch,
         autocompleteOptions,
         loadingAutocompleteData,
         handleAutocompleteSelect,
         showVehicleModal,
         setShowVehicleModal,
         vehicleModalOptions,
-        handleVehicleModalSelect,
-        // NOWE: Delivery Person
-        isDeliveryPersonDifferent,
-        handleDeliveryPersonToggle,
-        handleDeliveryPersonNameChange,
-        handleDeliveryPersonPhoneChange,
-        handleDeliveryPersonAutocompleteSelect
+        handleVehicleModalSelect
     } = useFormDataWithAutocomplete(protocol, initialData);
 
     const {
@@ -86,14 +75,13 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
 
     const {
         services,
-        setServices,
-        calculateTotals,
         addService,
         removeService,
         updateBasePrice,
         updateDiscountType,
         updateDiscountValue,
         updateServiceNote,
+        calculateTotals
     } = useServiceCalculations(formData.selectedServices || []);
 
     const [searchQuery, setSearchQuery] = useState('');
@@ -114,18 +102,15 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
         setSearchQuery(e.target.value);
         setShowResults(true);
         setSelectedServiceToAdd(null);
-
         if (e.target.value.trim() === '') {
             setSearchResults([]);
             return;
         }
-
         const query = e.target.value.toLowerCase();
         const results = availableServices.filter(service =>
             service.name.toLowerCase().includes(query) &&
             !services.some(selected => selected.id === service.id)
         );
-
         setSearchResults(results);
     };
 
@@ -145,7 +130,6 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
                 discountValue: 0,
                 approvalStatus: undefined,
             };
-
             addService(newService);
         } else if (searchQuery.trim() !== '') {
             const customId = `custom-${Date.now()}`;
@@ -157,10 +141,8 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
                 discountValue: 0,
                 approvalStatus: undefined,
             };
-
             addService(newService);
         }
-
         setSearchQuery('');
         setSelectedServiceToAdd(null);
         clearFieldError('selectedServices');
@@ -175,62 +157,35 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
             discountValue: 0,
             approvalStatus: undefined,
         };
-
         addService(newService);
-
         setSearchQuery('');
         setSelectedServiceToAdd(null);
         clearFieldError('selectedServices');
         setShowResults(false);
     };
 
-    const handleServiceAdded = () => {
-        if (onServiceAdded) {
-            onServiceAdded();
-        }
-    };
-
     if (loadingAutocompleteData) {
-        return (
-            <FormContainer>
-                <div style={{ padding: '2rem', textAlign: 'center' }}>
-                    Ładowanie danych klientów i pojazdów...
-                </div>
-            </FormContainer>
-        );
+        return <FormContainer><div style={{ padding: '2rem', textAlign: 'center' }}>Ładowanie danych klientów i pojazdów...</div></FormContainer>;
     }
 
     return (
         <FormContainer>
-            <FormHeader
-                isEditing={!!protocol}
-                appointmentId={appointmentId}
-                isFullProtocol={isFullProtocol}
-            />
-
             {error && <ErrorMessage>{error}</ErrorMessage>}
-
             <Form onSubmit={handleSubmit}>
-                <VisitTitleSection
-                    title={formData.title || ''}
-                    selectedColorId={formData.calendarColorId}
+                <VisitTitleSection title={formData.title || ''} selectedColorId={formData.calendarColorId} onChange={handleChange} error={errors.title} />
+                <ScheduleSection
+                    formData={formData}
+                    errors={errors}
                     onChange={handleChange}
-                    error={errors.title}
+                    isFullProtocol={isFullProtocol}
                 />
+                <ClientInfoSection formData={formData} errors={errors} onChange={handleChange} autocompleteOptions={autocompleteOptions} onAutocompleteSelect={handleAutocompleteSelect} />
 
                 <VehicleInfoSection
                     formData={formData}
                     errors={errors}
                     onChange={handleChange}
                     isFullProtocol={isFullProtocol}
-                    autocompleteOptions={autocompleteOptions}
-                    onAutocompleteSelect={handleAutocompleteSelect}
-                />
-
-                <ClientInfoSection
-                    formData={formData}
-                    errors={errors}
-                    onChange={handleChange}
                     autocompleteOptions={autocompleteOptions}
                     onAutocompleteSelect={handleAutocompleteSelect}
                 />
@@ -264,45 +219,18 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
                     allowCustomService={true}
                     onServiceAdded={onServiceAdded}
                 />
-
-                <NotesSection
-                    notes={formData.notes || ''}
-                    onChange={handleChange}
-                />
-
-                <FormActions
-                    onCancel={onCancel}
-                    isLoading={loading}
-                    isEditing={!!protocol}
-                    isFullProtocol={isFullProtocol}
-                />
+                <NotesSection notes={formData.notes || ''} onChange={handleChange} />
+                <FormActions onCancel={onCancel} isLoading={loading} isEditing={!!protocol} isFullProtocol={isFullProtocol} />
             </Form>
-
-            {showVehicleModal && (
-                <VehicleSelectionModal
-                    vehicles={vehicleModalOptions}
-                    onSelect={handleVehicleModalSelect}
-                    onCancel={() => setShowVehicleModal(false)}
-                />
-            )}
-
+            {showVehicleModal && <VehicleSelectionModal vehicles={vehicleModalOptions} onSelect={handleVehicleModalSelect} onCancel={() => setShowVehicleModal(false)} />}
             {pendingSubmit && (
                 <ConfirmationDialog>
                     <DialogContent>
                         <DialogTitle>Usługi z ceną 0</DialogTitle>
-                        <DialogText>
-                            W protokole znajdują się usługi z ceną 0. Czy na pewno chcesz zapisać protokół?
-                        </DialogText>
+                        <DialogText>W protokole znajdują się usługi z ceną 0. Czy na pewno chcesz zapisać protokół?</DialogText>
                         <DialogActions>
-                            <Button secondary onClick={() => setPendingSubmit(false)}>
-                                Anuluj
-                            </Button>
-                            <Button primary onClick={(e) => {
-                                setPendingSubmit(false);
-                                handleSubmit(e);
-                            }}>
-                                Zapisz mimo to
-                            </Button>
+                            <Button secondary onClick={() => setPendingSubmit(false)}>Anuluj</Button>
+                            <Button primary onClick={(e) => { setPendingSubmit(false); handleSubmit(e); }}>Zapisz mimo to</Button>
                         </DialogActions>
                     </DialogContent>
                 </ConfirmationDialog>

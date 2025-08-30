@@ -1,7 +1,7 @@
 // src/pages/Protocols/VisitsPageContainer.tsx
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from 'styled-components';
-import {FaArrowLeft, FaClipboardCheck, FaPlus} from 'react-icons/fa';
+import {FaArrowLeft, FaClipboardCheck, FaPlus, FaRegistered, FaServicestack} from 'react-icons/fa';
 import {useLocation, useNavigate} from 'react-router-dom';
 import {VisitListItem} from '../../api/visitsApiNew';
 import {ProtocolStatus} from '../../types';
@@ -21,6 +21,7 @@ import {theme} from '../../styles/theme';
 
 import {EditProtocolForm} from './form/components/EditProtocolForm';
 import ProtocolConfirmationModal from './shared/modals/ProtocolConfirmationModal';
+import {BiPen} from "react-icons/bi";
 
 type StatusFilterType = 'all' | ProtocolStatus;
 
@@ -337,7 +338,7 @@ export const VisitsPageContainer: React.FC = () => {
         return (
             <PageContainer>
                 <PageHeader
-                    icon={FaArrowLeft}
+                    icon={BiPen}
                     title={editingVisit ? 'Edycja wizyty' : 'Nowa wizyta'}
                     subtitle=""
                     actions={
