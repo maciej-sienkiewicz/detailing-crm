@@ -1,4 +1,4 @@
-// src/pages/Settings/SettingsPageWithTabs.tsx - Updated with Templates tab
+// src/pages/Settings/SettingsPageWithTabs.tsx - Professional full-width tabs design
 import React, {useRef, useState} from 'react';
 import styled from 'styled-components';
 import {FaBuilding, FaCalendarAlt, FaCog, FaFileAlt, FaPalette, FaSave, FaUser, FaWrench} from 'react-icons/fa';
@@ -118,7 +118,7 @@ const SettingsPageWithTabs: React.FC = () => {
 
     return (
         <PageContainer>
-            {/* Header with updated navigation */}
+            {/* Normal Header - scrolls away with content */}
             <HeaderContainer>
                 <HeaderContent>
                     <HeaderLeft>
@@ -171,7 +171,7 @@ const SettingsPageWithTabs: React.FC = () => {
                     </HeaderActions>
                 </HeaderContent>
 
-                {/* Tab Navigation */}
+                {/* Professional full-width Tab Navigation */}
                 <TabNavigation>
                     <TabsList>
                         {tabs.map(tab => {
@@ -197,7 +197,7 @@ const SettingsPageWithTabs: React.FC = () => {
                 </TabNavigation>
             </HeaderContainer>
 
-            {/* Tab Content */}
+            {/* Normal scrollable content */}
             <ContentContainer>
                 {activeTab === 'company' && <CompanySettingsPage ref={companySettingsRef} />}
                 {activeTab === 'employees' && <EmployeesPage ref={employeesPageRef} />}
@@ -210,7 +210,7 @@ const SettingsPageWithTabs: React.FC = () => {
     );
 };
 
-// Styled Components remain the same as in the original file
+// Fixed Styled Components - removed all sticky positioning
 const PageContainer = styled.div`
     min-height: 100vh;
     background: ${settingsTheme.surfaceAlt};
@@ -222,11 +222,6 @@ const HeaderContainer = styled.header`
     background: ${settingsTheme.surface};
     border-bottom: 1px solid ${settingsTheme.border};
     box-shadow: ${settingsTheme.shadow.sm};
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    backdrop-filter: blur(8px);
-    background: rgba(255, 255, 255, 0.95);
 `;
 
 const HeaderContent = styled.div`
@@ -357,89 +352,73 @@ const PrimaryButton = styled.button`
     }
 `;
 
+// UPDATED: Professional full-width tab design
 const TabNavigation = styled.div`
-    max-width: 1600px;
-    margin: 0 auto;
-    padding: ${settingsTheme.spacing.lg} ${settingsTheme.spacing.xl};
-    background: ${settingsTheme.surface};
-    display: flex;
-    justify-content: center;
+    background: ${settingsTheme.surfaceAlt};
     border-top: 1px solid ${settingsTheme.border};
-
-    @media (max-width: 1024px) {
-        padding: ${settingsTheme.spacing.md} ${settingsTheme.spacing.lg};
-    }
-
-    @media (max-width: 768px) {
-        padding: ${settingsTheme.spacing.md};
-    }
 `;
 
 const TabsList = styled.div`
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 0 ${settingsTheme.spacing.xl};
     display: flex;
-    background: ${settingsTheme.surfaceAlt};
-    border: 2px solid ${settingsTheme.border};
-    border-radius: ${settingsTheme.radius.xxl};
-    padding: 6px;
-    box-shadow: ${settingsTheme.shadow.sm};
+    background: transparent;
+    gap: 0;
     position: relative;
-    overflow: hidden;
-    gap: 4px;
 
-    &::before {
+    /* Bottom border line */
+    &::after {
         content: '';
         position: absolute;
-        inset: 0;
-        background: linear-gradient(135deg, ${settingsTheme.surfaceAlt} 0%, ${settingsTheme.surfaceElevated} 100%);
-        border-radius: inherit;
+        bottom: 0;
+        left: ${settingsTheme.spacing.xl};
+        right: ${settingsTheme.spacing.xl};
+        height: 1px;
+        background: ${settingsTheme.border};
         z-index: 0;
     }
 
-    @media (max-width: 1200px) {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        justify-content: flex-start;
-        width: 100%;
+    @media (max-width: 1024px) {
+        padding: 0 ${settingsTheme.spacing.lg};
 
-        &::-webkit-scrollbar {
-            display: none;
+        &::after {
+            left: ${settingsTheme.spacing.lg};
+            right: ${settingsTheme.spacing.lg};
         }
     }
 
     @media (max-width: 768px) {
-        padding: 4px;
-        gap: 2px;
+        padding: 0 ${settingsTheme.spacing.md};
+
+        &::after {
+            left: ${settingsTheme.spacing.md};
+            right: ${settingsTheme.spacing.md};
+        }
     }
 `;
 
 const TabButton = styled.button<{ $active: boolean }>`
+    flex: 1;
     display: flex;
     align-items: center;
-    gap: ${settingsTheme.spacing.md};
-    padding: ${settingsTheme.spacing.lg} ${settingsTheme.spacing.xl};
+    justify-content: center;
+    gap: ${settingsTheme.spacing.lg};
+    padding: ${settingsTheme.spacing.xl} ${settingsTheme.spacing.lg};
     border: none;
-    background: ${props => props.$active
-            ? 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)'
-            : 'transparent'
-    };
-    color: ${props => props.$active ? settingsTheme.primary : settingsTheme.text.secondary};
-    border-radius: ${settingsTheme.radius.xl};
+    background: transparent;
+    color: ${props => props.$active ? settingsTheme.primary : settingsTheme.text.tertiary};
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
-    min-width: 180px;
-    white-space: nowrap;
     font-weight: ${props => props.$active ? '700' : '500'};
     z-index: 1;
-    flex-shrink: 0;
+    border-bottom: 3px solid transparent;
 
-    box-shadow: ${props => props.$active
-            ? `0 4px 12px -2px rgba(26, 54, 93, 0.15), 0 2px 6px -1px rgba(26, 54, 93, 0.1)`
-            : 'none'
-    };
-
+    /* Active tab bottom border */
     ${props => props.$active && `
-        border: 1px solid ${settingsTheme.primary}20;
+        border-bottom-color: ${settingsTheme.primary};
+        background: linear-gradient(135deg, ${settingsTheme.surface} 0%, ${settingsTheme.surfaceElevated} 100%);
         
         &::before {
             content: '';
@@ -447,59 +426,60 @@ const TabButton = styled.button<{ $active: boolean }>`
             top: 0;
             left: 0;
             right: 0;
-            height: 2px;
-            background: linear-gradient(90deg, ${settingsTheme.primary} 0%, ${settingsTheme.primaryLight} 100%);
-            border-radius: ${settingsTheme.radius.sm} ${settingsTheme.radius.sm} 0 0;
+            bottom: -1px;
+            background: ${settingsTheme.surface};
+            border-radius: ${settingsTheme.radius.md} ${settingsTheme.radius.md} 0 0;
+            z-index: -1;
+            box-shadow: 
+                0 -2px 8px rgba(0, 0, 0, 0.04),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
         }
     `}
 
     &:hover {
-        background: ${props => props.$active
-                ? 'linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%)'
-                : 'rgba(255, 255, 255, 0.7)'
-        };
         color: ${props => props.$active ? settingsTheme.primaryDark : settingsTheme.primary};
-        transform: ${props => props.$active ? 'none' : 'translateY(-1px)'};
+        background: ${props => props.$active
+    ? `linear-gradient(135deg, ${settingsTheme.surface} 0%, ${settingsTheme.surfaceHover} 100%)`
+    : 'rgba(255, 255, 255, 0.5)'
+};
 
         ${props => !props.$active && `
-            box-shadow: 0 2px 8px -1px rgba(26, 54, 93, 0.1);
+            border-bottom-color: ${settingsTheme.border};
         `}
     }
 
     &:active {
-        transform: translateY(0);
+        transform: none;
     }
 
     @media (max-width: 768px) {
-        min-width: 140px;
-        padding: ${settingsTheme.spacing.md} ${settingsTheme.spacing.lg};
-        gap: ${settingsTheme.spacing.sm};
+        padding: ${settingsTheme.spacing.lg} ${settingsTheme.spacing.md};
+        gap: ${settingsTheme.spacing.md};
     }
 `;
 
 const TabIcon = styled.div<{ $active?: boolean }>`
-    width: 36px;
-    height: 36px;
+    width: 28px;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
+    font-size: 16px;
     flex-shrink: 0;
-    border-radius: ${settingsTheme.radius.md};
+    border-radius: ${settingsTheme.radius.sm};
     background: ${props => props.$active
-            ? `linear-gradient(135deg, ${settingsTheme.primary}15 0%, ${settingsTheme.primary}08 100%)`
+            ? `${settingsTheme.primary}10`
             : 'transparent'
     };
     transition: all 0.3s ease;
 
     ${props => props.$active && `
         color: ${settingsTheme.primary};
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
     `}
 
     @media (max-width: 768px) {
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     font-size: 14px;
 }
 `;
@@ -507,31 +487,39 @@ const TabIcon = styled.div<{ $active?: boolean }>`
 const TabContent = styled.div`
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
+    align-items: center;
+    gap: 2px;
     min-width: 0;
+
+    @media (max-width: 768px) {
+        align-items: center;
+    }
 `;
 
 const TabLabel = styled.div<{ $active?: boolean }>`
-    font-size: 15px;
+    font-size: 16px;
     font-weight: ${props => props.$active ? '700' : '600'};
     line-height: 1.2;
     letter-spacing: ${props => props.$active ? '-0.025em' : '0'};
+    text-align: center;
 
     @media (max-width: 768px) {
-        font-size: 13px;
+        font-size: 14px;
     }
 `;
 
 const TabDescription = styled.div<{ $active?: boolean }>`
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 500;
-    opacity: ${props => props.$active ? '0.9' : '0.7'};
+    opacity: ${props => props.$active ? '0.8' : '0.6'};
     line-height: 1.2;
     color: ${props => props.$active ? settingsTheme.text.secondary : settingsTheme.text.tertiary};
+    text-align: center;
+    max-width: 200px;
 
     @media (max-width: 768px) {
-        font-size: 11px;
+        font-size: 12px;
+        display: none; /* Hide description on mobile to save space */
     }
 `;
 

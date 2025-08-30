@@ -1,4 +1,4 @@
-// src/components/common/PageHeader/PageHeader.tsx
+// src/components/common/PageHeader/PageHeader.tsx - Fixed without sticky positioning
 import React from 'react';
 import styled from 'styled-components';
 
@@ -115,15 +115,19 @@ export const PageHeader = <T extends React.Key = string>({
     );
 };
 
+// FIXED: Removed sticky positioning and backdrop-filter
 const HeaderContainer = styled.header`
     background: ${brandTheme.surface};
     border-bottom: 1px solid ${brandTheme.border};
     box-shadow: ${brandTheme.shadow.sm};
+    /* 
+    REMOVED STICKY POSITIONING:
     position: sticky;
     top: 0;
     z-index: 100;
     backdrop-filter: blur(8px);
     background: rgba(255, 255, 255, 0.95);
+    */
 `;
 
 const PageHeaderContent = styled.div`
@@ -222,94 +226,73 @@ const HeaderActions = styled.div`
     }
 `;
 
-// Komponenty zakładek
+// IMPROVED: Professional full-width tabs that integrate with header
 const TabNavigation = styled.div`
-    max-width: 1600px;
-    margin: 0 auto;
-    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xxl};
-    background: ${brandTheme.surface};
-    display: flex;
-    justify-content: center;
+    background: ${brandTheme.surfaceAlt};
     border-top: 1px solid ${brandTheme.border};
-
-    @media (max-width: 1024px) {
-        padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-    }
-
-    @media (max-width: 768px) {
-        padding: ${brandTheme.spacing.md};
-    }
 `;
 
 const TabsList = styled.div`
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 0 ${brandTheme.spacing.xxl};
     display: flex;
-    background: ${brandTheme.surfaceAlt};
-    border: 2px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.xxl};
-    padding: 6px;
-    box-shadow: ${brandTheme.shadow.sm};
+    background: transparent;
+    gap: 0;
     position: relative;
-    overflow: hidden;
-    gap: 4px;
 
-    /* Gradient w tle */
-    &::before {
+    /* Bottom border line */
+    &::after {
         content: '';
         position: absolute;
-        inset: 0;
-        background: linear-gradient(135deg, ${brandTheme.surfaceAlt} 0%, ${brandTheme.surfaceElevated} 100%);
-        border-radius: inherit;
+        bottom: 0;
+        left: ${brandTheme.spacing.xxl};
+        right: ${brandTheme.spacing.xxl};
+        height: 1px;
+        background: ${brandTheme.border};
         z-index: 0;
     }
 
-    /* Responsywność */
-    @media (max-width: 1200px) {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        justify-content: flex-start;
-        width: 100%;
+    @media (max-width: 1024px) {
+        padding: 0 ${brandTheme.spacing.lg};
 
-        &::-webkit-scrollbar {
-            display: none;
+        &::after {
+            left: ${brandTheme.spacing.lg};
+            right: ${brandTheme.spacing.lg};
         }
     }
 
     @media (max-width: 768px) {
-        padding: 4px;
-        gap: 2px;
+        padding: 0 ${brandTheme.spacing.md};
+
+        &::after {
+            left: ${brandTheme.spacing.md};
+            right: ${brandTheme.spacing.md};
+        }
     }
 `;
 
 const TabButton = styled.button<{ $active: boolean }>`
+    flex: 1;
     display: flex;
     align-items: center;
-    gap: ${brandTheme.spacing.md};
-    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
+    justify-content: center;
+    gap: ${brandTheme.spacing.lg};
+    padding: ${brandTheme.spacing.xl} ${brandTheme.spacing.lg};
     border: none;
-    background: ${props => props.$active
-            ? 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)'
-            : 'transparent'
-    };
-    color: ${props => props.$active ? brandTheme.primary : brandTheme.text.secondary};
-    border-radius: ${brandTheme.radius.xl};
+    background: transparent;
+    color: ${props => props.$active ? brandTheme.primary : brandTheme.text.tertiary};
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
-    min-width: 180px;
-    white-space: nowrap;
     font-weight: ${props => props.$active ? '700' : '500'};
     z-index: 1;
-    flex-shrink: 0;
+    border-bottom: 3px solid transparent;
 
-    /* Cień dla aktywnej zakładki */
-    box-shadow: ${props => props.$active
-            ? `0 4px 12px -2px rgba(26, 54, 93, 0.15), 0 2px 6px -1px rgba(26, 54, 93, 0.1)`
-            : 'none'
-    };
-
-    /* Border highlight */
+    /* Active tab bottom border */
     ${props => props.$active && `
-        border: 1px solid ${brandTheme.primary}20;
+        border-bottom-color: ${brandTheme.primary};
+        background: linear-gradient(135deg, ${brandTheme.surface} 0%, ${brandTheme.surfaceElevated} 100%);
         
         &::before {
             content: '';
@@ -317,59 +300,60 @@ const TabButton = styled.button<{ $active: boolean }>`
             top: 0;
             left: 0;
             right: 0;
-            height: 2px;
-            background: linear-gradient(90deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-            border-radius: ${brandTheme.radius.sm} ${brandTheme.radius.sm} 0 0;
+            bottom: -1px;
+            background: ${brandTheme.surface};
+            border-radius: ${brandTheme.radius.md} ${brandTheme.radius.md} 0 0;
+            z-index: -1;
+            box-shadow: 
+                0 -2px 8px rgba(0, 0, 0, 0.04),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
         }
     `}
 
     &:hover {
-        background: ${props => props.$active
-                ? 'linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%)'
-                : 'rgba(255, 255, 255, 0.7)'
-        };
         color: ${props => props.$active ? brandTheme.primaryDark : brandTheme.primary};
-        transform: ${props => props.$active ? 'none' : 'translateY(-1px)'};
+        background: ${props => props.$active
+    ? 'linear-gradient(135deg, ${brandTheme.surface} 0%, ${brandTheme.surfaceHover} 100%)'
+    : 'rgba(255, 255, 255, 0.5)'
+};
 
         ${props => !props.$active && `
-            box-shadow: 0 2px 8px -1px rgba(26, 54, 93, 0.1);
+            border-bottom-color: ${brandTheme.border};
         `}
     }
 
     &:active {
-        transform: translateY(0);
+        transform: none;
     }
 
     @media (max-width: 768px) {
-        min-width: 140px;
-        padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-        gap: ${brandTheme.spacing.sm};
+        padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.md};
+        gap: ${brandTheme.spacing.md};
     }
 `;
 
 const TabIcon = styled.div<{ $active?: boolean }>`
-    width: 36px;
-    height: 36px;
+    width: 28px;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
+    font-size: 16px;
     flex-shrink: 0;
-    border-radius: ${brandTheme.radius.md};
+    border-radius: ${brandTheme.radius.sm};
     background: ${props => props.$active
-            ? `linear-gradient(135deg, ${brandTheme.primary}15 0%, ${brandTheme.primary}08 100%)`
+            ? `${brandTheme.primary}10`
             : 'transparent'
     };
     transition: all 0.3s ease;
 
     ${props => props.$active && `
         color: ${brandTheme.primary};
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
     `}
 
     @media (max-width: 768px) {
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     font-size: 14px;
 }
 `;
@@ -377,35 +361,43 @@ const TabIcon = styled.div<{ $active?: boolean }>`
 const TabContent = styled.div`
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
+    align-items: center;
+    gap: 2px;
     min-width: 0;
+
+    @media (max-width: 768px) {
+        align-items: center;
+    }
 `;
 
 const TabLabel = styled.div<{ $active?: boolean }>`
-    font-size: 15px;
+    font-size: 16px;
     font-weight: ${props => props.$active ? '700' : '600'};
     line-height: 1.2;
     letter-spacing: ${props => props.$active ? '-0.025em' : '0'};
+    text-align: center;
 
     @media (max-width: 768px) {
-        font-size: 13px;
+        font-size: 14px;
     }
 `;
 
 const TabDescription = styled.div<{ $active?: boolean }>`
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 500;
-    opacity: ${props => props.$active ? '0.9' : '0.7'};
+    opacity: ${props => props.$active ? '0.8' : '0.6'};
     line-height: 1.2;
     color: ${props => props.$active ? brandTheme.text.secondary : brandTheme.text.tertiary};
+    text-align: center;
+    max-width: 200px;
 
     @media (max-width: 768px) {
-        font-size: 11px;
+        font-size: 12px;
+        display: none; /* Hide description on mobile to save space */
     }
 `;
 
-// Istniejące komponenty przycisków
+// Istniejące komponenty przycisków - bez zmian
 const BaseButton = styled.button`
     display: flex;
     align-items: center;
