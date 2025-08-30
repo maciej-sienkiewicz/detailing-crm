@@ -115,6 +115,7 @@ const GalleryFiltersComponent: React.FC<GalleryFiltersProps> = ({
 const FiltersContainer = styled.div`
   max-width: 1600px;
   margin: 0;
+  margin-top: 10px;
   padding: 0 ${theme.spacing.xl};
   margin-bottom: ${theme.spacing.lg};
 

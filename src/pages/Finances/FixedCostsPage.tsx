@@ -1,4 +1,4 @@
-// src/pages/Finances/components/FixedCostsPage.tsx
+// src/pages/Finances/components/FixedCostsPage.tsx - Improved filters design
 import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
 import {
@@ -12,7 +12,6 @@ import {
     FaEye,
     FaFileInvoiceDollar,
     FaFilter,
-    FaSearch,
     FaSort,
     FaSortDown,
     FaSortUp,
@@ -122,7 +121,6 @@ const FixedCostsPage: React.FC<FixedCostsPageProps> = ({
                 console.error('API Error:', apiError);
 
                 if (isDevelopment) {
-                    // Provide mock data for development
                     setFixedCosts([]);
                     setPagination({
                         currentPage: 0,
@@ -161,19 +159,16 @@ const FixedCostsPage: React.FC<FixedCostsPageProps> = ({
 
     // Effects
     useEffect(() => {
-        loadData(0, 20); // Always start from page 0 on mount
+        loadData(0, 20);
     }, []);
 
-    // Separate effect for filters changes
     useEffect(() => {
         if (Object.keys(filters).length > 0 || searchTerm) {
-            loadData(0, pagination.pageSize); // Reset to page 0 when filters change
+            loadData(0, pagination.pageSize);
         }
     }, [filters, searchTerm]);
 
-    // Separate effect for pagination changes
     useEffect(() => {
-        // Only reload if currentPage has actually changed and it's not the initial load
         if (pagination.currentPage > 0) {
             loadData(pagination.currentPage, pagination.pageSize);
         }
@@ -249,7 +244,6 @@ const FixedCostsPage: React.FC<FixedCostsPageProps> = ({
         if (onDeleteFixedCost) {
             onDeleteFixedCost(id, name);
         } else {
-            // Fallback delete logic
             if (window.confirm(`Czy na pewno chcesz usunąć koszt stały "${name}"?`)) {
                 try {
                     const success = await fixedCostsApi.deleteFixedCost(id);
@@ -328,6 +322,17 @@ const FixedCostsPage: React.FC<FixedCostsPageProps> = ({
         setPagination(prev => ({ ...prev, currentPage: 0 }));
     };
 
+    const handleQuickSearch = (searchValue: string) => {
+        setSearchTerm(searchValue);
+    };
+
+    const clearSearch = () => {
+        setSearchTerm('');
+    };
+
+    // Check if any filters are active
+    const hasActiveFilters = Object.keys(filters).length > 0 || searchTerm.length > 0;
+
     if (loading && fixedCosts.length === 0) {
         return (
             <PageContainer>
@@ -396,25 +401,16 @@ const FixedCostsPage: React.FC<FixedCostsPageProps> = ({
 
             {/* Main Content */}
             <ContentContainer>
-                {/* Filters */}
+                {/* IMPROVED Filters */}
                 <FiltersContainer>
-                    <QuickSearchSection>
-                        <AdvancedToggle
-                            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                            $expanded={showAdvancedFilters}
-                        >
-                            <FaFilter />
-                            Filtry zaawansowane
-                            {showAdvancedFilters ? <FaChevronUp /> : <FaChevronDown />}
-                        </AdvancedToggle>
-                    </QuickSearchSection>
 
+                    {/* Advanced Filters Panel - conditionally shown */}
                     {showAdvancedFilters && (
-                        <AdvancedFiltersSection>
+                        <AdvancedFiltersPanel>
+                            {/* Filter Fields - search removed since it's in main row */}
                             <FiltersGrid>
-                                <FormGroup>
-                                    <Label>Kategoria</Label>
-                                    <Select
+                                <CompactFormGroup>
+                                    <CompactSelect
                                         value={filters.category || ''}
                                         onChange={(e) => handleFilterChange('category', e.target.value)}
                                     >
@@ -422,12 +418,11 @@ const FixedCostsPage: React.FC<FixedCostsPageProps> = ({
                                         {Object.entries(FixedCostCategoryLabels).map(([key, label]) => (
                                             <option key={key} value={key}>{label}</option>
                                         ))}
-                                    </Select>
-                                </FormGroup>
+                                    </CompactSelect>
+                                </CompactFormGroup>
 
-                                <FormGroup>
-                                    <Label>Status</Label>
-                                    <Select
+                                <CompactFormGroup>
+                                    <CompactSelect
                                         value={filters.status || ''}
                                         onChange={(e) => handleFilterChange('status', e.target.value)}
                                     >
@@ -435,61 +430,66 @@ const FixedCostsPage: React.FC<FixedCostsPageProps> = ({
                                         {Object.entries(FixedCostStatusLabels).map(([key, label]) => (
                                             <option key={key} value={key}>{label}</option>
                                         ))}
-                                    </Select>
-                                </FormGroup>
+                                    </CompactSelect>
+                                </CompactFormGroup>
 
-                                <FormGroup>
-                                    <Label>Dostawca</Label>
-                                    <Input
+                                <CompactFormGroup>
+                                    <CompactInput
                                         value={filters.supplierName || ''}
                                         onChange={(e) => handleFilterChange('supplierName', e.target.value)}
-                                        placeholder="Nazwa dostawcy"
+                                        placeholder="Dostawca"
                                     />
-                                </FormGroup>
+                                </CompactFormGroup>
 
-                                <FormGroup>
-                                    <Label>Kwota od</Label>
-                                    <Input
+                                <CompactFormGroup>
+                                    <CompactInput
                                         type="number"
                                         step="0.01"
                                         value={filters.minAmount || ''}
                                         onChange={(e) => handleFilterChange('minAmount', parseFloat(e.target.value) || undefined)}
-                                        placeholder="Minimalna kwota"
+                                        placeholder="Kwota min"
                                     />
-                                </FormGroup>
+                                </CompactFormGroup>
 
-                                <FormGroup>
-                                    <Label>Kwota do</Label>
-                                    <Input
+                                <CompactFormGroup>
+                                    <CompactInput
                                         type="number"
                                         step="0.01"
                                         value={filters.maxAmount || ''}
                                         onChange={(e) => handleFilterChange('maxAmount', parseFloat(e.target.value) || undefined)}
-                                        placeholder="Maksymalna kwota"
+                                        placeholder="Kwota max"
                                     />
-                                </FormGroup>
+                                </CompactFormGroup>
 
-                                <FormGroup>
-                                    <Label>Data rozpoczęcia od</Label>
-                                    <Input
+                                <CompactFormGroup>
+                                    <CompactInput
                                         type="date"
                                         value={filters.startDateFrom || ''}
                                         onChange={(e) => handleFilterChange('startDateFrom', e.target.value)}
+                                        placeholder="Data rozpoczęcia od"
                                     />
-                                </FormGroup>
-                            </FiltersGrid>
+                                </CompactFormGroup>
 
-                            <FiltersActions>
-                                <ClearButton onClick={clearAllFilters}>
-                                    <FaTimes />
-                                    Wyczyść wszystkie
-                                </ClearButton>
-                            </FiltersActions>
-                        </AdvancedFiltersSection>
+                                {/* Clear filters button */}
+                                <CompactFormGroup>
+                                    <ClearFiltersButton
+                                        onClick={clearAllFilters}
+                                        $hasFilters={hasActiveFilters}
+                                        disabled={!hasActiveFilters}
+                                    >
+                                        <FaTimes />
+                                        Wyczyść wszystko
+                                    </ClearFiltersButton>
+                                </CompactFormGroup>
+                            </FiltersGrid>
+                        </AdvancedFiltersPanel>
                     )}
 
+                    {/* Results Counter */}
                     <ResultsCounter>
-                        Znaleziono: <strong>{filteredFixedCosts.length}</strong> {filteredFixedCosts.length === 1 ? 'koszt' : 'kosztów'}
+                        <ResultsText>
+                            Znaleziono: <strong>{filteredFixedCosts.length}</strong> {filteredFixedCosts.length === 1 ? 'koszt' : 'kosztów'}
+                        </ResultsText>
                     </ResultsCounter>
                 </FiltersContainer>
 
@@ -507,6 +507,30 @@ const FixedCostsPage: React.FC<FixedCostsPageProps> = ({
                         <TableTitle>
                             Koszty stałe ({filteredFixedCosts.length})
                         </TableTitle>
+
+                        {/* Search and Filters in Table Header */}
+                        <TableHeaderControls>
+                            {/* Quick Search */}
+                            <SearchWrapper>
+                                {searchTerm && (
+                                    <ClearSearchButton onClick={clearSearch}>
+                                        <FaTimes />
+                                    </ClearSearchButton>
+                                )}
+                            </SearchWrapper>
+
+                            {/* Advanced Filters Toggle */}
+                            <FiltersToggleButton
+                                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                                $expanded={showAdvancedFilters}
+                                $hasActiveFilters={hasActiveFilters}
+                            >
+                                <FaFilter />
+                                Filtry
+                                {showAdvancedFilters ? <FaChevronUp /> : <FaChevronDown />}
+                                {hasActiveFilters && <ActiveFiltersBadge />}
+                            </FiltersToggleButton>
+                        </TableHeaderControls>
                     </TableHeader>
 
                     {filteredFixedCosts.length === 0 ? (
@@ -606,9 +630,9 @@ const FixedCostsPage: React.FC<FixedCostsPageProps> = ({
                                                     <MainAmount>{formatAmount(cost.calculatedMonthlyAmount)}</MainAmount>
                                                     {cost.calculatedMonthlyAmount !== cost.monthlyAmount && (
                                                         <OriginalAmount>
-                                                        (bazowa {formatAmount(cost.monthlyAmount)})
+                                                            (bazowa {formatAmount(cost.monthlyAmount)})
                                                         </OriginalAmount>
-                                                        )}
+                                                    )}
                                                 </AmountCell>
                                             </TableCell>
                                             <TableCell>
@@ -890,150 +914,104 @@ const ContentContainer = styled.div`
     }
 `;
 
+// IMPROVED Filters Components - only what's needed
 const FiltersContainer = styled.div`
     background: ${brandTheme.surface};
     border-radius: ${brandTheme.radius.xl};
     border: 1px solid ${brandTheme.border};
     overflow: hidden;
     box-shadow: ${brandTheme.shadow.sm};
+    margin-bottom: ${brandTheme.spacing.lg};
 `;
 
-const QuickSearchSection = styled.div`
-    padding: ${brandTheme.spacing.lg};
+const MainFiltersRow = styled.div`
     display: flex;
     align-items: center;
-    gap: ${brandTheme.spacing.md};
+    gap: ${brandTheme.spacing.xl};
+    padding: ${brandTheme.spacing.lg};
     border-bottom: 1px solid ${brandTheme.border};
 
-    @media (max-width: 768px) {
+    @media (max-width: 1024px) {
         flex-direction: column;
+        gap: ${brandTheme.spacing.lg};
         align-items: stretch;
     }
-`;
-
-const SearchWrapper = styled.div`
-    position: relative;
-    flex: 1;
-    max-width: 500px;
 
     @media (max-width: 768px) {
-        max-width: none;
+        gap: ${brandTheme.spacing.md};
     }
 `;
 
-const SearchIcon = styled.div`
+const ActiveFiltersBadge = styled.span`
     position: absolute;
-    left: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: ${brandTheme.text.muted};
-    font-size: 16px;
-    z-index: 2;
-`;
-
-const SearchInput = styled.input`
-    width: 100%;
-    height: 48px;
-    padding: 0 48px 0 48px;
-    border: 2px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.lg};
-    font-size: 16px;
-    font-weight: 500;
-    background: ${brandTheme.surface};
-    color: ${brandTheme.text.primary};
-    transition: all 0.2s ease;
-
-    &:focus {
-        outline: none;
-        border-color: ${brandTheme.primary};
-        box-shadow: 0 0 0 3px ${brandTheme.primaryGhost};
-    }
-
-    &::placeholder {
-        color: ${brandTheme.text.muted};
-        font-weight: 400;
-    }
-`;
-
-const ClearSearchButton = styled.button`
-    position: absolute;
-    right: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 24px;
-    height: 24px;
-    border: none;
-    background: ${brandTheme.surfaceAlt};
-    color: ${brandTheme.text.muted};
+    top: -4px;
+    right: -4px;
+    width: 12px;
+    height: 12px;
+    background: ${brandTheme.status.warning};
     border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    transition: all 0.2s ease;
+    border: 2px solid ${brandTheme.surface};
+    animation: pulse 2s infinite;
 
-    &:hover {
-        background: ${brandTheme.status.error};
-        color: white;
+    @keyframes pulse {
+        0%, 100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+        50% {
+            transform: scale(1.1);
+            opacity: 0.8;
+        }
     }
 `;
 
-const AdvancedToggle = styled.button<{ $expanded: boolean }>`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 20px;
-    border: 2px solid ${props => props.$expanded ? brandTheme.primary : brandTheme.border};
-    background: ${props => props.$expanded ? brandTheme.primaryGhost : brandTheme.surface};
-    color: ${props => props.$expanded ? brandTheme.primary : brandTheme.text.secondary};
-    border-radius: ${brandTheme.radius.md};
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-
-    &:hover {
-        border-color: ${brandTheme.primary};
-        color: ${brandTheme.primary};
-    }
-`;
-
-const AdvancedFiltersSection = styled.div`
+const AdvancedFiltersPanel = styled.div`
     padding: ${brandTheme.spacing.lg};
     background: ${brandTheme.surfaceAlt};
+    border-bottom: 1px solid ${brandTheme.border};
+    animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+            max-height: 0;
+            padding: 0 ${brandTheme.spacing.lg};
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+            max-height: 500px;
+            padding: ${brandTheme.spacing.lg};
+        }
+    }
 `;
 
 const FiltersGrid = styled.div`
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: ${brandTheme.spacing.md};
-    margin-bottom: ${brandTheme.spacing.lg};
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: ${brandTheme.spacing.sm};
 
     @media (max-width: 768px) {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    @media (max-width: 480px) {
         grid-template-columns: 1fr;
     }
 `;
 
-const FormGroup = styled.div`
+const CompactFormGroup = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${brandTheme.spacing.xs};
 `;
 
-const Label = styled.label`
-    font-size: 14px;
-    font-weight: 600;
-    color: ${brandTheme.text.primary};
-`;
-
-const Input = styled.input`
-    height: 44px;
-    padding: 0 ${brandTheme.spacing.md};
-    border: 2px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.md};
-    font-size: 14px;
+const baseInputStyles = `
+    height: 36px;
+    padding: 0 ${brandTheme.spacing.sm};
+    border: 1px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.sm};
+    font-size: 13px;
     font-weight: 500;
     background: ${brandTheme.surface};
     color: ${brandTheme.text.primary};
@@ -1042,7 +1020,7 @@ const Input = styled.input`
     &:focus {
         outline: none;
         border-color: ${brandTheme.primary};
-        box-shadow: 0 0 0 3px ${brandTheme.primaryGhost};
+        box-shadow: 0 0 0 2px ${brandTheme.primaryGhost};
     }
 
     &::placeholder {
@@ -1051,62 +1029,58 @@ const Input = styled.input`
     }
 `;
 
-const Select = styled.select`
-    height: 44px;
-    padding: 0 ${brandTheme.spacing.md};
-    border: 2px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.md};
-    font-size: 14px;
-    font-weight: 500;
-    background: ${brandTheme.surface};
-    color: ${brandTheme.text.primary};
+const CompactInput = styled.input`
+    ${baseInputStyles}
+`;
+
+const CompactSelect = styled.select`
+    ${baseInputStyles}
     cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:focus {
-        outline: none;
-        border-color: ${brandTheme.primary};
-        box-shadow: 0 0 0 3px ${brandTheme.primaryGhost};
-    }
 `;
 
-const FiltersActions = styled.div`
-    display: flex;
-    justify-content: flex-end;
-    gap: ${brandTheme.spacing.sm};
-    padding-top: ${brandTheme.spacing.md};
-    border-top: 1px solid ${brandTheme.border};
-`;
-
-const ClearButton = styled.button`
+const ClearFiltersButton = styled.button<{ $hasFilters: boolean }>`
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: ${brandTheme.spacing.xs};
-    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
-    border: 2px solid ${brandTheme.border};
-    background: ${brandTheme.surface};
-    color: ${brandTheme.text.secondary};
-    border-radius: ${brandTheme.radius.md};
+    height: 36px;
+    padding: 0 ${brandTheme.spacing.sm};
+    border: 1px solid ${props => props.$hasFilters ? brandTheme.status.error : brandTheme.border};
+    background: ${props => props.$hasFilters ? brandTheme.status.errorLight : brandTheme.surface};
+    color: ${props => props.$hasFilters ? brandTheme.status.error : brandTheme.text.muted};
+    border-radius: ${brandTheme.radius.sm};
     font-weight: 600;
-    font-size: 14px;
+    font-size: 13px;
     cursor: pointer;
     transition: all 0.2s ease;
+    white-space: nowrap;
 
-    &:hover {
+    &:hover:not(:disabled) {
+        background: ${brandTheme.status.error};
+        color: white;
         border-color: ${brandTheme.status.error};
-        color: ${brandTheme.status.error};
-        background: ${brandTheme.status.errorLight};
+        transform: translateY(-1px);
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
     }
 `;
 
 const ResultsCounter = styled.div`
-    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.lg};
     background: ${brandTheme.primaryGhost};
-    color: ${brandTheme.primary};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+`;
+
+const ResultsText = styled.div`
     font-size: 14px;
+    color: ${brandTheme.primary};
     font-weight: 500;
-    text-align: center;
-    border-top: 1px solid ${brandTheme.border};
 
     strong {
         font-weight: 700;
@@ -1135,6 +1109,10 @@ const ErrorText = styled.div`
     flex: 1;
 `;
 
+const FiltersToggleSection = styled.div`
+    flex-shrink: 0;
+`;
+
 const TableContainer = styled.div`
     background: ${brandTheme.surface};
     border-radius: ${brandTheme.radius.xl};
@@ -1155,6 +1133,13 @@ const TableHeader = styled.div`
     border-bottom: 1px solid ${brandTheme.border};
     background: ${brandTheme.surfaceAlt};
     flex-shrink: 0;
+    gap: ${brandTheme.spacing.xl};
+
+    @media (max-width: 1024px) {
+        flex-direction: column;
+        align-items: stretch;
+        gap: ${brandTheme.spacing.lg};
+    }
 `;
 
 const TableTitle = styled.h3`
@@ -1163,6 +1148,116 @@ const TableTitle = styled.h3`
     color: ${brandTheme.text.primary};
     margin: 0;
     letter-spacing: -0.025em;
+    flex-shrink: 0;
+`;
+
+// New component for header controls
+const TableHeaderControls = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.md};
+    flex-shrink: 0;
+
+    @media (max-width: 768px) {
+        flex-direction: column;
+        width: 100%;
+        gap: ${brandTheme.spacing.sm};
+    }
+`;
+
+const SearchWrapper = styled.div`
+    position: relative;
+    width: 300px;
+    flex-shrink: 0;
+
+    @media (max-width: 768px) {
+        width: 100%;
+    }
+`;
+
+const SearchInput = styled.input`
+    width: 100%;
+    height: 40px;
+    padding: 0 40px 0 16px;
+    border: 2px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.md};
+    font-size: 14px;
+    font-weight: 500;
+    background: ${brandTheme.surface};
+    color: ${brandTheme.text.primary};
+    transition: all 0.2s ease;
+
+    &:focus {
+        outline: none;
+        border-color: ${brandTheme.primary};
+        box-shadow: 0 0 0 3px ${brandTheme.primaryGhost};
+    }
+
+    &::placeholder {
+        color: ${brandTheme.text.muted};
+        font-weight: 400;
+    }
+`;
+
+const ClearSearchButton = styled.button`
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    border: none;
+    background: ${brandTheme.text.muted};
+    color: white;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: ${brandTheme.status.error};
+        transform: translateY(-50%) scale(1.1);
+    }
+`;
+
+const FiltersToggleButton = styled.button<{ $expanded: boolean; $hasActiveFilters: boolean }>`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+    border: 2px solid ${props => props.$expanded ? brandTheme.primary : brandTheme.border};
+    background: ${props => props.$expanded ? brandTheme.primaryGhost : brandTheme.surface};
+    color: ${props => props.$expanded ? brandTheme.primary : brandTheme.text.secondary};
+    border-radius: ${brandTheme.radius.md};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+    position: relative;
+    height: 40px; /* Match search input height */
+    flex-shrink: 0;
+
+    &:hover {
+        border-color: ${brandTheme.primary};
+        color: ${brandTheme.primary};
+        background: ${brandTheme.primaryGhost};
+        transform: translateY(-1px);
+        box-shadow: ${brandTheme.shadow.md};
+    }
+
+    svg:last-child {
+        margin-left: ${brandTheme.spacing.xs};
+        font-size: 12px;
+    }
+
+    @media (max-width: 768px) {
+        width: 100%;
+        justify-content: center;
+    }
 `;
 
 const TableWrapper = styled.div`
@@ -1268,54 +1363,6 @@ const ContractNumber = styled.div`
     font-size: 11px;
     color: ${brandTheme.text.tertiary};
     font-weight: 500;
-`;
-
-const CategoryBadge = styled.span<{ category: string }>`
-    display: inline-flex;
-    align-items: center;
-    padding: 4px 8px;
-    border-radius: ${brandTheme.radius.sm};
-    font-size: 12px;
-    font-weight: 600;
-    background-color: ${props => {
-        switch (props.category) {
-            case 'LOCATION': return 'rgba(155, 89, 182, 0.15)';
-            case 'UTILITIES': return 'rgba(52, 152, 219, 0.15)';
-            case 'INSURANCE': return 'rgba(231, 76, 60, 0.15)';
-            case 'LICENSES': return 'rgba(46, 204, 113, 0.15)';
-            case 'EQUIPMENT': return 'rgba(230, 126, 34, 0.15)';
-            case 'MARKETING': return 'rgba(241, 196, 15, 0.15)';
-            case 'PERSONNEL': return 'rgba(142, 68, 173, 0.15)';
-            case 'FINANCIAL': return 'rgba(26, 188, 156, 0.15)';
-            default: return 'rgba(149, 165, 166, 0.15)';
-        }
-    }};
-    color: ${props => {
-        switch (props.category) {
-            case 'LOCATION': return '#9b59b6';
-            case 'UTILITIES': return '#3498db';
-            case 'INSURANCE': return '#e74c3c';
-            case 'LICENSES': return '#2ecc71';
-            case 'EQUIPMENT': return '#e67e22';
-            case 'MARKETING': return '#f1c40f';
-            case 'PERSONNEL': return '#8e44ad';
-            case 'FINANCIAL': return '#1abc9c';
-            default: return '#95a5a6';
-        }
-    }};
-    border: 1px solid ${props => {
-        switch (props.category) {
-            case 'LOCATION': return 'rgba(155, 89, 182, 0.3)';
-            case 'UTILITIES': return 'rgba(52, 152, 219, 0.3)';
-            case 'INSURANCE': return 'rgba(231, 76, 60, 0.3)';
-            case 'LICENSES': return 'rgba(46, 204, 113, 0.3)';
-            case 'EQUIPMENT': return 'rgba(230, 126, 34, 0.3)';
-            case 'MARKETING': return 'rgba(241, 196, 15, 0.3)';
-            case 'PERSONNEL': return 'rgba(142, 68, 173, 0.3)';
-            case 'FINANCIAL': return 'rgba(26, 188, 156, 0.3)';
-            default: return 'rgba(149, 165, 166, 0.3)';
-        }
-    }};
 `;
 
 const SupplierCell = styled.div`
