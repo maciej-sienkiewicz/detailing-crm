@@ -133,6 +133,8 @@ const ActivityTimelineList: React.FC<ActivityTimelineListProps> = ({ activities,
                 return `/clients-vehicles?tab=vehicles&vehicleId=${entity.id}`;
             case 'PROTOCOL':
                 return `/visits/${entity.id}`;
+            case 'VISIT':
+                return `/visits/${entity.id}`;
             default:
                 return '/clients-vehicles';
         }
@@ -195,6 +197,15 @@ const ActivityTimelineList: React.FC<ActivityTimelineListProps> = ({ activities,
                                             <EntitiesSection>
                                                 <EntitiesLabel>Powiązane:</EntitiesLabel>
                                                 <EntitiesList>
+                                                    {(activity.primaryEntity && (
+                                                        <EntityLink
+                                                            key={activity.primaryEntity.id}
+                                                            to={getEntityLink(activity.primaryEntity)}
+                                                        >
+                                                            <EntityName>{activity.primaryEntity.name}</EntityName>
+                                                            <FaChevronRight />
+                                                        </EntityLink>
+                                                    ))}
                                                     {(activity.relatedEntities || activity.related_entities)?.map((entity, entityIndex) => (
                                                         <EntityLink
                                                             key={entity.id}

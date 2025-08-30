@@ -342,6 +342,8 @@ class ActivityApi {
             // ✅ POPRAWKA: Konwertujemy related_entities na relatedEntities (camelCase)
             relatedEntities: activity.related_entities || activity.relatedEntities || [],
 
+            primaryEntity: activity.primaryEntity || activity.primaryEntity || [],
+
             // ✅ POPRAWKA: Zachowujemy też oryginalne pole dla kompatybilności
             related_entities: activity.related_entities || [],
 

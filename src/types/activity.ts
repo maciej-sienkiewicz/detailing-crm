@@ -57,7 +57,7 @@ export interface ActivityItem {
     status?: ActivityStatus | null;
     status_text?: string | null;       // Tekst statusu (snake_case z serwera)
     statusText?: string;               // Tekst statusu (camelCase po konwersji)
-    primary_entity?: any | null;       // Główna encja (snake_case z serwera)
+    primaryEntity?: any | null;       // Główna encja (snake_case z serwera)
     related_entities?: RelatedEntity[]; // Powiązane encje (snake_case z serwera)
     relatedEntities?: RelatedEntity[];  // ✅ KLUCZOWA ZMIANA: Powiązane encje (camelCase po konwersji)
     entities?: ActivityEntity[];       // Stara struktura (dla kompatybilności)
