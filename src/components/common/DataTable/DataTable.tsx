@@ -1,9 +1,9 @@
-// src/components/common/DataTable/DataTable.tsx
+// src/components/common/DataTable/DataTable.tsx - Kompletny plik po zmianach
 import React from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { FaList, FaTable } from 'react-icons/fa';
-import { DataTableProps, BaseDataItem } from './types';
+import { FaList, FaTable, FaCheckSquare, FaSquare } from 'react-icons/fa';
+import { DataTableProps, BaseDataItem, HeaderAction, SelectAllConfig } from './types';
 import { useTableConfiguration, useTableSorting, useViewMode } from './hooks';
 import { ColumnHeader } from './TableHeader';
 import {
@@ -23,7 +23,17 @@ import {
     EmptyStateIcon,
     EmptyStateTitle,
     EmptyStateDescription,
-    EmptyStateAction
+    EmptyStateAction,
+    // NOWE komponenty
+    HeaderLeft,
+    HeaderRight,
+    HeaderActionsContainer,
+    SelectAllContainer,
+    SelectAllCheckbox,
+    SelectionCounter,
+    HeaderActionButton,
+    ActionBadge,
+    ExpandableContent
 } from './components';
 
 export function DataTable<T extends BaseDataItem>({
@@ -41,7 +51,12 @@ export function DataTable<T extends BaseDataItem>({
                                                       storageKeys = {
                                                           viewMode: 'data_table_view_mode',
                                                           columnOrder: 'data_table_columns_order'
-                                                      }
+                                                      },
+                                                      // NOWE propsy
+                                                      headerActions = [],
+                                                      selectAllConfig,
+                                                      expandableContent,
+                                                      expandableVisible = false
                                                   }: DataTableProps<T>) {
     const { columns, moveColumn } = useTableConfiguration(defaultColumns, storageKeys.columnOrder);
     const { viewMode, setViewMode } = useViewMode(defaultViewMode, storageKeys.viewMode);
@@ -64,10 +79,95 @@ export function DataTable<T extends BaseDataItem>({
         onItemAction?.(action, item, e);
     };
 
+    // Render header action button
+    const renderHeaderAction = (action: HeaderAction) => {
+        const IconComponent = action.icon;
+
+        return (
+            <HeaderActionButton
+                key={action.id}
+                onClick={action.onClick}
+                $variant={action.variant || 'secondary'}
+                $active={action.active}
+                $hasBadge={action.badge}
+                disabled={action.disabled}
+            >
+                {IconComponent && <IconComponent />}
+                {action.label}
+                {action.badge && <ActionBadge />}
+            </HeaderActionButton>
+        );
+    };
+
+    // Render select all section
+    const renderSelectAll = () => {
+        if (!selectAllConfig) return null;
+
+        const { selectedCount, totalCount, selectAll, onToggleSelectAll, label } = selectAllConfig;
+
+        return (
+            <SelectAllContainer>
+                <SelectAllCheckbox
+                    onClick={onToggleSelectAll}
+                    $selected={selectAll}
+                >
+                    {selectAll ? <FaCheckSquare /> : <FaSquare />}
+                    <span>{label || `Zaznacz wszystkich (${totalCount})`}</span>
+                </SelectAllCheckbox>
+                {selectedCount > 0 && (
+                    <SelectionCounter>
+                        Zaznaczono: {selectedCount}
+                    </SelectionCounter>
+                )}
+            </SelectAllContainer>
+        );
+    };
+
     if (data.length === 0) {
         const IconComponent = emptyStateConfig.icon;
         return (
             <TableContainer>
+                <TableHeader>
+                    <HeaderLeft>
+                        <TableTitle>{title} (0)</TableTitle>
+                    </HeaderLeft>
+
+                    <HeaderRight>
+                        <HeaderActionsContainer>
+                            {/* Select All Component - ukryty gdy brak danych */}
+                            {/* Custom Header Actions - nadal dostępne */}
+                            {headerActions.map(renderHeaderAction)}
+
+                            {/* View Toggle Controls */}
+                            {enableViewToggle && renderCard && (
+                                <ViewControls>
+                                    <ViewButton
+                                        $active={viewMode === 'table'}
+                                        onClick={() => setViewMode('table')}
+                                        title="Widok tabeli"
+                                    >
+                                        <FaTable />
+                                    </ViewButton>
+                                    <ViewButton
+                                        $active={viewMode === 'cards'}
+                                        onClick={() => setViewMode('cards')}
+                                        title="Widok kart"
+                                    >
+                                        <FaList />
+                                    </ViewButton>
+                                </ViewControls>
+                            )}
+                        </HeaderActionsContainer>
+                    </HeaderRight>
+                </TableHeader>
+
+                {/* Expandable Content - dostępny nawet przy pustych danych */}
+                {expandableContent && (
+                    <ExpandableContent $visible={expandableVisible}>
+                        {expandableContent}
+                    </ExpandableContent>
+                )}
+
                 <EmptyStateContainer>
                     <EmptyStateIcon>
                         <IconComponent />
@@ -132,26 +232,47 @@ export function DataTable<T extends BaseDataItem>({
     return (
         <TableContainer>
             <TableHeader>
-                <TableTitle>{title} ({data.length})</TableTitle>
-                {enableViewToggle && renderCard && (
-                    <ViewControls>
-                        <ViewButton
-                            $active={viewMode === 'table'}
-                            onClick={() => setViewMode('table')}
-                            title="Widok tabeli"
-                        >
-                            <FaTable />
-                        </ViewButton>
-                        <ViewButton
-                            $active={viewMode === 'cards'}
-                            onClick={() => setViewMode('cards')}
-                            title="Widok kart"
-                        >
-                            <FaList />
-                        </ViewButton>
-                    </ViewControls>
-                )}
+                <HeaderLeft>
+                    <TableTitle>{title} ({data.length})</TableTitle>
+                </HeaderLeft>
+
+                <HeaderRight>
+                    <HeaderActionsContainer>
+                        {/* Select All Component */}
+                        {renderSelectAll()}
+
+                        {/* Custom Header Actions */}
+                        {headerActions.map(renderHeaderAction)}
+
+                        {/* View Toggle Controls */}
+                        {enableViewToggle && renderCard && (
+                            <ViewControls>
+                                <ViewButton
+                                    $active={viewMode === 'table'}
+                                    onClick={() => setViewMode('table')}
+                                    title="Widok tabeli"
+                                >
+                                    <FaTable />
+                                </ViewButton>
+                                <ViewButton
+                                    $active={viewMode === 'cards'}
+                                    onClick={() => setViewMode('cards')}
+                                    title="Widok kart"
+                                >
+                                    <FaList />
+                                </ViewButton>
+                            </ViewControls>
+                        )}
+                    </HeaderActionsContainer>
+                </HeaderRight>
             </TableHeader>
+
+            {/* Expandable Content */}
+            {expandableContent && (
+                <ExpandableContent $visible={expandableVisible}>
+                    {expandableContent}
+                </ExpandableContent>
+            )}
 
             {viewMode === 'table' ? (
                 enableDragAndDrop ? (

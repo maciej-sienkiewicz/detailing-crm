@@ -1,5 +1,5 @@
 import React from 'react';
-import {FaCheckSquare, FaSms, FaSquare} from 'react-icons/fa';
+import {FaSms} from 'react-icons/fa';
 import {ClientExpanded} from '../../../types';
 import {useFormatters} from './hooks';
 import {
@@ -24,9 +24,6 @@ import {
     SearchSubtext,
     SearchText,
     SecondaryButton,
-    SelectAllCheckbox,
-    SelectionBar,
-    SelectionInfo,
     SmsCharacterCounter,
     SmsFormGroup,
     SmsFormSection,
@@ -34,39 +31,7 @@ import {
     SmsTextarea
 } from './styles';
 
-interface ClientSelectionBarProps {
-    clients: ClientExpanded[];
-    selectedClientIds: string[];
-    selectAll: boolean;
-    onToggleSelectAll: () => void;
-}
-
-export const ClientSelectionBar: React.FC<ClientSelectionBarProps> = ({
-                                                                          clients,
-                                                                          selectedClientIds,
-                                                                          selectAll,
-                                                                          onToggleSelectAll
-                                                                      }) => {
-    const { formatClientCount } = useFormatters();
-
-    if (clients.length === 0) return null;
-
-    return (
-        <SelectionBar>
-            <SelectAllCheckbox onClick={onToggleSelectAll}>
-                {selectAll ? <FaCheckSquare /> : <FaSquare />}
-                <span>
-                    Zaznacz wszystkich na stronie ({clients.length})
-                </span>
-            </SelectAllCheckbox>
-            {selectedClientIds.length > 0 && (
-                <SelectionInfo>
-                    Zaznaczono: {selectedClientIds.length} {formatClientCount(selectedClientIds.length)}
-                </SelectionInfo>
-            )}
-        </SelectionBar>
-    );
-};
+// USUNIĘTO ClientSelectionBar - przeniesiono do nagłówka tabeli
 
 interface SearchResultsDisplayProps {
     hasActiveFilters: boolean;

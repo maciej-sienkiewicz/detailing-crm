@@ -1,4 +1,4 @@
-// src/components/common/DataTable/components.ts
+// src/components/common/DataTable/components.ts - Rozszerzone komponenty
 import styled from 'styled-components';
 import { dataTableTheme } from './theme';
 
@@ -10,6 +10,7 @@ export const TableContainer = styled.div`
     box-shadow: ${dataTableTheme.shadow.sm};
     width: 100%;
     min-height: 400px;
+    margin-top: 10px;
 `;
 
 export const TableHeader = styled.div`
@@ -20,6 +21,13 @@ export const TableHeader = styled.div`
     border-bottom: 1px solid ${dataTableTheme.border};
     background: ${dataTableTheme.surfaceAlt};
     flex-shrink: 0;
+    gap: ${dataTableTheme.spacing.xl};
+
+    @media (max-width: 1024px) {
+        flex-direction: column;
+        align-items: stretch;
+        gap: ${dataTableTheme.spacing.lg};
+    }
 `;
 
 export const TableTitle = styled.h3`
@@ -60,6 +68,222 @@ export const ViewButton = styled.button<{ $active: boolean }>`
     }
 `;
 
+// NOWE: Komponenty dla rozszerzonych funkcji nagłówka
+export const HeaderLeft = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${dataTableTheme.spacing.lg};
+    flex: 1;
+    min-width: 0;
+
+    @media (max-width: 1024px) {
+        justify-content: space-between;
+        width: 100%;
+    }
+`;
+
+export const HeaderRight = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${dataTableTheme.spacing.md};
+    flex-shrink: 0;
+
+    @media (max-width: 768px) {
+        flex-direction: column;
+        width: 100%;
+        gap: ${dataTableTheme.spacing.sm};
+    }
+`;
+
+export const HeaderActionsContainer = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${dataTableTheme.spacing.md};
+
+    @media (max-width: 768px) {
+        flex-direction: column;
+        width: 100%;
+        gap: ${dataTableTheme.spacing.sm};
+    }
+`;
+
+export const SelectAllContainer = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${dataTableTheme.spacing.md};
+    
+    @media (max-width: 768px) {
+        justify-content: space-between;
+        width: 100%;
+    }
+`;
+
+export const SelectAllCheckbox = styled.div<{ $selected?: boolean }>`
+    display: flex;
+    align-items: center;
+    gap: ${dataTableTheme.spacing.sm};
+    cursor: pointer;
+    color: ${dataTableTheme.text.primary};
+    font-weight: 500;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    padding: ${dataTableTheme.spacing.xs} ${dataTableTheme.spacing.sm};
+    border-radius: ${dataTableTheme.radius.md};
+
+    svg {
+        color: ${props => props.$selected ? dataTableTheme.primary : dataTableTheme.text.muted};
+        font-size: 18px;
+        transition: transform 0.2s ease;
+    }
+
+    &:hover {
+        color: ${dataTableTheme.primary};
+        background: ${dataTableTheme.primaryGhost};
+
+        svg {
+            transform: scale(1.1);
+            color: ${dataTableTheme.primary};
+        }
+    }
+`;
+
+export const SelectionCounter = styled.div`
+    font-size: 14px;
+    color: ${dataTableTheme.primary};
+    font-weight: 600;
+    padding: ${dataTableTheme.spacing.xs} ${dataTableTheme.spacing.sm};
+    background: ${dataTableTheme.surface};
+    border-radius: ${dataTableTheme.radius.md};
+    border: 1px solid ${dataTableTheme.primary}30;
+    white-space: nowrap;
+`;
+
+export const HeaderActionButton = styled.button<{
+    $variant?: 'primary' | 'secondary' | 'filter';
+    $active?: boolean;
+    $hasBadge?: boolean;
+}>`
+    display: flex;
+    align-items: center;
+    gap: ${dataTableTheme.spacing.sm};
+    padding: ${dataTableTheme.spacing.sm} ${dataTableTheme.spacing.md};
+    border-radius: ${dataTableTheme.radius.md};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+    position: relative;
+    height: 40px;
+    border: 2px solid;
+
+    ${({ $variant = 'secondary', $active = false }) => {
+    switch ($variant) {
+        case 'primary':
+            return `
+                    background: linear-gradient(135deg, ${dataTableTheme.primary} 0%, ${dataTableTheme.primaryLight} 100%);
+                    color: white;
+                    border-color: ${dataTableTheme.primary};
+                    box-shadow: ${dataTableTheme.shadow.sm};
+
+                    &:hover {
+                        background: linear-gradient(135deg, ${dataTableTheme.primaryDark} 0%, ${dataTableTheme.primary} 100%);
+                        transform: translateY(-1px);
+                        box-shadow: ${dataTableTheme.shadow.md};
+                    }
+                `;
+        case 'filter':
+            return `
+                    background: ${$active ? dataTableTheme.primaryGhost : dataTableTheme.surface};
+                    color: ${$active ? dataTableTheme.primary : dataTableTheme.text.secondary};
+                    border-color: ${$active ? dataTableTheme.primary : dataTableTheme.border};
+
+                    &:hover {
+                        border-color: ${dataTableTheme.primary};
+                        color: ${dataTableTheme.primary};
+                        background: ${dataTableTheme.primaryGhost};
+                        transform: translateY(-1px);
+                        box-shadow: ${dataTableTheme.shadow.md};
+                    }
+                `;
+        default: // secondary
+            return `
+                    background: ${dataTableTheme.surface};
+                    color: ${dataTableTheme.text.secondary};
+                    border-color: ${dataTableTheme.border};
+                    box-shadow: ${dataTableTheme.shadow.xs};
+
+                    &:hover {
+                        background: ${dataTableTheme.surfaceHover};
+                        color: ${dataTableTheme.text.primary};
+                        border-color: ${dataTableTheme.borderHover};
+                        transform: translateY(-1px);
+                        box-shadow: ${dataTableTheme.shadow.sm};
+                    }
+                `;
+    }
+}}
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none !important;
+        box-shadow: none !important;
+    }
+
+    @media (max-width: 768px) {
+        width: 100%;
+        justify-content: center;
+    }
+
+    svg:last-child {
+        margin-left: ${dataTableTheme.spacing.xs};
+        font-size: 12px;
+    }
+`;
+
+export const ActionBadge = styled.span`
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 12px;
+    height: 12px;
+    background: ${dataTableTheme.status.warning};
+    border-radius: 50%;
+    border: 2px solid ${dataTableTheme.surface};
+    animation: pulse 2s infinite;
+
+    @keyframes pulse {
+        0%, 100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+        50% {
+            transform: scale(1.1);
+            opacity: 0.8;
+        }
+    }
+`;
+
+export const ExpandableContent = styled.div<{ $visible: boolean }>`
+    overflow: hidden;
+    background: ${dataTableTheme.surfaceAlt};
+    border-bottom: 1px solid ${dataTableTheme.border};
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    ${props => props.$visible
+    ? `
+            max-height: 1000px;
+            opacity: 1;
+        `
+    : `
+            max-height: 0;
+            opacity: 0;
+        `
+}
+`;
+
+// Pozostałe istniejące komponenty...
 export const TableWrapper = styled.div`
     width: 100%;
 `;

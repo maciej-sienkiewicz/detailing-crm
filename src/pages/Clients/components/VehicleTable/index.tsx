@@ -1,17 +1,21 @@
-// src/pages/Clients/components/VehicleTable/index.tsx
+// src/pages/Clients/components/VehicleTable/index.tsx - Zaktualizowany z filtrowaniem w nagłówku
 import React from 'react';
-import { FaCar } from 'react-icons/fa';
-import { DataTable, TableColumn } from '../../../../components/common/DataTable';
+import { FaCar, FaFilter } from 'react-icons/fa';
+import { DataTable, TableColumn, HeaderAction } from '../../../../components/common/DataTable';
 import { VehicleExpanded } from '../../../../types';
 import { VehicleCellRenderer } from './VehicleCellRenderer';
 import { VehicleCard } from './VehicleCard';
 
 interface VehicleTableProps {
     vehicles: VehicleExpanded[];
+    showFilters: boolean;
+    hasActiveFilters: boolean;
     onSelectVehicle: (vehicle: VehicleExpanded) => void;
     onEditVehicle: (vehicle: VehicleExpanded) => void;
     onDeleteVehicle: (vehicleId: string) => void;
     onShowHistory: (vehicle: VehicleExpanded) => void;
+    onToggleFilters: () => void;
+    filtersComponent?: React.ReactNode;
 }
 
 const defaultColumns: TableColumn[] = [
@@ -36,37 +40,68 @@ const storageKeys = {
     columnOrder: 'vehicle_table_columns_order'
 };
 
-export const VehicleTable: React.FC<VehicleTableProps> = (props) => {
-    const { vehicles, ...handlers } = props;
-
+export const VehicleTable: React.FC<VehicleTableProps> = ({
+                                                              vehicles,
+                                                              showFilters,
+                                                              hasActiveFilters,
+                                                              onSelectVehicle,
+                                                              onEditVehicle,
+                                                              onDeleteVehicle,
+                                                              onShowHistory,
+                                                              onToggleFilters,
+                                                              filtersComponent
+                                                          }) => {
     const renderCell = (vehicle: VehicleExpanded, columnId: string) => (
         <VehicleCellRenderer
             vehicle={vehicle}
-    columnId={columnId}
-    {...handlers}
-    />
-);
+            columnId={columnId}
+            onSelectVehicle={onSelectVehicle}
+            onEditVehicle={onEditVehicle}
+            onDeleteVehicle={onDeleteVehicle}
+            onShowHistory={onShowHistory}
+        />
+    );
 
     const renderCard = (vehicle: VehicleExpanded) => (
         <VehicleCard
             vehicle={vehicle}
-    {...handlers}
-    />
-);
+            onSelectVehicle={onSelectVehicle}
+            onEditVehicle={onEditVehicle}
+            onDeleteVehicle={onDeleteVehicle}
+            onShowHistory={onShowHistory}
+        />
+    );
+
+    // Konfiguracja akcji w nagłówku
+    const headerActions: HeaderAction[] = [
+        {
+            id: 'filters',
+            label: 'Filtry',
+            icon: FaFilter,
+            onClick: onToggleFilters,
+            variant: 'filter',
+            active: showFilters,
+            badge: hasActiveFilters
+        }
+    ];
 
     return (
         <DataTable
             data={vehicles}
-    columns={defaultColumns}
-    title="Lista pojazdów"
-    emptyStateConfig={emptyStateConfig}
-    onItemClick={handlers.onSelectVehicle}
-    renderCell={renderCell}
-    renderCard={renderCard}
-    enableDragAndDrop={true}
-    enableViewToggle={true}
-    defaultViewMode="table"
-    storageKeys={storageKeys}
-    />
-);
+            columns={defaultColumns}
+            title="Lista pojazdów"
+            emptyStateConfig={emptyStateConfig}
+            onItemClick={onSelectVehicle}
+            renderCell={renderCell}
+            renderCard={renderCard}
+            enableDragAndDrop={true}
+            enableViewToggle={true}
+            defaultViewMode="table"
+            storageKeys={storageKeys}
+            // NOWE propsy - rozszerzone funkcje
+            headerActions={headerActions}
+            expandableContent={filtersComponent}
+            expandableVisible={showFilters}
+        />
+    );
 };

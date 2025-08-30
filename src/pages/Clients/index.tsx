@@ -1,4 +1,4 @@
-// src/pages/Clients/index.tsx - Updated to use new ClientTable
+// src/pages/Clients/index.tsx - Zaktualizowany z nową strukturą filtrów
 import React, {forwardRef, useCallback, useEffect, useImperativeHandle, useMemo} from 'react';
 import Modal from '../../components/common/Modal';
 import Pagination from '../../components/common/Pagination';
@@ -10,12 +10,11 @@ import DeleteConfirmationModal from "./modals/DeleteConfirmationModal";
 import {useClientFilters, useClientOperations, useClientSelection, useOwnersPageState} from './OwnersPage/hooks';
 import {
     BulkSmsModalContent,
-    ClientSelectionBar,
     EmptyStateDisplay,
     LoadingDisplay,
     SearchResultsDisplay
 } from './OwnersPage/components';
-import {ContentContainer, MainContent, PaginationContainer, TableContainer} from './OwnersPage/styles';
+import {ContentContainer, MainContent, PaginationContainer} from './OwnersPage/styles';
 import {ClientFilters, OwnersPageContentProps, OwnersPageRef} from './OwnersPage/types';
 import EnhancedClientFilters from "./OwnersPage/EnhancedClientFilters";
 
@@ -274,57 +273,57 @@ const OwnersPageContent = forwardRef<OwnersPageRef, OwnersPageContentProps>(({
         return Object.values(state.appliedFilters).some(val => val !== '');
     }, [state.appliedFilters]);
 
+    // Enhanced filters component
+    const filtersComponent = (
+        <EnhancedClientFilters
+            filters={state.filters}
+            appliedFilters={state.appliedFilters}
+            showFilters={state.showFilters}
+            onToggleFilters={() => updateState({ showFilters: !state.showFilters })}
+            onFiltersChange={handleFiltersChange}
+            onApplyFilters={handleApplyFilters}
+            onResetFilters={handleResetFilters}
+            resultCount={state.totalItems}
+        />
+    );
+
     return (
         <ContentContainer>
             <MainContent>
-                <EnhancedClientFilters
-                    filters={state.filters}
-                    appliedFilters={state.appliedFilters}
-                    showFilters={state.showFilters}
-                    onToggleFilters={() => updateState({ showFilters: !state.showFilters })}
-                    onFiltersChange={handleFiltersChange}
-                    onApplyFilters={handleApplyFilters}
-                    onResetFilters={handleResetFilters}
-                    resultCount={state.totalItems}
-                />
-
                 {state.loading ? (
                     <LoadingDisplay hasActiveFilters={hasActiveFilters} />
                 ) : (
                     <>
-                        <ClientSelectionBar
-                            clients={state.clients}
-                            selectedClientIds={selectedClientIds}
-                            selectAll={selectAll}
-                            onToggleSelectAll={handleToggleSelectAll}
-                        />
-
                         <SearchResultsDisplay
                             hasActiveFilters={hasActiveFilters}
                             totalItems={state.totalItems}
                             onResetFilters={handleResetFilters}
                         />
 
-                        <TableContainer>
-                            {state.clients.length === 0 ? (
-                                <EmptyStateDisplay
-                                    hasActiveFilters={hasActiveFilters}
-                                    onResetFilters={handleResetFilters}
-                                />
-                            ) : (
-                                <ClientTable
-                                    clients={state.clients}
-                                    selectedClientIds={selectedClientIds}
-                                    onToggleSelection={toggleClientSelection}
-                                    onSelectClient={handleSelectClient}
-                                    onEditClient={handleEditClient}
-                                    onDeleteClient={handleDeleteClick}
-                                    onShowVehicles={handleShowVehicles}
-                                    onAddContactAttempt={handleAddContactAttempt}
-                                    onSendSMS={handleSendSMS}
-                                />
-                            )}
-                        </TableContainer>
+                        {state.clients.length === 0 ? (
+                            <EmptyStateDisplay
+                                hasActiveFilters={hasActiveFilters}
+                                onResetFilters={handleResetFilters}
+                            />
+                        ) : (
+                            <ClientTable
+                                clients={state.clients}
+                                selectedClientIds={selectedClientIds}
+                                selectAll={selectAll}
+                                showFilters={state.showFilters}
+                                hasActiveFilters={hasActiveFilters}
+                                onToggleSelection={toggleClientSelection}
+                                onSelectClient={handleSelectClient}
+                                onEditClient={handleEditClient}
+                                onDeleteClient={handleDeleteClick}
+                                onShowVehicles={handleShowVehicles}
+                                onAddContactAttempt={handleAddContactAttempt}
+                                onSendSMS={handleSendSMS}
+                                onToggleSelectAll={handleToggleSelectAll}
+                                onToggleFilters={() => updateState({ showFilters: !state.showFilters })}
+                                filtersComponent={filtersComponent}
+                            />
+                        )}
 
                         {state.totalPages > 1 && (
                             <PaginationContainer>

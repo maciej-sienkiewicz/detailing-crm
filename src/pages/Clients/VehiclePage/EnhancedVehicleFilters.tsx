@@ -1,6 +1,6 @@
 import React, {useCallback, useState} from 'react';
 import styled from 'styled-components';
-import {FaCar, FaCheck, FaChevronDown, FaChevronUp, FaEye, FaFilter, FaSearch, FaTimes, FaUser} from 'react-icons/fa';
+import {FaCar, FaCheck, FaEye, FaFilter, FaSearch, FaTimes, FaUser} from 'react-icons/fa';
 import {VehicleFilters} from './types';
 
 const brandTheme = {
@@ -67,11 +67,11 @@ interface EnhancedVehicleFiltersProps {
     resultCount: number;
 }
 
+// NOWY KOMPONENT - tylko panel filtrów bez nagłówka
 const EnhancedVehicleFilters: React.FC<EnhancedVehicleFiltersProps> = ({
                                                                            filters,
                                                                            appliedFilters,
                                                                            showFilters,
-                                                                           onToggleFilters,
                                                                            onFiltersChange,
                                                                            onApplyFilters,
                                                                            onResetFilters,
@@ -88,8 +88,6 @@ const EnhancedVehicleFilters: React.FC<EnhancedVehicleFiltersProps> = ({
             localFilters[key as keyof VehicleFilters] !== appliedFilters[key as keyof VehicleFilters]
         );
     }, [localFilters, appliedFilters]);
-
-    const activeFilterCount = Object.values(appliedFilters).filter(val => val !== '').length;
 
     const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -127,412 +125,243 @@ const EnhancedVehicleFilters: React.FC<EnhancedVehicleFiltersProps> = ({
         onFiltersChange(newFilters);
     }, [localFilters, onFiltersChange]);
 
+    // Sync local filters when external filters change
     React.useEffect(() => {
         setLocalFilters(filters);
     }, [filters]);
 
+    if (!showFilters) return null;
+
     return (
-        <FiltersContainer $expanded={showFilters}>
-            <FiltersToggle onClick={onToggleFilters} $hasActiveFilters={hasActiveFilters()}>
-                <ToggleLeft>
-                    <FilterIcon $active={hasActiveFilters()}>
-                        <FaFilter />
-                    </FilterIcon>
-                    <ToggleContent>
-                        <ToggleTitle>
-                            Zaawansowane filtry wyszukiwania
-                            {activeFilterCount > 0 && (
-                                <ActiveFiltersBadge>{activeFilterCount}</ActiveFiltersBadge>
-                            )}
-                        </ToggleTitle>
-                        <ToggleSubtitle>
-                            {hasActiveFilters()
-                                ? `Wyniki: ${resultCount} ${resultCount === 1 ? 'pojazd' : resultCount > 1 && resultCount < 5 ? 'pojazdy' : 'pojazdów'}`
-                                : 'Filtruj pojazdy według marki, modelu, właściciela i aktywności'
-                            }
-                        </ToggleSubtitle>
-                    </ToggleContent>
-                </ToggleLeft>
+        <FiltersContent>
+            <FiltersGrid>
+                <FilterGroup>
+                    <FilterLabel htmlFor="licensePlate">
+                        <FilterLabelIcon>
+                            <FaCar />
+                        </FilterLabelIcon>
+                        Numer rejestracyjny
+                    </FilterLabel>
+                    <FilterInputWrapper>
+                        <FilterInput
+                            id="licensePlate"
+                            name="licensePlate"
+                            value={localFilters.licensePlate}
+                            onChange={handleInputChange}
+                            placeholder="np. ABC 123D, WZ 12345..."
+                            $hasValue={!!localFilters.licensePlate}
+                        />
+                        {localFilters.licensePlate && (
+                            <ClearInputButton onClick={() => clearField('licensePlate')}>
+                                <FaTimes />
+                            </ClearInputButton>
+                        )}
+                    </FilterInputWrapper>
+                </FilterGroup>
 
-                <ToggleActions>
-                    {hasActiveFilters() && (
-                        <ClearFiltersButton
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleResetFilters();
-                            }}
-                        >
-                            <FaTimes />
-                            <span>Wyczyść</span>
-                        </ClearFiltersButton>
-                    )}
-                    <ExpandIcon $expanded={showFilters}>
-                        {showFilters ? <FaChevronUp /> : <FaChevronDown />}
-                    </ExpandIcon>
-                </ToggleActions>
-            </FiltersToggle>
+                <FilterGroup>
+                    <FilterLabel htmlFor="make">
+                        <FilterLabelIcon>
+                            <FaSearch />
+                        </FilterLabelIcon>
+                        Marka pojazdu
+                    </FilterLabel>
+                    <FilterInputWrapper>
+                        <FilterInput
+                            id="make"
+                            name="make"
+                            value={localFilters.make}
+                            onChange={handleInputChange}
+                            placeholder="np. BMW, Audi, Mercedes..."
+                            $hasValue={!!localFilters.make}
+                        />
+                        {localFilters.make && (
+                            <ClearInputButton onClick={() => clearField('make')}>
+                                <FaTimes />
+                            </ClearInputButton>
+                        )}
+                    </FilterInputWrapper>
+                </FilterGroup>
 
-            {showFilters && (
-                <FiltersContent>
-                    <FiltersGrid>
-                        <FilterGroup>
-                            <FilterLabel htmlFor="licensePlate">
-                                <FilterLabelIcon>
-                                    <FaCar />
-                                </FilterLabelIcon>
-                                Numer rejestracyjny
-                            </FilterLabel>
-                            <FilterInputWrapper>
-                                <FilterInput
-                                    id="licensePlate"
-                                    name="licensePlate"
-                                    value={localFilters.licensePlate}
-                                    onChange={handleInputChange}
-                                    placeholder="np. ABC 123D, WZ 12345..."
-                                    $hasValue={!!localFilters.licensePlate}
-                                />
-                                {localFilters.licensePlate && (
-                                    <ClearInputButton onClick={() => clearField('licensePlate')}>
-                                        <FaTimes />
-                                    </ClearInputButton>
-                                )}
-                            </FilterInputWrapper>
-                        </FilterGroup>
+                <FilterGroup>
+                    <FilterLabel htmlFor="model">
+                        <FilterLabelIcon>
+                            <FaSearch />
+                        </FilterLabelIcon>
+                        Model pojazdu
+                    </FilterLabel>
+                    <FilterInputWrapper>
+                        <FilterInput
+                            id="model"
+                            name="model"
+                            value={localFilters.model}
+                            onChange={handleInputChange}
+                            placeholder="np. X5, A4, C-Class..."
+                            $hasValue={!!localFilters.model}
+                        />
+                        {localFilters.model && (
+                            <ClearInputButton onClick={() => clearField('model')}>
+                                <FaTimes />
+                            </ClearInputButton>
+                        )}
+                    </FilterInputWrapper>
+                </FilterGroup>
 
-                        <FilterGroup>
-                            <FilterLabel htmlFor="make">
-                                <FilterLabelIcon>
-                                    <FaSearch />
-                                </FilterLabelIcon>
-                                Marka pojazdu
-                            </FilterLabel>
-                            <FilterInputWrapper>
-                                <FilterInput
-                                    id="make"
-                                    name="make"
-                                    value={localFilters.make}
-                                    onChange={handleInputChange}
-                                    placeholder="np. BMW, Audi, Mercedes..."
-                                    $hasValue={!!localFilters.make}
-                                />
-                                {localFilters.make && (
-                                    <ClearInputButton onClick={() => clearField('make')}>
-                                        <FaTimes />
-                                    </ClearInputButton>
-                                )}
-                            </FilterInputWrapper>
-                        </FilterGroup>
+                <FilterGroup>
+                    <FilterLabel htmlFor="ownerName">
+                        <FilterLabelIcon>
+                            <FaUser />
+                        </FilterLabelIcon>
+                        Właściciel pojazdu
+                    </FilterLabel>
+                    <FilterInputWrapper>
+                        <FilterInput
+                            id="ownerName"
+                            name="ownerName"
+                            value={localFilters.ownerName}
+                            onChange={handleInputChange}
+                            placeholder="np. Jan Kowalski, Anna..."
+                            $hasValue={!!localFilters.ownerName}
+                        />
+                        {localFilters.ownerName && (
+                            <ClearInputButton onClick={() => clearField('ownerName')}>
+                                <FaTimes />
+                            </ClearInputButton>
+                        )}
+                    </FilterInputWrapper>
+                </FilterGroup>
 
-                        <FilterGroup>
-                            <FilterLabel htmlFor="model">
-                                <FilterLabelIcon>
-                                    <FaSearch />
-                                </FilterLabelIcon>
-                                Model pojazdu
-                            </FilterLabel>
-                            <FilterInputWrapper>
-                                <FilterInput
-                                    id="model"
-                                    name="model"
-                                    value={localFilters.model}
-                                    onChange={handleInputChange}
-                                    placeholder="np. X5, A4, C-Class..."
-                                    $hasValue={!!localFilters.model}
-                                />
-                                {localFilters.model && (
-                                    <ClearInputButton onClick={() => clearField('model')}>
-                                        <FaTimes />
-                                    </ClearInputButton>
-                                )}
-                            </FilterInputWrapper>
-                        </FilterGroup>
+                <FilterGroup>
+                    <FilterLabel htmlFor="minServices">
+                        <FilterLabelIcon>
+                            <FaEye />
+                        </FilterLabelIcon>
+                        Minimalna liczba wizyt
+                    </FilterLabel>
+                    <FilterInputWrapper>
+                        <FilterInput
+                            id="minServices"
+                            name="minServices"
+                            type="number"
+                            min="0"
+                            value={localFilters.minServices}
+                            onChange={handleInputChange}
+                            placeholder="np. 5, 10, 20..."
+                            $hasValue={!!localFilters.minServices}
+                        />
+                        {localFilters.minServices && (
+                            <ClearInputButton onClick={() => clearField('minServices')}>
+                                <FaTimes />
+                            </ClearInputButton>
+                        )}
+                    </FilterInputWrapper>
+                </FilterGroup>
 
-                        <FilterGroup>
-                            <FilterLabel htmlFor="ownerName">
-                                <FilterLabelIcon>
-                                    <FaUser />
-                                </FilterLabelIcon>
-                                Właściciel pojazdu
-                            </FilterLabel>
-                            <FilterInputWrapper>
-                                <FilterInput
-                                    id="ownerName"
-                                    name="ownerName"
-                                    value={localFilters.ownerName}
-                                    onChange={handleInputChange}
-                                    placeholder="np. Jan Kowalski, Anna..."
-                                    $hasValue={!!localFilters.ownerName}
-                                />
-                                {localFilters.ownerName && (
-                                    <ClearInputButton onClick={() => clearField('ownerName')}>
-                                        <FaTimes />
-                                    </ClearInputButton>
-                                )}
-                            </FilterInputWrapper>
-                        </FilterGroup>
+                <FilterGroup>
+                    <FilterLabel htmlFor="maxServices">
+                        <FilterLabelIcon>
+                            <FaEye />
+                        </FilterLabelIcon>
+                        Maksymalna liczba wizyt
+                    </FilterLabel>
+                    <FilterInputWrapper>
+                        <FilterInput
+                            id="maxServices"
+                            name="maxServices"
+                            type="number"
+                            min="0"
+                            value={localFilters.maxServices}
+                            onChange={handleInputChange}
+                            placeholder="np. 50, 100..."
+                            $hasValue={!!localFilters.maxServices}
+                        />
+                        {localFilters.maxServices && (
+                            <ClearInputButton onClick={() => clearField('maxServices')}>
+                                <FaTimes />
+                            </ClearInputButton>
+                        )}
+                    </FilterInputWrapper>
+                </FilterGroup>
+            </FiltersGrid>
 
-                        <FilterGroup>
-                            <FilterLabel htmlFor="minServices">
-                                <FilterLabelIcon>
-                                    <FaEye />
-                                </FilterLabelIcon>
-                                Minimalna liczba wizyt
-                            </FilterLabel>
-                            <FilterInputWrapper>
-                                <FilterInput
-                                    id="minServices"
-                                    name="minServices"
-                                    type="number"
-                                    min="0"
-                                    value={localFilters.minServices}
-                                    onChange={handleInputChange}
-                                    placeholder="np. 5, 10, 20..."
-                                    $hasValue={!!localFilters.minServices}
-                                />
-                                {localFilters.minServices && (
-                                    <ClearInputButton onClick={() => clearField('minServices')}>
-                                        <FaTimes />
-                                    </ClearInputButton>
-                                )}
-                            </FilterInputWrapper>
-                        </FilterGroup>
-
-                        <FilterGroup>
-                            <FilterLabel htmlFor="maxServices">
-                                <FilterLabelIcon>
-                                    <FaEye />
-                                </FilterLabelIcon>
-                                Maksymalna liczba wizyt
-                            </FilterLabel>
-                            <FilterInputWrapper>
-                                <FilterInput
-                                    id="maxServices"
-                                    name="maxServices"
-                                    type="number"
-                                    min="0"
-                                    value={localFilters.maxServices}
-                                    onChange={handleInputChange}
-                                    placeholder="np. 50, 100..."
-                                    $hasValue={!!localFilters.maxServices}
-                                />
-                                {localFilters.maxServices && (
-                                    <ClearInputButton onClick={() => clearField('maxServices')}>
-                                        <FaTimes />
-                                    </ClearInputButton>
-                                )}
-                            </FilterInputWrapper>
-                        </FilterGroup>
-                    </FiltersGrid>
-
-                    {(localFilters.minServices || localFilters.maxServices) && (
-                        <VisitRangeDisplay>
-                            <VisitRangeTitle>
-                                <FaEye />
-                                Zakres liczby wizyt:
-                            </VisitRangeTitle>
-                            <VisitRangeInfo>
-                                {localFilters.minServices && localFilters.maxServices
-                                    ? `${localFilters.minServices} - ${localFilters.maxServices} wizyt`
-                                    : localFilters.minServices
-                                        ? `Minimum ${localFilters.minServices} wizyt`
-                                        : `Maksimum ${localFilters.maxServices} wizyt`
-                                }
-                            </VisitRangeInfo>
-                        </VisitRangeDisplay>
-                    )}
-
-                    <FiltersFooter>
-                        <ResultsSection>
-                            {hasActiveFilters() ? (
-                                <ResultsWithIcon>
-                                    <FaCheck />
-                                    <ResultsText>
-                                        Znaleziono: {resultCount} {
-                                        resultCount === 1 ? 'pojazd' :
-                                            resultCount > 1 && resultCount < 5 ? 'pojazdy' : 'pojazdów'
-                                    }
-                                    </ResultsText>
-                                </ResultsWithIcon>
-                            ) : (
-                                <ResultsInfo>
-                                    Wprowadź kryteria i kliknij "Zastosuj filtry"
-                                </ResultsInfo>
-                            )}
-                        </ResultsSection>
-
-                        <FiltersActions>
-                            {hasActiveFilters() && (
-                                <SecondaryButton onClick={handleResetFilters}>
-                                    <FaTimes />
-                                    <span>Wyczyść wszystkie</span>
-                                </SecondaryButton>
-                            )}
-                            <PrimaryButton
-                                onClick={handleApplyFilters}
-                                $hasChanges={hasChanges()}
-                                disabled={!hasChanges()}
-                            >
-                                <FaSearch />
-                                <span>Zastosuj filtry</span>
-                            </PrimaryButton>
-                        </FiltersActions>
-                    </FiltersFooter>
-                </FiltersContent>
+            {(localFilters.minServices || localFilters.maxServices) && (
+                <VisitRangeDisplay>
+                    <VisitRangeTitle>
+                        <FaEye />
+                        Zakres liczby wizyt:
+                    </VisitRangeTitle>
+                    <VisitRangeInfo>
+                        {localFilters.minServices && localFilters.maxServices
+                            ? `${localFilters.minServices} - ${localFilters.maxServices} wizyt`
+                            : localFilters.minServices
+                                ? `Minimum ${localFilters.minServices} wizyt`
+                                : `Maksimum ${localFilters.maxServices} wizyt`
+                        }
+                    </VisitRangeInfo>
+                </VisitRangeDisplay>
             )}
-        </FiltersContainer>
+
+            <FiltersFooter>
+                <ResultsSection>
+                    {hasActiveFilters() ? (
+                        <ResultsWithIcon>
+                            <FaCheck />
+                            <ResultsText>
+                                Znaleziono: {resultCount} {
+                                resultCount === 1 ? 'pojazd' :
+                                    resultCount > 1 && resultCount < 5 ? 'pojazdy' : 'pojazdów'
+                            }
+                            </ResultsText>
+                        </ResultsWithIcon>
+                    ) : (
+                        <ResultsInfo>
+                            Wprowadź kryteria i kliknij "Zastosuj filtry"
+                        </ResultsInfo>
+                    )}
+                </ResultsSection>
+
+                <FiltersActions>
+                    {hasActiveFilters() && (
+                        <SecondaryButton onClick={handleResetFilters}>
+                            <FaTimes />
+                            <span>Wyczyść wszystkie</span>
+                        </SecondaryButton>
+                    )}
+                    <PrimaryButton
+                        onClick={handleApplyFilters}
+                        $hasChanges={hasChanges()}
+                        disabled={!hasChanges()}
+                    >
+                        <FaSearch />
+                        <span>Zastosuj filtry</span>
+                    </PrimaryButton>
+                </FiltersActions>
+            </FiltersFooter>
+        </FiltersContent>
     );
 };
 
-const FiltersContainer = styled.div<{ $expanded: boolean }>`
-    background: ${brandTheme.surface};
-    border-radius: ${brandTheme.radius.xl};
-    border: 1px solid ${brandTheme.border};
-    overflow: hidden;
-    box-shadow: ${brandTheme.shadow.sm};
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    
-    ${props => props.$expanded && `
-        box-shadow: ${brandTheme.shadow.md};
-    `}
-`;
-
-const FiltersToggle = styled.button<{ $hasActiveFilters: boolean }>`
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: ${brandTheme.spacing.lg};
-    background: ${props => props.$hasActiveFilters
-    ? `linear-gradient(135deg, ${brandTheme.primaryGhost} 0%, rgba(26, 54, 93, 0.02) 100%)`
-    : brandTheme.surfaceAlt
-};
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    text-align: left;
-
-    &:hover {
-        background: ${props => props.$hasActiveFilters
-    ? `linear-gradient(135deg, ${brandTheme.primaryGhost} 0%, rgba(26, 54, 93, 0.04) 100%)`
-    : brandTheme.surfaceHover
-};
-    }
-`;
-
-const ToggleLeft = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.md};
-    flex: 1;
-    min-width: 0;
-`;
-
-const FilterIcon = styled.div<{ $active: boolean }>`
-    width: 48px;
-    height: 48px;
-    background: ${props => props.$active
-    ? `linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%)`
-    : brandTheme.surfaceElevated
-};
-    border-radius: ${brandTheme.radius.lg};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: ${props => props.$active ? 'white' : brandTheme.text.tertiary};
-    font-size: 18px;
-    box-shadow: ${props => props.$active ? brandTheme.shadow.md : brandTheme.shadow.xs};
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    flex-shrink: 0;
-`;
-
-const ToggleContent = styled.div`
-    flex: 1;
-    min-width: 0;
-`;
-
-const ToggleTitle = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
-    font-weight: 600;
-    color: ${brandTheme.text.primary};
-    font-size: 18px;
-    margin-bottom: ${brandTheme.spacing.xs};
-    letter-spacing: -0.025em;
-`;
-
-const ActiveFiltersBadge = styled.span`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 24px;
-    height: 24px;
-    background: ${brandTheme.primary};
-    color: white;
-    border-radius: ${brandTheme.radius.lg};
-    font-size: 12px;
-    font-weight: 700;
-    padding: 0 ${brandTheme.spacing.xs};
-    box-shadow: ${brandTheme.shadow.sm};
-`;
-
-const ToggleSubtitle = styled.div`
-    font-size: 14px;
-    color: ${brandTheme.text.secondary};
-    font-weight: 500;
-    line-height: 1.4;
-`;
-
-const ToggleActions = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
-`;
-
-const ClearFiltersButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.xs};
-    background: ${brandTheme.status.errorLight};
-    color: ${brandTheme.status.error};
-    border: 1px solid ${brandTheme.status.error}30;
-    border-radius: ${brandTheme.radius.md};
-    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-        background: ${brandTheme.status.error};
-        color: white;
-        transform: translateY(-1px);
-        box-shadow: ${brandTheme.shadow.md};
-    }
-
-    span {
-        @media (max-width: 640px) {
-            display: none;
-        }
-    }
-`;
-
-const ExpandIcon = styled.div<{ $expanded: boolean }>`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    color: ${brandTheme.text.tertiary};
-    font-size: 14px;
-    transition: all 0.2s ease;
-    transform: ${props => props.$expanded ? 'rotate(180deg)' : 'rotate(0deg)'};
-`;
-
+// Styled Components - podobne do klientów
 const FiltersContent = styled.div`
     padding: ${brandTheme.spacing.lg};
     background: ${brandTheme.surfaceAlt};
-    border-top: 1px solid ${brandTheme.borderLight};
+    border-bottom: 1px solid ${brandTheme.borderLight};
+    animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+            max-height: 0;
+            padding: 0 ${brandTheme.spacing.lg};
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+            max-height: 500px;
+            padding: ${brandTheme.spacing.lg};
+        }
+    }
 `;
 
 const FiltersGrid = styled.div`
@@ -763,17 +592,17 @@ const SecondaryButton = styled(BaseButton)`
 
 const PrimaryButton = styled(BaseButton)<{ $hasChanges: boolean }>`
     background: ${props => props.$hasChanges
-    ? `linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%)`
-    : brandTheme.surfaceElevated
-};
+            ? `linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%)`
+            : brandTheme.surfaceElevated
+    };
     color: ${props => props.$hasChanges ? 'white' : brandTheme.text.tertiary};
     box-shadow: ${props => props.$hasChanges ? brandTheme.shadow.sm : brandTheme.shadow.xs};
 
     &:hover:not(:disabled) {
         background: ${props => props.$hasChanges
-    ? `linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%)`
-    : brandTheme.surfaceHover
-};
+                ? `linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%)`
+                : brandTheme.surfaceHover
+        };
         box-shadow: ${props => props.$hasChanges ? brandTheme.shadow.md : brandTheme.shadow.sm};
     }
 `;
