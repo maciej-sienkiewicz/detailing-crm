@@ -205,7 +205,7 @@ export const UserSignatureSlide: React.FC<UserSignatureSlideProps> = ({
                                         ref={signatureRef}
                                         penColor="#1a365d"
                                         canvasProps={{
-                                            width: 500,
+                                            width: 1000,
                                             height: 200,
                                             className: 'signature-canvas'
                                         }}

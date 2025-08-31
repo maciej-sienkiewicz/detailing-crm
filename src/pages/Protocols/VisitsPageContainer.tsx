@@ -1,7 +1,7 @@
-// src/pages/Protocols/VisitsPageContainer.tsx
+// src/pages/Protocols/VisitsPageContainer.tsx - Updated
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from 'styled-components';
-import {FaArrowLeft, FaClipboardCheck, FaPlus, FaRegistered, FaServicestack} from 'react-icons/fa';
+import {FaArrowLeft, FaClipboardCheck, FaPlus} from 'react-icons/fa';
 import {useLocation, useNavigate} from 'react-router-dom';
 import {VisitListItem} from '../../api/visitsApiNew';
 import {ProtocolStatus} from '../../types';
@@ -9,10 +9,8 @@ import {servicesApi} from '../../api/servicesApi';
 import {protocolsApi} from '../../api/protocolsApi';
 import {useVisitsData} from './hooks/useVisitsData';
 import {useVisitsFilters} from './hooks/useVisitsFilters';
-import {useVisitsSelection} from './hooks/useVisitsSelection';
 import {VisitsFilterBar} from './components/VisitsFilterBar';
 import {VisitsStatusFilters} from './components/VisitsStatusFilters';
-import {VisitsActiveFilters} from './components/VisitsActiveFilters';
 import {VisitsTable} from './components/VisitsTable';
 import {ServiceOption} from './components/ServiceAutocomplete';
 import Pagination from '../../components/common/Pagination';
@@ -77,8 +75,6 @@ export const VisitsPageContainer: React.FC = () => {
         clearAllFilters,
         getApiFilters
     } = useVisitsFilters();
-
-    const selection = useVisitsSelection();
 
     const loadServices = useCallback(async () => {
         if (appData.servicesLoaded || appData.servicesLoading) return;
@@ -174,7 +170,6 @@ export const VisitsPageContainer: React.FC = () => {
 
         setActiveStatusFilter(status);
         lastStatusFilter.current = status;
-        selection.clearSelection();
 
         const searchFilters = getApiFilters();
         if (status !== 'all') {
@@ -187,19 +182,18 @@ export const VisitsPageContainer: React.FC = () => {
             page: 0,
             size: pagination.size || 10
         });
-    }, [activeStatusFilter, getApiFilters, searchVisits, selection, pagination.size]);
+    }, [activeStatusFilter, getApiFilters, searchVisits, pagination.size]);
 
     const handleClearAllFilters = useCallback(async () => {
         clearAllFilters();
         setActiveStatusFilter(ProtocolStatus.IN_PROGRESS);
         lastStatusFilter.current = ProtocolStatus.IN_PROGRESS;
-        selection.clearSelection();
 
         await searchVisits({ status: ProtocolStatus.IN_PROGRESS }, {
             page: 0,
             size: pagination.size || 10
         });
-    }, [clearAllFilters, selection, searchVisits, pagination.size]);
+    }, [clearAllFilters, searchVisits, pagination.size]);
 
     const handlePageChange = useCallback(async (page: number) => {
         const searchFilters = getApiFilters();
@@ -297,6 +291,12 @@ export const VisitsPageContainer: React.FC = () => {
         }
     }, []);
 
+    const [showFilters, setShowFilters] = useState(false);
+
+    const handleToggleFilters = useCallback(() => {
+        setShowFilters(prev => !prev);
+    }, []);
+
     useEffect(() => {
         if (isFirstLoad.current) {
             console.log('🚀 Initial load - loading services and counters');
@@ -378,6 +378,21 @@ export const VisitsPageContainer: React.FC = () => {
         </PrimaryButton>
     );
 
+    // Komponent filtrów do rozwijania - TYLKO VisitsFilterBar, bez VisitsActiveFilters
+    const filtersComponent = (
+        <FiltersContainer>
+            <VisitsFilterBar
+                filters={filters}
+                onFiltersChange={handleFiltersChange}
+                onApplyFilters={handleApplyFilters}
+                onClearAll={handleClearAllFilters}
+                loading={visitsLoading}
+                availableServices={appData.services}
+                servicesLoading={appData.servicesLoading}
+            />
+        </FiltersContainer>
+    );
+
     return (
         <PageContainer>
             <PageHeader
@@ -395,26 +410,6 @@ export const VisitsPageContainer: React.FC = () => {
                     loading={appData.countersLoading}
                 />
 
-                <FiltersSection>
-                    <VisitsFilterBar
-                        filters={filters}
-                        onFiltersChange={handleFiltersChange}
-                        onApplyFilters={handleApplyFilters}
-                        onClearAll={handleClearAllFilters}
-                        loading={visitsLoading}
-                        availableServices={appData.services}
-                        servicesLoading={appData.servicesLoading}
-                    />
-
-                    {hasActiveFilters && (
-                        <VisitsActiveFilters
-                            filters={filters}
-                            onRemoveFilter={clearFilter}
-                            onClearAll={handleClearAllFilters}
-                        />
-                    )}
-                </FiltersSection>
-
                 <ResultsSection>
                     {error && (
                         <ErrorMessage>
@@ -425,11 +420,14 @@ export const VisitsPageContainer: React.FC = () => {
                     <VisitsTable
                         visits={visits}
                         loading={visitsLoading}
-                        selection={selection}
+                        showFilters={showFilters}
+                        hasActiveFilters={hasActiveFilters}
                         onVisitClick={handleVisitClick}
                         onViewVisit={handleViewVisit}
                         onEditVisit={handleEditVisit}
                         onDeleteVisit={handleDeleteVisit}
+                        onToggleFilters={handleToggleFilters}
+                        filtersComponent={filtersComponent}
                     />
 
                     {pagination && pagination.totalPages > 1 && pagination.page !== undefined && (
@@ -496,16 +494,16 @@ const ContentContainer = styled.div`
     }
 `;
 
-const FiltersSection = styled.div`
-    margin-bottom: ${theme.spacing.xxl};
-    position: relative;
-    z-index: 10;
+const FiltersContainer = styled.div`
+    background: ${theme.surfaceAlt};
+    padding: 0;
 `;
 
 const ResultsSection = styled.div`
     display: flex;
     flex-direction: column;
     gap: ${theme.spacing.xl};
+    margin-top: ${theme.spacing.xxl};
 `;
 
 const ErrorMessage = styled.div`

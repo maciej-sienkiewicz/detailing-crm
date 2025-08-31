@@ -10,9 +10,6 @@ import {
 
 interface RealtimeStats {
     connectedTablets: number;
-    pendingSessions: number;
-    completedToday: number;
-    successRate: number;
 }
 
 interface UseTabletsResult {
@@ -45,9 +42,6 @@ export const useTablets = (): UseTabletsResult => {
     const [sessions, setSessions] = useState<SignatureSession[]>([]);
     const [realtimeStats, setRealtimeStats] = useState<RealtimeStats>({
         connectedTablets: 0,
-        pendingSessions: 0,
-        completedToday: 0,
-        successRate: 0
     });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -58,28 +52,13 @@ export const useTablets = (): UseTabletsResult => {
     const [pairingError, setPairingError] = useState<string | null>(null);
 
     // Calculate realtime stats from current data
-    const calculateRealtimeStats = useCallback((tabletsData: TabletDevice[], sessionsData: SignatureSession[]): RealtimeStats => {
+    const calculateRealtimeStats = useCallback((tabletsData: TabletDevice[]): RealtimeStats => {
         const connectedTablets = tabletsData.filter(t => t.isOnline).length;
-        const pendingSessions = sessionsData.filter(s => s.status === 'PENDING' || s.status === 'SENT_TO_TABLET').length;
 
         // Calculate today's completed sessions
         const today = new Date().toDateString();
-        const completedToday = sessionsData.filter(s =>
-            s.status === 'SIGNED' &&
-            s.signedAt &&
-            new Date(s.signedAt).toDateString() === today
-        ).length;
-
-        // Calculate success rate (signed vs total sessions)
-        const totalSessions = sessionsData.length;
-        const signedSessions = sessionsData.filter(s => s.status === 'SIGNED').length;
-        const successRate = totalSessions > 0 ? (signedSessions / totalSessions) * 100 : 0;
-
         return {
             connectedTablets,
-            pendingSessions,
-            completedToday,
-            successRate: Math.round(successRate * 100) / 100
         };
     }, []);
 
@@ -92,21 +71,18 @@ export const useTablets = (): UseTabletsResult => {
             console.log('🔄 Refreshing tablets data...');
 
             // Fetch tablets and sessions in parallel
-            const [tabletsData, sessionsData] = await Promise.all([
+            const [tabletsData] = await Promise.all([
                 tabletsApi.getTablets(),
-                tabletsApi.getSignatureSessions()
             ]);
 
             console.log('📊 Fetched data:', {
                 tablets: tabletsData.length,
-                sessions: sessionsData.length
             });
 
             setTablets(tabletsData);
-            setSessions(sessionsData);
 
             // Calculate and set realtime stats
-            const stats = calculateRealtimeStats(tabletsData, sessionsData);
+            const stats = calculateRealtimeStats(tabletsData);
             setRealtimeStats(stats);
 
             console.log('📈 Updated stats:', stats);
@@ -159,12 +135,8 @@ export const useTablets = (): UseTabletsResult => {
 
             console.log('✅ Signature session created:', response);
 
-            // Refresh sessions after creating new one
-            const updatedSessions = await tabletsApi.getSignatureSessions();
-            setSessions(updatedSessions);
-
             // Update stats
-            const stats = calculateRealtimeStats(tablets, updatedSessions);
+            const stats = calculateRealtimeStats(tablets);
             setRealtimeStats(stats);
 
             return response;

@@ -92,12 +92,6 @@ interface TabletManagementDashboardProps {
     sessions: SignatureSession[];
     onSessionClick: (session: SignatureSession) => void;
     onDataRefresh?: () => void; // Już istnieje - będziemy go używać
-    realtimeStats: {
-        connectedTablets: number;
-        pendingSessions: number;
-        completedToday: number;
-        successRate: number;
-    };
 }
 
 const TabletManagementDashboard: React.FC<TabletManagementDashboardProps> = ({
@@ -105,7 +99,6 @@ const TabletManagementDashboard: React.FC<TabletManagementDashboardProps> = ({
                                                                                  sessions,
                                                                                  onSessionClick,
                                                                                  onDataRefresh,
-                                                                                 realtimeStats
                                                                              }) => {
     const { createSignatureSession, testTablet, loading, unpairTablet, refreshData } = useTablets();
     const [activeTab, setActiveTab] = useState<'tablets' | 'sessions'>('tablets');

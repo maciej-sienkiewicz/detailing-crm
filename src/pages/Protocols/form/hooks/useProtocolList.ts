@@ -1,7 +1,6 @@
 import {useCallback, useEffect, useState} from 'react';
 import {FilterType} from '../../list/ProtocolFilters';
 import {ProtocolStatus} from '../../../../types';
-import {protocolsApi} from '../../../../api/protocolsApi';
 import {SearchCriteria} from '../../list/ProtocolSearchFilters';
 import visitsApiNew, {VisitListItem} from "../../../../api/visitsApiNew";
 
@@ -20,7 +19,6 @@ interface UseProtocolListReturn {
         totalPages: number;
     };
     handlePageChange: (page: number) => void;
-    searchProtocols: (criteria: SearchCriteria) => Promise<void>;
 }
 
 const mapFilterToStatus = (filter: FilterType): ProtocolStatus | undefined => {
@@ -151,14 +149,10 @@ export const useProtocolList = (): UseProtocolListReturn => {
     const handlePageChange = (page: number) => {
         console.log(`Zmiana strony z ${pagination.currentPage + 1} na ${page}`);
 
-        // Aktualizacja strony (zmniejszenie o 1 dla API)
         setPagination(prev => ({
             ...prev,
             currentPage: page - 1  // Konwersja z indeksowania od 1 (UI) na indeksowanie od 0 (API)
         }));
-
-        // Nie wywołujemy fetchProtocols() bezpośrednio -
-        // useEffect zrobi to za nas po zmianie pagination.currentPage
     };
 
     // Obsługa zmiany filtra
@@ -167,19 +161,10 @@ export const useProtocolList = (): UseProtocolListReturn => {
 
         setActiveFilter(filter);
 
-        // Reset paginacji przy zmianie filtra
         setPagination(prev => ({
             ...prev,
             currentPage: 0
         }));
-
-        // Nie wywołujemy fetchProtocols() bezpośrednio -
-        // useEffect zrobi to za nas po zmianie activeFilter i pagination.currentPage
-    };
-
-    // Obsługa wyszukiwania protokołów
-    const searchProtocols = async (criteria: SearchCriteria) => {
-
     };
 
     return {
@@ -197,6 +182,5 @@ export const useProtocolList = (): UseProtocolListReturn => {
             totalPages: pagination.totalPages
         },
         handlePageChange,
-        searchProtocols
     };
 };

@@ -349,7 +349,6 @@ const TabletIntegrationPage: React.FC = () => {
                     sessions={sessions}
                     onSessionClick={handleSessionClick}
                     onDataRefresh={handleDataRefresh} // Dodaj ten prop
-                    realtimeStats={realtimeStats}
                 />
             </ContentContainer>
 

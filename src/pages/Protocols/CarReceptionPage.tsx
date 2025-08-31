@@ -36,7 +36,6 @@ const CarReceptionPage: React.FC = () => {
         refreshProtocolsList,
         pagination,
         handlePageChange,
-        searchProtocols
     } = useProtocolList();
 
     const {

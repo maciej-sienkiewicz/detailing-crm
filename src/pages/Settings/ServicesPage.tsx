@@ -1,23 +1,24 @@
-// src/pages/Settings/ServicesPage.tsx
-import React, {forwardRef, useEffect, useImperativeHandle, useState} from 'react';
+// src/pages/Settings/ServicesPage.tsx - Zaktualizowany z użyciem rozszerzonego DataTable
+import React, { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import {
-    FaChevronDown,
-    FaChevronUp,
     FaEdit,
     FaFilter,
     FaSave,
     FaSearch,
     FaTimes,
     FaTrash,
-    FaWrench
+    FaWrench,
+    FaPlus
 } from 'react-icons/fa';
-import {Service} from '../../types';
-import {servicesApi} from '../../api/servicesApi';
-import {settingsTheme} from './styles/theme';
+import { Service } from '../../types';
+import { servicesApi } from '../../api/servicesApi';
+import { DataTable, TableColumn, HeaderAction } from '../../components/common/DataTable';
+import { settingsTheme } from './styles/theme';
 
 // Interfejs dla filtrów
 interface ServiceFilters {
+    searchQuery: string;
     name: string;
     description: string;
     minPrice: string;
@@ -27,16 +28,15 @@ interface ServiceFilters {
 
 const ServicesPage = forwardRef<{ handleAddService: () => void }>((props, ref) => {
     const [services, setServices] = useState<Service[]>([]);
-    const [filteredServices, setFilteredServices] = useState<Service[]>([]);
     const [filters, setFilters] = useState<ServiceFilters>({
+        searchQuery: '',
         name: '',
         description: '',
         minPrice: '',
         maxPrice: '',
         vatRate: ''
     });
-    const [searchTerm, setSearchTerm] = useState('');
-    const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+    const [showFilters, setShowFilters] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showModal, setShowModal] = useState(false);
@@ -61,7 +61,6 @@ const ServicesPage = forwardRef<{ handleAddService: () => void }>((props, ref) =
                 ]);
 
                 setServices(servicesData);
-                setFilteredServices(servicesData);
                 setDefaultVatRate(vatRateData);
                 setError(null);
             } catch (err) {
@@ -75,13 +74,13 @@ const ServicesPage = forwardRef<{ handleAddService: () => void }>((props, ref) =
         fetchData();
     }, []);
 
-    // Obsługa wyszukiwania
-    useEffect(() => {
+    // Filtrowane usługi
+    const filteredServices = useMemo(() => {
         let result = [...services];
 
-        // Wyszukiwanie po nazwie
-        if (searchTerm.trim()) {
-            const searchQuery = searchTerm.toLowerCase().trim();
+        // Wyszukiwanie po nazwie lub opisie
+        if (filters.searchQuery.trim()) {
+            const searchQuery = filters.searchQuery.toLowerCase().trim();
             result = result.filter(service =>
                 service.name.toLowerCase().includes(searchQuery) ||
                 service.description.toLowerCase().includes(searchQuery)
@@ -128,32 +127,24 @@ const ServicesPage = forwardRef<{ handleAddService: () => void }>((props, ref) =
             }
         }
 
-        setFilteredServices(result);
-    }, [services, filters, searchTerm]);
+        return result;
+    }, [services, filters]);
 
-    // Obsługa zmiany filtrów
-    const handleFilterChange = (field: keyof ServiceFilters, value: string) => {
-        setFilters(prev => ({
-            ...prev,
-            [field]: value
-        }));
+    // Sprawdzenie czy jakiekolwiek filtry są aktywne
+    const hasActiveFilters = () => {
+        return Object.values(filters).some(value => value.trim() !== '');
     };
 
     // Resetowanie filtrów
     const clearAllFilters = () => {
         setFilters({
+            searchQuery: '',
             name: '',
             description: '',
             minPrice: '',
             maxPrice: '',
             vatRate: ''
         });
-        setSearchTerm('');
-    };
-
-    // Sprawdzenie czy jakiekolwiek filtry są aktywne
-    const hasActiveFilters = () => {
-        return searchTerm.trim() !== '' || Object.values(filters).some(value => value.trim() !== '');
     };
 
     // Obsługa dodawania nowej usługi
@@ -219,218 +210,139 @@ const ServicesPage = forwardRef<{ handleAddService: () => void }>((props, ref) =
         }
     };
 
+    // Kolumny DataTable
+    const columns: TableColumn[] = [
+        { id: 'name', label: 'Nazwa', width: '25%', sortable: true },
+        { id: 'description', label: 'Opis', width: '20%', sortable: true },
+        { id: 'price', label: 'Cena netto', width: '15%', sortable: true },
+        { id: 'vatRate', label: 'VAT', width: '10%', sortable: true },
+        { id: 'grossPrice', label: 'Cena brutto', width: '15%', sortable: true },
+        { id: 'actions', label: 'Akcje', width: '25%', sortable: false },
+    ];
+
+    // Renderowanie komórek
+    const renderCell = (service: Service, columnId: string): React.ReactNode => {
+        switch (columnId) {
+            case 'name':
+                return (
+                    <ServiceNameCell>
+                        <ServiceName>{service.name}</ServiceName>
+                    </ServiceNameCell>
+                );
+            case 'description':
+                return <ServiceDescription>{service.description}</ServiceDescription>;
+            case 'price':
+                return <PriceCell>{service.price.toFixed(2)} zł</PriceCell>;
+            case 'vatRate':
+                return <VatBadge>{service.vatRate}%</VatBadge>;
+            case 'grossPrice':
+                return (
+                    <PriceCell $total>
+                        {(service.price * (1 + service.vatRate / 100)).toFixed(2)} zł
+                    </PriceCell>
+                );
+            case 'actions':
+                return (
+                    <ActionButtons>
+                        <ActionButton
+                            onClick={() => handleEditService(service)}
+                            title="Edytuj usługę"
+                            $variant="edit"
+                        >
+                            <FaEdit />
+                        </ActionButton>
+                        <ActionButton
+                            onClick={() => handleDeleteService(service.id)}
+                            title="Usuń usługę"
+                            $variant="delete"
+                        >
+                            <FaTrash />
+                        </ActionButton>
+                    </ActionButtons>
+                );
+            default:
+                const value = service[columnId as keyof Service];
+                if (value === null || value === undefined) return '';
+                return String(value);
+        }
+    };
+
+    const emptyStateConfig = {
+        icon: FaWrench,
+        title: 'Brak usług',
+        description: 'Nie masz jeszcze żadnych usług w systemie',
+        actionText: 'Kliknij przycisk "Dodaj usługę", aby utworzyć pierwszą usługę'
+    };
+
+    // Konfiguracja akcji w nagłówku
+    const headerActions: HeaderAction[] = [
+        {
+            id: 'filters',
+            label: 'Filtry',
+            icon: FaFilter,
+            onClick: () => setShowFilters(!showFilters),
+            variant: 'filter',
+            active: showFilters,
+            badge: hasActiveFilters()
+        },
+        {
+            id: 'add',
+            label: 'Dodaj usługę',
+            icon: FaPlus,
+            onClick: handleAddService,
+            variant: 'primary'
+        }
+    ];
+
+    // Komponent filtrów
+    const filtersComponent = (
+        <EnhancedServiceFilters
+            filters={filters}
+            showFilters={showFilters}
+            hasActiveFilters={hasActiveFilters()}
+            onFiltersChange={setFilters}
+            onToggleFilters={() => setShowFilters(!showFilters)}
+            onClearFilters={clearAllFilters}
+            resultCount={filteredServices.length}
+        />
+    );
+
     return (
         <ContentContainer>
-            {/* Filters */}
-            <FiltersContainer>
-                <QuickSearchSection>
-                    <SearchWrapper>
-                        <SearchIcon>
-                            <FaSearch />
-                        </SearchIcon>
-                        <SearchInput
-                            type="text"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            placeholder="Szybkie wyszukiwanie - nazwa usługi, opis..."
-                        />
-                        {searchTerm && (
-                            <ClearSearchButton onClick={() => setSearchTerm('')}>
-                                <FaTimes />
-                            </ClearSearchButton>
-                        )}
-                    </SearchWrapper>
-
-                    <AdvancedToggle
-                        onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                        $expanded={showAdvancedFilters}
-                    >
-                        <FaFilter />
-                        Filtry zaawansowane
-                        {showAdvancedFilters ? <FaChevronUp /> : <FaChevronDown />}
-                    </AdvancedToggle>
-                </QuickSearchSection>
-
-                {showAdvancedFilters && (
-                    <AdvancedFiltersSection>
-                        <FiltersGrid>
-                            <FormGroup>
-                                <Label>Nazwa usługi</Label>
-                                <Input
-                                    value={filters.name}
-                                    onChange={(e) => handleFilterChange('name', e.target.value)}
-                                    placeholder="Filtruj po nazwie..."
-                                />
-                            </FormGroup>
-
-                            <FormGroup>
-                                <Label>Opis</Label>
-                                <Input
-                                    value={filters.description}
-                                    onChange={(e) => handleFilterChange('description', e.target.value)}
-                                    placeholder="Filtruj po opisie..."
-                                />
-                            </FormGroup>
-
-                            <FormGroup>
-                                <Label>Cena min. (zł)</Label>
-                                <Input
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={filters.minPrice}
-                                    onChange={(e) => handleFilterChange('minPrice', e.target.value)}
-                                    placeholder="Od..."
-                                />
-                            </FormGroup>
-
-                            <FormGroup>
-                                <Label>Cena maks. (zł)</Label>
-                                <Input
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={filters.maxPrice}
-                                    onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
-                                    placeholder="Do..."
-                                />
-                            </FormGroup>
-
-                            <FormGroup>
-                                <Label>Stawka VAT (%)</Label>
-                                <Input
-                                    type="number"
-                                    min="0"
-                                    max="100"
-                                    step="1"
-                                    value={filters.vatRate}
-                                    onChange={(e) => handleFilterChange('vatRate', e.target.value)}
-                                    placeholder="Stawka VAT..."
-                                />
-                            </FormGroup>
-                        </FiltersGrid>
-
-                        <FiltersActions>
-                            <ClearButton onClick={clearAllFilters}>
-                                <FaTimes />
-                                Wyczyść wszystkie
-                            </ClearButton>
-                        </FiltersActions>
-                    </AdvancedFiltersSection>
-                )}
-
-                <ResultsCounter>
-                    Znaleziono: <strong>{filteredServices.length}</strong> {filteredServices.length === 1 ? 'usługę' : filteredServices.length > 1 && filteredServices.length < 5 ? 'usługi' : 'usług'}
-                </ResultsCounter>
-            </FiltersContainer>
-
             {/* Error message */}
             {error && (
                 <ErrorMessage>
                     <ErrorIcon>⚠️</ErrorIcon>
                     <ErrorText>{error}</ErrorText>
+                    <CloseErrorButton onClick={() => setError(null)}>
+                        <FaTimes />
+                    </CloseErrorButton>
                 </ErrorMessage>
             )}
 
-            {/* Content */}
+            {/* Main Content with DataTable */}
             {loading ? (
                 <LoadingContainer>
                     <LoadingSpinner />
                     <LoadingText>Ładowanie usług...</LoadingText>
                 </LoadingContainer>
             ) : (
-                <>
-                    {services.length === 0 ? (
-                        <EmptyStateContainer>
-                            <EmptyStateIcon>
-                                <FaWrench />
-                            </EmptyStateIcon>
-                            <EmptyStateTitle>Brak usług</EmptyStateTitle>
-                            <EmptyStateDescription>
-                                Nie masz jeszcze żadnych usług w systemie
-                            </EmptyStateDescription>
-                            <EmptyStateAction>
-                                Kliknij przycisk "Dodaj usługę", aby utworzyć pierwszą usługę
-                            </EmptyStateAction>
-                        </EmptyStateContainer>
-                    ) : filteredServices.length === 0 && hasActiveFilters() ? (
-                        <EmptyStateContainer>
-                            <EmptyStateIcon>
-                                <FaSearch />
-                            </EmptyStateIcon>
-                            <EmptyStateTitle>Brak wyników</EmptyStateTitle>
-                            <EmptyStateDescription>
-                                Nie znaleziono usług spełniających kryteria wyszukiwania
-                            </EmptyStateDescription>
-                        </EmptyStateContainer>
-                    ) : (
-                        <TableContainer>
-                            <TableHeader>
-                                <TableTitle>
-                                    Usługi ({filteredServices.length})
-                                </TableTitle>
-                            </TableHeader>
-
-                            <TableWrapper>
-                                <Table>
-                                    <TableHead>
-                                        <TableRowHeader>
-                                            <TableHeaderCell>Nazwa</TableHeaderCell>
-                                            <TableHeaderCell>Opis</TableHeaderCell>
-                                            <TableHeaderCell>Cena netto</TableHeaderCell>
-                                            <TableHeaderCell>VAT</TableHeaderCell>
-                                            <TableHeaderCell>Cena brutto</TableHeaderCell>
-                                            <TableHeaderCell>Akcje</TableHeaderCell>
-                                        </TableRowHeader>
-                                    </TableHead>
-                                    <TableBody>
-                                        {filteredServices.map(service => (
-                                            <TableRow key={service.id}>
-                                                <TableCell>
-                                                    <ServiceNameCell>
-                                                        <ServiceName>{service.name}</ServiceName>
-                                                    </ServiceNameCell>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <ServiceDescription>{service.description}</ServiceDescription>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <PriceCell>{service.price.toFixed(2)} zł</PriceCell>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <VatBadge>{service.vatRate}%</VatBadge>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <PriceCell $total>
-                                                        {(service.price * (1 + service.vatRate / 100)).toFixed(2)} zł
-                                                    </PriceCell>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <ActionButtons>
-                                                        <ActionButton
-                                                            onClick={() => handleEditService(service)}
-                                                            title="Edytuj usługę"
-                                                            $variant="edit"
-                                                        >
-                                                            <FaEdit />
-                                                        </ActionButton>
-                                                        <ActionButton
-                                                            onClick={() => handleDeleteService(service.id)}
-                                                            title="Usuń usługę"
-                                                            $variant="delete"
-                                                        >
-                                                            <FaTrash />
-                                                        </ActionButton>
-                                                    </ActionButtons>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </TableWrapper>
-                        </TableContainer>
-                    )}
-                </>
+                <DataTable
+                    data={filteredServices}
+                    columns={columns}
+                    title="Lista usług"
+                    emptyStateConfig={emptyStateConfig}
+                    renderCell={renderCell}
+                    enableDragAndDrop={true}
+                    enableViewToggle={false}
+                    storageKeys={{
+                        viewMode: 'services_view_mode',
+                        columnOrder: 'services_column_order'
+                    }}
+                    headerActions={headerActions}
+                    expandableContent={filtersComponent}
+                    expandableVisible={showFilters}
+                />
             )}
 
             {/* Modal dla dodawania/edycji usługi */}
@@ -448,6 +360,122 @@ const ServicesPage = forwardRef<{ handleAddService: () => void }>((props, ref) =
         </ContentContainer>
     );
 });
+
+// Komponent Enhanced Service Filters
+interface EnhancedServiceFiltersProps {
+    filters: ServiceFilters;
+    showFilters: boolean;
+    hasActiveFilters: boolean;
+    onFiltersChange: (filters: ServiceFilters) => void;
+    onToggleFilters: () => void;
+    onClearFilters: () => void;
+    resultCount: number;
+}
+
+const EnhancedServiceFilters: React.FC<EnhancedServiceFiltersProps> = ({
+                                                                           filters,
+                                                                           showFilters,
+                                                                           hasActiveFilters,
+                                                                           onFiltersChange,
+                                                                           onToggleFilters,
+                                                                           onClearFilters,
+                                                                           resultCount
+                                                                       }) => {
+    const handleFilterChange = (field: keyof ServiceFilters, value: string) => {
+        onFiltersChange({
+            ...filters,
+            [field]: value
+        });
+    };
+
+    return (
+        <FiltersContainer>
+            <FiltersContent>
+                <QuickSearchSection>
+                    <SearchWrapper>
+                        {filters.searchQuery && (
+                            <ClearSearchButton onClick={() => handleFilterChange('searchQuery', '')}>
+                                <FaTimes />
+                            </ClearSearchButton>
+                        )}
+                    </SearchWrapper>
+                </QuickSearchSection>
+
+                <AdvancedFiltersSection>
+                    <FiltersGrid>
+                        <FormGroup>
+                            <Label>Nazwa usługi</Label>
+                            <Input
+                                value={filters.name}
+                                onChange={(e) => handleFilterChange('name', e.target.value)}
+                                placeholder="Filtruj po nazwie..."
+                            />
+                        </FormGroup>
+
+                        <FormGroup>
+                            <Label>Opis</Label>
+                            <Input
+                                value={filters.description}
+                                onChange={(e) => handleFilterChange('description', e.target.value)}
+                                placeholder="Filtruj po opisie..."
+                            />
+                        </FormGroup>
+
+                        <FormGroup>
+                            <Label>Cena min. (zł)</Label>
+                            <Input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={filters.minPrice}
+                                onChange={(e) => handleFilterChange('minPrice', e.target.value)}
+                                placeholder="Od..."
+                            />
+                        </FormGroup>
+
+                        <FormGroup>
+                            <Label>Cena maks. (zł)</Label>
+                            <Input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={filters.maxPrice}
+                                onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
+                                placeholder="Do..."
+                            />
+                        </FormGroup>
+
+                        <FormGroup>
+                            <Label>Stawka VAT (%)</Label>
+                            <Input
+                                type="number"
+                                min="0"
+                                max="100"
+                                step="1"
+                                value={filters.vatRate}
+                                onChange={(e) => handleFilterChange('vatRate', e.target.value)}
+                                placeholder="Stawka VAT..."
+                            />
+                        </FormGroup>
+                    </FiltersGrid>
+
+                    {hasActiveFilters && (
+                        <FiltersActions>
+                            <ClearButton onClick={onClearFilters}>
+                                <FaTimes />
+                                Wyczyść wszystkie
+                            </ClearButton>
+                        </FiltersActions>
+                    )}
+                </AdvancedFiltersSection>
+
+                <ResultsCounter>
+                    Znaleziono: <strong>{resultCount}</strong> {resultCount === 1 ? 'usługę' : resultCount > 1 && resultCount < 5 ? 'usługi' : 'usług'}
+                </ResultsCounter>
+            </FiltersContent>
+        </FiltersContainer>
+    );
+};
 
 // Komponent modalu do dodawania/edycji usługi
 interface ServiceFormModalProps {
@@ -632,213 +660,6 @@ const ContentContainer = styled.div`
     }
 `;
 
-const FiltersContainer = styled.div`
-    background: ${settingsTheme.surface};
-    border-radius: ${settingsTheme.radius.xl};
-    border: 1px solid ${settingsTheme.border};
-    overflow: hidden;
-    box-shadow: ${settingsTheme.shadow.sm};
-`;
-
-const QuickSearchSection = styled.div`
-    padding: ${settingsTheme.spacing.lg};
-    display: flex;
-    align-items: center;
-    gap: ${settingsTheme.spacing.md};
-    border-bottom: 1px solid ${settingsTheme.border};
-
-    @media (max-width: 768px) {
-        flex-direction: column;
-        align-items: stretch;
-    }
-`;
-
-const SearchWrapper = styled.div`
-    position: relative;
-    flex: 1;
-    max-width: 500px;
-
-    @media (max-width: 768px) {
-        max-width: none;
-    }
-`;
-
-const SearchIcon = styled.div`
-    position: absolute;
-    left: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: ${settingsTheme.text.muted};
-    font-size: 16px;
-    z-index: 2;
-`;
-
-const SearchInput = styled.input`
-    width: 100%;
-    height: 48px;
-    padding: 0 48px 0 48px;
-    border: 2px solid ${settingsTheme.border};
-    border-radius: ${settingsTheme.radius.lg};
-    font-size: 16px;
-    font-weight: 500;
-    background: ${settingsTheme.surface};
-    color: ${settingsTheme.text.primary};
-    transition: all 0.2s ease;
-
-    &:focus {
-        outline: none;
-        border-color: ${settingsTheme.primary};
-        box-shadow: 0 0 0 3px ${settingsTheme.primaryGhost};
-    }
-
-    &::placeholder {
-        color: ${settingsTheme.text.muted};
-        font-weight: 400;
-    }
-`;
-
-const ClearSearchButton = styled.button`
-    position: absolute;
-    right: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 24px;
-    height: 24px;
-    border: none;
-    background: ${settingsTheme.surfaceAlt};
-    color: ${settingsTheme.text.muted};
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    transition: all 0.2s ease;
-
-    &:hover {
-        background: ${settingsTheme.status.error};
-        color: white;
-    }
-`;
-
-const AdvancedToggle = styled.button<{ $expanded: boolean }>`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 20px;
-    border: 2px solid ${props => props.$expanded ? settingsTheme.primary : settingsTheme.border};
-    background: ${props => props.$expanded ? settingsTheme.primaryGhost : settingsTheme.surface};
-    color: ${props => props.$expanded ? settingsTheme.primary : settingsTheme.text.secondary};
-    border-radius: ${settingsTheme.radius.md};
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-
-    &:hover {
-        border-color: ${settingsTheme.primary};
-        color: ${settingsTheme.primary};
-    }
-`;
-
-const AdvancedFiltersSection = styled.div`
-    padding: ${settingsTheme.spacing.lg};
-    background: ${settingsTheme.surfaceAlt};
-`;
-
-const FiltersGrid = styled.div`
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: ${settingsTheme.spacing.md};
-    margin-bottom: ${settingsTheme.spacing.lg};
-
-    @media (max-width: 768px) {
-        grid-template-columns: 1fr;
-    }
-`;
-
-const FormGroup = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${settingsTheme.spacing.xs};
-`;
-
-const Label = styled.label`
-    font-size: 14px;
-    font-weight: 600;
-    color: ${settingsTheme.text.primary};
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-`;
-
-const Input = styled.input`
-    height: 44px;
-    padding: 0 ${settingsTheme.spacing.md};
-    border: 2px solid ${settingsTheme.border};
-    border-radius: ${settingsTheme.radius.md};
-    font-size: 14px;
-    font-weight: 500;
-    background: ${settingsTheme.surface};
-    color: ${settingsTheme.text.primary};
-    transition: all 0.2s ease;
-
-    &:focus {
-        outline: none;
-        border-color: ${settingsTheme.primary};
-        box-shadow: 0 0 0 3px ${settingsTheme.primaryGhost};
-    }
-
-    &::placeholder {
-        color: ${settingsTheme.text.muted};
-        font-weight: 400;
-    }
-`;
-
-const FiltersActions = styled.div`
-    display: flex;
-    justify-content: flex-end;
-    gap: ${settingsTheme.spacing.sm};
-    padding-top: ${settingsTheme.spacing.md};
-    border-top: 1px solid ${settingsTheme.border};
-`;
-
-const ClearButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: ${settingsTheme.spacing.xs};
-    padding: ${settingsTheme.spacing.sm} ${settingsTheme.spacing.md};
-    border: 2px solid ${settingsTheme.border};
-    background: ${settingsTheme.surface};
-    color: ${settingsTheme.text.secondary};
-    border-radius: ${settingsTheme.radius.md};
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-        border-color: ${settingsTheme.status.error};
-        color: ${settingsTheme.status.error};
-        background: ${settingsTheme.status.errorLight};
-    }
-`;
-
-const ResultsCounter = styled.div`
-    padding: ${settingsTheme.spacing.md} ${settingsTheme.spacing.lg};
-    background: ${settingsTheme.primaryGhost};
-    color: ${settingsTheme.primary};
-    font-size: 14px;
-    font-weight: 500;
-    text-align: center;
-    border-top: 1px solid ${settingsTheme.border};
-
-    strong {
-        font-weight: 700;
-    }
-`;
-
 const ErrorMessage = styled.div`
     display: flex;
     align-items: center;
@@ -866,6 +687,20 @@ const ErrorText = styled.div`
     display: flex;
     align-items: center;
     gap: 4px;
+`;
+
+const CloseErrorButton = styled.button`
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    padding: ${settingsTheme.spacing.xs};
+    border-radius: ${settingsTheme.radius.sm};
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: ${settingsTheme.status.error}20;
+    }
 `;
 
 const LoadingContainer = styled.div`
@@ -899,147 +734,6 @@ const LoadingText = styled.div`
     font-size: 16px;
     color: ${settingsTheme.text.secondary};
     font-weight: 500;
-`;
-
-const EmptyStateContainer = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: ${settingsTheme.spacing.xxl};
-    background: ${settingsTheme.surface};
-    border-radius: ${settingsTheme.radius.xl};
-    border: 2px dashed ${settingsTheme.border};
-    text-align: center;
-    min-height: 400px;
-`;
-
-const EmptyStateIcon = styled.div`
-    width: 64px;
-    height: 64px;
-    background: ${settingsTheme.surfaceAlt};
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    color: ${settingsTheme.text.tertiary};
-    margin-bottom: ${settingsTheme.spacing.lg};
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
-`;
-
-const EmptyStateTitle = styled.h3`
-    font-size: 20px;
-    font-weight: 600;
-    color: ${settingsTheme.text.primary};
-    margin: 0 0 ${settingsTheme.spacing.sm} 0;
-    letter-spacing: -0.025em;
-`;
-
-const EmptyStateDescription = styled.p`
-    font-size: 16px;
-    color: ${settingsTheme.text.secondary};
-    margin: 0 0 ${settingsTheme.spacing.sm} 0;
-    line-height: 1.5;
-`;
-
-const EmptyStateAction = styled.p`
-    font-size: 14px;
-    color: ${settingsTheme.primary};
-    margin: 0;
-    font-weight: 500;
-`;
-
-const TableContainer = styled.div`
-    background: ${settingsTheme.surface};
-    border-radius: ${settingsTheme.radius.xl};
-    border: 1px solid ${settingsTheme.border};
-    overflow: hidden;
-    box-shadow: ${settingsTheme.shadow.sm};
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-`;
-
-const TableHeader = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: ${settingsTheme.spacing.lg};
-    border-bottom: 1px solid ${settingsTheme.border};
-    background: ${settingsTheme.surfaceAlt};
-    flex-shrink: 0;
-`;
-
-const TableTitle = styled.h3`
-    font-size: 18px;
-    font-weight: 600;
-    color: ${settingsTheme.text.primary};
-    margin: 0;
-    letter-spacing: -0.025em;
-`;
-
-const TableWrapper = styled.div`
-    flex: 1;
-    overflow: auto;
-    min-height: 0;
-`;
-
-const Table = styled.table`
-    width: 100%;
-    border-collapse: collapse;
-`;
-
-const TableHead = styled.thead`
-    background: ${settingsTheme.surfaceAlt};
-    border-bottom: 2px solid ${settingsTheme.border};
-    position: sticky;
-    top: 0;
-    z-index: 10;
-`;
-
-const TableRowHeader = styled.tr``;
-
-const TableHeaderCell = styled.th`
-    padding: ${settingsTheme.spacing.md} ${settingsTheme.spacing.md};
-    text-align: left;
-    font-weight: 600;
-    color: ${settingsTheme.text.primary};
-    font-size: 14px;
-    border-right: 1px solid ${settingsTheme.border};
-
-    &:last-child {
-        border-right: none;
-    }
-`;
-
-const TableBody = styled.tbody`
-    background: ${settingsTheme.surface};
-`;
-
-const TableRow = styled.tr`
-    border-bottom: 1px solid ${settingsTheme.borderLight};
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-
-    &:hover {
-        background: ${settingsTheme.surfaceHover};
-    }
-
-    &:last-child {
-        border-bottom: none;
-    }
-`;
-
-const TableCell = styled.td`
-    padding: ${settingsTheme.spacing.md};
-    border-right: 1px solid ${settingsTheme.borderLight};
-    vertical-align: middle;
-
-    &:last-child {
-        border-right: none;
-    }
 `;
 
 const ServiceNameCell = styled.div`
@@ -1130,6 +824,196 @@ const ActionButton = styled.button<{
                 `;
         }
     }}
+`;
+
+// Enhanced Filters Styled Components
+const FiltersContainer = styled.div`
+    padding: ${settingsTheme.spacing.lg};
+    background: ${settingsTheme.surfaceAlt};
+    border-top: 1px solid ${settingsTheme.border};
+`;
+
+const FiltersContent = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${settingsTheme.spacing.md};
+`;
+
+const QuickSearchSection = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${settingsTheme.spacing.md};
+
+    @media (max-width: 768px) {
+        flex-direction: column;
+        align-items: stretch;
+    }
+`;
+
+const SearchWrapper = styled.div`
+    position: relative;
+    flex: 1;
+    max-width: 500px;
+
+    @media (max-width: 768px) {
+        max-width: none;
+    }
+`;
+
+const SearchIcon = styled.div`
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: ${settingsTheme.text.muted};
+    font-size: 16px;
+    z-index: 2;
+`;
+
+const SearchInput = styled.input`
+    width: 100%;
+    height: 48px;
+    padding: 0 48px 0 48px;
+    border: 2px solid ${settingsTheme.border};
+    border-radius: ${settingsTheme.radius.lg};
+    font-size: 16px;
+    font-weight: 500;
+    background: ${settingsTheme.surface};
+    color: ${settingsTheme.text.primary};
+    transition: all 0.2s ease;
+
+    &:focus {
+        outline: none;
+        border-color: ${settingsTheme.primary};
+        box-shadow: 0 0 0 3px ${settingsTheme.primaryGhost};
+    }
+
+    &::placeholder {
+        color: ${settingsTheme.text.muted};
+        font-weight: 400;
+    }
+`;
+
+const ClearSearchButton = styled.button`
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: ${settingsTheme.surfaceAlt};
+    color: ${settingsTheme.text.muted};
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: ${settingsTheme.status.error};
+        color: white;
+    }
+`;
+
+const AdvancedFiltersSection = styled.div`
+    background: ${settingsTheme.surface};
+    border-radius: ${settingsTheme.radius.lg};
+    padding: ${settingsTheme.spacing.lg};
+    border: 1px solid ${settingsTheme.border};
+`;
+
+const FiltersGrid = styled.div`
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: ${settingsTheme.spacing.md};
+    margin-bottom: ${settingsTheme.spacing.lg};
+
+    @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+    }
+`;
+
+const FormGroup = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${settingsTheme.spacing.xs};
+`;
+
+const Label = styled.label`
+    font-size: 14px;
+    font-weight: 600;
+    color: ${settingsTheme.text.primary};
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+`;
+
+const Input = styled.input`
+    height: 44px;
+    padding: 0 ${settingsTheme.spacing.md};
+    border: 2px solid ${settingsTheme.border};
+    border-radius: ${settingsTheme.radius.md};
+    font-size: 14px;
+    font-weight: 500;
+    background: ${settingsTheme.surface};
+    color: ${settingsTheme.text.primary};
+    transition: all 0.2s ease;
+
+    &:focus {
+        outline: none;
+        border-color: ${settingsTheme.primary};
+        box-shadow: 0 0 0 3px ${settingsTheme.primaryGhost};
+    }
+
+    &::placeholder {
+        color: ${settingsTheme.text.muted};
+        font-weight: 400;
+    }
+`;
+
+const FiltersActions = styled.div`
+    display: flex;
+    justify-content: flex-end;
+    gap: ${settingsTheme.spacing.sm};
+    padding-top: ${settingsTheme.spacing.md};
+    border-top: 1px solid ${settingsTheme.border};
+`;
+
+const ClearButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: ${settingsTheme.spacing.xs};
+    padding: ${settingsTheme.spacing.sm} ${settingsTheme.spacing.md};
+    border: 2px solid ${settingsTheme.border};
+    background: ${settingsTheme.surface};
+    color: ${settingsTheme.text.secondary};
+    border-radius: ${settingsTheme.radius.md};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+        border-color: ${settingsTheme.status.error};
+        color: ${settingsTheme.status.error};
+        background: ${settingsTheme.status.errorLight};
+    }
+`;
+
+const ResultsCounter = styled.div`
+    font-size: 14px;
+    color: ${settingsTheme.text.secondary};
+    font-weight: 500;
+    text-align: center;
+    padding: ${settingsTheme.spacing.sm} 0;
+
+    strong {
+        color: ${settingsTheme.primary};
+        font-weight: 700;
+    }
 `;
 
 // Modal Styles

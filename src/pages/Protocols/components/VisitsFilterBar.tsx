@@ -1,9 +1,62 @@
-import React, {useState} from 'react';
+// src/pages/Protocols/components/VisitsFilterBar.tsx - Complete file with proper formatting
+import React from 'react';
 import styled from 'styled-components';
-import {FaChevronDown, FaChevronUp, FaFilter, FaSearch, FaTimes} from 'react-icons/fa';
+import {FaSearch, FaTimes} from 'react-icons/fa';
 import {VisitsFilterState} from '../hooks/useVisitsFilters';
 import {ServiceAutocomplete, ServiceOption} from './ServiceAutocomplete';
-import {theme} from '../../../styles/theme';
+
+const brandTheme = {
+    primary: 'var(--brand-primary, #1a365d)',
+    primaryLight: 'var(--brand-primary-light, #2c5aa0)',
+    primaryDark: 'var(--brand-primary-dark, #0f2027)',
+    primaryGhost: 'var(--brand-primary-ghost, rgba(26, 54, 93, 0.04))',
+    surface: '#ffffff',
+    surfaceAlt: '#fafbfc',
+    surfaceElevated: '#f8fafc',
+    surfaceHover: '#f1f5f9',
+    text: {
+        primary: '#0f172a',
+        secondary: '#475569',
+        tertiary: '#64748b',
+        muted: '#94a3b8',
+        disabled: '#cbd5e1'
+    },
+    border: '#e2e8f0',
+    borderLight: '#f1f5f9',
+    borderHover: '#cbd5e1',
+    status: {
+        success: '#059669',
+        successLight: '#d1fae5',
+        warning: '#d97706',
+        warningLight: '#fef3c7',
+        error: '#dc2626',
+        errorLight: '#fee2e2',
+        info: '#0ea5e9',
+        infoLight: '#e0f2fe'
+    },
+    shadow: {
+        xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+        sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+        md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+    },
+    spacing: {
+        xs: '4px',
+        sm: '8px',
+        md: '16px',
+        lg: '24px',
+        xl: '32px',
+        xxl: '48px'
+    },
+    radius: {
+        sm: '6px',
+        md: '8px',
+        lg: '12px',
+        xl: '16px',
+        xxl: '20px'
+    }
+};
 
 interface VisitsFilterBarProps {
     filters: VisitsFilterState;
@@ -12,7 +65,7 @@ interface VisitsFilterBarProps {
     onClearAll: () => void;
     loading?: boolean;
     availableServices?: ServiceOption[];
-    servicesLoading?: boolean; // Dodano prop dla ładowania usług
+    servicesLoading?: boolean;
 }
 
 export const VisitsFilterBar: React.FC<VisitsFilterBarProps> = ({
@@ -22,387 +75,367 @@ export const VisitsFilterBar: React.FC<VisitsFilterBarProps> = ({
                                                                     onClearAll,
                                                                     loading = false,
                                                                     availableServices = [],
-                                                                    servicesLoading = false // Dodano prop
+                                                                    servicesLoading = false
                                                                 }) => {
-    const [isExpanded, setIsExpanded] = useState(false);
-
-    const handleQuickSearchChange = (value: string) => {
-        onFiltersChange({ quickSearch: value });
-    };
-
     const handleFilterChange = (key: keyof VisitsFilterState, value: any) => {
         onFiltersChange({ [key]: value });
     };
 
-    const handleClearQuickSearch = () => {
-        onFiltersChange({ quickSearch: '' });
+    const clearField = (fieldName: keyof VisitsFilterState) => {
+        onFiltersChange({ [fieldName]: fieldName === 'serviceIds' ? [] : '' });
     };
 
-    const handleClearAllFilters = () => {
-        onClearAll();
+    const hasChanges = () => {
+        return Object.entries(filters).some(([key, value]) => {
+            if (value === undefined || value === null || value === '') return false;
+            if (key === 'serviceIds' && Array.isArray(value) && value.length === 0) return false;
+            return true;
+        });
     };
-
-    const handleQuickSearchSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        onApplyFilters();
-    };
-
-    const handleQuickSearchBlur = () => {
-        if (filters.quickSearch?.trim()) {
-            onApplyFilters();
-        }
-    };
-
-    const hasQuickSearch = Boolean(filters.quickSearch?.trim());
-    const hasAdvancedFilters = Object.entries(filters).some(([key, value]) => {
-        if (key === 'quickSearch') return false;
-        if (value === undefined || value === null || value === '') return false;
-        if (Array.isArray(value) && value.length === 0) return false;
-        return true;
-    });
 
     return (
-        <FilterContainer>
-            <QuickSearchSection>
-                <AdvancedToggle
-                    type="button"
-                    onClick={() => setIsExpanded(!isExpanded)}
-                    $expanded={isExpanded}
-                    $hasFilters={hasAdvancedFilters}
-                >
-                    <FaFilter />
-                    Filtrowanie
-                    {hasAdvancedFilters && <FilterIndicator>{Object.keys(filters).filter(key => {
-                        const value = filters[key as keyof typeof filters];
-                        if (key === 'quickSearch') return false;
-                        if (value === undefined || value === null || value === '') return false;
-                        if (Array.isArray(value) && value.length === 0) return false;
-                        return true;
-                    }).length}</FilterIndicator>}
-                    {isExpanded ? <FaChevronUp /> : <FaChevronDown />}
-                </AdvancedToggle>
-            </QuickSearchSection>
-
-            {isExpanded && (
-                <AdvancedSection>
-                    <FiltersGrid>
-                        <FilterGroup>
-                            <FilterLabel>Klient</FilterLabel>
-                            <FilterInput
-                                type="text"
-                                value={filters.clientName || ''}
-                                onChange={(e) => handleFilterChange('clientName', e.target.value)}
-                                placeholder="Nazwa klienta"
-                                disabled={loading}
-                            />
-                        </FilterGroup>
-
-                        <FilterGroup>
-                            <FilterLabel>Nr rejestracyjny</FilterLabel>
-                            <FilterInput
-                                type="text"
-                                value={filters.licensePlate || ''}
-                                onChange={(e) => handleFilterChange('licensePlate', e.target.value)}
-                                placeholder="Numer rejestracyjny"
-                                disabled={loading}
-                            />
-                        </FilterGroup>
-
-                        <FilterGroup>
-                            <FilterLabel>Marka</FilterLabel>
-                            <FilterInput
-                                type="text"
-                                value={filters.make || ''}
-                                onChange={(e) => handleFilterChange('make', e.target.value)}
-                                placeholder="Marka pojazdu"
-                                disabled={loading}
-                            />
-                        </FilterGroup>
-
-                        <FilterGroup>
-                            <FilterLabel>Model</FilterLabel>
-                            <FilterInput
-                                type="text"
-                                value={filters.model || ''}
-                                onChange={(e) => handleFilterChange('model', e.target.value)}
-                                placeholder="Model pojazdu"
-                                disabled={loading}
-                            />
-                        </FilterGroup>
-
-                        <FilterGroup>
-                            <FilterLabel>Rodzaj usługi</FilterLabel>
-                            <ServiceAutocomplete
-                                value={filters.serviceIds || []}
-                                onChange={(value) => handleFilterChange('serviceIds', value)}
-                                options={availableServices}
-                                disabled={loading}
-                                loading={servicesLoading} // Przekazano prop loading
-                                placeholder="Wyszukaj usługi..."
-                            />
-                        </FilterGroup>
-
-                        <FilterGroup>
-                            <FilterLabel>Data od</FilterLabel>
-                            <FilterInput
-                                type="date"
-                                value={filters.startDate || ''}
-                                onChange={(e) => handleFilterChange('startDate', e.target.value)}
-                                disabled={loading}
-                            />
-                        </FilterGroup>
-
-                        <FilterGroup>
-                            <FilterLabel>Data do</FilterLabel>
-                            <FilterInput
-                                type="date"
-                                value={filters.endDate || ''}
-                                onChange={(e) => handleFilterChange('endDate', e.target.value)}
-                                min={filters.startDate}
-                                disabled={loading}
-                            />
-                        </FilterGroup>
-
-                        <PriceGroup>
-                            <FilterLabel>Cena (PLN)</FilterLabel>
-                            <PriceInputs>
-                                <FilterInput
-                                    type="number"
-                                    value={filters.minPrice || ''}
-                                    onChange={(e) => handleFilterChange('minPrice', e.target.value ? Number(e.target.value) : undefined)}
-                                    placeholder="Od"
-                                    min="0"
-                                    step="0.01"
-                                    disabled={loading}
-                                />
-                                <PriceSeparator>-</PriceSeparator>
-                                <FilterInput
-                                    type="number"
-                                    value={filters.maxPrice || ''}
-                                    onChange={(e) => handleFilterChange('maxPrice', e.target.value ? Number(e.target.value) : undefined)}
-                                    placeholder="Do"
-                                    min="0"
-                                    step="0.01"
-                                    disabled={loading}
-                                />
-                            </PriceInputs>
-                        </PriceGroup>
-                    </FiltersGrid>
-
-                    <FilterActions>
-                        <ClearAllButton
-                            type="button"
-                            onClick={handleClearAllFilters}
-                            disabled={loading}
-                        >
-                            <FaTimes />
-                            Wyczyść filtry
-                        </ClearAllButton>
-                        <ApplyButton
-                            type="button"
-                            onClick={onApplyFilters}
-                            disabled={loading}
-                        >
+        <FiltersContent>
+            <FiltersGrid>
+                <FilterGroup>
+                    <FilterLabel htmlFor="clientName">
+                        <FilterLabelIcon>
                             <FaSearch />
-                            Zastosuj filtry
-                        </ApplyButton>
-                    </FilterActions>
-                </AdvancedSection>
-            )}
-        </FilterContainer>
+                        </FilterLabelIcon>
+                        Klient
+                    </FilterLabel>
+                    <FilterInputWrapper>
+                        <FilterInput
+                            id="clientName"
+                            name="clientName"
+                            value={filters.clientName || ''}
+                            onChange={(e) => handleFilterChange('clientName', e.target.value)}
+                            placeholder="Nazwa klienta"
+                            disabled={loading}
+                            $hasValue={!!filters.clientName}
+                        />
+                        {filters.clientName && (
+                            <ClearInputButton onClick={() => clearField('clientName')}>
+                                <FaTimes />
+                            </ClearInputButton>
+                        )}
+                    </FilterInputWrapper>
+                </FilterGroup>
+
+                <FilterGroup>
+                    <FilterLabel htmlFor="licensePlate">
+                        <FilterLabelIcon>
+                            <FaSearch />
+                        </FilterLabelIcon>
+                        Nr rejestracyjny
+                    </FilterLabel>
+                    <FilterInputWrapper>
+                        <FilterInput
+                            id="licensePlate"
+                            name="licensePlate"
+                            value={filters.licensePlate || ''}
+                            onChange={(e) => handleFilterChange('licensePlate', e.target.value)}
+                            placeholder="Numer rejestracyjny"
+                            disabled={loading}
+                            $hasValue={!!filters.licensePlate}
+                        />
+                        {filters.licensePlate && (
+                            <ClearInputButton onClick={() => clearField('licensePlate')}>
+                                <FaTimes />
+                            </ClearInputButton>
+                        )}
+                    </FilterInputWrapper>
+                </FilterGroup>
+
+                <FilterGroup>
+                    <FilterLabel htmlFor="make">
+                        <FilterLabelIcon>
+                            <FaSearch />
+                        </FilterLabelIcon>
+                        Marka
+                    </FilterLabel>
+                    <FilterInputWrapper>
+                        <FilterInput
+                            id="make"
+                            name="make"
+                            value={filters.make || ''}
+                            onChange={(e) => handleFilterChange('make', e.target.value)}
+                            placeholder="Marka pojazdu"
+                            disabled={loading}
+                            $hasValue={!!filters.make}
+                        />
+                        {filters.make && (
+                            <ClearInputButton onClick={() => clearField('make')}>
+                                <FaTimes />
+                            </ClearInputButton>
+                        )}
+                    </FilterInputWrapper>
+                </FilterGroup>
+
+                <FilterGroup>
+                    <FilterLabel htmlFor="model">
+                        <FilterLabelIcon>
+                            <FaSearch />
+                        </FilterLabelIcon>
+                        Model
+                    </FilterLabel>
+                    <FilterInputWrapper>
+                        <FilterInput
+                            id="model"
+                            name="model"
+                            value={filters.model || ''}
+                            onChange={(e) => handleFilterChange('model', e.target.value)}
+                            placeholder="Model pojazdu"
+                            disabled={loading}
+                            $hasValue={!!filters.model}
+                        />
+                        {filters.model && (
+                            <ClearInputButton onClick={() => clearField('model')}>
+                                <FaTimes />
+                            </ClearInputButton>
+                        )}
+                    </FilterInputWrapper>
+                </FilterGroup>
+
+                <FilterGroup>
+                    <FilterLabel htmlFor="serviceIds">
+                        <FilterLabelIcon>
+                            <FaSearch />
+                        </FilterLabelIcon>
+                        Rodzaj usługi
+                    </FilterLabel>
+                    <ServiceAutocomplete
+                        value={filters.serviceIds || []}
+                        onChange={(value) => handleFilterChange('serviceIds', value)}
+                        options={availableServices}
+                        disabled={loading}
+                        loading={servicesLoading}
+                        placeholder="Wyszukaj usługi..."
+                    />
+                </FilterGroup>
+
+                <FilterGroup>
+                    <FilterLabel htmlFor="startDate">
+                        <FilterLabelIcon>
+                            <FaSearch />
+                        </FilterLabelIcon>
+                        Data od
+                    </FilterLabel>
+                    <FilterInputWrapper>
+                        <FilterInput
+                            id="startDate"
+                            name="startDate"
+                            type="date"
+                            value={filters.startDate || ''}
+                            onChange={(e) => handleFilterChange('startDate', e.target.value)}
+                            disabled={loading}
+                            $hasValue={!!filters.startDate}
+                        />
+                        {filters.startDate && (
+                            <ClearInputButton onClick={() => clearField('startDate')}>
+                                <FaTimes />
+                            </ClearInputButton>
+                        )}
+                    </FilterInputWrapper>
+                </FilterGroup>
+
+                <FilterGroup>
+                    <FilterLabel htmlFor="endDate">
+                        <FilterLabelIcon>
+                            <FaSearch />
+                        </FilterLabelIcon>
+                        Data do
+                    </FilterLabel>
+                    <FilterInputWrapper>
+                        <FilterInput
+                            id="endDate"
+                            name="endDate"
+                            type="date"
+                            value={filters.endDate || ''}
+                            onChange={(e) => handleFilterChange('endDate', e.target.value)}
+                            min={filters.startDate}
+                            disabled={loading}
+                            $hasValue={!!filters.endDate}
+                        />
+                        {filters.endDate && (
+                            <ClearInputButton onClick={() => clearField('endDate')}>
+                                <FaTimes />
+                            </ClearInputButton>
+                        )}
+                    </FilterInputWrapper>
+                </FilterGroup>
+
+                <PriceGroup>
+                    <FilterLabel>
+                        <FilterLabelIcon>
+                            <FaSearch />
+                        </FilterLabelIcon>
+                        Cena (PLN)
+                    </FilterLabel>
+                    <PriceInputs>
+                        <FilterInputWrapper>
+                            <FilterInput
+                                type="number"
+                                value={filters.minPrice || ''}
+                                onChange={(e) => handleFilterChange('minPrice', e.target.value ? Number(e.target.value) : undefined)}
+                                placeholder="Od"
+                                min="0"
+                                step="0.01"
+                                disabled={loading}
+                                $hasValue={!!filters.minPrice}
+                            />
+                            {filters.minPrice && (
+                                <ClearInputButton onClick={() => clearField('minPrice')}>
+                                    <FaTimes />
+                                </ClearInputButton>
+                            )}
+                        </FilterInputWrapper>
+                        <PriceSeparator>-</PriceSeparator>
+                        <FilterInputWrapper>
+                            <FilterInput
+                                type="number"
+                                value={filters.maxPrice || ''}
+                                onChange={(e) => handleFilterChange('maxPrice', e.target.value ? Number(e.target.value) : undefined)}
+                                placeholder="Do"
+                                min="0"
+                                step="0.01"
+                                disabled={loading}
+                                $hasValue={!!filters.maxPrice}
+                            />
+                            {filters.maxPrice && (
+                                <ClearInputButton onClick={() => clearField('maxPrice')}>
+                                    <FaTimes />
+                                </ClearInputButton>
+                            )}
+                        </FilterInputWrapper>
+                    </PriceInputs>
+                </PriceGroup>
+            </FiltersGrid>
+
+            <FiltersFooter>
+                <ResultsSection>
+                    {hasChanges() ? (
+                        <ResultsInfo>
+                            Wprowadź kryteria i kliknij "Zastosuj filtry"
+                        </ResultsInfo>
+                    ) : (
+                        <ResultsInfo>
+                            Wprowadź kryteria filtrowania aby zawęzić wyniki
+                        </ResultsInfo>
+                    )}
+                </ResultsSection>
+
+                <FiltersActions>
+                    {hasChanges() && (
+                        <SecondaryButton onClick={onClearAll} disabled={loading}>
+                            <FaTimes />
+                            <span>Wyczyść wszystkie</span>
+                        </SecondaryButton>
+                    )}
+                    <PrimaryButton
+                        onClick={onApplyFilters}
+                        $hasChanges={hasChanges()}
+                        disabled={!hasChanges() || loading}
+                    >
+                        <FaSearch />
+                        <span>Zastosuj filtry</span>
+                    </PrimaryButton>
+                </FiltersActions>
+            </FiltersFooter>
+        </FiltersContent>
     );
 };
 
-const FilterContainer = styled.div`
-    background: ${theme.surface};
-    border-radius: ${theme.radius.lg};
-    overflow: hidden;
-`;
+// Styled Components - dopasowane do stylu z ClientFilters
+const FiltersContent = styled.div`
+    padding: ${brandTheme.spacing.lg};
+    background: ${brandTheme.surfaceAlt};
+    animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
-const QuickSearchSection = styled.div`
-    padding: ${theme.spacing.xl} ${theme.spacing.xxl};
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.lg};
-    border-bottom: 1px solid ${theme.border};
-
-    form {
-        display: flex;
-        align-items: center;
-        gap: ${theme.spacing.lg};
-        flex: 1;
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+            max-height: 0;
+            padding: 0 ${brandTheme.spacing.lg};
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+            max-height: 500px;
+            padding: ${brandTheme.spacing.lg};
+        }
     }
-`;
-
-const SearchInputWrapper = styled.div`
-    position: relative;
-    flex: 1;
-    max-width: 500px;
-`;
-
-const SearchIcon = styled.div`
-    position: absolute;
-    left: ${theme.spacing.lg};
-    top: 50%;
-    transform: translateY(-50%);
-    color: ${theme.text.tertiary};
-    font-size: 16px;
-    z-index: 2;
-`;
-
-const SearchInput = styled.input`
-    width: 100%;
-    height: 48px;
-    padding: 0 48px 0 48px;
-    border: 2px solid ${theme.border};
-    border-radius: ${theme.radius.lg};
-    font-size: 16px;
-    font-weight: 500;
-    background: ${theme.surface};
-    color: ${theme.text.secondary};
-    transition: all ${theme.transitions.normal};
-
-    &:focus {
-        outline: none;
-        border-color: ${theme.primary};
-        box-shadow: 0 0 0 3px ${theme.primaryGhost};
-    }
-
-    &::placeholder {
-        color: ${theme.text.tertiary};
-        font-weight: 400;
-    }
-
-    &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-    }
-`;
-
-const ClearButton = styled.button`
-    position: absolute;
-    right: ${theme.spacing.lg};
-    top: 50%;
-    transform: translateY(-50%);
-    width: 24px;
-    height: 24px;
-    border: none;
-    background: ${theme.surfaceAlt};
-    color: ${theme.text.tertiary};
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    transition: all ${theme.transitions.normal};
-
-    &:hover:not(:disabled) {
-        background: ${theme.error};
-        color: white;
-    }
-
-    &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-`;
-
-const AdvancedToggle = styled.button<{ $expanded: boolean; $hasFilters: boolean }>`
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.sm};
-    padding: ${theme.spacing.lg} ${theme.spacing.xl};
-    border: 2px solid ${props => props.$expanded || props.$hasFilters ? theme.primary : theme.border};
-    background: ${props => props.$expanded || props.$hasFilters ? theme.primaryGhost : theme.surface};
-    color: ${props => props.$expanded || props.$hasFilters ? theme.primary : theme.text.tertiary};
-    border-radius: ${theme.radius.md};
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all ${theme.transitions.normal};
-    white-space: nowrap;
-    position: relative;
-
-    &:hover {
-        border-color: ${theme.primary};
-        color: ${theme.primary};
-    }
-`;
-
-const FilterIndicator = styled.span`
-    background: ${theme.primary};
-    color: white;
-    font-size: 11px;
-    font-weight: 700;
-    padding: 2px 6px;
-    border-radius: 10px;
-    min-width: 18px;
-    height: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-`;
-
-const AdvancedSection = styled.div`
-    padding: ${theme.spacing.xxl};
-    background: ${theme.surfaceAlt};
 `;
 
 const FiltersGrid = styled.div`
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: ${theme.spacing.xl} ${theme.spacing.xxl};
-    margin-bottom: ${theme.spacing.xxl};
-
-    @media (max-width: 1200px) {
-        grid-template-columns: repeat(2, 1fr);
-    }
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: ${brandTheme.spacing.lg};
+    margin-bottom: ${brandTheme.spacing.lg};
 
     @media (max-width: 768px) {
         grid-template-columns: 1fr;
+        gap: ${brandTheme.spacing.md};
     }
 `;
 
 const FilterGroup = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${theme.spacing.sm};
+    gap: ${brandTheme.spacing.sm};
 `;
 
 const PriceGroup = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${theme.spacing.sm};
+    gap: ${brandTheme.spacing.sm};
 `;
 
 const FilterLabel = styled.label`
-    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.xs};
     font-weight: 600;
-    color: ${theme.text.secondary};
+    font-size: 14px;
+    color: ${brandTheme.text.primary};
+    margin-bottom: ${brandTheme.spacing.xs};
 `;
 
-const FilterInput = styled.input`
-    height: 44px;
-    padding: 0 ${theme.spacing.lg};
-    border: 2px solid ${theme.border};
-    border-radius: ${theme.radius.md};
+const FilterLabelIcon = styled.div`
+    color: ${brandTheme.text.muted};
+    font-size: 12px;
+`;
+
+const FilterInputWrapper = styled.div`
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex: 1;
+`;
+
+const FilterInput = styled.input<{ $hasValue: boolean }>`
+    width: 100%;
+    height: 48px;
+    padding: 0 ${brandTheme.spacing.md};
+    padding-right: ${props => props.$hasValue ? '40px' : brandTheme.spacing.md};
+    border: 2px solid ${props => props.$hasValue ? brandTheme.primary : brandTheme.border};
+    border-radius: ${brandTheme.radius.md};
     font-size: 14px;
     font-weight: 500;
-    background: ${theme.surface};
-    color: ${theme.text.secondary};
-    transition: all ${theme.transitions.normal};
-    width: 100%;
+    background: ${props => props.$hasValue ? brandTheme.primaryGhost : brandTheme.surface};
+    color: ${brandTheme.text.primary};
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     box-sizing: border-box;
 
     &:focus {
         outline: none;
-        border-color: ${theme.primary};
-        box-shadow: 0 0 0 3px ${theme.primaryGhost};
+        border-color: ${brandTheme.primary};
+        box-shadow: 0 0 0 3px ${brandTheme.primaryGhost};
+        background: ${brandTheme.surface};
     }
 
     &::placeholder {
-        color: ${theme.text.tertiary};
+        color: ${brandTheme.text.muted};
         font-weight: 400;
     }
 
@@ -410,108 +443,145 @@ const FilterInput = styled.input`
         opacity: 0.6;
         cursor: not-allowed;
     }
+
+    ${props => props.$hasValue && `
+        font-weight: 600;
+    `}
 `;
 
-const SearchButton = styled.button`
-    height: 48px;
-    padding: 0 ${theme.spacing.xxl};
+const ClearInputButton = styled.button`
+    position: absolute;
+    right: ${brandTheme.spacing.sm};
+    width: 24px;
+    height: 24px;
     border: none;
-    background: ${theme.primary};
+    background: ${brandTheme.text.muted};
     color: white;
-    border-radius: ${theme.radius.lg};
-    font-weight: 600;
-    font-size: 14px;
+    border-radius: 50%;
     cursor: pointer;
-    transition: all ${theme.transitions.normal};
-    white-space: nowrap;
-
-    &:hover:not(:disabled) {
-        background: ${theme.primaryLight};
-        transform: translateY(-1px);
-    }
-
-    &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: none;
-    }
-`;
-
-const ApplyButton = styled.button`
     display: flex;
     align-items: center;
-    gap: ${theme.spacing.sm};
-    padding: ${theme.spacing.lg} ${theme.spacing.xxl};
-    border: none;
-    background: ${theme.primary};
-    color: white;
-    border-radius: ${theme.radius.md};
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all ${theme.transitions.normal};
+    justify-content: center;
+    font-size: 10px;
+    transition: all 0.2s ease;
 
-    &:hover:not(:disabled) {
-        background: ${theme.primaryLight};
-        transform: translateY(-1px);
-    }
-
-    &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: none;
+    &:hover {
+        background: ${brandTheme.status.error};
+        transform: scale(1.1);
     }
 `;
 
 const PriceInputs = styled.div`
     display: flex;
     align-items: center;
-    gap: ${theme.spacing.sm};
+    gap: ${brandTheme.spacing.sm};
     width: 100%;
-
-    input {
-        flex: 1;
-        min-width: 0;
-    }
 `;
 
 const PriceSeparator = styled.span`
     font-weight: 600;
-    color: ${theme.text.tertiary};
+    color: ${brandTheme.text.tertiary};
     flex-shrink: 0;
-    padding: 0 ${theme.spacing.xs};
+    padding: 0 ${brandTheme.spacing.xs};
 `;
 
-const FilterActions = styled.div`
+const FiltersFooter = styled.div`
     display: flex;
-    justify-content: flex-end;
-    gap: ${theme.spacing.lg};
-    padding-top: ${theme.spacing.xl};
-    border-top: 1px solid ${theme.border};
+    justify-content: space-between;
+    align-items: center;
+    padding-top: ${brandTheme.spacing.lg};
+    border-top: 1px solid ${brandTheme.border};
+    gap: ${brandTheme.spacing.md};
+
+    @media (max-width: 768px) {
+        flex-direction: column;
+        align-items: stretch;
+        gap: ${brandTheme.spacing.md};
+    }
 `;
 
-const ClearAllButton = styled.button`
+const ResultsSection = styled.div`
     display: flex;
     align-items: center;
-    gap: ${theme.spacing.sm};
-    padding: ${theme.spacing.lg} ${theme.spacing.xl};
-    border: 2px solid ${theme.border};
-    background: ${theme.surface};
-    color: ${theme.text.tertiary};
-    border-radius: ${theme.radius.md};
+`;
+
+const ResultsInfo = styled.div`
+    font-size: 14px;
+    color: ${brandTheme.text.muted};
+    font-style: italic;
+`;
+
+const FiltersActions = styled.div`
+    display: flex;
+    gap: ${brandTheme.spacing.sm};
+
+    @media (max-width: 768px) {
+        justify-content: flex-end;
+    }
+`;
+
+const BaseButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+    border-radius: ${brandTheme.radius.md};
     font-weight: 600;
     font-size: 14px;
     cursor: pointer;
-    transition: all ${theme.transitions.normal};
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid transparent;
+    white-space: nowrap;
+    min-height: 44px;
 
-    &:hover:not(:disabled) {
-        border-color: ${theme.error};
-        color: ${theme.error};
-        background: ${theme.errorBg};
+    &:hover {
+        transform: translateY(-1px);
+    }
+
+    &:active {
+        transform: translateY(0);
     }
 
     &:disabled {
         opacity: 0.5;
         cursor: not-allowed;
+        transform: none;
+    }
+
+    span {
+        @media (max-width: 480px) {
+            display: none;
+        }
+    }
+`;
+
+const SecondaryButton = styled(BaseButton)`
+    background: ${brandTheme.surface};
+    color: ${brandTheme.text.secondary};
+    border-color: ${brandTheme.border};
+    box-shadow: ${brandTheme.shadow.xs};
+
+    &:hover:not(:disabled) {
+        background: ${brandTheme.surfaceHover};
+        color: ${brandTheme.text.primary};
+        border-color: ${brandTheme.borderHover};
+        box-shadow: ${brandTheme.shadow.sm};
+    }
+`;
+
+const PrimaryButton = styled(BaseButton)<{ $hasChanges: boolean }>`
+    background: ${props => props.$hasChanges
+    ? `linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%)`
+    : brandTheme.surfaceElevated
+};
+    color: ${props => props.$hasChanges ? 'white' : brandTheme.text.tertiary};
+    box-shadow: ${props => props.$hasChanges ? brandTheme.shadow.sm : brandTheme.shadow.xs};
+
+    &:hover:not(:disabled) {
+        background: ${props => props.$hasChanges
+    ? `linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%)`
+    : brandTheme.surfaceHover
+};
+        box-shadow: ${props => props.$hasChanges ? brandTheme.shadow.md : brandTheme.shadow.sm};
     }
 `;
