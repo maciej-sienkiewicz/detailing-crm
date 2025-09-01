@@ -70,69 +70,6 @@ export interface EmailSendResponse {
  */
 export const protocolsApi = {
     /**
-     * Pobiera listę protokołów (tylko podstawowe dane) z paginacją
-     */
-    getProtocolsList: async (filters: ProtocolFilterParams = {}): Promise<PaginatedResponse<ProtocolListItem>> => {
-        try {
-            const { page = 0, size = 10, ...otherFilters } = filters;
-
-            const response = await apiClient.getWithPagination<ProtocolListItem>(
-                '/v1/protocols/list',
-                otherFilters,
-                { page, size }
-            );
-
-            // Server zwraca strukturę z snake_case, ale apiClient.getWithPagination
-            // już konwertuje do camelCase, więc sprawdzamy czy konwersja przebiegła poprawnie
-            return {
-                data: response.data || [],
-                pagination: {
-                    currentPage: response.pagination?.currentPage ?? page,
-                    pageSize: response.pagination?.pageSize ?? size,
-                    totalItems: response.pagination?.totalItems ?? 0,
-                    totalPages: response.pagination?.totalPages ?? 0
-                }
-            };
-        } catch (error) {
-            console.error('Error fetching protocols list:', error);
-            // W przypadku błędu zwracamy pustą listę z minimalnymi informacjami o paginacji
-            return {
-                data: [],
-                pagination: {
-                    currentPage: Number(filters.page || 0),
-                    pageSize: Number(filters.size || 10),
-                    totalItems: 0,
-                    totalPages: 0
-                }
-            };
-        }
-    },
-
-    /**
-     * Pobiera listę protokołów bez paginacji
-     */
-    getProtocolsListWithoutPagination: async (filters: Omit<ProtocolFilterParams, 'page' | 'size'> = {}): Promise<ProtocolListItem[]> => {
-        try {
-            return await apiClient.get<ProtocolListItem[]>('/v1/protocols/not-paginated', filters);
-        } catch (error) {
-            console.error('Error fetching protocols list:', error);
-            return [];
-        }
-    },
-
-    /**
-     * Pobiera protokoły dla określonego klienta
-     */
-    getProtocolsByClientId: async (clientId: string): Promise<ProtocolListItem[]> => {
-        try {
-            return await apiClient.get<ProtocolListItem[]>(`/receptions/${clientId}/protocols`);
-        } catch (error) {
-            console.error('Error fetching protocols list:', error);
-            return [];
-        }
-    },
-
-    /**
      * Zwalnia (wydaje) pojazd
      */
     releaseVehicle: async (id: string, data: ReleaseVehicleData): Promise<CarReceptionProtocol | null> => {

@@ -128,6 +128,14 @@ export interface AddServicesToVisitRequest {
 }
 
 /**
+ * Remove service from visit request
+ */
+export interface RemoveServiceFromVisitRequest {
+    serviceId: string;
+    reason?: string | null;
+}
+
+/**
  * Visit response from server
  */
 export interface VisitResponse {
@@ -393,6 +401,96 @@ class VisitsApi {
                 details: error
             };
         }
+    }
+
+    /**
+     * Removes a service from an existing visit
+     */
+    async removeServiceFromVisit(
+        visitId: string,
+        serviceId: string,
+        reason?: string
+    ): Promise<VisitsApiResult<VisitResponse>> {
+        try {
+            console.log('🗑️ Removing service from visit:', { visitId, serviceId, reason });
+
+            const requestData = {
+                serviceId,
+                reason: reason || null
+            };
+
+            console.log('📤 Sending remove service request:', requestData);
+
+            // Make API call using fetch directly since DELETE with body needs custom handling
+            const url = `${'/api'}/v1/protocols/${visitId}/services`;
+            const token = localStorage.getItem('auth_token');
+
+            const response = await fetch(url, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
+                body: JSON.stringify({
+                    service_id: serviceId,
+                    reason: reason || null
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+
+            // Transform snake_case to camelCase
+            const transformedData = this.transformToCamelCase(data);
+
+            console.log('✅ Successfully removed service from visit:', {
+                visitId,
+                serviceId,
+                responseId: transformedData.id,
+                serviceCount: transformedData.services?.length || 0
+            });
+
+            return {
+                success: true,
+                data: transformedData
+            };
+
+        } catch (error) {
+            console.error('❌ Error removing service from visit:', error);
+
+            const errorMessage = this.extractErrorMessage(error);
+
+            return {
+                success: false,
+                error: errorMessage,
+                details: error
+            };
+        }
+    }
+
+    /**
+     * Helper method to transform snake_case to camelCase
+     */
+    private transformToCamelCase(obj: any): any {
+        if (obj === null || obj === undefined || typeof obj !== 'object') {
+            return obj;
+        }
+
+        if (Array.isArray(obj)) {
+            return obj.map(item => this.transformToCamelCase(item));
+        }
+
+        const converted: Record<string, any> = {};
+
+        for (const [key, value] of Object.entries(obj)) {
+            const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+            converted[camelKey] = this.transformToCamelCase(value);
+        }
+
+        return converted;
     }
 
     // ========================================================================================

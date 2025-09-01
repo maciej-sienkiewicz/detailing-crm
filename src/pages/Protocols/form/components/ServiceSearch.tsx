@@ -26,7 +26,8 @@ interface ServiceSearchProps {
     onAddService: () => void;
     onAddServiceDirect: (service: { id: string; name: string; price: number }) => void;
     allowCustomService?: boolean;
-    onServiceAdded?: () => void; // Nowa funkcja callback do odświeżenia listy usług
+    onServiceAdded?: () => void;
+    onServiceCreated?: (oldId: string, newService: { id: string; name: string; price: number }) => void;
 }
 
 const ServiceSearch: React.FC<ServiceSearchProps> = ({
@@ -39,16 +40,15 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
                                                          onAddService,
                                                          onAddServiceDirect,
                                                          allowCustomService = true,
-                                                         onServiceAdded
+                                                         onServiceAdded,
+                                                         onServiceCreated
                                                      }) => {
-    // Stan dla modalu edycji ceny
     const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
     const [serviceToEdit, setServiceToEdit] = useState<(Service & { isNew?: boolean }) | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [allServices, setAllServices] = useState<Array<{ id: string; name: string; price: number }>>([]);
     const [isInputFocused, setIsInputFocused] = useState(false);
 
-    // Pobierz wszystkie usługi przy inicjalizacji komponentu
     useEffect(() => {
         const fetchAllServices = async () => {
             try {
@@ -62,14 +62,11 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
         fetchAllServices();
     }, []);
 
-    // Sprawdzenie, czy to niestandardowa usługa
     const isCustomService = searchQuery.trim() !== '' &&
         searchResults.length === 0 &&
         !selectedServiceToAdd;
 
-    // Obsługa kliknięcia na usługę z listy
     const handleServiceClick = (service: { id: string; name: string; price: number }) => {
-        // Jeśli usługa ma cenę 0, pokaż modal do wprowadzenia ceny
         if (service.price === 0) {
             setServiceToEdit({
                 ...service,
@@ -79,19 +76,15 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
             });
             setIsPriceModalOpen(true);
         } else {
-            // Dla usług z ceną > 0, dodaj usługę bezpośrednio
             onSelectService(service);
             onAddServiceDirect(service);
         }
     };
 
-    // Obsługa dodania usługi po wprowadzeniu niestandardowego tekstu
     const handleAddCustomService = () => {
         if (searchQuery.trim() === '') return;
 
-        // Jeśli wybrano usługę z listy
         if (selectedServiceToAdd) {
-            // Jeśli usługa ma cenę 0, pokaż modal
             if (selectedServiceToAdd.price === 0) {
                 setServiceToEdit({
                     ...selectedServiceToAdd,
@@ -101,13 +94,12 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
                 });
                 setIsPriceModalOpen(true);
             } else {
-                // Dla usług z ceną > 0, dodaj usługę
                 onAddService();
             }
         } else if (allowCustomService && isCustomService) {
-            // Dla niestandardowych usług, pokaż modal do wprowadzenia ceny
+            const tempId = `custom-${Date.now()}`;
             setServiceToEdit({
-                id: `custom-${Date.now()}`,
+                id: tempId,
                 name: searchQuery.trim(),
                 price: 0,
                 description: '',
@@ -118,20 +110,16 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
         }
     };
 
-    // Obsługa zapisania ceny z modalu
     const handleSavePrice = async (price: number) => {
         if (!serviceToEdit) return;
 
         try {
             setIsSubmitting(true);
 
-            // Jeśli to nowa usługa (nie istnieje w bazie)
             if (serviceToEdit.isNew) {
                 try {
                     console.log("Tworzenie nowej usługi w bazie:", serviceToEdit.name, price);
 
-                    // Stwórz nową usługę przez API - dane o usłudze będą już sformatowane
-                    // przez servicesApi.createService dla formatu {value: "id"}
                     const createdService = await servicesApi.createService({
                         name: serviceToEdit.name,
                         description: serviceToEdit.description || '',
@@ -141,11 +129,19 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
 
                     console.log("Utworzono nową usługę:", createdService);
 
-                    // Dodaj nowo utworzoną usługę do protokołu
-                    onSelectService(createdService);
-                    onAddServiceDirect(createdService);
+                    const serviceWithRealId = {
+                        id: createdService.id,
+                        name: createdService.name,
+                        price: price
+                    };
 
-                    // Odświeżamy listę usług po 1 sekundzie
+                    if (onServiceCreated) {
+                        onServiceCreated(serviceToEdit.id, serviceWithRealId);
+                    }
+
+                    onSelectService(serviceWithRealId);
+                    onAddServiceDirect(serviceWithRealId);
+
                     setTimeout(() => {
                         if (onServiceAdded) {
                             console.log("Odświeżanie listy usług po utworzeniu nowej");
@@ -154,7 +150,6 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
                     }, 1000);
                 } catch (error) {
                     console.error('Błąd podczas dodawania nowej usługi:', error);
-                    // Nawet jeśli wystąpił błąd przy dodawaniu do bazy, dodajmy usługę do protokołu
                     const tempService = {
                         id: serviceToEdit.id,
                         name: serviceToEdit.name,
@@ -164,14 +159,12 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
                     onAddServiceDirect(tempService);
                 }
             } else {
-                // Jeśli to istniejąca usługa, tylko zaktualizuj cenę
                 const updatedService = {
                     ...serviceToEdit,
                     price: price
                 };
 
                 try {
-                    // Zaktualizuj usługę przez API
                     await servicesApi.updateService(serviceToEdit.id, {
                         name: updatedService.name,
                         description: updatedService.description || '',
@@ -179,7 +172,6 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
                         vatRate: updatedService.vatRate || 23
                     });
 
-                    // Planujemy odświeżenie listy usług na później
                     if (onServiceAdded) {
                         setTimeout(() => {
                             onServiceAdded();
@@ -196,31 +188,26 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
         } catch (error) {
             console.error('Błąd podczas przetwarzania usługi:', error);
         } finally {
-            // Zamykamy modal
             setIsPriceModalOpen(false);
             setServiceToEdit(null);
             setIsSubmitting(false);
         }
     };
 
-    // Obsługa focus i blur na polu wyszukiwania
     const handleInputFocus = () => {
         setIsInputFocused(true);
 
-        // Wyświetl wszystkie usługi, gdy pole jest puste i otrzyma focus
         if (searchQuery.trim() === '') {
             onSearchChange({ target: { value: '' } } as React.ChangeEvent<HTMLInputElement>);
         }
     };
 
     const handleInputBlur = () => {
-        // Opóźnij ukrycie wyników, aby umożliwić kliknięcie na nich
         setTimeout(() => {
             setIsInputFocused(false);
         }, 200);
     };
 
-    // Ustal, czy pokazać wyniki wyszukiwania
     const shouldShowResults = isInputFocused && (showResults || searchQuery.trim() === '');
 
     return (
@@ -243,7 +230,6 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
                 {shouldShowResults && (
                     <SearchResultsList>
                         {searchQuery.trim() === '' ? (
-                            // Pokaż wszystkie dostępne usługi, gdy pole jest puste
                             allServices.length > 0 ? (
                                 allServices
                                     .filter(service => !selectedServiceToAdd || service.id !== selectedServiceToAdd.id)
@@ -262,7 +248,6 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
                                 </SearchResultItem>
                             )
                         ) : searchResults.length > 0 ? (
-                            // Pokaż wyniki wyszukiwania, gdy pole nie jest puste
                             searchResults.map(service => (
                                 <SearchResultItem
                                     key={service.id}
@@ -295,7 +280,6 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
                 <FaPlus /> Dodaj usługę
             </AddServiceButton>
 
-            {/* Modal edycji ceny */}
             {serviceToEdit && (
                 <PriceEditModal
                     isOpen={isPriceModalOpen}

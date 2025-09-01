@@ -1,4 +1,3 @@
-// src/pages/Protocols/start-visit/components/StartVisitForm.tsx
 import React, {useEffect, useState} from 'react';
 import {
     CarReceptionProtocol,
@@ -17,7 +16,7 @@ import ClientInfoSection from '../../form/components/ClientInfoSection';
 import ServiceSection from '../../form/components/ServiceSection';
 import NotesSection from '../../form/components/NotesSection';
 import {DeliveryPersonSection} from '../../form/components/DeliveryPersonSection';
-import ScheduleSection from "../../form/components/ScheduleSection"; // NOWY IMPORT
+import ScheduleSection from "../../form/components/ScheduleSection";
 import {useServiceCalculations} from '../../form/hooks/useServiceCalculations';
 import {Button, ErrorMessage, Form, FormActions, FormContainer} from '../../form/styles';
 import {AutocompleteOption} from '../../components/AutocompleteField';
@@ -50,6 +49,7 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
 
     const {
         services,
+        setServices,
         addService,
         removeService,
         updateBasePrice,
@@ -141,6 +141,16 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
     useEffect(() => {
         setFormData(prev => ({ ...prev, selectedServices: services, status: ProtocolStatus.IN_PROGRESS }));
     }, [services]);
+
+    const handleServiceCreated = (oldId: string, newService: { id: string; name: string; price: number }) => {
+        setServices(prevServices =>
+            prevServices.map(service =>
+                service.id === oldId
+                    ? { ...service, id: newService.id }
+                    : service
+            )
+        );
+    };
 
     const handleDeliveryPersonToggle = (enabled: boolean) => {
         setIsDeliveryPersonDifferent(enabled);
@@ -288,7 +298,6 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
             <Form onSubmit={handleSubmit}>
                 <VisitTitleSection title={formData.title || ''} selectedColorId={formData.calendarColorId} onChange={handleChange} error={undefined} />
 
-                {/* NOWY KOMPONENT */}
                 <ScheduleSection
                     formData={formData}
                     errors={{}}
@@ -328,6 +337,7 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
                     calculateTotals={calculateTotals}
                     allowCustomService={true}
                     onAddServiceDirect={handleAddServiceDirect}
+                    onServiceCreated={handleServiceCreated}
                 />
 
                 <NotesSection notes={formData.notes || ''} onChange={handleChange} />

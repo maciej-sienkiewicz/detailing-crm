@@ -121,6 +121,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
     const [availableServices, setAvailableServices] = useState<Array<{ id: string; name: string; price: number }>>([]);
     const [servicesLoading, setServicesLoading] = useState(false);
     const [addingServices, setAddingServices] = useState(false);
+    const [removingServiceId, setRemovingServiceId] = useState<string | null>(null);
 
     const handleEditPrices = () => {
         setShowEditPricesModal(true);
@@ -147,6 +148,71 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
         } catch (error) {
             console.error('Error updating prices:', error);
             // You might want to show an error toast here
+        }
+    };
+
+    // Handler for removing a service - NEW
+    const handleRemoveService = async (serviceId: string, serviceName: string) => {
+        try {
+            const confirmDelete = window.confirm(`Czy na pewno chcesz usunąć usługę "${serviceName}"?`);
+
+            if (!confirmDelete) {
+                return;
+            }
+
+            setRemovingServiceId(serviceId);
+            console.log('🗑️ Removing service via API:', { serviceId, serviceName });
+
+            // Call the API to remove service from visit
+            const result = await visitsApi.removeServiceFromVisit(
+                protocol.id,
+                serviceId,
+                'Usunięto przez użytkownika'
+            );
+
+            if (result.success && result.data) {
+                console.log('✅ Service removed successfully via API');
+
+                // Transform API response to match protocol format
+                const updatedServices = result.data.services?.map(service => ({
+                    id: service.id,
+                    name: service.name,
+                    price: service.basePrice,
+                    discountType: service.discount?.type as DiscountType || DiscountType.PERCENTAGE,
+                    discountValue: service.discount?.value || 0,
+                    finalPrice: service.finalPrice,
+                    note: service.note || '',
+                    approvalStatus: service.approvalStatus as ServiceApprovalStatus || ServiceApprovalStatus.PENDING
+                })) || [];
+
+                // Update protocol with services from API response
+                const updatedProtocol: CarReceptionProtocol = {
+                    ...protocol,
+                    selectedServices: updatedServices
+                };
+
+                // Call parent update handler
+                if (onProtocolUpdate) {
+                    onProtocolUpdate(updatedProtocol);
+                }
+
+                console.log('✅ Service removed and protocol updated');
+
+            } else {
+                // Handle API error
+                const errorMessage = result.error || 'Nie udało się usunąć usługi z wizyty';
+                console.error('❌ API error:', errorMessage);
+
+                alert(`Błąd: ${errorMessage}`);
+            }
+
+        } catch (error) {
+            console.error('❌ Error removing service:', error);
+
+            // Show error to user
+            alert('Wystąpił błąd podczas usuwania usługi. Spróbuj ponownie.');
+        } finally {
+            setRemovingServiceId(null);
         }
     };
 
@@ -242,9 +308,8 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
             if (result.success && result.data) {
                 console.log('✅ Services added successfully via API');
 
-                // FIXED: Use complete services list from API response instead of concatenating
-                // The API returns the complete updated visit with all services
-                const allServices = result.data.services?.map(service => ({
+                // Transform API response to match protocol format
+                const updatedServices = result.data.services?.map(service => ({
                     id: service.id,
                     name: service.name,
                     price: service.basePrice,
@@ -255,10 +320,10 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                     approvalStatus: service.approvalStatus as ServiceApprovalStatus || ServiceApprovalStatus.PENDING
                 })) || [];
 
-                // Update protocol with complete services list from API response
+                // Update protocol with services from API response
                 const updatedProtocol: CarReceptionProtocol = {
                     ...protocol,
-                    selectedServices: allServices // Use complete list, not concatenation
+                    selectedServices: [...protocol.selectedServices, ...updatedServices]
                 };
 
                 // Call parent update handler
@@ -269,7 +334,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                 setShowAddServiceModal(false);
 
                 // Show success message
-                console.log('✅ Services updated - total count:', allServices.length);
+                console.log('✅ Services added and protocol updated:', updatedServices);
 
             } else {
                 // Handle API error
@@ -751,8 +816,17 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                                                 <FaBell />
                                             </ActionIcon>
                                         )}
-                                        <ActionIcon $type="delete" title="Usuń usługę">
-                                            <FaTrash />
+                                        <ActionIcon
+                                            $type="delete"
+                                            title="Usuń usługę"
+                                            disabled={removingServiceId === service.id}
+                                            onClick={() => handleRemoveService(service.id, service.name)}
+                                        >
+                                            {removingServiceId === service.id ? (
+                                                <MiniSpinner />
+                                            ) : (
+                                                <FaTrash />
+                                            )}
                                         </ActionIcon>
                                     </ServiceActions>
                                 </ActionsCell>
@@ -862,19 +936,19 @@ const StepIcon = styled.div<{ $active: boolean; $completed: boolean }>`
     height: 48px;
     border-radius: 50%;
     background: ${props => {
-        if (props.$completed) return brand.success;
-        if (props.$active) return brand.primary;
-        return brand.surfaceSubtle;
-    }};
+    if (props.$completed) return brand.success;
+    if (props.$active) return brand.primary;
+    return brand.surfaceSubtle;
+}};
     color: ${props => {
-        if (props.$completed || props.$active) return 'white';
-        return brand.textMuted;
-    }};
+    if (props.$completed || props.$active) return 'white';
+    return brand.textMuted;
+}};
     border: 3px solid ${props => {
-        if (props.$completed) return brand.success;
-        if (props.$active) return brand.primary;
-        return brand.border;
-    }};
+    if (props.$completed) return brand.success;
+    if (props.$active) return brand.primary;
+    return brand.border;
+}};
     font-size: 18px;
     transition: all 0.3s ease;
 `;
@@ -1241,13 +1315,13 @@ const AdditionalInfoSection = styled.div`
 `;
 
 const AdditionalInfoGrid = styled.div<{ $fullWidth: boolean }>`
-   display: grid;
-   grid-template-columns: ${props => props.$fullWidth ? '1fr' : '1fr 1fr'};
-   gap: ${brand.space.xxxl};
+    display: grid;
+    grid-template-columns: ${props => props.$fullWidth ? '1fr' : '1fr 1fr'};
+    gap: ${brand.space.xxxl};
 
-   @media (max-width: 1024px) {
-       grid-template-columns: 1fr;
-   }
+    @media (max-width: 1024px) {
+        grid-template-columns: 1fr;
+    }
 `;
 
 const NotesCard = styled.div`
@@ -1282,7 +1356,7 @@ const NotesText = styled.div`
 `;
 
 const DeliveryPersonContent = styled.div`
-   padding: ${brand.space.xxl};
+    padding: ${brand.space.xxl};
 `;
 
 const DeliveryPersonInfo = styled.div`
@@ -1292,9 +1366,9 @@ const DeliveryPersonInfo = styled.div`
 `;
 
 const PersonName = styled.div`
-   font-size: 18px;
-   font-weight: 700;
-   color: ${brand.textPrimary};
+    font-size: 18px;
+    font-weight: 700;
+    color: ${brand.textPrimary};
 `;
 
 const PersonContact = styled.div`
@@ -1313,11 +1387,11 @@ const PersonContact = styled.div`
 
 /* SERVICES SECTION */
 const ServicesSection = styled.div`
-   background: ${brand.surface};
-   border: 1px solid ${brand.border};
-   border-radius: ${brand.radius.xl};
-   box-shadow: ${brand.shadow.soft};
-   overflow: hidden;
+    background: ${brand.surface};
+    border: 1px solid ${brand.border};
+    border-radius: ${brand.radius.xl};
+    box-shadow: ${brand.shadow.soft};
+    overflow: hidden;
 `;
 
 const SectionHeader = styled.div`
@@ -1397,10 +1471,16 @@ const AddServiceButton = styled.button`
    cursor: pointer;
    transition: all 0.2s ease;
 
-   &:hover {
+   &:hover:not(:disabled) {
        background: ${brand.primaryDark};
        transform: translateY(-1px);
        box-shadow: ${brand.shadow.moderate};
+   }
+
+   &:disabled {
+       opacity: 0.6;
+       cursor: not-allowed;
+       transform: none;
    }
 
    svg {
@@ -1477,10 +1557,10 @@ const ActionsCell = styled.td`
 `;
 
 const ServiceName = styled.div`
-   font-size: 15px;
-   font-weight: 500;
-   color: ${brand.textPrimary};
-   line-height: 1.4;
+    font-size: 15px;
+    font-weight: 500;
+    color: ${brand.textPrimary};
+    line-height: 1.4;
 `;
 
 const ServiceNote = styled.div`
@@ -1560,7 +1640,7 @@ const ServiceActions = styled.div`
     }
 `;
 
-const ActionIcon = styled.button<{ $type: 'notify' | 'delete' }>`
+const ActionIcon = styled.button<{ $type: 'notify' | 'delete'; disabled?: boolean }>`
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1568,91 +1648,111 @@ const ActionIcon = styled.button<{ $type: 'notify' | 'delete' }>`
     height: 28px;
     border: none;
     border-radius: ${brand.radius.sm};
-    cursor: pointer;
+    cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
     transition: all 0.2s ease;
     font-size: 11px;
+    opacity: ${props => props.disabled ? 0.5 : 1};
 
     ${props => {
-        switch (props.$type) {
-            case 'notify':
-                return `
+    switch (props.$type) {
+        case 'notify':
+            return `
                    background: ${brand.primary}20;
                    color: ${brand.primary};
-                   &:hover {
+                   &:hover:not(:disabled) {
                        background: ${brand.primary};
                        color: white;
                        transform: translateY(-1px);
                    }
                `;
-            case 'delete':
-                return `
+        case 'delete':
+            return `
                    background: ${brand.error}20;
                    color: ${brand.error};
-                   &:hover {
+                   &:hover:not(:disabled) {
                        background: ${brand.error};
                        color: white;
                        transform: translateY(-1px);
                    }
                `;
-        }
-    }}
+    }
+}}
+
+    &:disabled {
+        transform: none;
+    }
 `;
 
 const TableFooter = styled.tfoot``;
 
 const FooterRow = styled.tr`
-   background: ${brand.surfaceElevated};
-   border-top: 2px solid ${brand.border};
+    background: ${brand.surfaceElevated};
+    border-top: 2px solid ${brand.border};
 `;
 
 const FooterCell = styled.td`
-   padding: ${brand.space.lg} ${brand.space.xxl};
-   font-weight: 600;
+    padding: ${brand.space.lg} ${brand.space.xxl};
+    font-weight: 600;
 `;
 
 const TotalLabel = styled.div`
-   font-size: 14px;
-   font-weight: 700;
-   color: ${brand.textPrimary};
-   text-transform: uppercase;
-   letter-spacing: 0.5px;
+    font-size: 14px;
+    font-weight: 700;
+    color: ${brand.textPrimary};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 `;
 
 const TotalAmount = styled.div`
-   font-size: 15px;
-   font-weight: 600;
-   color: ${brand.textPrimary};
+    font-size: 15px;
+    font-weight: 600;
+    color: ${brand.textPrimary};
 `;
 
 const FinalTotalAmount = styled.div`
-   font-size: 18px;
-   font-weight: 800;
-   color: ${brand.primary};
+    font-size: 18px;
+    font-weight: 800;
+    color: ${brand.primary};
 `;
 
 // Add missing styled components
 const LoadingContainer = styled.div`
-   display: flex;
-   flex-direction: column;
-   align-items: center;
-   justify-content: center;
-   padding: ${brand.space.xxxl};
-   gap: ${brand.space.lg};
-   color: ${brand.textTertiary};
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: ${brand.space.xxxl};
+    gap: ${brand.space.lg};
+    color: ${brand.textTertiary};
 `;
 
 const LoadingSpinner = styled.div`
-   width: 40px;
-   height: 40px;
-   border: 3px solid ${brand.borderLight};
-   border-top: 3px solid ${brand.primary};
-   border-radius: 50%;
-   animation: spin 1s linear infinite;
+    width: 40px;
+    height: 40px;
+    border: 3px solid ${brand.borderLight};
+    border-top: 3px solid ${brand.primary};
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
 
-   @keyframes spin {
-       0% { transform: rotate(0deg); }
-       100% { transform: rotate(360deg); }
-   }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+`;
+
+// Mini spinner dla akcji
+const MiniSpinner = styled.div`
+    width: 12px;
+    height: 12px;
+    border: 2px solid transparent;
+    border-top: 2px solid currentColor;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
 `;
 
 const ErrorState = styled.div`

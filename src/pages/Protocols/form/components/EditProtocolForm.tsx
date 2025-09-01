@@ -1,4 +1,3 @@
-// src/pages/Protocols/form/components/EditProtocolForm.tsx
 import React, {useState} from 'react';
 import {CarReceptionProtocol, SelectedService} from '../../../../types';
 import {useFormSubmit} from '../hooks/useFormSubmit';
@@ -24,7 +23,7 @@ import {
 import {useFormDataWithAutocomplete} from "../hooks/useFormData";
 import VehicleInfoSection from "./VehicleInfoSection";
 import ClientInfoSection from "./ClientInfoSection";
-import ScheduleSection from "./ScheduleSection"; // NOWY IMPORT
+import ScheduleSection from "./ScheduleSection";
 
 interface EditProtocolFormProps {
     protocol: CarReceptionProtocol | null;
@@ -75,6 +74,7 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
 
     const {
         services,
+        setServices,
         addService,
         removeService,
         updateBasePrice,
@@ -97,6 +97,16 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
             selectedServices: services,
         }));
     }, [services, setFormData]);
+
+    const handleServiceCreated = (oldId: string, newService: { id: string; name: string; price: number }) => {
+        setServices(prevServices =>
+            prevServices.map(service =>
+                service.id === oldId
+                    ? { ...service, id: newService.id }
+                    : service
+            )
+        );
+    };
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchQuery(e.target.value);
@@ -218,6 +228,7 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
                     calculateTotals={calculateTotals}
                     allowCustomService={true}
                     onServiceAdded={onServiceAdded}
+                    onServiceCreated={handleServiceCreated}
                 />
                 <NotesSection notes={formData.notes || ''} onChange={handleChange} />
                 <FormActions onCancel={onCancel} isLoading={loading} isEditing={!!protocol} isFullProtocol={isFullProtocol} />

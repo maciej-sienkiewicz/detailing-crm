@@ -23,7 +23,8 @@ interface ServiceSectionProps {
     calculateTotals: () => { totalPrice: number; totalDiscount: number; totalFinalPrice: number };
     allowCustomService: boolean;
     onAddServiceDirect: (service: { id: string; name: string; price: number }) => void;
-    onServiceAdded?: () => void; // Funkcja callback do odświeżenia listy usług
+    onServiceAdded?: () => void;
+    onServiceCreated?: (oldId: string, newService: { id: string; name: string; price: number }) => void;
 }
 
 const ServiceSection: React.FC<ServiceSectionProps> = ({
@@ -44,7 +45,8 @@ const ServiceSection: React.FC<ServiceSectionProps> = ({
                                                            onAddNote,
                                                            calculateTotals,
                                                            allowCustomService,
-                                                           onServiceAdded
+                                                           onServiceAdded,
+                                                           onServiceCreated
                                                        }) => {
     return (
         <FormSection>
@@ -62,6 +64,7 @@ const ServiceSection: React.FC<ServiceSectionProps> = ({
                 onAddServiceDirect={onAddServiceDirect}
                 allowCustomService={allowCustomService}
                 onServiceAdded={onServiceAdded}
+                onServiceCreated={onServiceCreated}
             />
 
             <ServiceTable

@@ -67,53 +67,6 @@ const fetchAuthorizedImageUrl = async (imageId: string): Promise<string> => {
     }
 };
 
-/**
- * Funkcja do mapowania obrazów z serwera na format aplikacji z autoryzowanymi URL-ami
- * @param serverImages - Tablica obrazów z serwera
- * @param protocolId - Opcjonalne ID protokołu dla uzupełnienia URL
- * @param loadImageUrls - Czy załadować autoryzowane URL-e obrazów (domyślnie false dla lepszej wydajności)
- * @returns Tablica obrazów przygotowanych do wyświetlenia
- */
-const mapServerImagesToDisplayImages = async (
-    serverImages: any[],
-    protocolId?: string,
-    loadImageUrls: boolean = false
-): Promise<VehicleImage[]> => {
-    if (!serverImages || !Array.isArray(serverImages)) return [];
-
-    const mappedImages = serverImages.map(serverImage => {
-        // Używamy funkcji z apiClient do konwersji
-        const camelCaseImage = apiClient.parseResponse<VehicleImage>(serverImage);
-
-        // Dodajemy ID protokołu do obiektu obrazu (potrzebne do budowania URL)
-        if (protocolId) {
-            camelCaseImage.protocolId = protocolId;
-        }
-
-        console.log("dupa 2")
-        // Dodajemy endpoint URL (bez autoryzacji) - będzie używany do identyfikacji
-        if (camelCaseImage.id) {
-            camelCaseImage.url = `${apiClient.getBaseUrl()}/v1/protocols/image/${serverImage.id}`;
-        }
-
-        return camelCaseImage;
-    });
-
-    // Jeśli loadImageUrls jest true, pobieramy autoryzowane URL-e
-    if (loadImageUrls) {
-        const urlPromises = mappedImages.map(async (image) => {
-            if (image.id) {
-                const authorizedUrl = await fetchAuthorizedImageUrl(image.id);
-                return { ...image, url: authorizedUrl };
-            }
-            return image;
-        });
-
-        return Promise.all(urlPromises);
-    }
-
-    return mappedImages;
-};
 
 /**
  * Synchroniczna wersja mapowania (bez autoryzowanych URL-i)
@@ -231,20 +184,6 @@ export const carReceptionApi = {
     },
 
     /**
-     * Pobiera listę protokołów dla klienta
-     * @param clientId - ID klienta
-     * @returns Lista protokołów dla klienta
-     */
-    getProtocolsByClientId: async (clientId: string): Promise<ClientProtocolHistory[]> => {
-        try {
-            return await apiClient.get<ClientProtocolHistory[]>(`/receptions/${clientId}/protocols`);
-        } catch (error) {
-            console.error('Error fetching protocols list:', error);
-            return [];
-        }
-    },
-
-    /**
      * Aktualizuje istniejący protokół
      * @param protocol - Pełne dane protokołu do aktualizacji
      * @returns Zaktualizowany protokół
@@ -316,49 +255,6 @@ export const carReceptionApi = {
     },
 
     /**
-     * Pobiera listę dokumentów protokołu
-     * @param protocolId - ID protokołu
-     * @returns Lista dokumentów protokołu
-     */
-    getProtocolDocuments: async (protocolId: string): Promise<ProtocolDocument[]> => {
-        try {
-            return await apiClient.get<ProtocolDocument[]>(`/v1/protocols/${protocolId}/documents`);
-        } catch (error) {
-            console.error('Error fetching protocol documents:', error);
-            return [];
-        }
-    },
-
-    /**
-     * Przesyła dokument do protokołu
-     * @param protocolId - ID protokołu
-     * @param file - Plik do przesłania
-     * @param documentType - Typ dokumentu
-     * @param description - Opcjonalny opis dokumentu
-     * @returns Odpowiedź z serwera
-     */
-    uploadProtocolDocument: async (
-        protocolId: string,
-        file: File,
-        documentType: string,
-        description?: string
-    ): Promise<any> => {
-        try {
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('documentType', documentType);
-            if (description) {
-                formData.append('description', description);
-            }
-
-            return await apiClient.post(`/v1/protocols/${protocolId}/document`, formData);
-        } catch (error) {
-            console.error('Error uploading protocol document:', error);
-            throw error;
-        }
-    },
-
-    /**
      * Usuwa dokument protokołu
      * @param protocolId - ID protokołu
      * @param documentId - ID dokumentu do usunięcia
@@ -382,76 +278,6 @@ export const carReceptionApi = {
     getProtocolDocumentDownloadUrl: (documentId: string): string => {
         return `${apiClient.getBaseUrl()}/v1/protocols/document/${documentId}`;
     },
-
-    /**
-     * Pobiera wszystkie protokoły
-     * @returns Lista wszystkich protokołów
-     */
-    fetchCarReceptionProtocols: async (): Promise<CarReceptionProtocol[]> => {
-        try {
-            const response = await apiClient.get<any[]>('/receptions');
-
-            // Konwertuj odpowiedź i przetwarzamy zdjęcia dla każdego protokołu (synchronicznie)
-            return response.map(item => {
-                const protocol = apiClient.parseResponse<CarReceptionProtocol>(item);
-
-                // Jeśli protokół zawiera zdjęcia, przetwarzamy je
-                if (protocol.vehicleImages) {
-                    protocol.vehicleImages = mapServerImagesToDisplayImagesSync(
-                        protocol.vehicleImages,
-                        protocol.id
-                    );
-                }
-
-                return protocol;
-            });
-        } catch (error) {
-            console.error('Error fetching protocols:', error);
-            // W przypadku błędu zwracamy puste dane
-            return [];
-        }
-    },
-
-    /**
-     * Pobiera pojedynczy protokół po ID
-     * @param id - ID protokołu
-     * @returns Protokół lub null jeśli nie znaleziono
-     */
-    fetchCarReceptionProtocol: async (id: string): Promise<CarReceptionProtocol | null> => {
-        try {
-            const response = await apiClient.get<any>(`/receptions/${id}`);
-            const protocol = apiClient.parseResponse<CarReceptionProtocol>(response);
-
-            // Jeśli protokół zawiera zdjęcia, przetwarzamy je (synchronicznie)
-            if (protocol.vehicleImages) {
-                protocol.vehicleImages = mapServerImagesToDisplayImagesSync(
-                    protocol.vehicleImages,
-                    protocol.id
-                );
-            }
-
-            return protocol;
-        } catch (error) {
-            console.error(`Error fetching protocol ${id}:`, error);
-            return null;
-        }
-    },
-
-    /**
-     * Usuwa protokół
-     * @param id - ID protokołu do usunięcia
-     * @returns true jeśli usunięto pomyślnie, false w przypadku błędu
-     */
-    deleteCarReceptionProtocol: async (id: string): Promise<boolean> => {
-        try {
-            await apiClient.delete(`/receptions/${id}`);
-            return true;
-        } catch (error) {
-            console.error(`Error deleting protocol ${id}:`, error);
-            return false;
-        }
-    },
-
     /**
      * Usuwa zdjęcie z protokołu
      * @param protocolId - ID protokołu
@@ -483,20 +309,7 @@ export const carReceptionApi = {
         }
     },
 
-    /**
-     * Pobiera wszystkie zdjęcia dla danego protokołu z autoryzowanymi URL-ami
-     * @param protocolId - ID protokołu
-     * @returns Lista zdjęć protokołu z załadowanymi URL-ami
-     */
-    fetchVehicleImagesWithUrls: async (protocolId: string): Promise<VehicleImage[]> => {
-        try {
-            const response = await apiClient.get<any[]>(`/v1/protocols/${protocolId}/images`);
-            return await mapServerImagesToDisplayImages(response, protocolId, true);
-        } catch (error) {
-            console.error(`Error fetching images with URLs for protocol ${protocolId}:`, error);
-            return [];
-        }
-    },
+
 
     /**
      * Dodaje wiele zdjęć do protokołu
@@ -641,4 +454,4 @@ export const carReceptionApi = {
 };
 
 // Eksportuj funkcje mapowania dla użycia w innych miejscach
-export { mapServerImagesToDisplayImages, mapServerImagesToDisplayImagesSync, fetchAuthorizedImageUrl };
+export { mapServerImagesToDisplayImagesSync, fetchAuthorizedImageUrl };
