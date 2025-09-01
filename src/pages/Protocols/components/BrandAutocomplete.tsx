@@ -1,4 +1,4 @@
-// src/pages/Protocols/form/components/BrandAutocomplete.tsx
+// src/pages/Protocols/form/components/BrandAutocomplete.tsx - NAPRAWIONA WERSJA
 import React, {useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import styled from 'styled-components';
@@ -62,15 +62,15 @@ export const BrandAutocomplete: React.FC<BrandAutocompleteProps> = ({
                                                                         error
                                                                     }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
     const [highlightedIndex, setHighlightedIndex] = useState(-1);
     const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
     const containerRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const listRef = useRef<HTMLUListElement>(null);
 
+    // NAPRAWKA: Filtruj marki na podstawie aktualnej wartości pola input (value), a nie osobnego searchTerm
     const filteredBrands = carBrands.filter(brand =>
-        brand.toLowerCase().includes((searchTerm || value).toLowerCase())
+        brand.toLowerCase().includes(value.toLowerCase())
     );
 
     const updateDropdownPosition = () => {
@@ -84,43 +84,79 @@ export const BrandAutocomplete: React.FC<BrandAutocompleteProps> = ({
         }
     };
 
+    // NAPRAWKA: Główna funkcja obsługująca zmiany w polu input
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newValue = e.target.value;
-        setSearchTerm(newValue);
+
+        console.log('BrandAutocomplete - handleInputChange:', newValue);
+
+        // Aktualizuj wartość przez props onChange
         onChange(newValue);
+
+        // Reset highlighted index
         setHighlightedIndex(-1);
 
-        if (!isOpen) {
+        // KLUCZOWA NAPRAWKA: Automatycznie otwórz dropdown gdy użytkownik zaczyna pisać
+        if (newValue.trim().length > 0 && !isOpen) {
+            console.log('BrandAutocomplete - Opening dropdown because user is typing');
             setIsOpen(true);
             updateDropdownPosition();
+        }
+        // Zamknij dropdown gdy pole jest puste
+        else if (newValue.trim().length === 0 && isOpen) {
+            console.log('BrandAutocomplete - Closing dropdown because input is empty');
+            setIsOpen(false);
         }
     };
 
     const handleBrandSelect = (brand: string) => {
+        console.log('BrandAutocomplete - Brand selected:', brand);
         onChange(brand);
-        setSearchTerm('');
         setIsOpen(false);
         setHighlightedIndex(-1);
+        inputRef.current?.blur();
     };
 
     const handleClear = () => {
         onChange('');
-        setSearchTerm('');
         setIsOpen(false);
         setHighlightedIndex(-1);
+        inputRef.current?.focus();
     };
 
     const handleToggle = () => {
         if (disabled) return;
 
         const newIsOpen = !isOpen;
+        console.log('BrandAutocomplete - Toggle dropdown:', newIsOpen);
         setIsOpen(newIsOpen);
 
         if (newIsOpen) {
-            setSearchTerm('');
             updateDropdownPosition();
             setTimeout(() => inputRef.current?.focus(), 0);
         }
+    };
+
+    // NAPRAWKA: Dodano obsługę focus - dropdown otwiera się gdy pole jest aktywne i ma wartość
+    const handleInputFocus = () => {
+        if (disabled) return;
+
+        console.log('BrandAutocomplete - Input focused, value:', value);
+
+        // Otwórz dropdown jeśli pole ma jakąś wartość lub jeśli chcemy pokazać wszystkie opcje
+        if (value.trim().length > 0 || filteredBrands.length > 0) {
+            console.log('BrandAutocomplete - Opening dropdown on focus');
+            setIsOpen(true);
+            updateDropdownPosition();
+        }
+    };
+
+    // NAPRAWKA: Opóźnione zamknięcie dropdown przy blur (pozwala na kliknięcie opcji)
+    const handleInputBlur = () => {
+        setTimeout(() => {
+            setIsOpen(false);
+            setHighlightedIndex(-1);
+        }, 150);
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -129,9 +165,14 @@ export const BrandAutocomplete: React.FC<BrandAutocompleteProps> = ({
         switch (e.key) {
             case 'ArrowDown':
                 e.preventDefault();
-                setHighlightedIndex(prev =>
-                    prev < filteredBrands.length - 1 ? prev + 1 : 0
-                );
+                if (!isOpen && value.trim().length >= 0) {
+                    setIsOpen(true);
+                    updateDropdownPosition();
+                } else {
+                    setHighlightedIndex(prev =>
+                        prev < filteredBrands.length - 1 ? prev + 1 : 0
+                    );
+                }
                 break;
             case 'ArrowUp':
                 e.preventDefault();
@@ -147,8 +188,8 @@ export const BrandAutocomplete: React.FC<BrandAutocompleteProps> = ({
                 break;
             case 'Escape':
                 setIsOpen(false);
-                setSearchTerm('');
                 setHighlightedIndex(-1);
+                inputRef.current?.blur();
                 break;
         }
     };
@@ -169,7 +210,6 @@ export const BrandAutocomplete: React.FC<BrandAutocompleteProps> = ({
             }
 
             setIsOpen(false);
-            setSearchTerm('');
             setHighlightedIndex(-1);
         };
 
@@ -219,10 +259,11 @@ export const BrandAutocomplete: React.FC<BrandAutocompleteProps> = ({
                     <Input
                         ref={inputRef}
                         type="text"
-                        value={searchTerm || value}
+                        value={value}
                         onChange={handleInputChange}
                         onKeyDown={handleKeyDown}
-                        onFocus={() => !disabled && setIsOpen(true)}
+                        onFocus={handleInputFocus}
+                        onBlur={handleInputBlur}
                         placeholder={placeholder}
                         disabled={disabled}
                         required={required}
@@ -276,7 +317,7 @@ export const BrandAutocomplete: React.FC<BrandAutocompleteProps> = ({
                                 >
                                     <OptionContent>
                                         <OptionText>
-                                            <HighlightedText text={brand} highlight={searchTerm || value} />
+                                            <HighlightedText text={brand} highlight={value} />
                                         </OptionText>
                                     </OptionContent>
                                 </OptionItem>
@@ -284,7 +325,7 @@ export const BrandAutocomplete: React.FC<BrandAutocompleteProps> = ({
                         </OptionsList>
                     ) : (
                         <NoResults>
-                            Brak wyników dla "{searchTerm || value}"
+                            Brak wyników dla "{value}"
                         </NoResults>
                     )}
                 </DropdownContainer>,
@@ -325,10 +366,10 @@ const InputContainer = styled.div<{ $isOpen: boolean; $disabled: boolean; $hasEr
     min-height: 44px;
     background: ${brandTheme.surface};
     border: 2px solid ${props => {
-    if (props.$hasError) return '#dc2626';
-    if (props.$isOpen) return brandTheme.primary;
-    return brandTheme.border;
-}};
+        if (props.$hasError) return '#dc2626';
+        if (props.$isOpen) return brandTheme.primary;
+        return brandTheme.border;
+    }};
     border-radius: 8px;
     transition: all 0.2s ease;
     opacity: ${props => props.$disabled ? 0.6 : 1};
