@@ -5,7 +5,7 @@
  */
 
 import {apiClientNew, ApiError, PaginatedApiResponse, PaginationParams} from './apiClientNew';
-import {ProtocolStatus} from '../types';
+import {ProtocolStatus, DiscountType} from '../types';
 
 // ========================================================================================
 // TYPE DEFINITIONS
@@ -102,6 +102,70 @@ export interface VisitCounters {
     completed: number;
     cancelled: number;
     all: number;
+}
+
+/**
+ * Add service item request
+ */
+export interface AddServiceItemRequest {
+    serviceId?: string | null;
+    name: string;
+    basePrice: number;
+    quantity: number;
+    discountType?: string | null;
+    discountValue?: number | null;
+    finalPrice?: number | null;
+    note?: string | null;
+    description?: string | null;
+    vatRate?: number;
+}
+
+/**
+ * Add services to visit request
+ */
+export interface AddServicesToVisitRequest {
+    services: AddServiceItemRequest[];
+}
+
+/**
+ * Visit response from server
+ */
+export interface VisitResponse {
+    id: string;
+    title: string;
+    clientId: string;
+    vehicleId: string;
+    startDate: string;
+    endDate: string;
+    status: ProtocolStatus;
+    services: VisitServiceResponse[];
+    totalAmount: number;
+    serviceCount: number;
+    notes?: string;
+    referralSource?: string;
+    appointmentId?: string;
+    calendarColorId: string;
+    keysProvided: boolean;
+    documentsProvided: boolean;
+    createdAt: string;
+    updatedAt: string;
+}
+
+/**
+ * Visit service response from server
+ */
+export interface VisitServiceResponse {
+    id: string;
+    name: string;
+    basePrice: number;
+    quantity: number;
+    discount?: {
+        type: string;
+        value: number;
+    };
+    finalPrice: number;
+    approvalStatus: string;
+    note?: string;
 }
 
 /**
@@ -257,6 +321,76 @@ class VisitsApi {
                     success: false,
                     message: errorMessage
                 }
+            };
+        }
+    }
+
+    /**
+     * Adds services to an existing visit
+     */
+    async addServicesToVisit(
+        visitId: string,
+        services: Array<{
+            id: string;
+            name: string;
+            price: number;
+            discountType?: DiscountType;
+            discountValue?: number;
+            finalPrice: number;
+            note?: string;
+        }>
+    ): Promise<VisitsApiResult<VisitResponse>> {
+        try {
+            console.log('🔧 Adding services to visit:', { visitId, servicesCount: services.length });
+
+            // Map services to API request format
+            const servicesRequest: AddServiceItemRequest[] = services.map(service => ({
+                // If service ID is custom-generated (starts with 'custom-'), don't send it
+                serviceId: service.id.startsWith('custom-') ? null : service.id,
+                name: service.name,
+                basePrice: service.price,
+                quantity: 1, // Default quantity
+                discountType: service.discountType || null,
+                discountValue: service.discountValue || null,
+                finalPrice: service.finalPrice,
+                note: service.note || null,
+                description: null, // Not used in current implementation
+                vatRate: 23 // Default VAT rate
+            }));
+
+            const requestData: AddServicesToVisitRequest = {
+                services: servicesRequest
+            };
+
+            console.log('📤 Sending services request:', requestData);
+
+            // Make API call
+            const response = await apiClientNew.post<VisitResponse>(
+                `/v1/protocols/${visitId}/services`,
+                requestData,
+                { timeout: 15000 }
+            );
+
+            console.log('✅ Successfully added services to visit:', {
+                visitId,
+                responseId: response.id,
+                serviceCount: response.services?.length || 0
+            });
+
+            return {
+                success: true,
+                data: response
+            };
+
+        } catch (error) {
+            console.error('❌ Error adding services to visit:', error);
+
+            const errorMessage = this.extractErrorMessage(error);
+
+            return {
+                success: false,
+                error: errorMessage,
+                details: error
             };
         }
     }

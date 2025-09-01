@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useRef} from 'react';
 import styled from 'styled-components';
 import {FaPlus, FaSearch, FaStickyNote, FaTimes} from 'react-icons/fa';
 import {DiscountType} from "../../../../types";
@@ -148,6 +148,13 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         note: string;
     }>({ index: -1, open: false, note: '' });
 
+    // FIXED: Dodanie ref dla kontenera wyszukiwania
+    const searchContainerRef = useRef<HTMLDivElement>(null);
+    const searchInputRef = useRef<HTMLInputElement>(null);
+
+    // FIXED: Stan do kontrolowania focus
+    const [isSearchFocused, setIsSearchFocused] = useState(false);
+
     // Funkcje pomocnicze
     const calculateNetPrice = (grossPrice: number): number => {
         return grossPrice / (1 + DEFAULT_VAT_RATE / 100);
@@ -189,6 +196,23 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         return parseFloat(finalPrice.toFixed(2));
     };
 
+    // FIXED: Dodanie obsługi kliknięć poza komponentem
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+                setShowResults(false);
+                setIsSearchFocused(false);
+            }
+        };
+
+        if (isOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+            return () => {
+                document.removeEventListener('mousedown', handleClickOutside);
+            };
+        }
+    }, [isOpen]);
+
     // Reset state przy zamknięciu
     useEffect(() => {
         if (!isOpen) {
@@ -199,10 +223,11 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
             setCustomServiceMode(false);
             setCustomServiceName('');
             setCustomServicePrice('');
+            setIsSearchFocused(false);
         }
     }, [isOpen]);
 
-    // Obsługa wyszukiwania
+    // FIXED: Poprawiona obsługa wyszukiwania
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const query = e.target.value;
         setSearchQuery(query);
@@ -213,14 +238,38 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
             return;
         }
 
-        setShowResults(true);
+        // Filtruj usługi tylko jeśli input ma focus
+        if (isSearchFocused) {
+            const filteredServices = availableServices.filter(service =>
+                service.name.toLowerCase().includes(query.toLowerCase()) &&
+                !selectedServices.some(selected => selected.id === service.id)
+            );
 
-        const filteredServices = availableServices.filter(service =>
-            service.name.toLowerCase().includes(query.toLowerCase()) &&
-            !selectedServices.some(selected => selected.id === service.id)
-        );
+            setSearchResults(filteredServices);
+            setShowResults(true);
+        }
+    };
 
-        setSearchResults(filteredServices);
+    // FIXED: Obsługa focus na inpucie wyszukiwania
+    const handleSearchFocus = () => {
+        setIsSearchFocused(true);
+        if (searchQuery.trim() !== '') {
+            const filteredServices = availableServices.filter(service =>
+                service.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+                !selectedServices.some(selected => selected.id === service.id)
+            );
+            setSearchResults(filteredServices);
+            setShowResults(true);
+        }
+    };
+
+    // FIXED: Obsługa utraty focus
+    const handleSearchBlur = () => {
+        // Opóźnienie żeby kliknięcie w wyniki zostało zarejestrowane
+        setTimeout(() => {
+            setIsSearchFocused(false);
+            setShowResults(false);
+        }, 150);
     };
 
     // Dodawanie usługi z wyników wyszukiwania
@@ -237,6 +286,14 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         setSearchQuery('');
         setSearchResults([]);
         setShowResults(false);
+        setIsSearchFocused(false);
+
+        // FIXED: Przywrócenie focus do inputa po dodaniu usługi
+        setTimeout(() => {
+            if (searchInputRef.current) {
+                searchInputRef.current.focus();
+            }
+        }, 100);
     };
 
     // Dodawanie niestandardowej usługi
@@ -262,14 +319,14 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         setCustomServiceMode(false);
     };
 
-    // Usuwanie usługi
+    // Reszta metod handleRemoveService, handleOpenNoteModal, handleSaveNote, handleCancelNote, handleChangeDiscountType, handleChangeDiscountValue, handleSubmit pozostają bez zmian...
+
     const handleRemoveService = (index: number) => {
         const updatedServices = [...selectedServices];
         updatedServices.splice(index, 1);
         setSelectedServices(updatedServices);
     };
 
-    // Obsługa notatek
     const handleOpenNoteModal = (index: number) => {
         setAddingServiceNote({
             index,
@@ -295,7 +352,6 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         setAddingServiceNote({ index: -1, open: false, note: '' });
     };
 
-    // Zmiana typu rabatu
     const handleChangeDiscountType = (index: number, newExtendedType: ExtendedDiscountType) => {
         const updatedServices = [...selectedServices];
         const service = updatedServices[index];
@@ -326,7 +382,6 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         setSelectedServices(updatedServices);
     };
 
-    // Zmiana wartości rabatu
     const handleChangeDiscountValue = (index: number, value: number) => {
         const updatedServices = [...selectedServices];
         const service = updatedServices[index];
@@ -355,7 +410,6 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         setSelectedServices(updatedServices);
     };
 
-    // Zapisywanie i dodawanie usług
     const handleSubmit = () => {
         if (selectedServices.length === 0) return;
 
@@ -407,6 +461,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
 
     const hasSearchResults = showResults && searchResults.length > 0;
     const hasSearchQuery = showResults && searchQuery.trim() !== '';
+    const shouldShowNoResults = showResults && searchQuery.trim() !== '' && searchResults.length === 0;
 
     return (
         <ModalOverlay>
@@ -437,9 +492,11 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                                     type="text"
                                     value={searchQuery}
                                     onChange={handleSearchChange}
+                                    onFocus={handleSearchFocus}
+                                    onBlur={handleSearchBlur}
                                     placeholder="Wpisz nazwę usługi..."
                                     disabled={customServiceMode}
-                                    $hasResults={hasSearchResults || hasSearchQuery}
+                                    $hasResults={hasSearchResults || shouldShowNoResults}
                                 />
                             </SearchInputContainer>
 
@@ -449,7 +506,11 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                                     {searchResults.map(service => (
                                         <SearchResultItem
                                             key={service.id}
-                                            onClick={() => handleAddServiceFromSearch(service)}
+                                            onMouseDown={(e) => {
+                                                // Użyj onMouseDown zamiast onClick żeby wyprzedzić onBlur
+                                                e.preventDefault();
+                                                handleAddServiceFromSearch(service);
+                                            }}
                                         >
                                             <SearchResultContent>
                                                 <SearchResultName>{service.name}</SearchResultName>
@@ -465,7 +526,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                                 </SearchResultsContainer>
                             )}
 
-                            {hasSearchQuery && !hasSearchResults && (
+                            {shouldShowNoResults && (
                                 <NoResultsMessage>
                                     Nie znaleziono usług. Możesz dodać nową usługę.
                                 </NoResultsMessage>

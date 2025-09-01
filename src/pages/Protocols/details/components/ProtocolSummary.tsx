@@ -31,6 +31,7 @@ import {
 } from 'react-icons/fa';
 import {clientApi} from "../../../../api/clientsApi";
 import {servicesApi} from "../../../../api/servicesApi";
+import {visitsApi} from "../../../../api/visitsApiNew";
 import {
     CarReceptionProtocol,
     ClientExpanded,
@@ -119,6 +120,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
     const [error, setError] = useState<string | null>(null);
     const [availableServices, setAvailableServices] = useState<Array<{ id: string; name: string; price: number }>>([]);
     const [servicesLoading, setServicesLoading] = useState(false);
+    const [addingServices, setAddingServices] = useState(false);
 
     const handleEditPrices = () => {
         setShowEditPricesModal(true);
@@ -218,7 +220,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
         setShowAddServiceModal(true);
     };
 
-    // Handler for saving new services
+    // Handler for saving new services - UPDATED with API call
     const handleSaveServices = async (data: {
         services: Array<{
             id: string;
@@ -231,37 +233,60 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
         }>
     }) => {
         try {
-            // Create new services with proper structure
-            const newServices = data.services.map(service => ({
-                id: service.id,
-                name: service.name,
-                price: service.price,
-                discountType: service.discountType || DiscountType.PERCENTAGE,
-                discountValue: service.discountValue || 0,
-                finalPrice: service.finalPrice,
-                note: service.note || '',
-                approvalStatus: ServiceApprovalStatus.PENDING
-            }));
+            setAddingServices(true);
+            console.log('🔧 Adding services via API:', data.services);
 
-            // Update protocol with new services
-            const updatedProtocol: CarReceptionProtocol = {
-                ...protocol,
-                selectedServices: [...protocol.selectedServices, ...newServices]
-            };
+            // Call the API to add services to visit
+            const result = await visitsApi.addServicesToVisit(protocol.id, data.services);
 
-            // Call parent update handler
-            if (onProtocolUpdate) {
-                onProtocolUpdate(updatedProtocol);
+            if (result.success && result.data) {
+                console.log('✅ Services added successfully via API');
+
+                // FIXED: Use complete services list from API response instead of concatenating
+                // The API returns the complete updated visit with all services
+                const allServices = result.data.services?.map(service => ({
+                    id: service.id,
+                    name: service.name,
+                    price: service.basePrice,
+                    discountType: service.discount?.type as DiscountType || DiscountType.PERCENTAGE,
+                    discountValue: service.discount?.value || 0,
+                    finalPrice: service.finalPrice,
+                    note: service.note || '',
+                    approvalStatus: service.approvalStatus as ServiceApprovalStatus || ServiceApprovalStatus.PENDING
+                })) || [];
+
+                // Update protocol with complete services list from API response
+                const updatedProtocol: CarReceptionProtocol = {
+                    ...protocol,
+                    selectedServices: allServices // Use complete list, not concatenation
+                };
+
+                // Call parent update handler
+                if (onProtocolUpdate) {
+                    onProtocolUpdate(updatedProtocol);
+                }
+
+                setShowAddServiceModal(false);
+
+                // Show success message
+                console.log('✅ Services updated - total count:', allServices.length);
+
+            } else {
+                // Handle API error
+                const errorMessage = result.error || 'Nie udało się dodać usług do wizyty';
+                console.error('❌ API error:', errorMessage);
+
+                // You could show a toast/notification here
+                alert(`Błąd: ${errorMessage}`);
             }
 
-            setShowAddServiceModal(false);
-
-            // Show success message
-            console.log('Services added successfully:', newServices);
-
         } catch (error) {
-            console.error('Error adding services:', error);
-            // You might want to show an error toast here
+            console.error('❌ Error adding services:', error);
+
+            // Show error to user
+            alert('Wystąpił błąd podczas dodawania usług. Spróbuj ponownie.');
+        } finally {
+            setAddingServices(false);
         }
     };
 
@@ -649,9 +674,14 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                             </EditPricesButton>
                         )}
 
-                        <AddServiceButton onClick={handleAddService} disabled={servicesLoading}>
+                        <AddServiceButton
+                            onClick={handleAddService}
+                            disabled={servicesLoading || addingServices}
+                        >
                             <FaPlus />
-                            <span>{servicesLoading ? 'Ładowanie...' : 'Dodaj usługę'}</span>
+                            <span>
+                                {addingServices ? 'Dodawanie...' : servicesLoading ? 'Ładowanie...' : 'Dodaj usługę'}
+                            </span>
                         </AddServiceButton>
                     </HeaderActions>
                 </SectionHeader>
