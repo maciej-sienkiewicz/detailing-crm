@@ -1,7 +1,7 @@
-// src/components/Templates/TemplateStatusCell.tsx
+// src/components/Templates/TemplateStatusCell.tsx - POPRAWIONA WERSJA
 import React from 'react';
+import styled from 'styled-components';
 import { Template } from '../../types/template';
-import { StatusBadge } from '../../components/common/DataTable';
 import { settingsTheme } from '../../pages/Settings/styles/theme';
 
 interface TemplateStatusCellProps {
@@ -10,8 +10,27 @@ interface TemplateStatusCellProps {
 
 export const TemplateStatusCell: React.FC<TemplateStatusCellProps> = ({ template }) => {
     return (
-        <StatusBadge $color={template.isActive ? settingsTheme.status.success : settingsTheme.text.muted}>
+        <StatusBadge $isActive={template.isActive}>
             {template.isActive ? 'Aktywny' : 'Nieaktywny'}
         </StatusBadge>
     );
 };
+
+const StatusBadge = styled.div<{ $isActive: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    padding: ${settingsTheme.spacing.xs} ${settingsTheme.spacing.sm};
+    border-radius: ${settingsTheme.radius.md};
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+
+    ${({ $isActive }) => $isActive ? `
+        background: ${settingsTheme.status.successLight};
+        color: ${settingsTheme.status.success};
+    ` : `
+        background: ${settingsTheme.text.muted}20;
+        color: ${settingsTheme.text.muted};
+    `}
+`;

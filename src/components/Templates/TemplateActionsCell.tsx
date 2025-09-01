@@ -1,9 +1,9 @@
-// src/components/Templates/TemplateActionsCell.tsx
+// src/components/Templates/TemplateActionsCell.tsx - POPRAWIONA WERSJA
 import React from 'react';
 import styled from 'styled-components';
 import { FaDownload, FaEye, FaSpinner, FaTrash, FaToggleOff, FaToggleOn } from 'react-icons/fa';
 import { Template, TemplateUpdateData } from '../../types/template';
-import { ActionButtons, ActionButton } from '../../components/common/DataTable';
+import { settingsTheme } from '../../pages/Settings/styles/theme';
 
 interface TemplateActionsCellProps {
     template: Template;
@@ -28,38 +28,54 @@ export const TemplateActionsCell: React.FC<TemplateActionsCellProps> = ({
                                                                             onDownload,
                                                                             onPreview
                                                                         }) => {
-    const handleToggleStatus = async () => {
+    const handleToggleStatus = async (e: React.MouseEvent) => {
+        e.stopPropagation();
         await onUpdate(template.id, {
             name: template.name,
             isActive: !template.isActive
         });
     };
 
+    const handleDelete = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        await onDelete(template.id);
+    };
+
+    const handleDownload = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        await onDownload(template);
+    };
+
+    const handlePreview = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        await onPreview(template);
+    };
+
     return (
-        <ActionButtons>
+        <ActionsContainer>
             <ActionButton
-                $variant="view"
-                onClick={() => onPreview(template)}
+                onClick={handlePreview}
                 disabled={isPreviewing}
                 title="Podgląd"
+                $variant="view"
             >
                 {isPreviewing ? <FaSpinner className="spinning" /> : <FaEye />}
             </ActionButton>
 
             <ActionButton
-                $variant="info"
-                onClick={() => onDownload(template)}
+                onClick={handleDownload}
                 disabled={isDownloading}
                 title="Pobierz"
+                $variant="download"
             >
                 {isDownloading ? <FaSpinner className="spinning" /> : <FaDownload />}
             </ActionButton>
 
             <ActionButton
-                $variant={template.isActive ? "success" : "secondary"}
                 onClick={handleToggleStatus}
                 disabled={isUpdating}
-                title={template.isActive ? "Dezaktywuj" : "Aktywuj"}
+                title={template.isActive ? 'Dezaktywuj' : 'Aktywuj'}
+                $variant={template.isActive ? "success" : "secondary"}
             >
                 {isUpdating ? (
                     <FaSpinner className="spinning" />
@@ -71,13 +87,104 @@ export const TemplateActionsCell: React.FC<TemplateActionsCellProps> = ({
             </ActionButton>
 
             <ActionButton
-                $variant="delete"
-                onClick={() => onDelete(template.id)}
+                onClick={handleDelete}
                 disabled={isDeleting}
                 title="Usuń"
+                $variant="danger"
             >
                 {isDeleting ? <FaSpinner className="spinning" /> : <FaTrash />}
             </ActionButton>
-        </ActionButtons>
+        </ActionsContainer>
     );
 };
+
+const ActionsContainer = styled.div`
+    display: flex;
+    gap: ${settingsTheme.spacing.xs};
+    align-items: center;
+    justify-content: flex-end;
+`;
+
+const ActionButton = styled.button<{ $variant: 'view' | 'download' | 'success' | 'secondary' | 'danger' }>`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: ${settingsTheme.radius.md};
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 13px;
+    position: relative;
+
+    ${({ $variant }) => {
+    switch ($variant) {
+        case 'view':
+            return `
+                    background: ${settingsTheme.primary}15;
+                    color: ${settingsTheme.primary};
+                    &:hover:not(:disabled) {
+                        background: ${settingsTheme.primary};
+                        color: white;
+                        transform: translateY(-1px);
+                    }
+                `;
+        case 'download':
+            return `
+                    background: ${settingsTheme.status.success}15;
+                    color: ${settingsTheme.status.success};
+                    &:hover:not(:disabled) {
+                        background: ${settingsTheme.status.success};
+                        color: white;
+                        transform: translateY(-1px);
+                    }
+                `;
+        case 'success':
+            return `
+                    background: ${settingsTheme.status.success}15;
+                    color: ${settingsTheme.status.success};
+                    &:hover:not(:disabled) {
+                        background: ${settingsTheme.status.success};
+                        color: white;
+                        transform: translateY(-1px);
+                    }
+                `;
+        case 'secondary':
+            return `
+                    background: ${settingsTheme.text.muted}15;
+                    color: ${settingsTheme.text.muted};
+                    &:hover:not(:disabled) {
+                        background: ${settingsTheme.status.warning};
+                        color: white;
+                        transform: translateY(-1px);
+                    }
+                `;
+        case 'danger':
+            return `
+                    background: ${settingsTheme.status.error}15;
+                    color: ${settingsTheme.status.error};
+                    &:hover:not(:disabled) {
+                        background: ${settingsTheme.status.error};
+                        color: white;
+                        transform: translateY(-1px);
+                    }
+                `;
+    }
+}}
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+        
+        .spinning {
+            animation: spin 1s linear infinite;
+        }
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+`;
