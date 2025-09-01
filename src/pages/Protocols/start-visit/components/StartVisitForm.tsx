@@ -1,3 +1,5 @@
+// src/pages/Protocols/start-visit/components/StartVisitForm.tsx - POPRAWIONA WERSJA
+
 import React, {useEffect, useState} from 'react';
 import {
     CarReceptionProtocol,
@@ -29,6 +31,20 @@ interface StartVisitFormProps {
     isRestoringCancelled?: boolean;
 }
 
+// NOWA: Funkcja do generowania obecnej daty i czasu w formacie ISO
+const getCurrentDateTimeISO = () => {
+    const now = new Date();
+    // Format: YYYY-MM-DDTHH:MM:SS (bez milisekund i timezone)
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+};
+
 const StartVisitForm: React.FC<StartVisitFormProps> = ({
                                                            protocol,
                                                            availableServices,
@@ -36,7 +52,22 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
                                                            onCancel,
                                                            isRestoringCancelled = false
                                                        }) => {
-    const [formData, setFormData] = useState<CarReceptionProtocol>({...protocol});
+    // POPRAWKA: Inicjalizacja formData z aktualną datą przyjęcia
+    const [formData, setFormData] = useState<CarReceptionProtocol>(() => {
+        const currentDateTime = getCurrentDateTimeISO();
+
+        console.log('🕐 StartVisitForm - Ustawianie aktualnej daty przyjęcia:');
+        console.log('  Aktualna data/czas przyjęcia:', currentDateTime);
+        console.log('  Zachowana data zakończenia:', protocol.endDate);
+
+        return {
+            ...protocol,
+            startDate: currentDateTime, // TYLKO data przyjęcia - ustawiamy na obecny czas
+            // endDate pozostaje bez zmian - to planowany termin zakończenia!
+            status: ProtocolStatus.IN_PROGRESS // Ustawiamy status na "W realizacji"
+        };
+    });
+
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -110,12 +141,24 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
         }
     }, [protocol, formData.deliveryPerson]);
 
+    // POPRAWKA: Uproszczona funkcja formatowania dat
     const formatDateForAPI = (dateString: string): string => {
         if (!dateString) return '';
+
         try {
+            // Usuń 'Z' i milisekundy
             let cleanedDate = dateString.replace('Z', '').split('.')[0];
-            if (cleanedDate.includes(' ') && cleanedDate.includes('T')) return cleanedDate.split(' ')[0];
-            if (cleanedDate.includes(' ') && !cleanedDate.includes('T')) return cleanedDate.replace(' ', 'T');
+
+            // Jeśli już ma format ISO (YYYY-MM-DDTHH:MM:SS), zwróć jak jest
+            if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(cleanedDate)) {
+                return cleanedDate;
+            }
+
+            // Jeśli ma spację zamiast T, zamień
+            if (cleanedDate.includes(' ')) {
+                cleanedDate = cleanedDate.replace(' ', 'T');
+            }
+
             return cleanedDate;
         } catch (error) {
             console.error('Błąd podczas formatowania daty:', error, dateString);
@@ -134,12 +177,14 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
         };
     };
 
-    useEffect(() => {
-        setFormData(prev => ({ ...prev, status: ProtocolStatus.IN_PROGRESS }));
-    }, []);
+    // USUNIĘTY: zbędny useEffect który resetował status - już ustawiamy IN_PROGRESS w useState
 
     useEffect(() => {
-        setFormData(prev => ({ ...prev, selectedServices: services, status: ProtocolStatus.IN_PROGRESS }));
+        setFormData(prev => ({
+            ...prev,
+            selectedServices: services,
+            status: ProtocolStatus.IN_PROGRESS // Upewniamy się że status pozostaje IN_PROGRESS
+        }));
     }, [services]);
 
     const handleServiceCreated = (oldId: string, newService: { id: string; name: string; price: number }) => {
@@ -190,23 +235,30 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
         }
     };
 
+    // POPRAWKA: Uproszczona obsługa zmian w formularzu
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
+
+        console.log(`🔄 StartVisitForm handleChange - ${name}:`, value);
+
         if (type === 'checkbox') {
             const checkbox = e.target as HTMLInputElement;
-            setFormData({ ...formData, [name]: checkbox.checked });
+            setFormData(prev => ({ ...prev, [name]: checkbox.checked }));
         } else if (name === 'mileage' || name === 'productionYear') {
-            setFormData({ ...formData, [name]: value ? parseInt(value, 10) : 0 });
-        } else if (name === 'endDate') {
-            const cleanedDate = formatDateForAPI(value);
-            const finalDate = cleanedDate.includes('T') ? `${cleanedDate.split('T')[0]}T23:59:59` : `${cleanedDate}T23:59:59`;
-            setFormData({ ...formData, [name]: finalDate });
+            setFormData(prev => ({ ...prev, [name]: value ? parseInt(value, 10) : 0 }));
         } else if (name === 'startDate') {
-            const cleanedDate = formatDateForAPI(value);
-            const finalDate = cleanedDate.includes('T') ? cleanedDate : `${cleanedDate}T08:00:00`;
-            setFormData({ ...formData, [name]: finalDate });
+            // Dla daty rozpoczęcia, zachowaj format datetime-local
+            const formattedDate = formatDateForAPI(value);
+            console.log(`  ✅ Sformatowana startDate:`, formattedDate);
+            setFormData(prev => ({ ...prev, [name]: formattedDate }));
+        } else if (name === 'endDate') {
+            // POPRAWKA: Data zakończenia powinna pozostać niezmienna!
+            // To jest planowany termin zakończenia wizyty, nie powinien się zmieniać
+            console.log('⚠️ Próba zmiany daty zakończenia - ignorowana. Data zakończenia jest niezmienna.');
+            // Nie robimy nic - endDate pozostaje bez zmian
+            return;
         } else {
-            setFormData({ ...formData, [name]: value });
+            setFormData(prev => ({ ...prev, [name]: value }));
         }
     };
 
@@ -248,14 +300,25 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
         setShowResults(false);
     };
 
+    // POPRAWKA: Główna funkcja submit z dokładnym logowaniem
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
         try {
             setLoading(true);
             setError(null);
 
-            let processedStartDate = formData.startDate ? (formatDateForAPI(formData.startDate).includes('T') ? formatDateForAPI(formData.startDate) : `${formatDateForAPI(formData.startDate)}T08:00:00`) : '';
-            let processedEndDate = formData.endDate ? `${formatDateForAPI(formData.endDate).split('T')[0]}T23:59:59` : '';
+            console.log('🚀 StartVisitForm - rozpoczęcie zapisu:');
+            console.log('  Oryginalna startDate:', formData.startDate);
+            console.log('  Oryginalna endDate:', formData.endDate);
+
+            // POPRAWKA: Upewnij się, że daty są w poprawnym formacie
+            // TYLKO startDate może być modyfikowana - endDate tylko formatowana dla API!
+            const processedStartDate = formatDateForAPI(formData.startDate || getCurrentDateTimeISO());
+            const processedEndDate = formatDateForAPI(formData.endDate || ''); // Format dla API, ale bez zmiany daty
+
+            console.log('  Przetworzona startDate (data przyjęcia):', processedStartDate);
+            console.log('  Sformatowana endDate (planowany termin):', processedEndDate);
 
             const updatedProtocol: CarReceptionProtocol = {
                 ...formData,
@@ -266,22 +329,39 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
                 deliveryPerson: prepareDeliveryPersonForApi(formData)
             };
 
+            console.log('📤 Dane wysyłane do API:', {
+                id: updatedProtocol.id,
+                startDate: updatedProtocol.startDate,
+                endDate: updatedProtocol.endDate,
+                status: updatedProtocol.status,
+                statusUpdatedAt: updatedProtocol.statusUpdatedAt
+            });
+
             let savedProtocol;
             if (isRestoringCancelled) {
+                console.log('🔄 Przywracanie anulowanego protokołu');
                 savedProtocol = await protocolsApi.restoreProtocol(updatedProtocol.id, {
                     newStatus: ProtocolStatus.IN_PROGRESS,
                     newStartDate: updatedProtocol.startDate,
                     newEndDate: updatedProtocol.endDate
                 });
-                if (!savedProtocol) savedProtocol = await protocolsApi.updateProtocol(updatedProtocol);
+                if (!savedProtocol) {
+                    console.log('⚠️ Fallback - aktualizacja protokołu');
+                    savedProtocol = await protocolsApi.updateProtocol(updatedProtocol);
+                }
             } else {
+                console.log('📝 Zwykła aktualizacja protokołu');
                 savedProtocol = await protocolsApi.updateProtocol(updatedProtocol);
             }
 
-            if (!savedProtocol) throw new Error('Nie udało się zaktualizować protokołu');
+            if (!savedProtocol) {
+                throw new Error('Nie udało się zaktualizować protokołu');
+            }
+
+            console.log('✅ Protokół zapisany pomyślnie:', savedProtocol.id);
             onSave(savedProtocol);
         } catch (err) {
-            console.error('Błąd podczas rozpoczynania wizyty:', err);
+            console.error('❌ Błąd podczas rozpoczynania wizyty:', err);
             setError('Wystąpił błąd podczas zapisywania. Spróbuj ponownie.');
         } finally {
             setLoading(false);
@@ -289,14 +369,32 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
     };
 
     if (loadingAutocompleteData) {
-        return <FormContainer><div style={{ padding: '2rem', textAlign: 'center' }}>Ładowanie danych klientów i pojazdów...</div></FormContainer>;
+        return (
+            <FormContainer>
+                <div style={{ padding: '2rem', textAlign: 'center' }}>
+                    Ładowanie danych klientów i pojazdów...
+                </div>
+            </FormContainer>
+        );
     }
+
+    console.log('🎨 StartVisitForm render - aktualne daty:', {
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        status: formData.status,
+        note: 'endDate jest niezmienna - to planowany termin zakończenia'
+    });
 
     return (
         <FormContainer>
             {error && <ErrorMessage>{error}</ErrorMessage>}
             <Form onSubmit={handleSubmit}>
-                <VisitTitleSection title={formData.title || ''} selectedColorId={formData.calendarColorId} onChange={handleChange} error={undefined} />
+                <VisitTitleSection
+                    title={formData.title || ''}
+                    selectedColorId={formData.calendarColorId}
+                    onChange={handleChange}
+                    error={undefined}
+                />
 
                 <ScheduleSection
                     formData={formData}
@@ -305,8 +403,24 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
                     isFullProtocol={true}
                 />
 
-                <ClientInfoSection formData={formData} errors={{}} onChange={handleChange} readOnly={true} autocompleteOptions={[]} onAutocompleteSelect={() => {}} />
-                <VehicleInfoSection formData={formData} errors={{}} onChange={handleChange} isFullProtocol={true} readOnly={true} autocompleteOptions={[]} onAutocompleteSelect={() => {}} />
+                <ClientInfoSection
+                    formData={formData}
+                    errors={{}}
+                    onChange={handleChange}
+                    readOnly={true}
+                    autocompleteOptions={[]}
+                    onAutocompleteSelect={() => {}}
+                />
+
+                <VehicleInfoSection
+                    formData={formData}
+                    errors={{}}
+                    onChange={handleChange}
+                    isFullProtocol={true}
+                    readOnly={true}
+                    autocompleteOptions={[]}
+                    onAutocompleteSelect={() => {}}
+                />
 
                 <DeliveryPersonSection
                     isDeliveryPersonDifferent={isDeliveryPersonDifferent}
@@ -341,10 +455,14 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
                 />
 
                 <NotesSection notes={formData.notes || ''} onChange={handleChange} />
+
                 <FormActions>
-                    <Button type="button" secondary onClick={onCancel}>Anuluj</Button>
+                    <Button type="button" secondary onClick={onCancel}>
+                        Anuluj
+                    </Button>
                     <Button type="submit" primary disabled={loading}>
-                        {loading ? 'Zapisywanie...' : isRestoringCancelled ? 'Przywróć wizytę' : 'Rozpocznij wizytę'}
+                        {loading ? 'Zapisywanie...' :
+                            isRestoringCancelled ? 'Przywróć wizytę' : 'Rozpocznij wizytę'}
                     </Button>
                 </FormActions>
             </Form>

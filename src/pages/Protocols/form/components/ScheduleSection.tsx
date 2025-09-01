@@ -1,4 +1,5 @@
-// src/pages/Protocols/form/components/ScheduleSection.tsx
+// src/pages/Protocols/form/components/ScheduleSection.tsx - POPRAWIONA WERSJA
+
 import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
 import {CarReceptionProtocol} from '../../../../types';
@@ -104,9 +105,14 @@ const ScheduleSection: React.FC<ScheduleSectionProps> = ({
         }
     };
 
-    // Effect to set current date and time for full protocol
+    // POPRAWKA: Nie ustawiaj automatycznie daty obecnej dla StartVisitForm
+    // StartVisitForm sam zarządza swoimi datami w useState
     useEffect(() => {
-        if (isFullProtocol && !formData.startDate) {
+        // Sprawdź czy nie jesteśmy w kontekście StartVisitForm
+        const isStartVisitContext = window.location.pathname.includes('/open');
+
+        if (isFullProtocol && !formData.startDate && !isStartVisitContext) {
+            console.log('🕐 ScheduleSection - ustawianie domyślnej daty dla nowego protokołu');
             const now = new Date();
             const currentDate = now.toISOString().split('T')[0];
             const hours = String(now.getHours()).padStart(2, '0');
@@ -122,19 +128,95 @@ const ScheduleSection: React.FC<ScheduleSectionProps> = ({
         }
     }, [isFullProtocol, formData.startDate, onChange]);
 
-    // Function to safely extract date from different formats
+    // POPRAWKA: Ulepszona funkcja do wyciągania daty z różnych formatów
     const extractDateFromISO = (dateString: string): string => {
         if (!dateString) return '';
-        if (dateString.includes('T')) return dateString.split('T')[0];
-        if (dateString.includes(' ')) return dateString.split(' ')[0];
-        if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return dateString;
+
         try {
+            // Usuń 'Z' i milisekundy
+            let cleanedDate = dateString.replace('Z', '').split('.')[0];
+
+            console.log('📅 ScheduleSection extractDateFromISO:', {
+                input: dateString,
+                cleaned: cleanedDate
+            });
+
+            // Jeśli ma format ISO z T, wyciągnij tylko część z datą
+            if (cleanedDate.includes('T')) {
+                const datePart = cleanedDate.split('T')[0];
+                console.log('  📅 Wyciągnięta data:', datePart);
+                return datePart;
+            }
+
+            // Jeśli ma spację zamiast T, wyciągnij część przed spacją
+            if (cleanedDate.includes(' ')) {
+                const datePart = cleanedDate.split(' ')[0];
+                console.log('  📅 Wyciągnięta data (spacja):', datePart);
+                return datePart;
+            }
+
+            // Jeśli to już tylko data w formacie YYYY-MM-DD
+            if (/^\d{4}-\d{2}-\d{2}$/.test(cleanedDate)) {
+                console.log('  📅 Data w poprawnym formacie:', cleanedDate);
+                return cleanedDate;
+            }
+
+            // Fallback - spróbuj utworzyć datę i wyciągnij z niej część
             const date = new Date(dateString);
-            if (!isNaN(date.getTime())) return date.toISOString().split('T')[0];
+            if (!isNaN(date.getTime())) {
+                const formattedDate = date.toISOString().split('T')[0];
+                console.log('  📅 Data z fallback:', formattedDate);
+                return formattedDate;
+            }
+
+            console.warn('⚠️ Nie można sparsować daty:', dateString);
+            return '';
         } catch (e) {
-            console.warn('Nie można sparsować daty:', dateString);
+            console.warn('⚠️ Błąd podczas parsowania daty:', dateString, e);
+            return '';
         }
-        return '';
+    };
+
+    // POPRAWKA: Ulepszona funkcja do wyciągania czasu
+    const extractTimeFromISO = (dateString: string, defaultTime = '08:00'): string => {
+        if (!dateString) return defaultTime;
+
+        try {
+            // Usuń 'Z' i milisekundy
+            let cleanedDate = dateString.replace('Z', '').split('.')[0];
+
+            console.log('🕐 ScheduleSection extractTimeFromISO:', {
+                input: dateString,
+                cleaned: cleanedDate,
+                default: defaultTime
+            });
+
+            // Jeśli ma format ISO z T, wyciągnij czas
+            if (cleanedDate.includes('T')) {
+                const timePart = cleanedDate.split('T')[1];
+                if (timePart) {
+                    const timeOnly = timePart.substring(0, 5); // HH:MM
+                    console.log('  🕐 Wyciągnięty czas (T):', timeOnly);
+                    return timeOnly;
+                }
+            }
+
+            // Jeśli ma spację zamiast T, wyciągnij czas
+            if (cleanedDate.includes(' ')) {
+                const timePart = cleanedDate.split(' ')[1];
+                if (timePart) {
+                    const timeOnly = timePart.substring(0, 5); // HH:MM
+                    console.log('  🕐 Wyciągnięty czas (spacja):', timeOnly);
+                    return timeOnly;
+                }
+            }
+
+            console.log('  🕐 Używam domyślnego czasu:', defaultTime);
+            return defaultTime;
+        } catch (e) {
+            console.warn('⚠️ Błąd podczas wyciągania czasu:', dateString, e);
+            return defaultTime;
+        }
     };
 
     return (
@@ -172,20 +254,15 @@ const ScheduleSection: React.FC<ScheduleSectionProps> = ({
                                 id="startTime"
                                 name="startTime"
                                 type="time"
-                                value={(() => {
-                                    if (!formData.startDate) return '08:00';
-                                    if (formData.startDate.includes('T')) {
-                                        return formData.startDate.split('T')[1]?.substring(0, 5) || '08:00';
-                                    }
-                                    if (formData.startDate.includes(' ')) {
-                                        const timePart = formData.startDate.split(' ')[1];
-                                        return timePart?.substring(0, 5) || '08:00';
-                                    }
-                                    return '08:00';
-                                })()}
+                                value={extractTimeFromISO(formData.startDate || '', '08:00')}
                                 onChange={(e) => {
                                     const date = extractDateFromISO(formData.startDate || new Date().toISOString());
                                     const newDateTime = `${date}T${e.target.value}:00`;
+                                    console.log('🕐 ScheduleSection - zmiana czasu rozpoczęcia:', {
+                                        date,
+                                        time: e.target.value,
+                                        newDateTime
+                                    });
                                     const syntheticEvent = {
                                         target: { name: 'startDate', value: newDateTime, type: 'text' }
                                     } as React.ChangeEvent<HTMLInputElement>;
