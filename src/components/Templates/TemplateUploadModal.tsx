@@ -61,10 +61,10 @@ export const TemplateUploadModal: React.FC<TemplateUploadModalProps> = ({
             case 'SERVICE_AGREEMENT':
             case 'MARKETING_CONSENT':
             case 'VEHICLE_PICKUP':
-            case 'INVOICE':
                 return 'application/pdf';
             case 'MAIL_ON_VISIT_STARTED':
             case 'MAIL_ON_VISIT_COMPLETED':
+            case 'INVOICE':
                 return 'text/html';
             default:
                 return null;
