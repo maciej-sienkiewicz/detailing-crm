@@ -43,6 +43,7 @@ import {
 } from "../../../../types";
 import AddServiceModal from "../../shared/modals/AddServiceModal";
 import EditPricesModal from "./EditPricesModal";
+import DeleteServiceModal from "../modals/DeleteServiceModalProps";
 
 // Professional Brand System - Enterprise Automotive Grade
 const brand = {
@@ -114,6 +115,8 @@ interface ProtocolSummaryProps {
 const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolUpdate }) => {
     const [showAddServiceModal, setShowAddServiceModal] = useState(false);
     const [showEditPricesModal, setShowEditPricesModal] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [serviceToDelete, setServiceToDelete] = useState<{ id: string; name: string } | null>(null);
     const [client, setClient] = useState<ClientExpanded | null>(null);
     const [clientStats, setClientStats] = useState<ClientStatistics | null>(null);
     const [loading, setLoading] = useState(true);
@@ -151,22 +154,23 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
         }
     };
 
-    // Handler for removing a service - NEW
+    // Handler for removing a service - UPDATED with modal
     const handleRemoveService = async (serviceId: string, serviceName: string) => {
+        setServiceToDelete({ id: serviceId, name: serviceName });
+        setShowDeleteModal(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!serviceToDelete) return;
+
         try {
-            const confirmDelete = window.confirm(`Czy na pewno chcesz usunąć usługę "${serviceName}"?`);
-
-            if (!confirmDelete) {
-                return;
-            }
-
-            setRemovingServiceId(serviceId);
-            console.log('🗑️ Removing service via API:', { serviceId, serviceName });
+            setRemovingServiceId(serviceToDelete.id);
+            console.log('🗑️ Removing service via API:', serviceToDelete);
 
             // Call the API to remove service from visit
             const result = await visitsApi.removeServiceFromVisit(
                 protocol.id,
-                serviceId,
+                serviceToDelete.id,
                 'Usunięto przez użytkownika'
             );
 
@@ -213,10 +217,15 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
             alert('Wystąpił błąd podczas usuwania usługi. Spróbuj ponownie.');
         } finally {
             setRemovingServiceId(null);
+            setServiceToDelete(null);
+            setShowDeleteModal(false);
         }
     };
 
     const canEditPrices = protocol.status === ProtocolStatus.READY_FOR_PICKUP;
+
+    // NEW: Check if services can be added/removed
+    const canModifyServices = protocol.status !== ProtocolStatus.CANCELLED && protocol.status !== ProtocolStatus.COMPLETED;
 
     // Load client data based on protocol's owner ID
     React.useEffect(() => {
@@ -739,15 +748,18 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                             </EditPricesButton>
                         )}
 
-                        <AddServiceButton
-                            onClick={handleAddService}
-                            disabled={servicesLoading || addingServices}
-                        >
-                            <FaPlus />
-                            <span>
-                                {addingServices ? 'Dodawanie...' : servicesLoading ? 'Ładowanie...' : 'Dodaj usługę'}
-                            </span>
-                        </AddServiceButton>
+                        {/* UPDATED: Przycisk "Dodaj usługę" - ukryty gdy wizyta anulowana lub zakończona */}
+                        {canModifyServices && (
+                            <AddServiceButton
+                                onClick={handleAddService}
+                                disabled={servicesLoading || addingServices}
+                            >
+                                <FaPlus />
+                                <span>
+                                    {addingServices ? 'Dodawanie...' : servicesLoading ? 'Ładowanie...' : 'Dodaj usługę'}
+                                </span>
+                            </AddServiceButton>
+                        )}
                     </HeaderActions>
                 </SectionHeader>
 
@@ -816,18 +828,21 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                                                 <FaBell />
                                             </ActionIcon>
                                         )}
-                                        <ActionIcon
-                                            $type="delete"
-                                            title="Usuń usługę"
-                                            disabled={removingServiceId === service.id}
-                                            onClick={() => handleRemoveService(service.id, service.name)}
-                                        >
-                                            {removingServiceId === service.id ? (
-                                                <MiniSpinner />
-                                            ) : (
-                                                <FaTrash />
-                                            )}
-                                        </ActionIcon>
+                                        {/* UPDATED: Przycisk usuwania - ukryty gdy wizyta anulowana lub zakończona */}
+                                        {canModifyServices && (
+                                            <ActionIcon
+                                                $type="delete"
+                                                title="Usuń usługę"
+                                                disabled={removingServiceId === service.id}
+                                                onClick={() => handleRemoveService(service.id, service.name)}
+                                            >
+                                                {removingServiceId === service.id ? (
+                                                    <MiniSpinner />
+                                                ) : (
+                                                    <FaTrash />
+                                                )}
+                                            </ActionIcon>
+                                        )}
                                     </ServiceActions>
                                 </ActionsCell>
                             </ServiceRow>
@@ -870,6 +885,18 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                 onSave={handleSavePrices}
                 services={protocol.selectedServices}
                 protocolId={protocol.id}
+            />
+
+            {/* Delete Service Modal */}
+            <DeleteServiceModal
+                isOpen={showDeleteModal}
+                onClose={() => {
+                    setShowDeleteModal(false);
+                    setServiceToDelete(null);
+                }}
+                onConfirm={handleConfirmDelete}
+                serviceName={serviceToDelete?.name || ''}
+                isDeleting={removingServiceId === serviceToDelete?.id}
             />
         </Container>
     );

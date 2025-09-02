@@ -15,12 +15,15 @@ import QualityVerificationModal from "./modals/QualityVerificationModal";
 import CustomerNotificationModal from "./modals/CustomerNotificationModal";
 import ClientCommentsModal from "./modals/ClientCommentsModal";
 import PaymentModal from "./modals/PaymentModal";
+import SuccessModal from "./modals/SuccessModal";
 import PDFViewer from "../../../components/PdfViewer";
 import CancelProtocolModal, {CancellationReason} from "../shared/components/CancelProtocolModal";
 import RestoreProtocolModal, {RestoreOption} from "../shared/components/RestoreProtocolModal";
 import RescheduleProtocolModal from "../shared/components/RescheduleProtocolModal";
 import {format} from "date-fns";
 import {pl} from "date-fns/locale";
+import {FaCarSide} from 'react-icons/fa';
+import LoadingOverlay from "./components/LoadingOverlay";
 
 // Brand Theme System - Automotive Premium
 const brandTheme = {
@@ -107,6 +110,20 @@ const ProtocolDetailsPage: React.FC = () => {
     // Stan do obsługi podglądu PDF
     const [showPdfPreview, setShowPdfPreview] = useState(false);
 
+    // NOWE: Stany dla modalu sukcesu
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [successModalData, setSuccessModalData] = useState<{
+        title: string;
+        message: string;
+        icon?: React.ReactNode;
+    }>({
+        title: '',
+        message: ''
+    });
+
+    const [isReleasing, setIsReleasing] = useState(false);
+
+
     const handleRestoreProtocol = (option: RestoreOption) => {
         setShowRestoreModal(false);
 
@@ -141,20 +158,35 @@ const ProtocolDetailsPage: React.FC = () => {
 
             if (result) {
                 setProtocol(result);
-                alert('Wizyta została przywrócona i zaplanowana na nowy termin');
+                setSuccessModalData({
+                    title: 'Wizyta przywrócona',
+                    message: 'Wizyta została przywrócona i zaplanowana na nowy termin.',
+                    icon: <FaCheckSquare />
+                });
+                setShowSuccessModal(true);
             } else {
                 const updatedResult = await protocolsApi.updateProtocol(updatedProtocol);
 
                 if (updatedResult) {
                     setProtocol(updatedResult);
-                    alert('Wizyta została przywrócona i zaplanowana na nowy termin');
+                    setSuccessModalData({
+                        title: 'Wizyta przywrócona',
+                        message: 'Wizyta została przywrócona i zaplanowana na nowy termin.',
+                        icon: <FaCheckSquare />
+                    });
+                    setShowSuccessModal(true);
                 } else {
                     throw new Error('Nie udało się przywrócić wizyty');
                 }
             }
         } catch (error) {
             console.error('Błąd podczas przywracania protokołu z nową datą:', error);
-            alert('Wystąpił błąd podczas przywracania wizyty');
+            setSuccessModalData({
+                title: 'Błąd',
+                message: 'Wystąpił błąd podczas przywracania wizyty. Spróbuj ponownie.',
+                icon: <FaBan />
+            });
+            setShowSuccessModal(true);
         }
     };
 
@@ -172,10 +204,20 @@ const ProtocolDetailsPage: React.FC = () => {
             });
 
             setShowCancelModal(false);
-            alert('Protokół został anulowany');
+            setSuccessModalData({
+                title: 'Wizyta anulowana',
+                message: 'Protokół został pomyślnie anulowany.',
+                icon: <FaBan />
+            });
+            setShowSuccessModal(true);
         } catch (error) {
             console.error('Błąd podczas anulowania protokołu:', error);
-            alert('Wystąpił błąd podczas anulowania protokołu');
+            setSuccessModalData({
+                title: 'Błąd',
+                message: 'Wystąpił błąd podczas anulowania protokołu. Spróbuj ponownie.',
+                icon: <FaBan />
+            });
+            setShowSuccessModal(true);
         }
     };
 
@@ -284,9 +326,7 @@ const ProtocolDetailsPage: React.FC = () => {
         setShowPaymentModal(true);
     };
 
-    // Handle payment confirm
-// Zaktualizowana funkcja handlePaymentConfirm do wstawienia w ProtocolDetailsPage.tsx
-
+    // ZAKTUALIZOWANA funkcja handlePaymentConfirm z modalem sukcesu
     const handlePaymentConfirm = async (paymentData: {
         paymentMethod: 'cash' | 'card' | 'transfer';
         documentType: 'invoice' | 'receipt' | 'other';
@@ -305,7 +345,11 @@ const ProtocolDetailsPage: React.FC = () => {
 
             console.log('Release data being sent to API:', releaseData);
 
+            setIsReleasing(true);
+
             const result = await protocolsApi.releaseVehicle(protocol!.id, releaseData);
+
+            setIsReleasing(false);
 
             if (result) {
                 setProtocol(result);
@@ -320,10 +364,22 @@ const ProtocolDetailsPage: React.FC = () => {
                 await protocolsApi.updateProtocolStatus(protocol!.id, ProtocolStatus.COMPLETED);
             }
 
-            alert('Pojazd został wydany klientowi');
+            // UPDATED: Pokazuj modal sukcesu zamiast alert
+            setSuccessModalData({
+                title: 'Pojazd został wydany',
+                message: 'Pojazd został pomyślnie wydany klientowi. Wizyta została zakończona.',
+                icon: <FaCarSide />
+            });
+            setShowSuccessModal(true);
+
         } catch (error) {
             console.error('Błąd podczas wydawania pojazdu:', error);
-            alert('Wystąpił błąd podczas wydawania pojazdu');
+            setSuccessModalData({
+                title: 'Błąd',
+                message: 'Wystąpił błąd podczas wydawania pojazdu. Spróbuj ponownie.',
+                icon: <FaBan />
+            });
+            setShowSuccessModal(true);
         }
     };
 
@@ -540,6 +596,22 @@ const ProtocolDetailsPage: React.FC = () => {
                     protocolId={protocol.id}
                 />
             )}
+
+            {/* NOWY: Success Modal */}
+            <SuccessModal
+                isOpen={showSuccessModal}
+                onClose={() => setShowSuccessModal(false)}
+                title={successModalData.title}
+                message={successModalData.message}
+                icon={successModalData.icon}
+                buttonText="OK"
+            />
+
+            <LoadingOverlay
+                isVisible={isReleasing}
+                message="Wydawanie pojazdu..."
+                icon={<FaCarSide />}
+            />
         </PageContainer>
     );
 };

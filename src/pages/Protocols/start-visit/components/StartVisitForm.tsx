@@ -31,10 +31,9 @@ interface StartVisitFormProps {
     isRestoringCancelled?: boolean;
 }
 
-// NOWA: Funkcja do generowania obecnej daty i czasu w formacie ISO
+// Funkcja do generowania obecnej daty i czasu w formacie ISO
 const getCurrentDateTimeISO = () => {
     const now = new Date();
-    // Format: YYYY-MM-DDTHH:MM:SS (bez milisekund i timezone)
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
@@ -52,17 +51,17 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
                                                            onCancel,
                                                            isRestoringCancelled = false
                                                        }) => {
-    // POPRAWKA: Inicjalizacja formData z aktualną datą przyjęcia
+    // POPRAWKA: Inicjalizacja formData z aktualną datą przyjęcia, ale zachowaniem oryginalnej daty zakończenia
     const [formData, setFormData] = useState<CarReceptionProtocol>(() => {
         const currentDateTime = getCurrentDateTimeISO();
 
-        console.log('🕐 StartVisitForm - Ustawianie aktualnej daty przyjęcia:');
+        console.log('🕐 StartVisitForm - Inicjalizacja dat:');
         console.log('  Aktualna data/czas przyjęcia:', currentDateTime);
         console.log('  Zachowana data zakończenia:', protocol.endDate);
 
         return {
             ...protocol,
-            startDate: currentDateTime, // TYLKO data przyjęcia - ustawiamy na obecny czas
+            startDate: currentDateTime, // Ustawiamy na obecny czas
             // endDate pozostaje bez zmian - to planowany termin zakończenia!
             status: ProtocolStatus.IN_PROGRESS // Ustawiamy status na "W realizacji"
         };
@@ -141,20 +140,17 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
         }
     }, [protocol, formData.deliveryPerson]);
 
-    // POPRAWKA: Uproszczona funkcja formatowania dat
+    // Uproszczona funkcja formatowania dat
     const formatDateForAPI = (dateString: string): string => {
         if (!dateString) return '';
 
         try {
-            // Usuń 'Z' i milisekundy
             let cleanedDate = dateString.replace('Z', '').split('.')[0];
 
-            // Jeśli już ma format ISO (YYYY-MM-DDTHH:MM:SS), zwróć jak jest
             if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(cleanedDate)) {
                 return cleanedDate;
             }
 
-            // Jeśli ma spację zamiast T, zamień
             if (cleanedDate.includes(' ')) {
                 cleanedDate = cleanedDate.replace(' ', 'T');
             }
@@ -176,8 +172,6 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
             phone: formData.deliveryPerson.phone.trim()
         };
     };
-
-    // USUNIĘTY: zbędny useEffect który resetował status - już ustawiamy IN_PROGRESS w useState
 
     useEffect(() => {
         setFormData(prev => ({
@@ -235,7 +229,7 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
         }
     };
 
-    // POPRAWKA: Uproszczona obsługa zmian w formularzu
+    // POPRAWKA: Obsługa zmian w formularzu - POZWALAMY NA EDYCJĘ DATY ZAKOŃCZENIA
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
 
@@ -252,11 +246,10 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
             console.log(`  ✅ Sformatowana startDate:`, formattedDate);
             setFormData(prev => ({ ...prev, [name]: formattedDate }));
         } else if (name === 'endDate') {
-            // POPRAWKA: Data zakończenia powinna pozostać niezmienna!
-            // To jest planowany termin zakończenia wizyty, nie powinien się zmieniać
-            console.log('⚠️ Próba zmiany daty zakończenia - ignorowana. Data zakończenia jest niezmienna.');
-            // Nie robimy nic - endDate pozostaje bez zmian
-            return;
+            // POPRAWKA: POZWALAMY NA EDYCJĘ DATY ZAKOŃCZENIA!
+            const formattedDate = formatDateForAPI(value);
+            console.log(`  ✅ Sformatowana endDate (możliwa do edycji):`, formattedDate);
+            setFormData(prev => ({ ...prev, [name]: formattedDate }));
         } else {
             setFormData(prev => ({ ...prev, [name]: value }));
         }
@@ -300,7 +293,7 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
         setShowResults(false);
     };
 
-    // POPRAWKA: Główna funkcja submit z dokładnym logowaniem
+    // Główna funkcja submit z dokładnym logowaniem
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -312,13 +305,12 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
             console.log('  Oryginalna startDate:', formData.startDate);
             console.log('  Oryginalna endDate:', formData.endDate);
 
-            // POPRAWKA: Upewnij się, że daty są w poprawnym formacie
-            // TYLKO startDate może być modyfikowana - endDate tylko formatowana dla API!
+            // POPRAWKA: Obie daty mogą być modyfikowane i formatowane dla API
             const processedStartDate = formatDateForAPI(formData.startDate || getCurrentDateTimeISO());
-            const processedEndDate = formatDateForAPI(formData.endDate || ''); // Format dla API, ale bez zmiany daty
+            const processedEndDate = formatDateForAPI(formData.endDate || '');
 
             console.log('  Przetworzona startDate (data przyjęcia):', processedStartDate);
-            console.log('  Sformatowana endDate (planowany termin):', processedEndDate);
+            console.log('  Przetworzona endDate (planowany/zaktualizowany termin):', processedEndDate);
 
             const updatedProtocol: CarReceptionProtocol = {
                 ...formData,
@@ -382,7 +374,7 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
         startDate: formData.startDate,
         endDate: formData.endDate,
         status: formData.status,
-        note: 'endDate jest niezmienna - to planowany termin zakończenia'
+        note: 'POPRAWKA: endDate jest teraz edytowalna!'
     });
 
     return (
