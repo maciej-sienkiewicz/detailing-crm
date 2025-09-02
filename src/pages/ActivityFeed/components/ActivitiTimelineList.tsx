@@ -192,32 +192,56 @@ const ActivityTimelineList: React.FC<ActivityTimelineListProps> = ({ activities,
 
                                         <ActivityMessage>{activity.message}</ActivityMessage>
 
-                                        {/* ✅ POPRAWKA: Używamy relatedEntities (camelCase po konwersji) */}
-                                        {(activity.relatedEntities || activity.related_entities) && (activity.relatedEntities || activity.related_entities)!!.length > 0 && (
-                                            <EntitiesSection>
-                                                <EntitiesLabel>Powiązane:</EntitiesLabel>
-                                                <EntitiesList>
-                                                    {(activity.primaryEntity && (
-                                                        <EntityLink
-                                                            key={activity.primaryEntity.id}
-                                                            to={getEntityLink(activity.primaryEntity)}
-                                                        >
-                                                            <EntityName>{activity.primaryEntity.name}</EntityName>
-                                                            <FaChevronRight />
-                                                        </EntityLink>
-                                                    ))}
-                                                    {(activity.relatedEntities || activity.related_entities)?.map((entity, entityIndex) => (
-                                                        <EntityLink
-                                                            key={entity.id}
-                                                            to={getEntityLink(entity)}
-                                                        >
-                                                            <EntityName>{entity.name}</EntityName>
-                                                            <FaChevronRight />
-                                                        </EntityLink>
-                                                    ))}
-                                                </EntitiesList>
-                                            </EntitiesSection>
-                                        )}
+                                        {(() => {
+                                            // Pobierz primary entity (sprawdź oba formaty)
+                                            const primaryEntity = activity.primaryEntity;
+
+                                            // Pobierz related entities (sprawdź oba formaty)
+                                            const relatedEntities = activity.relatedEntities || activity.related_entities || [];
+
+                                            // Debug log dla problematycznego przypadku
+                                            if (activity.id === 'bd9d1b97-5f50-4604-af56-8a63de9b9285') {
+                                                console.log('🔍 Debug problematycznego ID:', {
+                                                    primaryEntity,
+                                                    relatedEntities,
+                                                    hasPrimary: !!primaryEntity,
+                                                    relatedCount: relatedEntities.length,
+                                                    shouldShow: !!primaryEntity || relatedEntities.length > 0
+                                                });
+                                            }
+
+                                            // Sprawdź czy są jakiekolwiek encje do wyświetlenia
+                                            if ((!primaryEntity || primaryEntity.length === 0) && relatedEntities.length === 0) {
+                                                return null; // Nie pokazuj sekcji
+                                            }
+
+                                            return (
+                                                <EntitiesSection>
+                                                    <EntitiesLabel>Powiązane:</EntitiesLabel>
+                                                    <EntitiesList>
+                                                        {primaryEntity && (
+                                                            <EntityLink
+                                                                key={`primary-${primaryEntity.id}`}
+                                                                to={getEntityLink(primaryEntity)}
+                                                            >
+                                                                <EntityName>{primaryEntity.name}</EntityName>
+                                                                <FaChevronRight />
+                                                            </EntityLink>
+                                                        )}
+
+                                                        {relatedEntities.map((entity, entityIndex) => (
+                                                            <EntityLink
+                                                                key={`related-${entity.id}-${entityIndex}`}
+                                                                to={getEntityLink(entity)}
+                                                            >
+                                                                <EntityName>{entity.name}</EntityName>
+                                                                <FaChevronRight />
+                                                            </EntityLink>
+                                                        ))}
+                                                    </EntitiesList>
+                                                </EntitiesSection>
+                                            );
+                                        })()}
 
                                         {activity.description && (
                                             <MetadataSection>
