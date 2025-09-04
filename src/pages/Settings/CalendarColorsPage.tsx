@@ -3,9 +3,9 @@ import React, {forwardRef, useCallback, useEffect, useImperativeHandle, useState
 import styled from 'styled-components';
 import {FaEdit, FaPalette, FaSave, FaSearch, FaTimes, FaTrash} from 'react-icons/fa';
 import {calendarColorsApi} from '../../api/calendarColorsApi';
-import ConfirmationDialog from '../../components/common/ConfirmationDialog';
 import {CalendarColor} from "../../types/calendar";
 import {settingsTheme} from './styles/theme';
+import {ConfirmationDialog} from "../../components/common/NewConfirmationDialog";
 
 // Poprawna składnia forwardRef z TypeScript
 const CalendarColorsPage = forwardRef<{ handleAddColor: () => void }, {}>((props, ref) => {

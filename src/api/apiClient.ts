@@ -113,6 +113,8 @@ export const handleApiError = (error: any, context: string): never => {
 };
 
 // Podstawowa funkcja fetch API z obsługą błędów
+// Zamień funkcję apiFetch w swoim apiClient.ts na tę wersję:
+
 const apiFetch = async <T>(endpoint: string, options: RequestInit = {}): Promise<T> => {
     const url = `${API_BASE_URL}${endpoint}`;
 
@@ -168,9 +170,28 @@ const apiFetch = async <T>(endpoint: string, options: RequestInit = {}): Promise
         console.log(`API response status: ${response.status}`);
 
         if (!response.ok) {
-            // Obsługa różnych kodów błędów HTTP
+            // POPRAWIONA OBSŁUGA BŁĘDÓW
+            let errorData = null;
+
+            // Najpierw spróbuj pobrać dane JSON
+            try {
+                const contentType = response.headers.get('Content-Type');
+                if (contentType && contentType.includes('application/json')) {
+                    errorData = await response.json();
+                    console.log('Response data:', errorData);
+                } else {
+                    // Jeśli nie JSON, spróbuj jako text
+                    const textData = await response.text();
+                    console.log('Response text:', textData);
+                    errorData = { message: textData };
+                }
+            } catch (parseError) {
+                console.warn('Could not parse error response:', parseError);
+                errorData = { message: `HTTP error ${response.status}` };
+            }
+
+            // Obsługa różnych kodów błędów HTTP z zachowaniem starych komunikatów
             if (response.status === 401) {
-                // Nieprawidłowe uwierzytelnienie - można przekierować do strony logowania
                 throw new Error('Unauthorized access');
             }
 
@@ -182,14 +203,20 @@ const apiFetch = async <T>(endpoint: string, options: RequestInit = {}): Promise
                 throw new Error('Resource not found');
             }
 
-            // Próba uzyskania informacji o błędzie z odpowiedzi JSON
-            try {
-                const errorData = await response.json();
-                console.error('API error details:', errorData);
-                throw new Error(errorData.message || `HTTP error ${response.status}`);
-            } catch (e) {
-                throw new Error(`HTTP error ${response.status}`);
-            }
+            // Twórz błąd z pełnymi danymi
+            const error = new Error(errorData?.message || `HTTP error ${response.status}`);
+            // KLUCZOWE: Dodaj dodatkowe właściwości do błędu
+            (error as any).status = response.status;
+            (error as any).error = errorData?.error;
+            (error as any).success = errorData?.success;
+            (error as any).timestamp = errorData?.timestamp;
+            (error as any).path = errorData?.path;
+            (error as any).response = {
+                status: response.status,
+                data: errorData
+            };
+
+            throw error;
         }
 
         // Sprawdź, czy odpowiedź jest pusta
@@ -214,7 +241,6 @@ const apiFetch = async <T>(endpoint: string, options: RequestInit = {}): Promise
         throw error;
     }
 };
-
 // Eksportowane funkcje do wykonywania różnych typów żądań HTTP
 export const apiClient = {
     // Metoda do uzyskania bazowego URL API

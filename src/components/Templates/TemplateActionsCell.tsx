@@ -12,7 +12,7 @@ interface TemplateActionsCellProps {
     isDownloading: boolean;
     isPreviewing: boolean;
     onUpdate: (templateId: string, data: TemplateUpdateData) => Promise<void>;
-    onDelete: (templateId: string) => Promise<void>;
+    onDelete: (templateId: string, templateName: string) => Promise<void>;
     onDownload: (template: Template) => Promise<void>;
     onPreview: (template: Template) => Promise<void>;
 }
@@ -38,7 +38,8 @@ export const TemplateActionsCell: React.FC<TemplateActionsCellProps> = ({
 
     const handleDelete = async (e: React.MouseEvent) => {
         e.stopPropagation();
-        await onDelete(template.id);
+        // POPRAWKA: przekazanie nazwy szablonu jako drugi parametr
+        await onDelete(template.id, template.name);
     };
 
     const handleDownload = async (e: React.MouseEvent) => {
@@ -119,9 +120,9 @@ const ActionButton = styled.button<{ $variant: 'view' | 'download' | 'success' |
     position: relative;
 
     ${({ $variant }) => {
-    switch ($variant) {
-        case 'view':
-            return `
+        switch ($variant) {
+            case 'view':
+                return `
                     background: ${settingsTheme.primary}15;
                     color: ${settingsTheme.primary};
                     &:hover:not(:disabled) {
@@ -130,8 +131,8 @@ const ActionButton = styled.button<{ $variant: 'view' | 'download' | 'success' |
                         transform: translateY(-1px);
                     }
                 `;
-        case 'download':
-            return `
+            case 'download':
+                return `
                     background: ${settingsTheme.status.success}15;
                     color: ${settingsTheme.status.success};
                     &:hover:not(:disabled) {
@@ -140,8 +141,8 @@ const ActionButton = styled.button<{ $variant: 'view' | 'download' | 'success' |
                         transform: translateY(-1px);
                     }
                 `;
-        case 'success':
-            return `
+            case 'success':
+                return `
                     background: ${settingsTheme.status.success}15;
                     color: ${settingsTheme.status.success};
                     &:hover:not(:disabled) {
@@ -150,8 +151,8 @@ const ActionButton = styled.button<{ $variant: 'view' | 'download' | 'success' |
                         transform: translateY(-1px);
                     }
                 `;
-        case 'secondary':
-            return `
+            case 'secondary':
+                return `
                     background: ${settingsTheme.text.muted}15;
                     color: ${settingsTheme.text.muted};
                     &:hover:not(:disabled) {
@@ -160,8 +161,8 @@ const ActionButton = styled.button<{ $variant: 'view' | 'download' | 'success' |
                         transform: translateY(-1px);
                     }
                 `;
-        case 'danger':
-            return `
+            case 'danger':
+                return `
                     background: ${settingsTheme.status.error}15;
                     color: ${settingsTheme.status.error};
                     &:hover:not(:disabled) {
@@ -170,14 +171,14 @@ const ActionButton = styled.button<{ $variant: 'view' | 'download' | 'success' |
                         transform: translateY(-1px);
                     }
                 `;
-    }
-}}
+        }
+    }}
 
     &:disabled {
         opacity: 0.6;
         cursor: not-allowed;
         transform: none;
-        
+
         .spinning {
             animation: spin 1s linear infinite;
         }

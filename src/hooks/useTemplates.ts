@@ -1,4 +1,4 @@
-// src/hooks/useTemplates.ts - KOMPLETNA NAPRAWKA
+// src/hooks/useTemplates.ts - POPRAWIONA WERSJA Z MODALEM
 import { useCallback, useEffect, useState } from 'react';
 import { Template, TemplateType, TemplateFilters, TemplateUploadData, TemplateUpdateData, TemplateSortField, TEMPLATE_TYPE_DISPLAY_NAMES } from '../types/template';
 import { templatesApi, TemplateResponse, TemplateTypeResponse } from '../api/templatesApi';
@@ -7,6 +7,16 @@ interface UseTemplatesStats {
     total: number;
     active: number;
     byType: Record<string, number>;
+}
+
+// NOWY: Interface dla modalu potwierdzenia
+interface ConfirmationState {
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText: string;
+    cancelText: string;
+    onConfirm: () => void;
 }
 
 export const useTemplates = () => {
@@ -29,17 +39,24 @@ export const useTemplates = () => {
     const [error, setError] = useState<string | null>(null);
     const [totalCount, setTotalCount] = useState(0);
 
-    // 🔧 FIX: Pomocnicza funkcja do konwersji dat
+    // NOWY: Stan dla modalu potwierdzenia
+    const [confirmationState, setConfirmationState] = useState<ConfirmationState>({
+        isOpen: false,
+        title: '',
+        message: '',
+        confirmText: 'Tak',
+        cancelText: 'Anuluj',
+        onConfirm: () => {}
+    });
+
+    // Pomocnicza funkcja do konwersji dat
     const parseDateFromBackend = (dateValue: any): string => {
         try {
-            // Jeśli to już jest string w formacie ISO, zwróć go
             if (typeof dateValue === 'string') {
                 return dateValue;
             }
 
-            // Jeśli to tablica liczb [2024, 12, 15, 10, 30, 45]
             if (Array.isArray(dateValue) && dateValue.length >= 6) {
-                // Miesiące w JS Date są 0-indeksowane, więc odejmujemy 1
                 const date = new Date(
                     dateValue[0],      // rok
                     dateValue[1] - 1,  // miesiąc (0-11)
@@ -51,7 +68,6 @@ export const useTemplates = () => {
                 return date.toISOString();
             }
 
-            // Fallback - aktualna data
             console.warn('Unknown date format, using current date:', dateValue);
             return new Date().toISOString();
         } catch (error) {
@@ -60,7 +76,7 @@ export const useTemplates = () => {
         }
     };
 
-    // 🔧 FIX: Konwertuj response z API do Template
+    // Konwertuj response z API do Template
     const convertApiResponseToTemplate = useCallback((apiResponse: TemplateResponse): Template => {
         return {
             id: apiResponse.id,
@@ -77,12 +93,27 @@ export const useTemplates = () => {
         };
     }, []);
 
+    // NOWY: Funkcje do obsługi modalu potwierdzenia
+    const showConfirmation = useCallback((config: Omit<ConfirmationState, 'isOpen'>) => {
+        setConfirmationState({
+            ...config,
+            isOpen: true
+        });
+    }, []);
+
+    const hideConfirmation = useCallback(() => {
+        setConfirmationState(prev => ({
+            ...prev,
+            isOpen: false
+        }));
+    }, []);
+
     const fetchTemplates = useCallback(async () => {
         try {
             setIsLoading(true);
             setError(null);
 
-            console.log('🔄 Fetching templates with filters:', filters);
+            console.log('Fetching templates with filters:', filters);
 
             const filterParams = {
                 type: filters.selectedType,
@@ -90,20 +121,19 @@ export const useTemplates = () => {
                 sortBy: filters.sortField,
                 sortDirection: filters.sortDirection || undefined,
                 page: 0,
-                size: 1000 // Pobierz wszystkie dla client-side filtering
+                size: 1000
             };
 
             const response = await templatesApi.getTemplates(filterParams);
-            console.log('✅ Templates API response:', response);
+            console.log('Templates API response:', response);
 
-            // 🔧 FIX: Konwertuj wszystkie szablony
             const convertedTemplates = response.data.map(convertApiResponseToTemplate);
 
             setTemplates(convertedTemplates);
             setTotalCount(response.totalElements);
 
         } catch (error: any) {
-            console.error('❌ Error fetching templates:', error);
+            console.error('Error fetching templates:', error);
             setError('Nie udało się załadować szablonów.');
             setTemplates([]);
             setTotalCount(0);
@@ -114,20 +144,18 @@ export const useTemplates = () => {
 
     const fetchTemplateTypes = useCallback(async () => {
         try {
-            console.log('🔄 Fetching template types...');
+            console.log('Fetching template types...');
             const apiTypes = await templatesApi.getTemplateTypes();
 
-            // 🔧 FIX: Konwertuj API response do TemplateType
             const convertedTypes: TemplateType[] = apiTypes.map(apiType => ({
                 type: apiType.type,
                 displayName: apiType.displayName || TEMPLATE_TYPE_DISPLAY_NAMES[apiType.type] || apiType.type
             }));
 
             setTemplateTypes(convertedTypes);
-            console.log('✅ Template types fetched:', convertedTypes);
+            console.log('Template types fetched:', convertedTypes);
         } catch (error) {
-            console.error('❌ Error fetching template types:', error);
-            // Nie pokazuj błędu - typy szablonów nie są krytyczne
+            console.error('Error fetching template types:', error);
         }
     }, []);
 
@@ -136,7 +164,7 @@ export const useTemplates = () => {
             setIsUploading(true);
             setError(null);
 
-            console.log('🔄 Uploading template:', uploadData);
+            console.log('Uploading template:', uploadData);
 
             const response = await templatesApi.uploadTemplate({
                 file: uploadData.file,
@@ -145,21 +173,18 @@ export const useTemplates = () => {
                 isActive: uploadData.isActive
             });
 
-            console.log('✅ Template uploaded, response:', response);
+            console.log('Template uploaded, response:', response);
 
-            // 🔧 FIX: Konwertuj response do Template
             const newTemplate = convertApiResponseToTemplate(response);
-
-            // Dodaj nowy szablon na początek listy
             setTemplates(prev => [newTemplate, ...prev]);
             setTotalCount(prev => prev + 1);
 
-            console.log('✅ Template added to state:', newTemplate);
+            console.log('Template added to state:', newTemplate);
 
         } catch (error: any) {
-            console.error('❌ Error uploading template:', error);
+            console.error('Error uploading template:', error);
             setError('Nie udało się przesłać szablonu. Sprawdź format pliku i spróbuj ponownie.');
-            throw error; // Re-throw żeby komponent mógł obsłużyć błąd
+            throw error;
         } finally {
             setIsUploading(false);
         }
@@ -170,12 +195,11 @@ export const useTemplates = () => {
             setIsUpdating(templateId);
             setError(null);
 
-            console.log('🔄 Updating template:', templateId, updateData);
+            console.log('Updating template:', templateId, updateData);
 
             const response = await templatesApi.updateTemplate(templateId, updateData);
-            console.log('✅ Template updated, response:', response);
+            console.log('Template updated, response:', response);
 
-            // 🔧 FIX: Zaktualizuj szablon w state
             setTemplates(prev => prev.map(template =>
                 template.id === templateId
                     ? convertApiResponseToTemplate(response)
@@ -183,52 +207,59 @@ export const useTemplates = () => {
             ));
 
         } catch (error: any) {
-            console.error('❌ Error updating template:', error);
+            console.error('Error updating template:', error);
             setError('Nie udało się zaktualizować szablonu.');
         } finally {
             setIsUpdating(null);
         }
     };
 
-    const deleteTemplate = async (templateId: string) => {
-        if (!window.confirm('Czy na pewno chcesz usunąć ten szablon? Ta operacja jest nieodwracalna.')) {
-            return;
-        }
+    // POPRAWIONA: Funkcja usuwania z modalem potwierdzenia
+    const deleteTemplate = async (templateId: string, templateName: string) => {
+        const performDelete = async () => {
+            try {
+                setIsDeleting(templateId);
+                setError(null);
 
-        try {
-            setIsDeleting(templateId);
-            setError(null);
+                console.log('Deleting template:', templateId);
 
-            console.log('🔄 Deleting template:', templateId);
+                await templatesApi.deleteTemplate(templateId);
+                console.log('Template deleted successfully');
 
-            await templatesApi.deleteTemplate(templateId);
-            console.log('✅ Template deleted successfully');
+                setTemplates(prev => prev.filter(template => template.id !== templateId));
+                setTotalCount(prev => prev - 1);
 
-            // Usuń szablon ze state
-            setTemplates(prev => prev.filter(template => template.id !== templateId));
-            setTotalCount(prev => prev - 1);
+                hideConfirmation();
 
-        } catch (error: any) {
-            console.error('❌ Error deleting template:', error);
-            setError('Nie udało się usunąć szablonu.');
-        } finally {
-            setIsDeleting(null);
-        }
+            } catch (error: any) {
+                console.error('Error deleting template:', error);
+                setError('Nie udało się usunąć szablonu.');
+            } finally {
+                setIsDeleting(null);
+            }
+        };
+
+        // Pokaż modal potwierdzenia
+        showConfirmation({
+            title: 'Usuwanie szablonu',
+            message: `Czy na pewno chcesz usunąć szablon "${templateName}"? Ta operacja jest nieodwracalna.`,
+            confirmText: 'Usuń',
+            cancelText: 'Anuluj',
+            onConfirm: performDelete
+        });
     };
 
     const downloadTemplate = async (template: Template) => {
         try {
             setIsDownloading(template.id);
-            console.log('📥 Downloading template:', template.name);
+            console.log('Downloading template:', template.name);
 
             const blob = await templatesApi.downloadTemplate(template.id);
 
-            // Stwórz link do pobrania
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
 
-            // 🔧 FIX: Poprawne rozszerzenie pliku na podstawie content type
             const extension = template.contentType === 'application/pdf' ? 'pdf' :
                 template.contentType === 'text/html' ? 'html' : 'file';
             link.download = `${template.name}.${extension}`;
@@ -238,10 +269,10 @@ export const useTemplates = () => {
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
 
-            console.log('✅ Template downloaded successfully');
+            console.log('Template downloaded successfully');
 
         } catch (error: any) {
-            console.error('❌ Error downloading template:', error);
+            console.error('Error downloading template:', error);
             setError('Nie udało się pobrać szablonu.');
         } finally {
             setIsDownloading(null);
@@ -251,24 +282,22 @@ export const useTemplates = () => {
     const previewTemplate = async (template: Template) => {
         try {
             setIsPreviewing(template.id);
-            console.log('👁️ Previewing template:', template.name);
+            console.log('Previewing template:', template.name);
 
             const blob = await templatesApi.previewTemplate(template.id);
             const url = URL.createObjectURL(blob);
 
-            // Otwórz w nowej karcie
             const newWindow = window.open(url, '_blank');
             if (!newWindow) {
                 throw new Error('Popup został zablokowany. Zezwól na wyskakujące okna dla tej strony.');
             }
 
-            // Zwolnij URL po pewnym czasie
             setTimeout(() => URL.revokeObjectURL(url), 10000);
 
-            console.log('✅ Template preview opened successfully');
+            console.log('Template preview opened successfully');
 
         } catch (error: any) {
-            console.error('❌ Error previewing template:', error);
+            console.error('Error previewing template:', error);
             setError('Nie udało się otworzyć podglądu szablonu.');
         } finally {
             setIsPreviewing(null);
@@ -293,23 +322,20 @@ export const useTemplates = () => {
         });
     };
 
-    // Effect do ładowania typów szablonów
+    // Effects
     useEffect(() => {
         fetchTemplateTypes();
     }, [fetchTemplateTypes]);
 
-    // Effect do ładowania szablonów (uruchom po załadowaniu typów)
     useEffect(() => {
         if (templateTypes.length > 0) {
             fetchTemplates();
         }
     }, [fetchTemplates, templateTypes.length]);
 
-    // Effect do client-side filtrowania
     useEffect(() => {
         let filtered = [...templates];
 
-        // Filtruj po zapytaniu tekstowym
         if (filters.searchQuery.trim()) {
             const query = filters.searchQuery.toLowerCase();
             filtered = filtered.filter(template =>
@@ -319,12 +345,10 @@ export const useTemplates = () => {
             );
         }
 
-        // Filtruj po typie (tylko jeśli nie jest już filtrowane server-side)
         if (filters.selectedType && !filters.selectedType) {
             filtered = filtered.filter(template => template.type.type === filters.selectedType);
         }
 
-        // Filtruj po statusie (tylko jeśli nie jest już filtrowane server-side)
         if (filters.selectedStatus !== null && filters.selectedStatus === null) {
             filtered = filtered.filter(template => template.isActive === filters.selectedStatus);
         }
@@ -332,7 +356,7 @@ export const useTemplates = () => {
         setFilteredTemplates(filtered);
     }, [templates, filters.searchQuery]);
 
-    // Oblicz statystyki
+    // Statystyki
     const stats: UseTemplatesStats = {
         total: templates.length,
         active: templates.filter(t => t.isActive).length,
@@ -364,6 +388,8 @@ export const useTemplates = () => {
         downloadTemplate,
         previewTemplate,
         handleSort,
-        refreshTemplates: fetchTemplates
+        refreshTemplates: fetchTemplates,
+        confirmationState,
+        hideConfirmation
     };
 };

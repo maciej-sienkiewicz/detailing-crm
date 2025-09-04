@@ -1,4 +1,4 @@
-// src/pages/Settings/ServicesPage.tsx - Zaktualizowany z użyciem rozszerzonego DataTable
+// src/pages/Settings/ServicesPage.tsx - Zaktualizowany z modalem potwierdzenia
 import React, { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import {
@@ -15,6 +15,7 @@ import { Service } from '../../types';
 import { servicesApi } from '../../api/servicesApi';
 import { DataTable, TableColumn, HeaderAction } from '../../components/common/DataTable';
 import { settingsTheme } from './styles/theme';
+import {ConfirmationDialog} from "../../components/common/NewConfirmationDialog";
 
 // Interfejs dla filtrów
 interface ServiceFilters {
@@ -24,6 +25,16 @@ interface ServiceFilters {
     minPrice: string;
     maxPrice: string;
     vatRate: string;
+}
+
+// DODANO: Interface dla modalu potwierdzenia
+interface ConfirmationState {
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText: string;
+    cancelText: string;
+    onConfirm: () => void;
 }
 
 const ServicesPage = forwardRef<{ handleAddService: () => void }>((props, ref) => {
@@ -42,6 +53,31 @@ const ServicesPage = forwardRef<{ handleAddService: () => void }>((props, ref) =
     const [showModal, setShowModal] = useState(false);
     const [editingService, setEditingService] = useState<Service | null>(null);
     const [defaultVatRate, setDefaultVatRate] = useState(23);
+
+    // DODANO: Stan dla modalu potwierdzenia
+    const [confirmationState, setConfirmationState] = useState<ConfirmationState>({
+        isOpen: false,
+        title: '',
+        message: '',
+        confirmText: 'Tak',
+        cancelText: 'Anuluj',
+        onConfirm: () => {}
+    });
+
+    // DODANO: Funkcje do obsługi modalu potwierdzenia
+    const showConfirmation = (config: Omit<ConfirmationState, 'isOpen'>) => {
+        setConfirmationState({
+            ...config,
+            isOpen: true
+        });
+    };
+
+    const hideConfirmation = () => {
+        setConfirmationState(prev => ({
+            ...prev,
+            isOpen: false
+        }));
+    };
 
     // Expose handleAddService method to parent component
     useImperativeHandle(ref, () => ({
@@ -165,19 +201,29 @@ const ServicesPage = forwardRef<{ handleAddService: () => void }>((props, ref) =
         setShowModal(true);
     };
 
-    // Obsługa usuwania usługi
-    const handleDeleteService = async (id: string) => {
-        if (window.confirm('Czy na pewno chcesz usunąć tę usługę?')) {
+    // POPRAWIONA: Obsługa usuwania usługi z modalem potwierdzenia
+    const handleDeleteService = async (serviceId: string, serviceName: string) => {
+        const performDelete = async () => {
             try {
-                const result = await servicesApi.deleteService(id);
+                const result = await servicesApi.deleteService(serviceId);
 
                 if (result) {
-                    setServices(services.filter(service => service.id !== id));
+                    setServices(services.filter(service => service.id !== serviceId));
                 }
+                hideConfirmation();
             } catch (err) {
                 setError('Nie udało się usunąć usługi.');
             }
-        }
+        };
+
+        // Pokaż modal potwierdzenia
+        showConfirmation({
+            title: 'Usuwanie usługi',
+            message: `Czy na pewno chcesz usunąć usługę "${serviceName}"? Ta operacja jest nieodwracalna.`,
+            confirmText: 'Usuń',
+            cancelText: 'Anuluj',
+            onConfirm: performDelete
+        });
     };
 
     const handleSaveService = async (service: Service) => {
@@ -252,7 +298,7 @@ const ServicesPage = forwardRef<{ handleAddService: () => void }>((props, ref) =
                             <FaEdit />
                         </ActionButton>
                         <ActionButton
-                            onClick={() => handleDeleteService(service.id)}
+                            onClick={() => handleDeleteService(service.id, service.name)}
                             title="Usuń usługę"
                             $variant="delete"
                         >
@@ -357,11 +403,22 @@ const ServicesPage = forwardRef<{ handleAddService: () => void }>((props, ref) =
                     }}
                 />
             )}
+
+            {/* DODANO: Modal potwierdzenia usuwania */}
+            <ConfirmationDialog
+                isOpen={confirmationState.isOpen}
+                title={confirmationState.title}
+                message={confirmationState.message}
+                confirmText={confirmationState.confirmText}
+                cancelText={confirmationState.cancelText}
+                onConfirm={confirmationState.onConfirm}
+                onCancel={hideConfirmation}
+            />
         </ContentContainer>
     );
 });
 
-// Komponent Enhanced Service Filters
+// Komponent Enhanced Service Filters - bez zmian
 interface EnhancedServiceFiltersProps {
     filters: ServiceFilters;
     showFilters: boolean;
@@ -477,7 +534,7 @@ const EnhancedServiceFilters: React.FC<EnhancedServiceFiltersProps> = ({
     );
 };
 
-// Komponent modalu do dodawania/edycji usługi
+// Komponent modalu do dodawania/edycji usługi - bez zmian
 interface ServiceFormModalProps {
     service: Service;
     defaultVatRate: number;
@@ -638,7 +695,7 @@ const ServiceFormModal: React.FC<ServiceFormModalProps> = ({
     );
 };
 
-// Styled Components
+// Styled Components - pozostają bez zmian
 const ContentContainer = styled.div`
     flex: 1;
     max-width: 1600px;
@@ -799,9 +856,9 @@ const ActionButton = styled.button<{
     overflow: hidden;
 
     ${({ $variant }) => {
-        switch ($variant) {
-            case 'edit':
-                return `
+    switch ($variant) {
+        case 'edit':
+            return `
                     background: ${settingsTheme.status.warningLight};
                     color: ${settingsTheme.status.warning};
                     &:hover {
@@ -811,8 +868,8 @@ const ActionButton = styled.button<{
                         box-shadow: ${settingsTheme.shadow.md};
                     }
                 `;
-            case 'delete':
-                return `
+        case 'delete':
+            return `
                     background: ${settingsTheme.status.errorLight};
                     color: ${settingsTheme.status.error};
                     &:hover {
@@ -822,8 +879,8 @@ const ActionButton = styled.button<{
                         box-shadow: ${settingsTheme.shadow.md};
                     }
                 `;
-        }
-    }}
+    }
+}}
 `;
 
 // Enhanced Filters Styled Components

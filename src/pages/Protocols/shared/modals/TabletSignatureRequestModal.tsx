@@ -1,6 +1,7 @@
 // src/pages/Protocols/shared/modals/TabletSignatureRequestModal.tsx
 import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom'; // DODANO: import nawigacji
 import {
     FaArrowRight,
     FaClock,
@@ -12,6 +13,7 @@ import {
 } from 'react-icons/fa';
 import {TabletDevice, tabletsApi} from '../../../../api/tabletsApi';
 import {protocolSignatureApi, ProtocolSignatureRequest} from '../../../../api/protocolSignatureApi';
+import { ApiErrorDialog, useApiErrorHandler } from '../../../../components/common/ApiErrorDialog';
 
 interface TabletSignatureRequestModalProps {
     isOpen: boolean;
@@ -28,6 +30,7 @@ const TabletSignatureRequestModal: React.FC<TabletSignatureRequestModalProps> = 
                                                                                      customerName,
                                                                                      onSignatureRequested
                                                                                  }) => {
+    const navigate = useNavigate(); // DODANO: hook nawigacji
     const [tablets, setTablets] = useState<TabletDevice[]>([]);
     const [selectedTabletId, setSelectedTabletId] = useState<string>('');
     const [instructions, setInstructions] = useState<string>('Proszę podpisać protokół przyjęcia pojazdu');
@@ -36,6 +39,18 @@ const TabletSignatureRequestModal: React.FC<TabletSignatureRequestModalProps> = 
     const [sending, setSending] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showContinueOption, setShowContinueOption] = useState(false);
+
+    // Hook do obsługi błędów API
+    const { apiError, handleApiError, clearError } = useApiErrorHandler();
+
+    // DODANO: Funkcja obsługi zamknięcia dialogu błędu z przekierowaniem
+    const handleErrorDialogClose = () => {
+        clearError();
+        // Przekieruj na stronę visits/{protocolId} po zamknięciu dialogu błędu
+        if (apiError?.status === 406 && apiError?.error === 'TEMPLATE_NOT_FOUND') {
+            navigate(`/visits/${protocolId}`);
+        }
+    };
 
     // Ładowanie listy tabletów
     useEffect(() => {
@@ -69,7 +84,8 @@ const TabletSignatureRequestModal: React.FC<TabletSignatureRequestModalProps> = 
             }
         } catch (err) {
             console.error('❌ Error loading tablets:', err);
-            setError('Nie udało się załadować listy tabletów');
+            // Użycie handleApiError zamiast setError
+            handleApiError(err);
             setShowContinueOption(true);
         } finally {
             setLoading(false);
@@ -109,7 +125,8 @@ const TabletSignatureRequestModal: React.FC<TabletSignatureRequestModalProps> = 
             }
         } catch (err) {
             console.error('❌ Error sending signature request:', err);
-            setError(err instanceof Error ? err.message : 'Nie udało się wysłać żądania podpisu');
+            // Użycie handleApiError dla błędów API
+            handleApiError(err);
             setShowContinueOption(true);
         } finally {
             setSending(false);
@@ -127,168 +144,187 @@ const TabletSignatureRequestModal: React.FC<TabletSignatureRequestModalProps> = 
         }
     };
 
+    // Funkcja retry dla błędów API
+    const handleRetryAfterError = () => {
+        if (apiError?.status === 406 && apiError?.error === 'TEMPLATE_NOT_FOUND') {
+            // Dla błędu braku szablonu nie próbujemy ponownie
+            return;
+        }
+        loadTablets();
+    };
+
     if (!isOpen) return null;
 
     return (
-        <ModalOverlay>
-            <ModalContainer>
-                <ModalHeader>
-                    <HeaderContent>
-                        <SignatureIcon>
-                            <FaSignature />
-                        </SignatureIcon>
-                        <HeaderText>
-                            <ModalTitle>Żądanie podpisu cyfrowego</ModalTitle>
-                            <ModalSubtitle>Protokół #{protocolId} - {customerName}</ModalSubtitle>
-                        </HeaderText>
-                    </HeaderContent>
-                    <CloseButton onClick={handleClose} disabled={sending}>
-                        <FaTimes />
-                    </CloseButton>
-                </ModalHeader>
+        <>
+            <ModalOverlay>
+                <ModalContainer>
+                    <ModalHeader>
+                        <HeaderContent>
+                            <SignatureIcon>
+                                <FaSignature />
+                            </SignatureIcon>
+                            <HeaderText>
+                                <ModalTitle>Żądanie podpisu cyfrowego</ModalTitle>
+                                <ModalSubtitle>Protokół #{protocolId} - {customerName}</ModalSubtitle>
+                            </HeaderText>
+                        </HeaderContent>
+                        <CloseButton onClick={handleClose} disabled={sending}>
+                            <FaTimes />
+                        </CloseButton>
+                    </ModalHeader>
 
-                <ModalBody>
-                    {loading ? (
-                        <LoadingSection>
-                            <LoadingSpinner>
-                                <FaSpinner className="spinner" />
-                            </LoadingSpinner>
-                            <LoadingMessage>Ładowanie dostępnych tabletów...</LoadingMessage>
-                        </LoadingSection>
-                    ) : error && tablets.length === 0 ? (
-                        <ErrorSection>
-                            <ErrorIcon>
-                                <FaExclamationTriangle />
-                            </ErrorIcon>
-                            <ErrorMessage>{error}</ErrorMessage>
-                            <ErrorDescription>
-                                Możesz kontynuować proces bez podpisu cyfrowego lub spróbować ponownie.
-                            </ErrorDescription>
-                            <ErrorActions>
-                                <RetryButton onClick={loadTablets} disabled={loading}>
-                                    {loading ? <FaSpinner className="spinner" /> : 'Spróbuj ponownie'}
-                                </RetryButton>
-                                <ContinueButton onClick={handleContinueWithoutSignature}>
-                                    <FaArrowRight />
-                                    Kontynuuj bez podpisu
-                                </ContinueButton>
-                            </ErrorActions>
-                        </ErrorSection>
-                    ) : (
-                        <>
-                            <Section>
-                                <SectionTitle>Wybierz tablet</SectionTitle>
-                                <TabletsList>
-                                    {tablets.map(tablet => (
-                                        <TabletItem
-                                            key={tablet.id}
-                                            selected={selectedTabletId === tablet.id}
-                                            onClick={() => setSelectedTabletId(tablet.id)}
-                                        >
-                                            <TabletIcon>
-                                                <FaTabletAlt />
-                                            </TabletIcon>
-                                            <TabletInfo>
-                                                <TabletName>{tablet.friendlyName}</TabletName>
-                                                <TabletDetails>
-                                                    Status: Online • Lokalizacja: {tablet.workstationId || 'Brak'}
-                                                </TabletDetails>
-                                            </TabletInfo>
-                                            <StatusIndicator online={tablet.isOnline} />
-                                        </TabletItem>
-                                    ))}
-                                </TabletsList>
-                            </Section>
-
-                            <Section>
-                                <SectionTitle>Instrukcje dla klienta</SectionTitle>
-                                <InstructionsInput
-                                    value={instructions}
-                                    onChange={(e) => setInstructions(e.target.value)}
-                                    placeholder="Wprowadź instrukcje, które zobacży klient na tablecie"
-                                    rows={3}
-                                />
-                            </Section>
-
-                            <Section>
-                                <SectionTitle>Limit czasu (minuty)</SectionTitle>
-                                <TimeoutContainer>
-                                    <TimeoutIcon>
-                                        <FaClock />
-                                    </TimeoutIcon>
-                                    <TimeoutInput
-                                        type="number"
-                                        min={5}
-                                        max={30}
-                                        value={timeoutMinutes}
-                                        onChange={(e) => setTimeoutMinutes(Number(e.target.value))}
-                                    />
-                                    <TimeoutLabel>minut</TimeoutLabel>
-                                </TimeoutContainer>
-                                <TimeoutDescription>
-                                    Po tym czasie żądanie podpisu wygaśnie automatycznie
-                                </TimeoutDescription>
-                            </Section>
-
-                            {error && (
-                                <ErrorBanner>
+                    <ModalBody>
+                        {loading ? (
+                            <LoadingSection>
+                                <LoadingSpinner>
+                                    <FaSpinner className="spinner" />
+                                </LoadingSpinner>
+                                <LoadingMessage>Ładowanie dostępnych tabletów...</LoadingMessage>
+                            </LoadingSection>
+                        ) : error && tablets.length === 0 ? (
+                            <ErrorSection>
+                                <ErrorIcon>
                                     <FaExclamationTriangle />
-                                    {error}
-                                </ErrorBanner>
-                            )}
-                        </>
-                    )}
-                </ModalBody>
-
-                <ModalFooter>
-                    <ButtonGroup>
-                        {tablets.length === 0 && !loading ? (
-                            <>
-                                <SecondaryButton onClick={handleClose} disabled={sending}>
-                                    Anuluj proces
-                                </SecondaryButton>
-                                <ContinueWithoutButton onClick={handleContinueWithoutSignature} disabled={sending}>
-                                    <FaArrowRight />
-                                    Kontynuuj bez podpisu
-                                </ContinueWithoutButton>
-                            </>
+                                </ErrorIcon>
+                                <ErrorMessage>{error}</ErrorMessage>
+                                <ErrorDescription>
+                                    Możesz kontynuować proces bez podpisu cyfrowego lub spróbować ponownie.
+                                </ErrorDescription>
+                                <ErrorActions>
+                                    <RetryButton onClick={loadTablets} disabled={loading}>
+                                        {loading ? <FaSpinner className="spinner" /> : 'Spróbuj ponownie'}
+                                    </RetryButton>
+                                    <ContinueButton onClick={handleContinueWithoutSignature}>
+                                        <FaArrowRight />
+                                        Kontynuuj bez podpisu
+                                    </ContinueButton>
+                                </ErrorActions>
+                            </ErrorSection>
                         ) : (
                             <>
-                                <SecondaryButton onClick={handleClose} disabled={sending}>
-                                    Anuluj
-                                </SecondaryButton>
-                                {showContinueOption && (
+                                <Section>
+                                    <SectionTitle>Wybierz tablet</SectionTitle>
+                                    <TabletsList>
+                                        {tablets.map(tablet => (
+                                            <TabletItem
+                                                key={tablet.id}
+                                                selected={selectedTabletId === tablet.id}
+                                                onClick={() => setSelectedTabletId(tablet.id)}
+                                            >
+                                                <TabletIcon>
+                                                    <FaTabletAlt />
+                                                </TabletIcon>
+                                                <TabletInfo>
+                                                    <TabletName>{tablet.friendlyName}</TabletName>
+                                                    <TabletDetails>
+                                                        Status: Online • Lokalizacja: {tablet.workstationId || 'Brak'}
+                                                    </TabletDetails>
+                                                </TabletInfo>
+                                                <StatusIndicator online={tablet.isOnline} />
+                                            </TabletItem>
+                                        ))}
+                                    </TabletsList>
+                                </Section>
+
+                                <Section>
+                                    <SectionTitle>Instrukcje dla klienta</SectionTitle>
+                                    <InstructionsInput
+                                        value={instructions}
+                                        onChange={(e) => setInstructions(e.target.value)}
+                                        placeholder="Wprowadź instrukcje, które zobaczy klient na tablecie"
+                                        rows={3}
+                                    />
+                                </Section>
+
+                                <Section>
+                                    <SectionTitle>Limit czasu (minuty)</SectionTitle>
+                                    <TimeoutContainer>
+                                        <TimeoutIcon>
+                                            <FaClock />
+                                        </TimeoutIcon>
+                                        <TimeoutInput
+                                            type="number"
+                                            min={5}
+                                            max={30}
+                                            value={timeoutMinutes}
+                                            onChange={(e) => setTimeoutMinutes(Number(e.target.value))}
+                                        />
+                                        <TimeoutLabel>minut</TimeoutLabel>
+                                    </TimeoutContainer>
+                                    <TimeoutDescription>
+                                        Po tym czasie żądanie podpisu wygaśnie automatycznie
+                                    </TimeoutDescription>
+                                </Section>
+
+                                {error && (
+                                    <ErrorBanner>
+                                        <FaExclamationTriangle />
+                                        {error}
+                                    </ErrorBanner>
+                                )}
+                            </>
+                        )}
+                    </ModalBody>
+
+                    <ModalFooter>
+                        <ButtonGroup>
+                            {tablets.length === 0 && !loading ? (
+                                <>
+                                    <SecondaryButton onClick={handleClose} disabled={sending}>
+                                        Anuluj proces
+                                    </SecondaryButton>
                                     <ContinueWithoutButton onClick={handleContinueWithoutSignature} disabled={sending}>
                                         <FaArrowRight />
                                         Kontynuuj bez podpisu
                                     </ContinueWithoutButton>
-                                )}
-                                <PrimaryButton
-                                    onClick={handleSendSignatureRequest}
-                                    disabled={loading || !selectedTabletId || sending || tablets.length === 0}
-                                >
-                                    {sending ? (
-                                        <>
-                                            <FaSpinner className="spinner" />
-                                            Wysyłanie...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <FaSignature />
-                                            Wyślij żądanie podpisu
-                                        </>
+                                </>
+                            ) : (
+                                <>
+                                    <SecondaryButton onClick={handleClose} disabled={sending}>
+                                        Anuluj
+                                    </SecondaryButton>
+                                    {showContinueOption && (
+                                        <ContinueWithoutButton onClick={handleContinueWithoutSignature} disabled={sending}>
+                                            <FaArrowRight />
+                                            Kontynuuj bez podpisu
+                                        </ContinueWithoutButton>
                                     )}
-                                </PrimaryButton>
-                            </>
-                        )}
-                    </ButtonGroup>
-                </ModalFooter>
-            </ModalContainer>
-        </ModalOverlay>
+                                    <PrimaryButton
+                                        onClick={handleSendSignatureRequest}
+                                        disabled={loading || !selectedTabletId || sending || tablets.length === 0}
+                                    >
+                                        {sending ? (
+                                            <>
+                                                <FaSpinner className="spinner" />
+                                                Wysyłanie...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <FaSignature />
+                                                Wyślij żądanie podpisu
+                                            </>
+                                        )}
+                                    </PrimaryButton>
+                                </>
+                            )}
+                        </ButtonGroup>
+                    </ModalFooter>
+                </ModalContainer>
+            </ModalOverlay>
+
+            {/* ZMIENIONO: Dialog błędów API z nową funkcją zamykania */}
+            <ApiErrorDialog
+                isOpen={!!apiError}
+                onClose={handleErrorDialogClose}
+                error={apiError}
+                onRetry={handleRetryAfterError}
+            />
+        </>
     );
 };
 
-// Styled Components
+// Styled Components pozostają bez zmian...
 const corporateTheme = {
     primary: '#1a365d',
     primaryLight: '#2c5aa0',

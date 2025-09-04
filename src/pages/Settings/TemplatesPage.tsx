@@ -1,4 +1,4 @@
-// src/pages/Settings/TemplatesPage.tsx - Zaktualizowany z użyciem rozszerzonego DataTable
+// src/pages/Settings/TemplatesPage.tsx - Zaktualizowany z modalem potwierdzenia
 import React, { forwardRef, useImperativeHandle, useState } from 'react';
 import styled from 'styled-components';
 import { FaExclamationTriangle, FaFileAlt, FaInfoCircle, FaPlus, FaSpinner, FaTimes, FaFilter } from 'react-icons/fa';
@@ -13,6 +13,7 @@ import { TemplateTypeCell } from '../../components/Templates/TemplateTypeCell';
 import { TemplateSizeCell } from '../../components/Templates/TemplateSizeCell';
 import { TemplateDateCell } from '../../components/Templates/TemplateDateCell';
 import { settingsTheme } from './styles/theme';
+import {ConfirmationDialog} from "../../components/common/NewConfirmationDialog";
 
 interface TemplatesPageRef {
     handleAddTemplate: () => void;
@@ -38,7 +39,9 @@ const TemplatesPage = forwardRef<TemplatesPageRef>((props, ref) => {
         deleteTemplate,
         downloadTemplate,
         previewTemplate,
-        handleSort
+        handleSort,
+        confirmationState, // DODANO: stan modalu potwierdzenia
+        hideConfirmation   // DODANO: funkcja zamykania modalu
     } = useTemplates();
 
     const [showUploadModal, setShowUploadModal] = useState(false);
@@ -52,6 +55,11 @@ const TemplatesPage = forwardRef<TemplatesPageRef>((props, ref) => {
     const handleUploadTemplate = async (uploadData: any) => {
         await uploadTemplate(uploadData);
         setShowUploadModal(false);
+    };
+
+    // DODANO: Wrapper funkcja dla deleteTemplate
+    const handleDeleteTemplate = async (templateId: string, templateName: string) => {
+        await deleteTemplate(templateId, templateName);
     };
 
     const handleItemAction = (action: string, item: Template, e: React.MouseEvent) => {
@@ -94,7 +102,7 @@ const TemplatesPage = forwardRef<TemplatesPageRef>((props, ref) => {
                         isDownloading={isDownloading === template.id}
                         isPreviewing={isPreviewing === template.id}
                         onUpdate={updateTemplate}
-                        onDelete={deleteTemplate}
+                        onDelete={handleDeleteTemplate}
                         onDownload={downloadTemplate}
                         onPreview={previewTemplate}
                     />
@@ -226,6 +234,17 @@ const TemplatesPage = forwardRef<TemplatesPageRef>((props, ref) => {
                     onClose={() => setShowInstructionsModal(false)}
                 />
             )}
+
+            {/* DODANO: Modal potwierdzenia usuwania */}
+            <ConfirmationDialog
+                isOpen={confirmationState.isOpen}
+                title={confirmationState.title}
+                message={confirmationState.message}
+                confirmText={confirmationState.confirmText}
+                cancelText={confirmationState.cancelText}
+                onConfirm={confirmationState.onConfirm}
+                onCancel={hideConfirmation}
+            />
         </PageContainer>
     );
 });
@@ -318,7 +337,7 @@ const EnhancedTemplateFilters: React.FC<EnhancedTemplateFiltersProps> = ({
     );
 };
 
-// Styled Components
+// Styled Components - pozostają bez zmian
 const PageContainer = styled.div`
     display: flex;
     flex-direction: column;
