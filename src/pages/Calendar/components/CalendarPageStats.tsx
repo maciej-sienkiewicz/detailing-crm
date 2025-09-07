@@ -38,7 +38,7 @@ export const CalendarPageStats: React.FC = () => {
                         <StatIcon $color={theme.text.primary}><FaClock /></StatIcon>
                         <StatContent>
                             <StatValue>{stats.loading ? '...' : stats.inProgress}</StatValue>
-                            <StatLabel>W trakcie realizacji.</StatLabel>
+                            <StatLabel>W trakcie realizacji</StatLabel>
                         </StatContent>
                         <StatTooltipIcon>
                             <FaInfoCircle />
