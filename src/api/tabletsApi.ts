@@ -192,6 +192,24 @@ export const tabletsApi = {
         }
     },
 
+    // Check pairing code status - NEW FUNCTION
+    async checkCodeStatus(code: string): Promise<boolean> {
+        try {
+            const response = await apiClient.postNotCamel<boolean>('/tablets/code/status',
+                { code }, // <- Jako obiekt
+                {
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+            return response;
+        } catch (error) {
+            console.error('Failed to check code status:', error);
+            throw error;
+        }
+    },
+
     // Complete tablet pairing
     async completeTabletPairing(request: TabletPairingRequest): Promise<TabletCredentials> {
         console.log('🔧 Completing tablet pairing...', request);

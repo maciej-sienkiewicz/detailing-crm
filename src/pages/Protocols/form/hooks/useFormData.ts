@@ -1,4 +1,4 @@
-// src/pages/Protocols/form/hooks/useFormData.ts - ZAKTUALIZOWANA WERSJA
+// src/pages/Protocols/form/hooks/useFormData.ts - POPRAWIONA WERSJA
 import {useCallback, useEffect, useState} from 'react';
 import {CarReceptionProtocol, ClientExpanded, ProtocolStatus, VehicleExpanded, VehicleImage} from '../../../../types';
 import {FormErrors, useFormValidation} from './useFormValidation';
@@ -73,7 +73,9 @@ export const useFormDataWithAutocomplete = (
             vehicleImages: [],
             referralSource: undefined,
             otherSourceDetails: '',
-            deliveryPerson: null // NOWE: inicjalizacja delivery person
+            deliveryPerson: null,
+            // KLUCZOWE: clientId nie jest inicjalizowany automatycznie
+            ownerId: undefined
         }
     );
 
@@ -192,8 +194,11 @@ export const useFormDataWithAutocomplete = (
         }
     }, [initialData?.startDate, initialData?.endDate]);
 
+    // POPRAWIONA WERSJA handleChange - usuwa clientId przy manualnym wpisywaniu
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
+
+        console.log(`🔄 handleChange - field: ${name}, value: ${value}`);
 
         if (type === 'checkbox') {
             const checkbox = e.target as HTMLInputElement;
@@ -212,10 +217,27 @@ export const useFormDataWithAutocomplete = (
                 [name]: value
             });
         } else {
-            setFormData({
+            // KLUCZOWE: Gdy użytkownik wpisuje dane ręcznie, usuwamy clientId
+            const updatedData = {
                 ...formData,
                 [name]: value
-            });
+            };
+
+            // Jeśli to pole klienta i nie pochodzi z autocomplete, usuń clientId
+            if (['ownerName', 'email', 'phone', 'companyName', 'taxId', 'address'].includes(name)) {
+                console.log(`🗑️ Usuwanie ownerId dla pola: ${name} (dane wpisane ręcznie)`);
+                updatedData.ownerId = undefined; // Lub null, w zależności od API
+                setIsClientFromSearch(false);
+            }
+
+            // Podobnie dla pól pojazdu
+            if (['licensePlate', 'make', 'model'].includes(name)) {
+                console.log(`🗑️ Resetowanie powiązania z pojazdem dla pola: ${name} (dane wpisane ręcznie)`);
+                // Jeśli masz vehicleId, też go usuń
+                // updatedData.vehicleId = undefined;
+            }
+
+            setFormData(updatedData);
         }
 
         clearFieldError(name);
@@ -328,10 +350,14 @@ export const useFormDataWithAutocomplete = (
         }
     }, [clearFieldError]);
 
-    // Populate form data from client
+    // POPRAWIONA WERSJA: Populate client data - ustawia ownerId tylko przy wyborze z listy
     const populateClientData = useCallback((client: ClientExpanded) => {
+        console.log(`✅ Wybrano klienta z listy: ${client.firstName} ${client.lastName} (ID: ${client.id})`);
+
         setFormData(prev => ({
             ...prev,
+            // KLUCZOWE: ownerId ustawiany TYLKO gdy klient został wybrany z listy
+            ownerId: parseInt(client.id), // Konwersja na number jeśli API tego wymaga
             ownerName: `${client.firstName} ${client.lastName}`.trim(),
             email: client.email || '',
             phone: client.phone || '',
@@ -340,11 +366,14 @@ export const useFormDataWithAutocomplete = (
             address: client.address || '',
             referralSource: 'regular_customer'
         }));
+
         setIsClientFromSearch(true);
     }, []);
 
     // Populate form data from vehicle
     const populateVehicleData = useCallback((vehicle: VehicleExpanded) => {
+        console.log(`✅ Wybrano pojazd z listy: ${vehicle.make} ${vehicle.model} (${vehicle.licensePlate})`);
+
         setFormData(prev => ({
             ...prev,
             licensePlate: vehicle.licensePlate,
@@ -353,11 +382,15 @@ export const useFormDataWithAutocomplete = (
             productionYear: vehicle.year || null,
             vin: vehicle.vin || '',
             color: vehicle.color || ''
+            // Jeśli masz vehicleId, ustaw go tutaj:
+            // vehicleId: vehicle.id
         }));
     }, []);
 
-    // Handle autocomplete selection
+    // POPRAWIONA WERSJA: Handle autocomplete selection - ownerId tylko przy kliknięciu
     const handleAutocompleteSelect = useCallback((option: AutocompleteOption, fieldType: string) => {
+        console.log(`🎯 Autocomplete select - fieldType: ${fieldType}, option type: ${option.type}`);
+
         // NOWE: Obsługa delivery person fields
         if (fieldType === 'deliveryPersonName' || fieldType === 'deliveryPersonPhone') {
             handleDeliveryPersonAutocompleteSelect(option, fieldType);
@@ -367,7 +400,7 @@ export const useFormDataWithAutocomplete = (
         // Istniejąca logika dla zwykłych pól
         if (option.type === 'client') {
             const client = option.data as ClientExpanded;
-            populateClientData(client);
+            populateClientData(client); // To ustawi ownerId
 
             // Check if client has vehicles
             const clientVehicles = allVehicles.filter(vehicle =>
@@ -392,8 +425,12 @@ export const useFormDataWithAutocomplete = (
             // Auto-populate owner data if available
             if (vehicle.owners && vehicle.owners.length > 0) {
                 const owner = vehicle.owners[0];
+                console.log(`✅ Auto-uzupełnianie właściciela pojazdu: ${owner.fullName} (ID: ${owner.id})`);
+
                 setFormData(prev => ({
                     ...prev,
+                    // KLUCZOWE: ownerId ustawiany gdy wybrano pojazd z właścicielem
+                    ownerId: parseInt(owner.id.toString()),
                     ownerName: owner.fullName || `${owner.firstName || ''} ${owner.lastName || ''}`.trim(),
                     email: owner.email || '',
                     phone: owner.phone || '',
@@ -417,7 +454,7 @@ export const useFormDataWithAutocomplete = (
         errors,
         validateForm,
         clearFieldError,
-        handleChange,
+        handleChange, // POPRAWIONA WERSJA
         handleReferralSourceChange,
         handleOtherSourceDetailsChange,
         handleImagesChange,
@@ -425,7 +462,7 @@ export const useFormDataWithAutocomplete = (
         setIsClientFromSearch,
         autocompleteOptions,
         loadingAutocompleteData,
-        handleAutocompleteSelect,
+        handleAutocompleteSelect, // POPRAWIONA WERSJA
         showVehicleModal,
         setShowVehicleModal,
         vehicleModalOptions,

@@ -1,9 +1,10 @@
 // src/pages/Tablets/TabletIntegrationPage.tsx
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useState, useEffect, useRef} from 'react';
 import styled from 'styled-components';
 import TabletManagementDashboard from './TabletManagementDashboard';
 import SessionDetailsModal from './components/SessionDetailsModal';
 import {useTablets} from '../../hooks/useTablets';
+import {tabletsApi} from '../../api/tabletsApi';
 import {FaExclamationTriangle, FaPlus, FaSpinner, FaTabletAlt, FaTimes, FaWifi} from 'react-icons/fa';
 
 // Professional Brand Theme - Consistent with Finance module
@@ -103,15 +104,130 @@ const TabletIntegrationPage: React.FC = () => {
     const [showSessionDetails, setShowSessionDetails] = useState(false);
     const [showPairingModal, setShowPairingModal] = useState(false);
     const [pairingCodeTimer, setPairingCodeTimer] = useState<number>(0);
-    const [pairingCodeInterval, setPairingCodeInterval] = useState<NodeJS.Timeout | null>(null);
+
+    // Refs for intervals to ensure proper cleanup
+    const pairingCodeIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const codeStatusIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const currentPairingCodeRef = useRef<string | null>(null);
 
     const companyId = 10;
+
+    // Cleanup function for all intervals
+    const cleanupAllIntervals = useCallback(() => {
+        if (pairingCodeIntervalRef.current) {
+            console.log('🧹 Cleaning up pairing code timer interval');
+            clearInterval(pairingCodeIntervalRef.current);
+            pairingCodeIntervalRef.current = null;
+        }
+
+        if (codeStatusIntervalRef.current) {
+            console.log('🧹 Cleaning up code status polling interval');
+            clearInterval(codeStatusIntervalRef.current);
+            codeStatusIntervalRef.current = null;
+        }
+
+        currentPairingCodeRef.current = null;
+    }, []);
+
+    // Clean up intervals on unmount
+    useEffect(() => {
+        return cleanupAllIntervals;
+    }, [cleanupAllIntervals]);
+
+    // Effect to handle code status polling when modal is open and code exists
+    useEffect(() => {
+        if (showPairingModal && pairingCode?.code) {
+            console.log('🚀 Starting code status polling for code:', pairingCode.code);
+            currentPairingCodeRef.current = pairingCode.code;
+
+            // Function to check code status
+            const checkCodeStatus = async (code: string): Promise<boolean> => {
+                try {
+                    console.log('🔍 Checking pairing code status:', code);
+
+                    // Use direct fetch to have full control over the request
+                    const authToken = localStorage.getItem('auth_token');
+                    const response = tabletsApi.checkCodeStatus(code)
+
+                    const result = await response
+                    console.log('✅ Code status result:', result);
+                    return result;
+
+                } catch (error) {
+                    console.error('❌ Error checking code status:', error);
+                    return true; // Continue polling on network errors
+                }
+            };
+
+            // Initial check
+            console.log('🔍 Performing initial code status check');
+            checkCodeStatus(pairingCode.code).then(isActive => {
+                console.log('📊 Initial code status result:', { code: pairingCode.code, isActive });
+            });
+
+            // Set up polling interval
+            const interval = setInterval(async () => {
+                const currentCode = currentPairingCodeRef.current;
+                if (!currentCode) {
+                    console.log('🛑 No current code, stopping polling');
+                    clearInterval(interval);
+                    codeStatusIntervalRef.current = null;
+                    return;
+                }
+
+                console.log('⏰ Scheduled code status check for:', currentCode);
+
+                const isActive = await checkCodeStatus(currentCode);
+
+                if (!isActive) {
+                    console.log('🔒 Code is no longer active - tablet paired successfully!');
+
+                    // Clean up intervals
+                    clearInterval(interval);
+                    codeStatusIntervalRef.current = null;
+
+                    if (pairingCodeIntervalRef.current) {
+                        clearInterval(pairingCodeIntervalRef.current);
+                        pairingCodeIntervalRef.current = null;
+                    }
+
+                    // Close modal and reset state
+                    setShowPairingModal(false);
+                    clearPairingState();
+                    setPairingCodeTimer(0);
+                    currentPairingCodeRef.current = null;
+
+                    // Refresh data and show success message
+                    setTimeout(async () => {
+                        console.log('🔄 Refreshing tablet data after successful pairing');
+                        try {
+                            await refreshData();
+                            showToast('success', 'Tablet został pomyślnie sparowany!');
+                        } catch (error) {
+                            console.error('Error refreshing data:', error);
+                            showToast('warning', 'Tablet sparowany, ale wystąpił błąd podczas odświeżania listy');
+                        }
+                    }, 100);
+                }
+            }, 3000);
+
+            codeStatusIntervalRef.current = interval;
+            console.log('✅ Code status polling interval started');
+
+            // Cleanup function for this effect
+            return () => {
+                console.log('🧹 Cleaning up code status polling effect');
+                if (interval) {
+                    clearInterval(interval);
+                }
+                codeStatusIntervalRef.current = null;
+            };
+        }
+    }, [showPairingModal, pairingCode, clearPairingState, refreshData]);
 
     // WebSocket event handlers
     const handleTabletConnectionChange = useCallback((event: any) => {
         console.log('Tablet connection changed:', event);
-
-        // Show toast notification
         showToast(
             event.action === 'connected' ? 'success' : 'info',
             `Tablet ${event.deviceName} ${event.action === 'connected' ? 'połączony' : 'rozłączony'}`
@@ -120,7 +236,6 @@ const TabletIntegrationPage: React.FC = () => {
 
     const handleSignatureUpdate = useCallback((event: any) => {
         console.log('Signature update:', event);
-
         showToast(
             event.status === 'signed' ? 'success' : 'warning',
             `Podpis ${event.status === 'signed' ? 'złożony' : 'wygasł'} dla ${event.customerName}`
@@ -133,11 +248,8 @@ const TabletIntegrationPage: React.FC = () => {
 
     // Toast notification system (simplified)
     const showToast = (type: 'success' | 'warning' | 'info' | 'error', message: string) => {
-        // In real app, this would use a proper toast library like react-hot-toast
         console.log(`${type.toUpperCase()}: ${message}`);
-
-        // You can integrate with a toast library here
-        // toast[type](message);
+        // In real app, this would use a proper toast library like react-hot-toast
     };
 
     // Session details modal handlers
@@ -174,30 +286,27 @@ const TabletIntegrationPage: React.FC = () => {
         try {
             console.log('🔧 Starting tablet pairing process...');
 
-            const pairingCodeResponse = await generatePairingCode();
+            // Clean up any existing intervals
+            cleanupAllIntervals();
 
+            const pairingCodeResponse = await generatePairingCode();
             console.log('🔍 Pairing response:', pairingCodeResponse);
 
-            // POPRAWKA: Użyj właściwej nazwy pola z serwera
             const startTime = Date.now();
-            const duration = pairingCodeResponse.expiresIn || 300; // fallback na 300 sekund
+            const duration = pairingCodeResponse.expiresIn || 300;
 
             console.log('🔍 Timer setup:', {
                 startTime: new Date(startTime).toISOString(),
                 durationSeconds: duration,
                 expiresAt: new Date(startTime + duration * 1000).toISOString(),
-                // Debug - pokaż dostępne pola
-                availableFields: Object.keys(pairingCodeResponse)
             });
 
-            // Ustaw początkową wartość PRZED pokazaniem modala
+            // Set initial timer value and show modal
             setPairingCodeTimer(duration);
-
-            // TERAZ pokaż modal - timer już jest ustawiony
             setShowPairingModal(true);
 
             // Start countdown timer
-            const interval = setInterval(() => {
+            const timerInterval = setInterval(() => {
                 const elapsed = Math.floor((Date.now() - startTime) / 1000);
                 const timeLeft = Math.max(0, duration - elapsed);
 
@@ -206,12 +315,13 @@ const TabletIntegrationPage: React.FC = () => {
 
                 if (timeLeft <= 0) {
                     console.log('⏰ Timer expired!');
-                    clearInterval(interval);
-                    setPairingCodeInterval(null);
+                    clearInterval(timerInterval);
+                    pairingCodeIntervalRef.current = null;
                 }
             }, 1000);
 
-            setPairingCodeInterval(interval);
+            pairingCodeIntervalRef.current = timerInterval;
+            console.log('✅ Pairing process initiated with timer');
 
         } catch (error) {
             showToast('error', 'Nie udało się wygenerować kodu parowania');
@@ -220,25 +330,24 @@ const TabletIntegrationPage: React.FC = () => {
     };
 
     const handleClosePairingModal = () => {
+        console.log('🚪 Closing pairing modal manually');
+
+        cleanupAllIntervals();
         setShowPairingModal(false);
         clearPairingState();
-        if (pairingCodeInterval) {
-            clearInterval(pairingCodeInterval);
-            setPairingCodeInterval(null);
-        }
         setPairingCodeTimer(0);
     };
 
     const handleGenerateNewCode = async () => {
         try {
-            if (pairingCodeInterval) {
-                clearInterval(pairingCodeInterval);
-                setPairingCodeInterval(null);
-            }
-
-            // Wyczyść modal i wygeneruj nowy kod
+            console.log('🔄 Generating new pairing code');
+            cleanupAllIntervals();
             setShowPairingModal(false);
-            await handlePairTablet();
+
+            // Small delay to ensure modal closes before reopening
+            setTimeout(() => {
+                handlePairTablet();
+            }, 100);
         } catch (error) {
             showToast('error', 'Nie udało się wygenerować nowego kodu');
         }
@@ -246,7 +355,6 @@ const TabletIntegrationPage: React.FC = () => {
 
     const handleDataRefresh = async () => {
         try {
-            // Wywołaj odświeżenie danych z hooka useTablets
             await refreshData();
             showToast('success', 'Lista tabletów została odświeżona');
         } catch (error) {
@@ -257,7 +365,6 @@ const TabletIntegrationPage: React.FC = () => {
 
     const formatTime = (seconds: number): string => {
         if (seconds <= 0) return '0:00';
-
         const minutes = Math.floor(seconds / 60);
         const remainingSeconds = seconds % 60;
         return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
@@ -348,7 +455,7 @@ const TabletIntegrationPage: React.FC = () => {
                     tablets={tablets}
                     sessions={sessions}
                     onSessionClick={handleSessionClick}
-                    onDataRefresh={handleDataRefresh} // Dodaj ten prop
+                    onDataRefresh={handleDataRefresh}
                 />
             </ContentContainer>
 
@@ -406,21 +513,12 @@ const TabletIntegrationPage: React.FC = () => {
                                         <PairingCodeLabel>Kod parowania:</PairingCodeLabel>
                                         <PairingCode>{pairingCode.code}</PairingCode>
                                         <PairingCodeNote>
-                                            {isPairingCodeGenerating ? (
-                                                'Generowanie kodu...'
-                                            ) : pairingCode && pairingCodeTimer > 0 ? (
+                                            {pairingCodeTimer > 0 ? (
                                                 <>Kod wygaśnie za {formatTime(pairingCodeTimer)}</>
-                                            ) : pairingCode && pairingCodeTimer === 0 ? (
-                                                <ExpiredCodeNote>
-                                                    <FaExclamationTriangle />
-                                                    Kod wygasł
-                                                </ExpiredCodeNote>
-                                            ) : pairingCode ? (
-                                                'Inicjalizacja timera...'
                                             ) : (
                                                 <ExpiredCodeNote>
                                                     <FaExclamationTriangle />
-                                                    Błąd generowania kodu
+                                                    Kod wygasł
                                                 </ExpiredCodeNote>
                                             )}
                                         </PairingCodeNote>
@@ -745,24 +843,24 @@ const ContentContainer = styled.div`
 `;
 
 const PairingModalOverlay = styled.div`
-   position: fixed;
-   top: 0;
-   left: 0;
-   right: 0;
-   bottom: 0;
-   background: rgba(0, 0, 0, 0.5);
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   z-index: 1050;
-   padding: ${brandTheme.spacing.lg};
-   backdrop-filter: blur(4px);
-   animation: fadeIn 0.2s ease;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1050;
+    padding: ${brandTheme.spacing.lg};
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.2s ease;
 
-   @keyframes fadeIn {
-       from { opacity: 0; }
-       to { opacity: 1; }
-   }
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
 `;
 
 const PairingModal = styled.div`
@@ -863,22 +961,22 @@ const LoadingSection = styled.div`
 `;
 
 const ErrorMessage = styled.div`
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.sm};
-   background: ${brandTheme.status.errorLight};
-   color: ${brandTheme.status.error};
-   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-   border-radius: ${brandTheme.radius.lg};
-   border: 1px solid ${brandTheme.status.error}30;
-   font-weight: 500;
-   margin-bottom: ${brandTheme.spacing.lg};
-   box-shadow: ${brandTheme.shadow.xs};
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    background: ${brandTheme.status.errorLight};
+    color: ${brandTheme.status.error};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    border-radius: ${brandTheme.radius.lg};
+    border: 1px solid ${brandTheme.status.error}30;
+    font-weight: 500;
+    margin-bottom: ${brandTheme.spacing.lg};
+    box-shadow: ${brandTheme.shadow.xs};
 
-   svg {
-       color: ${brandTheme.status.error};
-       font-size: 18px;
-   }
+    svg {
+        color: ${brandTheme.status.error};
+        font-size: 18px;
+    }
 `;
 
 const PairingInstructions = styled.div`
