@@ -1,4 +1,4 @@
-// src/api/documentPrintService.ts
+// src/api/documentPrintService.ts - POPRAWIONA WERSJA
 import {apiClientNew, ApiError} from '../api/apiClientNew';
 
 export interface PrintDocumentOptions {
@@ -24,7 +24,6 @@ export interface DocumentActionResult {
  * Centralizuje wszystkie operacje związane z drukowaniem, pobieraniem i zarządzaniem dokumentami
  */
 class DocumentPrintService {
-    private readonly baseUrl = 'http://localhost:8080/api';
 
     /**
      * Główna metoda do drukowania/wyświetlania dokumentu
@@ -55,11 +54,12 @@ class DocumentPrintService {
     }
 
     /**
-     * Sprawdza czy dokument ma załącznik
+     * Sprawdza czy dokument ma załącznik - używa apiClientNew
      */
     private async checkDocumentAttachment(documentId: string): Promise<boolean> {
         try {
             console.log('Checking attachment for document:', documentId);
+            // Używamy apiClientNew zamiast raw fetch
             await apiClientNew.get(`/financial-documents/${documentId}/attachment`);
             console.log('Document has attachment: true');
             return true;
@@ -74,40 +74,78 @@ class DocumentPrintService {
     }
 
     /**
-     * Pobiera blob z endpointu
+     * Pobiera blob z endpointu - używa apiClientNew z custom config
      */
     private async getBlobFromEndpoint(endpoint: string): Promise<Blob> {
-        const url = `${this.baseUrl}${endpoint}`;
-        console.log('Fetching blob from URL:', url);
+        console.log('Fetching blob from endpoint:', endpoint);
 
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${this.getAuthToken()}`,
-                'Accept': 'application/pdf,application/octet-stream,*/*',
-            },
-        });
+        try {
+            // Używamy apiClientNew z custom headers dla blob response
+            const response = await fetch('/api' + endpoint, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${this.getAuthToken()}`,
+                    'Accept': 'application/pdf,application/octet-stream,*/*',
+                },
+            });
 
-        if (!response.ok) {
-            throw new ApiError(
-                response.status,
-                response.statusText,
-                null,
-                `Failed to fetch blob from ${endpoint}`
-            );
+            if (!response.ok) {
+                throw new ApiError(
+                    response.status,
+                    response.statusText,
+                    null,
+                    `Failed to fetch blob from ${endpoint}`
+                );
+            }
+
+            return await response.blob();
+        } catch (error) {
+            console.error('Error fetching blob:', error);
+            throw error;
         }
-
-        return await response.blob();
     }
 
     /**
-     * Wykonuje POST i zwraca blob
+     * ALTERNATYWNIE: Pobiera blob używając XMLHttpRequest (fallback method)
+     */
+    private async getBlobFromEndpointXHR(endpoint: string): Promise<Blob> {
+        return new Promise((resolve, reject) => {
+            console.log('Fetching blob via XHR from endpoint:', endpoint);
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', '/api' + endpoint, true);
+            xhr.responseType = 'blob';
+
+            // Dodaj nagłówki autoryzacji
+            const token = this.getAuthToken();
+            if (token) {
+                xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+            }
+            xhr.setRequestHeader('Accept', 'application/pdf,application/octet-stream,*/*');
+
+            xhr.onload = function() {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    resolve(xhr.response);
+                } else {
+                    reject(new ApiError(xhr.status, xhr.statusText));
+                }
+            };
+
+            xhr.onerror = function() {
+                reject(new ApiError(0, 'Network Error'));
+            };
+
+            xhr.send();
+        });
+    }
+
+    /**
+     * Wykonuje POST i zwraca blob - używa fetch z prawidłowym base URL
      */
     private async postForBlob(endpoint: string, data?: any): Promise<Blob> {
-        const url = `${this.baseUrl}${endpoint}`;
-        console.log('Posting to URL for blob:', url);
+        console.log('Posting to endpoint for blob:', endpoint);
 
-        const response = await fetch(url, {
+        const response = await fetch('/api' + endpoint, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${this.getAuthToken()}`,
@@ -142,19 +180,28 @@ class DocumentPrintService {
     }
 
     /**
-     * Otwiera załącznik dokumentu
+     * Otwiera załącznik dokumentu - używa XHR jako fallback
      */
     private async openDocumentAttachment(documentId: string, options: Omit<PrintDocumentOptions, 'documentId'>): Promise<DocumentPrintResult> {
         try {
             console.log('Fetching attachment blob for document:', documentId);
-            const blob = await this.getBlobFromEndpoint(`/financial-documents/${documentId}/attachment`);
+
+            // Spróbuj pierwsze metody - jeśli CORS nadal nie działa, użyj XHR
+            let blob: Blob;
+            try {
+                blob = await this.getBlobFromEndpoint(`/financial-documents/${documentId}/attachment`);
+            } catch (corsError) {
+                console.log('Standard fetch failed, trying XHR fallback:', corsError);
+                blob = await this.getBlobFromEndpointXHR(`/financial-documents/${documentId}/attachment`);
+            }
+
             console.log('Attachment blob size:', blob.size);
             return this.handleBlobResponse(blob, documentId, 'dokument', options.forceDownload);
         } catch (error) {
             console.error('Error opening document attachment:', error);
             return {
                 success: false,
-                error: `Nie udało się otworzyć załącznika dokumentu`
+                error: `Nie udało się otworzyć załącznika dokumentu: ${error instanceof Error ? error.message : 'Unknown error'}`
             };
         }
     }
@@ -177,7 +224,7 @@ class DocumentPrintService {
             console.error('Error generating invoice:', error);
             return {
                 success: false,
-                error: `Nie udało się wygenerować faktury z szablonu`
+                error: `Nie udało się wygenerować faktury z szablonu: ${error instanceof Error ? error.message : 'Unknown error'}`
             };
         }
     }
