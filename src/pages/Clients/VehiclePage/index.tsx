@@ -1,4 +1,3 @@
-// src/pages/Clients/VehiclePage/index.tsx - Kompletny plik po wszystkich zmianach
 import React, {forwardRef, useCallback, useEffect, useImperativeHandle, useMemo} from 'react';
 import Modal from '../../../components/common/Modal';
 import Pagination from '../../../components/common/Pagination';
@@ -10,11 +9,9 @@ import {ContentContainer, MainContent, PaginationContainer} from './styles';
 import {VehicleFilters, VehiclesPageContentProps, VehiclesPageRef} from './types';
 import EnhancedVehicleFilters from "./EnhancedVehicleFilters";
 import {useFormatters} from './hooks';
-import VehicleDetailDrawer from "../components/VehicleDetailDrawer";
 import VehicleFormModal from "../components/VehicleFormModal";
 import VehicleHistoryModal from "../components/VehicleHistoryModal";
 
-// Komponenty pomocnicze dla widoku pojazdów
 interface SearchResultsDisplayProps {
     hasActiveFilters: boolean;
     totalItems: number;
@@ -183,32 +180,10 @@ const VehiclesPageContent = forwardRef<VehiclesPageRef, VehiclesPageContentProps
         exportVehicles();
     }, [exportVehicles]);
 
-    const openVehicleDetail = useCallback((vehicleId: string) => {
-        const vehicle = state.vehicles.find(v => v.id === vehicleId);
-        if (vehicle) {
-            updateState({
-                selectedVehicle: vehicle,
-                showDetailDrawer: true,
-                manuallyClosedDrawer: false
-            });
-            onVehicleSelected?.(vehicleId);
-        }
-    }, [state.vehicles, updateState, onVehicleSelected]);
-
-    const closeVehicleDetail = useCallback(() => {
-        updateState({
-            showDetailDrawer: false,
-            selectedVehicle: null,
-            manuallyClosedDrawer: true
-        });
-        onVehicleClosed?.();
-    }, [updateState, onVehicleClosed]);
-
     const refObject = useMemo(() => ({
         handleAddVehicle,
-        handleExportVehicles,
-        openVehicleDetail
-    }), [handleAddVehicle, handleExportVehicles, openVehicleDetail]);
+        handleExportVehicles
+    }), [handleAddVehicle, handleExportVehicles]);
 
     useImperativeHandle(ref, () => refObject, [refObject]);
 
@@ -217,21 +192,6 @@ const VehiclesPageContent = forwardRef<VehiclesPageRef, VehiclesPageContentProps
             onSetRef(refObject);
         }
     }, [onSetRef, refObject]);
-
-    useEffect(() => {
-        if (initialVehicleId && state.vehicles.length > 0 && !state.manuallyClosedDrawer) {
-            const vehicle = state.vehicles.find(v => v.id === initialVehicleId);
-            if (vehicle && (!state.showDetailDrawer || state.selectedVehicle?.id !== initialVehicleId)) {
-                openVehicleDetail(initialVehicleId);
-            }
-        }
-    }, [initialVehicleId, state.vehicles.length, openVehicleDetail, state.showDetailDrawer, state.selectedVehicle?.id, state.manuallyClosedDrawer]);
-
-    useEffect(() => {
-        if (initialVehicleId !== state.selectedVehicle?.id) {
-            updateState({ manuallyClosedDrawer: false });
-        }
-    }, [initialVehicleId, state.selectedVehicle?.id, updateState]);
 
     const performLoadVehicles = useCallback(async (
         page: number = 0,
@@ -327,23 +287,9 @@ const VehiclesPageContent = forwardRef<VehiclesPageRef, VehiclesPageContentProps
                 showDeleteConfirm: false,
                 selectedVehicle: null
             });
-
-            if (state.showDetailDrawer) {
-                closeVehicleDetail();
-            }
-
             performLoadVehicles(state.currentPage, state.appliedFilters, filterByOwnerId);
         }
-    }, [state.selectedVehicle, deleteVehicle, updateState, state.showDetailDrawer, closeVehicleDetail, performLoadVehicles, state.currentPage, state.appliedFilters, filterByOwnerId]);
-
-    const handleSelectVehicle = useCallback((vehicle: any) => {
-        updateState({
-            selectedVehicle: vehicle,
-            showDetailDrawer: true,
-            manuallyClosedDrawer: false
-        });
-        onVehicleSelected?.(vehicle.id);
-    }, [updateState, onVehicleSelected]);
+    }, [state.selectedVehicle, deleteVehicle, updateState, performLoadVehicles, state.currentPage, state.appliedFilters, filterByOwnerId]);
 
     const handleShowHistory = useCallback((vehicle: any) => {
         updateState({
@@ -356,7 +302,6 @@ const VehiclesPageContent = forwardRef<VehiclesPageRef, VehiclesPageContentProps
         return Object.values(state.appliedFilters).some(val => val !== '');
     }, [state.appliedFilters]);
 
-    // Enhanced filters component
     const filtersComponent = (
         <EnhancedVehicleFilters
             filters={state.filters}
@@ -395,7 +340,7 @@ const VehiclesPageContent = forwardRef<VehiclesPageRef, VehiclesPageContentProps
                                 vehicles={state.vehicles}
                                 showFilters={state.showFilters}
                                 hasActiveFilters={hasActiveFilters}
-                                onSelectVehicle={handleSelectVehicle}
+                                onSelectVehicle={() => {}}
                                 onEditVehicle={handleEditVehicle}
                                 onDeleteVehicle={handleDeleteClick}
                                 onShowHistory={handleShowHistory}
@@ -419,12 +364,6 @@ const VehiclesPageContent = forwardRef<VehiclesPageRef, VehiclesPageContentProps
                     </>
                 )}
             </MainContent>
-
-            <VehicleDetailDrawer
-                isOpen={state.showDetailDrawer}
-                vehicle={state.selectedVehicle}
-                onClose={closeVehicleDetail}
-            />
 
             {state.showAddModal && (
                 <VehicleFormModal

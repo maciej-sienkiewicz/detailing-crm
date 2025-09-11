@@ -1,5 +1,5 @@
-// src/pages/Clients/components/VehicleTable/index.tsx - Zaktualizowany z filtrowaniem w nagłówku
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FaCar, FaFilter } from 'react-icons/fa';
 import { DataTable, TableColumn, HeaderAction } from '../../../../components/common/DataTable';
 import { VehicleExpanded } from '../../../../types';
@@ -51,11 +51,17 @@ export const VehicleTable: React.FC<VehicleTableProps> = ({
                                                               onToggleFilters,
                                                               filtersComponent
                                                           }) => {
+    const navigate = useNavigate();
+
+    const handleSelectVehicle = (vehicle: VehicleExpanded) => {
+        navigate(`/vehicle/${vehicle.id}`);
+    };
+
     const renderCell = (vehicle: VehicleExpanded, columnId: string) => (
         <VehicleCellRenderer
             vehicle={vehicle}
             columnId={columnId}
-            onSelectVehicle={onSelectVehicle}
+            onSelectVehicle={handleSelectVehicle}
             onEditVehicle={onEditVehicle}
             onDeleteVehicle={onDeleteVehicle}
             onShowHistory={onShowHistory}
@@ -65,14 +71,13 @@ export const VehicleTable: React.FC<VehicleTableProps> = ({
     const renderCard = (vehicle: VehicleExpanded) => (
         <VehicleCard
             vehicle={vehicle}
-            onSelectVehicle={onSelectVehicle}
+            onSelectVehicle={handleSelectVehicle}
             onEditVehicle={onEditVehicle}
             onDeleteVehicle={onDeleteVehicle}
             onShowHistory={onShowHistory}
         />
     );
 
-    // Konfiguracja akcji w nagłówku
     const headerActions: HeaderAction[] = [
         {
             id: 'filters',
@@ -91,14 +96,13 @@ export const VehicleTable: React.FC<VehicleTableProps> = ({
             columns={defaultColumns}
             title="Lista pojazdów"
             emptyStateConfig={emptyStateConfig}
-            onItemClick={onSelectVehicle}
+            onItemClick={handleSelectVehicle}
             renderCell={renderCell}
             renderCard={renderCard}
             enableDragAndDrop={true}
             enableViewToggle={true}
             defaultViewMode="table"
             storageKeys={storageKeys}
-            // NOWE propsy - rozszerzone funkcje
             headerActions={headerActions}
             expandableContent={filtersComponent}
             expandableVisible={showFilters}

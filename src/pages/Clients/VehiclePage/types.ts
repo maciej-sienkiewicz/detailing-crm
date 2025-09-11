@@ -4,7 +4,6 @@ export interface VehiclesPageContentProps {
     onSetRef?: (ref: {
         handleAddVehicle?: () => void;
         handleExportVehicles?: () => void;
-        openVehicleDetail?: (vehicleId: string) => void;
     }) => void;
     initialVehicleId?: string;
     filterByOwnerId?: string;
@@ -17,7 +16,6 @@ export interface VehiclesPageContentProps {
 export interface VehiclesPageRef {
     handleAddVehicle: () => void;
     handleExportVehicles: () => void;
-    openVehicleDetail: (vehicleId: string) => void;
 }
 
 export interface VehicleFilters {
@@ -45,11 +43,9 @@ export interface VehiclesPageState {
     totalPages: number;
     showFilters: boolean;
     showAddModal: boolean;
-    showDetailDrawer: boolean;
     showDeleteConfirm: boolean;
     showHistoryModal: boolean;
     selectedVehicle: VehicleExpanded | null;
-    manuallyClosedDrawer: boolean;
     filters: VehicleFilters;
     appliedFilters: VehicleFilters;
     stats: VehicleStats;

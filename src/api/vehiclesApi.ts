@@ -1,8 +1,6 @@
-// src/api/vehiclesApi.ts - Naprawione API dla nowych endpointów - POPRAWIONE
 import {VehicleExpanded, VehicleOwner, VehicleStatistics} from '../types';
 import {apiClientNew, PaginatedApiResponse, PaginationParams} from './apiClientNew';
 
-// Interfejsy dostosowane do rzeczywistego formatu API - NAPRAWIONE TYPY
 export interface VehicleTableResponse {
     id: number;
     make: string;
@@ -14,10 +12,10 @@ export interface VehicleTableResponse {
     mileage?: number;
     owners: VehicleOwnerSummary[];
     visitCount: number;
-    lastVisitDate?: number[] | string | null | undefined;  // NAPRAWIONE: dodano undefined
+    lastVisitDate?: number[] | string | null | undefined;
     totalRevenue: number;
-    createdAt: number[] | string | undefined;              // NAPRAWIONE: dodano undefined
-    updatedAt: number[] | string | undefined;              // NAPRAWIONE: dodano undefined
+    createdAt: number[] | string | undefined;
+    updatedAt: number[] | string | undefined;
 }
 
 export interface VehicleOwnerSummary {
@@ -29,7 +27,6 @@ export interface VehicleOwnerSummary {
     phone?: string;
 }
 
-// Rzeczywista struktura odpowiedzi paginacji z serwera Spring Boot
 export interface SpringPageResponse<T> {
     content: T[];
     pageable: {
@@ -78,7 +75,6 @@ export interface MostActiveVehicleInfo {
     totalRevenue: number;
 }
 
-// Interfejs dla filtrów tabeli pojazdów
 export interface VehicleTableFilters {
     make?: string;
     model?: string;
@@ -88,7 +84,6 @@ export interface VehicleTableFilters {
     maxVisits?: number;
 }
 
-// Interfejs dla historii serwisowej z serwera
 export interface ServiceHistoryResponse {
     id: string;
     date: string;
@@ -98,7 +93,6 @@ export interface ServiceHistoryResponse {
     protocol_id?: string;
 }
 
-// Interfejs dla danych pojazdu do zapisu
 export interface VehicleData {
     make: string;
     model: string;
@@ -109,14 +103,31 @@ export interface VehicleData {
     ownerIds: string[];
 }
 
-// Funkcja do konwersji daty z formatu tablicy na string ISO - NAPRAWIONA
+export interface VehicleImage {
+    id: string;
+    url: string;
+    thumbnailUrl: string;
+    filename: string;
+    uploadedAt: string;
+}
+
+export interface VehicleImagesResponse {
+    data: VehicleImage[];
+    pagination: {
+        currentPage: number;
+        pageSize: number;
+        totalItems: number;
+        totalPages: number;
+        hasNext: boolean;
+        hasPrevious: boolean;
+    };
+}
+
 const convertDateArrayToString = (dateArray: number[] | string | null | undefined): string | undefined => {
     if (!dateArray || dateArray === undefined || dateArray === null) return undefined;
     if (typeof dateArray === 'string') return dateArray;
 
     if (Array.isArray(dateArray) && dateArray.length >= 6) {
-        // Format: [year, month, day, hour, minute, second, nanosecond]
-        // Uwaga: month w Java/Spring jest 1-based, w JavaScript 0-based
         const [year, month, day, hour, minute, second, nanosecond] = dateArray;
         const date = new Date(year, month - 1, day, hour, minute, second, Math.floor(nanosecond / 1000000));
         return date.toISOString();
@@ -125,7 +136,6 @@ const convertDateArrayToString = (dateArray: number[] | string | null | undefine
     return undefined;
 };
 
-// Funkcja konwersji VehicleTableResponse na VehicleExpanded - NAPRAWIONA
 const convertToVehicleExpanded = (tableResponse: VehicleTableResponse): VehicleExpanded => ({
     id: tableResponse.id.toString(),
     make: tableResponse.make,
@@ -139,7 +149,6 @@ const convertToVehicleExpanded = (tableResponse: VehicleTableResponse): VehicleE
     totalSpent: tableResponse.totalRevenue,
     ownerIds: tableResponse.owners.map(owner => owner.id.toString()),
 
-    // NAPRAWIONE: Dodanie pełnych danych właścicieli
     owners: tableResponse.owners.map(owner => ({
         id: owner.id,
         firstName: owner.firstName,
@@ -149,18 +158,15 @@ const convertToVehicleExpanded = (tableResponse: VehicleTableResponse): VehicleE
         phone: owner.phone
     })),
 
-    // Dodatkowe pola dla zgodności
     createdAt: convertDateArrayToString(tableResponse.createdAt),
     updatedAt: convertDateArrayToString(tableResponse.updatedAt)
 });
 
-// Funkcja konwersji VehicleOwnerSummary na VehicleOwner
 const convertToVehicleOwner = (ownerSummary: VehicleOwnerSummary): VehicleOwner => ({
     ownerId: ownerSummary.id,
     ownerName: ownerSummary.fullName
 });
 
-// Funkcja konwersji SpringPageResponse na PaginatedApiResponse
 const convertSpringPageToPaginatedResponse = <T>(springPage: SpringPageResponse<T>): PaginatedApiResponse<T> => ({
     data: springPage.content,
     pagination: {
@@ -175,7 +181,6 @@ const convertSpringPageToPaginatedResponse = <T>(springPage: SpringPageResponse<
 });
 
 export const vehicleApi = {
-    // Nowa funkcja do pobierania pojazdów dla tabeli z paginacją i filtrami
     fetchVehiclesForTable: async (
         paginationOptions: PaginationParams = {},
         filters: VehicleTableFilters = {}
@@ -184,13 +189,12 @@ export const vehicleApi = {
             const queryParams = {
                 page: paginationOptions.page || 0,
                 size: paginationOptions.size || 20,
-                sort: 'lastVisitDate,desc', // Domyślne sortowanie
-                ...filters // Spread filtrów
+                sort: 'lastVisitDate,desc',
+                ...filters
             };
 
             console.log('🚗 Calling /vehicles/table with params:', queryParams);
 
-            // Wywołanie API z wykorzystaniem nowego apiClientNew
             const response = await apiClientNew.get<SpringPageResponse<VehicleTableResponse>>(
                 '/vehicles/table',
                 queryParams
@@ -198,12 +202,10 @@ export const vehicleApi = {
 
             console.log('📊 Raw API response:', response);
 
-            // Konwersja danych na format VehicleExpanded
             const convertedData = response.content.map(convertToVehicleExpanded);
 
             console.log('✅ Converted vehicles:', convertedData);
 
-            // Konwersja na nasz format paginacji
             const paginatedResponse = convertSpringPageToPaginatedResponse({
                 ...response,
                 content: convertedData
@@ -218,7 +220,6 @@ export const vehicleApi = {
         }
     },
 
-    // Nowa funkcja do pobierania statystyk firmowych
     fetchCompanyStatistics: async (): Promise<VehicleCompanyStatisticsResponse> => {
         try {
             console.log('📈 Fetching company statistics...');
@@ -231,18 +232,15 @@ export const vehicleApi = {
         }
     },
 
-    // NAPRAWIONA funkcja do pobierania właścicieli pojazdu
     fetchOwners: async (vehicleId: string): Promise<VehicleOwner[]> => {
         try {
             console.log(`👥 Fetching owners for vehicle ${vehicleId}...`);
 
-            // Najpierw pobierz szczegóły pojazdu z tabeli, które zawierają właścicieli
             const vehicleResponse = await apiClientNew.get<SpringPageResponse<VehicleTableResponse>>(
                 '/vehicles/table',
-                { licensePlate: '', make: '', model: '' } // Pusty filtr żeby pobrać wszystkie
+                { licensePlate: '', make: '', model: '' }
             );
 
-            // Znajdź konkretny pojazd
             const vehicle = vehicleResponse.content.find(v => v.id.toString() === vehicleId);
 
             if (vehicle && vehicle.owners) {
@@ -251,7 +249,6 @@ export const vehicleApi = {
                 return owners;
             }
 
-            // Fallback - jeśli nie znaleziono w tabeli, spróbuj bezpośredniego endpoint
             try {
                 const directResponse = await apiClientNew.get<VehicleOwnerSummary[]>(`/vehicles/${vehicleId}/owners`);
                 const owners = directResponse.map(convertToVehicleOwner);
@@ -267,7 +264,6 @@ export const vehicleApi = {
         }
     },
 
-    // Funkcja do pobierania statystyk pojazdu
     fetchVehicleStatistics: async (vehicleId: string): Promise<VehicleStatistics> => {
         try {
             console.log(`📊 Fetching statistics for vehicle ${vehicleId}...`);
@@ -276,7 +272,6 @@ export const vehicleApi = {
             return response;
         } catch (error) {
             console.error(`❌ Error fetching vehicle statistics for ${vehicleId}:`, error);
-            // Zwróć domyślne statystyki w przypadku błędu
             return {
                 servicesNo: 0,
                 totalRevenue: 0
@@ -284,7 +279,52 @@ export const vehicleApi = {
         }
     },
 
-    // Zachowane stare funkcje dla kompatybilności wstecznej
+    fetchVehicleImages: async (
+        vehicleId: string,
+        paginationOptions: PaginationParams = {}
+    ): Promise<VehicleImagesResponse> => {
+        try {
+            console.log(`📷 Fetching images for vehicle ${vehicleId}...`);
+
+            const queryParams = {
+                page: paginationOptions.page || 0,
+                size: paginationOptions.size || 3
+            };
+
+            const response = await apiClientNew.get<SpringPageResponse<VehicleImage>>(
+                `/vehicles/${vehicleId}/images/thumbnails`,
+                queryParams
+            );
+
+            console.log('✅ Vehicle images loaded:', response);
+
+            return {
+                data: response.content,
+                pagination: {
+                    currentPage: response.number,
+                    pageSize: response.size,
+                    totalItems: response.totalElements,
+                    totalPages: response.totalPages,
+                    hasNext: !response.last,
+                    hasPrevious: !response.first
+                }
+            };
+        } catch (error) {
+            console.error(`❌ Error fetching vehicle images for ${vehicleId}:`, error);
+            return {
+                data: [],
+                pagination: {
+                    currentPage: 0,
+                    pageSize: 3,
+                    totalItems: 0,
+                    totalPages: 0,
+                    hasNext: false,
+                    hasPrevious: false
+                }
+            };
+        }
+    },
+
     fetchVehicles: async (): Promise<VehicleExpanded[]> => {
         try {
             console.warn('⚠️ fetchVehicles is deprecated, use fetchVehiclesForTable instead');
@@ -296,12 +336,10 @@ export const vehicleApi = {
         }
     },
 
-    // Pobieranie pojedynczego pojazdu
     fetchVehicleById: async (id: string): Promise<VehicleExpanded | null> => {
         try {
             console.log(`🔍 Fetching vehicle by ID: ${id}`);
 
-            // Użyj tabeli do znalezienia pojazdu
             const response = await vehicleApi.fetchVehiclesForTable({ page: 0, size: 100 });
             const vehicle = response.data.find(v => v.id === id);
 
@@ -318,7 +356,6 @@ export const vehicleApi = {
         }
     },
 
-    // Pobieranie pojazdów dla właściciela - używa nowego API z filtrem
     fetchVehiclesByOwnerId: async (ownerId: string): Promise<VehicleExpanded[]> => {
         try {
             console.log(`🚗 Fetching vehicles for owner ${ownerId}...`);
@@ -326,12 +363,10 @@ export const vehicleApi = {
             const response = await vehicleApi.fetchVehiclesForTable({ page: 0, size: 1000 });
 
             const ownerVehicles = response.data.filter(vehicle => {
-                // Sprawdź czy owners istnieje i nie jest pusty
                 if (!vehicle.owners || vehicle.owners.length === 0) {
                     return false;
                 }
 
-                // Porównaj zarówno string z string jak i string z number
                 return vehicle.owners.some(owner =>
                     owner.id.toString() === ownerId ||
                     owner.id === parseInt(ownerId, 10)
@@ -346,7 +381,6 @@ export const vehicleApi = {
         }
     },
 
-    // Pobieranie historii serwisowej pojazdu - pozostaje bez zmian
     fetchVehicleServiceHistory: async (vehicleId: string): Promise<ServiceHistoryResponse[]> => {
         try {
             console.log(`📋 Fetching service history for vehicle ${vehicleId}...`);
@@ -359,19 +393,16 @@ export const vehicleApi = {
         }
     },
 
-    // CRUD operacje - NAPRAWIONE do używania nowego API client
     createVehicle: async (vehicleData: VehicleData): Promise<VehicleExpanded> => {
         try {
             console.log('➕ Creating new vehicle:', vehicleData);
             const response = await apiClientNew.post<any>('/vehicles', vehicleData);
             console.log('✅ Vehicle created:', response);
 
-            // Konwertuj odpowiedź na VehicleExpanded jeśli to VehicleTableResponse
             if (response.owners && Array.isArray(response.owners)) {
                 return convertToVehicleExpanded(response);
             }
 
-            // Jeśli odpowiedź ma inny format, spróbuj konwersji
             return {
                 id: response.id?.toString() || '',
                 make: response.make || vehicleData.make,
@@ -399,12 +430,10 @@ export const vehicleApi = {
             const response = await apiClientNew.put<any>(`/vehicles/${id}`, vehicleData);
             console.log('✅ Vehicle updated:', response);
 
-            // Konwertuj odpowiedź na VehicleExpanded jeśli to VehicleTableResponse
             if (response.owners && Array.isArray(response.owners)) {
                 return convertToVehicleExpanded(response);
             }
 
-            // Jeśli odpowiedź ma inny format, spróbuj konwersji
             return {
                 id: response.id?.toString() || id,
                 make: response.make || vehicleData.make,
@@ -438,7 +467,6 @@ export const vehicleApi = {
         }
     },
 
-    // Nowe funkcje pomocnicze dla filtrowania
     searchVehiclesByMake: async (make: string, paginationOptions?: PaginationParams): Promise<PaginatedApiResponse<VehicleExpanded>> => {
         return vehicleApi.fetchVehiclesForTable(paginationOptions, { make });
     },
