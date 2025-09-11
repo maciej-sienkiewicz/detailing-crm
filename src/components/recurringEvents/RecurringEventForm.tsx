@@ -8,7 +8,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { FaCalendarAlt, FaSave, FaTimes } from 'react-icons/fa';
 import {
     EventType,
     CreateRecurringEventRequest,
@@ -20,7 +19,7 @@ import { BasicInfoStep } from './FormSteps/BasicInfoStep';
 import { RecurrencePatternStep } from './FormSteps/RecurrencePatternStep';
 import { VisitTemplateStep } from './FormSteps/VisitTemplateStep';
 import { FormActions } from './FormComponents/FormActions';
-import { validationSchema, FormData } from './FormValidation/schema';
+import { validationSchema, FormData } from './schema';
 import { theme } from '../../styles/theme';
 
 interface RecurringEventFormProps {

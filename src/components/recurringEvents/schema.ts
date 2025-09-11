@@ -1,11 +1,11 @@
-// src/components/recurringEvents/FormValidation/schema.ts
+// src/components/recurringEvents/schema.ts
 /**
  * Form validation schema and types
  * Centralized validation logic for the recurring events form
  */
 
 import * as yup from 'yup';
-import { EventType, RecurrenceFrequency } from '../../../types/recurringEvents';
+import { EventType, RecurrenceFrequency } from '../../types/recurringEvents';
 
 // Form data type that matches yup schema exactly
 export interface FormData {
