@@ -194,14 +194,13 @@ export interface EventOccurrenceResponse {
 
 export interface RecurringEventFormData {
     title: string;
-    description: string;
+    description?: string;  // Zmienione z string na string | undefined
     type: EventType;
     recurrencePattern: RecurrencePatternRequest;
-    visitTemplate?: VisitTemplateRequest;
+    visitTemplate?: VisitTemplateRequest;  // Pozostaje opcjonalne
 }
 
 export interface RecurrencePatternFormData extends RecurrencePatternRequest {}
-
 // ========================================================================================
 // LIST & PAGINATION
 // ========================================================================================
