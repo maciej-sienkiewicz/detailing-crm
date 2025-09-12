@@ -153,6 +153,7 @@ const RecurringEventForm: React.FC<RecurringEventFormProps> = ({
                 currentStep={currentStep}
                 canProceedToStep={canProceedToStep}
                 onStepClick={setCurrentStep}
+                errors={errors} // POPRAWKA: Przekazanie błędów do StepsProgress
             />
 
             <form onSubmit={handleSubmit(onFormSubmit)}>
@@ -195,18 +196,24 @@ const RecurringEventForm: React.FC<RecurringEventFormProps> = ({
     );
 };
 
-// Styled Components
+// Styled Components - ULEPSZONE DLA PEŁNEJ SZEROKOŚCI
 const FormContainer = styled.div`
     background: ${theme.surface};
     border-radius: ${theme.radius.xl};
     box-shadow: ${theme.shadow.lg};
     overflow: hidden;
-    max-width: 800px;
     width: 100%;
+    max-width: 1200px; // POPRAWKA: Zwiększona szerokość
+    min-height: 700px; // POPRAWKA: Minimalna wysokość
 `;
 
 const FormContent = styled.div`
     padding: ${theme.spacing.xxl};
+    min-height: 500px; // POPRAWKA: Minimalna wysokość dla zawartości
+
+    @media (max-width: 768px) {
+        padding: ${theme.spacing.xl};
+    }
 `;
 
 export default RecurringEventForm;

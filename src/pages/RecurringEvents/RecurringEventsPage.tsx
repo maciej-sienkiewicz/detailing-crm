@@ -250,7 +250,7 @@ const RecurringEventsPage: React.FC = () => {
                     isOpen={showCreateModal}
                     onClose={handleCloseCreateModal}
                     title=""
-                    size="lg"
+                    size="xl"
                 >
                     <RecurringEventForm
                         mode="create"
@@ -265,7 +265,7 @@ const RecurringEventsPage: React.FC = () => {
                     isOpen={showEditModal}
                     onClose={handleCloseEditModal}
                     title=""
-                    size="lg"
+                    size="xl"
                 >
                     {isLoadingEventForEdit ? (
                         <EditModalLoading>

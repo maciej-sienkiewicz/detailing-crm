@@ -1,13 +1,15 @@
-// src/components/recurringEvents/FormComponents/FormActions.tsx
+// src/components/recurringEvents/FormComponents/FormActions.tsx - ULEPSZONE
 /**
  * Form Actions Component
  * Navigation and submission buttons for the form
+ * ULEPSZENIA: Lepsze komunikaty dla użytkownika, tooltips, lepszy UX
  */
 
 import React from 'react';
 import styled from 'styled-components';
-import { FaSave, FaTimes } from 'react-icons/fa';
+import { FaSave, FaTimes, FaArrowLeft, FaArrowRight, FaExclamationTriangle, FaInfoCircle } from 'react-icons/fa';
 import { theme } from '../../../styles/theme';
+import { getStepValidationMessage } from '../schema';
 
 interface FormActionsProps {
     currentStep: number;
@@ -15,6 +17,7 @@ interface FormActionsProps {
     isValid: boolean;
     isLoading: boolean;
     mode: 'create' | 'edit';
+    errors?: Record<string, any>;
     onCancel: () => void;
     onPrevious: () => void;
     onNext: () => void;
@@ -26,28 +29,38 @@ export const FormActions: React.FC<FormActionsProps> = ({
                                                             isValid,
                                                             isLoading,
                                                             mode,
+                                                            errors = {},
                                                             onCancel,
                                                             onPrevious,
                                                             onNext
                                                         }) => {
     const isLastStep = currentStep === 3;
+    const validationMessage = getStepValidationMessage(currentStep, errors);
 
     return (
         <ActionsContainer>
-            <ActionGroup>
+            <LeftSection>
                 <SecondaryButton type="button" onClick={onCancel} disabled={isLoading}>
                     <FaTimes />
                     Anuluj
                 </SecondaryButton>
-            </ActionGroup>
 
-            <ActionGroup>
+                {validationMessage && !canProceed && (
+                    <ValidationHint>
+                        <FaInfoCircle />
+                        <span>{validationMessage}</span>
+                    </ValidationHint>
+                )}
+            </LeftSection>
+
+            <RightSection>
                 {currentStep > 1 && (
                     <SecondaryButton
                         type="button"
                         onClick={onPrevious}
                         disabled={isLoading}
                     >
+                        <FaArrowLeft />
                         Wstecz
                     </SecondaryButton>
                 )}
@@ -57,18 +70,21 @@ export const FormActions: React.FC<FormActionsProps> = ({
                         type="button"
                         onClick={onNext}
                         disabled={!canProceed || isLoading}
+                        title={!canProceed ? validationMessage || 'Wypełnij wymagane pola' : ''}
                     >
                         Dalej
+                        <FaArrowRight />
                     </PrimaryButton>
                 ) : (
                     <PrimaryButton
                         type="submit"
                         disabled={!isValid || isLoading}
+                        title={!isValid ? 'Wypełnij wszystkie wymagane pola' : ''}
                     >
                         {isLoading ? (
                             <>
                                 <LoadingSpinner />
-                                Zapisywanie...
+                                {mode === 'create' ? 'Tworzenie...' : 'Zapisywanie...'}
                             </>
                         ) : (
                             <>
@@ -78,12 +94,12 @@ export const FormActions: React.FC<FormActionsProps> = ({
                         )}
                     </PrimaryButton>
                 )}
-            </ActionGroup>
+            </RightSection>
         </ActionsContainer>
     );
 };
 
-// Styled Components
+// Styled Components - ULEPSZONE
 const ActionsContainer = styled.div`
     display: flex;
     justify-content: space-between;
@@ -91,29 +107,57 @@ const ActionsContainer = styled.div`
     padding: ${theme.spacing.xl} ${theme.spacing.xxl};
     background: ${theme.surfaceElevated};
     border-top: 1px solid ${theme.border};
+    min-height: 80px;
 `;
 
-const ActionGroup = styled.div`
+const LeftSection = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.lg};
+`;
+
+const RightSection = styled.div`
     display: flex;
     gap: ${theme.spacing.md};
+`;
+
+const ValidationHint = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.sm};
+    padding: ${theme.spacing.sm} ${theme.spacing.md};
+    background: ${theme.warning}10;
+    border: 1px solid ${theme.warning}30;
+    border-radius: ${theme.radius.md};
+    font-size: 13px;
+    color: ${theme.warning};
+    font-weight: 500;
+    max-width: 300px;
+
+    svg {
+        flex-shrink: 0;
+        font-size: 14px;
+    }
 `;
 
 const BaseButton = styled.button`
     display: flex;
     align-items: center;
     gap: ${theme.spacing.sm};
-    padding: ${theme.spacing.md} ${theme.spacing.lg};
-    border-radius: ${theme.radius.md};
+    padding: ${theme.spacing.md} ${theme.spacing.xl};
+    border-radius: ${theme.radius.lg};
     font-weight: 600;
     font-size: 14px;
     cursor: pointer;
     transition: all 0.2s ease;
-    border: 1px solid;
-    min-height: 44px;
+    border: 2px solid;
+    min-height: 48px;
+    min-width: 140px;
+    justify-content: center;
 
     &:hover:not(:disabled) {
         transform: translateY(-1px);
-        box-shadow: ${theme.shadow.md};
+        box-shadow: ${theme.shadow.lg};
     }
 
     &:disabled {
@@ -121,6 +165,10 @@ const BaseButton = styled.button`
         cursor: not-allowed;
         transform: none;
         box-shadow: none;
+    }
+
+    svg {
+        font-size: 14px;
     }
 `;
 
@@ -132,6 +180,13 @@ const PrimaryButton = styled(BaseButton)`
     &:hover:not(:disabled) {
         background: ${theme.primaryDark};
         border-color: ${theme.primaryDark};
+        box-shadow: 0 4px 12px ${theme.primary}40;
+    }
+
+    &:disabled {
+        background: ${theme.surfaceAlt};
+        color: ${theme.text.tertiary};
+        border-color: ${theme.border};
     }
 `;
 

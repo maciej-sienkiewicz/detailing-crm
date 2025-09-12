@@ -204,7 +204,7 @@ const OccurrenceManagement: React.FC<OccurrenceManagementProps> = ({
 
     // Format date for display
     const formatDate = useCallback((dateString: string) => {
-        return format(new Date(dateString), 'EEEE, dd MMMM yyyy', { locale: pl });
+        return "";
     }, []);
 
     return (
