@@ -1,6 +1,6 @@
-// src/pages/RecurringEvents/RecurringEventsPage.tsx
+// src/pages/RecurringEvents/RecurringEventsPage.tsx - UPDATED FOR DATATABLE
 /**
- * Main Recurring Events Page - FIXED VERSION
+ * Main Recurring Events Page - Updated to work with new DataTable-based list
  * Provides comprehensive management interface for recurring events
  */
 
@@ -9,12 +9,9 @@ import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import {
     FaCalendarAlt,
-    FaPlus,
-    FaUpload,
-    FaDownload,
     FaChartLine
 } from 'react-icons/fa';
-import { PageHeader, PrimaryButton, SecondaryButton } from '../../components/common/PageHeader';
+import { PageHeader, SecondaryButton } from '../../components/common/PageHeader';
 import RecurringEventsList from '../../components/recurringEvents/RecurringEventsList';
 import RecurringEventForm from '../../components/recurringEvents/RecurringEventForm';
 import Modal from '../../components/common/Modal';
@@ -177,10 +174,6 @@ const RecurringEventsPage: React.FC = () => {
                                 <FaChartLine />
                                 Kalendarz wydarzeń
                             </SecondaryButton>
-                            <PrimaryButton onClick={handleCreateClick}>
-                                <FaPlus />
-                                Nowe wydarzenie
-                            </PrimaryButton>
                         </HeaderActions>
                     }
                 />
@@ -240,7 +233,7 @@ const RecurringEventsPage: React.FC = () => {
                     </StatsGrid>
                 </StatsSection>
 
-                {/* Main Content */}
+                {/* Main Content - Updated to use new DataTable-based list */}
                 <ContentSection>
                     <RecurringEventsList
                         onEdit={handleEditClick}
@@ -248,6 +241,7 @@ const RecurringEventsPage: React.FC = () => {
                         onDeactivate={handleDeactivateClick}
                         onViewOccurrences={handleViewOccurrences}
                         onViewDetails={handleViewDetails}
+                        onCreateNew={handleCreateClick}
                     />
                 </ContentSection>
 
@@ -344,7 +338,7 @@ const PageErrorFallback: React.FC = () => (
     </ErrorContainer>
 );
 
-// Styled Components
+// Styled Components (unchanged from previous version)
 const PageContainer = styled.div`
     min-height: 100vh;
     background: ${theme.surfaceAlt};

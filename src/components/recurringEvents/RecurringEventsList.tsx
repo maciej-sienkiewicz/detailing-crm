@@ -1,17 +1,16 @@
-// src/components/recurringEvents/RecurringEventsList.tsx
+// src/components/recurringEvents/RecurringEventsList.tsx - REFACTORED WITH DATATABLE
 /**
- * Comprehensive Recurring Events List Component
- * Features advanced filtering, sorting, and bulk operations
+ * Recurring Events List using the common DataTable component
+ * Features advanced filtering, sorting, and bulk operations through DataTable
  */
 
 import React, { useState, useMemo, useCallback } from 'react';
 import styled from 'styled-components';
-import { format } from 'date-fns';
+import { format, isValid, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import {
     FaSearch,
     FaFilter,
-    FaSort,
     FaEdit,
     FaEye,
     FaTrash,
@@ -22,8 +21,11 @@ import {
     FaCheckCircle,
     FaTimesCircle,
     FaEllipsisV,
-    FaChevronDown
+    FaUsers,
+    FaPlus
 } from 'react-icons/fa';
+import { DataTable } from '../common/DataTable';
+import type { TableColumn, HeaderAction, SelectAllConfig } from '../common/DataTable/types';
 import {
     RecurringEventListItem,
     RecurringEventsListParams,
@@ -33,7 +35,6 @@ import {
 } from '../../types/recurringEvents';
 import { useRecurringEventsList } from '../../hooks/useRecurringEvents';
 import { theme } from '../../styles/theme';
-import { Tooltip } from '../common/Tooltip';
 
 interface RecurringEventsListProps {
     onEdit: (event: RecurringEventListItem) => void;
@@ -41,6 +42,7 @@ interface RecurringEventsListProps {
     onDeactivate: (eventId: string) => void;
     onViewOccurrences: (eventId: string) => void;
     onViewDetails: (event: RecurringEventListItem) => void;
+    onCreateNew?: () => void;
 }
 
 const RecurringEventsList: React.FC<RecurringEventsListProps> = ({
@@ -48,7 +50,8 @@ const RecurringEventsList: React.FC<RecurringEventsListProps> = ({
                                                                      onDelete,
                                                                      onDeactivate,
                                                                      onViewOccurrences,
-                                                                     onViewDetails
+                                                                     onViewDetails,
+                                                                     onCreateNew
                                                                  }) => {
     // Filter and search state
     const [searchTerm, setSearchTerm] = useState('');
@@ -64,7 +67,6 @@ const RecurringEventsList: React.FC<RecurringEventsListProps> = ({
     // UI state
     const [showFilters, setShowFilters] = useState(false);
     const [selectedEvents, setSelectedEvents] = useState<Set<string>>(new Set());
-    const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
 
     // Build query parameters
     const queryParams: RecurringEventsListParams = useMemo(() => ({
@@ -86,10 +88,33 @@ const RecurringEventsList: React.FC<RecurringEventsListProps> = ({
         refetch
     } = useRecurringEventsList(queryParams);
 
-    // Handle search
-    const handleSearchChange = useCallback((value: string) => {
-        setSearchTerm(value);
-        setCurrentPage(0); // Reset to first page
+    // Safe date formatting helper
+    const formatDateSafely = useCallback((dateString: string | undefined, formatString: string = 'dd MMM yyyy'): string => {
+        if (!dateString) return 'Brak';
+
+        try {
+            let date: Date;
+
+            if (typeof dateString === 'string') {
+                if (dateString.includes('T') || dateString.includes('Z')) {
+                    date = parseISO(dateString);
+                } else {
+                    date = new Date(dateString);
+                }
+            } else {
+                date = new Date(dateString);
+            }
+
+            if (!isValid(date)) {
+                console.warn('Invalid date:', dateString);
+                return 'Nieprawidłowa data';
+            }
+
+            return format(date, formatString, { locale: pl });
+        } catch (error) {
+            console.warn('Error formatting date:', dateString, error);
+            return 'Błąd daty';
+        }
     }, []);
 
     // Handle filter changes
@@ -103,16 +128,11 @@ const RecurringEventsList: React.FC<RecurringEventsListProps> = ({
         setCurrentPage(0);
     }, []);
 
-    // Handle sorting
-    const handleSort = useCallback((field: typeof sortBy) => {
-        if (sortBy === field) {
-            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-        } else {
-            setSortBy(field);
-            setSortOrder('desc');
-        }
+    // Handle search
+    const handleSearchChange = useCallback((value: string) => {
+        setSearchTerm(value);
         setCurrentPage(0);
-    }, [sortBy, sortOrder]);
+    }, []);
 
     // Handle selection
     const handleSelectEvent = useCallback((eventId: string, selected: boolean) => {
@@ -127,49 +147,14 @@ const RecurringEventsList: React.FC<RecurringEventsListProps> = ({
         });
     }, []);
 
-    const handleSelectAll = useCallback((selected: boolean) => {
-        if (selected) {
-            setSelectedEvents(new Set(events.map(event => event.id)));
-        } else {
+    const handleSelectAll = useCallback(() => {
+        const allSelected = selectedEvents.size === events.length && events.length > 0;
+        if (allSelected) {
             setSelectedEvents(new Set());
+        } else {
+            setSelectedEvents(new Set(events.map(event => event.id)));
         }
-    }, [events]);
-
-    // Handle dropdown
-    const handleDropdownToggle = useCallback((eventId: string) => {
-        setDropdownOpen(prev => prev === eventId ? null : eventId);
-    }, []);
-
-    // Close dropdown when clicking outside
-    const handleCloseDropdown = useCallback(() => {
-        setDropdownOpen(null);
-    }, []);
-
-    // Format next occurrence date
-    const formatNextOccurrence = useCallback((dateString?: string) => {
-        if (!dateString) return 'Brak';
-
-        try {
-            return format(new Date(dateString), 'dd MMM yyyy', { locale: pl });
-        } catch {
-            return 'Nieprawidłowa data';
-        }
-    }, []);
-
-    // Get status indicator
-    const getStatusIndicator = useCallback((isActive: boolean) => {
-        return isActive ? (
-            <StatusIndicator $status="active">
-                <FaCheckCircle />
-                <span>Aktywne</span>
-            </StatusIndicator>
-        ) : (
-            <StatusIndicator $status="inactive">
-                <FaTimesCircle />
-                <span>Nieaktywne</span>
-            </StatusIndicator>
-        );
-    }, []);
+    }, [events, selectedEvents]);
 
     // Clear all filters
     const clearFilters = useCallback(() => {
@@ -186,675 +171,432 @@ const RecurringEventsList: React.FC<RecurringEventsListProps> = ({
         return searchTerm !== '' || typeFilter !== 'all' || statusFilter !== 'all';
     }, [searchTerm, typeFilter, statusFilter]);
 
-    return (
-        <ListContainer onClick={handleCloseDropdown}>
-            {/* Header with Search and Filters */}
-            <ListHeader>
-                <HeaderLeft>
-                    <SearchContainer>
-                        <SearchIcon>
-                            <FaSearch />
-                        </SearchIcon>
-                        <SearchInput
-                            type="text"
-                            placeholder="Szukaj wydarzeń..."
-                            value={searchTerm}
-                            onChange={(e) => handleSearchChange(e.target.value)}
-                        />
-                    </SearchContainer>
+    // DataTable configuration
+    const columns: TableColumn[] = [
+        { id: 'title', label: 'Tytuł', width: '250px', sortable: true },
+        { id: 'type', label: 'Typ', width: '140px', sortable: true },
+        { id: 'frequency', label: 'Częstotliwość', width: '160px', sortable: true },
+        { id: 'status', label: 'Status', width: '120px', sortable: true },
+        { id: 'nextOccurrence', label: 'Następne', width: '140px', sortable: true },
+        { id: 'occurrences', label: 'Wystąpienia', width: '120px', sortable: false },
+        { id: 'createdAt', label: 'Utworzone', width: '140px', sortable: true },
+        { id: 'actions', label: 'Akcje', width: '120px', sortable: false }
+    ];
 
-                    <FilterButton
-                        onClick={() => setShowFilters(!showFilters)}
-                        $active={showFilters || hasActiveFilters}
-                    >
-                        <FaFilter />
-                        Filtry
-                        {hasActiveFilters && <FilterBadge />}
-                    </FilterButton>
-                </HeaderLeft>
+    // Header actions
+    const headerActions: HeaderAction[] = [
+        ...(onCreateNew ? [{
+            id: 'create',
+            label: 'Nowe wydarzenie',
+            icon: FaPlus,
+            onClick: onCreateNew,
+            variant: 'primary' as const
+        }] : []),
+        {
+            id: 'filter',
+            label: 'Filtry',
+            icon: FaFilter,
+            onClick: () => setShowFilters(!showFilters),
+            variant: 'filter' as const,
+            active: showFilters || hasActiveFilters,
+            badge: hasActiveFilters
+        }
+    ];
 
-                <HeaderRight>
-                    <ResultsInfo>
-                        {pagination ? (
-                            <>
-                                Wyniki {currentPage * pageSize + 1}-{Math.min((currentPage + 1) * pageSize, pagination.totalItems)} z {pagination.totalItems}
-                            </>
-                        ) : (
-                            'Ładowanie...'
-                        )}
-                    </ResultsInfo>
-                </HeaderRight>
-            </ListHeader>
+    // Select all configuration
+    const selectAllConfig: SelectAllConfig = {
+        selectedCount: selectedEvents.size,
+        totalCount: events.length,
+        selectAll: selectedEvents.size === events.length && events.length > 0,
+        onToggleSelectAll: handleSelectAll,
+        label: `Zaznacz wszystkie (${events.length})`
+    };
 
-            {/* Filters Panel */}
-            {showFilters && (
-                <FiltersPanel>
-                    <FilterGroup>
-                        <FilterLabel>Typ wydarzenia:</FilterLabel>
-                        <FilterSelect
-                            value={typeFilter}
-                            onChange={(e) => handleTypeFilterChange(e.target.value as EventType | 'all')}
+    // Render cell content
+    const renderCell = useCallback((event: RecurringEventListItem, columnId: string) => {
+        switch (columnId) {
+            case 'title':
+                return (
+                    <EventTitleContainer>
+                        <EventTitle
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onViewDetails(event);
+                            }}
                         >
-                            <option value="all">Wszystkie typy</option>
-                            {Object.values(EventType).map(type => (
-                                <option key={type} value={type}>
-                                    {EventTypeLabels[type]}
-                                </option>
-                            ))}
-                        </FilterSelect>
-                    </FilterGroup>
-
-                    <FilterGroup>
-                        <FilterLabel>Status:</FilterLabel>
-                        <FilterSelect
-                            value={statusFilter}
-                            onChange={(e) => handleStatusFilterChange(e.target.value as 'all' | 'active' | 'inactive')}
-                        >
-                            <option value="all">Wszystkie</option>
-                            <option value="active">Aktywne</option>
-                            <option value="inactive">Nieaktywne</option>
-                        </FilterSelect>
-                    </FilterGroup>
-
-                    <FilterActions>
-                        <ClearFiltersButton onClick={clearFilters} disabled={!hasActiveFilters}>
-                            Wyczyść filtry
-                        </ClearFiltersButton>
-                    </FilterActions>
-                </FiltersPanel>
-            )}
-
-            {/* Events Table */}
-            <TableContainer>
-                {isLoading ? (
-                    <LoadingState>
-                        <LoadingSpinner />
-                        <LoadingText>Ładowanie wydarzeń...</LoadingText>
-                    </LoadingState>
-                ) : error ? (
-                    <ErrorState>
-                        <ErrorIcon>⚠️</ErrorIcon>
-                        <ErrorText>{error}</ErrorText>
-                        <RetryButton onClick={() => refetch()}>
-                            Spróbuj ponownie
-                        </RetryButton>
-                    </ErrorState>
-                ) : events.length === 0 ? (
-                    <EmptyState>
-                        <EmptyIcon>
-                            <FaCalendarAlt />
-                        </EmptyIcon>
-                        <EmptyTitle>Brak cyklicznych wydarzeń</EmptyTitle>
-                        <EmptyDescription>
-                            {hasActiveFilters
-                                ? 'Nie znaleziono wydarzeń spełniających kryteria wyszukiwania.'
-                                : 'Nie masz jeszcze żadnych cyklicznych wydarzeń. Utwórz pierwsze, aby rozpocząć.'
-                            }
-                        </EmptyDescription>
-                        {hasActiveFilters && (
-                            <ClearFiltersButton onClick={clearFilters}>
-                                Wyczyść filtry
-                            </ClearFiltersButton>
-                        )}
-                    </EmptyState>
-                ) : (
-                    <EventsTable>
-                        <TableHeader>
-                            <HeaderRow>
-                                <HeaderCell $width="40px">
-                                    <SelectAllCheckbox
-                                        type="checkbox"
-                                        checked={selectedEvents.size === events.length && events.length > 0}
-                                        onChange={(e) => handleSelectAll(e.target.checked)}
-                                    />
-                                </HeaderCell>
-                                <HeaderCell $sortable onClick={() => handleSort('title')}>
-                                    <SortableHeader>
-                                        Tytuł
-                                        <SortIcon $active={sortBy === 'title'}>
-                                            <FaSort />
-                                        </SortIcon>
-                                    </SortableHeader>
-                                </HeaderCell>
-                                <HeaderCell $width="140px">
-                                    Typ
-                                </HeaderCell>
-                                <HeaderCell $width="160px">
-                                    Częstotliwość
-                                </HeaderCell>
-                                <HeaderCell $width="120px">
-                                    Status
-                                </HeaderCell>
-                                <HeaderCell $width="140px" $sortable onClick={() => handleSort('nextOccurrence')}>
-                                    <SortableHeader>
-                                        Następne
-                                        <SortIcon $active={sortBy === 'nextOccurrence'}>
-                                            <FaSort />
-                                        </SortIcon>
-                                    </SortableHeader>
-                                </HeaderCell>
-                                <HeaderCell $width="120px">
-                                    Wystąpienia
-                                </HeaderCell>
-                                <HeaderCell $width="140px" $sortable onClick={() => handleSort('createdAt')}>
-                                    <SortableHeader>
-                                        Utworzone
-                                        <SortIcon $active={sortBy === 'createdAt'}>
-                                            <FaSort />
-                                        </SortIcon>
-                                    </SortableHeader>
-                                </HeaderCell>
-                                <HeaderCell $width="80px">
-                                    Akcje
-                                </HeaderCell>
-                            </HeaderRow>
-                        </TableHeader>
-
-                        <TableBody>
-                            {events.map((event) => (
-                                <EventRow
-                                    key={event.id}
-                                    $selected={selectedEvents.has(event.id)}
-                                    onClick={(e) => e.stopPropagation()}
-                                >
-                                    <BodyCell>
-                                        <SelectCheckbox
-                                            type="checkbox"
-                                            checked={selectedEvents.has(event.id)}
-                                            onChange={(e) => handleSelectEvent(event.id, e.target.checked)}
-                                        />
-                                    </BodyCell>
-                                    <BodyCell>
-                                        <EventTitle
-                                            onClick={() => onViewDetails(event)}
-                                            title={event.title}
-                                        >
-                                            {event.title}
-                                        </EventTitle>
-                                    </BodyCell>
-                                    <BodyCell>
-                                        <EventTypeChip $type={event.type}>
-                                            {EventTypeLabels[event.type]}
-                                        </EventTypeChip>
-                                    </BodyCell>
-                                    <BodyCell>
-                                        <FrequencyInfo>
-                                            <FaClock />
-                                            <span>{RecurrenceFrequencyLabels[event.frequency]}</span>
-                                        </FrequencyInfo>
-                                    </BodyCell>
-                                    <BodyCell>
-                                        {getStatusIndicator(event.isActive)}
-                                    </BodyCell>
-                                    <BodyCell>
-                                        <NextOccurrence>
-                                            {formatNextOccurrence(event.nextOccurrence)}
-                                        </NextOccurrence>
-                                    </BodyCell>
-                                    <BodyCell>
-                                        <OccurrenceStats>
-                                            <Tooltip
-                                                text={`${event.completedOccurrences} ukończone z ${event.totalOccurrences} łącznych`}
-                                                position="top"
-                                            >
-                                                <StatsContainer>
-                                                    <CompletedCount>{event.completedOccurrences}</CompletedCount>
-                                                    <StatsSeparator>/</StatsSeparator>
-                                                    <TotalCount>{event.totalOccurrences}</TotalCount>
-                                                </StatsContainer>
-                                            </Tooltip>
-                                        </OccurrenceStats>
-                                    </BodyCell>
-                                    <BodyCell>
-                                        <CreatedDate>
-                                            {format(new Date(event.createdAt), 'dd MMM yyyy', { locale: pl })}
-                                        </CreatedDate>
-                                    </BodyCell>
-                                    <BodyCell>
-                                        <ActionsContainer>
-                                            <ActionButton
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleDropdownToggle(event.id);
-                                                }}
-                                                $active={dropdownOpen === event.id}
-                                            >
-                                                <FaEllipsisV />
-                                            </ActionButton>
-
-                                            {dropdownOpen === event.id && (
-                                                <ActionsDropdown onClick={(e) => e.stopPropagation()}>
-                                                    <DropdownItem onClick={() => onViewDetails(event)}>
-                                                        <FaEye />
-                                                        Szczegóły
-                                                    </DropdownItem>
-                                                    <DropdownItem onClick={() => onEdit(event)}>
-                                                        <FaEdit />
-                                                        Edytuj
-                                                    </DropdownItem>
-                                                    <DropdownItem onClick={() => onViewOccurrences(event.id)}>
-                                                        <FaCalendarAlt />
-                                                        Wystąpienia
-                                                    </DropdownItem>
-                                                    <DropdownDivider />
-                                                    <DropdownItem
-                                                        onClick={() => onDeactivate(event.id)}
-                                                        $danger={event.isActive}
-                                                    >
-                                                        {event.isActive ? <FaPause /> : <FaPlay />}
-                                                        {event.isActive ? 'Dezaktywuj' : 'Aktywuj'}
-                                                    </DropdownItem>
-                                                    <DropdownItem onClick={() => onDelete(event.id)} $danger>
-                                                        <FaTrash />
-                                                        Usuń
-                                                    </DropdownItem>
-                                                </ActionsDropdown>
-                                            )}
-                                        </ActionsContainer>
-                                    </BodyCell>
-                                </EventRow>
-                            ))}
-                        </TableBody>
-                    </EventsTable>
-                )}
-
-                {/* Pagination */}
-                {pagination && pagination.totalPages > 1 && (
-                    <PaginationContainer>
-                        <PaginationInfo>
-                            Strona {currentPage + 1} z {pagination.totalPages}
-                        </PaginationInfo>
-
-                        <PaginationControls>
-                            <PaginationButton
-                                onClick={() => setCurrentPage(0)}
-                                disabled={currentPage === 0}
-                            >
-                                Pierwsza
-                            </PaginationButton>
-                            <PaginationButton
-                                onClick={() => setCurrentPage(currentPage - 1)}
-                                disabled={currentPage === 0}
-                            >
-                                Poprzednia
-                            </PaginationButton>
-                            <PaginationButton
-                                onClick={() => setCurrentPage(currentPage + 1)}
-                                disabled={currentPage >= pagination.totalPages - 1}
-                            >
-                                Następna
-                            </PaginationButton>
-                            <PaginationButton
-                                onClick={() => setCurrentPage(pagination.totalPages - 1)}
-                                disabled={currentPage >= pagination.totalPages - 1}
-                            >
-                                Ostatnia
-                            </PaginationButton>
-                        </PaginationControls>
-
-                        <PageSizeSelector>
-                            <PageSizeLabel>Pokaż:</PageSizeLabel>
-                            <PageSizeSelect
-                                value={pageSize}
+                            {event.title}
+                        </EventTitle>
+                        <EventSelection>
+                            <input
+                                type="checkbox"
+                                checked={selectedEvents.has(event.id)}
                                 onChange={(e) => {
-                                    setPageSize(parseInt(e.target.value));
-                                    setCurrentPage(0);
+                                    e.stopPropagation();
+                                    handleSelectEvent(event.id, e.target.checked);
                                 }}
-                            >
-                                <option value={5}>5</option>
-                                <option value={10}>10</option>
-                                <option value={25}>25</option>
-                                <option value={50}>50</option>
-                            </PageSizeSelect>
-                        </PageSizeSelector>
-                    </PaginationContainer>
-                )}
-            </TableContainer>
-        </ListContainer>
+                            />
+                        </EventSelection>
+                    </EventTitleContainer>
+                );
+
+            case 'type':
+                return (
+                    <EventTypeChip $type={event.type}>
+                        {EventTypeLabels[event.type]}
+                    </EventTypeChip>
+                );
+
+            case 'frequency':
+                return (
+                    <FrequencyInfo>
+                        <FaClock />
+                        <span>{RecurrenceFrequencyLabels[event.frequency]}</span>
+                    </FrequencyInfo>
+                );
+
+            case 'status':
+                return event.isActive ? (
+                    <StatusIndicator $status="active">
+                        <FaCheckCircle />
+                        <span>Aktywne</span>
+                    </StatusIndicator>
+                ) : (
+                    <StatusIndicator $status="inactive">
+                        <FaTimesCircle />
+                        <span>Nieaktywne</span>
+                    </StatusIndicator>
+                );
+
+            case 'nextOccurrence':
+                return (
+                    <NextOccurrence>
+                        {formatDateSafely(event.nextOccurrence)}
+                    </NextOccurrence>
+                );
+
+            case 'occurrences':
+                return (
+                    <OccurrenceStats>
+                        <CompletedCount>{event.completedOccurrences}</CompletedCount>
+                        <StatsSeparator>/</StatsSeparator>
+                        <TotalCount>{event.totalOccurrences}</TotalCount>
+                    </OccurrenceStats>
+                );
+
+            case 'createdAt':
+                return (
+                    <CreatedDate>
+                        {formatDateSafely(event.createdAt)}
+                    </CreatedDate>
+                );
+
+            case 'actions':
+                return (
+                    <ActionsMenu
+                        event={event}
+                        onEdit={onEdit}
+                        onDelete={onDelete}
+                        onDeactivate={onDeactivate}
+                        onViewOccurrences={onViewOccurrences}
+                        onViewDetails={onViewDetails}
+                    />
+                );
+
+            default:
+                return null;
+        }
+    }, [selectedEvents, formatDateSafely, onEdit, onDelete, onDeactivate, onViewOccurrences, onViewDetails, handleSelectEvent]);
+
+    // Render card view (optional)
+    const renderCard = useCallback((event: RecurringEventListItem) => (
+        <EventCard
+            key={event.id}
+            $selected={selectedEvents.has(event.id)}
+            onClick={() => onViewDetails(event)}
+        >
+            <CardHeader>
+                <CardTitle>{event.title}</CardTitle>
+                <CardCheckbox>
+                    <input
+                        type="checkbox"
+                        checked={selectedEvents.has(event.id)}
+                        onChange={(e) => {
+                            e.stopPropagation();
+                            handleSelectEvent(event.id, e.target.checked);
+                        }}
+                    />
+                </CardCheckbox>
+            </CardHeader>
+            <CardContent>
+                <CardRow>
+                    <CardLabel>Typ:</CardLabel>
+                    <EventTypeChip $type={event.type}>
+                        {EventTypeLabels[event.type]}
+                    </EventTypeChip>
+                </CardRow>
+                <CardRow>
+                    <CardLabel>Częstotliwość:</CardLabel>
+                    <span>{RecurrenceFrequencyLabels[event.frequency]}</span>
+                </CardRow>
+                <CardRow>
+                    <CardLabel>Status:</CardLabel>
+                    {event.isActive ? (
+                        <StatusIndicator $status="active">
+                            <FaCheckCircle />
+                            <span>Aktywne</span>
+                        </StatusIndicator>
+                    ) : (
+                        <StatusIndicator $status="inactive">
+                            <FaTimesCircle />
+                            <span>Nieaktywne</span>
+                        </StatusIndicator>
+                    )}
+                </CardRow>
+                <CardRow>
+                    <CardLabel>Następne wystąpienie:</CardLabel>
+                    <span>{formatDateSafely(event.nextOccurrence)}</span>
+                </CardRow>
+                <CardRow>
+                    <CardLabel>Wystąpienia:</CardLabel>
+                    <OccurrenceStats>
+                        <CompletedCount>{event.completedOccurrences}</CompletedCount>
+                        <StatsSeparator>/</StatsSeparator>
+                        <TotalCount>{event.totalOccurrences}</TotalCount>
+                    </OccurrenceStats>
+                </CardRow>
+            </CardContent>
+            <CardActions>
+                <ActionsMenu
+                    event={event}
+                    onEdit={onEdit}
+                    onDelete={onDelete}
+                    onDeactivate={onDeactivate}
+                    onViewOccurrences={onViewOccurrences}
+                    onViewDetails={onViewDetails}
+                />
+            </CardActions>
+        </EventCard>
+    ), [selectedEvents, formatDateSafely, onEdit, onDelete, onDeactivate, onViewOccurrences, onViewDetails, handleSelectEvent]);
+
+    // Filters panel content
+    const filtersContent = (
+        <FiltersPanel>
+            <FilterSection>
+                <FilterGroup>
+                    <FilterLabel>Szukaj:</FilterLabel>
+                    <SearchInput
+                        type="text"
+                        placeholder="Szukaj wydarzeń..."
+                        value={searchTerm}
+                        onChange={(e) => handleSearchChange(e.target.value)}
+                    />
+                </FilterGroup>
+
+                <FilterGroup>
+                    <FilterLabel>Typ wydarzenia:</FilterLabel>
+                    <FilterSelect
+                        value={typeFilter}
+                        onChange={(e) => handleTypeFilterChange(e.target.value as EventType | 'all')}
+                    >
+                        <option value="all">Wszystkie typy</option>
+                        {Object.values(EventType).map(type => (
+                            <option key={type} value={type}>
+                                {EventTypeLabels[type]}
+                            </option>
+                        ))}
+                    </FilterSelect>
+                </FilterGroup>
+
+                <FilterGroup>
+                    <FilterLabel>Status:</FilterLabel>
+                    <FilterSelect
+                        value={statusFilter}
+                        onChange={(e) => handleStatusFilterChange(e.target.value as 'all' | 'active' | 'inactive')}
+                    >
+                        <option value="all">Wszystkie</option>
+                        <option value="active">Aktywne</option>
+                        <option value="inactive">Nieaktywne</option>
+                    </FilterSelect>
+                </FilterGroup>
+
+                <FilterActions>
+                    <ClearFiltersButton onClick={clearFilters} disabled={!hasActiveFilters}>
+                        Wyczyść filtry
+                    </ClearFiltersButton>
+                </FilterActions>
+            </FilterSection>
+        </FiltersPanel>
+    );
+
+    // Loading state
+    if (isLoading && events.length === 0) {
+        return <LoadingContainer>Ładowanie wydarzeń...</LoadingContainer>;
+    }
+
+    return (
+        <Container>
+            <DataTable
+                data={events}
+                columns={columns}
+                title="Cykliczne Wydarzenia"
+                emptyStateConfig={{
+                    icon: FaCalendarAlt,
+                    title: 'Brak cyklicznych wydarzeń',
+                    description: hasActiveFilters
+                        ? 'Nie znaleziono wydarzeń spełniających kryteria wyszukiwania.'
+                        : 'Nie masz jeszcze żadnych cyklicznych wydarzeń. Utwórz pierwsze, aby rozpocząć.',
+                    actionText: hasActiveFilters ? 'Spróbuj zmienić kryteria wyszukiwania' : 'Kliknij "Nowe wydarzenie" aby rozpocząć'
+                }}
+                onItemClick={onViewDetails}
+                renderCell={renderCell}
+                renderCard={renderCard}
+                enableDragAndDrop={true}
+                enableViewToggle={true}
+                defaultViewMode="table"
+                headerActions={headerActions}
+                selectAllConfig={selectAllConfig}
+                expandableContent={filtersContent}
+                expandableVisible={showFilters}
+                storageKeys={{
+                    viewMode: 'recurring_events_view_mode',
+                    columnOrder: 'recurring_events_columns_order'
+                }}
+            />
+
+            {/* Custom pagination can be added here if needed */}
+            {pagination && pagination.totalPages > 1 && (
+                <PaginationContainer>
+                    <PaginationInfo>
+                        Strona {currentPage + 1} z {pagination.totalPages} •
+                        Wyniki {currentPage * pageSize + 1}-{Math.min((currentPage + 1) * pageSize, pagination.totalItems)} z {pagination.totalItems}
+                    </PaginationInfo>
+                    <PaginationControls>
+                        <PaginationButton
+                            onClick={() => setCurrentPage(0)}
+                            disabled={currentPage === 0}
+                        >
+                            Pierwsza
+                        </PaginationButton>
+                        <PaginationButton
+                            onClick={() => setCurrentPage(currentPage - 1)}
+                            disabled={currentPage === 0}
+                        >
+                            Poprzednia
+                        </PaginationButton>
+                        <PaginationButton
+                            onClick={() => setCurrentPage(currentPage + 1)}
+                            disabled={currentPage >= pagination.totalPages - 1}
+                        >
+                            Następna
+                        </PaginationButton>
+                        <PaginationButton
+                            onClick={() => setCurrentPage(pagination.totalPages - 1)}
+                            disabled={currentPage >= pagination.totalPages - 1}
+                        >
+                            Ostatnia
+                        </PaginationButton>
+                    </PaginationControls>
+                </PaginationContainer>
+            )}
+        </Container>
+    );
+};
+
+// Actions Menu Component
+interface ActionsMenuProps {
+    event: RecurringEventListItem;
+    onEdit: (event: RecurringEventListItem) => void;
+    onDelete: (eventId: string) => void;
+    onDeactivate: (eventId: string) => void;
+    onViewOccurrences: (eventId: string) => void;
+    onViewDetails: (event: RecurringEventListItem) => void;
+}
+
+const ActionsMenu: React.FC<ActionsMenuProps> = ({
+                                                     event,
+                                                     onEdit,
+                                                     onDelete,
+                                                     onDeactivate,
+                                                     onViewOccurrences,
+                                                     onViewDetails
+                                                 }) => {
+    const [isOpen, setIsOpen] = useState(false);
+
+    const handleAction = (action: () => void) => (e: React.MouseEvent) => {
+        e.stopPropagation();
+        action();
+        setIsOpen(false);
+    };
+
+    return (
+        <ActionsContainer>
+            <ActionButton
+                onClick={(e) => {
+                    e.stopPropagation();
+                    setIsOpen(!isOpen);
+                }}
+            >
+                <FaEllipsisV />
+            </ActionButton>
+
+            {isOpen && (
+                <>
+                    <ActionsBackdrop onClick={() => setIsOpen(false)} />
+                    <ActionsDropdown>
+                        <DropdownItem onClick={handleAction(() => onViewDetails(event))}>
+                            <FaEye />
+                            Szczegóły
+                        </DropdownItem>
+                        <DropdownItem onClick={handleAction(() => onEdit(event))}>
+                            <FaEdit />
+                            Edytuj
+                        </DropdownItem>
+                        <DropdownItem onClick={handleAction(() => onViewOccurrences(event.id))}>
+                            <FaUsers />
+                            Wystąpienia
+                        </DropdownItem>
+                        <DropdownDivider />
+                        <DropdownItem
+                            onClick={handleAction(() => onDeactivate(event.id))}
+                            $danger={event.isActive}
+                        >
+                            {event.isActive ? <FaPause /> : <FaPlay />}
+                            {event.isActive ? 'Dezaktywuj' : 'Aktywuj'}
+                        </DropdownItem>
+                        <DropdownItem
+                            onClick={handleAction(() => onDelete(event.id))}
+                            $danger
+                        >
+                            <FaTrash />
+                            Usuń
+                        </DropdownItem>
+                    </ActionsDropdown>
+                </>
+            )}
+        </ActionsContainer>
     );
 };
 
 // Styled Components
-const ListContainer = styled.div`
-    background: ${theme.surface};
-    border: 1px solid ${theme.border};
-    border-radius: ${theme.radius.lg};
-    overflow: hidden;
-    box-shadow: ${theme.shadow.sm};
-`;
-
-const ListHeader = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: ${theme.spacing.lg} ${theme.spacing.xl};
-    background: ${theme.surfaceElevated};
-    border-bottom: 1px solid ${theme.border};
-`;
-
-const HeaderLeft = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.lg};
-`;
-
-const HeaderRight = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.lg};
-`;
-
-const SearchContainer = styled.div`
-    position: relative;
-    display: flex;
-    align-items: center;
-`;
-
-const SearchIcon = styled.div`
-    position: absolute;
-    left: ${theme.spacing.md};
-    color: ${theme.text.tertiary};
-    font-size: 14px;
-    pointer-events: none;
-`;
-
-const SearchInput = styled.input`
-    padding: ${theme.spacing.sm} ${theme.spacing.md} ${theme.spacing.sm} 40px;
-    border: 1px solid ${theme.border};
-    border-radius: ${theme.radius.md};
-    font-size: 14px;
-    background: ${theme.surface};
-    color: ${theme.text.primary};
-    width: 300px;
-    transition: all 0.2s ease;
-
-    &:focus {
-        outline: none;
-        border-color: ${theme.primary};
-        box-shadow: 0 0 0 3px ${theme.primary}20;
-    }
-
-    &::placeholder {
-        color: ${theme.text.tertiary};
-    }
-`;
-
-const FilterButton = styled.button<{ $active: boolean }>`
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.sm};
-    padding: ${theme.spacing.sm} ${theme.spacing.md};
-    background: ${props => props.$active ? theme.primary : theme.surface};
-    color: ${props => props.$active ? 'white' : theme.text.secondary};
-    border: 1px solid ${props => props.$active ? theme.primary : theme.border};
-    border-radius: ${theme.radius.md};
-    font-weight: 500;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    position: relative;
-
-    &:hover {
-        background: ${props => props.$active ? theme.primaryDark : theme.surfaceHover};
-        border-color: ${theme.primary};
-    }
-`;
-
-const FilterBadge = styled.div`
-    position: absolute;
-    top: -4px;
-    right: -4px;
-    width: 8px;
-    height: 8px;
-    background: ${theme.error};
-    border-radius: 50%;
-    border: 2px solid ${theme.surface};
-`;
-
-const ResultsInfo = styled.div`
-    font-size: 13px;
-    color: ${theme.text.tertiary};
-    font-weight: 500;
-`;
-
-const FiltersPanel = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.xl};
-    padding: ${theme.spacing.lg} ${theme.spacing.xl};
-    background: ${theme.surfaceAlt};
-    border-bottom: 1px solid ${theme.border};
-    flex-wrap: wrap;
-`;
-
-const FilterGroup = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.sm};
-`;
-
-const FilterLabel = styled.label`
-    font-size: 13px;
-    font-weight: 500;
-    color: ${theme.text.secondary};
-    white-space: nowrap;
-`;
-
-const FilterSelect = styled.select`
-    padding: ${theme.spacing.xs} ${theme.spacing.sm};
-    border: 1px solid ${theme.border};
-    border-radius: ${theme.radius.md};
-    font-size: 13px;
-    background: ${theme.surface};
-    color: ${theme.text.primary};
-    cursor: pointer;
-
-    &:focus {
-        outline: none;
-        border-color: ${theme.primary};
-    }
-`;
-
-const FilterActions = styled.div`
-    margin-left: auto;
-`;
-
-const ClearFiltersButton = styled.button`
-    padding: ${theme.spacing.xs} ${theme.spacing.md};
-    background: transparent;
-    color: ${theme.text.tertiary};
-    border: 1px solid ${theme.border};
-    border-radius: ${theme.radius.md};
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover:not(:disabled) {
-        background: ${theme.surfaceHover};
-        color: ${theme.text.secondary};
-        border-color: ${theme.borderActive};
-    }
-
-    &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-`;
-
-const TableContainer = styled.div`
-    overflow: hidden;
-`;
-
-const LoadingState = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: ${theme.spacing.xxxl};
-    gap: ${theme.spacing.lg};
-`;
-
-const LoadingSpinner = styled.div`
-    width: 40px;
-    height: 40px;
-    border: 3px solid ${theme.borderLight};
-    border-top: 3px solid ${theme.primary};
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-`;
-
-const LoadingText = styled.div`
-    font-size: 16px;
-    color: ${theme.text.tertiary};
-    font-weight: 500;
-`;
-
-const ErrorState = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: ${theme.spacing.xxxl};
-    gap: ${theme.spacing.lg};
-`;
-
-const ErrorIcon = styled.div`
-    font-size: 48px;
-`;
-
-const ErrorText = styled.div`
-    font-size: 16px;
-    color: ${theme.error};
-    text-align: center;
-`;
-
-const RetryButton = styled.button`
-    padding: ${theme.spacing.md} ${theme.spacing.lg};
-    background: ${theme.primary};
-    color: white;
-    border: none;
-    border-radius: ${theme.radius.md};
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-        background: ${theme.primaryDark};
-    }
-`;
-
-const EmptyState = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: ${theme.spacing.xxxl};
-    gap: ${theme.spacing.lg};
-    text-align: center;
-`;
-
-const EmptyIcon = styled.div`
-    font-size: 64px;
-    color: ${theme.text.tertiary};
-`;
-
-const EmptyTitle = styled.h3`
-    font-size: 20px;
-    font-weight: 600;
-    color: ${theme.text.primary};
-    margin: 0;
-`;
-
-const EmptyDescription = styled.p`
-    font-size: 15px;
-    color: ${theme.text.secondary};
-    margin: 0;
-    line-height: 1.5;
-    max-width: 400px;
-`;
-
-const EventsTable = styled.table`
+const Container = styled.div`
     width: 100%;
-    border-collapse: collapse;
 `;
 
-const TableHeader = styled.thead`
-    background: ${theme.surfaceElevated};
-    border-bottom: 1px solid ${theme.border};
-`;
-
-const TableBody = styled.tbody``;
-
-const HeaderRow = styled.tr``;
-
-const HeaderCell = styled.th<{ $width?: string; $sortable?: boolean }>`
-    padding: ${theme.spacing.md} ${theme.spacing.lg};
-    text-align: left;
-    font-size: 13px;
-    font-weight: 600;
-    color: ${theme.text.secondary};
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    width: ${props => props.$width || 'auto'};
-    cursor: ${props => props.$sortable ? 'pointer' : 'default'};
-    user-select: none;
-    white-space: nowrap;
-
-    &:hover {
-        color: ${props => props.$sortable ? theme.primary : theme.text.secondary};
-    }
-`;
-
-const SortableHeader = styled.div`
+const LoadingContainer = styled.div`
     display: flex;
     align-items: center;
-    gap: ${theme.spacing.xs};
+    justify-content: center;
+    padding: ${theme.spacing.xxxl};
+    font-size: 16px;
+    color: ${theme.text.secondary};
 `;
 
-const SortIcon = styled.div<{ $active: boolean }>`
-    color: ${props => props.$active ? theme.primary : theme.text.tertiary};
-    font-size: 10px;
-    transition: color 0.2s ease;
-`;
-
-const EventRow = styled.tr<{ $selected: boolean }>`
-    background: ${props => props.$selected ? theme.primary : 'transparent'};
-    border-bottom: 1px solid ${theme.borderLight};
-    transition: all 0.2s ease;
-
-    &:hover {
-        background: ${props => props.$selected ? theme.primary : theme.surfaceHover};
-    }
-
-    &:last-child {
-        border-bottom: none;
-    }
-`;
-
-const BodyCell = styled.td`
-    padding: ${theme.spacing.md} ${theme.spacing.lg};
-    vertical-align: middle;
-    font-size: 14px;
-    color: ${theme.text.primary};
-`;
-
-const SelectAllCheckbox = styled.input`
-    width: 16px;
-    height: 16px;
-    accent-color: ${theme.primary};
-    cursor: pointer;
-`;
-
-const SelectCheckbox = styled.input`
-    width: 16px;
-    height: 16px;
-    accent-color: ${theme.primary};
-    cursor: pointer;
+// Event Title with selection
+const EventTitleContainer = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.md};
+    width: 100%;
 `;
 
 const EventTitle = styled.button`
@@ -866,7 +608,7 @@ const EventTitle = styled.button`
     cursor: pointer;
     text-align: left;
     padding: 0;
-    max-width: 200px;
+    flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -878,12 +620,24 @@ const EventTitle = styled.button`
     }
 `;
 
+const EventSelection = styled.div`
+    flex-shrink: 0;
+
+    input {
+        width: 16px;
+        height: 16px;
+        accent-color: ${theme.primary};
+        cursor: pointer;
+    }
+`;
+
 const EventTypeChip = styled.span<{ $type: EventType }>`
     display: inline-flex;
     align-items: center;
     padding: ${theme.spacing.xs} ${theme.spacing.sm};
-    background: ${props => props.$type === EventType.SIMPLE_EVENT ? theme.primary : theme.success};
+    background: ${props => props.$type === EventType.SIMPLE_EVENT ? theme.primary + '20' : theme.success + '20'};
     color: ${props => props.$type === EventType.SIMPLE_EVENT ? theme.primary : theme.success};
+    border: 1px solid ${props => props.$type === EventType.SIMPLE_EVENT ? theme.primary + '40' : theme.success + '40'};
     border-radius: ${theme.radius.sm};
     font-size: 12px;
     font-weight: 500;
@@ -925,14 +679,7 @@ const NextOccurrence = styled.div`
 const OccurrenceStats = styled.div`
     display: flex;
     align-items: center;
-    justify-content: center;
-`;
-
-const StatsContainer = styled.div`
-    display: flex;
-    align-items: center;
     gap: ${theme.spacing.xs};
-    cursor: pointer;
 `;
 
 const CompletedCount = styled.span`
@@ -955,19 +702,20 @@ const CreatedDate = styled.div`
     color: ${theme.text.tertiary};
 `;
 
+// Actions Menu
 const ActionsContainer = styled.div`
     position: relative;
     display: flex;
     justify-content: center;
 `;
 
-const ActionButton = styled.button<{ $active: boolean }>`
+const ActionButton = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
     width: 32px;
     height: 32px;
-    background: ${props => props.$active ? theme.surfaceActive : 'transparent'};
+    background: transparent;
     color: ${theme.text.tertiary};
     border: none;
     border-radius: ${theme.radius.md};
@@ -978,6 +726,15 @@ const ActionButton = styled.button<{ $active: boolean }>`
         background: ${theme.surfaceHover};
         color: ${theme.text.secondary};
     }
+`;
+
+const ActionsBackdrop = styled.div`
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9;
 `;
 
 const ActionsDropdown = styled.div`
@@ -1024,15 +781,168 @@ const DropdownDivider = styled.div`
     margin: ${theme.spacing.xs} 0;
 `;
 
+// Card View
+const EventCard = styled.div<{ $selected: boolean }>`
+    background: ${theme.surface};
+    border: 2px solid ${props => props.$selected ? theme.primary : theme.border};
+    border-radius: ${theme.radius.lg};
+    padding: ${theme.spacing.lg};
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: ${theme.shadow.lg};
+        border-color: ${theme.primary};
+    }
+`;
+
+const CardHeader = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: ${theme.spacing.md};
+    margin-bottom: ${theme.spacing.md};
+`;
+
+const CardTitle = styled.h4`
+    font-size: 16px;
+    font-weight: 600;
+    color: ${theme.text.primary};
+    margin: 0;
+    flex: 1;
+`;
+
+const CardCheckbox = styled.div`
+    input {
+        width: 16px;
+        height: 16px;
+        accent-color: ${theme.primary};
+        cursor: pointer;
+    }
+`;
+
+const CardContent = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${theme.spacing.sm};
+    margin-bottom: ${theme.spacing.md};
+`;
+
+const CardRow = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+`;
+
+const CardLabel = styled.span`
+    font-size: 13px;
+    color: ${theme.text.secondary};
+    font-weight: 500;
+`;
+
+const CardActions = styled.div`
+    display: flex;
+    justify-content: flex-end;
+    padding-top: ${theme.spacing.md};
+    border-top: 1px solid ${theme.borderLight};
+`;
+
+// Filters Panel
+const FiltersPanel = styled.div`
+    padding: ${theme.spacing.lg};
+    background: ${theme.surfaceAlt};
+`;
+
+const FilterSection = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: ${theme.spacing.lg};
+    align-items: end;
+`;
+
+const FilterGroup = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${theme.spacing.xs};
+    min-width: 150px;
+`;
+
+const FilterLabel = styled.label`
+    font-size: 13px;
+    font-weight: 500;
+    color: ${theme.text.secondary};
+`;
+
+const SearchInput = styled.input`
+    padding: ${theme.spacing.sm} ${theme.spacing.md};
+    border: 1px solid ${theme.border};
+    border-radius: ${theme.radius.md};
+    font-size: 14px;
+    background: ${theme.surface};
+    color: ${theme.text.primary};
+    min-width: 250px;
+
+    &:focus {
+        outline: none;
+        border-color: ${theme.primary};
+        box-shadow: 0 0 0 3px ${theme.primary}20;
+    }
+`;
+
+const FilterSelect = styled.select`
+    padding: ${theme.spacing.sm} ${theme.spacing.md};
+    border: 1px solid ${theme.border};
+    border-radius: ${theme.radius.md};
+    font-size: 14px;
+    background: ${theme.surface};
+    color: ${theme.text.primary};
+    cursor: pointer;
+
+    &:focus {
+        outline: none;
+        border-color: ${theme.primary};
+    }
+`;
+
+const FilterActions = styled.div`
+    display: flex;
+    align-items: end;
+`;
+
+const ClearFiltersButton = styled.button`
+    padding: ${theme.spacing.sm} ${theme.spacing.md};
+    background: ${theme.surface};
+    color: ${theme.text.secondary};
+    border: 1px solid ${theme.border};
+    border-radius: ${theme.radius.md};
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    height: fit-content;
+
+    &:hover:not(:disabled) {
+        background: ${theme.surfaceHover};
+        color: ${theme.text.primary};
+        border-color: ${theme.borderActive};
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+`;
+
+// Pagination
 const PaginationContainer = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: ${theme.spacing.lg} ${theme.spacing.xl};
-    background: ${theme.surfaceElevated};
+    padding: ${theme.spacing.lg};
+    background: ${theme.surface};
     border-top: 1px solid ${theme.border};
-    flex-wrap: wrap;
-    gap: ${theme.spacing.md};
+    margin-top: ${theme.spacing.sm};
+    border-radius: 0 0 ${theme.radius.lg} ${theme.radius.lg};
 `;
 
 const PaginationInfo = styled.div`
@@ -1066,33 +976,6 @@ const PaginationButton = styled.button`
     &:disabled {
         opacity: 0.5;
         cursor: not-allowed;
-    }
-`;
-
-const PageSizeSelector = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.sm};
-`;
-
-const PageSizeLabel = styled.span`
-    font-size: 13px;
-    color: ${theme.text.tertiary};
-    font-weight: 500;
-`;
-
-const PageSizeSelect = styled.select`
-    padding: ${theme.spacing.xs} ${theme.spacing.sm};
-    border: 1px solid ${theme.border};
-    border-radius: ${theme.radius.md};
-    font-size: 13px;
-    background: ${theme.surface};
-    color: ${theme.text.primary};
-    cursor: pointer;
-
-    &:focus {
-        outline: none;
-        border-color: ${theme.primary};
     }
 `;
 

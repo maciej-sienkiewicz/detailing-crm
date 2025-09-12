@@ -1,7 +1,7 @@
-// src/api/recurringEventsApi.ts
+// src/api/recurringEventsApi.ts - FIXED VERSION
 /**
  * Production-ready API service for Recurring Events module
- * UPDATED TO MATCH ACTUAL SERVER API
+ * FIXED: Handles LocalDateTime arrays and field mapping from server
  */
 
 import { apiClientNew, ApiError, PaginationParams } from './apiClientNew';
@@ -22,7 +22,9 @@ import {
     BulkOccurrenceResult,
     RecurrencePreview,
     PatternValidationResult,
-    OccurrenceStatus
+    OccurrenceStatus,
+    EventType,
+    RecurrenceFrequency
 } from '../types/recurringEvents';
 
 // Spring Boot pagination response type
@@ -46,6 +48,35 @@ interface SpringPageResponse<T> {
     numberOfElements: number;
     size: number;
     number: number;
+}
+
+// Raw server response types (before conversion)
+interface RawRecurringEventResponse {
+    id: string;
+    title: string;
+    description?: string;
+    type: EventType;
+    recurrence_pattern: {
+        frequency: RecurrenceFrequency;
+        interval: number;
+        days_of_week?: string[];
+        day_of_month?: number;
+        end_date?: string;
+        max_occurrences?: number;
+    };
+    is_active: boolean;
+    visit_template?: {
+        client_id?: number;
+        vehicle_id?: number;
+        estimated_duration_minutes: number;
+        default_services: Array<{
+            name: string;
+            base_price: number;
+        }>;
+        notes?: string;
+    };
+    created_at: number[];
+    updated_at: number[];
 }
 
 // Converted pagination response for frontend
@@ -74,11 +105,110 @@ class RecurringEventsApi {
     // ========================================================================================
 
     /**
+     * Convert LocalDateTime array from Spring Boot to ISO string
+     * Spring Boot sends LocalDateTime as: [year, month, day, hour, minute, second, nanosecond]
+     */
+    private convertLocalDateTimeArray(dateArray: number[]): string {
+        if (!Array.isArray(dateArray) || dateArray.length < 6) {
+            console.warn('Invalid date array format:', dateArray);
+            return new Date().toISOString(); // Fallback to current date
+        }
+
+        try {
+            const [year, month, day, hour, minute, second, nanosecond = 0] = dateArray;
+
+            // Month in JavaScript Date is 0-based, but Spring Boot sends 1-based
+            const date = new Date(year, month - 1, day, hour, minute, second, Math.floor(nanosecond / 1000000));
+
+            if (isNaN(date.getTime())) {
+                console.warn('Invalid date created from array:', dateArray);
+                return new Date().toISOString();
+            }
+
+            return date.toISOString();
+        } catch (error) {
+            console.warn('Error converting date array:', dateArray, error);
+            return new Date().toISOString();
+        }
+    }
+
+    /**
+     * Convert raw server response to frontend format
+     */
+    private convertRawEventToResponse(raw: any): RecurringEventResponse { // Zmień typ na 'any' dla elastyczności
+        // Wybierz właściwy obiekt pattern, niezależnie od nazwy klucza
+        const pattern = raw.recurrence_pattern || raw.recurrencePattern;
+
+        return {
+            id: raw.id,
+            title: raw.title,
+            description: raw.description,
+            type: raw.type,
+            recurrencePattern: {
+                frequency: pattern.frequency,
+                interval: pattern.interval,
+                // Użyj operatora || dla każdego pola wewnątrz wzorca
+                daysOfWeek: pattern.days_of_week || pattern.daysOfWeek,
+                dayOfMonth: pattern.day_of_month || pattern.dayOfMonth,
+                endDate: (pattern.end_date || pattern.endDate) && Array.isArray(pattern.end_date || pattern.endDate)
+                    ? this.convertLocalDateTimeArray(pattern.end_date || pattern.endDate)
+                    : (pattern.end_date || pattern.endDate),
+
+                maxOccurrences: pattern.max_occurrences || pattern.maxOccurrences
+            },
+            // Zastosuj ten sam wzorzec dla pozostałych pól
+            isActive: raw.is_active ?? raw.isActive, // Użyj ?? dla pól boolean
+            visitTemplate: raw.visit_template || raw.visitTemplate ? {
+                clientId: (raw.visit_template || raw.visitTemplate).client_id || (raw.visit_template || raw.visitTemplate).clientId,
+                vehicleId: (raw.visit_template || raw.visitTemplate).vehicle_id || (raw.visit_template || raw.visitTemplate).vehicleId,
+                estimatedDurationMinutes: (raw.visit_template || raw.visitTemplate).estimated_duration_minutes || (raw.visit_template || raw.visitTemplate).estimatedDurationMinutes,
+                defaultServices: ((raw.visit_template || raw.visitTemplate).default_services || (raw.visit_template || raw.visitTemplate).defaultServices || []).map((service: any) => ({
+                    name: service.name,
+                    basePrice: service.base_price || service.basePrice
+                })),
+                notes: (raw.visit_template || raw.visitTemplate).notes
+            } : undefined,
+            createdAt: this.convertLocalDateTimeArray(raw.created_at || raw.createdAt),
+            updatedAt: this.convertLocalDateTimeArray(raw.updated_at || raw.updatedAt)
+        };
+    }
+
+    /**
+     * Convert raw server list item to frontend format
+     */
+    private convertRawEventToListItem(raw: any): RecurringEventListItem {
+        return {
+            id: raw.id,
+            title: raw.title,
+            type: raw.type,
+            frequency: raw.recurrence_pattern?.frequency || raw.frequency,
+            isActive: raw.is_active ?? raw.isActive ?? true,
+            nextOccurrence: raw.next_occurrence || raw.nextOccurrence,
+            totalOccurrences: raw.total_occurrences || raw.totalOccurrences || 0,
+            completedOccurrences: raw.completed_occurrences || raw.completedOccurrences || 0,
+            createdAt: Array.isArray(raw.created_at)
+                ? this.convertLocalDateTimeArray(raw.created_at)
+                : raw.created_at || raw.createdAt,
+            updatedAt: Array.isArray(raw.updated_at)
+                ? this.convertLocalDateTimeArray(raw.updated_at)
+                : raw.updated_at || raw.updatedAt
+        };
+    }
+
+    /**
      * Convert Spring Boot page response to our frontend format
      */
-    private convertPaginationResponse<T>(springResponse: SpringPageResponse<T>): ConvertedPaginationResponse<T> {
+    private convertPaginationResponse<T>(springResponse: SpringPageResponse<any>, converter?: (item: any) => T): ConvertedPaginationResponse<T> {
+        let convertedData: T[];
+
+        if (converter) {
+            convertedData = springResponse.content.map(converter);
+        } else {
+            convertedData = springResponse.content;
+        }
+
         return {
-            data: springResponse.content,
+            data: convertedData,
             pagination: {
                 currentPage: springResponse.number,
                 pageSize: springResponse.size,
@@ -137,14 +267,15 @@ class RecurringEventsApi {
         try {
             console.log('🔧 Creating recurring event:', data);
 
-            const response = await apiClientNew.post<RecurringEventResponse>(
+            const response = await apiClientNew.post<RawRecurringEventResponse>(
                 this.baseEndpoint,
                 data,
                 { timeout: 15000 }
             );
 
-            console.log('✅ Successfully created recurring event:', response.id);
-            return response;
+            const converted = this.convertRawEventToResponse(response);
+            console.log('✅ Successfully created recurring event:', converted.id);
+            return converted;
 
         } catch (error) {
             console.error('❌ Error creating recurring event:', error);
@@ -173,13 +304,17 @@ class RecurringEventsApi {
                 ...(filterParams.search && { search: filterParams.search })
             };
 
-            const springResponse = await apiClientNew.get<SpringPageResponse<RecurringEventListItem>>(
+            const springResponse = await apiClientNew.get<SpringPageResponse<any>>(
                 this.baseEndpoint,
                 springParams,
                 { timeout: 10000 }
             );
 
-            const converted = this.convertPaginationResponse(springResponse);
+            const converted = this.convertPaginationResponse(
+                springResponse,
+                (item) => this.convertRawEventToListItem(item)
+            );
+
             console.log('✅ Successfully fetched recurring events:', {
                 count: converted.data.length,
                 totalItems: converted.pagination.totalItems
@@ -213,14 +348,15 @@ class RecurringEventsApi {
         try {
             console.log('🔍 Fetching recurring event details:', eventId);
 
-            const response = await apiClientNew.get<RecurringEventResponse>(
+            const response = await apiClientNew.get<RawRecurringEventResponse>(
                 `${this.baseEndpoint}/${eventId}`,
                 {},
                 { timeout: 10000 }
             );
 
+            const converted = this.convertRawEventToResponse(response);
             console.log('✅ Successfully fetched recurring event details');
-            return response;
+            return converted;
 
         } catch (error) {
             console.error('❌ Error fetching recurring event details:', error);
@@ -235,14 +371,15 @@ class RecurringEventsApi {
         try {
             console.log('🔧 Updating recurring event:', { eventId, data });
 
-            const response = await apiClientNew.put<RecurringEventResponse>(
+            const response = await apiClientNew.put<RawRecurringEventResponse>(
                 `${this.baseEndpoint}/${eventId}`,
                 data,
                 { timeout: 15000 }
             );
 
+            const converted = this.convertRawEventToResponse(response);
             console.log('✅ Successfully updated recurring event');
-            return response;
+            return converted;
 
         } catch (error) {
             console.error('❌ Error updating recurring event:', error);
@@ -278,14 +415,15 @@ class RecurringEventsApi {
         try {
             console.log('⏸️ Deactivating recurring event:', eventId);
 
-            const response = await apiClientNew.patch<RecurringEventResponse>(
+            const response = await apiClientNew.patch<RawRecurringEventResponse>(
                 `${this.baseEndpoint}/${eventId}/deactivate`,
                 {},
                 { timeout: 10000 }
             );
 
+            const converted = this.convertRawEventToResponse(response);
             console.log('✅ Successfully deactivated recurring event');
-            return response;
+            return converted;
 
         } catch (error) {
             console.error('❌ Error deactivating recurring event:', error);
@@ -304,17 +442,38 @@ class RecurringEventsApi {
         try {
             console.log('🔍 Fetching event occurrences:', { eventId, startDate, endDate });
 
-            const response = await apiClientNew.get<EventOccurrenceResponse[]>(
+            const response = await apiClientNew.get<any[]>(
                 `${this.baseEndpoint}/${eventId}/occurrences`,
                 {
-                    startDate: startDate, // API expects start_date but apiClient converts to startDate
-                    endDate: endDate     // API expects end_date but apiClient converts to endDate
+                    startDate: startDate,
+                    endDate: endDate
                 },
                 { timeout: 10000 }
             );
 
-            console.log('✅ Successfully fetched event occurrences:', response.length);
-            return response;
+            // Convert raw occurrences to proper format
+            const converted = response.map(occurrence => ({
+                id: occurrence.id,
+                recurringEventId: occurrence.recurring_event_id || occurrence.recurringEventId,
+                scheduledDate: Array.isArray(occurrence.scheduled_date)
+                    ? this.convertLocalDateTimeArray(occurrence.scheduled_date)
+                    : occurrence.scheduled_date || occurrence.scheduledDate,
+                status: occurrence.status,
+                actualVisitId: occurrence.actual_visit_id || occurrence.actualVisitId,
+                completedAt: occurrence.completed_at && Array.isArray(occurrence.completed_at)
+                    ? this.convertLocalDateTimeArray(occurrence.completed_at)
+                    : occurrence.completed_at || occurrence.completedAt,
+                notes: occurrence.notes,
+                createdAt: Array.isArray(occurrence.created_at)
+                    ? this.convertLocalDateTimeArray(occurrence.created_at)
+                    : occurrence.created_at || occurrence.createdAt,
+                updatedAt: Array.isArray(occurrence.updated_at)
+                    ? this.convertLocalDateTimeArray(occurrence.updated_at)
+                    : occurrence.updated_at || occurrence.updatedAt
+            }));
+
+            console.log('✅ Successfully fetched event occurrences:', converted.length);
+            return converted;
 
         } catch (error) {
             console.error('❌ Error fetching event occurrences:', error);
@@ -331,13 +490,33 @@ class RecurringEventsApi {
 
             const { page = 0, size = 50 } = params;
 
-            const springResponse = await apiClientNew.get<SpringPageResponse<EventOccurrenceResponse>>(
+            const springResponse = await apiClientNew.get<SpringPageResponse<any>>(
                 `${this.baseEndpoint}/${eventId}/occurrences/all`,
                 { page, size },
                 { timeout: 10000 }
             );
 
-            const converted = this.convertPaginationResponse(springResponse);
+            const converter = (occurrence: any): EventOccurrenceResponse => ({
+                id: occurrence.id,
+                recurringEventId: occurrence.recurring_event_id || occurrence.recurringEventId,
+                scheduledDate: Array.isArray(occurrence.scheduled_date)
+                    ? this.convertLocalDateTimeArray(occurrence.scheduled_date)
+                    : occurrence.scheduled_date || occurrence.scheduledDate,
+                status: occurrence.status,
+                actualVisitId: occurrence.actual_visit_id || occurrence.actualVisitId,
+                completedAt: occurrence.completed_at && Array.isArray(occurrence.completed_at)
+                    ? this.convertLocalDateTimeArray(occurrence.completed_at)
+                    : occurrence.completed_at || occurrence.completedAt,
+                notes: occurrence.notes,
+                createdAt: Array.isArray(occurrence.created_at)
+                    ? this.convertLocalDateTimeArray(occurrence.created_at)
+                    : occurrence.created_at || occurrence.createdAt,
+                updatedAt: Array.isArray(occurrence.updated_at)
+                    ? this.convertLocalDateTimeArray(occurrence.updated_at)
+                    : occurrence.updated_at || occurrence.updatedAt
+            });
+
+            const converted = this.convertPaginationResponse(springResponse, converter);
             console.log('✅ Successfully fetched all event occurrences:', converted.data.length);
 
             return converted;
@@ -368,14 +547,34 @@ class RecurringEventsApi {
         try {
             console.log('🔧 Updating occurrence status:', { eventId, occurrenceId, data });
 
-            const response = await apiClientNew.patch<EventOccurrenceResponse>(
+            const response = await apiClientNew.patch<any>(
                 `${this.baseEndpoint}/${eventId}/occurrences/${occurrenceId}/status`,
                 data,
                 { timeout: 10000 }
             );
 
+            const converted: EventOccurrenceResponse = {
+                id: response.id,
+                recurringEventId: response.recurring_event_id || response.recurringEventId,
+                scheduledDate: Array.isArray(response.scheduled_date)
+                    ? this.convertLocalDateTimeArray(response.scheduled_date)
+                    : response.scheduled_date || response.scheduledDate,
+                status: response.status,
+                actualVisitId: response.actual_visit_id || response.actualVisitId,
+                completedAt: response.completed_at && Array.isArray(response.completed_at)
+                    ? this.convertLocalDateTimeArray(response.completed_at)
+                    : response.completed_at || response.completedAt,
+                notes: response.notes,
+                createdAt: Array.isArray(response.created_at)
+                    ? this.convertLocalDateTimeArray(response.created_at)
+                    : response.created_at || response.createdAt,
+                updatedAt: Array.isArray(response.updated_at)
+                    ? this.convertLocalDateTimeArray(response.updated_at)
+                    : response.updated_at || response.updatedAt
+            };
+
             console.log('✅ Successfully updated occurrence status');
-            return response;
+            return converted;
 
         } catch (error) {
             console.error('❌ Error updating occurrence status:', error);
@@ -390,7 +589,7 @@ class RecurringEventsApi {
         try {
             console.log('🔄 Converting occurrence to visit:', { eventId, occurrenceId, data });
 
-            const response = await apiClientNew.post<any>( // API returns VisitResponse according to docs
+            const response = await apiClientNew.post<any>(
                 `${this.baseEndpoint}/${eventId}/occurrences/${occurrenceId}/convert-to-visit`,
                 data,
                 { timeout: 15000 }
@@ -416,24 +615,43 @@ class RecurringEventsApi {
         try {
             console.log('📅 Fetching event calendar:', params);
 
-            // API expects start_date and end_date
             const apiParams = {
                 startDate: params.startDate,
                 endDate: params.endDate
             };
 
-            const response = await apiClientNew.get<EventOccurrenceResponse[]>(
+            const response = await apiClientNew.get<any[]>(
                 `${this.baseEndpoint}/calendar`,
                 apiParams,
                 { timeout: 10000 }
             );
 
-            console.log('✅ Successfully fetched event calendar:', response.length);
-            return response;
+            const converted = response.map(occurrence => ({
+                id: occurrence.id,
+                recurringEventId: occurrence.recurring_event_id || occurrence.recurringEventId,
+                scheduledDate: Array.isArray(occurrence.scheduled_date)
+                    ? this.convertLocalDateTimeArray(occurrence.scheduled_date)
+                    : occurrence.scheduled_date || occurrence.scheduledDate,
+                status: occurrence.status,
+                actualVisitId: occurrence.actual_visit_id || occurrence.actualVisitId,
+                completedAt: occurrence.completed_at && Array.isArray(occurrence.completed_at)
+                    ? this.convertLocalDateTimeArray(occurrence.completed_at)
+                    : occurrence.completed_at || occurrence.completedAt,
+                notes: occurrence.notes,
+                createdAt: Array.isArray(occurrence.created_at)
+                    ? this.convertLocalDateTimeArray(occurrence.created_at)
+                    : occurrence.created_at || occurrence.createdAt,
+                updatedAt: Array.isArray(occurrence.updated_at)
+                    ? this.convertLocalDateTimeArray(occurrence.updated_at)
+                    : occurrence.updated_at || occurrence.updatedAt
+            }));
+
+            console.log('✅ Successfully fetched event calendar:', converted.length);
+            return converted;
 
         } catch (error) {
             console.error('❌ Error fetching event calendar:', error);
-            return []; // Return empty array instead of throwing
+            return [];
         }
     }
 
@@ -444,18 +662,38 @@ class RecurringEventsApi {
         try {
             console.log('🔮 Fetching upcoming events:', { days });
 
-            const response = await apiClientNew.get<EventOccurrenceResponse[]>(
+            const response = await apiClientNew.get<any[]>(
                 `${this.baseEndpoint}/upcoming`,
                 { days },
                 { timeout: 10000 }
             );
 
-            console.log('✅ Successfully fetched upcoming events:', response.length);
-            return response;
+            const converted = response.map(occurrence => ({
+                id: occurrence.id,
+                recurringEventId: occurrence.recurring_event_id || occurrence.recurringEventId,
+                scheduledDate: Array.isArray(occurrence.scheduled_date)
+                    ? this.convertLocalDateTimeArray(occurrence.scheduled_date)
+                    : occurrence.scheduled_date || occurrence.scheduledDate,
+                status: occurrence.status,
+                actualVisitId: occurrence.actual_visit_id || occurrence.actualVisitId,
+                completedAt: occurrence.completed_at && Array.isArray(occurrence.completed_at)
+                    ? this.convertLocalDateTimeArray(occurrence.completed_at)
+                    : occurrence.completed_at || occurrence.completedAt,
+                notes: occurrence.notes,
+                createdAt: Array.isArray(occurrence.created_at)
+                    ? this.convertLocalDateTimeArray(occurrence.created_at)
+                    : occurrence.created_at || occurrence.createdAt,
+                updatedAt: Array.isArray(occurrence.updated_at)
+                    ? this.convertLocalDateTimeArray(occurrence.updated_at)
+                    : occurrence.updated_at || occurrence.updatedAt
+            }));
+
+            console.log('✅ Successfully fetched upcoming events:', converted.length);
+            return converted;
 
         } catch (error) {
             console.error('❌ Error fetching upcoming events:', error);
-            return []; // Return empty array instead of throwing
+            return [];
         }
     }
 
@@ -481,7 +719,6 @@ class RecurringEventsApi {
 
         } catch (error) {
             console.error('❌ Error fetching event statistics:', error);
-            // Return empty stats instead of throwing
             return {
                 total: 0,
                 completed: 0,
@@ -520,17 +757,14 @@ class RecurringEventsApi {
 
     /**
      * Placeholder for general statistics (not in server API)
-     * Maps to individual calls or returns mock data
      */
     async getRecurringEventsStatistics(): Promise<RecurringEventStatistics> {
         try {
-            // Try to get count as a basic statistic
             const countResult = await this.getRecurringEventsCount();
 
-            // Return basic stats - in real implementation you might call multiple endpoints
             return {
                 totalEvents: countResult.count,
-                activeEvents: countResult.count, // Placeholder
+                activeEvents: countResult.count,
                 inactiveEvents: 0,
                 totalOccurrences: 0,
                 completedOccurrences: 0,
@@ -561,10 +795,7 @@ class RecurringEventsApi {
      * Placeholder for bulk operations (not in server API)
      */
     async bulkUpdateOccurrenceStatus(eventId: string, data: BulkOccurrenceUpdate): Promise<BulkOccurrenceResult> {
-        // This would need to be implemented as individual API calls
-        // or added to the server API
         console.warn('Bulk update not supported by server API - would need individual calls');
-
         throw new Error('Bulk operations not supported by current API');
     }
 
@@ -572,7 +803,6 @@ class RecurringEventsApi {
      * Placeholder for pattern validation (not in server API)
      */
     async validateRecurrencePattern(pattern: any): Promise<PatternValidationResult> {
-        // Client-side validation since server doesn't provide this endpoint
         console.log('Client-side pattern validation:', pattern);
 
         return {
@@ -586,7 +816,6 @@ class RecurringEventsApi {
      * Placeholder for recurrence preview (not in server API)
      */
     async getRecurrencePreview(pattern: any, maxPreview: number = 10): Promise<RecurrencePreview> {
-        // Client-side preview generation since server doesn't provide this endpoint
         console.log('Client-side preview generation:', pattern);
 
         return {
