@@ -1,8 +1,8 @@
-// src/components/recurringEvents/schema.ts - ULEPSZONA WALIDACJA
+// src/components/recurringEvents/schema.ts - NAPRAWIONA WALIDACJA
 /**
- * Form validation schema and types - ULEPSZONA WERSJA
+ * Form validation schema and types - NAPRAWIONA WERSJA
  * Centralized validation logic for the recurring events form
- * ULEPSZENIA: Bardziej przyjazne komunikaty błędów, lepsza walidacja warunkowa
+ * NAPRAWY: Poprawiona funkcja testowa dla daty, lepsza walidacja warunkowa
  */
 
 import * as yup from 'yup';
@@ -40,7 +40,7 @@ const validateEnum = <T extends Record<string, string>>(enumObject: T, fieldName
         .required(`${fieldName} jest wymagane`);
 };
 
-// Custom validation for days of week - ULEPSZONA
+// Custom validation for days of week
 const validateDaysOfWeek = yup.array()
     .of(yup.string().oneOf(['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'], 'Nieprawidłowy dzień tygodnia'))
     .when('frequency', {
@@ -52,7 +52,7 @@ const validateDaysOfWeek = yup.array()
         otherwise: (schema) => schema.notRequired()
     });
 
-// Custom validation for day of month - ULEPSZONA
+// Custom validation for day of month
 const validateDayOfMonth = yup.number()
     .when('frequency', {
         is: RecurrenceFrequency.MONTHLY,
@@ -64,7 +64,7 @@ const validateDayOfMonth = yup.number()
         otherwise: (schema) => schema.notRequired()
     });
 
-// Validation schema - ULEPSZONA
+// Validation schema - NAPRAWKA: Poprawiona funkcja testowa dla daty
 export const validationSchema = yup.object({
     title: yup
         .string()
@@ -109,7 +109,8 @@ export const validationSchema = yup.object({
             .test('valid-date', 'Nieprawidłowy format daty', function(value) {
                 if (!value) return true;
                 const date = new Date(value);
-                return !isNaN(date.getTime()) && value.match(/^\d{4}-\d{2}-\d{2}$/);
+                const hasValidFormat = /^\d{4}-\d{2}-\d{2}$/.test(value);
+                return !isNaN(date.getTime()) && hasValidFormat;
             }),
 
         maxOccurrences: yup
@@ -199,7 +200,7 @@ export const validateFormData = async (data: FormData): Promise<{ isValid: boole
     }
 };
 
-// Helper function to check if step can proceed - ULEPSZONA
+// Helper function to check if step can proceed
 export const canProceedToStep = (step: number, formData: Partial<FormData>, errors: Record<string, any>): boolean => {
     switch (step) {
         case 1:

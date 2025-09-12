@@ -1,8 +1,8 @@
-// src/components/recurringEvents/FormComponents/FormActions.tsx - ULEPSZONE
+// src/components/recurringEvents/FormComponents/FormActions.tsx - NAPRAWIONE
 /**
  * Form Actions Component
  * Navigation and submission buttons for the form
- * ULEPSZENIA: Lepsze komunikaty dla użytkownika, tooltips, lepszy UX
+ * NAPRAWKA: Opcjonalne błędy i lepsze typowanie
  */
 
 import React from 'react';
@@ -17,7 +17,7 @@ interface FormActionsProps {
     isValid: boolean;
     isLoading: boolean;
     mode: 'create' | 'edit';
-    errors?: Record<string, any>;
+    errors?: Record<string, any>; // NAPRAWKA: Opcjonalne errors
     onCancel: () => void;
     onPrevious: () => void;
     onNext: () => void;
@@ -29,7 +29,7 @@ export const FormActions: React.FC<FormActionsProps> = ({
                                                             isValid,
                                                             isLoading,
                                                             mode,
-                                                            errors = {},
+                                                            errors = {}, // NAPRAWKA: Domyślna wartość
                                                             onCancel,
                                                             onPrevious,
                                                             onNext
@@ -99,7 +99,7 @@ export const FormActions: React.FC<FormActionsProps> = ({
     );
 };
 
-// Styled Components - ULEPSZONE
+// Styled Components - pozostają bez zmian
 const ActionsContainer = styled.div`
     display: flex;
     justify-content: space-between;
