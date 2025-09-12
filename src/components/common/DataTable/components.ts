@@ -110,11 +110,12 @@ export const HeaderActionsContainer = styled.div`
 export const SelectAllContainer = styled.div`
     display: flex;
     align-items: center;
-    gap: ${dataTableTheme.spacing.md};
-    
+    gap: ${dataTableTheme.spacing.lg};
+
     @media (max-width: 768px) {
-        justify-content: space-between;
-        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+        gap: ${dataTableTheme.spacing.sm};
     }
 `;
 
@@ -627,4 +628,62 @@ export const StatusBadge = styled.span<{ $color: string }>`
     color: ${props => props.$color};
     border: 1px solid ${props => props.$color}30;
     white-space: nowrap;
+`;
+
+export const BulkActionsContainer = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${dataTableTheme.spacing.sm};
+`;
+
+export const BulkActionButton = styled.button<{
+    $variant?: 'primary' | 'secondary';
+}>`
+    display: flex;
+    align-items: center;
+    gap: ${dataTableTheme.spacing.xs};
+    padding: ${dataTableTheme.spacing.xs} ${dataTableTheme.spacing.md};
+    border-radius: ${dataTableTheme.radius.md};
+    font-weight: 500;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid;
+
+    ${({ $variant = 'secondary' }) => {
+    switch ($variant) {
+        case 'primary':
+            return `
+                    background: ${dataTableTheme.primary};
+                    color: white;
+                    border-color: ${dataTableTheme.primary};
+
+                    &:hover:not(:disabled) {
+                        background: ${dataTableTheme.primaryDark};
+                        border-color: ${dataTableTheme.primaryDark};
+                    }
+                `;
+        default: // secondary
+            return `
+                    background: ${dataTableTheme.surface};
+                    color: ${dataTableTheme.text.secondary};
+                    border-color: ${dataTableTheme.border};
+
+                    &:hover:not(:disabled) {
+                        background: ${dataTableTheme.surfaceHover};
+                        color: ${dataTableTheme.text.primary};
+                        border-color: ${dataTableTheme.primary};
+                    }
+                `;
+    }
+}}
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    svg {
+        font-size: 12px;
+    }
 `;

@@ -1,4 +1,27 @@
-// src/components/common/DataTable/types.ts - Rozszerzone typy
+// src/components/common/DataTable/types.ts - Rozszerzone typy z bulkActions
+
+// NOWE: Interfejs dla dodatkowych akcji w nagłówku
+export interface HeaderAction {
+    id: string;
+    label: string;
+    icon?: React.ComponentType;
+    onClick: () => void;
+    variant?: 'primary' | 'secondary' | 'filter';
+    badge?: boolean;
+    active?: boolean;
+    disabled?: boolean;
+}
+
+// NOWE: Interfejs dla checkboxa zaznaczania wszystkich Z BULK ACTIONS
+export interface SelectAllConfig {
+    selectedCount: number;
+    totalCount: number;
+    selectAll: boolean;
+    onToggleSelectAll: () => void;
+    label?: string;
+    bulkActions?: HeaderAction[]; // NOWA WŁAŚCIWOŚĆ: akcje bulk po lewej stronie
+}
+
 export interface TableColumn {
     id: string;
     label: string;
@@ -13,27 +36,6 @@ export type ViewMode = 'table' | 'cards';
 export interface BaseDataItem {
     id: string;
     [key: string]: any;
-}
-
-// NOWE: Interfejs dla dodatkowych akcji w nagłówku
-export interface HeaderAction {
-    id: string;
-    label: string;
-    icon?: React.ComponentType;
-    onClick: () => void;
-    variant?: 'primary' | 'secondary' | 'filter';
-    badge?: boolean;
-    active?: boolean;
-    disabled?: boolean;
-}
-
-// NOWE: Interfejs dla checkboxa zaznaczania wszystkich
-export interface SelectAllConfig {
-    selectedCount: number;
-    totalCount: number;
-    selectAll: boolean;
-    onToggleSelectAll: () => void;
-    label?: string;
 }
 
 export interface DataTableProps<T extends BaseDataItem> {
@@ -52,10 +54,9 @@ export interface DataTableProps<T extends BaseDataItem> {
         viewMode: string;
         columnOrder: string;
     };
-    // NOWE: Dodatkowe opcje dla nagłówka
     headerActions?: HeaderAction[];
     selectAllConfig?: SelectAllConfig;
-    expandableContent?: React.ReactNode; // Panel który może się rozwijać pod nagłówkiem
+    expandableContent?: React.ReactNode;
     expandableVisible?: boolean;
 }
 

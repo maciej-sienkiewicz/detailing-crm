@@ -19,6 +19,7 @@ import {
 } from 'react-icons/fa';
 import UserProfileSection from './UserProfileSection';
 import { useCompanyLogoUrl } from '../../hooks/useCompanyLogo';
+import {FaRepeat} from "react-icons/fa6";
 
 // Brand Theme System - configurable by client
 const brandTheme = {
@@ -59,6 +60,14 @@ const mainMenuItems: MainMenuItem[] = [
         label: 'Wizyty',
         icon: <FaClipboardCheck />,
         path: '/visits',
+        hasSubmenu: false,
+        category: 'daily'
+    },
+    {
+        id: 'recurring-events',
+        label: 'Cykliczne zdarzenia',
+        icon: <FaRepeat />,
+        path: '/recurring-events',
         hasSubmenu: false,
         category: 'daily'
     },

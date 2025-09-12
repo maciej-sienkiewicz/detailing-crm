@@ -33,7 +33,7 @@ import {
     SelectionCounter,
     HeaderActionButton,
     ActionBadge,
-    ExpandableContent
+    ExpandableContent, BulkActionsContainer, BulkActionButton
 } from './components';
 
 export function DataTable<T extends BaseDataItem>({
@@ -103,10 +103,29 @@ export function DataTable<T extends BaseDataItem>({
     const renderSelectAll = () => {
         if (!selectAllConfig) return null;
 
-        const { selectedCount, totalCount, selectAll, onToggleSelectAll, label } = selectAllConfig;
+        const { selectedCount, totalCount, selectAll, onToggleSelectAll, label, bulkActions } = selectAllConfig;
 
         return (
             <SelectAllContainer>
+                {/* Bulk Actions po lewej stronie */}
+                {bulkActions && bulkActions.length > 0 && (
+                    <BulkActionsContainer>
+                        {bulkActions.map(action => (
+                            <BulkActionButton
+                                key={action.id}
+                                onClick={action.onClick}
+                                $variant={"primary"}
+                                disabled={action.disabled}
+                                title={action.label}
+                            >
+                                {action.icon && <action.icon />}
+                                {action.label}
+                            </BulkActionButton>
+                        ))}
+                    </BulkActionsContainer>
+                )}
+
+                {/* Select All Checkbox */}
                 <SelectAllCheckbox
                     onClick={onToggleSelectAll}
                     $selected={selectAll}
@@ -114,11 +133,6 @@ export function DataTable<T extends BaseDataItem>({
                     {selectAll ? <FaCheckSquare /> : <FaSquare />}
                     <span>{label || `Zaznacz wszystkich (${totalCount})`}</span>
                 </SelectAllCheckbox>
-                {selectedCount > 0 && (
-                    <SelectionCounter>
-                        Zaznaczono: {selectedCount}
-                    </SelectionCounter>
-                )}
             </SelectAllContainer>
         );
     };

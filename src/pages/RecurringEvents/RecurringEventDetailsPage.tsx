@@ -168,7 +168,7 @@ const RecurringEventDetailsPage: React.FC = () => {
                 <Header>
                     <HeaderLeft>
                         <BackButton onClick={() => navigate('/recurring-events')}>
-                            <FaArrowLeft />
+                            <FaArrowLeft /> {/* ZMIANA: FaArrowLeft zamiast FaTimes */}
                         </BackButton>
                         <HeaderInfo>
                             <Title>{event.title}</Title>
@@ -434,8 +434,13 @@ const BackButton = styled.button`
 
     &:hover {
         background: ${theme.surfaceHover};
-        color: ${theme.text.primary};
+        color: ${theme.primary}; // ZMIANA: Kolor hover na primary dla lepszej widoczności
         border-color: ${theme.primary};
+        transform: translateX(-2px); // ZMIANA: Subtelna animacja przesunięcia w lewo
+    }
+
+    svg {
+        font-size: 16px; // ZMIANA: Nieco większa ikona dla lepszej widoczności
     }
 `;
 

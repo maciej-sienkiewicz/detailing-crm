@@ -208,7 +208,7 @@ const FinancialPageWithFixedCosts: React.FC = () => {
             actions.push(
                 <PrimaryButton key="add" onClick={() => handleAddDocument(DocumentType.INVOICE)}>
                     <FaFileInvoiceDollar />
-                    <span>Faktura</span>
+                    <span>Dodaj nowy dokument</span>
                 </PrimaryButton>
             );
         }

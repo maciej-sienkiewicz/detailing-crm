@@ -1,4 +1,4 @@
-// src/components/recurringEvents/OccurrenceManagement.tsx - NAPRAWIONE
+// src/components/recurringEvents/OccurrenceManagement.tsx - POPRAWIONE UX
 import React, { useState, useCallback, useMemo } from 'react';
 import styled from 'styled-components';
 import { format } from 'date-fns';
@@ -7,25 +7,23 @@ import { toast } from 'react-toastify';
 import {
     FaCalendarCheck,
     FaEdit,
-    FaTrash,
     FaCheckCircle,
     FaTimes,
-    FaPlay,
     FaPause,
     FaExchangeAlt,
-    FaNotesMedical,
     FaFilter,
-    FaSort,
-    FaEllipsisV,
+    FaArrowLeft,
     FaChevronDown
 } from 'react-icons/fa';
+import { DataTable } from '../common/DataTable';
+import { PageHeader } from '../common/PageHeader';
+import type { TableColumn, HeaderAction, SelectAllConfig } from '../common/DataTable/types';
 import {
     EventOccurrenceResponse,
     OccurrenceStatus,
     OccurrenceStatusLabels,
     OccurrenceStatusColors,
-    ConvertToVisitRequest,
-    BulkOccurrenceUpdate // POPRAWKA: Dodany import typu
+    ConvertToVisitRequest
 } from '../../types/recurringEvents';
 import { useEventOccurrences } from '../../hooks/useRecurringEvents';
 import { theme } from '../../styles/theme';
@@ -38,123 +36,153 @@ interface OccurrenceManagementProps {
     onBack: () => void;
 }
 
+// Funkcja do konwersji daty z formatu serwera
+const parseServerDate = (dateArray: number[] | string): Date => {
+    if (typeof dateArray === 'string') {
+        return new Date(dateArray);
+    }
+
+    if (Array.isArray(dateArray) && dateArray.length >= 3) {
+        const [year, month, day, hour = 0, minute = 0, second = 0, nanosecond = 0] = dateArray;
+        return new Date(year, month - 1, day, hour, minute, second, Math.floor(nanosecond / 1000000));
+    }
+
+    return new Date(dateArray as any);
+};
+
+// Funkcja bezpiecznego formatowania dat
+const formatDateSafely = (dateValue: number[] | string | undefined, formatString: string = 'dd-MM-yyyy HH:mm'): string => {
+    if (!dateValue) return '-';
+
+    try {
+        const date = parseServerDate(dateValue);
+
+        if (isNaN(date.getTime())) {
+            return 'Nieprawidłowa data';
+        }
+
+        return format(date, formatString, { locale: pl });
+    } catch (error) {
+        return 'Błąd daty';
+    }
+};
+
 const OccurrenceManagement: React.FC<OccurrenceManagementProps> = ({
                                                                        eventId,
                                                                        eventTitle,
                                                                        onBack
                                                                    }) => {
     // State
-    const [selectedOccurrences, setSelectedOccurrences] = useState<Set<string>>(new Set());
+    const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<OccurrenceStatus | 'all'>('all');
-    const [sortBy, setSortBy] = useState<'date' | 'status'>('date');
-    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+    const [selectedOccurrenceIds, setSelectedOccurrenceIds] = useState<string[]>([]);
     const [showFilters, setShowFilters] = useState(false);
-    const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
 
     // Modals
     const [showConvertModal, setShowConvertModal] = useState(false);
     const [showNotesModal, setShowNotesModal] = useState(false);
-    const [showBulkActionsModal, setShowBulkActionsModal] = useState(false);
+    const [showStatusModal, setShowStatusModal] = useState(false);
     const [selectedOccurrence, setSelectedOccurrence] = useState<EventOccurrenceResponse | null>(null);
     const [notesText, setNotesText] = useState('');
-    const [bulkAction, setBulkAction] = useState<{ action: string; status?: OccurrenceStatus }>({ action: '' });
 
     // Hooks
     const {
         allOccurrences,
-        pagination,
         isLoadingAll,
         isUpdatingStatus,
         isConverting,
-        isBulkUpdating,
         updateStatus,
         convertToVisit,
-        bulkUpdateStatus, // To będzie działać mimo że API nie wspiera - hook zwraca błąd
         refetchAll
     } = useEventOccurrences(eventId);
 
-    // Filter and sort occurrences
-    const filteredAndSortedOccurrences = useMemo(() => {
-        let filtered = allOccurrences;
+    // Przetwarzanie danych z serwera
+    const processedOccurrences = useMemo(() => {
+        return allOccurrences.map(occurrence => ({
+            ...occurrence,
+            scheduledDate: typeof occurrence.scheduledDate === 'string'
+                ? occurrence.scheduledDate
+                : parseServerDate(occurrence.scheduledDate as any).toISOString(),
+            createdAt: typeof occurrence.createdAt === 'string'
+                ? occurrence.createdAt
+                : parseServerDate(occurrence.createdAt as any).toISOString(),
+            updatedAt: typeof occurrence.updatedAt === 'string'
+                ? occurrence.updatedAt
+                : parseServerDate(occurrence.updatedAt as any).toISOString(),
+            completedAt: occurrence.completedAt
+                ? (typeof occurrence.completedAt === 'string'
+                    ? occurrence.completedAt
+                    : parseServerDate(occurrence.completedAt as any).toISOString())
+                : undefined
+        }));
+    }, [allOccurrences]);
 
-        // Apply status filter
+    // Filtrowanie danych
+    const filteredOccurrences = useMemo(() => {
+        let filtered = processedOccurrences;
+
         if (statusFilter !== 'all') {
             filtered = filtered.filter(occurrence => occurrence.status === statusFilter);
         }
 
-        // Sort occurrences
-        const sorted = [...filtered].sort((a, b) => {
-            let comparison = 0;
+        if (searchTerm) {
+            filtered = filtered.filter(occurrence =>
+                occurrence.notes?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                occurrence.id.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+        }
 
-            if (sortBy === 'date') {
-                comparison = new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime();
-            } else if (sortBy === 'status') {
-                comparison = a.status.localeCompare(b.status);
-            }
+        return filtered;
+    }, [processedOccurrences, statusFilter, searchTerm]);
 
-            return sortOrder === 'desc' ? -comparison : comparison;
-        });
-
-        return sorted;
-    }, [allOccurrences, statusFilter, sortBy, sortOrder]);
-
-    // Handle selection
-    const handleSelectOccurrence = useCallback((occurrenceId: string, selected: boolean) => {
-        setSelectedOccurrences(prev => {
-            const newSet = new Set(prev);
-            if (selected) {
-                newSet.add(occurrenceId);
-            } else {
-                newSet.delete(occurrenceId);
-            }
-            return newSet;
-        });
+    // Obsługa zaznaczenia
+    const handleToggleSelection = useCallback((occurrenceId: string) => {
+        setSelectedOccurrenceIds(prev =>
+            prev.includes(occurrenceId)
+                ? prev.filter(id => id !== occurrenceId)
+                : [...prev, occurrenceId]
+        );
     }, []);
 
-    const handleSelectAll = useCallback((selected: boolean) => {
-        if (selected) {
-            setSelectedOccurrences(new Set(filteredAndSortedOccurrences.map(occ => occ.id)));
+    const handleToggleSelectAll = useCallback(() => {
+        const allSelected = selectedOccurrenceIds.length === filteredOccurrences.length && filteredOccurrences.length > 0;
+        if (allSelected) {
+            setSelectedOccurrenceIds([]);
         } else {
-            setSelectedOccurrences(new Set());
+            setSelectedOccurrenceIds(filteredOccurrences.map(occ => occ.id));
         }
-    }, [filteredAndSortedOccurrences]);
+    }, [filteredOccurrences, selectedOccurrenceIds]);
 
-    // Handle individual occurrence actions
+    // Akcje na wystąpieniach
     const handleStatusChange = useCallback(async (occurrence: EventOccurrenceResponse, newStatus: OccurrenceStatus) => {
         try {
             const result = await updateStatus(occurrence.id, { status: newStatus });
             if (result.success) {
-                setDropdownOpen(null);
                 toast.success('Status został zaktualizowany');
             } else {
                 toast.error(result.error || 'Błąd podczas aktualizacji statusu');
             }
         } catch (error) {
-            console.error('Error updating status:', error);
             toast.error('Błąd podczas aktualizacji statusu');
         }
     }, [updateStatus]);
-
-    const handleConvertToVisit = useCallback((occurrence: EventOccurrenceResponse) => {
-        setSelectedOccurrence(occurrence);
-        setShowConvertModal(true);
-        setDropdownOpen(null);
-    }, []);
 
     const handleEditNotes = useCallback((occurrence: EventOccurrenceResponse) => {
         setSelectedOccurrence(occurrence);
         setNotesText(occurrence.notes || '');
         setShowNotesModal(true);
-        setDropdownOpen(null);
     }, []);
 
-    // Handle bulk actions
-    const handleBulkStatusChange = useCallback((status: OccurrenceStatus) => {
-        setBulkAction({ action: 'status', status });
-        setShowBulkActionsModal(true);
+    const handleChangeStatus = useCallback((occurrence: EventOccurrenceResponse) => {
+        setSelectedOccurrence(occurrence);
+        setShowStatusModal(true);
     }, []);
 
-    // Handle convert to visit submission
+    const handleConvertToVisit = useCallback((occurrence: EventOccurrenceResponse) => {
+        setSelectedOccurrence(occurrence);
+        setShowConvertModal(true);
+    }, []);
+
     const handleConvertSubmit = useCallback(async (data: ConvertToVisitRequest) => {
         if (!selectedOccurrence) return;
 
@@ -168,12 +196,10 @@ const OccurrenceManagement: React.FC<OccurrenceManagementProps> = ({
                 toast.error(result.error || 'Błąd podczas konwersji na wizytę');
             }
         } catch (error) {
-            console.error('Error converting to visit:', error);
             toast.error('Błąd podczas konwersji na wizytę');
         }
     }, [selectedOccurrence, convertToVisit]);
 
-    // Handle notes submission
     const handleNotesSubmit = useCallback(async () => {
         if (!selectedOccurrence) return;
 
@@ -191,239 +217,280 @@ const OccurrenceManagement: React.FC<OccurrenceManagementProps> = ({
                 toast.error(result.error || 'Błąd podczas aktualizacji notatek');
             }
         } catch (error) {
-            console.error('Error updating notes:', error);
             toast.error('Błąd podczas aktualizacji notatek');
         }
     }, [selectedOccurrence, notesText, updateStatus]);
 
-    // Get status options for dropdown
-    const getStatusOptions = useCallback((currentStatus: OccurrenceStatus) => {
-        const allStatuses = Object.values(OccurrenceStatus);
-        return allStatuses.filter(status => status !== currentStatus);
-    }, []);
+    // Bulk operations
+    const handleBulkStatusChange = useCallback(async (newStatus: OccurrenceStatus) => {
+        let successCount = 0;
 
-    // Format date for display
-    const formatDate = useCallback((dateString: string) => {
-        return "";
-    }, []);
+        for (const id of selectedOccurrenceIds) {
+            try {
+                const result = await updateStatus(id, { status: newStatus });
+                if (result.success) {
+                    successCount++;
+                }
+            } catch (error) {
+                console.error(`Error updating occurrence ${id}:`, error);
+            }
+        }
+
+        setSelectedOccurrenceIds([]);
+        toast.success(`Zaktualizowano status ${successCount} z ${selectedOccurrenceIds.length} wystąpień`);
+    }, [selectedOccurrenceIds, updateStatus]);
+
+    // Konfiguracja DataTable
+    const columns: TableColumn[] = [
+        { id: 'selection', label: '', width: '50px', sortable: false },
+        { id: 'scheduledDate', label: 'Data wystąpienia', width: '15%', sortable: true },
+        { id: 'status', label: 'Status', width: '12%', sortable: true },
+        { id: 'notes', label: 'Notatki', width: '30%', sortable: false },
+        { id: 'completedAt', label: 'Ukończono', width: '15%', sortable: true },
+        { id: 'createdAt', label: 'Utworzono', width: '13%', sortable: true },
+        { id: 'actions', label: 'Akcje', width: '15%', sortable: false }
+    ];
+
+    const headerActions: HeaderAction[] = [
+        {
+            id: 'filter',
+            label: 'Filtry',
+            icon: FaFilter,
+            onClick: () => setShowFilters(!showFilters),
+            variant: 'filter',
+            active: showFilters,
+            badge: statusFilter !== 'all' || searchTerm !== ''
+        }
+    ];
+
+    // POPRAWKA 3: Bulk actions po lewej stronie od "Zaznacz wszystkie"
+    const bulkActionsConfig = selectedOccurrenceIds.length > 0 ? [
+        {
+            id: 'bulk-complete',
+            label: 'Ukończ',
+            icon: FaCheckCircle,
+            onClick: () => handleBulkStatusChange(OccurrenceStatus.COMPLETED),
+            variant: 'secondary' as const
+        },
+        {
+            id: 'bulk-skip',
+            label: 'Pomiń',
+            icon: FaPause,
+            onClick: () => handleBulkStatusChange(OccurrenceStatus.SKIPPED),
+            variant: 'secondary' as const
+        },
+        {
+            id: 'bulk-cancel',
+            label: 'Anuluj',
+            icon: FaTimes,
+            onClick: () => handleBulkStatusChange(OccurrenceStatus.CANCELLED),
+            variant: 'secondary' as const
+        }
+    ] : [];
+
+    const selectAllConfig: SelectAllConfig = {
+        selectedCount: selectedOccurrenceIds.length,
+        totalCount: filteredOccurrences.length,
+        selectAll: selectedOccurrenceIds.length === filteredOccurrences.length && filteredOccurrences.length > 0,
+        onToggleSelectAll: handleToggleSelectAll,
+        label: `Zaznacz wszystkie (${filteredOccurrences.length})`,
+        bulkActions: bulkActionsConfig // POPRAWKA 3: Dodajemy bulk actions do selectAllConfig
+    };
+
+    // Renderowanie komórek
+    const renderCell = useCallback((occurrence: EventOccurrenceResponse, columnId: string) => {
+        switch (columnId) {
+            case 'selection':
+                return (
+                    <SelectionCell>
+                        <SelectionCheckbox
+                            type="checkbox"
+                            checked={selectedOccurrenceIds.includes(occurrence.id)}
+                            onChange={() => handleToggleSelection(occurrence.id)}
+                        />
+                    </SelectionCell>
+                );
+
+            case 'scheduledDate':
+                return (
+                    <DateCell>
+                        {formatDateSafely(occurrence.scheduledDate, 'dd-MM-yyyy HH:mm')}
+                    </DateCell>
+                );
+
+            case 'status':
+                return (
+                    <StatusBadge $status={occurrence.status}>
+                        {OccurrenceStatusLabels[occurrence.status]}
+                    </StatusBadge>
+                );
+
+            case 'notes':
+                return (
+                    <NotesCell>
+                        {occurrence.notes ? (
+                            <NotesText title={occurrence.notes}>
+                                {occurrence.notes}
+                            </NotesText>
+                        ) : (
+                            <NoNotes>-</NoNotes>
+                        )}
+                    </NotesCell>
+                );
+
+            case 'completedAt':
+                return (
+                    <DateCell>
+                        {formatDateSafely(occurrence.completedAt, 'dd-MM-yyyy HH:mm')}
+                    </DateCell>
+                );
+
+            case 'createdAt':
+                return (
+                    <DateCell>
+                        {formatDateSafely(occurrence.createdAt, 'dd-MM-yyyy HH:mm')}
+                    </DateCell>
+                );
+
+            case 'actions':
+                return (
+                    <ActionsCell>
+                        <ActionButton
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditNotes(occurrence);
+                            }}
+                            title="Edytuj notatki"
+                        >
+                            <FaEdit />
+                        </ActionButton>
+
+                        <StatusDropdown>
+                            <StatusDropdownButton
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleChangeStatus(occurrence);
+                                }}
+                                title="Zmień status"
+                            >
+                                <FaCheckCircle />
+                                <FaChevronDown />
+                            </StatusDropdownButton>
+                        </StatusDropdown>
+
+                        {/* Specjalna akcja dla konwersji na wizytę */}
+                        {occurrence.status === OccurrenceStatus.PLANNED && (
+                            <ActionButton
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleConvertToVisit(occurrence);
+                                }}
+                                title="Konwertuj na wizytę"
+                                $special
+                            >
+                                <FaExchangeAlt />
+                            </ActionButton>
+                        )}
+                    </ActionsCell>
+                );
+
+            default:
+                return null;
+        }
+    }, [selectedOccurrenceIds, handleToggleSelection, handleEditNotes, handleChangeStatus, handleConvertToVisit]);
+
+    // Panel filtrów - POPRAWKA 3: Usunięto bulk actions (przeniesione do selectAllConfig)
+    const filtersContent = (
+        <FiltersPanel>
+            <FiltersRow>
+                <FilterGroup>
+                    <FilterLabel>Wyszukaj:</FilterLabel>
+                    <SearchInput
+                        type="text"
+                        placeholder="Szukaj w notatkach..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </FilterGroup>
+
+                <FilterGroup>
+                    <FilterLabel>Status:</FilterLabel>
+                    <FilterSelect
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value as OccurrenceStatus | 'all')}
+                    >
+                        <option value="all">Wszystkie</option>
+                        {Object.values(OccurrenceStatus).map(status => (
+                            <option key={status} value={status}>
+                                {OccurrenceStatusLabels[status]}
+                            </option>
+                        ))}
+                    </FilterSelect>
+                </FilterGroup>
+
+                <FilterGroup>
+                    <ClearButton
+                        onClick={() => {
+                            setStatusFilter('all');
+                            setSearchTerm('');
+                        }}
+                        disabled={statusFilter === 'all' && searchTerm === ''}
+                    >
+                        Wyczyść filtry
+                    </ClearButton>
+                </FilterGroup>
+            </FiltersRow>
+        </FiltersPanel>
+    );
 
     return (
-        <ManagementContainer>
-            {/* Header */}
-            <ManagementHeader>
-                <HeaderLeft>
+        <Container>
+            {/* Główny nagłówek strony */}
+            <PageHeader
+                icon={FaCalendarCheck}
+                title="Wystąpienia wydarzenia"
+                subtitle={eventTitle}
+                actions={
                     <BackButton onClick={onBack}>
-                        <FaTimes />
+                        <FaArrowLeft />
+                        Powrót
                     </BackButton>
-                    <HeaderContent>
-                        <HeaderTitle>Wystąpienia wydarzenia</HeaderTitle>
-                        <HeaderSubtitle>{eventTitle}</HeaderSubtitle>
-                    </HeaderContent>
-                </HeaderLeft>
-                <HeaderRight>
-                    <FilterButton
-                        onClick={() => setShowFilters(!showFilters)}
-                        $active={showFilters}
-                    >
-                        <FaFilter />
-                        Filtry
-                    </FilterButton>
-                </HeaderRight>
-            </ManagementHeader>
+                }
+            />
 
-            {/* Filters */}
-            {showFilters && (
-                <FiltersPanel>
-                    <FilterGroup>
-                        <FilterLabel>Status:</FilterLabel>
-                        <FilterSelect
-                            value={statusFilter}
-                            onChange={(e) => setStatusFilter(e.target.value as OccurrenceStatus | 'all')}
-                        >
-                            <option value="all">Wszystkie</option>
-                            {Object.values(OccurrenceStatus).map(status => (
-                                <option key={status} value={status}>
-                                    {OccurrenceStatusLabels[status]}
-                                </option>
-                            ))}
-                        </FilterSelect>
-                    </FilterGroup>
+            {/* Tabela z danymi */}
+            <TableContainer>
+                <DataTable
+                    data={filteredOccurrences}
+                    columns={columns}
+                    title="Zaplanowane wydarzenia"
+                    emptyStateConfig={{
+                        icon: FaCalendarCheck,
+                        title: 'Brak wystąpień',
+                        description: statusFilter !== 'all' || searchTerm
+                            ? 'Nie znaleziono wystąpień spełniających kryteria.'
+                            : 'To wydarzenie nie ma jeszcze żadnych wystąpień.',
+                        actionText: statusFilter !== 'all' || searchTerm
+                            ? 'Spróbuj zmienić kryteria filtrowania'
+                            : 'Wystąpienia zostaną wygenerowane automatycznie'
+                    }}
+                    onItemClick={() => {}}
+                    renderCell={renderCell}
+                    enableDragAndDrop={true}
+                    enableViewToggle={false}
+                    defaultViewMode="table"
+                    headerActions={headerActions}
+                    selectAllConfig={filteredOccurrences.length > 0 ? selectAllConfig : undefined}
+                    expandableContent={filtersContent}
+                    expandableVisible={showFilters}
+                    storageKeys={{
+                        viewMode: 'occurrence_management_view',
+                        columnOrder: 'occurrence_management_columns'
+                    }}
+                />
+            </TableContainer>
 
-                    <FilterGroup>
-                        <FilterLabel>Sortuj:</FilterLabel>
-                        <FilterSelect
-                            value={sortBy}
-                            onChange={(e) => setSortBy(e.target.value as 'date' | 'status')}
-                        >
-                            <option value="date">Data</option>
-                            <option value="status">Status</option>
-                        </FilterSelect>
-                        <SortOrderButton
-                            onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                        >
-                            <FaSort />
-                            {sortOrder === 'asc' ? 'Rosnąco' : 'Malejąco'}
-                        </SortOrderButton>
-                    </FilterGroup>
-                </FiltersPanel>
-            )}
-
-            {/* Bulk Actions */}
-            {selectedOccurrences.size > 0 && (
-                <BulkActionsPanel>
-                    <BulkInfo>
-                        Wybrano {selectedOccurrences.size} wystąpień
-                    </BulkInfo>
-                    <BulkActions>
-                        <BulkButton onClick={() => handleBulkStatusChange(OccurrenceStatus.COMPLETED)}>
-                            <FaCheckCircle />
-                            Oznacz jako ukończone
-                        </BulkButton>
-                        <BulkButton onClick={() => handleBulkStatusChange(OccurrenceStatus.SKIPPED)}>
-                            <FaPause />
-                            Oznacz jako pominięte
-                        </BulkButton>
-                        <BulkButton onClick={() => handleBulkStatusChange(OccurrenceStatus.CANCELLED)}>
-                            <FaTimes />
-                            Oznacz jako anulowane
-                        </BulkButton>
-                    </BulkActions>
-                </BulkActionsPanel>
-            )}
-
-            {/* Occurrences List */}
-            <OccurrencesList>
-                {isLoadingAll ? (
-                    <LoadingState>
-                        <LoadingSpinner />
-                        <LoadingText>Ładowanie wystąpień...</LoadingText>
-                    </LoadingState>
-                ) : filteredAndSortedOccurrences.length === 0 ? (
-                    <EmptyState>
-                        <EmptyIcon>
-                            <FaCalendarCheck />
-                        </EmptyIcon>
-                        <EmptyTitle>Brak wystąpień</EmptyTitle>
-                        <EmptyDescription>
-                            Nie znaleziono wystąpień spełniających wybrane kryteria.
-                        </EmptyDescription>
-                    </EmptyState>
-                ) : (
-                    <OccurrencesTable>
-                        <TableHeader>
-                            <HeaderRow>
-                                <HeaderCell $width="40px">
-                                    <SelectAllCheckbox
-                                        type="checkbox"
-                                        checked={selectedOccurrences.size === filteredAndSortedOccurrences.length && filteredAndSortedOccurrences.length > 0}
-                                        onChange={(e) => handleSelectAll(e.target.checked)}
-                                    />
-                                </HeaderCell>
-                                <HeaderCell>Data</HeaderCell>
-                                <HeaderCell>Status</HeaderCell>
-                                <HeaderCell>Notatki</HeaderCell>
-                                <HeaderCell>Utworzone</HeaderCell>
-                                <HeaderCell $width="80px">Akcje</HeaderCell>
-                            </HeaderRow>
-                        </TableHeader>
-                        <TableBody>
-                            {filteredAndSortedOccurrences.map((occurrence) => (
-                                <OccurrenceRow key={occurrence.id} $selected={selectedOccurrences.has(occurrence.id)}>
-                                    <BodyCell>
-                                        <SelectCheckbox
-                                            type="checkbox"
-                                            checked={selectedOccurrences.has(occurrence.id)}
-                                            onChange={(e) => handleSelectOccurrence(occurrence.id, e.target.checked)}
-                                        />
-                                    </BodyCell>
-                                    <BodyCell>
-                                        <OccurrenceDate>
-                                            {formatDate(occurrence.scheduledDate)}
-                                        </OccurrenceDate>
-                                    </BodyCell>
-                                    <BodyCell>
-                                        <StatusBadge $status={occurrence.status}>
-                                            {OccurrenceStatusLabels[occurrence.status]}
-                                        </StatusBadge>
-                                    </BodyCell>
-                                    <BodyCell>
-                                        <NotesPreview>
-                                            {occurrence.notes ? (
-                                                <NotesText title={occurrence.notes}>
-                                                    {occurrence.notes.length > 50
-                                                        ? `${occurrence.notes.substring(0, 50)}...`
-                                                        : occurrence.notes
-                                                    }
-                                                </NotesText>
-                                            ) : (
-                                                <NoNotes>Brak notatek</NoNotes>
-                                            )}
-                                        </NotesPreview>
-                                    </BodyCell>
-                                    <BodyCell>
-                                        <CreatedDate>
-                                           "
-                                        </CreatedDate>
-                                    </BodyCell>
-                                    <BodyCell>
-                                        <ActionsContainer>
-                                            <ActionButton
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setDropdownOpen(dropdownOpen === occurrence.id ? null : occurrence.id);
-                                                }}
-                                                $active={dropdownOpen === occurrence.id}
-                                            >
-                                                <FaEllipsisV />
-                                            </ActionButton>
-
-                                            {dropdownOpen === occurrence.id && (
-                                                <ActionsDropdown>
-                                                    {/* Status change options */}
-                                                    {getStatusOptions(occurrence.status).map(status => (
-                                                        <DropdownItem
-                                                            key={status}
-                                                            onClick={() => handleStatusChange(occurrence, status)}
-                                                            disabled={isUpdatingStatus}
-                                                        >
-                                                            <StatusIcon $status={status}>
-                                                                {status === OccurrenceStatus.COMPLETED && <FaCheckCircle />}
-                                                                {status === OccurrenceStatus.SKIPPED && <FaPause />}
-                                                                {status === OccurrenceStatus.CANCELLED && <FaTimes />}
-                                                                {status === OccurrenceStatus.PLANNED && <FaPlay />}
-                                                            </StatusIcon>
-                                                            {OccurrenceStatusLabels[status]}
-                                                        </DropdownItem>
-                                                    ))}
-
-                                                    <DropdownDivider />
-
-                                                    <DropdownItem onClick={() => handleEditNotes(occurrence)}>
-                                                        <FaNotesMedical />
-                                                        Edytuj notatki
-                                                    </DropdownItem>
-
-                                                    {occurrence.status === OccurrenceStatus.PLANNED && (
-                                                        <DropdownItem
-                                                            onClick={() => handleConvertToVisit(occurrence)}
-                                                            disabled={isConverting}
-                                                        >
-                                                            <FaExchangeAlt />
-                                                            Konwertuj na wizytę
-                                                        </DropdownItem>
-                                                    )}
-                                                </ActionsDropdown>
-                                            )}
-                                        </ActionsContainer>
-                                    </BodyCell>
-                                </OccurrenceRow>
-                            ))}
-                        </TableBody>
-                    </OccurrencesTable>
-                )}
-            </OccurrencesList>
-
-            {/* Convert to Visit Modal */}
+            {/* Modals */}
             {selectedOccurrence && (
                 <ConvertToVisitDialog
                     open={showConvertModal}
@@ -436,7 +503,6 @@ const OccurrenceManagement: React.FC<OccurrenceManagementProps> = ({
                 />
             )}
 
-            {/* Notes Modal */}
             <Modal
                 isOpen={showNotesModal}
                 onClose={() => {
@@ -452,10 +518,10 @@ const OccurrenceManagement: React.FC<OccurrenceManagementProps> = ({
                         value={notesText}
                         onChange={(e) => setNotesText(e.target.value)}
                         placeholder="Dodaj notatki do wystąpienia..."
-                        rows={5}
+                        rows={4}
                     />
                     <NotesActions>
-                        <CancelButton
+                        <CancelModalButton
                             onClick={() => {
                                 setShowNotesModal(false);
                                 setSelectedOccurrence(null);
@@ -463,114 +529,232 @@ const OccurrenceManagement: React.FC<OccurrenceManagementProps> = ({
                             }}
                         >
                             Anuluj
-                        </CancelButton>
+                        </CancelModalButton>
                         <SaveButton
                             onClick={handleNotesSubmit}
                             disabled={isUpdatingStatus}
                         >
-                            {isUpdatingStatus ? 'Zapisywanie...' : 'Zapisz notatki'}
+                            {isUpdatingStatus ? 'Zapisywanie...' : 'Zapisz'}
                         </SaveButton>
                     </NotesActions>
                 </NotesModalContent>
             </Modal>
 
-            {/* Bulk Actions Confirmation Modal */}
-        </ManagementContainer>
+            {/* Status Change Modal */}
+            <Modal
+                isOpen={showStatusModal}
+                onClose={() => {
+                    setShowStatusModal(false);
+                    setSelectedOccurrence(null);
+                }}
+                title="Zmień status wystąpienia"
+                size="sm"
+            >
+                <StatusModalContent>
+                    <StatusOptions>
+                        {Object.values(OccurrenceStatus)
+                            .filter(status => status !== selectedOccurrence?.status)
+                            .map(status => (
+                                <StatusOption
+                                    key={status}
+                                    onClick={() => {
+                                        if (selectedOccurrence) {
+                                            handleStatusChange(selectedOccurrence, status);
+                                            setShowStatusModal(false);
+                                            setSelectedOccurrence(null);
+                                        }
+                                    }}
+                                    disabled={isUpdatingStatus}
+                                >
+                                    <StatusIcon $status={status}>
+                                        {status === OccurrenceStatus.COMPLETED && <FaCheckCircle />}
+                                        {status === OccurrenceStatus.SKIPPED && <FaPause />}
+                                        {status === OccurrenceStatus.CANCELLED && <FaTimes />}
+                                        {status === OccurrenceStatus.PLANNED && <FaCheckCircle />}
+                                        {status === OccurrenceStatus.CONVERTED_TO_VISIT && <FaExchangeAlt />}
+                                    </StatusIcon>
+                                    <StatusLabel>{OccurrenceStatusLabels[status]}</StatusLabel>
+                                </StatusOption>
+                            ))}
+                    </StatusOptions>
+                </StatusModalContent>
+            </Modal>
+        </Container>
     );
 };
 
-// Styled Components (pozostają bez zmian - tylko dodano brakujące style)
-const ManagementContainer = styled.div`
+// Styled Components
+const Container = styled.div`
+    min-height: 100vh;
+    background: ${theme.surfaceAlt};
     display: flex;
     flex-direction: column;
-    height: 100vh;
-    background: ${theme.surfaceAlt};
-`;
-
-const ManagementHeader = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: ${theme.spacing.xl};
-    background: ${theme.surface};
-    border-bottom: 1px solid ${theme.border};
-    box-shadow: ${theme.shadow.sm};
-`;
-
-const HeaderLeft = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.lg};
-`;
-
-const HeaderRight = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.md};
 `;
 
 const BackButton = styled.button`
     display: flex;
     align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
+    gap: ${theme.spacing.sm};
+    padding: ${theme.spacing.md} ${theme.spacing.lg};
     background: ${theme.surface};
     color: ${theme.text.secondary};
     border: 1px solid ${theme.border};
     border-radius: ${theme.radius.md};
+    font-weight: 500;
+    font-size: 14px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
 
     &:hover {
         background: ${theme.surfaceHover};
         color: ${theme.text.primary};
         border-color: ${theme.primary};
     }
-`;
 
-const HeaderContent = styled.div``;
-
-const HeaderTitle = styled.h1`
-    font-size: 24px;
-    font-weight: 700;
-    color: ${theme.text.primary};
-    margin: 0 0 ${theme.spacing.xs} 0;
-`;
-
-const HeaderSubtitle = styled.div`
-    font-size: 14px;
-    color: ${theme.text.secondary};
-    font-weight: 500;
-`;
-
-const FilterButton = styled.button<{ $active: boolean }>`
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.sm};
-    padding: ${theme.spacing.sm} ${theme.spacing.md};
-    background: ${props => props.$active ? theme.primary : theme.surface};
-    color: ${props => props.$active ? 'white' : theme.text.secondary};
-    border: 1px solid ${props => props.$active ? theme.primary : theme.border};
-    border-radius: ${theme.radius.md};
-    font-weight: 500;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-        background: ${props => props.$active ? theme.primaryDark : theme.surfaceHover};
-        border-color: ${theme.primary};
+    svg {
+        font-size: 14px;
     }
 `;
 
-const FiltersPanel = styled.div`
+const TableContainer = styled.div`
+    flex: 1;
+    padding: 0 ${theme.spacing.xl} ${theme.spacing.xl};
+`;
+
+// POPRAWKA 1: Widoczne komórki zaznaczenia
+const SelectionCell = styled.div`
     display: flex;
     align-items: center;
-    gap: ${theme.spacing.xl};
-    padding: ${theme.spacing.lg} ${theme.spacing.xl};
-    background: ${theme.surfaceElevated};
-    border-bottom: 1px solid ${theme.border};
+    justify-content: center;
+    padding: ${theme.spacing.sm};
+`;
+
+const SelectionCheckbox = styled.input`
+    width: 16px;
+    height: 16px;
+    accent-color: ${theme.primary};
+    cursor: pointer;
+`;
+
+// Cell components
+const DateCell = styled.div`
+    font-size: 14px;
+    color: ${theme.text.primary};
+    font-family: monospace; // Monospace dla lepszej czytelności dat
+    font-weight: 500;
+    line-height: 1.4;
+`;
+
+const DateValue = styled.div`
+    font-weight: 500;
+`;
+
+const TimeValue = styled.div`
+    font-size: 12px;
+    color: ${theme.text.tertiary};
+    font-family: monospace;
+`;
+
+const StatusBadge = styled.div<{ $status: OccurrenceStatus }>`
+    display: inline-block;
+    padding: 4px 8px;
+    background: ${props => OccurrenceStatusColors[props.$status]}15;
+    color: ${props => OccurrenceStatusColors[props.$status]};
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+`;
+
+const NotesCell = styled.div`
+    font-size: 14px;
+    line-height: 1.4;
+`;
+
+const NotesText = styled.div`
+    color: ${theme.text.secondary};
+    cursor: help;
+`;
+
+const NoNotes = styled.div`
+    color: ${theme.text.muted};
+    font-style: italic;
+`;
+
+// POPRAWKA 2: Nowa kolumna akcji z konkretnymi przyciskami
+const ActionsCell = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.sm};
+`;
+
+const ActionButton = styled.button<{ $special?: boolean }>`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: ${props => props.$special ? theme.primary + '15' : 'transparent'};
+    color: ${props => props.$special ? theme.primary : theme.text.muted};
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    &:hover {
+        background: ${props => props.$special ? theme.primary + '25' : theme.surfaceHover};
+        color: ${props => props.$special ? theme.primary : theme.text.secondary};
+    }
+
+    svg {
+        font-size: 12px;
+    }
+`;
+
+const StatusDropdown = styled.div`
+    position: relative;
+`;
+
+const StatusDropdownButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background: transparent;
+    color: ${theme.text.muted};
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    &:hover {
+        background: ${theme.surfaceHover};
+        color: ${theme.text.secondary};
+    }
+
+    svg:first-child {
+        font-size: 12px;
+    }
+
+    svg:last-child {
+        font-size: 10px;
+    }
+`;
+
+// Filters panel
+const FiltersPanel = styled.div`
+    padding: ${theme.spacing.lg};
+    background: ${theme.surface};
+    border: 1px solid ${theme.border};
+    border-radius: ${theme.radius.md};
+`;
+
+const FiltersRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.lg};
+    flex-wrap: wrap;
 `;
 
 const FilterGroup = styled.div`
@@ -580,16 +764,36 @@ const FilterGroup = styled.div`
 `;
 
 const FilterLabel = styled.label`
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
     color: ${theme.text.secondary};
+    white-space: nowrap;
+`;
+
+const SearchInput = styled.input`
+    padding: 8px 12px;
+    border: 1px solid ${theme.border};
+    border-radius: 4px;
+    font-size: 14px;
+    background: ${theme.surface};
+    color: ${theme.text.primary};
+    width: 200px;
+
+    &:focus {
+        outline: none;
+        border-color: ${theme.primary};
+    }
+
+    &::placeholder {
+        color: ${theme.text.muted};
+    }
 `;
 
 const FilterSelect = styled.select`
-    padding: ${theme.spacing.xs} ${theme.spacing.sm};
+    padding: 8px 12px;
     border: 1px solid ${theme.border};
-    border-radius: ${theme.radius.md};
-    font-size: 13px;
+    border-radius: 4px;
+    font-size: 14px;
     background: ${theme.surface};
     color: ${theme.text.primary};
     cursor: pointer;
@@ -600,334 +804,57 @@ const FilterSelect = styled.select`
     }
 `;
 
-const SortOrderButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.xs};
-    padding: ${theme.spacing.xs} ${theme.spacing.sm};
+const ClearButton = styled.button`
+    padding: 8px 16px;
     background: ${theme.surface};
     color: ${theme.text.secondary};
     border: 1px solid ${theme.border};
-    border-radius: ${theme.radius.md};
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-        background: ${theme.surfaceHover};
-        border-color: ${theme.primary};
-        color: ${theme.primary};
-    }
-`;
-
-const BulkActionsPanel = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: ${theme.spacing.lg} ${theme.spacing.xl};
-    background: ${theme.primary}08;
-    border-bottom: 1px solid ${theme.primary}30;
-`;
-
-const BulkInfo = styled.div`
+    border-radius: 4px;
     font-size: 14px;
-    font-weight: 600;
-    color: ${theme.text.primary};
-`;
-
-const BulkActions = styled.div`
-    display: flex;
-    gap: ${theme.spacing.sm};
-`;
-
-const BulkButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.xs};
-    padding: ${theme.spacing.xs} ${theme.spacing.md};
-    background: ${theme.surface};
-    color: ${theme.text.secondary};
-    border: 1px solid ${theme.border};
-    border-radius: ${theme.radius.md};
-    font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-        background: ${theme.surfaceHover};
-        border-color: ${theme.primary};
-        color: ${theme.primary};
-    }
-`;
-
-const OccurrencesList = styled.div`
-    flex: 1;
-    background: ${theme.surface};
-    margin: ${theme.spacing.xl};
-    border-radius: ${theme.radius.lg};
-    border: 1px solid ${theme.border};
-    box-shadow: ${theme.shadow.sm};
-    overflow: hidden;
-`;
-
-const LoadingState = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: ${theme.spacing.xxxl};
-    gap: ${theme.spacing.lg};
-`;
-
-const LoadingSpinner = styled.div`
-    width: 40px;
-    height: 40px;
-    border: 3px solid ${theme.borderLight};
-    border-top: 3px solid ${theme.primary};
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-`;
-
-const LoadingText = styled.div`
-    font-size: 16px;
-    color: ${theme.text.tertiary};
-    font-weight: 500;
-`;
-
-const EmptyState = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: ${theme.spacing.xxxl};
-    gap: ${theme.spacing.lg};
-    text-align: center;
-`;
-
-const EmptyIcon = styled.div`
-    font-size: 64px;
-    color: ${theme.text.tertiary};
-`;
-
-const EmptyTitle = styled.h3`
-    font-size: 20px;
-    font-weight: 600;
-    color: ${theme.text.primary};
-    margin: 0;
-`;
-
-const EmptyDescription = styled.p`
-    font-size: 15px;
-    color: ${theme.text.secondary};
-    margin: 0;
-    line-height: 1.5;
-`;
-
-const OccurrencesTable = styled.table`
-    width: 100%;
-    border-collapse: collapse;
-`;
-
-const TableHeader = styled.thead`
-    background: ${theme.surfaceElevated};
-    border-bottom: 1px solid ${theme.border};
-`;
-
-const TableBody = styled.tbody``;
-
-const HeaderRow = styled.tr``;
-
-const HeaderCell = styled.th<{ $width?: string }>`
-    padding: ${theme.spacing.md} ${theme.spacing.lg};
-    text-align: left;
-    font-size: 13px;
-    font-weight: 600;
-    color: ${theme.text.secondary};
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    width: ${props => props.$width || 'auto'};
-`;
-
-const OccurrenceRow = styled.tr<{ $selected: boolean }>`
-    background: ${props => props.$selected ? theme.primary + '10' : "transparent"};
-    border-bottom: 1px solid ${theme.borderLight};
-    transition: all 0.2s ease;
-
-    &:last-child {
-        border-bottom: none;
-    }
-`;
-
-const BodyCell = styled.td`
-    padding: ${theme.spacing.md} ${theme.spacing.lg};
-    vertical-align: middle;
-    font-size: 14px;
-    color: ${theme.text.primary};
-`;
-
-const SelectAllCheckbox = styled.input`
-    width: 16px;
-    height: 16px;
-    accent-color: ${theme.primary};
-    cursor: pointer;
-`;
-
-const SelectCheckbox = styled.input`
-    width: 16px;
-    height: 16px;
-    accent-color: ${theme.primary};
-    cursor: pointer;
-`;
-
-const OccurrenceDate = styled.div`
-    font-weight: 500;
-`;
-
-const StatusBadge = styled.div<{ $status: OccurrenceStatus }>`
-    display: inline-flex;
-    align-items: center;
-    padding: ${theme.spacing.xs} ${theme.spacing.sm};
-    background: ${props => OccurrenceStatusColors[props.$status]}20;
-    color: ${props => OccurrenceStatusColors[props.$status]};
-    border: 1px solid ${props => OccurrenceStatusColors[props.$status]}40;
-    border-radius: ${theme.radius.sm};
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-`;
-
-const NotesPreview = styled.div`
-    max-width: 200px;
-`;
-
-const NotesText = styled.div`
-    font-size: 13px;
-    color: ${theme.text.secondary};
-    cursor: help;
-`;
-
-const NoNotes = styled.div`
-    font-size: 13px;
-    color: ${theme.text.tertiary};
-    font-style: italic;
-`;
-
-const CreatedDate = styled.div`
-    font-size: 13px;
-    color: ${theme.text.tertiary};
-`;
-
-const ActionsContainer = styled.div`
-    position: relative;
-    display: flex;
-    justify-content: center;
-`;
-
-const ActionButton = styled.button<{ $active: boolean }>`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    background: ${props => props.$active ? theme.surfaceActive : 'transparent'};
-    color: ${theme.text.tertiary};
-    border: none;
-    border-radius: ${theme.radius.md};
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-        background: ${theme.surfaceHover};
-        color: ${theme.text.secondary};
-    }
-`;
-
-const ActionsDropdown = styled.div`
-    position: absolute;
-    top: 100%;
-    right: 0;
-    margin-top: ${theme.spacing.xs};
-    background: ${theme.surface};
-    border: 1px solid ${theme.border};
-    border-radius: ${theme.radius.md};
-    box-shadow: ${theme.shadow.lg};
-    z-index: 10;
-    min-width: 200px;
-    overflow: hidden;
-`;
-
-const DropdownItem = styled.button`
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.sm};
-    width: 100%;
-    padding: ${theme.spacing.sm} ${theme.spacing.md};
-    background: none;
-    border: none;
-    color: ${theme.text.primary};
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    text-align: left;
+    transition: all 0.15s ease;
 
     &:hover:not(:disabled) {
         background: ${theme.surfaceHover};
+        color: ${theme.text.primary};
+        border-color: ${theme.primary};
     }
 
     &:disabled {
         opacity: 0.5;
         cursor: not-allowed;
     }
-
-    svg {
-        font-size: 12px;
-        flex-shrink: 0;
-    }
 `;
 
-const StatusIcon = styled.div<{ $status: OccurrenceStatus }>`
-    color: ${props => OccurrenceStatusColors[props.$status]};
-`;
-
-const DropdownDivider = styled.div`
-    height: 1px;
-    background: ${theme.borderLight};
-    margin: ${theme.spacing.xs} 0;
-`;
-
+// Modal styles
 const NotesModalContent = styled.div`
     display: flex;
     flex-direction: column;
     gap: ${theme.spacing.lg};
-    padding: ${theme.spacing.lg};
+    padding: ${theme.spacing.xl};
 `;
 
 const NotesTextArea = styled.textarea`
     padding: ${theme.spacing.md};
     border: 1px solid ${theme.border};
-    border-radius: ${theme.radius.md};
+    border-radius: 4px;
     font-size: 14px;
     font-family: inherit;
     background: ${theme.surface};
     color: ${theme.text.primary};
     resize: vertical;
-    min-height: 120px;
+    min-height: 80px;
+    line-height: 1.4;
 
     &:focus {
         outline: none;
         border-color: ${theme.primary};
-        box-shadow: 0 0 0 3px ${theme.primary}20;
+        box-shadow: 0 0 0 2px ${theme.primary}20;
     }
 
     &::placeholder {
-        color: ${theme.text.tertiary};
+        color: ${theme.text.muted};
     }
 `;
 
@@ -937,32 +864,34 @@ const NotesActions = styled.div`
     gap: ${theme.spacing.md};
 `;
 
-const CancelButton = styled.button`
-    padding: ${theme.spacing.md} ${theme.spacing.lg};
+const CancelModalButton = styled.button`
+    padding: 8px 16px;
     background: ${theme.surface};
     color: ${theme.text.secondary};
     border: 1px solid ${theme.border};
-    border-radius: ${theme.radius.md};
+    border-radius: 4px;
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
 
     &:hover {
         background: ${theme.surfaceHover};
-        border-color: ${theme.borderActive};
         color: ${theme.text.primary};
+        border-color: ${theme.borderActive};
     }
 `;
 
 const SaveButton = styled.button`
-    padding: ${theme.spacing.md} ${theme.spacing.lg};
+    padding: 8px 16px;
     background: ${theme.primary};
     color: white;
     border: 1px solid ${theme.primary};
-    border-radius: ${theme.radius.md};
+    border-radius: 4px;
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
 
     &:hover:not(:disabled) {
         background: ${theme.primaryDark};
@@ -975,24 +904,49 @@ const SaveButton = styled.button`
     }
 `;
 
-const BulkConfirmContent = styled.div`
+// Status Modal styles
+const StatusModalContent = styled.div`
+    padding: ${theme.spacing.xl};
+`;
+
+const StatusOptions = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${theme.spacing.xl};
-    padding: ${theme.spacing.xl};
-    text-align: center;
+    gap: ${theme.spacing.sm};
 `;
 
-const BulkConfirmMessage = styled.div`
-    font-size: 15px;
-    color: ${theme.text.primary};
-    line-height: 1.5;
-`;
-
-const BulkConfirmActions = styled.div`
+const StatusOption = styled.button<{ disabled?: boolean }>`
     display: flex;
-    justify-content: center;
+    align-items: center;
     gap: ${theme.spacing.md};
+    padding: ${theme.spacing.md};
+    background: ${theme.surface};
+    color: ${theme.text.primary};
+    border: 1px solid ${theme.border};
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: left;
+
+    &:hover:not(:disabled) {
+        background: ${theme.surfaceHover};
+        border-color: ${theme.primary};
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+`;
+
+const StatusIcon = styled.div<{ $status: OccurrenceStatus }>`
+    color: ${props => OccurrenceStatusColors[props.$status]};
+    font-size: 16px;
+`;
+
+const StatusLabel = styled.span`
+    font-weight: 500;
 `;
 
 export default OccurrenceManagement;

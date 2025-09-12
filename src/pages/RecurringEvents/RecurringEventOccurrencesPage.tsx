@@ -1,7 +1,8 @@
-// src/pages/RecurringEvents/RecurringEventOccurrencesPage.tsx
+// src/pages/RecurringEvents/RecurringEventOccurrencesPage.tsx - POPRAWKA IKONY
 /**
  * Recurring Event Occurrences Page
  * Wrapper component for occurrence management functionality
+ * POPRAWKA: Konsekwentnie używa FaArrowLeft w całej aplikacji
  */
 
 import React from 'react';
@@ -9,6 +10,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import OccurrenceManagement from '../../components/recurringEvents/OccurrenceManagement';
 import { useRecurringEvent } from '../../hooks/useRecurringEvents';
 import styled from 'styled-components';
+import { FaArrowLeft } from 'react-icons/fa'; // ZMIANA: Importujemy FaArrowLeft
 import { theme } from '../../styles/theme';
 import { ErrorBoundary } from '../../components/common/ErrorBoundary';
 
@@ -43,6 +45,7 @@ const RecurringEventOccurrencesPage: React.FC = () => {
                     <ErrorTitle>Nie można załadować wystąpień</ErrorTitle>
                     <ErrorMessage>{error || 'Wydarzenie nie zostało znalezione'}</ErrorMessage>
                     <RetryButton onClick={() => navigate('/recurring-events')}>
+                        <FaArrowLeft /> {/* ZMIANA: Używamy FaArrowLeft */}
                         Powrót do listy wydarzeń
                     </RetryButton>
                 </ErrorCard>
@@ -61,7 +64,7 @@ const RecurringEventOccurrencesPage: React.FC = () => {
     );
 };
 
-// Styled Components
+// Styled Components - zaktualizowane dla profesjonalnego wyglądu
 const LoadingContainer = styled.div`
     min-height: 100vh;
     display: flex;
@@ -73,9 +76,9 @@ const LoadingContainer = styled.div`
 `;
 
 const LoadingSpinner = styled.div`
-    width: 48px;
-    height: 48px;
-    border: 3px solid ${theme.borderLight};
+    width: 40px;
+    height: 40px;
+    border: 3px solid ${theme.border};
     border-top: 3px solid ${theme.primary};
     border-radius: 50%;
     animation: spin 1s linear infinite;
@@ -87,8 +90,8 @@ const LoadingSpinner = styled.div`
 `;
 
 const LoadingText = styled.div`
-    font-size: 18px;
-    color: ${theme.text.tertiary};
+    font-size: 16px;
+    color: ${theme.text.secondary};
     font-weight: 500;
 `;
 
@@ -108,46 +111,53 @@ const ErrorCard = styled.div`
     gap: ${theme.spacing.xl};
     padding: ${theme.spacing.xxxl};
     background: ${theme.surface};
-    border-radius: ${theme.radius.xl};
-    box-shadow: ${theme.shadow.lg};
+    border-radius: ${theme.radius.lg};
+    border: 1px solid ${theme.border};
+    box-shadow: ${theme.shadow.sm};
     text-align: center;
-    max-width: 500px;
+    max-width: 400px;
     width: 100%;
 `;
 
 const ErrorIcon = styled.div`
-    font-size: 64px;
+    font-size: 48px;
 `;
 
 const ErrorTitle = styled.h1`
-    font-size: 24px;
-    font-weight: 700;
+    font-size: 20px;
+    font-weight: 600;
     color: ${theme.text.primary};
     margin: 0;
 `;
 
 const ErrorMessage = styled.p`
-    font-size: 16px;
+    font-size: 14px;
     color: ${theme.text.secondary};
     margin: 0;
     line-height: 1.5;
 `;
 
 const RetryButton = styled.button`
-    padding: ${theme.spacing.lg} ${theme.spacing.xl};
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.sm};
+    padding: ${theme.spacing.md} ${theme.spacing.lg};
     background: ${theme.primary};
     color: white;
-    border: none;
-    border-radius: ${theme.radius.lg};
-    font-weight: 600;
-    font-size: 16px;
+    border: 1px solid ${theme.primary};
+    border-radius: ${theme.radius.md};
+    font-weight: 500;
+    font-size: 14px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
 
     &:hover {
         background: ${theme.primaryDark};
-        transform: translateY(-1px);
-        box-shadow: ${theme.shadow.md};
+        border-color: ${theme.primaryDark};
+    }
+
+    svg {
+        font-size: 14px;
     }
 `;
 
