@@ -1,7 +1,9 @@
-// src/pages/RecurringEvents/RecurringEventDetailsPage.tsx
+// src/pages/RecurringEvents/RecurringEventDetailsPage.tsx - FINALNY DESIGN
 /**
- * Recurring Event Details Page
- * Shows comprehensive information about a specific recurring event
+ * Finalny widok szczegółów cyklicznego wydarzenia
+ * - Przycisk usunięcia w headerze z innymi akcjami
+ * - Tabela zamiast grid dla kluczowych informacji
+ * - Profesjonalny, czytelny design bez "cukierków"
  */
 
 import React, { useState, useCallback } from 'react';
@@ -15,15 +17,15 @@ import {
     FaPause,
     FaPlay,
     FaCalendarAlt,
-    FaChartLine,
-    FaClock,
     FaUsers,
     FaCheckCircle,
-    FaTimes
+    FaTimes,
+    FaClock,
+    FaCalendarCheck,
+    FaExclamationTriangle
 } from 'react-icons/fa';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { PageHeader, SecondaryButton, PrimaryButton } from '../../components/common/PageHeader';
 import Modal from '../../components/common/Modal';
 import RecurringEventForm from '../../components/recurringEvents/RecurringEventForm';
 import OccurrenceManagement from '../../components/recurringEvents/OccurrenceManagement';
@@ -98,7 +100,7 @@ const RecurringEventDetailsPage: React.FC = () => {
         }
     }, [eventId, deleteEvent, navigate]);
 
-    // Handle deactivate/activate
+    // Handle toggle active
     const handleToggleActive = useCallback(async () => {
         if (!eventId || !event) return;
 
@@ -116,22 +118,22 @@ const RecurringEventDetailsPage: React.FC = () => {
         }
     }, [eventId, event, deactivateEvent, refetch]);
 
-    // Show occurrences management
-    const handleShowOccurrences = useCallback(() => {
-        setShowOccurrencesView(true);
-    }, []);
-
-    // Hide occurrences management
-    const handleHideOccurrences = useCallback(() => {
-        setShowOccurrencesView(false);
-    }, []);
+    // Calculate end date text
+    const getEndDateText = () => {
+        if (event?.recurrencePattern.endDate) {
+            return format(new Date(event.recurrencePattern.endDate), 'dd.MM.yyyy', { locale: pl });
+        }
+        if (event?.recurrencePattern.maxOccurrences) {
+            return `Po ${event.recurrencePattern.maxOccurrences} wystąpieniach`;
+        }
+        return 'Bez ograniczeń';
+    };
 
     // Loading state
     if (isLoading) {
         return (
             <LoadingContainer>
-                <LoadingSpinner />
-                <LoadingText>Ładowanie szczegółów wydarzenia...</LoadingText>
+                <LoadingText>Ładowanie...</LoadingText>
             </LoadingContainer>
         );
     }
@@ -140,14 +142,10 @@ const RecurringEventDetailsPage: React.FC = () => {
     if (error || !event) {
         return (
             <ErrorContainer>
-                <ErrorCard>
-                    <ErrorIcon>⚠️</ErrorIcon>
-                    <ErrorTitle>Nie można załadować wydarzenia</ErrorTitle>
-                    <ErrorMessage>{error || 'Wydarzenie nie zostało znalezione'}</ErrorMessage>
-                    <RetryButton onClick={() => navigate('/recurring-events')}>
-                        Powrót do listy
-                    </RetryButton>
-                </ErrorCard>
+                <ErrorMessage>{error || 'Wydarzenie nie zostało znalezione'}</ErrorMessage>
+                <BackButton onClick={() => navigate('/recurring-events')}>
+                    Powrót do listy
+                </BackButton>
             </ErrorContainer>
         );
     }
@@ -158,161 +156,183 @@ const RecurringEventDetailsPage: React.FC = () => {
             <OccurrenceManagement
                 eventId={event.id}
                 eventTitle={event.title}
-                onBack={handleHideOccurrences}
+                onBack={() => setShowOccurrencesView(false)}
             />
         );
     }
 
     return (
         <ErrorBoundary>
-            <PageContainer>
+            <Container>
                 {/* Header */}
-                <PageHeader
-                    icon={FaCalendarAlt}
-                    title={event.title}
-                    subtitle={`${EventTypeLabels[event.type]} • ${RecurrenceFrequencyLabels[event.recurrencePattern.frequency]}`}
-                    actions={
-                        <HeaderActions>
-                            <SecondaryButton onClick={() => navigate('/recurring-events')}>
-                                <FaArrowLeft />
-                                Powrót do listy
-                            </SecondaryButton>
-                            <SecondaryButton onClick={() => setShowEditModal(true)}>
-                                <FaEdit />
-                                Edytuj
-                            </SecondaryButton>
-                            <SecondaryButton
-                                onClick={handleToggleActive}
-                                disabled={isDeactivating}
-                            >
-                                {event.isActive ? <FaPause /> : <FaPlay />}
-                                {event.isActive ? 'Dezaktywuj' : 'Aktywuj'}
-                            </SecondaryButton>
-                            <PrimaryButton onClick={handleShowOccurrences}>
-                                <FaUsers />
-                                Zarządzaj wystąpieniami
-                            </PrimaryButton>
-                        </HeaderActions>
-                    }
-                />
+                <Header>
+                    <HeaderLeft>
+                        <BackButton onClick={() => navigate('/recurring-events')}>
+                            <FaArrowLeft />
+                        </BackButton>
+                        <HeaderInfo>
+                            <Title>{event.title}</Title>
+                            <Subtitle>
+                                {EventTypeLabels[event.type]} • ID: {event.id}
+                            </Subtitle>
+                        </HeaderInfo>
+                    </HeaderLeft>
 
-                {/* Status Banner */}
+                    <HeaderActions>
+                        <ActionButton onClick={() => setShowEditModal(true)}>
+                            <FaEdit />
+                            Edytuj
+                        </ActionButton>
+                        <ActionButton
+                            onClick={handleToggleActive}
+                            disabled={isDeactivating}
+                            $variant={event.isActive ? 'warning' : 'success'}
+                        >
+                            {event.isActive ? <FaPause /> : <FaPlay />}
+                            {event.isActive ? 'Dezaktywuj' : 'Aktywuj'}
+                        </ActionButton>
+                        <ActionButton
+                            onClick={() => setShowOccurrencesView(true)}
+                            $variant="primary"
+                        >
+                            <FaUsers />
+                            Wystąpienia
+                        </ActionButton>
+                        <ActionButton
+                            onClick={() => setShowDeleteModal(true)}
+                            $variant="danger"
+                        >
+                            <FaTrash />
+                            Usuń
+                        </ActionButton>
+                    </HeaderActions>
+                </Header>
+
+                {/* Status Warning */}
                 {!event.isActive && (
-                    <StatusBanner>
-                        <FaPause />
-                        <span>To wydarzenie jest obecnie nieaktywne i nie generuje nowych wystąpień</span>
-                    </StatusBanner>
+                    <StatusWarning>
+                        <FaExclamationTriangle />
+                        Wydarzenie nieaktywne - nie generuje nowych wystąpień
+                    </StatusWarning>
                 )}
 
                 {/* Main Content */}
-                <ContentGrid>
-                    {/* Event Information */}
-                    <InfoSection>
-                        <SectionTitle>Informacje podstawowe</SectionTitle>
-                        <InfoGrid>
-                            <InfoCard>
-                                <InfoLabel>Typ wydarzenia</InfoLabel>
-                                <InfoValue>{EventTypeLabels[event.type]}</InfoValue>
-                            </InfoCard>
-                            <InfoCard>
-                                <InfoLabel>Częstotliwość</InfoLabel>
-                                <InfoValue>{RecurrenceFrequencyLabels[event.recurrencePattern.frequency]}</InfoValue>
-                            </InfoCard>
-                            <InfoCard>
-                                <InfoLabel>Interwał</InfoLabel>
-                                <InfoValue>Co {event.recurrencePattern.interval}</InfoValue>
-                            </InfoCard>
-                            <InfoCard>
-                                <InfoLabel>Status</InfoLabel>
-                                <StatusBadge $active={event.isActive}>
-                                    {event.isActive ? <FaCheckCircle /> : <FaTimes />}
-                                    {event.isActive ? 'Aktywne' : 'Nieaktywne'}
-                                </StatusBadge>
-                            </InfoCard>
-                        </InfoGrid>
+                <Content>
+                    {/* Key Information Table */}
+                    <InfoPanel>
+                        <PanelTitle>Kluczowe informacje</PanelTitle>
+                        <InfoTable>
+                            <InfoRow>
+                                <InfoLabelCell>Status</InfoLabelCell>
+                                <InfoValueCell>
+                                    <StatusValue $active={event.isActive}>
+                                        {event.isActive ? (
+                                            <>
+                                                <FaCheckCircle />
+                                                Aktywne
+                                            </>
+                                        ) : (
+                                            <>
+                                                <FaTimes />
+                                                Nieaktywne
+                                            </>
+                                        )}
+                                    </StatusValue>
+                                </InfoValueCell>
+                            </InfoRow>
 
-                        {event.description && (
-                            <DescriptionSection>
-                                <DescriptionLabel>Opis</DescriptionLabel>
-                                <DescriptionText>{event.description}</DescriptionText>
-                            </DescriptionSection>
-                        )}
-                    </InfoSection>
-
-                    {/* Recurrence Pattern Details */}
-                    <InfoSection>
-                        <SectionTitle>Wzorzec powtarzania</SectionTitle>
-                        <PatternGrid>
-                            <PatternCard>
-                                <PatternLabel>Częstotliwość</PatternLabel>
-                                <PatternValue>
+                            <InfoRow>
+                                <InfoLabelCell>Częstotliwość</InfoLabelCell>
+                                <InfoValueCell>
                                     {RecurrenceFrequencyLabels[event.recurrencePattern.frequency]}
-                                </PatternValue>
-                            </PatternCard>
+                                </InfoValueCell>
+                            </InfoRow>
+
+                            <InfoRow>
+                                <InfoLabelCell>Interwał</InfoLabelCell>
+                                <InfoValueCell>Co {event.recurrencePattern.interval}</InfoValueCell>
+                            </InfoRow>
+
+                            <InfoRow>
+                                <InfoLabelCell>Zakończenie</InfoLabelCell>
+                                <InfoValueCell>{getEndDateText()}</InfoValueCell>
+                            </InfoRow>
+
+                            <InfoRow>
+                                <InfoLabelCell>Wystąpienia ogółem</InfoLabelCell>
+                                <InfoValueCell>
+                                    {stats?.totalOccurrences || 0}
+                                </InfoValueCell>
+                            </InfoRow>
+
 
                             {event.recurrencePattern.daysOfWeek && (
-                                <PatternCard>
-                                    <PatternLabel>Dni tygodnia</PatternLabel>
-                                    <PatternValue>
+                                <InfoRow>
+                                    <InfoLabelCell>Dni tygodnia</InfoLabelCell>
+                                    <InfoValueCell>
                                         {event.recurrencePattern.daysOfWeek.join(', ')}
-                                    </PatternValue>
-                                </PatternCard>
+                                    </InfoValueCell>
+                                </InfoRow>
                             )}
 
                             {event.recurrencePattern.dayOfMonth && (
-                                <PatternCard>
-                                    <PatternLabel>Dzień miesiąca</PatternLabel>
-                                    <PatternValue>{event.recurrencePattern.dayOfMonth}</PatternValue>
-                                </PatternCard>
+                                <InfoRow>
+                                    <InfoLabelCell>Dzień miesiąca</InfoLabelCell>
+                                    <InfoValueCell>{event.recurrencePattern.dayOfMonth}</InfoValueCell>
+                                </InfoRow>
                             )}
 
-                            {event.recurrencePattern.endDate && (
-                                <PatternCard>
-                                    <PatternLabel>Data zakończenia</PatternLabel>
-                                    <PatternValue>
-                                        {format(new Date(event.recurrencePattern.endDate), 'dd MMMM yyyy', { locale: pl })}
-                                    </PatternValue>
-                                </PatternCard>
-                            )}
+                            <InfoRow>
+                                <InfoLabelCell>Utworzono</InfoLabelCell>
+                                <InfoValueCell>
+                                    {format(new Date(event.createdAt), 'dd.MM.yyyy HH:mm', { locale: pl })}
+                                </InfoValueCell>
+                            </InfoRow>
 
-                            {event.recurrencePattern.maxOccurrences && (
-                                <PatternCard>
-                                    <PatternLabel>Maksymalne wystąpienia</PatternLabel>
-                                    <PatternValue>{event.recurrencePattern.maxOccurrences}</PatternValue>
-                                </PatternCard>
-                            )}
-                        </PatternGrid>
-                    </InfoSection>
+                            <InfoRow>
+                                <InfoLabelCell>Ostatnia edycja</InfoLabelCell>
+                                <InfoValueCell>
+                                    {format(new Date(event.updatedAt), 'dd.MM.yyyy HH:mm', { locale: pl })}
+                                </InfoValueCell>
+                            </InfoRow>
+                        </InfoTable>
+                    </InfoPanel>
 
-                    {/* Visit Template (if applicable) */}
+                    {/* Description Panel (if exists) */}
+                    {event.description && (
+                        <InfoPanel>
+                            <PanelTitle>Opis</PanelTitle>
+                            <Description>{event.description}</Description>
+                        </InfoPanel>
+                    )}
+
+                    {/* Visit Template Panel (if exists) */}
                     {event.visitTemplate && (
-                        <InfoSection>
-                            <SectionTitle>Szablon wizyty</SectionTitle>
+                        <InfoPanel>
+                            <PanelTitle>Szablon wizyty</PanelTitle>
                             <TemplateGrid>
-                                <TemplateCard>
-                                    <TemplateLabel>Szacowany czas</TemplateLabel>
-                                    <TemplateValue>
-                                        {event.visitTemplate.estimatedDurationMinutes} minut
-                                    </TemplateValue>
-                                </TemplateCard>
+                                <InfoItem>
+                                    <InfoLabel>Czas trwania</InfoLabel>
+                                    <InfoValue>{event.visitTemplate.estimatedDurationMinutes} min</InfoValue>
+                                </InfoItem>
 
                                 {event.visitTemplate.clientName && (
-                                    <TemplateCard>
-                                        <TemplateLabel>Domyślny klient</TemplateLabel>
-                                        <TemplateValue>{event.visitTemplate.clientName}</TemplateValue>
-                                    </TemplateCard>
+                                    <InfoItem>
+                                        <InfoLabel>Domyślny klient</InfoLabel>
+                                        <InfoValue>{event.visitTemplate.clientName}</InfoValue>
+                                    </InfoItem>
                                 )}
 
                                 {event.visitTemplate.vehicleName && (
-                                    <TemplateCard>
-                                        <TemplateLabel>Domyślny pojazd</TemplateLabel>
-                                        <TemplateValue>{event.visitTemplate.vehicleName}</TemplateValue>
-                                    </TemplateCard>
+                                    <InfoItem>
+                                        <InfoLabel>Domyślny pojazd</InfoLabel>
+                                        <InfoValue>{event.visitTemplate.vehicleName}</InfoValue>
+                                    </InfoItem>
                                 )}
 
                                 {event.visitTemplate.defaultServices.length > 0 && (
-                                    <TemplateCard $fullWidth>
-                                        <TemplateLabel>Domyślne usługi</TemplateLabel>
+                                    <ServicesItem>
+                                        <InfoLabel>Domyślne usługi</InfoLabel>
                                         <ServicesList>
                                             {event.visitTemplate.defaultServices.map((service, index) => (
                                                 <ServiceItem key={index}>
@@ -321,66 +341,19 @@ const RecurringEventDetailsPage: React.FC = () => {
                                                 </ServiceItem>
                                             ))}
                                         </ServicesList>
-                                    </TemplateCard>
+                                    </ServicesItem>
                                 )}
                             </TemplateGrid>
-                        </InfoSection>
+                        </InfoPanel>
                     )}
-
-                    {/* Statistics */}
-                    {stats && (
-                        <InfoSection>
-                            <SectionTitle>Statystyki</SectionTitle>
-                            <StatsGrid>
-                                <StatCard>
-                                    <StatIcon><FaCalendarAlt /></StatIcon>
-                                    <StatContent>
-                                        <StatValue>{stats.totalOccurrences}</StatValue>
-                                        <StatLabel>Łącznie wystąpień</StatLabel>
-                                    </StatContent>
-                                </StatCard>
-                                <StatCard>
-                                    <StatIcon><FaCheckCircle /></StatIcon>
-                                    <StatContent>
-                                        <StatValue>{stats.completedOccurrences}</StatValue>
-                                        <StatLabel>Ukończone</StatLabel>
-                                    </StatContent>
-                                </StatCard>
-                                <StatCard>
-                                    <StatIcon><FaUsers /></StatIcon>
-                                    <StatContent>
-                                        <StatValue>{stats.convertedOccurrences}</StatValue>
-                                        <StatLabel>Przekształcone</StatLabel>
-                                    </StatContent>
-                                </StatCard>
-                                <StatCard>
-                                    <StatIcon><FaChartLine /></StatIcon>
-                                    <StatContent>
-                                        <StatValue>{(stats.completionRate * 100).toFixed(1)}%</StatValue>
-                                        <StatLabel>Wskaźnik ukończenia</StatLabel>
-                                    </StatContent>
-                                </StatCard>
-                            </StatsGrid>
-                        </InfoSection>
-                    )}
-                </ContentGrid>
-
-                {/* Action Bar */}
-                <ActionBar>
-                    <ActionGroup>
-                        <DangerButton onClick={() => setShowDeleteModal(true)}>
-                            <FaTrash />
-                            Usuń wydarzenie
-                        </DangerButton>
-                    </ActionGroup>
-                </ActionBar>
+                </Content>
 
                 {/* Edit Modal */}
                 <Modal
                     isOpen={showEditModal}
                     onClose={() => setShowEditModal(false)}
                     title=""
-                    size="lg"
+                    size="xl"
                 >
                     <RecurringEventForm
                         mode="edit"
@@ -398,59 +371,160 @@ const RecurringEventDetailsPage: React.FC = () => {
                     title="Potwierdź usunięcie"
                     size="sm"
                 >
-                    <DeleteModalContent>
-                        <DeleteIcon>🗑️</DeleteIcon>
+                    <DeleteContent>
                         <DeleteMessage>
-                            <DeleteTitle>Czy na pewno chcesz usunąć to wydarzenie?</DeleteTitle>
-                            <DeleteDescription>
-                                Ta operacja jest nieodwracalna. Wszystkie zaplanowane wystąpienia
-                                zostaną trwale usunięte.
-                            </DeleteDescription>
+                            Czy na pewno chcesz usunąć wydarzenie <strong>"{event.title}"</strong>?
+                            <br />
+                            Ta operacja jest nieodwracalna.
                         </DeleteMessage>
                         <DeleteActions>
-                            <SecondaryButton onClick={() => setShowDeleteModal(false)}>
+                            <CancelButton onClick={() => setShowDeleteModal(false)}>
                                 Anuluj
-                            </SecondaryButton>
-                            <DangerButton onClick={handleDelete} disabled={isDeleting}>
-                                {isDeleting ? 'Usuwanie...' : 'Usuń wydarzenie'}
-                            </DangerButton>
+                            </CancelButton>
+                            <ConfirmButton onClick={handleDelete} disabled={isDeleting}>
+                                {isDeleting ? 'Usuwanie...' : 'Usuń'}
+                            </ConfirmButton>
                         </DeleteActions>
-                    </DeleteModalContent>
+                    </DeleteContent>
                 </Modal>
-            </PageContainer>
+            </Container>
         </ErrorBoundary>
     );
 };
 
-// Styled Components
-const PageContainer = styled.div`
+// Styled Components - Finalny design
+const Container = styled.div`
     min-height: 100vh;
     background: ${theme.surfaceAlt};
+`;
+
+const Header = styled.header`
     display: flex;
-    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    padding: ${theme.spacing.xl} ${theme.spacing.xxl};
+    background: ${theme.surface};
+    border-bottom: 1px solid ${theme.border};
+
+    @media (max-width: 768px) {
+        flex-direction: column;
+        gap: ${theme.spacing.lg};
+        align-items: flex-start;
+    }
+`;
+
+const HeaderLeft = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.lg};
+`;
+
+const BackButton = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: ${theme.surfaceElevated};
+    border: 1px solid ${theme.border};
+    border-radius: ${theme.radius.md};
+    color: ${theme.text.secondary};
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: ${theme.surfaceHover};
+        color: ${theme.text.primary};
+        border-color: ${theme.primary};
+    }
+`;
+
+const HeaderInfo = styled.div``;
+
+const Title = styled.h1`
+    font-size: 24px;
+    font-weight: 600;
+    color: ${theme.text.primary};
+    margin: 0 0 ${theme.spacing.xs} 0;
+`;
+
+const Subtitle = styled.div`
+    font-size: 14px;
+    color: ${theme.text.secondary};
 `;
 
 const HeaderActions = styled.div`
     display: flex;
     gap: ${theme.spacing.md};
-    align-items: center;
 
     @media (max-width: 768px) {
-        flex-direction: column;
         width: 100%;
     }
 `;
 
-const StatusBanner = styled.div`
+const ActionButton = styled.button<{ $variant?: 'primary' | 'success' | 'warning' | 'danger' }>`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.sm};
+    padding: ${theme.spacing.md} ${theme.spacing.lg};
+    background: ${props => {
+        switch (props.$variant) {
+            case 'primary': return theme.primary;
+            case 'success': return theme.success;
+            case 'warning': return theme.warning;
+            case 'danger': return theme.error;
+            default: return theme.surface;
+        }
+    }};
+    color: ${props => {
+        switch (props.$variant) {
+            case 'primary':
+            case 'success':
+            case 'warning':
+            case 'danger': return 'white';
+            default: return theme.text.secondary;
+        }
+    }};
+    border: 1px solid ${props => {
+        switch (props.$variant) {
+            case 'primary': return theme.primary;
+            case 'success': return theme.success;
+            case 'warning': return theme.warning;
+            case 'danger': return theme.error;
+            default: return theme.border;
+        }
+    }};
+    border-radius: ${theme.radius.md};
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover:not(:disabled) {
+        opacity: 0.9;
+        transform: translateY(-1px);
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    svg {
+        font-size: 14px;
+    }
+`;
+
+const StatusWarning = styled.div`
     display: flex;
     align-items: center;
     gap: ${theme.spacing.md};
-    padding: ${theme.spacing.lg} ${theme.spacing.xl};
+    padding: ${theme.spacing.md} ${theme.spacing.xxl};
     background: ${theme.warning}15;
-    border: 1px solid ${theme.warning}30;
-    margin: ${theme.spacing.xl};
-    border-radius: ${theme.radius.lg};
+    border-bottom: 1px solid ${theme.warning}30;
     color: ${theme.warning};
+    font-size: 14px;
     font-weight: 500;
 
     svg {
@@ -458,412 +532,280 @@ const StatusBanner = styled.div`
     }
 `;
 
-const ContentGrid = styled.div`
+const Content = styled.main`
+    padding: ${theme.spacing.xxl};
     display: flex;
     flex-direction: column;
     gap: ${theme.spacing.xl};
-    padding: ${theme.spacing.xl};
     max-width: 1200px;
     margin: 0 auto;
-    width: 100%;
 `;
 
-const InfoSection = styled.section`
+const InfoPanel = styled.section`
     background: ${theme.surface};
     border: 1px solid ${theme.border};
     border-radius: ${theme.radius.lg};
-    overflow: hidden;
-    box-shadow: ${theme.shadow.sm};
-`;
-
-const SectionTitle = styled.h2`
-    font-size: 18px;
-    font-weight: 600;
-    color: ${theme.text.primary};
-    margin: 0;
-    padding: ${theme.spacing.lg} ${theme.spacing.xl};
-    background: ${theme.surfaceElevated};
-    border-bottom: 1px solid ${theme.border};
-`;
-
-const InfoGrid = styled.div`
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: ${theme.spacing.lg};
     padding: ${theme.spacing.xl};
 `;
 
-const InfoCard = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${theme.spacing.sm};
-`;
-
-const InfoLabel = styled.div`
-    font-size: 13px;
-    font-weight: 500;
-    color: ${theme.text.tertiary};
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-`;
-
-const InfoValue = styled.div`
-    font-size: 16px;
+const PanelTitle = styled.h2`
+    font-size: 18px;
     font-weight: 600;
     color: ${theme.text.primary};
+    margin: 0 0 ${theme.spacing.lg} 0;
+    padding-bottom: ${theme.spacing.md};
+    border-bottom: 1px solid ${theme.borderLight};
 `;
 
-const StatusBadge = styled.div<{ $active: boolean }>`
-    display: inline-flex;
-    align-items: center;
-    gap: ${theme.spacing.xs};
-    padding: ${theme.spacing.xs} ${theme.spacing.sm};
-    background: ${props => props.$active ? theme.success : theme.error};
-    color: ${props => props.$active ? theme.success : theme.error};
-    border: 1px solid ${props => props.$active ? theme.success : theme.error};
-    border-radius: ${theme.radius.sm};
-    font-size: 14px;
-    font-weight: 600;
-    width: fit-content;
+const InfoTable = styled.div`
+    border: 1px solid ${theme.border};
+    border-radius: ${theme.radius.md};
+    overflow: hidden;
+`;
 
-    svg {
-        font-size: 12px;
+const InfoRow = styled.div`
+    display: flex;
+    border-bottom: 1px solid ${theme.border};
+
+    &:last-child {
+        border-bottom: none;
     }
 `;
 
-const DescriptionSection = styled.div`
-    padding: 0 ${theme.spacing.xl} ${theme.spacing.xl};
+const InfoLabelCell = styled.div`
+    width: 200px;
+    padding: ${theme.spacing.md} ${theme.spacing.lg};
+    background: ${theme.surfaceElevated};
+    border-right: 1px solid ${theme.border};
+    font-size: 14px;
+    font-weight: 500;
+    color: ${theme.text.secondary};
+    display: flex;
+    align-items: center;
 `;
 
-const DescriptionLabel = styled.div`
-    font-size: 13px;
+const InfoValueCell = styled.div`
+    flex: 1;
+    padding: ${theme.spacing.md} ${theme.spacing.lg};
+    background: ${theme.surface};
+    font-size: 14px;
     font-weight: 500;
+    color: ${theme.text.primary};
+    display: flex;
+    align-items: center;
+    min-height: 48px;
+`;
+
+const InfoItem = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${theme.spacing.xs};
+`;
+
+const InfoLabel = styled.span`
+    font-size: 13px;
     color: ${theme.text.tertiary};
+    font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: ${theme.spacing.sm};
 `;
 
-const DescriptionText = styled.p`
+const InfoValue = styled.span`
+    font-size: 15px;
+    color: ${theme.text.primary};
+    font-weight: 500;
+`;
+
+const StatusValue = styled.span<{ $active: boolean }>`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.xs};
+    font-size: 15px;
+    color: ${props => props.$active ? theme.success : theme.error};
+    font-weight: 600;
+
+    svg {
+        font-size: 14px;
+    }
+`;
+
+const CountValue = styled.span`
+    font-size: 18px;
+    font-weight: 700;
+    color: ${theme.primary};
+`;
+
+const TimelineGrid = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${theme.spacing.lg};
+`;
+
+const TimelineItem = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: ${theme.spacing.md} 0;
+    border-bottom: 1px solid ${theme.borderLight};
+
+    &:last-child {
+        border-bottom: none;
+    }
+`;
+
+const TimelineLabel = styled.span`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.sm};
+    font-size: 14px;
+    color: ${theme.text.secondary};
+    font-weight: 500;
+
+    svg {
+        font-size: 14px;
+        color: ${theme.text.tertiary};
+    }
+`;
+
+const TimelineValue = styled.span`
+    font-size: 14px;
+    color: ${theme.text.primary};
+    font-weight: 500;
+`;
+
+const Description = styled.p`
     font-size: 15px;
     color: ${theme.text.secondary};
     line-height: 1.6;
     margin: 0;
 `;
 
-const PatternGrid = styled.div`
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: ${theme.spacing.lg};
-    padding: ${theme.spacing.xl};
-`;
-
-const PatternCard = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${theme.spacing.sm};
-    padding: ${theme.spacing.lg};
-    background: ${theme.surfaceAlt};
-    border: 1px solid ${theme.border};
-    border-radius: ${theme.radius.md};
-`;
-
-const PatternLabel = styled.div`
-    font-size: 12px;
-    font-weight: 500;
-    color: ${theme.text.tertiary};
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-`;
-
-const PatternValue = styled.div`
-    font-size: 14px;
-    font-weight: 600;
-    color: ${theme.text.primary};
-`;
-
 const TemplateGrid = styled.div`
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: ${theme.spacing.lg};
-    padding: ${theme.spacing.xl};
-`;
-
-const TemplateCard = styled.div<{ $fullWidth?: boolean }>`
     display: flex;
     flex-direction: column;
-    gap: ${theme.spacing.sm};
-    padding: ${theme.spacing.lg};
-    background: ${theme.surfaceAlt};
-    border: 1px solid ${theme.border};
-    border-radius: ${theme.radius.md};
-    ${props => props.$fullWidth && `grid-column: 1 / -1;`}
+    gap: ${theme.spacing.lg};
 `;
 
-const TemplateLabel = styled.div`
-    font-size: 12px;
-    font-weight: 500;
-    color: ${theme.text.tertiary};
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-`;
-
-const TemplateValue = styled.div`
-    font-size: 14px;
-    font-weight: 600;
-    color: ${theme.text.primary};
+const ServicesItem = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${theme.spacing.md};
 `;
 
 const ServicesList = styled.div`
     display: flex;
     flex-direction: column;
     gap: ${theme.spacing.sm};
-    margin-top: ${theme.spacing.sm};
 `;
 
 const ServiceItem = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: ${theme.spacing.sm};
-    background: ${theme.surface};
-    border-radius: ${theme.radius.sm};
+    padding: ${theme.spacing.sm} ${theme.spacing.md};
+    background: ${theme.surfaceAlt};
+    border-radius: ${theme.radius.md};
 `;
 
 const ServiceName = styled.span`
-    font-size: 13px;
+    font-size: 14px;
     color: ${theme.text.primary};
 `;
 
 const ServicePrice = styled.span`
-    font-size: 13px;
-    font-weight: 600;
-    color: ${theme.primary};
-`;
-
-const StatsGrid = styled.div`
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: ${theme.spacing.lg};
-    padding: ${theme.spacing.xl};
-`;
-
-const StatCard = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.md};
-    padding: ${theme.spacing.lg};
-    background: ${theme.surfaceAlt};
-    border: 1px solid ${theme.border};
-    border-radius: ${theme.radius.md};
-    transition: all 0.2s ease;
-
-    &:hover {
-        transform: translateY(-2px);
-        box-shadow: ${theme.shadow.md};
-        border-color: ${theme.primary};
-    }
-`;
-
-const StatIcon = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 48px;
-    height: 48px;
-    background: ${theme.primary}15;
-    color: ${theme.primary};
-    border-radius: ${theme.radius.lg};
-    font-size: 20px;
-`;
-
-const StatContent = styled.div`
-    flex: 1;
-`;
-
-const StatValue = styled.div`
-    font-size: 24px;
-    font-weight: 700;
-    color: ${theme.text.primary};
-    line-height: 1.1;
-`;
-
-const StatLabel = styled.div`
-    font-size: 13px;
-    color: ${theme.text.secondary};
-    font-weight: 500;
-    margin-top: ${theme.spacing.xs};
-`;
-
-const ActionBar = styled.div`
-    display: flex;
-    justify-content: flex-end;
-    padding: ${theme.spacing.xl};
-    background: ${theme.surface};
-    border-top: 1px solid ${theme.border};
-    margin-top: auto;
-`;
-
-const ActionGroup = styled.div`
-    display: flex;
-    gap: ${theme.spacing.md};
-`;
-
-const DangerButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.sm};
-    padding: ${theme.spacing.md} ${theme.spacing.lg};
-    background: ${theme.surface};
-    color: ${theme.error};
-    border: 1px solid ${theme.error}30;
-    border-radius: ${theme.radius.md};
-    font-weight: 600;
     font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover:not(:disabled) {
-        background: ${theme.errorBg};
-        border-color: ${theme.error};
-        transform: translateY(-1px);
-        box-shadow: ${theme.shadow.md};
-    }
-
-    &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: none;
-        box-shadow: none;
-    }
+    font-weight: 600;
+    color: ${theme.success};
 `;
 
+// Loading & Error states
 const LoadingContainer = styled.div`
     min-height: 100vh;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: ${theme.spacing.lg};
     background: ${theme.surfaceAlt};
 `;
 
-const LoadingSpinner = styled.div`
-    width: 48px;
-    height: 48px;
-    border: 3px solid ${theme.borderLight};
-    border-top: 3px solid ${theme.primary};
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-`;
-
 const LoadingText = styled.div`
-    font-size: 18px;
+    font-size: 16px;
     color: ${theme.text.tertiary};
-    font-weight: 500;
 `;
 
 const ErrorContainer = styled.div`
     min-height: 100vh;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: ${theme.spacing.lg};
     background: ${theme.surfaceAlt};
     padding: ${theme.spacing.xl};
 `;
 
-const ErrorCard = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: ${theme.spacing.xl};
-    padding: ${theme.spacing.xxxl};
-    background: ${theme.surface};
-    border-radius: ${theme.radius.xl};
-    box-shadow: ${theme.shadow.lg};
+const ErrorMessage = styled.div`
+    font-size: 16px;
+    color: ${theme.error};
     text-align: center;
-    max-width: 500px;
-    width: 100%;
 `;
 
-const ErrorIcon = styled.div`
-    font-size: 64px;
-`;
-
-const ErrorTitle = styled.h1`
-    font-size: 24px;
-    font-weight: 700;
-    color: ${theme.text.primary};
-    margin: 0;
-`;
-
-const ErrorMessage = styled.p`
-    font-size: 16px;
-    color: ${theme.text.secondary};
-    margin: 0;
-    line-height: 1.5;
-`;
-
-const RetryButton = styled.button`
-    padding: ${theme.spacing.lg} ${theme.spacing.xl};
-    background: ${theme.primary};
-    color: white;
-    border: none;
-    border-radius: ${theme.radius.lg};
-    font-weight: 600;
-    font-size: 16px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-        background: ${theme.primaryDark};
-        transform: translateY(-1px);
-        box-shadow: ${theme.shadow.md};
-    }
-`;
-
-const DeleteModalContent = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: ${theme.spacing.xl};
+// Delete Modal
+const DeleteContent = styled.div`
     padding: ${theme.spacing.xl};
     text-align: center;
 `;
 
-const DeleteIcon = styled.div`
-    font-size: 64px;
-`;
-
-const DeleteMessage = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${theme.spacing.md};
-`;
-
-const DeleteTitle = styled.h3`
-    font-size: 18px;
-    font-weight: 600;
-    color: ${theme.text.primary};
-    margin: 0;
-`;
-
-const DeleteDescription = styled.p`
+const DeleteMessage = styled.p`
     font-size: 15px;
-    color: ${theme.text.secondary};
-    margin: 0;
+    color: ${theme.text.primary};
+    margin: 0 0 ${theme.spacing.xl} 0;
     line-height: 1.5;
+
+    strong {
+        color: ${theme.error};
+    }
 `;
 
 const DeleteActions = styled.div`
     display: flex;
     gap: ${theme.spacing.md};
     justify-content: center;
+`;
+
+const CancelButton = styled.button`
+    padding: ${theme.spacing.md} ${theme.spacing.lg};
+    background: ${theme.surface};
+    color: ${theme.text.secondary};
+    border: 1px solid ${theme.border};
+    border-radius: ${theme.radius.md};
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: ${theme.surfaceHover};
+        color: ${theme.text.primary};
+    }
+`;
+
+const ConfirmButton = styled.button`
+    padding: ${theme.spacing.md} ${theme.spacing.lg};
+    background: ${theme.error};
+    color: white;
+    border: 1px solid ${theme.error};
+    border-radius: ${theme.radius.md};
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover:not(:disabled) {
+        opacity: 0.9;
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
 `;
 
 export default RecurringEventDetailsPage;

@@ -362,7 +362,7 @@ const OccurrenceManagement: React.FC<OccurrenceManagementProps> = ({
                                     </BodyCell>
                                     <BodyCell>
                                         <CreatedDate>
-                                            {format(new Date(occurrence.createdAt), 'dd MMM yyyy', { locale: pl })}
+                                           "
                                         </CreatedDate>
                                     </BodyCell>
                                     <BodyCell>

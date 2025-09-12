@@ -1,13 +1,13 @@
-// src/components/recurringEvents/RecurringEventForm.tsx - OGRANICZONA EDYCJA
+// src/components/recurringEvents/RecurringEventForm.tsx - KOMPLETNIE NAPRAWIONY
 /**
  * Main Recurring Event Form Component
  * Orchestrates the multi-step form for creating/editing recurring events
- * NOWOŚĆ: Ograniczona edycja tylko nazwy i opisu dla istniejących wydarzeń
+ * NAPRAWKI: Kompletne rozwiązanie błędów TypeScript i ograniczona edycja
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
-import { useForm, FieldValues, Controller } from 'react-hook-form';
+import { useForm, Controller, FieldErrors } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import {
@@ -23,10 +23,9 @@ import { StepsProgress } from './FormComponents/StepsProgress';
 import { BasicInfoStep } from './FormSteps/BasicInfoStep';
 import { RecurrencePatternStep } from './FormSteps/RecurrencePatternStep';
 import { VisitTemplateStep } from './FormSteps/VisitTemplateStep';
-import { FormActions } from './FormComponents/FormActions';
 import { validationSchema, FormData } from './schema';
 import { theme } from '../../styles/theme';
-import { FaInfoCircle, FaExclamationTriangle, FaSave, FaTimes } from 'react-icons/fa';
+import { FaInfoCircle, FaSave, FaTimes, FaArrowLeft, FaArrowRight } from 'react-icons/fa';
 
 interface RecurringEventFormProps {
     mode: 'create' | 'edit';
@@ -67,7 +66,7 @@ const RecurringEventForm: React.FC<RecurringEventFormProps> = ({
     // Form state
     const [currentStep, setCurrentStep] = useState(1);
 
-    // Wybieramy odpowiednią walidację i typ danych w zależności od trybu
+    // Określenie trybu
     const isLimitedEdit = mode === 'edit';
 
     // Formularz dla ograniczonej edycji
@@ -100,11 +99,7 @@ const RecurringEventForm: React.FC<RecurringEventFormProps> = ({
         mode: 'onChange'
     });
 
-    // Wybieramy odpowiedni formularz
-    const activeForm = isLimitedEdit ? limitedEditForm : fullForm;
-    const { handleSubmit, watch, reset, formState: { errors, isValid } } = activeForm;
-
-    const watchedType = !isLimitedEdit ? (fullForm.watch('type') as EventType) : initialData?.type;
+    const watchedType = !isLimitedEdit ? fullForm.watch('type') : initialData?.type;
 
     // Initialize form with existing data for full creation mode
     useEffect(() => {
@@ -129,7 +124,7 @@ const RecurringEventForm: React.FC<RecurringEventFormProps> = ({
                 description: initialData.description || ''
             });
         }
-    }, [mode, initialData, fullForm.reset, limitedEditForm.reset]);
+    }, [mode, initialData, fullForm, limitedEditForm]);
 
     // Handle form submission
     const onFormSubmit = useCallback(async (data: LimitedEditFormData | FormData) => {
@@ -195,17 +190,20 @@ const RecurringEventForm: React.FC<RecurringEventFormProps> = ({
     const canProceedToStep = useCallback((step: number) => {
         if (isLimitedEdit) return true; // W trybie edycji nie ma kroków
 
+        // Używamy błędów z fullForm dla trybu create
+        const fullFormErrors = fullForm.formState.errors;
+
         switch (step) {
             case 1:
-                return !errors.title && !errors.description && !errors.type;
+                return !fullFormErrors.title && !fullFormErrors.description && !fullFormErrors.type;
             case 2:
-                return !errors.recurrencePattern;
+                return !fullFormErrors.recurrencePattern;
             case 3:
-                return watchedType === EventType.SIMPLE_EVENT || !errors.visitTemplate;
+                return watchedType === EventType.SIMPLE_EVENT || !fullFormErrors.visitTemplate;
             default:
                 return false;
         }
-    }, [errors, watchedType, isLimitedEdit]);
+    }, [isLimitedEdit, fullForm.formState.errors, watchedType]);
 
     // Jeśli to tryb edycji, wyświetl ograniczony formularz
     if (isLimitedEdit && initialData) {
@@ -278,13 +276,15 @@ const RecurringEventForm: React.FC<RecurringEventFormProps> = ({
                                         <TextInput
                                             {...field}
                                             placeholder="Np. Cykliczny przegląd techniczny"
-                                            $hasError={!!errors.title}
+                                            $hasError={!!limitedEditForm.formState.errors.title}
                                             disabled={isLoading}
                                         />
                                     )}
                                 />
-                                {errors.title && (
-                                    <ErrorMessage>{(errors.title as any).message}</ErrorMessage>
+                                {limitedEditForm.formState.errors.title && (
+                                    <ErrorMessage>
+                                        {limitedEditForm.formState.errors.title.message}
+                                    </ErrorMessage>
                                 )}
                             </FormField>
 
@@ -300,19 +300,21 @@ const RecurringEventForm: React.FC<RecurringEventFormProps> = ({
                                             value={field.value || ''}
                                             placeholder="Dodatkowe informacje o wydarzeniu..."
                                             rows={3}
-                                            $hasError={!!errors.description}
+                                            $hasError={!!limitedEditForm.formState.errors.description}
                                             disabled={isLoading}
                                         />
                                     )}
                                 />
-                                {errors.description && (
-                                    <ErrorMessage>{(errors.description as any).message}</ErrorMessage>
+                                {limitedEditForm.formState.errors.description && (
+                                    <ErrorMessage>
+                                        {limitedEditForm.formState.errors.description.message}
+                                    </ErrorMessage>
                                 )}
                             </FormField>
                         </EditFormSection>
                     </FormContent>
 
-                    <FormActions>
+                    <LimitedFormActions>
                         <SecondaryButton
                             type="button"
                             onClick={onCancel}
@@ -323,7 +325,7 @@ const RecurringEventForm: React.FC<RecurringEventFormProps> = ({
                         </SecondaryButton>
                         <PrimaryButton
                             type="submit"
-                            disabled={!isValid || isLoading}
+                            disabled={!limitedEditForm.formState.isValid || isLoading}
                         >
                             {isLoading ? (
                                 <>
@@ -337,7 +339,7 @@ const RecurringEventForm: React.FC<RecurringEventFormProps> = ({
                                 </>
                             )}
                         </PrimaryButton>
-                    </FormActions>
+                    </LimitedFormActions>
                 </form>
             </FormContainer>
         );
@@ -356,7 +358,7 @@ const RecurringEventForm: React.FC<RecurringEventFormProps> = ({
                 currentStep={currentStep}
                 canProceedToStep={canProceedToStep}
                 onStepClick={setCurrentStep}
-                errors={errors}
+                errors={fullForm.formState.errors}
             />
 
             <form onSubmit={fullForm.handleSubmit(onFormSubmit)}>
@@ -384,16 +386,56 @@ const RecurringEventForm: React.FC<RecurringEventFormProps> = ({
                     )}
                 </FormContent>
 
-                <FormActions
-                    currentStep={currentStep}
-                    canProceed={canProceedToStep(currentStep)}
-                    isValid={isValid}
-                    isLoading={isLoading}
-                    mode={mode}
-                    onCancel={onCancel}
-                    onPrevious={() => setCurrentStep(currentStep - 1)}
-                    onNext={() => setCurrentStep(currentStep + 1)}
-                />
+                {/* Custom FormActions for create mode */}
+                <CreateModeFormActions>
+                    <LeftSection>
+                        <SecondaryButton type="button" onClick={onCancel} disabled={isLoading}>
+                            <FaTimes />
+                            Anuluj
+                        </SecondaryButton>
+                    </LeftSection>
+
+                    <RightSection>
+                        {currentStep > 1 && (
+                            <SecondaryButton
+                                type="button"
+                                onClick={() => setCurrentStep(currentStep - 1)}
+                                disabled={isLoading}
+                            >
+                                <FaArrowLeft />
+                                Wstecz
+                            </SecondaryButton>
+                        )}
+
+                        {currentStep < 3 ? (
+                            <PrimaryButton
+                                type="button"
+                                onClick={() => setCurrentStep(currentStep + 1)}
+                                disabled={!canProceedToStep(currentStep) || isLoading}
+                            >
+                                Dalej
+                                <FaArrowRight />
+                            </PrimaryButton>
+                        ) : (
+                            <PrimaryButton
+                                type="submit"
+                                disabled={!fullForm.formState.isValid || isLoading}
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <LoadingSpinner />
+                                        Tworzenie...
+                                    </>
+                                ) : (
+                                    <>
+                                        <FaSave />
+                                        Utwórz wydarzenie
+                                    </>
+                                )}
+                            </PrimaryButton>
+                        )}
+                    </RightSection>
+                </CreateModeFormActions>
             </form>
         </FormContainer>
     );
@@ -621,73 +663,86 @@ const LimitedFormActions = styled.div`
     border-top: 1px solid ${theme.border};
 `;
 
-const FormActions = styled.div`
+const CreateModeFormActions = styled.div`
     display: flex;
-    justify-content: flex-end;
-    gap: ${theme.spacing.md};
+    justify-content: space-between;
+    align-items: center;
     padding: ${theme.spacing.xl} ${theme.spacing.xxl};
     background: ${theme.surfaceElevated};
     border-top: 1px solid ${theme.border};
+    min-height: 80px;
 `;
 
-const SecondaryButton = styled.button`
+const LeftSection = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.lg};
+`;
+
+const RightSection = styled.div`
+    display: flex;
+    gap: ${theme.spacing.md};
+`;
+
+const BaseButton = styled.button`
     display: flex;
     align-items: center;
     gap: ${theme.spacing.sm};
-    padding: ${theme.spacing.md} ${theme.spacing.lg};
-    background: ${theme.surface};
-    color: ${theme.text.secondary};
-    border: 1px solid ${theme.border};
-    border-radius: ${theme.radius.md};
+    padding: ${theme.spacing.md} ${theme.spacing.xl};
+    border-radius: ${theme.radius.lg};
     font-weight: 600;
     font-size: 14px;
     cursor: pointer;
     transition: all 0.2s ease;
-    min-height: 44px;
+    border: 2px solid;
+    min-height: 48px;
+    min-width: 140px;
+    justify-content: center;
+
+    &:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: ${theme.shadow.lg};
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+
+    svg {
+        font-size: 14px;
+    }
+`;
+
+const PrimaryButton = styled(BaseButton)`
+    background: ${theme.primary};
+    color: white;
+    border-color: ${theme.primary};
+
+    &:hover:not(:disabled) {
+        background: ${theme.primaryDark};
+        border-color: ${theme.primaryDark};
+        box-shadow: 0 4px 12px ${theme.primary}40;
+    }
+
+    &:disabled {
+        background: ${theme.surfaceAlt};
+        color: ${theme.text.tertiary};
+        border-color: ${theme.border};
+    }
+`;
+
+const SecondaryButton = styled(BaseButton)`
+    background: ${theme.surface};
+    color: ${theme.text.secondary};
+    border-color: ${theme.border};
 
     &:hover:not(:disabled) {
         background: ${theme.surfaceHover};
         border-color: ${theme.borderActive};
         color: ${theme.text.primary};
-        transform: translateY(-1px);
-        box-shadow: ${theme.shadow.md};
-    }
-
-    &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: none;
-        box-shadow: none;
-    }
-`;
-
-const PrimaryButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.sm};
-    padding: ${theme.spacing.md} ${theme.spacing.lg};
-    background: ${theme.primary};
-    color: white;
-    border: 1px solid ${theme.primary};
-    border-radius: ${theme.radius.md};
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    min-height: 44px;
-
-    &:hover:not(:disabled) {
-        background: ${theme.primaryDark};
-        border-color: ${theme.primaryDark};
-        transform: translateY(-1px);
-        box-shadow: ${theme.shadow.md};
-    }
-
-    &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: none;
-        box-shadow: none;
     }
 `;
 
