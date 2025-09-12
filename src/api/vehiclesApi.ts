@@ -280,7 +280,7 @@ export const vehicleApi = {
     },
 
     fetchVehicleImages: async (
-        vehicleId: string,
+        vehicleId: string | undefined,
         paginationOptions: PaginationParams = {}
     ): Promise<VehicleImagesResponse> => {
         try {

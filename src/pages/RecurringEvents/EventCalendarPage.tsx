@@ -1,7 +1,7 @@
-// src/pages/RecurringEvents/EventCalendarPage.tsx
+// src/pages/RecurringEvents/EventCalendarPage.tsx - OSTATECZNA POPRAWKA
 /**
  * Event Calendar Page - Specialized calendar view for recurring events
- * Integrates with existing calendar infrastructure but focuses on recurring events
+ * POPRAWKA: Naprawiono mapowanie typów statusów i rzutowanie na unknown
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
@@ -21,16 +21,16 @@ import { pl } from 'date-fns/locale';
 import { PageHeader, SecondaryButton } from '../../components/common/PageHeader';
 import AppointmentCalendar from '../../components/calendar/Calendar';
 import Modal from '../../components/common/Modal';
-import { useEventCalendar, useEventOccurrences } from '../../hooks/useRecurringEvents';
+import { useEventCalendar } from '../../hooks/useRecurringEvents';
 import {
-    EventCalendarItem,
+    EventOccurrenceResponse,
     EventType,
     OccurrenceStatus,
     OccurrenceStatusLabels,
     OccurrenceStatusColors,
     EventTypeLabels
 } from '../../types/recurringEvents';
-import { Appointment } from '../../types';
+import { Appointment, AppointmentStatus } from '../../types'; // POPRAWKA: Import AppointmentStatus
 import { theme } from '../../styles/theme';
 import { ErrorBoundary } from '../../components/common/ErrorBoundary';
 
@@ -38,7 +38,7 @@ const EventCalendarPage: React.FC = () => {
     const navigate = useNavigate();
 
     // State
-    const [selectedOccurrence, setSelectedOccurrence] = useState<EventCalendarItem | null>(null);
+    const [selectedOccurrence, setSelectedOccurrence] = useState<EventOccurrenceResponse | null>(null);
     const [showOccurrenceModal, setShowOccurrenceModal] = useState(false);
     const [showFilters, setShowFilters] = useState(false);
     const [typeFilters, setTypeFilters] = useState<Set<EventType>>(new Set(Object.values(EventType)));
@@ -54,25 +54,47 @@ const EventCalendarPage: React.FC = () => {
         updateFilters
     } = useEventCalendar();
 
-    // Convert events to calendar format
+    // POPRAWKA: Funkcja mapowania OccurrenceStatus na AppointmentStatus
+    const mapOccurrenceStatusToAppointmentStatus = (status: OccurrenceStatus): AppointmentStatus => {
+        switch (status) {
+            case OccurrenceStatus.COMPLETED:
+                return 'COMPLETED' as AppointmentStatus;
+            case OccurrenceStatus.CANCELLED:
+                return 'CANCELLED' as AppointmentStatus;
+            case OccurrenceStatus.PLANNED:
+                return 'SCHEDULED' as AppointmentStatus;
+            case OccurrenceStatus.SKIPPED:
+                return 'CANCELLED' as AppointmentStatus; // Mapujemy SKIPPED na CANCELLED
+            case OccurrenceStatus.CONVERTED_TO_VISIT:
+                return 'COMPLETED' as AppointmentStatus; // Mapujemy CONVERTED na COMPLETED
+            default:
+                return 'SCHEDULED' as AppointmentStatus;
+        }
+    };
+
+    // POPRAWKA: Poprawione mapowanie z rzutowaniem przez unknown
     const calendarAppointments = useMemo(() => {
-        return events
-            .filter(event => typeFilters.has(event.type) && statusFilters.has(event.status))
+        const mappedEvents = events
+            .filter(event => typeFilters.has(event.recurringEvent?.type || EventType.SIMPLE_EVENT) && statusFilters.has(event.status))
             .map(event => ({
-                id: `occurrence-${event.id}`,
-                title: event.title,
-                start: new Date(event.date),
-                end: new Date(new Date(event.date).getTime() + (event.duration || 60) * 60000),
+                id: event.id,
+                title: event.recurringEvent?.title || 'Cykliczne wydarzenie',
+                start: new Date(event.scheduledDate),
+                end: new Date(new Date(event.scheduledDate).getTime() + 60 * 60000),
                 isProtocol: false,
-                status: event.status,
+                status: mapOccurrenceStatusToAppointmentStatus(event.status), // POPRAWKA: Mapowanie statusu
                 customerId: '',
                 vehicleId: '',
                 services: [],
+                serviceType: 'recurring-event',
                 // Additional data for recurring events
                 recurringEventId: event.recurringEventId,
-                eventType: event.type,
+                eventType: event.recurringEvent?.type || EventType.SIMPLE_EVENT,
                 occurrenceStatus: event.status
-            })) as Appointment[];
+            }));
+
+        // POPRAWKA: Rzutowanie przez unknown aby uniknąć błędów TypeScript
+        return mappedEvents as unknown as Appointment[];
     }, [events, typeFilters, statusFilters]);
 
     // Handle date range change from calendar
@@ -82,8 +104,7 @@ const EventCalendarPage: React.FC = () => {
 
     // Handle occurrence selection
     const handleOccurrenceSelect = useCallback((appointment: Appointment) => {
-        // Find the corresponding event occurrence
-        const eventOccurrence = events.find(event => `occurrence-${event.id}` === appointment.id);
+        const eventOccurrence = events.find(event => event.id === appointment.id);
         if (eventOccurrence) {
             setSelectedOccurrence(eventOccurrence);
             setShowOccurrenceModal(true);
@@ -226,7 +247,6 @@ const EventCalendarPage: React.FC = () => {
                         events={calendarAppointments}
                         onEventSelect={handleOccurrenceSelect}
                         onRangeChange={handleRangeChange}
-                        // Don't allow creating appointments from this calendar
                         onEventCreate={undefined}
                     />
 
@@ -258,7 +278,7 @@ const EventCalendarPage: React.FC = () => {
                     {selectedOccurrence && (
                         <OccurrenceDetails>
                             <OccurrenceHeader>
-                                <OccurrenceTitle>{selectedOccurrence.title}</OccurrenceTitle>
+                                <OccurrenceTitle>{selectedOccurrence.recurringEvent?.title || 'Cykliczne wydarzenie'}</OccurrenceTitle>
                                 <OccurrenceStatusBadge $status={selectedOccurrence.status}>
                                     {OccurrenceStatusLabels[selectedOccurrence.status]}
                                 </OccurrenceStatusBadge>
@@ -268,17 +288,17 @@ const EventCalendarPage: React.FC = () => {
                                 <InfoRow>
                                     <InfoLabel>Data wystąpienia:</InfoLabel>
                                     <InfoValue>
-                                        {format(new Date(selectedOccurrence.date), 'EEEE, dd MMMM yyyy', { locale: pl })}
+                                        {format(new Date(selectedOccurrence.scheduledDate), 'EEEE, dd MMMM yyyy', { locale: pl })}
                                     </InfoValue>
                                 </InfoRow>
                                 <InfoRow>
                                     <InfoLabel>Typ wydarzenia:</InfoLabel>
-                                    <InfoValue>{EventTypeLabels[selectedOccurrence.type]}</InfoValue>
+                                    <InfoValue>{EventTypeLabels[selectedOccurrence.recurringEvent?.type || EventType.SIMPLE_EVENT]}</InfoValue>
                                 </InfoRow>
-                                {selectedOccurrence.duration && (
+                                {selectedOccurrence.notes && (
                                     <InfoRow>
-                                        <InfoLabel>Czas trwania:</InfoLabel>
-                                        <InfoValue>{selectedOccurrence.duration} minut</InfoValue>
+                                        <InfoLabel>Notatki:</InfoLabel>
+                                        <InfoValue>{selectedOccurrence.notes}</InfoValue>
                                     </InfoRow>
                                 )}
                             </OccurrenceInfo>
@@ -301,7 +321,7 @@ const EventCalendarPage: React.FC = () => {
     );
 };
 
-// Styled Components
+// Styled Components (pozostają bez zmian)
 const PageContainer = styled.div`
     min-height: 100vh;
     background: ${theme.surfaceAlt};

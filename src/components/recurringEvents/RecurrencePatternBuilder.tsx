@@ -1,7 +1,8 @@
-// src/components/recurringEvents/RecurrencePatternBuilder.tsx
+// src/components/recurringEvents/RecurrencePatternBuilder.tsx - NAPRAWIONE
 /**
  * Advanced Recurrence Pattern Builder Component
  * Provides intuitive interface for creating complex recurring patterns
+ * POPRAWKA: Usunięto odwołania do nieistniejących pól w preview
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -367,7 +368,7 @@ const RecurrencePatternBuilder: React.FC<RecurrencePatternBuilderProps> = ({
                     </ValidationSection>
                 )}
 
-                {/* Preview Section */}
+                {/* Preview Section - POPRAWKA: Usunięto odwołanie do lastOccurrence */}
                 {showPreview && isValidPattern(localPattern) && (
                     <PreviewSection>
                         <PreviewHeader>
@@ -397,18 +398,7 @@ const RecurrencePatternBuilder: React.FC<RecurrencePatternBuilderProps> = ({
                                             )}
                                         </SummaryValue>
                                     </SummaryItem>
-                                    {preview.lastOccurrence && (
-                                        <SummaryItem>
-                                            <SummaryLabel>Ostatnie wystąpienie:</SummaryLabel>
-                                            <SummaryValue>
-                                                {format(
-                                                    new Date(preview.lastOccurrence),
-                                                    'dd MMMM yyyy, EEEE',
-                                                    { locale: pl }
-                                                )}
-                                            </SummaryValue>
-                                        </SummaryItem>
-                                    )}
+                                    {/* POPRAWKA: Usunięto lastOccurrence, bo nie istnieje w typie */}
                                 </PreviewSummary>
 
                                 <PreviewDates>
@@ -437,7 +427,7 @@ const RecurrencePatternBuilder: React.FC<RecurrencePatternBuilderProps> = ({
     );
 };
 
-// Styled Components
+// Styled Components (pozostaną bez zmian - kopiuję z oryginalnego pliku)
 const PatternBuilderContainer = styled.div`
     background: ${theme.surface};
     border: 1px solid ${theme.border};
@@ -632,7 +622,7 @@ const DayOfMonthHint = styled.div`
     gap: ${theme.spacing.sm};
     font-size: 13px;
     color: ${theme.text.tertiary};
-    
+
     svg {
         color: ${theme.primary};
     }
@@ -738,7 +728,7 @@ const ValidationTitle = styled.div<{ $type: 'error' | 'warning' }>`
     font-weight: 600;
     color: ${props => props.$type === 'error' ? theme.error : theme.warning};
     margin-bottom: ${theme.spacing.md};
-    
+
     svg {
         font-size: 14px;
     }
@@ -777,7 +767,7 @@ const PreviewTitle = styled.h5`
     font-weight: 600;
     color: ${theme.text.primary};
     margin: 0;
-    
+
     svg {
         color: ${theme.primary};
         font-size: 14px;

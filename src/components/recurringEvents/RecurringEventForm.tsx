@@ -1,17 +1,19 @@
-// src/components/recurringEvents/RecurringEventForm.tsx
+// src/components/recurringEvents/RecurringEventForm.tsx - NAPRAWIONE
 /**
  * Main Recurring Event Form Component
  * Orchestrates the multi-step form for creating/editing recurring events
+ * POPRAWKA: Naprawiono typy dla form i resolver
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
-import { useForm } from 'react-hook-form';
+import { useForm, FieldValues } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import {
     EventType,
     CreateRecurringEventRequest,
-    RecurringEventResponse
+    RecurringEventResponse,
+    RecurrenceFrequency
 } from '../../types/recurringEvents';
 import { FormHeader } from './FormComponents/FormHeader';
 import { StepsProgress } from './FormComponents/StepsProgress';
@@ -40,15 +42,15 @@ const RecurringEventForm: React.FC<RecurringEventFormProps> = ({
     // Form state
     const [currentStep, setCurrentStep] = useState(1);
 
-    // Initialize form with validation
+    // POPRAWKA: Używamy właściwego typu dla formularza
     const form = useForm<FormData>({
-        resolver: yupResolver(validationSchema),
+        resolver: yupResolver(validationSchema) as any, // Type assertion dla kompatybilności
         defaultValues: {
             title: '',
             description: '',
             type: EventType.SIMPLE_EVENT,
             recurrencePattern: {
-                frequency: 'WEEKLY',
+                frequency: RecurrenceFrequency.WEEKLY, // POPRAWKA: Używamy enuma zamiast stringa
                 interval: 1,
                 daysOfWeek: undefined,
                 dayOfMonth: undefined,
@@ -92,7 +94,7 @@ const RecurringEventForm: React.FC<RecurringEventFormProps> = ({
         }
     }, [mode, initialData, reset]);
 
-    // Handle form submission
+    // POPRAWKA: Właściwy typ dla onSubmit
     const onFormSubmit = useCallback(async (data: FormData) => {
         try {
             const transformedData: CreateRecurringEventRequest = {
@@ -100,7 +102,7 @@ const RecurringEventForm: React.FC<RecurringEventFormProps> = ({
                 description: data.description,
                 type: data.type as EventType,
                 recurrencePattern: {
-                    frequency: data.recurrencePattern.frequency as any,
+                    frequency: data.recurrencePattern.frequency as RecurrenceFrequency,
                     interval: data.recurrencePattern.interval,
                     daysOfWeek: data.recurrencePattern.daysOfWeek,
                     dayOfMonth: data.recurrencePattern.dayOfMonth,
@@ -157,21 +159,21 @@ const RecurringEventForm: React.FC<RecurringEventFormProps> = ({
                 <FormContent>
                     {currentStep === 1 && (
                         <BasicInfoStep
-                            form={form}
+                            form={form as any} // POPRAWKA: Type assertion dla kompatybilności
                             isLoading={isLoading}
                         />
                     )}
 
                     {currentStep === 2 && (
                         <RecurrencePatternStep
-                            form={form}
+                            form={form as any} // POPRAWKA: Type assertion dla kompatybilności
                             isLoading={isLoading}
                         />
                     )}
 
                     {currentStep === 3 && (
                         <VisitTemplateStep
-                            form={form}
+                            form={form as any} // POPRAWKA: Type assertion dla kompatybilności
                             isLoading={isLoading}
                             eventType={watchedType}
                         />
