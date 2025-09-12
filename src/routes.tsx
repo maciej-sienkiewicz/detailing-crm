@@ -1,3 +1,4 @@
+// src/routes.tsx - FIXED VERSION with Toast Provider
 import React, { Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import CalendarPage from './pages/Calendar/CalendarPage';
@@ -26,6 +27,9 @@ import FinancialPageWithFixedCosts from "./pages/Finances/FinancialPageWithFixed
 import SettingsPageWithTabs from './pages/Settings/SettingsPageWithTabs';
 import ClientsVehiclesPage from './pages/Clients/ClientsVehiclesPage';
 import VehicleDetailPage from "./pages/Clients/components/VehicleDetailPage/VehicleDetailPage";
+
+// Toast Provider import
+import { ToastProvider } from './components/common/Toast/Toast';
 
 // Lazy load recurring events pages for better performance
 const RecurringEventsPage = React.lazy(() => import('./pages/RecurringEvents/RecurringEventsPage'));
@@ -70,103 +74,105 @@ const PageLoadingFallback: React.FC = () => (
 
 const AppRoutes: React.FC = () => {
     return (
-        <Routes>
-            <Route path="/login" element={<ModernLoginPage />} />
-            <Route path="/welcome" element={<OnboardingPage />} />
+        <ToastProvider>
+            <Routes>
+                <Route path="/login" element={<ModernLoginPage />} />
+                <Route path="/welcome" element={<OnboardingPage />} />
 
-            <Route element={<ProtectedRoute />}>
-                <Route path="/" element={<Navigate to="/calendar" replace />} />
+                <Route element={<ProtectedRoute />}>
+                    <Route path="/" element={<Navigate to="/calendar" replace />} />
 
-                {/* Calendar Routes */}
-                <Route path="/calendar" element={<CalendarPage />} />
+                    {/* Calendar Routes */}
+                    <Route path="/calendar" element={<CalendarPage />} />
 
-                {/* Activity Feed */}
-                <Route path="/activity" element={<ActivityFeedPage />} />
+                    {/* Activity Feed */}
+                    <Route path="/activity" element={<ActivityFeedPage />} />
 
-                {/* Finances */}
-                <Route path="/finances" element={<FinancialPageWithFixedCosts />} />
+                    {/* Finances */}
+                    <Route path="/finances" element={<FinancialPageWithFixedCosts />} />
 
-                {/* Clients & Vehicles */}
-                <Route path="/clients-vehicles" element={<ClientsVehiclesPage />} />
-                <Route path="/vehicle/:id" element={<VehicleDetailPage />} />
-                <Route path="/clients/owners" element={<Navigate to="/clients-vehicles?tab=owners" replace />} />
-                <Route path="/clients/vehicles" element={<Navigate to="/clients-vehicles?tab=vehicles" replace />} />
+                    {/* Clients & Vehicles */}
+                    <Route path="/clients-vehicles" element={<ClientsVehiclesPage />} />
+                    <Route path="/vehicle/:id" element={<VehicleDetailPage />} />
+                    <Route path="/clients/owners" element={<Navigate to="/clients-vehicles?tab=owners" replace />} />
+                    <Route path="/clients/vehicles" element={<Navigate to="/clients-vehicles?tab=vehicles" replace />} />
 
-                {/* Warehouse */}
-                <Route path="/warehouse" element={<PlaceholderPage title="Magazyn" />} />
+                    {/* Warehouse */}
+                    <Route path="/warehouse" element={<PlaceholderPage title="Magazyn" />} />
 
-                {/* Settings & Team */}
-                <Route path="/settings" element={<SettingsPageWithTabs />} />
-                <Route path="/team" element={<EmployeesPage />} />
+                    {/* Settings & Team */}
+                    <Route path="/settings" element={<SettingsPageWithTabs />} />
+                    <Route path="/team" element={<EmployeesPage />} />
 
-                {/* Visits/Protocols Routes */}
-                <Route path="/visits" element={<CarReceptionPage />} />
-                <Route path="/visits/:id" element={<ProtocolDetailsPage />} />
-                <Route path="/visits/:id/open" element={<StartVisitPage />} />
+                    {/* Visits/Protocols Routes */}
+                    <Route path="/visits" element={<CarReceptionPage />} />
+                    <Route path="/visits/:id" element={<ProtocolDetailsPage />} />
+                    <Route path="/visits/:id/open" element={<StartVisitPage />} />
 
-                {/* ======================================================================================== */}
-                {/* RECURRING EVENTS ROUTES - New Module */}
-                {/* ======================================================================================== */}
-                <Route path="/recurring-events" element={
-                    <Suspense fallback={<PageLoadingFallback />}>
-                        <RecurringEventsPage />
-                    </Suspense>
-                } />
+                    {/* ======================================================================================== */}
+                    {/* RECURRING EVENTS ROUTES - New Module */}
+                    {/* ======================================================================================== */}
+                    <Route path="/recurring-events" element={
+                        <Suspense fallback={<PageLoadingFallback />}>
+                            <RecurringEventsPage />
+                        </Suspense>
+                    } />
 
-                <Route path="/recurring-events/:eventId" element={
-                    <Suspense fallback={<PageLoadingFallback />}>
-                        <RecurringEventDetailsPage />
-                    </Suspense>
-                } />
+                    <Route path="/recurring-events/:eventId" element={
+                        <Suspense fallback={<PageLoadingFallback />}>
+                            <RecurringEventDetailsPage />
+                        </Suspense>
+                    } />
 
-                <Route path="/recurring-events/:eventId/occurrences" element={
-                    <Suspense fallback={<PageLoadingFallback />}>
-                        <RecurringEventOccurrencesPage />
-                    </Suspense>
-                } />
+                    <Route path="/recurring-events/:eventId/occurrences" element={
+                        <Suspense fallback={<PageLoadingFallback />}>
+                            <RecurringEventOccurrencesPage />
+                        </Suspense>
+                    } />
 
-                {/* Enhanced Calendar for Events */}
-                <Route path="/calendar/events" element={
-                    <Suspense fallback={<PageLoadingFallback />}>
-                        <EventCalendarPage />
-                    </Suspense>
-                } />
+                    {/* Enhanced Calendar for Events */}
+                    <Route path="/calendar/events" element={
+                        <Suspense fallback={<PageLoadingFallback />}>
+                            <EventCalendarPage />
+                        </Suspense>
+                    } />
 
-                {/* SMS Routes */}
-                <Route path="/sms" element={<SmsMainPage />} />
-                <Route path="/sms/dashboard" element={<Navigate to="/sms" replace />} />
-                <Route path="/sms/messages" element={<SmsMainPage />} />
-                <Route path="/sms/templates" element={<SmsMainPage />} />
-                <Route path="/sms/campaigns" element={<SmsMainPage />} />
-                <Route path="/sms/automations" element={<SmsMainPage />} />
-                <Route path="/sms/stats" element={<SmsMainPage />} />
-                <Route path="/sms/settings" element={<SmsMainPage />} />
+                    {/* SMS Routes */}
+                    <Route path="/sms" element={<SmsMainPage />} />
+                    <Route path="/sms/dashboard" element={<Navigate to="/sms" replace />} />
+                    <Route path="/sms/messages" element={<SmsMainPage />} />
+                    <Route path="/sms/templates" element={<SmsMainPage />} />
+                    <Route path="/sms/campaigns" element={<SmsMainPage />} />
+                    <Route path="/sms/automations" element={<SmsMainPage />} />
+                    <Route path="/sms/stats" element={<SmsMainPage />} />
+                    <Route path="/sms/settings" element={<SmsMainPage />} />
 
-                {/* Fleet Routes */}
-                <Route path="/fleet/vehicles" element={<FleetVehiclesPage />} />
-                <Route path="/fleet/vehicles/:id" element={<FleetVehicleDetailsPage />} />
-                <Route path="/fleet/vehicles/new" element={<FleetVehicleFormPage />} />
-                <Route path="/fleet/vehicles/edit/:id" element={<FleetVehicleFormPage />} />
-                <Route path="/fleet/vehicles/:id/maintenance/new" element={<FleetMaintenanceFormPage />} />
-                <Route path="/fleet/vehicles/:id/fuel/new" element={<FleetMaintenanceFormPage fuel />} />
-                <Route path="/fleet/calendar" element={<FleetCalendarPage />} />
-                <Route path="/fleet/rentals" element={<FleetRentalsPage />} />
-                <Route path="/fleet/rentals/:id" element={<FleetRentalDetailsPage />} />
-                <Route path="/fleet/rentals/new" element={<FleetRentalFormPage />} />
-                <Route path="/fleet/mobile/vehicle/:id" element={<FleetMobileUpdatePage />} />
-                <Route path="/fleet/mobile/rental/:id/return" element={<FleetMobileRentalReturnPage />} />
+                    {/* Fleet Routes */}
+                    <Route path="/fleet/vehicles" element={<FleetVehiclesPage />} />
+                    <Route path="/fleet/vehicles/:id" element={<FleetVehicleDetailsPage />} />
+                    <Route path="/fleet/vehicles/new" element={<FleetVehicleFormPage />} />
+                    <Route path="/fleet/vehicles/edit/:id" element={<FleetVehicleFormPage />} />
+                    <Route path="/fleet/vehicles/:id/maintenance/new" element={<FleetMaintenanceFormPage />} />
+                    <Route path="/fleet/vehicles/:id/fuel/new" element={<FleetMaintenanceFormPage fuel />} />
+                    <Route path="/fleet/calendar" element={<FleetCalendarPage />} />
+                    <Route path="/fleet/rentals" element={<FleetRentalsPage />} />
+                    <Route path="/fleet/rentals/:id" element={<FleetRentalDetailsPage />} />
+                    <Route path="/fleet/rentals/new" element={<FleetRentalFormPage />} />
+                    <Route path="/fleet/mobile/vehicle/:id" element={<FleetMobileUpdatePage />} />
+                    <Route path="/fleet/mobile/rental/:id/return" element={<FleetMobileRentalReturnPage />} />
 
-                {/* Gallery */}
-                <Route path="/gallery" element={<GalleryPage />} />
+                    {/* Gallery */}
+                    <Route path="/gallery" element={<GalleryPage />} />
 
-                {/* Tablets */}
-                <Route path="/tablets" element={<TabletIntegrationPage />} />
+                    {/* Tablets */}
+                    <Route path="/tablets" element={<TabletIntegrationPage />} />
 
-            </Route>
+                </Route>
 
-            {/* Fallback route */}
-            <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
+                {/* Fallback route */}
+                <Route path="*" element={<Navigate to="/login" replace />} />
+            </Routes>
+        </ToastProvider>
     );
 };
 

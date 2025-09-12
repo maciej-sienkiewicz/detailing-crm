@@ -2,6 +2,7 @@
 /**
  * Production-ready API service for Recurring Events module
  * Handles all recurring events, occurrences, and calendar operations
+ * SIMPLIFIED - uses apiClientNew's automatic snake_case conversion
  */
 
 import { apiClientNew, ApiError, PaginatedApiResponse, PaginationParams } from './apiClientNew';

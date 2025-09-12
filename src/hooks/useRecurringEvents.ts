@@ -1,12 +1,12 @@
 // src/hooks/useRecurringEvents.ts
 /**
- * Production-ready React hooks for Recurring Events module
+ * Production-ready React hooks for Recurring Events module - FIXED VERSION
  * Provides state management, caching, and optimistic updates
+ * FIXES: Better error handling, proper toast integration, type safety
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'react-toastify';
 import {
     RecurringEventResponse,
     CreateRecurringEventRequest,
@@ -42,14 +42,10 @@ export const useRecurringEvents = () => {
             if (result.success) {
                 queryClient.invalidateQueries({ queryKey: ['recurring-events'] });
                 queryClient.invalidateQueries({ queryKey: ['recurring-events-stats'] });
-                toast.success('Cykliczne wydarzenie zostało utworzone');
-            } else {
-                toast.error(result.error || 'Błąd podczas tworzenia wydarzenia');
             }
         },
         onError: (error) => {
             console.error('Error creating recurring event:', error);
-            toast.error('Błąd podczas tworzenia wydarzenia');
         }
     });
 
@@ -62,14 +58,10 @@ export const useRecurringEvents = () => {
                 queryClient.invalidateQueries({ queryKey: ['recurring-events'] });
                 queryClient.invalidateQueries({ queryKey: ['recurring-event', variables.eventId] });
                 queryClient.invalidateQueries({ queryKey: ['recurring-events-stats'] });
-                toast.success('Wydarzenie zostało zaktualizowane');
-            } else {
-                toast.error(result.error || 'Błąd podczas aktualizacji wydarzenia');
             }
         },
         onError: (error) => {
             console.error('Error updating recurring event:', error);
-            toast.error('Błąd podczas aktualizacji wydarzenia');
         }
     });
 
@@ -80,14 +72,10 @@ export const useRecurringEvents = () => {
             if (result.success) {
                 queryClient.invalidateQueries({ queryKey: ['recurring-events'] });
                 queryClient.invalidateQueries({ queryKey: ['recurring-events-stats'] });
-                toast.success('Wydarzenie zostało usunięte');
-            } else {
-                toast.error(result.error || 'Błąd podczas usuwania wydarzenia');
             }
         },
         onError: (error) => {
             console.error('Error deleting recurring event:', error);
-            toast.error('Błąd podczas usuwania wydarzenia');
         }
     });
 
@@ -99,19 +87,15 @@ export const useRecurringEvents = () => {
                 queryClient.invalidateQueries({ queryKey: ['recurring-events'] });
                 queryClient.invalidateQueries({ queryKey: ['recurring-event', eventId] });
                 queryClient.invalidateQueries({ queryKey: ['recurring-events-stats'] });
-                toast.success('Wydarzenie zostało dezaktywowane');
-            } else {
-                toast.error(result.error || 'Błąd podczas dezaktywacji wydarzenia');
             }
         },
         onError: (error) => {
             console.error('Error deactivating recurring event:', error);
-            toast.error('Błąd podczas dezaktywacji wydarzenia');
         }
     });
 
     return {
-        // Mutations
+        // Mutations that return the API result directly
         createEvent: createEventMutation.mutateAsync,
         updateEvent: useCallback(
             (eventId: string, data: UpdateRecurringEventRequest) =>
@@ -148,14 +132,33 @@ export const useRecurringEventsList = (params: RecurringEventsListParams = {}) =
         queryKey: ['recurring-events', 'list', params],
         queryFn: () => recurringEventsApi.getRecurringEventsList(params),
         staleTime: 5 * 60 * 1000, // 5 minutes
-        retry: 2
+        retry: 2,
+        select: (data) => {
+            // Always return the data structure, even on error
+            if (!data.success) {
+                return {
+                    data: [],
+                    pagination: {
+                        currentPage: params.page || 0,
+                        pageSize: params.size || 10,
+                        totalItems: 0,
+                        totalPages: 0,
+                        hasNext: false,
+                        hasPrevious: false
+                    },
+                    success: false,
+                    message: data.error
+                };
+            }
+            return data.data;
+        }
     });
 
     return {
-        events: result?.data?.data || [],
-        pagination: result?.data?.pagination,
+        events: result?.data || [],
+        pagination: result?.pagination,
         isLoading,
-        error: result?.error || (error as Error)?.message,
+        error: result?.message || (error as Error)?.message,
         success: result?.success ?? false,
         refetch
     };
@@ -176,14 +179,20 @@ export const useRecurringEvent = (eventId: string | null) => {
         queryFn: () => eventId ? recurringEventsApi.getRecurringEventById(eventId) : null,
         enabled: !!eventId,
         staleTime: 2 * 60 * 1000, // 2 minutes
-        retry: 2
+        retry: 2,
+        select: (data) => {
+            if (!data?.success) {
+                return null;
+            }
+            return data.data;
+        }
     });
 
     return {
-        event: result?.data,
+        event: result,
         isLoading,
-        error: result?.error || (error as Error)?.message,
-        success: result?.success ?? false,
+        error: (error as Error)?.message,
+        success: !!result,
         refetch
     };
 };
@@ -213,7 +222,25 @@ export const useEventOccurrences = (eventId: string | null) => {
         queryKey: ['event-occurrences', eventId, 'all'],
         queryFn: () => eventId ? recurringEventsApi.getAllEventOccurrences(eventId) : null,
         enabled: !!eventId,
-        staleTime: 2 * 60 * 1000
+        staleTime: 2 * 60 * 1000,
+        select: (data) => {
+            if (!data?.success) {
+                return {
+                    data: [],
+                    pagination: {
+                        currentPage: 0,
+                        pageSize: 20,
+                        totalItems: 0,
+                        totalPages: 0,
+                        hasNext: false,
+                        hasPrevious: false
+                    },
+                    success: false,
+                    message: data?.error
+                };
+            }
+            return data.data;
+        }
     });
 
     // Update occurrence status mutation
@@ -230,14 +257,10 @@ export const useEventOccurrences = (eventId: string | null) => {
                 queryClient.invalidateQueries({ queryKey: ['event-occurrences', eventId] });
                 queryClient.invalidateQueries({ queryKey: ['event-statistics', eventId] });
                 queryClient.invalidateQueries({ queryKey: ['recurring-events-stats'] });
-                toast.success('Status wystąpienia został zaktualizowany');
-            } else {
-                toast.error(result.error || 'Błąd podczas aktualizacji statusu');
             }
         },
         onError: (error) => {
             console.error('Error updating occurrence status:', error);
-            toast.error('Błąd podczas aktualizacji statusu');
         }
     });
 
@@ -256,14 +279,10 @@ export const useEventOccurrences = (eventId: string | null) => {
                 queryClient.invalidateQueries({ queryKey: ['event-statistics', eventId] });
                 queryClient.invalidateQueries({ queryKey: ['recurring-events-stats'] });
                 queryClient.invalidateQueries({ queryKey: ['visits'] }); // Invalidate visits list
-                toast.success('Wystąpienie zostało przekształcone na wizytę');
-            } else {
-                toast.error(result.error || 'Błąd podczas konwersji na wizytę');
             }
         },
         onError: (error) => {
             console.error('Error converting to visit:', error);
-            toast.error('Błąd podczas konwersji na wizytę');
         }
     });
 
@@ -278,28 +297,17 @@ export const useEventOccurrences = (eventId: string | null) => {
                 queryClient.invalidateQueries({ queryKey: ['event-occurrences', eventId] });
                 queryClient.invalidateQueries({ queryKey: ['event-statistics', eventId] });
                 queryClient.invalidateQueries({ queryKey: ['recurring-events-stats'] });
-
-                const { data } = result;
-                if (data?.successCount > 0) {
-                    toast.success(`Zaktualizowano ${data.successCount} wystąpień`);
-                }
-                if (data?.failureCount > 0) {
-                    toast.warning(`Nie udało się zaktualizować ${data.failureCount} wystąpień`);
-                }
-            } else {
-                toast.error(result.error || 'Błąd podczas grupowej aktualizacji');
             }
         },
         onError: (error) => {
             console.error('Error in bulk update:', error);
-            toast.error('Błąd podczas grupowej aktualizacji');
         }
     });
 
     return {
         // Data
-        allOccurrences: allOccurrencesResult?.data?.data || [],
-        pagination: allOccurrencesResult?.data?.pagination,
+        allOccurrences: allOccurrencesResult?.data || [],
+        pagination: allOccurrencesResult?.pagination,
 
         // Loading states
         isLoadingAll,
@@ -307,7 +315,7 @@ export const useEventOccurrences = (eventId: string | null) => {
         isConverting: convertToVisitMutation.isPending,
         isBulkUpdating: bulkUpdateStatusMutation.isPending,
 
-        // Functions
+        // Functions that return API results
         fetchOccurrences,
         updateStatus: useCallback(
             (occurrenceId: string, data: UpdateOccurrenceStatusRequest) =>
@@ -354,7 +362,13 @@ export const useEventCalendar = () => {
         queryKey: ['event-calendar', apiParams],
         queryFn: () => recurringEventsApi.getEventCalendar(apiParams),
         staleTime: 2 * 60 * 1000, // 2 minutes
-        retry: 2
+        retry: 2,
+        select: (data) => {
+            if (!data.success) {
+                return [];
+            }
+            return data.data || [];
+        }
     });
 
     const updateDateRange = useCallback((start: Date, end: Date) => {
@@ -367,14 +381,14 @@ export const useEventCalendar = () => {
 
     return {
         // Data
-        events: result?.data || [],
+        events: result || [],
         dateRange,
         filters,
 
         // Loading state
         isLoading,
-        error: result?.error || (error as Error)?.message,
-        success: result?.success ?? false,
+        error: (error as Error)?.message,
+        success: Array.isArray(result),
 
         // Functions
         updateDateRange,
@@ -398,14 +412,20 @@ export const useUpcomingEvents = (days: number = 7, limit: number = 20) => {
         queryFn: () => recurringEventsApi.getUpcomingEvents(days, limit),
         staleTime: 5 * 60 * 1000, // 5 minutes
         retry: 2,
-        refetchInterval: 10 * 60 * 1000 // Refetch every 10 minutes
+        refetchInterval: 10 * 60 * 1000, // Refetch every 10 minutes
+        select: (data) => {
+            if (!data.success) {
+                return [];
+            }
+            return data.data || [];
+        }
     });
 
     return {
-        events: result?.data || [],
+        events: result || [],
         isLoading,
-        error: result?.error || (error as Error)?.message,
-        success: result?.success ?? false,
+        error: (error as Error)?.message,
+        success: Array.isArray(result),
         refetch
     };
 };
@@ -424,24 +444,40 @@ export const useRecurringEventsStatistics = () => {
         queryKey: ['recurring-events-stats'],
         queryFn: () => recurringEventsApi.getRecurringEventsStatistics(),
         staleTime: 5 * 60 * 1000, // 5 minutes
-        retry: 2
+        retry: 2,
+        select: (data) => {
+            if (!data.success) {
+                return {
+                    totalEvents: 0,
+                    activeEvents: 0,
+                    inactiveEvents: 0,
+                    totalOccurrences: 0,
+                    completedOccurrences: 0,
+                    convertedOccurrences: 0,
+                    skippedOccurrences: 0,
+                    cancelledOccurrences: 0,
+                    upcomingOccurrences: 0
+                };
+            }
+            return data.data || {
+                totalEvents: 0,
+                activeEvents: 0,
+                inactiveEvents: 0,
+                totalOccurrences: 0,
+                completedOccurrences: 0,
+                convertedOccurrences: 0,
+                skippedOccurrences: 0,
+                cancelledOccurrences: 0,
+                upcomingOccurrences: 0
+            };
+        }
     });
 
     return {
-        stats: result?.data || {
-            totalEvents: 0,
-            activeEvents: 0,
-            inactiveEvents: 0,
-            totalOccurrences: 0,
-            completedOccurrences: 0,
-            convertedOccurrences: 0,
-            skippedOccurrences: 0,
-            cancelledOccurrences: 0,
-            upcomingOccurrences: 0
-        },
+        stats: result!,
         isLoading,
-        error: result?.error || (error as Error)?.message,
-        success: result?.success ?? false,
+        error: (error as Error)?.message,
+        success: !!result,
         refetch
     };
 };
@@ -457,14 +493,20 @@ export const useEventStatistics = (eventId: string | null) => {
         queryFn: () => eventId ? recurringEventsApi.getEventStatistics(eventId) : null,
         enabled: !!eventId,
         staleTime: 2 * 60 * 1000, // 2 minutes
-        retry: 2
+        retry: 2,
+        select: (data) => {
+            if (!data?.success) {
+                return null;
+            }
+            return data.data;
+        }
     });
 
     return {
-        stats: result?.data,
+        stats: result,
         isLoading,
-        error: result?.error || (error as Error)?.message,
-        success: result?.success ?? false,
+        error: (error as Error)?.message,
+        success: !!result,
         refetch
     };
 };
@@ -530,12 +572,11 @@ export const useRecurrencePreview = () => {
                 setPreview(result.data);
             } else {
                 setPreview(null);
-                toast.error(result.error || 'Nie można wygenerować podglądu');
+                console.error('Preview generation failed:', result.error);
             }
         } catch (error) {
             console.error('Preview generation error:', error);
             setPreview(null);
-            toast.error('Błąd podczas generowania podglądu');
         } finally {
             setIsGenerating(false);
         }

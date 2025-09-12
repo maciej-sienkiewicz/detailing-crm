@@ -1,6 +1,6 @@
 // src/pages/RecurringEvents/RecurringEventsPage.tsx
 /**
- * Main Recurring Events Page
+ * Main Recurring Events Page - FIXED VERSION
  * Provides comprehensive management interface for recurring events
  */
 
@@ -18,7 +18,8 @@ import { PageHeader, PrimaryButton, SecondaryButton } from '../../components/com
 import RecurringEventsList from '../../components/recurringEvents/RecurringEventsList';
 import RecurringEventForm from '../../components/recurringEvents/RecurringEventForm';
 import Modal from '../../components/common/Modal';
-import { useRecurringEvents, useRecurringEventsStatistics } from '../../hooks/useRecurringEvents';
+import { useToast } from '../../components/common/Toast/Toast';
+import { useRecurringEvents, useRecurringEventsStatistics, useRecurringEvent } from '../../hooks/useRecurringEvents';
 import {
     RecurringEventListItem,
     CreateRecurringEventRequest,
@@ -26,7 +27,6 @@ import {
 } from '../../types/recurringEvents';
 import { theme } from '../../styles/theme';
 import { ErrorBoundary } from '../../components/common/ErrorBoundary';
-import toast, {useToast} from "../../components/common/Toast/Toast";
 
 const RecurringEventsPage: React.FC = () => {
     const navigate = useNavigate();
@@ -52,6 +52,12 @@ const RecurringEventsPage: React.FC = () => {
 
     const { stats, isLoading: isStatsLoading } = useRecurringEventsStatistics();
 
+    // For edit modal - fetch full event details
+    const {
+        event: fullEventForEdit,
+        isLoading: isLoadingEventForEdit
+    } = useRecurringEvent(selectedEvent && showEditModal ? selectedEvent.id : null);
+
     // Event handlers
     const handleCreateClick = useCallback(() => {
         setShowCreateModal(true);
@@ -72,15 +78,15 @@ const RecurringEventsPage: React.FC = () => {
         try {
             const result = await deactivateEvent(eventId);
             if (result.success) {
-                showToast('info', 'Wydarzenie zostało dezaktywowane');
+                showToast('success', 'Wydarzenie zostało dezaktywowane');
             } else {
-                showToast('info',  'Błąd podczas dezaktywacji wydarzenia');
+                showToast('error', result.error || 'Błąd podczas dezaktywacji wydarzenia');
             }
         } catch (error) {
             console.error('Error deactivating event:', error);
-            showToast('info', 'Błąd podczas dezaktywacji wydarzenia');
+            showToast('error', 'Błąd podczas dezaktywacji wydarzenia');
         }
-    }, [deactivateEvent]);
+    }, [deactivateEvent, showToast]);
 
     const handleViewOccurrences = useCallback((eventId: string) => {
         navigate(`/recurring-events/${eventId}/occurrences`);
@@ -96,15 +102,15 @@ const RecurringEventsPage: React.FC = () => {
             const result = await createEvent(data);
             if (result.success) {
                 setShowCreateModal(false);
-                showToast('info', 'Cykliczne wydarzenie zostało utworzone');
+                showToast('success', 'Cykliczne wydarzenie zostało utworzone');
             } else {
-                showToast('info', 'Błąd podczas tworzenia wydarzenia');
+                showToast('error', result.error || 'Błąd podczas tworzenia wydarzenia');
             }
         } catch (error) {
             console.error('Error creating event:', error);
-            showToast('info','Błąd podczas tworzenia wydarzenia');
+            showToast('error', 'Błąd podczas tworzenia wydarzenia');
         }
-    }, [createEvent]);
+    }, [createEvent, showToast]);
 
     const handleEditSubmit = useCallback(async (data: CreateRecurringEventRequest) => {
         if (!selectedEvent) return;
@@ -114,15 +120,15 @@ const RecurringEventsPage: React.FC = () => {
             if (result.success) {
                 setShowEditModal(false);
                 setSelectedEvent(null);
-                 showToast('info', 'Wydarzenie zostało zaktualizowane');
+                showToast('success', 'Wydarzenie zostało zaktualizowane');
             } else {
-                showToast('info', 'Błąd podczas aktualizacji wydarzenia');
+                showToast('error', result.error || 'Błąd podczas aktualizacji wydarzenia');
             }
         } catch (error) {
             console.error('Error updating event:', error);
-             showToast('info', 'Błąd podczas aktualizacji wydarzenia');
+            showToast('error', 'Błąd podczas aktualizacji wydarzenia');
         }
-    }, [selectedEvent, updateEvent]);
+    }, [selectedEvent, updateEvent, showToast]);
 
     const handleDeleteConfirm = useCallback(async () => {
         if (!selectedEvent) return;
@@ -132,15 +138,15 @@ const RecurringEventsPage: React.FC = () => {
             if (result.success) {
                 setShowDeleteModal(false);
                 setSelectedEvent(null);
-                 showToast('info', 'Wydarzenie zostało usunięte');
+                showToast('success', 'Wydarzenie zostało usunięte');
             } else {
-                showToast('info', 'Błąd podczas usuwania wydarzenia');
+                showToast('error', result.error || 'Błąd podczas usuwania wydarzenia');
             }
         } catch (error) {
             console.error('Error deleting event:', error);
-             showToast('info', 'Błąd podczas usuwania wydarzenia');
+            showToast('error', 'Błąd podczas usuwania wydarzenia');
         }
-    }, [selectedEvent, deleteEvent]);
+    }, [selectedEvent, deleteEvent, showToast]);
 
     // Modal close handlers
     const handleCloseCreateModal = useCallback(() => {
@@ -267,15 +273,27 @@ const RecurringEventsPage: React.FC = () => {
                     title=""
                     size="lg"
                 >
-                    {selectedEvent && (
+                    {isLoadingEventForEdit ? (
+                        <EditModalLoading>
+                            <LoadingSpinner />
+                            <LoadingText>Ładowanie danych wydarzenia...</LoadingText>
+                        </EditModalLoading>
+                    ) : fullEventForEdit ? (
                         <RecurringEventForm
                             mode="edit"
-                            // Note: We would need to fetch full event details here
-                            // For now, we'll handle this with a separate component or fetch
+                            initialData={fullEventForEdit}
                             onSubmit={handleEditSubmit}
                             onCancel={handleCloseEditModal}
                             isLoading={isUpdating}
                         />
+                    ) : (
+                        <EditModalError>
+                            <ErrorIcon>⚠️</ErrorIcon>
+                            <ErrorText>Nie można załadować danych wydarzenia</ErrorText>
+                            <SecondaryButton onClick={handleCloseEditModal}>
+                                Zamknij
+                            </SecondaryButton>
+                        </EditModalError>
                     )}
                 </Modal>
 
@@ -470,6 +488,53 @@ const ContentSection = styled.section`
     }
 `;
 
+const EditModalLoading = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: ${theme.spacing.lg};
+    padding: ${theme.spacing.xxxl};
+`;
+
+const LoadingSpinner = styled.div`
+    width: 40px;
+    height: 40px;
+    border: 3px solid ${theme.borderLight};
+    border-top: 3px solid ${theme.primary};
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+`;
+
+const LoadingText = styled.div`
+    font-size: 16px;
+    color: ${theme.text.tertiary};
+    font-weight: 500;
+`;
+
+const EditModalError = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: ${theme.spacing.xl};
+    padding: ${theme.spacing.xxxl};
+    text-align: center;
+`;
+
+const ErrorIcon = styled.div`
+    font-size: 48px;
+`;
+
+const ErrorText = styled.div`
+    font-size: 16px;
+    color: ${theme.error};
+    font-weight: 500;
+`;
+
 const DeleteConfirmationContent = styled.div`
     display: flex;
     flex-direction: column;
@@ -560,10 +625,6 @@ const ErrorCard = styled.div`
     text-align: center;
     max-width: 500px;
     width: 100%;
-`;
-
-const ErrorIcon = styled.div`
-    font-size: 64px;
 `;
 
 const ErrorTitle = styled.h1`
