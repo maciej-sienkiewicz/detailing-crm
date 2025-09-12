@@ -1,8 +1,7 @@
 // src/hooks/useRecurringEvents.ts
 /**
- * Production-ready React hooks for Recurring Events module - FIXED VERSION
- * Provides state management, caching, and optimistic updates
- * FIXES: Better error handling, proper toast integration, type safety
+ * Updated React hooks for Recurring Events module
+ * UPDATED TO MATCH ACTUAL SERVER API
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -16,16 +15,18 @@ import {
     UpdateOccurrenceStatusRequest,
     RecurringEventListItem,
     RecurringEventsListParams,
-    EventCalendarItem,
     EventCalendarParams,
     RecurringEventStatistics,
-    EventOccurrenceStatistics,
-    BulkOccurrenceUpdate,
-    RecurrencePreview,
-    PatternValidationResult,
     OccurrenceStatus
 } from '../types/recurringEvents';
 import { recurringEventsApi } from '../api/recurringEventsApi';
+
+// API Result wrapper for consistent return types
+interface ApiResult<T> {
+    success: boolean;
+    data?: T;
+    error?: string;
+}
 
 // ========================================================================================
 // MAIN RECURRING EVENTS HOOK
@@ -36,13 +37,10 @@ export const useRecurringEvents = () => {
 
     // Create event mutation
     const createEventMutation = useMutation({
-        mutationFn: (data: CreateRecurringEventRequest) =>
-            recurringEventsApi.createRecurringEvent(data),
-        onSuccess: (result) => {
-            if (result.success) {
-                queryClient.invalidateQueries({ queryKey: ['recurring-events'] });
-                queryClient.invalidateQueries({ queryKey: ['recurring-events-stats'] });
-            }
+        mutationFn: (data: CreateRecurringEventRequest) => recurringEventsApi.createRecurringEvent(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['recurring-events'] });
+            queryClient.invalidateQueries({ queryKey: ['recurring-events-stats'] });
         },
         onError: (error) => {
             console.error('Error creating recurring event:', error);
@@ -53,12 +51,10 @@ export const useRecurringEvents = () => {
     const updateEventMutation = useMutation({
         mutationFn: ({ eventId, data }: { eventId: string; data: UpdateRecurringEventRequest }) =>
             recurringEventsApi.updateRecurringEvent(eventId, data),
-        onSuccess: (result, variables) => {
-            if (result.success) {
-                queryClient.invalidateQueries({ queryKey: ['recurring-events'] });
-                queryClient.invalidateQueries({ queryKey: ['recurring-event', variables.eventId] });
-                queryClient.invalidateQueries({ queryKey: ['recurring-events-stats'] });
-            }
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['recurring-events'] });
+            queryClient.invalidateQueries({ queryKey: ['recurring-event', variables.eventId] });
+            queryClient.invalidateQueries({ queryKey: ['recurring-events-stats'] });
         },
         onError: (error) => {
             console.error('Error updating recurring event:', error);
@@ -68,11 +64,9 @@ export const useRecurringEvents = () => {
     // Delete event mutation
     const deleteEventMutation = useMutation({
         mutationFn: (eventId: string) => recurringEventsApi.deleteRecurringEvent(eventId),
-        onSuccess: (result) => {
-            if (result.success) {
-                queryClient.invalidateQueries({ queryKey: ['recurring-events'] });
-                queryClient.invalidateQueries({ queryKey: ['recurring-events-stats'] });
-            }
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['recurring-events'] });
+            queryClient.invalidateQueries({ queryKey: ['recurring-events-stats'] });
         },
         onError: (error) => {
             console.error('Error deleting recurring event:', error);
@@ -82,28 +76,42 @@ export const useRecurringEvents = () => {
     // Deactivate event mutation
     const deactivateEventMutation = useMutation({
         mutationFn: (eventId: string) => recurringEventsApi.deactivateRecurringEvent(eventId),
-        onSuccess: (result, eventId) => {
-            if (result.success) {
-                queryClient.invalidateQueries({ queryKey: ['recurring-events'] });
-                queryClient.invalidateQueries({ queryKey: ['recurring-event', eventId] });
-                queryClient.invalidateQueries({ queryKey: ['recurring-events-stats'] });
-            }
+        onSuccess: (_, eventId) => {
+            queryClient.invalidateQueries({ queryKey: ['recurring-events'] });
+            queryClient.invalidateQueries({ queryKey: ['recurring-event', eventId] });
+            queryClient.invalidateQueries({ queryKey: ['recurring-events-stats'] });
         },
         onError: (error) => {
             console.error('Error deactivating recurring event:', error);
         }
     });
 
+    // Helper to wrap API calls with consistent result format
+    const wrapApiCall = useCallback(async <T>(apiCall: () => Promise<T>): Promise<ApiResult<T>> => {
+        try {
+            const data = await apiCall();
+            return { success: true, data };
+        } catch (error) {
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error occurred'
+            };
+        }
+    }, []);
+
     return {
-        // Mutations that return the API result directly
-        createEvent: createEventMutation.mutateAsync,
-        updateEvent: useCallback(
-            (eventId: string, data: UpdateRecurringEventRequest) =>
-                updateEventMutation.mutateAsync({ eventId, data }),
-            [updateEventMutation]
-        ),
-        deleteEvent: deleteEventMutation.mutateAsync,
-        deactivateEvent: deactivateEventMutation.mutateAsync,
+        // Wrapped mutations that return ApiResult
+        createEvent: useCallback((data: CreateRecurringEventRequest) =>
+            wrapApiCall(() => createEventMutation.mutateAsync(data)), [createEventMutation, wrapApiCall]),
+
+        updateEvent: useCallback((eventId: string, data: UpdateRecurringEventRequest) =>
+            wrapApiCall(() => updateEventMutation.mutateAsync({ eventId, data })), [updateEventMutation, wrapApiCall]),
+
+        deleteEvent: useCallback((eventId: string) =>
+            wrapApiCall(() => deleteEventMutation.mutateAsync(eventId)), [deleteEventMutation, wrapApiCall]),
+
+        deactivateEvent: useCallback((eventId: string) =>
+            wrapApiCall(() => deactivateEventMutation.mutateAsync(eventId)), [deactivateEventMutation, wrapApiCall]),
 
         // Loading states
         isCreating: createEventMutation.isPending,
@@ -132,26 +140,7 @@ export const useRecurringEventsList = (params: RecurringEventsListParams = {}) =
         queryKey: ['recurring-events', 'list', params],
         queryFn: () => recurringEventsApi.getRecurringEventsList(params),
         staleTime: 5 * 60 * 1000, // 5 minutes
-        retry: 2,
-        select: (data) => {
-            // Always return the data structure, even on error
-            if (!data.success) {
-                return {
-                    data: [],
-                    pagination: {
-                        currentPage: params.page || 0,
-                        pageSize: params.size || 10,
-                        totalItems: 0,
-                        totalPages: 0,
-                        hasNext: false,
-                        hasPrevious: false
-                    },
-                    success: false,
-                    message: data.error
-                };
-            }
-            return data.data;
-        }
+        retry: 2
     });
 
     return {
@@ -170,7 +159,7 @@ export const useRecurringEventsList = (params: RecurringEventsListParams = {}) =
 
 export const useRecurringEvent = (eventId: string | null) => {
     const {
-        data: result,
+        data: event,
         isLoading,
         error,
         refetch
@@ -179,20 +168,14 @@ export const useRecurringEvent = (eventId: string | null) => {
         queryFn: () => eventId ? recurringEventsApi.getRecurringEventById(eventId) : null,
         enabled: !!eventId,
         staleTime: 2 * 60 * 1000, // 2 minutes
-        retry: 2,
-        select: (data) => {
-            if (!data?.success) {
-                return null;
-            }
-            return data.data;
-        }
+        retry: 2
     });
 
     return {
-        event: result,
+        event,
         isLoading,
         error: (error as Error)?.message,
-        success: !!result,
+        success: !!event,
         refetch
     };
 };
@@ -207,7 +190,7 @@ export const useEventOccurrences = (eventId: string | null) => {
     // Fetch occurrences in date range
     const fetchOccurrences = useCallback(
         async (startDate: string, endDate: string) => {
-            if (!eventId) return { data: [], success: false };
+            if (!eventId) return [];
             return recurringEventsApi.getEventOccurrences(eventId, startDate, endDate);
         },
         [eventId]
@@ -222,25 +205,7 @@ export const useEventOccurrences = (eventId: string | null) => {
         queryKey: ['event-occurrences', eventId, 'all'],
         queryFn: () => eventId ? recurringEventsApi.getAllEventOccurrences(eventId) : null,
         enabled: !!eventId,
-        staleTime: 2 * 60 * 1000,
-        select: (data) => {
-            if (!data?.success) {
-                return {
-                    data: [],
-                    pagination: {
-                        currentPage: 0,
-                        pageSize: 20,
-                        totalItems: 0,
-                        totalPages: 0,
-                        hasNext: false,
-                        hasPrevious: false
-                    },
-                    success: false,
-                    message: data?.error
-                };
-            }
-            return data.data;
-        }
+        staleTime: 2 * 60 * 1000
     });
 
     // Update occurrence status mutation
@@ -252,12 +217,10 @@ export const useEventOccurrences = (eventId: string | null) => {
             if (!eventId) throw new Error('Event ID is required');
             return recurringEventsApi.updateOccurrenceStatus(eventId, occurrenceId, data);
         },
-        onSuccess: (result) => {
-            if (result.success) {
-                queryClient.invalidateQueries({ queryKey: ['event-occurrences', eventId] });
-                queryClient.invalidateQueries({ queryKey: ['event-statistics', eventId] });
-                queryClient.invalidateQueries({ queryKey: ['recurring-events-stats'] });
-            }
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['event-occurrences', eventId] });
+            queryClient.invalidateQueries({ queryKey: ['event-statistics', eventId] });
+            queryClient.invalidateQueries({ queryKey: ['recurring-events-stats'] });
         },
         onError: (error) => {
             console.error('Error updating occurrence status:', error);
@@ -273,36 +236,29 @@ export const useEventOccurrences = (eventId: string | null) => {
             if (!eventId) throw new Error('Event ID is required');
             return recurringEventsApi.convertOccurrenceToVisit(eventId, occurrenceId, data);
         },
-        onSuccess: (result) => {
-            if (result.success) {
-                queryClient.invalidateQueries({ queryKey: ['event-occurrences', eventId] });
-                queryClient.invalidateQueries({ queryKey: ['event-statistics', eventId] });
-                queryClient.invalidateQueries({ queryKey: ['recurring-events-stats'] });
-                queryClient.invalidateQueries({ queryKey: ['visits'] }); // Invalidate visits list
-            }
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['event-occurrences', eventId] });
+            queryClient.invalidateQueries({ queryKey: ['event-statistics', eventId] });
+            queryClient.invalidateQueries({ queryKey: ['recurring-events-stats'] });
+            queryClient.invalidateQueries({ queryKey: ['visits'] });
         },
         onError: (error) => {
             console.error('Error converting to visit:', error);
         }
     });
 
-    // Bulk update status mutation
-    const bulkUpdateStatusMutation = useMutation({
-        mutationFn: (data: BulkOccurrenceUpdate) => {
-            if (!eventId) throw new Error('Event ID is required');
-            return recurringEventsApi.bulkUpdateOccurrenceStatus(eventId, data);
-        },
-        onSuccess: (result) => {
-            if (result.success) {
-                queryClient.invalidateQueries({ queryKey: ['event-occurrences', eventId] });
-                queryClient.invalidateQueries({ queryKey: ['event-statistics', eventId] });
-                queryClient.invalidateQueries({ queryKey: ['recurring-events-stats'] });
-            }
-        },
-        onError: (error) => {
-            console.error('Error in bulk update:', error);
+    // Helper to wrap API calls with consistent result format
+    const wrapApiCall = useCallback(async <T>(apiCall: () => Promise<T>): Promise<ApiResult<T>> => {
+        try {
+            const data = await apiCall();
+            return { success: true, data };
+        } catch (error) {
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error occurred'
+            };
         }
-    });
+    }, []);
 
     return {
         // Data
@@ -313,21 +269,31 @@ export const useEventOccurrences = (eventId: string | null) => {
         isLoadingAll,
         isUpdatingStatus: updateStatusMutation.isPending,
         isConverting: convertToVisitMutation.isPending,
-        isBulkUpdating: bulkUpdateStatusMutation.isPending,
+        isBulkUpdating: false, // Not supported by current API
 
-        // Functions that return API results
+        // Functions that return ApiResult
         fetchOccurrences,
         updateStatus: useCallback(
             (occurrenceId: string, data: UpdateOccurrenceStatusRequest) =>
-                updateStatusMutation.mutateAsync({ occurrenceId, data }),
-            [updateStatusMutation]
+                wrapApiCall(() => updateStatusMutation.mutateAsync({ occurrenceId, data })),
+            [updateStatusMutation, wrapApiCall]
         ),
         convertToVisit: useCallback(
             (occurrenceId: string, data: ConvertToVisitRequest) =>
-                convertToVisitMutation.mutateAsync({ occurrenceId, data }),
-            [convertToVisitMutation]
+                wrapApiCall(() => convertToVisitMutation.mutateAsync({ occurrenceId, data })),
+            [convertToVisitMutation, wrapApiCall]
         ),
-        bulkUpdateStatus: bulkUpdateStatusMutation.mutateAsync,
+
+        // Bulk operations placeholder (not supported by API)
+        bulkUpdateStatus: useCallback(
+            async () => {
+                return {
+                    success: false,
+                    error: 'Bulk operations not supported by current API'
+                } as ApiResult<any>;
+            },
+            []
+        ),
 
         // Utility
         refetchAll
@@ -348,13 +314,13 @@ export const useEventCalendar = () => {
 
     // Prepare API parameters
     const apiParams = useMemo(() => ({
-        startDate: dateRange.start.toISOString().split('T')[0],
-        endDate: dateRange.end.toISOString().split('T')[0],
+        startDate: dateRange.start.toISOString().split('T')[0], // LocalDate format
+        endDate: dateRange.end.toISOString().split('T')[0],     // LocalDate format
         ...filters
     }), [dateRange, filters]);
 
     const {
-        data: result,
+        data: events,
         isLoading,
         error,
         refetch
@@ -362,13 +328,7 @@ export const useEventCalendar = () => {
         queryKey: ['event-calendar', apiParams],
         queryFn: () => recurringEventsApi.getEventCalendar(apiParams),
         staleTime: 2 * 60 * 1000, // 2 minutes
-        retry: 2,
-        select: (data) => {
-            if (!data.success) {
-                return [];
-            }
-            return data.data || [];
-        }
+        retry: 2
     });
 
     const updateDateRange = useCallback((start: Date, end: Date) => {
@@ -381,14 +341,14 @@ export const useEventCalendar = () => {
 
     return {
         // Data
-        events: result || [],
+        events: events || [],
         dateRange,
         filters,
 
         // Loading state
         isLoading,
         error: (error as Error)?.message,
-        success: Array.isArray(result),
+        success: Array.isArray(events),
 
         // Functions
         updateDateRange,
@@ -401,31 +361,25 @@ export const useEventCalendar = () => {
 // UPCOMING EVENTS HOOK
 // ========================================================================================
 
-export const useUpcomingEvents = (days: number = 7, limit: number = 20) => {
+export const useUpcomingEvents = (days: number = 7) => {
     const {
-        data: result,
+        data: events,
         isLoading,
         error,
         refetch
     } = useQuery({
-        queryKey: ['upcoming-events', days, limit],
-        queryFn: () => recurringEventsApi.getUpcomingEvents(days, limit),
+        queryKey: ['upcoming-events', days],
+        queryFn: () => recurringEventsApi.getUpcomingEvents(days),
         staleTime: 5 * 60 * 1000, // 5 minutes
         retry: 2,
-        refetchInterval: 10 * 60 * 1000, // Refetch every 10 minutes
-        select: (data) => {
-            if (!data.success) {
-                return [];
-            }
-            return data.data || [];
-        }
+        refetchInterval: 10 * 60 * 1000 // Refetch every 10 minutes
     });
 
     return {
-        events: result || [],
+        events: events || [],
         isLoading,
         error: (error as Error)?.message,
-        success: Array.isArray(result),
+        success: Array.isArray(events),
         refetch
     };
 };
@@ -436,7 +390,7 @@ export const useUpcomingEvents = (days: number = 7, limit: number = 20) => {
 
 export const useRecurringEventsStatistics = () => {
     const {
-        data: result,
+        data: stats,
         isLoading,
         error,
         refetch
@@ -444,47 +398,31 @@ export const useRecurringEventsStatistics = () => {
         queryKey: ['recurring-events-stats'],
         queryFn: () => recurringEventsApi.getRecurringEventsStatistics(),
         staleTime: 5 * 60 * 1000, // 5 minutes
-        retry: 2,
-        select: (data) => {
-            if (!data.success) {
-                return {
-                    totalEvents: 0,
-                    activeEvents: 0,
-                    inactiveEvents: 0,
-                    totalOccurrences: 0,
-                    completedOccurrences: 0,
-                    convertedOccurrences: 0,
-                    skippedOccurrences: 0,
-                    cancelledOccurrences: 0,
-                    upcomingOccurrences: 0
-                };
-            }
-            return data.data || {
-                totalEvents: 0,
-                activeEvents: 0,
-                inactiveEvents: 0,
-                totalOccurrences: 0,
-                completedOccurrences: 0,
-                convertedOccurrences: 0,
-                skippedOccurrences: 0,
-                cancelledOccurrences: 0,
-                upcomingOccurrences: 0
-            };
-        }
+        retry: 2
     });
 
     return {
-        stats: result!,
+        stats: stats || {
+            totalEvents: 0,
+            activeEvents: 0,
+            inactiveEvents: 0,
+            totalOccurrences: 0,
+            completedOccurrences: 0,
+            convertedOccurrences: 0,
+            skippedOccurrences: 0,
+            cancelledOccurrences: 0,
+            upcomingOccurrences: 0
+        },
         isLoading,
         error: (error as Error)?.message,
-        success: !!result,
+        success: !!stats,
         refetch
     };
 };
 
 export const useEventStatistics = (eventId: string | null) => {
     const {
-        data: result,
+        data: rawStats,
         isLoading,
         error,
         refetch
@@ -493,45 +431,83 @@ export const useEventStatistics = (eventId: string | null) => {
         queryFn: () => eventId ? recurringEventsApi.getEventStatistics(eventId) : null,
         enabled: !!eventId,
         staleTime: 2 * 60 * 1000, // 2 minutes
-        retry: 2,
-        select: (data) => {
-            if (!data?.success) {
-                return null;
-            }
-            return data.data;
-        }
+        retry: 2
     });
 
+    // Convert server stats format to frontend format
+    const stats = useMemo(() => {
+        if (!rawStats) return null;
+
+        return {
+            eventId: eventId || '',
+            totalOccurrences: rawStats.total,
+            completedOccurrences: rawStats.completed,
+            convertedOccurrences: 0, // Not available from current API
+            skippedOccurrences: rawStats.pending, // Mapping pending to skipped for now
+            cancelledOccurrences: rawStats.cancelled,
+            completionRate: rawStats.total > 0 ? rawStats.completed / rawStats.total : 0,
+            conversionRate: 0, // Not available from current API
+            averageTimeToCompletion: undefined,
+            lastOccurrenceDate: undefined,
+            nextOccurrenceDate: undefined
+        };
+    }, [rawStats, eventId]);
+
     return {
-        stats: result,
+        stats,
         isLoading,
         error: (error as Error)?.message,
-        success: !!result,
+        success: !!stats,
         refetch
     };
 };
 
 // ========================================================================================
-// PATTERN VALIDATION HOOK
+// PATTERN VALIDATION HOOK (CLIENT-SIDE)
 // ========================================================================================
 
 export const usePatternValidation = () => {
-    const [validationResult, setValidationResult] = useState<PatternValidationResult | null>(null);
+    const [validationResult, setValidationResult] = useState<{
+        isValid: boolean;
+        errors: Array<{ field: string; message: string }>;
+        warnings: string[];
+    } | null>(null);
     const [isValidating, setIsValidating] = useState(false);
 
     const validatePattern = useCallback(async (pattern: any) => {
         setIsValidating(true);
         try {
-            const result = await recurringEventsApi.validateRecurrencePattern(pattern);
-            if (result.success && result.data) {
-                setValidationResult(result.data);
-            } else {
-                setValidationResult({
-                    isValid: false,
-                    errors: [{ field: 'pattern', message: result.error || 'Validation failed' }],
-                    warnings: []
-                });
+            // Client-side validation since server doesn't provide this endpoint
+            const errors: Array<{ field: string; message: string }> = [];
+            const warnings: string[] = [];
+
+            // Basic validation logic
+            if (!pattern.frequency) {
+                errors.push({ field: 'frequency', message: 'Frequency is required' });
             }
+
+            if (!pattern.interval || pattern.interval < 1) {
+                errors.push({ field: 'interval', message: 'Interval must be at least 1' });
+            }
+
+            if (pattern.frequency === 'WEEKLY' && (!pattern.daysOfWeek || pattern.daysOfWeek.length === 0)) {
+                errors.push({ field: 'daysOfWeek', message: 'Days of week required for weekly frequency' });
+            }
+
+            if (pattern.frequency === 'MONTHLY' && !pattern.dayOfMonth) {
+                errors.push({ field: 'dayOfMonth', message: 'Day of month required for monthly frequency' });
+            }
+
+            if (pattern.endDate && pattern.maxOccurrences) {
+                warnings.push('Both end date and max occurrences are set - end date will take precedence');
+            }
+
+            setValidationResult({
+                isValid: errors.length === 0,
+                errors,
+                warnings
+            });
+
         } catch (error) {
             console.error('Pattern validation error:', error);
             setValidationResult({
@@ -557,23 +533,59 @@ export const usePatternValidation = () => {
 };
 
 // ========================================================================================
-// RECURRENCE PREVIEW HOOK
+// RECURRENCE PREVIEW HOOK (CLIENT-SIDE)
 // ========================================================================================
 
 export const useRecurrencePreview = () => {
-    const [preview, setPreview] = useState<RecurrencePreview | null>(null);
+    const [preview, setPreview] = useState<{
+        dates: string[];
+        totalCount: number;
+        firstOccurrence: string;
+        hasEndDate: boolean;
+        warnings: string[];
+    } | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
 
     const generatePreview = useCallback(async (pattern: any, maxPreview: number = 10) => {
         setIsGenerating(true);
         try {
-            const result = await recurringEventsApi.getRecurrencePreview(pattern, maxPreview);
-            if (result.success && result.data) {
-                setPreview(result.data);
-            } else {
-                setPreview(null);
-                console.error('Preview generation failed:', result.error);
+            // Client-side preview generation since server doesn't provide this endpoint
+            const dates: string[] = [];
+            let currentDate = new Date();
+            const endDate = pattern.endDate ? new Date(pattern.endDate) : null;
+            const maxOccurrences = pattern.maxOccurrences || maxPreview;
+
+            // Simple preview generation logic
+            for (let i = 0; i < Math.min(maxPreview, maxOccurrences); i++) {
+                if (endDate && currentDate > endDate) break;
+
+                dates.push(currentDate.toISOString().split('T')[0]);
+
+                // Increment based on frequency
+                switch (pattern.frequency) {
+                    case 'DAILY':
+                        currentDate.setDate(currentDate.getDate() + (pattern.interval || 1));
+                        break;
+                    case 'WEEKLY':
+                        currentDate.setDate(currentDate.getDate() + (pattern.interval || 1) * 7);
+                        break;
+                    case 'MONTHLY':
+                        currentDate.setMonth(currentDate.getMonth() + (pattern.interval || 1));
+                        break;
+                    case 'YEARLY':
+                        currentDate.setFullYear(currentDate.getFullYear() + (pattern.interval || 1));
+                        break;
+                }
             }
+
+            setPreview({
+                dates,
+                totalCount: pattern.maxOccurrences || dates.length,
+                firstOccurrence: dates[0] || '',
+                hasEndDate: !!pattern.endDate,
+                warnings: []
+            });
+
         } catch (error) {
             console.error('Preview generation error:', error);
             setPreview(null);

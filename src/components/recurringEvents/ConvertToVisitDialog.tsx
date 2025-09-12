@@ -1,13 +1,13 @@
 // src/components/recurringEvents/ConvertToVisitDialog.tsx
 /**
- * Convert to Visit Dialog Component - FIXED VERSION
+ * Convert to Visit Dialog Component - FULLY FIXED VERSION
  * Handles conversion of event occurrences to full visits
- * FIXES: Better error handling, improved UX, proper type safety
+ * FIXES: TypeScript errors, better error handling, improved UX, proper type safety
  */
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import styled from 'styled-components';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, SubmitHandler } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import {
@@ -48,8 +48,8 @@ interface ConvertFormData {
     notes: string;
 }
 
-// Enhanced validation schema with better error messages
-const validationSchema = yup.object({
+// Enhanced validation schema with better error messages and proper typing
+const validationSchema: yup.ObjectSchema<ConvertFormData> = yup.object().shape({
     clientId: yup
         .number()
         .required('Wybór klienta jest wymagany')
@@ -64,7 +64,7 @@ const validationSchema = yup.object({
 
     additionalServices: yup
         .array()
-        .of(yup.object({
+        .of(yup.object().shape({
             name: yup
                 .string()
                 .required('Nazwa usługi jest wymagana')
@@ -79,13 +79,15 @@ const validationSchema = yup.object({
                     if (typeof value !== 'number') return true;
                     return Number.isInteger(value * 100);
                 })
-        }))
-        .optional(),
+        }).required())
+        .required()
+        .default([]),
 
     notes: yup
         .string()
         .max(500, 'Notatki mogą mieć maksymalnie 500 znaków')
-        .optional()
+        .required()
+        .default('')
 });
 
 const ConvertToVisitDialog: React.FC<ConvertToVisitDialogProps> = ({
@@ -98,7 +100,7 @@ const ConvertToVisitDialog: React.FC<ConvertToVisitDialogProps> = ({
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { showToast } = useToast();
 
-    // Form setup
+    // Form setup with explicit typing
     const {
         control,
         handleSubmit,
@@ -124,12 +126,13 @@ const ConvertToVisitDialog: React.FC<ConvertToVisitDialogProps> = ({
     // Reset form when dialog opens or template changes
     useEffect(() => {
         if (open) {
-            reset({
+            const defaultValues: ConvertFormData = {
                 clientId: visitTemplate?.clientId || 0,
                 vehicleId: visitTemplate?.vehicleId || 0,
                 additionalServices: [],
                 notes: visitTemplate?.notes || ''
-            });
+            };
+            reset(defaultValues);
             clearErrors();
         }
     }, [open, visitTemplate, reset, clearErrors]);
@@ -140,14 +143,14 @@ const ConvertToVisitDialog: React.FC<ConvertToVisitDialogProps> = ({
         setValue('additionalServices', [
             ...currentServices,
             { name: '', basePrice: 0 }
-        ]);
+        ] as ConvertFormData['additionalServices']);
     }, [watchedServices, setValue]);
 
     // Remove additional service
     const removeAdditionalService = useCallback((index: number) => {
         const currentServices = watchedServices || [];
         const newServices = currentServices.filter((_, i) => i !== index);
-        setValue('additionalServices', newServices);
+        setValue('additionalServices', newServices as ConvertFormData['additionalServices']);
     }, [watchedServices, setValue]);
 
     // Calculate total estimated cost
@@ -170,8 +173,8 @@ const ConvertToVisitDialog: React.FC<ConvertToVisitDialogProps> = ({
     // Memoized cost calculation for performance
     const totalCost = useMemo(() => calculateTotalCost(), [calculateTotalCost]);
 
-    // Handle form submission
-    const onSubmit = useCallback(async (data: ConvertFormData) => {
+    // Handle form submission with explicit typing
+    const onSubmit: SubmitHandler<ConvertFormData> = useCallback(async (data: ConvertFormData) => {
         if (isSubmitting) return; // Prevent double submission
 
         setIsSubmitting(true);

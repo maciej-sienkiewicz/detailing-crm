@@ -1,35 +1,35 @@
 // src/types/recurringEvents.ts
 /**
  * TypeScript types for Recurring Events module
- * Based on the API specification and frontend requirements
+ * UPDATED TO MATCH ACTUAL SERVER API
  */
 
 // ========================================================================================
-// ENUMS
+// ENUMS (Updated to match server)
 // ========================================================================================
 
 export enum EventType {
-    SIMPLE_EVENT = 'SIMPLE_EVENT',        // Pojedyncze wydarzenie (np. wymiana filtra)
-    RECURRING_VISIT = 'RECURRING_VISIT'   // Cykliczna wizyta z szablonem
+    SIMPLE_EVENT = 'SIMPLE_EVENT',
+    RECURRING_VISIT = 'RECURRING_VISIT'
 }
 
 export enum RecurrenceFrequency {
-    DAILY = 'DAILY',       // Codziennie
-    WEEKLY = 'WEEKLY',     // Tygodniowo
-    MONTHLY = 'MONTHLY',   // Miesięcznie
-    YEARLY = 'YEARLY'      // Rocznie
+    DAILY = 'DAILY',
+    WEEKLY = 'WEEKLY',
+    MONTHLY = 'MONTHLY',
+    YEARLY = 'YEARLY'
 }
 
 export enum OccurrenceStatus {
-    PLANNED = 'PLANNED',                           // Zaplanowane
-    COMPLETED = 'COMPLETED',                       // Ukończone
-    CONVERTED_TO_VISIT = 'CONVERTED_TO_VISIT',     // Przekształcone na wizytę
-    SKIPPED = 'SKIPPED',                           // Pominięte
-    CANCELLED = 'CANCELLED'                        // Anulowane
+    PLANNED = 'PLANNED',
+    COMPLETED = 'COMPLETED',
+    CONVERTED_TO_VISIT = 'CONVERTED_TO_VISIT',
+    SKIPPED = 'SKIPPED',
+    CANCELLED = 'CANCELLED'
 }
 
 // ========================================================================================
-// LABELS & COLORS
+// LABELS & COLORS (Same as before)
 // ========================================================================================
 
 export const EventTypeLabels: Record<EventType, string> = {
@@ -53,61 +53,63 @@ export const OccurrenceStatusLabels: Record<OccurrenceStatus, string> = {
 };
 
 export const OccurrenceStatusColors: Record<OccurrenceStatus, string> = {
-    [OccurrenceStatus.PLANNED]: '#3498db',           // Niebieski
-    [OccurrenceStatus.COMPLETED]: '#2ecc71',         // Zielony
-    [OccurrenceStatus.CONVERTED_TO_VISIT]: '#9b59b6', // Fioletowy
-    [OccurrenceStatus.SKIPPED]: '#95a5a6',           // Szary
-    [OccurrenceStatus.CANCELLED]: '#e74c3c'          // Czerwony
+    [OccurrenceStatus.PLANNED]: '#3498db',
+    [OccurrenceStatus.COMPLETED]: '#2ecc71',
+    [OccurrenceStatus.CONVERTED_TO_VISIT]: '#9b59b6',
+    [OccurrenceStatus.SKIPPED]: '#95a5a6',
+    [OccurrenceStatus.CANCELLED]: '#e74c3c'
 };
 
 // ========================================================================================
-// REQUEST TYPES
+// REQUEST TYPES (Updated to match server API)
 // ========================================================================================
 
 export interface RecurrencePatternRequest {
     frequency: RecurrenceFrequency;
-    interval: number;                    // Co ile jednostek powtarzać (np. co 2 tygodnie)
-    daysOfWeek?: string[];              // Dni tygodnia dla WEEKLY (np. ["MON", "FRI"])
-    dayOfMonth?: number;                // Dzień miesiąca dla MONTHLY (1-31)
-    endDate?: string;                   // Data zakończenia (ISO format)
-    maxOccurrences?: number;            // Maksymalna liczba wystąpień
+    interval: number;
+    daysOfWeek?: string[];
+    dayOfMonth?: number;
+    endDate?: string; // LocalDate format: YYYY-MM-DD
+    maxOccurrences?: number;
 }
 
 export interface ServiceTemplateRequest {
     name: string;
-    basePrice: number;
+    basePrice: number; // Maps to BigDecimal on server
 }
 
 export interface VisitTemplateRequest {
-    clientId?: number;
-    vehicleId?: number;
-    estimatedDurationMinutes: number;
+    clientId?: number; // Maps to client_id (long)
+    vehicleId?: number; // Maps to vehicle_id (long)
+    estimatedDurationMinutes: number; // Maps to estimated_duration_minutes (long)
     defaultServices: ServiceTemplateRequest[];
     notes?: string;
 }
 
 export interface CreateRecurringEventRequest {
-    title: string;
-    description?: string;
+    title: string; // max 200 chars
+    description?: string; // max 1000 chars
     type: EventType;
+    recurrencePattern: RecurrencePatternRequest; // Maps to recurrence_pattern
+    visitTemplate?: VisitTemplateRequest; // Maps to visit_template
+}
+
+export interface UpdateRecurringEventRequest {
+    title?: string;
+    description?: string;
     recurrencePattern: RecurrencePatternRequest;
     visitTemplate?: VisitTemplateRequest;
 }
 
-export interface UpdateRecurringEventRequest extends Partial<CreateRecurringEventRequest> {
-    isActive?: boolean;
-}
-
 export interface ConvertToVisitRequest {
-    clientId: number;
-    vehicleId: number;
-    additionalServices: AdditionalServiceRequest[];
+    clientId: number; // Maps to client_id (long)
+    vehicleId: number; // Maps to vehicle_id (long)
+    additionalServices: Array<{
+        name: string;
+        basePrice: number; // Maps to base_price (BigDecimal)
+        quantity?: number; // Server API supports quantity, defaults to 1
+    }>; // Maps to additional_services
     notes?: string;
-}
-
-export interface AdditionalServiceRequest {
-    name: string;
-    basePrice: number;
 }
 
 export interface UpdateOccurrenceStatusRequest {
@@ -115,12 +117,8 @@ export interface UpdateOccurrenceStatusRequest {
     notes?: string;
 }
 
-export interface AddOccurrenceNotesRequest {
-    notes: string;
-}
-
 // ========================================================================================
-// RESPONSE TYPES
+// RESPONSE TYPES (Updated to match server API)
 // ========================================================================================
 
 export interface RecurrencePatternResponse {
@@ -128,30 +126,23 @@ export interface RecurrencePatternResponse {
     interval: number;
     daysOfWeek?: string[];
     dayOfMonth?: number;
-    endDate?: string;
+    endDate?: string; // LocalDateTime from server
     maxOccurrences?: number;
-    createdAt: string;
-    updatedAt: string;
 }
 
 export interface ServiceTemplateResponse {
-    id: string;
     name: string;
-    basePrice: number;
-    createdAt: string;
+    basePrice: number; // BigDecimal from server
 }
 
 export interface VisitTemplateResponse {
-    id: string;
     clientId?: number;
-    clientName?: string;
+    clientName?: string; // Not in server API - would need separate lookup
     vehicleId?: number;
-    vehicleName?: string;
+    vehicleName?: string; // Not in server API - would need separate lookup
     estimatedDurationMinutes: number;
     defaultServices: ServiceTemplateResponse[];
     notes?: string;
-    createdAt: string;
-    updatedAt: string;
 }
 
 export interface RecurringEventResponse {
@@ -159,50 +150,28 @@ export interface RecurringEventResponse {
     title: string;
     description?: string;
     type: EventType;
-    recurrencePattern: RecurrencePatternResponse;
-    isActive: boolean;
-    visitTemplate?: VisitTemplateResponse;
-    createdAt: string;
-    updatedAt: string;
-
-    // Statistics (computed fields)
-    totalOccurrences?: number;
-    completedOccurrences?: number;
-    convertedOccurrences?: number;
-    nextOccurrenceDate?: string;
+    recurrencePattern: RecurrencePatternResponse; // Maps from recurrence_pattern
+    isActive: boolean; // Maps from is_active
+    visitTemplate?: VisitTemplateResponse; // Maps from visit_template
+    createdAt: string; // LocalDateTime from server
+    updatedAt: string; // LocalDateTime from server
 }
 
 export interface EventOccurrenceResponse {
     id: string;
-    recurringEventId: string;
-    scheduledDate: string;
+    recurringEventId: string; // Maps from recurring_event_id
+    scheduledDate: string; // LocalDateTime from server
     status: OccurrenceStatus;
-    actualVisitId?: string;
-    completedAt?: string;
+    actualVisitId?: string; // Maps from actual_visit_id
+    completedAt?: string; // LocalDateTime from server
     notes?: string;
-    createdAt: string;
-    updatedAt: string;
-
-    // Related data
-    recurringEvent?: RecurringEventResponse;
-    visit?: any; // Reference to actual visit if converted
+    createdAt: string; // LocalDateTime from server
+    updatedAt: string; // LocalDateTime from server
+    recurringEvent?: RecurringEventResponse; // Not in server API - populated by client if needed
 }
 
 // ========================================================================================
-// UI COMPONENT PROPS
-// ========================================================================================
-
-export interface RecurringEventFormData {
-    title: string;
-    description?: string;  // Zmienione z string na string | undefined
-    type: EventType;
-    recurrencePattern: RecurrencePatternRequest;
-    visitTemplate?: VisitTemplateRequest;  // Pozostaje opcjonalne
-}
-
-export interface RecurrencePatternFormData extends RecurrencePatternRequest {}
-// ========================================================================================
-// LIST & PAGINATION
+// LIST & PAGINATION (Updated for Spring Boot pagination)
 // ========================================================================================
 
 export interface RecurringEventListItem {
@@ -219,17 +188,17 @@ export interface RecurringEventListItem {
 }
 
 export interface RecurringEventsListParams {
-    page?: number;
-    size?: number;
+    page?: number; // Spring Boot pagination starts from 0
+    size?: number; // Default 20 according to API docs
+    sortBy?: string; // Default 'updatedAt'
+    sortOrder?: 'asc' | 'desc'; // Maps to sortDirection (ASC/DESC) on server
     type?: EventType;
-    isActive?: boolean;
-    search?: string;
-    sortBy?: 'title' | 'createdAt' | 'nextOccurrence';
-    sortOrder?: 'asc' | 'desc';
+    isActive?: boolean; // Maps to activeOnly on server
+    search?: string; // If supported by server
 }
 
 // ========================================================================================
-// CALENDAR INTEGRATION
+// CALENDAR INTEGRATION (Updated)
 // ========================================================================================
 
 export interface EventCalendarItem {
@@ -243,14 +212,12 @@ export interface EventCalendarItem {
 }
 
 export interface EventCalendarParams {
-    startDate: string;
-    endDate: string;
-    eventTypes?: EventType[];
-    statuses?: OccurrenceStatus[];
+    startDate: string; // LocalDate format: YYYY-MM-DD (maps to start_date)
+    endDate: string;   // LocalDate format: YYYY-MM-DD (maps to end_date)
 }
 
 // ========================================================================================
-// STATISTICS
+// STATISTICS (Updated to match server API)
 // ========================================================================================
 
 export interface RecurringEventStatistics {
@@ -279,15 +246,26 @@ export interface EventOccurrenceStatistics {
     nextOccurrenceDate?: string;
 }
 
+// Server API statistics response format
+export interface ServerEventStatistics {
+    total: number;
+    completed: number;
+    pending: number;
+    cancelled: number;
+}
+
+export interface ServerEventCount {
+    count: number;
+}
+
 // ========================================================================================
-// ERROR HANDLING
+// ERROR HANDLING (Updated)
 // ========================================================================================
 
 export interface RecurringEventError {
-    code: string;
+    error: string;
     message: string;
-    field?: string;
-    details?: Record<string, any>;
+    details?: string[];
 }
 
 export interface RecurringEventValidationError {
@@ -297,7 +275,7 @@ export interface RecurringEventValidationError {
 }
 
 // ========================================================================================
-// BULK OPERATIONS
+// BULK OPERATIONS (Not supported by current server API)
 // ========================================================================================
 
 export interface BulkOccurrenceUpdate {
@@ -316,43 +294,75 @@ export interface BulkOccurrenceResult {
 }
 
 // ========================================================================================
-// VISIT INTEGRATION
-// ========================================================================================
-
-// Extension of existing CreateVisitRequest for recurring visits
-export interface CreateVisitRequestExtended {
-    // Standard visit fields (from existing types)
-    title: string;
-    clientId: number;
-    vehicleId: number;
-    startDate: string;
-    endDate: string;
-    notes?: string;
-    selectedServices: any[];
-
-    // Recurring visit specific fields
-    isRecurring?: boolean;
-    recurrencePattern?: RecurrencePatternRequest;
-}
-
-// ========================================================================================
-// PREVIEW & VALIDATION
+// PREVIEW & VALIDATION (Client-side only)
 // ========================================================================================
 
 export interface RecurrencePreview {
-    dates: string[];                    // Generated dates based on pattern
-    totalCount: number;                 // Total number of occurrences
-    firstOccurrence: string;            // First occurrence date
-    lastOccurrence?: string;            // Last occurrence date (if has end)
-    hasEndDate: boolean;                // Whether pattern has end date
-    warnings: string[];                 // Any warnings about the pattern
+    dates: string[];
+    totalCount: number;
+    firstOccurrence: string;
+    lastOccurrence?: string;
+    hasEndDate: boolean;
+    warnings: string[];
 }
 
 export interface PatternValidationResult {
     isValid: boolean;
     errors: RecurringEventValidationError[];
     warnings: string[];
-    preview?: RecurrencePreview;
+}
+
+// ========================================================================================
+// FORM DATA TYPES (Same as before)
+// ========================================================================================
+
+export interface RecurringEventFormData {
+    title: string;
+    description?: string;
+    type: EventType;
+    recurrencePattern: RecurrencePatternRequest;
+    visitTemplate?: VisitTemplateRequest;
+}
+
+// ========================================================================================
+// PAGINATION RESPONSE (Spring Boot format)
+// ========================================================================================
+
+export interface SpringBootPageResponse<T> {
+    content: T[];
+    pageable: {
+        sort: {
+            sorted: boolean;
+            unsorted: boolean;
+        };
+        pageNumber: number;
+        pageSize: number;
+        offset: number;
+        paged: boolean;
+        unpaged: boolean;
+    };
+    totalElements: number;
+    totalPages: number;
+    last: boolean;
+    first: boolean;
+    numberOfElements: number;
+    size: number;
+    number: number;
+}
+
+// Frontend pagination format (for compatibility)
+export interface FrontendPaginationResponse<T> {
+    data: T[];
+    pagination: {
+        currentPage: number;
+        pageSize: number;
+        totalItems: number;
+        totalPages: number;
+        hasNext: boolean;
+        hasPrevious: boolean;
+    };
+    success: boolean;
+    message?: string;
 }
 
 // ========================================================================================
@@ -369,6 +379,6 @@ export interface DateRange {
 }
 
 export interface TimeRange {
-    startTime: string;  // HH:mm format
-    endTime: string;    // HH:mm format
+    startTime: string;
+    endTime: string;
 }
