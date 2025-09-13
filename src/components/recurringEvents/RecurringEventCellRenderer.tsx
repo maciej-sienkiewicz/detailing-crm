@@ -140,7 +140,7 @@ export const RecurringEventCellRenderer: React.FC<RecurringEventCellRendererProp
                     </TooltipWrapper>
                     <TooltipWrapper title="Edytuj">
                         <ActionButton
-                            $variant="edit"
+                            $variant="view"
                             onClick={(e) => handleActionClick(e, () => onEdit(event))}
                         >
                             <FaEdit />
@@ -148,7 +148,7 @@ export const RecurringEventCellRenderer: React.FC<RecurringEventCellRendererProp
                     </TooltipWrapper>
                     <TooltipWrapper title="Wystąpienia">
                         <ActionButton
-                            $variant="info"
+                            $variant="view"
                             onClick={(e) => handleActionClick(e, () => onViewOccurrences(event.id))}
                         >
                             <FaUsers />
@@ -156,7 +156,7 @@ export const RecurringEventCellRenderer: React.FC<RecurringEventCellRendererProp
                     </TooltipWrapper>
                     <TooltipWrapper title={event.isActive ? 'Dezaktywuj' : 'Aktywuj'}>
                         <ActionButton
-                            $variant="secondary"
+                            $variant="view"
                             onClick={(e) => handleActionClick(e, () => onDeactivate(event.id))}
                         >
                             {event.isActive ? <FaPause /> : <FaPlay />}

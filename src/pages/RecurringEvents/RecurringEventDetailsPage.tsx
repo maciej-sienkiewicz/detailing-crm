@@ -200,7 +200,7 @@ const RecurringEventDetailsPage: React.FC = () => {
                         </ActionButton>
                         <ActionButton
                             onClick={() => setShowDeleteModal(true)}
-                            $variant="danger"
+                            $variant="primary"
                         >
                             <FaTrash />
                             Usuń

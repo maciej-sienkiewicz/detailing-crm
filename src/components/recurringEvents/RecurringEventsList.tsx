@@ -1,8 +1,7 @@
-// src/components/recurringEvents/RecurringEventsList.tsx - REFACTORED
 import React, { useState, useMemo, useCallback } from 'react';
 import { format, isValid, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { FaPlus, FaFilter, FaCalendarAlt } from 'react-icons/fa';
+import { FaFilter, FaCalendarAlt } from 'react-icons/fa';
 
 import { DataTable } from '../common/DataTable';
 import type { TableColumn, HeaderAction, SelectAllConfig } from '../common/DataTable/types';
@@ -13,13 +12,10 @@ import {
 } from '../../types/recurringEvents';
 import { useRecurringEventsList } from '../../hooks/useRecurringEvents';
 import { RecurringEventCellRenderer } from './RecurringEventCellRenderer';
-// Note: You would create RecurringEventCard similarly to the CellRenderer for a complete solution
-// import { RecurringEventCard } from './RecurringEventCard';
 import {
     Container,
     LoadingContainer,
     FiltersPanel,
-    // ... import other layout components from './styled'
 } from './styled';
 
 
@@ -29,19 +25,18 @@ interface RecurringEventsListProps {
     onDeactivate: (eventId: string) => void;
     onViewOccurrences: (eventId: string) => void;
     onViewDetails: (event: RecurringEventListItem) => void;
-    onCreateNew?: () => void;
 }
 
 const columns: TableColumn[] = [
-    { id: 'selection', label: '', width: '50px', sortable: false },
-    { id: 'title', label: 'Tytuł', width: '250px', sortable: true },
-    { id: 'type', label: 'Typ', width: '140px', sortable: true },
-    { id: 'frequency', label: 'Częstotliwość', width: '160px', sortable: true },
-    { id: 'status', label: 'Status', width: '120px', sortable: true },
-    { id: 'nextOccurrence', label: 'Następne', width: '140px', sortable: true },
-    { id: 'occurrences', label: 'Wystąpienia', width: '120px', sortable: false },
-    { id: 'createdAt', label: 'Utworzone', width: '140px', sortable: true },
-    { id: 'actions', label: 'Akcje', width: '160px', sortable: false }
+    { id: 'selection', label: '', width: '4%', sortable: false },
+    { id: 'title', label: 'Tytuł', width: '20%', sortable: true },
+    { id: 'type', label: 'Typ', width: '11%', sortable: true },
+    { id: 'frequency', label: 'Częstotliwość', width: '12%', sortable: true },
+    { id: 'status', label: 'Status', width: '10%', sortable: true },
+    { id: 'nextOccurrence', label: 'Następne', width: '11%', sortable: true },
+    { id: 'occurrences', label: 'Wystąpienia', width: '9%', sortable: false },
+    { id: 'createdAt', label: 'Utworzone', width: '11%', sortable: true },
+    { id: 'actions', label: 'Akcje', width: '12%', sortable: false }
 ];
 
 const RecurringEventsList: React.FC<RecurringEventsListProps> = ({
@@ -50,7 +45,6 @@ const RecurringEventsList: React.FC<RecurringEventsListProps> = ({
                                                                      onDeactivate,
                                                                      onViewOccurrences,
                                                                      onViewDetails,
-                                                                     onCreateNew
                                                                  }) => {
     // ... all existing state management hooks (useState, useMemo) remain unchanged ...
     const [searchTerm, setSearchTerm] = useState('');
@@ -82,11 +76,22 @@ const RecurringEventsList: React.FC<RecurringEventsListProps> = ({
     } = useRecurringEventsList(queryParams);
 
 
-    const formatDateSafely = useCallback((dateString: string | undefined): string => {
-        if (!dateString) return 'Brak';
-        const date = parseISO(dateString);
+    const formatDateSafely = useCallback((dateInput: string | number[] | undefined): string => {
+        if (!dateInput) return '–';
+
+        let date: Date;
+
+        if (Array.isArray(dateInput) && dateInput.length >= 6) {
+            date = new Date(dateInput[0], dateInput[1] - 1, dateInput[2], dateInput[3], dateInput[4], dateInput[5]);
+        } else if (typeof dateInput === 'string') {
+            date = parseISO(dateInput);
+        } else {
+            return 'Błędny format';
+        }
+
         return isValid(date) ? format(date, 'dd MMM yyyy', { locale: pl }) : 'Błąd daty';
     }, []);
+
 
     const handleSelectEvent = useCallback((eventId: string) => {
         setSelectedEvents(prev => {
@@ -117,13 +122,6 @@ const RecurringEventsList: React.FC<RecurringEventsListProps> = ({
 
 
     const headerActions: HeaderAction[] = [
-        ...(onCreateNew ? [{
-            id: 'create',
-            label: 'Nowe wydarzenie',
-            icon: FaPlus,
-            onClick: onCreateNew,
-            variant: 'primary' as const
-        }] : []),
         {
             id: 'filter',
             label: 'Filtry',
@@ -142,9 +140,9 @@ const RecurringEventsList: React.FC<RecurringEventsListProps> = ({
         onToggleSelectAll: handleToggleSelectAll,
     };
 
-    const renderCell = useCallback((event: RecurringEventListItem, columnId: string) => (
+    const renderCell = useCallback((event: any, columnId: string) => (
         <RecurringEventCellRenderer
-            event={event}
+            event={{ ...event, createdAt: event.created_at }} // Mapowanie snake_case na camelCase
             columnId={columnId}
             isSelected={selectedEvents.has(event.id)}
             onToggleSelection={handleSelectEvent}
