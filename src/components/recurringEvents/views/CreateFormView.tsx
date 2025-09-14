@@ -16,7 +16,6 @@ import { StepsProgress } from '../FormComponents/StepsProgress';
 import { BasicInfoStep } from '../FormSteps/BasicInfoStep';
 import { RecurrencePatternStep } from '../FormSteps/RecurrencePatternStep';
 import { VisitTemplateStep } from '../FormSteps/VisitTemplateStep';
-import { FormValidationDebugger } from '../FormValidationDebugger';
 import { theme } from '../../../styles/theme';
 
 interface CreateFormViewProps {
@@ -185,32 +184,6 @@ export const CreateFormView: React.FC<CreateFormViewProps> = ({
                     </RightSection>
                 </FormActions>
             </form>
-
-            {/* Debug component - pokazuje się tylko w developmencie */}
-            {process.env.NODE_ENV === 'development' && (
-                <DebugSection>
-                    <DebugTitle>🐛 Debug Info (tylko w dev)</DebugTitle>
-                    <DebugInfo>
-                        <DebugItem>
-                            <strong>Current Step:</strong> {currentStep}
-                        </DebugItem>
-                        <DebugItem>
-                            <strong>Watched Type:</strong> {watchedType}
-                        </DebugItem>
-                        <DebugItem>
-                            <strong>Can Proceed:</strong> {canProceedToStep(currentStep) ? '✅' : '❌'}
-                        </DebugItem>
-                        <DebugItem>
-                            <strong>Form Valid for Submit:</strong> {isFormValidForSubmit ? '✅' : '❌'}
-                        </DebugItem>
-                        <DebugItem>
-                            <strong>Has Errors:</strong> {Object.keys(form.formState.errors).length > 0 ? '❌' : '✅'}
-                        </DebugItem>
-                    </DebugInfo>
-                </DebugSection>
-            )}
-
-            <FormValidationDebugger form={form} currentStep={currentStep} />
         </FormContainer>
     );
 };

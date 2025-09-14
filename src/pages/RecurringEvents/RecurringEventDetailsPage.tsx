@@ -16,12 +16,9 @@ import {
     FaTrash,
     FaPause,
     FaPlay,
-    FaCalendarAlt,
     FaUsers,
     FaCheckCircle,
     FaTimes,
-    FaClock,
-    FaCalendarCheck,
     FaExclamationTriangle
 } from 'react-icons/fa';
 import { format } from 'date-fns';

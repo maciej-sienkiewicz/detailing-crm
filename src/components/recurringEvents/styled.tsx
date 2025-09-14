@@ -112,21 +112,8 @@ export const CreatedDate = styled.div`
     color: ${theme.text.tertiary};
 `;
 
-// Card View
-export const EventCard = styled.div<{ $selected: boolean }>`
-    /* ... existing styles for EventCard ... */
-`;
-// ... include other card-related styled components (CardHeader, CardTitle, etc.)
-
 // Filters Panel
 export const FiltersPanel = styled.div`
     padding: ${theme.spacing.lg};
     background: ${theme.surfaceAlt};
 `;
-// ... include all other filter-related styled components
-
-// Pagination
-export const PaginationContainer = styled.div`
-    /* ... existing styles for PaginationContainer ... */
-`;
-// ... include all other pagination-related styled components

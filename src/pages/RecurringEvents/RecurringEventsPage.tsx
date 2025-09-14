@@ -149,7 +149,7 @@ const RecurringEventsPage: React.FC = () => {
                 {/* Header - PRZYCISK PRZENIESIONY TUTAJ */}
                 <PageHeader
                     icon={FaCalendarAlt}
-                    title="Cykliczne Wydarzenia"
+                    title="Cykliczne wydarzenia"
                     subtitle="Zarządzanie powtarzającymi się wydarzeniami i wizytami"
                     actions={
                         <HeaderActions>

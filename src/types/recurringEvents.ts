@@ -33,8 +33,8 @@ export enum OccurrenceStatus {
 // ========================================================================================
 
 export const EventTypeLabels: Record<EventType, string> = {
-    [EventType.SIMPLE_EVENT]: 'Pojedyncze wydarzenie',
-    [EventType.RECURRING_VISIT]: 'Cykliczna wizyta'
+    [EventType.SIMPLE_EVENT]: 'Wydarzenie',
+    [EventType.RECURRING_VISIT]: 'Wizyta'
 };
 
 export const RecurrenceFrequencyLabels: Record<RecurrenceFrequency, string> = {

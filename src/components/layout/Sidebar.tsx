@@ -65,7 +65,7 @@ const mainMenuItems: MainMenuItem[] = [
     },
     {
         id: 'recurring-events',
-        label: 'Cykliczne zdarzenia',
+        label: 'Cykliczne wydarzenia',
         icon: <FaRepeat />,
         path: '/recurring-events',
         hasSubmenu: false,

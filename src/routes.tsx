@@ -35,7 +35,6 @@ import { ToastProvider } from './components/common/Toast/Toast';
 const RecurringEventsPage = React.lazy(() => import('./pages/RecurringEvents/RecurringEventsPage'));
 const RecurringEventDetailsPage = React.lazy(() => import('./pages/RecurringEvents/RecurringEventDetailsPage'));
 const RecurringEventOccurrencesPage = React.lazy(() => import('./pages/RecurringEvents/RecurringEventOccurrencesPage'));
-const EventCalendarPage = React.lazy(() => import('./pages/RecurringEvents/EventCalendarPage'));
 
 const PlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
     <div style={{ padding: "20px" }}>
@@ -127,13 +126,6 @@ const AppRoutes: React.FC = () => {
                     <Route path="/recurring-events/:eventId/occurrences" element={
                         <Suspense fallback={<PageLoadingFallback />}>
                             <RecurringEventOccurrencesPage />
-                        </Suspense>
-                    } />
-
-                    {/* Enhanced Calendar for Events */}
-                    <Route path="/calendar/events" element={
-                        <Suspense fallback={<PageLoadingFallback />}>
-                            <EventCalendarPage />
                         </Suspense>
                     } />
 
