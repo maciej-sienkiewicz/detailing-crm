@@ -1,4 +1,4 @@
-// src/components/calendar/Calendar.tsx - PRODUCTION READY VERSION
+// src/components/calendar/Calendar.tsx - PRODUCTION READY VERSION WITH RECURRING EVENTS
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from 'styled-components';
 import FullCalendar from '@fullcalendar/react';
@@ -17,7 +17,8 @@ import {
     DEFAULT_QUICK_FILTERS,
     getCurrentPeriodTitle,
     mapAppointmentsToFullCalendarEvents,
-    QuickFilters
+    QuickFilters,
+    isRecurringEvent
 } from '../../utils/calendarUtils';
 
 interface CalendarProps {
@@ -33,31 +34,22 @@ const AppointmentCalendar: React.FC<CalendarProps> = React.memo(({
                                                                      onRangeChange,
                                                                      onEventCreate
                                                                  }) => {
-    // State Management
     const [currentView, setCurrentView] = useState<CalendarView>('dayGridMonth');
     const [currentDate, setCurrentDate] = useState<Date>(new Date());
     const [quickFilters, setQuickFilters] = useState<QuickFilters>(DEFAULT_QUICK_FILTERS);
 
-    // Refs for FullCalendar control
     const calendarRef = useRef<FullCalendar>(null);
-
-    // Simple state management
     const [isInitialized, setIsInitialized] = useState(false);
     const [isViewChanging, setIsViewChanging] = useState(false);
-
-    // Prevent initial range update after mount
     const hasInitialRangeBeenSet = useRef(false);
 
-    // Use optimized calendar colors hook
     const { calendarColors } = useCalendarColors();
 
-    // Memoized events to prevent unnecessary re-renders
     const memoizedEvents = useMemo(() =>
             mapAppointmentsToFullCalendarEvents(events, quickFilters, calendarColors),
         [events, quickFilters, calendarColors]
     );
 
-    // Event Handlers - all memoized for performance
     const handleEventClick = useCallback((info: any) => {
         const appointment = info.event.extendedProps;
         onEventSelect(appointment);
@@ -76,32 +68,25 @@ const AppointmentCalendar: React.FC<CalendarProps> = React.memo(({
         }
     }, [onEventCreate]);
 
-    // PRODUCTION: Clean and simple datesSet handler
     const handleDatesSet = useCallback((info: any) => {
         if (!calendarRef.current) return;
 
         const calendarApi = calendarRef.current.getApi();
         const actualCalendarDate = calendarApi.getDate();
 
-        // Always update current date for display
         setCurrentDate(new Date(actualCalendarDate));
 
-        // Skip during view changes
         if (isViewChanging) {
             return;
         }
 
-        // Mark as initialized
         if (!isInitialized) {
             setIsInitialized(true);
         }
 
-        // Handle range changes
         if (onRangeChange) {
-            // Set initial range only once
             if (!hasInitialRangeBeenSet.current) {
                 hasInitialRangeBeenSet.current = true;
-                // Use setTimeout to avoid conflicts with React rendering
                 setTimeout(() => {
                     onRangeChange({
                         start: info.start,
@@ -109,7 +94,6 @@ const AppointmentCalendar: React.FC<CalendarProps> = React.memo(({
                     });
                 }, 0);
             } else {
-                // Immediate range update for navigation
                 onRangeChange({
                     start: info.start,
                     end: info.end
@@ -118,7 +102,6 @@ const AppointmentCalendar: React.FC<CalendarProps> = React.memo(({
         }
     }, [isViewChanging, isInitialized, onRangeChange]);
 
-    // PRODUCTION: Simple navigation
     const handleNavigate = useCallback((action: 'prev' | 'next' | 'today') => {
         if (!calendarRef.current) return;
 
@@ -137,7 +120,6 @@ const AppointmentCalendar: React.FC<CalendarProps> = React.memo(({
         }
     }, []);
 
-    // PRODUCTION: Clean view change handler
     const handleViewChange = useCallback((view: CalendarView) => {
         if (!calendarRef.current || currentView === view) return;
 
@@ -150,7 +132,6 @@ const AppointmentCalendar: React.FC<CalendarProps> = React.memo(({
         } catch (error) {
             console.error('Error changing view:', error);
         } finally {
-            // Reset view changing flag after a brief delay
             setTimeout(() => setIsViewChanging(false), 100);
         }
     }, [currentView]);
@@ -162,21 +143,21 @@ const AppointmentCalendar: React.FC<CalendarProps> = React.memo(({
         }));
     }, []);
 
-    // PRODUCTION: Simple one-time initialization
     useEffect(() => {
         if (calendarRef.current && !isInitialized) {
             const calendarApi = calendarRef.current.getApi();
             calendarApi.gotoDate(new Date());
         }
-    }, []); // Empty deps - runs only once
+    }, []);
 
-    // Configuration for filter buttons with colors
+    // Enhanced filter configuration with recurring events
     const filterConfig = {
         scheduled: { label: 'Zaplanowane', color: theme.primary },
-        inProgress: { label: 'W trakcie', color: theme.primary },
-        readyForPickup: { label: 'Oczekujące na odbiór', color: theme.primary },
-        completed: { label: 'Zakończone', color: theme.primary },
-        cancelled: { label: 'Anulowane', color: theme.primary }
+        inProgress: { label: 'W trakcie', color: theme.warning },
+        readyForPickup: { label: 'Oczekujące na odbiór', color: theme.info },
+        completed: { label: 'Zakończone', color: theme.success },
+        cancelled: { label: 'Anulowane', color: theme.error },
+        recurringEvents: { label: 'Cykliczne wydarzenia', color: '#8b5cf6' }
     };
 
     return (
@@ -234,7 +215,9 @@ const AppointmentCalendar: React.FC<CalendarProps> = React.memo(({
                                     key={key}
                                     $active={isActive}
                                     $color={config.color}
+                                    $isRecurring={key === 'recurringEvents'}
                                     onClick={() => toggleFilter(key as keyof QuickFilters)}
+                                    title={`${isActive ? 'Ukryj' : 'Pokaż'} ${config.label.toLowerCase()}`}
                                 >
                                     <FilterContent>
                                         <FilterLabel>{config.label}</FilterLabel>
@@ -271,7 +254,7 @@ const AppointmentCalendar: React.FC<CalendarProps> = React.memo(({
                     locale={plLocale}
                     selectable={true}
                     selectMirror={true}
-                    dayMaxEvents={3}
+                    dayMaxEvents={4}
                     weekends={true}
                     eventClick={handleEventClick}
                     select={handleDateSelect}
@@ -306,6 +289,7 @@ const AppointmentCalendar: React.FC<CalendarProps> = React.memo(({
                     eventDisplay="block"
                     eventDidMount={(info) => {
                         const appointment = info.event.extendedProps as Appointment;
+                        const isRecurring = isRecurringEvent(appointment);
 
                         // Basic styling
                         info.el.style.borderRadius = '6px';
@@ -314,31 +298,56 @@ const AppointmentCalendar: React.FC<CalendarProps> = React.memo(({
                         info.el.style.cursor = 'pointer';
                         info.el.style.transition = 'all 0.2s ease';
 
+                        // Recurring event styling
+                        if (isRecurring) {
+                            info.el.style.borderLeft = `4px solid #6b46c1`;
+                            info.el.style.boxShadow = '0 2px 4px rgba(139, 92, 246, 0.15)';
+                            // Add recurring icon to title
+                            const titleEl = info.el.querySelector('.fc-event-title');
+                            if (titleEl && !titleEl.textContent?.startsWith('🔄')) {
+                                titleEl.textContent = `🔄 ${titleEl.textContent}`;
+                            }
+                        }
+
                         // Protocol styling
-                        if (appointment.isProtocol) {
+                        if (appointment.isProtocol && !isRecurring) {
                             info.el.style.borderLeft = `3px solid ${theme.primary}`;
                         }
 
                         // Status-specific styling
                         if (appointment.status === 'COMPLETED') {
-                            info.el.style.setProperty('opacity', '0.2', 'important');
-                            info.el.style.setProperty('background', 'linear-gradient(135deg, #059669 0%, #10b981 100%)', 'important');
+                            info.el.style.setProperty('opacity', '0.9', 'important');
+                            if (isRecurring) {
+                                info.el.style.setProperty('background', 'linear-gradient(135deg, #10b981 0%, #34d399 100%)', 'important');
+                            } else {
+                                info.el.style.setProperty('background', 'linear-gradient(135deg, #059669 0%, #10b981 100%)', 'important');
+                            }
                         }
 
                         if (appointment.status === 'CANCELLED') {
-                            info.el.style.setProperty('opacity', '0.5', 'important');
-                            info.el.style.setProperty('background', 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)', 'important');
+                            info.el.style.setProperty('opacity', '0.8', 'important');
+                            if (isRecurring) {
+                                info.el.style.setProperty('background', 'linear-gradient(135deg, #ef4444 0%, #f87171 100%)', 'important');
+                            } else {
+                                info.el.style.setProperty('background', 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)', 'important');
+                            }
                         }
 
-                        // Hover effects
+                        // Enhanced hover effects
                         info.el.addEventListener('mouseenter', () => {
-                            info.el.style.transform = 'translateY(-1px)';
-                            info.el.style.boxShadow = theme.shadow.sm;
+                            info.el.style.transform = 'translateY(-1px) scale(1.02)';
+                            info.el.style.boxShadow = isRecurring
+                                ? '0 4px 12px rgba(139, 92, 246, 0.3)'
+                                : theme.shadow.md;
+                            info.el.style.zIndex = '10';
                         });
 
                         info.el.addEventListener('mouseleave', () => {
-                            info.el.style.transform = 'translateY(0)';
-                            info.el.style.boxShadow = 'none';
+                            info.el.style.transform = 'translateY(0) scale(1)';
+                            info.el.style.boxShadow = isRecurring
+                                ? '0 2px 4px rgba(139, 92, 246, 0.15)'
+                                : 'none';
+                            info.el.style.zIndex = 'auto';
                         });
                     }}
                 />
@@ -474,9 +483,14 @@ const ControlsRight = styled.div`
 const QuickFiltersContainer = styled.div`
     display: flex;
     gap: ${theme.spacing.sm};
+    flex-wrap: wrap;
+
+    @media (max-width: 1200px) {
+        gap: ${theme.spacing.xs};
+    }
 `;
 
-const FilterButton = styled.button<{ $active: boolean; $color: string }>`
+const FilterButton = styled.button<{ $active: boolean; $color: string; $isRecurring?: boolean }>`
     padding: ${theme.spacing.sm} ${theme.spacing.md};
     background: ${theme.surface};
     border: 2px solid ${props => props.$active ? props.$color : '#e2e8f0'};
@@ -484,11 +498,25 @@ const FilterButton = styled.button<{ $active: boolean; $color: string }>`
     cursor: pointer;
     transition: all 0.2s ease;
     min-width: 100px;
+    position: relative;
+
+    ${props => props.$isRecurring && `
+        background: ${props.$active ? props.$color + '15' : theme.surface};
+    `}
 
     &:hover {
         transform: translateY(-1px);
         box-shadow: ${theme.shadow.sm};
         border-color: ${props => props.$color};
+
+        ${props => props.$isRecurring && `
+            background: ${props.$color}10;
+        `}
+    }
+
+    @media (max-width: 1200px) {
+        min-width: 80px;
+        padding: ${theme.spacing.xs} ${theme.spacing.sm};
     }
 `;
 
@@ -504,6 +532,11 @@ const FilterLabel = styled.div`
     font-weight: 600;
     color: ${theme.text.secondary};
     text-align: center;
+    line-height: 1.2;
+
+    @media (max-width: 1200px) {
+        font-size: 11px;
+    }
 `;
 
 const CheckIcon = styled.div<{ $active: boolean; $color: string }>`
@@ -514,12 +547,22 @@ const CheckIcon = styled.div<{ $active: boolean; $color: string }>`
     height: 16px;
     color: ${props => props.$active ? props.$color : '#94a3b8'};
     transition: all 0.2s ease;
+    position: relative;
 
     svg {
         transition: all 0.2s ease;
         transform: ${props => props.$active ? 'scale(1)' : 'scale(0.8)'};
         opacity: ${props => props.$active ? 1 : 0.6};
     }
+`;
+
+const RecurringIcon = styled.span<{ $active: boolean }>`
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    font-size: 8px;
+    opacity: ${props => props.$active ? 1 : 0.5};
+    transition: all 0.2s ease;
 `;
 
 const CalendarWrapper = styled.div`
@@ -591,6 +634,30 @@ const CalendarWrapper = styled.div`
             border-left: 3px solid ${theme.primary};
             font-weight: 700;
         }
+
+        &.recurring-event {
+            border-left: 4px solid #6b46c1;
+            background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%) !important;
+            box-shadow: 0 2px 4px rgba(139, 92, 246, 0.15);
+            position: relative;
+
+            &::before {
+                content: '';
+                position: absolute;
+                top: 2px;
+                right: 2px;
+                width: 8px;
+                height: 8px;
+                background: rgba(255, 255, 255, 0.8);
+                border-radius: 50%;
+                z-index: 1;
+            }
+
+            &:hover {
+                transform: translateY(-1px) scale(1.02) !important;
+                box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3) !important;
+            }
+        }
     }
 
     .fc-timegrid-slot {
@@ -611,6 +678,11 @@ const CalendarWrapper = styled.div`
         &:hover {
             transform: translateY(-1px);
             box-shadow: ${theme.shadow.sm};
+        }
+
+        &.recurring-event {
+            border-left: 4px solid #8b5cf6 !important;
+            background: linear-gradient(90deg, #8b5cf615 0%, transparent 100%) !important;
         }
     }
 
@@ -643,14 +715,6 @@ const CalendarWrapper = styled.div`
         }
     }
 
-    .professional-event {
-        transition: all 0.2s ease;
-
-        &:hover {
-            z-index: 10;
-        }
-    }
-
     .completed-event {
         opacity: 0.95 !important;
         background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
@@ -659,6 +723,16 @@ const CalendarWrapper = styled.div`
         font-weight: 700 !important;
         box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25) !important;
         transform: scale(1.02);
+
+        &.recurring-event {
+            background: linear-gradient(135deg, #10b981 0%, #34d399 100%) !important;
+            border-color: #059669 !important;
+        }
+
+        &:hover {
+            transform: scale(1.05) translateY(-2px) !important;
+            box-shadow: 0 8px 20px rgba(5, 150, 105, 0.4) !important;
+        }
     }
 
     .cancelled-event {
@@ -670,41 +744,29 @@ const CalendarWrapper = styled.div`
         box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25) !important;
         position: relative;
         transform: scale(1.02);
-    }
 
-    .cancelled-event::after {
-        content: '';
-        position: absolute;
-        top: 50%;
-        left: 8%;
-        right: 8%;
-        height: 2px;
-        background: rgba(255, 255, 255, 0.9);
-        transform: translateY(-50%);
-        z-index: 1;
-        border-radius: 1px;
-    }
+        &.recurring-event {
+            background: linear-gradient(135deg, #ef4444 0%, #f87171 100%) !important;
+            border-color: #dc2626 !important;
+        }
 
-    .completed-event:hover {
-        transform: scale(1.05) translateY(-2px) !important;
-        box-shadow: 0 8px 20px rgba(5, 150, 105, 0.4) !important;
-    }
+        &::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 8%;
+            right: 8%;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.9);
+            transform: translateY(-50%);
+            z-index: 1;
+            border-radius: 1px;
+        }
 
-    .cancelled-event:hover {
-        transform: scale(1.05) translateY(-2px) !important;
-        box-shadow: 0 8px 20px rgba(220, 38, 38, 0.4) !important;
-    }
-
-    .status-scheduled {
-        opacity: 0.75;
-    }
-
-    .status-in_progress {
-        opacity: 0.8;
-    }
-
-    .status-ready_for_pickup {
-        opacity: 0.8;
+        &:hover {
+            transform: scale(1.05) translateY(-2px) !important;
+            box-shadow: 0 8px 20px rgba(220, 38, 38, 0.4) !important;
+        }
     }
 
     @media (max-width: 768px) {

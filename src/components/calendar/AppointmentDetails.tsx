@@ -1,5 +1,5 @@
-// src/components/calendar/AppointmentDetails.tsx - REFACTORED VERSION
-import React, {useState} from 'react';
+// src/components/calendar/AppointmentDetails.tsx - COMPLETE VERSION WITH RECURRING EVENTS
+import React, {useState, useEffect} from 'react';
 import styled from 'styled-components';
 import {format} from 'date-fns';
 import {pl} from 'date-fns/locale';
@@ -13,11 +13,15 @@ import {
     FaTimes,
     FaTools,
     FaTrash,
-    FaUser
+    FaUser,
+    FaSync,
+    FaHistory
 } from 'react-icons/fa';
 import {Appointment, ProtocolStatus} from '../../types';
+import {EventOccurrenceResponse, RecurringEventResponse, OccurrenceStatusLabels} from '../../types/recurringEvents';
 import {useNavigate} from 'react-router-dom';
 import {theme} from '../../styles/theme';
+import {recurringEventsApi} from '../../api/recurringEventsApi';
 
 interface AppointmentDetailsProps {
     appointment: Appointment;
@@ -26,6 +30,18 @@ interface AppointmentDetailsProps {
     onStatusChange: (status: any) => void;
     onCreateProtocol: () => void;
 }
+
+// Utility functions for recurring events
+const isRecurringEventAppointment = (appointmentId: string): boolean => {
+    return appointmentId.startsWith('recurring-');
+};
+
+const extractOccurrenceId = (appointmentId: string): string | null => {
+    if (isRecurringEventAppointment(appointmentId)) {
+        return appointmentId.replace('recurring-', '');
+    }
+    return null;
+};
 
 const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
                                                                    appointment,
@@ -36,6 +52,28 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
                                                                }) => {
     const navigate = useNavigate();
     const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+    const [recurringEventDetails, setRecurringEventDetails] = useState<RecurringEventResponse | null>(null);
+    const [loadingDetails, setLoadingDetails] = useState(false);
+
+    const isRecurringEvent = isRecurringEventAppointment(appointment.id);
+    const occurrenceData = (appointment as any).recurringEventData as EventOccurrenceResponse;
+
+    // Load recurring event details if this is a recurring event
+    useEffect(() => {
+        if (isRecurringEvent && occurrenceData && !recurringEventDetails) {
+            setLoadingDetails(true);
+            recurringEventsApi.getRecurringEventById(occurrenceData.recurringEventId)
+                .then(details => {
+                    setRecurringEventDetails(details);
+                })
+                .catch(err => {
+                    console.error('Failed to load recurring event details:', err);
+                })
+                .finally(() => {
+                    setLoadingDetails(false);
+                });
+        }
+    }, [isRecurringEvent, occurrenceData, recurringEventDetails]);
 
     const formatDateTime = (date: Date) => {
         return format(date, 'EEEE, dd MMMM yyyy • HH:mm', { locale: pl });
@@ -52,6 +90,12 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
         }
     };
 
+    const handleGoToRecurringEvent = () => {
+        if (isRecurringEvent && occurrenceData) {
+            navigate(`/recurring-events/${occurrenceData.recurringEventId}`);
+        }
+    };
+
     const calculateNetPrice = (grossPrice: number): number => {
         return grossPrice / 1.23;
     };
@@ -61,7 +105,7 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
             return { gross: 0, net: 0 };
         }
 
-        const gross = appointment.services.reduce((sum, service) => sum + service.finalPrice, 0);
+        const gross = appointment.services.reduce((sum, service) => sum + service.price, 0);
         const net = calculateNetPrice(gross);
 
         return { gross, net };
@@ -78,18 +122,54 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
         setShowConfirmDelete(false);
     };
 
+    const handleConvertToVisit = () => {
+        if (isRecurringEvent && occurrenceData && recurringEventDetails) {
+            // Navigate to visit creation with pre-filled data from recurring event template
+            const visitTemplate = recurringEventDetails.visitTemplate;
+            navigate('/visits', {
+                state: {
+                    fromRecurringEvent: true,
+                    occurrenceId: occurrenceData.id,
+                    recurringEventId: occurrenceData.recurringEventId,
+                    clientId: visitTemplate?.clientId,
+                    vehicleId: visitTemplate?.vehicleId,
+                    scheduledDate: appointment.start.toISOString(),
+                    preselectedServices: visitTemplate?.defaultServices,
+                    notes: occurrenceData.notes
+                }
+            });
+        } else {
+            onCreateProtocol();
+        }
+    };
+
     return (
         <DetailsContainer>
             {/* Header */}
-            <DetailsHeader>
+            <DetailsHeader $isRecurring={isRecurringEvent}>
                 <HeaderContent>
                     <HeaderInfo>
-                        <AppointmentTitle>{appointment.title}</AppointmentTitle>
+                        <AppointmentTitle>
+                            {appointment.title}
+                        </AppointmentTitle>
                         <AppointmentMeta>
-                            {appointment.customerId && `Właściciel: ${appointment.customerId}`}
+                            {isRecurringEvent ? (
+                                <>
+                                    Cykliczne wydarzenie • Status: {occurrenceData ? OccurrenceStatusLabels[occurrenceData.status] : 'Nieznany'}
+                                    {loadingDetails && ' • Ładowanie szczegółów...'}
+                                </>
+                            ) : (
+                                appointment.customerId && `Właściciel: ${appointment.customerId}`
+                            )}
                         </AppointmentMeta>
                     </HeaderInfo>
-                    {appointment.isProtocol && (appointment.status as unknown as ProtocolStatus) !== ProtocolStatus.SCHEDULED && (
+
+                    {isRecurringEvent ? (
+                        <RecurringActionButton onClick={handleGoToRecurringEvent}>
+                            <FaHistory />
+                            <span>Pokaż cykliczne wydarzenie</span>
+                        </RecurringActionButton>
+                    ) : appointment.isProtocol && (appointment.status as unknown as ProtocolStatus) !== ProtocolStatus.SCHEDULED && (
                         <ProtocolActionButton onClick={handleGoToProtocol}>
                             <FaExternalLinkAlt />
                             <span>Otwórz protokół</span>
@@ -97,6 +177,62 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
                     )}
                 </HeaderContent>
             </DetailsHeader>
+
+            {/* Recurring Event Details Section */}
+            {isRecurringEvent && recurringEventDetails && (
+                <RecurringEventSection>
+                    <SectionHeader>
+                        <SectionTitle>Szczegóły cyklicznego wydarzenia</SectionTitle>
+                    </SectionHeader>
+                    <RecurringEventContent>
+                        <RecurringEventGrid>
+                            <RecurringEventItem>
+                                <InfoIcon><FaSync /></InfoIcon>
+                                <InfoContent>
+                                    <InfoLabel>Częstotliwość</InfoLabel>
+                                    <InfoValue>
+                                        {recurringEventDetails.recurrencePattern.frequency}
+                                        {recurringEventDetails.recurrencePattern.interval > 1 &&
+                                            ` (co ${recurringEventDetails.recurrencePattern.interval})`
+                                        }
+                                    </InfoValue>
+                                </InfoContent>
+                            </RecurringEventItem>
+
+                            {recurringEventDetails.recurrencePattern.daysOfWeek && (
+                                <RecurringEventItem>
+                                    <InfoIcon><FaCalendarAlt /></InfoIcon>
+                                    <InfoContent>
+                                        <InfoLabel>Dni tygodnia</InfoLabel>
+                                        <InfoValue>
+                                            {recurringEventDetails.recurrencePattern.daysOfWeek.join(', ')}
+                                        </InfoValue>
+                                    </InfoContent>
+                                </RecurringEventItem>
+                            )}
+
+                            {recurringEventDetails.recurrencePattern.endDate && (
+                                <RecurringEventItem>
+                                    <InfoIcon><FaClock /></InfoIcon>
+                                    <InfoContent>
+                                        <InfoLabel>Koniec serii</InfoLabel>
+                                        <InfoValue>
+                                            {format(new Date(recurringEventDetails.recurrencePattern.endDate), 'dd MMMM yyyy', { locale: pl })}
+                                        </InfoValue>
+                                    </InfoContent>
+                                </RecurringEventItem>
+                            )}
+                        </RecurringEventGrid>
+
+                        {recurringEventDetails.description && (
+                            <RecurringEventDescription>
+                                <InfoLabel>Opis wydarzenia</InfoLabel>
+                                <InfoValue>{recurringEventDetails.description}</InfoValue>
+                            </RecurringEventDescription>
+                        )}
+                    </RecurringEventContent>
+                </RecurringEventSection>
+            )}
 
             {/* Schedule Information */}
             <InfoSection>
@@ -129,32 +265,42 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
             </InfoSection>
 
             {/* Client & Vehicle Information */}
-            {(appointment.customerId || appointment.vehicleId) && (
+            {(appointment.customerId || appointment.vehicleId || (isRecurringEvent && recurringEventDetails?.visitTemplate)) && (
                 <InfoSection>
                     <SectionHeader>
                         <SectionTitle>Klient i pojazd</SectionTitle>
                     </SectionHeader>
                     <InfoGrid>
-                        {appointment.customerId && (
+                        {(appointment.customerId || recurringEventDetails?.visitTemplate?.clientId) && (
                             <InfoItem>
                                 <InfoIcon>
                                     <FaUser />
                                 </InfoIcon>
                                 <InfoContent>
                                     <InfoLabel>Klient</InfoLabel>
-                                    <InfoValue>{appointment.customerId}</InfoValue>
+                                    <InfoValue>
+                                        {appointment.customerId ||
+                                            (recurringEventDetails?.visitTemplate?.clientId ?
+                                                `Klient #${recurringEventDetails.visitTemplate.clientId}` :
+                                                'Nie przypisano')}
+                                    </InfoValue>
                                 </InfoContent>
                             </InfoItem>
                         )}
 
-                        {appointment.vehicleId && (
+                        {(appointment.vehicleId || recurringEventDetails?.visitTemplate?.vehicleId) && (
                             <InfoItem>
                                 <InfoIcon>
                                     <FaCar />
                                 </InfoIcon>
                                 <InfoContent>
                                     <InfoLabel>Pojazd</InfoLabel>
-                                    <InfoValue>{appointment.vehicleId}</InfoValue>
+                                    <InfoValue>
+                                        {appointment.vehicleId ||
+                                            (recurringEventDetails?.visitTemplate?.vehicleId ?
+                                                `Pojazd #${recurringEventDetails.visitTemplate.vehicleId}` :
+                                                'Nie przypisano')}
+                                    </InfoValue>
                                 </InfoContent>
                             </InfoItem>
                         )}
@@ -163,61 +309,96 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
             )}
 
             {/* Services Section */}
-            {appointment.services && appointment.services.length > 0 && (
+            {((appointment.services && appointment.services.length > 0) ||
+                (isRecurringEvent && recurringEventDetails?.visitTemplate?.defaultServices.length)) && (
                 <ServicesSection>
                     <SectionHeader>
                         <SectionTitleWithIcon>
                             <FaTools />
-                            <span>Wykaz usług ({appointment.services.length})</span>
+                            <span>Wykaz usług ({
+                                appointment.services?.length ||
+                                recurringEventDetails?.visitTemplate?.defaultServices.length || 0
+                            })</span>
                         </SectionTitleWithIcon>
                         <TotalValue>
                             <TotalLabel>Wartość łączna:</TotalLabel>
-                            <TotalAmount>{totalValue.gross.toFixed(2)} zł</TotalAmount>
+                            <TotalAmount>
+                                {isRecurringEvent && !appointment.services?.length ?
+                                    'Szacowana według szablonu' :
+                                    `${totalValue.gross.toFixed(2)} zł`}
+                            </TotalAmount>
                         </TotalValue>
                     </SectionHeader>
 
                     <ServicesContent>
                         <ServicesList>
-                            {appointment.services.map((service, index) => (
+                            {(appointment.services || recurringEventDetails?.visitTemplate?.defaultServices || []).map((service, index) => (
                                 <ServiceItem key={index}>
                                     <ServiceInfo>
                                         <ServiceName>{service.name}</ServiceName>
                                         <ServiceMeta>
-                                            Pozycja {index + 1} z {appointment.services.length}
+                                            {isRecurringEvent && !appointment.services?.length ?
+                                                'Usługa z szablonu' :
+                                                `Pozycja ${index + 1} z ${appointment.services?.length || 0}`}
                                         </ServiceMeta>
                                     </ServiceInfo>
 
                                     <ServicePricing>
                                         <PriceRow>
-                                            <PriceLabel>Brutto:</PriceLabel>
-                                            <PriceValue $primary>{service.finalPrice.toFixed(2)} zł</PriceValue>
+                                            <PriceLabel>Cena bazowa:</PriceLabel>
+                                            <PriceValue $primary>
+                                                {((service as any).finalPrice || (service as any).basePrice || 0).toFixed(2)} zł
+                                            </PriceValue>
                                         </PriceRow>
-                                        <PriceRow>
-                                            <PriceLabel>Netto:</PriceLabel>
-                                            <PriceValue>{calculateNetPrice(service.finalPrice).toFixed(2)} zł</PriceValue>
-                                        </PriceRow>
+                                        {isRecurringEvent && !appointment.services?.length && (
+                                            <ServiceNote>
+                                                Ostateczna cena będzie ustalona podczas wizyty
+                                            </ServiceNote>
+                                        )}
                                     </ServicePricing>
                                 </ServiceItem>
                             ))}
                         </ServicesList>
 
-                        <ServicesSummary>
-                            <SummaryRow>
-                                <SummaryLabel>Razem netto:</SummaryLabel>
-                                <SummaryValue>{totalValue.net.toFixed(2)} zł</SummaryValue>
-                            </SummaryRow>
-                            <SummaryRow $primary>
-                                <SummaryLabel>Razem brutto:</SummaryLabel>
-                                <SummaryValue $primary>{totalValue.gross.toFixed(2)} zł</SummaryValue>
-                            </SummaryRow>
-                        </ServicesSummary>
+                        {!isRecurringEvent && appointment.services && appointment.services.length > 0 && (
+                            <ServicesSummary>
+                                <SummaryRow>
+                                    <SummaryLabel>Razem netto:</SummaryLabel>
+                                    <SummaryValue>{totalValue.net.toFixed(2)} zł</SummaryValue>
+                                </SummaryRow>
+                                <SummaryRow $primary>
+                                    <SummaryLabel>Razem brutto:</SummaryLabel>
+                                    <SummaryValue $primary>{totalValue.gross.toFixed(2)} zł</SummaryValue>
+                                </SummaryRow>
+                            </ServicesSummary>
+                        )}
                     </ServicesContent>
                 </ServicesSection>
             )}
 
             {/* Action Buttons */}
             <ActionsSection>
-                {appointment.isProtocol && (appointment.status as unknown as ProtocolStatus) === ProtocolStatus.SCHEDULED ? (
+                {isRecurringEvent ? (
+                    <RecurringEventActions>
+                        <SecondaryAction onClick={handleGoToRecurringEvent}>
+                            <FaHistory />
+                            <span>Zarządzaj serią</span>
+                        </SecondaryAction>
+
+                        <PrimaryAction onClick={handleConvertToVisit}>
+                            <FaClipboardCheck />
+                            <ActionContent>
+                                <ActionLabel>Przekształć na wizytę</ActionLabel>
+                                <ActionHint>Utwórz pełny protokół</ActionHint>
+                            </ActionContent>
+                        </PrimaryAction>
+
+                        <DangerAction onClick={() => onStatusChange('CANCELLED')}>
+                            <FaTimes />
+                            <span>Anuluj wystąpienie</span>
+                        </DangerAction>
+                    </RecurringEventActions>
+                ) : appointment.isProtocol && (appointment.status as unknown as ProtocolStatus) === ProtocolStatus.SCHEDULED ? (
                     <ActionGrid>
                         <SecondaryAction onClick={onEdit}>
                             <FaEdit />
@@ -269,15 +450,23 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
                             <ModalIcon>
                                 <FaTrash />
                             </ModalIcon>
-                            <ModalTitle>Potwierdź usunięcie</ModalTitle>
+                            <ModalTitle>
+                                {isRecurringEvent ? 'Potwierdź anulowanie' : 'Potwierdź usunięcie'}
+                            </ModalTitle>
                         </ModalHeader>
 
                         <ModalBody>
                             <WarningText>
-                                Czy na pewno chcesz usunąć wizytę "{appointment.title}"?
+                                {isRecurringEvent ?
+                                    `Czy na pewno chcesz anulować to wystąpienie cyklicznego wydarzenia "${appointment.title}"?` :
+                                    `Czy na pewno chcesz usunąć wizytę "${appointment.title}"?`
+                                }
                             </WarningText>
                             <WarningSubtext>
-                                Ta operacja jest nieodwracalna. Wszystkie dane zostaną trwale usunięte.
+                                {isRecurringEvent ?
+                                    'To wystąpienie zostanie oznaczone jako anulowane, ale pozostałe w serii pozostaną bez zmian.' :
+                                    'Ta operacja jest nieodwracalna. Wszystkie dane zostaną trwale usunięte.'
+                                }
                             </WarningSubtext>
                         </ModalBody>
 
@@ -288,7 +477,7 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
                             </ModalButton>
                             <ModalButton $variant="danger" onClick={confirmDelete}>
                                 <FaTrash />
-                                Usuń wizytę
+                                {isRecurringEvent ? 'Anuluj wystąpienie' : 'Usuń wizytę'}
                             </ModalButton>
                         </ModalActions>
                     </ModalContent>
@@ -310,9 +499,14 @@ const DetailsContainer = styled.div`
     overflow: hidden;
 `;
 
-const DetailsHeader = styled.div`
-    background: ${theme.surfaceElevated};
+const DetailsHeader = styled.div<{ $isRecurring?: boolean }>`
+    background: ${props => props.$isRecurring ?
+    'linear-gradient(135deg, #8b5cf615 0%, #a78bfa15 100%)' :
+    theme.surfaceElevated};
     border-bottom: 1px solid ${theme.border};
+    ${props => props.$isRecurring && `
+        border-left: 4px solid #8b5cf6;
+    `}
 `;
 
 const HeaderContent = styled.div`
@@ -338,6 +532,35 @@ const AppointmentMeta = styled.div`
     font-size: 14px;
     color: ${theme.text.tertiary};
     font-weight: 400;
+`;
+
+const RecurringActionButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.sm};
+    padding: ${theme.spacing.md} ${theme.spacing.lg};
+    background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
+    color: white;
+    border: none;
+    border-radius: ${theme.radius.md};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(139, 92, 246, 0.2);
+
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+    }
+
+    &:active {
+        transform: translateY(0);
+    }
+
+    svg {
+        font-size: 13px;
+    }
 `;
 
 const ProtocolActionButton = styled.button`
@@ -370,7 +593,51 @@ const ProtocolActionButton = styled.button`
     }
 `;
 
+const RecurringEventSection = styled.div`
+    background: linear-gradient(135deg, #8b5cf608 0%, #a78bfa08 100%);
+    border: 1px solid #8b5cf620;
+    border-radius: ${theme.radius.lg};
+    margin: ${theme.spacing.lg} ${theme.spacing.xxl};
+`;
+
+const RecurringEventContent = styled.div`
+    padding: ${theme.spacing.lg} ${theme.spacing.xxl};
+`;
+
+const RecurringEventGrid = styled.div`
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: ${theme.spacing.lg};
+    margin-bottom: ${theme.spacing.lg};
+`;
+
+const RecurringEventItem = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.md};
+    padding: ${theme.spacing.md};
+    background: ${theme.surface};
+    border: 1px solid ${theme.borderLight};
+    border-radius: ${theme.radius.md};
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: ${theme.surfaceHover};
+        border-color: #8b5cf6;
+    }
+`;
+
+const RecurringEventDescription = styled.div`
+    padding: ${theme.spacing.lg};
+    background: ${theme.surface};
+    border: 1px solid ${theme.borderLight};
+    border-radius: ${theme.radius.md};
+`;
+
 const SectionHeader = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     padding: ${theme.spacing.lg} ${theme.spacing.xxl} ${theme.spacing.md};
     background: ${theme.surfaceAlt};
     border-bottom: 1px solid ${theme.borderLight};
@@ -535,6 +802,13 @@ const ServiceMeta = styled.div`
     font-weight: 400;
 `;
 
+const ServiceNote = styled.div`
+    font-size: 11px;
+    color: ${theme.text.tertiary};
+    font-style: italic;
+    margin-top: ${theme.spacing.xs};
+`;
+
 const ServicePricing = styled.div`
     display: flex;
     flex-direction: column;
@@ -600,6 +874,16 @@ const ActionsSection = styled.div`
 `;
 
 const ActionGrid = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr;
+    gap: ${theme.spacing.lg};
+
+    @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+    }
+`;
+
+const RecurringEventActions = styled.div`
     display: grid;
     grid-template-columns: 1fr 2fr 1fr;
     gap: ${theme.spacing.lg};
@@ -792,9 +1076,9 @@ const ModalButton = styled.button<{ $variant: 'primary' | 'secondary' | 'danger'
     min-height: 40px;
 
     ${props => {
-        switch (props.$variant) {
-            case 'secondary':
-                return `
+    switch (props.$variant) {
+        case 'secondary':
+            return `
                     background: ${theme.surface};
                     color: ${theme.text.secondary};
                     border-color: ${theme.border};
@@ -804,8 +1088,8 @@ const ModalButton = styled.button<{ $variant: 'primary' | 'secondary' | 'danger'
                         border-color: ${theme.borderActive};
                     }
                 `;
-            case 'danger':
-                return `
+        case 'danger':
+            return `
                     background: ${theme.error};
                     color: white;
                     border-color: ${theme.error};
@@ -815,8 +1099,8 @@ const ModalButton = styled.button<{ $variant: 'primary' | 'secondary' | 'danger'
                         opacity: 0.9;
                     }
                 `;
-            default:
-                return `
+        default:
+            return `
                     background: ${theme.primary};
                     color: white;
                     border-color: ${theme.primary};
@@ -825,8 +1109,8 @@ const ModalButton = styled.button<{ $variant: 'primary' | 'secondary' | 'danger'
                         background: ${theme.primaryDark};
                     }
                 `;
-        }
-    }}
+    }
+}}
 `;
 
 export default AppointmentDetails;

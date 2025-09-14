@@ -1,4 +1,4 @@
-// src/utils/calendarUtils.ts
+// src/utils/calendarUtils.ts - ENHANCED VERSION WITH RECURRING EVENTS
 import {Appointment, AppointmentStatus, AppointmentStatusColors} from '../types';
 import {CalendarColor} from '../types/calendar';
 import {format} from 'date-fns';
@@ -12,6 +12,7 @@ export interface QuickFilters {
     readyForPickup: boolean;
     completed: boolean;
     cancelled: boolean;
+    recurringEvents: boolean; // New filter for recurring events
 }
 
 export const DEFAULT_QUICK_FILTERS: QuickFilters = {
@@ -19,7 +20,8 @@ export const DEFAULT_QUICK_FILTERS: QuickFilters = {
     inProgress: true,
     readyForPickup: false,
     completed: false,
-    cancelled: false
+    cancelled: false,
+    recurringEvents: true // Show recurring events by default
 };
 
 export const getStatusKey = (status: AppointmentStatus): keyof QuickFilters => {
@@ -33,10 +35,31 @@ export const getStatusKey = (status: AppointmentStatus): keyof QuickFilters => {
     }
 };
 
+// Check if appointment is a recurring event
+export const isRecurringEvent = (event: Appointment): boolean => {
+    return (event as any).isRecurringEvent === true || event.id.startsWith('recurring-');
+};
+
+// Get appropriate color for recurring events
+export const getRecurringEventColor = (event: Appointment): string => {
+    if (event.status === AppointmentStatus.COMPLETED) {
+        return '#10b981'; // Green for completed recurring events
+    }
+    if (event.status === AppointmentStatus.CANCELLED) {
+        return '#ef4444'; // Red for cancelled recurring events
+    }
+    return '#8b5cf6'; // Purple for active recurring events
+};
+
 export const getEventBackgroundColor = (
     event: Appointment,
     calendarColors: Record<string, CalendarColor>
 ): string => {
+    // Special handling for recurring events
+    if (isRecurringEvent(event)) {
+        return getRecurringEventColor(event);
+    }
+
     if (event.calendarColorId && calendarColors[event.calendarColorId]) {
         return calendarColors[event.calendarColorId].color;
     }
@@ -64,26 +87,40 @@ export const mapAppointmentsToFullCalendarEvents = (
     calendarColors: Record<string, CalendarColor>
 ) => {
     return events
-        .filter(event => quickFilters[getStatusKey(event.status)])
-        .map(event => ({
-            id: event.id,
-            title: event.title,
-            start: event.start,
-            end: event.end,
-            extendedProps: {
-                ...event,
-                description: `${event.customerId} • ${event.vehicleId || 'Brak pojazdu'}`
-            },
-            backgroundColor: getEventBackgroundColor(event, calendarColors),
-            borderColor: event.isProtocol ? '#1a365d' : getEventBackgroundColor(event, calendarColors),
-            textColor: '#ffffff',
-            classNames: [
-                'professional-event',
-                `status-${event.status}`,
-                `status-${event.status.toLowerCase()}`,
-                event.isProtocol ? 'protocol-event' : 'appointment-event',
-                event.status === AppointmentStatus.COMPLETED ? 'completed-event' : '',
-                event.status === AppointmentStatus.CANCELLED ? 'cancelled-event' : ''
-            ].filter(Boolean)
-        }));
+        .filter(event => {
+            // Filter recurring events separately
+            if (isRecurringEvent(event)) {
+                return quickFilters.recurringEvents;
+            }
+            // Use existing status-based filtering for regular appointments
+            return quickFilters[getStatusKey(event.status)];
+        })
+        .map(event => {
+            const isRecurring = isRecurringEvent(event);
+            const backgroundColor = getEventBackgroundColor(event, calendarColors);
+
+            return {
+                id: event.id,
+                title: event.title,
+                start: event.start,
+                end: event.end,
+                extendedProps: {
+                    ...event,
+                    description: `${event.customerId} • ${event.vehicleId || 'Brak pojazdu'}`,
+                    isRecurringEvent: isRecurring
+                },
+                backgroundColor,
+                borderColor: isRecurring ? '#6b46c1' : (event.isProtocol ? '#1a365d' : backgroundColor),
+                textColor: '#ffffff',
+                classNames: [
+                    'professional-event',
+                    `status-${event.status}`,
+                    `status-${event.status.toLowerCase()}`,
+                    event.isProtocol ? 'protocol-event' : 'appointment-event',
+                    isRecurring ? 'recurring-event' : '',
+                    event.status === AppointmentStatus.COMPLETED ? 'completed-event' : '',
+                    event.status === AppointmentStatus.CANCELLED ? 'cancelled-event' : ''
+                ].filter(Boolean)
+            };
+        });
 };

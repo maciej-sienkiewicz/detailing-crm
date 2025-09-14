@@ -153,10 +153,6 @@ const RecurringEventsPage: React.FC = () => {
                     subtitle="Zarządzanie powtarzającymi się wydarzeniami i wizytami"
                     actions={
                         <HeaderActions>
-                            <SecondaryButton onClick={() => navigate('/calendar/events')}>
-                                <FaChartLine />
-                                Kalendarz wydarzeń
-                            </SecondaryButton>
                             <PrimaryButton onClick={handleCreateClick}>
                                 <FaPlus />
                                 Nowe wydarzenie
@@ -164,31 +160,6 @@ const RecurringEventsPage: React.FC = () => {
                         </HeaderActions>
                     }
                 />
-
-                {/* Statistics - ZAKTUALIZOWANE STYLE */}
-                <StatsSection>
-                    <StatsGrid>
-                        <StatCard>
-                            <StatIcon $color={theme.primary}>
-                                <FaCalendarAlt />
-                            </StatIcon>
-                            <StatContent>
-                                <StatValue>{isStatsLoading ? '...' : stats.totalEvents}</StatValue>
-                                <StatLabel>Łączne wydarzenia</StatLabel>
-                            </StatContent>
-                        </StatCard>
-
-                        <StatCard>
-                            <StatIcon $color={theme.primary}>
-                                <FaChartLine />
-                            </StatIcon>
-                            <StatContent>
-                                <StatValue>{isStatsLoading ? '...' : stats.activeEvents}</StatValue>
-                                <StatLabel>Aktywne wydarzenia</StatLabel>
-                            </StatContent>
-                        </StatCard>
-                    </StatsGrid>
-                </StatsSection>
 
                 {/* Main Content - USUNIĘTO onCreateNew prop */}
                 <ContentSection>

@@ -94,6 +94,25 @@ interface ConvertedPaginationResponse<T> {
     message?: string;
 }
 
+interface EventOccurrenceWithDetailsResponse extends EventOccurrenceResponse {
+    recurringEventDetails?: {
+        id: string;
+        title: string;
+        description?: string;
+        type: any;
+        recurrencePattern?: any;
+        recurrence_pattern?: any; // Alternatywna nazwa z serwera
+        isActive?: boolean;
+        is_active?: boolean; // Alternatywna nazwa z serwera
+        visitTemplate?: any;
+        visit_template?: any; // Alternatywna nazwa z serwera
+        createdAt?: any;
+        created_at?: any; // Alternatywna nazwa z serwera
+        updatedAt?: any;
+        updated_at?: any; // Alternatywna nazwa z serwera
+    };
+}
+
 /**
  * Main Recurring Events API class
  */
@@ -270,7 +289,7 @@ class RecurringEventsApi {
             const response = await apiClientNew.post<RawRecurringEventResponse>(
                 this.baseEndpoint,
                 data,
-                { timeout: 15000 }
+                {timeout: 15000}
             );
 
             const converted = this.convertRawEventToResponse(response);
@@ -290,7 +309,7 @@ class RecurringEventsApi {
         try {
             console.log('🔍 Fetching recurring events list:', params);
 
-            const { page = 0, size = 20, sortBy = 'updatedAt', sortOrder = 'desc', ...filterParams } = params;
+            const {page = 0, size = 20, sortBy = 'updatedAt', sortOrder = 'desc', ...filterParams} = params;
 
             // Convert our params to Spring Boot format
             const springParams = {
@@ -301,13 +320,13 @@ class RecurringEventsApi {
                 type: filterParams.type,
                 activeOnly: filterParams.isActive,
                 // Add search support if the API supports it
-                ...(filterParams.search && { search: filterParams.search })
+                ...(filterParams.search && {search: filterParams.search})
             };
 
             const springResponse = await apiClientNew.get<SpringPageResponse<any>>(
                 this.baseEndpoint,
                 springParams,
-                { timeout: 10000 }
+                {timeout: 10000}
             );
 
             const converted = this.convertPaginationResponse(
@@ -351,7 +370,7 @@ class RecurringEventsApi {
             const response = await apiClientNew.get<RawRecurringEventResponse>(
                 `${this.baseEndpoint}/${eventId}`,
                 {},
-                { timeout: 10000 }
+                {timeout: 10000}
             );
 
             const converted = this.convertRawEventToResponse(response);
@@ -369,12 +388,12 @@ class RecurringEventsApi {
      */
     async updateRecurringEvent(eventId: string, data: UpdateRecurringEventRequest): Promise<RecurringEventResponse> {
         try {
-            console.log('🔧 Updating recurring event:', { eventId, data });
+            console.log('🔧 Updating recurring event:', {eventId, data});
 
             const response = await apiClientNew.put<RawRecurringEventResponse>(
                 `${this.baseEndpoint}/${eventId}`,
                 data,
-                { timeout: 15000 }
+                {timeout: 15000}
             );
 
             const converted = this.convertRawEventToResponse(response);
@@ -396,7 +415,7 @@ class RecurringEventsApi {
 
             const response = await apiClientNew.delete<{ message: string; deleted: boolean }>(
                 `${this.baseEndpoint}/${eventId}`,
-                { timeout: 10000 }
+                {timeout: 10000}
             );
 
             console.log('✅ Successfully deleted recurring event');
@@ -418,7 +437,7 @@ class RecurringEventsApi {
             const response = await apiClientNew.patch<RawRecurringEventResponse>(
                 `${this.baseEndpoint}/${eventId}/deactivate`,
                 {},
-                { timeout: 10000 }
+                {timeout: 10000}
             );
 
             const converted = this.convertRawEventToResponse(response);
@@ -440,7 +459,7 @@ class RecurringEventsApi {
      */
     async getEventOccurrences(eventId: string, startDate: string, endDate: string): Promise<EventOccurrenceResponse[]> {
         try {
-            console.log('🔍 Fetching event occurrences:', { eventId, startDate, endDate });
+            console.log('🔍 Fetching event occurrences:', {eventId, startDate, endDate});
 
             const response = await apiClientNew.get<any[]>(
                 `${this.baseEndpoint}/${eventId}/occurrences`,
@@ -448,7 +467,7 @@ class RecurringEventsApi {
                     startDate: startDate,
                     endDate: endDate
                 },
-                { timeout: 10000 }
+                {timeout: 10000}
             );
 
             // Convert raw occurrences to proper format
@@ -486,14 +505,14 @@ class RecurringEventsApi {
      */
     async getAllEventOccurrences(eventId: string, params: PaginationParams = {}): Promise<ConvertedPaginationResponse<EventOccurrenceResponse>> {
         try {
-            console.log('🔍 Fetching all event occurrences:', { eventId, params });
+            console.log('🔍 Fetching all event occurrences:', {eventId, params});
 
-            const { page = 0, size = 50 } = params;
+            const {page = 0, size = 50} = params;
 
             const springResponse = await apiClientNew.get<SpringPageResponse<any>>(
                 `${this.baseEndpoint}/${eventId}/occurrences/all`,
-                { page, size },
-                { timeout: 10000 }
+                {page, size},
+                {timeout: 10000}
             );
 
             const converter = (occurrence: any): EventOccurrenceResponse => ({
@@ -545,12 +564,12 @@ class RecurringEventsApi {
      */
     async updateOccurrenceStatus(eventId: string, occurrenceId: string, data: UpdateOccurrenceStatusRequest): Promise<EventOccurrenceResponse> {
         try {
-            console.log('🔧 Updating occurrence status:', { eventId, occurrenceId, data });
+            console.log('🔧 Updating occurrence status:', {eventId, occurrenceId, data});
 
             const response = await apiClientNew.patch<any>(
                 `${this.baseEndpoint}/${eventId}/occurrences/${occurrenceId}/status`,
                 data,
-                { timeout: 10000 }
+                {timeout: 10000}
             );
 
             const converted: EventOccurrenceResponse = {
@@ -587,12 +606,12 @@ class RecurringEventsApi {
      */
     async convertOccurrenceToVisit(eventId: string, occurrenceId: string, data: ConvertToVisitRequest): Promise<any> {
         try {
-            console.log('🔄 Converting occurrence to visit:', { eventId, occurrenceId, data });
+            console.log('🔄 Converting occurrence to visit:', {eventId, occurrenceId, data});
 
             const response = await apiClientNew.post<any>(
                 `${this.baseEndpoint}/${eventId}/occurrences/${occurrenceId}/convert-to-visit`,
                 data,
-                { timeout: 15000 }
+                {timeout: 15000}
             );
 
             console.log('✅ Successfully converted occurrence to visit');
@@ -623,7 +642,7 @@ class RecurringEventsApi {
             const response = await apiClientNew.get<any[]>(
                 `${this.baseEndpoint}/calendar`,
                 apiParams,
-                { timeout: 10000 }
+                {timeout: 10000}
             );
 
             const converted = response.map(occurrence => ({
@@ -652,6 +671,113 @@ class RecurringEventsApi {
         } catch (error) {
             console.error('❌ Error fetching event calendar:', error);
             return [];
+        }
+    }
+
+    async getEventCalendarWithDetails(params: EventCalendarParams): Promise<EventOccurrenceWithDetailsResponse[]> {
+        try {
+            console.log('📅 Fetching calendar events with full details:', params);
+
+            // Wykorzystaj istniejący endpoint, ale z nowym parametrem includeEventDetails=true
+            const apiParams = {
+                start_date: params.startDate, // Mapowanie na format serwera
+                end_date: params.endDate,
+                includeEventDetails: 'true' // Nowy parametr dla serwera
+            };
+
+            const response = await apiClientNew.get<EventOccurrenceWithDetailsResponse[]>(
+                `${this.baseEndpoint}/calendar/detailed`,
+                apiParams,
+                {timeout: 15000}
+            );
+
+            // Konwersja danych z serwera na format frontendu
+            const converted = response.map(occurrence => ({
+                // Podstawowe dane wystąpienia
+                id: occurrence.id,
+                recurringEventId: occurrence.recurringEventId,
+                scheduledDate: Array.isArray(occurrence.scheduledDate)
+                    ? this.convertLocalDateTimeArray(occurrence.scheduledDate)
+                    : occurrence.scheduledDate,
+                status: occurrence.status,
+                actualVisitId: occurrence.actualVisitId,
+                completedAt: occurrence.completedAt && Array.isArray(occurrence.completedAt)
+                    ? this.convertLocalDateTimeArray(occurrence.completedAt)
+                    : occurrence.completedAt,
+                notes: occurrence.notes,
+                createdAt: Array.isArray(occurrence.createdAt)
+                    ? this.convertLocalDateTimeArray(occurrence.createdAt)
+                    : occurrence.createdAt,
+                updatedAt: Array.isArray(occurrence.updatedAt)
+                    ? this.convertLocalDateTimeArray(occurrence.updatedAt)
+                    : occurrence.updatedAt,
+
+                // Szczegóły wydarzenia - już zawarte w odpowiedzi serwera
+                recurringEventDetails: occurrence.recurringEventDetails ? {
+                    id: occurrence.recurringEventDetails.id,
+                    title: occurrence.recurringEventDetails.title,
+                    description: occurrence.recurringEventDetails.description,
+                    type: occurrence.recurringEventDetails.type,
+                    recurrencePattern: {
+                        frequency: occurrence.recurringEventDetails.recurrencePattern?.frequency ||
+                            occurrence.recurringEventDetails.recurrence_pattern?.frequency,
+                        interval: occurrence.recurringEventDetails.recurrencePattern?.interval ||
+                            occurrence.recurringEventDetails.recurrence_pattern?.interval,
+                        daysOfWeek: occurrence.recurringEventDetails.recurrencePattern?.daysOfWeek ||
+                            occurrence.recurringEventDetails.recurrence_pattern?.days_of_week,
+                        dayOfMonth: occurrence.recurringEventDetails.recurrencePattern?.dayOfMonth ||
+                            occurrence.recurringEventDetails.recurrence_pattern?.day_of_month,
+                        endDate: occurrence.recurringEventDetails.recurrencePattern?.endDate ||
+                            occurrence.recurringEventDetails.recurrence_pattern?.end_date,
+                        maxOccurrences: occurrence.recurringEventDetails.recurrencePattern?.maxOccurrences ||
+                            occurrence.recurringEventDetails.recurrence_pattern?.max_occurrences
+                    },
+                    isActive: occurrence.recurringEventDetails.isActive ?? occurrence.recurringEventDetails.is_active ?? true,
+                    visitTemplate: occurrence.recurringEventDetails.visitTemplate || occurrence.recurringEventDetails.visit_template ? {
+                        clientId: (occurrence.recurringEventDetails.visitTemplate || occurrence.recurringEventDetails.visit_template).clientId ||
+                            (occurrence.recurringEventDetails.visitTemplate || occurrence.recurringEventDetails.visit_template).client_id,
+                        vehicleId: (occurrence.recurringEventDetails.visitTemplate || occurrence.recurringEventDetails.visit_template).vehicleId ||
+                            (occurrence.recurringEventDetails.visitTemplate || occurrence.recurringEventDetails.visit_template).vehicle_id,
+                        estimatedDurationMinutes: (occurrence.recurringEventDetails.visitTemplate || occurrence.recurringEventDetails.visit_template).estimatedDurationMinutes ||
+                            (occurrence.recurringEventDetails.visitTemplate || occurrence.recurringEventDetails.visit_template).estimated_duration_minutes,
+                        defaultServices: ((occurrence.recurringEventDetails.visitTemplate || occurrence.recurringEventDetails.visit_template).defaultServices ||
+                            (occurrence.recurringEventDetails.visitTemplate || occurrence.recurringEventDetails.visit_template).default_services || []).map((service: any) => ({
+                            name: service.name,
+                            basePrice: service.basePrice || service.base_price
+                        })),
+                        notes: (occurrence.recurringEventDetails.visitTemplate || occurrence.recurringEventDetails.visit_template).notes
+                    } : undefined,
+                    createdAt: Array.isArray(occurrence.recurringEventDetails.createdAt || occurrence.recurringEventDetails.created_at)
+                        ? this.convertLocalDateTimeArray(occurrence.recurringEventDetails.createdAt || occurrence.recurringEventDetails.created_at)
+                        : occurrence.recurringEventDetails.createdAt || occurrence.recurringEventDetails.created_at,
+                    updatedAt: Array.isArray(occurrence.recurringEventDetails.updatedAt || occurrence.recurringEventDetails.updated_at)
+                        ? this.convertLocalDateTimeArray(occurrence.recurringEventDetails.updatedAt || occurrence.recurringEventDetails.updated_at)
+                        : occurrence.recurringEventDetails.updatedAt || occurrence.recurringEventDetails.updated_at
+                } : undefined
+            }));
+
+            console.log('✅ Successfully fetched calendar events with details:', {
+                count: converted.length,
+                withEventDetails: converted.filter(e => e.recurringEventDetails).length
+            });
+
+            return converted;
+
+        } catch (error) {
+            console.error('❌ Error fetching calendar events with details:', error);
+
+            // Fallback do starej metody jeśli nowy endpoint nie działa
+            console.log('🔄 Falling back to regular calendar method...');
+            try {
+                const basicEvents = await this.getEventCalendar(params);
+                return basicEvents.map(event => ({
+                    ...event,
+                    recurringEventDetails: undefined // Bez szczegółów w fallback
+                }));
+            } catch (fallbackError) {
+                console.error('❌ Fallback also failed:', fallbackError);
+                return [];
+            }
         }
     }
 

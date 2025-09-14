@@ -3,13 +3,15 @@
 
 // Statusy wizyt
 import {SelectedService} from "./common";
+import {Service} from "./service";
+import {EventOccurrenceResponse} from "./recurringEvents";
 
 export enum AppointmentStatus {
-    SCHEDULED = 'SCHEDULED',                  // Zaplanowano
-    IN_PROGRESS = 'IN_PROGRESS',              // W realizacji
-    READY_FOR_PICKUP = 'READY_FOR_PICKUP',    // Oczekiwanie na odbiór
-    COMPLETED = 'COMPLETED',                   // Wydano/zakończono
-    CANCELLED = 'CANCELLED'                   // Wydano/zakończono
+    SCHEDULED = 'SCHEDULED',
+    IN_PROGRESS = 'IN_PROGRESS',
+    READY_FOR_PICKUP = 'READY_FOR_PICKUP',
+    COMPLETED = 'COMPLETED',
+    CANCELLED = 'CANCELLED'
 }
 
 // Etykiety dla statusów wizyt
@@ -41,8 +43,54 @@ export interface Appointment {
     serviceType: string;
     status: AppointmentStatus;
     notes?: string;
+    isProtocol?: boolean;
     statusUpdatedAt?: string;
-    isProtocol?: boolean; // Flaga wskazująca, czy wydarzenie pochodzi z protokołu
     calendarColorId?: string;
-    services: SelectedService[]
+    services?: Service[];
+
+    // Enhanced recurring event properties
+    isRecurringEvent?: boolean;
+    recurringEventData?: EventOccurrenceResponse & {
+        recurringEventDetails?: {
+            id: string;
+            title: string;
+            description?: string;
+            type: any;
+            recurrencePattern: {
+                frequency: string;
+                interval: number;
+                daysOfWeek?: string[];
+                dayOfMonth?: number;
+                endDate?: string;
+                maxOccurrences?: number;
+            };
+            isActive: boolean;
+            visitTemplate?: {
+                clientId?: number;
+                vehicleId?: number;
+                estimatedDurationMinutes: number;
+                defaultServices: Array<{
+                    name: string;
+                    basePrice: number;
+                }>;
+                notes?: string;
+            };
+            createdAt: string;
+            updatedAt: string;
+        };
+    };
+    recurringEventId?: string;
+    occurrenceId?: string;
 }
+
+export const isRecurringEventAppointment = (appointment: Appointment): boolean => {
+    return appointment.isRecurringEvent === true ||
+        appointment.id.startsWith('recurring-') ||
+        !!appointment.recurringEventData;
+};
+
+export const hasRecurringEventData = (appointment: Appointment): appointment is Appointment & {
+    recurringEventData: EventOccurrenceResponse;
+} => {
+    return !!appointment.recurringEventData;
+};
