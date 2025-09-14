@@ -130,28 +130,12 @@ export const RecurringEventCellRenderer: React.FC<RecurringEventCellRendererProp
         case 'actions':
             return (
                 <ActionButtons>
-                    <TooltipWrapper title="Szczegóły">
-                        <ActionButton
-                            $variant="view"
-                            onClick={(e) => handleActionClick(e, () => onViewDetails(event))}
-                        >
-                            <FaEye />
-                        </ActionButton>
-                    </TooltipWrapper>
                     <TooltipWrapper title="Edytuj">
                         <ActionButton
                             $variant="view"
                             onClick={(e) => handleActionClick(e, () => onEdit(event))}
                         >
                             <FaEdit />
-                        </ActionButton>
-                    </TooltipWrapper>
-                    <TooltipWrapper title="Wystąpienia">
-                        <ActionButton
-                            $variant="view"
-                            onClick={(e) => handleActionClick(e, () => onViewOccurrences(event.id))}
-                        >
-                            <FaUsers />
                         </ActionButton>
                     </TooltipWrapper>
                     <TooltipWrapper title={event.isActive ? 'Dezaktywuj' : 'Aktywuj'}>

@@ -1,3 +1,4 @@
+// src/pages/Clients/components/VehicleDetailPage/VehicleDetailPage.tsx
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import VehicleDetailHeader from './VehicleDetailHeader';
@@ -179,6 +180,13 @@ const VehicleDetailPage: React.FC = () => {
         displayName: vehicleDetails.display_name
     } : vehicle;
 
+    // Prepare vehicle info for gallery component
+    const vehicleInfoForGallery = {
+        make: displayVehicle.make,
+        model: displayVehicle.model,
+        licensePlate: displayVehicle.licensePlate
+    };
+
     return (
         <PageContainer>
             <VehicleDetailHeader
@@ -201,7 +209,10 @@ const VehicleDetailPage: React.FC = () => {
                 </MainContent>
 
                 <Sidebar>
-                    <VehicleGallerySection vehicleId={id} />
+                    <VehicleGallerySection
+                        vehicleId={id}
+                        vehicleInfo={vehicleInfoForGallery}
+                    />
                     <VehicleVisitHistory
                         visitHistory={visitHistory}
                         onVisitClick={handleVisitClick}

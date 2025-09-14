@@ -1,10 +1,12 @@
+// src/pages/Clients/components/VehicleDetailPage/VehicleGallerySection.tsx
 import React, { useEffect, useState, useCallback } from 'react';
 import styled from 'styled-components';
 import { FaCamera, FaChevronLeft, FaChevronRight, FaPlus } from 'react-icons/fa';
 import { SidebarSection, SidebarSectionTitle, EmptyMessage, EmptyIcon, EmptyText } from './VehicleDetailStyles';
-import { vehicleApi } from "../../../../api/vehiclesApi";
 import { carReceptionApi } from "../../../../api/carReceptionApi";
 import { theme } from "../../../../styles/theme";
+import VehicleImageUploadModal from './VehicleImageUploadModal';
+import {vehicleApi} from "../../../../api/vehiclesApi";
 
 interface VehicleImage {
     id: string;
@@ -17,15 +19,24 @@ interface VehicleImage {
 
 interface VehicleGallerySectionProps {
     vehicleId: string | undefined;
+    vehicleInfo?: {
+        make: string;
+        model: string;
+        licensePlate: string;
+    };
 }
 
-const VehicleGallerySection: React.FC<VehicleGallerySectionProps> = ({ vehicleId }) => {
+const VehicleGallerySection: React.FC<VehicleGallerySectionProps> = ({
+                                                                         vehicleId,
+                                                                         vehicleInfo = { make: 'Unknown', model: 'Unknown', licensePlate: 'Unknown' }
+                                                                     }) => {
     const [images, setImages] = useState<VehicleImage[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [imageUrls, setImageUrls] = useState<Map<string, string>>(new Map());
     const [loadingImages, setLoadingImages] = useState<Set<string>>(new Set());
+    const [showUploadModal, setShowUploadModal] = useState(false);
 
     useEffect(() => {
         loadImages();
@@ -41,6 +52,11 @@ const VehicleGallerySection: React.FC<VehicleGallerySectionProps> = ({ vehicleId
     }, [vehicleId]);
 
     const loadImages = async () => {
+        if (!vehicleId) {
+            setLoading(false);
+            return;
+        }
+
         try {
             setLoading(true);
             setError(null);
@@ -115,8 +131,18 @@ const VehicleGallerySection: React.FC<VehicleGallerySectionProps> = ({ vehicleId
         );
     };
 
-    const handleAddImage = () => {
-        console.log('Dodawanie zdjęcia - funkcjonalność w przygotowaniu');
+    const handleOpenUploadModal = () => {
+        setShowUploadModal(true);
+    };
+
+    const handleCloseUploadModal = () => {
+        setShowUploadModal(false);
+    };
+
+    const handleUploadSuccess = () => {
+        console.log('✅ Images uploaded successfully, reloading gallery...');
+        // Reload images after successful upload
+        loadImages();
     };
 
     const getCurrentImageUrl = useCallback((image: VehicleImage): string => {
@@ -148,7 +174,7 @@ const VehicleGallerySection: React.FC<VehicleGallerySectionProps> = ({ vehicleId
         );
     }
 
-    if (error || images.length === 0 || !vehicleId) {
+    if (error || !vehicleId) {
         return (
             <SidebarSection>
                 <SidebarSectionTitle>
@@ -164,11 +190,40 @@ const VehicleGallerySection: React.FC<VehicleGallerySectionProps> = ({ vehicleId
                     </EmptyText>
                 </EmptyMessage>
                 {vehicleId && (
-                    <AddImageButton onClick={handleAddImage}>
+                    <AddImageButton onClick={handleOpenUploadModal}>
                         <FaPlus />
                         Dodaj zdjęcie
                     </AddImageButton>
                 )}
+            </SidebarSection>
+        );
+    }
+
+    if (images.length === 0) {
+        return (
+            <SidebarSection>
+                <SidebarSectionTitle>
+                    <FaCamera />
+                    Galeria zdjęć
+                </SidebarSectionTitle>
+                <EmptyMessage>
+                    <EmptyIcon>
+                        <FaCamera />
+                    </EmptyIcon>
+                    <EmptyText>Brak zdjęć pojazdu</EmptyText>
+                </EmptyMessage>
+                <AddImageButton onClick={handleOpenUploadModal}>
+                    <FaPlus />
+                    Dodaj pierwsze zdjęcie
+                </AddImageButton>
+
+                <VehicleImageUploadModal
+                    isOpen={showUploadModal}
+                    onClose={handleCloseUploadModal}
+                    onSuccess={handleUploadSuccess}
+                    vehicleId={vehicleId}
+                    vehicleInfo={vehicleInfo}
+                />
             </SidebarSection>
         );
     }
@@ -249,15 +304,23 @@ const VehicleGallerySection: React.FC<VehicleGallerySectionProps> = ({ vehicleId
                 )}
             </GalleryContainer>
 
-            <AddImageButton onClick={handleAddImage}>
+            <AddImageButton onClick={handleOpenUploadModal}>
                 <FaPlus />
                 Dodaj zdjęcie
             </AddImageButton>
+
+            <VehicleImageUploadModal
+                isOpen={showUploadModal}
+                onClose={handleCloseUploadModal}
+                onSuccess={handleUploadSuccess}
+                vehicleId={vehicleId}
+                vehicleInfo={vehicleInfo}
+            />
         </SidebarSection>
     );
 };
 
-// Styled Components
+// Styled Components (same as before)
 const LoadingContainer = styled.div`
     display: flex;
     flex-direction: column;
@@ -267,6 +330,7 @@ const LoadingContainer = styled.div`
     gap: ${theme.spacing.md};
 `;
 
+// Styled Components (continued from VehicleGallerySection)
 const LoadingSpinner = styled.div`
     width: 24px;
     height: 24px;
