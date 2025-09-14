@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import styled from 'styled-components';
 import { FaCamera, FaChevronLeft, FaChevronRight, FaPlus } from 'react-icons/fa';
 import { SidebarSection, SidebarSectionTitle, EmptyMessage, EmptyIcon, EmptyText } from './VehicleDetailStyles';
-import {vehicleApi} from "../../../../api/vehiclesApi";
-import {theme} from "../../../../styles/theme";
+import { vehicleApi } from "../../../../api/vehiclesApi";
+import { carReceptionApi } from "../../../../api/carReceptionApi";
+import { theme } from "../../../../styles/theme";
 
 interface VehicleImage {
     id: string;
@@ -11,6 +12,7 @@ interface VehicleImage {
     thumbnailUrl: string;
     filename: string;
     uploadedAt: string;
+    blobUrl?: string; // Dodane dla autoryzowanych obrazów
 }
 
 interface VehicleGallerySectionProps {
@@ -22,9 +24,20 @@ const VehicleGallerySection: React.FC<VehicleGallerySectionProps> = ({ vehicleId
     const [currentIndex, setCurrentIndex] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [imageUrls, setImageUrls] = useState<Map<string, string>>(new Map());
+    const [loadingImages, setLoadingImages] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         loadImages();
+
+        // Cleanup function to revoke blob URLs
+        return () => {
+            imageUrls.forEach(url => {
+                if (url.startsWith('blob:')) {
+                    URL.revokeObjectURL(url);
+                }
+            });
+        };
     }, [vehicleId]);
 
     const loadImages = async () => {
@@ -32,9 +45,16 @@ const VehicleGallerySection: React.FC<VehicleGallerySectionProps> = ({ vehicleId
             setLoading(true);
             setError(null);
 
-            const response = await vehicleApi.fetchVehicleImages(vehicleId, { page: 0, size: 3 });
-            setImages(response.data || []);
+            const response = await vehicleApi.fetchVehicleImages(vehicleId, { page: 0, size: 10 });
+            const imageList = response.data || [];
+
+            setImages(imageList);
             setCurrentIndex(0);
+
+            // Załaduj autoryzowane URL-e dla wszystkich obrazów
+            if (imageList.length > 0) {
+                loadAuthorizedImageUrls(imageList);
+            }
         } catch (err) {
             console.error('Error loading vehicle images:', err);
             setError('Nie udało się załadować zdjęć');
@@ -42,6 +62,45 @@ const VehicleGallerySection: React.FC<VehicleGallerySectionProps> = ({ vehicleId
         } finally {
             setLoading(false);
         }
+    };
+
+    const loadAuthorizedImageUrls = async (imageList: VehicleImage[]) => {
+        const newUrls = new Map<string, string>();
+        const newLoadingSet = new Set(imageList.map(img => img.id));
+
+        setLoadingImages(newLoadingSet);
+
+        // Równoległe ładowanie wszystkich obrazów
+        const imagePromises = imageList.map(async (image) => {
+            try {
+                const blobUrl = await carReceptionApi.fetchAuthorizedImageUrl(image.id);
+                if (blobUrl) {
+                    newUrls.set(image.id, blobUrl);
+                }
+            } catch (error) {
+                console.error(`Failed to load image ${image.id}:`, error);
+                // W przypadku błędu, możemy spróbować użyć fallback URL
+                newUrls.set(image.id, '/images/image-placeholder.png');
+            } finally {
+                setLoadingImages(prev => {
+                    const updated = new Set(prev);
+                    updated.delete(image.id);
+                    return updated;
+                });
+            }
+        });
+
+        await Promise.all(imagePromises);
+
+        setImageUrls(prevUrls => {
+            // Zwolnij poprzednie blob URLs
+            prevUrls.forEach(url => {
+                if (url.startsWith('blob:')) {
+                    URL.revokeObjectURL(url);
+                }
+            });
+            return newUrls;
+        });
     };
 
     const handlePrevious = () => {
@@ -59,6 +118,20 @@ const VehicleGallerySection: React.FC<VehicleGallerySectionProps> = ({ vehicleId
     const handleAddImage = () => {
         console.log('Dodawanie zdjęcia - funkcjonalność w przygotowaniu');
     };
+
+    const getCurrentImageUrl = useCallback((image: VehicleImage): string => {
+        const authorizedUrl = imageUrls.get(image.id);
+        if (authorizedUrl) {
+            return authorizedUrl;
+        }
+
+        // Fallback do placeholder podczas ładowania
+        return '/images/image-placeholder.png';
+    }, [imageUrls]);
+
+    const isImageLoading = useCallback((imageId: string): boolean => {
+        return loadingImages.has(imageId);
+    }, [loadingImages]);
 
     if (loading) {
         return (
@@ -101,6 +174,8 @@ const VehicleGallerySection: React.FC<VehicleGallerySectionProps> = ({ vehicleId
     }
 
     const currentImage = images[currentIndex];
+    const currentImageUrl = getCurrentImageUrl(currentImage);
+    const isCurrentImageLoading = isImageLoading(currentImage.id);
 
     return (
         <SidebarSection>
@@ -120,13 +195,23 @@ const VehicleGallerySection: React.FC<VehicleGallerySectionProps> = ({ vehicleId
                     </NavigationButton>
 
                     <ImageDisplay>
+                        {isCurrentImageLoading && (
+                            <ImageLoadingOverlay>
+                                <ImageLoadingSpinner />
+                                <ImageLoadingText>Ładowanie obrazu...</ImageLoadingText>
+                            </ImageLoadingOverlay>
+                        )}
                         <VehicleImage
-                            src={currentImage.thumbnailUrl || currentImage.url}
+                            src={currentImageUrl}
                             alt={`Zdjęcie pojazdu ${currentIndex + 1}`}
                             onError={(e) => {
+                                // Fallback w przypadku błędu ładowania
                                 const target = e.target as HTMLImageElement;
-                                target.src = '/placeholder-car-image.png';
+                                if (target.src !== '/images/image-placeholder.png') {
+                                    target.src = '/images/image-placeholder.png';
+                                }
                             }}
+                            $loading={isCurrentImageLoading}
                         />
                         <ImageOverlay>
                             <ImageCounter>
@@ -172,6 +257,7 @@ const VehicleGallerySection: React.FC<VehicleGallerySectionProps> = ({ vehicleId
     );
 };
 
+// Styled Components
 const LoadingContainer = styled.div`
     display: flex;
     flex-direction: column;
@@ -258,11 +344,44 @@ const ImageDisplay = styled.div`
     justify-content: center;
 `;
 
-const VehicleImage = styled.img`
+const ImageLoadingOverlay = styled.div`
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: ${theme.spacing.sm};
+    z-index: 1;
+    border-radius: ${theme.radius.md};
+`;
+
+const ImageLoadingSpinner = styled.div`
+    width: 20px;
+    height: 20px;
+    border: 2px solid ${theme.borderLight};
+    border-top: 2px solid ${theme.primary};
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+`;
+
+const ImageLoadingText = styled.div`
+    font-size: 11px;
+    color: ${theme.text.secondary};
+    font-weight: 500;
+`;
+
+const VehicleImage = styled.img<{ $loading?: boolean }>`
     max-width: 100%;
     max-height: 100%;
     object-fit: cover;
     border-radius: ${theme.radius.md};
+    transition: opacity 0.3s ease;
+    opacity: ${props => props.$loading ? 0.5 : 1};
 `;
 
 const ImageOverlay = styled.div`

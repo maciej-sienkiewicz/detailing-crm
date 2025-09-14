@@ -1,5 +1,5 @@
 // src/components/common/DataTable/DataTable.tsx - Kompletny plik po zmianach
-import React from 'react';
+import React, {useCallback} from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { FaList, FaTable, FaCheckSquare, FaSquare } from 'react-icons/fa';
@@ -61,12 +61,12 @@ export function DataTable<T extends BaseDataItem>({
     const { columns, moveColumn } = useTableConfiguration(defaultColumns, storageKeys.columnOrder);
     const { viewMode, setViewMode } = useViewMode(defaultViewMode, storageKeys.viewMode);
 
-    const getSortValue = (item: T, columnId: string) => {
+    const getSortValue = useCallback((item: T, columnId: string) => {
         switch (columnId) {
             default:
                 return item[columnId] || '';
         }
-    };
+    }, []);
 
     const { sortedData, sortColumn, sortDirection, handleSort } = useTableSorting(data, getSortValue);
 
