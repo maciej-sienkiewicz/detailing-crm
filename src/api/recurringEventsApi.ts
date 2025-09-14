@@ -24,7 +24,7 @@ import {
     PatternValidationResult,
     OccurrenceStatus,
     EventType,
-    RecurrenceFrequency
+    RecurrenceFrequency, ConvertToVisitResponse
 } from '../types/recurringEvents';
 
 // Spring Boot pagination response type
@@ -604,18 +604,52 @@ class RecurringEventsApi {
     /**
      * Converts an occurrence to a full visit
      */
-    async convertOccurrenceToVisit(eventId: string, occurrenceId: string, data: ConvertToVisitRequest): Promise<any> {
+    async convertOccurrenceToVisit(
+        eventId: string,
+        occurrenceId: string,
+        data: ConvertToVisitRequest
+    ): Promise<ConvertToVisitResponse> {
         try {
-            console.log('🔄 Converting occurrence to visit:', {eventId, occurrenceId, data});
+            console.log('🔄 Converting occurrence to visit:', { eventId, occurrenceId, data });
 
             const response = await apiClientNew.post<any>(
                 `${this.baseEndpoint}/${eventId}/occurrences/${occurrenceId}/convert-to-visit`,
                 data,
-                {timeout: 15000}
+                { timeout: 15000 }
             );
 
-            console.log('✅ Successfully converted occurrence to visit');
-            return response;
+            // Konwertuj response z formatu snake_case na camelCase
+            const converted: ConvertToVisitResponse = {
+                id: response.id,
+                title: response.title,
+                clientId: response.client_id,
+                vehicleId: response.vehicle_id,
+                startDate: Array.isArray(response.start_date)
+                    ? this.convertLocalDateTimeArray(response.start_date)
+                    : response.start_date,
+                endDate: Array.isArray(response.end_date)
+                    ? this.convertLocalDateTimeArray(response.end_date)
+                    : response.end_date,
+                status: response.status,
+                services: response.services || [],
+                totalAmount: response.total_amount || 0,
+                serviceCount: response.service_count || 0,
+                notes: response.notes,
+                referralSource: response.referral_source,
+                appointmentId: response.appointment_id,
+                calendarColorId: response.calendar_color_id || '',
+                keysProvided: response.keys_provided || false,
+                documentsProvided: response.documents_provided || false,
+                createdAt: Array.isArray(response.created_at)
+                    ? this.convertLocalDateTimeArray(response.created_at)
+                    : response.created_at,
+                updatedAt: Array.isArray(response.updated_at)
+                    ? this.convertLocalDateTimeArray(response.updated_at)
+                    : response.updated_at
+            };
+
+            console.log('✅ Successfully converted occurrence to visit:', converted.id);
+            return converted;
 
         } catch (error) {
             console.error('❌ Error converting occurrence to visit:', error);

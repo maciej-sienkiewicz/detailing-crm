@@ -1,6 +1,5 @@
 // src/services/CalendarIntegrationService.ts - FIXED VERSION
-import {Appointment} from '../types';
-import {EventOccurrenceResponse} from '../types/recurringEvents';
+import {Appointment, AppointmentStatus} from '../types';
 import {fetchProtocolsAsAppointments} from './ProtocolCalendarService';
 import {recurringEventsApi} from '../api/recurringEventsApi';
 
@@ -140,7 +139,7 @@ export const fetchCalendarData = async (dateRange?: { start: Date; end: Date }):
         ]);
 
         protocols = protocolsResult;
-        recurringEvents = recurringEventsResult;
+        recurringEvents = recurringEventsResult.filter(x => x.status == AppointmentStatus.SCHEDULED);
 
         console.log('Successfully fetched calendar data:', {
             protocols: protocols.length,

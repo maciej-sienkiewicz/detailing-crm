@@ -382,3 +382,29 @@ export interface TimeRange {
     startTime: string;
     endTime: string;
 }
+
+export interface ConvertToVisitResponse {
+    id: string;
+    title: string;
+    clientId: string;
+    vehicleId: string;
+    startDate: string; // LocalDateTime converted to ISO string
+    endDate: string;   // LocalDateTime converted to ISO string
+    status: string;    // VisitStatus (likely SCHEDULED)
+    services: Array<{
+        id: string;
+        name: string;
+        price: number;
+        // Dodaj inne pola gdy będą potrzebne
+    }>;
+    totalAmount: number;
+    serviceCount: number;
+    notes?: string;
+    referralSource?: string;
+    appointmentId?: string;
+    calendarColorId: string;
+    keysProvided: boolean;
+    documentsProvided: boolean;
+    createdAt: string; // LocalDateTime converted to ISO string
+    updatedAt: string; // LocalDateTime converted to ISO string
+}

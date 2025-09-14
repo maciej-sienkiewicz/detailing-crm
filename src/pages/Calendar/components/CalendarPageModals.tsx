@@ -21,6 +21,7 @@ export const CalendarPageModals: React.FC = () => {
                         onDelete={actions.handleDeleteAppointment}
                         onStatusChange={actions.handleStatusChange}
                         onCreateProtocol={actions.handleCreateProtocol}
+                        onConvertToVisit={actions.handleConvertToVisit}
                     />
                 </Modal>
             )}

@@ -1,5 +1,5 @@
 // src/components/calendar/AppointmentDetails.tsx - COMPLETE VERSION WITH RECURRING EVENTS
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import styled from 'styled-components';
 import {format} from 'date-fns';
 import {pl} from 'date-fns/locale';
@@ -15,13 +15,22 @@ import {
     FaTrash,
     FaUser,
     FaSync,
-    FaHistory
+    FaHistory, FaCheck
 } from 'react-icons/fa';
 import {Appointment, ProtocolStatus} from '../../types';
-import {EventOccurrenceResponse, RecurringEventResponse, OccurrenceStatusLabels} from '../../types/recurringEvents';
+import {
+    EventOccurrenceResponse,
+    RecurringEventResponse,
+    OccurrenceStatusLabels,
+    ConvertToVisitResponse
+} from '../../types/recurringEvents';
 import {useNavigate} from 'react-router-dom';
 import {theme} from '../../styles/theme';
 import {recurringEventsApi} from '../../api/recurringEventsApi';
+import {useToast} from "../common/Toast/Toast";
+import ConvertToVisitModal from "./ConvertToVisitModal";
+import {canConvertToVisit, isAlreadyConverted, isRecurringVisit} from "../../utils/recurringVisitUtils";
+
 
 interface AppointmentDetailsProps {
     appointment: Appointment;
@@ -29,6 +38,7 @@ interface AppointmentDetailsProps {
     onDelete: () => void;
     onStatusChange: (status: any) => void;
     onCreateProtocol: () => void;
+    onConvertToVisit?: (visitResponse: ConvertToVisitResponse) => void; // NOWE
 }
 
 // Utility functions for recurring events
@@ -48,18 +58,26 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
                                                                    onEdit,
                                                                    onDelete,
                                                                    onStatusChange,
-                                                                   onCreateProtocol
+                                                                   onCreateProtocol,
+                                                                   onConvertToVisit
                                                                }) => {
     const navigate = useNavigate();
     const [showConfirmDelete, setShowConfirmDelete] = useState(false);
     const [recurringEventDetails, setRecurringEventDetails] = useState<RecurringEventResponse | null>(null);
     const [loadingDetails, setLoadingDetails] = useState(false);
 
-    const isRecurringEvent = isRecurringEventAppointment(appointment.id);
+    const isRecurringEvent = isRecurringVisit(appointment);
+    const canConvert = canConvertToVisit(appointment);
+    const alreadyConverted = isAlreadyConverted(appointment);
+
     const occurrenceData = (appointment as any).recurringEventData as EventOccurrenceResponse;
+
+    const [showConvertModal, setShowConvertModal] = useState(false);
+    const { showToast } = useToast();
 
     // Load recurring event details if this is a recurring event
     useEffect(() => {
+        console.log(isRecurringEvent)
         if (isRecurringEvent && occurrenceData && !recurringEventDetails) {
             setLoadingDetails(true);
             recurringEventsApi.getRecurringEventById(occurrenceData.recurringEventId)
@@ -122,26 +140,26 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
         setShowConfirmDelete(false);
     };
 
-    const handleConvertToVisit = () => {
-        if (isRecurringEvent && occurrenceData && recurringEventDetails) {
-            // Navigate to visit creation with pre-filled data from recurring event template
-            const visitTemplate = recurringEventDetails.visitTemplate;
-            navigate('/visits', {
-                state: {
-                    fromRecurringEvent: true,
-                    occurrenceId: occurrenceData.id,
-                    recurringEventId: occurrenceData.recurringEventId,
-                    clientId: visitTemplate?.clientId,
-                    vehicleId: visitTemplate?.vehicleId,
-                    scheduledDate: appointment.start.toISOString(),
-                    preselectedServices: visitTemplate?.defaultServices,
-                    notes: occurrenceData.notes
-                }
-            });
-        } else {
-            onCreateProtocol();
+    const handleConvertToVisit = useCallback(() => {
+        if (!canConvert) {
+            if (alreadyConverted) {
+                showToast('info', 'Ta cykliczna wizyta została już przekształcona w wizytę', 4000);
+            } else {
+                showToast('error', 'Tej cyklicznej wizyty nie można przekształcić', 4000);
+            }
+            return;
         }
-    };
+
+        setShowConvertModal(true);
+    }, [canConvert, alreadyConverted, showToast]);
+
+    const handleConvertSuccess = useCallback((visitResponse: ConvertToVisitResponse) => {
+        setShowConvertModal(false);
+
+        if (onConvertToVisit) {
+            onConvertToVisit(visitResponse);
+        }
+    }, [onConvertToVisit]);
 
     return (
         <DetailsContainer>
@@ -385,13 +403,31 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
                             <span>Zarządzaj serią</span>
                         </SecondaryAction>
 
-                        <PrimaryAction onClick={handleConvertToVisit}>
-                            <FaClipboardCheck />
-                            <ActionContent>
-                                <ActionLabel>Przekształć na wizytę</ActionLabel>
-                                <ActionHint>Utwórz pełny protokół</ActionHint>
-                            </ActionContent>
-                        </PrimaryAction>
+                        {canConvert ? (
+                            <PrimaryAction onClick={handleConvertToVisit}>
+                                <FaClipboardCheck />
+                                <ActionContent>
+                                    <ActionLabel>Przekształć na wizytę</ActionLabel>
+                                    <ActionHint>Utwórz pełny protokół</ActionHint>
+                                </ActionContent>
+                            </PrimaryAction>
+                        ) : alreadyConverted ? (
+                            <ConvertedAction>
+                                <FaCheck />
+                                <ActionContent>
+                                    <ActionLabel>Przekształcone</ActionLabel>
+                                    <ActionHint>Wizyta została utworzona</ActionHint>
+                                </ActionContent>
+                            </ConvertedAction>
+                        ) : (
+                            <DisabledAction>
+                                <FaTimes />
+                                <ActionContent>
+                                    <ActionLabel>Nie można przekształcić</ActionLabel>
+                                    <ActionHint>Status nie pozwala</ActionHint>
+                                </ActionContent>
+                            </DisabledAction>
+                        )}
 
                         <DangerAction onClick={() => onStatusChange('CANCELLED')}>
                             <FaTimes />
@@ -483,6 +519,16 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
                     </ModalContent>
                 </ConfirmModal>
             )}
+
+            {showConvertModal && isRecurringEvent && occurrenceData && (
+                <ConvertToVisitModal
+                    isOpen={showConvertModal}
+                    occurrence={occurrenceData}
+                    recurringEventDetails={recurringEventDetails}
+                    onClose={() => setShowConvertModal(false)}
+                    onSuccess={handleConvertSuccess}
+                />
+            )}
         </DetailsContainer>
     );
 };
@@ -497,6 +543,39 @@ const DetailsContainer = styled.div`
     border: 1px solid ${theme.border};
     border-radius: ${theme.radius.lg};
     overflow: hidden;
+`;
+
+
+const ConvertedAction = styled.div`
+    background: ${theme.surface};
+    color: ${theme.success};
+    border-color: ${theme.success};
+    flex-direction: column;
+    gap: ${theme.spacing.xs};
+    opacity: 0.8;
+    cursor: default;
+
+    &:hover {
+        transform: none;
+        box-shadow: none;
+        background: ${theme.surface};
+    }
+`;
+
+const DisabledAction = styled.div`
+    background: ${theme.surface};
+    color: ${theme.text.muted};
+    border-color: ${theme.border};
+    flex-direction: column;
+    gap: ${theme.spacing.xs};
+    opacity: 0.6;
+    cursor: not-allowed;
+
+    &:hover {
+        transform: none;
+        box-shadow: none;
+        background: ${theme.surface};
+    }
 `;
 
 const DetailsHeader = styled.div<{ $isRecurring?: boolean }>`
