@@ -1,7 +1,8 @@
-// src/components/recurringEvents/views/CreateFormView.tsx
+// src/components/recurringEvents/views/CreateFormView.tsx - NAPRAWIONA WERSJA
 /**
- * Create Form View Component
+ * Create Form View Component - NAPRAWIONA OBSŁUGA KROKÓW
  * Multi-step creation view for new recurring events
+ * NAPRAWKI: Zablokowanie submit przed krokiem 3, lepsze debugowanie
  */
 
 import React from 'react';
@@ -41,6 +42,51 @@ export const CreateFormView: React.FC<CreateFormViewProps> = ({
                                                                   onCancel,
                                                                   isLoading
                                                               }) => {
+
+    // NAPRAWKA: Handler dla przycisku "Dalej" z debugowaniem
+    const handleNextClick = () => {
+        const nextStep = currentStep + 1;
+        console.log(`🚀 Moving to step ${nextStep} from ${currentStep}`);
+        console.log('Can proceed to current step:', canProceedToStep(currentStep));
+        console.log('Form data:', form.getValues());
+        console.log('Form errors:', form.formState.errors);
+
+        if (canProceedToStep(currentStep)) {
+            setCurrentStep(nextStep);
+        } else {
+            console.log('❌ Cannot proceed - validation failed');
+        }
+    };
+
+    // NAPRAWKA: Handler dla przycisku "Wstecz"
+    const handleBackClick = () => {
+        const prevStep = currentStep - 1;
+        console.log(`🔙 Moving back to step ${prevStep} from ${currentStep}`);
+        setCurrentStep(prevStep);
+    };
+
+    // NAPRAWKA: Handler dla submit z dodatkowym sprawdzeniem
+    const handleSubmitClick = (e: React.FormEvent) => {
+        e.preventDefault();
+        console.log('🚀 Submit button clicked');
+        console.log('Current step:', currentStep);
+        console.log('Is form valid for submit:', isFormValidForSubmit);
+        console.log('Form data:', form.getValues());
+        console.log('Form errors:', form.formState.errors);
+
+        // KLUCZOWE: Submit tylko na kroku 3
+        if (currentStep !== 3) {
+            console.log('🚫 Submit blocked - not on step 3');
+            return;
+        }
+
+        if (isFormValidForSubmit) {
+            onSubmit(e);
+        } else {
+            console.log('🚫 Submit blocked - form not valid');
+        }
+    };
+
     return (
         <FormContainer>
             <FormHeader
@@ -56,7 +102,8 @@ export const CreateFormView: React.FC<CreateFormViewProps> = ({
                 errors={form.formState.errors}
             />
 
-            <form onSubmit={onSubmit}>
+            {/* NAPRAWKA: Usunięcie onSubmit z form - obsługiwane manual */}
+            <form onSubmit={(e) => e.preventDefault()}>
                 <FormContent>
                     {currentStep === 1 && (
                         <BasicInfoStep
@@ -83,7 +130,11 @@ export const CreateFormView: React.FC<CreateFormViewProps> = ({
 
                 <FormActions>
                     <LeftSection>
-                        <SecondaryButton type="button" onClick={onCancel} disabled={isLoading}>
+                        <SecondaryButton
+                            type="button"
+                            onClick={onCancel}
+                            disabled={isLoading}
+                        >
                             <FaTimes />
                             Anuluj
                         </SecondaryButton>
@@ -93,10 +144,7 @@ export const CreateFormView: React.FC<CreateFormViewProps> = ({
                         {currentStep > 1 && (
                             <SecondaryButton
                                 type="button"
-                                onClick={() => {
-                                    console.log(`🔙 Moving back to step ${currentStep - 1}`);
-                                    setCurrentStep(currentStep - 1);
-                                }}
+                                onClick={handleBackClick}
                                 disabled={isLoading}
                             >
                                 <FaArrowLeft />
@@ -107,10 +155,7 @@ export const CreateFormView: React.FC<CreateFormViewProps> = ({
                         {currentStep < 3 ? (
                             <PrimaryButton
                                 type="button"
-                                onClick={() => {
-                                    console.log(`🚀 Moving to step ${currentStep + 1}`);
-                                    setCurrentStep(currentStep + 1);
-                                }}
+                                onClick={handleNextClick}
                                 disabled={!canProceedToStep(currentStep) || isLoading}
                                 title={!canProceedToStep(currentStep) ? 'Wypełnij wymagane pola' : ''}
                             >
@@ -119,10 +164,10 @@ export const CreateFormView: React.FC<CreateFormViewProps> = ({
                             </PrimaryButton>
                         ) : (
                             <PrimaryButton
-                                type="submit"
+                                type="button"
+                                onClick={handleSubmitClick}
                                 disabled={!isFormValidForSubmit || isLoading}
                                 title={!isFormValidForSubmit ? 'Wypełnij wszystkie wymagane pola' : ''}
-                                onClick={() => console.log('🚀 Submit button clicked - Form valid:', isFormValidForSubmit)}
                             >
                                 {isLoading ? (
                                     <>
@@ -141,13 +186,36 @@ export const CreateFormView: React.FC<CreateFormViewProps> = ({
                 </FormActions>
             </form>
 
-            {/* Debug component */}
+            {/* Debug component - pokazuje się tylko w developmencie */}
+            {process.env.NODE_ENV === 'development' && (
+                <DebugSection>
+                    <DebugTitle>🐛 Debug Info (tylko w dev)</DebugTitle>
+                    <DebugInfo>
+                        <DebugItem>
+                            <strong>Current Step:</strong> {currentStep}
+                        </DebugItem>
+                        <DebugItem>
+                            <strong>Watched Type:</strong> {watchedType}
+                        </DebugItem>
+                        <DebugItem>
+                            <strong>Can Proceed:</strong> {canProceedToStep(currentStep) ? '✅' : '❌'}
+                        </DebugItem>
+                        <DebugItem>
+                            <strong>Form Valid for Submit:</strong> {isFormValidForSubmit ? '✅' : '❌'}
+                        </DebugItem>
+                        <DebugItem>
+                            <strong>Has Errors:</strong> {Object.keys(form.formState.errors).length > 0 ? '❌' : '✅'}
+                        </DebugItem>
+                    </DebugInfo>
+                </DebugSection>
+            )}
+
             <FormValidationDebugger form={form} currentStep={currentStep} />
         </FormContainer>
     );
 };
 
-// Styled Components
+// Styled Components - bez zmian z poprzedniej wersji + nowe debug styles
 const FormContainer = styled.div`
     background: ${theme.surface};
     border-radius: ${theme.radius.xl};
@@ -261,5 +329,40 @@ const LoadingSpinner = styled.div`
     @keyframes spin {
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
+    }
+`;
+
+// NOWE: Debug styles
+const DebugSection = styled.div`
+    background: ${theme.warning}10;
+    border: 1px solid ${theme.warning}40;
+    padding: ${theme.spacing.lg};
+    margin: ${theme.spacing.lg};
+    border-radius: ${theme.radius.md};
+    font-family: monospace;
+    font-size: 12px;
+`;
+
+const DebugTitle = styled.div`
+    font-weight: bold;
+    color: ${theme.warning};
+    margin-bottom: ${theme.spacing.sm};
+`;
+
+const DebugInfo = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: ${theme.spacing.md};
+`;
+
+const DebugItem = styled.div`
+    background: ${theme.surface};
+    padding: ${theme.spacing.xs} ${theme.spacing.sm};
+    border-radius: ${theme.radius.sm};
+    border: 1px solid ${theme.border};
+    font-size: 11px;
+    
+    strong {
+        color: ${theme.text.primary};
     }
 `;

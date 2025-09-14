@@ -1,7 +1,8 @@
-// src/components/recurringEvents/hooks/useRecurringEventForm.ts
+// src/components/recurringEvents/hooks/useRecurringEventForm.ts - NAPRAWIONA WERSJA
 /**
- * Custom hook for Recurring Event Form logic
+ * Custom hook for Recurring Event Form logic - NAPRAWIONA WALIDACJA
  * Handles form state, validation, and data transformation
+ * NAPRAWKI: Poprawiona logika submit dla SIMPLE_EVENT - zawsze wymaga kroku 3
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -83,79 +84,111 @@ export const useRecurringEventForm = ({
 
     const watchedType = !isLimitedEdit ? fullForm.watch('type') : initialData?.type;
 
-    // NAPRAWKA: Custom validation for submit - zawsze sprawdzaj czy jesteśmy na kroku 3
+    // KLUCZOWA NAPRAWKA: Formularz może być submitowany TYLKO na kroku 3 dla WSZYSTKICH typów
     const isFormValidForSubmit = useMemo(() => {
         if (isLimitedEdit) {
             return limitedEditForm.formState.isValid;
         }
 
-        // Formularz może być submit'owany TYLKO na kroku 3
+        // GŁÓWNA NAPRAWKA: Formularz może być submit'owany TYLKO na kroku 3
         if (currentStep !== 3) {
+            console.log('🚫 Form submit blocked - not on step 3, current step:', currentStep);
             return false;
         }
 
         const formData = fullForm.getValues();
         const errors = fullForm.formState.errors;
 
+        console.log('🔍 Final form validation check:', {
+            currentStep,
+            type: formData.type,
+            title: formData.title,
+            hasRecurrencePattern: !!formData.recurrencePattern,
+            errors: errors,
+            visitTemplateErrors: errors.visitTemplate
+        });
+
         // Dla SIMPLE_EVENT - ignoruj błędy visitTemplate, ale sprawdź podstawowe pola
         if (formData.type === EventType.SIMPLE_EVENT) {
-            const hasBasicErrors = !!(errors.title || errors.description || errors.type || errors.recurrencePattern);
-            const hasRequiredData = !!(formData.title && formData.type && formData.recurrencePattern);
+            const hasValidTitle = !!(formData.title && formData.title.trim().length >= 3);
+            const hasValidType = !!formData.type;
+            const hasValidRecurrencePattern = !!(
+                formData.recurrencePattern &&
+                formData.recurrencePattern.frequency &&
+                formData.recurrencePattern.interval > 0
+            );
 
-            console.log('🔍 SIMPLE_EVENT final validation:', {
-                currentStep,
-                type: formData.type,
-                title: formData.title,
-                hasRecurrencePattern: !!formData.recurrencePattern,
+            // Sprawdź czy nie ma podstawowych błędów (ignoruj visitTemplate)
+            const hasBasicErrors = !!(
+                errors.title ||
+                errors.description ||
+                errors.type ||
+                errors.recurrencePattern
+            );
+
+            const isValid = hasValidTitle && hasValidType && hasValidRecurrencePattern && !hasBasicErrors;
+
+            console.log('✅ SIMPLE_EVENT final validation:', {
+                hasValidTitle,
+                hasValidType,
+                hasValidRecurrencePattern,
                 hasBasicErrors,
-                hasRequiredData,
-                visitTemplateErrors: errors.visitTemplate,
-                shouldBeValid: !hasBasicErrors && hasRequiredData
+                isValid
             });
 
-            return !hasBasicErrors && hasRequiredData;
+            return isValid;
         }
 
         // Dla RECURRING_VISIT - sprawdź wszystkie pola włącznie z visitTemplate
-        return fullForm.formState.isValid;
+        const isValid = fullForm.formState.isValid;
+        console.log('✅ RECURRING_VISIT final validation:', { isValid });
+
+        return isValid;
     }, [
         isLimitedEdit,
-        currentStep, // WAŻNE: dodane currentStep
+        currentStep, // WAŻNE: currentStep musi być w dependencies
         limitedEditForm.formState.isValid,
         fullForm.formState.isValid,
         fullForm.formState.errors,
         watchedType,
-        fullForm.watch()
+        fullForm.watch() // To zapewnia reaktywność na zmiany w formularzu
     ]);
+
+    // NAPRAWKA: Blokowanie automatycznego submit przy Enter
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Jeśli wciśnięto Enter i nie jesteśmy na ostatnim kroku
+            if (e.key === 'Enter' && !isLimitedEdit && currentStep !== 3) {
+                console.log('🛑 BLOCKING Enter key - not on final step, current step:', currentStep);
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+        };
+
+        if (!isLimitedEdit) {
+            document.addEventListener('keydown', handleKeyDown, true);
+        }
+
+        return () => {
+            if (!isLimitedEdit) {
+                document.removeEventListener('keydown', handleKeyDown, true);
+            }
+        };
+    }, [currentStep, isLimitedEdit]);
 
     // Clear visitTemplate errors for SIMPLE_EVENT
     const clearVisitTemplateForSimpleEvent = useCallback(() => {
         if (watchedType === EventType.SIMPLE_EVENT) {
             const currentErrors = fullForm.formState.errors;
             if (currentErrors.visitTemplate) {
-                console.log('🧹 AGGRESSIVELY clearing visitTemplate errors for SIMPLE_EVENT');
-
+                console.log('🧹 Clearing visitTemplate errors for SIMPLE_EVENT');
                 fullForm.setValue('visitTemplate', undefined, { shouldValidate: false });
                 fullForm.clearErrors('visitTemplate');
-                fullForm.clearErrors('visitTemplate.estimatedDurationMinutes');
-                fullForm.clearErrors('visitTemplate.defaultServices');
 
                 setTimeout(() => {
                     fullForm.trigger(['title', 'description', 'type', 'recurrencePattern']);
                 }, 100);
-
-                setTimeout(() => {
-                    const stillHasErrors = fullForm.formState.errors.visitTemplate;
-                    if (stillHasErrors) {
-                        console.log('🔥 FORCE reset form validation state');
-                        const currentData = fullForm.getValues();
-                        const cleanData = {
-                            ...currentData,
-                            visitTemplate: undefined
-                        };
-                        fullForm.reset(cleanData, { keepValues: true });
-                    }
-                }, 200);
             }
         }
     }, [watchedType, fullForm]);
@@ -189,51 +222,6 @@ export const useRecurringEventForm = ({
         }
     }, [watchedType, fullForm.formState.errors, clearVisitTemplateForSimpleEvent, isLimitedEdit]);
 
-    // DODATKOWY useEffect do debugowania nieoczekiwanych submit'ów
-    useEffect(() => {
-        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-            console.log('⚠️ Page unload detected - possible unwanted form submission!');
-        };
-
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Enter') {
-                console.log('🔥 ENTER key pressed - potential form submit trigger!', {
-                    target: e.target,
-                    currentStep,
-                    activeElement: document.activeElement
-                });
-
-                // Jeśli nie jesteśmy na ostatnim kroku, blokuj Enter
-                if (currentStep !== 3) {
-                    console.log('🛑 BLOCKING Enter key - not on final step');
-                    e.preventDefault();
-                    e.stopPropagation();
-                    return false;
-                }
-            }
-        };
-
-        // Dodaj event listenery tylko dla trybu tworzenia
-        if (!isLimitedEdit) {
-            window.addEventListener('beforeunload', handleBeforeUnload);
-            document.addEventListener('keydown', handleKeyDown, true); // Capture phase
-        }
-
-        return () => {
-            window.removeEventListener('beforeunload', handleBeforeUnload);
-            document.removeEventListener('keydown', handleKeyDown, true);
-        };
-    }, [currentStep, isLimitedEdit]);
-    useEffect(() => {
-        if (!isLimitedEdit && watchedType === EventType.SIMPLE_EVENT) {
-            const visitTemplateErrors = fullForm.formState.errors.visitTemplate;
-            if (visitTemplateErrors) {
-                console.log('🚨 Detected visitTemplate errors for SIMPLE_EVENT, clearing immediately');
-                clearVisitTemplateForSimpleEvent();
-            }
-        }
-    }, [fullForm.formState.errors.visitTemplate, watchedType, clearVisitTemplateForSimpleEvent, isLimitedEdit]);
-
     // Initialize forms
     useEffect(() => {
         if (mode === 'create') {
@@ -259,35 +247,51 @@ export const useRecurringEventForm = ({
         }
     }, [mode, initialData, fullForm, limitedEditForm]);
 
-    // Custom submit handler
+    // NAPRAWKA: Custom submit handler z lepszą walidacją
     const handleCustomSubmit = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
+        console.log('🚀 Custom submit handler called');
+
+        // NAJWAŻNIEJSZA NAPRAWKA: Zawsze sprawdź czy jesteśmy na kroku 3
+        if (!isLimitedEdit && currentStep !== 3) {
+            console.log('🚫 Submit blocked - not on step 3, current step:', currentStep);
+            return;
+        }
 
         const formData = fullForm.getValues();
-        console.log('🚀 Custom submit handler called with:', formData);
+        console.log('📋 Form data for submission:', formData);
 
         if (formData.type === EventType.SIMPLE_EVENT) {
+            // Walidacja dla SIMPLE_EVENT
             const hasTitle = formData.title && formData.title.trim().length >= 3;
             const hasType = formData.type;
             const hasRecurrencePattern = formData.recurrencePattern &&
                 formData.recurrencePattern.frequency &&
-                formData.recurrencePattern.interval;
+                formData.recurrencePattern.interval > 0;
 
             if (hasTitle && hasType && hasRecurrencePattern) {
                 console.log('✅ SIMPLE_EVENT validation passed, submitting...');
                 await handleFormSubmit(formData);
                 return;
             } else {
-                console.log('❌ SIMPLE_EVENT validation failed:', { hasTitle, hasType, hasRecurrencePattern });
+                console.log('❌ SIMPLE_EVENT validation failed:', {
+                    hasTitle,
+                    hasType,
+                    hasRecurrencePattern
+                });
                 return;
             }
         }
 
+        // Walidacja dla RECURRING_VISIT
         const isValid = await fullForm.trigger();
         if (isValid) {
+            console.log('✅ RECURRING_VISIT validation passed, submitting...');
             await handleFormSubmit(formData);
+        } else {
+            console.log('❌ RECURRING_VISIT validation failed');
         }
-    }, [fullForm]);
+    }, [fullForm, currentStep, isLimitedEdit]);
 
     // Handle form submission with data transformation
     const handleFormSubmit = useCallback(async (data: LimitedEditFormData | FormData) => {
@@ -351,17 +355,21 @@ export const useRecurringEventForm = ({
         }
     }, [isLimitedEdit, initialData, onSubmit]);
 
-    // Step validation
+    // NAPRAWKA: Step validation wrapper
     const canProceedToStepWrapper = useCallback((step: number) => {
         if (isLimitedEdit) return true;
 
         const formData = fullForm.getValues();
         const errors = fullForm.formState.errors;
 
-        console.log(`🔍 Checking step ${step} proceed:`, { formData, errors });
+        console.log(`🔍 Checking step ${step} proceed:`, {
+            formData,
+            errors,
+            currentStep
+        });
 
         return canProceedToStep(step, formData, errors);
-    }, [isLimitedEdit, fullForm]);
+    }, [isLimitedEdit, fullForm, currentStep]);
 
     return {
         // Form instances

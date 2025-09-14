@@ -1,8 +1,8 @@
-// src/components/recurringEvents/schema.ts - KOMPLETNIE NAPRAWIONA WALIDACJA
+// src/components/recurringEvents/schema.ts - OSTATECZNA NAPRAWIONA WERSJA
 /**
- * Form validation schema and types - KOMPLETNIE NAPRAWIONA WERSJA
+ * Form validation schema and types - OSTATECZNA NAPRAWIONA WERSJA
  * Centralized validation logic for the recurring events form
- * NAPRAWKI: Poprawiona walidacja warunkowa, lepsze typowanie, kompletna logika kroków
+ * NAPRAWKI: Poprawiona logika kroków - WSZYSTKIE typy przechodzą przez 3 kroki
  */
 
 import * as yup from 'yup';
@@ -187,13 +187,17 @@ export const validationSchema = yup.object({
     visitTemplate: validateVisitTemplate
 });
 
-// NAPRAWKA: Poprawiona funkcja canProceedToStep - wszystkie typy przechodzą przez 3 kroki
+// KLUCZOWA NAPRAWKA: Funkcja canProceedToStep - WSZYSTKIE typy przechodzą przez 3 kroki
 export const canProceedToStep = (step: number, formData: Partial<FormData>, errors: Record<string, any>): boolean => {
-    console.log(`🔍 Checking step ${step}:`, { formData, errors });
+    console.log(`🔍 Step ${step} validation:`, {
+        formData,
+        errors,
+        type: formData.type
+    });
 
     switch (step) {
         case 1:
-            // Basic info step
+            // Basic info step - wymagane dla WSZYSTKICH typów
             const hasBasicInfo = !!(
                 formData.title &&
                 formData.title.length >= 3 &&
@@ -205,7 +209,7 @@ export const canProceedToStep = (step: number, formData: Partial<FormData>, erro
             return hasBasicInfo && !hasBasicErrors;
 
         case 2:
-            // Recurrence pattern step
+            // Recurrence pattern step - wymagane dla WSZYSTKICH typów
             const pattern = formData.recurrencePattern;
             if (!pattern) {
                 console.log('Step 2: No pattern');
@@ -255,18 +259,44 @@ export const canProceedToStep = (step: number, formData: Partial<FormData>, erro
             }
 
             const hasPatternErrors = !!errors.recurrencePattern;
-            console.log('Step 2 validation:', { hasPatternErrors });
+            console.log('Step 2 validation passed:', { hasPatternErrors });
             return !hasPatternErrors;
 
         case 3:
-            // KLUCZOWA NAPRAWKA: Step 3 - WSZYSTKIE typy mogą przejść do kroku 3
+            // NAJWAŻNIEJSZA NAPRAWKA: Krok 3 - różna walidacja dla różnych typów
             if (formData.type === EventType.SIMPLE_EVENT) {
-                // SIMPLE_EVENT zawsze może przejść do kroku 3 (dla potwierdzenia)
-                console.log('Step 3: Simple event - can proceed to confirmation step');
-                return true;
+                // SIMPLE_EVENT - może przejść do kroku 3 (potwierdzenia) bez visitTemplate
+                console.log('Step 3: Simple event - proceeding to final step');
+
+                // Sprawdź tylko podstawowe wymagania
+                const hasValidTitle = !!(formData.title && formData.title.length >= 3);
+                const hasValidType = !!formData.type;
+                const hasValidPattern = !!(
+                    formData.recurrencePattern &&
+                    formData.recurrencePattern.frequency &&
+                    formData.recurrencePattern.interval > 0
+                );
+
+                const hasBasicErrors = !!(
+                    errors.title ||
+                    errors.type ||
+                    errors.recurrencePattern
+                );
+
+                const isValidSimpleEvent = hasValidTitle && hasValidType && hasValidPattern && !hasBasicErrors;
+
+                console.log('Step 3 SIMPLE_EVENT validation:', {
+                    hasValidTitle,
+                    hasValidType,
+                    hasValidPattern,
+                    hasBasicErrors,
+                    isValidSimpleEvent
+                });
+
+                return isValidSimpleEvent;
             }
 
-            // RECURRING_VISIT wymaga visitTemplate
+            // RECURRING_VISIT - wymaga visitTemplate
             const template = formData.visitTemplate;
             if (!template) {
                 console.log('Step 3: Recurring visit but no template');
@@ -285,18 +315,19 @@ export const canProceedToStep = (step: number, formData: Partial<FormData>, erro
                 );
 
             const hasTemplateErrors = !!errors.visitTemplate;
-            const isStep3Valid = hasValidDuration && hasValidServices && !hasTemplateErrors;
+            const isStep3ValidRecurring = hasValidDuration && hasValidServices && !hasTemplateErrors;
 
-            console.log('Step 3 validation:', {
+            console.log('Step 3 RECURRING_VISIT validation:', {
                 hasValidDuration,
                 hasValidServices,
                 hasTemplateErrors,
-                isStep3Valid
+                isStep3ValidRecurring
             });
 
-            return isStep3Valid;
+            return isStep3ValidRecurring;
 
         default:
+            console.log(`Unknown step: ${step}`);
             return false;
     }
 };
