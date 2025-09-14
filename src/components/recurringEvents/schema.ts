@@ -1,8 +1,8 @@
-// src/components/recurringEvents/schema.ts - NAPRAWIONA WALIDACJA
+// src/components/recurringEvents/schema.ts - KOMPLETNIE NAPRAWIONA WALIDACJA
 /**
- * Form validation schema and types - NAPRAWIONA WERSJA
+ * Form validation schema and types - KOMPLETNIE NAPRAWIONA WERSJA
  * Centralized validation logic for the recurring events form
- * NAPRAWY: Poprawiona funkcja testowa dla daty, lepsza walidacja warunkowa
+ * NAPRAWKI: Poprawiona walidacja warunkowa, lepsze typowanie, kompletna logika kroków
  */
 
 import * as yup from 'yup';
@@ -64,7 +64,80 @@ const validateDayOfMonth = yup.number()
         otherwise: (schema) => schema.notRequired()
     });
 
-// Validation schema - NAPRAWKA: Poprawiona funkcja testowa dla daty
+// NAPRAWKA: Poprawiona funkcja testowa dla daty
+const validateFutureDate = yup
+    .string()
+    .notRequired()
+    .test('future-date', 'Data zakończenia musi być w przyszłości', function(value) {
+        if (!value) return true;
+        const endDate = new Date(value);
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(0, 0, 0, 0);
+        return endDate >= tomorrow;
+    })
+    .test('valid-date', 'Nieprawidłowy format daty', function(value) {
+        if (!value) return true;
+        const date = new Date(value);
+        const hasValidFormat = /^\d{4}-\d{2}-\d{2}$/.test(value);
+        return !isNaN(date.getTime()) && hasValidFormat;
+    });
+
+// GŁÓWNA NAPRAWKA: Poprawiona walidacja visitTemplate
+const validateVisitTemplate = yup.object({
+    clientId: yup
+        .number()
+        .notRequired()
+        .min(1, 'Wybierz prawidłowego klienta'),
+
+    vehicleId: yup
+        .number()
+        .notRequired()
+        .min(1, 'Wybierz prawidłowy pojazd'),
+
+    estimatedDurationMinutes: yup
+        .number()
+        .min(15, 'Czas trwania musi być co najmniej 15 minut')
+        .max(480, 'Czas trwania może być maksymalnie 8 godzin (480 minut)')
+        .integer('Czas trwania musi być liczbą całkowitą')
+        .required('Szacowany czas trwania jest wymagany'),
+
+    defaultServices: yup
+        .array()
+        .of(yup.object({
+            name: yup
+                .string()
+                .required('Podaj nazwę usługi')
+                .min(2, 'Nazwa usługi musi mieć co najmniej 2 znaki')
+                .max(100, 'Nazwa usługi może mieć maksymalnie 100 znaków')
+                .trim(),
+            basePrice: yup
+                .number()
+                .min(0, 'Cena nie może być ujemna')
+                .max(99999.99, 'Cena jest zbyt wysoka')
+                .required('Podaj cenę usługi')
+                .test('decimal-places', 'Cena może mieć maksymalnie 2 miejsca po przecinku', function(value) {
+                    if (typeof value !== 'number') return true;
+                    return Number.isInteger(value * 100);
+                })
+        }).required())
+        .min(1, 'Dodaj przynajmniej jedną usługę domyślną dla cyklicznych wizyt')
+        .required(),
+
+    notes: yup
+        .string()
+        .notRequired()
+        .max(500, 'Notatki mogą mieć maksymalnie 500 znaków')
+        .trim()
+})
+    .when('type', {
+        // NAPRAWKA: visitTemplate jest wymagane TYLKO dla RECURRING_VISIT
+        is: EventType.RECURRING_VISIT,
+        then: (schema) => schema.required('Szablon wizyty jest wymagany dla cyklicznych wizyt'),
+        otherwise: (schema) => schema.notRequired().nullable()
+    });
+
+// Main validation schema - NAPRAWIONA WERSJA
 export const validationSchema = yup.object({
     title: yup
         .string()
@@ -92,26 +165,8 @@ export const validationSchema = yup.object({
             .required('Interwał jest wymagany'),
 
         daysOfWeek: validateDaysOfWeek,
-
         dayOfMonth: validateDayOfMonth,
-
-        endDate: yup
-            .string()
-            .notRequired()
-            .test('future-date', 'Data zakończenia musi być w przyszłości', function(value) {
-                if (!value) return true;
-                const endDate = new Date(value);
-                const tomorrow = new Date();
-                tomorrow.setDate(tomorrow.getDate() + 1);
-                tomorrow.setHours(0, 0, 0, 0);
-                return endDate >= tomorrow;
-            })
-            .test('valid-date', 'Nieprawidłowy format daty', function(value) {
-                if (!value) return true;
-                const date = new Date(value);
-                const hasValidFormat = /^\d{4}-\d{2}-\d{2}$/.test(value);
-                return !isNaN(date.getTime()) && hasValidFormat;
-            }),
+        endDate: validateFutureDate,
 
         maxOccurrences: yup
             .number()
@@ -128,115 +183,60 @@ export const validationSchema = yup.object({
             })
     }).required('Wzorzec powtarzania jest wymagany'),
 
-    visitTemplate: yup.object({
-        clientId: yup
-            .number()
-            .notRequired()
-            .min(1, 'Wybierz prawidłowego klienta'),
-
-        vehicleId: yup
-            .number()
-            .notRequired()
-            .min(1, 'Wybierz prawidłowy pojazd'),
-
-        estimatedDurationMinutes: yup
-            .number()
-            .min(15, 'Czas trwania musi być co najmniej 15 minut')
-            .max(480, 'Czas trwania może być maksymalnie 8 godzin (480 minut)')
-            .integer('Czas trwania musi być liczbą całkowitą')
-            .required('Szacowany czas trwania jest wymagany'),
-
-        defaultServices: yup
-            .array()
-            .of(yup.object({
-                name: yup
-                    .string()
-                    .required('Podaj nazwę usługi')
-                    .min(2, 'Nazwa usługi musi mieć co najmniej 2 znaki')
-                    .max(100, 'Nazwa usługi może mieć maksymalnie 100 znaków')
-                    .trim(),
-                basePrice: yup
-                    .number()
-                    .min(0, 'Cena nie może być ujemna')
-                    .max(99999.99, 'Cena jest zbyt wysoka')
-                    .required('Podaj cenę usługi')
-                    .test('decimal-places', 'Cena może mieć maksymalnie 2 miejsca po przecinku', function(value) {
-                        if (typeof value !== 'number') return true;
-                        return Number.isInteger(value * 100);
-                    })
-            }).required())
-            .min(1, 'Dodaj przynajmniej jedną usługę domyślną dla cyklicznych wizyt')
-            .required(),
-
-        notes: yup
-            .string()
-            .notRequired()
-            .max(500, 'Notatki mogą mieć maksymalnie 500 znaków')
-            .trim()
-    })
-        .when('type', {
-            is: EventType.RECURRING_VISIT,
-            then: (schema) => schema.required('Szablon wizyty jest wymagany dla cyklicznych wizyt'),
-            otherwise: (schema) => schema.notRequired()
-        })
+    // NAPRAWKA: Poprawiona walidacja visitTemplate
+    visitTemplate: validateVisitTemplate
 });
 
-// Helper functions for form validation
-export const validateFormData = async (data: FormData): Promise<{ isValid: boolean; errors: Record<string, string> }> => {
-    try {
-        await validationSchema.validate(data, { abortEarly: false });
-        return { isValid: true, errors: {} };
-    } catch (error) {
-        if (error instanceof yup.ValidationError) {
-            const errors: Record<string, string> = {};
-            error.inner.forEach((err) => {
-                if (err.path) {
-                    errors[err.path] = err.message;
-                }
-            });
-            return { isValid: false, errors };
-        }
-        return { isValid: false, errors: { general: 'Wystąpił błąd podczas walidacji formularza' } };
-    }
-};
-
-// Helper function to check if step can proceed
+// NAPRAWKA: Poprawiona funkcja canProceedToStep - wszystkie typy przechodzą przez 3 kroki
 export const canProceedToStep = (step: number, formData: Partial<FormData>, errors: Record<string, any>): boolean => {
+    console.log(`🔍 Checking step ${step}:`, { formData, errors });
+
     switch (step) {
         case 1:
             // Basic info step
-            return !!(
+            const hasBasicInfo = !!(
                 formData.title &&
                 formData.title.length >= 3 &&
                 formData.type
-            ) && !errors.title && !errors.description && !errors.type;
+            );
+            const hasBasicErrors = !!(errors.title || errors.description || errors.type);
+
+            console.log('Step 1 validation:', { hasBasicInfo, hasBasicErrors });
+            return hasBasicInfo && !hasBasicErrors;
 
         case 2:
             // Recurrence pattern step
             const pattern = formData.recurrencePattern;
-            if (!pattern) return false;
+            if (!pattern) {
+                console.log('Step 2: No pattern');
+                return false;
+            }
 
             // Check basic requirements
             if (!pattern.frequency || !pattern.interval || pattern.interval < 1) {
+                console.log('Step 2: Basic requirements failed');
                 return false;
             }
 
             // Check frequency-specific requirements
             if (pattern.frequency === RecurrenceFrequency.WEEKLY) {
                 if (!pattern.daysOfWeek || pattern.daysOfWeek.length === 0) {
+                    console.log('Step 2: Weekly frequency but no days selected');
                     return false;
                 }
             }
 
             if (pattern.frequency === RecurrenceFrequency.MONTHLY) {
                 if (!pattern.dayOfMonth || pattern.dayOfMonth < 1 || pattern.dayOfMonth > 31) {
+                    console.log('Step 2: Monthly frequency but invalid day of month');
                     return false;
                 }
             }
 
             // Check end conditions
             if (pattern.endDate && pattern.maxOccurrences) {
-                return false; // Cannot have both
+                console.log('Step 2: Both end conditions set');
+                return false;
             }
 
             if (pattern.endDate) {
@@ -244,24 +244,34 @@ export const canProceedToStep = (step: number, formData: Partial<FormData>, erro
                 const tomorrow = new Date();
                 tomorrow.setDate(tomorrow.getDate() + 1);
                 if (endDate < tomorrow) {
+                    console.log('Step 2: End date in past');
                     return false;
                 }
             }
 
             if (pattern.maxOccurrences && pattern.maxOccurrences < 1) {
+                console.log('Step 2: Invalid max occurrences');
                 return false;
             }
 
-            return !errors.recurrencePattern;
+            const hasPatternErrors = !!errors.recurrencePattern;
+            console.log('Step 2 validation:', { hasPatternErrors });
+            return !hasPatternErrors;
 
         case 3:
-            // Visit template step (only for RECURRING_VISIT)
+            // KLUCZOWA NAPRAWKA: Step 3 - WSZYSTKIE typy mogą przejść do kroku 3
             if (formData.type === EventType.SIMPLE_EVENT) {
-                return true; // No additional validation needed
+                // SIMPLE_EVENT zawsze może przejść do kroku 3 (dla potwierdzenia)
+                console.log('Step 3: Simple event - can proceed to confirmation step');
+                return true;
             }
 
+            // RECURRING_VISIT wymaga visitTemplate
             const template = formData.visitTemplate;
-            if (!template) return false;
+            if (!template) {
+                console.log('Step 3: Recurring visit but no template');
+                return false;
+            }
 
             const hasValidDuration = typeof template.estimatedDurationMinutes === 'number' &&
                 template.estimatedDurationMinutes >= 15;
@@ -274,24 +284,21 @@ export const canProceedToStep = (step: number, formData: Partial<FormData>, erro
                     service.basePrice >= 0
                 );
 
-            return hasValidDuration && hasValidServices && !errors.visitTemplate;
+            const hasTemplateErrors = !!errors.visitTemplate;
+            const isStep3Valid = hasValidDuration && hasValidServices && !hasTemplateErrors;
+
+            console.log('Step 3 validation:', {
+                hasValidDuration,
+                hasValidServices,
+                hasTemplateErrors,
+                isStep3Valid
+            });
+
+            return isStep3Valid;
 
         default:
             return false;
     }
-};
-
-// Type guards for better type safety
-export const isRecurringVisit = (formData: FormData): formData is FormData & { visitTemplate: NonNullable<FormData['visitTemplate']> } => {
-    return formData.type === EventType.RECURRING_VISIT && !!formData.visitTemplate;
-};
-
-export const isWeeklyFrequency = (pattern: FormData['recurrencePattern']): pattern is FormData['recurrencePattern'] & { daysOfWeek: string[] } => {
-    return pattern.frequency === RecurrenceFrequency.WEEKLY && Array.isArray(pattern.daysOfWeek);
-};
-
-export const isMonthlyFrequency = (pattern: FormData['recurrencePattern']): pattern is FormData['recurrencePattern'] & { dayOfMonth: number } => {
-    return pattern.frequency === RecurrenceFrequency.MONTHLY && typeof pattern.dayOfMonth === 'number';
 };
 
 // Helper functions for better UX
@@ -333,5 +340,37 @@ export const getStepValidationMessage = (step: number, errors: Record<string, an
 
         default:
             return null;
+    }
+};
+
+// Type guards for better type safety
+export const isRecurringVisit = (formData: FormData): formData is FormData & { visitTemplate: NonNullable<FormData['visitTemplate']> } => {
+    return formData.type === EventType.RECURRING_VISIT && !!formData.visitTemplate;
+};
+
+export const isWeeklyFrequency = (pattern: FormData['recurrencePattern']): pattern is FormData['recurrencePattern'] & { daysOfWeek: string[] } => {
+    return pattern.frequency === RecurrenceFrequency.WEEKLY && Array.isArray(pattern.daysOfWeek);
+};
+
+export const isMonthlyFrequency = (pattern: FormData['recurrencePattern']): pattern is FormData['recurrencePattern'] & { dayOfMonth: number } => {
+    return pattern.frequency === RecurrenceFrequency.MONTHLY && typeof pattern.dayOfMonth === 'number';
+};
+
+// Helper to validate entire form at once
+export const validateFormData = async (data: FormData): Promise<{ isValid: boolean; errors: Record<string, string> }> => {
+    try {
+        await validationSchema.validate(data, { abortEarly: false });
+        return { isValid: true, errors: {} };
+    } catch (error) {
+        if (error instanceof yup.ValidationError) {
+            const errors: Record<string, string> = {};
+            error.inner.forEach((err) => {
+                if (err.path) {
+                    errors[err.path] = err.message;
+                }
+            });
+            return { isValid: false, errors };
+        }
+        return { isValid: false, errors: { general: 'Wystąpił błąd podczas walidacji formularza' } };
     }
 };

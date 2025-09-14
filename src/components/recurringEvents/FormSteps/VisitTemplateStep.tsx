@@ -1,7 +1,8 @@
-// src/components/recurringEvents/FormSteps/VisitTemplateStep.tsx
+// src/components/recurringEvents/FormSteps/VisitTemplateStep.tsx - NAPRAWIONY
 /**
- * Visit Template Step Component
+ * Visit Template Step Component - NAPRAWIONA WERSJA
  * Third step of the form - visit template configuration for recurring visits
+ * NAPRAWKI: Poprawiona logika walidacji, lepsze UX dla różnych typów wydarzeń
  */
 
 import React, { useCallback } from 'react';
@@ -49,6 +50,7 @@ export const VisitTemplateStep: React.FC<VisitTemplateStepProps> = ({
         setValue('visitTemplate.defaultServices', newServices);
     }, [watchedTemplate, setValue]);
 
+    // NAPRAWKA: Lepsze renderowanie dla SIMPLE_EVENT
     if (eventType === EventType.SIMPLE_EVENT) {
         return (
             <StepContent>
@@ -59,27 +61,45 @@ export const VisitTemplateStep: React.FC<VisitTemplateStepProps> = ({
                         <FaCheckCircle />
                     </CompletionIcon>
                     <CompletionContent>
-                        <CompletionTitle>Konfiguracja zakończona</CompletionTitle>
+                        <CompletionTitle>Konfiguracja została zakończona</CompletionTitle>
                         <CompletionDescription>
-                            Wydarzenie typu "Pojedyncze wydarzenie" nie wymaga dodatkowej konfiguracji.
-                            Możesz zapisać wydarzenie lub wrócić do poprzednich kroków aby wprowadzić zmiany.
+                            Wydarzenie typu "Pojedyncze wydarzenie" nie wymaga dodatkowej konfiguracji szablonu wizyty.
+                            Możesz teraz utworzyć wydarzenie lub wrócić do poprzednich kroków aby wprowadzić zmiany.
                         </CompletionDescription>
+                        <CompletionActions>
+                            <ActionTip>
+                                💡 <strong>Wskazówka:</strong> Jeśli potrzebujesz skonfigurować szczegóły wizyty,
+                                wybierz typ "Cykliczna wizyta" w pierwszym kroku.
+                            </ActionTip>
+                        </CompletionActions>
                     </CompletionContent>
                 </CompletionMessage>
             </StepContent>
         );
     }
 
+    // NAPRAWKA: Inicjalizacja visitTemplate dla RECURRING_VISIT jeśli nie istnieje
+    React.useEffect(() => {
+        if (eventType === EventType.RECURRING_VISIT && !watchedTemplate) {
+            console.log('🔧 Initializing visitTemplate for RECURRING_VISIT');
+            setValue('visitTemplate', {
+                estimatedDurationMinutes: 60,
+                defaultServices: [],
+                notes: ''
+            });
+        }
+    }, [eventType, watchedTemplate, setValue]);
+
     return (
         <StepContent>
-            <StepTitle>Konfiguracja szablonu wizyty</StepTitle>
+            <StepTitle>Szablon wizyty</StepTitle>
 
             <FormSection>
                 <SectionDescription>
                     <FaInfoCircle />
                     <span>
-                        Skonfiguruj szablon wizyty, który będzie używany dla każdego wystąpienia.
-                        Możesz modyfikować te dane przy konwersji na rzeczywistą wizytę.
+                        Skonfiguruj szablon wizyty, który będzie używany jako podstawa dla każdego wystąpienia.
+                        Te dane można będzie modyfikować podczas konwersji na rzeczywistą wizytę.
                     </span>
                 </SectionDescription>
 
@@ -105,6 +125,9 @@ export const VisitTemplateStep: React.FC<VisitTemplateStepProps> = ({
                             />
                         )}
                     />
+                    <DurationHint>
+                        Czas podawany w minutach (15 min - 8 godzin). Sugerujemy wielokrotności 15 minut.
+                    </DurationHint>
                     {errors.visitTemplate?.estimatedDurationMinutes && (
                         <ErrorMessage>
                             {errors.visitTemplate.estimatedDurationMinutes.message}
@@ -117,46 +140,74 @@ export const VisitTemplateStep: React.FC<VisitTemplateStepProps> = ({
                         Domyślne usługi
                         <RequiredIndicator>*</RequiredIndicator>
                     </FieldLabel>
+                    <ServicesDescription>
+                        Lista usług, które będą automatycznie dodawane do każdej wizyty utworzonej z tego szablonu.
+                    </ServicesDescription>
+
                     <Controller
                         name="visitTemplate.defaultServices"
                         control={control}
                         render={({ field }) => (
                             <DefaultServicesContainer>
-                                {field.value?.map((service, index) => (
-                                    <ServiceRow key={index}>
-                                        <ServiceNameInput
-                                            value={service.name}
-                                            onChange={(e) => {
-                                                const newServices = [...field.value];
-                                                newServices[index].name = e.target.value;
-                                                field.onChange(newServices);
-                                            }}
-                                            placeholder="Nazwa usługi"
-                                            disabled={isLoading}
-                                        />
-                                        <ServicePriceInput
-                                            type="number"
-                                            min="0"
-                                            step="0.01"
-                                            value={service.basePrice}
-                                            onChange={(e) => {
-                                                const newServices = [...field.value];
-                                                newServices[index].basePrice = parseFloat(e.target.value) || 0;
-                                                field.onChange(newServices);
-                                            }}
-                                            placeholder="0.00"
-                                            disabled={isLoading}
-                                        />
-                                        <PriceLabel>zł</PriceLabel>
-                                        <RemoveServiceButton
-                                            type="button"
-                                            onClick={() => removeDefaultService(index)}
-                                            disabled={isLoading}
-                                        >
-                                            <FaTrash />
-                                        </RemoveServiceButton>
-                                    </ServiceRow>
-                                ))}
+                                {field.value && field.value.length > 0 ? (
+                                    <>
+                                        <ServicesHeader>
+                                            <HeaderItem>Nazwa usługi</HeaderItem>
+                                            <HeaderItem>Cena bazowa</HeaderItem>
+                                            <HeaderItem>Akcje</HeaderItem>
+                                        </ServicesHeader>
+
+                                        {field.value.map((service, index) => (
+                                            <ServiceRow key={index}>
+                                                <ServiceNameInput
+                                                    value={service.name}
+                                                    onChange={(e) => {
+                                                        const newServices = [...field.value];
+                                                        newServices[index].name = e.target.value;
+                                                        field.onChange(newServices);
+                                                    }}
+                                                    placeholder="Nazwa usługi"
+                                                    disabled={isLoading}
+                                                />
+                                                <ServicePriceContainer>
+                                                    <ServicePriceInput
+                                                        type="number"
+                                                        min="0"
+                                                        step="0.01"
+                                                        value={service.basePrice}
+                                                        onChange={(e) => {
+                                                            const newServices = [...field.value];
+                                                            newServices[index].basePrice = parseFloat(e.target.value) || 0;
+                                                            field.onChange(newServices);
+                                                        }}
+                                                        placeholder="0.00"
+                                                        disabled={isLoading}
+                                                    />
+                                                    <PriceLabel>zł</PriceLabel>
+                                                </ServicePriceContainer>
+                                                <RemoveServiceButton
+                                                    type="button"
+                                                    onClick={() => removeDefaultService(index)}
+                                                    disabled={isLoading}
+                                                    title="Usuń usługę"
+                                                >
+                                                    <FaTrash />
+                                                </RemoveServiceButton>
+                                            </ServiceRow>
+                                        ))}
+                                    </>
+                                ) : (
+                                    <EmptyServicesState>
+                                        <EmptyStateIcon>📋</EmptyStateIcon>
+                                        <EmptyStateText>
+                                            <EmptyStateTitle>Brak domyślnych usług</EmptyStateTitle>
+                                            <EmptyStateDescription>
+                                                Dodaj usługi, które będą automatycznie uwzględniane w każdej wizycie.
+                                            </EmptyStateDescription>
+                                        </EmptyStateText>
+                                    </EmptyServicesState>
+                                )}
+
                                 <AddServiceButton
                                     type="button"
                                     onClick={addDefaultService}
@@ -176,7 +227,7 @@ export const VisitTemplateStep: React.FC<VisitTemplateStepProps> = ({
                 </FormField>
 
                 <FormField>
-                    <FieldLabel>Notatki do szablonu</FieldLabel>
+                    <FieldLabel>Dodatkowe notatki (opcjonalnie)</FieldLabel>
                     <Controller
                         name="visitTemplate.notes"
                         control={control}
@@ -184,13 +235,16 @@ export const VisitTemplateStep: React.FC<VisitTemplateStepProps> = ({
                             <TextArea
                                 {...field}
                                 value={field.value || ''}
-                                placeholder="Dodatkowe informacje do szablonu wizyty..."
+                                placeholder="Dodatkowe informacje, instrukcje lub uwagi do szablonu wizyty..."
                                 rows={3}
                                 $hasError={!!errors.visitTemplate?.notes}
                                 disabled={isLoading}
                             />
                         )}
                     />
+                    <NotesHint>
+                        Przykład: "Sprawdzić stan opon", "Zabrać dokumenty pojazdu", "Wizyta w obecności klienta"
+                    </NotesHint>
                     {errors.visitTemplate?.notes && (
                         <ErrorMessage>{errors.visitTemplate.notes.message}</ErrorMessage>
                     )}
@@ -200,7 +254,7 @@ export const VisitTemplateStep: React.FC<VisitTemplateStepProps> = ({
     );
 };
 
-// Styled Components
+// Styled Components - ULEPSZONE STYLE
 const StepContent = styled.div`
     display: flex;
     flex-direction: column;
@@ -244,6 +298,19 @@ const DurationInput = styled.input<{ $hasError: boolean }>`
     }
 `;
 
+const DurationHint = styled.div`
+    font-size: 13px;
+    color: ${theme.text.tertiary};
+    margin-top: ${theme.spacing.xs};
+`;
+
+const ServicesDescription = styled.div`
+    font-size: 14px;
+    color: ${theme.text.secondary};
+    margin-bottom: ${theme.spacing.md};
+    line-height: 1.4;
+`;
+
 const DefaultServicesContainer = styled.div`
     display: flex;
     flex-direction: column;
@@ -254,14 +321,31 @@ const DefaultServicesContainer = styled.div`
     border-radius: ${theme.radius.md};
 `;
 
-const ServiceRow = styled.div`
-    display: flex;
-    align-items: center;
+const ServicesHeader = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 120px 60px;
     gap: ${theme.spacing.md};
+    padding: ${theme.spacing.sm} 0;
+    border-bottom: 1px solid ${theme.border};
+    margin-bottom: ${theme.spacing.sm};
+`;
+
+const HeaderItem = styled.div`
+    font-size: 13px;
+    font-weight: 600;
+    color: ${theme.text.secondary};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+`;
+
+const ServiceRow = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 120px 60px;
+    gap: ${theme.spacing.md};
+    align-items: center;
 `;
 
 const ServiceNameInput = styled.input`
-    flex: 1;
     padding: ${theme.spacing.sm} ${theme.spacing.md};
     border: 1px solid ${theme.border};
     border-radius: ${theme.radius.md};
@@ -280,10 +364,20 @@ const ServiceNameInput = styled.input`
         cursor: not-allowed;
         background: ${theme.surfaceAlt};
     }
+
+    &::placeholder {
+        color: ${theme.text.tertiary};
+    }
+`;
+
+const ServicePriceContainer = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.sm};
 `;
 
 const ServicePriceInput = styled.input`
-    width: 100px;
+    flex: 1;
     padding: ${theme.spacing.sm} ${theme.spacing.md};
     border: 1px solid ${theme.border};
     border-radius: ${theme.radius.md};
@@ -309,14 +403,15 @@ const PriceLabel = styled.span`
     font-size: 14px;
     color: ${theme.text.secondary};
     font-weight: 500;
+    min-width: 20px;
 `;
 
 const RemoveServiceButton = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     background: ${theme.errorBg};
     color: ${theme.error};
     border: 1px solid ${theme.error}30;
@@ -327,12 +422,48 @@ const RemoveServiceButton = styled.button`
     &:hover:not(:disabled) {
         background: ${theme.error};
         color: white;
+        transform: scale(1.05);
     }
 
     &:disabled {
         opacity: 0.6;
         cursor: not-allowed;
+        transform: none;
     }
+`;
+
+const EmptyServicesState = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.lg};
+    padding: ${theme.spacing.xl};
+    background: ${theme.surface};
+    border: 2px dashed ${theme.border};
+    border-radius: ${theme.radius.md};
+    text-align: center;
+`;
+
+const EmptyStateIcon = styled.div`
+    font-size: 48px;
+    opacity: 0.5;
+`;
+
+const EmptyStateText = styled.div`
+    flex: 1;
+    text-align: left;
+`;
+
+const EmptyStateTitle = styled.div`
+    font-size: 16px;
+    font-weight: 600;
+    color: ${theme.text.primary};
+    margin-bottom: ${theme.spacing.xs};
+`;
+
+const EmptyStateDescription = styled.div`
+    font-size: 14px;
+    color: ${theme.text.secondary};
+    line-height: 1.4;
 `;
 
 const AddServiceButton = styled.button`
@@ -345,18 +476,25 @@ const AddServiceButton = styled.button`
     color: ${theme.primary};
     border: 2px dashed ${theme.primary};
     border-radius: ${theme.radius.md};
-    font-weight: 500;
+    font-weight: 600;
+    font-size: 14px;
     cursor: pointer;
     transition: all 0.2s ease;
 
     &:hover:not(:disabled) {
         background: ${theme.primary}08;
         border-style: solid;
+        transform: translateY(-1px);
     }
 
     &:disabled {
         opacity: 0.6;
         cursor: not-allowed;
+        transform: none;
+    }
+
+    svg {
+        font-size: 14px;
     }
 `;
 
@@ -370,6 +508,7 @@ const TextArea = styled.textarea<{ $hasError: boolean }>`
     color: ${theme.text.primary};
     resize: vertical;
     min-height: 80px;
+    line-height: 1.5;
 
     &:focus {
         outline: none;
@@ -388,45 +527,131 @@ const TextArea = styled.textarea<{ $hasError: boolean }>`
     }
 `;
 
+const NotesHint = styled.div`
+    font-size: 13px;
+    color: ${theme.text.tertiary};
+    margin-top: ${theme.spacing.xs};
+    font-style: italic;
+`;
+
 const CompletionMessage = styled.div`
     display: flex;
-    align-items: center;
-    gap: ${theme.spacing.lg};
+    align-items: flex-start;
+    gap: ${theme.spacing.xl};
     padding: ${theme.spacing.xxl};
     background: ${theme.success}08;
-    border: 1px solid ${theme.success}30;
-    border-radius: ${theme.radius.lg};
-    text-align: center;
+    border: 2px solid ${theme.success}30;
+    border-radius: ${theme.radius.xl};
+    text-align: left;
 `;
 
 const CompletionIcon = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 64px;
-    height: 64px;
+    width: 80px;
+    height: 80px;
     background: ${theme.success}15;
     color: ${theme.success};
     border-radius: 50%;
-    font-size: 28px;
+    font-size: 36px;
     flex-shrink: 0;
+    box-shadow: 0 4px 12px ${theme.success}20;
 `;
 
 const CompletionContent = styled.div`
     flex: 1;
-    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: ${theme.spacing.md};
 `;
 
 const CompletionTitle = styled.h4`
-    font-size: 18px;
-    font-weight: 600;
+    font-size: 20px;
+    font-weight: 700;
     color: ${theme.text.primary};
-    margin: 0 0 ${theme.spacing.sm} 0;
+    margin: 0;
+    line-height: 1.2;
 `;
 
 const CompletionDescription = styled.p`
-    font-size: 15px;
+    font-size: 16px;
     color: ${theme.text.secondary};
     margin: 0;
+    line-height: 1.6;
+`;
+
+const CompletionActions = styled.div`
+    margin-top: ${theme.spacing.lg};
+`;
+
+const ActionTip = styled.div`
+    display: flex;
+    align-items: flex-start;
+    gap: ${theme.spacing.sm};
+    padding: ${theme.spacing.lg};
+    background: ${theme.primary}08;
+    border: 1px solid ${theme.primary}20;
+    border-radius: ${theme.radius.lg};
+    font-size: 14px;
     line-height: 1.5;
+    color: ${theme.text.secondary};
+
+    strong {
+        color: ${theme.primary};
+        font-weight: 600;
+    }
+`;
+
+const SummarySection = styled.div`
+    background: ${theme.surface};
+    border: 1px solid ${theme.border};
+    border-radius: ${theme.radius.lg};
+    padding: ${theme.spacing.xl};
+    margin: ${theme.spacing.lg} 0;
+`;
+
+const SummaryTitle = styled.h4`
+    font-size: 18px;
+    font-weight: 600;
+    color: ${theme.text.primary};
+    margin: 0 0 ${theme.spacing.lg} 0;
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.sm};
+
+    &::before {
+        content: '📋';
+        font-size: 20px;
+    }
+`;
+
+const SummaryGrid = styled.div`
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: ${theme.spacing.md};
+`;
+
+const SummaryItem = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${theme.spacing.xs};
+    padding: ${theme.spacing.md};
+    background: ${theme.surfaceAlt};
+    border-radius: ${theme.radius.md};
+`;
+
+const SummaryLabel = styled.span`
+    font-size: 13px;
+    font-weight: 500;
+    color: ${theme.text.tertiary};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+`;
+
+const SummaryValue = styled.span`
+    font-size: 15px;
+    font-weight: 600;
+    color: ${theme.text.primary};
+    word-break: break-word;
 `;
