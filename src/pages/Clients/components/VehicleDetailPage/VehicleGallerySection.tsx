@@ -1,12 +1,15 @@
 // src/pages/Clients/components/VehicleDetailPage/VehicleGallerySection.tsx
 import React, { useEffect, useState, useCallback } from 'react';
 import styled from 'styled-components';
-import { FaCamera, FaChevronLeft, FaChevronRight, FaPlus } from 'react-icons/fa';
+import { FaCamera, FaChevronLeft, FaChevronRight, FaPlus, FaEye, FaEdit, FaTrash, FaDownload } from 'react-icons/fa';
 import { SidebarSection, SidebarSectionTitle, EmptyMessage, EmptyIcon, EmptyText } from './VehicleDetailStyles';
 import { carReceptionApi } from "../../../../api/carReceptionApi";
 import { theme } from "../../../../styles/theme";
 import VehicleImageUploadModal from './VehicleImageUploadModal';
-import {vehicleApi} from "../../../../api/vehiclesApi";
+import SimpleImagePreviewModal from './SimpleImagePreviewModal';
+import ImageEditModal from './ImageEditModal';
+import { vehicleApi } from "../../../../api/vehiclesApi";
+import vehicleImageApi from "../../../../api/vehicleImageApi";
 
 interface VehicleImage {
     id: string;
@@ -14,7 +17,16 @@ interface VehicleImage {
     thumbnailUrl: string;
     filename: string;
     uploadedAt: string;
-    blobUrl?: string; // Dodane dla autoryzowanych obrazów
+    blobUrl?: string;
+    name?: string;
+    tags?: string[];
+    description?: string;
+    protocolId?: string;
+    protocolTitle?: string;
+    clientName?: string;
+    vehicleInfo?: string;
+    size?: number;
+    createdAt?: string;
 }
 
 interface VehicleGallerySectionProps {
@@ -36,7 +48,13 @@ const VehicleGallerySection: React.FC<VehicleGallerySectionProps> = ({
     const [error, setError] = useState<string | null>(null);
     const [imageUrls, setImageUrls] = useState<Map<string, string>>(new Map());
     const [loadingImages, setLoadingImages] = useState<Set<string>>(new Set());
+
+    // Modal states
     const [showUploadModal, setShowUploadModal] = useState(false);
+    const [showPreviewModal, setShowPreviewModal] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [selectedImage, setSelectedImage] = useState<VehicleImage | null>(null);
+    const [selectedImageUrl, setSelectedImageUrl] = useState<string>('');
 
     useEffect(() => {
         loadImages();
@@ -95,7 +113,6 @@ const VehicleGallerySection: React.FC<VehicleGallerySectionProps> = ({
                 }
             } catch (error) {
                 console.error(`Failed to load image ${image.id}:`, error);
-                // W przypadku błędu, możemy spróbować użyć fallback URL
                 newUrls.set(image.id, '/images/image-placeholder.png');
             } finally {
                 setLoadingImages(prev => {
@@ -119,6 +136,19 @@ const VehicleGallerySection: React.FC<VehicleGallerySectionProps> = ({
         });
     };
 
+    const getCurrentImageUrl = useCallback((image: VehicleImage): string => {
+        const authorizedUrl = imageUrls.get(image.id);
+        if (authorizedUrl) {
+            return authorizedUrl;
+        }
+        return '/images/image-placeholder.png';
+    }, [imageUrls]);
+
+    const isImageLoading = useCallback((imageId: string): boolean => {
+        return loadingImages.has(imageId);
+    }, [loadingImages]);
+
+    // Navigation handlers
     const handlePrevious = () => {
         setCurrentIndex(prevIndex =>
             prevIndex === 0 ? images.length - 1 : prevIndex - 1
@@ -131,6 +161,7 @@ const VehicleGallerySection: React.FC<VehicleGallerySectionProps> = ({
         );
     };
 
+    // Upload handlers
     const handleOpenUploadModal = () => {
         setShowUploadModal(true);
     };
@@ -141,24 +172,97 @@ const VehicleGallerySection: React.FC<VehicleGallerySectionProps> = ({
 
     const handleUploadSuccess = () => {
         console.log('✅ Images uploaded successfully, reloading gallery...');
-        // Reload images after successful upload
         loadImages();
     };
 
-    const getCurrentImageUrl = useCallback((image: VehicleImage): string => {
-        const authorizedUrl = imageUrls.get(image.id);
-        if (authorizedUrl) {
-            return authorizedUrl;
+    // Preview handlers
+    const handlePreviewImage = (image: VehicleImage) => {
+        const imageUrl = getCurrentImageUrl(image);
+        setSelectedImage(image);
+        setSelectedImageUrl(imageUrl);
+        setShowPreviewModal(true);
+    };
+
+    const handleClosePreviewModal = () => {
+        setShowPreviewModal(false);
+        setSelectedImage(null);
+        setSelectedImageUrl('');
+    };
+
+    // Edit handlers
+    const handleEditImage = (image: VehicleImage) => {
+        const imageUrl = getCurrentImageUrl(image);
+        setSelectedImage(image);
+        setSelectedImageUrl(imageUrl);
+        setShowEditModal(true);
+    };
+
+    const handleCloseEditModal = () => {
+        setShowEditModal(false);
+        setSelectedImage(null);
+        setSelectedImageUrl('');
+    };
+
+    const handleEditSave = (updatedImage: VehicleImage) => {
+        // Update the image in the current images list
+        setImages(prev =>
+            prev.map(img =>
+                img.id === updatedImage.id
+                    ? { ...img, tags: updatedImage.tags, name: updatedImage.name }
+                    : img
+            )
+        );
+        console.log('✅ Image updated successfully');
+    };
+
+    // Delete handler
+    const handleDeleteImage = async (image: VehicleImage) => {
+        if (!vehicleId) return;
+
+        const confirmed = window.confirm(`Czy na pewno chcesz usunąć zdjęcie "${image.filename}"?`);
+        if (!confirmed) return;
+
+        try {
+            console.log('🗑️ Deleting image:', image.id);
+            await vehicleImageApi.deleteVehicleImage(vehicleId, image.id);
+
+            // Reload images after successful deletion
+            await loadImages();
+
+            console.log('✅ Image deleted successfully');
+        } catch (error) {
+            console.error('❌ Error deleting image:', error);
+            alert('Nie udało się usunąć zdjęcia. Spróbuj ponownie.');
         }
+    };
 
-        // Fallback do placeholder podczas ładowania
-        return '/images/image-placeholder.png';
-    }, [imageUrls]);
+    // Download handler
+    const handleDownloadImage = async (image: VehicleImage) => {
+        try {
+            console.log('💾 Downloading image:', image.id);
 
-    const isImageLoading = useCallback((imageId: string): boolean => {
-        return loadingImages.has(imageId);
-    }, [loadingImages]);
+            const imageUrl = getCurrentImageUrl(image);
+            if (!imageUrl || imageUrl === '/images/image-placeholder.png') {
+                alert('Nie można pobrać tego zdjęcia.');
+                return;
+            }
 
+            // Create download link
+            const link = document.createElement('a');
+            link.href = imageUrl;
+            link.download = image.filename || `image-${image.id}.jpg`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            console.log('✅ Image download initiated');
+        } catch (error) {
+            console.error('❌ Error downloading image:', error);
+            alert('Nie udało się pobrać zdjęcia.');
+        }
+    };
+
+    // Loading state
     if (loading) {
         return (
             <SidebarSection>
@@ -174,6 +278,7 @@ const VehicleGallerySection: React.FC<VehicleGallerySectionProps> = ({
         );
     }
 
+    // Error state
     if (error || !vehicleId) {
         return (
             <SidebarSection>
@@ -195,10 +300,20 @@ const VehicleGallerySection: React.FC<VehicleGallerySectionProps> = ({
                         Dodaj zdjęcie
                     </AddImageButton>
                 )}
+                {vehicleId && (
+                    <VehicleImageUploadModal
+                        isOpen={showUploadModal}
+                        onClose={handleCloseUploadModal}
+                        onSuccess={handleUploadSuccess}
+                        vehicleId={vehicleId}
+                        vehicleInfo={vehicleInfo}
+                    />
+                )}
             </SidebarSection>
         );
     }
 
+    // Empty state
     if (images.length === 0) {
         return (
             <SidebarSection>
@@ -217,13 +332,15 @@ const VehicleGallerySection: React.FC<VehicleGallerySectionProps> = ({
                     Dodaj pierwsze zdjęcie
                 </AddImageButton>
 
-                <VehicleImageUploadModal
-                    isOpen={showUploadModal}
-                    onClose={handleCloseUploadModal}
-                    onSuccess={handleUploadSuccess}
-                    vehicleId={vehicleId}
-                    vehicleInfo={vehicleInfo}
-                />
+                {vehicleId && (
+                    <VehicleImageUploadModal
+                        isOpen={showUploadModal}
+                        onClose={handleCloseUploadModal}
+                        onSuccess={handleUploadSuccess}
+                        vehicleId={vehicleId}
+                        vehicleInfo={vehicleInfo}
+                    />
+                )}
             </SidebarSection>
         );
     }
@@ -232,6 +349,7 @@ const VehicleGallerySection: React.FC<VehicleGallerySectionProps> = ({
     const currentImageUrl = getCurrentImageUrl(currentImage);
     const isCurrentImageLoading = isImageLoading(currentImage.id);
 
+    // Main gallery view
     return (
         <SidebarSection>
             <SidebarSectionTitle>
@@ -260,7 +378,6 @@ const VehicleGallerySection: React.FC<VehicleGallerySectionProps> = ({
                             src={currentImageUrl}
                             alt={`Zdjęcie pojazdu ${currentIndex + 1}`}
                             onError={(e) => {
-                                // Fallback w przypadku błędu ładowania
                                 const target = e.target as HTMLImageElement;
                                 if (target.src !== '/images/image-placeholder.png') {
                                     target.src = '/images/image-placeholder.png';
@@ -268,6 +385,7 @@ const VehicleGallerySection: React.FC<VehicleGallerySectionProps> = ({
                             }}
                             $loading={isCurrentImageLoading}
                         />
+
                         <ImageOverlay>
                             <ImageCounter>
                                 {currentIndex + 1} / {images.length}
@@ -283,6 +401,38 @@ const VehicleGallerySection: React.FC<VehicleGallerySectionProps> = ({
                         <FaChevronRight />
                     </NavigationButton>
                 </ImageContainer>
+
+                {/* Action buttons moved below image */}
+                <ImageActionsContainer>
+                    <ImageActionButton
+                        onClick={() => handlePreviewImage(currentImage)}
+                        title="Podgląd na pełnym ekranie"
+                        $variant="preview"
+                    >
+                        <FaEye />
+                    </ImageActionButton>
+                    <ImageActionButton
+                        onClick={() => handleEditImage(currentImage)}
+                        title="Edytuj zdjęcie"
+                        $variant="edit"
+                    >
+                        <FaEdit />
+                    </ImageActionButton>
+                    <ImageActionButton
+                        onClick={() => handleDownloadImage(currentImage)}
+                        title="Pobierz zdjęcie"
+                        $variant="download"
+                    >
+                        <FaDownload />
+                    </ImageActionButton>
+                    <ImageActionButton
+                        onClick={() => handleDeleteImage(currentImage)}
+                        title="Usuń zdjęcie"
+                        $variant="delete"
+                    >
+                        <FaTrash />
+                    </ImageActionButton>
+                </ImageActionsContainer>
 
                 <ImageInfo>
                     <ImageFilename>{currentImage.filename}</ImageFilename>
@@ -309,18 +459,38 @@ const VehicleGallerySection: React.FC<VehicleGallerySectionProps> = ({
                 Dodaj zdjęcie
             </AddImageButton>
 
-            <VehicleImageUploadModal
-                isOpen={showUploadModal}
-                onClose={handleCloseUploadModal}
-                onSuccess={handleUploadSuccess}
-                vehicleId={vehicleId}
-                vehicleInfo={vehicleInfo}
-            />
+            {/* Modals */}
+            {vehicleId && (
+                <>
+                    <VehicleImageUploadModal
+                        isOpen={showUploadModal}
+                        onClose={handleCloseUploadModal}
+                        onSuccess={handleUploadSuccess}
+                        vehicleId={vehicleId}
+                        vehicleInfo={vehicleInfo}
+                    />
+
+                    <SimpleImagePreviewModal
+                        isOpen={showPreviewModal}
+                        image={selectedImage}
+                        imageUrl={selectedImageUrl}
+                        onClose={handleClosePreviewModal}
+                    />
+
+                    <ImageEditModal
+                        isOpen={showEditModal}
+                        image={selectedImage}
+                        imageUrl={selectedImageUrl}
+                        onClose={handleCloseEditModal}
+                        onSave={handleEditSave}
+                    />
+                </>
+            )}
         </SidebarSection>
     );
 };
 
-// Styled Components (same as before)
+// Styled Components
 const LoadingContainer = styled.div`
     display: flex;
     flex-direction: column;
@@ -330,7 +500,6 @@ const LoadingContainer = styled.div`
     gap: ${theme.spacing.md};
 `;
 
-// Styled Components (continued from VehicleGallerySection)
 const LoadingSpinner = styled.div`
     width: 24px;
     height: 24px;
@@ -385,7 +554,7 @@ const NavigationButton = styled.button<{ position: 'left' | 'right'; disabled: b
     justify-content: center;
     cursor: pointer;
     transition: all ${theme.transitions.normal};
-    z-index: 2;
+    z-index: 3;
     opacity: ${props => props.disabled ? 0.3 : 1};
     pointer-events: ${props => props.disabled ? 'none' : 'auto'};
 
@@ -458,10 +627,89 @@ const ImageOverlay = styled.div`
     border-radius: ${theme.radius.sm};
     font-size: 11px;
     font-weight: 500;
+    z-index: 2;
 `;
 
 const ImageCounter = styled.span`
     font-family: 'Monaco', 'Consolas', monospace;
+`;
+
+const ImageActionsContainer = styled.div`
+    display: flex;
+    justify-content: center;
+    gap: ${theme.spacing.sm};
+    padding: ${theme.spacing.sm} 0;
+    border-bottom: 1px solid ${theme.border};
+`;
+
+const ImageActionButton = styled.button<{ $variant: 'preview' | 'edit' | 'download' | 'delete' }>`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: ${theme.radius.md};
+    cursor: pointer;
+    transition: all ${theme.transitions.fast};
+    box-shadow: ${theme.shadow.sm};
+    font-size: 14px;
+
+    ${props => {
+        switch (props.$variant) {
+            case 'preview':
+                return `
+                    background: #2196f3;
+                    color: white;
+                    &:hover {
+                        background: #1976d2;
+                        transform: translateY(-2px);
+                        box-shadow: ${theme.shadow.md};
+                    }
+                `;
+            case 'edit':
+                return `
+                    background: #ff9800;
+                    color: white;
+                    &:hover {
+                        background: #f57c00;
+                        transform: translateY(-2px);
+                        box-shadow: ${theme.shadow.md};
+                    }
+                `;
+            case 'download':
+                return `
+                    background: #4caf50;
+                    color: white;
+                    &:hover {
+                        background: #388e3c;
+                        transform: translateY(-2px);
+                        box-shadow: ${theme.shadow.md};
+                    }
+                `;
+            case 'delete':
+                return `
+                    background: #f44336;
+                    color: white;
+                    &:hover {
+                        background: #d32f2f;
+                        transform: translateY(-2px);
+                        box-shadow: ${theme.shadow.md};
+                    }
+                `;
+            default:
+                return `
+                    background: ${theme.surface};
+                    color: ${theme.text.primary};
+                    border: 1px solid ${theme.border};
+                    &:hover {
+                        background: ${theme.surfaceHover};
+                        transform: translateY(-2px);
+                        box-shadow: ${theme.shadow.md};
+                    }
+                `;
+        }
+    }}
 `;
 
 const ImageInfo = styled.div`

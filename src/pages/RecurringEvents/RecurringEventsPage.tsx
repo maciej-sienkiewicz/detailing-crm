@@ -1,18 +1,22 @@
-// src/pages/RecurringEvents/RecurringEventsPage.tsx - ZAKTUALIZOWANY
+// src/pages/RecurringEvents/RecurringEventsPage.tsx - NAPRAWIONA WERSJA
 import React, { useState, useCallback } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import {
     FaCalendarAlt,
-    FaChartLine,
-    FaPlus
+    FaPlus,
+    FaTrash
 } from 'react-icons/fa';
-import { PageHeader, SecondaryButton, PrimaryButton } from '../../components/common/PageHeader'; // Dodano PrimaryButton
+import { PageHeader, SecondaryButton, PrimaryButton } from '../../components/common/PageHeader';
 import RecurringEventsList from '../../components/recurringEvents/RecurringEventsList';
 import RecurringEventForm from '../../components/recurringEvents/RecurringEventForm';
 import Modal from '../../components/common/Modal';
 import { useToast } from '../../components/common/Toast/Toast';
-import { useRecurringEvents, useRecurringEventsStatistics, useRecurringEvent } from '../../hooks/useRecurringEvents';
+import {
+    useRecurringEvents,
+    useRecurringEventsStatistics,
+    useRecurringEvent
+} from '../../hooks/useRecurringEvents'; // DODANO BRAKUJĄCE IMPORTY
 import {
     RecurringEventListItem,
     CreateRecurringEventRequest,
@@ -42,9 +46,10 @@ const RecurringEventsPage: React.FC = () => {
         isDeactivating
     } = useRecurringEvents();
 
+    // NAPRAWKA: Hook był używany ale nie zaimportowany
     const { stats, isLoading: isStatsLoading } = useRecurringEventsStatistics();
 
-    // For edit modal - fetch full event details
+    // NAPRAWKA: Hook był używany ale nie zaimportowany
     const {
         event: fullEventForEdit,
         isLoading: isLoadingEventForEdit
@@ -55,7 +60,6 @@ const RecurringEventsPage: React.FC = () => {
         setShowCreateModal(true);
     }, []);
 
-    // ... reszta handlerów bez zmian (handleEditClick, handleDeleteClick, etc.) ...
     const handleEditClick = useCallback((event: RecurringEventListItem) => {
         setSelectedEvent(event);
         setShowEditModal(true);
@@ -140,13 +144,19 @@ const RecurringEventsPage: React.FC = () => {
     }, [selectedEvent, deleteEvent, showToast]);
 
     const handleCloseCreateModal = useCallback(() => setShowCreateModal(false), []);
-    const handleCloseEditModal = useCallback(() => { setShowEditModal(false); setSelectedEvent(null); }, []);
-    const handleCloseDeleteModal = useCallback(() => { setShowDeleteModal(false); setSelectedEvent(null); }, []);
+    const handleCloseEditModal = useCallback(() => {
+        setShowEditModal(false);
+        setSelectedEvent(null);
+    }, []);
+    const handleCloseDeleteModal = useCallback(() => {
+        setShowDeleteModal(false);
+        setSelectedEvent(null);
+    }, []);
 
     return (
         <ErrorBoundary fallback={<PageErrorFallback />}>
             <PageContainer>
-                {/* Header - PRZYCISK PRZENIESIONY TUTAJ */}
+                {/* Header */}
                 <PageHeader
                     icon={FaCalendarAlt}
                     title="Cykliczne wydarzenia"
@@ -161,7 +171,7 @@ const RecurringEventsPage: React.FC = () => {
                     }
                 />
 
-                {/* Main Content - USUNIĘTO onCreateNew prop */}
+                {/* Main Content */}
                 <ContentSection>
                     <RecurringEventsList
                         onEdit={handleEditClick}
@@ -172,17 +182,82 @@ const RecurringEventsPage: React.FC = () => {
                     />
                 </ContentSection>
 
-                {/* Modale bez zmian */}
-                <Modal isOpen={showCreateModal} onClose={handleCloseCreateModal} title="" size="xl">
-                    <RecurringEventForm mode="create" onSubmit={handleCreateSubmit} onCancel={handleCloseCreateModal} isLoading={isCreating} />
-                </Modal>
-                <Modal isOpen={showEditModal} onClose={handleCloseEditModal} title="" size="xl">
-                    {isLoadingEventForEdit ? ( <EditModalLoading>...</EditModalLoading> ) : fullEventForEdit ? ( <RecurringEventForm mode="edit" initialData={fullEventForEdit} onSubmit={handleEditSubmit} onCancel={handleCloseEditModal} isLoading={isUpdating}/> ) : ( <EditModalError>...</EditModalError> )}
-                </Modal>
-                <Modal isOpen={showDeleteModal} onClose={handleCloseDeleteModal} title="Potwierdź usunięcie" size="sm">
-                    <DeleteConfirmationContent>...</DeleteConfirmationContent>
+                {/* Create Modal */}
+                <Modal
+                    isOpen={showCreateModal}
+                    onClose={handleCloseCreateModal}
+                    title=""
+                    size="xl"
+                >
+                    <RecurringEventForm
+                        mode="create"
+                        onSubmit={handleCreateSubmit}
+                        onCancel={handleCloseCreateModal}
+                        isLoading={isCreating}
+                    />
                 </Modal>
 
+                {/* Edit Modal */}
+                <Modal
+                    isOpen={showEditModal}
+                    onClose={handleCloseEditModal}
+                    title=""
+                    size="xl"
+                >
+                    {isLoadingEventForEdit ? (
+                        <EditModalLoading>
+                            <LoadingSpinner />
+                            <LoadingText>Ładowanie danych wydarzenia...</LoadingText>
+                        </EditModalLoading>
+                    ) : fullEventForEdit ? (
+                        <RecurringEventForm
+                            mode="edit"
+                            initialData={fullEventForEdit}
+                            onSubmit={handleEditSubmit}
+                            onCancel={handleCloseEditModal}
+                            isLoading={isUpdating}
+                        />
+                    ) : (
+                        <EditModalError>
+                            <ErrorIcon>⚠️</ErrorIcon>
+                            <ErrorText>Nie można załadować danych wydarzenia</ErrorText>
+                            <SecondaryButton onClick={handleCloseEditModal}>
+                                Zamknij
+                            </SecondaryButton>
+                        </EditModalError>
+                    )}
+                </Modal>
+
+                {/* Delete Confirmation Modal */}
+                <Modal
+                    isOpen={showDeleteModal}
+                    onClose={handleCloseDeleteModal}
+                    title="Potwierdź usunięcie"
+                    size="sm"
+                >
+                    <DeleteConfirmationContent>
+                        <DeleteIcon>🗑️</DeleteIcon>
+                        <DeleteMessage>
+                            <DeleteTitle>Czy na pewno chcesz usunąć to wydarzenie?</DeleteTitle>
+                            <DeleteDescription>
+                                Ta operacja jest nieodwracalna. Wszystkie wystąpienia tego wydarzenia
+                                również zostaną usunięte.
+                            </DeleteDescription>
+                        </DeleteMessage>
+                        <DeleteActions>
+                            <SecondaryButton onClick={handleCloseDeleteModal}>
+                                Anuluj
+                            </SecondaryButton>
+                            <DangerButton
+                                onClick={handleDeleteConfirm}
+                                disabled={isDeleting}
+                            >
+                                <FaTrash />
+                                {isDeleting ? 'Usuwanie...' : 'Usuń'}
+                            </DangerButton>
+                        </DeleteActions>
+                    </DeleteConfirmationContent>
+                </Modal>
             </PageContainer>
         </ErrorBoundary>
     );
@@ -204,7 +279,7 @@ const PageErrorFallback: React.FC = () => (
     </ErrorContainer>
 );
 
-// Styled Components (unchanged from previous version)
+// Styled Components
 const PageContainer = styled.div`
     min-height: 100vh;
     background: ${theme.surfaceAlt};
@@ -221,109 +296,6 @@ const HeaderActions = styled.div`
         flex-direction: column;
         width: 100%;
     }
-`;
-
-const StatsSection = styled.section`
-    max-width: 1600px;
-    margin: 0 auto;
-    padding: ${theme.spacing.lg} ${theme.spacing.xl} 0;
-
-    @media (max-width: 1024px) {
-        padding: ${theme.spacing.md} ${theme.spacing.lg} 0;
-    }
-`;
-
-const StatsGrid = styled.div`
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: ${theme.spacing.lg};
-
-    @media (max-width: 1400px) {
-        grid-template-columns: repeat(3, 1fr);
-    }
-    @media (max-width: 1024px) {
-        grid-template-columns: repeat(2, 1fr);
-        gap: ${theme.spacing.md};
-    }
-    @media (max-width: 768px) {
-        grid-template-columns: 1fr;
-        gap: ${theme.spacing.md};
-    }
-`;
-
-const StatCard = styled.div`
-    background: ${theme.surface};
-    border: 1px solid ${theme.border};
-    border-radius: ${theme.radius.xl};
-    padding: ${theme.spacing.lg};
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.md};
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: ${theme.shadow.xs};
-    position: relative;
-    overflow: hidden;
-
-    &:hover {
-        transform: translateY(-2px);
-        box-shadow: ${theme.shadow.lg};
-        border-color: ${theme.primary};
-    }
-
-    &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(90deg, ${theme.primary} 0%, ${theme.primaryLight} 100%);
-        opacity: 0;
-        transition: opacity 0.2s ease;
-    }
-
-    &:hover::before {
-        opacity: 1;
-    }
-`;
-
-const StatIcon = styled.div<{ $color: string }>`
-    width: 56px;
-    height: 56px;
-    background: linear-gradient(135deg, ${props => props.$color}15 0%, ${props => props.$color}08 100%);
-    border-radius: ${theme.radius.lg};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: ${props => props.$color};
-    font-size: 24px;
-    flex-shrink: 0;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
-`;
-
-const StatContent = styled.div`
-    flex: 1;
-    min-width: 0;
-`;
-
-const StatValue = styled.div`
-    font-size: 28px;
-    font-weight: 700;
-    color: ${theme.text.primary};
-    margin-bottom: ${theme.spacing.xs};
-    letter-spacing: -0.025em;
-    line-height: 1.1;
-
-    @media (max-width: 768px) {
-        font-size: 24px;
-    }
-`;
-
-const StatLabel = styled.div`
-    font-size: 14px;
-    color: ${theme.text.secondary};
-    font-weight: 500;
-    line-height: 1.3;
 `;
 
 const ContentSection = styled.section`

@@ -303,20 +303,6 @@ const RecurringEventsList: React.FC<RecurringEventsListProps> = ({
                 expandableContent={filtersContent}
                 expandableVisible={showFilters}
             />
-
-            {/* Debug information in development */}
-            {process.env.NODE_ENV === 'development' && (
-                <div style={{ marginTop: '20px', padding: '10px', background: '#f0f0f0', fontSize: '12px' }}>
-                    <strong>Debug Info:</strong><br />
-                    Events loaded: {events.length}<br />
-                    Total items: {pagination?.totalItems || 0}<br />
-                    Current page: {pagination?.currentPage || 0}<br />
-                    Has filters: {hasActiveFilters ? 'Yes' : 'No'}<br />
-                    Selected: {selectedEvents.size}<br />
-                    Loading: {isLoading ? 'Yes' : 'No'}<br />
-                    Error: {error || 'None'}
-                </div>
-            )}
         </Container>
     );
 };

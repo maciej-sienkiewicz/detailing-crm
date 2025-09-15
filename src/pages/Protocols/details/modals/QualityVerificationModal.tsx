@@ -156,18 +156,6 @@ const QualityVerificationModal: React.FC<QualityVerificationModalProps> = ({
                                     </GuidelineDescription>
                                 </GuidelineContent>
                             </GuidelineItem>
-
-                            <GuidelineItem>
-                                <GuidelineIcon>
-                                    <FaCheckCircle />
-                                </GuidelineIcon>
-                                <GuidelineContent>
-                                    <GuidelineTitle>Sprzątanie stanowiska</GuidelineTitle>
-                                    <GuidelineDescription>
-                                        Upewnij się że stanowisko pracy zostało uporządkowane po zakończeniu
-                                    </GuidelineDescription>
-                                </GuidelineContent>
-                            </GuidelineItem>
                         </GuidelinesList>
                     </QualityGuidelinesSection>
 

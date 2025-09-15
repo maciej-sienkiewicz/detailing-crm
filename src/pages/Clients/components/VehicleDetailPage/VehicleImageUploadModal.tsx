@@ -11,7 +11,8 @@ import {
     FaCheckCircle,
     FaExclamationTriangle,
     FaTrash,
-    FaClock // Dodano brakującą ikonę
+    FaClock,
+    FaKeyboard
 } from 'react-icons/fa';
 import { apiClientNew } from '../../../../api/apiClientNew';
 import vehicleImageApi from "../../../../api/vehicleImageApi";
@@ -108,6 +109,7 @@ const VehicleImageUploadModal: React.FC<VehicleImageUploadModalProps> = ({
     const [images, setImages] = useState<UploadedImage[]>([]);
     const [dragActive, setDragActive] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    const [customTagInputs, setCustomTagInputs] = useState<Record<number, string>>({});
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Sugerowane tagi dla branży motoryzacyjnej
@@ -170,6 +172,12 @@ const VehicleImageUploadModal: React.FC<VehicleImageUploadModalProps> = ({
             updated.splice(index, 1);
             return updated;
         });
+        // Usuń również input dla custom taga
+        setCustomTagInputs(prev => {
+            const updated = { ...prev };
+            delete updated[index];
+            return updated;
+        });
     }, []);
 
     const addTag = useCallback((imageIndex: number, tag: string) => {
@@ -188,6 +196,31 @@ const VehicleImageUploadModal: React.FC<VehicleImageUploadModalProps> = ({
             tags: images[imageIndex]?.tags.filter(tag => tag !== tagToRemove) || []
         });
     }, [images, updateImage]);
+
+    const handleCustomTagInputChange = useCallback((imageIndex: number, value: string) => {
+        setCustomTagInputs(prev => ({
+            ...prev,
+            [imageIndex]: value
+        }));
+    }, []);
+
+    const handleCustomTagAdd = useCallback((imageIndex: number) => {
+        const customTag = customTagInputs[imageIndex]?.trim();
+        if (customTag) {
+            addTag(imageIndex, customTag);
+            setCustomTagInputs(prev => ({
+                ...prev,
+                [imageIndex]: ''
+            }));
+        }
+    }, [customTagInputs, addTag]);
+
+    const handleCustomTagKeyPress = useCallback((e: React.KeyboardEvent, imageIndex: number) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleCustomTagAdd(imageIndex);
+        }
+    }, [handleCustomTagAdd]);
 
     const uploadSingleImage = useCallback(async (image: UploadedImage, index: number): Promise<boolean> => {
         updateImage(index, { status: 'uploading', uploadProgress: 0 });
@@ -222,7 +255,6 @@ const VehicleImageUploadModal: React.FC<VehicleImageUploadModalProps> = ({
             return false;
         }
     }, [vehicleId, updateImage]);
-
 
     const handleUpload = useCallback(async () => {
         if (images.length === 0) return;
@@ -262,6 +294,7 @@ const VehicleImageUploadModal: React.FC<VehicleImageUploadModalProps> = ({
             URL.revokeObjectURL(img.previewUrl);
         });
         setImages([]);
+        setCustomTagInputs({});
         onClose();
     }, [images, onClose]);
 
@@ -401,6 +434,27 @@ const VehicleImageUploadModal: React.FC<VehicleImageUploadModalProps> = ({
                                                     ))}
                                                 </TagsContainer>
 
+                                                {/* Custom tag input */}
+                                                <CustomTagInputContainer>
+                                                    <CustomTagInput
+                                                        type="text"
+                                                        placeholder="Dodaj własny tag..."
+                                                        value={customTagInputs[index] || ''}
+                                                        onChange={(e) => handleCustomTagInputChange(index, e.target.value)}
+                                                        onKeyPress={(e) => handleCustomTagKeyPress(e, index)}
+                                                        disabled={isUploading}
+                                                        maxLength={30}
+                                                    />
+                                                    <AddCustomTagButton
+                                                        type="button"
+                                                        onClick={() => handleCustomTagAdd(index)}
+                                                        disabled={isUploading || !customTagInputs[index]?.trim()}
+                                                        title="Dodaj tag"
+                                                    >
+                                                        <FaPlus />
+                                                    </AddCustomTagButton>
+                                                </CustomTagInputContainer>
+
                                                 <SuggestedTagsContainer>
                                                     {suggestedTags
                                                         .filter(tag => !image.tags.includes(tag))
@@ -470,255 +524,255 @@ const VehicleImageUploadModal: React.FC<VehicleImageUploadModalProps> = ({
 // =============================================================================
 
 const ModalOverlay = styled.div`
-	position: fixed;
-	top: 0;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	background: rgba(0, 0, 0, 0.7);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	z-index: 1000;
-	backdrop-filter: blur(4px);
-	animation: fadeIn 0.2s ease;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.2s ease;
 
-	@keyframes fadeIn {
-		from { opacity: 0; }
-		to { opacity: 1; }
-	}
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
 `;
 
 const ModalContainer = styled.div`
-	background: ${brandTheme.surface};
-	border-radius: ${brandTheme.radius.xl};
-	box-shadow: ${brandTheme.shadow.xl};
-	width: 800px;
-	max-width: 95%;
-	max-height: 90vh;
-	display: flex;
-	flex-direction: column;
-	overflow: hidden;
-	animation: slideUp 0.3s ease;
+    background: ${brandTheme.surface};
+    border-radius: ${brandTheme.radius.xl};
+    box-shadow: ${brandTheme.shadow.xl};
+    width: 800px;
+    max-width: 95%;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: slideUp 0.3s ease;
 
-	@keyframes slideUp {
-		from {
-			opacity: 0;
-			transform: translateY(20px) scale(0.95);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0) scale(1);
-		}
-	}
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
 `;
 
 const ModalHeader = styled.div`
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
-	border-bottom: 2px solid ${brandTheme.border};
-	background: ${brandTheme.surfaceAlt};
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
+    border-bottom: 2px solid ${brandTheme.border};
+    background: ${brandTheme.surfaceAlt};
 `;
 
 const HeaderContent = styled.div`
-	display: flex;
-	align-items: center;
-	gap: ${brandTheme.spacing.md};
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.md};
 `;
 
 const HeaderIcon = styled.div`
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 40px;
-	height: 40px;
-	background: ${brandTheme.primaryGhost};
-	color: ${brandTheme.primary};
-	border-radius: ${brandTheme.radius.lg};
-	font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: ${brandTheme.primaryGhost};
+    color: ${brandTheme.primary};
+    border-radius: ${brandTheme.radius.lg};
+    font-size: 18px;
 `;
 
 const HeaderText = styled.div`
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 `;
 
 const ModalTitle = styled.h3`
-	margin: 0;
-	font-size: 20px;
-	font-weight: 700;
-	color: ${brandTheme.text.primary};
-	letter-spacing: -0.025em;
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: ${brandTheme.text.primary};
+    letter-spacing: -0.025em;
 `;
 
 const ModalSubtitle = styled.p`
-	margin: 0;
-	font-size: 14px;
-	color: ${brandTheme.text.secondary};
-	font-weight: 500;
+    margin: 0;
+    font-size: 14px;
+    color: ${brandTheme.text.secondary};
+    font-weight: 500;
 `;
 
 const CloseButton = styled.button`
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 32px;
-	height: 32px;
-	background: ${brandTheme.surfaceHover};
-	border: 1px solid ${brandTheme.border};
-	border-radius: ${brandTheme.radius.sm};
-	color: ${brandTheme.text.muted};
-	cursor: pointer;
-	transition: all ${brandTheme.transitions.normal};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: ${brandTheme.surfaceHover};
+    border: 1px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.sm};
+    color: ${brandTheme.text.muted};
+    cursor: pointer;
+    transition: all ${brandTheme.transitions.normal};
 
-	&:hover:not(:disabled) {
-		background: ${brandTheme.status.errorLight};
-		border-color: ${brandTheme.status.error};
-		color: ${brandTheme.status.error};
-		transform: translateY(-1px);
-	}
+    &:hover:not(:disabled) {
+        background: ${brandTheme.status.errorLight};
+        border-color: ${brandTheme.status.error};
+        color: ${brandTheme.status.error};
+        transform: translateY(-1px);
+    }
 
-	&:disabled {
-		opacity: 0.6;
-		cursor: not-allowed;
-	}
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
 `;
 
 const ModalBody = styled.div`
-	padding: ${brandTheme.spacing.xl};
-	overflow-y: auto;
-	flex: 1;
+    padding: ${brandTheme.spacing.xl};
+    overflow-y: auto;
+    flex: 1;
 
-	/* Custom scrollbar */
-	&::-webkit-scrollbar {
-		width: 6px;
-	}
-	&::-webkit-scrollbar-track {
-		background: ${brandTheme.surfaceAlt};
-	}
-	&::-webkit-scrollbar-thumb {
-		background: ${brandTheme.border};
-		border-radius: 3px;
-	}
+    /* Custom scrollbar */
+    &::-webkit-scrollbar {
+        width: 6px;
+    }
+    &::-webkit-scrollbar-track {
+        background: ${brandTheme.surfaceAlt};
+    }
+    &::-webkit-scrollbar-thumb {
+        background: ${brandTheme.border};
+        border-radius: 3px;
+    }
 `;
 
 const DropZone = styled.div<{ $dragActive: boolean }>`
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	gap: ${brandTheme.spacing.lg};
-	padding: ${brandTheme.spacing.xxl};
-	border: 2px dashed ${props => props.$dragActive ? brandTheme.primary : brandTheme.border};
-	border-radius: ${brandTheme.radius.lg};
-	background: ${props => props.$dragActive ? brandTheme.primaryGhost : brandTheme.surfaceAlt};
-	cursor: pointer;
-	transition: all ${brandTheme.transitions.normal};
-	min-height: 300px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: ${brandTheme.spacing.lg};
+    padding: ${brandTheme.spacing.xxl};
+    border: 2px dashed ${props => props.$dragActive ? brandTheme.primary : brandTheme.border};
+    border-radius: ${brandTheme.radius.lg};
+    background: ${props => props.$dragActive ? brandTheme.primaryGhost : brandTheme.surfaceAlt};
+    cursor: pointer;
+    transition: all ${brandTheme.transitions.normal};
+    min-height: 300px;
 
-	&:hover {
-		border-color: ${brandTheme.primary};
-		background: ${brandTheme.primaryGhost};
-	}
+    &:hover {
+        border-color: ${brandTheme.primary};
+        background: ${brandTheme.primaryGhost};
+    }
 `;
 
 const DropZoneIcon = styled.div`
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 64px;
-	height: 64px;
-	background: ${brandTheme.primary};
-	color: white;
-	border-radius: ${brandTheme.radius.xl};
-	font-size: 24px;
-	box-shadow: ${brandTheme.shadow.md};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    background: ${brandTheme.primary};
+    color: white;
+    border-radius: ${brandTheme.radius.xl};
+    font-size: 24px;
+    box-shadow: ${brandTheme.shadow.md};
 `;
 
 const DropZoneTitle = styled.div`
-	font-size: 18px;
-	font-weight: 600;
-	color: ${brandTheme.text.primary};
-	text-align: center;
+    font-size: 18px;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+    text-align: center;
 `;
 
 const DropZoneSubtext = styled.div`
-	font-size: 14px;
-	color: ${brandTheme.text.secondary};
-	text-align: center;
+    font-size: 14px;
+    color: ${brandTheme.text.secondary};
+    text-align: center;
 `;
 
 const SelectFilesButton = styled.button`
-	display: flex;
-	align-items: center;
-	gap: ${brandTheme.spacing.sm};
-	padding: ${brandTheme.spacing.md} ${brandTheme.spacing.xl};
-	background: ${brandTheme.primary};
-	color: white;
-	border: none;
-	border-radius: ${brandTheme.radius.md};
-	font-weight: 600;
-	font-size: 14px;
-	cursor: pointer;
-	transition: all ${brandTheme.transitions.normal};
-	box-shadow: ${brandTheme.shadow.sm};
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.xl};
+    background: ${brandTheme.primary};
+    color: white;
+    border: none;
+    border-radius: ${brandTheme.radius.md};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all ${brandTheme.transitions.normal};
+    box-shadow: ${brandTheme.shadow.sm};
 
-	&:hover {
-		background: ${brandTheme.primaryDark};
-		transform: translateY(-1px);
-		box-shadow: ${brandTheme.shadow.md};
-	}
+    &:hover {
+        background: ${brandTheme.primaryDark};
+        transform: translateY(-1px);
+        box-shadow: ${brandTheme.shadow.md};
+    }
 `;
 
 const UploadSummary = styled.div`
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	padding: ${brandTheme.spacing.lg};
-	background: ${brandTheme.surfaceAlt};
-	border-radius: ${brandTheme.radius.lg};
-	margin-bottom: ${brandTheme.spacing.lg};
-	border: 1px solid ${brandTheme.border};
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: ${brandTheme.spacing.lg};
+    background: ${brandTheme.surfaceAlt};
+    border-radius: ${brandTheme.radius.lg};
+    margin-bottom: ${brandTheme.spacing.lg};
+    border: 1px solid ${brandTheme.border};
 `;
 
 const SummaryText = styled.div`
-	font-size: 16px;
-	font-weight: 600;
-	color: ${brandTheme.text.primary};
+    font-size: 16px;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
 `;
 
 const AddMoreButton = styled.button`
-	display: flex;
-	align-items: center;
-	gap: ${brandTheme.spacing.sm};
-	padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
-	background: ${brandTheme.surface};
-	color: ${brandTheme.primary};
-	border: 1px solid ${brandTheme.primary};
-	border-radius: ${brandTheme.radius.md};
-	font-weight: 500;
-	font-size: 14px;
-	cursor: pointer;
-	transition: all ${brandTheme.transitions.normal};
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+    background: ${brandTheme.surface};
+    color: ${brandTheme.primary};
+    border: 1px solid ${brandTheme.primary};
+    border-radius: ${brandTheme.radius.md};
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all ${brandTheme.transitions.normal};
 
-	&:hover:not(:disabled) {
-		background: ${brandTheme.primaryGhost};
-	}
+    &:hover:not(:disabled) {
+        background: ${brandTheme.primaryGhost};
+    }
 
-	&:disabled {
-		opacity: 0.6;
-		cursor: not-allowed;
-	}
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
 `;
 
 const ImagesList = styled.div`
-	display: flex;
-	flex-direction: column;
-	gap: ${brandTheme.spacing.lg};
-	padding-right: ${brandTheme.spacing.sm}; /* Space for scrollbar */
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.lg};
+    padding-right: ${brandTheme.spacing.sm}; /* Space for scrollbar */
 `;
 
 const statusColors = {
@@ -729,274 +783,334 @@ const statusColors = {
 };
 
 const ImageCard = styled.div<{ $status: UploadedImage['status'] }>`
-	display: grid;
-	grid-template-columns: 140px 1fr;
-	gap: ${brandTheme.spacing.lg};
-	padding: ${brandTheme.spacing.lg};
-	background: ${brandTheme.surface};
-	border: 2px solid ${props => statusColors[props.$status] || brandTheme.border};
-	border-radius: ${brandTheme.radius.lg};
-	transition: all ${brandTheme.transitions.normal};
-	box-shadow: ${brandTheme.shadow.xs};
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: ${brandTheme.spacing.lg};
+    padding: ${brandTheme.spacing.lg};
+    background: ${brandTheme.surface};
+    border: 2px solid ${props => statusColors[props.$status] || brandTheme.border};
+    border-radius: ${brandTheme.radius.lg};
+    transition: all ${brandTheme.transitions.normal};
+    box-shadow: ${brandTheme.shadow.xs};
 
-	&:focus-within {
-		border-color: ${brandTheme.primary};
-		box-shadow: ${brandTheme.shadow.md};
-	}
+    &:focus-within {
+        border-color: ${brandTheme.primary};
+        box-shadow: ${brandTheme.shadow.md};
+    }
 `;
 
 const ImagePreviewSection = styled.div`
-	position: relative;
-	width: 140px;
-	height: 140px;
+    position: relative;
+    width: 140px;
+    height: 140px;
 `;
 
 const ImagePreview = styled.img`
-	width: 100%;
-	height: 100%;
-	object-fit: cover;
-	border-radius: ${brandTheme.radius.md};
-	background-color: ${brandTheme.surfaceAlt};
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: ${brandTheme.radius.md};
+    background-color: ${brandTheme.surfaceAlt};
 `;
 
 const ImageStatus = styled.div<{ $status: UploadedImage['status'] }>`
-	position: absolute;
-	top: ${brandTheme.spacing.sm};
-	left: ${brandTheme.spacing.sm};
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 28px;
-	height: 28px;
-	background: ${props => statusColors[props.$status] || brandTheme.text.muted};
-	color: white;
-	border-radius: 50%;
-	font-size: 14px;
-	box-shadow: ${brandTheme.shadow.sm};
+    position: absolute;
+    top: ${brandTheme.spacing.sm};
+    left: ${brandTheme.spacing.sm};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: ${props => statusColors[props.$status] || brandTheme.text.muted};
+    color: white;
+    border-radius: 50%;
+    font-size: 14px;
+    box-shadow: ${brandTheme.shadow.sm};
 
-	.spinner {
-		animation: spin 1s linear infinite;
-	}
+    .spinner {
+        animation: spin 1s linear infinite;
+    }
 `;
 
 const RemoveImageButton = styled.button`
-	position: absolute;
-	top: ${brandTheme.spacing.sm};
-	right: ${brandTheme.spacing.sm};
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 28px;
-	height: 28px;
-	background: rgba(0, 0, 0, 0.5);
-	color: white;
-	border: none;
-	border-radius: 50%;
-	cursor: pointer;
-	transition: all ${brandTheme.transitions.fast};
-	opacity: 0;
+    position: absolute;
+    top: ${brandTheme.spacing.sm};
+    right: ${brandTheme.spacing.sm};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all ${brandTheme.transitions.fast};
+    opacity: 0;
 
-	${ImagePreviewSection}:hover & {
-		opacity: 1;
-	}
+    ${ImagePreviewSection}:hover & {
+        opacity: 1;
+    }
 
-	&:hover {
-		background: ${brandTheme.status.error};
-		transform: scale(1.1);
-	}
+    &:hover {
+        background: ${brandTheme.status.error};
+        transform: scale(1.1);
+    }
 `;
 
 const ImageDetailsSection = styled.div`
-	display: flex;
-	flex-direction: column;
-	gap: ${brandTheme.spacing.md};
-	justify-content: space-between;
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.md};
+    justify-content: space-between;
 `;
 
 const ImageNameInput = styled.input`
-	width: 100%;
-	padding: ${brandTheme.spacing.md};
-	border: 1px solid ${brandTheme.border};
-	border-radius: ${brandTheme.radius.md};
-	font-size: 14px;
-	font-weight: 500;
-	color: ${brandTheme.text.primary};
-	background: ${brandTheme.surfaceAlt};
-	transition: all ${brandTheme.transitions.normal};
+    width: 100%;
+    padding: ${brandTheme.spacing.md};
+    border: 1px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.md};
+    font-size: 14px;
+    font-weight: 500;
+    color: ${brandTheme.text.primary};
+    background: ${brandTheme.surfaceAlt};
+    transition: all ${brandTheme.transitions.normal};
 
-	&:focus {
-		outline: none;
-		border-color: ${brandTheme.primary};
-		background: ${brandTheme.surface};
-		box-shadow: 0 0 0 3px ${brandTheme.primaryGhost};
-	}
+    &:focus {
+        outline: none;
+        border-color: ${brandTheme.primary};
+        background: ${brandTheme.surface};
+        box-shadow: 0 0 0 3px ${brandTheme.primaryGhost};
+    }
 
-	&::placeholder {
-		color: ${brandTheme.text.muted};
-	}
+    &::placeholder {
+        color: ${brandTheme.text.muted};
+    }
 `;
 
 const ProgressContainer = styled.div`
-	display: flex;
-	align-items: center;
-	gap: ${brandTheme.spacing.sm};
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
 `;
 
 const ProgressBar = styled.div`
-	flex: 1;
-	height: 8px;
-	background: ${brandTheme.surfaceAlt};
-	border-radius: ${brandTheme.radius.sm};
-	overflow: hidden;
+    flex: 1;
+    height: 8px;
+    background: ${brandTheme.surfaceAlt};
+    border-radius: ${brandTheme.radius.sm};
+    overflow: hidden;
 `;
 
 const ProgressFill = styled.div<{ $progress: number }>`
-	height: 100%;
-	width: ${props => props.$progress}%;
-	background: linear-gradient(135deg, ${brandTheme.status.info} 0%, ${brandTheme.primaryLight} 100%);
-	border-radius: ${brandTheme.radius.sm};
-	transition: width 0.3s ease;
+    height: 100%;
+    width: ${props => props.$progress}%;
+    background: linear-gradient(135deg, ${brandTheme.status.info} 0%, ${brandTheme.primaryLight} 100%);
+    border-radius: ${brandTheme.radius.sm};
+    transition: width 0.3s ease;
 `;
 
 const ProgressText = styled.div`
-	font-size: 12px;
-	font-weight: 600;
-	color: ${brandTheme.text.secondary};
-	min-width: 35px;
-	text-align: right;
+    font-size: 12px;
+    font-weight: 600;
+    color: ${brandTheme.text.secondary};
+    min-width: 35px;
+    text-align: right;
 `;
 
 const ErrorMessage = styled.div`
-	display: flex;
-	align-items: center;
-	gap: ${brandTheme.spacing.sm};
-	padding: ${brandTheme.spacing.sm};
-	background: ${brandTheme.status.errorLight};
-	color: ${brandTheme.status.error};
-	border-radius: ${brandTheme.radius.md};
-	font-size: 12px;
-	font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.sm};
+    background: ${brandTheme.status.errorLight};
+    color: ${brandTheme.status.error};
+    border-radius: ${brandTheme.radius.md};
+    font-size: 12px;
+    font-weight: 500;
 `;
 
 const SuccessMessage = styled.div`
-	display: flex;
-	align-items: center;
-	gap: ${brandTheme.spacing.sm};
-	padding: ${brandTheme.spacing.sm};
-	background: ${brandTheme.status.successLight};
-	color: ${brandTheme.status.success};
-	border-radius: ${brandTheme.radius.md};
-	font-size: 12px;
-	font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.sm};
+    background: ${brandTheme.status.successLight};
+    color: ${brandTheme.status.success};
+    border-radius: ${brandTheme.radius.md};
+    font-size: 12px;
+    font-weight: 500;
 `;
 
 const TagsSection = styled.div`
-	display: flex;
-	flex-direction: column;
-	gap: ${brandTheme.spacing.sm};
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.sm};
 `;
 
 const TagsLabel = styled.div`
-	font-size: 12px;
-	font-weight: 600;
-	color: ${brandTheme.text.secondary};
+    font-size: 12px;
+    font-weight: 600;
+    color: ${brandTheme.text.secondary};
 `;
 
 const TagsContainer = styled.div`
-	display: flex;
-	flex-wrap: wrap;
-	gap: ${brandTheme.spacing.xs};
-	min-height: 24px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: ${brandTheme.spacing.xs};
+    min-height: 24px;
 `;
 
 const Tag = styled.div`
-	display: flex;
-	align-items: center;
-	background: ${brandTheme.primaryGhost};
-	color: ${brandTheme.primary};
-	padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
-	border-radius: ${brandTheme.radius.xl};
-	font-size: 11px;
-	border: 1px solid ${brandTheme.primary}30;
-	gap: ${brandTheme.spacing.xs};
-	max-width: 150px;
+    display: flex;
+    align-items: center;
+    background: ${brandTheme.primaryGhost};
+    color: ${brandTheme.primary};
+    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
+    border-radius: ${brandTheme.radius.xl};
+    font-size: 11px;
+    border: 1px solid ${brandTheme.primary}30;
+    gap: ${brandTheme.spacing.xs};
+    max-width: 150px;
 `;
 
 const TagText = styled.span`
-	font-weight: 500;
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 `;
 
 const RemoveTagButton = styled.button`
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 14px;
-	height: 14px;
-	background: none;
-	border: none;
-	color: ${brandTheme.primary};
-	cursor: pointer;
-	border-radius: 50%;
-	transition: all ${brandTheme.transitions.fast};
-	font-size: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    background: none;
+    border: none;
+    color: ${brandTheme.primary};
+    cursor: pointer;
+    border-radius: 50%;
+    transition: all ${brandTheme.transitions.fast};
+    font-size: 8px;
 
-	&:hover:not(:disabled) {
-		background: ${brandTheme.status.error};
-		color: white;
-	}
+    &:hover:not(:disabled) {
+        background: ${brandTheme.status.error};
+        color: white;
+    }
 
-	&:disabled {
-		opacity: 0.6;
-		cursor: not-allowed;
-	}
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+`;
+
+const CustomTagInputContainer = styled.div`
+    display: flex;
+    gap: ${brandTheme.spacing.xs};
+    align-items: center;
+    margin-bottom: ${brandTheme.spacing.sm};
+`;
+
+const CustomTagInput = styled.input`
+    flex: 1;
+    padding: ${brandTheme.spacing.sm};
+    border: 1px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.sm};
+    font-size: 12px;
+    color: ${brandTheme.text.primary};
+    background: ${brandTheme.surface};
+    transition: all ${brandTheme.transitions.normal};
+
+    &:focus {
+        outline: none;
+        border-color: ${brandTheme.primary};
+        box-shadow: 0 0 0 2px ${brandTheme.primaryGhost};
+    }
+
+    &::placeholder {
+        color: ${brandTheme.text.muted};
+        font-style: italic;
+    }
+
+    &:disabled {
+        background: ${brandTheme.surfaceAlt};
+        color: ${brandTheme.text.disabled};
+    }
+`;
+
+const AddCustomTagButton = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: ${brandTheme.primary};
+    color: white;
+    border: none;
+    border-radius: ${brandTheme.radius.sm};
+    cursor: pointer;
+    transition: all ${brandTheme.transitions.fast};
+    font-size: 10px;
+
+    &:hover:not(:disabled) {
+        background: ${brandTheme.primaryDark};
+        transform: scale(1.05);
+    }
+
+    &:disabled {
+        background: ${brandTheme.text.disabled};
+        cursor: not-allowed;
+        transform: none;
+    }
 `;
 
 const SuggestedTagsContainer = styled.div`
-	display: flex;
-	flex-wrap: wrap;
-	gap: ${brandTheme.spacing.xs};
+    display: flex;
+    flex-wrap: wrap;
+    gap: ${brandTheme.spacing.xs};
 `;
 
 const SuggestedTag = styled.button`
-	display: flex;
-	align-items: center;
-	gap: ${brandTheme.spacing.xs};
-	padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
-	background: ${brandTheme.surfaceAlt};
-	color: ${brandTheme.text.secondary};
-	border: 1px solid ${brandTheme.border};
-	border-radius: ${brandTheme.radius.md};
-	font-size: 11px;
-	font-weight: 500;
-	cursor: pointer;
-	transition: all ${brandTheme.transitions.fast};
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.xs};
+    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
+    background: ${brandTheme.surfaceAlt};
+    color: ${brandTheme.text.secondary};
+    border: 1px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.md};
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all ${brandTheme.transitions.fast};
 
-	&:hover:not(:disabled) {
-		background: ${brandTheme.primaryGhost};
-		border-color: ${brandTheme.primary};
-		color: ${brandTheme.primary};
-	}
+    &:hover:not(:disabled) {
+        background: ${brandTheme.primaryGhost};
+        border-color: ${brandTheme.primary};
+        color: ${brandTheme.primary};
+    }
 
-	&:disabled {
-		opacity: 0.6;
-		cursor: not-allowed;
-	}
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
 
-	svg {
-		font-size: 8px;
-	}
+    svg {
+        font-size: 8px;
+    }
 `;
 
 const ModalFooter = styled.div`
-	display: flex;
-	justify-content: flex-end;
-	gap: ${brandTheme.spacing.md};
-	padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
-	border-top: 2px solid ${brandTheme.border};
-	background: ${brandTheme.surfaceAlt};
+    display: flex;
+    justify-content: flex-end;
+    gap: ${brandTheme.spacing.md};
+    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
+    border-top: 2px solid ${brandTheme.border};
+    background: ${brandTheme.surfaceAlt};
 `;
 
 const ButtonBase = styled.button`
@@ -1064,6 +1178,5 @@ const PrimaryButton = styled(ButtonBase)`
 		background: ${brandTheme.text.disabled};
 	}
 `;
-
 
 export default VehicleImageUploadModal;

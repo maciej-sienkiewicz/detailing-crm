@@ -1,4 +1,4 @@
-// src/components/recurringEvents/RecurringEventCellRenderer.tsx - FINAL FIXED VERSION
+// src/components/recurringEvents/RecurringEventCellRenderer.tsx - FIXED OCCURRENCES COLUMN
 import React from 'react';
 import {
     FaEdit,
@@ -14,6 +14,7 @@ import {
     FaSquare,
     FaCalendarDay,
     FaExclamationCircle,
+    FaSpinner,
 } from 'react-icons/fa';
 import {
     RecurringEventListItem,
@@ -109,7 +110,6 @@ export const RecurringEventCellRenderer: React.FC<RecurringEventCellRendererProp
             );
 
         case 'frequency':
-            // POPRAWKA 1: Sprawdź czy frequency istnieje i wyświetl prawidłową wartość
             const frequencyLabel = event.frequency ? RecurrenceFrequencyLabels[event.frequency] : null;
 
             if (!frequencyLabel) {
@@ -143,7 +143,6 @@ export const RecurringEventCellRenderer: React.FC<RecurringEventCellRendererProp
             );
 
         case 'nextOccurrence':
-            // POPRAWKA 2: Lepsze wyświetlanie następnego wystąpienia
             if (!event.isActive) {
                 return (
                     <EmptyValue>
@@ -165,7 +164,6 @@ export const RecurringEventCellRenderer: React.FC<RecurringEventCellRendererProp
                 }
             }
 
-            // Jeśli nie ma danych o następnym wystąpieniu
             return (
                 <EmptyValue>
                     <FaExclamationCircle />
@@ -174,27 +172,30 @@ export const RecurringEventCellRenderer: React.FC<RecurringEventCellRendererProp
             );
 
         case 'occurrences':
-            // POPRAWKA 3: Lepsze wyświetlanie statystyk wystąpień
+            // GŁÓWNA NAPRAWKA: Lepsze wyświetlanie statystyk wystąpień
             const total = event.totalOccurrences ?? 0;
             const completed = event.completedOccurrences ?? 0;
 
-            // Jeśli mamy rzeczywiste dane (nie same zera)
-            if (total > 0 || completed > 0) {
+            console.log(`📊 Occurrences for event ${event.id}:`, { total, completed });
+
+            // POPRAWKA 1: Jeśli wydarzenie nie jest aktywne, pokaż status
+            if (!event.isActive) {
                 return (
-                    <OccurrenceStats>
-                        <CompletedCount>{completed}</CompletedCount>
-                        <StatsSeparator>/</StatsSeparator>
-                        <TotalCount>{total}</TotalCount>
-                    </OccurrenceStats>
+                    <EmptyValue>
+                        <FaTimesCircle />
+                        <span>Nieaktywne</span>
+                    </EmptyValue>
                 );
             }
 
-            // Jeśli nie ma wystąpień lub są ładowane
+            // POPRAWKA 2: Pokaż statystyki nawet jeśli są zero (to mogą być prawidłowe dane)
+            // Wydarzenie może mieć 0 wystąpień jeśli jest nowo utworzone lub ma datę startu w przyszłości
             return (
-                <EmptyValue>
-                    <FaClock />
-                    <span>Ładowanie...</span>
-                </EmptyValue>
+                <OccurrenceStats>
+                    <CompletedCount>{completed}</CompletedCount>
+                    <StatsSeparator>/</StatsSeparator>
+                    <TotalCount>{total}</TotalCount>
+                </OccurrenceStats>
             );
 
         case 'createdAt':
@@ -208,17 +209,9 @@ export const RecurringEventCellRenderer: React.FC<RecurringEventCellRendererProp
         case 'actions':
             return (
                 <ActionButtons>
-                    <TooltipWrapper title="Zobacz szczegóły">
-                        <ActionButton
-                            $variant="view"
-                            onClick={(e) => handleActionClick(e, () => onViewDetails(event))}
-                        >
-                            <FaEye />
-                        </ActionButton>
-                    </TooltipWrapper>
                     <TooltipWrapper title="Edytuj">
                         <ActionButton
-                            $variant="edit"
+                            $variant="secondary"
                             onClick={(e) => handleActionClick(e, () => onEdit(event))}
                         >
                             <FaEdit />
@@ -226,7 +219,7 @@ export const RecurringEventCellRenderer: React.FC<RecurringEventCellRendererProp
                     </TooltipWrapper>
                     <TooltipWrapper title="Zobacz wystąpienia">
                         <ActionButton
-                            $variant="info"
+                            $variant="secondary"
                             onClick={(e) => handleActionClick(e, () => onViewOccurrences(event.id))}
                         >
                             <FaUsers />

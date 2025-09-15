@@ -332,19 +332,31 @@ class RecurringEventsApi {
             console.log('📅 Calculated next occurrence:', nextOccurrence);
         }
 
-        // POPRAWKA 3: Synchroniczne ustawienie podstawowych wartości
-        let totalOccurrences = raw.total_occurrences ?? raw.totalOccurrences ?? 0;
-        let completedOccurrences = raw.completed_occurrences ?? raw.completedOccurrences ?? 0;
+        // POPRAWKA 3: Lepsze mapowanie statystyk z serwera
+        let totalOccurrences = raw.total_occurrences ?? raw.totalOccurrences;
+        let completedOccurrences = raw.completed_occurrences ?? raw.completedOccurrences;
+
+        // KLUCZOWA NAPRAWKA: Jeśli brakuje statystyk w odpowiedzi serwera, ustaw wartości domyślne
+        // ale nie pokazuj "Ładowanie..." - pokaż rzeczywiste dane (może być 0 dla nowych wydarzeń)
+        if (totalOccurrences === undefined || totalOccurrences === null) {
+            totalOccurrences = 0;
+            console.log(`📊 No total_occurrences from server for event ${raw.id}, defaulting to 0`);
+        }
+
+        if (completedOccurrences === undefined || completedOccurrences === null) {
+            completedOccurrences = 0;
+            console.log(`📊 No completed_occurrences from server for event ${raw.id}, defaulting to 0`);
+        }
 
         const listItem: RecurringEventListItem = {
             id: raw.id,
             title: raw.title,
             type: raw.type,
-            frequency: frequency as RecurrenceFrequency, // POPRAWKA: Właściwe mapowanie
+            frequency: frequency as RecurrenceFrequency,
             isActive: raw.is_active ?? raw.isActive ?? true,
-            nextOccurrence: nextOccurrence, // POPRAWKA: Obliczona wartość
-            totalOccurrences: totalOccurrences,
-            completedOccurrences: completedOccurrences,
+            nextOccurrence: nextOccurrence,
+            totalOccurrences: totalOccurrences,      // POPRAWKA: Zawsze number, nie undefined
+            completedOccurrences: completedOccurrences, // POPRAWKA: Zawsze number, nie undefined
             createdAt: createdAt,
             updatedAt: Array.isArray(raw.updated_at)
                 ? this.convertLocalDateTimeArray(raw.updated_at)
@@ -353,13 +365,23 @@ class RecurringEventsApi {
 
         console.log('✅ Converted list item:', listItem);
 
-        // POPRAWKA 4: Asynchroniczne pobieranie statystyk w tle (nie blokuje renderowania)
+        // POPRAWKA 4: Asynchroniczne odświeżanie statystyk TYLKO jeśli są rzeczywiście zero
+        // (może to oznaczać brak danych w cache serwera)
         if (totalOccurrences === 0 && completedOccurrences === 0) {
+            console.log(`📊 Event ${raw.id} has zero stats, will try to fetch from statistics endpoint in background`);
+
+            // To nie blokuje renderowania - działa w tle
             this.fetchEventOccurrenceStats(raw.id).then(stats => {
-                console.log(`📊 Fetched async stats for ${raw.id}:`, stats);
-                // Można by tutaj zaktualizować cache lub wywołać refresh
+                console.log(`📊 Background stats fetch completed for ${raw.id}:`, stats);
+
+                // Jeśli rzeczywiste statystyki różnią się od zera,
+                // możemy zaktualizować cache lub wywołać odświeżenie
+                if (stats.total > 0 || stats.completed > 0) {
+                    console.log(`📊 Found non-zero stats for ${raw.id}, might need UI refresh`);
+                    // Tutaj można dodać mechanizm odświeżania UI jeśli potrzeba
+                }
             }).catch(err => {
-                console.warn(`Could not fetch stats for ${raw.id}:`, err);
+                console.warn(`Could not fetch background stats for ${raw.id}:`, err);
             });
         }
 

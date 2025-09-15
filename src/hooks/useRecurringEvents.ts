@@ -144,44 +144,139 @@ export const useRecurringEventsList = (params: RecurringEventsListParams = {}) =
             console.log('🔍 useRecurringEventsList - Fetching data with params:', params);
             const result = await recurringEventsApi.getRecurringEventsList(params);
             console.log('📥 useRecurringEventsList - API result:', result);
+
+            // NAPRAWKA: Sprawdź czy mamy wydarzenia z zerami statystyk
+            if (result.data && result.data.length > 0) {
+                const eventsWithZeroStats = result.data.filter(event =>
+                    event.totalOccurrences === 0 && event.completedOccurrences === 0
+                );
+
+                if (eventsWithZeroStats.length > 0) {
+                    console.log('📊 Found events with zero statistics:', eventsWithZeroStats.map(e => e.id));
+
+                    // Spróbuj pobrać statystyki w tle dla tych wydarzeń
+                    Promise.all(
+                        eventsWithZeroStats.map(async (event) => {
+                            try {
+                                const stats = await recurringEventsApi.getEventStatistics(event.id);
+                                console.log(`📊 Fetched stats for ${event.id}:`, stats);
+
+                                // Jeśli znaleźliśmy niepusty wynik, zaktualizuj cache
+                                if (stats.total > 0 || stats.completed > 0) {
+                                    console.log(`📊 Event ${event.id} has non-zero stats, updating cache`);
+
+                                    // Aktualizuj dane w cache
+                                    const updatedEvent = {
+                                        ...event,
+                                        totalOccurrences: stats.total,
+                                        completedOccurrences: stats.completed
+                                    };
+
+                                    return updatedEvent;
+                                }
+                                return event;
+                            } catch (error) {
+                                console.warn(`Failed to fetch stats for event ${event.id}:`, error);
+                                return event;
+                            }
+                        })
+                    ).then(updatedEvents => {
+                        // Sprawdź czy jakiekolwiek dane się zmieniły
+                        const hasChanges = updatedEvents.some((updated, index) =>
+                            updated.totalOccurrences !== eventsWithZeroStats[index].totalOccurrences ||
+                            updated.completedOccurrences !== eventsWithZeroStats[index].completedOccurrences
+                        );
+
+                        if (hasChanges) {
+                            console.log('📊 Statistics updated, triggering soft refresh');
+
+                            // Tworzenie zaktualizowanego wyniku
+                            const updatedResult = {
+                                ...result,
+                                data: result.data.map(event => {
+                                    const updated = updatedEvents.find(u => u.id === event.id);
+                                    return updated || event;
+                                })
+                            };
+
+                            // Aktualizuj cache bez ponownego ładowania
+                            queryClient.setQueryData(['recurring-events', 'list', params], updatedResult);
+                        }
+                    });
+                }
+            }
+
             return result;
         },
-        staleTime: 2 * 60 * 1000, // Zmniejszone do 2 minut dla szybszego odświeżania
+        staleTime: 5 * 60 * 1000, // 5 minut - dłuższa wartość dla stabilności
         retry: 2,
-        refetchOnWindowFocus: false, // Wyłączone automatyczne odświeżanie przy focus
+        refetchOnWindowFocus: false,
     });
 
-    // NOWA FUNKCJA: Okresowe odświeżanie statystyk
+    // NOWA FUNKCJA: Ręczne odświeżanie statystyk
     const refreshStats = useCallback(async () => {
         if (result?.data && result.data.length > 0) {
-            console.log('🔄 Refreshing statistics for events...');
+            console.log('🔄 Manual refresh of statistics for all events...');
 
-            // Pobierz statystyki dla każdego wydarzenia
-            const statsPromises = result.data.map(async (event) => {
-                try {
-                    const stats = await recurringEventsApi.getEventStatistics(event.id);
-                    return { eventId: event.id, stats };
-                } catch (error) {
-                    console.warn(`Failed to fetch stats for event ${event.id}:`, error);
-                    return null;
+            try {
+                // Pobierz statystyki dla wszystkich wydarzeń
+                const statsPromises = result.data.map(async (event) => {
+                    try {
+                        const stats = await recurringEventsApi.getEventStatistics(event.id);
+                        return {
+                            eventId: event.id,
+                            stats: {
+                                total: stats.total,
+                                completed: stats.completed
+                            }
+                        };
+                    } catch (error) {
+                        console.warn(`Failed to fetch stats for event ${event.id}:`, error);
+                        return {
+                            eventId: event.id,
+                            stats: { total: 0, completed: 0 }
+                        };
+                    }
+                });
+
+                const statsResults = await Promise.all(statsPromises);
+                console.log('📊 All statistics results:', statsResults);
+
+                // Sprawdź czy są jakieś zmiany
+                const updatedData = result.data.map(event => {
+                    const statsResult = statsResults.find(s => s.eventId === event.id);
+                    if (statsResult && (
+                        statsResult.stats.total !== event.totalOccurrences ||
+                        statsResult.stats.completed !== event.completedOccurrences
+                    )) {
+                        return {
+                            ...event,
+                            totalOccurrences: statsResult.stats.total,
+                            completedOccurrences: statsResult.stats.completed
+                        };
+                    }
+                    return event;
+                });
+
+                // Aktualizuj cache jeśli są zmiany
+                const hasChanges = updatedData.some((updated, index) =>
+                    updated.totalOccurrences !== result.data[index].totalOccurrences ||
+                    updated.completedOccurrences !== result.data[index].completedOccurrences
+                );
+
+                if (hasChanges) {
+                    console.log('📊 Statistics changed, updating cache');
+                    queryClient.setQueryData(['recurring-events', 'list', params], {
+                        ...result,
+                        data: updatedData
+                    });
                 }
-            });
 
-            const statsResults = await Promise.all(statsPromises);
-            console.log('📊 Statistics results:', statsResults);
-
-            // Invalidate queries to trigger re-fetch with updated stats
-            queryClient.invalidateQueries({ queryKey: ['recurring-events', 'list'] });
+            } catch (error) {
+                console.error('Error during manual stats refresh:', error);
+            }
         }
-    }, [result?.data, queryClient]);
-
-    // Automatyczne odświeżanie statystyk co 30 sekund
-    useEffect(() => {
-        if (result?.data && result.data.length > 0) {
-            const interval = setInterval(refreshStats, 30000);
-            return () => clearInterval(interval);
-        }
-    }, [result?.data, refreshStats]);
+    }, [result?.data, queryClient, params]);
 
     return {
         events: result?.data || [],
@@ -190,7 +285,7 @@ export const useRecurringEventsList = (params: RecurringEventsListParams = {}) =
         error: result?.message || (error as Error)?.message,
         success: result?.success ?? false,
         refetch,
-        refreshStats, // Expose manual refresh function
+        refreshStats, // Funkcja do ręcznego odświeżania statystyk
     };
 };
 

@@ -3,7 +3,7 @@ import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from 'styled-components';
 import {FaArrowLeft, FaClipboardCheck, FaPlus} from 'react-icons/fa';
 import {useLocation, useNavigate} from 'react-router-dom';
-import {VisitListItem} from '../../api/visitsApiNew';
+import {VisitListItem, visitsApi} from '../../api/visitsApiNew';
 import {ProtocolStatus} from '../../types';
 import {servicesApi} from '../../api/servicesApi';
 import {protocolsApi} from '../../api/protocolsApi';
@@ -221,7 +221,8 @@ export const VisitsPageContainer: React.FC = () => {
 
     const handleDeleteVisit = useCallback(async (visitId: string) => {
         if (window.confirm('Czy na pewno chcesz usunąć tę wizytę?')) {
-            await refreshVisits();
+            await visitsApi.deleteVisit(visitId)
+            await resetData()
         }
     }, [refreshVisits]);
 

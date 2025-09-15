@@ -275,6 +275,10 @@ class VisitsApi {
         }
     }
 
+    async deleteVisit(visitId: string): Promise<void> {
+        await apiClientNew.delete(`/v1/protocols/${visitId}`, {timeout: 10000})
+    }
+
     /**
      * Fetches client visit history for display in client detail panel
      */
