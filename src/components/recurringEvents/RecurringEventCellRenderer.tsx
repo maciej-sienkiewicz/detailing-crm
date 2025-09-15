@@ -1,4 +1,4 @@
-// src/components/recurringEvents/RecurringEventCellRenderer.tsx
+// src/components/recurringEvents/RecurringEventCellRenderer.tsx - FINAL FIXED VERSION
 import React from 'react';
 import {
     FaEdit,
@@ -12,6 +12,8 @@ import {
     FaUsers,
     FaCheckSquare,
     FaSquare,
+    FaCalendarDay,
+    FaExclamationCircle,
 } from 'react-icons/fa';
 import {
     RecurringEventListItem,
@@ -35,7 +37,8 @@ import {
     TotalCount,
     CreatedDate,
     SelectionCheckbox,
-} from './styled'; // We will create this styled components file next
+    EmptyValue,
+} from './styled';
 
 interface RecurringEventCellRendererProps {
     event: RecurringEventListItem;
@@ -67,6 +70,16 @@ export const RecurringEventCellRenderer: React.FC<RecurringEventCellRendererProp
         action();
     };
 
+    // Debug logging for troubleshooting
+    console.log(`🔍 RecurringEventCellRenderer - ${columnId}:`, {
+        eventId: event.id,
+        columnValue: event[columnId as keyof RecurringEventListItem],
+        frequency: event.frequency,
+        nextOccurrence: event.nextOccurrence,
+        totalOccurrences: event.totalOccurrences,
+        completedOccurrences: event.completedOccurrences
+    });
+
     switch (columnId) {
         case 'selection':
             return (
@@ -82,20 +95,37 @@ export const RecurringEventCellRenderer: React.FC<RecurringEventCellRendererProp
             );
 
         case 'title':
-            return <EventTitle>{event.title}</EventTitle>;
+            return (
+                <EventTitle title={event.title}>
+                    {event.title || 'Bez nazwy'}
+                </EventTitle>
+            );
 
         case 'type':
             return (
                 <EventTypeChip $type={event.type}>
-                    {EventTypeLabels[event.type]}
+                    {EventTypeLabels[event.type] || event.type}
                 </EventTypeChip>
             );
 
         case 'frequency':
+            // POPRAWKA 1: Sprawdź czy frequency istnieje i wyświetl prawidłową wartość
+            const frequencyLabel = event.frequency ? RecurrenceFrequencyLabels[event.frequency] : null;
+
+            if (!frequencyLabel) {
+                console.warn(`Missing or invalid frequency for event ${event.id}:`, event.frequency);
+                return (
+                    <EmptyValue>
+                        <FaExclamationCircle />
+                        <span>Brak danych</span>
+                    </EmptyValue>
+                );
+            }
+
             return (
                 <FrequencyInfo>
                     <FaClock />
-                    <span>{RecurrenceFrequencyLabels[event.frequency]}</span>
+                    <span>{frequencyLabel}</span>
                 </FrequencyInfo>
             );
 
@@ -113,34 +143,98 @@ export const RecurringEventCellRenderer: React.FC<RecurringEventCellRendererProp
             );
 
         case 'nextOccurrence':
-            return <NextOccurrence>{formatDate(event.nextOccurrence)}</NextOccurrence>;
+            // POPRAWKA 2: Lepsze wyświetlanie następnego wystąpienia
+            if (!event.isActive) {
+                return (
+                    <EmptyValue>
+                        <FaTimesCircle />
+                        <span>Nieaktywne</span>
+                    </EmptyValue>
+                );
+            }
+
+            if (event.nextOccurrence) {
+                const formattedDate = formatDate(event.nextOccurrence);
+                if (formattedDate && formattedDate !== 'Błąd daty' && formattedDate !== '–') {
+                    return (
+                        <NextOccurrence>
+                            <FaCalendarDay />
+                            <span>{formattedDate}</span>
+                        </NextOccurrence>
+                    );
+                }
+            }
+
+            // Jeśli nie ma danych o następnym wystąpieniu
+            return (
+                <EmptyValue>
+                    <FaExclamationCircle />
+                    <span>Obliczanie...</span>
+                </EmptyValue>
+            );
 
         case 'occurrences':
+            // POPRAWKA 3: Lepsze wyświetlanie statystyk wystąpień
+            const total = event.totalOccurrences ?? 0;
+            const completed = event.completedOccurrences ?? 0;
+
+            // Jeśli mamy rzeczywiste dane (nie same zera)
+            if (total > 0 || completed > 0) {
+                return (
+                    <OccurrenceStats>
+                        <CompletedCount>{completed}</CompletedCount>
+                        <StatsSeparator>/</StatsSeparator>
+                        <TotalCount>{total}</TotalCount>
+                    </OccurrenceStats>
+                );
+            }
+
+            // Jeśli nie ma wystąpień lub są ładowane
             return (
-                <OccurrenceStats>
-                    <CompletedCount>{event.completedOccurrences}</CompletedCount>
-                    <StatsSeparator>/</StatsSeparator>
-                    <TotalCount>{event.totalOccurrences}</TotalCount>
-                </OccurrenceStats>
+                <EmptyValue>
+                    <FaClock />
+                    <span>Ładowanie...</span>
+                </EmptyValue>
             );
 
         case 'createdAt':
-            return <CreatedDate>{formatDate(event.createdAt)}</CreatedDate>;
+            const createdDate = formatDate(event.createdAt);
+            return (
+                <CreatedDate>
+                    {createdDate && createdDate !== 'Błąd daty' ? createdDate : 'Brak daty'}
+                </CreatedDate>
+            );
 
         case 'actions':
             return (
                 <ActionButtons>
-                    <TooltipWrapper title="Edytuj">
+                    <TooltipWrapper title="Zobacz szczegóły">
                         <ActionButton
                             $variant="view"
+                            onClick={(e) => handleActionClick(e, () => onViewDetails(event))}
+                        >
+                            <FaEye />
+                        </ActionButton>
+                    </TooltipWrapper>
+                    <TooltipWrapper title="Edytuj">
+                        <ActionButton
+                            $variant="edit"
                             onClick={(e) => handleActionClick(e, () => onEdit(event))}
                         >
                             <FaEdit />
                         </ActionButton>
                     </TooltipWrapper>
+                    <TooltipWrapper title="Zobacz wystąpienia">
+                        <ActionButton
+                            $variant="info"
+                            onClick={(e) => handleActionClick(e, () => onViewOccurrences(event.id))}
+                        >
+                            <FaUsers />
+                        </ActionButton>
+                    </TooltipWrapper>
                     <TooltipWrapper title={event.isActive ? 'Dezaktywuj' : 'Aktywuj'}>
                         <ActionButton
-                            $variant="view"
+                            $variant={event.isActive ? 'secondary' : 'success'}
                             onClick={(e) => handleActionClick(e, () => onDeactivate(event.id))}
                         >
                             {event.isActive ? <FaPause /> : <FaPlay />}
@@ -158,6 +252,12 @@ export const RecurringEventCellRenderer: React.FC<RecurringEventCellRendererProp
             );
 
         default:
-            return null;
+            console.warn(`Unknown column ID: ${columnId} for event:`, event.id);
+            return (
+                <EmptyValue>
+                    <FaExclamationCircle />
+                    <span>Nieznana kolumna</span>
+                </EmptyValue>
+            );
     }
 };

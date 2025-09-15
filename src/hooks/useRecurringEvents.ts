@@ -1,7 +1,7 @@
-// src/hooks/useRecurringEvents.ts
+// src/hooks/useRecurringEvents.ts - COMPLETE FIXED VERSION
 /**
  * Updated React hooks for Recurring Events module
- * UPDATED TO MATCH ACTUAL SERVER API
+ * FIXED: Better handling of statistics updates and data refresh
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -127,10 +127,12 @@ export const useRecurringEvents = () => {
 };
 
 // ========================================================================================
-// RECURRING EVENTS LIST HOOK
+// RECURRING EVENTS LIST HOOK - FIXED VERSION
 // ========================================================================================
 
 export const useRecurringEventsList = (params: RecurringEventsListParams = {}) => {
+    const queryClient = useQueryClient();
+
     const {
         data: result,
         isLoading,
@@ -138,10 +140,48 @@ export const useRecurringEventsList = (params: RecurringEventsListParams = {}) =
         refetch
     } = useQuery({
         queryKey: ['recurring-events', 'list', params],
-        queryFn: () => recurringEventsApi.getRecurringEventsList(params),
-        staleTime: 5 * 60 * 1000, // 5 minutes
-        retry: 2
+        queryFn: async () => {
+            console.log('🔍 useRecurringEventsList - Fetching data with params:', params);
+            const result = await recurringEventsApi.getRecurringEventsList(params);
+            console.log('📥 useRecurringEventsList - API result:', result);
+            return result;
+        },
+        staleTime: 2 * 60 * 1000, // Zmniejszone do 2 minut dla szybszego odświeżania
+        retry: 2,
+        refetchOnWindowFocus: false, // Wyłączone automatyczne odświeżanie przy focus
     });
+
+    // NOWA FUNKCJA: Okresowe odświeżanie statystyk
+    const refreshStats = useCallback(async () => {
+        if (result?.data && result.data.length > 0) {
+            console.log('🔄 Refreshing statistics for events...');
+
+            // Pobierz statystyki dla każdego wydarzenia
+            const statsPromises = result.data.map(async (event) => {
+                try {
+                    const stats = await recurringEventsApi.getEventStatistics(event.id);
+                    return { eventId: event.id, stats };
+                } catch (error) {
+                    console.warn(`Failed to fetch stats for event ${event.id}:`, error);
+                    return null;
+                }
+            });
+
+            const statsResults = await Promise.all(statsPromises);
+            console.log('📊 Statistics results:', statsResults);
+
+            // Invalidate queries to trigger re-fetch with updated stats
+            queryClient.invalidateQueries({ queryKey: ['recurring-events', 'list'] });
+        }
+    }, [result?.data, queryClient]);
+
+    // Automatyczne odświeżanie statystyk co 30 sekund
+    useEffect(() => {
+        if (result?.data && result.data.length > 0) {
+            const interval = setInterval(refreshStats, 30000);
+            return () => clearInterval(interval);
+        }
+    }, [result?.data, refreshStats]);
 
     return {
         events: result?.data || [],
@@ -149,7 +189,8 @@ export const useRecurringEventsList = (params: RecurringEventsListParams = {}) =
         isLoading,
         error: result?.message || (error as Error)?.message,
         success: result?.success ?? false,
-        refetch
+        refetch,
+        refreshStats, // Expose manual refresh function
     };
 };
 
@@ -221,6 +262,7 @@ export const useEventOccurrences = (eventId: string | null) => {
             queryClient.invalidateQueries({ queryKey: ['event-occurrences', eventId] });
             queryClient.invalidateQueries({ queryKey: ['event-statistics', eventId] });
             queryClient.invalidateQueries({ queryKey: ['recurring-events-stats'] });
+            queryClient.invalidateQueries({ queryKey: ['recurring-events'] }); // Refresh main list
         },
         onError: (error) => {
             console.error('Error updating occurrence status:', error);
@@ -240,6 +282,7 @@ export const useEventOccurrences = (eventId: string | null) => {
             queryClient.invalidateQueries({ queryKey: ['event-occurrences', eventId] });
             queryClient.invalidateQueries({ queryKey: ['event-statistics', eventId] });
             queryClient.invalidateQueries({ queryKey: ['recurring-events-stats'] });
+            queryClient.invalidateQueries({ queryKey: ['recurring-events'] }); // Refresh main list
             queryClient.invalidateQueries({ queryKey: ['visits'] });
         },
         onError: (error) => {
@@ -430,7 +473,7 @@ export const useEventStatistics = (eventId: string | null) => {
         queryKey: ['event-statistics', eventId],
         queryFn: () => eventId ? recurringEventsApi.getEventStatistics(eventId) : null,
         enabled: !!eventId,
-        staleTime: 2 * 60 * 1000, // 2 minutes
+        staleTime: 1 * 60 * 1000, // Zmniejszone do 1 minuty dla częstszego odświeżania
         retry: 2
     });
 

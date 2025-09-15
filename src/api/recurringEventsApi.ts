@@ -1,7 +1,7 @@
-// src/api/recurringEventsApi.ts - FIXED VERSION
+// src/api/recurringEventsApi.ts - COMPLETE FIXED VERSION
 /**
  * Production-ready API service for Recurring Events module
- * FIXED: Handles LocalDateTime arrays and field mapping from server
+ * FIXED: Handles LocalDateTime arrays, field mapping, and calculates missing fields
  */
 
 import { apiClientNew, ApiError, PaginationParams } from './apiClientNew';
@@ -24,8 +24,10 @@ import {
     PatternValidationResult,
     OccurrenceStatus,
     EventType,
-    RecurrenceFrequency, ConvertToVisitResponse
+    RecurrenceFrequency,
+    ConvertToVisitResponse
 } from '../types/recurringEvents';
+import { addDays, addWeeks, addMonths, addYears, startOfDay, isAfter, format } from 'date-fns';
 
 // Spring Boot pagination response type
 interface SpringPageResponse<T> {
@@ -77,6 +79,10 @@ interface RawRecurringEventResponse {
     };
     created_at: number[];
     updated_at: number[];
+    // Additional fields for list items
+    next_occurrence?: string;
+    total_occurrences?: number;
+    completed_occurrences?: number;
 }
 
 // Converted pagination response for frontend
@@ -101,15 +107,15 @@ interface EventOccurrenceWithDetailsResponse extends EventOccurrenceResponse {
         description?: string;
         type: any;
         recurrencePattern?: any;
-        recurrence_pattern?: any; // Alternatywna nazwa z serwera
+        recurrence_pattern?: any;
         isActive?: boolean;
-        is_active?: boolean; // Alternatywna nazwa z serwera
+        is_active?: boolean;
         visitTemplate?: any;
-        visit_template?: any; // Alternatywna nazwa z serwera
+        visit_template?: any;
         createdAt?: any;
-        created_at?: any; // Alternatywna nazwa z serwera
+        created_at?: any;
         updatedAt?: any;
-        updated_at?: any; // Alternatywna nazwa z serwera
+        updated_at?: any;
     };
 }
 
@@ -130,13 +136,11 @@ class RecurringEventsApi {
     private convertLocalDateTimeArray(dateArray: number[]): string {
         if (!Array.isArray(dateArray) || dateArray.length < 6) {
             console.warn('Invalid date array format:', dateArray);
-            return new Date().toISOString(); // Fallback to current date
+            return new Date().toISOString();
         }
 
         try {
             const [year, month, day, hour, minute, second, nanosecond = 0] = dateArray;
-
-            // Month in JavaScript Date is 0-based, but Spring Boot sends 1-based
             const date = new Date(year, month - 1, day, hour, minute, second, Math.floor(nanosecond / 1000000));
 
             if (isNaN(date.getTime())) {
@@ -152,10 +156,123 @@ class RecurringEventsApi {
     }
 
     /**
+     * Calculate next occurrence based on recurrence pattern
+     * FIXED: Oblicza następne wystąpienie na podstawie wzorca - POPRAWIONA WERSJA
+     */
+    private calculateNextOccurrence(pattern: any, createdAt: string): string | undefined {
+        try {
+            console.log('🔄 Calculating next occurrence with pattern:', pattern, 'createdAt:', createdAt);
+
+            if (!pattern || !pattern.frequency || !createdAt) {
+                console.warn('Missing required data for calculation:', { pattern, createdAt });
+                return undefined;
+            }
+
+            // Konwertuj created_at (może być array lub string)
+            let startDate: Date;
+            if (Array.isArray(createdAt)) {
+                startDate = new Date(this.convertLocalDateTimeArray(createdAt));
+            } else {
+                startDate = new Date(createdAt);
+            }
+
+            startDate = startOfDay(startDate);
+            const today = startOfDay(new Date());
+
+            console.log('📅 Start date:', startDate, 'Today:', today);
+
+            // Jeśli data startu jest w przyszłości, to jest pierwszym wystąpieniem
+            if (isAfter(startDate, today)) {
+                console.log('✅ Start date is in future, returning it as next occurrence');
+                return startDate.toISOString();
+            }
+
+            const interval = pattern.interval || 1;
+            const frequency = pattern.frequency;
+            let nextDate = new Date(startDate);
+
+            console.log('🔍 Using frequency:', frequency, 'interval:', interval);
+
+            const maxIterations = 1000; // Większe zabezpieczenie
+            let iterations = 0;
+
+            // Oblicz następne wystąpienie
+            while (iterations < maxIterations) {
+                switch (frequency) {
+                    case 'DAILY':
+                        nextDate = addDays(nextDate, interval);
+                        break;
+                    case 'WEEKLY':
+                        nextDate = addWeeks(nextDate, interval);
+                        // TODO: Obsługa days_of_week jeśli potrzebna
+                        break;
+                    case 'MONTHLY':
+                        nextDate = addMonths(nextDate, interval);
+                        if (pattern.day_of_month) {
+                            const lastDayOfMonth = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
+                            nextDate.setDate(Math.min(pattern.day_of_month, lastDayOfMonth));
+                        }
+                        break;
+                    case 'YEARLY':
+                        nextDate = addYears(nextDate, interval);
+                        break;
+                    default:
+                        console.warn('Unknown frequency:', frequency);
+                        return undefined;
+                }
+
+                // Sprawdź czy data jest w przyszłości
+                if (isAfter(nextDate, today)) {
+                    // Sprawdź warunki zakończenia
+                    if (pattern.end_date) {
+                        const endDate = new Date(pattern.end_date);
+                        if (isAfter(nextDate, endDate)) {
+                            console.log('❌ Next occurrence would be after end date');
+                            return undefined; // Przekroczono datę końcową
+                        }
+                    }
+
+                    console.log('✅ Found next occurrence:', nextDate);
+                    return nextDate.toISOString();
+                }
+
+                iterations++;
+
+                // Dodatkowe logowanie co 50 iteracji
+                if (iterations % 50 === 0) {
+                    console.log(`🔄 Iteration ${iterations}, current date:`, nextDate);
+                }
+            }
+
+            console.warn('❌ Max iterations reached without finding next occurrence');
+            return undefined;
+        } catch (error) {
+            console.error('❌ Error calculating next occurrence:', error);
+            return undefined;
+        }
+    }
+
+    /**
+     * Fetch occurrence statistics for an event
+     * NOWA FUNKCJA: Pobiera statystyki wystąpień dla wydarzenia
+     */
+    private async fetchEventOccurrenceStats(eventId: string): Promise<{ total: number; completed: number }> {
+        try {
+            const stats = await this.getEventStatistics(eventId);
+            return {
+                total: stats.total || 0,
+                completed: stats.completed || 0
+            };
+        } catch (error) {
+            console.warn(`Could not fetch occurrence stats for event ${eventId}:`, error);
+            return { total: 0, completed: 0 };
+        }
+    }
+
+    /**
      * Convert raw server response to frontend format
      */
-    private convertRawEventToResponse(raw: any): RecurringEventResponse { // Zmień typ na 'any' dla elastyczności
-        // Wybierz właściwy obiekt pattern, niezależnie od nazwy klucza
+    private convertRawEventToResponse(raw: any): RecurringEventResponse {
         const pattern = raw.recurrence_pattern || raw.recurrencePattern;
 
         return {
@@ -166,17 +283,14 @@ class RecurringEventsApi {
             recurrencePattern: {
                 frequency: pattern.frequency,
                 interval: pattern.interval,
-                // Użyj operatora || dla każdego pola wewnątrz wzorca
                 daysOfWeek: pattern.days_of_week || pattern.daysOfWeek,
                 dayOfMonth: pattern.day_of_month || pattern.dayOfMonth,
                 endDate: (pattern.end_date || pattern.endDate) && Array.isArray(pattern.end_date || pattern.endDate)
                     ? this.convertLocalDateTimeArray(pattern.end_date || pattern.endDate)
                     : (pattern.end_date || pattern.endDate),
-
                 maxOccurrences: pattern.max_occurrences || pattern.maxOccurrences
             },
-            // Zastosuj ten sam wzorzec dla pozostałych pól
-            isActive: raw.is_active ?? raw.isActive, // Użyj ?? dla pól boolean
+            isActive: raw.is_active ?? raw.isActive,
             visitTemplate: raw.visit_template || raw.visitTemplate ? {
                 clientId: (raw.visit_template || raw.visitTemplate).client_id || (raw.visit_template || raw.visitTemplate).clientId,
                 vehicleId: (raw.visit_template || raw.visitTemplate).vehicle_id || (raw.visit_template || raw.visitTemplate).vehicleId,
@@ -194,30 +308,72 @@ class RecurringEventsApi {
 
     /**
      * Convert raw server list item to frontend format
+     * FIXED: Proper handling of missing fields with calculations and synchronous approach
      */
     private convertRawEventToListItem(raw: any): RecurringEventListItem {
-        return {
+        console.log('🔧 Converting raw event to list item:', raw);
+        console.log('🔧 Raw recurrence_pattern:', raw.recurrence_pattern);
+
+        const createdAt = Array.isArray(raw.created_at)
+            ? this.convertLocalDateTimeArray(raw.created_at)
+            : raw.created_at || raw.createdAt;
+
+        // POPRAWKA 1: Właściwe mapowanie frequency z recurrence_pattern
+        const recurrencePattern = raw.recurrence_pattern || raw.recurrencePattern;
+        const frequency = recurrencePattern?.frequency;
+
+        console.log('🔍 Extracted frequency:', frequency, 'from pattern:', recurrencePattern);
+
+        // POPRAWKA 2: Oblicz następne wystąpienie jeśli nie ma w odpowiedzi
+        let nextOccurrence = raw.next_occurrence || raw.nextOccurrence;
+        if (!nextOccurrence && raw.is_active !== false && recurrencePattern) {
+            console.log('🔄 Calculating next occurrence for event:', raw.id);
+            nextOccurrence = this.calculateNextOccurrence(recurrencePattern, createdAt);
+            console.log('📅 Calculated next occurrence:', nextOccurrence);
+        }
+
+        // POPRAWKA 3: Synchroniczne ustawienie podstawowych wartości
+        let totalOccurrences = raw.total_occurrences ?? raw.totalOccurrences ?? 0;
+        let completedOccurrences = raw.completed_occurrences ?? raw.completedOccurrences ?? 0;
+
+        const listItem: RecurringEventListItem = {
             id: raw.id,
             title: raw.title,
             type: raw.type,
-            frequency: raw.recurrence_pattern?.frequency || raw.frequency,
+            frequency: frequency as RecurrenceFrequency, // POPRAWKA: Właściwe mapowanie
             isActive: raw.is_active ?? raw.isActive ?? true,
-            nextOccurrence: raw.next_occurrence || raw.nextOccurrence,
-            totalOccurrences: raw.total_occurrences || raw.totalOccurrences || 0,
-            completedOccurrences: raw.completed_occurrences || raw.completedOccurrences || 0,
-            createdAt: Array.isArray(raw.created_at)
-                ? this.convertLocalDateTimeArray(raw.created_at)
-                : raw.created_at || raw.createdAt,
+            nextOccurrence: nextOccurrence, // POPRAWKA: Obliczona wartość
+            totalOccurrences: totalOccurrences,
+            completedOccurrences: completedOccurrences,
+            createdAt: createdAt,
             updatedAt: Array.isArray(raw.updated_at)
                 ? this.convertLocalDateTimeArray(raw.updated_at)
                 : raw.updated_at || raw.updatedAt
         };
+
+        console.log('✅ Converted list item:', listItem);
+
+        // POPRAWKA 4: Asynchroniczne pobieranie statystyk w tle (nie blokuje renderowania)
+        if (totalOccurrences === 0 && completedOccurrences === 0) {
+            this.fetchEventOccurrenceStats(raw.id).then(stats => {
+                console.log(`📊 Fetched async stats for ${raw.id}:`, stats);
+                // Można by tutaj zaktualizować cache lub wywołać refresh
+            }).catch(err => {
+                console.warn(`Could not fetch stats for ${raw.id}:`, err);
+            });
+        }
+
+        return listItem;
     }
 
     /**
      * Convert Spring Boot page response to our frontend format
+     * UPDATED: Back to synchronous conversion since we fixed the mapping
      */
-    private convertPaginationResponse<T>(springResponse: SpringPageResponse<any>, converter?: (item: any) => T): ConvertedPaginationResponse<T> {
+    private convertPaginationResponse<T>(
+        springResponse: SpringPageResponse<any>,
+        converter?: (item: any) => T
+    ): ConvertedPaginationResponse<T> {
         let convertedData: T[];
 
         if (converter) {
@@ -304,6 +460,7 @@ class RecurringEventsApi {
 
     /**
      * Fetches paginated list of recurring events
+     * FIXED: Back to synchronous conversion with better logging
      */
     async getRecurringEventsList(params: RecurringEventsListParams = {}): Promise<ConvertedPaginationResponse<RecurringEventListItem>> {
         try {
@@ -319,7 +476,6 @@ class RecurringEventsApi {
                 sortDirection: sortOrder.toUpperCase(), // Spring expects UPPERCASE
                 type: filterParams.type,
                 activeOnly: filterParams.isActive,
-                // Add search support if the API supports it
                 ...(filterParams.search && {search: filterParams.search})
             };
 
@@ -329,14 +485,24 @@ class RecurringEventsApi {
                 {timeout: 10000}
             );
 
+            console.log('📥 Raw server response:', springResponse);
+            console.log('📥 First item raw data:', springResponse.content[0]);
+
+            // UPDATED: Use synchronous converter
             const converted = this.convertPaginationResponse(
                 springResponse,
-                (item) => this.convertRawEventToListItem(item)
+                (item) => {
+                    console.log('🔄 Converting item:', item);
+                    const listItem = this.convertRawEventToListItem(item);
+                    console.log('✅ Converted item result:', listItem);
+                    return listItem;
+                }
             );
 
             console.log('✅ Successfully fetched recurring events:', {
                 count: converted.data.length,
-                totalItems: converted.pagination.totalItems
+                totalItems: converted.pagination.totalItems,
+                firstEventData: converted.data[0]
             });
 
             return converted;
@@ -470,7 +636,6 @@ class RecurringEventsApi {
                 {timeout: 10000}
             );
 
-            // Convert raw occurrences to proper format
             const converted = response.map(occurrence => ({
                 id: occurrence.id,
                 recurringEventId: occurrence.recurring_event_id || occurrence.recurringEventId,
@@ -496,7 +661,7 @@ class RecurringEventsApi {
 
         } catch (error) {
             console.error('❌ Error fetching event occurrences:', error);
-            return []; // Return empty array instead of throwing
+            return [];
         }
     }
 
@@ -618,7 +783,6 @@ class RecurringEventsApi {
                 { timeout: 15000 }
             );
 
-            // Konwertuj response z formatu snake_case na camelCase
             const converted: ConvertToVisitResponse = {
                 id: response.id,
                 title: response.title,
@@ -712,11 +876,10 @@ class RecurringEventsApi {
         try {
             console.log('📅 Fetching calendar events with full details:', params);
 
-            // Wykorzystaj istniejący endpoint, ale z nowym parametrem includeEventDetails=true
             const apiParams = {
-                start_date: params.startDate, // Mapowanie na format serwera
+                start_date: params.startDate,
                 end_date: params.endDate,
-                includeEventDetails: 'true' // Nowy parametr dla serwera
+                includeEventDetails: 'true'
             };
 
             const response = await apiClientNew.get<EventOccurrenceWithDetailsResponse[]>(
@@ -725,9 +888,7 @@ class RecurringEventsApi {
                 {timeout: 15000}
             );
 
-            // Konwersja danych z serwera na format frontendu
             const converted = response.map(occurrence => ({
-                // Podstawowe dane wystąpienia
                 id: occurrence.id,
                 recurringEventId: occurrence.recurringEventId,
                 scheduledDate: Array.isArray(occurrence.scheduledDate)
@@ -746,7 +907,6 @@ class RecurringEventsApi {
                     ? this.convertLocalDateTimeArray(occurrence.updatedAt)
                     : occurrence.updatedAt,
 
-                // Szczegóły wydarzenia - już zawarte w odpowiedzi serwera
                 recurringEventDetails: occurrence.recurringEventDetails ? {
                     id: occurrence.recurringEventDetails.id,
                     title: occurrence.recurringEventDetails.title,
@@ -800,13 +960,12 @@ class RecurringEventsApi {
         } catch (error) {
             console.error('❌ Error fetching calendar events with details:', error);
 
-            // Fallback do starej metody jeśli nowy endpoint nie działa
             console.log('🔄 Falling back to regular calendar method...');
             try {
                 const basicEvents = await this.getEventCalendar(params);
                 return basicEvents.map(event => ({
                     ...event,
-                    recurringEventDetails: undefined // Bez szczegółów w fallback
+                    recurringEventDetails: undefined
                 }));
             } catch (fallbackError) {
                 console.error('❌ Fallback also failed:', fallbackError);

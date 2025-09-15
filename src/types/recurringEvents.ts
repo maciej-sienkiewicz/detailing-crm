@@ -1,7 +1,7 @@
-// src/types/recurringEvents.ts
+// src/types/recurringEvents.ts - UPDATED TYPES
 /**
  * TypeScript types for Recurring Events module
- * UPDATED TO MATCH ACTUAL SERVER API
+ * UPDATED TO MATCH ACTUAL SERVER API AND HANDLE MISSING FIELDS
  */
 
 // ========================================================================================
@@ -34,7 +34,7 @@ export enum OccurrenceStatus {
 
 export const EventTypeLabels: Record<EventType, string> = {
     [EventType.SIMPLE_EVENT]: 'Wydarzenie',
-    [EventType.RECURRING_VISIT]: 'Wizyta'
+    [EventType.RECURRING_VISIT]: 'Cykliczna wizyta'
 };
 
 export const RecurrenceFrequencyLabels: Record<RecurrenceFrequency, string> = {
@@ -172,6 +172,7 @@ export interface EventOccurrenceResponse {
 
 // ========================================================================================
 // LIST & PAGINATION (Updated for Spring Boot pagination)
+// FIXED: Better handling of missing server fields
 // ========================================================================================
 
 export interface RecurringEventListItem {
@@ -180,11 +181,12 @@ export interface RecurringEventListItem {
     type: EventType;
     frequency: RecurrenceFrequency;
     isActive: boolean;
-    nextOccurrence?: string;
-    totalOccurrences: number;
-    completedOccurrences: number;
-    createdAt: string;
-    updatedAt: string;
+    // FIXED: These fields might not be available from server
+    nextOccurrence?: string; // May be undefined if server doesn't provide it
+    totalOccurrences: number; // Default to 0 if not provided
+    completedOccurrences: number; // Default to 0 if not provided
+    createdAt: string; // Can be ISO string or LocalDateTime array
+    updatedAt: string; // Can be ISO string or LocalDateTime array
 }
 
 export interface RecurringEventsListParams {
@@ -395,7 +397,6 @@ export interface ConvertToVisitResponse {
         id: string;
         name: string;
         price: number;
-        // Dodaj inne pola gdy będą potrzebne
     }>;
     totalAmount: number;
     serviceCount: number;
@@ -407,4 +408,40 @@ export interface ConvertToVisitResponse {
     documentsProvided: boolean;
     createdAt: string; // LocalDateTime converted to ISO string
     updatedAt: string; // LocalDateTime converted to ISO string
+}
+
+// ========================================================================================
+// RAW SERVER RESPONSE TYPES (For internal API layer use)
+// ========================================================================================
+
+export interface RawServerEventListItem {
+    id: string;
+    title: string;
+    description?: string;
+    type: EventType;
+    recurrence_pattern: {
+        frequency: RecurrenceFrequency;
+        interval: number;
+        days_of_week?: string[];
+        day_of_month?: number;
+        end_date?: string;
+        max_occurrences?: number;
+    };
+    is_active: boolean;
+    visit_template?: {
+        client_id?: number;
+        vehicle_id?: number;
+        estimated_duration_minutes: number;
+        default_services: Array<{
+            name: string;
+            base_price: number;
+        }>;
+        notes?: string;
+    };
+    created_at: number[]; // LocalDateTime array
+    updated_at: number[]; // LocalDateTime array
+    // These might be missing from basic list response
+    next_occurrence?: string;
+    total_occurrences?: number;
+    completed_occurrences?: number;
 }
