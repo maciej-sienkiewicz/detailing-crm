@@ -1,9 +1,11 @@
+// src/pages/Clients/VehiclePage/hooks.ts - NAPRAWIONE
 import {useCallback, useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {vehicleApi, VehicleTableFilters} from '../../../api/vehiclesApi';
 import {VehicleFilters, VehiclesPageState, VehicleStats} from './types';
 import {clientApi} from "../../../api/clientsApi";
 import {VehicleExpanded} from "../../../types";
+import {useToast} from '../../../components/common/Toast/Toast'; // DODANO
 
 const DEFAULT_PAGE_SIZE = 25;
 
@@ -180,55 +182,100 @@ export const useVehicleFilters = () => {
 
 export const useVehicleOperations = () => {
     const navigate = useNavigate();
+    const { showToast } = useToast(); // DODANO
 
     const editVehicle = useCallback(async (vehicle: VehicleExpanded) => {
         try {
+            console.log('🔧 Preparing vehicle for edit:', vehicle.id);
             return { success: true, vehicle };
         } catch (error) {
+            console.error('❌ Error preparing vehicle for edit:', error);
+            showToast('error', 'Nie udało się przygotować pojazdu do edycji');
             return { success: false, vehicle };
         }
-    }, []);
+    }, [showToast]);
 
+    // NAPRAWIONO: Funkcja deleteVehicle z prawidłowym wywołaniem API
     const deleteVehicle = useCallback(async (vehicleId: string) => {
         try {
+            console.log('🗑️ Deleting vehicle:', vehicleId);
+
             const success = await vehicleApi.deleteVehicle(vehicleId);
-            return { success };
-        } catch (err) {
+
+            if (success) {
+                console.log('✅ Vehicle deleted successfully');
+                showToast('success', 'Pojazd został usunięty pomyślnie');
+                return { success: true };
+            } else {
+                console.error('❌ Vehicle deletion failed');
+                showToast('error', 'Nie udało się usunąć pojazdu');
+                return { success: false };
+            }
+        } catch (err: any) {
+            console.error('❌ Error deleting vehicle:', err);
+
+            let errorMessage = 'Nie udało się usunąć pojazdu';
+            if (err.message) {
+                errorMessage = err.message;
+            } else if (err.status === 409) {
+                errorMessage = 'Nie można usunąć pojazdu - posiada powiązane wizyty';
+            } else if (err.status === 404) {
+                errorMessage = 'Pojazd nie został znaleziony';
+            }
+
+            showToast('error', errorMessage);
             return { success: false };
         }
-    }, []);
+    }, [showToast]);
 
+    // NAPRAWIONO: Funkcja saveVehicle - obecnie nie używana w nowym flow
     const saveVehicle = useCallback(async (vehicle: VehicleExpanded, isEdit: boolean = false) => {
         try {
+            console.log('💾 Saving vehicle:', { isEdit, vehicleId: vehicle.id });
+
+            const vehicleData = {
+                make: vehicle.make,
+                model: vehicle.model,
+                year: vehicle.year,
+                licensePlate: vehicle.licensePlate,
+                color: vehicle.color,
+                vin: vehicle.vin,
+                ownerIds: vehicle.ownerIds
+            };
+
             if (isEdit && vehicle.id) {
-                const updatedVehicle = await vehicleApi.updateVehicle(vehicle.id, {
-                    make: vehicle.make,
-                    model: vehicle.model,
-                    year: vehicle.year,
-                    licensePlate: vehicle.licensePlate,
-                    color: vehicle.color,
-                    vin: vehicle.vin,
-                    ownerIds: vehicle.ownerIds
-                });
+                console.log('✏️ Updating existing vehicle');
+                const updatedVehicle = await vehicleApi.updateVehicle(vehicle.id, vehicleData);
+                console.log('✅ Vehicle updated successfully');
+                showToast('success', 'Pojazd został zaktualizowany pomyślnie');
                 return { success: true, vehicle: updatedVehicle };
             } else {
-                const newVehicle = await vehicleApi.createVehicle({
-                    make: vehicle.make,
-                    model: vehicle.model,
-                    year: vehicle.year,
-                    licensePlate: vehicle.licensePlate,
-                    color: vehicle.color,
-                    vin: vehicle.vin,
-                    ownerIds: vehicle.ownerIds
-                });
+                console.log('➕ Creating new vehicle');
+                const newVehicle = await vehicleApi.createVehicle(vehicleData);
+                console.log('✅ Vehicle created successfully');
+                showToast('success', 'Nowy pojazd został dodany pomyślnie');
                 return { success: true, vehicle: newVehicle };
             }
-        } catch (err) {
+        } catch (err: any) {
+            console.error('❌ Error saving vehicle:', err);
+
+            let errorMessage = 'Nie udało się zapisać pojazdu';
+            if (err.message) {
+                errorMessage = err.message;
+            } else if (err.status === 409) {
+                errorMessage = 'Pojazd z tym numerem rejestracyjnym już istnieje';
+            } else if (err.status === 400) {
+                errorMessage = 'Nieprawidłowe dane pojazdu';
+            }
+
+            showToast('error', errorMessage);
             return { success: false, vehicle: null };
         }
-    }, []);
+    }, [showToast]);
 
     const navigateToClient = useCallback((clientId: string, onNavigateToClient?: (clientId: string) => void) => {
+        console.log('🔄 Navigating to client:', clientId);
+
         if (onNavigateToClient) {
             onNavigateToClient(clientId);
         } else {
@@ -237,13 +284,14 @@ export const useVehicleOperations = () => {
     }, [navigate]);
 
     const exportVehicles = useCallback(() => {
-        console.log('Eksport danych pojazdów - funkcjonalność w przygotowaniu');
-    }, []);
+        console.log('📤 Exporting vehicles...');
+        showToast('info', 'Eksport danych pojazdów - funkcjonalność w przygotowaniu');
+    }, [showToast]);
 
     return {
         editVehicle,
         deleteVehicle,
-        saveVehicle,
+        saveVehicle, // UWAGA: Ta funkcja nie jest obecnie używana, ale zostaje dla kompatybilności
         navigateToClient,
         exportVehicles
     };

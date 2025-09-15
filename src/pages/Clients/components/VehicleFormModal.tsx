@@ -1,3 +1,4 @@
+// src/pages/Clients/components/VehicleFormModal.tsx - NAPRAWIONY
 import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
 import {
@@ -14,7 +15,9 @@ import {
 } from 'react-icons/fa';
 import {VehicleExpanded} from '../../../types/vehicle';
 import {clientsApi} from '../../../api/clientsApi';
+import {vehicleApi} from '../../../api/vehiclesApi'; // DODANO: Import vehicleApi
 import Modal from '../../../components/common/Modal';
+import {useToast} from '../../../components/common/Toast/Toast'; // DODANO: Import useToast
 
 const brandTheme = {
     primary: 'var(--brand-primary, #1a365d)',
@@ -72,7 +75,7 @@ const brandTheme = {
 interface VehicleFormModalProps {
     vehicle: VehicleExpanded | null;
     defaultOwnerId?: string;
-    onSave: (vehicle: VehicleExpanded) => void;
+    onSave: () => void; // ZMIENIONO: Uproszczenie interfejsu
     onCancel: () => void;
 }
 
@@ -93,6 +96,7 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
     const [error, setError] = useState<string | null>(null);
     const [clients, setClients] = useState<ClientOption[]>([]);
     const [loadingClients, setLoadingClients] = useState(false);
+    const { showToast } = useToast(); // DODANO: Hook do powiadomień
 
     const [formData, setFormData] = useState<Partial<VehicleExpanded>>(
         vehicle || {
@@ -109,6 +113,28 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
     );
 
     const [errors, setErrors] = useState<Record<string, string>>({});
+
+    // DODANO: Aktualizacja formData gdy vehicle się zmienia
+    useEffect(() => {
+        if (vehicle) {
+            setFormData({
+                ...vehicle,
+                ownerIds: vehicle.ownerIds || []
+            });
+        } else {
+            setFormData({
+                make: '',
+                model: '',
+                year: new Date().getFullYear(),
+                licensePlate: '',
+                color: '',
+                vin: '',
+                totalServices: 0,
+                totalSpent: 0,
+                ownerIds: defaultOwnerId ? [defaultOwnerId] : []
+            });
+        }
+    }, [vehicle, defaultOwnerId]);
 
     useEffect(() => {
         const loadClients = async () => {
@@ -208,7 +234,8 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    // NAPRAWIONO: Główna funkcja handleSubmit z prawidłowym wywołaniem API
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!validateForm()) {
@@ -216,22 +243,65 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
         }
 
         setLoading(true);
-
-        const vehicleData: Partial<VehicleExpanded> = {
-            ...vehicle,
-            make: formData.make,
-            model: formData.model,
-            year: formData.year,
-            licensePlate: formData.licensePlate,
-            color: formData.color,
-            vin: formData.vin,
-            ownerIds: formData.ownerIds || []
-        };
+        setError(null);
 
         try {
-            onSave(vehicleData as VehicleExpanded);
-        } catch (err) {
-            setError('Nie udało się zapisać pojazdu. Spróbuj ponownie.');
+            console.log('🔄 Zapisywanie pojazdu:', {
+                isEdit: !!vehicle?.id,
+                vehicleId: vehicle?.id,
+                formData
+            });
+
+            // NAPRAWIONO: Przygotowanie danych do wysłania
+            const vehicleData = {
+                make: formData.make!.trim(),
+                model: formData.model!.trim(),
+                year: formData.year!,
+                licensePlate: formData.licensePlate!.trim(),
+                color: formData.color?.trim() || undefined,
+                vin: formData.vin?.trim() || undefined,
+                ownerIds: formData.ownerIds || []
+            };
+
+            console.log('📤 Dane do wysłania:', vehicleData);
+
+            let result;
+            if (vehicle?.id) {
+                // EDYCJA POJAZDU
+                console.log('✏️ Edytowanie pojazdu:', vehicle.id);
+                result = await vehicleApi.updateVehicle(vehicle.id, vehicleData);
+                showToast('success', 'Pojazd został zaktualizowany pomyślnie');
+            } else {
+                // NOWY POJAZD
+                console.log('➕ Tworzenie nowego pojazdu');
+                result = await vehicleApi.createVehicle(vehicleData);
+                showToast('success', 'Nowy pojazd został dodany pomyślnie');
+            }
+
+            console.log('✅ Pojazd zapisany:', result);
+
+            // Wywołanie callback'a z rodzicoskim komponentem
+            onSave();
+
+        } catch (err: any) {
+            console.error('❌ Błąd podczas zapisywania pojazdu:', err);
+
+            let errorMessage = 'Nie udało się zapisać pojazdu. Spróbuj ponownie.';
+
+            // DODANO: Lepsze obsługiwanie błędów z API
+            if (err.message) {
+                errorMessage = err.message;
+            } else if (err.data?.message) {
+                errorMessage = err.data.message;
+            } else if (err.status === 409) {
+                errorMessage = 'Pojazd z tym numerem rejestracyjnym już istnieje';
+            } else if (err.status === 400) {
+                errorMessage = 'Nieprawidłowe dane pojazdu';
+            }
+
+            setError(errorMessage);
+            showToast('error', errorMessage);
+        } finally {
             setLoading(false);
         }
     };
@@ -292,6 +362,7 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                                     placeholder="np. BMW, Audi, Mercedes"
                                     $hasError={!!errors.make}
                                     $hasValue={!!formData.make}
+                                    disabled={loading}
                                 />
                                 {errors.make && (
                                     <ErrorMessage>{errors.make}</ErrorMessage>
@@ -310,6 +381,7 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                                     placeholder="np. X5, A4, C-Class"
                                     $hasError={!!errors.model}
                                     $hasValue={!!formData.model}
+                                    disabled={loading}
                                 />
                                 {errors.model && (
                                     <ErrorMessage>{errors.model}</ErrorMessage>
@@ -334,6 +406,7 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                                     placeholder="2023"
                                     $hasError={!!errors.year}
                                     $hasValue={!!formData.year}
+                                    disabled={loading}
                                 />
                                 {errors.year && (
                                     <ErrorMessage>{errors.year}</ErrorMessage>
@@ -355,6 +428,7 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                                         $hasError={!!errors.licensePlate}
                                         $hasValue={!!formData.licensePlate}
                                         style={{ textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '600' }}
+                                        disabled={loading}
                                     />
                                 </LicensePlateInputWrapper>
                                 {errors.licensePlate && (
@@ -376,6 +450,7 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                                     onChange={handleChange}
                                     placeholder="np. Czarny metalik, Biały perła"
                                     $hasValue={!!formData.color}
+                                    disabled={loading}
                                 />
                                 <HelpText>
                                     Podaj dokładny kolor dla lepszej identyfikacji pojazdu
@@ -396,6 +471,7 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                                     maxLength={17}
                                     $hasValue={!!formData.vin}
                                     style={{ fontFamily: 'monospace', letterSpacing: '1px' }}
+                                    disabled={loading}
                                 />
                                 <HelpText>
                                     17-znakowy kod identyfikacyjny pojazdu (opcjonalne)
@@ -434,6 +510,7 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                                     onChange={handleOwnerChange}
                                     $hasError={!!errors.ownerIds}
                                     $hasValue={!!(formData.ownerIds && formData.ownerIds.length > 0)}
+                                    disabled={loading}
                                 >
                                     {clients.map(client => (
                                         <option key={client.id} value={client.id}>
@@ -450,7 +527,6 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                                 <ErrorMessage>{errors.ownerIds}</ErrorMessage>
                             )}
 
-                            {/* FIX: Dodano overflow i width kontrolę dla sekcji wybranych właścicieli */}
                             {formData.ownerIds && formData.ownerIds.length > 0 && (
                                 <SelectedOwnersContainer>
                                     <SelectedOwnersTitle>
@@ -486,6 +562,7 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                                                             }));
                                                         }}
                                                         title="Usuń właściciela"
+                                                        disabled={loading}
                                                     >
                                                         <FaTimes />
                                                     </RemoveOwnerButton>
@@ -503,7 +580,7 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                             <FaTimes />
                             <span>Anuluj</span>
                         </SecondaryButton>
-                        <PrimaryButton type="submit" disabled={loading}>
+                        <PrimaryButton type="submit" disabled={loading || loadingClients}>
                             {loading ? (
                                 <>
                                     <FaSpinner className="spinning" />
@@ -523,6 +600,7 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
     );
 };
 
+// Reszta stylów pozostaje bez zmian...
 const FormContainer = styled.div`
     padding: 0 ${brandTheme.spacing.md};
     max-height: 85vh;
@@ -582,7 +660,6 @@ const FormSection = styled.section`
     padding: ${brandTheme.spacing.xl};
     box-shadow: ${brandTheme.shadow.sm};
     transition: all 0.2s ease;
-    /* FIX: Zapewnij prawidłowe zachowanie overflow */
     overflow: hidden;
     width: 100%;
 
@@ -617,7 +694,7 @@ const SectionIcon = styled.div<{ $color?: string }>`
 
 const SectionContent = styled.div`
     flex: 1;
-    min-width: 0; /* FIX: Zapobiegaj overflow */
+    min-width: 0;
 `;
 
 const SectionTitle = styled.div`
@@ -651,7 +728,7 @@ const FormGroup = styled.div`
     flex-direction: column;
     flex: 1;
     gap: ${brandTheme.spacing.sm};
-    min-width: 0; /* FIX: Zapobiegaj overflow */
+    min-width: 0;
 `;
 
 const FormLabel = styled.label<{ $required?: boolean }>`
@@ -689,7 +766,7 @@ const FormInput = styled.input<{
     background: ${props => props.$hasValue ? brandTheme.primaryGhost : brandTheme.surface};
     color: ${brandTheme.text.primary};
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    width: 100%; /* FIX: Zapewnij pełną szerokość w kontenerze */
+    width: 100%;
 
     &:focus {
         outline: none;
@@ -702,6 +779,11 @@ const FormInput = styled.input<{
     &::placeholder {
         color: ${brandTheme.text.muted};
         font-weight: 400;
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
     }
 
     ${props => props.$hasError && `
@@ -717,21 +799,7 @@ const LicensePlateInputWrapper = styled.div`
     display: flex;
     flex-direction: column;
     gap: ${brandTheme.spacing.sm};
-    width: 100%; /* FIX: Zapewnij pełną szerokość */
-`;
-
-const LicensePlatePreview = styled.div`
-    align-self: flex-start;
-    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-    color: white;
-    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.md};
-    border-radius: ${brandTheme.radius.md};
-    font-weight: 700;
-    font-size: 14px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    box-shadow: ${brandTheme.shadow.sm};
-    border: 2px solid white;
+    width: 100%;
 `;
 
 const LoadingOwnersContainer = styled.div`
@@ -770,7 +838,7 @@ const FormSelect = styled.select<{
     $hasValue?: boolean;
 }>`
     padding: ${brandTheme.spacing.md};
-border: 2px solid ${props =>
+    border: 2px solid ${props =>
     props.$hasError ? brandTheme.status.error :
         props.$hasValue ? brandTheme.primary :
             brandTheme.border
@@ -783,13 +851,18 @@ border: 2px solid ${props =>
    color: ${brandTheme.text.primary};
    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
    min-height: 140px;
-   width: 100%; /* FIX: Zapewnij pełną szerokość */
+   width: 100%;
 
    &:focus {
        outline: none;
        border-color: ${brandTheme.primary};
        box-shadow: 0 0 0 4px ${brandTheme.primaryGhost};
        background: ${brandTheme.surface};
+   }
+
+   &:disabled {
+       opacity: 0.6;
+       cursor: not-allowed;
    }
 
    &[multiple] {
@@ -821,35 +894,34 @@ border: 2px solid ${props =>
 `;
 
 const HelpText = styled.p`
-   font-size: 13px;
-   color: ${brandTheme.text.tertiary};
-   margin: 0;
-   font-style: italic;
-   line-height: 1.4;
-   word-wrap: break-word; /* FIX: Łamanie długich słów */
+    font-size: 13px;
+    color: ${brandTheme.text.tertiary};
+    margin: 0;
+    font-style: italic;
+    line-height: 1.4;
+    word-wrap: break-word;
 
-   strong {
-       color: ${brandTheme.text.secondary};
-       font-weight: 600;
-   }
+    strong {
+        color: ${brandTheme.text.secondary};
+        font-weight: 600;
+    }
 `;
 
 const ErrorMessage = styled.div`
-   color: ${brandTheme.status.error};
-   font-size: 12px;
-   font-weight: 500;
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.xs};
-   margin-top: ${brandTheme.spacing.xs};
+    color: ${brandTheme.status.error};
+    font-size: 12px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.xs};
+    margin-top: ${brandTheme.spacing.xs};
 
-   &::before {
-       content: '⚠';
-       font-size: 10px;
-   }
+    &::before {
+        content: '⚠';
+        font-size: 10px;
+    }
 `;
 
-/* FIX: Główny kontener dla wybranych właścicieli z kontrolą overflow */
 const SelectedOwnersContainer = styled.div`
     margin-top: ${brandTheme.spacing.md};
     padding: ${brandTheme.spacing.lg};
@@ -858,20 +930,18 @@ const SelectedOwnersContainer = styled.div`
     border: 1px solid ${brandTheme.primary}30;
     width: 100%;
     box-sizing: border-box;
-    /* FIX: Usuń overflow: hidden aby nie przycinało zawartości */
 `;
 
-/* FIX: Tytuł sekcji z poprawnym responsywnym zachowaniem */
 const SelectedOwnersTitle = styled.div`
     display: flex;
     align-items: center;
     font-size: 14px;
     font-weight: 600;
     color: ${brandTheme.text.primary};
-    margin-bottom: ${brandTheme.spacing.lg}; /* FIX: Zwiększ margines dolny */
+    margin-bottom: ${brandTheme.spacing.lg};
     width: 100%;
     box-sizing: border-box;
-    gap: ${brandTheme.spacing.xs}; /* FIX: Dodaj gap między ikoną a tekstem */
+    gap: ${brandTheme.spacing.xs};
 
     svg {
         color: ${brandTheme.primary};
@@ -879,27 +949,25 @@ const SelectedOwnersTitle = styled.div`
     }
 `;
 
-/* FIX: Lista właścicieli z kontrolą overflow */
 const SelectedOwnersList = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${brandTheme.spacing.md}; /* FIX: Zwiększ gap między elementami */
+    gap: ${brandTheme.spacing.md};
     width: 100%;
 `;
 
-/* FIX: Pojedynczy element właściciela z kontrolą overflow */
 const SelectedOwnerItem = styled.div`
     display: flex;
-    align-items: flex-start; /* FIX: Zmień na flex-start dla lepszego wyrównania */
+    align-items: flex-start;
     gap: ${brandTheme.spacing.md};
-    padding: ${brandTheme.spacing.lg}; /* FIX: Zwiększ padding */
+    padding: ${brandTheme.spacing.lg};
     background: ${brandTheme.surface};
     border: 1px solid ${brandTheme.border};
     border-radius: ${brandTheme.radius.md};
     transition: all 0.2s ease;
     width: 100%;
     box-sizing: border-box;
-    min-height: 80px; /* FIX: Ustaw minimalną wysokość */
+    min-height: 80px;
 
     &:hover {
         border-color: ${brandTheme.primary};
@@ -908,7 +976,7 @@ const SelectedOwnerItem = styled.div`
 `;
 
 const OwnerIcon = styled.div`
-    width: 44px; /* FIX: Lekko zwiększ rozmiar */
+    width: 44px;
     height: 44px;
     background: linear-gradient(135deg, ${brandTheme.primary}15 0%, ${brandTheme.primary}08 100%);
     border-radius: ${brandTheme.radius.md};
@@ -916,48 +984,44 @@ const OwnerIcon = styled.div`
     align-items: center;
     justify-content: center;
     color: ${brandTheme.primary};
-    font-size: 18px; /* FIX: Zwiększ rozmiar ikony */
+    font-size: 18px;
     flex-shrink: 0;
-    margin-top: ${brandTheme.spacing.xs}; /* FIX: Dodaj margines dla lepszego wyrównania */
+    margin-top: ${brandTheme.spacing.xs};
 `;
 
-/* FIX: Szczegóły właściciela z kontrolą overflow */
 const OwnerDetails = styled.div`
     flex: 1;
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: ${brandTheme.spacing.sm}; /* FIX: Dodaj gap */
+    gap: ${brandTheme.spacing.sm};
 `;
 
-/* FIX: Nazwa właściciela z kontrolą overflow */
 const OwnerName = styled.div`
     font-size: 15px;
     font-weight: 600;
     color: ${brandTheme.text.primary};
-    line-height: 1.3; /* FIX: Lepsza wysokość linii */
-    word-wrap: break-word; /* FIX: Łamanie długich słów zamiast ukrywania */
+    line-height: 1.3;
+    word-wrap: break-word;
 `;
 
 const OwnerContact = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${brandTheme.spacing.xs}; /* FIX: Zwiększ gap */
+    gap: ${brandTheme.spacing.xs};
     width: 100%;
 `;
 
-/* FIX: Szczegóły kontaktu z kontrolą overflow */
 const ContactDetail = styled.div`
     font-size: 13px;
     color: ${brandTheme.text.secondary};
     font-weight: 500;
     line-height: 1.3;
-    word-wrap: break-word; /* FIX: Łamanie długich słów */
-    /* FIX: Usuń white-space: nowrap i text-overflow: ellipsis */
+    word-wrap: break-word;
 `;
 
 const RemoveOwnerButton = styled.button`
-    width: 32px; /* FIX: Zwiększ rozmiar */
+    width: 32px;
     height: 32px;
     background: ${brandTheme.status.errorLight};
     color: ${brandTheme.status.error};
@@ -967,191 +1031,120 @@ const RemoveOwnerButton = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 13px; /* FIX: Zwiększ rozmiar ikony */
+    font-size: 13px;
     transition: all 0.2s ease;
     flex-shrink: 0;
-    margin-top: ${brandTheme.spacing.xs}; /* FIX: Dodaj margines górny dla lepszego wyrównania */
+    margin-top: ${brandTheme.spacing.xs};
 
-    &:hover {
+    &:hover:not(:disabled) {
         background: ${brandTheme.status.error};
         color: white;
-        transform: scale(1.05); /* FIX: Zmniejsz scale dla subtelniejszego efektu */
+        transform: scale(1.05);
         box-shadow: ${brandTheme.shadow.sm};
     }
 
-    &:active {
+    &:active:not(:disabled) {
         transform: scale(0.95);
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
     }
 `;
 
-const StatsGrid = styled.div`
-   display: grid;
-   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-   gap: ${brandTheme.spacing.md};
-   margin-bottom: ${brandTheme.spacing.lg};
-`;
-
-const StatCard = styled.div<{ $fullWidth?: boolean }>`
-   background: ${brandTheme.surfaceAlt};
-   border: 1px solid ${brandTheme.border};
-   border-radius: ${brandTheme.radius.lg};
-   padding: ${brandTheme.spacing.md};
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.md};
-   transition: all 0.2s ease;
-
-   ${props => props.$fullWidth && `
-      grid-column: 1 / -1;
-  `}
-
-   &:hover {
-       background: ${brandTheme.primaryGhost};
-       border-color: ${brandTheme.primary};
-       transform: translateY(-2px);
-       box-shadow: ${brandTheme.shadow.md};
-   }
-`;
-
-const StatIcon = styled.div<{ $color: string }>`
-   width: 40px;
-   height: 40px;
-   background: linear-gradient(135deg, ${props => props.$color}15 0%, ${props => props.$color}08 100%);
-   border-radius: ${brandTheme.radius.md};
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   color: ${props => props.$color};
-   font-size: 18px;
-   flex-shrink: 0;
-`;
-
-const StatContent = styled.div`
-   flex: 1;
-   min-width: 0;
-`;
-
-const StatValue = styled.div`
-   font-size: 18px;
-   font-weight: 700;
-   color: ${brandTheme.text.primary};
-   margin-bottom: ${brandTheme.spacing.xs};
-   line-height: 1.2;
-`;
-
-const StatLabel = styled.div`
-   font-size: 12px;
-   color: ${brandTheme.text.tertiary};
-   font-weight: 500;
-   text-transform: uppercase;
-   letter-spacing: 0.5px;
-`;
-
-const StatsNote = styled.div`
-   background: linear-gradient(135deg, ${brandTheme.status.infoLight} 0%, #f0f9ff 100%);
-   border: 1px solid ${brandTheme.status.info}30;
-   border-radius: ${brandTheme.radius.lg};
-   padding: ${brandTheme.spacing.md};
-   font-size: 13px;
-   color: ${brandTheme.text.secondary};
-   line-height: 1.4;
-
-   strong {
-       color: ${brandTheme.text.primary};
-   }
-`;
-
 const FormActions = styled.div`
-   display: flex;
-   justify-content: flex-end;
-   gap: ${brandTheme.spacing.sm};
-   padding-top: ${brandTheme.spacing.xl};
-   border-top: 2px solid ${brandTheme.borderLight};
-   margin-top: ${brandTheme.spacing.lg};
+    display: flex;
+    justify-content: flex-end;
+    gap: ${brandTheme.spacing.sm};
+    padding-top: ${brandTheme.spacing.xl};
+    border-top: 2px solid ${brandTheme.borderLight};
+    margin-top: ${brandTheme.spacing.lg};
 `;
 
 const BaseButton = styled.button`
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.sm};
-   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.xl};
-   border-radius: ${brandTheme.radius.lg};
-   font-size: 14px;
-   font-weight: 600;
-   cursor: pointer;
-   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-   min-height: 48px;
-   border: 1px solid transparent;
-   position: relative;
-   overflow: hidden;
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.xl};
+    border-radius: ${brandTheme.radius.lg};
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: 48px;
+    border: 1px solid transparent;
+    position: relative;
+    overflow: hidden;
 
-   &:hover:not(:disabled) {
-       transform: translateY(-2px);
-   }
+    &:hover:not(:disabled) {
+        transform: translateY(-2px);
+    }
 
-   &:active:not(:disabled) {
-       transform: translateY(0);
-   }
+    &:active:not(:disabled) {
+        transform: translateY(0);
+    }
 
-   &:disabled {
-       opacity: 0.6;
-       cursor: not-allowed;
-       transform: none;
-   }
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
 
-   .spinning {
-       animation: spin 1s linear infinite;
-   }
+    .spinning {
+        animation: spin 1s linear infinite;
+    }
 
-   @keyframes spin {
-       from { transform: rotate(0deg); }
-       to { transform: rotate(360deg); }
-   }
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
 
-   span {
-       @media (max-width: 480px) {
-           display: none;
-       }
-   }
+    span {
+        @media (max-width: 480px) {
+            display: none;
+        }
+    }
 `;
 
 const SecondaryButton = styled(BaseButton)`
-   background: ${brandTheme.surfaceAlt};
-   color: ${brandTheme.text.secondary};
-   border-color: ${brandTheme.border};
-   box-shadow: ${brandTheme.shadow.xs};
+    background: ${brandTheme.surfaceAlt};
+    color: ${brandTheme.text.secondary};
+    border-color: ${brandTheme.border};
+    box-shadow: ${brandTheme.shadow.xs};
 
-   &:hover:not(:disabled) {
-       background: ${brandTheme.borderLight};
-       color: ${brandTheme.text.primary};
-       box-shadow: ${brandTheme.shadow.sm};
-   }
+    &:hover:not(:disabled) {
+        background: ${brandTheme.borderLight};
+        color: ${brandTheme.text.primary};
+        box-shadow: ${brandTheme.shadow.sm};
+    }
 `;
 
 const PrimaryButton = styled(BaseButton)`
-   background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-   color: white;
-   box-shadow: ${brandTheme.shadow.md};
+    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+    color: white;
+    box-shadow: ${brandTheme.shadow.md};
 
-   &:hover:not(:disabled) {
-       background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
-       box-shadow: ${brandTheme.shadow.lg};
-   }
+    &:hover:not(:disabled) {
+        background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
+        box-shadow: ${brandTheme.shadow.lg};
+    }
 
-   &::before {
-       content: '';
-       position: absolute;
-       top: 0;
-       left: -100%;
-       width: 100%;
-       height: 100%;
-       background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-       transition: left 0.5s;
-   }
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: left 0.5s;
+    }
 
-   &:hover::before {
-       left: 100%;
-   }
+    &:hover::before {
+        left: 100%;
+    }
 `;
 
 export default VehicleFormModal;

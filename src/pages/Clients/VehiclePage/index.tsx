@@ -1,3 +1,4 @@
+// src/pages/Clients/VehiclePage/index.tsx - NAPRAWIONY
 import React, {forwardRef, useCallback, useEffect, useImperativeHandle, useMemo} from 'react';
 import Modal from '../../../components/common/Modal';
 import Pagination from '../../../components/common/Pagination';
@@ -164,12 +165,12 @@ const VehiclesPageContent = forwardRef<VehiclesPageRef, VehiclesPageContentProps
     const {
         editVehicle,
         deleteVehicle,
-        saveVehicle,
         navigateToClient,
         exportVehicles
     } = useVehicleOperations();
 
     const handleAddVehicle = useCallback(() => {
+        console.log('➕ Opening add vehicle modal');
         updateState({
             selectedVehicle: null,
             showAddModal: true
@@ -198,9 +199,12 @@ const VehiclesPageContent = forwardRef<VehiclesPageRef, VehiclesPageContentProps
         filters: VehicleFilters = state.appliedFilters,
         ownerId?: string
     ) => {
+        console.log('🔄 Loading vehicles:', { page, filters, ownerId });
         updateState({ loading: true, error: null });
 
         const result = await loadVehicles(page, filters, ownerId);
+
+        console.log('📊 Load vehicles result:', result);
 
         updateState({
             vehicles: result.vehicles,
@@ -253,6 +257,7 @@ const VehiclesPageContent = forwardRef<VehiclesPageRef, VehiclesPageContentProps
     }, [state.currentPage, state.totalPages, performLoadVehicles, state.appliedFilters, filterByOwnerId]);
 
     const handleEditVehicle = useCallback(async (vehicle: any) => {
+        console.log('✏️ Edit vehicle clicked:', vehicle.id);
         updateState({ loading: true });
         const result = await editVehicle(vehicle);
         updateState({
@@ -262,12 +267,17 @@ const VehiclesPageContent = forwardRef<VehiclesPageRef, VehiclesPageContentProps
         });
     }, [editVehicle, updateState]);
 
+    // NAPRAWIONO: Funkcja handleSaveVehicle - przeładowuje dane po zapisaniu
     const handleSaveVehicle = useCallback(async () => {
-        updateState({ showAddModal: false });
+        console.log('💾 Vehicle saved, reloading data...');
+        updateState({ showAddModal: false, selectedVehicle: null });
+
+        // Przeładuj dane pojazdów po zapisaniu
         await performLoadVehicles(state.currentPage, state.appliedFilters, filterByOwnerId);
     }, [updateState, performLoadVehicles, state.currentPage, state.appliedFilters, filterByOwnerId]);
 
     const handleDeleteClick = useCallback((vehicleId: string) => {
+        console.log('🗑️ Delete vehicle clicked:', vehicleId);
         const vehicle = state.vehicles.find(v => v.id === vehicleId);
         if (vehicle) {
             updateState({
@@ -280,18 +290,29 @@ const VehiclesPageContent = forwardRef<VehiclesPageRef, VehiclesPageContentProps
     const handleConfirmDelete = useCallback(async () => {
         if (!state.selectedVehicle) return;
 
+        console.log('🗑️ Confirming vehicle deletion:', state.selectedVehicle.id);
+
         const result = await deleteVehicle(state.selectedVehicle.id);
 
         if (result.success) {
+            console.log('✅ Vehicle deleted successfully, reloading data...');
             updateState({
                 showDeleteConfirm: false,
                 selectedVehicle: null
             });
+            // Przeładuj dane po usunięciu
             performLoadVehicles(state.currentPage, state.appliedFilters, filterByOwnerId);
+        } else {
+            console.error('❌ Vehicle deletion failed');
+            updateState({
+                showDeleteConfirm: false,
+                selectedVehicle: null
+            });
         }
     }, [state.selectedVehicle, deleteVehicle, updateState, performLoadVehicles, state.currentPage, state.appliedFilters, filterByOwnerId]);
 
     const handleShowHistory = useCallback((vehicle: any) => {
+        console.log('📋 Show history for vehicle:', vehicle.id);
         updateState({
             selectedVehicle: vehicle,
             showHistoryModal: true
@@ -365,25 +386,27 @@ const VehiclesPageContent = forwardRef<VehiclesPageRef, VehiclesPageContentProps
                 )}
             </MainContent>
 
+            {/* NAPRAWIONY: Modal z VehicleFormModal - przekazuje tylko callback onSave */}
             {state.showAddModal && (
                 <VehicleFormModal
                     vehicle={state.selectedVehicle}
+                    defaultOwnerId={filterByOwnerId}
                     onSave={handleSaveVehicle}
-                    onCancel={() => updateState({ showAddModal: false })}
+                    onCancel={() => updateState({ showAddModal: false, selectedVehicle: null })}
                 />
             )}
 
             {state.showHistoryModal && state.selectedVehicle && (
                 <VehicleHistoryModal
                     vehicle={state.selectedVehicle}
-                    onClose={() => updateState({ showHistoryModal: false })}
+                    onClose={() => updateState({ showHistoryModal: false, selectedVehicle: null })}
                 />
             )}
 
             {state.showDeleteConfirm && state.selectedVehicle && (
                 <Modal
                     isOpen={state.showDeleteConfirm}
-                    onClose={() => updateState({ showDeleteConfirm: false })}
+                    onClose={() => updateState({ showDeleteConfirm: false, selectedVehicle: null })}
                     title="Potwierdź usunięcie pojazdu"
                 >
                     <div style={{ padding: '24px', textAlign: 'center' }}>
@@ -448,7 +471,7 @@ const VehiclesPageContent = forwardRef<VehiclesPageRef, VehiclesPageContentProps
                             justifyContent: 'center'
                         }}>
                             <button
-                                onClick={() => updateState({ showDeleteConfirm: false })}
+                                onClick={() => updateState({ showDeleteConfirm: false, selectedVehicle: null })}
                                 style={{
                                     display: 'flex',
                                     alignItems: 'center',
