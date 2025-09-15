@@ -1,4 +1,4 @@
-// src/components/common/DataTable/components.ts - Rozszerzone komponenty
+// src/components/common/DataTable/components.ts - Naprawione z responsywnymi stylami
 import styled from 'styled-components';
 import { dataTableTheme } from './theme';
 
@@ -11,6 +11,10 @@ export const TableContainer = styled.div`
     width: 100%;
     min-height: 400px;
     margin-top: 10px;
+
+    /* FIXED: Stała szerokość kontenera */
+    max-width: 100%;
+    min-width: 800px; /* Minimalna szerokość dla zachowania funkcjonalności */
 `;
 
 export const TableHeader = styled.div`
@@ -23,10 +27,15 @@ export const TableHeader = styled.div`
     flex-shrink: 0;
     gap: ${dataTableTheme.spacing.xl};
 
+    /* FIXED: Stała wysokość nagłówka */
+    min-height: 80px;
+
     @media (max-width: 1024px) {
         flex-direction: column;
         align-items: stretch;
         gap: ${dataTableTheme.spacing.lg};
+        min-height: auto;
+        padding: ${dataTableTheme.spacing.md} ${dataTableTheme.spacing.lg};
     }
 `;
 
@@ -36,6 +45,7 @@ export const TableTitle = styled.h3`
     color: ${dataTableTheme.text.primary};
     margin: 0;
     letter-spacing: -0.025em;
+    white-space: nowrap;
 `;
 
 export const ViewControls = styled.div`
@@ -68,7 +78,6 @@ export const ViewButton = styled.button<{ $active: boolean }>`
     }
 `;
 
-// NOWE: Komponenty dla rozszerzonych funkcji nagłówka
 export const HeaderLeft = styled.div`
     display: flex;
     align-items: center;
@@ -89,8 +98,9 @@ export const HeaderRight = styled.div`
     flex-shrink: 0;
 
     @media (max-width: 768px) {
-        flex-direction: column;
+        flex-wrap: wrap;
         width: 100%;
+        justify-content: flex-end;
         gap: ${dataTableTheme.spacing.sm};
     }
 `;
@@ -101,7 +111,7 @@ export const HeaderActionsContainer = styled.div`
     gap: ${dataTableTheme.spacing.md};
 
     @media (max-width: 768px) {
-        flex-direction: column;
+        flex-wrap: wrap;
         width: 100%;
         gap: ${dataTableTheme.spacing.sm};
     }
@@ -113,7 +123,7 @@ export const SelectAllContainer = styled.div`
     gap: ${dataTableTheme.spacing.lg};
 
     @media (max-width: 768px) {
-        flex-direction: column;
+        flex-wrap: wrap;
         align-items: stretch;
         gap: ${dataTableTheme.spacing.sm};
     }
@@ -130,6 +140,7 @@ export const SelectAllCheckbox = styled.div<{ $selected?: boolean }>`
     transition: all 0.2s ease;
     padding: ${dataTableTheme.spacing.xs} ${dataTableTheme.spacing.sm};
     border-radius: ${dataTableTheme.radius.md};
+    white-space: nowrap;
 
     svg {
         color: ${props => props.$selected ? dataTableTheme.primary : dataTableTheme.text.muted};
@@ -179,9 +190,9 @@ export const HeaderActionButton = styled.button<{
     border: 2px solid;
 
     ${({ $variant = 'secondary', $active = false }) => {
-    switch ($variant) {
-        case 'primary':
-            return `
+        switch ($variant) {
+            case 'primary':
+                return `
                     background: linear-gradient(135deg, ${dataTableTheme.primary} 0%, ${dataTableTheme.primaryLight} 100%);
                     color: white;
                     border-color: ${dataTableTheme.primary};
@@ -193,8 +204,8 @@ export const HeaderActionButton = styled.button<{
                         box-shadow: ${dataTableTheme.shadow.md};
                     }
                 `;
-        case 'filter':
-            return `
+            case 'filter':
+                return `
                     background: ${$active ? dataTableTheme.primaryGhost : dataTableTheme.surface};
                     color: ${$active ? dataTableTheme.primary : dataTableTheme.text.secondary};
                     border-color: ${$active ? dataTableTheme.primary : dataTableTheme.border};
@@ -207,8 +218,8 @@ export const HeaderActionButton = styled.button<{
                         box-shadow: ${dataTableTheme.shadow.md};
                     }
                 `;
-        default: // secondary
-            return `
+            default: // secondary
+                return `
                     background: ${dataTableTheme.surface};
                     color: ${dataTableTheme.text.secondary};
                     border-color: ${dataTableTheme.border};
@@ -222,8 +233,8 @@ export const HeaderActionButton = styled.button<{
                         box-shadow: ${dataTableTheme.shadow.sm};
                     }
                 `;
-    }
-}}
+        }
+    }}
 
     &:disabled {
         opacity: 0.5;
@@ -233,8 +244,13 @@ export const HeaderActionButton = styled.button<{
     }
 
     @media (max-width: 768px) {
-        width: 100%;
-        justify-content: center;
+        padding: ${dataTableTheme.spacing.xs} ${dataTableTheme.spacing.sm};
+        font-size: 13px;
+        height: 36px;
+
+        span {
+            display: none;
+        }
     }
 
     svg:last-child {
@@ -271,26 +287,54 @@ export const ExpandableContent = styled.div<{ $visible: boolean }>`
     background: ${dataTableTheme.surfaceAlt};
     border-bottom: 1px solid ${dataTableTheme.border};
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    
+
     ${props => props.$visible
-    ? `
+            ? `
             max-height: 1000px;
             opacity: 1;
         `
-    : `
+            : `
             max-height: 0;
             opacity: 0;
         `
-}
+    }
 `;
 
-// Pozostałe istniejące komponenty...
+// FIXED: Responsive table wrapper
 export const TableWrapper = styled.div`
     width: 100%;
+    overflow-x: auto;
+
+    /* Smooth scrolling dla lepszego UX */
+    scroll-behavior: smooth;
+
+    /* Custom scrollbar styling */
+    &::-webkit-scrollbar {
+        height: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: ${dataTableTheme.surfaceAlt};
+        border-radius: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: ${dataTableTheme.border};
+        border-radius: 4px;
+
+        &:hover {
+            background: ${dataTableTheme.borderHover};
+        }
+    }
 `;
 
 export const TableContent = styled.div`
     width: 100%;
+    min-width: 800px; /* Minimalna szerokość dla zachowania czytelności */
+
+    @media (max-width: 1200px) {
+        min-width: 1000px; /* Większa minimalna szerokość na średnich ekranach */
+    }
 `;
 
 export const TableHeaderRow = styled.div`
@@ -303,6 +347,7 @@ export const TableHeaderRow = styled.div`
     z-index: 10;
 `;
 
+// FIXED: Responsive header cell z lepszym zarządzaniem szerokością
 export const HeaderCell = styled.div<{
     $isDragging?: boolean;
     $width: string;
@@ -310,6 +355,14 @@ export const HeaderCell = styled.div<{
 }>`
     flex: 0 0 ${props => props.$width};
     width: ${props => props.$width};
+    min-width: ${props => {
+        // Minimalne szerokości dla różnych typów kolumn
+        const numericWidth = parseInt(props.$width);
+        if (numericWidth < 80) return '80px';
+        if (numericWidth < 120) return '120px';
+        return props.$width;
+    }};
+    max-width: ${props => props.$width};
     display: flex;
     align-items: center;
     padding: 0 ${dataTableTheme.spacing.md};
@@ -326,6 +379,10 @@ export const HeaderCell = styled.div<{
     &:last-child {
         border-right: none;
     }
+
+    @media (max-width: 768px) {
+        padding: 0 ${dataTableTheme.spacing.sm};
+    }
 `;
 
 export const HeaderContent = styled.div`
@@ -333,6 +390,7 @@ export const HeaderContent = styled.div`
     align-items: center;
     gap: ${dataTableTheme.spacing.sm};
     width: 100%;
+    overflow: hidden;
 `;
 
 export const DragHandle = styled.div`
@@ -340,9 +398,14 @@ export const DragHandle = styled.div`
     font-size: 12px;
     opacity: 0.6;
     transition: opacity 0.2s ease;
+    flex-shrink: 0;
 
     ${HeaderCell}:hover & {
         opacity: 1;
+    }
+
+    @media (max-width: 768px) {
+        display: none;
     }
 `;
 
@@ -351,6 +414,13 @@ export const HeaderLabel = styled.span`
     font-weight: 600;
     color: ${dataTableTheme.text.primary};
     flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    @media (max-width: 768px) {
+        font-size: 13px;
+    }
 `;
 
 export const SortIcon = styled.div<{ $active: boolean }>`
@@ -359,12 +429,14 @@ export const SortIcon = styled.div<{ $active: boolean }>`
     color: ${props => props.$active ? dataTableTheme.primary : dataTableTheme.text.muted};
     font-size: 12px;
     transition: color 0.2s ease;
+    flex-shrink: 0;
 `;
 
 export const TableBody = styled.div`
     background: ${dataTableTheme.surface};
 `;
 
+// FIXED: Responsive table row
 export const TableRow = styled.div<{ $selected?: boolean }>`
     display: flex;
     border-bottom: 1px solid ${dataTableTheme.borderLight};
@@ -382,29 +454,50 @@ export const TableRow = styled.div<{ $selected?: boolean }>`
     }
 `;
 
+// FIXED: Responsive table cell z lepszym zarządzaniem treści
 export const TableCell = styled.div<{ $width?: string }>`
     flex: 0 0 ${props => props.$width || 'auto'};
     width: ${props => props.$width || 'auto'};
+    min-width: ${props => {
+        if (!props.$width) return 'auto';
+        const numericWidth = parseInt(props.$width);
+        if (numericWidth < 80) return '80px';
+        if (numericWidth < 120) return '120px';
+        return props.$width;
+    }};
+    max-width: ${props => props.$width || 'auto'};
     padding: ${dataTableTheme.spacing.md};
     display: flex;
     align-items: center;
     min-height: 80px;
     border-right: 1px solid ${dataTableTheme.borderLight};
+    overflow: hidden;
 
     &:last-child {
         border-right: none;
     }
+
+    @media (max-width: 768px) {
+        padding: ${dataTableTheme.spacing.sm};
+        min-height: 70px;
+    }
 `;
 
+// FIXED: Responsive cards container
 export const CardsContainer = styled.div`
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
     gap: ${dataTableTheme.spacing.md};
     padding: ${dataTableTheme.spacing.lg};
+
+    @media (max-width: 1200px) {
+        grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    }
 
     @media (max-width: 768px) {
         grid-template-columns: 1fr;
         padding: ${dataTableTheme.spacing.md};
+        gap: ${dataTableTheme.spacing.sm};
     }
 `;
 
@@ -421,6 +514,10 @@ export const Card = styled.div<{ $selected?: boolean }>`
         transform: translateY(-2px);
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
         border-color: ${dataTableTheme.primary};
+    }
+
+    @media (max-width: 768px) {
+        padding: ${dataTableTheme.spacing.md};
     }
 `;
 
@@ -493,6 +590,9 @@ export const TooltipWrapper = styled.div<{ title: string }>`
         z-index: 1000;
         box-shadow: ${dataTableTheme.shadow.lg};
         animation: tooltipFadeIn 0.2s ease-out;
+        max-width: 200px;
+        word-wrap: break-word;
+        white-space: normal;
     }
 
     &:hover::before {
@@ -537,9 +637,9 @@ export const ActionButton = styled.button<{
     overflow: hidden;
 
     ${({ $variant }) => {
-    switch ($variant) {
-        case 'view':
-            return `
+        switch ($variant) {
+            case 'view':
+                return `
                     background: ${dataTableTheme.primaryGhost};
                     color: ${dataTableTheme.primary};
                     &:hover {
@@ -549,8 +649,8 @@ export const ActionButton = styled.button<{
                         box-shadow: ${dataTableTheme.shadow.md};
                     }
                 `;
-        case 'edit':
-            return `
+            case 'edit':
+                return `
                     background: ${dataTableTheme.status.warningLight};
                     color: ${dataTableTheme.status.warning};
                     &:hover {
@@ -560,8 +660,8 @@ export const ActionButton = styled.button<{
                         box-shadow: ${dataTableTheme.shadow.md};
                     }
                 `;
-        case 'info':
-            return `
+            case 'info':
+                return `
                     background: ${dataTableTheme.status.infoLight};
                     color: ${dataTableTheme.status.info};
                     &:hover {
@@ -571,8 +671,8 @@ export const ActionButton = styled.button<{
                         box-shadow: ${dataTableTheme.shadow.md};
                     }
                 `;
-        case 'success':
-            return `
+            case 'success':
+                return `
                     background: ${dataTableTheme.status.successLight};
                     color: ${dataTableTheme.status.success};
                     &:hover {
@@ -582,8 +682,8 @@ export const ActionButton = styled.button<{
                         box-shadow: ${dataTableTheme.shadow.md};
                     }
                 `;
-        case 'secondary':
-            return `
+            case 'secondary':
+                return `
                     background: ${dataTableTheme.surfaceElevated};
                     color: ${dataTableTheme.text.tertiary};
                     &:hover {
@@ -593,8 +693,8 @@ export const ActionButton = styled.button<{
                         box-shadow: ${dataTableTheme.shadow.md};
                     }
                 `;
-        case 'delete':
-            return `
+            case 'delete':
+                return `
                     background: ${dataTableTheme.status.errorLight};
                     color: ${dataTableTheme.status.error};
                     &:hover {
@@ -604,8 +704,8 @@ export const ActionButton = styled.button<{
                         box-shadow: ${dataTableTheme.shadow.md};
                     }
                 `;
-    }
-}}
+        }
+    }}
 `;
 
 export const ActionButtons = styled.div`
@@ -634,6 +734,10 @@ export const BulkActionsContainer = styled.div`
     display: flex;
     align-items: center;
     gap: ${dataTableTheme.spacing.sm};
+
+    @media (max-width: 768px) {
+        flex-wrap: wrap;
+    }
 `;
 
 export const BulkActionButton = styled.button<{
@@ -649,11 +753,12 @@ export const BulkActionButton = styled.button<{
     cursor: pointer;
     transition: all 0.2s ease;
     border: 1px solid;
+    white-space: nowrap;
 
     ${({ $variant = 'secondary' }) => {
-    switch ($variant) {
-        case 'primary':
-            return `
+        switch ($variant) {
+            case 'primary':
+                return `
                     background: ${dataTableTheme.primary};
                     color: white;
                     border-color: ${dataTableTheme.primary};
@@ -663,8 +768,8 @@ export const BulkActionButton = styled.button<{
                         border-color: ${dataTableTheme.primaryDark};
                     }
                 `;
-        default: // secondary
-            return `
+            default: // secondary
+                return `
                     background: ${dataTableTheme.surface};
                     color: ${dataTableTheme.text.secondary};
                     border-color: ${dataTableTheme.border};
@@ -675,8 +780,8 @@ export const BulkActionButton = styled.button<{
                         border-color: ${dataTableTheme.primary};
                     }
                 `;
-    }
-}}
+        }
+    }}
 
     &:disabled {
         opacity: 0.5;
@@ -685,5 +790,14 @@ export const BulkActionButton = styled.button<{
 
     svg {
         font-size: 12px;
+    }
+
+    @media (max-width: 768px) {
+        padding: ${dataTableTheme.spacing.xs} ${dataTableTheme.spacing.sm};
+        font-size: 12px;
+
+        span {
+            display: none;
+        }
     }
 `;

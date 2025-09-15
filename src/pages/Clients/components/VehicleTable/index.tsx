@@ -19,13 +19,13 @@ interface VehicleTableProps {
 }
 
 const defaultColumns: TableColumn[] = [
-    { id: 'licensePlate', label: 'Nr rejestracyjny', width: '200px', sortable: true },
-    { id: 'vehicle', label: 'Pojazd', width: '320px', sortable: true },
-    { id: 'owners', label: 'Właściciele', width: '300px', sortable: true },
-    { id: 'services', label: 'Liczba wizyt', width: '140px', sortable: true },
-    { id: 'lastService', label: 'Ostatnia wizyta', width: '160px', sortable: true },
-    { id: 'revenue', label: 'Przychody', width: '140px', sortable: true },
-    { id: 'actions', label: 'Akcje', width: '320px', sortable: false },
+    { id: 'licensePlate', label: 'Nr rejestracyjny', width: '160px', sortable: true },
+    { id: 'vehicle', label: 'Pojazd', width: '220px', sortable: true },
+    { id: 'owners', label: 'Właściciele', width: '260px', sortable: true },
+    { id: 'services', label: 'Liczba wizyt', width: '130px', sortable: true },
+    { id: 'lastService', label: 'Ostatnia wizyta', width: '140px', sortable: true },
+    { id: 'revenue', label: 'Przychody', width: '120px', sortable: true },
+    { id: 'actions', label: 'Akcje', width: '180px', sortable: false },
 ];
 
 const emptyStateConfig = {

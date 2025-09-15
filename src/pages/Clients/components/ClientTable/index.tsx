@@ -25,14 +25,14 @@ interface ClientTableProps {
 }
 
 const defaultColumns: TableColumn[] = [
-    { id: 'selection', label: '', width: '50px', sortable: false },
-    { id: 'client', label: 'Klient', width: '16%', sortable: true },
-    { id: 'contact', label: 'Kontakt', width: '22%', sortable: true },
-    { id: 'company', label: 'Firma', width: '15%', sortable: true },
-    { id: 'lastVisit', label: 'Ostatnia wizyta', width: '12%', sortable: true },
-    { id: 'metrics', label: 'Wizyty/Pojazdy', width: '12%', sortable: true },
-    { id: 'revenue', label: 'Przychody', width: '11%', sortable: true },
-    { id: 'actions', label: 'Akcje', width: '12%', sortable: false },
+    { id: 'selection', label: '', width: '60px', sortable: false },
+    { id: 'client', label: 'Klient', width: '220px', sortable: true },
+    { id: 'contact', label: 'Kontakt', width: '260px', sortable: true },
+    { id: 'company', label: 'Firma', width: '180px', sortable: true },
+    { id: 'lastVisit', label: 'Ostatnia wizyta', width: '140px', sortable: true },
+    { id: 'metrics', label: 'Wizyty/Pojazdy', width: '130px', sortable: true },
+    { id: 'revenue', label: 'Przychody', width: '120px', sortable: true },
+    { id: 'actions', label: 'Akcje', width: '140px', sortable: false },
 ];
 
 const emptyStateConfig = {

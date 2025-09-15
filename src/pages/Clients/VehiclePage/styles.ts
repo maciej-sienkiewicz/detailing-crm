@@ -1,3 +1,4 @@
+// src/pages/Clients/VehiclePage/styles.ts - Naprawione z identyczną szerokością jak strona klientów
 import styled from 'styled-components';
 
 const brandTheme = {
@@ -54,11 +55,13 @@ const brandTheme = {
 };
 
 export const ContentContainer = styled.div`
-    flex: 1;
+    /* FIXED: Identyczne jak w OwnersPage */
     display: flex;
     flex-direction: column;
-    min-height: 0;
+    min-height: 100vh;
     background: ${brandTheme.surfaceAlt};
+    width: 100%;
+    max-width: 100%;
 `;
 
 export const BackSection = styled.div`
@@ -129,7 +132,7 @@ export const OwnerName = styled.div`
 `;
 
 export const MainContent = styled.div`
-    flex: 1;
+    /* FIXED: Identyczne wymiary jak w OwnersPage */
     max-width: 1600px;
     margin: 0 auto;
     padding: 0 ${brandTheme.spacing.xl} ${brandTheme.spacing.xl};
@@ -137,7 +140,7 @@ export const MainContent = styled.div`
     display: flex;
     flex-direction: column;
     gap: ${brandTheme.spacing.lg};
-    min-height: 0;
+    flex-shrink: 0;
 
     @media (max-width: 1024px) {
         padding: 0 ${brandTheme.spacing.lg} ${brandTheme.spacing.lg};
@@ -201,19 +204,33 @@ export const ErrorMessage = styled.div`
 `;
 
 export const TableContainer = styled.div`
-    flex: 1;
-    min-height: 0;
-    overflow: hidden;
+    /* FIXED: Identyczne jak w OwnersPage */
+    width: 100%;
     display: flex;
     flex-direction: column;
-    max-height: calc(100vh - 400px);
+    background: ${brandTheme.surface};
+    border-radius: ${brandTheme.radius.xl};
+    border: 1px solid ${brandTheme.border};
+    overflow: hidden;
+    box-shadow: ${brandTheme.shadow.sm};
+    min-height: 400px;
+    flex-shrink: 0;
 
-    @media (max-width: 1024px) {
-        max-height: calc(100vh - 350px);
+    /* Globalne nadpisanie dla zagnieżdżonych komponentów tabeli */
+    * {
+        &[class*="TableWrapper"],
+        &[class*="TableContainer"],
+        &[class*="ListContainer"] {
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+            flex: none !important;
+        }
     }
 
-    @media (max-width: 768px) {
-        max-height: calc(100vh - 300px);
+    .pagination-container {
+        margin-top: auto;
+        flex-shrink: 0;
     }
 `;
 

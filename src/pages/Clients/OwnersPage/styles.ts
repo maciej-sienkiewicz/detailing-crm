@@ -1,3 +1,4 @@
+// src/pages/Clients/OwnersPage/styles.ts - Naprawione z stałą szerokością
 import styled from 'styled-components';
 
 const brandTheme = {
@@ -59,11 +60,13 @@ export const ContentContainer = styled.div`
     min-height: 100vh;
     background: ${brandTheme.surfaceAlt};
 
-    /* Remove flex: 1 and min-height: 0 constraints */
-    /* Allow natural content flow */
+    /* FIXED: Stała szerokość kontenera głównego */
+    width: 100%;
+    max-width: 100%;
 `;
 
 export const StatsSection = styled.section`
+    /* FIXED: Identyczny kontener jak MainContent */
     max-width: 1600px;
     margin: 0 auto;
     padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl} 0;
@@ -171,6 +174,7 @@ export const StatLabel = styled.div`
 `;
 
 export const MainContent = styled.div`
+    /* FIXED: Identyczne wymiary jak StatsSection */
     max-width: 1600px;
     margin: 0 auto;
     padding: 0 ${brandTheme.spacing.xl} ${brandTheme.spacing.xl};
@@ -178,8 +182,6 @@ export const MainContent = styled.div`
     display: flex;
     flex-direction: column;
     gap: ${brandTheme.spacing.lg};
-
-    /* Remove flex: 1 and min-height: 0 to allow natural expansion */
     flex-shrink: 0;
 
     @media (max-width: 1024px) {
@@ -313,12 +315,10 @@ export const TableContainer = styled.div`
     border: 1px solid ${brandTheme.border};
     overflow: hidden;
     box-shadow: ${brandTheme.shadow.sm};
-
-    /* Allow table to show all content without height constraints */
     min-height: 400px;
     flex-shrink: 0;
 
-    /* Global override for any nested table components that might have height restrictions */
+    /* FIXED: Globalne nadpisanie dla zagnieżdżonych komponentów tabeli */
     * {
         &[class*="TableWrapper"],
         &[class*="TableContainer"],
@@ -330,7 +330,6 @@ export const TableContainer = styled.div`
         }
     }
 
-    /* Ensure pagination is always visible */
     .pagination-container {
         margin-top: auto;
         flex-shrink: 0;
