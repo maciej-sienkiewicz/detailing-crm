@@ -1,7 +1,7 @@
-// src/components/calendar/ConvertToVisitModal.tsx - NAPRAWIONA WERSJA
+// src/components/calendar/ConvertToVisitModal.tsx - IMPROVED STYLING VERSION
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
-import { FaUser, FaCar, FaTimes, FaCheck, FaSpinner } from 'react-icons/fa';
+import { FaUser, FaCar, FaTimes, FaCheck, FaSpinner, FaCalendarAlt, FaClock, FaFileAlt } from 'react-icons/fa';
 import Modal from '../common/Modal';
 import { theme } from '../../styles/theme';
 import { useToast } from '../common/Toast/Toast';
@@ -10,6 +10,8 @@ import { vehicleApi } from '../../api/vehiclesApi';
 import { recurringEventsApi } from '../../api/recurringEventsApi';
 import { EventOccurrenceResponse, ConvertToVisitRequest, ConvertToVisitResponse } from '../../types/recurringEvents';
 import { ClientExpanded, VehicleExpanded } from '../../types';
+import { format } from 'date-fns';
+import { pl } from 'date-fns/locale';
 
 // SIMPLIFIED AutocompleteOption - usuwamy fieldType conflicts
 interface SimpleAutocompleteOption {
@@ -282,7 +284,9 @@ const ConvertToVisitModal: React.FC<ConvertToVisitModalProps> = ({
         return (
             <Modal isOpen={isOpen} onClose={handleClose} title="Przekształć w wizytę">
                 <LoadingContainer>
-                    <FaSpinner className="spinner" />
+                    <LoadingSpinner>
+                        <FaSpinner />
+                    </LoadingSpinner>
                     <LoadingText>Ładowanie danych...</LoadingText>
                 </LoadingContainer>
             </Modal>
@@ -291,138 +295,155 @@ const ConvertToVisitModal: React.FC<ConvertToVisitModalProps> = ({
 
     return (
         <Modal isOpen={isOpen} onClose={handleClose} title="Przekształć w wizytę">
-            <FormContainer>
+            <ModalBody>
+                {/* Event Summary */}
+                <EventSummary>
+                    <SummaryHeader>
+                        <SummaryIcon>
+                            <FaCalendarAlt />
+                        </SummaryIcon>
+                        <SummaryContent>
+                            <SummaryTitle>{recurringEventDetails?.title || 'Cykliczne wydarzenie'}</SummaryTitle>
+                            <SummaryMeta>
+                                <SummaryMetaItem>
+                                    <FaClock />
+                                    <span>{format(new Date(occurrence.scheduledDate), 'EEEE, dd MMMM yyyy • HH:mm', { locale: pl })}</span>
+                                </SummaryMetaItem>
+                            </SummaryMeta>
+                        </SummaryContent>
+                    </SummaryHeader>
+                </EventSummary>
+
                 <form onSubmit={handleSubmit}>
-                    <FormSection>
-                        <SectionTitle>Szczegóły wizyty</SectionTitle>
+                    <FormContainer>
+                        <FormSection>
+                            <SectionHeader>
+                                <SectionIcon><FaFileAlt /></SectionIcon>
+                                <SectionTitle>Szczegóły wizyty</SectionTitle>
+                            </SectionHeader>
 
-                        <FormRow>
-                            <FormGroup>
-                                <Label htmlFor="title">
-                                    Tytuł wizyty
-                                </Label>
-                                <Input
-                                    id="title"
-                                    value={formData.title}
-                                    onChange={(e) => handleFieldChange('title', e.target.value)}
-                                    placeholder="np. Cykliczna wizyta"
-                                    disabled={loading}
-                                    $hasError={!!errors.title}
-                                />
-                                {errors.title && <ErrorText>{errors.title}</ErrorText>}
-                            </FormGroup>
-                        </FormRow>
-
-                        <FormRow>
-                            <FormGroup>
-                                <Label htmlFor="client">
-                                    <FaUser /> Wybierz klienta *
-                                </Label>
-                                <AutocompleteContainer>
+                            <FormGrid>
+                                <FormGroup $fullWidth>
+                                    <Label htmlFor="title">
+                                        Tytuł wizyty *
+                                    </Label>
                                     <Input
-                                        id="client"
-                                        value={clientSearch}
-                                        onChange={(e) => {
-                                            setClientSearch(e.target.value);
-                                            setShowClientDropdown(true);
-                                            if (!e.target.value) {
-                                                setFormData(prev => ({ ...prev, selectedClient: null }));
-                                            }
-                                        }}
-                                        onFocus={() => setShowClientDropdown(true)}
-                                        onBlur={() => setTimeout(() => setShowClientDropdown(false), 200)}
-                                        placeholder="Wyszukaj klienta"
+                                        id="title"
+                                        value={formData.title}
+                                        onChange={(e) => handleFieldChange('title', e.target.value)}
+                                        placeholder="np. Cykliczna wizyta"
                                         disabled={loading}
-                                        $hasError={!!errors.client}
-                                        autoComplete="off"
+                                        $hasError={!!errors.title}
                                     />
+                                    {errors.title && <ErrorText>{errors.title}</ErrorText>}
+                                </FormGroup>
 
-                                    {showClientDropdown && filteredClients.length > 0 && (
-                                        <DropdownList>
-                                            {filteredClients.map((option) => (
-                                                <DropdownItem
-                                                    key={option.id}
-                                                    onMouseDown={(e) => {
-                                                        e.preventDefault();
-                                                        handleClientSelect(option);
-                                                    }}
-                                                >
-                                                    <OptionIcon><FaUser /></OptionIcon>
-                                                    <OptionContent>
-                                                        <OptionLabel>{option.label}</OptionLabel>
-                                                        <OptionDescription>{option.description}</OptionDescription>
-                                                    </OptionContent>
-                                                </DropdownItem>
-                                            ))}
-                                        </DropdownList>
-                                    )}
-                                </AutocompleteContainer>
-                                {errors.client && <ErrorText>{errors.client}</ErrorText>}
-                            </FormGroup>
-                        </FormRow>
+                                <FormGroup>
+                                    <Label htmlFor="client">
+                                        <FaUser /> Klient *
+                                    </Label>
+                                    <AutocompleteContainer>
+                                        <Input
+                                            id="client"
+                                            value={clientSearch}
+                                            onChange={(e) => {
+                                                setClientSearch(e.target.value);
+                                                setShowClientDropdown(true);
+                                                if (!e.target.value) {
+                                                    setFormData(prev => ({ ...prev, selectedClient: null }));
+                                                }
+                                            }}
+                                            onFocus={() => setShowClientDropdown(true)}
+                                            onBlur={() => setTimeout(() => setShowClientDropdown(false), 200)}
+                                            placeholder="Wyszukaj klienta..."
+                                            disabled={loading}
+                                            $hasError={!!errors.client}
+                                            autoComplete="off"
+                                        />
 
-                        <FormRow>
-                            <FormGroup>
-                                <Label htmlFor="vehicle">
-                                    <FaCar /> Wybierz pojazd *
-                                </Label>
-                                <AutocompleteContainer>
-                                    <Input
-                                        id="vehicle"
-                                        value={vehicleSearch}
-                                        onChange={(e) => {
-                                            setVehicleSearch(e.target.value);
-                                            setShowVehicleDropdown(true);
-                                            if (!e.target.value) {
-                                                setFormData(prev => ({ ...prev, selectedVehicle: null }));
-                                            }
-                                        }}
-                                        onFocus={() => setShowVehicleDropdown(true)}
-                                        onBlur={() => setTimeout(() => setShowVehicleDropdown(false), 200)}
-                                        placeholder="Wyszukaj pojazd"
+                                        {showClientDropdown && filteredClients.length > 0 && (
+                                            <DropdownList>
+                                                {filteredClients.map((option) => (
+                                                    <DropdownItem
+                                                        key={option.id}
+                                                        onMouseDown={(e) => {
+                                                            e.preventDefault();
+                                                            handleClientSelect(option);
+                                                        }}
+                                                    >
+                                                        <OptionIcon><FaUser /></OptionIcon>
+                                                        <OptionContent>
+                                                            <OptionLabel>{option.label}</OptionLabel>
+                                                            <OptionDescription>{option.description}</OptionDescription>
+                                                        </OptionContent>
+                                                    </DropdownItem>
+                                                ))}
+                                            </DropdownList>
+                                        )}
+                                    </AutocompleteContainer>
+                                    {errors.client && <ErrorText>{errors.client}</ErrorText>}
+                                </FormGroup>
+
+                                <FormGroup>
+                                    <Label htmlFor="vehicle">
+                                        <FaCar /> Pojazd *
+                                    </Label>
+                                    <AutocompleteContainer>
+                                        <Input
+                                            id="vehicle"
+                                            value={vehicleSearch}
+                                            onChange={(e) => {
+                                                setVehicleSearch(e.target.value);
+                                                setShowVehicleDropdown(true);
+                                                if (!e.target.value) {
+                                                    setFormData(prev => ({ ...prev, selectedVehicle: null }));
+                                                }
+                                            }}
+                                            onFocus={() => setShowVehicleDropdown(true)}
+                                            onBlur={() => setTimeout(() => setShowVehicleDropdown(false), 200)}
+                                            placeholder="Wyszukaj pojazd..."
+                                            disabled={loading}
+                                            $hasError={!!errors.vehicle}
+                                            autoComplete="off"
+                                        />
+
+                                        {showVehicleDropdown && filteredVehicles.length > 0 && (
+                                            <DropdownList>
+                                                {filteredVehicles.map((option) => (
+                                                    <DropdownItem
+                                                        key={option.id}
+                                                        onMouseDown={(e) => {
+                                                            e.preventDefault();
+                                                            handleVehicleSelect(option);
+                                                        }}
+                                                    >
+                                                        <OptionIcon><FaCar /></OptionIcon>
+                                                        <OptionContent>
+                                                            <OptionLabel>{option.label}</OptionLabel>
+                                                            <OptionDescription>{option.description}</OptionDescription>
+                                                        </OptionContent>
+                                                    </DropdownItem>
+                                                ))}
+                                            </DropdownList>
+                                        )}
+                                    </AutocompleteContainer>
+                                    {errors.vehicle && <ErrorText>{errors.vehicle}</ErrorText>}
+                                </FormGroup>
+
+                                <FormGroup $fullWidth>
+                                    <Label htmlFor="notes">Notatki</Label>
+                                    <Textarea
+                                        id="notes"
+                                        value={formData.notes}
+                                        onChange={(e) => handleFieldChange('notes', e.target.value)}
+                                        placeholder="Dodatkowe uwagi do wizyty..."
+                                        rows={3}
                                         disabled={loading}
-                                        $hasError={!!errors.vehicle}
-                                        autoComplete="off"
                                     />
-
-                                    {showVehicleDropdown && filteredVehicles.length > 0 && (
-                                        <DropdownList>
-                                            {filteredVehicles.map((option) => (
-                                                <DropdownItem
-                                                    key={option.id}
-                                                    onMouseDown={(e) => {
-                                                        e.preventDefault();
-                                                        handleVehicleSelect(option);
-                                                    }}
-                                                >
-                                                    <OptionIcon><FaCar /></OptionIcon>
-                                                    <OptionContent>
-                                                        <OptionLabel>{option.label}</OptionLabel>
-                                                        <OptionDescription>{option.description}</OptionDescription>
-                                                    </OptionContent>
-                                                </DropdownItem>
-                                            ))}
-                                        </DropdownList>
-                                    )}
-                                </AutocompleteContainer>
-                                {errors.vehicle && <ErrorText>{errors.vehicle}</ErrorText>}
-                            </FormGroup>
-                        </FormRow>
-
-                        <FormRow>
-                            <FormGroup>
-                                <Label htmlFor="notes">Notatki</Label>
-                                <Textarea
-                                    id="notes"
-                                    value={formData.notes}
-                                    onChange={(e) => handleFieldChange('notes', e.target.value)}
-                                    placeholder="Dodatkowe uwagi do wizyty..."
-                                    rows={3}
-                                    disabled={loading}
-                                />
-                            </FormGroup>
-                        </FormRow>
-                    </FormSection>
+                                </FormGroup>
+                            </FormGrid>
+                        </FormSection>
+                    </FormContainer>
 
                     <ActionButtons>
                         <CancelButton type="button" onClick={handleClose} disabled={loading}>
@@ -431,33 +452,54 @@ const ConvertToVisitModal: React.FC<ConvertToVisitModalProps> = ({
                         <SubmitButton type="submit" disabled={loading || !formData.selectedClient || !formData.selectedVehicle}>
                             {loading ? (
                                 <>
-                                    <FaSpinner className="spinner" /> Przekształcam...
+                                    <LoadingSpinner small>
+                                        <FaSpinner />
+                                    </LoadingSpinner>
+                                    <span>Przekształcam...</span>
                                 </>
                             ) : (
                                 <>
-                                    <FaCheck /> Utwórz wizytę
+                                    <FaCheck />
+                                    <span>Utwórz wizytę</span>
                                 </>
                             )}
                         </SubmitButton>
                     </ActionButtons>
                 </form>
-            </FormContainer>
+            </ModalBody>
         </Modal>
     );
 };
 
 // Styled Components
+const ModalBody = styled.div`
+    padding: 0;
+    max-width: 800px;
+    width: 100%;
+    margin: 0 auto;
+`;
+
 const LoadingContainer = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: ${theme.spacing.lg};
     padding: ${theme.spacing.xxxl};
+    min-height: 200px;
+`;
+
+const LoadingSpinner = styled.div<{ small?: boolean }>`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: ${props => props.small ? '16px' : '32px'};
+    height: ${props => props.small ? '16px' : '32px'};
+    color: ${theme.primary};
     
-    .spinner {
+    svg {
+        font-size: ${props => props.small ? '16px' : '24px'};
         animation: spin 1s linear infinite;
-        font-size: 24px;
-        color: ${theme.primary};
     }
     
     @keyframes spin {
@@ -468,46 +510,133 @@ const LoadingContainer = styled.div`
 
 const LoadingText = styled.div`
     font-size: 16px;
+    font-weight: 500;
     color: ${theme.text.secondary};
 `;
 
+const EventSummary = styled.div`
+    background: linear-gradient(135deg, ${theme.primary}08 0%, ${theme.primary}15 100%);
+    border: 1px solid ${theme.primary}30;
+    border-radius: ${theme.radius.lg};
+    margin-bottom: ${theme.spacing.xl};
+    overflow: hidden;
+`;
+
+const SummaryHeader = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.lg};
+    padding: ${theme.spacing.xl};
+`;
+
+const SummaryIcon = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background: ${theme.primary};
+    color: white;
+    border-radius: ${theme.radius.lg};
+    font-size: 20px;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px ${theme.primary}25;
+`;
+
+const SummaryContent = styled.div`
+    flex: 1;
+    min-width: 0;
+`;
+
+const SummaryTitle = styled.h3`
+    font-size: 18px;
+    font-weight: 600;
+    color: ${theme.text.primary};
+    margin: 0 0 ${theme.spacing.sm} 0;
+    line-height: 1.3;
+`;
+
+const SummaryMeta = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${theme.spacing.xs};
+`;
+
+const SummaryMetaItem = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.sm};
+    font-size: 14px;
+    font-weight: 500;
+    color: ${theme.text.secondary};
+
+    svg {
+        font-size: 12px;
+        color: ${theme.primary};
+        flex-shrink: 0;
+    }
+`;
+
 const FormContainer = styled.div`
-    padding: ${theme.spacing.xl}; /* POPRAWKA: Dodano padding */
-    min-width: 600px; /* POPRAWKA: Zwiększono szerokość */
-    max-width: 700px;
     width: 100%;
 `;
 
 const FormSection = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${theme.spacing.lg};
-    padding: ${theme.spacing.lg};
-    background: ${theme.surfaceAlt};
-    border-radius: ${theme.radius.lg};
+    background: ${theme.surface};
     border: 1px solid ${theme.border};
-    margin-bottom: ${theme.spacing.xl};
+    border-radius: ${theme.radius.lg};
+    overflow: hidden;
+    box-shadow: ${theme.shadow.sm};
 `;
 
-const SectionTitle = styled.h3`
-    font-size: 18px;
-    font-weight: 600;
-    color: ${theme.text.primary};
-    margin: 0;
-    padding-bottom: ${theme.spacing.md};
+const SectionHeader = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.md};
+    padding: ${theme.spacing.xl};
+    background: ${theme.surfaceElevated};
     border-bottom: 1px solid ${theme.border};
 `;
 
-const FormRow = styled.div`
+const SectionIcon = styled.div`
     display: flex;
-    flex-direction: column;
-    gap: ${theme.spacing.md};
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: ${theme.primary}15;
+    color: ${theme.primary};
+    border-radius: ${theme.radius.md};
+    font-size: 14px;
 `;
 
-const FormGroup = styled.div`
+const SectionTitle = styled.h4`
+    font-size: 16px;
+    font-weight: 600;
+    color: ${theme.text.primary};
+    margin: 0;
+`;
+
+const FormGrid = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: ${theme.spacing.xl};
+    padding: ${theme.spacing.xl};
+
+    @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+        gap: ${theme.spacing.lg};
+    }
+`;
+
+const FormGroup = styled.div<{ $fullWidth?: boolean }>`
     display: flex;
     flex-direction: column;
     gap: ${theme.spacing.sm};
+    
+    ${props => props.$fullWidth && `
+        grid-column: 1 / -1;
+    `}
 `;
 
 const Label = styled.label`
@@ -515,12 +644,13 @@ const Label = styled.label`
     align-items: center;
     gap: ${theme.spacing.sm};
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 600;
     color: ${theme.text.primary};
+    margin-bottom: ${theme.spacing.xs};
 
     svg {
-        color: ${theme.text.tertiary};
-        font-size: 12px;
+        color: ${theme.primary};
+        font-size: 13px;
     }
 `;
 
@@ -529,35 +659,38 @@ const AutocompleteContainer = styled.div`
 `;
 
 const Input = styled.input<{ $hasError?: boolean }>`
-    padding: ${theme.spacing.md};
+    width: 100%;
+    padding: ${theme.spacing.md} ${theme.spacing.lg};
     border: 1px solid ${props => props.$hasError ? theme.error : theme.border};
     border-radius: ${theme.radius.md};
     font-size: 14px;
+    font-weight: 500;
     background: ${theme.surface};
     color: ${theme.text.primary};
     transition: all 0.2s ease;
-    width: 100%;
     
     &:focus {
         outline: none;
         border-color: ${props => props.$hasError ? theme.error : theme.primary};
-        box-shadow: 0 0 0 2px ${props => props.$hasError ? theme.error : theme.primary}20;
+        box-shadow: 0 0 0 3px ${props => props.$hasError ? theme.error : theme.primary}20;
     }
     
     &:disabled {
-        background: ${theme.surfaceAlt};
+        background: ${theme.surfaceElevated};
         color: ${theme.text.tertiary};
         cursor: not-allowed;
+        opacity: 0.7;
     }
     
     &::placeholder {
         color: ${theme.text.muted};
+        font-weight: 400;
     }
 `;
 
 const DropdownList = styled.div`
     position: absolute;
-    top: 100%;
+    top: calc(100% + 4px);
     left: 0;
     right: 0;
     background: ${theme.surface};
@@ -565,7 +698,7 @@ const DropdownList = styled.div`
     border-radius: ${theme.radius.md};
     box-shadow: ${theme.shadow.lg};
     z-index: 1000;
-    max-height: 200px;
+    max-height: 240px;
     overflow-y: auto;
 `;
 
@@ -575,10 +708,16 @@ const DropdownItem = styled.div`
     gap: ${theme.spacing.md};
     padding: ${theme.spacing.md};
     cursor: pointer;
-    transition: background 0.2s ease;
+    transition: all 0.2s ease;
+    border-bottom: 1px solid ${theme.borderLight};
+
+    &:last-child {
+        border-bottom: none;
+    }
 
     &:hover {
         background: ${theme.surfaceHover};
+        transform: translateX(2px);
     }
 `;
 
@@ -586,11 +725,11 @@ const OptionIcon = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
-    background: ${theme.primaryGhost};
+    width: 36px;
+    height: 36px;
+    background: ${theme.primary}15;
     color: ${theme.primary};
-    border-radius: ${theme.radius.sm};
+    border-radius: ${theme.radius.md};
     font-size: 14px;
     flex-shrink: 0;
 `;
@@ -605,84 +744,100 @@ const OptionLabel = styled.div`
     font-weight: 600;
     color: ${theme.text.primary};
     margin-bottom: 2px;
+    line-height: 1.3;
 `;
 
 const OptionDescription = styled.div`
     font-size: 12px;
     color: ${theme.text.muted};
+    font-weight: 400;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 `;
 
 const Textarea = styled.textarea`
-    padding: ${theme.spacing.md};
+    width: 100%;
+    padding: ${theme.spacing.md} ${theme.spacing.lg};
     border: 1px solid ${theme.border};
     border-radius: ${theme.radius.md};
     font-size: 14px;
+    font-weight: 500;
     background: ${theme.surface};
     color: ${theme.text.primary};
     transition: all 0.2s ease;
     resize: vertical;
     font-family: inherit;
-    width: 100%;
+    min-height: 80px;
 
     &:focus {
         outline: none;
         border-color: ${theme.primary};
-        box-shadow: 0 0 0 2px ${theme.primary}20;
+        box-shadow: 0 0 0 3px ${theme.primary}20;
     }
 
     &:disabled {
-        background: ${theme.surfaceAlt};
+        background: ${theme.surfaceElevated};
         color: ${theme.text.tertiary};
         cursor: not-allowed;
+        opacity: 0.7;
     }
 
     &::placeholder {
         color: ${theme.text.muted};
+        font-weight: 400;
     }
 `;
 
 const ErrorText = styled.span`
     font-size: 12px;
-    color: ${theme.error};
     font-weight: 500;
+    color: ${theme.error};
+    margin-top: ${theme.spacing.xs};
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.xs};
 `;
 
 const ActionButtons = styled.div`
     display: flex;
     gap: ${theme.spacing.md};
     justify-content: flex-end;
-    padding-top: ${theme.spacing.lg};
+    padding: ${theme.spacing.xl};
+    background: ${theme.surfaceElevated};
     border-top: 1px solid ${theme.border};
+    margin-top: ${theme.spacing.xl};
+    border-radius: 0 0 ${theme.radius.lg} ${theme.radius.lg};
 `;
 
 const BaseButton = styled.button`
     display: flex;
     align-items: center;
     gap: ${theme.spacing.sm};
-    padding: ${theme.spacing.md} ${theme.spacing.lg};
+    padding: ${theme.spacing.md} ${theme.spacing.xl};
     border-radius: ${theme.radius.md};
-    font-weight: 500;
+    font-weight: 600;
     font-size: 14px;
     cursor: pointer;
     transition: all 0.2s ease;
     border: 1px solid;
-    min-height: 40px;
+    min-height: 44px;
+    min-width: 120px;
+    justify-content: center;
 
     &:disabled {
         opacity: 0.6;
         cursor: not-allowed;
+        transform: none !important;
     }
 
-    .spinner {
-        animation: spin 1s linear infinite;
+    &:not(:disabled):hover {
+        transform: translateY(-1px);
+        box-shadow: ${theme.shadow.md};
     }
 
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+    &:not(:disabled):active {
+        transform: translateY(0);
     }
 `;
 
@@ -691,9 +846,9 @@ const CancelButton = styled(BaseButton)`
     color: ${theme.text.secondary};
     border-color: ${theme.border};
 
-    &:hover:not(:disabled) {
+    &:not(:disabled):hover {
         background: ${theme.surfaceHover};
-        border-color: ${theme.borderActive};
+        border-color: ${theme.primary};
         color: ${theme.text.primary};
     }
 `;
@@ -703,11 +858,9 @@ const SubmitButton = styled(BaseButton)`
     color: white;
     border-color: ${theme.primary};
 
-    &:hover:not(:disabled) {
-        background: ${theme.primaryDark};
-        border-color: ${theme.primaryDark};
-        transform: translateY(-1px);
-        box-shadow: ${theme.shadow.md};
+    &:not(:disabled):hover {
+        background: ${theme.primaryDark || theme.primary};
+        border-color: ${theme.primaryDark || theme.primary};
     }
 `;
 

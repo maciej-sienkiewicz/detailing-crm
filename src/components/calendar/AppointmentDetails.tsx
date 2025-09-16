@@ -1,4 +1,4 @@
-// src/components/calendar/AppointmentDetails.tsx - COMPLETE VERSION WITH RECURRING EVENTS
+// src/components/calendar/AppointmentDetails.tsx - UPDATED VERSION WITH SIMPLE_EVENT HANDLING
 import React, {useState, useEffect, useCallback} from 'react';
 import styled from 'styled-components';
 import {format} from 'date-fns';
@@ -15,14 +15,18 @@ import {
     FaTrash,
     FaUser,
     FaSync,
-    FaHistory, FaCheck
+    FaHistory,
+    FaCheck,
+    FaCheckCircle
 } from 'react-icons/fa';
 import {Appointment, ProtocolStatus} from '../../types';
 import {
     EventOccurrenceResponse,
     RecurringEventResponse,
     OccurrenceStatusLabels,
-    ConvertToVisitResponse
+    ConvertToVisitResponse,
+    EventType,
+    OccurrenceStatus
 } from '../../types/recurringEvents';
 import {useNavigate} from 'react-router-dom';
 import {theme} from '../../styles/theme';
@@ -31,14 +35,13 @@ import {useToast} from "../common/Toast/Toast";
 import ConvertToVisitModal from "./ConvertToVisitModal";
 import {canConvertToVisit, isAlreadyConverted, isRecurringVisit} from "../../utils/recurringVisitUtils";
 
-
 interface AppointmentDetailsProps {
     appointment: Appointment;
     onEdit: () => void;
     onDelete: () => void;
     onStatusChange: (status: any) => void;
     onCreateProtocol: () => void;
-    onConvertToVisit?: (visitResponse: ConvertToVisitResponse) => void; // NOWE
+    onConvertToVisit?: (visitResponse: ConvertToVisitResponse) => void;
 }
 
 // Utility functions for recurring events
@@ -53,6 +56,29 @@ const extractOccurrenceId = (appointmentId: string): string | null => {
     return null;
 };
 
+// Helper function to determine if this is a SIMPLE_EVENT
+const isSimpleEvent = (appointment: Appointment): boolean => {
+    const occurrenceData = (appointment as any).recurringEventData as EventOccurrenceResponse;
+
+    // Check in recurringEventDetails first (from detailed API response)
+    if (occurrenceData?.recurringEventDetails?.type) {
+        return occurrenceData.recurringEventDetails.type === EventType.SIMPLE_EVENT;
+    }
+
+    // Fallback to recurringEvent for compatibility
+    if (occurrenceData?.recurringEvent?.type) {
+        return occurrenceData.recurringEvent.type === EventType.SIMPLE_EVENT;
+    }
+
+    return false;
+};
+
+// Helper function to check if event is already completed
+const isEventCompleted = (appointment: Appointment): boolean => {
+    const occurrenceData = (appointment as any).recurringEventData as EventOccurrenceResponse;
+    return occurrenceData?.status === OccurrenceStatus.COMPLETED;
+};
+
 const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
                                                                    appointment,
                                                                    onEdit,
@@ -65,12 +91,24 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
     const [showConfirmDelete, setShowConfirmDelete] = useState(false);
     const [recurringEventDetails, setRecurringEventDetails] = useState<RecurringEventResponse | null>(null);
     const [loadingDetails, setLoadingDetails] = useState(false);
+    const [updatingStatus, setUpdatingStatus] = useState(false);
 
     const isRecurringEvent = isRecurringVisit(appointment);
+    const isSimpleEventType = isSimpleEvent(appointment);
+    const isCompleted = isEventCompleted(appointment);
     const canConvert = canConvertToVisit(appointment);
     const alreadyConverted = isAlreadyConverted(appointment);
 
     const occurrenceData = (appointment as any).recurringEventData as EventOccurrenceResponse;
+
+    // Debug logging
+    console.log('🔍 AppointmentDetails Debug:', {
+        isRecurringEvent,
+        isSimpleEventType,
+        isCompleted,
+        eventType: occurrenceData?.recurringEventDetails?.type || occurrenceData?.recurringEvent?.type,
+        occurrenceData: occurrenceData
+    });
 
     const [showConvertModal, setShowConvertModal] = useState(false);
     const { showToast } = useToast();
@@ -140,6 +178,37 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
         setShowConfirmDelete(false);
     };
 
+    // Handle marking simple event as completed
+    const handleMarkAsCompleted = useCallback(async () => {
+        if (!occurrenceData) {
+            showToast('error', 'Brak danych wystąpienia', 3000);
+            return;
+        }
+
+        setUpdatingStatus(true);
+        try {
+            await recurringEventsApi.updateOccurrenceStatus(
+                occurrenceData.recurringEventId,
+                occurrenceData.id,
+                {
+                    status: OccurrenceStatus.COMPLETED,
+                    notes: 'Oznaczone jako wykonane przez użytkownika'
+                }
+            );
+
+            showToast('success', 'Wydarzenie zostało oznaczone jako wykonane', 4000);
+
+            // Update the status in parent component
+            onStatusChange('COMPLETED');
+
+        } catch (error) {
+            console.error('Error marking event as completed:', error);
+            showToast('error', 'Nie udało się oznaczyć wydarzenia jako wykonane', 5000);
+        } finally {
+            setUpdatingStatus(false);
+        }
+    }, [occurrenceData, showToast, onStatusChange]);
+
     const handleConvertToVisit = useCallback(() => {
         if (!canConvert) {
             if (alreadyConverted) {
@@ -173,7 +242,7 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
                         <AppointmentMeta>
                             {isRecurringEvent ? (
                                 <>
-                                    Cykliczne wydarzenie • Status: {occurrenceData ? OccurrenceStatusLabels[occurrenceData.status] : 'Nieznany'}
+                                    {isSimpleEventType ? 'Proste wydarzenie' : 'Cykliczna wizyta'} • Status: {occurrenceData ? OccurrenceStatusLabels[occurrenceData.status] : 'Nieznany'}
                                     {loadingDetails && ' • Ładowanie szczegółów...'}
                                 </>
                             ) : (
@@ -185,7 +254,7 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
                     {isRecurringEvent ? (
                         <RecurringActionButton onClick={handleGoToRecurringEvent}>
                             <FaHistory />
-                            <span>Pokaż cykliczne wydarzenie</span>
+                            <span>Pokaż {isSimpleEventType ? 'wydarzenie' : 'cykliczne wydarzenie'}</span>
                         </RecurringActionButton>
                     ) : appointment.isProtocol && (appointment.status as unknown as ProtocolStatus) !== ProtocolStatus.SCHEDULED && (
                         <ProtocolActionButton onClick={handleGoToProtocol}>
@@ -200,24 +269,28 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
             {isRecurringEvent && recurringEventDetails && (
                 <RecurringEventSection>
                     <SectionHeader>
-                        <SectionTitle>Szczegóły cyklicznego wydarzenia</SectionTitle>
+                        <SectionTitle>
+                            Szczegóły {isSimpleEventType ? 'wydarzenia' : 'cyklicznego wydarzenia'}
+                        </SectionTitle>
                     </SectionHeader>
                     <RecurringEventContent>
                         <RecurringEventGrid>
-                            <RecurringEventItem>
-                                <InfoIcon><FaSync /></InfoIcon>
-                                <InfoContent>
-                                    <InfoLabel>Częstotliwość</InfoLabel>
-                                    <InfoValue>
-                                        {recurringEventDetails.recurrencePattern.frequency}
-                                        {recurringEventDetails.recurrencePattern.interval > 1 &&
-                                            ` (co ${recurringEventDetails.recurrencePattern.interval})`
-                                        }
-                                    </InfoValue>
-                                </InfoContent>
-                            </RecurringEventItem>
+                            {!isSimpleEventType && (
+                                <RecurringEventItem>
+                                    <InfoIcon><FaSync /></InfoIcon>
+                                    <InfoContent>
+                                        <InfoLabel>Częstotliwość</InfoLabel>
+                                        <InfoValue>
+                                            {recurringEventDetails.recurrencePattern.frequency}
+                                            {recurringEventDetails.recurrencePattern.interval > 1 &&
+                                                ` (co ${recurringEventDetails.recurrencePattern.interval})`
+                                            }
+                                        </InfoValue>
+                                    </InfoContent>
+                                </RecurringEventItem>
+                            )}
 
-                            {recurringEventDetails.recurrencePattern.daysOfWeek && (
+                            {!isSimpleEventType && recurringEventDetails.recurrencePattern.daysOfWeek && (
                                 <RecurringEventItem>
                                     <InfoIcon><FaCalendarAlt /></InfoIcon>
                                     <InfoContent>
@@ -229,7 +302,7 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
                                 </RecurringEventItem>
                             )}
 
-                            {recurringEventDetails.recurrencePattern.endDate && (
+                            {!isSimpleEventType && recurringEventDetails.recurrencePattern.endDate && (
                                 <RecurringEventItem>
                                     <InfoIcon><FaClock /></InfoIcon>
                                     <InfoContent>
@@ -237,6 +310,16 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
                                         <InfoValue>
                                             {format(new Date(recurringEventDetails.recurrencePattern.endDate), 'dd MMMM yyyy', { locale: pl })}
                                         </InfoValue>
+                                    </InfoContent>
+                                </RecurringEventItem>
+                            )}
+
+                            {isSimpleEventType && (
+                                <RecurringEventItem>
+                                    <InfoIcon><FaCalendarAlt /></InfoIcon>
+                                    <InfoContent>
+                                        <InfoLabel>Typ wydarzenia</InfoLabel>
+                                        <InfoValue>Jednorazowe wydarzenie</InfoValue>
                                     </InfoContent>
                                 </RecurringEventItem>
                             )}
@@ -328,7 +411,7 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
 
             {/* Services Section */}
             {((appointment.services && appointment.services.length > 0) ||
-                (isRecurringEvent && recurringEventDetails?.visitTemplate?.defaultServices.length)) && (
+                (isRecurringEvent && !isSimpleEventType && recurringEventDetails?.visitTemplate?.defaultServices.length)) && (
                 <ServicesSection>
                     <SectionHeader>
                         <SectionTitleWithIcon>
@@ -400,38 +483,67 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
                     <RecurringEventActions>
                         <SecondaryAction onClick={handleGoToRecurringEvent}>
                             <FaHistory />
-                            <span>Zarządzaj serią</span>
+                            <span>{isSimpleEventType ? 'Pokaż wydarzenie' : 'Zarządzaj serią'}</span>
                         </SecondaryAction>
 
-                        {canConvert ? (
-                            <PrimaryAction onClick={handleConvertToVisit}>
-                                <FaClipboardCheck />
-                                <ActionContent>
-                                    <ActionLabel>Przekształć na wizytę</ActionLabel>
-                                    <ActionHint>Utwórz pełny protokół</ActionHint>
-                                </ActionContent>
-                            </PrimaryAction>
-                        ) : alreadyConverted ? (
-                            <ConvertedAction>
-                                <FaCheck />
-                                <ActionContent>
-                                    <ActionLabel>Przekształcone</ActionLabel>
-                                    <ActionHint>Wizyta została utworzona</ActionHint>
-                                </ActionContent>
-                            </ConvertedAction>
+                        {/* Different actions based on event type */}
+                        {isSimpleEventType ? (
+                            // Actions for SIMPLE_EVENT
+                            isCompleted ? (
+                                <CompletedAction>
+                                    <FaCheckCircle />
+                                    <ActionContent>
+                                        <ActionLabel>Wykonane</ActionLabel>
+                                        <ActionHint>Wydarzenie zakończone</ActionHint>
+                                    </ActionContent>
+                                </CompletedAction>
+                            ) : (
+                                <PrimaryAction onClick={handleMarkAsCompleted} disabled={updatingStatus}>
+                                    {updatingStatus ? (
+                                        <LoadingSpinner>⟳</LoadingSpinner>
+                                    ) : (
+                                        <FaCheckCircle />
+                                    )}
+                                    <ActionContent>
+                                        <ActionLabel>
+                                            {updatingStatus ? 'Aktualizowanie...' : 'Oznacz jako wykonane'}
+                                        </ActionLabel>
+                                        <ActionHint>Zakończ wydarzenie</ActionHint>
+                                    </ActionContent>
+                                </PrimaryAction>
+                            )
                         ) : (
-                            <DisabledAction>
-                                <FaTimes />
-                                <ActionContent>
-                                    <ActionLabel>Nie można przekształcić</ActionLabel>
-                                    <ActionHint>Status nie pozwala</ActionHint>
-                                </ActionContent>
-                            </DisabledAction>
+                            // Actions for RECURRING_VISIT
+                            canConvert ? (
+                                <PrimaryAction onClick={handleConvertToVisit}>
+                                    <FaClipboardCheck />
+                                    <ActionContent>
+                                        <ActionLabel>Przekształć na wizytę</ActionLabel>
+                                        <ActionHint>Utwórz pełny protokół</ActionHint>
+                                    </ActionContent>
+                                </PrimaryAction>
+                            ) : alreadyConverted ? (
+                                <ConvertedAction>
+                                    <FaCheck />
+                                    <ActionContent>
+                                        <ActionLabel>Przekształcone</ActionLabel>
+                                        <ActionHint>Wizyta została utworzona</ActionHint>
+                                    </ActionContent>
+                                </ConvertedAction>
+                            ) : (
+                                <DisabledAction>
+                                    <FaTimes />
+                                    <ActionContent>
+                                        <ActionLabel>Nie można przekształcić</ActionLabel>
+                                        <ActionHint>Status nie pozwala</ActionHint>
+                                    </ActionContent>
+                                </DisabledAction>
+                            )
                         )}
 
                         <DangerAction onClick={() => onStatusChange('CANCELLED')}>
                             <FaTimes />
-                            <span>Anuluj wystąpienie</span>
+                            <span>{isSimpleEventType ? 'Anuluj wydarzenie' : 'Anuluj wystąpienie'}</span>
                         </DangerAction>
                     </RecurringEventActions>
                 ) : appointment.isProtocol && (appointment.status as unknown as ProtocolStatus) === ProtocolStatus.SCHEDULED ? (
@@ -494,13 +606,15 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
                         <ModalBody>
                             <WarningText>
                                 {isRecurringEvent ?
-                                    `Czy na pewno chcesz anulować to wystąpienie cyklicznego wydarzenia "${appointment.title}"?` :
+                                    `Czy na pewno chcesz anulować ${isSimpleEventType ? 'to wydarzenie' : 'to wystąpienie cyklicznego wydarzenia'} "${appointment.title}"?` :
                                     `Czy na pewno chcesz usunąć wizytę "${appointment.title}"?`
                                 }
                             </WarningText>
                             <WarningSubtext>
                                 {isRecurringEvent ?
-                                    'To wystąpienie zostanie oznaczone jako anulowane, ale pozostałe w serii pozostaną bez zmian.' :
+                                    isSimpleEventType ?
+                                        'To wydarzenie zostanie oznaczone jako anulowane.' :
+                                        'To wystąpienie zostanie oznaczone jako anulowane, ale pozostałe w serii pozostaną bez zmian.' :
                                     'Ta operacja jest nieodwracalna. Wszystkie dane zostaną trwale usunięte.'
                                 }
                             </WarningSubtext>
@@ -513,14 +627,17 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
                             </ModalButton>
                             <ModalButton $variant="danger" onClick={confirmDelete}>
                                 <FaTrash />
-                                {isRecurringEvent ? 'Anuluj wystąpienie' : 'Usuń wizytę'}
+                                {isRecurringEvent ?
+                                    (isSimpleEventType ? 'Anuluj wydarzenie' : 'Anuluj wystąpienie') :
+                                    'Usuń wizytę'
+                                }
                             </ModalButton>
                         </ModalActions>
                     </ModalContent>
                 </ConfirmModal>
             )}
 
-            {showConvertModal && isRecurringEvent && occurrenceData && (
+            {showConvertModal && isRecurringEvent && !isSimpleEventType && occurrenceData && (
                 <ConvertToVisitModal
                     isOpen={showConvertModal}
                     occurrence={occurrenceData}
@@ -533,7 +650,38 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
     );
 };
 
-// Styled Components
+// Styled Components (adding new ones for simple events)
+const LoadingSpinner = styled.span`
+    display: inline-block;
+    animation: spin 1s linear infinite;
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+`;
+
+const CompletedAction = styled.div`
+    background: ${theme.success}15;
+    color: ${theme.success};
+    border: 2px solid ${theme.success};
+    border-radius: ${theme.radius.md};
+    padding: ${theme.spacing.lg};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: ${theme.spacing.xs};
+    cursor: default;
+    font-weight: 600;
+
+    svg {
+        font-size: 20px;
+        margin-bottom: ${theme.spacing.xs};
+    }
+`;
+
+// ... rest of the existing styled components remain the same
 const DetailsContainer = styled.div`
     display: flex;
     flex-direction: column;
@@ -545,7 +693,6 @@ const DetailsContainer = styled.div`
     overflow: hidden;
 `;
 
-
 const ConvertedAction = styled.div`
     background: ${theme.surface};
     color: ${theme.success};
@@ -554,6 +701,11 @@ const ConvertedAction = styled.div`
     gap: ${theme.spacing.xs};
     opacity: 0.8;
     cursor: default;
+    padding: ${theme.spacing.lg};
+    border-radius: ${theme.radius.md};
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
     &:hover {
         transform: none;
@@ -570,6 +722,11 @@ const DisabledAction = styled.div`
     gap: ${theme.spacing.xs};
     opacity: 0.6;
     cursor: not-allowed;
+    padding: ${theme.spacing.lg};
+    border-radius: ${theme.radius.md};
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
     &:hover {
         transform: none;
@@ -580,8 +737,8 @@ const DisabledAction = styled.div`
 
 const DetailsHeader = styled.div<{ $isRecurring?: boolean }>`
     background: ${props => props.$isRecurring ?
-    'linear-gradient(135deg, #8b5cf615 0%, #a78bfa15 100%)' :
-    theme.surfaceElevated};
+            'linear-gradient(135deg, #8b5cf615 0%, #a78bfa15 100%)' :
+            theme.surfaceElevated};
     border-bottom: 1px solid ${theme.border};
     ${props => props.$isRecurring && `
         border-left: 4px solid #8b5cf6;
@@ -994,6 +1151,17 @@ const BaseAction = styled.button`
     &:active {
         transform: translateY(0);
     }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+
+        &:hover {
+            transform: none;
+            box-shadow: none;
+        }
+    }
 `;
 
 const PrimaryAction = styled(BaseAction)`
@@ -1003,7 +1171,7 @@ const PrimaryAction = styled(BaseAction)`
     flex-direction: column;
     gap: ${theme.spacing.xs};
 
-    &:hover {
+    &:hover:not(:disabled) {
         background: ${theme.primaryDark};
         border-color: ${theme.primaryDark};
     }
@@ -1155,9 +1323,9 @@ const ModalButton = styled.button<{ $variant: 'primary' | 'secondary' | 'danger'
     min-height: 40px;
 
     ${props => {
-    switch (props.$variant) {
-        case 'secondary':
-            return `
+        switch (props.$variant) {
+            case 'secondary':
+                return `
                     background: ${theme.surface};
                     color: ${theme.text.secondary};
                     border-color: ${theme.border};
@@ -1167,8 +1335,8 @@ const ModalButton = styled.button<{ $variant: 'primary' | 'secondary' | 'danger'
                         border-color: ${theme.borderActive};
                     }
                 `;
-        case 'danger':
-            return `
+            case 'danger':
+                return `
                     background: ${theme.error};
                     color: white;
                     border-color: ${theme.error};
@@ -1178,8 +1346,8 @@ const ModalButton = styled.button<{ $variant: 'primary' | 'secondary' | 'danger'
                         opacity: 0.9;
                     }
                 `;
-        default:
-            return `
+            default:
+                return `
                     background: ${theme.primary};
                     color: white;
                     border-color: ${theme.primary};
@@ -1188,8 +1356,8 @@ const ModalButton = styled.button<{ $variant: 'primary' | 'secondary' | 'danger'
                         background: ${theme.primaryDark};
                     }
                 `;
-    }
-}}
+        }
+    }}
 `;
 
 export default AppointmentDetails;
