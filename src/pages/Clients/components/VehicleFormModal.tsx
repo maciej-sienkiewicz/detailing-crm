@@ -1,4 +1,4 @@
-// src/pages/Clients/components/VehicleFormModal.tsx - NAPRAWIONY
+// src/pages/Clients/components/VehicleFormModal.tsx - POPRAWIONY LAYOUT
 import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
 import {
@@ -15,9 +15,9 @@ import {
 } from 'react-icons/fa';
 import {VehicleExpanded} from '../../../types/vehicle';
 import {clientsApi} from '../../../api/clientsApi';
-import {vehicleApi} from '../../../api/vehiclesApi'; // DODANO: Import vehicleApi
+import {vehicleApi} from '../../../api/vehiclesApi';
 import Modal from '../../../components/common/Modal';
-import {useToast} from '../../../components/common/Toast/Toast'; // DODANO: Import useToast
+import {useToast} from '../../../components/common/Toast/Toast';
 
 const brandTheme = {
     primary: 'var(--brand-primary, #1a365d)',
@@ -75,7 +75,7 @@ const brandTheme = {
 interface VehicleFormModalProps {
     vehicle: VehicleExpanded | null;
     defaultOwnerId?: string;
-    onSave: () => void; // ZMIENIONO: Uproszczenie interfejsu
+    onSave: () => void;
     onCancel: () => void;
 }
 
@@ -96,7 +96,7 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
     const [error, setError] = useState<string | null>(null);
     const [clients, setClients] = useState<ClientOption[]>([]);
     const [loadingClients, setLoadingClients] = useState(false);
-    const { showToast } = useToast(); // DODANO: Hook do powiadomień
+    const { showToast } = useToast();
 
     const [formData, setFormData] = useState<Partial<VehicleExpanded>>(
         vehicle || {
@@ -114,7 +114,6 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
 
     const [errors, setErrors] = useState<Record<string, string>>({});
 
-    // DODANO: Aktualizacja formData gdy vehicle się zmienia
     useEffect(() => {
         if (vehicle) {
             setFormData({
@@ -234,7 +233,6 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
         return Object.keys(newErrors).length === 0;
     };
 
-    // NAPRAWIONO: Główna funkcja handleSubmit z prawidłowym wywołaniem API
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -246,13 +244,6 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
         setError(null);
 
         try {
-            console.log('🔄 Zapisywanie pojazdu:', {
-                isEdit: !!vehicle?.id,
-                vehicleId: vehicle?.id,
-                formData
-            });
-
-            // NAPRAWIONO: Przygotowanie danych do wysłania
             const vehicleData = {
                 make: formData.make!.trim(),
                 model: formData.model!.trim(),
@@ -263,24 +254,15 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                 ownerIds: formData.ownerIds || []
             };
 
-            console.log('📤 Dane do wysłania:', vehicleData);
-
             let result;
             if (vehicle?.id) {
-                // EDYCJA POJAZDU
-                console.log('✏️ Edytowanie pojazdu:', vehicle.id);
                 result = await vehicleApi.updateVehicle(vehicle.id, vehicleData);
                 showToast('success', 'Pojazd został zaktualizowany pomyślnie');
             } else {
-                // NOWY POJAZD
-                console.log('➕ Tworzenie nowego pojazdu');
                 result = await vehicleApi.createVehicle(vehicleData);
                 showToast('success', 'Nowy pojazd został dodany pomyślnie');
             }
 
-            console.log('✅ Pojazd zapisany:', result);
-
-            // Wywołanie callback'a z rodzicoskim komponentem
             onSave();
 
         } catch (err: any) {
@@ -288,7 +270,6 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
 
             let errorMessage = 'Nie udało się zapisać pojazdu. Spróbuj ponownie.';
 
-            // DODANO: Lepsze obsługiwanie błędów z API
             if (err.message) {
                 errorMessage = err.message;
             } else if (err.data?.message) {
@@ -306,323 +287,369 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
         }
     };
 
-    const formatDate = (dateString: string): string => {
-        if (!dateString) return '';
-        const date = new Date(dateString);
-        return date.toLocaleDateString('pl-PL', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit'
-        });
-    };
-
-    const formatCurrency = (amount: number): string => {
-        return new Intl.NumberFormat('pl-PL', {
-            style: 'currency',
-            currency: 'PLN'
-        }).format(amount);
-    };
-
     return (
-        <Modal
-            isOpen={true}
-            onClose={onCancel}
-            title={vehicle ? 'Edycja pojazdu' : 'Nowy pojazd'}
-        >
-            <FormContainer>
-                {error && (
-                    <ErrorContainer>
-                        <ErrorIcon>⚠️</ErrorIcon>
-                        <ErrorText>{error}</ErrorText>
-                    </ErrorContainer>
-                )}
+        <ModalWrapper>
+            <Modal
+                isOpen={true}
+                onClose={onCancel}
+                title={vehicle ? 'Edycja pojazdu' : 'Nowy pojazd'}
+            >
+                <ModalLayout>
+                    <ModalContent>
+                        {error && (
+                            <ErrorContainer>
+                                <ErrorIcon>⚠️</ErrorIcon>
+                                <ErrorText>{error}</ErrorText>
+                            </ErrorContainer>
+                        )}
 
-                <Form onSubmit={handleSubmit}>
-                    <FormSection>
-                        <SectionHeader>
-                            <SectionIcon>
-                                <FaCar />
-                            </SectionIcon>
-                            <SectionContent>
-                                <SectionTitle>Dane pojazdu</SectionTitle>
-                                <SectionSubtitle>Podstawowe informacje o pojeździe</SectionSubtitle>
-                            </SectionContent>
-                        </SectionHeader>
+                        <Form onSubmit={handleSubmit}>
+                            <FormSection>
+                                <SectionHeader>
+                                    <SectionIcon>
+                                        <FaCar />
+                                    </SectionIcon>
+                                    <SectionContent>
+                                        <SectionTitle>Dane pojazdu</SectionTitle>
+                                        <SectionSubtitle>Podstawowe informacje o pojeździe</SectionSubtitle>
+                                    </SectionContent>
+                                </SectionHeader>
 
-                        <FormRow>
-                            <FormGroup>
-                                <FormLabel htmlFor="make" $required>
-                                    Marka pojazdu
-                                </FormLabel>
-                                <FormInput
-                                    id="make"
-                                    name="make"
-                                    value={formData.make || ''}
-                                    onChange={handleChange}
-                                    placeholder="np. BMW, Audi, Mercedes"
-                                    $hasError={!!errors.make}
-                                    $hasValue={!!formData.make}
-                                    disabled={loading}
-                                />
-                                {errors.make && (
-                                    <ErrorMessage>{errors.make}</ErrorMessage>
+                                <FormRow>
+                                    <FormGroup>
+                                        <FormLabel htmlFor="make" $required>
+                                            Marka pojazdu
+                                        </FormLabel>
+                                        <FormInput
+                                            id="make"
+                                            name="make"
+                                            value={formData.make || ''}
+                                            onChange={handleChange}
+                                            placeholder="np. BMW, Audi, Mercedes"
+                                            $hasError={!!errors.make}
+                                            $hasValue={!!formData.make}
+                                            disabled={loading}
+                                        />
+                                        {errors.make && (
+                                            <ErrorMessage>{errors.make}</ErrorMessage>
+                                        )}
+                                    </FormGroup>
+
+                                    <FormGroup>
+                                        <FormLabel htmlFor="model" $required>
+                                            Model pojazdu
+                                        </FormLabel>
+                                        <FormInput
+                                            id="model"
+                                            name="model"
+                                            value={formData.model || ''}
+                                            onChange={handleChange}
+                                            placeholder="np. X5, A4, C-Class"
+                                            $hasError={!!errors.model}
+                                            $hasValue={!!formData.model}
+                                            disabled={loading}
+                                        />
+                                        {errors.model && (
+                                            <ErrorMessage>{errors.model}</ErrorMessage>
+                                        )}
+                                    </FormGroup>
+                                </FormRow>
+
+                                <FormRow>
+                                    <FormGroup>
+                                        <FormLabel htmlFor="year" $required>
+                                            <FaCalendarAlt style={{ marginRight: '8px', fontSize: '12px' }} />
+                                            Rok produkcji
+                                        </FormLabel>
+                                        <FormInput
+                                            id="year"
+                                            name="year"
+                                            type="number"
+                                            min="1900"
+                                            max={new Date().getFullYear() + 1}
+                                            value={formData.year || ''}
+                                            onChange={handleChange}
+                                            placeholder="2023"
+                                            $hasError={!!errors.year}
+                                            $hasValue={!!formData.year}
+                                            disabled={loading}
+                                        />
+                                        {errors.year && (
+                                            <ErrorMessage>{errors.year}</ErrorMessage>
+                                        )}
+                                    </FormGroup>
+
+                                    <FormGroup>
+                                        <FormLabel htmlFor="licensePlate" $required>
+                                            <FaIdCard style={{ marginRight: '8px', fontSize: '12px' }} />
+                                            Numer rejestracyjny
+                                        </FormLabel>
+                                        <FormInput
+                                            id="licensePlate"
+                                            name="licensePlate"
+                                            value={formData.licensePlate || ''}
+                                            onChange={handleChange}
+                                            placeholder="ABC 123D"
+                                            $hasError={!!errors.licensePlate}
+                                            $hasValue={!!formData.licensePlate}
+                                            style={{ textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '600' }}
+                                            disabled={loading}
+                                        />
+                                        {errors.licensePlate && (
+                                            <ErrorMessage>{errors.licensePlate}</ErrorMessage>
+                                        )}
+                                    </FormGroup>
+                                </FormRow>
+
+                                <FormRow>
+                                    <FormGroup>
+                                        <FormLabel htmlFor="color">
+                                            <FaPalette style={{ marginRight: '8px', fontSize: '12px' }} />
+                                            Kolor pojazdu
+                                        </FormLabel>
+                                        <FormInput
+                                            id="color"
+                                            name="color"
+                                            value={formData.color || ''}
+                                            onChange={handleChange}
+                                            placeholder="np. Czarny metalik, Biały perła"
+                                            $hasValue={!!formData.color}
+                                            disabled={loading}
+                                        />
+                                    </FormGroup>
+
+                                    <FormGroup>
+                                        <FormLabel htmlFor="vin">
+                                            <FaBarcode style={{ marginRight: '8px', fontSize: '12px' }} />
+                                            Numer VIN
+                                        </FormLabel>
+                                        <FormInput
+                                            id="vin"
+                                            name="vin"
+                                            value={formData.vin || ''}
+                                            onChange={handleChange}
+                                            placeholder="WBAVD13576KX12345"
+                                            maxLength={17}
+                                            $hasValue={!!formData.vin}
+                                            style={{ fontFamily: 'monospace', letterSpacing: '1px' }}
+                                            disabled={loading}
+                                        />
+                                    </FormGroup>
+                                </FormRow>
+                            </FormSection>
+
+                            <FormSection>
+                                <SectionHeader>
+                                    <SectionIcon>
+                                        <FaUser />
+                                    </SectionIcon>
+                                    <SectionContent>
+                                        <SectionTitle>Właściciele pojazdu</SectionTitle>
+                                        <SectionSubtitle>Przypisz pojazd do klientów w systemie</SectionSubtitle>
+                                    </SectionContent>
+                                </SectionHeader>
+
+                                <FormGroup>
+                                    <FormLabel htmlFor="ownerIds" $required>
+                                        Wybierz właścicieli z bazy klientów
+                                    </FormLabel>
+                                    {loadingClients ? (
+                                        <LoadingOwnersContainer>
+                                            <LoadingSpinner />
+                                            <LoadingText>Ładowanie listy klientów...</LoadingText>
+                                        </LoadingOwnersContainer>
+                                    ) : (
+                                        <FormSelect
+                                            id="ownerIds"
+                                            name="ownerIds"
+                                            multiple
+                                            size={5}
+                                            value={formData.ownerIds || []}
+                                            onChange={handleOwnerChange}
+                                            $hasError={!!errors.ownerIds}
+                                            $hasValue={!!(formData.ownerIds && formData.ownerIds.length > 0)}
+                                            disabled={loading}
+                                        >
+                                            {clients.map(client => (
+                                                <option key={client.id} value={client.id}>
+                                                    {client.name} ({client.email})
+                                                </option>
+                                            ))}
+                                        </FormSelect>
+                                    )}
+                                    <HelpText>
+                                        <strong>Instrukcja:</strong> Przytrzymaj Ctrl (lub Cmd na Mac) aby wybrać wielu właścicieli.
+                                    </HelpText>
+                                    {errors.ownerIds && (
+                                        <ErrorMessage>{errors.ownerIds}</ErrorMessage>
+                                    )}
+
+                                    {formData.ownerIds && formData.ownerIds.length > 0 && (
+                                        <SelectedOwnersContainer>
+                                            <SelectedOwnersTitle>
+                                                <FaEye style={{ marginRight: '8px' }} />
+                                                Wybrani właściciele ({formData.ownerIds.length}):
+                                            </SelectedOwnersTitle>
+                                            <SelectedOwnersList>
+                                                {formData.ownerIds.map(ownerId => {
+                                                    const client = clients.find(c => c.id === ownerId);
+                                                    return client ? (
+                                                        <SelectedOwnerItem key={ownerId}>
+                                                            <OwnerIcon>
+                                                                <FaUser />
+                                                            </OwnerIcon>
+                                                            <OwnerDetails>
+                                                                <OwnerName>{client.name}</OwnerName>
+                                                                <OwnerContact>
+                                                                    <ContactDetail>
+                                                                        📧 {client.email}
+                                                                    </ContactDetail>
+                                                                    <ContactDetail>
+                                                                        📞 {client.phone}
+                                                                    </ContactDetail>
+                                                                </OwnerContact>
+                                                            </OwnerDetails>
+                                                            <RemoveOwnerButton
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const newOwnerIds = formData.ownerIds?.filter(id => id !== ownerId) || [];
+                                                                    setFormData(prev => ({
+                                                                        ...prev,
+                                                                        ownerIds: newOwnerIds
+                                                                    }));
+                                                                }}
+                                                                title="Usuń właściciela"
+                                                                disabled={loading}
+                                                            >
+                                                                <FaTimes />
+                                                            </RemoveOwnerButton>
+                                                        </SelectedOwnerItem>
+                                                    ) : null;
+                                                })}
+                                            </SelectedOwnersList>
+                                        </SelectedOwnersContainer>
+                                    )}
+                                </FormGroup>
+                            </FormSection>
+                        </Form>
+                    </ModalContent>
+
+                    <ModalFooter>
+                        <FormActions>
+                            <SecondaryButton type="button" onClick={onCancel} disabled={loading}>
+                                <FaTimes />
+                                <span>Anuluj</span>
+                            </SecondaryButton>
+                            <PrimaryButton type="submit" onClick={handleSubmit} disabled={loading || loadingClients}>
+                                {loading ? (
+                                    <>
+                                        <FaSpinner className="spinning" />
+                                        <span>Zapisywanie...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <FaCheck />
+                                        <span>{vehicle ? 'Zapisz zmiany' : 'Dodaj pojazd'}</span>
+                                    </>
                                 )}
-                            </FormGroup>
-
-                            <FormGroup>
-                                <FormLabel htmlFor="model" $required>
-                                    Model pojazdu
-                                </FormLabel>
-                                <FormInput
-                                    id="model"
-                                    name="model"
-                                    value={formData.model || ''}
-                                    onChange={handleChange}
-                                    placeholder="np. X5, A4, C-Class"
-                                    $hasError={!!errors.model}
-                                    $hasValue={!!formData.model}
-                                    disabled={loading}
-                                />
-                                {errors.model && (
-                                    <ErrorMessage>{errors.model}</ErrorMessage>
-                                )}
-                            </FormGroup>
-                        </FormRow>
-
-                        <FormRow>
-                            <FormGroup>
-                                <FormLabel htmlFor="year" $required>
-                                    <FaCalendarAlt style={{ marginRight: '8px', fontSize: '12px' }} />
-                                    Rok produkcji
-                                </FormLabel>
-                                <FormInput
-                                    id="year"
-                                    name="year"
-                                    type="number"
-                                    min="1900"
-                                    max={new Date().getFullYear() + 1}
-                                    value={formData.year || ''}
-                                    onChange={handleChange}
-                                    placeholder="2023"
-                                    $hasError={!!errors.year}
-                                    $hasValue={!!formData.year}
-                                    disabled={loading}
-                                />
-                                {errors.year && (
-                                    <ErrorMessage>{errors.year}</ErrorMessage>
-                                )}
-                            </FormGroup>
-
-                            <FormGroup>
-                                <FormLabel htmlFor="licensePlate" $required>
-                                    <FaIdCard style={{ marginRight: '8px', fontSize: '12px' }} />
-                                    Numer rejestracyjny
-                                </FormLabel>
-                                <LicensePlateInputWrapper>
-                                    <FormInput
-                                        id="licensePlate"
-                                        name="licensePlate"
-                                        value={formData.licensePlate || ''}
-                                        onChange={handleChange}
-                                        placeholder="ABC 123D"
-                                        $hasError={!!errors.licensePlate}
-                                        $hasValue={!!formData.licensePlate}
-                                        style={{ textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '600' }}
-                                        disabled={loading}
-                                    />
-                                </LicensePlateInputWrapper>
-                                {errors.licensePlate && (
-                                    <ErrorMessage>{errors.licensePlate}</ErrorMessage>
-                                )}
-                            </FormGroup>
-                        </FormRow>
-
-                        <FormRow>
-                            <FormGroup>
-                                <FormLabel htmlFor="color">
-                                    <FaPalette style={{ marginRight: '8px', fontSize: '12px' }} />
-                                    Kolor pojazdu
-                                </FormLabel>
-                                <FormInput
-                                    id="color"
-                                    name="color"
-                                    value={formData.color || ''}
-                                    onChange={handleChange}
-                                    placeholder="np. Czarny metalik, Biały perła"
-                                    $hasValue={!!formData.color}
-                                    disabled={loading}
-                                />
-                                <HelpText>
-                                    Podaj dokładny kolor dla lepszej identyfikacji pojazdu
-                                </HelpText>
-                            </FormGroup>
-
-                            <FormGroup>
-                                <FormLabel htmlFor="vin">
-                                    <FaBarcode style={{ marginRight: '8px', fontSize: '12px' }} />
-                                    Numer VIN
-                                </FormLabel>
-                                <FormInput
-                                    id="vin"
-                                    name="vin"
-                                    value={formData.vin || ''}
-                                    onChange={handleChange}
-                                    placeholder="WBAVD13576KX12345"
-                                    maxLength={17}
-                                    $hasValue={!!formData.vin}
-                                    style={{ fontFamily: 'monospace', letterSpacing: '1px' }}
-                                    disabled={loading}
-                                />
-                                <HelpText>
-                                    17-znakowy kod identyfikacyjny pojazdu (opcjonalne)
-                                </HelpText>
-                            </FormGroup>
-                        </FormRow>
-                    </FormSection>
-
-                    <FormSection>
-                        <SectionHeader>
-                            <SectionIcon>
-                                <FaUser />
-                            </SectionIcon>
-                            <SectionContent>
-                                <SectionTitle>Właściciele pojazdu</SectionTitle>
-                                <SectionSubtitle>Przypisz pojazd do klientów w systemie CRM</SectionSubtitle>
-                            </SectionContent>
-                        </SectionHeader>
-
-                        <FormGroup>
-                            <FormLabel htmlFor="ownerIds" $required>
-                                Wybierz właścicieli z bazy klientów
-                            </FormLabel>
-                            {loadingClients ? (
-                                <LoadingOwnersContainer>
-                                    <LoadingSpinner />
-                                    <LoadingText>Ładowanie listy klientów...</LoadingText>
-                                </LoadingOwnersContainer>
-                            ) : (
-                                <FormSelect
-                                    id="ownerIds"
-                                    name="ownerIds"
-                                    multiple
-                                    size={6}
-                                    value={formData.ownerIds || []}
-                                    onChange={handleOwnerChange}
-                                    $hasError={!!errors.ownerIds}
-                                    $hasValue={!!(formData.ownerIds && formData.ownerIds.length > 0)}
-                                    disabled={loading}
-                                >
-                                    {clients.map(client => (
-                                        <option key={client.id} value={client.id}>
-                                            {client.name} ({client.email})
-                                        </option>
-                                    ))}
-                                </FormSelect>
-                            )}
-                            <HelpText>
-                                <strong>Instrukcja:</strong> Przytrzymaj Ctrl (lub Cmd na Mac) aby wybrać wielu właścicieli.
-                                Można przypisać pojazd do maksymalnie 3 właścicieli.
-                            </HelpText>
-                            {errors.ownerIds && (
-                                <ErrorMessage>{errors.ownerIds}</ErrorMessage>
-                            )}
-
-                            {formData.ownerIds && formData.ownerIds.length > 0 && (
-                                <SelectedOwnersContainer>
-                                    <SelectedOwnersTitle>
-                                        <FaEye style={{ marginRight: '8px' }} />
-                                        Wybrani właściciele ({formData.ownerIds.length}):
-                                    </SelectedOwnersTitle>
-                                    <SelectedOwnersList>
-                                        {formData.ownerIds.map(ownerId => {
-                                            const client = clients.find(c => c.id === ownerId);
-                                            return client ? (
-                                                <SelectedOwnerItem key={ownerId}>
-                                                    <OwnerIcon>
-                                                        <FaUser />
-                                                    </OwnerIcon>
-                                                    <OwnerDetails>
-                                                        <OwnerName>{client.name}</OwnerName>
-                                                        <OwnerContact>
-                                                            <ContactDetail>
-                                                                📧 {client.email}
-                                                            </ContactDetail>
-                                                            <ContactDetail>
-                                                                📞 {client.phone}
-                                                            </ContactDetail>
-                                                        </OwnerContact>
-                                                    </OwnerDetails>
-                                                    <RemoveOwnerButton
-                                                        type="button"
-                                                        onClick={() => {
-                                                            const newOwnerIds = formData.ownerIds?.filter(id => id !== ownerId) || [];
-                                                            setFormData(prev => ({
-                                                                ...prev,
-                                                                ownerIds: newOwnerIds
-                                                            }));
-                                                        }}
-                                                        title="Usuń właściciela"
-                                                        disabled={loading}
-                                                    >
-                                                        <FaTimes />
-                                                    </RemoveOwnerButton>
-                                                </SelectedOwnerItem>
-                                            ) : null;
-                                        })}
-                                    </SelectedOwnersList>
-                                </SelectedOwnersContainer>
-                            )}
-                        </FormGroup>
-                    </FormSection>
-
-                    <FormActions>
-                        <SecondaryButton type="button" onClick={onCancel} disabled={loading}>
-                            <FaTimes />
-                            <span>Anuluj</span>
-                        </SecondaryButton>
-                        <PrimaryButton type="submit" disabled={loading || loadingClients}>
-                            {loading ? (
-                                <>
-                                    <FaSpinner className="spinning" />
-                                    <span>Zapisywanie...</span>
-                                </>
-                            ) : (
-                                <>
-                                    <FaCheck />
-                                    <span>{vehicle ? 'Zapisz zmiany' : 'Dodaj pojazd'}</span>
-                                </>
-                            )}
-                        </PrimaryButton>
-                    </FormActions>
-                </Form>
-            </FormContainer>
-        </Modal>
+                            </PrimaryButton>
+                        </FormActions>
+                    </ModalFooter>
+                </ModalLayout>
+            </Modal>
+        </ModalWrapper>
     );
 };
 
-// Reszta stylów pozostaje bez zmian...
-const FormContainer = styled.div`
-    padding: 0 ${brandTheme.spacing.md};
-    max-height: 85vh;
-    overflow-y: auto;
+// POPRAWIONY LAYOUT - Modal z prawidłowymi proporcjami
+const ModalWrapper = styled.div`
+    /* Globalne nadpisanie stylów Modal */
+    .modal-content {
+        height: 90vh !important;
+        max-height: 90vh !important;
+        overflow: hidden !important;
+        padding: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+    
+    .modal-body {
+        flex: 1 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+        min-height: 0 !important;
+    }
+`;
 
+const ModalLayout = styled.div`
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+`;
+
+const ModalContent = styled.div`
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: ${brandTheme.spacing.xl};
+    min-height: 0;
+
+    /* Prettier scrollbar */
     &::-webkit-scrollbar {
-        width: 8px;
+        width: 6px;
     }
     &::-webkit-scrollbar-track {
         background: ${brandTheme.surfaceAlt};
-        border-radius: 4px;
+        border-radius: 3px;
+        margin: 4px 0;
     }
     &::-webkit-scrollbar-thumb {
         background: linear-gradient(135deg, ${brandTheme.border} 0%, ${brandTheme.borderHover} 100%);
-        border-radius: 4px;
+        border-radius: 3px;
 
         &:hover {
             background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
         }
     }
+
+    @media (max-width: 768px) {
+        padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.md};
+    }
 `;
 
+const ModalFooter = styled.div`
+    flex-shrink: 0;
+    background: linear-gradient(to bottom,
+        rgba(255, 255, 255, 0.95) 0%,
+        rgba(255, 255, 255, 1) 15%
+    );
+    backdrop-filter: blur(12px);
+    border-top: 1px solid ${brandTheme.borderLight};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.xl};
+    position: relative;
+    z-index: 10;
+
+    /* Subtle shadow for separation */
+    &::before {
+        content: '';
+        position: absolute;
+        top: -8px;
+        left: 0;
+        right: 0;
+        height: 8px;
+        background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.05));
+        pointer-events: none;
+    }
+
+    @media (max-width: 768px) {
+        padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    }
+`;
+
+// Pozostałe styled components pozostają bez zmian...
 const ErrorContainer = styled.div`
     background: linear-gradient(135deg, ${brandTheme.status.errorLight} 0%, #fdf2f8 100%);
     border: 1px solid #fecaca;
@@ -660,8 +687,6 @@ const FormSection = styled.section`
     padding: ${brandTheme.spacing.xl};
     box-shadow: ${brandTheme.shadow.sm};
     transition: all 0.2s ease;
-    overflow: hidden;
-    width: 100%;
 
     &:hover {
         box-shadow: ${brandTheme.shadow.md};
@@ -678,10 +703,10 @@ const SectionHeader = styled.div`
     border-bottom: 2px solid ${brandTheme.borderLight};
 `;
 
-const SectionIcon = styled.div<{ $color?: string }>`
+const SectionIcon = styled.div`
     width: 48px;
     height: 48px;
-    background: linear-gradient(135deg, ${props => props.$color || brandTheme.primary} 0%, ${props => props.$color ? `${props.$color}CC` : brandTheme.primaryLight} 100%);
+    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
     border-radius: ${brandTheme.radius.lg};
     display: flex;
     align-items: center;
@@ -740,13 +765,13 @@ const FormLabel = styled.label<{ $required?: boolean }>`
     margin-bottom: ${brandTheme.spacing.xs};
 
     ${props => props.$required && `
-       &::after {
-           content: ' *';
-           color: ${brandTheme.status.error};
-           font-weight: 700;
-           margin-left: 2px;
-       }
-   `}
+        &::after {
+            content: ' *';
+            color: ${brandTheme.status.error};
+            font-weight: 700;
+            margin-left: 2px;
+        }
+    `}
 `;
 
 const FormInput = styled.input<{
@@ -785,21 +810,6 @@ const FormInput = styled.input<{
         opacity: 0.6;
         cursor: not-allowed;
     }
-
-    ${props => props.$hasError && `
-       &:focus {
-           border-color: ${brandTheme.status.error};
-           box-shadow: 0 0 0 4px ${brandTheme.status.errorLight};
-       }
-   `}
-`;
-
-const LicensePlateInputWrapper = styled.div`
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: ${brandTheme.spacing.sm};
-    width: 100%;
 `;
 
 const LoadingOwnersContainer = styled.div`
@@ -843,54 +853,54 @@ const FormSelect = styled.select<{
         props.$hasValue ? brandTheme.primary :
             brandTheme.border
 };
-   border-radius: ${brandTheme.radius.lg};
-   font-size: 14px;
-   font-family: inherit;
-   font-weight: 500;
-   background: ${props => props.$hasValue ? brandTheme.primaryGhost : brandTheme.surface};
-   color: ${brandTheme.text.primary};
-   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-   min-height: 140px;
-   width: 100%;
+    border-radius: ${brandTheme.radius.lg};
+    font-size: 14px;
+    font-family: inherit;
+    font-weight: 500;
+    background: ${props => props.$hasValue ? brandTheme.primaryGhost : brandTheme.surface};
+    color: ${brandTheme.text.primary};
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: 120px;
+    width: 100%;
 
-   &:focus {
-       outline: none;
-       border-color: ${brandTheme.primary};
-       box-shadow: 0 0 0 4px ${brandTheme.primaryGhost};
-       background: ${brandTheme.surface};
-   }
+    &:focus {
+        outline: none;
+        border-color: ${brandTheme.primary};
+        box-shadow: 0 0 0 4px ${brandTheme.primaryGhost};
+        background: ${brandTheme.surface};
+    }
 
-   &:disabled {
-       opacity: 0.6;
-       cursor: not-allowed;
-   }
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
 
-   &[multiple] {
-       height: auto;
-   }
+    &[multiple] {
+        height: auto;
+    }
 
-   option {
-       padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
-       margin: 2px 0;
-       border-radius: ${brandTheme.radius.sm};
+    option {
+        padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+        margin: 2px 0;
+        border-radius: ${brandTheme.radius.sm};
 
-       &:checked {
-           background: rgba(26, 54, 93, 0.08);
-           color: ${brandTheme.primary};
-           font-weight: 600;
-       }
+        &:checked {
+            background: rgba(26, 54, 93, 0.08);
+            color: ${brandTheme.primary};
+            font-weight: 600;
+        }
 
-       &:hover {
-           background: ${brandTheme.primaryGhost};
-       }
-   }
+        &:hover {
+            background: ${brandTheme.primaryGhost};
+        }
+    }
 
-   ${props => props.$hasError && `
-      &:focus {
-          border-color: ${brandTheme.status.error};
-          box-shadow: 0 0 0 4px ${brandTheme.status.errorLight};
-          }
-  `}
+    ${props => props.$hasError && `
+        &:focus {
+            border-color: ${brandTheme.status.error};
+            box-shadow: 0 0 0 4px ${brandTheme.status.errorLight};
+        }
+    `}
 `;
 
 const HelpText = styled.p`
@@ -917,7 +927,7 @@ const ErrorMessage = styled.div`
     margin-top: ${brandTheme.spacing.xs};
 
     &::before {
-        content: '⚠';
+        content: '⚠ ';
         font-size: 10px;
     }
 `;
@@ -1057,15 +1067,23 @@ const RemoveOwnerButton = styled.button`
 const FormActions = styled.div`
     display: flex;
     justify-content: flex-end;
-    gap: ${brandTheme.spacing.sm};
-    padding-top: ${brandTheme.spacing.xl};
-    border-top: 2px solid ${brandTheme.borderLight};
-    margin-top: ${brandTheme.spacing.lg};
+    gap: ${brandTheme.spacing.md};
+    width: 100%;
+
+    @media (max-width: 768px) {
+        flex-direction: column;
+        gap: ${brandTheme.spacing.sm};
+    }
+
+    @media (max-width: 480px) {
+        gap: ${brandTheme.spacing.xs};
+    }
 `;
 
 const BaseButton = styled.button`
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: ${brandTheme.spacing.sm};
     padding: ${brandTheme.spacing.md} ${brandTheme.spacing.xl};
     border-radius: ${brandTheme.radius.lg};
@@ -1077,9 +1095,12 @@ const BaseButton = styled.button`
     border: 1px solid transparent;
     position: relative;
     overflow: hidden;
+    white-space: nowrap;
+    min-width: 140px;
 
     &:hover:not(:disabled) {
-        transform: translateY(-2px);
+        transform: translateY(-1px);
+        box-shadow: ${brandTheme.shadow.lg};
     }
 
     &:active:not(:disabled) {
@@ -1101,10 +1122,15 @@ const BaseButton = styled.button`
         to { transform: rotate(360deg); }
     }
 
-    span {
-        @media (max-width: 480px) {
-            display: none;
-        }
+    @media (max-width: 768px) {
+        width: 100%;
+        min-width: auto;
+    }
+
+    @media (max-width: 480px) {
+        padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+        font-size: 13px;
+        min-height: 44px;
     }
 `;
 
@@ -1112,12 +1138,12 @@ const SecondaryButton = styled(BaseButton)`
     background: ${brandTheme.surfaceAlt};
     color: ${brandTheme.text.secondary};
     border-color: ${brandTheme.border};
-    box-shadow: ${brandTheme.shadow.xs};
+    box-shadow: ${brandTheme.shadow.sm};
 
     &:hover:not(:disabled) {
         background: ${brandTheme.borderLight};
         color: ${brandTheme.text.primary};
-        box-shadow: ${brandTheme.shadow.sm};
+        border-color: ${brandTheme.borderHover};
     }
 `;
 
@@ -1125,10 +1151,10 @@ const PrimaryButton = styled(BaseButton)`
     background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
     color: white;
     box-shadow: ${brandTheme.shadow.md};
+    position: relative;
 
     &:hover:not(:disabled) {
         background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
-        box-shadow: ${brandTheme.shadow.lg};
     }
 
     &::before {
@@ -1142,7 +1168,7 @@ const PrimaryButton = styled(BaseButton)`
         transition: left 0.5s;
     }
 
-    &:hover::before {
+    &:hover:not(:disabled)::before {
         left: 100%;
     }
 `;

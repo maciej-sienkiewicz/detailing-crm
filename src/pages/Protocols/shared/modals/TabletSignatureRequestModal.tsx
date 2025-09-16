@@ -188,18 +188,6 @@ const TabletSignatureRequestModal: React.FC<TabletSignatureRequestModalProps> = 
                                     <FaExclamationTriangle />
                                 </ErrorIcon>
                                 <ErrorMessage>{error}</ErrorMessage>
-                                <ErrorDescription>
-                                    Możesz kontynuować proces bez podpisu cyfrowego lub spróbować ponownie.
-                                </ErrorDescription>
-                                <ErrorActions>
-                                    <RetryButton onClick={loadTablets} disabled={loading}>
-                                        {loading ? <FaSpinner className="spinner" /> : 'Spróbuj ponownie'}
-                                    </RetryButton>
-                                    <ContinueButton onClick={handleContinueWithoutSignature}>
-                                        <FaArrowRight />
-                                        Kontynuuj bez podpisu
-                                    </ContinueButton>
-                                </ErrorActions>
                             </ErrorSection>
                         ) : (
                             <>
@@ -271,9 +259,6 @@ const TabletSignatureRequestModal: React.FC<TabletSignatureRequestModalProps> = 
                         <ButtonGroup>
                             {tablets.length === 0 && !loading ? (
                                 <>
-                                    <SecondaryButton onClick={handleClose} disabled={sending}>
-                                        Anuluj proces
-                                    </SecondaryButton>
                                     <ContinueWithoutButton onClick={handleContinueWithoutSignature} disabled={sending}>
                                         <FaArrowRight />
                                         Kontynuuj bez podpisu
