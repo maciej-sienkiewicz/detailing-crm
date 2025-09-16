@@ -7,36 +7,36 @@ export interface VehicleAnalyticsResponse {
 }
 
 export interface ProfitabilityAnalysisDto {
-    average_visit_value: number;
-    monthly_revenue: number;
-    revenue_trend: string;
-    trend_percentage: number;
-    trend_display_name: string;
-    trend_change_indicator: string;
-    profitability_score: number;
+    averageVisitValue: number;
+    monthlyRevenue: number;
+    revenueTrend: string;
+    trendPercentage: number;
+    trendDisplayName: string;
+    trendChangeIndicator: string;
+    profitabilityScore: number;
 }
 
 export interface VisitPatternDto {
-    days_since_last_visit?: number;
-    average_days_between_visits?: number;
-    visit_regularity_status: string;
-    regularity_display_name: string;
-    risk_level: string;
-    next_recommended_visit_date?: string;
-    total_visits: number;
+    daysSinceLastVisit?: number;
+    averageDaysBetweenVisits?: number;
+    visitRegularityStatus: string;
+    regularityDisplayName: string;
+    riskLevel: string;
+    nextRecommendedVisitDate?: string;
+    totalVisits: number;
 }
 
 export interface ServicePreferencesDto {
-    top_services: ServiceUsageDto[];
+    topServices: ServiceUsageDto[];
 }
 
 export interface ServiceUsageDto {
-    service_id: string;
-    service_name: string;
-    usage_count: number;
-    total_revenue: number;
-    average_price: number;
-    last_used_date?: string;
+    serviceId: string;
+    serviceName: string;
+    usageCount: number;
+    totalRevenue: number;
+    averagePrice: number;
+    lastUsedDate?: number[]; // Array format from server [year, month, day, hour, minute, second]
 }
 
 class VehicleAnalyticsApi {

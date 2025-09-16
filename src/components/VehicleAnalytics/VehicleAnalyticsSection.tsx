@@ -14,11 +14,21 @@ interface VehicleAnalyticsSectionProps {
 const VehicleAnalyticsSection: React.FC<VehicleAnalyticsSectionProps> = ({ vehicleId }) => {
     const { analytics, loading, error, refetch } = useVehicleAnalytics(vehicleId);
 
+    // DEBUG: Dodaj logi
+    console.log('🔍 VehicleAnalyticsSection Debug:');
+    console.log('vehicleId:', vehicleId);
+    console.log('loading:', loading);
+    console.log('error:', error);
+    console.log('analytics:', analytics);
+    console.log('analytics?.profitabilityAnalysis:', analytics?.profitabilityAnalysis);
+
     if (!vehicleId) {
+        console.log('❌ No vehicleId provided to VehicleAnalyticsSection');
         return null;
     }
 
     if (loading) {
+        console.log('⏳ VehicleAnalyticsSection is loading...');
         return (
             <LoadingContainer>
                 <LoadingSpinner>
@@ -30,6 +40,7 @@ const VehicleAnalyticsSection: React.FC<VehicleAnalyticsSectionProps> = ({ vehic
     }
 
     if (error) {
+        console.log('❌ VehicleAnalyticsSection error:', error);
         return (
             <ErrorContainer>
                 <ErrorIcon>
@@ -44,6 +55,7 @@ const VehicleAnalyticsSection: React.FC<VehicleAnalyticsSectionProps> = ({ vehic
     }
 
     if (!analytics) {
+        console.log('❌ No analytics data received');
         return (
             <EmptyContainer>
                 <EmptyIcon>
@@ -55,23 +67,40 @@ const VehicleAnalyticsSection: React.FC<VehicleAnalyticsSectionProps> = ({ vehic
         );
     }
 
+    console.log('✅ VehicleAnalyticsSection rendering with data');
+
     return (
         <AnalyticsContainer>
-            {analytics.profitabilityAnalysis && (
-                <VehicleProfitabilitySection data={analytics.profitabilityAnalysis} />
+            {analytics.profitabilityAnalysis ? (
+                <>
+                    <VehicleProfitabilitySection data={analytics.profitabilityAnalysis} />
+                </>
+            ) : (
+                <div style={{ padding: '10px', background: '#ffcccc' }}>
+                    No profitabilityAnalysis data
+                </div>
             )}
 
-            {analytics.visitPattern && (
+            {analytics.visitPattern ? (
                 <VehicleVisitPatternSection data={analytics.visitPattern} />
+            ) : (
+                <div style={{ padding: '10px', background: '#ffcccc' }}>
+                    No visitPattern data
+                </div>
             )}
 
-            {analytics.servicePreferences && (
+            {analytics.servicePreferences ? (
                 <VehicleServicePreferencesSection data={analytics.servicePreferences} />
+            ) : (
+                <div style={{ padding: '10px', background: '#ffcccc' }}>
+                    No servicePreferences data
+                </div>
             )}
         </AnalyticsContainer>
     );
 };
 
+// Styled components remain the same...
 const AnalyticsContainer = styled.div`
     display: flex;
     flex-direction: column;
@@ -200,4 +229,4 @@ const EmptySubtext = styled.div`
     font-style: italic;
 `;
 
-export default VehicleAnalyticsSection
+export default VehicleAnalyticsSection;

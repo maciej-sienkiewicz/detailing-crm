@@ -49,9 +49,9 @@ const VehicleVisitPatternSection: React.FC<VehicleVisitPatternSectionProps> = ({
     };
 
     const calculateNextVisitDays = (): number | null => {
-        if (!data.next_recommended_visit_date) return null;
+        if (!data.nextRecommendedVisitDate) return null;
 
-        const nextDate = new Date(data.next_recommended_visit_date);
+        const nextDate = new Date(data.nextRecommendedVisitDate);
         const today = new Date();
         const diffTime = nextDate.getTime() - today.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -75,7 +75,7 @@ const VehicleVisitPatternSection: React.FC<VehicleVisitPatternSectionProps> = ({
                     </PatternIcon>
                     <PatternContent>
                         <PatternValue>
-                            {data.days_since_last_visit !== null ? `${data.days_since_last_visit} dni` : 'Brak danych'}
+                            {data.daysSinceLastVisit !== null ? `${data.daysSinceLastVisit} dni` : 'Brak danych'}
                         </PatternValue>
                         <PatternLabel>Ostatnia wizyta</PatternLabel>
                     </PatternContent>
@@ -87,42 +87,23 @@ const VehicleVisitPatternSection: React.FC<VehicleVisitPatternSectionProps> = ({
                     </PatternIcon>
                     <PatternContent>
                         <PatternValue>
-                            {data.average_days_between_visits !== null ? `${data.average_days_between_visits} dni` : 'Brak danych'}
+                            {data.averageDaysBetweenVisits !== null ? `${data.averageDaysBetweenVisits} dni` : 'Brak danych'}
                         </PatternValue>
                         <PatternLabel>Średni odstęp</PatternLabel>
                     </PatternContent>
                 </PatternCard>
 
-                <StatusCard $riskLevel={data.risk_level}>
-                    <StatusIcon $color={getStatusColor(data.risk_level)}>
-                        {getStatusIcon(data.risk_level)}
+                <StatusCard $riskLevel={data.riskLevel}>
+                    <StatusIcon $color={getStatusColor(data.riskLevel)}>
+                        {getStatusIcon(data.riskLevel)}
                     </StatusIcon>
                     <StatusContent>
-                        <StatusValue $color={getStatusColor(data.risk_level)}>
-                            {data.regularity_display_name}
+                        <StatusValue $color={getStatusColor(data.riskLevel)}>
+                            {data.regularityDisplayName}
                         </StatusValue>
                         <StatusLabel>Status klienta</StatusLabel>
                     </StatusContent>
                 </StatusCard>
-
-                {data.next_recommended_visit_date && (
-                    <NextVisitCard>
-                        <NextVisitIcon $color={theme.success}>
-                            <FaCalendarAlt />
-                        </NextVisitIcon>
-                        <NextVisitContent>
-                            <NextVisitValue>
-                                {nextVisitDays !== null && nextVisitDays > 0
-                                    ? `za ${nextVisitDays} dni`
-                                    : nextVisitDays !== null && nextVisitDays <= 0
-                                        ? 'już teraz'
-                                        : formatDate(data.next_recommended_visit_date)
-                                }
-                            </NextVisitValue>
-                            <NextVisitLabel>Następna sugerowana</NextVisitLabel>
-                        </NextVisitContent>
-                    </NextVisitCard>
-                )}
             </PatternGrid>
         </Section>
     );

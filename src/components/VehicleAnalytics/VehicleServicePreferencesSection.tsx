@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { FaTools, FaTrophy, FaChartBar } from 'react-icons/fa';
+import { FaTools, FaTrophy, FaChartBar, FaCheckCircle } from 'react-icons/fa';
 import { ServicePreferencesDto } from '../../api/vehicleAnalyticsApi';
 import { theme } from '../../styles/theme';
 
@@ -18,25 +18,48 @@ const VehicleServicePreferencesSection: React.FC<VehicleServicePreferencesSectio
         }).format(amount);
     };
 
-    const getRankIcon = (index: number) => {
-        switch (index) {
-            case 0:
-                return <RankIcon $rank="gold">🥇</RankIcon>;
-            case 1:
-                return <RankIcon $rank="silver">🥈</RankIcon>;
-            case 2:
-                return <RankIcon $rank="bronze">🥉</RankIcon>;
-            default:
-                return <RankNumber>{index + 1}</RankNumber>;
-        }
+    const formatDate = (dateArray?: number[]): string => {
+        if (!dateArray || dateArray.length < 3) return 'Brak danych';
+
+        // Array format: [year, month, day, hour, minute, second]
+        const [year, month, day] = dateArray;
+        const date = new Date(year, month - 1, day); // month is 0-indexed in JS Date
+
+        return date.toLocaleDateString('pl-PL', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        });
     };
 
-    if (!data.top_services || data.top_services.length === 0) {
+    const getRankBadge = (index: number) => {
+        if (index === 0) {
+            return (
+                <RankBadge $rank="first">
+                    <FaTrophy />
+                    <span>TOP</span>
+                </RankBadge>
+            );
+        }
+        return (
+            <RankNumber $rank={index + 1}>
+                {index + 1}
+            </RankNumber>
+        );
+    };
+
+    const getServiceUsagePercentage = (usageCount: number, maxUsage: number) => {
+        return maxUsage > 0 ? (usageCount / maxUsage) * 100 : 0;
+    };
+
+    if (!data.topServices || data.topServices.length === 0) {
         return (
             <Section>
                 <SectionTitle>
-                    <FaTools />
-                    Preferencje usługowe
+                    <TitleIcon>
+                        <FaTools />
+                    </TitleIcon>
+                    <TitleText>Preferencje usługowe</TitleText>
                 </SectionTitle>
                 <EmptyState>
                     <EmptyIcon>
@@ -49,56 +72,105 @@ const VehicleServicePreferencesSection: React.FC<VehicleServicePreferencesSectio
         );
     }
 
-    const topService = data.top_services[0];
+    const topService = data.topServices[0];
+    const maxUsage = Math.max(...data.topServices.map(s => s.usageCount));
 
     return (
         <Section>
             <SectionTitle>
-                <FaTools />
-                Preferencje usługowe
+                <TitleIcon>
+                    <FaTools />
+                </TitleIcon>
+                <TitleText>Preferencje usługowe</TitleText>
+                <ServiceCount>{data.topServices.length} usług</ServiceCount>
             </SectionTitle>
 
             <PreferencesContent>
-                <TopServiceHighlight>
-                    <TopServiceIcon>
-                        <FaTrophy />
-                    </TopServiceIcon>
-                    <TopServiceInfo>
-                        <TopServiceName>{topService.service_name}</TopServiceName>
-                        <TopServiceStats>
-                            <StatItem>
-                                <StatValue>{topService.usage_count}</StatValue>
-                                <StatLabel>razy</StatLabel>
-                            </StatItem>
-                            <StatDivider>•</StatDivider>
-                            <StatItem>
-                                <StatValue>{formatCurrency(topService.total_revenue)}</StatValue>
-                                <StatLabel>łącznie</StatLabel>
-                            </StatItem>
-                        </TopServiceStats>
-                        <TopServiceLabel>Najczęściej wybierana usługa</TopServiceLabel>
-                    </TopServiceInfo>
-                </TopServiceHighlight>
+                {/* Top Service Highlight */}
+                <TopServiceCard>
+                    <TopServiceHeader>
+                        <TopServiceIcon>
+                            <FaTrophy />
+                        </TopServiceIcon>
+                        <TopServiceInfo>
+                            <TopServiceName>{topService.serviceName}</TopServiceName>
+                            <TopServiceLabel>Najczęściej wybierana usługa</TopServiceLabel>
+                        </TopServiceInfo>
+                        <TopServiceBadge>
+                            <FaCheckCircle />
+                            Preferowana
+                        </TopServiceBadge>
+                    </TopServiceHeader>
+
+                    <TopServiceMetrics>
+                        <MetricItem>
+                            <MetricValue>{topService.usageCount}</MetricValue>
+                            <MetricLabel>Wykonań</MetricLabel>
+                        </MetricItem>
+                        <MetricDivider />
+                        <MetricItem>
+                            <MetricValue>{formatCurrency(topService.totalRevenue)}</MetricValue>
+                            <MetricLabel>Łączny przychód</MetricLabel>
+                        </MetricItem>
+                        <MetricDivider />
+                        <MetricItem>
+                            <MetricValue>{formatCurrency(topService.averagePrice)}</MetricValue>
+                            <MetricLabel>Średnia cena</MetricLabel>
+                        </MetricItem>
+                        {topService.lastUsedDate && (
+                            <>
+                                <MetricDivider />
+                                <MetricItem>
+                                    <MetricValue>{formatDate(topService.lastUsedDate)}</MetricValue>
+                                    <MetricLabel>Ostatnie użycie</MetricLabel>
+                                </MetricItem>
+                            </>
+                        )}
+                    </TopServiceMetrics>
+                </TopServiceCard>
+
+                {/* Services List */}
+                <ServicesHeader>
+                    <ServicesTitle>Wszystkie usługi</ServicesTitle>
+                    <ServicesSubtitle>Ranking według częstotliwości użycia</ServicesSubtitle>
+                </ServicesHeader>
 
                 <ServicesList>
-                    {data.top_services.slice(0, 5).map((service, index) => (
-                        <ServiceItem key={service.service_id} $isTop={index === 0}>
+                    {data.topServices.map((service, index) => (
+                        <ServiceItem key={service.serviceId || index} $isTop={index === 0}>
                             <ServiceRank>
-                                {getRankIcon(index)}
+                                {getRankBadge(index)}
                             </ServiceRank>
-                            <ServiceInfo>
-                                <ServiceName>{service.service_name}</ServiceName>
-                                <ServiceDetails>
-                                    <ServiceUsage>{service.usage_count} wizyt</ServiceUsage>
-                                    <ServiceRevenue>{formatCurrency(service.total_revenue)}</ServiceRevenue>
-                                </ServiceDetails>
-                            </ServiceInfo>
-                            <ServiceChart>
-                                <ProgressBar
-                                    $percentage={(service.usage_count / topService.usage_count) * 100}
-                                    $isTop={index === 0}
-                                />
-                            </ServiceChart>
+
+                            <ServiceMainInfo>
+                                <ServiceName>{service.serviceName}</ServiceName>
+                                <ServiceMetrics>
+                                    <ServiceMetric>
+                                        <MetricNumber>{service.usageCount}</MetricNumber>
+                                        <MetricText>wykonań</MetricText>
+                                    </ServiceMetric>
+                                    <ServiceMetric>
+                                        <MetricNumber>{formatCurrency(service.totalRevenue)}</MetricNumber>
+                                        <MetricText>przychód</MetricText>
+                                    </ServiceMetric>
+                                    <ServiceMetric>
+                                        <MetricNumber>{formatDate(service.lastUsedDate)}</MetricNumber>
+                                        <MetricText>ostatnio</MetricText>
+                                    </ServiceMetric>
+                                </ServiceMetrics>
+                            </ServiceMainInfo>
+
+                            <ServiceVisualization>
+                                <UsageBar>
+                                    <UsageProgress
+                                        $percentage={getServiceUsagePercentage(service.usageCount, maxUsage)}
+                                        $isTop={index === 0}
+                                    />
+                                </UsageBar>
+                                <UsagePercentage>
+                                    {Math.round(getServiceUsagePercentage(service.usageCount, maxUsage))}%
+                                </UsagePercentage>
+                            </ServiceVisualization>
                         </ServiceItem>
                     ))}
                 </ServicesList>
@@ -106,7 +178,8 @@ const VehicleServicePreferencesSection: React.FC<VehicleServicePreferencesSectio
         </Section>
     );
 };
-// Styled components...
+
+// Styled Components
 const Section = styled.div`
     background: ${theme.surface};
     border-radius: ${theme.radius.xl};
@@ -115,352 +188,75 @@ const Section = styled.div`
     border: 1px solid ${theme.border};
 `;
 
-const SectionTitle = styled.h3`
+const SectionTitle = styled.div`
     display: flex;
     align-items: center;
-    gap: ${theme.spacing.md};
-    font-size: 18px;
-    font-weight: 600;
-    color: ${theme.text.primary};
-    margin: 0 0 ${theme.spacing.lg} 0;
-    padding-bottom: ${theme.spacing.md};
+    justify-content: space-between;
+    margin-bottom: ${theme.spacing.xl};
+    padding-bottom: ${theme.spacing.lg};
     border-bottom: 2px solid ${theme.primaryGhost};
-
-    svg {
-        color: ${theme.primary};
-        font-size: 16px;
-    }
 `;
 
-const MetricsGrid = styled.div`
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: ${theme.spacing.lg};
-
-    @media (max-width: 768px) {
-        grid-template-columns: 1fr;
-    }
-`;
-
-const MetricCard = styled.div`
-    background: ${theme.surfaceAlt};
-    border: 1px solid ${theme.border};
-    border-radius: ${theme.radius.lg};
-    padding: ${theme.spacing.lg};
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.lg};
-    transition: all ${theme.transitions.normal};
-
-    &:hover {
-        background: ${theme.primaryGhost};
-        border-color: ${theme.primary}30;
-        transform: translateY(-2px);
-        box-shadow: ${theme.shadow.md};
-    }
-`;
-
-const MetricIcon = styled.div<{ $color: string }>`
-    width: 48px;
-    height: 48px;
-    background: linear-gradient(135deg, ${props => props.$color}15 0%, ${props => props.$color}08 100%);
-    border-radius: ${theme.radius.lg};
+const TitleIcon = styled.div`
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: ${props => props.$color};
-    font-size: 20px;
-    flex-shrink: 0;
-    box-shadow: ${theme.shadow.xs};
-`;
-
-const MetricContent = styled.div`
-    flex: 1;
-    min-width: 0;
-`;
-
-const MetricValue = styled.div`
-    font-size: 20px;
-    font-weight: 700;
-    color: ${theme.text.primary};
-    margin-bottom: ${theme.spacing.xs};
-    line-height: 1.2;
-`;
-
-const MetricLabel = styled.div`
-    font-size: 12px;
-    color: ${theme.text.tertiary};
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-`;
-
-const TrendCard = styled.div`
-    background: ${theme.surfaceAlt};
-    border: 1px solid ${theme.border};
-    border-radius: ${theme.radius.lg};
-    padding: ${theme.spacing.lg};
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.lg};
-    grid-column: 1 / -1;
-
-    @media (max-width: 768px) {
-        grid-column: auto;
-    }
-`;
-
-const TrendIcon = styled.div`
-    width: 48px;
-    height: 48px;
-    background: ${theme.surfaceAlt};
-    border-radius: ${theme.radius.lg};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    flex-shrink: 0;
-    box-shadow: ${theme.shadow.xs};
-`;
-
-const TrendContent = styled.div`
-    flex: 1;
-`;
-
-const TrendValue = styled.div<{ $color: string }>`
+    color: ${theme.primary};
     font-size: 18px;
-    font-weight: 700;
-    color: ${props => props.$color};
-    margin-bottom: ${theme.spacing.xs};
-    line-height: 1.2;
 `;
 
-const TrendLabel = styled.div`
-    font-size: 12px;
-    color: ${theme.text.tertiary};
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-`;
-
-const ProfitabilityCard = styled.div`
-    background: ${theme.surfaceAlt};
-    border: 1px solid ${theme.border};
-    border-radius: ${theme.radius.lg};
-    padding: ${theme.spacing.lg};
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.lg};
-    grid-column: 1 / -1;
-
-    @media (max-width: 768px) {
-        grid-column: auto;
-    }
-`;
-
-const ProfitabilityScore = styled.div<{ $color: string }>`
-    width: 60px;
-    height: 60px;
-    background: linear-gradient(135deg, ${props => props.$color}20 0%, ${props => props.$color}10 100%);
-    border: 2px solid ${props => props.$color};
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    font-weight: 700;
-    color: ${props => props.$color};
-    flex-shrink: 0;
-`;
-
-const ProfitabilityContent = styled.div`
-    flex: 1;
-`;
-
-const ProfitabilityLabel = styled.div`
-    font-size: 12px;
-    color: ${theme.text.tertiary};
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: ${theme.spacing.xs};
-`;
-
-const StarContainer = styled.div`
-    display: flex;
-    gap: 2px;
-`;
-
-const Star = styled.span<{ filled?: boolean }>`
-    font-size: 14px;
-    opacity: ${props => props.filled ? 1 : 0.3};
-`;
-
-// Visit Pattern Components
-const PatternGrid = styled.div`
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: ${theme.spacing.lg};
-
-    @media (max-width: 768px) {
-        grid-template-columns: 1fr;
-    }
-`;
-
-const PatternCard = styled.div`
-    background: ${theme.surfaceAlt};
-    border: 1px solid ${theme.border};
-    border-radius: ${theme.radius.lg};
-    padding: ${theme.spacing.lg};
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.lg};
-`;
-
-const PatternIcon = styled.div<{ $color: string }>`
-    width: 40px;
-    height: 40px;
-    background: linear-gradient(135deg, ${props => props.$color}15 0%, ${props => props.$color}08 100%);
-    border-radius: ${theme.radius.md};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: ${props => props.$color};
-    font-size: 16px;
-    flex-shrink: 0;
-`;
-
-const PatternContent = styled.div`
-    flex: 1;
-`;
-
-const PatternValue = styled.div`
-    font-size: 16px;
+const TitleText = styled.h3`
+    font-size: 18px;
     font-weight: 600;
     color: ${theme.text.primary};
-    margin-bottom: ${theme.spacing.xs};
-`;
-
-const PatternLabel = styled.div`
-    font-size: 11px;
-    color: ${theme.text.muted};
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-`;
-
-const StatusCard = styled.div<{ $riskLevel: string }>`
-    background: ${theme.surfaceAlt};
-    border: 1px solid ${theme.border};
-    border-radius: ${theme.radius.lg};
-    padding: ${theme.spacing.lg};
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.lg};
-    grid-column: 1 / -1;
-`;
-
-const StatusIcon = styled.div<{ $color: string }>`
-    width: 40px;
-    height: 40px;
-    background: linear-gradient(135deg, ${props => props.$color}15 0%, ${props => props.$color}08 100%);
-    border-radius: ${theme.radius.md};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: ${props => props.$color};
-    font-size: 16px;
-    flex-shrink: 0;
-`;
-
-const StatusContent = styled.div`
+    margin: 0;
     flex: 1;
+    margin-left: ${theme.spacing.md};
 `;
 
-const StatusValue = styled.div<{ $color: string }>`
-    font-size: 16px;
-    font-weight: 600;
-    color: ${props => props.$color};
-    margin-bottom: ${theme.spacing.xs};
-`;
-
-const StatusLabel = styled.div`
-    font-size: 11px;
-    color: ${theme.text.muted};
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-`;
-
-const NextVisitCard = styled.div`
+const ServiceCount = styled.div`
+    font-size: 12px;
+    color: ${theme.text.secondary};
     background: ${theme.surfaceAlt};
+    padding: ${theme.spacing.xs} ${theme.spacing.sm};
+    border-radius: ${theme.radius.sm};
     border: 1px solid ${theme.border};
-    border-radius: ${theme.radius.lg};
-    padding: ${theme.spacing.lg};
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.lg};
-    grid-column: 1 / -1;
 `;
 
-const NextVisitIcon = styled.div<{ $color: string }>`
-    width: 40px;
-    height: 40px;
-    background: linear-gradient(135deg, ${props => props.$color}15 0%, ${props => props.$color}08 100%);
-    border-radius: ${theme.radius.md};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: ${props => props.$color};
-    font-size: 16px;
-    flex-shrink: 0;
-`;
-
-const NextVisitContent = styled.div`
-    flex: 1;
-`;
-
-const NextVisitValue = styled.div`
-    font-size: 16px;
-    font-weight: 600;
-    color: ${theme.text.primary};
-    margin-bottom: ${theme.spacing.xs};
-`;
-
-const NextVisitLabel = styled.div`
-    font-size: 11px;
-    color: ${theme.text.muted};
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-`;
-
-// Service Preferences Components
 const PreferencesContent = styled.div`
     display: flex;
     flex-direction: column;
     gap: ${theme.spacing.xl};
 `;
 
-const TopServiceHighlight = styled.div`
-    background: linear-gradient(135deg, ${theme.primary}08 0%, ${theme.primary}04 100%);
+const TopServiceCard = styled.div`
+    background: linear-gradient(135deg, ${theme.primary}06 0%, ${theme.primary}02 100%);
     border: 1px solid ${theme.primary}20;
     border-radius: ${theme.radius.lg};
     padding: ${theme.spacing.xl};
+`;
+
+const TopServiceHeader = styled.div`
     display: flex;
     align-items: center;
     gap: ${theme.spacing.lg};
+    margin-bottom: ${theme.spacing.lg};
 `;
 
 const TopServiceIcon = styled.div`
-    width: 56px;
-    height: 56px;
+    width: 48px;
+    height: 48px;
     background: linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryLight} 100%);
     border-radius: ${theme.radius.lg};
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 24px;
+    font-size: 20px;
     flex-shrink: 0;
-    box-shadow: ${theme.shadow.md};
+    box-shadow: ${theme.shadow.sm};
 `;
 
 const TopServiceInfo = styled.div`
@@ -468,52 +264,92 @@ const TopServiceInfo = styled.div`
 `;
 
 const TopServiceName = styled.div`
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 700;
     color: ${theme.text.primary};
-    margin-bottom: ${theme.spacing.sm};
-`;
-
-const TopServiceStats = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.md};
-    margin-bottom: ${theme.spacing.sm};
-`;
-
-const StatItem = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-`;
-
-const StatValue = styled.div`
-    font-size: 16px;
-    font-weight: 700;
-    color: ${theme.primary};
-`;
-
-const StatLabel = styled.div`
-    font-size: 11px;
-    color: ${theme.text.muted};
-    text-transform: uppercase;
-`;
-
-const StatDivider = styled.div`
-    color: ${theme.text.muted};
-    font-weight: 700;
+    margin-bottom: ${theme.spacing.xs};
 `;
 
 const TopServiceLabel = styled.div`
     font-size: 12px;
     color: ${theme.text.secondary};
-    font-style: italic;
+    font-weight: 500;
+`;
+
+const TopServiceBadge = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.xs};
+    background: ${theme.success}15;
+    color: ${theme.success};
+    padding: ${theme.spacing.sm} ${theme.spacing.md};
+    border-radius: ${theme.radius.md};
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid ${theme.success}30;
+
+    svg {
+        font-size: 10px;
+    }
+`;
+
+const TopServiceMetrics = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.lg};
+    flex-wrap: wrap;
+`;
+
+const MetricItem = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 80px;
+`;
+
+const MetricValue = styled.div`
+    font-size: 16px;
+    font-weight: 700;
+    color: ${theme.primary};
+    margin-bottom: ${theme.spacing.xs};
+`;
+
+const MetricLabel = styled.div`
+    font-size: 11px;
+    color: ${theme.text.muted};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: center;
+`;
+
+const MetricDivider = styled.div`
+    width: 1px;
+    height: 32px;
+    background: ${theme.border};
+`;
+
+const ServicesHeader = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${theme.spacing.xs};
+`;
+
+const ServicesTitle = styled.h4`
+    font-size: 16px;
+    font-weight: 600;
+    color: ${theme.text.primary};
+    margin: 0;
+`;
+
+const ServicesSubtitle = styled.div`
+    font-size: 12px;
+    color: ${theme.text.secondary};
 `;
 
 const ServicesList = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${theme.spacing.md};
+    gap: ${theme.spacing.sm};
 `;
 
 const ServiceItem = styled.div<{ $isTop: boolean }>`
@@ -522,14 +358,15 @@ const ServiceItem = styled.div<{ $isTop: boolean }>`
     gap: ${theme.spacing.lg};
     padding: ${theme.spacing.lg};
     background: ${props => props.$isTop ? theme.primaryGhost : theme.surfaceAlt};
-    border: 1px solid ${props => props.$isTop ? theme.primary + '30' : theme.border};
+    border: 1px solid ${props => props.$isTop ? theme.primary + '20' : theme.border};
     border-radius: ${theme.radius.md};
     transition: all ${theme.transitions.normal};
 
     &:hover {
         background: ${theme.primaryGhost};
         border-color: ${theme.primary}30;
-        transform: translateX(4px);
+        transform: translateX(2px);
+        box-shadow: ${theme.shadow.sm};
     }
 `;
 
@@ -537,28 +374,44 @@ const ServiceRank = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
+    width: 48px;
     flex-shrink: 0;
 `;
 
-const RankIcon = styled.span<{ $rank: string }>`
-    font-size: 20px;
+const RankBadge = styled.div<{ $rank: string }>`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    color: ${theme.warning};
+
+    svg {
+        font-size: 16px;
+    }
+
+    span {
+        font-size: 8px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
 `;
 
-const RankNumber = styled.div`
-    width: 24px;
-    height: 24px;
-    background: ${theme.text.muted};
-    color: white;
+const RankNumber = styled.div<{ $rank: number }>`
+    width: 32px;
+    height: 32px;
+    background: ${theme.text.muted}20;
+    color: ${theme.text.secondary};
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 700;
+    border: 2px solid ${theme.border};
 `;
 
-const ServiceInfo = styled.div`
+const ServiceMainInfo = styled.div`
     flex: 1;
     min-width: 0;
 `;
@@ -567,43 +420,69 @@ const ServiceName = styled.div`
     font-size: 14px;
     font-weight: 600;
     color: ${theme.text.primary};
-    margin-bottom: ${theme.spacing.xs};
+    margin-bottom: ${theme.spacing.sm};
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 `;
 
-const ServiceDetails = styled.div`
+const ServiceMetrics = styled.div`
     display: flex;
-    gap: ${theme.spacing.md};
+    gap: ${theme.spacing.lg};
+    flex-wrap: wrap;
 `;
 
-const ServiceUsage = styled.div`
-    font-size: 12px;
-    color: ${theme.text.secondary};
+const ServiceMetric = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 `;
 
-const ServiceRevenue = styled.div`
+const MetricNumber = styled.div`
     font-size: 12px;
-    color: ${theme.text.secondary};
     font-weight: 600;
+    color: ${theme.text.primary};
 `;
 
-const ServiceChart = styled.div`
-    width: 60px;
-    height: 6px;
-    background: ${theme.borderLight};
-    border-radius: 3px;
-    overflow: hidden;
+const MetricText = styled.div`
+    font-size: 10px;
+    color: ${theme.text.muted};
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+`;
+
+const ServiceVisualization = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: ${theme.spacing.xs};
+    width: 80px;
     flex-shrink: 0;
 `;
 
-const ProgressBar = styled.div<{ $percentage: number; $isTop: boolean }>`
+const UsageBar = styled.div`
+    width: 100%;
+    height: 8px;
+    background: ${theme.borderLight};
+    border-radius: 4px;
+    overflow: hidden;
+`;
+
+const UsageProgress = styled.div<{ $percentage: number; $isTop: boolean }>`
     height: 100%;
     width: ${props => props.$percentage}%;
-    background: ${props => props.$isTop ? theme.primary : theme.info};
-    border-radius: 3px;
+    background: linear-gradient(90deg, 
+        ${props => props.$isTop ? theme.primary : theme.info} 0%, 
+        ${props => props.$isTop ? theme.primaryLight : theme.info} 100%
+    );
+    border-radius: 4px;
     transition: width ${theme.transitions.normal};
+`;
+
+const UsagePercentage = styled.div`
+    font-size: 10px;
+    font-weight: 600;
+    color: ${theme.text.secondary};
 `;
 
 const EmptyState = styled.div`

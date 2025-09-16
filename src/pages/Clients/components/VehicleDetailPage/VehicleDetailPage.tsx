@@ -212,23 +212,6 @@ const VehicleDetailPage: React.FC = () => {
 
                     {/* NOWA SEKCJA - Toggle między analizami a tradycyjnymi statystykami */}
                     <AnalyticsToggleSection>
-                        <ToggleHeader>
-                            <ToggleTitle>Analiza danych pojazdu</ToggleTitle>
-                            <ToggleSwitch>
-                                <ToggleOption
-                                    $active={showAnalytics}
-                                    onClick={() => setShowAnalytics(true)}
-                                >
-                                    📊 Zaawansowane analiza
-                                </ToggleOption>
-                                <ToggleOption
-                                    $active={!showAnalytics}
-                                    onClick={() => setShowAnalytics(false)}
-                                >
-                                    📈 Podstawowe statystyki
-                                </ToggleOption>
-                            </ToggleSwitch>
-                        </ToggleHeader>
 
                         {/* NOWA SEKCJA ANALIZ lub tradycyjne statystyki */}
                         {showAnalytics ? (
