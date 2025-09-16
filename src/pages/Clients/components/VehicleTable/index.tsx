@@ -1,3 +1,4 @@
+// src/pages/Clients/components/VehicleTable/index.tsx - POPRAWIONE SZEROKOŚCI
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaCar, FaFilter } from 'react-icons/fa';
@@ -18,14 +19,15 @@ interface VehicleTableProps {
     filtersComponent?: React.ReactNode;
 }
 
+// POPRAWIONE: Optymalne szerokości dla tabeli pojazdów
 const defaultColumns: TableColumn[] = [
-    { id: 'licensePlate', label: 'Nr rejestracyjny', width: '160px', sortable: true },
-    { id: 'vehicle', label: 'Pojazd', width: '220px', sortable: true },
-    { id: 'owners', label: 'Właściciele', width: '260px', sortable: true },
-    { id: 'services', label: 'Liczba wizyt', width: '130px', sortable: true },
-    { id: 'lastService', label: 'Ostatnia wizyta', width: '140px', sortable: true },
-    { id: 'revenue', label: 'Przychody', width: '120px', sortable: true },
-    { id: 'actions', label: 'Akcje', width: '180px', sortable: false },
+    { id: 'licensePlate', label: 'Nr rej.', width: '110px', sortable: true }, // Skrócona nazwa, mniejsza szerokość
+    { id: 'vehicle', label: 'Pojazd', width: '28%', sortable: true }, // Największa - marka/model/rok
+    { id: 'owners', label: 'Właściciele', width: '30%', sortable: true }, // Bardzo szeroka - może być kilku
+    { id: 'services', label: 'Wizyty', width: '8%', sortable: true }, // Minimalna - tylko liczba
+    { id: 'lastService', label: 'Ostatnia wizyta', width: '14%', sortable: true }, // Średnia - data
+    { id: 'revenue', label: 'Przychody', width: '12%', sortable: true }, // Kompaktowa - kwota
+    { id: 'actions', label: 'Akcje', width: '90px', sortable: false }, // Mniejsza - 3 przyciski
 ];
 
 const emptyStateConfig = {

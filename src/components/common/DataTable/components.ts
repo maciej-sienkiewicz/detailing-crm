@@ -1,4 +1,4 @@
-// src/components/common/DataTable/components.ts - Naprawione z responsywnymi stylami
+// src/components/common/DataTable/components.ts - OSTATECZNE ROZWIĄZANIE
 import styled from 'styled-components';
 import { dataTableTheme } from './theme';
 
@@ -12,9 +12,8 @@ export const TableContainer = styled.div`
     min-height: 400px;
     margin-top: 10px;
 
-    /* FIXED: Stała szerokość kontenera */
+    /* KLUCZOWA ZMIANA: Usuwa min-width, pozwala na pełne wykorzystanie ekranu */
     max-width: 100%;
-    min-width: 800px; /* Minimalna szerokość dla zachowania funkcjonalności */
 `;
 
 export const TableHeader = styled.div`
@@ -26,8 +25,6 @@ export const TableHeader = styled.div`
     background: ${dataTableTheme.surfaceAlt};
     flex-shrink: 0;
     gap: ${dataTableTheme.spacing.xl};
-
-    /* FIXED: Stała wysokość nagłówka */
     min-height: 80px;
 
     @media (max-width: 1024px) {
@@ -39,6 +36,218 @@ export const TableHeader = styled.div`
     }
 `;
 
+// NAJWIĘKSZA ZMIANA: TableWrapper bez wymuszonego scroll
+export const TableWrapper = styled.div`
+    width: 100%;
+    /* USUNIĘTE: overflow-x: auto - nie wymuszamy scroll */
+    overflow: hidden;
+
+    /* Tylko gdy rzeczywiście potrzebny scroll */
+    @media (max-width: 768px) {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+`;
+
+export const TableContent = styled.div`
+    width: 100%;
+    /* KLUCZOWA ZMIANA: Usuwa min-width, pozwala na elastyczne dopasowanie */
+    display: flex;
+    flex-direction: column;
+`;
+
+export const TableHeaderRow = styled.div`
+    display: flex;
+    background: ${dataTableTheme.surfaceAlt};
+    border-bottom: 2px solid ${dataTableTheme.border};
+    min-height: 56px;
+    width: 100%;
+`;
+
+// REWOLUCYJNA ZMIANA: Inteligentne zarządzanie szerokością kolumn
+export const HeaderCell = styled.div<{
+    $isDragging?: boolean;
+    $width: string;
+    $sortable?: boolean;
+}>`
+    /* NOWY SYSTEM SZEROKOŚCI - inteligentne dopasowanie */
+    ${props => {
+    // Kolumny z pikselami - zachowują stałą szerokość tylko jeśli jest dużo miejsca
+    if (props.$width.includes('px')) {
+        const numericWidth = parseInt(props.$width);
+        return `
+                flex: 0 0 auto;
+                width: ${props.$width};
+                min-width: ${Math.min(numericWidth, 80)}px;
+                
+                /* Na mniejszych ekranach zmniejsz stałe szerokości */
+                @media (max-width: 1400px) {
+                    min-width: ${Math.min(numericWidth * 0.8, 60)}px;
+                    width: ${Math.min(numericWidth * 0.8, 60)}px;
+                }
+                
+                @media (max-width: 1024px) {
+                    min-width: ${Math.min(numericWidth * 0.6, 50)}px;
+                    width: ${Math.min(numericWidth * 0.6, 50)}px;
+                }
+            `;
+    }
+
+    // Kolumny procentowe - prawdziwie elastyczne
+    if (props.$width.includes('%')) {
+        const percentage = parseInt(props.$width);
+        return `
+                flex: ${percentage} ${percentage} 0%;
+                min-width: 0;
+                width: 0; /* Pozwala flexbox zarządzać szerokością */
+            `;
+    }
+
+    // Fallback - auto sizing
+    return `
+            flex: 1 1 auto;
+            min-width: 0;
+        `;
+}}
+    
+    display: flex;
+    align-items: center;
+    padding: 0 ${dataTableTheme.spacing.md};
+    background: ${props => props.$isDragging ? dataTableTheme.primaryGhost : dataTableTheme.surfaceAlt};
+    border-right: 1px solid ${dataTableTheme.border};
+    cursor: ${props => props.$sortable ? 'pointer' : props.$isDragging ? 'grabbing' : 'grab'};
+    user-select: none;
+    transition: all 0.2s ease;
+    overflow: hidden;
+
+    &:hover {
+        background: ${dataTableTheme.primaryGhost};
+    }
+
+    &:last-child {
+        border-right: none;
+    }
+
+    @media (max-width: 1024px) {
+        padding: 0 ${dataTableTheme.spacing.sm};
+    }
+`;
+
+export const HeaderContent = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${dataTableTheme.spacing.sm};
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+`;
+
+export const HeaderLabel = styled.span`
+    font-size: 14px;
+    font-weight: 600;
+    color: ${dataTableTheme.text.primary};
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+
+    @media (max-width: 1024px) {
+        font-size: 13px;
+    }
+
+    @media (max-width: 768px) {
+        font-size: 12px;
+    }
+`;
+
+export const TableRow = styled.div<{ $selected?: boolean }>`
+    display: flex;
+    border-bottom: 1px solid ${dataTableTheme.borderLight};
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    background: ${props => props.$selected ? dataTableTheme.primaryGhost : dataTableTheme.surface};
+    width: 100%;
+
+    &:hover {
+        background: ${props => props.$selected ? dataTableTheme.primaryGhost : dataTableTheme.surfaceHover};
+        box-shadow: inset 0 0 0 1px ${dataTableTheme.borderHover};
+    }
+
+    &:last-child {
+        border-bottom: none;
+    }
+`;
+
+// IDENTYCZNA LOGIKA jak HeaderCell - zapewnia spójność
+export const TableCell = styled.div<{ $width?: string }>`
+    ${props => {
+    if (!props.$width) {
+        return `
+                flex: 1 1 auto;
+                min-width: 0;
+            `;
+    }
+
+    // Kolumny z pikselami - dopasowują się do HeaderCell
+    if (props.$width.includes('px')) {
+        const numericWidth = parseInt(props.$width);
+        return `
+                flex: 0 0 auto;
+                width: ${props.$width};
+                min-width: ${Math.min(numericWidth, 80)}px;
+                
+                @media (max-width: 1400px) {
+                    min-width: ${Math.min(numericWidth * 0.8, 60)}px;
+                    width: ${Math.min(numericWidth * 0.8, 60)}px;
+                }
+                
+                @media (max-width: 1024px) {
+                    min-width: ${Math.min(numericWidth * 0.6, 50)}px;
+                    width: ${Math.min(numericWidth * 0.6, 50)}px;
+                }
+            `;
+    }
+
+    // Kolumny procentowe - prawdziwie elastyczne  
+    if (props.$width.includes('%')) {
+        const percentage = parseInt(props.$width);
+        return `
+                flex: ${percentage} ${percentage} 0%;
+                min-width: 0;
+                width: 0;
+            `;
+    }
+
+    return `
+            flex: 1 1 auto;
+            min-width: 0;
+        `;
+}}
+    
+    padding: ${dataTableTheme.spacing.md};
+    display: flex;
+    align-items: center;
+    min-height: 80px;
+    border-right: 1px solid ${dataTableTheme.borderLight};
+    overflow: hidden;
+
+    &:last-child {
+        border-right: none;
+    }
+
+    @media (max-width: 1024px) {
+        padding: ${dataTableTheme.spacing.sm};
+        min-height: 70px;
+    }
+`;
+
+export const TableBody = styled.div`
+    background: ${dataTableTheme.surface};
+    width: 100%;
+`;
+
+// Pozostałe komponenty bez zmian...
 export const TableTitle = styled.h3`
     font-size: 18px;
     font-weight: 600;
@@ -159,17 +368,6 @@ export const SelectAllCheckbox = styled.div<{ $selected?: boolean }>`
     }
 `;
 
-export const SelectionCounter = styled.div`
-    font-size: 14px;
-    color: ${dataTableTheme.primary};
-    font-weight: 600;
-    padding: ${dataTableTheme.spacing.xs} ${dataTableTheme.spacing.sm};
-    background: ${dataTableTheme.surface};
-    border-radius: ${dataTableTheme.radius.md};
-    border: 1px solid ${dataTableTheme.primary}30;
-    white-space: nowrap;
-`;
-
 export const HeaderActionButton = styled.button<{
     $variant?: 'primary' | 'secondary' | 'filter';
     $active?: boolean;
@@ -190,9 +388,9 @@ export const HeaderActionButton = styled.button<{
     border: 2px solid;
 
     ${({ $variant = 'secondary', $active = false }) => {
-        switch ($variant) {
-            case 'primary':
-                return `
+    switch ($variant) {
+        case 'primary':
+            return `
                     background: linear-gradient(135deg, ${dataTableTheme.primary} 0%, ${dataTableTheme.primaryLight} 100%);
                     color: white;
                     border-color: ${dataTableTheme.primary};
@@ -204,8 +402,8 @@ export const HeaderActionButton = styled.button<{
                         box-shadow: ${dataTableTheme.shadow.md};
                     }
                 `;
-            case 'filter':
-                return `
+        case 'filter':
+            return `
                     background: ${$active ? dataTableTheme.primaryGhost : dataTableTheme.surface};
                     color: ${$active ? dataTableTheme.primary : dataTableTheme.text.secondary};
                     border-color: ${$active ? dataTableTheme.primary : dataTableTheme.border};
@@ -218,8 +416,8 @@ export const HeaderActionButton = styled.button<{
                         box-shadow: ${dataTableTheme.shadow.md};
                     }
                 `;
-            default: // secondary
-                return `
+        default: // secondary
+            return `
                     background: ${dataTableTheme.surface};
                     color: ${dataTableTheme.text.secondary};
                     border-color: ${dataTableTheme.border};
@@ -233,8 +431,8 @@ export const HeaderActionButton = styled.button<{
                         box-shadow: ${dataTableTheme.shadow.sm};
                     }
                 `;
-        }
-    }}
+    }
+}}
 
     &:disabled {
         opacity: 0.5;
@@ -251,273 +449,6 @@ export const HeaderActionButton = styled.button<{
         span {
             display: none;
         }
-    }
-
-    svg:last-child {
-        margin-left: ${dataTableTheme.spacing.xs};
-        font-size: 12px;
-    }
-`;
-
-export const ActionBadge = styled.span`
-    position: absolute;
-    top: -4px;
-    right: -4px;
-    width: 12px;
-    height: 12px;
-    background: ${dataTableTheme.status.warning};
-    border-radius: 50%;
-    border: 2px solid ${dataTableTheme.surface};
-    animation: pulse 2s infinite;
-
-    @keyframes pulse {
-        0%, 100% {
-            transform: scale(1);
-            opacity: 1;
-        }
-        50% {
-            transform: scale(1.1);
-            opacity: 0.8;
-        }
-    }
-`;
-
-export const ExpandableContent = styled.div<{ $visible: boolean }>`
-    overflow: hidden;
-    background: ${dataTableTheme.surfaceAlt};
-    border-bottom: 1px solid ${dataTableTheme.border};
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-    ${props => props.$visible
-            ? `
-            max-height: 1000px;
-            opacity: 1;
-        `
-            : `
-            max-height: 0;
-            opacity: 0;
-        `
-    }
-`;
-
-// FIXED: Responsive table wrapper
-export const TableWrapper = styled.div`
-    width: 100%;
-    overflow-x: auto;
-
-    /* Smooth scrolling dla lepszego UX */
-    scroll-behavior: smooth;
-
-    /* Custom scrollbar styling */
-    &::-webkit-scrollbar {
-        height: 8px;
-    }
-
-    &::-webkit-scrollbar-track {
-        background: ${dataTableTheme.surfaceAlt};
-        border-radius: 4px;
-    }
-
-    &::-webkit-scrollbar-thumb {
-        background: ${dataTableTheme.border};
-        border-radius: 4px;
-
-        &:hover {
-            background: ${dataTableTheme.borderHover};
-        }
-    }
-`;
-
-export const TableContent = styled.div`
-    width: 100%;
-    min-width: 800px; /* Minimalna szerokość dla zachowania czytelności */
-
-    @media (max-width: 1200px) {
-        min-width: 1000px; /* Większa minimalna szerokość na średnich ekranach */
-    }
-`;
-
-export const TableHeaderRow = styled.div`
-    display: flex;
-    background: ${dataTableTheme.surfaceAlt};
-    border-bottom: 2px solid ${dataTableTheme.border};
-    min-height: 56px;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-`;
-
-// FIXED: Responsive header cell z lepszym zarządzaniem szerokością
-export const HeaderCell = styled.div<{
-    $isDragging?: boolean;
-    $width: string;
-    $sortable?: boolean;
-}>`
-    flex: 0 0 ${props => props.$width};
-    width: ${props => props.$width};
-    min-width: ${props => {
-        // Minimalne szerokości dla różnych typów kolumn
-        const numericWidth = parseInt(props.$width);
-        if (numericWidth < 80) return '80px';
-        if (numericWidth < 120) return '120px';
-        return props.$width;
-    }};
-    max-width: ${props => props.$width};
-    display: flex;
-    align-items: center;
-    padding: 0 ${dataTableTheme.spacing.md};
-    background: ${props => props.$isDragging ? dataTableTheme.primaryGhost : dataTableTheme.surfaceAlt};
-    border-right: 1px solid ${dataTableTheme.border};
-    cursor: ${props => props.$sortable ? 'pointer' : props.$isDragging ? 'grabbing' : 'grab'};
-    user-select: none;
-    transition: all 0.2s ease;
-
-    &:hover {
-        background: ${dataTableTheme.primaryGhost};
-    }
-
-    &:last-child {
-        border-right: none;
-    }
-
-    @media (max-width: 768px) {
-        padding: 0 ${dataTableTheme.spacing.sm};
-    }
-`;
-
-export const HeaderContent = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${dataTableTheme.spacing.sm};
-    width: 100%;
-    overflow: hidden;
-`;
-
-export const DragHandle = styled.div`
-    color: ${dataTableTheme.text.muted};
-    font-size: 12px;
-    opacity: 0.6;
-    transition: opacity 0.2s ease;
-    flex-shrink: 0;
-
-    ${HeaderCell}:hover & {
-        opacity: 1;
-    }
-
-    @media (max-width: 768px) {
-        display: none;
-    }
-`;
-
-export const HeaderLabel = styled.span`
-    font-size: 14px;
-    font-weight: 600;
-    color: ${dataTableTheme.text.primary};
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-
-    @media (max-width: 768px) {
-        font-size: 13px;
-    }
-`;
-
-export const SortIcon = styled.div<{ $active: boolean }>`
-    display: flex;
-    align-items: center;
-    color: ${props => props.$active ? dataTableTheme.primary : dataTableTheme.text.muted};
-    font-size: 12px;
-    transition: color 0.2s ease;
-    flex-shrink: 0;
-`;
-
-export const TableBody = styled.div`
-    background: ${dataTableTheme.surface};
-`;
-
-// FIXED: Responsive table row
-export const TableRow = styled.div<{ $selected?: boolean }>`
-    display: flex;
-    border-bottom: 1px solid ${dataTableTheme.borderLight};
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    background: ${props => props.$selected ? dataTableTheme.primaryGhost : dataTableTheme.surface};
-
-    &:hover {
-        background: ${props => props.$selected ? dataTableTheme.primaryGhost : dataTableTheme.surfaceHover};
-        box-shadow: inset 0 0 0 1px ${dataTableTheme.borderHover};
-    }
-
-    &:last-child {
-        border-bottom: none;
-    }
-`;
-
-// FIXED: Responsive table cell z lepszym zarządzaniem treści
-export const TableCell = styled.div<{ $width?: string }>`
-    flex: 0 0 ${props => props.$width || 'auto'};
-    width: ${props => props.$width || 'auto'};
-    min-width: ${props => {
-        if (!props.$width) return 'auto';
-        const numericWidth = parseInt(props.$width);
-        if (numericWidth < 80) return '80px';
-        if (numericWidth < 120) return '120px';
-        return props.$width;
-    }};
-    max-width: ${props => props.$width || 'auto'};
-    padding: ${dataTableTheme.spacing.md};
-    display: flex;
-    align-items: center;
-    min-height: 80px;
-    border-right: 1px solid ${dataTableTheme.borderLight};
-    overflow: hidden;
-
-    &:last-child {
-        border-right: none;
-    }
-
-    @media (max-width: 768px) {
-        padding: ${dataTableTheme.spacing.sm};
-        min-height: 70px;
-    }
-`;
-
-// FIXED: Responsive cards container
-export const CardsContainer = styled.div`
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
-    gap: ${dataTableTheme.spacing.md};
-    padding: ${dataTableTheme.spacing.lg};
-
-    @media (max-width: 1200px) {
-        grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-    }
-
-    @media (max-width: 768px) {
-        grid-template-columns: 1fr;
-        padding: ${dataTableTheme.spacing.md};
-        gap: ${dataTableTheme.spacing.sm};
-    }
-`;
-
-export const Card = styled.div<{ $selected?: boolean }>`
-    background: ${dataTableTheme.surface};
-    border: 2px solid ${props => props.$selected ? dataTableTheme.primary : dataTableTheme.border};
-    border-radius: ${dataTableTheme.radius.lg};
-    padding: ${dataTableTheme.spacing.lg};
-    cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: ${props => props.$selected ? dataTableTheme.shadow.md : dataTableTheme.shadow.xs};
-
-    &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
-        border-color: ${dataTableTheme.primary};
-    }
-
-    @media (max-width: 768px) {
-        padding: ${dataTableTheme.spacing.md};
     }
 `;
 
@@ -570,6 +501,97 @@ export const EmptyStateAction = styled.p`
     font-weight: 500;
 `;
 
+// Pozostałe komponenty działają bez zmian...
+export const ActionButton = styled.button<{
+    $variant: 'view' | 'edit' | 'delete' | 'info' | 'success' | 'secondary';
+    $small?: boolean;
+}>`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: ${props => props.$small ? '28px' : '32px'};
+    height: ${props => props.$small ? '28px' : '32px'};
+    border: none;
+    border-radius: ${dataTableTheme.radius.sm};
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: ${props => props.$small ? '12px' : '13px'};
+    position: relative;
+    overflow: hidden;
+
+    ${({ $variant }) => {
+        switch ($variant) {
+            case 'view':
+                return `
+                    background: ${dataTableTheme.primaryGhost};
+                    color: ${dataTableTheme.primary};
+                    &:hover {
+                        background: ${dataTableTheme.primary};
+                        color: white;
+                        transform: translateY(-1px);
+                        box-shadow: ${dataTableTheme.shadow.md};
+                    }
+                `;
+            case 'edit':
+                return `
+                    background: ${dataTableTheme.status.warningLight};
+                    color: ${dataTableTheme.status.warning};
+                    &:hover {
+                        background: ${dataTableTheme.status.warning};
+                        color: white;
+                        transform: translateY(-1px);
+                        box-shadow: ${dataTableTheme.shadow.md};
+                    }
+                `;
+            case 'delete':
+                return `
+                    background: ${dataTableTheme.status.errorLight};
+                    color: ${dataTableTheme.status.error};
+                    &:hover {
+                        background: ${dataTableTheme.status.error};
+                        color: white;
+                        transform: translateY(-1px);
+                        box-shadow: ${dataTableTheme.shadow.md};
+                    }
+                `;
+            default:
+                return `
+                    background: ${dataTableTheme.surfaceElevated};
+                    color: ${dataTableTheme.text.tertiary};
+                    &:hover {
+                        background: ${dataTableTheme.text.tertiary};
+                        color: white;
+                        transform: translateY(-1px);
+                        box-shadow: ${dataTableTheme.shadow.md};
+                    }
+                `;
+        }
+    }}
+`;
+
+export const ActionButtons = styled.div`
+    display: flex;
+    gap: ${dataTableTheme.spacing.xs};
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+`;
+
+export const StatusBadge = styled.span<{ $color: string }>`
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: ${dataTableTheme.radius.lg};
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: ${props => props.$color}15;
+    color: ${props => props.$color};
+    border: 1px solid ${props => props.$color}30;
+    white-space: nowrap;
+`;
+
 export const TooltipWrapper = styled.div<{ title: string }>`
     position: relative;
     display: inline-flex;
@@ -619,114 +641,81 @@ export const TooltipWrapper = styled.div<{ title: string }>`
     }
 `;
 
-export const ActionButton = styled.button<{
-    $variant: 'view' | 'edit' | 'delete' | 'info' | 'success' | 'secondary';
-    $small?: boolean;
-}>`
+// Wyeksportowanie pozostałych komponentów...
+export const SortIcon = styled.div<{ $active: boolean }>`
     display: flex;
     align-items: center;
-    justify-content: center;
-    width: ${props => props.$small ? '28px' : '32px'};
-    height: ${props => props.$small ? '28px' : '32px'};
-    border: none;
-    border-radius: ${dataTableTheme.radius.sm};
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    font-size: ${props => props.$small ? '12px' : '13px'};
-    position: relative;
+    color: ${props => props.$active ? dataTableTheme.primary : dataTableTheme.text.muted};
+    font-size: 12px;
+    transition: color 0.2s ease;
+    flex-shrink: 0;
+`;
+
+export const DragHandle = styled.div`
+    color: ${dataTableTheme.text.muted};
+    font-size: 12px;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+    flex-shrink: 0;
+
+    ${HeaderCell}:hover & {
+        opacity: 1;
+    }
+
+    @media (max-width: 768px) {
+        display: none;
+    }
+`;
+
+export const ExpandableContent = styled.div<{ $visible: boolean }>`
     overflow: hidden;
+    background: ${dataTableTheme.surfaceAlt};
+    border-bottom: 1px solid ${dataTableTheme.border};
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
-    ${({ $variant }) => {
-        switch ($variant) {
-            case 'view':
-                return `
-                    background: ${dataTableTheme.primaryGhost};
-                    color: ${dataTableTheme.primary};
-                    &:hover {
-                        background: ${dataTableTheme.primary};
-                        color: white;
-                        transform: translateY(-1px);
-                        box-shadow: ${dataTableTheme.shadow.md};
-                    }
-                `;
-            case 'edit':
-                return `
-                    background: ${dataTableTheme.status.warningLight};
-                    color: ${dataTableTheme.status.warning};
-                    &:hover {
-                        background: ${dataTableTheme.status.warning};
-                        color: white;
-                        transform: translateY(-1px);
-                        box-shadow: ${dataTableTheme.shadow.md};
-                    }
-                `;
-            case 'info':
-                return `
-                    background: ${dataTableTheme.status.infoLight};
-                    color: ${dataTableTheme.status.info};
-                    &:hover {
-                        background: ${dataTableTheme.status.info};
-                        color: white;
-                        transform: translateY(-1px);
-                        box-shadow: ${dataTableTheme.shadow.md};
-                    }
-                `;
-            case 'success':
-                return `
-                    background: ${dataTableTheme.status.successLight};
-                    color: ${dataTableTheme.status.success};
-                    &:hover {
-                        background: ${dataTableTheme.status.success};
-                        color: white;
-                        transform: translateY(-1px);
-                        box-shadow: ${dataTableTheme.shadow.md};
-                    }
-                `;
-            case 'secondary':
-                return `
-                    background: ${dataTableTheme.surfaceElevated};
-                    color: ${dataTableTheme.text.tertiary};
-                    &:hover {
-                        background: ${dataTableTheme.text.tertiary};
-                        color: white;
-                        transform: translateY(-1px);
-                        box-shadow: ${dataTableTheme.shadow.md};
-                    }
-                `;
-            case 'delete':
-                return `
-                    background: ${dataTableTheme.status.errorLight};
-                    color: ${dataTableTheme.status.error};
-                    &:hover {
-                        background: ${dataTableTheme.status.error};
-                        color: white;
-                        transform: translateY(-1px);
-                        box-shadow: ${dataTableTheme.shadow.md};
-                    }
-                `;
+    ${props => props.$visible
+            ? `
+            max-height: 1000px;
+            opacity: 1;
+        `
+            : `
+            max-height: 0;
+            opacity: 0;
+        `
+    }
+`;
+
+export const ActionBadge = styled.span`
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 12px;
+    height: 12px;
+    background: ${dataTableTheme.status.warning};
+    border-radius: 50%;
+    border: 2px solid ${dataTableTheme.surface};
+    animation: pulse 2s infinite;
+
+    @keyframes pulse {
+        0%, 100% {
+            transform: scale(1);
+            opacity: 1;
         }
-    }}
+        50% {
+            transform: scale(1.1);
+            opacity: 0.8;
+        }
+    }
 `;
 
-export const ActionButtons = styled.div`
-    display: flex;
-    gap: ${dataTableTheme.spacing.xs};
-    align-items: center;
-    flex-wrap: wrap;
-`;
-
-export const StatusBadge = styled.span<{ $color: string }>`
-    display: inline-flex;
-    align-items: center;
-    padding: 2px 8px;
-    border-radius: ${dataTableTheme.radius.lg};
-    font-size: 11px;
+export const SelectionCounter = styled.div`
+    font-size: 14px;
+    color: ${dataTableTheme.primary};
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    background: ${props => props.$color}15;
-    color: ${props => props.$color};
-    border: 1px solid ${props => props.$color}30;
+    padding: ${dataTableTheme.spacing.xs} ${dataTableTheme.spacing.sm};
+    background: ${dataTableTheme.surface};
+    border-radius: ${dataTableTheme.radius.md};
+    border: 1px solid ${dataTableTheme.primary}30;
     white-space: nowrap;
 `;
 
@@ -756,9 +745,9 @@ export const BulkActionButton = styled.button<{
     white-space: nowrap;
 
     ${({ $variant = 'secondary' }) => {
-        switch ($variant) {
-            case 'primary':
-                return `
+    switch ($variant) {
+        case 'primary':
+            return `
                     background: ${dataTableTheme.primary};
                     color: white;
                     border-color: ${dataTableTheme.primary};
@@ -768,8 +757,8 @@ export const BulkActionButton = styled.button<{
                         border-color: ${dataTableTheme.primaryDark};
                     }
                 `;
-            default: // secondary
-                return `
+        default: // secondary
+            return `
                     background: ${dataTableTheme.surface};
                     color: ${dataTableTheme.text.secondary};
                     border-color: ${dataTableTheme.border};
@@ -780,8 +769,8 @@ export const BulkActionButton = styled.button<{
                         border-color: ${dataTableTheme.primary};
                     }
                 `;
-        }
-    }}
+    }
+}}
 
     &:disabled {
         opacity: 0.5;
@@ -799,5 +788,42 @@ export const BulkActionButton = styled.button<{
         span {
             display: none;
         }
+    }
+`;
+
+export const CardsContainer = styled.div`
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    gap: ${dataTableTheme.spacing.md};
+    padding: ${dataTableTheme.spacing.lg};
+
+    @media (max-width: 1200px) {
+        grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    }
+
+    @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+        padding: ${dataTableTheme.spacing.md};
+        gap: ${dataTableTheme.spacing.sm};
+    }
+`;
+
+export const Card = styled.div<{ $selected?: boolean }>`
+    background: ${dataTableTheme.surface};
+    border: 2px solid ${props => props.$selected ? dataTableTheme.primary : dataTableTheme.border};
+    border-radius: ${dataTableTheme.radius.lg};
+    padding: ${dataTableTheme.spacing.lg};
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: ${props => props.$selected ? dataTableTheme.shadow.md : dataTableTheme.shadow.xs};
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+        border-color: ${dataTableTheme.primary};
+    }
+
+    @media (max-width: 768px) {
+        padding: ${dataTableTheme.spacing.md};
     }
 `;

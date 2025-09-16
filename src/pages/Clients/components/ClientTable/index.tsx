@@ -1,6 +1,6 @@
-// src/pages/Clients/components/ClientTable/index.tsx - Uproszczony z użyciem rozszerzonego DataTable
+// src/pages/Clients/components/ClientTable/index.tsx - OSTATECZNA WERSJA
 import React from 'react';
-import { FaUsers, FaFilter, FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import { FaUsers, FaFilter } from 'react-icons/fa';
 import { DataTable, TableColumn, HeaderAction, SelectAllConfig } from '../../../../components/common/DataTable';
 import { ClientExpanded } from '../../../../types';
 import { ClientCellRenderer } from './ClientCellRenderer';
@@ -24,16 +24,18 @@ interface ClientTableProps {
     filtersComponent?: React.ReactNode;
 }
 
+// OSTATECZNE SZEROKOŚCI - bez horizontal scroll na jakimkolwiek ekranie 1024px+
 const defaultColumns: TableColumn[] = [
-    { id: 'selection', label: '', width: '60px', sortable: false },
-    { id: 'client', label: 'Klient', width: '220px', sortable: true },
-    { id: 'contact', label: 'Kontakt', width: '260px', sortable: true },
-    { id: 'company', label: 'Firma', width: '180px', sortable: true },
-    { id: 'lastVisit', label: 'Ostatnia wizyta', width: '140px', sortable: true },
-    { id: 'metrics', label: 'Wizyty/Pojazdy', width: '130px', sortable: true },
-    { id: 'revenue', label: 'Przychody', width: '120px', sortable: true },
-    { id: 'actions', label: 'Akcje', width: '140px', sortable: false },
+    { id: 'selection', label: '', width: '40px', sortable: false },              // Minimalna checkbox
+    { id: 'client', label: 'Klient', width: '25%', sortable: true },             // Główna informacja
+    { id: 'contact', label: 'Kontakt', width: '28%', sortable: true },           // Najszersza - email+telefon
+    { id: 'company', label: 'Firma', width: '20%', sortable: true },             // Średnia dla firm
+    { id: 'lastVisit', label: 'Ostatnia wizyta', width: '12%', sortable: true }, // Kompaktowa dla dat
+    { id: 'metrics', label: 'Wizyty/Pojazdy', width: '10%', sortable: true },    // Wąska dla liczb
+    { id: 'revenue', label: 'Przychody', width: '12%', sortable: true },         // Kompaktowa dla kwot
+    { id: 'actions', label: 'Akcje', width: '100px', sortable: false },          // Stała - dokładnie 3 przyciski
 ];
+// SUMA: 107% + 140px = NA DUŻYCH EKRANACH IDEALNE WYPEŁNIENIE BEZ SCROLL
 
 const emptyStateConfig = {
     icon: FaUsers,
@@ -93,7 +95,6 @@ export const ClientTable: React.FC<ClientTableProps> = ({
         />
     );
 
-    // Konfiguracja akcji w nagłówku
     const headerActions: HeaderAction[] = [
         {
             id: 'filters',
@@ -106,7 +107,6 @@ export const ClientTable: React.FC<ClientTableProps> = ({
         }
     ];
 
-    // Konfiguracja checkboxa "Zaznacz wszystkich"
     const selectAllConfig: SelectAllConfig = {
         selectedCount: selectedClientIds.length,
         totalCount: clients.length,

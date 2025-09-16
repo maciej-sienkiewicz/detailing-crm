@@ -19,14 +19,14 @@ interface VisitsTableProps {
 }
 
 const defaultColumns: TableColumn[] = [
-    { id: 'vehicle', label: 'Pojazd', width: '240px', sortable: true },
-    { id: 'licensePlate', label: 'Nr rejestracyjny', width: '140px', sortable: true },
-    { id: 'client', label: 'Klient', width: '220px', sortable: true },
-    { id: 'period', label: 'Okres wizyty', width: '200px', sortable: true },
-    { id: 'status', label: 'Status', width: '140px', sortable: true },
-    { id: 'value', label: 'Wartość', width: '120px', sortable: true },
-    { id: 'lastUpdate', label: 'Ostatnia aktualizacja', width: '180px', sortable: true },
-    { id: 'actions', label: 'Akcje', width: '100px', sortable: false },
+    { id: 'vehicle', label: 'Pojazd', width: '24%', sortable: true }, // Szeroka - marka+model
+    { id: 'licensePlate', label: 'Nr rej.', width: '100px', sortable: true }, // Minimalna stała
+    { id: 'client', label: 'Klient', width: '20%', sortable: true }, // Średnia - nazwa+firma
+    { id: 'period', label: 'Okres', width: '18%', sortable: true }, // Średnia - dwie daty
+    { id: 'status', label: 'Status', width: '12%', sortable: true }, // Kompaktowa - badge
+    { id: 'value', label: 'Wartość', width: '10%', sortable: true }, // Wąska - kwota
+    { id: 'lastUpdate', label: 'Aktualizacja', width: '14%', sortable: true }, // Średnia - data+czas
+    { id: 'actions', label: 'Akcje', width: '130px', sortable: false }, // Minimalna - tylko 2 przyciski
 ];
 
 const emptyStateConfig = {

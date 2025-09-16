@@ -1,4 +1,4 @@
-// src/components/recurringEvents/OccurrenceManagement.tsx - POPRAWIONE UX
+// src/components/recurringEvents/OccurrenceManagement.tsx - POPRAWIONE STYLOWANIE
 import React, { useState, useCallback, useMemo } from 'react';
 import styled from 'styled-components';
 import { format } from 'date-fns';
@@ -240,15 +240,15 @@ const OccurrenceManagement: React.FC<OccurrenceManagementProps> = ({
         toast.success(`Zaktualizowano status ${successCount} z ${selectedOccurrenceIds.length} wystąpień`);
     }, [selectedOccurrenceIds, updateStatus]);
 
-    // Konfiguracja DataTable
+    // POPRAWIONA KONFIGURACJA: Optymalne szerokości kolumn
     const columns: TableColumn[] = [
-        { id: 'selection', label: '', width: '50px', sortable: false },
-        { id: 'scheduledDate', label: 'Data wystąpienia', width: '15%', sortable: true },
+        { id: 'selection', label: '', width: '40px', sortable: false },
+        { id: 'scheduledDate', label: 'Data wystąpienia', width: '16%', sortable: true },
         { id: 'status', label: 'Status', width: '12%', sortable: true },
-        { id: 'notes', label: 'Notatki', width: '30%', sortable: false },
-        { id: 'completedAt', label: 'Ukończono', width: '15%', sortable: true },
-        { id: 'createdAt', label: 'Utworzono', width: '13%', sortable: true },
-        { id: 'actions', label: 'Akcje', width: '15%', sortable: false }
+        { id: 'notes', label: 'Notatki', width: '28%', sortable: false },
+        { id: 'completedAt', label: 'Ukończono', width: '14%', sortable: true },
+        { id: 'createdAt', label: 'Utworzono', width: '12%', sortable: true },
+        { id: 'actions', label: 'Akcje', width: '120px', sortable: false }
     ];
 
     const headerActions: HeaderAction[] = [
@@ -263,7 +263,7 @@ const OccurrenceManagement: React.FC<OccurrenceManagementProps> = ({
         }
     ];
 
-    // POPRAWKA 3: Bulk actions po lewej stronie od "Zaznacz wszystkie"
+    // Bulk actions po lewej stronie od "Zaznacz wszystkie"
     const bulkActionsConfig = selectedOccurrenceIds.length > 0 ? [
         {
             id: 'bulk-complete',
@@ -294,10 +294,10 @@ const OccurrenceManagement: React.FC<OccurrenceManagementProps> = ({
         selectAll: selectedOccurrenceIds.length === filteredOccurrences.length && filteredOccurrences.length > 0,
         onToggleSelectAll: handleToggleSelectAll,
         label: `Zaznacz wszystkie (${filteredOccurrences.length})`,
-        bulkActions: bulkActionsConfig // POPRAWKA 3: Dodajemy bulk actions do selectAllConfig
+        bulkActions: bulkActionsConfig
     };
 
-    // Renderowanie komórek
+    // POPRAWIONE: Renderowanie komórek - spójne stylowanie z RecurringEventsList
     const renderCell = useCallback((occurrence: EventOccurrenceResponse, columnId: string) => {
         switch (columnId) {
             case 'selection':
@@ -314,7 +314,7 @@ const OccurrenceManagement: React.FC<OccurrenceManagementProps> = ({
             case 'scheduledDate':
                 return (
                     <DateCell>
-                        {formatDateSafely(occurrence.scheduledDate, 'dd-MM-yyyy HH:mm')}
+                        {formatDateSafely(occurrence.scheduledDate, 'dd MMM yyyy, HH:mm')}
                     </DateCell>
                 );
 
@@ -333,7 +333,7 @@ const OccurrenceManagement: React.FC<OccurrenceManagementProps> = ({
                                 {occurrence.notes}
                             </NotesText>
                         ) : (
-                            <NoNotes>-</NoNotes>
+                            <EmptyValue>-</EmptyValue>
                         )}
                     </NotesCell>
                 );
@@ -341,14 +341,14 @@ const OccurrenceManagement: React.FC<OccurrenceManagementProps> = ({
             case 'completedAt':
                 return (
                     <DateCell>
-                        {formatDateSafely(occurrence.completedAt, 'dd-MM-yyyy HH:mm')}
+                        {formatDateSafely(occurrence.completedAt, 'dd MMM yyyy, HH:mm')}
                     </DateCell>
                 );
 
             case 'createdAt':
                 return (
                     <DateCell>
-                        {formatDateSafely(occurrence.createdAt, 'dd-MM-yyyy HH:mm')}
+                        {formatDateSafely(occurrence.createdAt, 'dd MMM yyyy')}
                     </DateCell>
                 );
 
@@ -361,24 +361,22 @@ const OccurrenceManagement: React.FC<OccurrenceManagementProps> = ({
                                 handleEditNotes(occurrence);
                             }}
                             title="Edytuj notatki"
+                            $variant="secondary"
                         >
                             <FaEdit />
                         </ActionButton>
 
-                        <StatusDropdown>
-                            <StatusDropdownButton
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleChangeStatus(occurrence);
-                                }}
-                                title="Zmień status"
-                            >
-                                <FaCheckCircle />
-                                <FaChevronDown />
-                            </StatusDropdownButton>
-                        </StatusDropdown>
+                        <ActionButton
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleChangeStatus(occurrence);
+                            }}
+                            title="Zmień status"
+                            $variant="secondary"
+                        >
+                            <FaCheckCircle />
+                        </ActionButton>
 
-                        {/* Specjalna akcja dla konwersji na wizytę */}
                         {occurrence.status === OccurrenceStatus.PLANNED && (
                             <ActionButton
                                 onClick={(e) => {
@@ -386,7 +384,7 @@ const OccurrenceManagement: React.FC<OccurrenceManagementProps> = ({
                                     handleConvertToVisit(occurrence);
                                 }}
                                 title="Konwertuj na wizytę"
-                                $special
+                                $variant="info"
                             >
                                 <FaExchangeAlt />
                             </ActionButton>
@@ -399,7 +397,7 @@ const OccurrenceManagement: React.FC<OccurrenceManagementProps> = ({
         }
     }, [selectedOccurrenceIds, handleToggleSelection, handleEditNotes, handleChangeStatus, handleConvertToVisit]);
 
-    // Panel filtrów - POPRAWKA 3: Usunięto bulk actions (przeniesione do selectAllConfig)
+    // Panel filtrów
     const filtersContent = (
         <FiltersPanel>
             <FiltersRow>
@@ -445,7 +443,6 @@ const OccurrenceManagement: React.FC<OccurrenceManagementProps> = ({
 
     return (
         <Container>
-            {/* Główny nagłówek strony */}
             <PageHeader
                 icon={FaCalendarCheck}
                 title="Wystąpienia wydarzenia"
@@ -458,12 +455,11 @@ const OccurrenceManagement: React.FC<OccurrenceManagementProps> = ({
                 }
             />
 
-            {/* Tabela z danymi */}
             <TableContainer>
                 <DataTable
                     data={filteredOccurrences}
                     columns={columns}
-                    title="Zaplanowane wydarzenia"
+                    title="Zaplanowane wystąpienia"
                     emptyStateConfig={{
                         icon: FaCalendarCheck,
                         title: 'Brak wystąpień',
@@ -540,7 +536,6 @@ const OccurrenceManagement: React.FC<OccurrenceManagementProps> = ({
                 </NotesModalContent>
             </Modal>
 
-            {/* Status Change Modal */}
             <Modal
                 isOpen={showStatusModal}
                 onClose={() => {
@@ -583,7 +578,7 @@ const OccurrenceManagement: React.FC<OccurrenceManagementProps> = ({
     );
 };
 
-// Styled Components
+// POPRAWIONE STYLED COMPONENTS - spójne z RecurringEventsList
 const Container = styled.div`
     min-height: 100vh;
     background: ${theme.surfaceAlt};
@@ -621,7 +616,7 @@ const TableContainer = styled.div`
     padding: 0 ${theme.spacing.xl} ${theme.spacing.xl};
 `;
 
-// POPRAWKA 1: Widoczne komórki zaznaczenia
+// POPRAWIONE: Komórki tabeli - stylowanie spójne z RecurringEventsList
 const SelectionCell = styled.div`
     display: flex;
     align-items: center;
@@ -636,113 +631,98 @@ const SelectionCheckbox = styled.input`
     cursor: pointer;
 `;
 
-// Cell components
 const DateCell = styled.div`
-    font-size: 14px;
-    color: ${theme.text.primary};
-    font-family: monospace; // Monospace dla lepszej czytelności dat
-    font-weight: 500;
+    font-size: 13px; /* Zmniejszona z 14px */
+    color: ${theme.text.secondary}; /* Zmieniona z primary na secondary */
+    font-weight: 400; /* Zmniejszona z 500 */
     line-height: 1.4;
 `;
 
-const DateValue = styled.div`
-    font-weight: 500;
-`;
-
-const TimeValue = styled.div`
-    font-size: 12px;
-    color: ${theme.text.tertiary};
-    font-family: monospace;
-`;
-
 const StatusBadge = styled.div<{ $status: OccurrenceStatus }>`
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
     padding: 4px 8px;
     background: ${props => OccurrenceStatusColors[props.$status]}15;
     color: ${props => OccurrenceStatusColors[props.$status]};
-    border-radius: 4px;
-    font-size: 12px;
+    border-radius: ${theme.radius.sm};
+    font-size: 11px; /* Zmniejszona z 12px */
     font-weight: 500;
     text-transform: uppercase;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
 `;
 
 const NotesCell = styled.div`
-    font-size: 14px;
+    font-size: 13px; /* Zmniejszona z 14px */
     line-height: 1.4;
 `;
 
 const NotesText = styled.div`
     color: ${theme.text.secondary};
     cursor: help;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
 `;
 
-const NoNotes = styled.div`
+const EmptyValue = styled.div`
     color: ${theme.text.muted};
     font-style: italic;
+    font-size: 13px;
 `;
 
-// POPRAWKA 2: Nowa kolumna akcji z konkretnymi przyciskami
 const ActionsCell = styled.div`
     display: flex;
     align-items: center;
-    gap: ${theme.spacing.sm};
+    gap: ${theme.spacing.xs};
+    justify-content: center;
 `;
 
-const ActionButton = styled.button<{ $special?: boolean }>`
+const ActionButton = styled.button<{ $variant?: 'secondary' | 'info' }>`
     display: flex;
     align-items: center;
     justify-content: center;
     width: 28px;
     height: 28px;
-    background: ${props => props.$special ? theme.primary + '15' : 'transparent'};
-    color: ${props => props.$special ? theme.primary : theme.text.muted};
+    background: ${props => {
+        switch (props.$variant) {
+            case 'info':
+                return `${theme.status.success}`;
+            default:
+                return `${theme.surfaceElevated}`;
+        }
+    }};
+    color: ${props => {
+        switch (props.$variant) {
+            case 'info':
+                return `${theme.info}`;
+            default:
+                return `${theme.text.tertiary}`;
+        }
+    }};
     border: none;
-    border-radius: 4px;
+    border-radius: ${theme.radius.sm};
     cursor: pointer;
     transition: all 0.15s ease;
+    font-size: 11px; /* Zmniejszona z 12px */
 
     &:hover {
-        background: ${props => props.$special ? theme.primary + '25' : theme.surfaceHover};
-        color: ${props => props.$special ? theme.primary : theme.text.secondary};
-    }
-
-    svg {
-        font-size: 12px;
-    }
-`;
-
-const StatusDropdown = styled.div`
-    position: relative;
-`;
-
-const StatusDropdownButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 8px;
-    background: transparent;
-    color: ${theme.text.muted};
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.15s ease;
-
-    &:hover {
-        background: ${theme.surfaceHover};
-        color: ${theme.text.secondary};
-    }
-
-    svg:first-child {
-        font-size: 12px;
-    }
-
-    svg:last-child {
-        font-size: 10px;
+        background: ${props => {
+            switch (props.$variant) {
+                case 'info':
+                    return `${theme.info}`;
+                default:
+                    return `${theme.text.tertiary}`;
+            }
+        }};
+        color: white;
+        transform: translateY(-1px);
     }
 `;
 
-// Filters panel
+// POPRAWIONE: Panel filtrów - spójny z RecurringEventsList
 const FiltersPanel = styled.div`
     padding: ${theme.spacing.lg};
     background: ${theme.surface};
@@ -773,7 +753,7 @@ const FilterLabel = styled.label`
 const SearchInput = styled.input`
     padding: 8px 12px;
     border: 1px solid ${theme.border};
-    border-radius: 4px;
+    border-radius: ${theme.radius.sm};
     font-size: 14px;
     background: ${theme.surface};
     color: ${theme.text.primary};
@@ -792,7 +772,7 @@ const SearchInput = styled.input`
 const FilterSelect = styled.select`
     padding: 8px 12px;
     border: 1px solid ${theme.border};
-    border-radius: 4px;
+    border-radius: ${theme.radius.sm};
     font-size: 14px;
     background: ${theme.surface};
     color: ${theme.text.primary};
@@ -809,7 +789,7 @@ const ClearButton = styled.button`
     background: ${theme.surface};
     color: ${theme.text.secondary};
     border: 1px solid ${theme.border};
-    border-radius: 4px;
+    border-radius: ${theme.radius.sm};
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
@@ -838,7 +818,7 @@ const NotesModalContent = styled.div`
 const NotesTextArea = styled.textarea`
     padding: ${theme.spacing.md};
     border: 1px solid ${theme.border};
-    border-radius: 4px;
+    border-radius: ${theme.radius.sm};
     font-size: 14px;
     font-family: inherit;
     background: ${theme.surface};
@@ -850,7 +830,7 @@ const NotesTextArea = styled.textarea`
     &:focus {
         outline: none;
         border-color: ${theme.primary};
-        box-shadow: 0 0 0 2px ${theme.primary}20;
+        box-shadow: 0 0 0 2px ${theme.primaryGhost};
     }
 
     &::placeholder {
@@ -869,7 +849,7 @@ const CancelModalButton = styled.button`
     background: ${theme.surface};
     color: ${theme.text.secondary};
     border: 1px solid ${theme.border};
-    border-radius: 4px;
+    border-radius: ${theme.radius.sm};
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
@@ -887,7 +867,7 @@ const SaveButton = styled.button`
     background: ${theme.primary};
     color: white;
     border: 1px solid ${theme.primary};
-    border-radius: 4px;
+    border-radius: ${theme.radius.sm};
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
@@ -923,7 +903,7 @@ const StatusOption = styled.button<{ disabled?: boolean }>`
     background: ${theme.surface};
     color: ${theme.text.primary};
     border: 1px solid ${theme.border};
-    border-radius: 4px;
+    border-radius: ${theme.radius.sm};
     font-size: 14px;
     cursor: pointer;
     transition: all 0.15s ease;
