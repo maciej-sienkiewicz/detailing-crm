@@ -1,0 +1,151 @@
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import ClientDetailHeader from './ClientDetailHeader';
+import ClientBasicInfo from './ClientBasicInfo';
+import ClientStatistics from './ClientStatistics';
+import ClientVehicles from './ClientVehicles';
+import ClientVisitHistory from './ClientVisitHistory';
+import { PageContainer, ContentContainer, MainContent, Sidebar } from './ClientDetailStyles';
+import { ClientExpanded, VehicleExpanded } from '../../../../types';
+import { ClientProtocolHistory } from '../../../../types'; // ZMIENIONY IMPORT
+import { clientsApi } from '../../../../api/clientsApi';
+import { vehicleApi } from '../../../../api/vehiclesApi';
+import { visitsApi } from '../../../../api/visitsApiNew';
+import {ClientDetailErrorDisplay, ClientDetailLoadingDisplay} from "../../OwnersPage/components";
+
+const ClientDetailPage: React.FC = () => {
+    const { id } = useParams<{ id: string }>();
+    const navigate = useNavigate();
+
+    const [client, setClient] = useState<ClientExpanded | null>(null);
+    const [clientVehicles, setClientVehicles] = useState<VehicleExpanded[]>([]);
+    const [clientVisits, setClientVisits] = useState<ClientProtocolHistory[]>([]); // ZMIENIONY TYP
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!id) {
+            setError('Nie podano ID klienta');
+            setLoading(false);
+            return;
+        }
+
+        loadClientData();
+    }, [id]);
+
+    const loadClientData = async () => {
+        if (!id) return;
+
+        setLoading(true);
+        setError(null);
+
+        try {
+            // Pobierz dane klienta
+            const clientResult = await clientsApi.getClientById(id);
+
+            if (!clientResult.success || !clientResult.data) {
+                setError(clientResult.error || 'Nie znaleziono klienta o podanym ID');
+                return;
+            }
+
+            setClient(clientResult.data);
+
+            // Pobierz pojazdy klienta
+            try {
+                const vehicles = await vehicleApi.fetchVehiclesByOwnerId(id);
+                setClientVehicles(vehicles);
+            } catch (vehiclesError) {
+                console.warn('Nie udało się pobrać pojazdów klienta:', vehiclesError);
+                setClientVehicles([]);
+            }
+
+            // Pobierz historię wizyt klienta - ZAKTUALIZOWANE
+            try {
+                const visitsResult = await visitsApi.getClientVisitHistory(id, { page: 0, size: 10 });
+                if (visitsResult.success && visitsResult.data) {
+                    // Mapuj z ClientVisitHistoryItem na ClientProtocolHistory
+                    const mappedVisits: ClientProtocolHistory[] = visitsResult.data.data.map(visit => ({
+                        id: visit.id,
+                        startDate: visit.startDate,
+                        endDate: visit.endDate,
+                        status: visit.status,
+                        carMake: visit.make,
+                        carModel: visit.model,
+                        licensePlate: visit.licensePlate,
+                        totalAmount: visit.totalAmount
+                    }));
+                    setClientVisits(mappedVisits);
+                }
+            } catch (visitsError) {
+                console.warn('Nie udało się pobrać historii wizyt:', visitsError);
+                setClientVisits([]);
+            }
+
+        } catch (err) {
+            console.error('Błąd podczas ładowania danych klienta:', err);
+            setError('Nie udało się załadować danych klienta');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleBack = () => {
+        navigate('/clients-vehicles?tab=owners');
+    };
+
+    const handleEdit = () => {
+        navigate(`/clients-vehicles?tab=owners&clientId=${id}&action=edit`);
+    };
+
+    const handleDelete = () => {
+        navigate(`/clients-vehicles?tab=owners&clientId=${id}&action=delete`);
+    };
+
+    const handleVehicleClick = (vehicleId: string) => {
+        navigate(`/clients-vehicles?tab=vehicles&vehicleId=${vehicleId}`);
+    };
+
+    const handleVisitClick = (visitId: string) => {
+        navigate(`/visits/${visitId}`);
+    };
+
+    if (loading) {
+        return <ClientDetailLoadingDisplay />;
+    }
+
+    if (error || !client) {
+        return <ClientDetailErrorDisplay message={error || 'Nie znaleziono klienta'} onBack={handleBack} />;
+    }
+
+    return (
+        <PageContainer>
+            <ClientDetailHeader
+                client={client}
+                onBack={handleBack}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+            />
+
+            <ContentContainer>
+                <MainContent>
+                    <ClientBasicInfo client={client} />
+                    <ClientStatistics client={client} />
+                </MainContent>
+
+                <Sidebar>
+                    <ClientVehicles
+                        vehicles={clientVehicles}
+                        onVehicleClick={handleVehicleClick}
+                    />
+                    <ClientVisitHistory
+                        visits={clientVisits}
+                        onVisitClick={handleVisitClick}
+                        clientName={`${client.firstName} ${client.lastName}`}
+                    />
+                </Sidebar>
+            </ContentContainer>
+        </PageContainer>
+    );
+};
+
+export default ClientDetailPage;

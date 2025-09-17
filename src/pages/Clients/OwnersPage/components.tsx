@@ -15,9 +15,6 @@ import {
     EmptyStateDescription,
     EmptyStateIcon,
     EmptyStateTitle,
-    LoadingContainer,
-    LoadingSpinner,
-    LoadingText,
     PrimaryButton,
     SearchIcon,
     SearchResultsInfo,
@@ -30,6 +27,7 @@ import {
     SmsLabel,
     SmsTextarea
 } from './styles';
+import { LoadingContainer, LoadingSpinner, LoadingText, ErrorContainer, ErrorMessage, BackButton } from '../components/ClientDetailPage/ClientDetailStyles';
 
 // USUNIĘTO ClientSelectionBar - przeniesiono do nagłówka tabeli
 
@@ -66,6 +64,27 @@ export const SearchResultsDisplay: React.FC<SearchResultsDisplayProps> = ({
 interface LoadingDisplayProps {
     hasActiveFilters: boolean;
 }
+
+export const ClientDetailLoadingDisplay: React.FC = () => (
+    <LoadingContainer>
+        <LoadingSpinner />
+        <LoadingText>Ładowanie szczegółów klienta...</LoadingText>
+    </LoadingContainer>
+);
+
+interface ErrorDisplayProps {
+    message: string;
+    onBack: () => void;
+}
+
+export const ClientDetailErrorDisplay: React.FC<ErrorDisplayProps> = ({ message, onBack }) => (
+    <ErrorContainer>
+        <ErrorMessage>{message}</ErrorMessage>
+        <BackButton onClick={onBack}>
+            Wróć do listy klientów
+        </BackButton>
+    </ErrorContainer>
+);
 
 export const LoadingDisplay: React.FC<LoadingDisplayProps> = ({ hasActiveFilters }) => (
     <LoadingContainer>

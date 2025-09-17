@@ -1,4 +1,4 @@
-// src/routes.tsx - FIXED VERSION with Toast Provider
+// src/routes.tsx - ZAKTUALIZOWANE z ClientDetailPage
 import React, { Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import CalendarPage from './pages/Calendar/CalendarPage';
@@ -30,6 +30,7 @@ import VehicleDetailPage from "./pages/Clients/components/VehicleDetailPage/Vehi
 
 // Toast Provider import
 import { ToastProvider } from './components/common/Toast/Toast';
+import ClientDetailPage from "./pages/Clients/components/ClientDetailPage/ClientDetailPage";
 
 // Lazy load recurring events pages for better performance
 const RecurringEventsPage = React.lazy(() => import('./pages/RecurringEvents/RecurringEventsPage'));
@@ -90,9 +91,12 @@ const AppRoutes: React.FC = () => {
                     {/* Finances */}
                     <Route path="/finances" element={<FinancialPageWithFixedCosts />} />
 
-                    {/* Clients & Vehicles */}
+                    {/* Clients & Vehicles - ROZSZERZONE O CLIENT DETAIL */}
                     <Route path="/clients-vehicles" element={<ClientsVehiclesPage />} />
                     <Route path="/vehicle/:id" element={<VehicleDetailPage />} />
+                    <Route path="/client/:id" element={<ClientDetailPage />} />  {/* NOWA RUTA */}
+
+                    {/* Redirect dla starych ścieżek */}
                     <Route path="/clients/owners" element={<Navigate to="/clients-vehicles?tab=owners" replace />} />
                     <Route path="/clients/vehicles" element={<Navigate to="/clients-vehicles?tab=vehicles" replace />} />
 

@@ -1,5 +1,5 @@
-// src/pages/Clients/components/ClientTable/ClientCellRenderer.tsx
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     FaBuilding,
     FaCalendarAlt,
@@ -62,12 +62,18 @@ export const ClientCellRenderer: React.FC<ClientCellRendererProps> = ({
                                                                           onEditClient,
                                                                           onDeleteClient,
                                                                       }) => {
+    const navigate = useNavigate(); // DODANY HOOK
     const status = getClientStatus(client);
     const isSelected = selectedClientIds.includes(client.id);
 
     const handleActionClick = (e: React.MouseEvent, action: () => void) => {
         e.stopPropagation();
         action();
+    };
+
+    // DODANA FUNKCJA - nawigacja do szczegółów klienta
+    const handleViewClient = () => {
+        navigate(`/client/${client.id}`);
     };
 
     switch (columnId) {
@@ -188,7 +194,7 @@ export const ClientCellRenderer: React.FC<ClientCellRendererProps> = ({
                 <ActionButtons>
                     <TooltipWrapper title="Zobacz szczegóły klienta">
                         <ActionButton
-                            onClick={(e) => handleActionClick(e, () => {})}
+                            onClick={(e) => handleActionClick(e, handleViewClient)}
                             $variant="view"
                         >
                             <FaEye />
