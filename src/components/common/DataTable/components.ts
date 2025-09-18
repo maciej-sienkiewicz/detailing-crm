@@ -1,4 +1,4 @@
-// src/components/common/DataTable/components.ts - OSTATECZNE ROZWIĄZANIE
+// src/components/common/DataTable/components.ts - FINALNA WERSJA z poprawionymi tooltipami
 import styled from 'styled-components';
 import { dataTableTheme } from './theme';
 
@@ -11,8 +11,6 @@ export const TableContainer = styled.div`
     width: 100%;
     min-height: 400px;
     margin-top: 10px;
-
-    /* KLUCZOWA ZMIANA: Usuwa min-width, pozwala na pełne wykorzystanie ekranu */
     max-width: 100%;
 `;
 
@@ -36,13 +34,13 @@ export const TableHeader = styled.div`
     }
 `;
 
-// NAJWIĘKSZA ZMIANA: TableWrapper bez wymuszonego scroll
+// GŁÓWNA POPRAWKA: TableWrapper bez wymuszonego overflow hidden
 export const TableWrapper = styled.div`
     width: 100%;
-    /* USUNIĘTE: overflow-x: auto - nie wymuszamy scroll */
-    overflow: hidden;
+    /* POPRAWKA: Usuwa overflow hidden - pozwala tooltipom być widocznym */
+    /* overflow: hidden; */
 
-    /* Tylko gdy rzeczywiście potrzebny scroll */
+    /* Tylko gdy rzeczywiście potrzebny scroll na mobile */
     @media (max-width: 768px) {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
@@ -51,7 +49,6 @@ export const TableWrapper = styled.div`
 
 export const TableContent = styled.div`
     width: 100%;
-    /* KLUCZOWA ZMIANA: Usuwa min-width, pozwala na elastyczne dopasowanie */
     display: flex;
     flex-direction: column;
 `;
@@ -64,23 +61,19 @@ export const TableHeaderRow = styled.div`
     width: 100%;
 `;
 
-// REWOLUCYJNA ZMIANA: Inteligentne zarządzanie szerokością kolumn
 export const HeaderCell = styled.div<{
     $isDragging?: boolean;
     $width: string;
     $sortable?: boolean;
 }>`
-    /* NOWY SYSTEM SZEROKOŚCI - inteligentne dopasowanie */
     ${props => {
-    // Kolumny z pikselami - zachowują stałą szerokość tylko jeśli jest dużo miejsca
-    if (props.$width.includes('px')) {
-        const numericWidth = parseInt(props.$width);
-        return `
+        if (props.$width.includes('px')) {
+            const numericWidth = parseInt(props.$width);
+            return `
                 flex: 0 0 auto;
                 width: ${props.$width};
                 min-width: ${Math.min(numericWidth, 80)}px;
                 
-                /* Na mniejszych ekranach zmniejsz stałe szerokości */
                 @media (max-width: 1400px) {
                     min-width: ${Math.min(numericWidth * 0.8, 60)}px;
                     width: ${Math.min(numericWidth * 0.8, 60)}px;
@@ -91,25 +84,23 @@ export const HeaderCell = styled.div<{
                     width: ${Math.min(numericWidth * 0.6, 50)}px;
                 }
             `;
-    }
+        }
 
-    // Kolumny procentowe - prawdziwie elastyczne
-    if (props.$width.includes('%')) {
-        const percentage = parseInt(props.$width);
-        return `
+        if (props.$width.includes('%')) {
+            const percentage = parseInt(props.$width);
+            return `
                 flex: ${percentage} ${percentage} 0%;
                 min-width: 0;
-                width: 0; /* Pozwala flexbox zarządzać szerokością */
+                width: 0;
             `;
-    }
+        }
 
-    // Fallback - auto sizing
-    return `
+        return `
             flex: 1 1 auto;
             min-width: 0;
         `;
-}}
-    
+    }}
+
     display: flex;
     align-items: center;
     padding: 0 ${dataTableTheme.spacing.md};
@@ -161,6 +152,7 @@ export const HeaderLabel = styled.span`
     }
 `;
 
+// KLUCZOWA POPRAWKA: TableRow z poprawnym z-index dla tooltipów
 export const TableRow = styled.div<{ $selected?: boolean }>`
     display: flex;
     border-bottom: 1px solid ${dataTableTheme.borderLight};
@@ -168,10 +160,13 @@ export const TableRow = styled.div<{ $selected?: boolean }>`
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     background: ${props => props.$selected ? dataTableTheme.primaryGhost : dataTableTheme.surface};
     width: 100%;
+    position: relative; /* DODANE dla z-index */
+    z-index: 1; /* DODANE */
 
     &:hover {
         background: ${props => props.$selected ? dataTableTheme.primaryGhost : dataTableTheme.surfaceHover};
         box-shadow: inset 0 0 0 1px ${dataTableTheme.borderHover};
+        z-index: 10; /* PODWYŻSZONY z-index przy hover - tooltipsy będą widoczne nad innymi wierszami */
     }
 
     &:last-child {
@@ -179,20 +174,19 @@ export const TableRow = styled.div<{ $selected?: boolean }>`
     }
 `;
 
-// IDENTYCZNA LOGIKA jak HeaderCell - zapewnia spójność
+// KLUCZOWA POPRAWKA: TableCell bez overflow hidden
 export const TableCell = styled.div<{ $width?: string }>`
     ${props => {
-    if (!props.$width) {
-        return `
+        if (!props.$width) {
+            return `
                 flex: 1 1 auto;
                 min-width: 0;
             `;
-    }
+        }
 
-    // Kolumny z pikselami - dopasowują się do HeaderCell
-    if (props.$width.includes('px')) {
-        const numericWidth = parseInt(props.$width);
-        return `
+        if (props.$width.includes('px')) {
+            const numericWidth = parseInt(props.$width);
+            return `
                 flex: 0 0 auto;
                 width: ${props.$width};
                 min-width: ${Math.min(numericWidth, 80)}px;
@@ -207,30 +201,31 @@ export const TableCell = styled.div<{ $width?: string }>`
                     width: ${Math.min(numericWidth * 0.6, 50)}px;
                 }
             `;
-    }
+        }
 
-    // Kolumny procentowe - prawdziwie elastyczne  
-    if (props.$width.includes('%')) {
-        const percentage = parseInt(props.$width);
-        return `
+        if (props.$width.includes('%')) {
+            const percentage = parseInt(props.$width);
+            return `
                 flex: ${percentage} ${percentage} 0%;
                 min-width: 0;
                 width: 0;
             `;
-    }
+        }
 
-    return `
+        return `
             flex: 1 1 auto;
             min-width: 0;
         `;
-}}
-    
+    }}
+
     padding: ${dataTableTheme.spacing.md};
     display: flex;
     align-items: center;
     min-height: 80px;
     border-right: 1px solid ${dataTableTheme.borderLight};
-    overflow: hidden;
+    position: relative; /* DODANE dla tooltipów */
+
+    /* USUNIĘTE: overflow: hidden - pozwala tooltipom być widocznym */
 
     &:last-child {
         border-right: none;
@@ -247,7 +242,6 @@ export const TableBody = styled.div`
     width: 100%;
 `;
 
-// Pozostałe komponenty bez zmian...
 export const TableTitle = styled.h3`
     font-size: 18px;
     font-weight: 600;
@@ -388,9 +382,9 @@ export const HeaderActionButton = styled.button<{
     border: 2px solid;
 
     ${({ $variant = 'secondary', $active = false }) => {
-    switch ($variant) {
-        case 'primary':
-            return `
+        switch ($variant) {
+            case 'primary':
+                return `
                     background: linear-gradient(135deg, ${dataTableTheme.primary} 0%, ${dataTableTheme.primaryLight} 100%);
                     color: white;
                     border-color: ${dataTableTheme.primary};
@@ -402,8 +396,8 @@ export const HeaderActionButton = styled.button<{
                         box-shadow: ${dataTableTheme.shadow.md};
                     }
                 `;
-        case 'filter':
-            return `
+            case 'filter':
+                return `
                     background: ${$active ? dataTableTheme.primaryGhost : dataTableTheme.surface};
                     color: ${$active ? dataTableTheme.primary : dataTableTheme.text.secondary};
                     border-color: ${$active ? dataTableTheme.primary : dataTableTheme.border};
@@ -416,8 +410,8 @@ export const HeaderActionButton = styled.button<{
                         box-shadow: ${dataTableTheme.shadow.md};
                     }
                 `;
-        default: // secondary
-            return `
+            default: // secondary
+                return `
                     background: ${dataTableTheme.surface};
                     color: ${dataTableTheme.text.secondary};
                     border-color: ${dataTableTheme.border};
@@ -431,8 +425,8 @@ export const HeaderActionButton = styled.button<{
                         box-shadow: ${dataTableTheme.shadow.sm};
                     }
                 `;
-    }
-}}
+        }
+    }}
 
     &:disabled {
         opacity: 0.5;
@@ -501,7 +495,6 @@ export const EmptyStateAction = styled.p`
     font-weight: 500;
 `;
 
-// Pozostałe komponenty działają bez zmian...
 export const ActionButton = styled.button<{
     $variant: 'view' | 'edit' | 'delete' | 'info' | 'success' | 'secondary';
     $small?: boolean;
@@ -520,9 +513,9 @@ export const ActionButton = styled.button<{
     overflow: hidden;
 
     ${({ $variant }) => {
-        switch ($variant) {
-            case 'view':
-                return `
+    switch ($variant) {
+        case 'view':
+            return `
                     background: ${dataTableTheme.primaryGhost};
                     color: ${dataTableTheme.primary};
                     &:hover {
@@ -532,8 +525,8 @@ export const ActionButton = styled.button<{
                         box-shadow: ${dataTableTheme.shadow.md};
                     }
                 `;
-            case 'edit':
-                return `
+        case 'edit':
+            return `
                     background: ${dataTableTheme.status.warningLight};
                     color: ${dataTableTheme.status.warning};
                     &:hover {
@@ -543,8 +536,8 @@ export const ActionButton = styled.button<{
                         box-shadow: ${dataTableTheme.shadow.md};
                     }
                 `;
-            case 'delete':
-                return `
+        case 'delete':
+            return `
                     background: ${dataTableTheme.status.errorLight};
                     color: ${dataTableTheme.status.error};
                     &:hover {
@@ -554,8 +547,8 @@ export const ActionButton = styled.button<{
                         box-shadow: ${dataTableTheme.shadow.md};
                     }
                 `;
-            default:
-                return `
+        default:
+            return `
                     background: ${dataTableTheme.surfaceElevated};
                     color: ${dataTableTheme.text.tertiary};
                     &:hover {
@@ -565,16 +558,22 @@ export const ActionButton = styled.button<{
                         box-shadow: ${dataTableTheme.shadow.md};
                     }
                 `;
-        }
-    }}
+    }
+}}
 `;
 
+// POPRAWKA: ActionButtons z overflow visible dla tooltipów
 export const ActionButtons = styled.div`
     display: flex;
     gap: ${dataTableTheme.spacing.xs};
     align-items: center;
     flex-wrap: wrap;
     justify-content: center;
+    position: relative;
+    z-index: 10;
+
+    /* KLUCZOWA POPRAWKA: pozwala tooltipom być widocznym */
+    overflow: visible !important;
 `;
 
 export const StatusBadge = styled.span<{ $color: string }>`
@@ -592,56 +591,71 @@ export const StatusBadge = styled.span<{ $color: string }>`
     white-space: nowrap;
 `;
 
+// GŁÓWNA POPRAWKA: TooltipWrapper z bardzo wysokim z-index
 export const TooltipWrapper = styled.div<{ title: string }>`
     position: relative;
     display: inline-flex;
 
     &:hover::after {
         content: attr(title);
-        position: absolute;
-        bottom: calc(100% + 8px);
-        left: 50%;
-        transform: translateX(-50%);
+        position: fixed; /* KLUCZOWA ZMIANA: fixed zamiast absolute */
         background: ${dataTableTheme.text.primary};
         color: white;
-        padding: 8px 12px;
+        padding: 12px 16px;
         border-radius: ${dataTableTheme.radius.md};
-        font-size: 12px;
+        font-size: 13px;
         font-weight: 500;
         white-space: nowrap;
-        z-index: 1000;
-        box-shadow: ${dataTableTheme.shadow.lg};
+        z-index: 999999; /* BARDZO WYSOKI Z-INDEX */
+        box-shadow: ${dataTableTheme.shadow.xl};
         animation: tooltipFadeIn 0.2s ease-out;
-        max-width: 200px;
+        max-width: 280px;
         word-wrap: break-word;
         white-space: normal;
+        pointer-events: none;
+
+        /* Dynamiczne pozycjonowanie - tooltip pojawi się nad elementem */
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: calc(100% + 12px);
+
+        /* Responsywność */
+        @media (max-width: 768px) {
+            max-width: 200px;
+            font-size: 12px;
+            padding: 8px 12px;
+        }
     }
 
     &:hover::before {
         content: '';
-        position: absolute;
-        bottom: calc(100% + 2px);
+        position: fixed; /* KLUCZOWA ZMIANA: fixed zamiast absolute */
+        width: 0;
+        height: 0;
+        border: 6px solid transparent;
+        border-top-color: ${dataTableTheme.text.primary};
         left: 50%;
         transform: translateX(-50%);
-        border: 4px solid transparent;
-        border-top-color: ${dataTableTheme.text.primary};
-        z-index: 1000;
+        z-index: 999999; /* BARDZO WYSOKI Z-INDEX */
         animation: tooltipFadeIn 0.2s ease-out;
+        pointer-events: none;
+
+        /* Pozycjonowanie strzałki */
+        top: calc(100% + 6px);
     }
 
     @keyframes tooltipFadeIn {
         from {
             opacity: 0;
-            transform: translateX(-50%) translateY(4px);
+            transform: translateX(-50%) translateY(-4px) scale(0.95);
         }
         to {
             opacity: 1;
-            transform: translateX(-50%) translateY(0);
+            transform: translateX(-50%) translateY(0) scale(1);
         }
     }
 `;
 
-// Wyeksportowanie pozostałych komponentów...
 export const SortIcon = styled.div<{ $active: boolean }>`
     display: flex;
     align-items: center;

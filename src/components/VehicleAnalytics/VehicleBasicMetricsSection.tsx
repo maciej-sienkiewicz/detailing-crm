@@ -1,13 +1,23 @@
-// src/components/VehicleAnalytics/VehicleBasicMetricsSection.tsx
 import React from 'react';
 import styled from 'styled-components';
 import { FaMoneyBillWave, FaWrench, FaClock, FaCalendarCheck } from 'react-icons/fa';
-import { ProfitabilityAnalysisDto } from '../../api/vehicleAnalyticsApi';
 import { theme } from '../../styles/theme';
-import {FaArrowTrendUp} from "react-icons/fa6";
 
 interface VehicleBasicMetricsSectionProps {
-    data: ProfitabilityAnalysisDto;
+    data: {
+        // Dane po konwersji camelCase z API
+        averageVisitValue: number;
+        monthlyRevenue: number;
+        trendPercentage?: number;
+        trendDisplayName?: string;
+        trendChangeIndicator?: string;
+        profitabilityScore?: number;
+        // Dodatkowe pola przekazywane z komponentu nadrzędnego
+        totalServices?: number;
+        totalRevenue?: number;
+        daysSinceLastService?: number;
+        lastServiceDate?: string;
+    };
     compact?: boolean;
 }
 
@@ -25,43 +35,36 @@ const VehicleBasicMetricsSection: React.FC<VehicleBasicMetricsSectionProps> = ({
         return new Intl.NumberFormat('pl-PL').format(value || 0);
     };
 
-    const getTrendInfo = (changeIndicator: string, percentage: number) => {
-        switch (changeIndicator) {
-            case 'POSITIVE':
-                return {
-                    color: theme.success,
-                    icon: '📈',
-                    label: percentage > 0 ? `+${percentage.toFixed(1)}%` : 'Wzrost'
-                };
-            case 'NEGATIVE':
-                return {
-                    color: theme.error,
-                    icon: '📉',
-                    label: percentage < 0 ? `${percentage.toFixed(1)}%` : 'Spadek'
-                };
-            case 'NEUTRAL':
-                return {
-                    color: theme.text.muted,
-                    icon: '➡️',
-                    label: 'Stabilny'
-                };
-            default:
-                return {
-                    color: theme.text.muted,
-                    icon: '❓',
-                    label: 'Brak danych'
-                };
-        }
+    const formatDaysAgo = (days: number): string => {
+        if (days === 0) return 'Dzisiaj';
+        if (days === 1) return 'Wczoraj';
+        if (days < 7) return `${days} dni temu`;
+        if (days < 30) return `${Math.floor(days / 7)} tyg. temu`;
+        if (days < 365) return `${Math.floor(days / 30)} mies. temu`;
+        return `${Math.floor(days / 365)} lat temu`;
     };
 
-    // Zabezpieczenie przed undefined values
+    const calculateDaysAgo = (dateString: string): number => {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffTime = Math.abs(now.getTime() - date.getTime());
+        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    };
+
+    // Zabezpieczenie przed undefined values - używamy danych po konwersji camelCase
     const averageVisitValue = data.averageVisitValue || 0;
     const monthlyRevenue = data.monthlyRevenue || 0;
-    const trendPercentage = data.trendPercentage || 0;
-    const profitabilityScore = data.profitabilityScore || 0;
-    const trendChangeIndicator = data.trendChangeIndicator || 'NEUTRAL';
+    const totalServices = data.totalServices || 0;
+    const totalRevenue = data.totalRevenue || (monthlyRevenue * 12);
+    const daysSinceLastService = data.daysSinceLastService;
+    const lastServiceDate = data.lastServiceDate;
 
-    const trendInfo = getTrendInfo(trendChangeIndicator, trendPercentage);
+    console.log('🔧 VehicleBasicMetricsSection data debug:');
+    console.log('averageVisitValue:', averageVisitValue);
+    console.log('monthlyRevenue:', monthlyRevenue);
+    console.log('totalServices:', totalServices);
+    console.log('totalRevenue:', totalRevenue);
+    console.log('daysSinceLastService:', daysSinceLastService);
 
     if (compact) {
         return (
@@ -72,15 +75,13 @@ const VehicleBasicMetricsSection: React.FC<VehicleBasicMetricsSectionProps> = ({
                 </CompactMetric>
                 <CompactDivider />
                 <CompactMetric>
-                    <CompactValue>{formatCurrency(monthlyRevenue)}</CompactValue>
-                    <CompactLabel>Miesięczny</CompactLabel>
+                    <CompactValue>{formatNumber(totalServices)}</CompactValue>
+                    <CompactLabel>Wizyt</CompactLabel>
                 </CompactMetric>
                 <CompactDivider />
                 <CompactMetric>
-                    <CompactValue style={{ color: trendInfo.color }}>
-                        {trendInfo.icon} {trendInfo.label}
-                    </CompactValue>
-                    <CompactLabel>Trend</CompactLabel>
+                    <CompactValue>{formatCurrency(totalRevenue)}</CompactValue>
+                    <CompactLabel>Łącznie</CompactLabel>
                 </CompactMetric>
             </CompactContainer>
         );
@@ -96,7 +97,7 @@ const VehicleBasicMetricsSection: React.FC<VehicleBasicMetricsSectionProps> = ({
                     <TitleText>Kluczowe metryki pojazdu</TitleText>
                 </SectionTitle>
                 <SectionSubtitle>
-                    Podstawowe wskaźniki finansowe i użytkowania
+                    Podstawowe wskaźniki finansowe i użytkowania - identyczne jak u klientów
                 </SectionSubtitle>
             </SectionHeader>
 
@@ -108,53 +109,61 @@ const VehicleBasicMetricsSection: React.FC<VehicleBasicMetricsSectionProps> = ({
                     <MetricContent>
                         <MetricValue>{formatCurrency(averageVisitValue)}</MetricValue>
                         <MetricLabel>Średnia wartość wizyty</MetricLabel>
-                        <MetricSubtext>Przychód na jedną wizytę serwisową</MetricSubtext>
+                        <MetricSubtext>Na podstawie historii wizyt serwisowych</MetricSubtext>
                     </MetricContent>
                 </MetricCard>
 
                 <MetricCard $color={theme.success}>
                     <MetricIcon $color={theme.success}>
-                        <FaCalendarCheck />
+                        <FaWrench />
                     </MetricIcon>
                     <MetricContent>
-                        <MetricValue>{formatCurrency(monthlyRevenue)}</MetricValue>
-                        <MetricLabel>Miesięczny przychód</MetricLabel>
-                        <MetricSubtext>Średni przychód w skali miesiąca</MetricSubtext>
-                    </MetricContent>
-                </MetricCard>
-
-                <MetricCard $color={trendInfo.color}>
-                    <MetricIcon $color={trendInfo.color}>
-                        <FaArrowTrendUp />
-                    </MetricIcon>
-                    <MetricContent>
-                        <MetricValue style={{ color: trendInfo.color }}>
-                            {trendInfo.icon} {trendInfo.label}
-                        </MetricValue>
-                        <MetricLabel>Trend przychodów</MetricLabel>
+                        <MetricValue>{formatNumber(totalServices)}</MetricValue>
+                        <MetricLabel>Całkowita liczba wizyt</MetricLabel>
                         <MetricSubtext>
-                            {trendChangeIndicator === 'POSITIVE'
-                                ? 'Wzrost względem poprzedniego okresu'
-                                : trendChangeIndicator === 'NEGATIVE'
-                                    ? 'Spadek względem poprzedniego okresu'
-                                    : 'Stabilny poziom przychodów'
+                            {totalServices > 0
+                                ? `${(totalRevenue / totalServices).toFixed(0)} zł/wizyta średnio`
+                                : 'Nowy pojazd w serwisie'
                             }
                         </MetricSubtext>
                     </MetricContent>
                 </MetricCard>
 
-                <MetricCard $color={profitabilityScore >= 7 ? theme.success : profitabilityScore >= 5 ? theme.warning : theme.error}>
-                    <MetricIcon $color={profitabilityScore >= 7 ? theme.success : profitabilityScore >= 5 ? theme.warning : theme.error}>
-                        <FaWrench />
+                <MetricCard $color={theme.info}>
+                    <MetricIcon $color={theme.info}>
+                        <FaCalendarCheck />
                     </MetricIcon>
                     <MetricContent>
-                        <MetricValue>{profitabilityScore.toFixed(1)}/10</MetricValue>
-                        <MetricLabel>Ocena rentowności</MetricLabel>
+                        <MetricValue>{formatCurrency(totalRevenue)}</MetricValue>
+                        <MetricLabel>Łączne przychody</MetricLabel>
                         <MetricSubtext>
-                            {profitabilityScore >= 8 ? 'Wysoka rentowność'
-                                : profitabilityScore >= 6 ? 'Dobra rentowność'
-                                    : profitabilityScore >= 4 ? 'Średnia rentowność'
-                                        : 'Niska rentowność'}
+                            {formatCurrency(monthlyRevenue)}/miesiąc średnio
+                        </MetricSubtext>
+                    </MetricContent>
+                </MetricCard>
+
+                <MetricCard $color={daysSinceLastService !== undefined && daysSinceLastService > 90 ? theme.warning : theme.text.muted}>
+                    <MetricIcon $color={daysSinceLastService !== undefined && daysSinceLastService > 90 ? theme.warning : theme.text.muted}>
+                        <FaClock />
+                    </MetricIcon>
+                    <MetricContent>
+                        <MetricValue>
+                            {daysSinceLastService !== undefined
+                                ? formatDaysAgo(daysSinceLastService)
+                                : lastServiceDate
+                                    ? formatDaysAgo(calculateDaysAgo(lastServiceDate))
+                                    : 'Brak danych'}
+                        </MetricValue>
+                        <MetricLabel>Ostatnia wizyta</MetricLabel>
+                        <MetricSubtext>
+                            {daysSinceLastService !== undefined
+                                ? daysSinceLastService > 90
+                                    ? 'Pojazd wymaga uwagi'
+                                    : daysSinceLastService > 30
+                                        ? 'Długa przerwa w serwisie'
+                                        : 'Regularny serwis'
+                                : 'Brak informacji o wizytach'
+                            }
                         </MetricSubtext>
                     </MetricContent>
                 </MetricCard>

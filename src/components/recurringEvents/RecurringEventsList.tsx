@@ -36,15 +36,15 @@ interface RecurringEventsListProps {
 }
 
 const columns: TableColumn[] = [
-    { id: 'selection', label: '', width: '4%', sortable: false },
+    { id: 'selection', label: '', width: '2%', sortable: false },
     { id: 'title', label: 'Tytuł', width: '22%', sortable: true },
     { id: 'type', label: 'Typ', width: '12%', sortable: true },
     { id: 'frequency', label: 'Częstotliwość', width: '14%', sortable: true },
-    { id: 'status', label: 'Status', width: '11%', sortable: true },
+    { id: 'status', label: 'Status', width: '9%', sortable: true },
     { id: 'nextOccurrence', label: 'Następne wystąpienie', width: '14%', sortable: true },
     { id: 'occurrences', label: 'Wystąpienia', width: '9%', sortable: false },
-    { id: 'createdAt', label: 'Utworzone', width: '11%', sortable: true },
-    { id: 'actions', label: 'Akcje', width: '13%', sortable: false }
+    { id: 'createdAt', label: 'Utworzone', width: '9%', sortable: true },
+    { id: 'actions', label: 'Akcje', width: '16%', sortable: false }
 ];
 
 const RecurringEventsList: React.FC<RecurringEventsListProps> = ({

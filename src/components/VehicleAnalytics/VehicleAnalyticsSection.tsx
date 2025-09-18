@@ -1,4 +1,4 @@
-// src/components/VehicleAnalytics/VehicleAnalyticsSection.tsx - Ujednolicony styl z klientami
+// src/components/VehicleAnalytics/VehicleAnalyticsSection.tsx - Poprawione mapowanie danych
 import React from 'react';
 import styled from 'styled-components';
 import { FaChartLine, FaSpinner, FaExclamationTriangle } from 'react-icons/fa';
@@ -14,7 +14,6 @@ interface VehicleAnalyticsSectionProps {
 const VehicleAnalyticsSection: React.FC<VehicleAnalyticsSectionProps> = ({ vehicleId }) => {
     const { analytics, loading, error, refetch } = useVehicleAnalytics(vehicleId);
 
-    // DEBUG: Dodaj logi
     console.log('🔍 VehicleAnalyticsSection Debug:');
     console.log('vehicleId:', vehicleId);
     console.log('loading:', loading);
@@ -100,7 +99,22 @@ const VehicleAnalyticsSection: React.FC<VehicleAnalyticsSectionProps> = ({ vehic
                 {/* Kluczowe metryki - zastąpione z "Analiza rentowności" */}
                 {analytics.profitabilityAnalysis && (
                     <MetricsSection>
-                        <VehicleBasicMetricsSection data={analytics.profitabilityAnalysis} />
+                        <VehicleBasicMetricsSection
+                            data={{
+                                // Dane z profitabilityAnalysis (już w camelCase po konwersji API)
+                                averageVisitValue: analytics.profitabilityAnalysis.averageVisitValue,
+                                monthlyRevenue: analytics.profitabilityAnalysis.monthlyRevenue,
+                                trendPercentage: analytics.profitabilityAnalysis.trendPercentage,
+                                trendDisplayName: analytics.profitabilityAnalysis.trendDisplayName,
+                                trendChangeIndicator: analytics.profitabilityAnalysis.trendChangeIndicator,
+                                profitabilityScore: analytics.profitabilityAnalysis.profitabilityScore,
+                                // Dodatkowe dane z visitPattern (już w camelCase po konwersji API)
+                                totalServices: analytics.visitPattern?.totalVisits || 0,
+                                totalRevenue: analytics.profitabilityAnalysis.monthlyRevenue * 12,
+                                daysSinceLastService: analytics.visitPattern?.daysSinceLastVisit,
+                                lastServiceDate: undefined
+                            }}
+                        />
                     </MetricsSection>
                 )}
 
