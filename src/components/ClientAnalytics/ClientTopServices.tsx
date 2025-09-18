@@ -39,6 +39,84 @@ const ClientTopServices: React.FC<ClientTopServicesProps> = ({ data }) => {
     const maxUsage = Math.max(...data.map(service => service.usageCount));
     const totalRevenue = data.reduce((sum, service) => sum + service.totalRevenue, 0);
 
+    const parseApiDate = (dateArray?: number[] | string | null): string => {
+        if (!dateArray) return 'Nieznane';
+
+        // Jeśli to już string, zwróć jako jest
+        if (typeof dateArray === 'string') {
+            try {
+                const date = new Date(dateArray);
+                return date.toLocaleDateString('pl-PL', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                });
+            } catch {
+                return 'Błąd daty';
+            }
+        }
+
+        // Jeśli to tablica [year, month, day, hour, minute, second]
+        if (Array.isArray(dateArray) && dateArray.length >= 3) {
+            try {
+                // Miesiące w JavaScript są 0-indexed, więc odejmujemy 1
+                const [year, month, day, hour = 0, minute = 0, second = 0] = dateArray;
+                const date = new Date(year, month - 1, day, hour, minute, second);
+
+                if (isNaN(date.getTime())) {
+                    return 'Nieprawidłowa data';
+                }
+
+                return date.toLocaleDateString('pl-PL', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                });
+            } catch (error) {
+                console.error('Error parsing date array:', dateArray, error);
+                return 'Błąd parsowania';
+            }
+        }
+
+        return 'Nieznany format';
+    };
+
+    const getRelativeTimeString = (dateArray?: number[] | string | null): string => {
+        if (!dateArray) return 'Nieznane';
+
+        try {
+            let date: Date;
+
+            if (typeof dateArray === 'string') {
+                date = new Date(dateArray);
+            } else if (Array.isArray(dateArray) && dateArray.length >= 3) {
+                const [year, month, day, hour = 0, minute = 0, second = 0] = dateArray;
+                date = new Date(year, month - 1, day, hour, minute, second);
+            } else {
+                return 'Nieznany format';
+            }
+
+            if (isNaN(date.getTime())) {
+                return 'Nieprawidłowa data';
+            }
+
+            const now = new Date();
+            const diffInMs = now.getTime() - date.getTime();
+            const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+            if (diffInDays === 0) return 'Dzisiaj';
+            if (diffInDays === 1) return 'Wczoraj';
+            if (diffInDays < 7) return `${diffInDays} dni temu`;
+            if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} tyg. temu`;
+            if (diffInDays < 365) return `${Math.floor(diffInDays / 30)} mies. temu`;
+
+            return `${Math.floor(diffInDays / 365)} lat temu`;
+        } catch (error) {
+            console.error('Error calculating relative time:', dateArray, error);
+            return 'Błąd obliczania';
+        }
+    };
+
     const getRankIcon = (index: number) => {
         if (index === 0) return <FaTrophy style={{ color: '#fbbf24' }} />;
         if (index === 1) return <FaTrophy style={{ color: '#94a3b8' }} />;

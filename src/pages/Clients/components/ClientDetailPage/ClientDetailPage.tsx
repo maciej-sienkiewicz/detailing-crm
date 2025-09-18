@@ -2,10 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ClientDetailHeader from './ClientDetailHeader';
 import ClientBasicInfo from './ClientBasicInfo';
-import ClientStatistics from './ClientStatistics';
 import ClientVehicles from './ClientVehicles';
 import ClientVisitHistory from './ClientVisitHistory';
-import ClientFormModal from '../ClientFormModal'; // DODANE: Import modala
+import ClientFormModal from '../ClientFormModal';
 import { PageContainer, ContentContainer, MainContent, Sidebar } from './ClientDetailStyles';
 import { ClientExpanded, VehicleExpanded } from '../../../../types';
 import { ClientProtocolHistory } from '../../../../types';
@@ -13,20 +12,19 @@ import { clientsApi } from '../../../../api/clientsApi';
 import { vehicleApi } from '../../../../api/vehiclesApi';
 import { visitsApi } from '../../../../api/visitsApiNew';
 import { ClientDetailErrorDisplay, ClientDetailLoadingDisplay } from "../../OwnersPage/components";
-import { useToast } from '../../../../components/common/Toast/Toast'; // DODANE: Toast notifications
+import { useToast } from '../../../../components/common/Toast/Toast';
+import ClientAnalyticsSection from "../../../../components/ClientAnalytics/ClientAnalyticsSection";
 
 const ClientDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const { showToast } = useToast(); // DODANE: Hook dla toastów
+    const { showToast } = useToast();
 
     const [client, setClient] = useState<ClientExpanded | null>(null);
     const [clientVehicles, setClientVehicles] = useState<VehicleExpanded[]>([]);
     const [clientVisits, setClientVisits] = useState<ClientProtocolHistory[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-
-    // DODANE: Stan dla modala edycji
     const [showEditModal, setShowEditModal] = useState(false);
 
     useEffect(() => {
@@ -65,11 +63,10 @@ const ClientDetailPage: React.FC = () => {
                 setClientVehicles([]);
             }
 
-            // Pobierz historię wizyt klienta - ZAKTUALIZOWANE
+            // Pobierz historię wizyt klienta
             try {
                 const visitsResult = await visitsApi.getClientVisitHistory(id, { page: 0, size: 10 });
                 if (visitsResult.success && visitsResult.data) {
-                    // Mapuj z ClientVisitHistoryItem na ClientProtocolHistory
                     const mappedVisits: ClientProtocolHistory[] = visitsResult.data.data.map(visit => ({
                         id: visit.id,
                         startDate: visit.startDate,
@@ -99,33 +96,22 @@ const ClientDetailPage: React.FC = () => {
         navigate('/clients-vehicles?tab=owners');
     };
 
-    // ZMIANA: handleEdit teraz otwiera modal zamiast przekierowywać
     const handleEdit = () => {
         setShowEditModal(true);
     };
 
-    // DODANE: Funkcja obsługująca zapisanie zmian w modalu
     const handleSaveClient = async (updatedClient: ClientExpanded) => {
         try {
-            // Aktualizuj lokalny stan klienta
             setClient(updatedClient);
-
-            // Zamknij modal
             setShowEditModal(false);
-
-            // Pokaż komunikat o sukcesie
             showToast('success', 'Dane klienta zostały zaktualizowane');
-
-            // Opcjonalnie: odśwież dane klienta z serwera
             await loadClientData();
-
         } catch (error) {
             console.error('Błąd podczas aktualizacji klienta:', error);
             showToast('error', 'Nie udało się zaktualizować danych klienta');
         }
     };
 
-    // DODANE: Funkcja anulowania modala
     const handleCancelEdit = () => {
         setShowEditModal(false);
     };
@@ -135,7 +121,7 @@ const ClientDetailPage: React.FC = () => {
     };
 
     const handleVehicleClick = (vehicleId: string) => {
-        navigate(`/clients-vehicles?tab=vehicles&vehicleId=${vehicleId}`);
+        navigate(`/vehicle/${vehicleId}`);
     };
 
     const handleVisitClick = (visitId: string) => {
@@ -155,17 +141,24 @@ const ClientDetailPage: React.FC = () => {
             <ClientDetailHeader
                 client={client}
                 onBack={handleBack}
-                onEdit={handleEdit} // ZMIANA: Teraz wywołuje handleEdit która otwiera modal
+                onEdit={handleEdit}
                 onDelete={handleDelete}
             />
 
             <ContentContainer>
                 <MainContent>
                     <ClientBasicInfo client={client} />
-                    <ClientStatistics client={client} />
+
+                    {/* DODANE: Sekcja analityki klienta z toggle */}
+                    <ClientAnalyticsSection
+                        clientId={id}
+                        clientName={`${client.firstName} ${client.lastName}`}
+                        initialExpanded={false}
+                    />
                 </MainContent>
 
                 <Sidebar>
+
                     <ClientVehicles
                         vehicles={clientVehicles}
                         onVehicleClick={handleVehicleClick}
@@ -178,7 +171,6 @@ const ClientDetailPage: React.FC = () => {
                 </Sidebar>
             </ContentContainer>
 
-            {/* DODANE: Modal do edycji klienta */}
             {showEditModal && (
                 <ClientFormModal
                     client={client}

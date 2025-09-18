@@ -85,57 +85,6 @@ const ClientRevenueTrend: React.FC<ClientRevenueTrendProps> = ({ data }) => {
                         <PeriodDate>Aktualny okres</PeriodDate>
                     </PeriodCard>
                 </RevenueComparison>
-
-                {/* Visual Trend Representation */}
-                <TrendVisualization>
-                    <TrendBarContainer>
-                        <TrendBarLabel>Zmiana procentowa</TrendBarLabel>
-                        <TrendBarWrapper>
-                            <TrendBarBackground>
-                                <TrendBarFill
-                                    $width={getProgressBarWidth()}
-                                    $color={getTrendColor()}
-                                    $isPositive={isPositive}
-                                />
-                            </TrendBarBackground>
-                            <TrendBarValue $color={getTrendColor()}>
-                                {formatPercentage(data.trendPercentage)}
-                            </TrendBarValue>
-                        </TrendBarWrapper>
-                    </TrendBarContainer>
-                </TrendVisualization>
-
-                {/* Detailed Analysis */}
-                <TrendAnalysis>
-                    <AnalysisTitle>Analiza trendu</AnalysisTitle>
-                    <AnalysisContent>
-                        <AnalysisItem>
-                            <AnalysisLabel>Zmiana absolutna:</AnalysisLabel>
-                            <AnalysisValue $color={getTrendColor()}>
-                                {isPositive ? '+' : ''}{formatCurrency(data.recentRevenue - data.previousRevenue)}
-                            </AnalysisValue>
-                        </AnalysisItem>
-
-                        <AnalysisItem>
-                            <AnalysisLabel>Status trendu:</AnalysisLabel>
-                            <AnalysisValue $color={getTrendColor()}>
-                                {data.trendDescription}
-                            </AnalysisValue>
-                        </AnalysisItem>
-
-                        <AnalysisItem>
-                            <AnalysisLabel>Prognoza:</AnalysisLabel>
-                            <AnalysisValue $color={theme.text.primary}>
-                                {isPositive
-                                    ? 'Pozytywny rozwój relacji z klientem'
-                                    : data.trendPercentage < -20
-                                        ? 'Wymaga natychmiastowej uwagi'
-                                        : 'Monitoruj dalszy rozwój'
-                                }
-                            </AnalysisValue>
-                        </AnalysisItem>
-                    </AnalysisContent>
-                </TrendAnalysis>
             </TrendContent>
         </Section>
     );

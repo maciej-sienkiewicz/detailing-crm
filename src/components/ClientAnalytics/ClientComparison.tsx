@@ -163,61 +163,7 @@ const ClientComparison: React.FC<ClientComparisonProps> = ({ data, compact = fal
                         </DifferenceText>
                     </ComparisonDifference>
                 </ComparisonCard>
-
-                {/* Lifespan Comparison */}
-                <ComparisonCard>
-                    <ComparisonHeader>
-                        <ComparisonTitle>Długość współpracy</ComparisonTitle>
-                        <PerformanceBadge $level={data.lifespanComparison.performanceLevel}>
-                            {getPerformanceInfo(data.lifespanComparison.performanceLevel).icon}
-                            {getPerformanceInfo(data.lifespanComparison.performanceLevel).label}
-                        </PerformanceBadge>
-                    </ComparisonHeader>
-
-                    <ComparisonValues>
-                        <ValueRow>
-                            <ValueLabel>Klient</ValueLabel>
-                            <ValueAmount $isPrimary={true}>
-                                {formatNumber(data.lifespanComparison.clientValue)} mies.
-                            </ValueAmount>
-                        </ValueRow>
-                        <ValueRow>
-                            <ValueLabel>Średnia firmowa</ValueLabel>
-                            <ValueAmount $isPrimary={false}>
-                                {formatNumber(data.lifespanComparison.companyAverage)} mies.
-                            </ValueAmount>
-                        </ValueRow>
-                    </ComparisonValues>
-
-                    <ComparisonDifference $isPositive={data.lifespanComparison.percentageDifference >= 0}>
-                        <DifferenceIcon>
-                            {data.lifespanComparison.percentageDifference >= 0 ? '🤝' : '👋'}
-                        </DifferenceIcon>
-                        <DifferenceText>
-                            {data.lifespanComparison.percentageDifference >= 0 ? '+' : ''}
-                            {formatPercentage(data.lifespanComparison.percentageDifference)} vs średnia
-                        </DifferenceText>
-                    </ComparisonDifference>
-                </ComparisonCard>
             </ComparisonGrid>
-
-            {/* Overall insight */}
-            <OverallInsight $scoreType={data.overallScore}>
-                <InsightIcon>
-                    {scoreInfo.priority >= 4 ? '⭐' : scoreInfo.priority >= 3 ? '👍' : scoreInfo.priority >= 2 ? '⚠️' : '🚨'}
-                </InsightIcon>
-                <InsightContent>
-                    <InsightTitle>Ocena ogólna: {scoreInfo.label}</InsightTitle>
-                    <InsightText>{data.scoreDescription}</InsightText>
-                    <InsightRecommendation>
-                        {data.overallScore === 'VIP' && 'Zapewnij najwyższą jakość obsługi i rozważ programy lojalnościowe.'}
-                        {data.overallScore === 'HIGH_VALUE' && 'Doskonały klient - warto inwestować w długotrwałą relację.'}
-                        {data.overallScore === 'AVERAGE' && 'Solidny klient - rozważ akcje zwiększające wartość wizyt.'}
-                        {data.overallScore === 'LOW_VALUE' && 'Przeanalizuj potrzeby klienta i dostosuj ofertę.'}
-                        {data.overallScore === 'AT_RISK' && 'Natychmiastowy kontakt i analiza przyczyn spadku aktywności.'}
-                    </InsightRecommendation>
-                </InsightContent>
-            </OverallInsight>
         </Section>
     );
 };

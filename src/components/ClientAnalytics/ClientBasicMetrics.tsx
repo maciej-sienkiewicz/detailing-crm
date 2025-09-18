@@ -95,42 +95,29 @@ const ClientBasicMetrics: React.FC<ClientBasicMetricsProps> = ({ data, compact =
                     </MetricContent>
                 </MetricCard>
 
-                <MetricCard $color={data.daysSinceLastVisit && data.daysSinceLastVisit > 90 ? theme.warning : theme.text.muted}>
-                    <MetricIcon $color={data.daysSinceLastVisit && data.daysSinceLastVisit > 90 ? theme.warning : theme.text.muted}>
+
+                <MetricCard $color={data.daysSinceLastVisit !== undefined && data.daysSinceLastVisit > 90 ? theme.warning : theme.text.muted}>
+                    <MetricIcon $color={data.daysSinceLastVisit !== undefined && data.daysSinceLastVisit > 90 ? theme.warning : theme.text.muted}>
                         <FaClock />
                     </MetricIcon>
                     <MetricContent>
                         <MetricValue>
-                            {data.daysSinceLastVisit ? formatDaysAgo(data.daysSinceLastVisit) : 'Brak danych'}
+                            {data.daysSinceLastVisit !== undefined ? formatDaysAgo(data.daysSinceLastVisit) : 'Brak danych'}
                         </MetricValue>
                         <MetricLabel>Ostatnia wizyta</MetricLabel>
                         <MetricSubtext>
-                            {data.daysSinceLastVisit && data.daysSinceLastVisit > 90
-                                ? 'Klient wymaga uwagi'
-                                : data.daysSinceLastVisit && data.daysSinceLastVisit > 30
-                                    ? 'Długa przerwa'
-                                    : 'Aktywny klient'
+                            {data.daysSinceLastVisit !== undefined
+                                ? data.daysSinceLastVisit > 90
+                                    ? 'Klient wymaga uwagi'
+                                    : data.daysSinceLastVisit > 30
+                                        ? 'Długa przerwa'
+                                        : 'Aktywny klient'
+                                : 'Brak informacji o wizytach'
                             }
                         </MetricSubtext>
                     </MetricContent>
                 </MetricCard>
             </MetricsGrid>
-
-            {/* Summary insight */}
-            <SummaryInsight $hasWarning={data.daysSinceLastVisit ? data.daysSinceLastVisit > 90 : false}>
-                <InsightIcon>
-                    {data.daysSinceLastVisit && data.daysSinceLastVisit > 90 ? '⚠️' :
-                        data.totalRevenue > data.averageVisitValue * 10 ? '⭐' : '💡'}
-                </InsightIcon>
-                <InsightText>
-                    {data.daysSinceLastVisit && data.daysSinceLastVisit > 90
-                        ? `Klient nie odwiedzał przez ${formatDaysAgo(data.daysSinceLastVisit)}. Rozważ kontakt.`
-                        : data.totalRevenue > data.averageVisitValue * 10
-                            ? 'To wartościowy klient z wysokimi przychodami. Warto go zatrzymać.'
-                            : `Klient z ${data.monthsSinceFirstVisit > 0 ? `${data.monthsSinceFirstVisit} miesięczną` : 'nową'} historią współpracy.`
-                    }
-                </InsightText>
-            </SummaryInsight>
         </Section>
     );
 };
