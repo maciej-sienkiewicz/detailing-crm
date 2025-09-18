@@ -1,4 +1,4 @@
-// src/pages/Clients/components/VehicleDetailPage/ImageEditModal.tsx
+// src/pages/Clients/components/VehicleDetailPage/ImageEditModal.tsx - ZAKTUALIZOWANY z pobieraniem tagów z API
 import React, { useState, useCallback, useEffect } from 'react';
 import styled from 'styled-components';
 import { FaTimes, FaPlus, FaTag, FaSave, FaSpinner } from 'react-icons/fa';
@@ -23,6 +23,25 @@ interface VehicleImage {
     createdAt?: string;
 }
 
+// NOWY INTERFEJS - odpowiadający MediaResponse z backendu
+interface MediaResponse {
+    id: string;
+    context: string;
+    entity_id?: number;
+    visit_id?: string;
+    vehicle_id?: string;
+    name: string;
+    description?: string;
+    location?: string;
+    tags: string[];
+    type: string;
+    size: number;
+    content_type: string;
+    created_at: string;
+    download_url: string;
+    thumbnail_url?: string;
+}
+
 interface ImageEditModalProps {
     isOpen: boolean;
     image: VehicleImage | null;
@@ -41,6 +60,8 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({
     const [tags, setTags] = useState<string[]>([]);
     const [customTagInput, setCustomTagInput] = useState<string>('');
     const [loading, setLoading] = useState(false);
+    const [loadingMediaInfo, setLoadingMediaInfo] = useState(false); // NOWY STAN - ładowanie informacji o mediach
+    const [mediaInfo, setMediaInfo] = useState<MediaResponse | null>(null); // NOWY STAN - informacje o mediach
 
     // Sugerowane tagi dla branży motoryzacyjnej
     const suggestedTags = [
@@ -49,11 +70,51 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({
         'Problem', 'Naprawa', 'Czyszczenie', 'Polerowanie'
     ];
 
-    useEffect(() => {
-        if (image) {
-            setTags(image.tags || []);
+    // NOWA FUNKCJA - pobieranie informacji o mediach z API
+    const loadMediaInfo = useCallback(async (mediaId: string) => {
+        if (!mediaId) return;
+
+        setLoadingMediaInfo(true);
+        try {
+            console.log('🔍 Loading media info for ID:', mediaId);
+
+            // Wywołanie endpointa /{mediaId}/info
+            const response = await apiClientNew.get<MediaResponse>(
+                `/media/${mediaId}/info`,
+                undefined,
+                { timeout: 10000 }
+            );
+
+            console.log('✅ Media info loaded:', response);
+            setMediaInfo(response);
+
+            // Ustaw tagi na podstawie odpowiedzi z API
+            setTags(response.tags || []);
+
+        } catch (error) {
+            console.error('❌ Error loading media info:', error);
+
+            // Fallback - używaj tagów z image props jeśli API nie działa
+            console.warn('⚠️ Using fallback tags from image props');
+            setTags(image?.tags || []);
+            setMediaInfo(null);
+        } finally {
+            setLoadingMediaInfo(false);
         }
     }, [image]);
+
+    // ZAKTUALIZOWANY useEffect - ładuje informacje z API gdy modal się otwiera
+    useEffect(() => {
+        if (isOpen && image) {
+            console.log('🔄 Modal opened, loading media info for:', image.id);
+            loadMediaInfo(image.id);
+        } else {
+            // Reset stanu gdy modal się zamyka
+            setTags([]);
+            setMediaInfo(null);
+            setCustomTagInput('');
+        }
+    }, [isOpen, image, loadMediaInfo]);
 
     const handleOverlayClick = (e: React.MouseEvent) => {
         if (e.target === e.currentTarget) {
@@ -95,26 +156,34 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({
 
         setLoading(true);
         try {
+            console.log('💾 Saving updated tags for media:', image.id);
+            console.log('📝 New tags:', tags);
+
             // Update tags via media API
-            await apiClientNew.put(`/media/${image.id}/info`, {
+            await apiClientNew.put(`/media/${image.id}/tags`, {
                 tags: tags
             });
 
-            // Create updated image object
+            console.log('✅ Tags updated successfully');
+
+            // Create updated image object z nowymi tagami
             const updatedImage: VehicleImage = {
                 ...image,
-                tags: tags
+                tags: tags,
+                // Opcjonalnie możemy również zaktualizować inne pola z mediaInfo
+                name: mediaInfo?.name || image.name,
+                description: mediaInfo?.description || image.description
             };
 
             onSave(updatedImage);
             onClose();
         } catch (error) {
-            console.error('Error updating image tags:', error);
+            console.error('❌ Error updating image tags:', error);
             alert('Nie udało się zaktualizować tagów. Spróbuj ponownie.');
         } finally {
             setLoading(false);
         }
-    }, [image, tags, onSave, onClose]);
+    }, [image, tags, mediaInfo, onSave, onClose]);
 
     if (!isOpen || !image) return null;
 
@@ -130,10 +199,12 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({
                         </HeaderIcon>
                         <HeaderText>
                             <HeaderTitle>Edytuj zdjęcie</HeaderTitle>
-                            <HeaderSubtitle>{image.name || image.filename}</HeaderSubtitle>
+                            <HeaderSubtitle>
+                                {mediaInfo?.name || image.name || image.filename}
+                            </HeaderSubtitle>
                         </HeaderText>
                     </HeaderContent>
-                    <CloseButton onClick={onClose} disabled={loading}>
+                    <CloseButton onClick={onClose} disabled={loading || loadingMediaInfo}>
                         <FaTimes />
                     </CloseButton>
                 </ModalHeader>
@@ -142,7 +213,7 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({
                     <ImageSection>
                         <PreviewImage
                             src={imageUrl}
-                            alt={image.name || image.filename}
+                            alt={mediaInfo?.name || image.name || image.filename}
                             onError={(e) => {
                                 e.currentTarget.src = fallbackImage;
                             }}
@@ -150,77 +221,96 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({
                     </ImageSection>
 
                     <EditSection>
-                        <SectionTitle>Tagi zdjęcia</SectionTitle>
+                        {/* NOWE - Informacje o ładowaniu */}
+                        {loadingMediaInfo && (
+                            <LoadingSection>
+                                <LoadingSpinner />
+                                <LoadingText>Ładowanie informacji o zdjęciu...</LoadingText>
+                            </LoadingSection>
+                        )}
+                        <SectionTitle>
+                            <SectionTitleIcon><FaTag /></SectionTitleIcon>
+                            Tagi zdjęcia
+                        </SectionTitle>
 
-                        {/* Current Tags */}
-                        <TagsContainer>
-                            {tags.map((tag, index) => (
-                                <EditableTag key={index}>
-                                    <TagText>{tag}</TagText>
-                                    <RemoveTagButton
-                                        onClick={() => removeTag(tag)}
-                                        disabled={loading}
-                                        type="button"
-                                    >
-                                        <FaTimes />
-                                    </RemoveTagButton>
-                                </EditableTag>
-                            ))}
-                            {tags.length === 0 && (
-                                <EmptyTagsMessage>Brak tagów</EmptyTagsMessage>
-                            )}
-                        </TagsContainer>
-
-                        {/* Custom Tag Input */}
-                        <CustomTagInputContainer>
-                            <CustomTagInput
-                                type="text"
-                                placeholder="Dodaj własny tag..."
-                                value={customTagInput}
-                                onChange={(e) => setCustomTagInput(e.target.value)}
-                                onKeyPress={handleCustomTagKeyPress}
-                                disabled={loading}
-                                maxLength={30}
-                            />
-                            <AddCustomTagButton
-                                type="button"
-                                onClick={handleCustomTagAdd}
-                                disabled={loading || !customTagInput.trim()}
-                                title="Dodaj tag"
-                            >
-                                <FaPlus />
-                            </AddCustomTagButton>
-                        </CustomTagInputContainer>
-
-                        {/* Suggested Tags */}
-                        <SuggestedTagsSection>
-                            <SuggestedTagsTitle>Sugerowane tagi:</SuggestedTagsTitle>
-                            <SuggestedTagsContainer>
-                                {suggestedTags
-                                    .filter(tag => !tags.includes(tag))
-                                    .slice(0, 8)
-                                    .map(tag => (
-                                        <SuggestedTag
-                                            key={tag}
-                                            onClick={() => addTag(tag)}
-                                            disabled={loading}
-                                            type="button"
-                                        >
-                                            <FaPlus />
-                                            {tag}
-                                        </SuggestedTag>
+                        {!loadingMediaInfo ? (
+                            <>
+                                {/* Current Tags */}
+                                <TagsContainer>
+                                    {tags.map((tag, index) => (
+                                        <EditableTag key={index}>
+                                            <TagText>{tag}</TagText>
+                                            <RemoveTagButton
+                                                onClick={() => removeTag(tag)}
+                                                disabled={loading}
+                                                type="button"
+                                            >
+                                                <FaTimes />
+                                            </RemoveTagButton>
+                                        </EditableTag>
                                     ))}
-                            </SuggestedTagsContainer>
-                        </SuggestedTagsSection>
+                                    {tags.length === 0 && (
+                                        <EmptyTagsMessage>Brak tagów</EmptyTagsMessage>
+                                    )}
+                                </TagsContainer>
+
+                                {/* Custom tag input */}
+                                <CustomTagInputContainer>
+                                    <CustomTagInput
+                                        type="text"
+                                        placeholder="Dodaj własny tag..."
+                                        value={customTagInput}
+                                        onChange={(e) => setCustomTagInput(e.target.value)}
+                                        onKeyPress={handleCustomTagKeyPress}
+                                        disabled={loading}
+                                        maxLength={30}
+                                    />
+                                    <AddCustomTagButton
+                                        type="button"
+                                        onClick={handleCustomTagAdd}
+                                        disabled={loading || !customTagInput.trim()}
+                                        title="Dodaj tag"
+                                    >
+                                        <FaPlus />
+                                    </AddCustomTagButton>
+                                </CustomTagInputContainer>
+
+                                {/* Suggested Tags */}
+                                <SuggestedTagsSection>
+                                    <SuggestedTagsTitle>Sugerowane tagi:</SuggestedTagsTitle>
+                                    <SuggestedTagsContainer>
+                                        {suggestedTags
+                                            .filter(tag => !tags.includes(tag))
+                                            .slice(0, 8)
+                                            .map(tag => (
+                                                <SuggestedTag
+                                                    key={tag}
+                                                    onClick={() => addTag(tag)}
+                                                    disabled={loading}
+                                                    type="button"
+                                                >
+                                                    <FaPlus />
+                                                    {tag}
+                                                </SuggestedTag>
+                                            ))}
+                                    </SuggestedTagsContainer>
+                                </SuggestedTagsSection>
+                            </>
+                        ) : (
+                            <LoadingTagsContainer>
+                                <FaSpinner className="spinner" />
+                                <span>Ładowanie tagów...</span>
+                            </LoadingTagsContainer>
+                        )}
                     </EditSection>
                 </ModalBody>
 
                 <ModalFooter>
-                    <SecondaryButton onClick={onClose} disabled={loading}>
+                    <SecondaryButton onClick={onClose} disabled={loading || loadingMediaInfo}>
                         <FaTimes />
                         Anuluj
                     </SecondaryButton>
-                    <PrimaryButton onClick={handleSave} disabled={loading}>
+                    <PrimaryButton onClick={handleSave} disabled={loading || loadingMediaInfo}>
                         {loading ? (
                             <>
                                 <FaSpinner className="spinner" />
@@ -239,6 +329,98 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({
     );
 };
 
+// NOWE STYLED COMPONENTS dla informacji o mediach
+const LoadingSection = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.md};
+    padding: ${theme.spacing.md};
+    background: ${theme.surfaceAlt};
+    border-radius: ${theme.radius.md};
+    margin-bottom: ${theme.spacing.lg};
+`;
+
+const LoadingSpinner = styled.div`
+    width: 16px;
+    height: 16px;
+    border: 2px solid ${theme.borderLight};
+    border-top: 2px solid ${theme.primary};
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+`;
+
+const LoadingText = styled.div`
+    font-size: 14px;
+    color: ${theme.text.secondary};
+    font-weight: 500;
+`;
+
+const MediaInfoSection = styled.div`
+    background: ${theme.surfaceAlt};
+    border-radius: ${theme.radius.md};
+    padding: ${theme.spacing.md};
+    margin-bottom: ${theme.spacing.lg};
+    border: 1px solid ${theme.border};
+`;
+
+const MediaInfoTitle = styled.h4`
+    margin: 0 0 ${theme.spacing.sm} 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: ${theme.text.primary};
+`;
+
+const MediaInfoGrid = styled.div`
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: ${theme.spacing.sm};
+`;
+
+const MediaInfoItem = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+`;
+
+const MediaInfoLabel = styled.div`
+    font-size: 11px;
+    font-weight: 500;
+    color: ${theme.text.tertiary};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+`;
+
+const MediaInfoValue = styled.div`
+    font-size: 12px;
+    font-weight: 600;
+    color: ${theme.text.primary};
+`;
+
+const LoadingTagsContainer = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: ${theme.spacing.md};
+    padding: ${theme.spacing.xl};
+    color: ${theme.text.secondary};
+    font-style: italic;
+    
+    .spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid ${theme.borderLight};
+        border-top: 2px solid ${theme.primary};
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+`;
+
+// POZOSTAŁE STYLED COMPONENTS (bez zmian - kopiuję istniejące)
 const ModalOverlay = styled.div`
     position: fixed;
     top: 0;
@@ -406,6 +588,14 @@ const SectionTitle = styled.h4`
     color: ${theme.text.primary};
     border-bottom: 1px solid ${theme.border};
     padding-bottom: ${theme.spacing.sm};
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.sm};
+`;
+
+const SectionTitleIcon = styled.div`
+    color: ${theme.primary};
+    font-size: 14px;
 `;
 
 const TagsContainer = styled.div`

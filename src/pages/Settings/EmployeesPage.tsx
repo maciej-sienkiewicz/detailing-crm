@@ -351,13 +351,6 @@ const EmployeesPage = forwardRef<EmployeesPageRef>((props, ref) => {
 
     const headerActions = (
         <>
-            <SecondaryButton
-                onClick={() => setShowTemplatesModal(true)}
-                disabled={isLoading}
-            >
-                <FaFileDownload />
-                Szablony dokumentów
-            </SecondaryButton>
             <PrimaryButton
                 onClick={handleAddEmployee}
                 disabled={isLoading || isCreating}

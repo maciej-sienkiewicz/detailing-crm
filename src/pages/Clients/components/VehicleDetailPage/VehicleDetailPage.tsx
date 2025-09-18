@@ -1,4 +1,4 @@
-// src/pages/Clients/components/VehicleDetailPage/VehicleDetailPage.tsx - Zaktualizowany
+// src/pages/Clients/components/VehicleDetailPage/VehicleDetailPage.tsx - NAPRAWIONY z VehicleDetailDrawer
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import VehicleDetailHeader from './VehicleDetailHeader';
@@ -14,6 +14,8 @@ import {VehicleExpanded, VehicleStatistics} from "../../../../types";
 import {vehicleApi} from "../../../../api/vehiclesApi";
 import {apiClientNew} from "../../../../api/apiClientNew";
 import VehicleAnalyticsSection from "../../../../components/VehicleAnalytics/VehicleAnalyticsSection";
+// DODANY IMPORT VehicleDetailDrawer
+import VehicleDetailDrawer from "../VehicleDetailDrawer";
 
 interface VehicleDetailsResponse {
     id: string;
@@ -57,6 +59,10 @@ const VehicleDetailPage: React.FC = () => {
     const [vehicleStats, setVehicleStats] = useState<VehicleStatistics | null>(null);
     const [visitHistory, setVisitHistory] = useState<any[]>([]);
     const [showEditModal, setShowEditModal] = useState(false);
+
+    // DODANE STANY dla VehicleDetailDrawer
+    const [showDrawer, setShowDrawer] = useState(false);
+    const [drawerVehicle, setDrawerVehicle] = useState<VehicleExpanded | null>(null);
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -148,8 +154,20 @@ const VehicleDetailPage: React.FC = () => {
         navigate('/clients-vehicles?tab=vehicles');
     };
 
+    // NAPRAWIONA FUNKCJA handleEdit - teraz otwiera VehicleDetailDrawer
     const handleEdit = () => {
-        console.log('Edycja pojazdu - funkcjonalność w przygotowaniu');
+        if (vehicle) {
+            console.log('🔧 Opening VehicleDetailDrawer for vehicle:', vehicle.id);
+            setDrawerVehicle(vehicle);
+            setShowDrawer(true);
+        }
+    };
+
+    // DODANA FUNKCJA do zamykania drawer'a
+    const handleCloseDrawer = () => {
+        console.log('❌ Closing VehicleDetailDrawer');
+        setShowDrawer(false);
+        setDrawerVehicle(null);
     };
 
     const handleDelete = () => {
@@ -191,36 +209,45 @@ const VehicleDetailPage: React.FC = () => {
     };
 
     return (
-        <PageContainer>
-            <VehicleDetailHeader
-                vehicle={displayVehicle}
-                onBack={handleBack}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
+        <>
+            <PageContainer>
+                <VehicleDetailHeader
+                    vehicle={displayVehicle}
+                    onBack={handleBack}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                />
+
+                <ContentContainer>
+                    <MainContent>
+                        <VehicleBasicInfo vehicle={displayVehicle} />
+                        <VehicleOwners owners={owners} onOwnerClick={handleOwnerClick} />
+
+                        {/* NOWA SEKCJA ANALIZ - ujednolicona z klientami, bez toggle */}
+                        <VehicleAnalyticsSection vehicleId={id} />
+                    </MainContent>
+
+                    <Sidebar>
+                        <VehicleGallerySection
+                            vehicleId={id}
+                            vehicleInfo={vehicleInfoForGallery}
+                        />
+                        <VehicleVisitHistory
+                            visitHistory={visitHistory}
+                            onVisitClick={handleVisitClick}
+                            vehicleDisplay={displayVehicle}
+                        />
+                    </Sidebar>
+                </ContentContainer>
+            </PageContainer>
+
+            {/* DODANY VehicleDetailDrawer */}
+            <VehicleDetailDrawer
+                isOpen={showDrawer}
+                vehicle={drawerVehicle}
+                onClose={handleCloseDrawer}
             />
-
-            <ContentContainer>
-                <MainContent>
-                    <VehicleBasicInfo vehicle={displayVehicle} />
-                    <VehicleOwners owners={owners} onOwnerClick={handleOwnerClick} />
-
-                    {/* NOWA SEKCJA ANALIZ - ujednolicona z klientami, bez toggle */}
-                    <VehicleAnalyticsSection vehicleId={id} />
-                </MainContent>
-
-                <Sidebar>
-                    <VehicleGallerySection
-                        vehicleId={id}
-                        vehicleInfo={vehicleInfoForGallery}
-                    />
-                    <VehicleVisitHistory
-                        visitHistory={visitHistory}
-                        onVisitClick={handleVisitClick}
-                        vehicleDisplay={displayVehicle}
-                    />
-                </Sidebar>
-            </ContentContainer>
-        </PageContainer>
+        </>
     );
 };
 

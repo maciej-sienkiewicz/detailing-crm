@@ -21,13 +21,13 @@ const ActivityEntityLink: React.FC<ActivityEntityLinkProps> = ({ entity }) => {
             case 'CLIENT':
                 return {
                     icon: <FaUser />,
-                    path: `/clients/owners?id=${entity.id}`,
+                    path: `/clients/${entity.id}`,
                     text: entity.displayName || 'Klient'
                 };
             case 'VEHICLE':
                 return {
                     icon: <FaCar />,
-                    path: `/clients/vehicles?id=${entity.id}`,
+                    path: `/vehicles/${entity.id}`,
                     text: entity.displayName || 'Pojazd'
                 };
             case 'PROTOCOL':

@@ -278,6 +278,23 @@ const VehicleGallerySection: React.FC<VehicleGallerySectionProps> = ({
         );
     }
 
+    const formatDateFromArray = (dateArray: number[] | string): string => {
+        if (!dateArray) return '-';
+
+        if (Array.isArray(dateArray) && dateArray.length >= 3) {
+            // Backend returns [year, month, day] - month is 1-based in backend
+            const [year, month, day] = dateArray;
+            const date = new Date(year, month - 1, day); // month is 0-based in JS Date
+            return date.toLocaleDateString('pl-PL');
+        }
+
+        if (typeof dateArray === 'string') {
+            return new Date(dateArray).toLocaleDateString('pl-PL');
+        }
+
+        return '-';
+    };
+
     // Error state
     if (error || !vehicleId) {
         return (
@@ -437,7 +454,7 @@ const VehicleGallerySection: React.FC<VehicleGallerySectionProps> = ({
                 <ImageInfo>
                     <ImageFilename>{currentImage.filename}</ImageFilename>
                     <ImageDate>
-                        {new Date(currentImage.uploadedAt).toLocaleDateString('pl-PL')}
+                        Utworzono dnia: {formatDateFromArray(currentImage.uploadedAt)}
                     </ImageDate>
                 </ImageInfo>
 

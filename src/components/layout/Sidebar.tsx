@@ -122,7 +122,6 @@ const mainMenuItems: MainMenuItem[] = [
         icon: <FaTabletAlt />,
         path: '/tablets',
         hasSubmenu: false,
-        isNew: true,
         category: 'admin'
     },
     {
@@ -132,7 +131,6 @@ const mainMenuItems: MainMenuItem[] = [
         path: '/team',
         hasSubmenu: false,
         category: 'admin',
-        badge: "Faza rozwoju"
     },
     {
         id: 'sms',

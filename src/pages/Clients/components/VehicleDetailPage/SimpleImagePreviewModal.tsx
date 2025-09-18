@@ -1,4 +1,4 @@
-// src/pages/Clients/components/VehicleDetailPage/SimpleImagePreviewModal.tsx
+// src/pages/Clients/components/VehicleDetailPage/SimpleImagePreviewModal.tsx - NAPRAWIONY
 import React from 'react';
 import styled from 'styled-components';
 import { FaTimes, FaTags } from 'react-icons/fa';
@@ -96,6 +96,7 @@ const ModalOverlay = styled.div`
     z-index: 1000;
     backdrop-filter: blur(4px);
     animation: fadeIn 0.2s ease;
+    padding: ${theme.spacing.lg}; /* Dodany padding dla bezpieczeństwa na małych ekranach */
 
     @keyframes fadeIn {
         from { opacity: 0; }
@@ -107,9 +108,9 @@ const ModalContainer = styled.div`
     background: white;
     border-radius: ${theme.radius.xl};
     box-shadow: ${theme.shadow.xl};
-    width: 90vw;
-    max-width: 1000px;
-    max-height: 90vh;
+    width: 95vw; /* Zwiększona szerokość */
+    max-width: 1200px; /* Zwiększona maksymalna szerokość */
+    height: 95vh; /* Zwiększona wysokość */
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -134,6 +135,7 @@ const ModalHeader = styled.div`
     padding: ${theme.spacing.lg} ${theme.spacing.xl};
     border-bottom: 1px solid ${theme.border};
     background: ${theme.surfaceAlt};
+    flex-shrink: 0; /* Zapobiega kurczeniu się headera */
 `;
 
 const HeaderTitle = styled.h3`
@@ -168,29 +170,77 @@ const CloseButton = styled.button`
     }
 `;
 
+/* NAPRAWIONY KONTENER ZDJĘCIA - dynamiczna wysokość */
 const ImageContainer = styled.div`
-    flex: 1;
+    flex: 1; /* Zajmuje całą dostępną przestrzeń */
     display: flex;
     align-items: center;
     justify-content: center;
     padding: ${theme.spacing.lg};
     background: ${theme.surfaceAlt};
-    min-height: 400px;
-    overflow: hidden;
+    overflow: auto; /* Umożliwia przewijanie jeśli zdjęcie jest bardzo duże */
+    min-height: 0; /* Pozwala na kurczenie się */
+
+    /* Dodatkowy scroll jeśli potrzebny */
+    &::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.1);
+        border-radius: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 4px;
+
+        &:hover {
+            background: rgba(0, 0, 0, 0.5);
+        }
+    }
 `;
 
+/* NAPRAWIONE ZDJĘCIE - zawsze pokazuje całe zdjęcie */
 const PreviewImage = styled.img`
     max-width: 100%;
     max-height: 100%;
-    object-fit: contain;
+    width: auto;
+    height: auto;
+    object-fit: contain; /* Zachowuje proporcje i pokazuje całe zdjęcie */
     border-radius: ${theme.radius.lg};
     box-shadow: ${theme.shadow.lg};
+    display: block; /* Eliminuje potencjalne problemy z inline */
+
+    /* Dla bardzo małych ekranów - pozwól na pełny rozmiar */
+    @media (max-width: 768px) {
+        max-width: calc(100% - ${theme.spacing.md});
+        max-height: calc(100% - ${theme.spacing.md});
+    }
 `;
 
 const TagsSection = styled.div`
     padding: ${theme.spacing.lg} ${theme.spacing.xl};
     border-top: 1px solid ${theme.border};
     background: white;
+    flex-shrink: 0; /* Zapobiega kurczeniu się sekcji tagów */
+    max-height: 150px; /* Ogranicza wysokość sekcji tagów */
+    overflow-y: auto; /* Dodaje scroll jeśli za dużo tagów */
+
+    &::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: ${theme.surfaceAlt};
+        border-radius: 2px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: ${theme.border};
+        border-radius: 2px;
+    }
 `;
 
 const TagsHeader = styled.div`
