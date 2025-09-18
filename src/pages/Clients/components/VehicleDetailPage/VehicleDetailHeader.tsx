@@ -68,7 +68,6 @@ const HeaderContainer = styled.div`
     align-items: flex-start;
     gap: ${theme.spacing.lg};
     margin-bottom: ${theme.spacing.xl};
-    max-width: 1400px;
     margin-left: auto;
     margin-right: auto;
 

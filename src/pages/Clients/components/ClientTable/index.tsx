@@ -26,15 +26,16 @@ interface ClientTableProps {
 
 // OSTATECZNE SZEROKOŚCI - bez horizontal scroll na jakimkolwiek ekranie 1024px+
 const defaultColumns: TableColumn[] = [
-    { id: 'selection', label: '', width: '40px', sortable: false },              // Minimalna checkbox
+    { id: 'selection', label: '', width: '60px', sortable: false },              // Minimalna checkbox
     { id: 'client', label: 'Klient', width: '25%', sortable: true },             // Główna informacja
-    { id: 'contact', label: 'Kontakt', width: '28%', sortable: true },           // Najszersza - email+telefon
+    { id: 'contact', label: 'Kontakt', width: '20%', sortable: true },           // Najszersza - email+telefon
     { id: 'company', label: 'Firma', width: '20%', sortable: true },             // Średnia dla firm
-    { id: 'lastVisit', label: 'Ostatnia wizyta', width: '12%', sortable: true }, // Kompaktowa dla dat
-    { id: 'metrics', label: 'Wizyty/Pojazdy', width: '10%', sortable: true },    // Wąska dla liczb
+    { id: 'lastVisit', label: 'Ostatnio', width: '10%', sortable: true }, // Kompaktowa dla dat
+    { id: 'metrics', label: 'Dane', width: '10%', sortable: true },    // Wąska dla liczb
     { id: 'revenue', label: 'Przychody', width: '12%', sortable: true },         // Kompaktowa dla kwot
-    { id: 'actions', label: 'Akcje', width: '100px', sortable: false },          // Stała - dokładnie 3 przyciski
+    { id: 'actions', label: 'Akcje', width: '140px', sortable: false },          // Stała - dokładnie 3 przyciski
 ];
+
 // SUMA: 107% + 140px = NA DUŻYCH EKRANACH IDEALNE WYPEŁNIENIE BEZ SCROLL
 
 const emptyStateConfig = {

@@ -15,8 +15,8 @@ interface BackendClientWithStatistics {
         company?: string;
         taxId?: string;
         notes?: string;
-        created_at: string;
-        updated_at: string;
+        createdAt: string;
+        updatedAt: string;
     };
     statistics?: {
         visit_count: number;
@@ -291,6 +291,9 @@ class ClientsApi {
                 { timeout: 10000 }
             );
 
+            console.log("dupa")
+            console.log(response)
+            console.log("dupa")
             // Mapujemy odpowiedź z serwera na ClientExpanded
             const enrichedClient = this.mapBackendClientToExpanded(response);
 
@@ -330,8 +333,8 @@ class ClientsApi {
             lastVisitDate: stats?.last_visit_date,
             vehicles: [], // UWAGA: Brak informacji o pojazdach w tym endpoincie
 
-            createdAt: client.created_at,
-            updatedAt: client.updated_at
+            createdAt: client.createdAt,
+            updatedAt: client.updatedAt
         };
     }
 

@@ -17,6 +17,22 @@ const ClientDetailHeader: React.FC<ClientDetailHeaderProps> = ({
                                                                    onEdit,
                                                                    onDelete
                                                                }) => {
+    const parseJavaLocalDateTime = (dateArray: any): Date => {
+        console.log(dateArray)
+        console.log("dupa")
+        if (Array.isArray(dateArray) && dateArray.length >= 6) {
+            const [year, month, day, hour, minute, second, nanosecond] = dateArray;
+            const millisecond = nanosecond ? Math.floor(nanosecond / 1000000) : 0;
+            return new Date(year, month - 1, day, hour, minute, second, millisecond);
+        }
+
+        if (typeof dateArray === 'string') {
+            return new Date(dateArray);
+        }
+
+        return new Date();
+    };
+
     return (
         <HeaderContainer>
             <HeaderMain>
@@ -37,7 +53,7 @@ const ClientDetailHeader: React.FC<ClientDetailHeaderProps> = ({
                             <ClientCompany>{client.company}</ClientCompany>
                         )}
                         <ClientMeta>
-                            Klient od {client.createdAt ? new Date(client.createdAt).toLocaleDateString('pl-PL') : 'nieznana data'}
+                            Klient od {client.createdAt ? parseJavaLocalDateTime(client.createdAt).toLocaleDateString('pl-PL') : 'nieznana data'}
                         </ClientMeta>
                     </ClientDetails>
 
@@ -65,14 +81,9 @@ const HeaderContainer = styled.div`
     align-items: flex-start;
     gap: ${theme.spacing.lg};
     margin-bottom: ${theme.spacing.xl};
-    max-width: 1400px;
     margin-left: auto;
     margin-right: auto;
-
-    @media (max-width: 768px) {
-        flex-direction: column;
-        gap: ${theme.spacing.md};
-    }
+    
 `;
 
 const HeaderMain = styled.div`
