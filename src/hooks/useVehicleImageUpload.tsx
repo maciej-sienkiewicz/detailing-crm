@@ -1,4 +1,4 @@
-// src/hooks/useVehicleImageUpload.ts
+// src/hooks/useVehicleImageUpload.ts - FIXED VERSION
 /**
  * Custom hook for managing vehicle image uploads
  * Provides state management and utility functions for image upload operations
@@ -7,10 +7,11 @@
 import { useState, useCallback } from 'react';
 import { vehicleImageApi, VehicleImageUploadRequest } from '../api/vehicleImageApi';
 
+// FIXED: Changed uploadErrors type to match expected Record<string, string>
 export interface UploadState {
     isUploading: boolean;
     uploadProgress: Record<string, number>;
-    uploadErrors: Record<string, string>;
+    uploadErrors: Record<string, string>; // FIXED: Removed undefined union
     successfulUploads: string[];
 }
 
@@ -50,7 +51,10 @@ export const useVehicleImageUpload = (): UseVehicleImageUploadReturn => {
                 ...prev,
                 isUploading: true,
                 uploadProgress: { ...prev.uploadProgress, [imageId]: 0 },
-                uploadErrors: { ...prev.uploadErrors, [imageId]: undefined }
+                // FIXED: Remove undefined from the error, just don't include the key
+                uploadErrors: Object.fromEntries(
+                    Object.entries(prev.uploadErrors).filter(([key]) => key !== imageId)
+                )
             }));
 
             console.log('🚀 Starting upload for:', imageId);
@@ -93,6 +97,7 @@ export const useVehicleImageUpload = (): UseVehicleImageUploadReturn => {
             setUploadState(prev => ({
                 ...prev,
                 uploadProgress: { ...prev.uploadProgress, [imageId]: 0 },
+                // FIXED: Ensure we're setting a string value, not undefined
                 uploadErrors: { ...prev.uploadErrors, [imageId]: errorMessage }
             }));
 
@@ -174,7 +179,7 @@ export const useVehicleImageUpload = (): UseVehicleImageUploadReturn => {
 
         console.log(`📊 Batch upload completed:`, results);
         return results;
-    }, [uploadSingleImage, uploadState.uploadErrors]);
+    }, [uploadSingleImage]);
 
     /**
      * Reset upload state

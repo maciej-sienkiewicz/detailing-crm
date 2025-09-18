@@ -1,4 +1,4 @@
-// src/services/ProtocolCalendarService.ts - UPDATED VERSION WITH visitsApiNew
+// src/services/ProtocolCalendarService.ts - FIXED VERSION
 import {VisitListItem, visitsApi} from '../api/visitsApiNew';
 import {Appointment, AppointmentStatus, DiscountType, ServiceApprovalStatus} from '../types';
 import {CarReceptionProtocol, ProtocolStatus} from '../types/protocol';
@@ -52,10 +52,13 @@ const convertVisitListItemToAppointment = (visit: VisitListItem): Appointment =>
         isProtocol: true,
         statusUpdatedAt: visit.lastUpdate,
         calendarColorId: visit.calendarColorId,
+        // FIXED: Add missing description and vatRate properties to services mapping
         services: visit.selectedServices?.map(service => ({
             id: service.id,
             name: service.name,
             price: service.price,
+            description: service.note || '', // FIXED: Use note as description or empty string
+            vatRate: 23, // FIXED: Add default VAT rate (23% for Poland)
             discountType: (service.discountType as DiscountType) || DiscountType.PERCENTAGE,
             discountValue: service.discountValue || 0,
             finalPrice: service.finalPrice,
@@ -87,10 +90,13 @@ const convertCarReceptionProtocolToAppointment = (protocol: CarReceptionProtocol
         notes: protocol.notes || '',
         isProtocol: true,
         statusUpdatedAt: protocol.statusUpdatedAt,
+        // FIXED: Add missing description and vatRate properties to services mapping
         services: protocol.selectedServices?.map(service => ({
             id: service.id,
             name: service.name,
             price: service.price,
+            description: service.note || '', // FIXED: Use note as description or empty string
+            vatRate: 23, // FIXED: Add default VAT rate (23% for Poland)
             discountType: service.discountType,
             discountValue: service.discountValue,
             finalPrice: service.finalPrice,

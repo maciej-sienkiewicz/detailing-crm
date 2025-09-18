@@ -1,4 +1,4 @@
-// src/components/calendar/AppointmentDetails.tsx - UPDATED VERSION WITH SIMPLE_EVENT HANDLING
+// src/components/calendar/AppointmentDetails.tsx - FIXED VERSION
 import React, {useState, useEffect, useCallback} from 'react';
 import styled from 'styled-components';
 import {format} from 'date-fns';
@@ -56,16 +56,11 @@ const extractOccurrenceId = (appointmentId: string): string | null => {
     return null;
 };
 
-// Helper function to determine if this is a SIMPLE_EVENT
+// FIXED: Helper function to determine if this is a SIMPLE_EVENT
 const isSimpleEvent = (appointment: Appointment): boolean => {
     const occurrenceData = (appointment as any).recurringEventData as EventOccurrenceResponse;
 
-    // Check in recurringEventDetails first (from detailed API response)
-    if (occurrenceData?.recurringEventDetails?.type) {
-        return occurrenceData.recurringEventDetails.type === EventType.SIMPLE_EVENT;
-    }
-
-    // Fallback to recurringEvent for compatibility
+    // FIXED: Check in recurringEvent first (the correct field name)
     if (occurrenceData?.recurringEvent?.type) {
         return occurrenceData.recurringEvent.type === EventType.SIMPLE_EVENT;
     }
@@ -100,15 +95,6 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
     const alreadyConverted = isAlreadyConverted(appointment);
 
     const occurrenceData = (appointment as any).recurringEventData as EventOccurrenceResponse;
-
-    // Debug logging
-    console.log('🔍 AppointmentDetails Debug:', {
-        isRecurringEvent,
-        isSimpleEventType,
-        isCompleted,
-        eventType: occurrenceData?.recurringEventDetails?.type || occurrenceData?.recurringEvent?.type,
-        occurrenceData: occurrenceData
-    });
 
     const [showConvertModal, setShowConvertModal] = useState(false);
     const { showToast } = useToast();
