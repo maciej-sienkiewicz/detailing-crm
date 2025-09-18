@@ -149,16 +149,14 @@ const ClientDetailPage: React.FC = () => {
                 <MainContent>
                     <ClientBasicInfo client={client} />
 
-                    {/* DODANE: Sekcja analityki klienta z toggle */}
+                    {/* ZMIENIONE: Usunięto initialExpanded i collapsible - teraz wyświetla się od razu */}
                     <ClientAnalyticsSection
                         clientId={id}
                         clientName={`${client.firstName} ${client.lastName}`}
-                        initialExpanded={false}
                     />
                 </MainContent>
 
                 <Sidebar>
-
                     <ClientVehicles
                         vehicles={clientVehicles}
                         onVehicleClick={handleVehicleClick}

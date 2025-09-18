@@ -12,10 +12,11 @@ export const PageContainer = styled.div`
 `;
 
 export const ContentContainer = styled.div`
-    max-width: 1600px; /* Zwiększone dla lepszego wyświetlania analityki */
+    /* UJEDNOLICONE: Identyczna szerokość jak w pozostałych widokach */
+    max-width: 1600px;
     margin: 0 auto;
     display: grid;
-    grid-template-columns: 2fr 400px; /* Dostosowana proporcja */
+    grid-template-columns: 2fr 400px;
     gap: ${theme.spacing.xl};
 
     @media (max-width: 1200px) {
@@ -298,11 +299,11 @@ export const BackButton = styled.button`
     }
 `;
 
-/* NOWE STYLE - Specjalne dla sekcji analityki */
+/* SPECJALNE STYLE - Dla szerokości ujednoliconej z pojazdami */
 export const AnalyticsWrapper = styled.div`
     /* Kontener dla całej sekcji analityki */
     position: relative;
-    
+
     /* Gradient border effect */
     &::before {
         content: '';
@@ -317,7 +318,7 @@ export const AnalyticsWrapper = styled.div`
         opacity: 0;
         transition: opacity 0.3s ease;
     }
-    
+
     &:hover::before {
         opacity: 1;
     }
@@ -332,7 +333,7 @@ export const AnalyticsHeader = styled.div`
     background: linear-gradient(135deg, ${theme.primaryGhost} 0%, ${theme.primary}05 100%);
     border-radius: ${theme.radius.lg};
     border: 1px solid ${theme.primary}20;
-    
+
     @media (max-width: 768px) {
         flex-direction: column;
         gap: ${theme.spacing.md};
@@ -358,7 +359,7 @@ export const AnalyticsTitle = styled.h2`
         /* Zapewnij że ikona jest widoczna */
         -webkit-text-fill-color: ${theme.primary};
     }
-    
+
     @media (max-width: 768px) {
         font-size: 20px;
     }
@@ -369,7 +370,7 @@ export const AnalyticsSubtitle = styled.p`
     color: ${theme.text.secondary};
     margin: 0;
     font-style: italic;
-    
+
     @media (max-width: 768px) {
         font-size: 13px;
     }
@@ -380,21 +381,21 @@ export const ResponsiveAnalyticsContainer = styled.div`
     /* Umożliw przewijanie na małych ekranach */
     @media (max-width: 1024px) {
         overflow-x: auto;
-        
+
         /* Custom scrollbar */
         &::-webkit-scrollbar {
             height: 8px;
         }
-        
+
         &::-webkit-scrollbar-track {
             background: ${theme.surface};
             border-radius: 4px;
         }
-        
+
         &::-webkit-scrollbar-thumb {
             background: ${theme.border};
             border-radius: 4px;
-            
+
             &:hover {
                 background: ${theme.text.muted};
             }

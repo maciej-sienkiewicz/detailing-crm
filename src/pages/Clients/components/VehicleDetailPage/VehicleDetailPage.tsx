@@ -1,4 +1,4 @@
-// src/pages/Clients/components/VehicleDetailPage/VehicleDetailPage.tsx
+// src/pages/Clients/components/VehicleDetailPage/VehicleDetailPage.tsx - Zaktualizowany
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import VehicleDetailHeader from './VehicleDetailHeader';
@@ -9,10 +9,11 @@ import VehicleVisitHistory from './VehicleVisitHistory';
 import { LoadingDisplay, ErrorDisplay } from './VehicleDetailComponents';
 import { PageContainer, ContentContainer, MainContent, Sidebar } from './VehicleDetailStyles';
 import VehicleGallerySection from "./VehicleGallerySection";
-// NOWE IMPORTY DLA ANALIZ
+// NOWE IMPORTY DLA ANALIZ - zaktualizowane
 import {VehicleExpanded, VehicleStatistics} from "../../../../types";
 import {vehicleApi} from "../../../../api/vehiclesApi";
 import {apiClientNew} from "../../../../api/apiClientNew";
+import VehicleAnalyticsSection from "../../../../components/VehicleAnalytics/VehicleAnalyticsSection";
 
 interface VehicleDetailsResponse {
     id: string;
@@ -55,12 +56,10 @@ const VehicleDetailPage: React.FC = () => {
     const [owners, setOwners] = useState<FullOwnerInfo[]>([]);
     const [vehicleStats, setVehicleStats] = useState<VehicleStatistics | null>(null);
     const [visitHistory, setVisitHistory] = useState<any[]>([]);
+    const [showEditModal, setShowEditModal] = useState(false);
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-
-    // NOWY STATE - toggle dla pokazywania analiz vs tradycyjnych statystyk
-    const [showAnalytics, setShowAnalytics] = useState(true);
 
     useEffect(() => {
         if (!id) {
@@ -158,16 +157,11 @@ const VehicleDetailPage: React.FC = () => {
     };
 
     const handleOwnerClick = (ownerId: string) => {
-        navigate(`/clients-vehicles?tab=owners&clientId=${ownerId}`);
+        navigate(`/clients/${ownerId}`); // ZMIENIONE: Navigacja do nowej strony szczegółów klienta
     };
 
     const handleVisitClick = (visitId: string) => {
         navigate(`/visits/${visitId}`);
-    };
-
-    // NOWA FUNKCJA - toggle między analizami a tradycyjnymi statystykami
-    const handleToggleAnalytics = () => {
-        setShowAnalytics(!showAnalytics);
     };
 
     if (loading) {
@@ -210,21 +204,8 @@ const VehicleDetailPage: React.FC = () => {
                     <VehicleBasicInfo vehicle={displayVehicle} />
                     <VehicleOwners owners={owners} onOwnerClick={handleOwnerClick} />
 
-                    {/* NOWA SEKCJA - Toggle między analizami a tradycyjnymi statystykami */}
-                    <AnalyticsToggleSection>
-
-                        {/* NOWA SEKCJA ANALIZ lub tradycyjne statystyki */}
-                        {showAnalytics ? (
-                            <VehicleAnalyticsSection vehicleId={id} />
-                        ) : (
-                            vehicleStats && (
-                                <VehicleStatisticsSection
-                                    stats={vehicleStats}
-                                    lastServiceDate={vehicle.lastServiceDate}
-                                />
-                            )
-                        )}
-                    </AnalyticsToggleSection>
+                    {/* NOWA SEKCJA ANALIZ - ujednolicona z klientami, bez toggle */}
+                    <VehicleAnalyticsSection vehicleId={id} />
                 </MainContent>
 
                 <Sidebar>
@@ -242,78 +223,5 @@ const VehicleDetailPage: React.FC = () => {
         </PageContainer>
     );
 };
-
-// NOWE STYLED COMPONENTS dla toggle section
-import styled from 'styled-components';
-import { theme } from '../../../../styles/theme';
-import VehicleAnalyticsSection from "../../../../components/VehicleAnalytics/VehicleAnalyticsSection";
-
-const AnalyticsToggleSection = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${theme.spacing.lg};
-`;
-
-const ToggleHeader = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: ${theme.spacing.lg} ${theme.spacing.xl};
-    background: ${theme.surface};
-    border-radius: ${theme.radius.xl};
-    box-shadow: ${theme.shadow.sm};
-    border: 1px solid ${theme.border};
-
-    @media (max-width: 768px) {
-        flex-direction: column;
-        gap: ${theme.spacing.md};
-        align-items: stretch;
-    }
-`;
-
-const ToggleTitle = styled.h3`
-    font-size: 18px;
-    font-weight: 600;
-    color: ${theme.text.primary};
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.md};
-`;
-
-const ToggleSwitch = styled.div`
-    display: flex;
-    background: ${theme.surfaceAlt};
-    border-radius: ${theme.radius.lg};
-    padding: 4px;
-    border: 1px solid ${theme.border};
-    gap: 4px;
-`;
-
-const ToggleOption = styled.button<{ $active: boolean }>`
-    padding: ${theme.spacing.sm} ${theme.spacing.lg};
-    border: none;
-    border-radius: ${theme.radius.md};
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all ${theme.transitions.normal};
-    white-space: nowrap;
-    
-    ${props => props.$active ? `
-        background: ${theme.primary};
-        color: white;
-        box-shadow: ${theme.shadow.sm};
-        transform: translateY(-1px);
-    ` : `
-        background: transparent;
-        color: ${theme.text.secondary};
-        
-        &:hover {
-            background: ${theme.primaryGhost};
-            color: ${theme.text.primary};
-        }
-    `}
-`;
 
 export default VehicleDetailPage;
