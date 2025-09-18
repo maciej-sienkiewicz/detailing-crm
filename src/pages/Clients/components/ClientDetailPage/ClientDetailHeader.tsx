@@ -7,7 +7,7 @@ import { ClientExpanded } from '../../../../types';
 interface ClientDetailHeaderProps {
     client: ClientExpanded;
     onBack: () => void;
-    onEdit: () => void;
+    onEdit: () => void;  // ZMIANA: Teraz otwiera modal zamiast przekierowywać
     onDelete: () => void;
 }
 
@@ -42,6 +42,7 @@ const ClientDetailHeader: React.FC<ClientDetailHeaderProps> = ({
                     </ClientDetails>
 
                     <ActionButtons>
+                        {/* ZMIANA: Przycisk Edytuj teraz wywołuje funkcję onEdit która otwiera modal */}
                         <ActionButton onClick={onEdit} variant="edit">
                             <FaEdit />
                             <span>Edytuj</span>
@@ -57,7 +58,7 @@ const ClientDetailHeader: React.FC<ClientDetailHeaderProps> = ({
     );
 };
 
-// Styled components dla header...
+// Styled components dla header - ulepszone stylizowanie
 const HeaderContainer = styled.div`
     display: flex;
     justify-content: space-between;
@@ -94,9 +95,11 @@ const BackButton = styled.button`
     cursor: pointer;
     transition: all ${theme.transitions.normal};
     width: fit-content;
+    border-radius: ${theme.radius.md};
 
     &:hover {
         color: ${theme.primaryDark};
+        background: ${theme.primaryGhost};
         transform: translateX(-2px);
     }
 
@@ -112,35 +115,74 @@ const ClientHeaderInfo = styled.div`
     background: ${theme.surface};
     padding: ${theme.spacing.xl};
     border-radius: ${theme.radius.xl};
-    box-shadow: ${theme.shadow.sm};
+    box-shadow: ${theme.shadow.md};
     border: 1px solid ${theme.border};
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, ${theme.primary} 0%, ${theme.primaryLight} 100%);
+    }
+
+    @media (max-width: 768px) {
+        flex-direction: column;
+        text-align: center;
+        gap: ${theme.spacing.md};
+    }
 `;
 
 const ClientIcon = styled.div`
-    width: 64px;
-    height: 64px;
+    width: 72px;
+    height: 72px;
     background: linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryLight} 100%);
-    border-radius: ${theme.radius.lg};
+    border-radius: ${theme.radius.xl};
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 28px;
-    box-shadow: ${theme.shadow.md};
+    font-size: 32px;
+    box-shadow: ${theme.shadow.lg};
     flex-shrink: 0;
+    position: relative;
+
+    &::after {
+        content: '';
+        position: absolute;
+        inset: -2px;
+        background: linear-gradient(135deg, ${theme.primary}, ${theme.primaryLight});
+        border-radius: inherit;
+        z-index: -1;
+        opacity: 0;
+        transition: opacity ${theme.transitions.normal};
+    }
+
+    &:hover::after {
+        opacity: 0.2;
+    }
 `;
 
 const ClientDetails = styled.div`
     flex: 1;
+    min-width: 0;
 `;
 
 const ClientTitle = styled.h1`
-    font-size: 28px;
+    font-size: 32px;
     font-weight: 700;
     color: ${theme.text.primary};
     margin: 0 0 ${theme.spacing.sm} 0;
-    letter-spacing: -0.025em;
+    letter-spacing: -0.02em;
     line-height: 1.2;
+
+    @media (max-width: 768px) {
+        font-size: 26px;
+    }
 `;
 
 const ClientCompany = styled.div`
@@ -148,17 +190,41 @@ const ClientCompany = styled.div`
     background: linear-gradient(135deg, ${theme.status.success} 0%, #0ea5e9 100%);
     color: white;
     padding: ${theme.spacing.sm} ${theme.spacing.lg};
-    border-radius: ${theme.radius.md};
+    border-radius: ${theme.radius.lg};
     font-weight: 600;
     font-size: 14px;
     margin-bottom: ${theme.spacing.sm};
     box-shadow: ${theme.shadow.sm};
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        transition: left 0.5s;
+    }
+
+    &:hover::before {
+        left: 100%;
+    }
 `;
 
 const ClientMeta = styled.div`
     font-size: 14px;
     color: ${theme.text.secondary};
     font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.xs};
+
+    @media (max-width: 768px) {
+        justify-content: center;
+    }
 `;
 
 const ActionButtons = styled.div`
@@ -178,37 +244,64 @@ const ActionButton = styled.button<{ variant: 'edit' | 'delete' }>`
     gap: ${theme.spacing.sm};
     padding: ${theme.spacing.md} ${theme.spacing.lg};
     border: none;
-    border-radius: ${theme.radius.md};
+    border-radius: ${theme.radius.lg};
     font-weight: 600;
     font-size: 14px;
     cursor: pointer;
     transition: all ${theme.transitions.normal};
-    min-height: 44px;
+    min-height: 48px;
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        transition: left 0.5s;
+    }
+
+    &:hover::before {
+        left: 100%;
+    }
 
     ${props => props.variant === 'edit' && `
-        background: ${theme.primary};
+        background: linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryLight} 100%);
         color: white;
+        box-shadow: ${theme.shadow.sm};
 
         &:hover {
-            background: ${theme.primaryDark};
+            background: linear-gradient(135deg, ${theme.primaryDark} 0%, ${theme.primary} 100%);
+            transform: translateY(-2px);
+            box-shadow: ${theme.shadow.lg};
+        }
+
+        &:active {
             transform: translateY(-1px);
-            box-shadow: ${theme.shadow.md};
         }
     `}
 
     ${props => props.variant === 'delete' && `
-        background: ${theme.status.error};
+        background: linear-gradient(135deg, ${theme.status.error} 0%, #b91c1c 100%);
         color: white;
+        box-shadow: ${theme.shadow.sm};
 
         &:hover {
-            background: #b91c1c;
+            background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+            transform: translateY(-2px);
+            box-shadow: ${theme.shadow.lg};
+        }
+
+        &:active {
             transform: translateY(-1px);
-            box-shadow: ${theme.shadow.md};
         }
     `}
 
     svg {
-        font-size: 12px;
+        font-size: 14px;
     }
 
     @media (max-width: 768px) {

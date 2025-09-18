@@ -1,4 +1,4 @@
-// src/pages/Clients/ClientsVehiclesPage.tsx
+// src/pages/Clients/ClientsVehiclesPage.tsx - Zaktualizowany bez drawer'a klienta
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {useLocation, useNavigate} from 'react-router-dom';
 import styled from 'styled-components';
@@ -15,7 +15,6 @@ type ActiveTab = 'owners' | 'vehicles';
 
 interface URLParams {
     tab?: ActiveTab;
-    clientId?: string;
     vehicleId?: string;
     ownerId?: string;
 }
@@ -28,7 +27,6 @@ const ClientsVehiclesPage: React.FC = () => {
         const searchParams = new URLSearchParams(location.search);
         return {
             tab: (searchParams.get('tab') as ActiveTab) || 'owners',
-            clientId: searchParams.get('clientId') || undefined,
             vehicleId: searchParams.get('vehicleId') || undefined,
             ownerId: searchParams.get('ownerId') || undefined,
         };
@@ -99,29 +97,24 @@ const ClientsVehiclesPage: React.FC = () => {
 
         const clearedParams: Partial<URLParams> = { tab: tabId };
 
-        if (tabId === 'owners') {
+        if (tabId === 'vehicles') {
+            // Usuń clientId tylko przy przejściu na zakładkę vehicles
+        } else if (tabId === 'owners') {
             clearedParams.vehicleId = undefined;
-        } else if (tabId === 'vehicles') {
-            clearedParams.clientId = undefined;
         }
 
         updateURL(clearedParams);
     }, [updateURL]);
 
     const navigateToClient = useCallback((clientId: string) => {
-        updateURL({
-            tab: 'owners',
-            clientId: clientId,
-            vehicleId: undefined,
-            ownerId: undefined
-        });
-    }, [updateURL]);
+        // ZMIENIONE: Navigacja do osobnej strony szczegółów klienta
+        navigate(`/clients/${clientId}`);
+    }, [navigate]);
 
     const navigateToVehicle = useCallback((vehicleId: string) => {
         updateURL({
             tab: 'vehicles',
             vehicleId: vehicleId,
-            clientId: undefined,
             ownerId: undefined
         });
     }, [updateURL]);
@@ -130,14 +123,12 @@ const ClientsVehiclesPage: React.FC = () => {
         updateURL({
             tab: 'vehicles',
             ownerId: ownerId,
-            clientId: undefined,
             vehicleId: undefined
         });
     }, [updateURL]);
 
     const clearDetailParams = useCallback(() => {
         updateURL({
-            clientId: undefined,
             vehicleId: undefined
         });
     }, [updateURL]);
@@ -203,13 +194,8 @@ const ClientsVehiclesPage: React.FC = () => {
         });
     }, [navigateToClient, clearDetailParams]);
 
-    const handleClientSelected = useCallback((clientId: string) => {
-        updateURL({ clientId });
-    }, [updateURL]);
-
-    const handleClientClosed = useCallback(() => {
-        updateURL({ clientId: undefined });
-    }, [updateURL]);
+    // USUNIĘTE: Handlery związane z drawer'em klienta
+    // handleClientSelected, handleClientClosed - już nie potrzebne
 
     const handleVehicleSelected = useCallback((vehicleId: string) => {
         updateURL({ vehicleId });
@@ -286,11 +272,10 @@ const ClientsVehiclesPage: React.FC = () => {
                 {activeTab === 'owners' && (
                     <OwnersPageContent
                         onSetRef={handleSetOwnersRef}
-                        initialClientId={urlParams.clientId}
+                        // USUNIĘTE: initialClientId - szczegóły klienta są teraz obsługiwane przez routing
                         onNavigateToVehiclesByOwner={navigateToVehiclesByOwner}
                         onClearDetailParams={clearDetailParams}
-                        onClientSelected={handleClientSelected}
-                        onClientClosed={handleClientClosed}
+                        // USUNIĘTE: handleClientSelected, handleClientClosed - nie potrzebne
                     />
                 )}
 
@@ -350,7 +335,6 @@ const BulkActionButton = styled.button`
         justify-content: center;
     }
 `;
-
 
 const ContentContainer = styled.div`
     flex: 1;

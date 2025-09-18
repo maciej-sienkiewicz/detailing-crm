@@ -6,7 +6,7 @@ import { ProtocolStatus, ProtocolStatusColors, ProtocolStatusLabels, ClientProto
 import { theme } from "../../../../styles/theme";
 
 interface ClientVisitHistoryProps {
-    visits: ClientProtocolHistory[]; // ZMIENIONY TYP
+    visits: ClientProtocolHistory[];
     onVisitClick: (visitId: string) => void;
     clientName: string;
 }
@@ -76,6 +76,9 @@ const ClientVisitHistory: React.FC<ClientVisitHistoryProps> = ({
         }
     };
 
+    // ZMIANA: Ograniczamy do maksymalnie 5 ostatnich wizyt
+    const recentVisits = visits ? visits.slice(0, 5) : [];
+
     if (!visits || visits.length === 0) {
         return (
             <SidebarSection>
@@ -98,11 +101,12 @@ const ClientVisitHistory: React.FC<ClientVisitHistoryProps> = ({
         <SidebarSection>
             <SidebarSectionTitle>
                 <FaCalendarAlt />
-                Historia wizyt ({visits.length})
+                {/* ZMIANA: Pokazujemy informację o ograniczeniu do 5 wizyt */}
+                Ostatnie wizyty ({recentVisits.length}{visits.length > 5 ? ' z ' + visits.length : ''})
             </SidebarSectionTitle>
 
             <VisitHistoryList>
-                {visits.map((visit, index) => {
+                {recentVisits.map((visit, index) => {
                     const statusInfo = getStatusInfo(visit.status);
 
                     return (
@@ -129,7 +133,7 @@ const ClientVisitHistory: React.FC<ClientVisitHistoryProps> = ({
                             <VisitVehicleSection>
                                 <VehicleInfo>
                                     <VehicleBrand>
-                                        {visit.carMake} {visit.carModel} {/* ZMIENIONE POLA */}
+                                        {visit.carMake} {visit.carModel}
                                     </VehicleBrand>
                                     <VehiclePlateDisplay>
                                         {visit.licensePlate}
@@ -156,7 +160,7 @@ const ClientVisitHistory: React.FC<ClientVisitHistoryProps> = ({
     );
 };
 
-// Pozostałe styled components bez zmian...
+// Styled components (bez zmian w istniejących + nowe)
 const VisitHistoryList = styled.div`
     display: flex;
     flex-direction: column;
@@ -311,6 +315,29 @@ const VisitActionIcon = styled.div`
     ${VisitHistoryCard}:hover & {
         color: ${theme.text.secondary};
         transform: translateX(2px);
+    }
+`;
+
+// NOWE STYLED COMPONENTS dla informacji o większej liczbie wizyt
+const MoreVisitsInfo = styled.div`
+    margin-top: ${theme.spacing.md};
+    padding: ${theme.spacing.sm};
+    background: ${theme.primaryGhost};
+    border: 1px solid ${theme.primary}20;
+    border-radius: ${theme.radius.md};
+    font-size: 12px;
+    color: ${theme.text.secondary};
+    text-align: center;
+`;
+
+const MoreVisitsLink = styled.span`
+    color: ${theme.primary};
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: underline;
+    
+    &:hover {
+        color: ${theme.primaryDark};
     }
 `;
 

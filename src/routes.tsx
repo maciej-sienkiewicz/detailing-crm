@@ -94,7 +94,8 @@ const AppRoutes: React.FC = () => {
                     {/* Clients & Vehicles - ROZSZERZONE O CLIENT DETAIL */}
                     <Route path="/clients-vehicles" element={<ClientsVehiclesPage />} />
                     <Route path="/vehicle/:id" element={<VehicleDetailPage />} />
-                    <Route path="/client/:id" element={<ClientDetailPage />} />  {/* NOWA RUTA */}
+                    <Route path="/" element={<Navigate to="/clients-vehicles?tab=owners" replace />} />
+                    <Route path="/clients/:id" element={<ClientDetailPage />} />  {/* NOWA RUTA */}
 
                     {/* Redirect dla starych ścieżek */}
                     <Route path="/clients/owners" element={<Navigate to="/clients-vehicles?tab=owners" replace />} />

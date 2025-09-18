@@ -5,23 +5,29 @@ import ClientBasicInfo from './ClientBasicInfo';
 import ClientStatistics from './ClientStatistics';
 import ClientVehicles from './ClientVehicles';
 import ClientVisitHistory from './ClientVisitHistory';
+import ClientFormModal from '../ClientFormModal'; // DODANE: Import modala
 import { PageContainer, ContentContainer, MainContent, Sidebar } from './ClientDetailStyles';
 import { ClientExpanded, VehicleExpanded } from '../../../../types';
-import { ClientProtocolHistory } from '../../../../types'; // ZMIENIONY IMPORT
+import { ClientProtocolHistory } from '../../../../types';
 import { clientsApi } from '../../../../api/clientsApi';
 import { vehicleApi } from '../../../../api/vehiclesApi';
 import { visitsApi } from '../../../../api/visitsApiNew';
-import {ClientDetailErrorDisplay, ClientDetailLoadingDisplay} from "../../OwnersPage/components";
+import { ClientDetailErrorDisplay, ClientDetailLoadingDisplay } from "../../OwnersPage/components";
+import { useToast } from '../../../../components/common/Toast/Toast'; // DODANE: Toast notifications
 
 const ClientDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const { showToast } = useToast(); // DODANE: Hook dla toastów
 
     const [client, setClient] = useState<ClientExpanded | null>(null);
     const [clientVehicles, setClientVehicles] = useState<VehicleExpanded[]>([]);
-    const [clientVisits, setClientVisits] = useState<ClientProtocolHistory[]>([]); // ZMIENIONY TYP
+    const [clientVisits, setClientVisits] = useState<ClientProtocolHistory[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    // DODANE: Stan dla modala edycji
+    const [showEditModal, setShowEditModal] = useState(false);
 
     useEffect(() => {
         if (!id) {
@@ -93,8 +99,35 @@ const ClientDetailPage: React.FC = () => {
         navigate('/clients-vehicles?tab=owners');
     };
 
+    // ZMIANA: handleEdit teraz otwiera modal zamiast przekierowywać
     const handleEdit = () => {
-        navigate(`/clients-vehicles?tab=owners&clientId=${id}&action=edit`);
+        setShowEditModal(true);
+    };
+
+    // DODANE: Funkcja obsługująca zapisanie zmian w modalu
+    const handleSaveClient = async (updatedClient: ClientExpanded) => {
+        try {
+            // Aktualizuj lokalny stan klienta
+            setClient(updatedClient);
+
+            // Zamknij modal
+            setShowEditModal(false);
+
+            // Pokaż komunikat o sukcesie
+            showToast('success', 'Dane klienta zostały zaktualizowane');
+
+            // Opcjonalnie: odśwież dane klienta z serwera
+            await loadClientData();
+
+        } catch (error) {
+            console.error('Błąd podczas aktualizacji klienta:', error);
+            showToast('error', 'Nie udało się zaktualizować danych klienta');
+        }
+    };
+
+    // DODANE: Funkcja anulowania modala
+    const handleCancelEdit = () => {
+        setShowEditModal(false);
     };
 
     const handleDelete = () => {
@@ -122,7 +155,7 @@ const ClientDetailPage: React.FC = () => {
             <ClientDetailHeader
                 client={client}
                 onBack={handleBack}
-                onEdit={handleEdit}
+                onEdit={handleEdit} // ZMIANA: Teraz wywołuje handleEdit która otwiera modal
                 onDelete={handleDelete}
             />
 
@@ -144,6 +177,15 @@ const ClientDetailPage: React.FC = () => {
                     />
                 </Sidebar>
             </ContentContainer>
+
+            {/* DODANE: Modal do edycji klienta */}
+            {showEditModal && (
+                <ClientFormModal
+                    client={client}
+                    onSave={handleSaveClient}
+                    onCancel={handleCancelEdit}
+                />
+            )}
         </PageContainer>
     );
 };

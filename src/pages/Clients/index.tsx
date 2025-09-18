@@ -1,9 +1,9 @@
-// src/pages/Clients/index.tsx - Zaktualizowany z nową strukturą filtrów
+// src/pages/Clients/index.tsx - Zaktualizowany bez ClientDetailDrawer
 import React, {forwardRef, useCallback, useEffect, useImperativeHandle, useMemo} from 'react';
+import { useNavigate } from 'react-router-dom';
 import Modal from '../../components/common/Modal';
 import Pagination from '../../components/common/Pagination';
 import { ClientTable } from './components/ClientTable';
-import ClientDetailDrawer from './components/ClientDetailDrawer';
 import ClientFormModal from './components/ClientFormModal';
 import DeleteConfirmationModal from "./modals/DeleteConfirmationModal";
 
@@ -26,6 +26,7 @@ const OwnersPageContent = forwardRef<OwnersPageRef, OwnersPageContentProps>(({
                                                                                  onClientSelected,
                                                                                  onClientClosed
                                                                              }, ref) => {
+    const navigate = useNavigate();
     const { state, updateState } = useOwnersPageState();
     const { loadClients } = useClientFilters();
     const {
@@ -63,26 +64,16 @@ const OwnersPageContent = forwardRef<OwnersPageRef, OwnersPageContentProps>(({
         updateState({ showBulkSmsModal: true });
     }, [selectedClientIds.length, updateState]);
 
+    // ZMIENIONE: Navigacja do osobnej strony szczegółów klienta zamiast drawer'a
     const openClientDetail = useCallback((clientId: string) => {
-        const client = state.clients.find(c => c.id === clientId);
-        if (client) {
-            updateState({
-                selectedClient: client,
-                showDetailDrawer: true,
-                manuallyClosedDrawer: false
-            });
-            onClientSelected?.(clientId);
-        }
-    }, [state.clients, updateState, onClientSelected]);
+        navigate(`/clients/${clientId}`);
+        onClientSelected?.(clientId);
+    }, [navigate, onClientSelected]);
 
     const closeClientDetail = useCallback(() => {
-        updateState({
-            showDetailDrawer: false,
-            selectedClient: null,
-            manuallyClosedDrawer: true
-        });
+        // Ta funkcja już nie jest potrzebna, ale pozostawiamy dla kompatybilności
         onClientClosed?.();
-    }, [updateState, onClientClosed]);
+    }, [onClientClosed]);
 
     const refObject = useMemo(() => ({
         handleAddClient,
@@ -100,20 +91,8 @@ const OwnersPageContent = forwardRef<OwnersPageRef, OwnersPageContentProps>(({
         }
     }, [onSetRef, refObject]);
 
-    useEffect(() => {
-        if (initialClientId && state.clients.length > 0 && !state.manuallyClosedDrawer) {
-            const client = state.clients.find(c => c.id === initialClientId);
-            if (client && (!state.showDetailDrawer || state.selectedClient?.id !== initialClientId)) {
-                openClientDetail(initialClientId);
-            }
-        }
-    }, [initialClientId, state.clients.length, openClientDetail, state.showDetailDrawer, state.selectedClient?.id, state.manuallyClosedDrawer]);
-
-    useEffect(() => {
-        if (initialClientId !== state.selectedClient?.id) {
-            updateState({ manuallyClosedDrawer: false });
-        }
-    }, [initialClientId, state.selectedClient?.id, updateState]);
+    // USUNIĘTE: Logika związana z drawer'em i initialClientId
+    // Teraz szczegóły klienta są obsługiwane przez routing
 
     const performLoadClients = useCallback(async (page: number = 0, filters: ClientFilters = state.appliedFilters) => {
         updateState({ loading: true });
@@ -206,13 +185,9 @@ const OwnersPageContent = forwardRef<OwnersPageRef, OwnersPageContentProps>(({
                 selectedClient: null
             });
 
-            if (state.showDetailDrawer) {
-                closeClientDetail();
-            }
-
             performLoadClients(state.currentPage, state.appliedFilters);
         }
-    }, [state.selectedClient, deleteClient, updateState, state.showDetailDrawer, closeClientDetail, performLoadClients, state.currentPage, state.appliedFilters]);
+    }, [state.selectedClient, deleteClient, updateState, performLoadClients, state.currentPage, state.appliedFilters]);
 
     const handleShowVehicles = useCallback((clientId: string) => {
         navigateToVehicles(clientId, onNavigateToVehiclesByOwner);
@@ -244,14 +219,11 @@ const OwnersPageContent = forwardRef<OwnersPageRef, OwnersPageContentProps>(({
         sendSMS(client);
     }, [sendSMS]);
 
+    // ZMIENIONE: Funkcja wyboru klienta teraz otwiera nową stronę
     const handleSelectClient = useCallback((client: any) => {
-        updateState({
-            selectedClient: client,
-            showDetailDrawer: true,
-            manuallyClosedDrawer: false
-        });
+        navigate(`/clients/${client.id}`);
         onClientSelected?.(client.id);
-    }, [updateState, onClientSelected]);
+    }, [navigate, onClientSelected]);
 
     const handleToggleSelectAll = useCallback(() => {
         toggleSelectAll(state.clients);
@@ -341,11 +313,7 @@ const OwnersPageContent = forwardRef<OwnersPageRef, OwnersPageContentProps>(({
                 )}
             </MainContent>
 
-            <ClientDetailDrawer
-                isOpen={state.showDetailDrawer}
-                client={state.selectedClient}
-                onClose={closeClientDetail}
-            />
+            {/* USUNIĘTE: ClientDetailDrawer - już nie potrzebny */}
 
             {state.showAddModal && (
                 <ClientFormModal
