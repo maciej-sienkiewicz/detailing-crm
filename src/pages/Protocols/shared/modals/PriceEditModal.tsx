@@ -146,10 +146,17 @@ const PriceEditModal: React.FC<PriceEditModalProps> = ({
             return;
         }
 
-        // Jeśli cena jest netto, przelicz ją na brutto przed zapisaniem
-        const finalPrice = isPriceGross ? numericPrice : calculateGrossPrice(numericPrice);
+        const finalPriceForAPI = isPriceGross
+            ? calculateNetPrice(numericPrice)  // Brutto -> Netto
+            : numericPrice;                    // Netto -> Netto
 
-        onSave(finalPrice);
+        console.log('💰 PriceEditModal - wysyłanie do API:', {
+            inputPrice: numericPrice,
+            isPriceGross,
+            finalPriceForAPI
+        });
+
+        onSave(finalPriceForAPI);
         setPrice('');
         setError(null);
         onClose();
