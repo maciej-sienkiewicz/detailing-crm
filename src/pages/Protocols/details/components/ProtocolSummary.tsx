@@ -364,9 +364,41 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
         }
     };
 
+    const DEFAULT_VAT_RATE = 23;
+
+// Helper functions for VAT calculations
+    const calculateNetPrice = (grossPrice: number, vatRate: number = DEFAULT_VAT_RATE): number => {
+        return grossPrice / (1 + vatRate / 100);
+    };
+
+    const calculateGrossPrice = (netPrice: number, vatRate: number = DEFAULT_VAT_RATE): number => {
+        return netPrice * (1 + vatRate / 100);
+    };
+
+// Funkcje do obsługi cen - zakładamy że service.price to netto
+    const getBasePriceGross = (service: SelectedService): number => {
+        return calculateGrossPrice(service.price);
+    };
+
+    const getBasePriceNet = (service: SelectedService): number => {
+        return service.price; // price jest już netto
+    };
+
+    const getFinalPriceGross = (service: SelectedService): number => {
+        return calculateGrossPrice(service.finalPrice);
+    };
+
+    const getFinalPriceNet = (service: SelectedService): number => {
+        return service.finalPrice; // finalPrice jest również netto
+    };
+
     // Business calculations
-    const totalRevenue = protocol.selectedServices.reduce((sum, s) => sum + s.finalPrice, 0);
-    const totalDiscount = protocol.selectedServices.reduce((sum, s) => sum + (s.price - s.finalPrice), 0);
+    const totalRevenueNet = protocol.selectedServices.reduce((sum, s) => sum + s.finalPrice, 0);
+    const totalRevenueGross = calculateGrossPrice(totalRevenueNet);
+    const totalDiscountNet = protocol.selectedServices.reduce((sum, s) => sum + (s.price - s.finalPrice), 0);
+    const totalDiscountGross = calculateGrossPrice(totalDiscountNet);
+    const totalBasePriceNet = protocol.selectedServices.reduce((sum, s) => sum + s.price, 0);
+    const totalBasePriceGross = calculateGrossPrice(totalBasePriceNet);
     const pendingServices = protocol.selectedServices.filter(s => s.approvalStatus === ServiceApprovalStatus.PENDING);
     const approvedServices = protocol.selectedServices.filter(s => s.approvalStatus === ServiceApprovalStatus.APPROVED);
 
@@ -765,11 +797,11 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
 
                 <ServicesTable>
                     <TableHeader>
-                        <HeaderCell style={{width: '40%'}}>Usługa</HeaderCell>
-                        <HeaderCell style={{width: '15%'}}>Cena bazowa</HeaderCell>
+                        <HeaderCell style={{width: '35%'}}>Usługa</HeaderCell>
+                        <HeaderCell style={{width: '20%'}}>Cena bazowa</HeaderCell>
                         <HeaderCell style={{width: '15%'}}>Rabat</HeaderCell>
-                        <HeaderCell style={{width: '15%'}}>Cena końcowa</HeaderCell>
-                        <HeaderCell style={{width: '10%'}}>Status</HeaderCell>
+                        <HeaderCell style={{width: '20%'}}>Cena końcowa</HeaderCell>
+                        <HeaderCell style={{width: '5%'}}>Status</HeaderCell>
                         <HeaderCell style={{width: '5%'}}></HeaderCell>
                     </TableHeader>
 
@@ -784,7 +816,18 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                                 </ServiceCell>
 
                                 <PriceCell>
-                                    <PriceAmount>{service.price.toFixed(2)} zł</PriceAmount>
+                                    <PriceInfo>
+                                        <PriceRow>
+                                            <PriceAmount>{getBasePriceGross(service).toFixed(2)} zł</PriceAmount>
+                                            <PriceLabel>brutto</PriceLabel>
+                                        </PriceRow>
+                                        <PriceRow>
+                                            <PriceAmount $secondary>
+                                                {getBasePriceNet(service).toFixed(2)} zł
+                                            </PriceAmount>
+                                            <PriceLabel>netto</PriceLabel>
+                                        </PriceRow>
+                                    </PriceInfo>
                                 </PriceCell>
 
                                 <DiscountCell>
@@ -794,7 +837,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                                                 -{service.discountValue.toFixed(2)}
                                                 {service.discountType === DiscountType.PERCENTAGE ? '%' : 'zł'}
                                             </DiscountAmount>
-                                            <SavingsAmount>(-{(service.price - service.finalPrice).toFixed(2)} zł)</SavingsAmount>
+                                            <SavingsAmount>(-{(getBasePriceGross(service) - getFinalPriceGross(service)).toFixed(2)} zł)</SavingsAmount>
                                         </DiscountInfo>
                                     ) : (
                                         <NoDiscount>—</NoDiscount>
@@ -802,7 +845,18 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                                 </DiscountCell>
 
                                 <FinalPriceCell>
-                                    <FinalPrice>{service.finalPrice.toFixed(2)} zł</FinalPrice>
+                                    <PriceInfo>
+                                        <PriceRow>
+                                            <FinalPrice>{getFinalPriceGross(service).toFixed(2)} zł</FinalPrice>
+                                            <PriceLabel>brutto</PriceLabel>
+                                        </PriceRow>
+                                        <PriceRow>
+                                            <FinalPrice $secondary>
+                                                {getFinalPriceNet(service).toFixed(2)} zł
+                                            </FinalPrice>
+                                            <PriceLabel>netto</PriceLabel>
+                                        </PriceRow>
+                                    </PriceInfo>
                                 </FinalPriceCell>
 
                                 <StatusCell>
@@ -855,13 +909,40 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                                 <TotalLabel>PODSUMOWANIE</TotalLabel>
                             </FooterCell>
                             <FooterCell>
-                                <TotalAmount>{protocol.selectedServices.reduce((sum, s) => sum + s.price, 0).toFixed(2)} zł</TotalAmount>
+                                <PriceInfo>
+                                    <PriceRow>
+                                        <TotalAmount>{totalBasePriceGross.toFixed(2)} zł</TotalAmount>
+                                        <PriceLabel>brutto</PriceLabel>
+                                    </PriceRow>
+                                    <PriceRow>
+                                        <TotalAmount $secondary>{totalBasePriceNet.toFixed(2)} zł</TotalAmount>
+                                        <PriceLabel>netto</PriceLabel>
+                                    </PriceRow>
+                                </PriceInfo>
                             </FooterCell>
                             <FooterCell>
-                                <TotalAmount>-{totalDiscount.toFixed(2)} zł</TotalAmount>
+                                <PriceInfo>
+                                    <PriceRow>
+                                        <TotalAmount>-{totalDiscountGross.toFixed(2)} zł</TotalAmount>
+                                        <PriceLabel>brutto</PriceLabel>
+                                    </PriceRow>
+                                    <PriceRow>
+                                        <TotalAmount $secondary>-{totalDiscountNet.toFixed(2)} zł</TotalAmount>
+                                        <PriceLabel>netto</PriceLabel>
+                                    </PriceRow>
+                                </PriceInfo>
                             </FooterCell>
                             <FooterCell>
-                                <FinalTotalAmount>{totalRevenue.toFixed(2)} zł</FinalTotalAmount>
+                                <PriceInfo>
+                                    <PriceRow>
+                                        <FinalTotalAmount>{totalRevenueGross.toFixed(2)} zł</FinalTotalAmount>
+                                        <PriceLabel>brutto</PriceLabel>
+                                    </PriceRow>
+                                    <PriceRow>
+                                        <FinalTotalAmount $secondary>{totalRevenueNet.toFixed(2)} zł</FinalTotalAmount>
+                                        <PriceLabel>netto</PriceLabel>
+                                    </PriceRow>
+                                </PriceInfo>
                             </FooterCell>
                             <FooterCell></FooterCell>
                             <FooterCell></FooterCell>
@@ -985,6 +1066,28 @@ const StepLabel = styled.div`
     font-weight: 600;
     color: ${brand.textSecondary};
     text-align: center;
+`;
+
+const PriceInfo = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${brand.space.xs};
+`;
+
+const PriceRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${brand.space.sm};
+`;
+
+const PriceLabel = styled.span`
+    font-size: 11px;
+    color: ${brand.textMuted};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: ${brand.surfaceElevated};
+    padding: 2px 6px;
+    border-radius: ${brand.radius.sm};
 `;
 
 const StatusConnector = styled.div<{ $active: boolean }>`
@@ -1598,10 +1701,10 @@ const ServiceNote = styled.div`
     line-height: 1.4;
 `;
 
-const PriceAmount = styled.div`
-    font-size: 15px;
-    font-weight: 600;
-    color: ${brand.textPrimary};
+const PriceAmount = styled.div<{ $secondary?: boolean }>`
+    font-size: ${props => props.$secondary ? '13px' : '15px'};
+    font-weight: ${props => props.$secondary ? 500 : 600};
+    color: ${props => props.$secondary ? brand.textSecondary : brand.textPrimary};
 `;
 
 const DiscountInfo = styled.div`
@@ -1628,10 +1731,10 @@ const NoDiscount = styled.div`
     font-weight: 300;
 `;
 
-const FinalPrice = styled.div`
-    font-size: 16px;
-    font-weight: 700;
-    color: ${brand.primary};
+const FinalPrice = styled.div<{ $secondary?: boolean }>`
+    font-size: ${props => props.$secondary ? '14px' : '16px'};
+    font-weight: ${props => props.$secondary ? 600 : 700};
+    color: ${props => props.$secondary ? brand.textSecondary : brand.primary};
 `;
 
 const ServiceStatus = styled.div<{ $status: string }>`
@@ -1730,16 +1833,16 @@ const TotalLabel = styled.div`
     letter-spacing: 0.5px;
 `;
 
-const TotalAmount = styled.div`
-    font-size: 15px;
-    font-weight: 600;
-    color: ${brand.textPrimary};
+const TotalAmount = styled.div<{ $secondary?: boolean }>`
+    font-size: ${props => props.$secondary ? '13px' : '15px'};
+    font-weight: ${props => props.$secondary ? 500 : 600};
+    color: ${props => props.$secondary ? brand.textSecondary : brand.textPrimary};
 `;
 
-const FinalTotalAmount = styled.div`
-    font-size: 18px;
-    font-weight: 800;
-    color: ${brand.primary};
+const FinalTotalAmount = styled.div<{ $secondary?: boolean }>`
+    font-size: ${props => props.$secondary ? '16px' : '18px'};
+    font-weight: ${props => props.$secondary ? 600 : 800};
+    color: ${props => props.$secondary ? brand.textSecondary : brand.primary};
 `;
 
 // Add missing styled components

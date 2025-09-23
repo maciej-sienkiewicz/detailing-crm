@@ -109,13 +109,31 @@ const mapFromStandardDiscountType = (standardType: DiscountType): ExtendedDiscou
 
 const DEFAULT_VAT_RATE = 23;
 
-// Helper functions
+// Helper functions - POPRAWIONE
 const calculateNetPrice = (grossPrice: number, vatRate: number = DEFAULT_VAT_RATE): number => {
     return grossPrice / (1 + vatRate / 100);
 };
 
 const calculateGrossPrice = (netPrice: number, vatRate: number = DEFAULT_VAT_RATE): number => {
     return netPrice * (1 + vatRate / 100);
+};
+
+// Funkcje do obliczania cen bazowych (price to netto)
+const getBasePriceGross = (service: ServiceExtended): number => {
+    return calculateGrossPrice(service.price);
+};
+
+const getBasePriceNet = (service: ServiceExtended): number => {
+    return service.price; // price jest już netto
+};
+
+// Funkcje do obliczania cen końcowych
+const getFinalPriceGross = (service: ServiceExtended): number => {
+    return calculateGrossPrice(service.finalPrice);
+};
+
+const getFinalPriceNet = (service: ServiceExtended): number => {
+    return service.finalPrice; // finalPrice jest również netto
 };
 
 interface ServiceExtended extends SelectedService {
@@ -128,9 +146,9 @@ interface ServiceTableProps {
     onRemoveService: (serviceId: string) => void;
     onDiscountTypeChange: (serviceId: string, discountType: DiscountType) => void;
     onDiscountValueChange: (serviceId: string, discountValue: number) => void;
-    onBasePriceChange: (serviceId: string, newPrice: number) => void;
+    onBasePriceChange: (serviceId: string, newPrice: number) => void; // newPrice będzie netto
     onAddNote?: (serviceId: string, note: string) => void;
-    calculateTotals: () => { totalPrice: number; totalDiscount: number; totalFinalPrice: number };
+    calculateTotals: () => { totalPrice: number; totalDiscount: number; totalFinalPrice: number }; // wszystkie wartości netto
 }
 
 const ServiceTable: React.FC<ServiceTableProps> = ({
@@ -142,7 +160,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                                                        onAddNote,
                                                        calculateTotals
                                                    }) => {
-    const { totalPrice, totalDiscount, totalFinalPrice } = calculateTotals();
+    const { totalPrice, totalDiscount, totalFinalPrice } = calculateTotals(); // wszystkie netto
 
     // State management
     const [contextMenu, setContextMenu] = useState<{
@@ -231,10 +249,11 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                 x: rect.left,
                 y: rect.bottom + window.scrollY,
                 serviceId: service.id,
-                currentPrice: service.price,
+                currentPrice: service.price, // price jest netto
                 isPriceGross: true
             });
-            setNewPrice(service.price.toString());
+            // Domyślnie pokazujemy cenę brutto w polu edycji
+            setNewPrice(getBasePriceGross(service).toString());
         }
     };
 
@@ -245,11 +264,12 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
             return;
         }
 
-        const finalPrice = editPopup.isPriceGross
-            ? parsedPrice
-            : calculateGrossPrice(parsedPrice);
+        // Konwertujemy na netto przed przekazaniem do rodzica
+        const finalPriceNet = editPopup.isPriceGross
+            ? calculateNetPrice(parsedPrice)
+            : parsedPrice;
 
-        onBasePriceChange(editPopup.serviceId, finalPrice);
+        onBasePriceChange(editPopup.serviceId, finalPriceNet);
         setEditPopup({...editPopup, visible: false});
     };
 
@@ -309,8 +329,10 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
         return () => document.removeEventListener('keydown', handleKeyDown);
     }, [editPopup]);
 
-    const calculateTotalNet = () => calculateNetPrice(totalPrice);
-    const calculateFinalTotalNet = () => calculateNetPrice(totalFinalPrice);
+    // Obliczanie sum brutto - POPRAWIONE
+    const calculateTotalGross = () => calculateGrossPrice(totalPrice);
+    const calculateFinalTotalGross = () => calculateGrossPrice(totalFinalPrice);
+    const calculateDiscountGross = () => calculateGrossPrice(totalDiscount);
 
     return (
         <TableContainer>
@@ -365,21 +387,21 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                                                     x: rect.left,
                                                     y: rect.bottom + window.scrollY,
                                                     serviceId: service.id,
-                                                    currentPrice: service.price,
+                                                    currentPrice: service.price, // netto
                                                     isPriceGross: true
                                                 });
-                                                setNewPrice(service.price.toString());
+                                                setNewPrice(getBasePriceGross(service).toString());
                                             }}
                                         >
                                             <PriceContainer>
                                                 <PriceInfo>
                                                     <PriceRow>
-                                                        <PriceValue>{service.price.toFixed(2)} zł</PriceValue>
+                                                        <PriceValue>{getBasePriceGross(service).toFixed(2)} zł</PriceValue>
                                                         <PriceLabel>brutto</PriceLabel>
                                                     </PriceRow>
                                                     <PriceRow>
                                                         <PriceValue secondary>
-                                                            {calculateNetPrice(service.price).toFixed(2)} zł
+                                                            {getBasePriceNet(service).toFixed(2)} zł
                                                         </PriceValue>
                                                         <PriceLabel>netto</PriceLabel>
                                                     </PriceRow>
@@ -416,7 +438,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                                                     />
                                                     {service.discountType === DiscountType.PERCENTAGE && (
                                                         <DiscountCalculation>
-                                                            ({(service.price * service.discountValue / 100).toFixed(2)} zł)
+                                                            ({(getBasePriceGross(service) * service.discountValue / 100).toFixed(2)} zł)
                                                         </DiscountCalculation>
                                                     )}
                                                 </DiscountInputGroup>
@@ -426,12 +448,12 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                                         <TableCell>
                                             <PriceInfo>
                                                 <PriceRow>
-                                                    <PriceValue>{service.finalPrice.toFixed(2)} zł</PriceValue>
+                                                    <PriceValue>{getFinalPriceGross(service).toFixed(2)} zł</PriceValue>
                                                     <PriceLabel>brutto</PriceLabel>
                                                 </PriceRow>
                                                 <PriceRow>
                                                     <PriceValue secondary>
-                                                        {calculateNetPrice(service.finalPrice).toFixed(2)} zł
+                                                        {getFinalPriceNet(service).toFixed(2)} zł
                                                     </PriceValue>
                                                     <PriceLabel>netto</PriceLabel>
                                                 </PriceRow>
@@ -470,11 +492,11 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                             <FooterCell>
                                 <PriceInfo>
                                     <PriceRow>
-                                        <TotalValue>{totalPrice.toFixed(2)} zł</TotalValue>
+                                        <TotalValue>{calculateTotalGross().toFixed(2)} zł</TotalValue>
                                         <PriceLabel>brutto</PriceLabel>
                                     </PriceRow>
                                     <PriceRow>
-                                        <TotalValue secondary>{calculateTotalNet().toFixed(2)} zł</TotalValue>
+                                        <TotalValue secondary>{totalPrice.toFixed(2)} zł</TotalValue>
                                         <PriceLabel>netto</PriceLabel>
                                     </PriceRow>
                                 </PriceInfo>
@@ -482,11 +504,11 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                             <FooterCell>
                                 <PriceInfo>
                                     <PriceRow>
-                                        <TotalValue>{totalDiscount.toFixed(2)} zł</TotalValue>
+                                        <TotalValue>{calculateDiscountGross().toFixed(2)} zł</TotalValue>
                                         <PriceLabel>brutto</PriceLabel>
                                     </PriceRow>
                                     <PriceRow>
-                                        <TotalValue secondary>{(totalDiscount / 1.23).toFixed(2)} zł</TotalValue>
+                                        <TotalValue secondary>{totalDiscount.toFixed(2)} zł</TotalValue>
                                         <PriceLabel>netto</PriceLabel>
                                     </PriceRow>
                                 </PriceInfo>
@@ -494,11 +516,11 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                             <FooterCell>
                                 <PriceInfo>
                                     <PriceRow>
-                                        <TotalValue primary>{totalFinalPrice.toFixed(2)} zł</TotalValue>
+                                        <TotalValue primary>{calculateFinalTotalGross().toFixed(2)} zł</TotalValue>
                                         <PriceLabel>brutto</PriceLabel>
                                     </PriceRow>
                                     <PriceRow>
-                                        <TotalValue secondary>{calculateFinalTotalNet().toFixed(2)} zł</TotalValue>
+                                        <TotalValue secondary>{totalFinalPrice.toFixed(2)} zł</TotalValue>
                                         <PriceLabel>netto</PriceLabel>
                                     </PriceRow>
                                 </PriceInfo>
@@ -600,7 +622,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
     );
 };
 
-// Styled Components
+// Styled Components - pozostają bez zmian
 const TableContainer = styled.div`
     background: ${formTheme.colors.surface};
     border: 1px solid ${formTheme.colors.border};

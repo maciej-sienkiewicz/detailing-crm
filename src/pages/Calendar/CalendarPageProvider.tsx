@@ -1,14 +1,14 @@
 // src/pages/Calendar/CalendarPageProvider.tsx - NAPRAWIONA WERSJA
-import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Appointment, AppointmentStatus, ProtocolStatus } from '../../types';
-import { useCalendar } from '../../hooks/useCalendar';
-import { useCalendarNavigation } from '../../hooks/useCalendarNavigation';
-import { useConvertToVisit } from '../../hooks/useConvertToVisit';
-import { protocolsApi } from '../../api/protocolsApi';
-import { useToast } from '../../components/common/Toast/Toast';
-import { ConvertToVisitResponse } from '../../types/recurringEvents';
-import { startOfWeek, endOfWeek, startOfDay, endOfDay, isToday, isYesterday } from 'date-fns';
+import React, {createContext, useCallback, useContext, useEffect, useRef, useState} from 'react';
+import {useNavigate} from 'react-router-dom';
+import {Appointment, AppointmentStatus} from '../../types';
+import {useCalendar} from '../../hooks/useCalendar';
+import {useCalendarNavigation} from '../../hooks/useCalendarNavigation';
+import {useConvertToVisit} from '../../hooks/useConvertToVisit';
+import {protocolsApi} from '../../api/protocolsApi';
+import {useToast} from '../../components/common/Toast/Toast';
+import {ConvertToVisitResponse} from '../../types/recurringEvents';
+import {endOfDay, endOfWeek, startOfDay, startOfWeek} from 'date-fns';
 
 interface CalendarStats {
     loading: boolean;
@@ -158,7 +158,7 @@ export const CalendarPageProvider: React.FC<CalendarPageProviderProps> = ({ chil
 
             const todayVisits = protocolVisits.filter(apt => {
                 const aptDate = new Date(apt.start);
-                return aptDate >= todayStart && aptDate <= todayEnd;
+                return aptDate >= todayStart && aptDate <= todayEnd && apt.status == AppointmentStatus.SCHEDULED;
             }).length;
 
             const weekVisits = protocolVisits.filter(apt => {

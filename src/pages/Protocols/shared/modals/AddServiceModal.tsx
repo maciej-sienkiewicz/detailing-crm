@@ -274,12 +274,16 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
 
     // Dodawanie usługi z wyników wyszukiwania
     const handleAddServiceFromSearch = (service: { id: string; name: string; price: number }) => {
+        // service.price to netto, więc obliczamy brutto dla finalPrice
+        const grossPrice = calculateGrossPrice(service.price);
+
         const newService = {
             ...service,
+            price: grossPrice, // Zachowujemy brutto jako cenę bazową
             discountType: DiscountType.PERCENTAGE,
             extendedDiscountType: ExtendedDiscountType.PERCENTAGE,
             discountValue: 0,
-            finalPrice: service.price
+            finalPrice: grossPrice // Cena końcowa też brutto
         };
 
         setSelectedServices([...selectedServices, newService]);
@@ -515,9 +519,9 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                                             <SearchResultContent>
                                                 <SearchResultName>{service.name}</SearchResultName>
                                                 <SearchResultPrices>
-                                                    <PriceValue>{service.price.toFixed(2)} zł</PriceValue>
+                                                    <PriceValue>{calculateGrossPrice(service.price).toFixed(2)} zł</PriceValue>
                                                     <PriceType>brutto</PriceType>
-                                                    <PriceValue>{calculateNetPrice(service.price).toFixed(2)} zł</PriceValue>
+                                                    <PriceValue>{service.price.toFixed(2)} zł</PriceValue>
                                                     <PriceType>netto</PriceType>
                                                 </SearchResultPrices>
                                             </SearchResultContent>
@@ -562,7 +566,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                                     />
                                 </FormGroup>
                                 <FormGroup>
-                                    <Label>Cena (brutto)</Label>
+                                    <Label>Cena (netto)</Label>
                                     <Input
                                         type="number"
                                         value={customServicePrice}
@@ -573,7 +577,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                                     />
                                     {customServicePrice && !isNaN(parseFloat(customServicePrice)) && (
                                         <PriceInfo>
-                                            Netto: {calculateNetPrice(parseFloat(customServicePrice)).toFixed(2)} zł
+                                            Brutto: {calculateGrossPrice(parseFloat(customServicePrice)).toFixed(2)} zł
                                         </PriceInfo>
                                     )}
                                 </FormGroup>
