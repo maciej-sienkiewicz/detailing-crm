@@ -51,6 +51,51 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
 
+    // Funkcja wylogowania - wyodrębniona aby móc ją używać w wielu miejscach
+    const logout = React.useCallback(() => {
+        console.log('Logging out user...');
+        setUser(null);
+        setToken(null);
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_user');
+        navigate('/login', { replace: true });
+    }, [navigate]);
+
+    // ✅ NOWE: Globalny listener dla storage events
+    // Pozwala synchronizować wylogowanie między zakładkami przeglądarki
+    useEffect(() => {
+        const handleStorageChange = (e: StorageEvent) => {
+            // Jeśli token został usunięty w innej zakładce, wyloguj również tutaj
+            if (e.key === 'auth_token' && e.newValue === null) {
+                console.log('Token removed in another tab - logging out');
+                setUser(null);
+                setToken(null);
+                navigate('/login', { replace: true });
+            }
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+
+        return () => {
+            window.removeEventListener('storage', handleStorageChange);
+        };
+    }, [navigate]);
+
+    // ✅ NOWE: Globalny listener dla custom event - dla komunikacji z apiClient
+    useEffect(() => {
+        const handleUnauthorized = () => {
+            console.log('Received unauthorized event - logging out');
+            logout();
+        };
+
+        // Nasłuchuj na custom event wysyłany przez apiClient
+        window.addEventListener('unauthorized', handleUnauthorized);
+
+        return () => {
+            window.removeEventListener('unauthorized', handleUnauthorized);
+        };
+    }, [logout]);
+
     // Sprawdzanie czy użytkownik jest zalogowany przy ładowaniu strony
     useEffect(() => {
         const checkLoginStatus = async () => {
@@ -62,10 +107,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     const storedUser = localStorage.getItem('auth_user');
 
                     if (storedUser) {
-                        setUser(JSON.parse(storedUser));
-                        setToken(storedToken);
+                        try {
+                            const parsedUser = JSON.parse(storedUser);
+                            setUser(parsedUser);
+                            setToken(storedToken);
+
+                            // ✅ OPCJONALNE: Walidacja tokenu przy starcie aplikacji
+                            // Odkomentuj jeśli chcesz weryfikować token przy każdym odświeżeniu
+                            /*
+                            try {
+                                const isValid = await authApi.validateToken();
+                                if (!isValid) {
+                                    console.warn('Token is invalid - logging out');
+                                    logout();
+                                }
+                            } catch (validationError) {
+                                console.warn('Token validation failed - logging out');
+                                logout();
+                            }
+                            */
+                        } catch (parseError) {
+                            console.error('Error parsing stored user:', parseError);
+                            // Jeśli nie można sparsować danych, wyczyść wszystko
+                            localStorage.removeItem('auth_token');
+                            localStorage.removeItem('auth_user');
+                        }
                     } else {
                         // Jeśli mamy token, ale nie mamy danych użytkownika, wyloguj
+                        console.warn('Token exists but no user data - clearing auth');
                         localStorage.removeItem('auth_token');
                     }
                 }
@@ -82,7 +151,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         };
 
         checkLoginStatus();
-    }, []);
+    }, [logout]);
 
     // Funkcja logowania
     const login = async (email: string, password: string) => {
@@ -113,6 +182,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
                 setUser(userData);
                 setToken(response.token);
+
+                console.log('Login successful:', userData.username);
             }
         } catch (err: any) {
             console.error('Login error:', err);
@@ -124,15 +195,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         } finally {
             setLoading(false);
         }
-    };
-
-    // Funkcja wylogowania
-    const logout = () => {
-        setUser(null);
-        setToken(null);
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('auth_user');
-        navigate('/login');
     };
 
     // Funkcja czyszczenia błędów

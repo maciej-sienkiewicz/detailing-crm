@@ -8,6 +8,7 @@
  * - Request/Response interceptors
  * - Authentication handling
  * - Retry logic
+ * - Automatic 401 redirect to login
  */
 
 export interface ApiResponse<T> {
@@ -178,11 +179,35 @@ class ApiClientNew {
     private readonly baseUrl: string;
     private readonly defaultTimeout: number;
     private readonly defaultRetries: number;
+    private isRedirecting: boolean = false;
 
     constructor() {
         this.baseUrl = '/api';
         this.defaultTimeout = 30000;
         this.defaultRetries = 3;
+    }
+
+    /**
+     * Obsługa przekierowania przy błędzie 401
+     * Automatycznie wylogowuje użytkownika i przekierowuje na stronę logowania
+     */
+    private handle401Redirect(): void {
+        if (!this.isRedirecting) {
+            this.isRedirecting = true;
+
+            console.warn('Unauthorized (401) - Session expired. Redirecting to login...');
+
+            // Wyczyść token
+            auth.removeToken();
+
+            // Przekieruj na stronę logowania
+            window.location.href = '/login';
+
+            // Reset flagi po krótkiej chwili
+            setTimeout(() => {
+                this.isRedirecting = false;
+            }, 1000);
+        }
     }
 
     private async request<T>(
@@ -210,6 +235,17 @@ class ApiClientNew {
                     signal: controller.signal,
                 });
 
+                // ✅ OBSŁUGA 401 - AUTOMATYCZNE PRZEKIEROWANIE
+                if (response.status === 401) {
+                    this.handle401Redirect();
+                    throw new ApiError(
+                        401,
+                        'Unauthorized',
+                        null,
+                        'Session expired - redirecting to login'
+                    );
+                }
+
                 if (!response.ok) {
                     const errorData = await this.parseErrorResponse(response);
                     throw new ApiError(
@@ -228,15 +264,24 @@ class ApiClientNew {
             } catch (error) {
                 lastError = error as Error;
 
+                // ✅ NIE RETRY dla błędów 401 - od razu przekierowanie
+                if (ApiError.isApiError(error) && error.status === 401) {
+                    throw error;
+                }
+
+                // Nie retry dla błędów klienta (4xx)
                 if (ApiError.isApiError(error) && error.status >= 400 && error.status < 500) {
                     throw error;
                 }
 
+                // Jeśli to ostatnia próba, rzuć błąd
                 if (attempt === retries) {
                     break;
                 }
 
+                // Exponential backoff dla retry
                 const delay = Math.min(1000 * Math.pow(2, attempt), 5000);
+                console.log(`Retrying after ${delay}ms...`);
                 await new Promise(resolve => setTimeout(resolve, delay));
             }
         }
@@ -398,6 +443,13 @@ class ApiClientNew {
             });
 
             xhr.addEventListener('load', () => {
+                // ✅ OBSŁUGA 401 RÓWNIEŻ W UPLOAD
+                if (xhr.status === 401) {
+                    this.handle401Redirect();
+                    reject(new ApiError(401, 'Unauthorized', null, 'Session expired'));
+                    return;
+                }
+
                 if (xhr.status >= 200 && xhr.status < 300) {
                     try {
                         const response = JSON.parse(xhr.responseText);
@@ -423,6 +475,46 @@ class ApiClientNew {
 
             xhr.send(formData);
         });
+    }
+
+    /**
+     * Pobiera plik z API i automatycznie go pobiera
+     */
+    async downloadFile(endpoint: string, filename: string): Promise<void> {
+        try {
+            const response = await fetch(`${this.baseUrl}${endpoint}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${auth.getToken()}`,
+                    'Accept': '*/*'
+                },
+            });
+
+            // ✅ OBSŁUGA 401 W POBIERANIU PLIKÓW
+            if (response.status === 401) {
+                this.handle401Redirect();
+                throw new ApiError(401, 'Unauthorized', null, 'Session expired');
+            }
+
+            if (!response.ok) {
+                throw new ApiError(response.status, response.statusText);
+            }
+
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            URL.revokeObjectURL(blobUrl);
+        } catch (error) {
+            console.error('Download failed:', error);
+            throw error;
+        }
     }
 }
 

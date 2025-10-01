@@ -30,6 +30,29 @@ const getAuthToken = (): string | null => {
 // Bazowy URL API - teraz wskazuje na lokalny serwer Spring Boot
 const API_BASE_URL = '/api';
 
+// Flaga zapobiegająca wielokrotnemu przekierowaniu
+let isRedirecting = false;
+
+// Funkcja obsługująca przekierowanie przy 401
+const handle401Redirect = () => {
+    if (!isRedirecting) {
+        isRedirecting = true;
+
+        console.warn('Unauthorized (401) - Session expired. Redirecting to login...');
+
+        // Wyczyść token
+        localStorage.removeItem('auth_token');
+
+        // Przekieruj na stronę logowania
+        window.location.href = '/login';
+
+        // Reset flagi po krótkiej chwili (zabezpieczenie przed wielokrotnym wywołaniem)
+        setTimeout(() => {
+            isRedirecting = false;
+        }, 1000);
+    }
+};
+
 // Podstawowe opcje dla wszystkich żądań API
 const getDefaultOptions = (): RequestInit => ({
     headers: {
@@ -113,8 +136,6 @@ export const handleApiError = (error: any, context: string): never => {
 };
 
 // Podstawowa funkcja fetch API z obsługą błędów
-// Zamień funkcję apiFetch w swoim apiClient.ts na tę wersję:
-
 const apiFetch = async <T>(endpoint: string, options: RequestInit = {}): Promise<T> => {
     const url = `${API_BASE_URL}${endpoint}`;
 
@@ -169,6 +190,12 @@ const apiFetch = async <T>(endpoint: string, options: RequestInit = {}): Promise
         // Logowanie statusu odpowiedzi
         console.log(`API response status: ${response.status}`);
 
+        // ✅ OBSŁUGA 401 - AUTOMATYCZNE PRZEKIEROWANIE NA LOGIN
+        if (response.status === 401) {
+            handle401Redirect();
+            throw new Error('Unauthorized - Session expired');
+        }
+
         if (!response.ok) {
             // POPRAWIONA OBSŁUGA BŁĘDÓW
             let errorData = null;
@@ -190,11 +217,7 @@ const apiFetch = async <T>(endpoint: string, options: RequestInit = {}): Promise
                 errorData = { message: `HTTP error ${response.status}` };
             }
 
-            // Obsługa różnych kodów błędów HTTP z zachowaniem starych komunikatów
-            if (response.status === 401) {
-                throw new Error('Unauthorized access');
-            }
-
+            // Obsługa różnych kodów błędów HTTP
             if (response.status === 403) {
                 throw new Error('Access forbidden');
             }
@@ -205,7 +228,7 @@ const apiFetch = async <T>(endpoint: string, options: RequestInit = {}): Promise
 
             // Twórz błąd z pełnymi danymi
             const error = new Error(errorData?.message || `HTTP error ${response.status}`);
-            // KLUCZOWE: Dodaj dodatkowe właściwości do błędu
+            // Dodaj dodatkowe właściwości do błędu
             (error as any).status = response.status;
             (error as any).error = errorData?.error;
             (error as any).success = errorData?.success;
@@ -241,6 +264,7 @@ const apiFetch = async <T>(endpoint: string, options: RequestInit = {}): Promise
         throw error;
     }
 };
+
 // Eksportowane funkcje do wykonywania różnych typów żądań HTTP
 export const apiClient = {
     // Metoda do uzyskania bazowego URL API
