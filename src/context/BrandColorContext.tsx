@@ -31,7 +31,6 @@ export const BrandColorProvider: React.FC<BrandColorProviderProps> = ({ children
     useEffect(() => {
         // CSS variables są już aplikowane w hook'u, ale dodajemy dodatkową walidację
         if (brandColorHook.brandColor && !brandColorHook.isLoading) {
-            console.log('BrandColorProvider: Color applied -', brandColorHook.brandColor);
         }
     }, [brandColorHook.brandColor, brandColorHook.isLoading]);
 

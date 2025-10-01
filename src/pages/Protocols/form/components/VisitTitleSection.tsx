@@ -46,7 +46,6 @@ const VisitTitleSection: React.FC<VisitTitleSectionProps> = ({
     useEffect(() => {
         if (calendarColors.length === 1 && !selectedColorId && !colorsLoading) {
             const singleColor = calendarColors[0];
-            console.log('Auto-selecting single calendar color:', singleColor);
 
             // Symulujemy zmianę select-a
             const syntheticEvent = {

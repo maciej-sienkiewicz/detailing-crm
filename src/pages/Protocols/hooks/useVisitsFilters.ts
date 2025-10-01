@@ -115,8 +115,6 @@ export const useVisitsFilters = (initialFilters: VisitsFilterState = {}): UseVis
                 cleanFilters.clientName = quickSearch.trim();
             }
         }
-
-        console.log('🔍 Generated API filters:', cleanFilters);
         return cleanFilters;
     }, [filters]);
 

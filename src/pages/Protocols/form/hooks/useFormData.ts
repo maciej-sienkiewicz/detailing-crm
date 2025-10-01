@@ -198,8 +198,6 @@ export const useFormDataWithAutocomplete = (
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
 
-        console.log(`🔄 handleChange - field: ${name}, value: ${value}`);
-
         if (type === 'checkbox') {
             const checkbox = e.target as HTMLInputElement;
             setFormData({
@@ -225,14 +223,12 @@ export const useFormDataWithAutocomplete = (
 
             // Jeśli to pole klienta i nie pochodzi z autocomplete, usuń clientId
             if (['ownerName', 'email', 'phone', 'companyName', 'taxId', 'address'].includes(name)) {
-                console.log(`🗑️ Usuwanie ownerId dla pola: ${name} (dane wpisane ręcznie)`);
                 updatedData.ownerId = undefined; // Lub null, w zależności od API
                 setIsClientFromSearch(false);
             }
 
             // Podobnie dla pól pojazdu
             if (['licensePlate', 'make', 'model'].includes(name)) {
-                console.log(`🗑️ Resetowanie powiązania z pojazdem dla pola: ${name} (dane wpisane ręcznie)`);
                 // Jeśli masz vehicleId, też go usuń
                 // updatedData.vehicleId = undefined;
             }
@@ -352,7 +348,6 @@ export const useFormDataWithAutocomplete = (
 
     // POPRAWIONA WERSJA: Populate client data - ustawia ownerId tylko przy wyborze z listy
     const populateClientData = useCallback((client: ClientExpanded) => {
-        console.log(`✅ Wybrano klienta z listy: ${client.firstName} ${client.lastName} (ID: ${client.id})`);
 
         setFormData(prev => ({
             ...prev,
@@ -372,7 +367,6 @@ export const useFormDataWithAutocomplete = (
 
     // Populate form data from vehicle
     const populateVehicleData = useCallback((vehicle: VehicleExpanded) => {
-        console.log(`✅ Wybrano pojazd z listy: ${vehicle.make} ${vehicle.model} (${vehicle.licensePlate})`);
 
         setFormData(prev => ({
             ...prev,
@@ -389,7 +383,6 @@ export const useFormDataWithAutocomplete = (
 
     // POPRAWIONA WERSJA: Handle autocomplete selection - ownerId tylko przy kliknięciu
     const handleAutocompleteSelect = useCallback((option: AutocompleteOption, fieldType: string) => {
-        console.log(`🎯 Autocomplete select - fieldType: ${fieldType}, option type: ${option.type}`);
 
         // NOWE: Obsługa delivery person fields
         if (fieldType === 'deliveryPersonName' || fieldType === 'deliveryPersonPhone') {
@@ -425,7 +418,6 @@ export const useFormDataWithAutocomplete = (
             // Auto-populate owner data if available
             if (vehicle.owners && vehicle.owners.length > 0) {
                 const owner = vehicle.owners[0];
-                console.log(`✅ Auto-uzupełnianie właściciela pojazdu: ${owner.fullName} (ID: ${owner.id})`);
 
                 setFormData(prev => ({
                     ...prev,

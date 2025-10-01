@@ -45,44 +45,31 @@ export const CreateFormView: React.FC<CreateFormViewProps> = ({
     // NAPRAWKA: Handler dla przycisku "Dalej" z debugowaniem
     const handleNextClick = () => {
         const nextStep = currentStep + 1;
-        console.log(`🚀 Moving to step ${nextStep} from ${currentStep}`);
-        console.log('Can proceed to current step:', canProceedToStep(currentStep));
-        console.log('Form data:', form.getValues());
-        console.log('Form errors:', form.formState.errors);
 
         if (canProceedToStep(currentStep)) {
             setCurrentStep(nextStep);
         } else {
-            console.log('❌ Cannot proceed - validation failed');
         }
     };
 
     // NAPRAWKA: Handler dla przycisku "Wstecz"
     const handleBackClick = () => {
         const prevStep = currentStep - 1;
-        console.log(`🔙 Moving back to step ${prevStep} from ${currentStep}`);
         setCurrentStep(prevStep);
     };
 
     // NAPRAWKA: Handler dla submit z dodatkowym sprawdzeniem
     const handleSubmitClick = (e: React.FormEvent) => {
         e.preventDefault();
-        console.log('🚀 Submit button clicked');
-        console.log('Current step:', currentStep);
-        console.log('Is form valid for submit:', isFormValidForSubmit);
-        console.log('Form data:', form.getValues());
-        console.log('Form errors:', form.formState.errors);
 
         // KLUCZOWE: Submit tylko na kroku 3
         if (currentStep !== 3) {
-            console.log('🚫 Submit blocked - not on step 3');
             return;
         }
 
         if (isFormValidForSubmit) {
             onSubmit(e);
         } else {
-            console.log('🚫 Submit blocked - form not valid');
         }
     };
 

@@ -129,7 +129,6 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketResult =
     const handleMessage = useCallback((event: MessageEvent) => {
         try {
             const message = JSON.parse(event.data);
-            console.log('📨 WebSocket message received:', message);
 
             switch (message.type) {
                 case 'tablet_connection':
@@ -185,12 +184,10 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketResult =
 
                 case 'heartbeat':
                     // Response to heartbeat - connection is healthy
-                    console.log('💓 Heartbeat response received');
                     break;
 
                 case 'connection':
                     if (message.payload.status === 'authenticated') {
-                        console.log('✅ WebSocket authentication successful');
                         setConnectionStatus(prev => ({
                             ...prev,
                             status: 'connected',
@@ -211,7 +208,6 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketResult =
                     break;
 
                 default:
-                    console.log('🤷 Unknown WebSocket message type:', message.type);
             }
         } catch (error) {
             console.error('❌ Error parsing WebSocket message:', error, event.data);
@@ -220,7 +216,6 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketResult =
 
     const connect = useCallback(() => {
         if (wsRef.current?.readyState === WebSocket.OPEN) {
-            console.log('🔗 WebSocket already connected');
             return;
         }
 
@@ -248,12 +243,6 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketResult =
         const workstationId = getWorkstationId();
         const wsUrl = `ws://localhost:8080/ws/workstation/${workstationId}`;
 
-        console.log('🔗 Connecting to WebSocket...', {
-            url: wsUrl,
-            companyId,
-            workstationId: workstationId.substring(0, 20) + '...'
-        });
-
         setConnectionStatus(prev => ({
             ...prev,
             status: 'connecting'
@@ -263,7 +252,6 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketResult =
             wsRef.current = new WebSocket(wsUrl);
 
             wsRef.current.onopen = () => {
-                console.log('🔗 WebSocket connection opened');
 
                 // Send authentication message
                 const authMessage = {
@@ -277,7 +265,6 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketResult =
                 };
 
                 wsRef.current?.send(JSON.stringify(authMessage));
-                console.log('🔐 Authentication message sent');
             };
 
             wsRef.current.onmessage = handleMessage;
@@ -292,7 +279,6 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketResult =
             };
 
             wsRef.current.onclose = (event) => {
-                console.log('🔗 WebSocket connection closed:', event.code, event.reason);
                 clearTimeouts();
 
                 setConnectionStatus(prev => ({
@@ -304,7 +290,6 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketResult =
 
                 // Auto-reconnect if not manually disconnected
                 if (event.code !== 1000 && connectionStatus.reconnectAttempts < maxReconnectAttempts) {
-                    console.log(`🔄 Attempting to reconnect in ${reconnectInterval}ms... (attempt ${connectionStatus.reconnectAttempts + 1}/${maxReconnectAttempts})`);
 
                     setConnectionStatus(prev => ({
                         ...prev,
@@ -334,7 +319,6 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketResult =
     }, [companyId, connectionStatus.reconnectAttempts, maxReconnectAttempts, reconnectInterval, handleMessage, clearTimeouts]);
 
     const disconnect = useCallback(() => {
-        console.log('🔗 Disconnecting WebSocket...');
         clearTimeouts();
 
         if (wsRef.current) {
@@ -359,7 +343,6 @@ export const useWebSocket = (options: UseWebSocketOptions): UseWebSocketResult =
             };
 
             wsRef.current.send(JSON.stringify(messageWithCompany));
-            console.log('📤 WebSocket message sent:', messageWithCompany);
         } else {
             console.warn('⚠️ Cannot send message: WebSocket not connected');
         }

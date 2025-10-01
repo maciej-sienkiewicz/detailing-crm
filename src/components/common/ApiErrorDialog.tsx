@@ -184,7 +184,6 @@ export const useApiErrorHandler = () => {
         // Przypadek 1: Błąd z axios/fetch z response
         if (error?.response) {
             const { status, data } = error.response;
-            console.log('📦 Response data:', data);
 
             parsedError = {
                 status,
@@ -258,8 +257,6 @@ export const useApiErrorHandler = () => {
                 timestamp: new Date().toISOString()
             };
         }
-
-        console.log('✅ Parsed API Error:', parsedError);
         setApiError(parsedError);
     }, []);
 

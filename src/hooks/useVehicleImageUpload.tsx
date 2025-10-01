@@ -57,8 +57,6 @@ export const useVehicleImageUpload = (): UseVehicleImageUploadReturn => {
                 )
             }));
 
-            console.log('🚀 Starting upload for:', imageId);
-
             // Simulate progress updates (in real implementation, this would come from the API)
             const progressInterval = setInterval(() => {
                 setUploadState(prev => {
@@ -85,8 +83,6 @@ export const useVehicleImageUpload = (): UseVehicleImageUploadReturn => {
                 uploadProgress: { ...prev.uploadProgress, [imageId]: 100 },
                 successfulUploads: [...prev.successfulUploads, imageId]
             }));
-
-            console.log('✅ Upload successful:', response);
             return true;
 
         } catch (error) {
@@ -122,7 +118,6 @@ export const useVehicleImageUpload = (): UseVehicleImageUploadReturn => {
         vehicleId: string,
         images: Array<{ file: File; name: string; tags: string[] }>
     ) => {
-        console.log(`📸 Starting batch upload of ${images.length} images`);
 
         setUploadState(prev => ({
             ...prev,
@@ -176,8 +171,6 @@ export const useVehicleImageUpload = (): UseVehicleImageUploadReturn => {
             ...prev,
             isUploading: false
         }));
-
-        console.log(`📊 Batch upload completed:`, results);
         return results;
     }, [uploadSingleImage]);
 

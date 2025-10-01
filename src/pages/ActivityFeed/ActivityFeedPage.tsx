@@ -59,7 +59,6 @@ const ActivityFeedPage: React.FC = () => {
         resetData = true
     ) => {
         try {
-            console.log('🔄 Ładowanie aktywności...', { apiParams, resetData });
 
             if (showRefreshLoader) {
                 setRefreshing(true);
@@ -81,11 +80,6 @@ const ActivityFeedPage: React.FC = () => {
             });
 
             if (result.success && result.data) {
-                console.log('✅ Dane załadowane:', {
-                    count: result.data.data.length,
-                    totalItems: result.data.pagination.totalItems,
-                    currentPage: result.data.pagination.currentPage
-                });
 
                 if (resetData) {
                     setActivities(result.data.data);
@@ -123,7 +117,6 @@ const ActivityFeedPage: React.FC = () => {
             const endDate = new Date(dateRange.endDate);
 
             if (endDate.toDateString() === now.toDateString()) {
-                console.log('🔄 Auto-refresh aktywności...');
                 loadActivities(false, true);
             }
         }, 30000);
@@ -132,28 +125,23 @@ const ActivityFeedPage: React.FC = () => {
     }, [loadActivities, dateRange.endDate]);
 
     useEffect(() => {
-        console.log('📅 Zmiana parametrów wyszukiwania');
         loadActivities(false, true);
     }, [apiParams]);
 
     const handleRefresh = useCallback(() => {
-        console.log('🔄 Manualne odświeżanie...');
         loadActivities(true, true);
     }, [loadActivities]);
 
     const handleFilterChange = useCallback((filters: ActivityFilter[]) => {
-        console.log('🔍 Zmiana filtrów:', filters);
         setActiveFilters(filters);
     }, []);
 
     const handleDateRangeChange = useCallback((newDateRange: { startDate: string; endDate: string }) => {
-        console.log('📅 Zmiana zakresu dat:', newDateRange);
         setDateRange(newDateRange);
     }, []);
 
     const loadMoreActivities = useCallback(() => {
         if (!loading && !refreshing && hasMoreData) {
-            console.log('📄 Ładowanie kolejnej strony...');
             loadActivities(false, false);
         }
     }, [loading, refreshing, hasMoreData, loadActivities]);

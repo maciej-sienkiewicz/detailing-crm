@@ -68,7 +68,6 @@ export const VisitsStatusFilters: React.FC<VisitsStatusFiltersProps> = ({
 
     // FIXED: Dodana obsługa kliknięcia z logowaniem
     const handleFilterClick = (status: StatusFilterType) => {
-        console.log('🎯 Filter clicked:', status, 'Current:', activeStatus);
         if (status !== activeStatus) {
             onStatusChange(status);
         }

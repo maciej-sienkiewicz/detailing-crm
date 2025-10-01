@@ -46,12 +46,10 @@ export const useProtocolActions = (
     const handleEditProtocol = async (protocolId: string, isOpenProtocolAction?: boolean) => {
         try {
             setLoading(true);
-            console.log(`Pobieranie protokołu do edycji, id: ${protocolId}, isOpenProtocolAction: ${isOpenProtocolAction}`);
 
             const protocolDetails = await protocolsApi.getProtocolDetails(protocolId);
 
             if (protocolDetails) {
-                console.log('Protokół pobrany:', protocolDetails);
                 // Jeśli mamy flagę isOpenProtocolAction i protokół jest w statusie SCHEDULED,
                 // zmieniamy status na IN_PROGRESS
                 if (isOpenProtocolAction && protocolDetails.status === ProtocolStatus.SCHEDULED) {
@@ -60,8 +58,6 @@ export const useProtocolActions = (
 
                     // Zapisujemy zmianę statusu do API
                     await protocolsApi.updateProtocolStatus(protocolId, ProtocolStatus.IN_PROGRESS);
-
-                    console.log('Protokół został zmieniony na status W realizacji:', protocolDetails);
                 }
 
                 setEditingProtocol(protocolDetails);
@@ -97,18 +93,15 @@ export const useProtocolActions = (
 
     // Obsługa zapisania protokołu
     const handleSaveProtocol = (protocol: CarReceptionProtocol, showConfirmationModal: boolean) => {
-        console.log(`handleSaveProtocol wywołany, protocol.id: ${protocol.id}, showModal: ${showConfirmationModal}`);
 
         // Zawsze zapisujemy protokół w stanie, niezależnie czy pokazujemy modal czy nie
         setCurrentProtocol(protocol);
 
         if (showConfirmationModal) {
-            console.log('Pokazywanie modalu potwierdzenia');
             setIsShowingConfirmationModal(true);
             // Nie wywołujemy completeProtocolSave - zostanie wywołane po zamknięciu modalu
             // Form pozostaje widoczny, dopóki modal nie zostanie zamknięty
         } else {
-            console.log('Bezpośrednie zakończenie procesu zapisu bez modalu');
             // Bezpośrednio kończymy proces zapisywania bez wyświetlania modala
             completeProtocolSave(protocol);
         }
@@ -116,7 +109,6 @@ export const useProtocolActions = (
 
     // Zakończenie procesu zapisywania protokołu po wyświetleniu modala lub bez niego
     const completeProtocolSave = (protocol: CarReceptionProtocol) => {
-        console.log(`completeProtocolSave wywołany, protocol.id: ${protocol.id}`);
         refreshProtocolsList();
         setShowForm(false);
         setEditingProtocol(null);

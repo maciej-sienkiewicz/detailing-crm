@@ -113,8 +113,6 @@ export const useTemplates = () => {
             setIsLoading(true);
             setError(null);
 
-            console.log('Fetching templates with filters:', filters);
-
             const filterParams = {
                 type: filters.selectedType,
                 isActive: filters.selectedStatus === null ? undefined : filters.selectedStatus,
@@ -125,7 +123,6 @@ export const useTemplates = () => {
             };
 
             const response = await templatesApi.getTemplates(filterParams);
-            console.log('Templates API response:', response);
 
             const convertedTemplates = response.data.map(convertApiResponseToTemplate);
 
@@ -144,7 +141,6 @@ export const useTemplates = () => {
 
     const fetchTemplateTypes = useCallback(async () => {
         try {
-            console.log('Fetching template types...');
             const apiTypes = await templatesApi.getTemplateTypes();
 
             const convertedTypes: TemplateType[] = apiTypes.map(apiType => ({
@@ -153,7 +149,6 @@ export const useTemplates = () => {
             }));
 
             setTemplateTypes(convertedTypes);
-            console.log('Template types fetched:', convertedTypes);
         } catch (error) {
             console.error('Error fetching template types:', error);
         }
@@ -164,8 +159,6 @@ export const useTemplates = () => {
             setIsUploading(true);
             setError(null);
 
-            console.log('Uploading template:', uploadData);
-
             const response = await templatesApi.uploadTemplate({
                 file: uploadData.file,
                 name: uploadData.name,
@@ -173,13 +166,9 @@ export const useTemplates = () => {
                 isActive: uploadData.isActive
             });
 
-            console.log('Template uploaded, response:', response);
-
             const newTemplate = convertApiResponseToTemplate(response);
             setTemplates(prev => [newTemplate, ...prev]);
             setTotalCount(prev => prev + 1);
-
-            console.log('Template added to state:', newTemplate);
 
         } catch (error: any) {
             console.error('Error uploading template:', error);
@@ -195,10 +184,7 @@ export const useTemplates = () => {
             setIsUpdating(templateId);
             setError(null);
 
-            console.log('Updating template:', templateId, updateData);
-
             const response = await templatesApi.updateTemplate(templateId, updateData);
-            console.log('Template updated, response:', response);
 
             setTemplates(prev => prev.map(template =>
                 template.id === templateId
@@ -221,10 +207,7 @@ export const useTemplates = () => {
                 setIsDeleting(templateId);
                 setError(null);
 
-                console.log('Deleting template:', templateId);
-
                 await templatesApi.deleteTemplate(templateId);
-                console.log('Template deleted successfully');
 
                 setTemplates(prev => prev.filter(template => template.id !== templateId));
                 setTotalCount(prev => prev - 1);
@@ -252,7 +235,6 @@ export const useTemplates = () => {
     const downloadTemplate = async (template: Template) => {
         try {
             setIsDownloading(template.id);
-            console.log('Downloading template:', template.name);
 
             const blob = await templatesApi.downloadTemplate(template.id);
 
@@ -269,8 +251,6 @@ export const useTemplates = () => {
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
 
-            console.log('Template downloaded successfully');
-
         } catch (error: any) {
             console.error('Error downloading template:', error);
             setError('Nie udało się pobrać szablonu.');
@@ -282,7 +262,6 @@ export const useTemplates = () => {
     const previewTemplate = async (template: Template) => {
         try {
             setIsPreviewing(template.id);
-            console.log('Previewing template:', template.name);
 
             const blob = await templatesApi.previewTemplate(template.id);
             const url = URL.createObjectURL(blob);
@@ -293,8 +272,6 @@ export const useTemplates = () => {
             }
 
             setTimeout(() => URL.revokeObjectURL(url), 10000);
-
-            console.log('Template preview opened successfully');
 
         } catch (error: any) {
             console.error('Error previewing template:', error);

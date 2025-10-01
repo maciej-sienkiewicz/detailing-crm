@@ -242,7 +242,6 @@ export const DocumentTemplatesModal: React.FC<DocumentTemplatesModalProps> = ({ 
     // Obsługa pobierania szablonu
     const handleDownload = (template: DocumentTemplate) => {
         // W prawdziwej aplikacji tutaj byłoby rzeczywiste pobieranie pliku
-        console.log('Downloading template:', template.name);
 
         // Symulacja pobierania
         const link = document.createElement('a');

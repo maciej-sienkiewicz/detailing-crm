@@ -89,15 +89,12 @@ const CarReceptionPage: React.FC = () => {
     useEffect(() => {
         // FIXED: Sprawdź czy to jest żądanie nowej wizyty
         if (actionFromState === 'new') {
-            console.log('🆕 Otwieranie formularza nowej wizyty');
             setShowForm(true);
         } else if (startDateFromCalendar) {
             setShowForm(true);
-            console.log('Data z kalendarza początkowa:', startDateFromCalendar);
         }
 
         if (endDateFromCalendar) {
-            console.log('Data z kalendarza końcowa:', endDateFromCalendar);
         }
 
         const fetchServices = async () => {
@@ -137,12 +134,6 @@ const CarReceptionPage: React.FC = () => {
 
     useEffect(() => {
         const handleRedirectData = async () => {
-            console.log('Obsługa przekierowania z innych widoków');
-            console.log('protocolDataFromAppointment:', !!protocolDataFromAppointment);
-            console.log('startDateFromCalendar:', !!startDateFromCalendar);
-            console.log('endDateFromCalendar:', !!endDateFromCalendar);
-            console.log('editProtocolId:', editProtocolId);
-            console.log('actionFromState:', actionFromState);
 
             if (protocolDataFromAppointment) {
                 setShowForm(true);

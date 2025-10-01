@@ -67,12 +67,8 @@ const InvoiceSignatureRequestModal: React.FC<InvoiceSignatureRequestModalProps> 
             setError(null);
             setShowContinueOption(false);
 
-            console.log('🔧 Loading tablets for invoice signature request...');
-
             const tabletsData = await tabletsApi.getTablets();
             const onlineTablets = tabletsData.filter(tablet => tablet.isOnline);
-
-            console.log(`📊 Found ${tabletsData.length} tablets, ${onlineTablets.length} online`);
 
             setTablets(onlineTablets);
 
@@ -101,11 +97,6 @@ const InvoiceSignatureRequestModal: React.FC<InvoiceSignatureRequestModalProps> 
         try {
             setError(null);
 
-            console.log('🔧 Sending invoice signature request to tablet with payment data:', {
-                tabletId: selectedTabletId,
-                paymentData
-            });
-
             const request: InvoiceSignatureFromVisitRequest = {
                 visitId,
                 tabletId: selectedTabletId,
@@ -118,12 +109,9 @@ const InvoiceSignatureRequestModal: React.FC<InvoiceSignatureRequestModalProps> 
                 ...(paymentData?.overridenItems && { overridenItems: paymentData.overridenItems })
             };
 
-            console.log('🔧 Complete signature request:', request);
-
             const result = await requestSignatureFromVisit(request);
 
             if (result) {
-                console.log('✅ Signature request successful, proceeding to status modal...', result);
                 onSignatureRequested(result.sessionId, result.invoiceId);
             } else {
                 setShowContinueOption(true);
@@ -137,7 +125,6 @@ const InvoiceSignatureRequestModal: React.FC<InvoiceSignatureRequestModalProps> 
     };
 
     const handleContinueWithoutSignature = () => {
-        console.log('🔧 Continuing invoice process without digital signature...');
         onClose();
     };
 

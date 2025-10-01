@@ -110,11 +110,9 @@ export const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
 
     // 🔧 FIX: Reset cache gdy zmieni się pracownik
     useEffect(() => {
-        console.log('🔄 Employee changed to:', employee.id);
 
         // Jeśli to nowy pracownik, resetuj cache tylko dla tego pracownika
         if (!documentsLoadedRef.current.has(employee.id)) {
-            console.log('🧹 New employee, will need to load documents for:', employee.id);
         }
     }, [employee.id]);
 
@@ -124,26 +122,22 @@ export const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
 
         // 1. Sprawdź czy już pobieramy dokumenty
         if (isLoadingDocuments) {
-            console.log('⏳ Already loading documents, skipping...');
             return;
         }
 
         // 2. 🔧 FIX: Sprawdź czy już pobieraliśmy dokumenty dla tego pracownika (niezależnie od wyniku)
         if (documentsLoadedRef.current.has(employeeId)) {
-            console.log('📋 Documents already fetched for employee:', employeeId, '(documents count:', documents.length, ')');
             return;
         }
 
         // 3. Sprawdź czy to zakładka dokumentów
         if (activeTab === 'documents') {
-            console.log('🔄 Fetching documents for employee:', employeeId);
 
             // 🔧 FIX: Oznacz jako ładowane PRZED wywołaniem API
             documentsLoadedRef.current.add(employeeId);
 
             try {
                 await onFetchDocuments(employeeId);
-                console.log('✅ Successfully loaded documents for employee:', employeeId);
             } catch (error) {
                 console.error('❌ Error fetching documents:', error);
                 // 🔧 FIX: W przypadku błędu, usuń z cache żeby można było spróbować ponownie
@@ -157,7 +151,6 @@ export const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
 
         // Sprawdź czy już nie pobieramy tego dokumentu
         if (downloadingDocuments.has(documentId)) {
-            console.log('⏳ Already downloading document:', documentId);
             return;
         }
 
@@ -165,13 +158,10 @@ export const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
             // Dodaj do listy pobieranych
             setDownloadingDocuments(prev => new Set(prev).add(documentId));
 
-            console.log('📥 Starting download for:', document.name);
-
             // Użyj funkcji z hooka useEmployees
             const success = await downloadDocument(documentId);
 
             if (success) {
-                console.log('✅ Successfully downloaded:', document.name);
 
                 // Opcjonalnie: pokaż toast notification
                 // toast.success(`Pobrano dokument: ${document.name}`);
@@ -255,7 +245,6 @@ export const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
 
     // 🔧 FIX: Bezpieczne przełączanie zakładek
     const handleTabChange = useCallback((newTab: TabType) => {
-        console.log('🔄 Switching to tab:', newTab, 'for employee:', employee.id);
         setActiveTab(newTab);
     }, [employee.id]);
 

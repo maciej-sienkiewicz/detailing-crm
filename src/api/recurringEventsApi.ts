@@ -161,7 +161,6 @@ class RecurringEventsApi {
      */
     private calculateNextOccurrence(pattern: any, createdAt: string): string | undefined {
         try {
-            console.log('🔄 Calculating next occurrence with pattern:', pattern, 'createdAt:', createdAt);
 
             if (!pattern || !pattern.frequency || !createdAt) {
                 console.warn('Missing required data for calculation:', { pattern, createdAt });
@@ -179,19 +178,14 @@ class RecurringEventsApi {
             startDate = startOfDay(startDate);
             const today = startOfDay(new Date());
 
-            console.log('📅 Start date:', startDate, 'Today:', today);
-
             // Jeśli data startu jest w przyszłości, to jest pierwszym wystąpieniem
             if (isAfter(startDate, today)) {
-                console.log('✅ Start date is in future, returning it as next occurrence');
                 return startDate.toISOString();
             }
 
             const interval = pattern.interval || 1;
             const frequency = pattern.frequency;
             let nextDate = new Date(startDate);
-
-            console.log('🔍 Using frequency:', frequency, 'interval:', interval);
 
             const maxIterations = 1000; // Większe zabezpieczenie
             let iterations = 0;
@@ -227,12 +221,9 @@ class RecurringEventsApi {
                     if (pattern.end_date) {
                         const endDate = new Date(pattern.end_date);
                         if (isAfter(nextDate, endDate)) {
-                            console.log('❌ Next occurrence would be after end date');
                             return undefined; // Przekroczono datę końcową
                         }
                     }
-
-                    console.log('✅ Found next occurrence:', nextDate);
                     return nextDate.toISOString();
                 }
 
@@ -240,7 +231,6 @@ class RecurringEventsApi {
 
                 // Dodatkowe logowanie co 50 iteracji
                 if (iterations % 50 === 0) {
-                    console.log(`🔄 Iteration ${iterations}, current date:`, nextDate);
                 }
             }
 
@@ -311,8 +301,6 @@ class RecurringEventsApi {
      * FIXED: Proper handling of missing fields with calculations and synchronous approach
      */
     private convertRawEventToListItem(raw: any): RecurringEventListItem {
-        console.log('🔧 Converting raw event to list item:', raw);
-        console.log('🔧 Raw recurrence_pattern:', raw.recurrence_pattern);
 
         const createdAt = Array.isArray(raw.created_at)
             ? this.convertLocalDateTimeArray(raw.created_at)
@@ -322,14 +310,10 @@ class RecurringEventsApi {
         const recurrencePattern = raw.recurrence_pattern || raw.recurrencePattern;
         const frequency = recurrencePattern?.frequency;
 
-        console.log('🔍 Extracted frequency:', frequency, 'from pattern:', recurrencePattern);
-
         // POPRAWKA 2: Oblicz następne wystąpienie jeśli nie ma w odpowiedzi
         let nextOccurrence = raw.next_occurrence || raw.nextOccurrence;
         if (!nextOccurrence && raw.is_active !== false && recurrencePattern) {
-            console.log('🔄 Calculating next occurrence for event:', raw.id);
             nextOccurrence = this.calculateNextOccurrence(recurrencePattern, createdAt);
-            console.log('📅 Calculated next occurrence:', nextOccurrence);
         }
 
         // POPRAWKA 3: Lepsze mapowanie statystyk z serwera
@@ -340,12 +324,10 @@ class RecurringEventsApi {
         // ale nie pokazuj "Ładowanie..." - pokaż rzeczywiste dane (może być 0 dla nowych wydarzeń)
         if (totalOccurrences === undefined || totalOccurrences === null) {
             totalOccurrences = 0;
-            console.log(`📊 No total_occurrences from server for event ${raw.id}, defaulting to 0`);
         }
 
         if (completedOccurrences === undefined || completedOccurrences === null) {
             completedOccurrences = 0;
-            console.log(`📊 No completed_occurrences from server for event ${raw.id}, defaulting to 0`);
         }
 
         const listItem: RecurringEventListItem = {
@@ -363,21 +345,16 @@ class RecurringEventsApi {
                 : raw.updated_at || raw.updatedAt
         };
 
-        console.log('✅ Converted list item:', listItem);
-
         // POPRAWKA 4: Asynchroniczne odświeżanie statystyk TYLKO jeśli są rzeczywiście zero
         // (może to oznaczać brak danych w cache serwera)
         if (totalOccurrences === 0 && completedOccurrences === 0) {
-            console.log(`📊 Event ${raw.id} has zero stats, will try to fetch from statistics endpoint in background`);
 
             // To nie blokuje renderowania - działa w tle
             this.fetchEventOccurrenceStats(raw.id).then(stats => {
-                console.log(`📊 Background stats fetch completed for ${raw.id}:`, stats);
 
                 // Jeśli rzeczywiste statystyki różnią się od zera,
                 // możemy zaktualizować cache lub wywołać odświeżenie
                 if (stats.total > 0 || stats.completed > 0) {
-                    console.log(`📊 Found non-zero stats for ${raw.id}, might need UI refresh`);
                     // Tutaj można dodać mechanizm odświeżania UI jeśli potrzeba
                 }
             }).catch(err => {
@@ -462,7 +439,6 @@ class RecurringEventsApi {
      */
     async createRecurringEvent(data: CreateRecurringEventRequest): Promise<RecurringEventResponse> {
         try {
-            console.log('🔧 Creating recurring event:', data);
 
             const response = await apiClientNew.post<RawRecurringEventResponse>(
                 this.baseEndpoint,
@@ -471,7 +447,6 @@ class RecurringEventsApi {
             );
 
             const converted = this.convertRawEventToResponse(response);
-            console.log('✅ Successfully created recurring event:', converted.id);
             return converted;
 
         } catch (error) {
@@ -486,7 +461,6 @@ class RecurringEventsApi {
      */
     async getRecurringEventsList(params: RecurringEventsListParams = {}): Promise<ConvertedPaginationResponse<RecurringEventListItem>> {
         try {
-            console.log('🔍 Fetching recurring events list:', params);
 
             const {page = 0, size = 20, sortBy = 'updatedAt', sortOrder = 'desc', ...filterParams} = params;
 
@@ -507,25 +481,14 @@ class RecurringEventsApi {
                 {timeout: 10000}
             );
 
-            console.log('📥 Raw server response:', springResponse);
-            console.log('📥 First item raw data:', springResponse.content[0]);
-
             // UPDATED: Use synchronous converter
             const converted = this.convertPaginationResponse(
                 springResponse,
                 (item) => {
-                    console.log('🔄 Converting item:', item);
                     const listItem = this.convertRawEventToListItem(item);
-                    console.log('✅ Converted item result:', listItem);
                     return listItem;
                 }
             );
-
-            console.log('✅ Successfully fetched recurring events:', {
-                count: converted.data.length,
-                totalItems: converted.pagination.totalItems,
-                firstEventData: converted.data[0]
-            });
 
             return converted;
 
@@ -553,7 +516,6 @@ class RecurringEventsApi {
      */
     async getRecurringEventById(eventId: string): Promise<RecurringEventResponse> {
         try {
-            console.log('🔍 Fetching recurring event details:', eventId);
 
             const response = await apiClientNew.get<RawRecurringEventResponse>(
                 `${this.baseEndpoint}/${eventId}`,
@@ -562,7 +524,6 @@ class RecurringEventsApi {
             );
 
             const converted = this.convertRawEventToResponse(response);
-            console.log('✅ Successfully fetched recurring event details');
             return converted;
 
         } catch (error) {
@@ -576,7 +537,6 @@ class RecurringEventsApi {
      */
     async updateRecurringEvent(eventId: string, data: UpdateRecurringEventRequest): Promise<RecurringEventResponse> {
         try {
-            console.log('🔧 Updating recurring event:', {eventId, data});
 
             const response = await apiClientNew.put<RawRecurringEventResponse>(
                 `${this.baseEndpoint}/${eventId}`,
@@ -585,7 +545,6 @@ class RecurringEventsApi {
             );
 
             const converted = this.convertRawEventToResponse(response);
-            console.log('✅ Successfully updated recurring event');
             return converted;
 
         } catch (error) {
@@ -599,14 +558,11 @@ class RecurringEventsApi {
      */
     async deleteRecurringEvent(eventId: string): Promise<{ message: string; deleted: boolean }> {
         try {
-            console.log('🗑️ Deleting recurring event:', eventId);
 
             const response = await apiClientNew.delete<{ message: string; deleted: boolean }>(
                 `${this.baseEndpoint}/${eventId}`,
                 {timeout: 10000}
             );
-
-            console.log('✅ Successfully deleted recurring event');
             return response;
 
         } catch (error) {
@@ -620,7 +576,6 @@ class RecurringEventsApi {
      */
     async deactivateRecurringEvent(eventId: string): Promise<RecurringEventResponse> {
         try {
-            console.log('⏸️ Deactivating recurring event:', eventId);
 
             const response = await apiClientNew.patch<RawRecurringEventResponse>(
                 `${this.baseEndpoint}/${eventId}/deactivate`,
@@ -629,7 +584,6 @@ class RecurringEventsApi {
             );
 
             const converted = this.convertRawEventToResponse(response);
-            console.log('✅ Successfully deactivated recurring event');
             return converted;
 
         } catch (error) {
@@ -647,7 +601,6 @@ class RecurringEventsApi {
      */
     async getEventOccurrences(eventId: string, startDate: string, endDate: string): Promise<EventOccurrenceResponse[]> {
         try {
-            console.log('🔍 Fetching event occurrences:', {eventId, startDate, endDate});
 
             const response = await apiClientNew.get<any[]>(
                 `${this.baseEndpoint}/${eventId}/occurrences`,
@@ -677,8 +630,6 @@ class RecurringEventsApi {
                     ? this.convertLocalDateTimeArray(occurrence.updated_at)
                     : occurrence.updated_at || occurrence.updatedAt
             }));
-
-            console.log('✅ Successfully fetched event occurrences:', converted.length);
             return converted;
 
         } catch (error) {
@@ -692,7 +643,6 @@ class RecurringEventsApi {
      */
     async getAllEventOccurrences(eventId: string, params: PaginationParams = {}): Promise<ConvertedPaginationResponse<EventOccurrenceResponse>> {
         try {
-            console.log('🔍 Fetching all event occurrences:', {eventId, params});
 
             const {page = 0, size = 50} = params;
 
@@ -723,7 +673,6 @@ class RecurringEventsApi {
             });
 
             const converted = this.convertPaginationResponse(springResponse, converter);
-            console.log('✅ Successfully fetched all event occurrences:', converted.data.length);
 
             return converted;
 
@@ -751,7 +700,6 @@ class RecurringEventsApi {
      */
     async updateOccurrenceStatus(eventId: string, occurrenceId: string, data: UpdateOccurrenceStatusRequest): Promise<EventOccurrenceResponse> {
         try {
-            console.log('🔧 Updating occurrence status:', {eventId, occurrenceId, data});
 
             const response = await apiClientNew.patch<any>(
                 `${this.baseEndpoint}/${eventId}/occurrences/${occurrenceId}/status`,
@@ -778,8 +726,6 @@ class RecurringEventsApi {
                     ? this.convertLocalDateTimeArray(response.updated_at)
                     : response.updated_at || response.updatedAt
             };
-
-            console.log('✅ Successfully updated occurrence status');
             return converted;
 
         } catch (error) {
@@ -797,7 +743,6 @@ class RecurringEventsApi {
         data: ConvertToVisitRequest
     ): Promise<ConvertToVisitResponse> {
         try {
-            console.log('🔄 Converting occurrence to visit:', { eventId, occurrenceId, data });
 
             const response = await apiClientNew.post<any>(
                 `${this.baseEndpoint}/${eventId}/occurrences/${occurrenceId}/convert-to-visit`,
@@ -833,8 +778,6 @@ class RecurringEventsApi {
                     ? this.convertLocalDateTimeArray(response.updated_at)
                     : response.updated_at
             };
-
-            console.log('✅ Successfully converted occurrence to visit:', converted.id);
             return converted;
 
         } catch (error) {
@@ -852,7 +795,6 @@ class RecurringEventsApi {
      */
     async getEventCalendar(params: EventCalendarParams): Promise<EventOccurrenceResponse[]> {
         try {
-            console.log('📅 Fetching event calendar:', params);
 
             const apiParams = {
                 startDate: params.startDate,
@@ -884,8 +826,6 @@ class RecurringEventsApi {
                     ? this.convertLocalDateTimeArray(occurrence.updated_at)
                     : occurrence.updated_at || occurrence.updatedAt
             }));
-
-            console.log('✅ Successfully fetched event calendar:', converted.length);
             return converted;
 
         } catch (error) {
@@ -896,7 +836,6 @@ class RecurringEventsApi {
 
     async getEventCalendarWithDetails(params: EventCalendarParams): Promise<EventOccurrenceWithDetailsResponse[]> {
         try {
-            console.log('📅 Fetching calendar events with full details:', params);
 
             const apiParams = {
                 start_date: params.startDate,
@@ -972,17 +911,10 @@ class RecurringEventsApi {
                 } : undefined
             }));
 
-            console.log('✅ Successfully fetched calendar events with details:', {
-                count: converted.length,
-                withEventDetails: converted.filter(e => e.recurringEventDetails).length
-            });
-
             return converted;
 
         } catch (error) {
             console.error('❌ Error fetching calendar events with details:', error);
-
-            console.log('🔄 Falling back to regular calendar method...');
             try {
                 const basicEvents = await this.getEventCalendar(params);
                 return basicEvents.map(event => ({
@@ -1001,7 +933,6 @@ class RecurringEventsApi {
      */
     async getUpcomingEvents(days: number = 7): Promise<EventOccurrenceResponse[]> {
         try {
-            console.log('🔮 Fetching upcoming events:', { days });
 
             const response = await apiClientNew.get<any[]>(
                 `${this.baseEndpoint}/upcoming`,
@@ -1028,8 +959,6 @@ class RecurringEventsApi {
                     ? this.convertLocalDateTimeArray(occurrence.updated_at)
                     : occurrence.updated_at || occurrence.updatedAt
             }));
-
-            console.log('✅ Successfully fetched upcoming events:', converted.length);
             return converted;
 
         } catch (error) {
@@ -1047,15 +976,12 @@ class RecurringEventsApi {
      */
     async getEventStatistics(eventId: string): Promise<{ total: number; completed: number; pending: number; cancelled: number }> {
         try {
-            console.log('📊 Fetching event statistics:', eventId);
 
             const response = await apiClientNew.get<{ total: number; completed: number; pending: number; cancelled: number }>(
                 `${this.baseEndpoint}/${eventId}/statistics`,
                 {},
                 { timeout: 10000 }
             );
-
-            console.log('✅ Successfully fetched event statistics');
             return response;
 
         } catch (error) {
@@ -1074,7 +1000,6 @@ class RecurringEventsApi {
      */
     async getRecurringEventsCount(type?: string): Promise<{ count: number }> {
         try {
-            console.log('🔢 Fetching recurring events count');
 
             const params = type ? { type } : {};
             const response = await apiClientNew.get<{ count: number }>(
@@ -1082,8 +1007,6 @@ class RecurringEventsApi {
                 params,
                 { timeout: 5000 }
             );
-
-            console.log('✅ Successfully fetched events count');
             return response;
 
         } catch (error) {
@@ -1144,7 +1067,6 @@ class RecurringEventsApi {
      * Placeholder for pattern validation (not in server API)
      */
     async validateRecurrencePattern(pattern: any): Promise<PatternValidationResult> {
-        console.log('Client-side pattern validation:', pattern);
 
         return {
             isValid: true,
@@ -1157,7 +1079,6 @@ class RecurringEventsApi {
      * Placeholder for recurrence preview (not in server API)
      */
     async getRecurrencePreview(pattern: any, maxPreview: number = 10): Promise<RecurrencePreview> {
-        console.log('Client-side preview generation:', pattern);
 
         return {
             dates: [],

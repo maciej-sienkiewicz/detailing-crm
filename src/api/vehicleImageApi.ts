@@ -121,7 +121,6 @@ class VehicleImageApi {
         }>
     ): Promise<VehicleImageUploadResponse[]> {
         try {
-            console.log(`🖼️ Uploading ${images.length} images to vehicle:`, vehicleId);
 
             // Upload images in parallel (but limit concurrency to avoid overwhelming the server)
             const uploadPromises = images.map(image =>
@@ -146,8 +145,6 @@ class VehicleImageApi {
                 }
             });
 
-            console.log(`✅ Upload completed: ${successful.length} successful, ${failed.length} failed`);
-
             if (failed.length > 0) {
                 console.warn('❌ Failed uploads:', failed);
             }
@@ -165,15 +162,12 @@ class VehicleImageApi {
      */
     async getAllVehicleImages(vehicleId: string): Promise<VehicleImageResponse[]> {
         try {
-            console.log('🖼️ Fetching all vehicle images for:', vehicleId);
 
             const response = await apiClientNew.get<VehicleImageResponse[]>(
                 `/vehicles/${vehicleId}/images`,
                 undefined,
                 { timeout: 10000 }
             );
-
-            console.log(`✅ Fetched ${response.length} vehicle images`);
             return response;
 
         } catch (error) {
@@ -202,15 +196,12 @@ class VehicleImageApi {
         numberOfElements: number;
     }> {
         try {
-            console.log('🖼️ Fetching vehicle image thumbnails:', { vehicleId, page, size });
 
             const response = await apiClientNew.get<any>(
                 `/vehicles/${vehicleId}/images/thumbnails`,
                 { page, size },
                 { timeout: 10000 }
             );
-
-            console.log(`✅ Fetched ${response.numberOfElements} image thumbnails`);
             return response;
 
         } catch (error) {
@@ -235,15 +226,12 @@ class VehicleImageApi {
      */
     async getDirectVehicleImages(vehicleId: string): Promise<VehicleImageResponse[]> {
         try {
-            console.log('🖼️ Fetching direct vehicle images for:', vehicleId);
 
             const response = await apiClientNew.get<VehicleImageResponse[]>(
                 `/vehicles/${vehicleId}/images/direct`,
                 undefined,
                 { timeout: 10000 }
             );
-
-            console.log(`✅ Fetched ${response.length} direct vehicle images`);
             return response;
 
         } catch (error) {
@@ -269,14 +257,11 @@ class VehicleImageApi {
         };
     }> {
         try {
-            console.log('🗑️ Deleting vehicle image:', { vehicleId, imageId });
 
             const response = await apiClientNew.delete<any>(
                 `/vehicles/${vehicleId}/images/${imageId}`,
                 { timeout: 10000 }
             );
-
-            console.log('✅ Vehicle image deleted successfully');
             return response;
 
         } catch (error) {
@@ -295,15 +280,12 @@ class VehicleImageApi {
      */
     async getVehicleImagesCount(vehicleId: string): Promise<VehicleImageCountResponse> {
         try {
-            console.log('🔢 Fetching vehicle images count for:', vehicleId);
 
             const response = await apiClientNew.get<VehicleImageCountResponse>(
                 `/vehicles/${vehicleId}/images/count`,
                 undefined,
                 { timeout: 5000 }
             );
-
-            console.log(`✅ Vehicle has ${response.totalImages} images`);
             return response;
 
         } catch (error) {
@@ -334,7 +316,6 @@ class VehicleImageApi {
         }
     ): Promise<VehicleImageResponse> {
         try {
-            console.log('✏️ Updating image metadata:', { vehicleId, imageId, metadata });
 
             // This endpoint doesn't exist in the current controller but would be useful
             const response = await apiClientNew.put<VehicleImageResponse>(
@@ -342,8 +323,6 @@ class VehicleImageApi {
                 metadata,
                 { timeout: 10000 }
             );
-
-            console.log('✅ Image metadata updated successfully');
             return response;
 
         } catch (error) {

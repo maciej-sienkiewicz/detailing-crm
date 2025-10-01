@@ -174,8 +174,6 @@ export const unifiedFinancialApi = {
         try {
             const normalizedData = normalizeDocumentData(documentData);
 
-            console.log("Sending document data:", JSON.stringify(normalizedData, null, 2));
-
             const formData = apiClient.createFormDataWithJson(
                 normalizedData,
                 'document',
@@ -197,8 +195,6 @@ export const unifiedFinancialApi = {
     ): Promise<UnifiedFinancialDocument | null> => {
         try {
             const normalizedData = normalizeDocumentData(documentData);
-
-            console.log("Sending document update data:", JSON.stringify(normalizedData, null, 2));
 
             const formData = apiClient.createFormDataWithJson(
                 normalizedData,

@@ -268,13 +268,6 @@ const RecurringEventsList: React.FC<RecurringEventsListProps> = ({
     }
 
     // Debug logging
-    console.log('🔍 RecurringEventsList render:', {
-        eventsCount: events.length,
-        isLoading,
-        error,
-        hasActiveFilters,
-        selectedCount: selectedEvents.size
-    });
 
     return (
         <Container>

@@ -53,7 +53,6 @@ const LogoManager: React.FC<LogoManagerProps> = ({ onLogoChange }) => {
         setError(null);
 
         try {
-            console.log('Uploading logo:', file.name);
 
             // Upload logo
             await logoApi.uploadLogo(file);
@@ -82,7 +81,6 @@ const LogoManager: React.FC<LogoManagerProps> = ({ onLogoChange }) => {
         setError(null);
 
         try {
-            console.log('Deleting logo...');
 
             await logoApi.deleteLogo();
 
@@ -144,7 +142,6 @@ const LogoManager: React.FC<LogoManagerProps> = ({ onLogoChange }) => {
                                 showMessage('Błąd ładowania logo', true);
                             }}
                             onLoad={() => {
-                                console.log('Logo loaded successfully');
                             }}
                         />
                     ) : (

@@ -201,13 +201,6 @@ const ActivityTimelineList: React.FC<ActivityTimelineListProps> = ({ activities,
 
                                             // Debug log dla problematycznego przypadku
                                             if (activity.id === 'bd9d1b97-5f50-4604-af56-8a63de9b9285') {
-                                                console.log('🔍 Debug problematycznego ID:', {
-                                                    primaryEntity,
-                                                    relatedEntities,
-                                                    hasPrimary: !!primaryEntity,
-                                                    relatedCount: relatedEntities.length,
-                                                    shouldShow: !!primaryEntity || relatedEntities.length > 0
-                                                });
                                             }
 
                                             // Sprawdź czy są jakiekolwiek encje do wyświetlenia

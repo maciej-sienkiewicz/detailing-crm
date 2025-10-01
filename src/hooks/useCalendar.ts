@@ -82,14 +82,12 @@ export const useCalendar = (): UseCalendarReturn => {
         const cacheKey = generateCacheKey(dateRange);
 
         if (loadingRef.current && !force) {
-            console.log('🔄 Request already in progress, skipping...');
             return;
         }
 
         // Check cache first
         const cachedData = globalCache.calendarData.get(cacheKey);
         if (!force && cachedData && isCacheValid(cachedData.timestamp)) {
-            console.log('🎯 Using cached calendar data for range:', cacheKey);
             const combinedAppointments = [
                 ...cachedData.data.protocols,
                 ...cachedData.data.recurringEvents
@@ -111,7 +109,6 @@ export const useCalendar = (): UseCalendarReturn => {
         // Check for active request
         const activeRequest = globalCache.activeRequests.get(cacheKey);
         if (activeRequest && !force) {
-            console.log('⏳ Waiting for active request to complete...');
             try {
                 await activeRequest;
                 return;
@@ -124,11 +121,6 @@ export const useCalendar = (): UseCalendarReturn => {
             loadingRef.current = true;
             setLoading(true);
             setError(null);
-
-            console.log('🚀 Loading fresh calendar data for range:', cacheKey, {
-                start: dateRange.start.toISOString().split('T')[0],
-                end: dateRange.end.toISOString().split('T')[0]
-            });
 
             const fetchPromise = fetchCalendarData(dateRange);
             globalCache.activeRequests.set(cacheKey, fetchPromise);
@@ -166,12 +158,6 @@ export const useCalendar = (): UseCalendarReturn => {
             setLastRefresh(new Date());
             lastLoadedRangeRef.current = cacheKey;
 
-            console.log(`✅ Loaded ${combinedAppointments.length} calendar items for range:`, cacheKey, {
-                protocols: calendarData.protocols.length,
-                recurringEvents: calendarData.recurringEvents.length,
-                total: combinedAppointments.length
-            });
-
         } catch (err) {
             const errorMessage = 'Nie udało się załadować danych kalendarza';
             setError(errorMessage);
@@ -189,7 +175,6 @@ export const useCalendar = (): UseCalendarReturn => {
         globalCache.calendarData.clear();
         globalCache.activeRequests.clear();
         lastLoadedRangeRef.current = '';
-        console.log('🧹 Calendar cache cleared');
     }, []);
 
     const createAppointment = useCallback(async (appointmentData: Omit<Appointment, 'id'>) => {

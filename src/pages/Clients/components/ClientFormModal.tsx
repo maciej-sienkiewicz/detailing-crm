@@ -195,7 +195,6 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ client, onSave, onCan
 
             if (client && client.id) {
                 // Update existing client - używamy Twojego API
-                console.log('Updating client:', client.id, formData);
                 const result = await clientsApi.updateClient(client.id, formData);
 
                 if (result.success && result.data) {
@@ -206,7 +205,6 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ client, onSave, onCan
                 }
             } else {
                 // Create new client - używamy Twojego API
-                console.log('Creating new client:', formData);
                 const result = await clientsApi.createClient(formData);
 
                 if (result.success && result.data) {

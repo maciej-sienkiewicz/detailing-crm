@@ -268,7 +268,6 @@ const ProtocolDetailsPage: React.FC = () => {
 
     // Update protocol data after changes
     const handleProtocolUpdate = (updatedProtocol: CarReceptionProtocol) => {
-        console.log('Protokół zaktualizowany:', updatedProtocol);
         setProtocol(updatedProtocol);
     };
 
@@ -298,11 +297,9 @@ const ProtocolDetailsPage: React.FC = () => {
         }
 
         if (notificationOptions.sendSms) {
-            console.log('Wysyłanie SMS do klienta:', protocol?.phone);
         }
 
         if (notificationOptions.sendSms || notificationOptions.sendEmail) {
-            console.log('Dodanie informacji o powiadomieniu do historii protokołu');
         }
     };
 
@@ -342,8 +339,6 @@ const ProtocolDetailsPage: React.FC = () => {
                 ...(paymentData.paymentDays ? { paymentDays: paymentData.paymentDays } : {}),
                 ...(paymentData.overridenItems ? { overridenItems: paymentData.overridenItems } : {})
             };
-
-            console.log('Release data being sent to API:', releaseData);
 
             setIsReleasing(true);
 

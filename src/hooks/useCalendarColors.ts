@@ -35,17 +35,13 @@ export const useCalendarColors = (): UseCalendarColorsReturn => {
     const fetchCalendarColors = useCallback(async (): Promise<Record<string, CalendarColor>> => {
         // Return cached data if valid
         if (isCacheValid() && calendarColorsCache.data) {
-            console.log('🎨 Using cached calendar colors');
             return calendarColorsCache.data;
         }
 
         // Return existing promise if one is already in progress
         if (calendarColorsCache.promise) {
-            console.log('⏳ Waiting for existing calendar colors request');
             return calendarColorsCache.promise;
         }
-
-        console.log('🚀 Fetching fresh calendar colors');
 
         // Create new promise
         calendarColorsCache.promise = (async () => {

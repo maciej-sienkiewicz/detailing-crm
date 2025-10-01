@@ -118,7 +118,6 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
 
             if (serviceToEdit.isNew) {
                 try {
-                    console.log("Tworzenie nowej usługi w bazie:", serviceToEdit.name, price);
 
                     const createdService = await servicesApi.createService({
                         name: serviceToEdit.name,
@@ -126,8 +125,6 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
                         price: price,
                         vatRate: serviceToEdit.vatRate || 23
                     });
-
-                    console.log("Utworzono nową usługę:", createdService);
 
                     const serviceWithRealId = {
                         id: createdService.id,
@@ -144,7 +141,6 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
 
                     setTimeout(() => {
                         if (onServiceAdded) {
-                            console.log("Odświeżanie listy usług po utworzeniu nowej");
                             onServiceAdded();
                         }
                     }, 1000);

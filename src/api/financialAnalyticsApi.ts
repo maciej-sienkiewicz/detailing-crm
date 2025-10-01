@@ -293,8 +293,6 @@ class FinancialDataCache {
             this.cache.delete(config.key);
             return null;
         }
-
-        console.log(`🎯 Cache HIT for key: ${key}`);
         return cached.data as T;
     }
 
@@ -313,8 +311,6 @@ class FinancialDataCache {
             timestamp: Date.now(),
             ttl: config.ttl
         });
-
-        console.log(`💾 Cache SET for key: ${key}, TTL: ${config.ttl}ms`);
     }
 
     /**
@@ -327,7 +323,6 @@ class FinancialDataCache {
 
         keysToDelete.forEach(key => {
             this.cache.delete(key);
-            console.log(`🗑️ Cache INVALIDATED for key: ${key}`);
         });
     }
 
@@ -336,7 +331,6 @@ class FinancialDataCache {
      */
     clear(): void {
         this.cache.clear();
-        console.log('🧹 Cache CLEARED');
     }
 
     /**
@@ -390,7 +384,6 @@ class FinancialAnalyticsApi {
         const startTime = Date.now();
 
         try {
-            console.log('📊 Fetching financial analytics with params:', params);
 
             const cacheKey = this.generateCacheKey('analytics', params);
 
@@ -413,7 +406,6 @@ class FinancialAnalyticsApi {
 
             // Check if same request is already in progress (deduplication)
             if (this.requestQueue.has(cacheKey)) {
-                console.log('🔄 Request deduplication for:', cacheKey);
                 const data = await this.requestQueue.get(cacheKey)!;
                 return {
                     success: true,
@@ -436,8 +428,6 @@ class FinancialAnalyticsApi {
 
                 // Cache the response
                 this.cache.set(cacheKey, response, params.timeFrame);
-
-                console.log('✅ Successfully fetched financial analytics');
 
                 return {
                     success: true,

@@ -281,7 +281,6 @@ class EmployeesApi {
 
     async downloadEmployeeDocument(documentId: string): Promise<EmployeesApiResult<{ blob: Blob; filename: string }>> {
         try {
-            console.log('📥 Downloading document via API:', documentId);
 
             const baseUrl = 'http://localhost:8080/api';
             const token = localStorage.getItem('auth_token');
@@ -323,8 +322,6 @@ class EmployeesApi {
                     filename = filenameMatch[1].replace(/['"]/g, '');
                 }
             }
-
-            console.log('✅ Successfully downloaded:', filename, `(${blob.size} bytes)`);
 
             return {
                 success: true,

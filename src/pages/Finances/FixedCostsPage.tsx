@@ -284,7 +284,6 @@ const FixedCostsPage: React.FC<FixedCostsPageProps> = ({
         if (onViewFixedCost) {
             onViewFixedCost(cost);
         } else {
-            console.log('View cost:', cost);
         }
     };
 
@@ -292,7 +291,6 @@ const FixedCostsPage: React.FC<FixedCostsPageProps> = ({
         if (onEditFixedCost) {
             onEditFixedCost(cost);
         } else {
-            console.log('Edit cost:', cost);
         }
     };
 
@@ -300,7 +298,6 @@ const FixedCostsPage: React.FC<FixedCostsPageProps> = ({
         if (onRecordPayment) {
             onRecordPayment(cost);
         } else {
-            console.log('Record payment for:', cost);
         }
     };
 

@@ -136,15 +136,12 @@ export const VisitsPageContainer: React.FC = () => {
     }, [appData.countersLoaded, appData.countersLoading]);
 
     const performSearch = useCallback(async () => {
-        console.log('🔍 Performing search with status:', activeStatusFilter);
 
         const searchFilters = getApiFilters();
 
         if (activeStatusFilter !== 'all') {
             searchFilters.status = activeStatusFilter;
         }
-
-        console.log('📋 Final search filters:', searchFilters);
 
         await searchVisits(searchFilters, {
             page: 0,
@@ -161,10 +158,8 @@ export const VisitsPageContainer: React.FC = () => {
     }, [performSearch]);
 
     const handleStatusFilterChange = useCallback(async (status: StatusFilterType) => {
-        console.log('🎯 Status filter changed from', activeStatusFilter, 'to', status);
 
         if (status === activeStatusFilter) {
-            console.log('📝 Status unchanged, skipping search');
             return;
         }
 
@@ -175,8 +170,6 @@ export const VisitsPageContainer: React.FC = () => {
         if (status !== 'all') {
             searchFilters.status = status;
         }
-
-        console.log('🔎 Searching with new status filter:', searchFilters);
 
         await searchVisits(searchFilters, {
             page: 0,
@@ -300,7 +293,6 @@ export const VisitsPageContainer: React.FC = () => {
 
     useEffect(() => {
         if (isFirstLoad.current) {
-            console.log('🚀 Initial load - loading services and counters');
             loadServices();
             loadCounters();
             isFirstLoad.current = false;
@@ -312,13 +304,11 @@ export const VisitsPageContainer: React.FC = () => {
             !appData.servicesLoading && !appData.countersLoading && !isFirstLoad.current;
 
         if (canPerformSearch) {
-            console.log('📊 Data loaded, performing initial search with status:', activeStatusFilter);
             performSearch();
         }
     }, [appData.servicesLoaded, appData.countersLoaded, appData.servicesLoading, appData.countersLoading, performSearch]);
 
     useEffect(() => {
-        console.log('🔄 Location changed, resetting data');
         resetData();
         setActiveStatusFilter(ProtocolStatus.IN_PROGRESS);
         clearAllFilters();
@@ -326,13 +316,6 @@ export const VisitsPageContainer: React.FC = () => {
     }, [location.pathname, resetData, clearAllFilters]);
 
     useEffect(() => {
-        console.log('📈 Current state:', {
-            visits: visits.length,
-            loading: visitsLoading,
-            error,
-            activeStatusFilter,
-            pagination
-        });
     }, [visits.length, visitsLoading, error, activeStatusFilter, pagination]);
 
     if (showForm) {

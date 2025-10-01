@@ -119,15 +119,12 @@ class ClientAnalyticsApi {
      */
     async getClientAnalytics(clientId: string): Promise<ClientAnalyticsResponse> {
         try {
-            console.log('🔍 Fetching comprehensive analytics for client:', clientId);
 
             const response = await apiClientNew.get<ClientAnalyticsResponse>(
                 `${this.baseEndpoint}/${clientId}/analytics`,
                 undefined,
                 { timeout: 15000 }
             );
-
-            console.log('✅ Client analytics loaded successfully:', response);
             return response;
         } catch (error) {
             console.error('❌ Error fetching client analytics:', error);
@@ -140,15 +137,12 @@ class ClientAnalyticsApi {
      */
     async getClientAnalyticsSummary(clientId: string): Promise<ClientAnalyticsSummaryResponse> {
         try {
-            console.log('🔍 Fetching analytics summary for client:', clientId);
 
             const response = await apiClientNew.get<ClientAnalyticsSummaryResponse>(
                 `${this.baseEndpoint}/${clientId}/analytics/summary`,
                 undefined,
                 { timeout: 10000 }
             );
-
-            console.log('✅ Client analytics summary loaded successfully');
             return response;
         } catch (error) {
             console.error('❌ Error fetching client analytics summary:', error);
@@ -161,15 +155,12 @@ class ClientAnalyticsApi {
      */
     async getCompanyAverages(): Promise<CompanyAveragesResponse> {
         try {
-            console.log('🔍 Fetching company averages');
 
             const response = await apiClientNew.get<CompanyAveragesResponse>(
                 '/company/analytics/averages',
                 undefined,
                 { timeout: 10000 }
             );
-
-            console.log('✅ Company averages loaded successfully');
             return response;
         } catch (error) {
             console.error('❌ Error fetching company averages:', error);
@@ -182,7 +173,6 @@ class ClientAnalyticsApi {
      */
     async getBatchClientAnalytics(clientIds: string[]): Promise<Record<string, ClientAnalyticsResponse>> {
         try {
-            console.log('🔍 Fetching batch analytics for clients:', clientIds.length);
 
             if (clientIds.length === 0) {
                 return {};
@@ -197,8 +187,6 @@ class ClientAnalyticsApi {
                 clientIds.map(id => parseInt(id, 10)),
                 { timeout: 20000 }
             );
-
-            console.log('✅ Batch analytics loaded successfully for', Object.keys(response).length, 'clients');
             return response;
         } catch (error) {
             console.error('❌ Error fetching batch analytics:', error);

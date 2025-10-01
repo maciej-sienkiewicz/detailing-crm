@@ -30,18 +30,12 @@ class DocumentPrintService {
      */
     async printDocument(documentId: string, options: Omit<PrintDocumentOptions, 'documentId'> = {}): Promise<DocumentPrintResult> {
         try {
-            console.log('=== Print Document Service ===');
-            console.log('Document ID:', documentId);
-            console.log('Options:', options);
 
             const hasAttachment = await this.checkDocumentAttachment(documentId);
-            console.log('Has attachment:', hasAttachment);
 
             if (hasAttachment) {
-                console.log('Using existing attachment');
                 return await this.openDocumentAttachment(documentId, options);
             } else {
-                console.log('Generating from template');
                 return await this.generateAndOpenInvoice(documentId, options);
             }
         } catch (error) {
@@ -58,14 +52,11 @@ class DocumentPrintService {
      */
     private async checkDocumentAttachment(documentId: string): Promise<boolean> {
         try {
-            console.log('Checking attachment for document:', documentId);
             // Używamy apiClientNew zamiast raw fetch
             await apiClientNew.get(`/financial-documents/${documentId}/attachment`);
-            console.log('Document has attachment: true');
             return true;
         } catch (error) {
             if (ApiError.isApiError(error) && error.status === 404) {
-                console.log('Document has attachment: false (404)');
                 return false;
             }
             console.error('Error checking attachment:', error);
@@ -77,7 +68,6 @@ class DocumentPrintService {
      * Pobiera blob z endpointu - używa apiClientNew z custom config
      */
     private async getBlobFromEndpoint(endpoint: string): Promise<Blob> {
-        console.log('Fetching blob from endpoint:', endpoint);
 
         try {
             // Używamy apiClientNew z custom headers dla blob response
@@ -110,7 +100,6 @@ class DocumentPrintService {
      */
     private async getBlobFromEndpointXHR(endpoint: string): Promise<Blob> {
         return new Promise((resolve, reject) => {
-            console.log('Fetching blob via XHR from endpoint:', endpoint);
 
             const xhr = new XMLHttpRequest();
             xhr.open('GET', '/api' + endpoint, true);
@@ -143,7 +132,6 @@ class DocumentPrintService {
      * Wykonuje POST i zwraca blob - używa fetch z prawidłowym base URL
      */
     private async postForBlob(endpoint: string, data?: any): Promise<Blob> {
-        console.log('Posting to endpoint for blob:', endpoint);
 
         const response = await fetch('/api' + endpoint, {
             method: 'POST',
@@ -184,18 +172,14 @@ class DocumentPrintService {
      */
     private async openDocumentAttachment(documentId: string, options: Omit<PrintDocumentOptions, 'documentId'>): Promise<DocumentPrintResult> {
         try {
-            console.log('Fetching attachment blob for document:', documentId);
 
             // Spróbuj pierwsze metody - jeśli CORS nadal nie działa, użyj XHR
             let blob: Blob;
             try {
                 blob = await this.getBlobFromEndpoint(`/financial-documents/${documentId}/attachment`);
             } catch (corsError) {
-                console.log('Standard fetch failed, trying XHR fallback:', corsError);
                 blob = await this.getBlobFromEndpointXHR(`/financial-documents/${documentId}/attachment`);
             }
-
-            console.log('Attachment blob size:', blob.size);
             return this.handleBlobResponse(blob, documentId, 'dokument', options.forceDownload);
         } catch (error) {
             console.error('Error opening document attachment:', error);
@@ -215,10 +199,7 @@ class DocumentPrintService {
             if (options.templateId) {
                 endpoint += `?templateId=${encodeURIComponent(options.templateId)}`;
             }
-
-            console.log('Generating invoice from endpoint:', endpoint);
             const blob = await this.postForBlob(endpoint);
-            console.log('Generated invoice blob size:', blob.size);
             return this.handleBlobResponse(blob, documentId, 'faktura', options.forceDownload);
         } catch (error) {
             console.error('Error generating invoice:', error);
@@ -246,7 +227,6 @@ class DocumentPrintService {
         } else {
             this.openInNewTab(blobUrl);
             setTimeout(() => {
-                console.log('Cleaning up blob URL for:', filePrefix);
                 URL.revokeObjectURL(blobUrl);
             }, 60000);
         }
@@ -264,7 +244,6 @@ class DocumentPrintService {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        console.log('Download initiated for:', filename);
     }
 
     /**
@@ -273,7 +252,6 @@ class DocumentPrintService {
     private openInNewTab(url: string): void {
         const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
         if (!newWindow) {
-            console.log('Popup blocked, trying alternative method');
             const link = document.createElement('a');
             link.href = url;
             link.target = '_blank';

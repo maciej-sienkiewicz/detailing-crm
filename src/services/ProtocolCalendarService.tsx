@@ -123,8 +123,6 @@ export const fetchProtocolsAsAppointments = async (dateRange?: { start: Date; en
             size: 1000 // Set pagination to 1000 records per page
         };
 
-        console.log('🚀 Fetching visits using visitsApiNew with params:', filterParams);
-
         // Fetch visits using new API
         const visitsResult = await visitsApi.getVisitsList(filterParams);
 
@@ -134,17 +132,6 @@ export const fetchProtocolsAsAppointments = async (dateRange?: { start: Date; en
         }
 
         const visits = visitsResult.data.data; // Extract visits from paginated response
-
-        console.log('✅ Successfully fetched visits:', {
-            count: visits.length,
-            totalItems: visitsResult.data.pagination.totalItems,
-            currentPage: visitsResult.data.pagination.currentPage,
-            hasNext: visitsResult.data.pagination.hasNext,
-            dateRange: dateRange ? {
-                start: dateRange.start.toISOString().split('T')[0],
-                end: dateRange.end.toISOString().split('T')[0]
-            } : 'no date range'
-        });
 
         // Convert visits to appointments
         const appointments = visits
@@ -157,18 +144,6 @@ export const fetchProtocolsAsAppointments = async (dateRange?: { start: Date; en
                 }
                 return true;
             });
-
-        console.log(`📅 Converted ${appointments.length} visits to appointments`, {
-            dateRange,
-            totalVisits: visits.length,
-            convertedAppointments: appointments.length,
-            sampleAppointments: appointments.slice(0, 3).map(apt => ({
-                id: apt.id,
-                title: apt.title,
-                status: apt.status,
-                start: apt.start.toISOString().split('T')[0]
-            }))
-        });
 
         return appointments;
     } catch (error) {

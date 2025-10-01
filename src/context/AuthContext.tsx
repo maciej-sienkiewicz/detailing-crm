@@ -53,7 +53,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // Funkcja wylogowania - wyodrębniona aby móc ją używać w wielu miejscach
     const logout = React.useCallback(() => {
-        console.log('Logging out user...');
         setUser(null);
         setToken(null);
         localStorage.removeItem('auth_token');
@@ -67,7 +66,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const handleStorageChange = (e: StorageEvent) => {
             // Jeśli token został usunięty w innej zakładce, wyloguj również tutaj
             if (e.key === 'auth_token' && e.newValue === null) {
-                console.log('Token removed in another tab - logging out');
                 setUser(null);
                 setToken(null);
                 navigate('/login', { replace: true });
@@ -84,7 +82,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // ✅ NOWE: Globalny listener dla custom event - dla komunikacji z apiClient
     useEffect(() => {
         const handleUnauthorized = () => {
-            console.log('Received unauthorized event - logging out');
             logout();
         };
 
@@ -182,8 +179,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
                 setUser(userData);
                 setToken(response.token);
-
-                console.log('Login successful:', userData.username);
             }
         } catch (err: any) {
             console.error('Login error:', err);

@@ -269,8 +269,6 @@ const VehicleImageUploadModal: React.FC<VehicleImageUploadModalProps> = ({
             const results = await Promise.all(uploadPromises);
             const successCount = results.filter(Boolean).length;
 
-            console.log(`Upload completed: ${successCount}/${images.length} successful`);
-
             if (successCount > 0) {
                 onSuccess();
 

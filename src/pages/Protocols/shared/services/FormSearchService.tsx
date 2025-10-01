@@ -363,7 +363,6 @@ class FormSearchService {
      */
     private logDebug(message: string, data?: any): void {
         if (this.isDevelopment) {
-            console.log(`[FormSearchService] ${message}`, data || '');
         }
     }
 

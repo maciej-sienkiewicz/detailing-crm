@@ -14,19 +14,11 @@ interface VehicleAnalyticsSectionProps {
 const VehicleAnalyticsSection: React.FC<VehicleAnalyticsSectionProps> = ({ vehicleId }) => {
     const { analytics, loading, error, refetch } = useVehicleAnalytics(vehicleId);
 
-    console.log('🔍 VehicleAnalyticsSection Debug:');
-    console.log('vehicleId:', vehicleId);
-    console.log('loading:', loading);
-    console.log('error:', error);
-    console.log('analytics:', analytics);
-
     if (!vehicleId) {
-        console.log('❌ No vehicleId provided to VehicleAnalyticsSection');
         return null;
     }
 
     if (loading) {
-        console.log('⏳ VehicleAnalyticsSection is loading...');
         return (
             <AnalyticsWrapper>
                 <LoadingContainer>
@@ -43,7 +35,6 @@ const VehicleAnalyticsSection: React.FC<VehicleAnalyticsSectionProps> = ({ vehic
     }
 
     if (error) {
-        console.log('❌ VehicleAnalyticsSection error:', error);
         return (
             <AnalyticsWrapper>
                 <ErrorContainer>
@@ -61,7 +52,6 @@ const VehicleAnalyticsSection: React.FC<VehicleAnalyticsSectionProps> = ({ vehic
     }
 
     if (!analytics) {
-        console.log('❌ No analytics data received');
         return (
             <AnalyticsWrapper>
                 <EmptyContainer>
@@ -77,8 +67,6 @@ const VehicleAnalyticsSection: React.FC<VehicleAnalyticsSectionProps> = ({ vehic
             </AnalyticsWrapper>
         );
     }
-
-    console.log('✅ VehicleAnalyticsSection rendering with data');
 
     return (
         <AnalyticsWrapper>

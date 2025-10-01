@@ -171,7 +171,6 @@ const VehicleGallerySection: React.FC<VehicleGallerySectionProps> = ({
     };
 
     const handleUploadSuccess = () => {
-        console.log('✅ Images uploaded successfully, reloading gallery...');
         loadImages();
     };
 
@@ -212,7 +211,6 @@ const VehicleGallerySection: React.FC<VehicleGallerySectionProps> = ({
                     : img
             )
         );
-        console.log('✅ Image updated successfully');
     };
 
     // Delete handler
@@ -223,13 +221,10 @@ const VehicleGallerySection: React.FC<VehicleGallerySectionProps> = ({
         if (!confirmed) return;
 
         try {
-            console.log('🗑️ Deleting image:', image.id);
             await vehicleImageApi.deleteVehicleImage(vehicleId, image.id);
 
             // Reload images after successful deletion
             await loadImages();
-
-            console.log('✅ Image deleted successfully');
         } catch (error) {
             console.error('❌ Error deleting image:', error);
             alert('Nie udało się usunąć zdjęcia. Spróbuj ponownie.');
@@ -239,7 +234,6 @@ const VehicleGallerySection: React.FC<VehicleGallerySectionProps> = ({
     // Download handler
     const handleDownloadImage = async (image: VehicleImage) => {
         try {
-            console.log('💾 Downloading image:', image.id);
 
             const imageUrl = getCurrentImageUrl(image);
             if (!imageUrl || imageUrl === '/images/image-placeholder.png') {
@@ -254,8 +248,6 @@ const VehicleGallerySection: React.FC<VehicleGallerySectionProps> = ({
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-
-            console.log('✅ Image download initiated');
         } catch (error) {
             console.error('❌ Error downloading image:', error);
             alert('Nie udało się pobrać zdjęcia.');

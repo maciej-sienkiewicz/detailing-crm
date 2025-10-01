@@ -186,7 +186,6 @@ export const useVehicleOperations = () => {
 
     const editVehicle = useCallback(async (vehicle: VehicleExpanded) => {
         try {
-            console.log('🔧 Preparing vehicle for edit:', vehicle.id);
             return { success: true, vehicle };
         } catch (error) {
             console.error('❌ Error preparing vehicle for edit:', error);
@@ -198,12 +197,10 @@ export const useVehicleOperations = () => {
     // NAPRAWIONO: Funkcja deleteVehicle z prawidłowym wywołaniem API
     const deleteVehicle = useCallback(async (vehicleId: string) => {
         try {
-            console.log('🗑️ Deleting vehicle:', vehicleId);
 
             const success = await vehicleApi.deleteVehicle(vehicleId);
 
             if (success) {
-                console.log('✅ Vehicle deleted successfully');
                 showToast('success', 'Pojazd został usunięty pomyślnie');
                 return { success: true };
             } else {
@@ -231,7 +228,6 @@ export const useVehicleOperations = () => {
     // NAPRAWIONO: Funkcja saveVehicle - obecnie nie używana w nowym flow
     const saveVehicle = useCallback(async (vehicle: VehicleExpanded, isEdit: boolean = false) => {
         try {
-            console.log('💾 Saving vehicle:', { isEdit, vehicleId: vehicle.id });
 
             const vehicleData = {
                 make: vehicle.make,
@@ -244,15 +240,11 @@ export const useVehicleOperations = () => {
             };
 
             if (isEdit && vehicle.id) {
-                console.log('✏️ Updating existing vehicle');
                 const updatedVehicle = await vehicleApi.updateVehicle(vehicle.id, vehicleData);
-                console.log('✅ Vehicle updated successfully');
                 showToast('success', 'Pojazd został zaktualizowany pomyślnie');
                 return { success: true, vehicle: updatedVehicle };
             } else {
-                console.log('➕ Creating new vehicle');
                 const newVehicle = await vehicleApi.createVehicle(vehicleData);
-                console.log('✅ Vehicle created successfully');
                 showToast('success', 'Nowy pojazd został dodany pomyślnie');
                 return { success: true, vehicle: newVehicle };
             }
@@ -274,7 +266,6 @@ export const useVehicleOperations = () => {
     }, [showToast]);
 
     const navigateToClient = useCallback((clientId: string, onNavigateToClient?: (clientId: string) => void) => {
-        console.log('🔄 Navigating to client:', clientId);
 
         if (onNavigateToClient) {
             onNavigateToClient(clientId);
@@ -284,7 +275,6 @@ export const useVehicleOperations = () => {
     }, [navigate]);
 
     const exportVehicles = useCallback(() => {
-        console.log('📤 Exporting vehicles...');
         showToast('info', 'Eksport danych pojazdów - funkcjonalność w przygotowaniu');
     }, [showToast]);
 

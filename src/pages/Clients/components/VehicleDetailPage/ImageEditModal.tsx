@@ -76,7 +76,6 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({
 
         setLoadingMediaInfo(true);
         try {
-            console.log('🔍 Loading media info for ID:', mediaId);
 
             // Wywołanie endpointa /{mediaId}/info
             const response = await apiClientNew.get<MediaResponse>(
@@ -84,8 +83,6 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({
                 undefined,
                 { timeout: 10000 }
             );
-
-            console.log('✅ Media info loaded:', response);
             setMediaInfo(response);
 
             // Ustaw tagi na podstawie odpowiedzi z API
@@ -106,7 +103,6 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({
     // ZAKTUALIZOWANY useEffect - ładuje informacje z API gdy modal się otwiera
     useEffect(() => {
         if (isOpen && image) {
-            console.log('🔄 Modal opened, loading media info for:', image.id);
             loadMediaInfo(image.id);
         } else {
             // Reset stanu gdy modal się zamyka
@@ -156,15 +152,11 @@ const ImageEditModal: React.FC<ImageEditModalProps> = ({
 
         setLoading(true);
         try {
-            console.log('💾 Saving updated tags for media:', image.id);
-            console.log('📝 New tags:', tags);
 
             // Update tags via media API
             await apiClientNew.put(`/media/${image.id}/tags`, {
                 tags: tags
             });
-
-            console.log('✅ Tags updated successfully');
 
             // Create updated image object z nowymi tagami
             const updatedImage: VehicleImage = {

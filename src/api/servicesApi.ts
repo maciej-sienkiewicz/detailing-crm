@@ -79,8 +79,6 @@ export const servicesApi = {
             const requestData = convertCamelToSnake(serviceData);
             const response = await apiClient.post<any>('/services', requestData);
 
-            console.log("Odpowiedź API przy tworzeniu usługi:", response);
-
             // Po utworzeniu usługi, serwer zwraca tylko ID (ServiceRecipeId)
             // Tworzymy lokalnie obiekt symulujący pełną odpowiedź usługi
             if (response && typeof response === 'object' && 'value' in response) {

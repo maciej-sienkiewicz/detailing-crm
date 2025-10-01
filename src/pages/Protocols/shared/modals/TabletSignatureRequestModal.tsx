@@ -65,12 +65,8 @@ const TabletSignatureRequestModal: React.FC<TabletSignatureRequestModalProps> = 
             setError(null);
             setShowContinueOption(false);
 
-            console.log('🔧 Loading tablets for signature request...');
-
             const tabletsData = await tabletsApi.getTablets();
             const onlineTablets = tabletsData.filter(tablet => tablet.isOnline);
-
-            console.log(`📊 Found ${tabletsData.length} tablets, ${onlineTablets.length} online`);
 
             setTablets(onlineTablets);
 
@@ -102,8 +98,6 @@ const TabletSignatureRequestModal: React.FC<TabletSignatureRequestModalProps> = 
             setSending(true);
             setError(null);
 
-            console.log('🔧 Sending signature request to tablet:', selectedTabletId);
-
             const request: ProtocolSignatureRequest = {
                 protocolId,
                 tabletId: selectedTabletId,
@@ -115,7 +109,6 @@ const TabletSignatureRequestModal: React.FC<TabletSignatureRequestModalProps> = 
             const response = await protocolSignatureApi.requestProtocolSignature(request);
 
             if (response.success) {
-                console.log('✅ Signature request sent successfully:', response.sessionId);
                 onSignatureRequested(response.sessionId);
                 onClose();
             } else {
@@ -134,7 +127,6 @@ const TabletSignatureRequestModal: React.FC<TabletSignatureRequestModalProps> = 
     };
 
     const handleContinueWithoutSignature = () => {
-        console.log('🔧 Continuing process without digital signature...');
         onClose(); // To spowoduje przejście do następnego kroku w sekwencji
     };
 

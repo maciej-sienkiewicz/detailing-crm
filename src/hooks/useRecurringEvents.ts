@@ -141,9 +141,7 @@ export const useRecurringEventsList = (params: RecurringEventsListParams = {}) =
     } = useQuery({
         queryKey: ['recurring-events', 'list', params],
         queryFn: async () => {
-            console.log('🔍 useRecurringEventsList - Fetching data with params:', params);
             const result = await recurringEventsApi.getRecurringEventsList(params);
-            console.log('📥 useRecurringEventsList - API result:', result);
 
             // NAPRAWKA: Sprawdź czy mamy wydarzenia z zerami statystyk
             if (result.data && result.data.length > 0) {
@@ -152,18 +150,15 @@ export const useRecurringEventsList = (params: RecurringEventsListParams = {}) =
                 );
 
                 if (eventsWithZeroStats.length > 0) {
-                    console.log('📊 Found events with zero statistics:', eventsWithZeroStats.map(e => e.id));
 
                     // Spróbuj pobrać statystyki w tle dla tych wydarzeń
                     Promise.all(
                         eventsWithZeroStats.map(async (event) => {
                             try {
                                 const stats = await recurringEventsApi.getEventStatistics(event.id);
-                                console.log(`📊 Fetched stats for ${event.id}:`, stats);
 
                                 // Jeśli znaleźliśmy niepusty wynik, zaktualizuj cache
                                 if (stats.total > 0 || stats.completed > 0) {
-                                    console.log(`📊 Event ${event.id} has non-zero stats, updating cache`);
 
                                     // Aktualizuj dane w cache
                                     const updatedEvent = {
@@ -188,7 +183,6 @@ export const useRecurringEventsList = (params: RecurringEventsListParams = {}) =
                         );
 
                         if (hasChanges) {
-                            console.log('📊 Statistics updated, triggering soft refresh');
 
                             // Tworzenie zaktualizowanego wyniku
                             const updatedResult = {
@@ -216,7 +210,6 @@ export const useRecurringEventsList = (params: RecurringEventsListParams = {}) =
     // NOWA FUNKCJA: Ręczne odświeżanie statystyk
     const refreshStats = useCallback(async () => {
         if (result?.data && result.data.length > 0) {
-            console.log('🔄 Manual refresh of statistics for all events...');
 
             try {
                 // Pobierz statystyki dla wszystkich wydarzeń
@@ -240,7 +233,6 @@ export const useRecurringEventsList = (params: RecurringEventsListParams = {}) =
                 });
 
                 const statsResults = await Promise.all(statsPromises);
-                console.log('📊 All statistics results:', statsResults);
 
                 // Sprawdź czy są jakieś zmiany
                 const updatedData = result.data.map(event => {
@@ -265,7 +257,6 @@ export const useRecurringEventsList = (params: RecurringEventsListParams = {}) =
                 );
 
                 if (hasChanges) {
-                    console.log('📊 Statistics changed, updating cache');
                     queryClient.setQueryData(['recurring-events', 'list', params], {
                         ...result,
                         data: updatedData

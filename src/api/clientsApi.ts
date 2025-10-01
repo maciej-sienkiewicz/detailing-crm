@@ -291,12 +291,6 @@ class ClientsApi {
                 { timeout: 10000 }
             );
 
-            console.log("dupa")
-            console.log(response)
-            console.log("dupa")
-            // Mapujemy odpowiedź z serwera na ClientExpanded
-            const enrichedClient = this.mapBackendClientToExpanded(response);
-
             return {
                 success: true,
                 data: enrichedClient

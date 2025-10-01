@@ -111,7 +111,6 @@ export const CalendarPageProvider: React.FC<CalendarPageProviderProps> = ({ chil
     // Convert to visit hook
     const { handleConvertToVisit: processConvertToVisit } = useConvertToVisit({
         onVisitCreated: (visitResponse) => {
-            console.log('🎯 Nowa wizyta utworzona z cyklicznej:', visitResponse);
 
             // Pokazujemy dodatkowe powiadomienie z detalami
             showToast('success',
@@ -120,7 +119,6 @@ export const CalendarPageProvider: React.FC<CalendarPageProviderProps> = ({ chil
             );
         },
         onCalendarRefresh: () => {
-            console.log('🔄 Odświeżanie kalendarza po konwersji');
 
             // Force refresh kalendarza aby pokazać nową wizytę i ukryć przekształconą cykliczną
             if (calendarRange) {
@@ -206,15 +204,12 @@ export const CalendarPageProvider: React.FC<CalendarPageProviderProps> = ({ chil
 
     // Action handlers
     const selectAppointment = useCallback((appointment: Appointment) => {
-        console.log('📋 Selected appointment:', appointment.id, appointment.title);
         setSelectedAppointment(appointment);
         setShowAppointmentDetailsModal(true);
     }, []);
 
     const handleEditClick = useCallback(() => {
         if (!selectedAppointment) return;
-
-        console.log('✏️ Edit appointment:', selectedAppointment.id);
 
         if (selectedAppointment.isProtocol && selectedAppointment.id) {
             const protocolId = selectedAppointment.id.replace('protocol-', '');
@@ -250,7 +245,6 @@ export const CalendarPageProvider: React.FC<CalendarPageProviderProps> = ({ chil
         processingRef.current = true;
 
         try {
-            console.log('🗑️ Deleting appointment:', selectedAppointment.id);
 
             await removeAppointment(selectedAppointment.id);
 
@@ -272,7 +266,6 @@ export const CalendarPageProvider: React.FC<CalendarPageProviderProps> = ({ chil
         processingRef.current = true;
 
         try {
-            console.log('🔄 Changing appointment status:', selectedAppointment.id, 'to', status);
 
             await changeAppointmentStatus(selectedAppointment.id, status);
 
@@ -291,8 +284,6 @@ export const CalendarPageProvider: React.FC<CalendarPageProviderProps> = ({ chil
 
     const handleCreateProtocol = useCallback(() => {
         if (!selectedAppointment) return;
-
-        console.log('📋 Creating protocol for appointment:', selectedAppointment.id);
 
         if (selectedAppointment.isProtocol) {
             // If it's already a protocol, navigate to the protocol details/start visit
@@ -328,7 +319,6 @@ export const CalendarPageProvider: React.FC<CalendarPageProviderProps> = ({ chil
 
     // Obsługa konwersji cyklicznych wizyt
     const handleConvertToVisit = useCallback((visitResponse: ConvertToVisitResponse) => {
-        console.log('🔄 Processing convert to visit in CalendarPageProvider:', visitResponse);
 
         // Wywołaj hook który obsłuży resztę logiki
         processConvertToVisit(visitResponse);

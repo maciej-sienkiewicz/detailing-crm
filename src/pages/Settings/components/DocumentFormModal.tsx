@@ -200,8 +200,6 @@ export const DocumentFormModal: React.FC<DocumentFormModalProps> = ({
                 file: selectedFile!,
                 description: formData.description.trim() || undefined
             });
-
-            console.log('✅ Document uploaded successfully');
         } catch (error) {
             console.error('❌ Error uploading document:', error);
             setFormErrors(prev => ({

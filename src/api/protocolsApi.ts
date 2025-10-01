@@ -74,13 +74,6 @@ export const protocolsApi = {
      */
     releaseVehicle: async (id: string, data: ReleaseVehicleData): Promise<CarReceptionProtocol | null> => {
         try {
-            console.log('Releasing vehicle with data:', {
-                id,
-                paymentMethod: data.paymentMethod,
-                documentType: data.documentType,
-                hasOverridenItems: !!data.overridenItems,
-                overridenItemsCount: data.overridenItems?.length || 0
-            });
 
             return await apiClientNew.post<CarReceptionProtocol>(`/v1/protocols/${id}/release`, data);
         } catch (error) {
@@ -91,7 +84,6 @@ export const protocolsApi = {
 
     updateServices: async (protocolId: string, services: SelectedService[]): Promise<boolean> => {
         try {
-            console.log('Updating services for protocol:', protocolId, 'Services count:', services.length);
 
             // Mapowanie z SelectedService na format API
             const servicesUpdateCommand: ServicesUpdateCommand = {
@@ -107,14 +99,10 @@ export const protocolsApi = {
                 }))
             };
 
-            console.log('Sending services update command:', servicesUpdateCommand);
-
             const response = await apiClientNew.put<ProtocolIdResponse>(
                 `/v1/protocols/${protocolId}/services`,
                 servicesUpdateCommand
             );
-
-            console.log('Services updated successfully:', response);
             return true;
         } catch (error) {
             console.error(`Error updating services for protocol (ID: ${protocolId}):`, error);
@@ -227,15 +215,12 @@ export const protocolsApi = {
      */
     sendProtocolEmail: async (visitId: string): Promise<EmailSendResponse> => {
         try {
-            console.log('🔧 Sending protocol email...', visitId);
 
             const request: SendProtocolEmailRequest = {
                 visit_id: visitId
             };
 
             const response = await apiClient.post<EmailSendResponse>('/email/send/protocol', request);
-
-            console.log('✅ Protocol email sent successfully:', response);
             return response;
         } catch (error) {
             console.error(`Error sending protocol email (Visit ID: ${visitId}):`, error);

@@ -27,15 +27,7 @@ const ClientAnalyticsSection: React.FC<ClientAnalyticsSectionProps> = ({
     const [isExpanded, setIsExpanded] = useState(initialExpanded);
     const { analytics, loading, error, refetch } = useClientAnalytics(clientId);
 
-    console.log('🔍 ClientAnalyticsSection Debug:');
-    console.log('clientId:', clientId);
-    console.log('loading:', loading);
-    console.log('error:', error);
-    console.log('analytics:', analytics);
-    console.log('isExpanded:', isExpanded);
-
     if (!clientId) {
-        console.log('❌ No clientId provided to ClientAnalyticsSection');
         return null;
     }
 
@@ -56,7 +48,6 @@ const ClientAnalyticsSection: React.FC<ClientAnalyticsSectionProps> = ({
 
     // Render loading state
     if (loading && isExpanded) {
-        console.log('⏳ ClientAnalyticsSection is loading...');
         return (
             <AnalyticsWrapper>
                 {renderToggle()}
@@ -75,7 +66,6 @@ const ClientAnalyticsSection: React.FC<ClientAnalyticsSectionProps> = ({
 
     // Render error state
     if (error && isExpanded) {
-        console.log('❌ ClientAnalyticsSection error:', error);
         return (
             <AnalyticsWrapper>
                 {renderToggle()}
@@ -95,7 +85,6 @@ const ClientAnalyticsSection: React.FC<ClientAnalyticsSectionProps> = ({
 
     // Render empty state
     if (!analytics && isExpanded) {
-        console.log('❌ No analytics data received');
         return (
             <AnalyticsWrapper>
                 {renderToggle()}
@@ -140,11 +129,8 @@ const ClientAnalyticsSection: React.FC<ClientAnalyticsSectionProps> = ({
 
     // Render full analytics - with null check
     if (!analytics) {
-        console.log('❌ Analytics data is null');
         return renderToggle();
     }
-
-    console.log('✅ ClientAnalyticsSection rendering with data');
 
     return (
         <AnalyticsWrapper>

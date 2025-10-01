@@ -99,8 +99,6 @@ export const fetchCalendarData = async (dateRange?: { start: Date; end: Date }):
     let protocols: Appointment[] = [];
     let recurringEvents: Appointment[] = [];
 
-    console.log('Fetching unified calendar data for range:', dateRange);
-
     try {
         // 1. Fetch protocols (visits) - existing implementation
         const protocolsPromise = fetchProtocolsAsAppointments(dateRange).catch(err => {
@@ -140,12 +138,6 @@ export const fetchCalendarData = async (dateRange?: { start: Date; end: Date }):
 
         protocols = protocolsResult;
         recurringEvents = recurringEventsResult.filter(x => x.status == AppointmentStatus.SCHEDULED);
-
-        console.log('Successfully fetched calendar data:', {
-            protocols: protocols.length,
-            recurringEvents: recurringEvents.length,
-            errors: errors.length
-        });
 
     } catch (err) {
         console.error('Critical error fetching calendar data:', err);

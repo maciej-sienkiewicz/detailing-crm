@@ -36,7 +36,6 @@ const fetchAuthorizedImageUrl = async (imageId: string): Promise<string> => {
         }
 
         const url = `${apiClient.getBaseUrl()}/v1/protocols/image/${imageId}`;
-        console.log("dupa");
         const response = await fetch(url, {
             method: 'GET',
             headers: {
@@ -389,8 +388,6 @@ export const carReceptionApi = {
                 // Usuwamy file z obiektu po upload
                 file: undefined
             };
-
-            console.log('✅ Uploaded image:', updatedImage);
 
             return updatedImage;
         } catch (error) {

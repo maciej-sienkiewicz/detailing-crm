@@ -193,25 +193,17 @@ export const vehicleApi = {
                 ...filters
             };
 
-            console.log('🚗 Calling /vehicles/table with params:', queryParams);
-
             const response = await apiClientNew.get<SpringPageResponse<VehicleTableResponse>>(
                 '/vehicles/table',
                 queryParams
             );
 
-            console.log('📊 Raw API response:', response);
-
             const convertedData = response.content.map(convertToVehicleExpanded);
-
-            console.log('✅ Converted vehicles:', convertedData);
 
             const paginatedResponse = convertSpringPageToPaginatedResponse({
                 ...response,
                 content: convertedData
             });
-
-            console.log('📋 Final paginated response:', paginatedResponse);
 
             return paginatedResponse as PaginatedApiResponse<VehicleExpanded>;
         } catch (error) {
@@ -222,9 +214,7 @@ export const vehicleApi = {
 
     fetchCompanyStatistics: async (): Promise<VehicleCompanyStatisticsResponse> => {
         try {
-            console.log('📈 Fetching company statistics...');
             const response = await apiClientNew.get<VehicleCompanyStatisticsResponse>('/vehicles/company-statistics');
-            console.log('✅ Company statistics loaded:', response);
             return response;
         } catch (error) {
             console.error('❌ Error fetching company statistics:', error);
@@ -234,7 +224,6 @@ export const vehicleApi = {
 
     fetchOwners: async (vehicleId: string): Promise<VehicleOwner[]> => {
         try {
-            console.log(`👥 Fetching owners for vehicle ${vehicleId}...`);
 
             const vehicleResponse = await apiClientNew.get<SpringPageResponse<VehicleTableResponse>>(
                 '/vehicles/table',
@@ -245,14 +234,12 @@ export const vehicleApi = {
 
             if (vehicle && vehicle.owners) {
                 const owners = vehicle.owners.map(convertToVehicleOwner);
-                console.log('✅ Vehicle owners loaded:', owners);
                 return owners;
             }
 
             try {
                 const directResponse = await apiClientNew.get<VehicleOwnerSummary[]>(`/vehicles/${vehicleId}/owners`);
                 const owners = directResponse.map(convertToVehicleOwner);
-                console.log('✅ Vehicle owners loaded (direct):', owners);
                 return owners;
             } catch (directError) {
                 console.warn('⚠️ Direct owners endpoint failed, returning empty array');
@@ -266,9 +253,7 @@ export const vehicleApi = {
 
     fetchVehicleStatistics: async (vehicleId: string): Promise<VehicleStatistics> => {
         try {
-            console.log(`📊 Fetching statistics for vehicle ${vehicleId}...`);
             const response = await apiClientNew.get<VehicleStatistics>(`/vehicles/${vehicleId}/statistics`);
-            console.log('✅ Vehicle statistics loaded:', response);
             return response;
         } catch (error) {
             console.error(`❌ Error fetching vehicle statistics for ${vehicleId}:`, error);
@@ -284,7 +269,6 @@ export const vehicleApi = {
         paginationOptions: PaginationParams = {}
     ): Promise<VehicleImagesResponse> => {
         try {
-            console.log(`📷 Fetching images for vehicle ${vehicleId}...`);
 
             const queryParams = {
                 page: paginationOptions.page || 0,
@@ -295,8 +279,6 @@ export const vehicleApi = {
                 `/vehicles/${vehicleId}/images/thumbnails`,
                 queryParams
             );
-
-            console.log('✅ Vehicle images loaded:', response);
 
             return {
                 data: response.content,
@@ -338,13 +320,11 @@ export const vehicleApi = {
 
     fetchVehicleById: async (id: string): Promise<VehicleExpanded | null> => {
         try {
-            console.log(`🔍 Fetching vehicle by ID: ${id}`);
 
             const response = await vehicleApi.fetchVehiclesForTable({ page: 0, size: 100 });
             const vehicle = response.data.find(v => v.id === id);
 
             if (vehicle) {
-                console.log('✅ Vehicle found:', vehicle);
                 return vehicle;
             }
 
@@ -358,7 +338,6 @@ export const vehicleApi = {
 
     fetchVehiclesByOwnerId: async (ownerId: string): Promise<VehicleExpanded[]> => {
         try {
-            console.log(`🚗 Fetching vehicles for owner ${ownerId}...`);
 
             const response = await vehicleApi.fetchVehiclesForTable({ page: 0, size: 1000 });
 
@@ -372,8 +351,6 @@ export const vehicleApi = {
                     owner.id === parseInt(ownerId, 10)
                 );
             });
-
-            console.log(`✅ Found ${ownerVehicles.length} vehicles for owner ${ownerId}`);
             return ownerVehicles;
         } catch (error) {
             console.error('❌ Error fetching vehicles by owner ID:', error);
@@ -383,9 +360,7 @@ export const vehicleApi = {
 
     fetchVehicleServiceHistory: async (vehicleId: string): Promise<ServiceHistoryResponse[]> => {
         try {
-            console.log(`📋 Fetching service history for vehicle ${vehicleId}...`);
             const data = await apiClientNew.get<ServiceHistoryResponse[]>(`/vehicles/${vehicleId}/service-history`);
-            console.log('✅ Service history loaded:', data);
             return data;
         } catch (error) {
             console.error(`❌ Error fetching service history for vehicle ${vehicleId}:`, error);
@@ -395,9 +370,7 @@ export const vehicleApi = {
 
     createVehicle: async (vehicleData: VehicleData): Promise<VehicleExpanded> => {
         try {
-            console.log('➕ Creating new vehicle:', vehicleData);
             const response = await apiClientNew.post<any>('/vehicles', vehicleData);
-            console.log('✅ Vehicle created:', response);
 
             if (response.owners && Array.isArray(response.owners)) {
                 return convertToVehicleExpanded(response);
@@ -426,9 +399,7 @@ export const vehicleApi = {
 
     updateVehicle: async (id: string, vehicleData: VehicleData): Promise<VehicleExpanded> => {
         try {
-            console.log(`✏️ Updating vehicle ${id}:`, vehicleData);
             const response = await apiClientNew.put<any>(`/vehicles/${id}`, vehicleData);
-            console.log('✅ Vehicle updated:', response);
 
             if (response.owners && Array.isArray(response.owners)) {
                 return convertToVehicleExpanded(response);
@@ -457,9 +428,7 @@ export const vehicleApi = {
 
     deleteVehicle: async (id: string): Promise<boolean> => {
         try {
-            console.log(`🗑️ Deleting vehicle ${id}...`);
             await apiClientNew.delete(`/vehicles/${id}`);
-            console.log('✅ Vehicle deleted successfully');
             return true;
         } catch (error) {
             console.error(`❌ Error deleting vehicle ${id}:`, error);

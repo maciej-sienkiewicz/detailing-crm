@@ -214,7 +214,6 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, initialData = {}, on
 
             // Wywołanie API do ekstrakcji danych
             const extractedData = await invoicesApi.extractInvoiceData(selectedFile);
-            console.log(extractedData);
 
             if (extractedData) {
                 // Mapowanie wyekstrahowanych danych na format formularza
@@ -296,8 +295,6 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, initialData = {}, on
                 items,
                 protocolId: initialData.protocolId !== undefined ? initialData.protocolId : formData.protocolId
             };
-
-            console.log(formData);
 
             // Usuwamy pole attachments, bo załącznik będzie wysyłany jako plik
             delete invoiceData.attachments;

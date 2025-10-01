@@ -140,7 +140,6 @@ const BalanceHistoryModal: React.FC<BalanceHistoryModalProps> = ({
 
     const exportData = () => {
         // TODO: Implement export functionality
-        console.log('Export data');
     };
 
     const clearFilters = () => {

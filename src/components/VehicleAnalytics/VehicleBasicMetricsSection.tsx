@@ -59,13 +59,6 @@ const VehicleBasicMetricsSection: React.FC<VehicleBasicMetricsSectionProps> = ({
     const daysSinceLastService = data.daysSinceLastService;
     const lastServiceDate = data.lastServiceDate;
 
-    console.log('🔧 VehicleBasicMetricsSection data debug:');
-    console.log('averageVisitValue:', averageVisitValue);
-    console.log('monthlyRevenue:', monthlyRevenue);
-    console.log('totalServices:', totalServices);
-    console.log('totalRevenue:', totalRevenue);
-    console.log('daysSinceLastService:', daysSinceLastService);
-
     if (compact) {
         return (
             <CompactContainer>

@@ -166,7 +166,6 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
 
             setLoadingDetails(true);
             try {
-                console.log('🚗 Loading vehicle details for ID:', vehicle.id);
 
                 // NAPRAWIONE: Używamy endpointa /api/vehicles/{id}
                 const response = await apiClientNew.get<VehicleDetailsResponse>(
@@ -174,8 +173,6 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
                     undefined,
                     { timeout: 10000 }
                 );
-
-                console.log('✅ Vehicle details loaded:', response);
                 setVehicleDetails(response);
 
                 // Pobieramy również statystyki pojazdu
@@ -206,7 +203,6 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
 
                 // Próbujemy użyć danych z vehicle.owners jeśli są dostępne
                 if (vehicle.owners && vehicle.owners.length > 0) {
-                    console.log('👥 Using owners from vehicle data');
                     ownerData = vehicle.owners.map(owner => ({
                         id: owner.id.toString(),
                         firstName: owner.firstName,
@@ -218,7 +214,6 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
                 }
                 // Fallback - próbujemy pobrać z osobnego endpointa (jeśli istnieje)
                 else if (vehicle.ownerIds && vehicle.ownerIds.length > 0) {
-                    console.log('👥 Loading owners from API for vehicle:', vehicle.id);
 
                     try {
                         // OPCJONALNY: Jeśli będzie endpoint /api/vehicles/{id}/owners
@@ -242,8 +237,6 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
                         ownerData = [];
                     }
                 }
-
-                console.log('✅ Owners loaded:', ownerData);
                 setOwners(ownerData);
 
             } catch (error) {
@@ -265,7 +258,6 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
 
             setLoadingHistory(true);
             try {
-                console.log('📋 Loading visit history for vehicle:', vehicle.id);
 
                 // NAPRAWIONE: Używamy prawidłowego endpointa /api/v1/protocols/vehicles/{id}
                 const response = await apiClientNew.get<VehicleVisitsResponse>(
@@ -275,10 +267,8 @@ const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
                 );
 
                 if (response && response.content) {
-                    console.log('✅ Visit history loaded:', response.content);
                     setVisitHistory(response.content);
                 } else {
-                    console.log('ℹ️ No visit history found');
                     setVisitHistory([]);
                 }
 

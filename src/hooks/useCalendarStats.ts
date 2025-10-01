@@ -118,17 +118,13 @@ export const useCalendarStats = (): CalendarStats & {
     const fetchStatsData = useCallback(async (): Promise<MixedAppointmentData[]> => {
         // Zwróć cache jeśli jest ważny
         if (isCacheValid() && statsCache.data) {
-            console.log('📊 Using cached stats data');
             return statsCache.data;
         }
 
         // Zwróć istniejące promise jeśli już trwa
         if (statsCache.promise) {
-            console.log('⏳ Waiting for existing stats request');
             return statsCache.promise;
         }
-
-        console.log('🚀 Fetching fresh stats data');
 
         // Utwórz nowe promise
         statsCache.promise = (async () => {
@@ -149,11 +145,6 @@ export const useCalendarStats = (): CalendarStats & {
                 endRange.setDate(1);
                 endRange.setHours(23, 59, 59, 999);
 
-                console.log('📊 Fetching stats data for range:', {
-                    start: startRange.toISOString().split('T')[0],
-                    end: endRange.toISOString().split('T')[0]
-                });
-
                 const protocolsPromise = fetchProtocolsAsAppointments({
                     start: startRange,
                     end: endRange
@@ -170,16 +161,6 @@ export const useCalendarStats = (): CalendarStats & {
                 const combinedData: MixedAppointmentData[] = [
                     ...protocols.map(p => ({ ...p } as MixedAppointmentData))
                 ];
-
-                console.log('📊 Stats data loaded:', {
-                    protocolsCount: protocols.length,
-                    totalCount: combinedData.length,
-                    sampleProtocols: protocols.slice(0, 3).map(p => ({
-                        id: p.id,
-                        status: p.status,
-                        title: p.title
-                    }))
-                });
 
                 // Zaktualizuj cache
                 statsCache.data = combinedData;
@@ -275,18 +256,6 @@ export const useCalendarStats = (): CalendarStats & {
         weekEnd.setDate(weekStart.getDate() + 6);
         weekEnd.setHours(23, 59, 59, 999);
 
-        console.log('📊 Stats calculation:', {
-            todayString: today.toISOString().split('T')[0],
-            yesterdayString,
-            totalRecords: statsData.length,
-            sampleData: statsData.slice(0, 3).map(item => ({
-                id: item.id,
-                status: item.status,
-                startDate: getDateString(item.start),
-                title: item.title ? item.title.substring(0, 30) : 'No title'
-            }))
-        });
-
         // NAJWAŻNIEJSZE: Aktualne statusy pojazdów (niezależnie od dat)
         const inProgressCount = statsData.filter(item => {
             const mappedStatus = mapServerStatus(item.status as string);
@@ -331,8 +300,6 @@ export const useCalendarStats = (): CalendarStats & {
             readyForPickup: readyForPickupCount,
             cancelled: cancelledYesterday.length
         };
-
-        console.log('📊 Final stats:', result);
 
         return result;
     }, [statsData]);

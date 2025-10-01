@@ -55,10 +55,6 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
     const [formData, setFormData] = useState<CarReceptionProtocol>(() => {
         const currentDateTime = getCurrentDateTimeISO();
 
-        console.log('🕐 StartVisitForm - Inicjalizacja dat:');
-        console.log('  Aktualna data/czas przyjęcia:', currentDateTime);
-        console.log('  Zachowana data zakończenia:', protocol.endDate);
-
         return {
             ...protocol,
             startDate: currentDateTime, // Ustawiamy na obecny czas
@@ -233,8 +229,6 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
 
-        console.log(`🔄 StartVisitForm handleChange - ${name}:`, value);
-
         if (type === 'checkbox') {
             const checkbox = e.target as HTMLInputElement;
             setFormData(prev => ({ ...prev, [name]: checkbox.checked }));
@@ -243,12 +237,10 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
         } else if (name === 'startDate') {
             // Dla daty rozpoczęcia, zachowaj format datetime-local
             const formattedDate = formatDateForAPI(value);
-            console.log(`  ✅ Sformatowana startDate:`, formattedDate);
             setFormData(prev => ({ ...prev, [name]: formattedDate }));
         } else if (name === 'endDate') {
             // POPRAWKA: POZWALAMY NA EDYCJĘ DATY ZAKOŃCZENIA!
             const formattedDate = formatDateForAPI(value);
-            console.log(`  ✅ Sformatowana endDate (możliwa do edycji):`, formattedDate);
             setFormData(prev => ({ ...prev, [name]: formattedDate }));
         } else {
             setFormData(prev => ({ ...prev, [name]: value }));
@@ -301,16 +293,9 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
             setLoading(true);
             setError(null);
 
-            console.log('🚀 StartVisitForm - rozpoczęcie zapisu:');
-            console.log('  Oryginalna startDate:', formData.startDate);
-            console.log('  Oryginalna endDate:', formData.endDate);
-
             // POPRAWKA: Obie daty mogą być modyfikowane i formatowane dla API
             const processedStartDate = formatDateForAPI(formData.startDate || getCurrentDateTimeISO());
             const processedEndDate = formatDateForAPI(formData.endDate || '');
-
-            console.log('  Przetworzona startDate (data przyjęcia):', processedStartDate);
-            console.log('  Przetworzona endDate (planowany/zaktualizowany termin):', processedEndDate);
 
             const updatedProtocol: CarReceptionProtocol = {
                 ...formData,
@@ -321,36 +306,23 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
                 deliveryPerson: prepareDeliveryPersonForApi(formData)
             };
 
-            console.log('📤 Dane wysyłane do API:', {
-                id: updatedProtocol.id,
-                startDate: updatedProtocol.startDate,
-                endDate: updatedProtocol.endDate,
-                status: updatedProtocol.status,
-                statusUpdatedAt: updatedProtocol.statusUpdatedAt
-            });
-
             let savedProtocol;
             if (isRestoringCancelled) {
-                console.log('🔄 Przywracanie anulowanego protokołu');
                 savedProtocol = await protocolsApi.restoreProtocol(updatedProtocol.id, {
                     newStatus: ProtocolStatus.IN_PROGRESS,
                     newStartDate: updatedProtocol.startDate,
                     newEndDate: updatedProtocol.endDate
                 });
                 if (!savedProtocol) {
-                    console.log('⚠️ Fallback - aktualizacja protokołu');
                     savedProtocol = await protocolsApi.updateProtocol(updatedProtocol);
                 }
             } else {
-                console.log('📝 Zwykła aktualizacja protokołu');
                 savedProtocol = await protocolsApi.updateProtocol(updatedProtocol);
             }
 
             if (!savedProtocol) {
                 throw new Error('Nie udało się zaktualizować protokołu');
             }
-
-            console.log('✅ Protokół zapisany pomyślnie:', savedProtocol.id);
             onSave(savedProtocol);
         } catch (err) {
             console.error('❌ Błąd podczas rozpoczynania wizyty:', err);
@@ -369,13 +341,6 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
             </FormContainer>
         );
     }
-
-    console.log('🎨 StartVisitForm render - aktualne daty:', {
-        startDate: formData.startDate,
-        endDate: formData.endDate,
-        status: formData.status,
-        note: 'POPRAWKA: endDate jest teraz edytowalna!'
-    });
 
     return (
         <FormContainer>

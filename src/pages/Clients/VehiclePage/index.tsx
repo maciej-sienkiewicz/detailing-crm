@@ -170,7 +170,6 @@ const VehiclesPageContent = forwardRef<VehiclesPageRef, VehiclesPageContentProps
     } = useVehicleOperations();
 
     const handleAddVehicle = useCallback(() => {
-        console.log('➕ Opening add vehicle modal');
         updateState({
             selectedVehicle: null,
             showAddModal: true
@@ -199,12 +198,9 @@ const VehiclesPageContent = forwardRef<VehiclesPageRef, VehiclesPageContentProps
         filters: VehicleFilters = state.appliedFilters,
         ownerId?: string
     ) => {
-        console.log('🔄 Loading vehicles:', { page, filters, ownerId });
         updateState({ loading: true, error: null });
 
         const result = await loadVehicles(page, filters, ownerId);
-
-        console.log('📊 Load vehicles result:', result);
 
         updateState({
             vehicles: result.vehicles,
@@ -257,7 +253,6 @@ const VehiclesPageContent = forwardRef<VehiclesPageRef, VehiclesPageContentProps
     }, [state.currentPage, state.totalPages, performLoadVehicles, state.appliedFilters, filterByOwnerId]);
 
     const handleEditVehicle = useCallback(async (vehicle: any) => {
-        console.log('✏️ Edit vehicle clicked:', vehicle.id);
         updateState({ loading: true });
         const result = await editVehicle(vehicle);
         updateState({
@@ -269,7 +264,6 @@ const VehiclesPageContent = forwardRef<VehiclesPageRef, VehiclesPageContentProps
 
     // NAPRAWIONO: Funkcja handleSaveVehicle - przeładowuje dane po zapisaniu
     const handleSaveVehicle = useCallback(async () => {
-        console.log('💾 Vehicle saved, reloading data...');
         updateState({ showAddModal: false, selectedVehicle: null });
 
         // Przeładuj dane pojazdów po zapisaniu
@@ -277,7 +271,6 @@ const VehiclesPageContent = forwardRef<VehiclesPageRef, VehiclesPageContentProps
     }, [updateState, performLoadVehicles, state.currentPage, state.appliedFilters, filterByOwnerId]);
 
     const handleDeleteClick = useCallback((vehicleId: string) => {
-        console.log('🗑️ Delete vehicle clicked:', vehicleId);
         const vehicle = state.vehicles.find(v => v.id === vehicleId);
         if (vehicle) {
             updateState({
@@ -290,12 +283,9 @@ const VehiclesPageContent = forwardRef<VehiclesPageRef, VehiclesPageContentProps
     const handleConfirmDelete = useCallback(async () => {
         if (!state.selectedVehicle) return;
 
-        console.log('🗑️ Confirming vehicle deletion:', state.selectedVehicle.id);
-
         const result = await deleteVehicle(state.selectedVehicle.id);
 
         if (result.success) {
-            console.log('✅ Vehicle deleted successfully, reloading data...');
             updateState({
                 showDeleteConfirm: false,
                 selectedVehicle: null
@@ -312,7 +302,6 @@ const VehiclesPageContent = forwardRef<VehiclesPageRef, VehiclesPageContentProps
     }, [state.selectedVehicle, deleteVehicle, updateState, performLoadVehicles, state.currentPage, state.appliedFilters, filterByOwnerId]);
 
     const handleShowHistory = useCallback((vehicle: any) => {
-        console.log('📋 Show history for vehicle:', vehicle.id);
         updateState({
             selectedVehicle: vehicle,
             showHistoryModal: true

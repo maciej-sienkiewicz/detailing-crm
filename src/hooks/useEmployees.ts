@@ -196,7 +196,6 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
         try {
             // Check cache validity for repeated requests
             if (isCacheValid && !params && state.employees.length > 0) {
-                console.log('📦 Using cached employees data');
                 return;
             }
 
@@ -215,8 +214,6 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
                 ...currentFiltersRef.current,
                 ...params
             };
-
-            console.log('🔄 Fetching employees with params:', searchParams);
 
             const result = await employeesApi.getEmployeesList(searchParams);
 
@@ -239,7 +236,6 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
                 }));
 
                 retryCountRef.current = 0;
-                console.log('✅ Successfully fetched employees:', result.data.data.length);
             } else {
                 throw new Error(result.error || 'Failed to fetch employees');
             }
@@ -270,7 +266,6 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
             // Implement retry logic for network errors
             if (retryCountRef.current < MAX_RETRIES && !error.message?.includes('401')) {
                 retryCountRef.current++;
-                console.log(`🔄 Retrying fetch (attempt ${retryCountRef.current}/${MAX_RETRIES})`);
 
                 const retryDelay = Math.min(1000 * Math.pow(2, retryCountRef.current - 1), 5000);
                 setTimeout(() => fetchEmployees(params), retryDelay);
@@ -289,8 +284,6 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
                 error: null,
                 validationErrors: {}
             }));
-
-            console.log('📝 Creating new employee:', data.fullName);
 
             const result = await employeesApi.createEmployee(data);
 
@@ -312,8 +305,6 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
                     setState(prev => ({ ...prev, isCreating: false }));
                     await fetchEmployees();
                 }
-
-                console.log('✅ Successfully created employee:', newEmployee.id);
                 return newEmployee;
             } else {
                 throw new Error(result.error || 'Failed to create employee');
@@ -356,8 +347,6 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
                 validationErrors: {}
             }));
 
-            console.log('📝 Updating employee:', data.id);
-
             if (optimisticUpdates) {
                 // Optimistic update
                 const updateEmployeeInArray = (employees: ExtendedEmployee[]) =>
@@ -390,8 +379,6 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
                     isUpdating: false,
                     cacheValid: false
                 }));
-
-                console.log('✅ Successfully updated employee:', updatedEmployee.id);
                 return updatedEmployee;
             } else {
                 throw new Error(result.error || 'Failed to update employee');
@@ -434,8 +421,6 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
         try {
             setState(prev => ({ ...prev, isDeleting: true, error: null }));
 
-            console.log('🗑️ Deleting employee:', id);
-
             if (optimisticUpdates) {
                 // Optimistic update - remove from lists
                 setState(prev => ({
@@ -455,8 +440,6 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
                     isDeleting: false,
                     cacheValid: false
                 }));
-
-                console.log('✅ Successfully deleted employee:', id);
                 return true;
             } else {
                 throw new Error(result.error || 'Failed to delete employee');
@@ -507,7 +490,6 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
         // Fetch detailed data if employee is selected and doesn't have all details
         if (employee && !employee.emergencyContact) {
             try {
-                console.log('🔍 Fetching detailed employee data:', employee.id);
                 const result = await employeesApi.getEmployeeById(employee.id);
 
                 if (result.success && result.data) {
@@ -630,8 +612,6 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
                 documents: []
             }));
 
-            console.log('📄 Fetching documents for employee:', employeeId);
-
             const result = await employeesApi.getEmployeeDocuments(employeeId);
 
             if (result.success && result.data) {
@@ -640,7 +620,6 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
                     documents: result.data!,
                     isLoadingDocuments: false
                 }));
-                console.log('✅ Successfully fetched documents:', result.data.length);
             } else {
                 throw new Error(result.error || 'Failed to fetch documents');
             }
@@ -668,8 +647,6 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
                 isLoadingDocuments: true,
                 documentError: null
             }));
-
-            console.log('Uploading document for employee:', employeeId);
 
             const result = await employeesApi.uploadEmployeeDocument({
                 employeeId,
@@ -702,8 +679,6 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
                         };
                     }
                 });
-
-                console.log('Successfully uploaded document:', uploadedDocument.id);
                 return uploadedDocument; // ✅ Zwraca EmployeeDocument
             } else {
                 throw new Error(result.error || 'Failed to upload document');
@@ -721,7 +696,6 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
 
     const downloadDocument = useCallback(async (documentId: string): Promise<boolean> => {
         try {
-            console.log('📥 Starting document download:', documentId);
 
             const result = await employeesApi.downloadEmployeeDocument(documentId);
 
@@ -744,8 +718,6 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
 
                 // Zwolnij pamięć
                 window.URL.revokeObjectURL(url);
-
-                console.log('✅ Document downloaded successfully:', filename);
                 return true;
             } else {
                 throw new Error(result.error || 'Failed to download document');
@@ -764,8 +736,6 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
         try {
             setState(prev => ({ ...prev, documentError: null }));
 
-            console.log('🗑️ Deleting document:', documentId);
-
             const result = await employeesApi.deleteEmployeeDocument(documentId);
 
             if (result.success) {
@@ -773,8 +743,6 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
                     ...prev,
                     documents: prev.documents.filter(doc => doc.id !== documentId)
                 }));
-
-                console.log('✅ Successfully deleted document:', documentId);
                 return true;
             } else {
                 throw new Error(result.error || 'Failed to delete document');
@@ -854,7 +822,6 @@ export const useEmployees = (options: UseEmployeesOptions = {}): UseEmployeesRet
         if (refreshInterval && refreshInterval > 0) {
             refreshIntervalRef.current = setInterval(() => {
                 if (!state.isLoading && !state.isCreating && !state.isUpdating && !state.isDeleting) {
-                    console.log('⏰ Auto-refreshing employees data');
                     refreshData();
                 }
             }, refreshInterval);
@@ -945,13 +912,10 @@ export const useEmployee = (employeeId: string | null) => {
             setIsLoading(true);
             setError(null);
 
-            console.log('🔍 Fetching single employee:', employeeId);
-
             const result = await employeesApi.getEmployeeById(employeeId);
 
             if (result.success && result.data) {
                 setEmployee(result.data);
-                console.log('✅ Successfully fetched employee:', result.data.id);
             } else {
                 throw new Error(result.error || 'Employee not found');
             }
@@ -988,13 +952,10 @@ export const useEmployeeStatistics = () => {
             setIsLoading(true);
             setError(null);
 
-            console.log('📊 Fetching employee statistics');
-
             const result = await employeesApi.getEmployeeStatistics();
 
             if (result.success && result.data) {
                 setStatistics(result.data);
-                console.log('✅ Successfully fetched statistics');
             } else {
                 throw new Error(result.error || 'Failed to fetch statistics');
             }

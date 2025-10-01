@@ -88,11 +88,7 @@ export const galleryApi = {
                     requestBody.endDate = filters.endDate.trim();
                 }
 
-                console.log('🌐 Gallery API - Making request:', requestBody);
-
                 const rawResponse = await apiClient.post<any>('/gallery/search', requestBody);
-
-                console.log('🌐 Gallery API - Raw response:', rawResponse);
 
                 // Mapuj response do oczekiwanej struktury
                 const mappedResponse: PaginatedResponse<GalleryImage> = {
@@ -104,8 +100,6 @@ export const galleryApi = {
                         totalPages: rawResponse.totalPages || 0
                     }
                 };
-
-                console.log('🌐 Gallery API - Mapped response:', mappedResponse);
 
                 return mappedResponse;
             } catch (error) {

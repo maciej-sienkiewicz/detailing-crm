@@ -140,14 +140,12 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
     const handleSendEmail = async (): Promise<boolean> => {
         try {
             setIsSendingEmail(true);
-            console.log('🔧 Sending protocol email for visit:', protocolId);
 
             const response = await protocolsApi.sendProtocolEmail(protocolId);
 
             setEmailSendResult(response);
 
             if (response.success) {
-                console.log('✅ Protocol email sent successfully:', response.message);
                 return true;
             } else {
                 console.error('❌ Failed to send protocol email:', response.message);
@@ -207,7 +205,6 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
     const completeProcess = async () => {
         // Jeśli był podpis i wybrano email, wyślij email na końcu
         if (wasSignatureCompleted && selectedOptions.sendEmail && clientEmail) {
-            console.log('🔧 Sending email after process completion...');
             await handleSendEmail();
         }
 
@@ -234,7 +231,6 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
 
     // Obsługa zakończenia podpisu
     const handleSignatureCompleted = (signedDocumentUrl?: string) => {
-        console.log('🔧 Signature completed:', signedDocumentUrl);
         setWasSignatureCompleted(true);
         // NIE wywołujemy proceedToNextModal tutaj - użytkownik musi kliknąć "Kontynuuj"
     };
@@ -249,7 +245,6 @@ const ProtocolConfirmationModal: React.FC<ProtocolConfirmationModalProps> = ({
 
     // Obsługa zamknięcia PDF preview
     const handlePdfPreviewClose = () => {
-        console.log('🔧 PDF preview closed, completing process...');
         completeProcess(); // Zakończ cały proces
     };
 

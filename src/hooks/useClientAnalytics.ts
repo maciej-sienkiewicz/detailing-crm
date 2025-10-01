@@ -34,10 +34,8 @@ export const useClientAnalytics = (clientId?: string): UseClientAnalyticsResult 
         setError(null);
 
         try {
-            console.log('🔄 Fetching comprehensive analytics for client:', clientId);
             const data = await clientAnalyticsApi.getClientAnalytics(clientId);
             setAnalytics(data);
-            console.log('✅ Analytics loaded successfully');
         } catch (err) {
             console.error('❌ Failed to load analytics:', err);
             setError(err instanceof Error ? err.message : 'Błąd podczas ładowania analiz');
@@ -86,10 +84,8 @@ export const useClientAnalyticsSummary = (clientId?: string): UseClientAnalytics
         setError(null);
 
         try {
-            console.log('🔄 Fetching analytics summary for client:', clientId);
             const data = await clientAnalyticsApi.getClientAnalyticsSummary(clientId);
             setSummary(data);
-            console.log('✅ Summary loaded successfully');
         } catch (err) {
             console.error('❌ Failed to load summary:', err);
             setError(err instanceof Error ? err.message : 'Błąd podczas ładowania podsumowania');
@@ -132,10 +128,8 @@ export const useCompanyAverages = (): UseCompanyAveragesResult => {
         setError(null);
 
         try {
-            console.log('🔄 Fetching company averages');
             const data = await clientAnalyticsApi.getCompanyAverages();
             setAverages(data);
-            console.log('✅ Company averages loaded successfully');
         } catch (err) {
             console.error('❌ Failed to load company averages:', err);
             setError(err instanceof Error ? err.message : 'Błąd podczas ładowania średnich firmowych');
@@ -183,10 +177,8 @@ export const useBatchClientAnalytics = (): UseBatchClientAnalyticsResult => {
         setError(null);
 
         try {
-            console.log('🔄 Fetching batch analytics for', clientIds.length, 'clients');
             const data = await clientAnalyticsApi.getBatchClientAnalytics(clientIds);
             setBatchAnalytics(data);
-            console.log('✅ Batch analytics loaded successfully');
         } catch (err) {
             console.error('❌ Failed to load batch analytics:', err);
             setError(err instanceof Error ? err.message : 'Błąd podczas ładowania analiz partii');

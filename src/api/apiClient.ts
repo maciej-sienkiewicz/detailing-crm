@@ -140,7 +140,6 @@ const apiFetch = async <T>(endpoint: string, options: RequestInit = {}): Promise
     const url = `${API_BASE_URL}${endpoint}`;
 
     // Logowanie wywołania API do konsoli dla debugowania
-    console.log(`API request: ${options.method || 'GET'} ${url}`);
 
     // Sprawdzamy, czy mamy do czynienia z FormData
     const isFormData = options.body instanceof FormData;
@@ -177,18 +176,12 @@ const apiFetch = async <T>(endpoint: string, options: RequestInit = {}): Promise
 
     // Logowanie opcji żądania dla debugowania w trybie deweloperskim
     if (process.env.NODE_ENV === 'development') {
-        console.log('Request options:', {
-            method: fetchOptions.method,
-            headers: fetchOptions.headers,
-            bodyType: options.body ? (isFormData ? 'FormData' : typeof options.body) : null
-        });
     }
 
     try {
         const response = await fetch(url, fetchOptions);
 
         // Logowanie statusu odpowiedzi
-        console.log(`API response status: ${response.status}`);
 
         // ✅ OBSŁUGA 401 - AUTOMATYCZNE PRZEKIEROWANIE NA LOGIN
         if (response.status === 401) {
@@ -205,11 +198,9 @@ const apiFetch = async <T>(endpoint: string, options: RequestInit = {}): Promise
                 const contentType = response.headers.get('Content-Type');
                 if (contentType && contentType.includes('application/json')) {
                     errorData = await response.json();
-                    console.log('Response data:', errorData);
                 } else {
                     // Jeśli nie JSON, spróbuj jako text
                     const textData = await response.text();
-                    console.log('Response text:', textData);
                     errorData = { message: textData };
                 }
             } catch (parseError) {

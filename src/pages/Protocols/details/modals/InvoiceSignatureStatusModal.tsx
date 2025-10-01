@@ -50,14 +50,12 @@ const InvoiceSignatureStatusModal: React.FC<InvoiceSignatureStatusModalProps> = 
     // Start polling when modal opens
     useEffect(() => {
         if (isOpen && sessionId && invoiceId) {
-            console.log('🔧 Starting invoice signature status polling...', { sessionId, invoiceId });
             startStatusPolling(sessionId, invoiceId);
             setShowProceedButton(false);
         }
 
         return () => {
             if (isOpen) {
-                console.log('🔧 Cleaning up invoice signature status polling...');
                 stopStatusPolling();
             }
         };
@@ -65,14 +63,8 @@ const InvoiceSignatureStatusModal: React.FC<InvoiceSignatureStatusModalProps> = 
 
     // Handle completion or failure
     useEffect(() => {
-        console.log('🔧 Status change detected:', {
-            status: currentStatus?.status,
-            isCompleted: isSignatureCompleted,
-            isFailed: isSignatureFailed
-        });
 
         if (isSignatureCompleted || isSignatureFailed) {
-            console.log('🔧 Signature process finished, showing proceed button');
             setShowProceedButton(true);
         }
     }, [isSignatureCompleted, isSignatureFailed, currentStatus]);

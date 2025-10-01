@@ -88,8 +88,6 @@ export const BrandAutocomplete: React.FC<BrandAutocompleteProps> = ({
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newValue = e.target.value;
 
-        console.log('BrandAutocomplete - handleInputChange:', newValue);
-
         // Aktualizuj wartość przez props onChange
         onChange(newValue);
 
@@ -98,19 +96,16 @@ export const BrandAutocomplete: React.FC<BrandAutocompleteProps> = ({
 
         // KLUCZOWA NAPRAWKA: Automatycznie otwórz dropdown gdy użytkownik zaczyna pisać
         if (newValue.trim().length > 0 && !isOpen) {
-            console.log('BrandAutocomplete - Opening dropdown because user is typing');
             setIsOpen(true);
             updateDropdownPosition();
         }
         // Zamknij dropdown gdy pole jest puste
         else if (newValue.trim().length === 0 && isOpen) {
-            console.log('BrandAutocomplete - Closing dropdown because input is empty');
             setIsOpen(false);
         }
     };
 
     const handleBrandSelect = (brand: string) => {
-        console.log('BrandAutocomplete - Brand selected:', brand);
         onChange(brand);
         setIsOpen(false);
         setHighlightedIndex(-1);
@@ -128,7 +123,6 @@ export const BrandAutocomplete: React.FC<BrandAutocompleteProps> = ({
         if (disabled) return;
 
         const newIsOpen = !isOpen;
-        console.log('BrandAutocomplete - Toggle dropdown:', newIsOpen);
         setIsOpen(newIsOpen);
 
         if (newIsOpen) {
@@ -141,11 +135,8 @@ export const BrandAutocomplete: React.FC<BrandAutocompleteProps> = ({
     const handleInputFocus = () => {
         if (disabled) return;
 
-        console.log('BrandAutocomplete - Input focused, value:', value);
-
         // Otwórz dropdown jeśli pole ma jakąś wartość lub jeśli chcemy pokazać wszystkie opcje
         if (value.trim().length > 0 || filteredBrands.length > 0) {
-            console.log('BrandAutocomplete - Opening dropdown on focus');
             setIsOpen(true);
             updateDropdownPosition();
         }

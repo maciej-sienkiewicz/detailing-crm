@@ -44,9 +44,6 @@ export const useVisitsData = (): UseVisitsDataReturn => {
         lastFiltersRef.current = filters;
         lastPaginationRef.current = paginationParams;
 
-        console.log('🚀 Executing search with filters:', filters);
-        console.log('📄 Pagination params:', paginationParams);
-
         try {
             const result = await visitsApi.getVisitsList({
                 ...filters,

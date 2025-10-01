@@ -157,7 +157,6 @@ const VehicleDetailPage: React.FC = () => {
     // NAPRAWIONA FUNKCJA handleEdit - teraz otwiera VehicleDetailDrawer
     const handleEdit = () => {
         if (vehicle) {
-            console.log('🔧 Opening VehicleDetailDrawer for vehicle:', vehicle.id);
             setDrawerVehicle(vehicle);
             setShowDrawer(true);
         }
@@ -165,13 +164,11 @@ const VehicleDetailPage: React.FC = () => {
 
     // DODANA FUNKCJA do zamykania drawer'a
     const handleCloseDrawer = () => {
-        console.log('❌ Closing VehicleDetailDrawer');
         setShowDrawer(false);
         setDrawerVehicle(null);
     };
 
     const handleDelete = () => {
-        console.log('Usuwanie pojazdu - funkcjonalność w przygotowaniu');
     };
 
     const handleOwnerClick = (ownerId: string) => {

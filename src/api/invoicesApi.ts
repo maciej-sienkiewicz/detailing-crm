@@ -159,8 +159,6 @@ export const invoicesApi = {
             // Normalizacja danych faktury
             const normalizedData = normalizeInvoiceData(invoiceData);
 
-            console.log("Sending invoice data:", JSON.stringify(normalizedData, null, 2));
-
             // Przygotowanie formularza
             const formData = apiClient.createFormDataWithJson(
                 normalizedData,
@@ -180,8 +178,6 @@ export const invoicesApi = {
         try {
             // Normalizacja danych faktury
             const normalizedData = normalizeInvoiceData(invoiceData);
-
-            console.log("Sending invoice update data:", JSON.stringify(normalizedData, null, 2));
 
             // Przygotowanie formularza
             const formData = apiClient.createFormDataWithJson(

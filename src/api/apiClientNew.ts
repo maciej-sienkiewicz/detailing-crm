@@ -227,7 +227,6 @@ class ApiClientNew {
 
         for (let attempt = 0; attempt <= retries; attempt++) {
             try {
-                console.log(`API Request (attempt ${attempt + 1}): ${fetchConfig.method || 'GET'} ${url}`);
 
                 const response = await fetch(url, {
                     ...fetchConfig,
@@ -257,7 +256,6 @@ class ApiClientNew {
                 }
 
                 const data = await this.parseSuccessResponse<T>(response);
-                console.log(`API Response: ${response.status} ${response.statusText}`);
 
                 return data;
 
@@ -281,7 +279,6 @@ class ApiClientNew {
 
                 // Exponential backoff dla retry
                 const delay = Math.min(1000 * Math.pow(2, attempt), 5000);
-                console.log(`Retrying after ${delay}ms...`);
                 await new Promise(resolve => setTimeout(resolve, delay));
             }
         }

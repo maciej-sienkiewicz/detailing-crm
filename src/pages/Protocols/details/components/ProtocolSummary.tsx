@@ -146,7 +146,6 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
             setShowEditPricesModal(false);
 
             // Show success message
-            console.log('Prices updated successfully:', updatedServices);
 
         } catch (error) {
             console.error('Error updating prices:', error);
@@ -165,7 +164,6 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
 
         try {
             setRemovingServiceId(serviceToDelete.id);
-            console.log('🗑️ Removing service via API:', serviceToDelete);
 
             // Call the API to remove service from visit
             const result = await visitsApi.removeServiceFromVisit(
@@ -175,7 +173,6 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
             );
 
             if (result.success && result.data) {
-                console.log('✅ Service removed successfully via API');
 
                 // Transform API response to match protocol format
                 const updatedServices = result.data.services?.map(service => ({
@@ -199,8 +196,6 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                 if (onProtocolUpdate) {
                     onProtocolUpdate(updatedProtocol);
                 }
-
-                console.log('✅ Service removed and protocol updated');
 
             } else {
                 // Handle API error
@@ -235,7 +230,6 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                 setError(null);
 
                 const clientId = protocol.ownerId;
-                console.log('Fetching client with ID:', clientId);
 
                 const [matchedClient, matchedClientStats] = await Promise.all([
                     clientApi.fetchClientById(clientId),
@@ -243,7 +237,6 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                 ]);
 
                 if (matchedClient) {
-                    console.log('Client found:', matchedClient);
                     setClient(matchedClient);
                     setClientStats(matchedClientStats);
                 } else {
@@ -309,13 +302,11 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
     }) => {
         try {
             setAddingServices(true);
-            console.log('🔧 Adding services via API:', data.services);
 
             // Call the API to add services to visit
             const result = await visitsApi.addServicesToVisit(protocol.id, data.services);
 
             if (result.success && result.data) {
-                console.log('✅ Services added successfully via API');
 
                 // Transform API response to match protocol format
                 const updatedServices = result.data.services?.map(service => ({
@@ -343,7 +334,6 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                 setShowAddServiceModal(false);
 
                 // Show success message
-                console.log('✅ Services added and protocol updated:', updatedServices);
 
             } else {
                 // Handle API error

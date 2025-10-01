@@ -19,7 +19,6 @@ const BrandThemeSettingsPage = forwardRef<BrandThemeSettingsRef, {}>((props, ref
         handleSave: () => {
             // Colors are automatically saved via localStorage
             // Logo is automatically saved via API calls
-            console.log('All settings are already saved automatically');
         }
     }));
 

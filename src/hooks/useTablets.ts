@@ -68,24 +68,16 @@ export const useTablets = (): UseTabletsResult => {
             setLoading(true);
             setError(null);
 
-            console.log('🔄 Refreshing tablets data...');
-
             // Fetch tablets and sessions in parallel
             const [tabletsData] = await Promise.all([
                 tabletsApi.getTablets(),
             ]);
-
-            console.log('📊 Fetched data:', {
-                tablets: tabletsData.length,
-            });
 
             setTablets(tabletsData);
 
             // Calculate and set realtime stats
             const stats = calculateRealtimeStats(tabletsData);
             setRealtimeStats(stats);
-
-            console.log('📈 Updated stats:', stats);
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to fetch data';
             console.error('❌ Error refreshing data:', err);
@@ -101,11 +93,7 @@ export const useTablets = (): UseTabletsResult => {
             setIsPairingCodeGenerating(true);
             setPairingError(null);
 
-            console.log('🔧 Generating pairing code...');
-
             const response = await tabletsApi.generatePairingCode();
-
-            console.log('✅ Pairing code generated:', response);
             setPairingCode(response);
 
             return response;
@@ -129,11 +117,8 @@ export const useTablets = (): UseTabletsResult => {
     // Create signature session
     const createSignatureSession = useCallback(async (request: CreateSignatureSessionRequest) => {
         try {
-            console.log('🔧 Creating signature session...', request);
 
             const response = await tabletsApi.createSignatureSession(request);
-
-            console.log('✅ Signature session created:', response);
 
             // Update stats
             const stats = calculateRealtimeStats(tablets);
@@ -149,14 +134,11 @@ export const useTablets = (): UseTabletsResult => {
     // Retry signature session
     const retrySignatureSession = useCallback(async (sessionId: string) => {
         try {
-            console.log('🔄 Retrying signature session:', sessionId);
 
             await tabletsApi.retrySignatureSession(sessionId);
 
             // Refresh data after retry
             await refreshData();
-
-            console.log('✅ Signature session retried successfully');
         } catch (err) {
             console.error('❌ Error retrying signature session:', err);
             throw err;
@@ -166,14 +148,11 @@ export const useTablets = (): UseTabletsResult => {
     // Cancel signature session
     const cancelSignatureSession = useCallback(async (sessionId: string) => {
         try {
-            console.log('❌ Cancelling signature session:', sessionId);
 
             await tabletsApi.cancelSignatureSession(sessionId);
 
             // Refresh data after cancellation
             await refreshData();
-
-            console.log('✅ Signature session cancelled successfully');
         } catch (err) {
             console.error('❌ Error cancelling signature session:', err);
             throw err;
@@ -183,11 +162,8 @@ export const useTablets = (): UseTabletsResult => {
     // Test tablet
     const testTablet = useCallback(async (tabletId: string) => {
         try {
-            console.log('🧪 Testing tablet:', tabletId);
 
             const result = await tabletsApi.testTablet(tabletId);
-
-            console.log('📊 Tablet test result:', result);
 
             return result;
         } catch (err) {
@@ -209,14 +185,11 @@ export const useTablets = (): UseTabletsResult => {
     // Disconnect tablet
     const disconnectTablet = useCallback(async (tabletId: string) => {
         try {
-            console.log('🔌 Disconnecting tablet:', tabletId);
 
             const result = await tabletsApi.disconnectTablet(tabletId);
 
             // Refresh data after disconnection
             await refreshData();
-
-            console.log('✅ Tablet disconnected:', result);
 
             return result;
         } catch (err) {
@@ -228,14 +201,11 @@ export const useTablets = (): UseTabletsResult => {
     // Unpair tablet
     const unpairTablet = useCallback(async (tabletId: string) => {
         try {
-            console.log('🔗 Unpairing tablet:', tabletId);
 
             const result = await tabletsApi.unpairTablet(tabletId);
 
             // Refresh data after unpairing
             await refreshData();
-
-            console.log('✅ Tablet unpaired:', result);
 
             return result;
         } catch (err) {

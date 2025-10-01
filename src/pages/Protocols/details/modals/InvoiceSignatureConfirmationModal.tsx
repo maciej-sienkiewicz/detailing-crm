@@ -45,7 +45,6 @@ const InvoiceSignatureConfirmationModal: React.FC<InvoiceSignatureConfirmationMo
 
     const handleWithoutSignature = async () => {
         try {
-            console.log('🔧 Generating invoice without signature...', { visitId, paymentData });
 
             const request: InvoiceGenerationFromVisitRequest = {
                 visitId,
@@ -59,7 +58,6 @@ const InvoiceSignatureConfirmationModal: React.FC<InvoiceSignatureConfirmationMo
             const result = await generateInvoiceFromVisit(request);
 
             if (result) {
-                console.log('✅ Invoice generated successfully without signature:', result);
                 onConfirm(false, undefined, result.invoiceId);
             } else {
                 console.error('❌ Failed to generate invoice without signature');
@@ -76,7 +74,6 @@ const InvoiceSignatureConfirmationModal: React.FC<InvoiceSignatureConfirmationMo
     };
 
     const handleSignatureRequested = (sessionId: string, invoiceId: string) => {
-        console.log('🔧 Signature requested, transitioning to status modal...', { sessionId, invoiceId });
         setSignatureSessionId(sessionId);
         setSignatureInvoiceId(invoiceId);
         setCurrentStep(SignatureModalStep.SIGNATURE_STATUS);

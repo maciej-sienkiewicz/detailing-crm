@@ -81,7 +81,6 @@ export const VisitTemplateStep: React.FC<VisitTemplateStepProps> = ({
     // NAPRAWKA: Inicjalizacja visitTemplate dla RECURRING_VISIT jeśli nie istnieje
     React.useEffect(() => {
         if (eventType === EventType.RECURRING_VISIT && !watchedTemplate) {
-            console.log('🔧 Initializing visitTemplate for RECURRING_VISIT');
             setValue('visitTemplate', {
                 estimatedDurationMinutes: 60,
                 defaultServices: [],

@@ -184,7 +184,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
 
     // Synchronize images with protocol.vehicleImages
     useEffect(() => {
-        console.log('🔄 Synchronizing images with protocol.vehicleImages:', protocol.vehicleImages?.length || 0);
 
         if (protocol.vehicleImages && protocol.vehicleImages.length > 0) {
             setImages(protocol.vehicleImages);
@@ -210,15 +209,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
     // Fetch image URLs
     useEffect(() => {
         const fetchImageUrls = async () => {
-            console.log('🖼️ Fetching image URLs for', images.length, 'images');
-
-            console.log(images)
-            const imagesToFetch = images.filter(img =>
-                !img.id.startsWith('temp_') &&
-                !imageUrls[img.id]
-            );
-
-            console.log('🔍 Images to fetch URLs for:', imagesToFetch.length);
 
             if (imagesToFetch.length === 0) return;
 
@@ -241,7 +231,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                 }, {} as Record<string, string>);
 
                 if (Object.keys(newUrls).length > 0) {
-                    console.log('✅ Fetched URLs for', Object.keys(newUrls).length, 'images');
                     setImageUrls(prev => ({
                         ...prev,
                         ...newUrls
@@ -271,14 +260,11 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
     // Fetch images from API (only when protocol doesn't have vehicleImages)
     const fetchImagesFromApi = async () => {
         if (isLoading) return;
-
-        console.log('📥 Fetching images from API for protocol:', protocol.id);
         setIsLoading(true);
         setError(null);
 
         try {
             const fetchedImages = await carReceptionApi.fetchVehicleImages(protocol.id);
-            console.log('✅ Fetched images from API:', fetchedImages.length);
 
             setImages(fetchedImages);
 
@@ -299,28 +285,18 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
 
     // Get image URL function
     const getImageUrl = (image: VehicleImage): string => {
-        console.log(`🔍 Getting URL for image ${image.id}:`, {
-            hasDirectUrl: !!image.url,
-            hasCachedUrl: !!imageUrls[image.id],
-            isTemp: image.id.startsWith('temp_')
-        });
 
         if (image.id.startsWith('temp_') && image.url) {
-            console.log(`✅ Using temp URL for ${image.id}`);
             return image.url;
         }
 
         if (imageUrls[image.id]) {
-            console.log(`✅ Using cached URL for ${image.id}`);
             return imageUrls[image.id];
         }
 
         if (image.url) {
-            console.log(`✅ Using direct URL for ${image.id}`);
             return image.url;
         }
-
-        console.log(`❌ No URL found for ${image.id}`);
         return '';
     };
 
@@ -516,8 +492,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
             file: file
         };
 
-        console.log('➕ Adding temporary image:', tempImage.id);
-
         const updatedImages = [...images, tempImage];
         setImages(updatedImages);
 
@@ -531,8 +505,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
         if (editingImageIndex >= 0 && editingImageIndex < images.length) {
             const currentImage = images[editingImageIndex];
 
-            console.log('💾 Saving image info for:', currentImage.id);
-
             if (currentImage.id.startsWith('temp_') && currentUploadImage) {
                 setEditModalOpen(false);
                 setEditingImageIndex(-1);
@@ -545,11 +517,7 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                         name: newName,
                         tags: newTags
                     };
-
-                    console.log('⬆️ Uploading new image:', updatedUploadImage.name);
                     const uploadedImage = await carReceptionApi.uploadVehicleImage(protocol.id, updatedUploadImage);
-
-                    console.log('✅ Image uploaded successfully:', uploadedImage.id);
 
                     const finalImages = [
                         ...images.filter(img => !img.id.startsWith('temp_')),
@@ -588,7 +556,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                 setIsLoading(true);
 
                 try {
-                    console.log('📝 Updating existing image metadata:', currentImage.id);
                     const updatedImage = await carReceptionApi.updateVehicleImage(protocol.id, currentImage.id, {
                         name: newName,
                         tags: newTags
@@ -625,8 +592,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
             return;
         }
 
-        console.log('🗑️ Deleting image:', imageId);
-
         if (imageId.startsWith('temp_')) {
             const updatedImages = images.filter(img => img.id !== imageId);
             setImages(updatedImages);
@@ -641,7 +606,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
             const success = await carReceptionApi.deleteVehicleImage(protocol.id, imageId);
 
             if (success) {
-                console.log('✅ Image deleted successfully');
 
                 const updatedImages = images.filter(img => img.id !== imageId);
                 setImages(updatedImages);

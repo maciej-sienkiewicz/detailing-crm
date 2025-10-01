@@ -34,13 +34,10 @@ export const useProtocolSignature = (): UseProtocolSignatureResult => {
             setIsRequesting(true);
             setError(null);
 
-            console.log('🔧 Requesting protocol signature...', request);
-
             const response = await protocolSignatureApi.requestProtocolSignature(request);
 
             if (response.success) {
                 setCurrentSession(response.sessionId);
-                console.log('✅ Protocol signature requested successfully:', response.sessionId);
                 return response.sessionId;
             } else {
                 setError(response.message || 'Nie udało się wysłać żądania podpisu');
@@ -60,14 +57,11 @@ export const useProtocolSignature = (): UseProtocolSignatureResult => {
         try {
             setError(null);
 
-            console.log('🔧 Cancelling signature session...', sessionId);
-
             const response = await protocolSignatureApi.cancelSignatureSession(sessionId, reason);
 
             if (response.success) {
                 setCurrentSession(null);
                 setCurrentStatus(null);
-                console.log('✅ Signature session cancelled successfully');
                 return true;
             } else {
                 setError('Nie udało się anulować żądania podpisu');
@@ -85,8 +79,6 @@ export const useProtocolSignature = (): UseProtocolSignatureResult => {
         try {
             setError(null);
 
-            console.log('🔧 Downloading signed document...', sessionId);
-
             const blob = await protocolSignatureApi.getSignedDocument(sessionId);
 
             // Create download link
@@ -98,8 +90,6 @@ export const useProtocolSignature = (): UseProtocolSignatureResult => {
             link.click();
             document.body.removeChild(link);
             window.URL.revokeObjectURL(url);
-
-            console.log('✅ Signed document downloaded successfully');
             return true;
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Nie udało się pobrać podpisanego dokumentu';

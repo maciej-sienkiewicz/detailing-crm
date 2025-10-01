@@ -84,17 +84,8 @@ export const useProtocolList = (): UseProtocolListReturn => {
                 if (searchParams.price?.max) queryParams.maxPrice = searchParams.price.max;
             }
 
-            console.log('Pobieranie protokołów z parametrami:', queryParams);
-
             // Wywołanie API z paginacją
             const result = await visitsApiNew.getVisitsList(queryParams);
-
-            console.log('Odpowiedź z API po przetworzeniu:', {
-                success: result.success,
-                dataLength: result.data?.data.length || 0,
-                pagination: result.data?.pagination,
-                error: result.error
-            });
 
             if (result.success && result.data) {
                 setProtocols(result.data.data);
@@ -147,7 +138,6 @@ export const useProtocolList = (): UseProtocolListReturn => {
 
     // Obsługa zmiany strony - upraszczamy tę funkcję
     const handlePageChange = (page: number) => {
-        console.log(`Zmiana strony z ${pagination.currentPage + 1} na ${page}`);
 
         setPagination(prev => ({
             ...prev,

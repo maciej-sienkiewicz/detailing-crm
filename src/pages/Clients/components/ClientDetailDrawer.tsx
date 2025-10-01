@@ -116,19 +116,15 @@ const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
                 setLoading(true);
                 setError(null);
                 try {
-                    console.log('📋 Loading data for client:', client.id);
 
                     // Load client statistics
                     const clientStats = await clientApi.fetchClientStatsById(client.id);
                     setClientStats(clientStats);
-                    console.log('📊 Client stats loaded:', clientStats);
 
                     // Load visit history (5 most recent visits)
                     const visitResult = await visitsApi.getClientVisitHistory(client.id, { size: 5 });
-                    console.log('🏥 Visit history result:', visitResult);
 
                     if (visitResult.success && visitResult.data) {
-                        console.log('✅ Visit history data:', visitResult.data.data);
                         setVisitHistory(visitResult.data.data);
                     } else {
                         console.warn('⚠️ Failed to load visit history:', visitResult.error);

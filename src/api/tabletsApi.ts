@@ -129,12 +129,6 @@ export interface TabletStatsResponse {
 // Debug helper
 const debugAuthToken = () => {
     const token = localStorage.getItem('auth_token') || localStorage.getItem('authToken');
-    console.log('🔐 Auth Token Debug:', {
-        exists: !!token,
-        length: token?.length,
-        preview: token?.substring(0, 20) + '...',
-        storageKeys: Object.keys(localStorage)
-    });
     return token;
 };
 
@@ -143,11 +137,9 @@ export const tabletsApi = {
     // Get all tablets for current company
     async getTablets(): Promise<TabletDevice[]> {
         try {
-            console.log('🔧 Fetching tablets for company...');
             debugAuthToken();
 
             const response = await apiClient.get<TabletListResponse>('/tablets');
-            console.log('✅ Tablets response:', response);
 
             return response.tablets || [];
         } catch (error) {
@@ -179,12 +171,10 @@ export const tabletsApi = {
 
     // Generate pairing code (no longer needs request body)
     async generatePairingCode(): Promise<PairingCodeResponse> {
-        console.log('🔧 Generating pairing code...');
         debugAuthToken();
 
         try {
             const response = await apiClient.post<PairingCodeResponse>('/tablets/generate-pairing-code', {});
-            console.log('✅ Pairing code generated:', response);
             return response;
         } catch (error) {
             console.error('❌ Failed to generate pairing code:', error);
@@ -212,11 +202,9 @@ export const tabletsApi = {
 
     // Complete tablet pairing
     async completeTabletPairing(request: TabletPairingRequest): Promise<TabletCredentials> {
-        console.log('🔧 Completing tablet pairing...', request);
 
         try {
             const response = await apiClient.post<TabletCredentials>('/tablets/pair', request);
-            console.log('✅ Tablet pairing completed:', response);
             return response;
         } catch (error) {
             console.error('❌ Tablet pairing failed:', error);
@@ -226,11 +214,9 @@ export const tabletsApi = {
 
     // Create signature session using /api/signatures/request
     async createSignatureSessionDirect(request: CreateSignatureSessionRequest): Promise<SignatureRequestResponse> {
-        console.log('🔧 Creating signature session directly...', request);
 
         try {
             const response = await apiClient.postNot<SignatureRequestResponse>('/signatures/request', request);
-            console.log('✅ Signature session created:', response);
             return response;
         } catch (error) {
             console.error('❌ Failed to create signature session:', error);
@@ -240,11 +226,9 @@ export const tabletsApi = {
 
     // Create signature session
     async createSignatureSession(request: CreateSignatureSessionRequest): Promise<SignatureSessionResponse> {
-        console.log('🔧 Creating signature session...', request);
 
         try {
             const response = await apiClient.post<SignatureSessionResponse>('/signatures/request', request);
-            console.log('✅ Signature session created:', response);
             return response;
         } catch (error) {
             console.error('❌ Failed to create signature session:', error);

@@ -42,13 +42,10 @@ export interface ServiceUsageDto {
 class VehicleAnalyticsApi {
     async getVehicleAnalytics(vehicleId: string): Promise<VehicleAnalyticsResponse> {
         try {
-            console.log('🔍 Fetching vehicle analytics for:', vehicleId);
 
             const response = await apiClientNew.get<VehicleAnalyticsResponse>(
                 `/vehicles/${vehicleId}/analytics`
             );
-
-            console.log('✅ Vehicle analytics loaded successfully');
             return response;
         } catch (error) {
             console.error('❌ Error fetching vehicle analytics:', error);
@@ -58,14 +55,11 @@ class VehicleAnalyticsApi {
 
     async getBatchVehicleAnalytics(vehicleIds: string[]): Promise<Record<string, VehicleAnalyticsResponse>> {
         try {
-            console.log('🔍 Fetching batch vehicle analytics for:', vehicleIds.length, 'vehicles');
 
             const response = await apiClientNew.post<Record<string, VehicleAnalyticsResponse>>(
                 '/vehicles/batch-analytics',
                 { vehicle_ids: vehicleIds }
             );
-
-            console.log('✅ Batch vehicle analytics loaded successfully');
             return response;
         } catch (error) {
             console.error('❌ Error fetching batch vehicle analytics:', error);

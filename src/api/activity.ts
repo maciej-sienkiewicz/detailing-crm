@@ -115,7 +115,6 @@ class ActivityApi {
      */
     async getActivities(params: ActivitySearchParams = {}): Promise<ActivityApiResult<PaginatedApiResponse<ActivityItem>>> {
         try {
-            console.log('🔍 Fetching activities with params:', params);
 
             const {
                 page = 0,
@@ -134,7 +133,6 @@ class ActivityApi {
             const cacheKey = `activities-${JSON.stringify(params)}`;
             const cachedResult = this.getCachedResult(cacheKey);
             if (cachedResult && !this.includesRecentData(params)) {
-                console.log('📋 Returning cached activities');
                 return cachedResult;
             }
 
@@ -150,14 +148,6 @@ class ActivityApi {
             );
 
             // 🐛 DEBUG: Sprawdźmy co zwraca API
-            console.log('🐛 RAW API RESPONSE:', {
-                responseKeys: Object.keys(response),
-                hasContent: 'content' in response,
-                contentLength: response.content?.length || 0,
-                firstItem: response.content?.[0],
-                firstItemKeys: response.content?.[0] ? Object.keys(response.content[0]) : [],
-                firstItemRelatedEntities: response.content?.[0]?.related_entities
-            });
 
             // ✅ POPRAWKA: Obsługa formatu Spring Boot z 'content'
             const activities = response.content || [];
@@ -169,14 +159,6 @@ class ActivityApi {
             });
 
             // 🐛 DEBUG: Sprawdźmy co mamy po enhancement
-            console.log('🐛 AFTER ENHANCEMENT:', {
-                processedLength: processedActivities.length,
-                firstProcessed: processedActivities[0],
-                firstProcessedKeys: processedActivities[0] ? Object.keys(processedActivities[0]) : [],
-                firstProcessedRelatedEntities: processedActivities[0]?.related_entities,
-                firstProcessedRelatedEntitiesCamel: processedActivities[0]?.relatedEntities,
-                firstProcessedEntities: processedActivities[0]?.entities
-            });
 
             // ✅ POPRAWKA: Tworzymy własną strukturę paginacji
             const paginationInfo = {
@@ -201,12 +183,6 @@ class ActivityApi {
                 this.setCachedResult(cacheKey, result);
             }
 
-            console.log('✅ Successfully fetched activities:', {
-                count: processedActivities.length,
-                totalItems: paginationInfo.totalItems,
-                currentPage: paginationInfo.currentPage
-            });
-
             return result;
 
         } catch (error) {
@@ -220,7 +196,6 @@ class ActivityApi {
      */
     async getActivityById(activityId: string): Promise<ActivityApiResult<ActivityItem>> {
         try {
-            console.log('🔍 Fetching activity by ID:', activityId);
 
             if (!activityId?.trim()) {
                 return {
@@ -236,8 +211,6 @@ class ActivityApi {
             );
 
             const transformedActivity = this.transformServerActivityItem(serverResponse);
-
-            console.log('✅ Successfully fetched activity:', transformedActivity.id);
 
             return {
                 success: true,
@@ -292,9 +265,6 @@ class ActivityApi {
                 this.transformServerEntity(entity)
             ));
         }
-
-        console.log(serverItem.userName);
-        console.log("dupa dupa");
         return {
             id: serverItem.id,
             timestamp: serverItem.timestamp,
@@ -326,13 +296,6 @@ class ActivityApi {
 
     private enhanceActivityItem(activity: ActivityItem): ActivityItem {
         // 🐛 DEBUG: Sprawdźmy co otrzymujemy z API
-        console.log('🐛 BEFORE enhance:', {
-            id: activity.id,
-            keys: Object.keys(activity),
-            related_entities: activity.related_entities,
-            relatedEntities: activity.relatedEntities,
-            entities: activity.entities
-        });
 
         const enhanced = {
             ...activity,
@@ -363,13 +326,6 @@ class ActivityApi {
         };
 
         // 🐛 DEBUG: Sprawdźmy co zwracamy
-        console.log('🐛 AFTER enhance:', {
-            id: enhanced.id,
-            keys: Object.keys(enhanced),
-            related_entities: enhanced.related_entities,
-            relatedEntities: enhanced.relatedEntities,
-            entities: enhanced.entities
-        });
 
         return enhanced;
     }
@@ -461,7 +417,6 @@ class ActivityApi {
         endDate: string,
         filters: Omit<ActivitySearchParams, 'startDate' | 'endDate'> = {}
     ): Promise<ActivityApiResult<ActivityItem[]>> {
-        console.log('📅 Fetching activities for date range:', startDate, 'to', endDate);
 
         const result = await this.getActivities({
             ...filters,

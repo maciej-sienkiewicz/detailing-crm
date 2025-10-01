@@ -62,11 +62,6 @@ export const UserSignatureCard: React.FC<UserSignatureCardProps> = ({ onSuccess,
 
     // Handle signature changes from canvas
     const handleSignatureChange = useCallback((signatureData: string, isEmpty: boolean) => {
-        console.log('Signature change received:', {
-            isEmpty,
-            dataLength: signatureData.length,
-            hasData: !!signatureData.trim()
-        });
 
         setCurrentSignatureData(signatureData);
         setIsSignatureEmpty(isEmpty);

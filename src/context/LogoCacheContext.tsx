@@ -48,7 +48,6 @@ export const LogoCacheProvider: React.FC<LogoCacheProviderProps> = ({ children }
 
                 // Check if cache is still valid
                 if (now - cacheData.lastFetched < CACHE_DURATION && cacheData.logoUrl) {
-                    console.log('✅ Loading logo from cache');
                     setLogoUrl(cacheData.logoUrl);
                     setLogoSettings(cacheData.logoSettings);
                     setLoading(false);
@@ -68,14 +67,11 @@ export const LogoCacheProvider: React.FC<LogoCacheProviderProps> = ({ children }
             setLoading(true);
             setError(null);
 
-            console.log('🔄 Fetching logo from server');
-
             // Get company settings to check if logo exists
             const settings = await companySettingsApi.getCompanySettings();
             const logoSettings = settings.logoSettings;
 
             if (!logoSettings?.hasLogo || !logoSettings.logoFileName) {
-                console.log('❌ No logo configured');
                 setLogoUrl(null);
                 setLogoSettings(logoSettings);
                 clearCacheStorage();
@@ -112,7 +108,6 @@ export const LogoCacheProvider: React.FC<LogoCacheProviderProps> = ({ children }
 
             if (!response.ok) {
                 if (response.status === 404) {
-                    console.log('❌ Logo not found on server');
                     setLogoUrl(null);
                     setLogoSettings(logoSettings);
                     clearCacheStorage();
@@ -145,8 +140,6 @@ export const LogoCacheProvider: React.FC<LogoCacheProviderProps> = ({ children }
             setLogoUrl(objectUrl);
             setLogoSettings(logoSettings);
 
-            console.log('✅ Logo loaded and cached successfully');
-
         } catch (err: any) {
             console.error('❌ Failed to fetch logo:', err);
             setError(err.message || 'Failed to load logo');
@@ -167,7 +160,6 @@ export const LogoCacheProvider: React.FC<LogoCacheProviderProps> = ({ children }
     }, []);
 
     const clearCache = useCallback(() => {
-        console.log('🗑️ Clearing logo cache');
 
         // Revoke old object URL
         if (logoUrl) {
@@ -181,13 +173,11 @@ export const LogoCacheProvider: React.FC<LogoCacheProviderProps> = ({ children }
     }, [logoUrl]);
 
     const refetchLogo = useCallback(async () => {
-        console.log('🔄 Refetching logo');
         clearCache();
         await fetchLogoFromServer();
     }, [clearCache, fetchLogoFromServer]);
 
     const updateLogo = useCallback(async (newSettings: LogoSettings) => {
-        console.log('📝 Updating logo settings');
 
         // Clear old cache first
         if (logoUrl) {

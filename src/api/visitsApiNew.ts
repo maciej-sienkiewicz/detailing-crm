@@ -202,13 +202,11 @@ class VisitsApi {
      */
     async getVisitsList(params: VisitSearchParams = {}): Promise<VisitsApiResult<PaginatedApiResponse<VisitListItem>>> {
         try {
-            console.log('🔍 Fetching visits list with params:', params);
 
             const { page = 0, size = 10, ...filterParams } = params;
 
             // Prepare filter parameters for the API
             const apiParams = this.prepareFilterParams(filterParams);
-            console.log('🎯 Prepared API params:', apiParams);
 
             // Call the API
             const response = await apiClientNew.getWithPagination<any>(
@@ -217,8 +215,6 @@ class VisitsApi {
                 { page, size },
                 { timeout: 15000 }
             );
-
-            console.log('✅ Raw API response:', response);
 
             // Transform the data to match expected interface
             const transformedData = this.transformVisitListData(response.data);
@@ -236,13 +232,6 @@ class VisitsApi {
                 success: true,
                 message: response.message
             };
-
-            console.log('✅ Successfully fetched visits list:', {
-                count: transformedData.length,
-                totalItems: transformedResponse.pagination.totalItems,
-                currentPage: transformedResponse.pagination.currentPage,
-                appliedFilters: apiParams
-            });
 
             return {
                 success: true,
@@ -287,7 +276,6 @@ class VisitsApi {
         params: PaginationParams = {}
     ): Promise<VisitsApiResult<PaginatedApiResponse<ClientVisitHistoryItem>>> {
         try {
-            console.log('🔍 Fetching client visit history:', { clientId, params });
 
             const { page = 0, size = 5 } = params;
 
@@ -298,13 +286,6 @@ class VisitsApi {
                 { page, size },
                 { timeout: 10000 }
             );
-
-            console.log('✅ Successfully fetched client visit history:', {
-                clientId,
-                visitCount: response.data.length,
-                totalItems: response.pagination.totalItems,
-                currentPage: response.pagination.currentPage
-            });
 
             return {
                 success: true,
@@ -353,7 +334,6 @@ class VisitsApi {
         }>
     ): Promise<VisitsApiResult<VisitResponse>> {
         try {
-            console.log('🔧 Adding services to visit:', { visitId, servicesCount: services.length });
 
             // Map services to API request format
             const servicesRequest: AddServiceItemRequest[] = services.map(service => ({
@@ -374,20 +354,12 @@ class VisitsApi {
                 services: servicesRequest
             };
 
-            console.log('📤 Sending services request:', requestData);
-
             // Make API call
             const response = await apiClientNew.post<VisitResponse>(
                 `/v1/protocols/${visitId}/services`,
                 requestData,
                 { timeout: 15000 }
             );
-
-            console.log('✅ Successfully added services to visit:', {
-                visitId,
-                responseId: response.id,
-                serviceCount: response.services?.length || 0
-            });
 
             return {
                 success: true,
@@ -416,14 +388,11 @@ class VisitsApi {
         reason?: string
     ): Promise<VisitsApiResult<VisitResponse>> {
         try {
-            console.log('🗑️ Removing service from visit:', { visitId, serviceId, reason });
 
             const requestData = {
                 serviceId,
                 reason: reason || null
             };
-
-            console.log('📤 Sending remove service request:', requestData);
 
             // Make API call using fetch directly since DELETE with body needs custom handling
             const url = `${'/api'}/v1/protocols/${visitId}/services`;
@@ -449,13 +418,6 @@ class VisitsApi {
 
             // Transform snake_case to camelCase
             const transformedData = this.transformToCamelCase(data);
-
-            console.log('✅ Successfully removed service from visit:', {
-                visitId,
-                serviceId,
-                responseId: transformedData.id,
-                serviceCount: transformedData.services?.length || 0
-            });
 
             return {
                 success: true,
@@ -513,7 +475,6 @@ class VisitsApi {
         return rawData.map(item => {
             try {
                 // Log individual item for debugging
-                console.log('📋 Transforming visit item:', item);
 
                 const transformed: VisitListItem = {
                     id: item.id?.toString() || '',
@@ -542,8 +503,6 @@ class VisitsApi {
                     selectedServices: this.transformServices(item.services || item.selected_services || []),
                     totalServiceCount: parseInt(item.totalServiceCount?.toString() || item.total_service_count?.toString() || '0')
                 };
-
-                console.log('✅ Transformed visit item:', transformed);
                 return transformed;
             } catch (error) {
                 console.error('❌ Error transforming visit item:', error, item);
@@ -616,16 +575,12 @@ class VisitsApi {
         // Handle status filter properly
         if (params.status) {
             apiParams.status = params.status;
-            console.log('🎯 Added status filter:', params.status);
         }
 
         // Handle serviceIds array
         if (params.serviceIds && Array.isArray(params.serviceIds) && params.serviceIds.length > 0) {
             apiParams.serviceIds = params.serviceIds;
-            console.log('🔧 Added serviceIds to API params:', params.serviceIds);
         }
-
-        console.log('📋 Final prepared params:', apiParams);
         return apiParams;
     }
 

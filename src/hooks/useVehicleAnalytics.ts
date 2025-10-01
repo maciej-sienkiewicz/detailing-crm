@@ -21,10 +21,8 @@ export const useVehicleAnalytics = (vehicleId?: string): UseVehicleAnalyticsResu
         setError(null);
 
         try {
-            console.log('🔄 Fetching analytics for vehicle:', vehicleId);
             const data = await vehicleAnalyticsApi.getVehicleAnalytics(vehicleId);
             setAnalytics(data);
-            console.log('✅ Analytics loaded successfully');
         } catch (err) {
             console.error('❌ Failed to load analytics:', err);
             setError(err instanceof Error ? err.message : 'Błąd podczas ładowania analiz');

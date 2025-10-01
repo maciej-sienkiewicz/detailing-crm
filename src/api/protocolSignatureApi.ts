@@ -33,11 +33,8 @@ export const protocolSignatureApi = {
     // Wysłanie żądania podpisu protokołu
     requestProtocolSignature: async (request: ProtocolSignatureRequest): Promise<ProtocolSignatureResponse> => {
         try {
-            console.log('🔧 Requesting protocol signature...', request);
 
             const response = await apiClient.postNotCamel<ProtocolSignatureResponse>('/protocol-signatures/request', request);
-
-            console.log('✅ Protocol signature request sent:', response);
             return response;
         } catch (error) {
             console.error('❌ Error requesting protocol signature:', error);

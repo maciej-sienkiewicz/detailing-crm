@@ -57,34 +57,17 @@ export const useInvoiceSignature = (): UseInvoiceSignatureResult => {
             setIsRequesting(true);
             setError(null);
 
-            console.log('🔧 Requesting invoice signature from visit with enhanced data...', {
-                visitId: request.visitId,
-                tabletId: request.tabletId,
-                customerName: request.customerName,
-                paymentMethod: request.paymentMethod,
-                paymentDays: request.paymentDays,
-                overridenItems: request.overridenItems ? `${request.overridenItems.length} items` : 'none',
-                signatureTitle: request.signatureTitle,
-                timeoutMinutes: request.timeoutMinutes
-            });
-
             if (!request.visitId || !request.tabletId || !request.customerName) {
                 throw new Error('Wymagane pola: visitId, tabletId, customerName');
             }
 
             if (request.paymentMethod) {
-                console.log('💳 Payment method included:', request.paymentMethod);
             }
 
             if (request.paymentDays && request.paymentMethod === 'transfer') {
-                console.log('📅 Payment days for transfer:', request.paymentDays);
             }
 
             if (request.overridenItems && request.overridenItems.length > 0) {
-                console.log('📋 Overridden items included:', {
-                    count: request.overridenItems.length,
-                    totalValue: request.overridenItems.reduce((sum, item) => sum + (item.finalPrice || item.price), 0)
-                });
             }
 
             const response = await invoiceSignatureApi.requestInvoiceSignatureFromVisit(request);
@@ -92,11 +75,6 @@ export const useInvoiceSignature = (): UseInvoiceSignatureResult => {
             if (response.success) {
                 setCurrentSession(response.sessionId);
                 setCurrentInvoiceId(response.invoiceId);
-                console.log('✅ Invoice signature request successful:', {
-                    sessionId: response.sessionId,
-                    invoiceId: response.invoiceId,
-                    includesPaymentData: !!(request.paymentMethod || request.overridenItems || request.paymentDays)
-                });
                 return { sessionId: response.sessionId, invoiceId: response.invoiceId };
             } else {
                 setError(response.message || 'Nie udało się wysłać żądania podpisu faktury');
@@ -126,42 +104,23 @@ export const useInvoiceSignature = (): UseInvoiceSignatureResult => {
             setIsGenerating(true);
             setError(null);
 
-            console.log('🔧 Generating invoice from visit without signature...', {
-                visitId: request.visitId,
-                paymentMethod: request.paymentMethod,
-                paymentDays: request.paymentDays,
-                overridenItems: request.overridenItems ? `${request.overridenItems.length} items` : 'none',
-                invoiceTitle: request.invoiceTitle,
-                notes: request.notes
-            });
-
             if (!request.visitId) {
                 throw new Error('Wymagane pole: visitId');
             }
 
             if (request.paymentMethod) {
-                console.log('💳 Payment method for invoice:', request.paymentMethod);
             }
 
             if (request.paymentDays) {
-                console.log('📅 Payment days for invoice:', request.paymentDays);
             }
 
             if (request.overridenItems && request.overridenItems.length > 0) {
-                console.log('📋 Overridden items for invoice:', {
-                    count: request.overridenItems.length,
-                    totalValue: request.overridenItems.reduce((sum, item) => sum + (item.finalPrice || item.price), 0)
-                });
             }
 
             const response = await invoiceSignatureApi.generateInvoiceFromVisit(request);
 
             if (response.success) {
                 setCurrentInvoiceId(response.invoiceId);
-                console.log('✅ Invoice generation successful:', {
-                    invoiceId: response.invoiceId,
-                    includesPaymentData: !!(request.paymentMethod || request.overridenItems || request.paymentDays)
-                });
                 return { invoiceId: response.invoiceId };
             } else {
                 setError(response.message || 'Nie udało się wygenerować faktury');
@@ -192,19 +151,14 @@ export const useInvoiceSignature = (): UseInvoiceSignatureResult => {
         }
 
         try {
-            console.log('🔄 Polling invoice signature status...', { sessionId, invoiceId });
 
             const statusResponse = await invoiceSignatureApi.getInvoiceSignatureStatus(sessionId, invoiceId);
             setCurrentStatus(statusResponse);
-
-            console.log('📊 Invoice signature status updated:', statusResponse.status);
 
             if (statusResponse.status === InvoiceSignatureStatus.COMPLETED ||
                 statusResponse.status === InvoiceSignatureStatus.ERROR ||
                 statusResponse.status === InvoiceSignatureStatus.EXPIRED ||
                 statusResponse.status === InvoiceSignatureStatus.CANCELLED) {
-
-                console.log('🏁 Stopping status polling - final status:', statusResponse.status);
                 stopStatusPolling();
             }
         } catch (err) {
@@ -218,7 +172,6 @@ export const useInvoiceSignature = (): UseInvoiceSignatureResult => {
     }, []);
 
     const startStatusPolling = useCallback((sessionId: string, invoiceId: string): void => {
-        console.log('▶️ Starting invoice signature status polling...', { sessionId, invoiceId });
 
         stopStatusPolling();
 
@@ -235,7 +188,6 @@ export const useInvoiceSignature = (): UseInvoiceSignatureResult => {
     }, [pollStatus]);
 
     const stopStatusPolling = useCallback((): void => {
-        console.log('⏹️ Stopping invoice signature status polling...');
 
         if (pollingIntervalRef.current) {
             clearInterval(pollingIntervalRef.current);
@@ -251,15 +203,12 @@ export const useInvoiceSignature = (): UseInvoiceSignatureResult => {
             setError(null);
             stopStatusPolling();
 
-            console.log('🔧 Cancelling invoice signature session...', { sessionId, invoiceId, reason });
-
             const response = await invoiceSignatureApi.cancelInvoiceSignatureSession(sessionId, invoiceId, reason);
 
             if (response.success) {
                 setCurrentSession(null);
                 setCurrentInvoiceId(null);
                 setCurrentStatus(null);
-                console.log('✅ Invoice signature session cancelled successfully');
                 return true;
             } else {
                 setError('Nie udało się anulować żądania podpisu faktury');
@@ -277,8 +226,6 @@ export const useInvoiceSignature = (): UseInvoiceSignatureResult => {
         try {
             setError(null);
 
-            console.log('🔧 Downloading signed invoice...', { sessionId, invoiceId });
-
             const blob = await invoiceSignatureApi.getSignedInvoice(sessionId, invoiceId);
 
             const url = window.URL.createObjectURL(blob);
@@ -290,8 +237,6 @@ export const useInvoiceSignature = (): UseInvoiceSignatureResult => {
             link.click();
             document.body.removeChild(link);
             window.URL.revokeObjectURL(url);
-
-            console.log('✅ Signed invoice downloaded successfully');
             return true;
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Nie udało się pobrać podpisanej faktury';
@@ -305,8 +250,6 @@ export const useInvoiceSignature = (): UseInvoiceSignatureResult => {
         try {
             setError(null);
 
-            console.log('🔧 Downloading signature image...', { sessionId, invoiceId });
-
             const blob = await invoiceSignatureApi.getSignatureImage(sessionId, invoiceId);
 
             const url = window.URL.createObjectURL(blob);
@@ -318,8 +261,6 @@ export const useInvoiceSignature = (): UseInvoiceSignatureResult => {
             link.click();
             document.body.removeChild(link);
             window.URL.revokeObjectURL(url);
-
-            console.log('✅ Signature image downloaded successfully');
             return true;
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Nie udało się pobrać obrazu podpisu';
@@ -333,8 +274,6 @@ export const useInvoiceSignature = (): UseInvoiceSignatureResult => {
         try {
             setError(null);
 
-            console.log('🔧 Downloading current invoice...', invoiceId);
-
             const blob = await invoiceSignatureApi.downloadCurrentInvoice(invoiceId);
 
             const url = window.URL.createObjectURL(blob);
@@ -346,8 +285,6 @@ export const useInvoiceSignature = (): UseInvoiceSignatureResult => {
             link.click();
             document.body.removeChild(link);
             window.URL.revokeObjectURL(url);
-
-            console.log('✅ Current invoice downloaded successfully');
             return true;
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Nie udało się pobrać faktury';

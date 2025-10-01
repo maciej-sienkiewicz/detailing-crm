@@ -78,15 +78,12 @@ export interface CancelInvoiceSignatureRequest {
 export const invoiceSignatureApi = {
     requestInvoiceSignatureFromVisit: async (request: InvoiceSignatureFromVisitRequest): Promise<InvoiceSignatureResponse> => {
         try {
-            console.log('🔧 Requesting invoice signature from visit...', request);
 
             const response = await apiClientNew.post<InvoiceSignatureResponse>(
                 `/invoice-signatures/request-from-visit`,
                 request,
                 { timeout: 30000 }
             );
-
-            console.log('✅ Invoice signature request sent:', response);
             return response;
         } catch (error) {
             console.error('❌ Error requesting invoice signature:', error);
@@ -96,15 +93,12 @@ export const invoiceSignatureApi = {
 
     generateInvoiceFromVisit: async (request: InvoiceGenerationFromVisitRequest): Promise<InvoiceGenerationResponse> => {
         try {
-            console.log('🔧 Generating invoice from visit without signature...', request);
 
             const response = await apiClientNew.post<InvoiceGenerationResponse>(
                 `/financial-documents/generate-from-visit`,
                 request,
                 { timeout: 30000 }
             );
-
-            console.log('✅ Invoice generated successfully:', response);
             return response;
         } catch (error) {
             console.error('❌ Error generating invoice from visit:', error);
@@ -133,7 +127,6 @@ export const invoiceSignatureApi = {
         reason?: string
     ): Promise<{ success: boolean; message: string; timestamp: string }> => {
         try {
-            console.log('🔧 Cancelling invoice signature session...', { sessionId, invoiceId, reason });
 
             const response = await apiClientNew.post<{ success: boolean; message: string; timestamp: string }>(
                 `/invoice-signatures/sessions/${sessionId}/cancel`,
@@ -145,8 +138,6 @@ export const invoiceSignatureApi = {
                     }
                 }
             );
-
-            console.log('✅ Invoice signature session cancelled:', response);
             return response;
         } catch (error) {
             console.error('❌ Error cancelling invoice signature session:', error);
@@ -156,7 +147,6 @@ export const invoiceSignatureApi = {
 
     getSignedInvoice: async (sessionId: string, invoiceId: string): Promise<Blob> => {
         try {
-            console.log('🔧 Downloading signed invoice...', { sessionId, invoiceId });
 
             const response = await fetch(
                 `${apiClientNew['baseUrl']}/invoice-signatures/sessions/${sessionId}/signed-document?invoiceId=${encodeURIComponent(invoiceId)}`,
@@ -173,7 +163,6 @@ export const invoiceSignatureApi = {
             }
 
             const blob = await response.blob();
-            console.log('✅ Signed invoice downloaded successfully');
 
             return blob;
         } catch (error) {
@@ -184,7 +173,6 @@ export const invoiceSignatureApi = {
 
     getSignatureImage: async (sessionId: string, invoiceId: string): Promise<Blob> => {
         try {
-            console.log('🔧 Downloading signature image...', { sessionId, invoiceId });
 
             const response = await fetch(
                 `${apiClientNew['baseUrl']}/invoice-signatures/sessions/${sessionId}/signature-image?invoiceId=${encodeURIComponent(invoiceId)}`,
@@ -201,7 +189,6 @@ export const invoiceSignatureApi = {
             }
 
             const blob = await response.blob();
-            console.log('✅ Signature image downloaded successfully');
 
             return blob;
         } catch (error) {
@@ -212,7 +199,6 @@ export const invoiceSignatureApi = {
 
     downloadCurrentInvoice: async (invoiceId: string): Promise<Blob> => {
         try {
-            console.log('🔧 Downloading current invoice...', invoiceId);
 
             const response = await fetch(
                 `${apiClientNew['baseUrl']}/financial-documents/${invoiceId}/attachment`,
@@ -229,7 +215,6 @@ export const invoiceSignatureApi = {
             }
 
             const blob = await response.blob();
-            console.log('✅ Current invoice downloaded successfully');
 
             return blob;
         } catch (error) {

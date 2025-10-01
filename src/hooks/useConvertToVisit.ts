@@ -24,7 +24,6 @@ export const useConvertToVisit = ({
     const { showToast } = useToast();
 
     const handleConvertToVisit = useCallback((visitResponse: ConvertToVisitResponse) => {
-        console.log('✅ Cykliczna wizyta została przekształcona:', visitResponse);
 
         // Pokaż powiadomienie o sukcesie
         showToast('success',

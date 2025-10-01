@@ -72,14 +72,6 @@ export const RecurringEventCellRenderer: React.FC<RecurringEventCellRendererProp
     };
 
     // Debug logging for troubleshooting
-    console.log(`🔍 RecurringEventCellRenderer - ${columnId}:`, {
-        eventId: event.id,
-        columnValue: event[columnId as keyof RecurringEventListItem],
-        frequency: event.frequency,
-        nextOccurrence: event.nextOccurrence,
-        totalOccurrences: event.totalOccurrences,
-        completedOccurrences: event.completedOccurrences
-    });
 
     switch (columnId) {
         case 'selection':
@@ -175,8 +167,6 @@ export const RecurringEventCellRenderer: React.FC<RecurringEventCellRendererProp
             // GŁÓWNA NAPRAWKA: Lepsze wyświetlanie statystyk wystąpień
             const total = event.totalOccurrences ?? 0;
             const completed = event.completedOccurrences ?? 0;
-
-            console.log(`📊 Occurrences for event ${event.id}:`, { total, completed });
 
             // POPRAWKA 1: Jeśli wydarzenie nie jest aktywne, pokaż status
             if (!event.isActive) {

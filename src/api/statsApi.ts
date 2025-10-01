@@ -91,13 +91,10 @@ class StatsApi {
      */
     async getUncategorizedServices(): Promise<UncategorizedService[]> {
         try {
-            console.log('🔍 Fetching uncategorized services');
 
             const response = await apiClientNew.get<UncategorizedService[]>(
                 `${this.baseEndpoint}/services/uncategorized`
             );
-
-            console.log('✅ Successfully fetched uncategorized services:', response.length);
             return Array.isArray(response) ? response : [];
         } catch (error) {
             console.error('❌ Error fetching uncategorized services:', error);
@@ -110,13 +107,10 @@ class StatsApi {
      */
     async getCategories(): Promise<Category[]> {
         try {
-            console.log('🔍 Fetching categories');
 
             const response = await apiClientNew.get<Category[]>(
                 `${this.baseEndpoint}/categories`
             );
-
-            console.log('✅ Successfully fetched categories:', response.length);
             return Array.isArray(response) ? response : [];
         } catch (error) {
             console.error('❌ Error fetching categories:', error);
@@ -129,14 +123,11 @@ class StatsApi {
      */
     async createCategory(data: CreateCategoryRequest): Promise<Category> {
         try {
-            console.log('🔍 Creating category:', data);
 
             const response = await apiClientNew.post<Category>(
                 `${this.baseEndpoint}/categories`,
                 data
             );
-
-            console.log('✅ Successfully created category:', response);
             return response;
         } catch (error) {
             console.error('❌ Error creating category:', error);
@@ -149,14 +140,11 @@ class StatsApi {
      */
     async addToCategory(categoryId: number, data: AddToCategoryRequest): Promise<void> {
         try {
-            console.log('🔍 Adding services to category:', { categoryId, data });
 
             await apiClientNew.post<{ message: string; categoryId: number }>(
                 `${this.baseEndpoint}/categories/${categoryId}/services`,
                 data
             );
-
-            console.log('✅ Successfully added services to category:', categoryId);
         } catch (error) {
             console.error('❌ Error adding services to category:', error);
             throw new Error('Nie udało się przypisać usług do kategorii');
@@ -168,13 +156,10 @@ class StatsApi {
      */
     async getCategorySummary(categoryId: number): Promise<CategoryStatsSummary> {
         try {
-            console.log('🔍 Fetching category summary:', categoryId);
 
             const response = await apiClientNew.get<CategoryStatsSummary>(
                 `${this.baseEndpoint}/categories/${categoryId}/summary`
             );
-
-            console.log('✅ Successfully fetched category summary:', response);
             return response;
         } catch (error) {
             console.error('❌ Error fetching category summary:', error);
@@ -187,20 +172,16 @@ class StatsApi {
      */
     async getCategoryServices(categoryId: number): Promise<CategoryService[]> {
         try {
-            console.log('🔍 Fetching category services:', categoryId);
 
             // Using the actual backend endpoint: GET /api/stats/services/{categoryId}
             const response = await apiClientNew.get<CategoryService[]>(
                 `${this.baseEndpoint}/services/${categoryId}`
             );
-
-            console.log('✅ Successfully fetched category services:', response.length);
             return Array.isArray(response) ? response : [];
         } catch (error) {
             console.error('❌ Error fetching category services:', error);
 
             // Return empty array instead of throwing to prevent UI crashes
-            console.log('📝 Returning empty array for category services due to error');
             return [];
         }
     }
@@ -215,7 +196,6 @@ class StatsApi {
         granularity: TimeGranularity = TimeGranularity.MONTHLY
     ): Promise<CategoryStatsResponse> {
         try {
-            console.log('🔍 Fetching category stats:', { categoryId, startDate, endDate, granularity });
 
             const params = {
                 startDate,
@@ -227,8 +207,6 @@ class StatsApi {
                 `${this.baseEndpoint}/categories/${categoryId}/timeseries`,
                 params
             );
-
-            console.log('✅ Successfully fetched category stats:', response);
             return response;
         } catch (error) {
             console.error('❌ Error fetching category stats:', error);
@@ -242,7 +220,6 @@ class StatsApi {
         granularity: TimeGranularity = TimeGranularity.MONTHLY
     ): Promise<ServiceStatsResponse> {
         try {
-            console.log('🔍 Fetching service stats:', { serviceId, startDate, endDate, granularity });
 
             const params = {
                 startDate,
@@ -254,8 +231,6 @@ class StatsApi {
                 `${this.baseEndpoint}/services/${serviceId}/timeseries`,
                 params
             );
-
-            console.log('✅ Successfully fetched service stats:', response);
             return response;
         } catch (error) {
             console.error('❌ Error fetching service stats:', error);

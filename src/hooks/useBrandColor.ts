@@ -71,8 +71,6 @@ const applyCSSVariables = (color: string): void => {
         root.style.setProperty('--brand-primary-hover', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.12)`);
         root.style.setProperty('--brand-primary-active', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.16)`);
 
-        console.log('Brand color CSS variables applied:', normalizedColor);
-
         // Event dla innych komponentów
         window.dispatchEvent(new CustomEvent('brandColorApplied', {
             detail: { color: normalizedColor }
@@ -103,7 +101,6 @@ const saveColor = (color: string): void => {
         const normalizedColor = normalizeHexColor(color);
         if (isValidHexColor(normalizedColor)) {
             localStorage.setItem(BRAND_COLOR_KEY, normalizedColor);
-            console.log('Brand color saved:', normalizedColor);
         } else {
             console.error('Cannot save invalid color:', color);
         }
@@ -172,8 +169,6 @@ export const useBrandColor = () => {
                 // Aplikuj CSS variables
                 applyCSSVariables(savedColor);
 
-                console.log('Brand color initialized:', savedColor);
-
             } catch (err) {
                 console.error('Error initializing brand color:', err);
                 setError('Nie udało się załadować ustawień koloru marki');
@@ -209,7 +204,6 @@ export const useBrandColor = () => {
                     if (isValidHexColor(newColor) && newColor !== globalBrandColor) {
                         applyCSSVariables(newColor);
                         notifyGlobalChange(newColor);
-                        console.log('Brand color synchronized from another tab:', newColor);
                     }
                 } catch (error) {
                     console.error('Error synchronizing brand color:', error);
@@ -240,8 +234,6 @@ export const useBrandColor = () => {
 
             // Zaktualizuj globalny stan
             notifyGlobalChange(normalizedColor);
-
-            console.log('Brand color updated successfully:', normalizedColor);
 
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Nie udało się zaktualizować koloru marki';

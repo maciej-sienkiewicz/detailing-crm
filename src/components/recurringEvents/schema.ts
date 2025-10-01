@@ -189,11 +189,6 @@ export const validationSchema = yup.object({
 
 // KLUCZOWA NAPRAWKA: Funkcja canProceedToStep - WSZYSTKIE typy przechodzą przez 3 kroki
 export const canProceedToStep = (step: number, formData: Partial<FormData>, errors: Record<string, any>): boolean => {
-    console.log(`🔍 Step ${step} validation:`, {
-        formData,
-        errors,
-        type: formData.type
-    });
 
     switch (step) {
         case 1:
@@ -204,42 +199,35 @@ export const canProceedToStep = (step: number, formData: Partial<FormData>, erro
                 formData.type
             );
             const hasBasicErrors = !!(errors.title || errors.description || errors.type);
-
-            console.log('Step 1 validation:', { hasBasicInfo, hasBasicErrors });
             return hasBasicInfo && !hasBasicErrors;
 
         case 2:
             // Recurrence pattern step - wymagane dla WSZYSTKICH typów
             const pattern = formData.recurrencePattern;
             if (!pattern) {
-                console.log('Step 2: No pattern');
                 return false;
             }
 
             // Check basic requirements
             if (!pattern.frequency || !pattern.interval || pattern.interval < 1) {
-                console.log('Step 2: Basic requirements failed');
                 return false;
             }
 
             // Check frequency-specific requirements
             if (pattern.frequency === RecurrenceFrequency.WEEKLY) {
                 if (!pattern.daysOfWeek || pattern.daysOfWeek.length === 0) {
-                    console.log('Step 2: Weekly frequency but no days selected');
                     return false;
                 }
             }
 
             if (pattern.frequency === RecurrenceFrequency.MONTHLY) {
                 if (!pattern.dayOfMonth || pattern.dayOfMonth < 1 || pattern.dayOfMonth > 31) {
-                    console.log('Step 2: Monthly frequency but invalid day of month');
                     return false;
                 }
             }
 
             // Check end conditions
             if (pattern.endDate && pattern.maxOccurrences) {
-                console.log('Step 2: Both end conditions set');
                 return false;
             }
 
@@ -248,25 +236,21 @@ export const canProceedToStep = (step: number, formData: Partial<FormData>, erro
                 const tomorrow = new Date();
                 tomorrow.setDate(tomorrow.getDate() + 1);
                 if (endDate < tomorrow) {
-                    console.log('Step 2: End date in past');
                     return false;
                 }
             }
 
             if (pattern.maxOccurrences && pattern.maxOccurrences < 1) {
-                console.log('Step 2: Invalid max occurrences');
                 return false;
             }
 
             const hasPatternErrors = !!errors.recurrencePattern;
-            console.log('Step 2 validation passed:', { hasPatternErrors });
             return !hasPatternErrors;
 
         case 3:
             // NAJWAŻNIEJSZA NAPRAWKA: Krok 3 - różna walidacja dla różnych typów
             if (formData.type === EventType.SIMPLE_EVENT) {
                 // SIMPLE_EVENT - może przejść do kroku 3 (potwierdzenia) bez visitTemplate
-                console.log('Step 3: Simple event - proceeding to final step');
 
                 // Sprawdź tylko podstawowe wymagania
                 const hasValidTitle = !!(formData.title && formData.title.length >= 3);
@@ -285,21 +269,12 @@ export const canProceedToStep = (step: number, formData: Partial<FormData>, erro
 
                 const isValidSimpleEvent = hasValidTitle && hasValidType && hasValidPattern && !hasBasicErrors;
 
-                console.log('Step 3 SIMPLE_EVENT validation:', {
-                    hasValidTitle,
-                    hasValidType,
-                    hasValidPattern,
-                    hasBasicErrors,
-                    isValidSimpleEvent
-                });
-
                 return isValidSimpleEvent;
             }
 
             // RECURRING_VISIT - wymaga visitTemplate
             const template = formData.visitTemplate;
             if (!template) {
-                console.log('Step 3: Recurring visit but no template');
                 return false;
             }
 
@@ -317,17 +292,9 @@ export const canProceedToStep = (step: number, formData: Partial<FormData>, erro
             const hasTemplateErrors = !!errors.visitTemplate;
             const isStep3ValidRecurring = hasValidDuration && hasValidServices && !hasTemplateErrors;
 
-            console.log('Step 3 RECURRING_VISIT validation:', {
-                hasValidDuration,
-                hasValidServices,
-                hasTemplateErrors,
-                isStep3ValidRecurring
-            });
-
             return isStep3ValidRecurring;
 
         default:
-            console.log(`Unknown step: ${step}`);
             return false;
     }
 };

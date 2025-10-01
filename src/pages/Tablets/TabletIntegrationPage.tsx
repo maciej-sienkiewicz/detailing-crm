@@ -115,13 +115,11 @@ const TabletIntegrationPage: React.FC = () => {
     // Cleanup function for all intervals
     const cleanupAllIntervals = useCallback(() => {
         if (pairingCodeIntervalRef.current) {
-            console.log('🧹 Cleaning up pairing code timer interval');
             clearInterval(pairingCodeIntervalRef.current);
             pairingCodeIntervalRef.current = null;
         }
 
         if (codeStatusIntervalRef.current) {
-            console.log('🧹 Cleaning up code status polling interval');
             clearInterval(codeStatusIntervalRef.current);
             codeStatusIntervalRef.current = null;
         }
@@ -137,20 +135,17 @@ const TabletIntegrationPage: React.FC = () => {
     // Effect to handle code status polling when modal is open and code exists
     useEffect(() => {
         if (showPairingModal && pairingCode?.code) {
-            console.log('🚀 Starting code status polling for code:', pairingCode.code);
             currentPairingCodeRef.current = pairingCode.code;
 
             // Function to check code status
             const checkCodeStatus = async (code: string): Promise<boolean> => {
                 try {
-                    console.log('🔍 Checking pairing code status:', code);
 
                     // Use direct fetch to have full control over the request
                     const authToken = localStorage.getItem('auth_token');
                     const response = tabletsApi.checkCodeStatus(code)
 
                     const result = await response
-                    console.log('✅ Code status result:', result);
                     return result;
 
                 } catch (error) {
@@ -160,27 +155,21 @@ const TabletIntegrationPage: React.FC = () => {
             };
 
             // Initial check
-            console.log('🔍 Performing initial code status check');
             checkCodeStatus(pairingCode.code).then(isActive => {
-                console.log('📊 Initial code status result:', { code: pairingCode.code, isActive });
             });
 
             // Set up polling interval
             const interval = setInterval(async () => {
                 const currentCode = currentPairingCodeRef.current;
                 if (!currentCode) {
-                    console.log('🛑 No current code, stopping polling');
                     clearInterval(interval);
                     codeStatusIntervalRef.current = null;
                     return;
                 }
 
-                console.log('⏰ Scheduled code status check for:', currentCode);
-
                 const isActive = await checkCodeStatus(currentCode);
 
                 if (!isActive) {
-                    console.log('🔒 Code is no longer active - tablet paired successfully!');
 
                     // Clean up intervals
                     clearInterval(interval);
@@ -199,7 +188,6 @@ const TabletIntegrationPage: React.FC = () => {
 
                     // Refresh data and show success message
                     setTimeout(async () => {
-                        console.log('🔄 Refreshing tablet data after successful pairing');
                         try {
                             await refreshData();
                             showToast('success', 'Tablet został pomyślnie sparowany!');
@@ -212,11 +200,9 @@ const TabletIntegrationPage: React.FC = () => {
             }, 3000);
 
             codeStatusIntervalRef.current = interval;
-            console.log('✅ Code status polling interval started');
 
             // Cleanup function for this effect
             return () => {
-                console.log('🧹 Cleaning up code status polling effect');
                 if (interval) {
                     clearInterval(interval);
                 }
@@ -227,7 +213,6 @@ const TabletIntegrationPage: React.FC = () => {
 
     // WebSocket event handlers
     const handleTabletConnectionChange = useCallback((event: any) => {
-        console.log('Tablet connection changed:', event);
         showToast(
             event.action === 'connected' ? 'success' : 'info',
             `Tablet ${event.deviceName} ${event.action === 'connected' ? 'połączony' : 'rozłączony'}`
@@ -235,7 +220,6 @@ const TabletIntegrationPage: React.FC = () => {
     }, []);
 
     const handleSignatureUpdate = useCallback((event: any) => {
-        console.log('Signature update:', event);
         showToast(
             event.status === 'signed' ? 'success' : 'warning',
             `Podpis ${event.status === 'signed' ? 'złożony' : 'wygasł'} dla ${event.customerName}`
@@ -243,12 +227,10 @@ const TabletIntegrationPage: React.FC = () => {
     }, []);
 
     const handleNotification = useCallback((notification: any) => {
-        console.log('New notification:', notification);
     }, []);
 
     // Toast notification system (simplified)
     const showToast = (type: 'success' | 'warning' | 'info' | 'error', message: string) => {
-        console.log(`${type.toUpperCase()}: ${message}`);
         // In real app, this would use a proper toast library like react-hot-toast
     };
 
@@ -284,22 +266,14 @@ const TabletIntegrationPage: React.FC = () => {
 
     const handlePairTablet = async () => {
         try {
-            console.log('🔧 Starting tablet pairing process...');
 
             // Clean up any existing intervals
             cleanupAllIntervals();
 
             const pairingCodeResponse = await generatePairingCode();
-            console.log('🔍 Pairing response:', pairingCodeResponse);
 
             const startTime = Date.now();
             const duration = pairingCodeResponse.expiresIn || 300;
-
-            console.log('🔍 Timer setup:', {
-                startTime: new Date(startTime).toISOString(),
-                durationSeconds: duration,
-                expiresAt: new Date(startTime + duration * 1000).toISOString(),
-            });
 
             // Set initial timer value and show modal
             setPairingCodeTimer(duration);
@@ -309,19 +283,15 @@ const TabletIntegrationPage: React.FC = () => {
             const timerInterval = setInterval(() => {
                 const elapsed = Math.floor((Date.now() - startTime) / 1000);
                 const timeLeft = Math.max(0, duration - elapsed);
-
-                console.log('⏰ Timer update:', { elapsed, timeLeft, duration });
                 setPairingCodeTimer(timeLeft);
 
                 if (timeLeft <= 0) {
-                    console.log('⏰ Timer expired!');
                     clearInterval(timerInterval);
                     pairingCodeIntervalRef.current = null;
                 }
             }, 1000);
 
             pairingCodeIntervalRef.current = timerInterval;
-            console.log('✅ Pairing process initiated with timer');
 
         } catch (error) {
             showToast('error', 'Nie udało się wygenerować kodu parowania');
@@ -330,7 +300,6 @@ const TabletIntegrationPage: React.FC = () => {
     };
 
     const handleClosePairingModal = () => {
-        console.log('🚪 Closing pairing modal manually');
 
         cleanupAllIntervals();
         setShowPairingModal(false);
@@ -340,7 +309,6 @@ const TabletIntegrationPage: React.FC = () => {
 
     const handleGenerateNewCode = async () => {
         try {
-            console.log('🔄 Generating new pairing code');
             cleanupAllIntervals();
             setShowPairingModal(false);
 
