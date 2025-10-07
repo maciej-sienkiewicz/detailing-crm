@@ -73,7 +73,7 @@ export const ClientCellRenderer: React.FC<ClientCellRendererProps> = ({
 
     // DODANA FUNKCJA - nawigacja do szczegółów klienta
     const handleViewClient = () => {
-        navigate(`/client/${client.id}`);
+        navigate(`/clients/${client.id}`);
     };
 
     switch (columnId) {
