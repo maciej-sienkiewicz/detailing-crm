@@ -101,6 +101,8 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
 
     // Load recurring event details if this is a recurring event
     useEffect(() => {
+        if (isRecurringEvent && occurrenceData && !recurringEventDetails) {
+            setLoadingDetails(true);
             recurringEventsApi.getRecurringEventById(occurrenceData.recurringEventId)
                 .then(details => {
                     setRecurringEventDetails(details);
