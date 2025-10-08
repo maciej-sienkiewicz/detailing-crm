@@ -184,7 +184,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
 
     // Synchronize images with protocol.vehicleImages
     useEffect(() => {
-
         if (protocol.vehicleImages && protocol.vehicleImages.length > 0) {
             setImages(protocol.vehicleImages);
         } else {
@@ -209,7 +208,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
     // Fetch image URLs
     useEffect(() => {
         const fetchImageUrls = async () => {
-
             if (imagesToFetch.length === 0) return;
 
             try {
@@ -260,11 +258,14 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
     // Fetch images from API (only when protocol doesn't have vehicleImages)
     const fetchImagesFromApi = async () => {
         if (isLoading) return;
+
+        console.log('📥 Fetching images from API for protocol:', protocol.id);
         setIsLoading(true);
         setError(null);
 
         try {
             const fetchedImages = await carReceptionApi.fetchVehicleImages(protocol.id);
+            console.log('✅ Fetched images from API:', fetchedImages.length);
 
             setImages(fetchedImages);
 
@@ -285,18 +286,28 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
 
     // Get image URL function
     const getImageUrl = (image: VehicleImage): string => {
+        console.log(`🔍 Getting URL for image ${image.id}:`, {
+            hasDirectUrl: !!image.url,
+            hasCachedUrl: !!imageUrls[image.id],
+            isTemp: image.id.startsWith('temp_')
+        });
 
         if (image.id.startsWith('temp_') && image.url) {
+            console.log(`✅ Using temp URL for ${image.id}`);
             return image.url;
         }
 
         if (imageUrls[image.id]) {
+            console.log(`✅ Using cached URL for ${image.id}`);
             return imageUrls[image.id];
         }
 
         if (image.url) {
+            console.log(`✅ Using direct URL for ${image.id}`);
             return image.url;
         }
+
+        console.log(`❌ No URL found for ${image.id}`);
         return '';
     };
 
@@ -492,6 +503,8 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
             file: file
         };
 
+        console.log('➕ Adding temporary image:', tempImage.id);
+
         const updatedImages = [...images, tempImage];
         setImages(updatedImages);
 
@@ -505,6 +518,8 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
         if (editingImageIndex >= 0 && editingImageIndex < images.length) {
             const currentImage = images[editingImageIndex];
 
+            console.log('💾 Saving image info for:', currentImage.id);
+
             if (currentImage.id.startsWith('temp_') && currentUploadImage) {
                 setEditModalOpen(false);
                 setEditingImageIndex(-1);
@@ -517,7 +532,11 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                         name: newName,
                         tags: newTags
                     };
+
+                    console.log('⬆️ Uploading new image:', updatedUploadImage.name);
                     const uploadedImage = await carReceptionApi.uploadVehicleImage(protocol.id, updatedUploadImage);
+
+                    console.log('✅ Image uploaded successfully:', uploadedImage.id);
 
                     const finalImages = [
                         ...images.filter(img => !img.id.startsWith('temp_')),
@@ -556,6 +575,7 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                 setIsLoading(true);
 
                 try {
+                    console.log('📝 Updating existing image metadata:', currentImage.id);
                     const updatedImage = await carReceptionApi.updateVehicleImage(protocol.id, currentImage.id, {
                         name: newName,
                         tags: newTags
@@ -592,6 +612,8 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
             return;
         }
 
+        console.log('🗑️ Deleting image:', imageId);
+
         if (imageId.startsWith('temp_')) {
             const updatedImages = images.filter(img => img.id !== imageId);
             setImages(updatedImages);
@@ -606,6 +628,7 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
             const success = await carReceptionApi.deleteVehicleImage(protocol.id, imageId);
 
             if (success) {
+                console.log('✅ Image deleted successfully');
 
                 const updatedImages = images.filter(img => img.id !== imageId);
                 setImages(updatedImages);
@@ -867,11 +890,11 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                                     <DocumentRowActions>
                                         {(document.contentType == "application/pdf") &&  (
                                             <ActionButton
-                                            onClick={() => handlePreviewDocument(document)}
-                                            title="Podgląd"
-                                        >
-                                            <FaEye />
-                                        </ActionButton>
+                                                onClick={() => handlePreviewDocument(document)}
+                                                title="Podgląd"
+                                            >
+                                                <FaEye />
+                                            </ActionButton>
                                         )}
                                         <ActionButton
                                             onClick={() => handleDownloadDocument(document)}
@@ -1780,92 +1803,92 @@ const FormSelect = styled.select`
     font-size: ${enterprise.fontSize.sm};
     background: ${enterprise.surface};
     color: ${enterprise.textPrimary};
-    
+
     &:focus {
-       outline: none;
-       border-color: ${enterprise.primary};
-       box-shadow: 0 0 0 3px ${enterprise.primary}20;
-   }
+        outline: none;
+        border-color: ${enterprise.primary};
+        box-shadow: 0 0 0 3px ${enterprise.primary}20;
+    }
 `;
 
 const FormTextarea = styled.textarea`
-   padding: ${enterprise.space.md};
-   border: 1px solid ${enterprise.border};
-   border-radius: ${enterprise.radius.md};
-   font-size: ${enterprise.fontSize.sm};
-   background: ${enterprise.surface};
-   color: ${enterprise.textPrimary};
-   resize: vertical;
-   min-height: 80px;
+    padding: ${enterprise.space.md};
+    border: 1px solid ${enterprise.border};
+    border-radius: ${enterprise.radius.md};
+    font-size: ${enterprise.fontSize.sm};
+    background: ${enterprise.surface};
+    color: ${enterprise.textPrimary};
+    resize: vertical;
+    min-height: 80px;
 
-   &:focus {
-       outline: none;
-       border-color: ${enterprise.primary};
-       box-shadow: 0 0 0 3px ${enterprise.primary}20;
-   }
+    &:focus {
+        outline: none;
+        border-color: ${enterprise.primary};
+        box-shadow: 0 0 0 3px ${enterprise.primary}20;
+    }
 
-   &::placeholder {
-       color: ${enterprise.textMuted};
-   }
+    &::placeholder {
+        color: ${enterprise.textMuted};
+    }
 `;
 
 const ModalFooter = styled.div`
-   display: flex;
-   justify-content: flex-end;
-   gap: ${enterprise.space.md};
-   padding: ${enterprise.space.lg} ${enterprise.space.xl};
-   border-top: 1px solid ${enterprise.border};
-   background: ${enterprise.surfaceSecondary};
+    display: flex;
+    justify-content: flex-end;
+    gap: ${enterprise.space.md};
+    padding: ${enterprise.space.lg} ${enterprise.space.xl};
+    border-top: 1px solid ${enterprise.border};
+    background: ${enterprise.surfaceSecondary};
 `;
 
 const SecondaryButton = styled.button`
-   display: flex;
-   align-items: center;
-   gap: ${enterprise.space.sm};
-   padding: ${enterprise.space.md} ${enterprise.space.lg};
-   background: ${enterprise.surface};
-   color: ${enterprise.textSecondary};
-   border: 1px solid ${enterprise.border};
-   border-radius: ${enterprise.radius.md};
-   font-weight: 600;
-   font-size: ${enterprise.fontSize.sm};
-   cursor: pointer;
-   transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: ${enterprise.space.sm};
+    padding: ${enterprise.space.md} ${enterprise.space.lg};
+    background: ${enterprise.surface};
+    color: ${enterprise.textSecondary};
+    border: 1px solid ${enterprise.border};
+    border-radius: ${enterprise.radius.md};
+    font-weight: 600;
+    font-size: ${enterprise.fontSize.sm};
+    cursor: pointer;
+    transition: all 0.2s ease;
 
-   &:hover {
-       background: ${enterprise.surfaceSecondary};
-       color: ${enterprise.textPrimary};
-       border-color: ${enterprise.textTertiary};
-   }
+    &:hover {
+        background: ${enterprise.surfaceSecondary};
+        color: ${enterprise.textPrimary};
+        border-color: ${enterprise.textTertiary};
+    }
 `;
 
 const PrimaryButton = styled.button`
-   display: flex;
-   align-items: center;
-   gap: ${enterprise.space.sm};
-   padding: ${enterprise.space.md} ${enterprise.space.lg};
-   background: ${enterprise.primary};
-   color: white;
-   border: none;
-   border-radius: ${enterprise.radius.md};
-   font-weight: 600;
-   font-size: ${enterprise.fontSize.sm};
-   cursor: pointer;
-   transition: all 0.2s ease;
-   box-shadow: ${enterprise.shadow.sm};
+    display: flex;
+    align-items: center;
+    gap: ${enterprise.space.sm};
+    padding: ${enterprise.space.md} ${enterprise.space.lg};
+    background: ${enterprise.primary};
+    color: white;
+    border: none;
+    border-radius: ${enterprise.radius.md};
+    font-weight: 600;
+    font-size: ${enterprise.fontSize.sm};
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: ${enterprise.shadow.sm};
 
-   &:hover:not(:disabled) {
-       background: ${enterprise.primaryDark};
-       transform: translateY(-1px);
-       box-shadow: ${enterprise.shadow.md};
-   }
+    &:hover:not(:disabled) {
+        background: ${enterprise.primaryDark};
+        transform: translateY(-1px);
+        box-shadow: ${enterprise.shadow.md};
+    }
 
-   &:disabled {
-       background: ${enterprise.textMuted};
-       cursor: not-allowed;
-       transform: none;
-       box-shadow: none;
-   }
+    &:disabled {
+        background: ${enterprise.textMuted};
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
 `;
 
 export default ProtocolGallery;

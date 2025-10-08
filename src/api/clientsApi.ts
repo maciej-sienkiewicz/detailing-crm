@@ -291,6 +291,8 @@ class ClientsApi {
                 { timeout: 10000 }
             );
 
+            const enrichedClient = this.mapBackendClientToExpanded(response);
+
             return {
                 success: true,
                 data: enrichedClient
