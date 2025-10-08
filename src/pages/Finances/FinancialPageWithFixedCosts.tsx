@@ -335,7 +335,7 @@ const FinancialPageWithFixedCosts: React.FC = () => {
                 )}
 
                 {activeTab === 'fixed-costs' && (
-                    <FixedCostsIntegration onSetRef={handleSetFixedCostsRef} />
+                    <FixedCostsIntegration onSetRef={handleSetFixedCostsRef} onDataChange={refreshData}/>
                 )}
 
                 {activeTab === 'balance-history' && (

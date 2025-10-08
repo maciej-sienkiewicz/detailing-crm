@@ -16,9 +16,10 @@ import FixedCostViewModal from "./FixedCostViewModal";
 
 interface FixedCostsIntegrationProps {
     onSetRef?: (ref: { handleAddFixedCost?: () => void }) => void;
+    onDataChange?: () => Promise<void>; // Nowa prop do odświeżania danych z głównego widoku
 }
 
-const FixedCostsIntegration: React.FC<FixedCostsIntegrationProps> = ({ onSetRef }) => {
+const FixedCostsIntegration: React.FC<FixedCostsIntegrationProps> = ({ onSetRef, onDataChange }) => {
     const { showToast } = useToast();
 
     // Modal states
@@ -66,7 +67,15 @@ const FixedCostsIntegration: React.FC<FixedCostsIntegrationProps> = ({ onSetRef 
                 const success = await fixedCostsApi.deleteFixedCost(id);
                 if (success) {
                     showToast('success', 'Koszt stały został usunięty');
+
+                    // Odśwież dane lokalne
                     await triggerRefresh();
+
+                    // Odśwież dane w głównym widoku finansowym (statystyki, salda)
+                    if (onDataChange) {
+                        await onDataChange();
+                    }
+
                     // Close view modal if the deleted cost was being viewed
                     if (selectedFixedCost?.id === id) {
                         setShowViewModal(false);
@@ -104,8 +113,14 @@ const FixedCostsIntegration: React.FC<FixedCostsIntegrationProps> = ({ onSetRef 
                 showToast('success', 'Nowy koszt stały został dodany');
             }
 
-            // Refresh data
+            // Odśwież dane lokalne
             await triggerRefresh();
+
+            // Odśwież dane w głównym widoku finansowym (statystyki, salda)
+            if (onDataChange) {
+                await onDataChange();
+            }
+
             setShowFormModal(false);
             setSelectedFixedCost(undefined);
         } catch (error) {
@@ -122,8 +137,14 @@ const FixedCostsIntegration: React.FC<FixedCostsIntegrationProps> = ({ onSetRef 
             await fixedCostsApi.recordPayment(selectedFixedCost.id, data);
             showToast('success', 'Płatność została zarejestrowana');
 
-            // Refresh data
+            // Odśwież dane lokalne
             await triggerRefresh();
+
+            // Odśwież dane w głównym widoku finansowym (statystyki, salda, zysk)
+            if (onDataChange) {
+                await onDataChange();
+            }
+
             setShowPaymentModal(false);
             setSelectedFixedCost(undefined);
         } catch (error) {

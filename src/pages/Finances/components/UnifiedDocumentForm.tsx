@@ -401,6 +401,21 @@ const UnifiedDocumentForm: React.FC<UnifiedDocumentFormProps> = ({
         }
     }, []);
 
+    const handleNumberInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+        e.target.select();
+    };
+
+    // Helper do obsługi zmiany wartości w polach numerycznych
+    const handleNumberInputChange = (
+        itemId: string,
+        field: 'quantity' | 'unitPrice',
+        value: string
+    ) => {
+        // Jeśli wartość jest pusta, użyj 0, w przeciwnym razie sparsuj wartość
+        const numValue = value === '' ? 0 : parseFloat(value) || 0;
+        handleItemChange(itemId, field, numValue);
+    };
+
     return (
         <FormContainer>
             {/* Spinner podczas ekstrakcji danych */}
@@ -717,9 +732,10 @@ const UnifiedDocumentForm: React.FC<UnifiedDocumentFormProps> = ({
                                     </td>
                                     <td>
                                         <NumberInput
-                                            value={item.quantity}
-                                            onChange={(e) => handleItemChange(item.id!, 'quantity', parseFloat(e.target.value) || 0)}
-                                            placeholder="Ilość"
+                                            value={item.quantity === 0 ? '' : item.quantity}
+                                            onChange={(e) => handleNumberInputChange(item.id!, 'quantity', e.target.value)}
+                                            onFocus={handleNumberInputFocus}
+                                            placeholder="0"
                                             min={0.01}
                                             step={0.01}
                                             required
@@ -727,9 +743,10 @@ const UnifiedDocumentForm: React.FC<UnifiedDocumentFormProps> = ({
                                     </td>
                                     <td>
                                         <NumberInput
-                                            value={item.unitPrice}
-                                            onChange={(e) => handleItemChange(item.id!, 'unitPrice', parseFloat(e.target.value) || 0)}
-                                            placeholder="Cena"
+                                            value={item.unitPrice === 0 ? '' : item.unitPrice}
+                                            onChange={(e) => handleNumberInputChange(item.id!, 'unitPrice', e.target.value)}
+                                            onFocus={handleNumberInputFocus}
+                                            placeholder="0.00"
                                             min={0}
                                             step={0.01}
                                             required
