@@ -208,6 +208,12 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
     // Fetch image URLs
     useEffect(() => {
         const fetchImageUrls = async () => {
+
+            const imagesToFetch = images.filter(img =>
+                !img.id.startsWith('temp_') &&
+                !imageUrls[img.id]
+            );
+
             if (imagesToFetch.length === 0) return;
 
             try {
@@ -229,6 +235,7 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                 }, {} as Record<string, string>);
 
                 if (Object.keys(newUrls).length > 0) {
+                    console.log('✅ Fetched URLs for', Object.keys(newUrls).length, 'images');
                     setImageUrls(prev => ({
                         ...prev,
                         ...newUrls
