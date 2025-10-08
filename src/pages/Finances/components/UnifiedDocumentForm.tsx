@@ -498,21 +498,22 @@ const UnifiedDocumentForm: React.FC<UnifiedDocumentFormProps> = ({
                             {formErrors.title && <ErrorText>{formErrors.title}</ErrorText>}
                         </FormGroup>
 
-                        <FormGroup>
-                            <Label htmlFor="direction">Kierunek*</Label>
-                            <Select
-                                id="direction"
-                                name="direction"
-                                value={formData.direction || TransactionDirection.INCOME}
-                                onChange={handleChange}
-                                required
-                                disabled={initialData.direction !== undefined}
-                            >
-                                {Object.entries(TransactionDirectionLabels).map(([key, label]) => (
-                                    <option key={key} value={key}>{label}</option>
-                                ))}
-                            </Select>
-                        </FormGroup>
+                        {!initialData?.direction && (
+                            <FormGroup>
+                                <Label htmlFor="direction">Kierunek*</Label>
+                                <Select
+                                    id="direction"
+                                    name="direction"
+                                    value={formData.direction || TransactionDirection.INCOME}
+                                    onChange={handleChange}
+                                    required
+                                >
+                                    {Object.entries(TransactionDirectionLabels).map(([key, label]) => (
+                                        <option key={key} value={key}>{label}</option>
+                                    ))}
+                                </Select>
+                            </FormGroup>
+                        )}
 
                         <FormGroup>
                             <Label htmlFor="issuedDate">Data wystawienia*</Label>

@@ -1,6 +1,6 @@
 // src/pages/Finances/hooks/useDocumentActions.ts
 import {useCallback, useState} from 'react';
-import {DocumentStatus, DocumentType, UnifiedFinancialDocument} from '../../../types/finance';
+import {DocumentStatus, DocumentType, TransactionDirection, UnifiedFinancialDocument} from '../../../types/finance';
 import {unifiedFinancialApi} from '../../../api/unifiedFinancialApi';
 
 // Użyj dokładnie tego samego typu co w Toast.tsx
@@ -14,16 +14,19 @@ export const useDocumentActions = (
     const [selectedDocument, setSelectedDocument] = useState<UnifiedFinancialDocument | undefined>(undefined);
     const [showFormModal, setShowFormModal] = useState(false);
     const [showViewModal, setShowViewModal] = useState(false);
+    const [initialDirection, setInitialDirection] = useState<TransactionDirection | undefined>(undefined);
 
     // Handle adding new document
-    const handleAddDocument = useCallback((type?: DocumentType) => {
+    const handleAddDocument = useCallback((type?: DocumentType, direction?: TransactionDirection) => {
         setSelectedDocument(undefined);
+        setInitialDirection(direction);
         setShowFormModal(true);
     }, []);
 
     // Handle editing document
     const handleEditDocument = useCallback((document: UnifiedFinancialDocument) => {
         setSelectedDocument(document);
+        setInitialDirection(undefined); // Przy edycji nie ustawiamy initial direction
         setShowFormModal(true);
     }, []);
 
@@ -135,6 +138,7 @@ export const useDocumentActions = (
         setShowFormModal(false);
         setShowViewModal(false);
         setSelectedDocument(undefined);
+        setInitialDirection(undefined);
     }, []);
 
     return {
@@ -142,6 +146,7 @@ export const useDocumentActions = (
         selectedDocument,
         showFormModal,
         showViewModal,
+        initialDirection,
 
         // Actions
         handleAddDocument,

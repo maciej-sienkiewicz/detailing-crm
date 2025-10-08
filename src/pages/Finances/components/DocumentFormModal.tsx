@@ -2,24 +2,24 @@
 import React from 'react';
 import styled from 'styled-components';
 import {FaTimes} from 'react-icons/fa';
-import {UnifiedFinancialDocument} from '../../../types/finance';
+import {TransactionDirection, UnifiedFinancialDocument} from '../../../types/finance';
 import UnifiedDocumentForm from './UnifiedDocumentForm';
 import {brandTheme} from "../styles/theme";
 
 interface DocumentFormModalProps {
     isOpen: boolean;
     document?: UnifiedFinancialDocument;
+    initialDirection?: TransactionDirection; // Nowa prop
     onSave: (document: Partial<UnifiedFinancialDocument>, file?: File | null) => void;
     onClose: () => void;
-    initialData?: Partial<UnifiedFinancialDocument>;
 }
 
 const DocumentFormModal: React.FC<DocumentFormModalProps> = ({
                                                                  isOpen,
                                                                  document,
+                                                                 initialDirection,
                                                                  onSave,
                                                                  onClose,
-                                                                 initialData = {}
                                                              }) => {
     if (!isOpen) return null;
 
@@ -37,7 +37,7 @@ const DocumentFormModal: React.FC<DocumentFormModalProps> = ({
                 <ModalContent>
                     <UnifiedDocumentForm
                         document={document}
-                        initialData={initialData}
+                        initialData={initialDirection ? { direction: initialDirection } : undefined}
                         onSave={(documentData, file) => onSave(documentData, file)}
                         onCancel={onClose}
                     />

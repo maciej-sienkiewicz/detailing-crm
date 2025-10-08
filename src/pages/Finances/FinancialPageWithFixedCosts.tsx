@@ -27,7 +27,7 @@ import BalanceHistoryModal from './components/BalanceHistoryModal';
 import {useFinancialData} from './hooks/useFinancialData';
 import {useDocumentActions} from './hooks/useDocumentActions';
 
-import {DocumentType} from '../../types/finance';
+import {DocumentType, TransactionDirection} from '../../types/finance';
 
 import {brandTheme} from './styles/theme';
 import {useToast} from '../../components/common/Toast/Toast';
@@ -79,6 +79,7 @@ const FinancialPageWithFixedCosts: React.FC = () => {
         selectedDocument,
         showFormModal,
         showViewModal,
+        initialDirection,
         handleAddDocument,
         handleEditDocument,
         handleViewDocument,
@@ -205,10 +206,24 @@ const FinancialPageWithFixedCosts: React.FC = () => {
                 </SecondaryButton>
             );
 
+            // Dwa osobne przyciski dla przychodu i wydatku
             actions.push(
-                <PrimaryButton key="add" onClick={() => handleAddDocument(DocumentType.INVOICE)}>
+                <PrimaryButton
+                    key="add-expense"
+                    onClick={() => handleAddDocument(DocumentType.INVOICE, TransactionDirection.EXPENSE)}
+                >
                     <FaFileInvoiceDollar />
-                    <span>Dodaj nowy dokument</span>
+                    <span>Dodaj dokument wychodzący</span>
+                </PrimaryButton>
+            );
+
+            actions.push(
+                <PrimaryButton
+                    key="add-income"
+                    onClick={() => handleAddDocument(DocumentType.INVOICE, TransactionDirection.INCOME)}
+                >
+                    <FaFileInvoiceDollar />
+                    <span>Dodaj dokument przychodzący</span>
                 </PrimaryButton>
             );
         }
@@ -315,6 +330,7 @@ const FinancialPageWithFixedCosts: React.FC = () => {
                         <DocumentFormModal
                             isOpen={showFormModal}
                             document={selectedDocument}
+                            initialDirection={initialDirection}
                             onSave={handleSaveDocument}
                             onClose={handleCloseModals}
                         />
