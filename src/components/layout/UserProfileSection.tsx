@@ -1,11 +1,9 @@
-// src/components/layout/UserProfileSection.tsx
 import React, {useEffect, useRef, useState} from 'react';
 import styled from 'styled-components';
 import {FaChevronDown, FaSignOutAlt} from 'react-icons/fa';
 import {useAuth} from '../../context/AuthContext';
 import {useNavigate} from 'react-router-dom';
 
-// Brand Theme System
 const brandTheme = {
     primary: 'var(--brand-primary, #2563eb)',
     primaryLight: 'var(--brand-primary-light, #3b82f6)',
@@ -44,14 +42,8 @@ const UserProfileSection: React.FC = () => {
         if (!user) return brandTheme.primary;
 
         const colors = [
-            '#3b82f6', // Blue
-            '#10b981', // Emerald
-            '#f59e0b', // Amber
-            '#ef4444', // Red
-            '#8b5cf6', // Purple
-            '#06b6d4', // Cyan
-            '#84cc16', // Lime
-            '#f97316'  // Orange
+            '#3b82f6', '#10b981', '#f59e0b', '#ef4444',
+            '#8b5cf6', '#06b6d4', '#84cc16', '#f97316'
         ];
 
         const hash = String(user.userId).split('').reduce((a, b) => {
@@ -114,7 +106,6 @@ const UserProfileSection: React.FC = () => {
 
                     <MenuDivider />
 
-
                     <MenuItem onClick={handleLogout} $isLogout>
                         <MenuItemIcon><FaSignOutAlt /></MenuItemIcon>
                         <MenuItemText>Wyloguj się</MenuItemText>
@@ -125,20 +116,19 @@ const UserProfileSection: React.FC = () => {
     );
 };
 
-// Styled Components - Clean & Minimal
 const ProfileContainer = styled.div`
     position: relative;
-    padding: 16px 20px;
+    padding: 12px 16px;
     border-bottom: 1px solid ${brandTheme.border};
 `;
 
 const ProfileTrigger = styled.div<{ $isOpen: boolean }>`
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     cursor: pointer;
-    padding: 8px;
-    border-radius: 8px;
+    padding: 6px;
+    border-radius: 6px;
     transition: all 0.2s ease;
 
     ${({ $isOpen }) => $isOpen && `
@@ -156,16 +146,16 @@ const Avatar = styled.div`
 `;
 
 const AvatarImage = styled.img`
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     object-fit: cover;
     border: 2px solid ${brandTheme.border};
 `;
 
 const AvatarInitials = styled.div<{ $color: string }>`
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     background: ${({ $color }) => $color};
     color: white;
@@ -173,7 +163,7 @@ const AvatarInitials = styled.div<{ $color: string }>`
     align-items: center;
     justify-content: center;
     font-weight: 600;
-    font-size: 14px;
+    font-size: 12px;
     border: 2px solid ${brandTheme.border};
 `;
 
@@ -181,8 +171,8 @@ const OnlineStatus = styled.div`
     position: absolute;
     bottom: 0;
     right: 0;
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
     background: #10b981;
     border: 2px solid white;
     border-radius: 50%;
@@ -194,7 +184,7 @@ const UserInfo = styled.div`
 `;
 
 const UserName = styled.div`
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 500;
     color: #1e293b;
     white-space: nowrap;
@@ -203,31 +193,31 @@ const UserName = styled.div`
 `;
 
 const UserRole = styled.div`
-    font-size: 12px;
+    font-size: 10px;
     color: ${brandTheme.neutral};
     margin-top: 2px;
 `;
 
 const DropdownIcon = styled.div<{ $isOpen: boolean }>`
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: ${brandTheme.neutral};
-    font-size: 10px;
+    font-size: 9px;
     transform: rotate(${({ $isOpen }) => $isOpen ? '180deg' : '0deg'});
     transition: transform 0.2s;
 `;
 
 const DropdownMenu = styled.div`
     position: absolute;
-    top: calc(100% + 8px);
-    left: 20px;
-    right: 20px;
+    top: calc(100% + 6px);
+    left: 16px;
+    right: 16px;
     background: white;
     border: 1px solid ${brandTheme.border};
-    border-radius: 8px;
+    border-radius: 6px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     z-index: 1000;
     overflow: hidden;
@@ -236,23 +226,23 @@ const DropdownMenu = styled.div`
 const MenuHeader = styled.div`
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 16px;
+    gap: 10px;
+    padding: 12px;
     background: ${brandTheme.surfaceAlt};
 `;
 
 const HeaderAvatar = styled.div`
     img {
-        width: 44px;
-        height: 44px;
+        width: 36px;
+        height: 36px;
         border-radius: 50%;
         object-fit: cover;
     }
 `;
 
 const HeaderInitials = styled.div<{ $color: string }>`
-    width: 44px;
-    height: 44px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     background: ${({ $color }) => $color};
     color: white;
@@ -260,7 +250,7 @@ const HeaderInitials = styled.div<{ $color: string }>`
     align-items: center;
     justify-content: center;
     font-weight: 600;
-    font-size: 16px;
+    font-size: 14px;
 `;
 
 const HeaderInfo = styled.div`
@@ -269,20 +259,14 @@ const HeaderInfo = styled.div`
 `;
 
 const HeaderName = styled.div`
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 600;
     color: #1e293b;
 `;
 
 const HeaderEmail = styled.div`
-    font-size: 12px;
+    font-size: 10px;
     color: ${brandTheme.neutral};
-    margin-top: 2px;
-`;
-
-const HeaderCompany = styled.div`
-    font-size: 11px;
-    color: #94a3b8;
     margin-top: 2px;
 `;
 
@@ -291,16 +275,11 @@ const MenuDivider = styled.div`
     background: ${brandTheme.border};
 `;
 
-const MenuItems = styled.div`
-    padding: 8px;
-`;
-
 const MenuItem = styled.div<{ $isLogout?: boolean }>`
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     padding: 10px 12px;
-    border-radius: 6px;
     cursor: pointer;
     transition: all 0.2s;
 
@@ -316,31 +295,20 @@ const MenuItem = styled.div<{ $isLogout?: boolean }>`
 `;
 
 const MenuItemIcon = styled.div`
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
+    font-size: 12px;
     color: ${brandTheme.neutral};
 `;
 
 const MenuItemText = styled.span`
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 500;
     color: #374151;
     flex: 1;
-`;
-
-const NotificationBadge = styled.span`
-    background: #ef4444;
-    color: white;
-    font-size: 10px;
-    font-weight: 600;
-    padding: 2px 6px;
-    border-radius: 8px;
-    min-width: 16px;
-    text-align: center;
 `;
 
 export default UserProfileSection;

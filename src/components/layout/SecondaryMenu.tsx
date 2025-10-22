@@ -1,11 +1,9 @@
-// src/components/layout/SecondaryMenu.tsx
 import React from 'react';
 import styled from 'styled-components';
 import {Link, useLocation} from 'react-router-dom';
 import {FaArchive, FaCalendarAlt} from 'react-icons/fa';
 import {FaCarRear} from "react-icons/fa6";
 
-// Brand Theme System
 const brandTheme = {
     primary: 'var(--brand-primary, #2563eb)',
     primaryLight: 'var(--brand-primary-light, #3b82f6)',
@@ -93,7 +91,6 @@ const SecondaryMenu: React.FC<SecondaryMenuProps> = ({
                             <ItemLabel>{item.label}</ItemLabel>
                             <ItemDescription>{item.description}</ItemDescription>
                         </ItemContent>
-
                     </MenuItem>
                 ))}
             </MenuContent>
@@ -112,51 +109,51 @@ const getMenuTitle = (menuId: string): string => {
 const MenuContainer = styled.div<{ $show: boolean; $isMobile: boolean }>`
     position: fixed;
     top: 0;
-    left: ${({ $isMobile }) => $isMobile ? '0' : '260px'};
-    width: ${({ $isMobile }) => $isMobile ? '100%' : '280px'};
+    left: ${({ $isMobile }) => $isMobile ? '0' : '220px'};
+    width: ${({ $isMobile }) => $isMobile ? '100%' : '200px'};
     height: 100vh;
     background: ${brandTheme.surface};
     border-right: 1px solid ${brandTheme.border};
     z-index: 999;
     display: ${({ $show }) => $show ? 'flex' : 'none'};
     flex-direction: column;
-    transform: ${({ $isMobile }) => $isMobile ? 'translateX(260px)' : 'none'};
+    transform: ${({ $isMobile }) => $isMobile ? 'translateX(220px)' : 'none'};
     box-shadow: 0 0 20px rgba(0,0,0,0.1);
 `;
 
 const MenuHeader = styled.div`
-    padding: 24px 20px;
+    padding: 16px;
     border-bottom: 1px solid ${brandTheme.border};
     background: ${brandTheme.surfaceAlt};
 `;
 
 const HeaderTitle = styled.h3`
-    font-size: 18px;
+    font-size: 15px;
     font-weight: 600;
     color: #1e293b;
-    margin: 0 0 4px 0;
+    margin: 0 0 3px 0;
 `;
 
 const ItemCount = styled.div`
-    font-size: 13px;
+    font-size: 11px;
     color: ${brandTheme.neutral};
 `;
 
 const MenuContent = styled.div`
     flex: 1;
-    padding: 16px;
+    padding: 12px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
 `;
 
 const MenuItem = styled(Link)<{ $active: boolean }>`
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 16px;
-    border-radius: 8px;
+    gap: 10px;
+    padding: 12px;
+    border-radius: 6px;
     text-decoration: none;
     transition: all 0.2s ease;
     border: 1px solid transparent;
@@ -173,16 +170,17 @@ const MenuItem = styled(Link)<{ $active: boolean }>`
 `;
 
 const ItemIcon = styled.div<{ $active: boolean }>`
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+    font-size: 14px;
     background: ${({ $active }) => $active ? brandTheme.primary : brandTheme.surfaceAlt};
     color: ${({ $active }) => $active ? 'white' : brandTheme.neutral};
     transition: all 0.2s;
+    flex-shrink: 0;
 
     ${MenuItem}:hover & {
         background: ${brandTheme.primary};
@@ -192,34 +190,19 @@ const ItemIcon = styled.div<{ $active: boolean }>`
 
 const ItemContent = styled.div`
     flex: 1;
+    min-width: 0;
 `;
 
 const ItemLabel = styled.div`
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 500;
     color: #334155;
     margin-bottom: 2px;
 `;
 
 const ItemDescription = styled.div`
-    font-size: 12px;
-    color: ${brandTheme.neutral};
-`;
-
-const ItemArrow = styled.div`
-    width: 20px;
-    height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: ${brandTheme.neutral};
     font-size: 10px;
-    transition: all 0.2s;
-
-    ${MenuItem}:hover & {
-        color: ${brandTheme.primary};
-        transform: translateX(2px);
-    }
+    color: ${brandTheme.neutral};
 `;
 
 export default SecondaryMenu;

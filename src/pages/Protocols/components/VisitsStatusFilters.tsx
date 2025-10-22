@@ -66,7 +66,6 @@ export const VisitsStatusFilters: React.FC<VisitsStatusFiltersProps> = ({
         'all',
     ];
 
-    // FIXED: Dodana obsługa kliknięcia z logowaniem
     const handleFilterClick = (status: StatusFilterType) => {
         if (status !== activeStatus) {
             onStatusChange(status);
@@ -112,13 +111,13 @@ export const VisitsStatusFilters: React.FC<VisitsStatusFiltersProps> = ({
 };
 
 const FiltersContainer = styled.div`
-    padding: ${theme.spacing.xxl};
+    padding: ${theme.spacing.xl};
     background: ${theme.surface};
 `;
 
 const FiltersGrid = styled.div`
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     gap: ${theme.spacing.lg};
 
     @media (max-width: 768px) {
@@ -134,16 +133,16 @@ const FilterCard = styled.div<{
 }>`
     position: relative;
     background: ${props => props.$active ? props.$lightColor : theme.surface};
-    border: 2px solid ${props => props.$active ? props.$color : theme.border};
+    border: 1px solid ${props => props.$active ? props.$color : theme.border};
     border-radius: ${theme.radius.lg};
-    padding: ${theme.spacing.xl};
+    padding: ${theme.spacing.lg};
     cursor: pointer;
     transition: all ${theme.transitions.normal};
     overflow: hidden;
 
     &:hover {
         transform: translateY(-2px);
-        box-shadow: ${theme.shadow.lg};
+        box-shadow: ${theme.shadow.md};
         border-color: ${props => props.$color};
         background: ${props => props.$active ? props.$lightColor : props.$lightColor};
     }
@@ -157,11 +156,11 @@ const FilterContent = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: ${theme.spacing.lg};
+    gap: ${theme.spacing.md};
 `;
 
 const FilterLabel = styled.div`
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 600;
     color: ${theme.text.secondary};
     flex: 1;
@@ -171,12 +170,12 @@ const FilterCounter = styled.div<{ $active: boolean; $color: string }>`
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 32px;
-    height: 32px;
-    padding: 0 ${theme.spacing.lg};
-    font-size: 14px;
+    min-width: 28px;
+    height: 28px;
+    padding: 0 ${theme.spacing.md};
+    font-size: 12px;
     font-weight: 700;
-    border-radius: ${theme.radius.md};
+    border-radius: ${theme.radius.sm};
     background: ${props => props.$active ? props.$color : theme.surfaceAlt};
     color: ${props => props.$active ? 'white' : theme.text.primary};
     transition: all ${theme.transitions.normal};
@@ -184,8 +183,8 @@ const FilterCounter = styled.div<{ $active: boolean; $color: string }>`
 `;
 
 const CounterLoader = styled.div<{ $color: string }>`
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
     border: 2px solid ${props => props.$color}30;
     border-radius: 50%;
     border-top-color: ${props => props.$color};
@@ -202,7 +201,7 @@ const ActiveIndicator = styled.div<{ $color: string }>`
     position: absolute;
     top: 0;
     left: 0;
-    width: 4px;
+    width: 3px;
     height: 100%;
     background: linear-gradient(180deg, ${props => props.$color} 0%, ${props => props.$color} 100%);
     border-radius: 0 2px 2px 0;

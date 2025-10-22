@@ -1,4 +1,3 @@
-// src/components/layout/Layout.tsx
 import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
 import {FaBars} from 'react-icons/fa';
@@ -10,15 +9,13 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-    const [sidebarOpen, setSidebarOpen] = useState(true); // Domyślnie menu jest otwarte na desktopie
+    const [sidebarOpen, setSidebarOpen] = useState(true);
     const [activeMenuItem, setActiveMenuItem] = useState<string | null>(null);
     const [isMobile, setIsMobile] = useState(false);
 
-    // Funkcja do wykrywania rozmiaru ekranu
     useEffect(() => {
         const checkIfMobile = () => {
             setIsMobile(window.innerWidth <= 768);
-            // Na urządzeniach mobilnych domyślnie menu jest zamknięte
             if (window.innerWidth <= 768) {
                 setSidebarOpen(false);
             } else {
@@ -26,13 +23,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             }
         };
 
-        // Sprawdź przy pierwszym renderowaniu
         checkIfMobile();
-
-        // Ustaw nasłuchiwanie na zmiany rozmiaru okna
         window.addEventListener('resize', checkIfMobile);
 
-        // Usuń nasłuchiwanie przy odmontowaniu komponentu
         return () => {
             window.removeEventListener('resize', checkIfMobile);
         };
@@ -44,13 +37,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
     const handleMenuItemClick = (menuId: string | null) => {
         setActiveMenuItem(menuId);
-        // Na urządzeniach mobilnych, zamknij menu po wybraniu opcji
         if (isMobile) {
             setSidebarOpen(false);
         }
     };
 
-    // Obsługa kliknięcia poza menu na urządzeniach mobilnych
     const handleClickOutside = () => {
         if (isMobile && sidebarOpen) {
             setSidebarOpen(false);
@@ -65,7 +56,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </HamburgerButton>
             )}
 
-            {/* Overlay który przyciemnia ekran na urządzeniach mobilnych */}
             {isMobile && sidebarOpen && (
                 <SidebarOverlay onClick={handleClickOutside} />
             )}
@@ -106,10 +96,10 @@ const HamburgerButton = styled.button`
     align-items: center;
     justify-content: center;
     position: fixed;
-    top: 20px;
-    left: 20px;
-    width: 40px;
-    height: 40px;
+    top: 12px;
+    left: 12px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     background-color: #3498db;
     color: white;
@@ -117,6 +107,7 @@ const HamburgerButton = styled.button`
     cursor: pointer;
     z-index: 100;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    font-size: 14px;
 
     &:hover {
         background-color: #2980b9;
@@ -135,19 +126,19 @@ const SidebarOverlay = styled.div`
 
 const MainContent = styled.main<{ sidebarOpen: boolean, hasSecondaryMenu: boolean, isMobile: boolean }>`
     flex: 1;
-    padding: 20px;
+    padding: 16px;
     margin-left: ${({ sidebarOpen, hasSecondaryMenu, isMobile }) => {
     if (isMobile) return '0';
-    if (sidebarOpen && hasSecondaryMenu) return '450px'; // Szerokość głównego + drugiego menu
-    if (sidebarOpen) return '250px'; // Tylko główne menu
+    if (sidebarOpen && hasSecondaryMenu) return '420px';
+    if (sidebarOpen) return '220px';
     return '0';
 }};
     transition: margin-left 0.3s ease-in-out;
     width: 100%;
     
     @media (max-width: 768px) {
-        padding: 15px;
-        margin-top: ${({ sidebarOpen }) => sidebarOpen ? '0' : '60px'};
+        padding: 12px;
+        margin-top: ${({ sidebarOpen }) => sidebarOpen ? '0' : '48px'};
     }
 `;
 

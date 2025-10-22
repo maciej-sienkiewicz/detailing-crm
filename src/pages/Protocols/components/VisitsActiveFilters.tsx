@@ -115,7 +115,7 @@ const FiltersContainer = styled.div`
     background: linear-gradient(135deg, ${theme.primaryGhost} 0%, rgba(37, 99, 235, 0.04) 100%);
     border: 1px solid rgba(37, 99, 235, 0.2);
     border-radius: ${theme.radius.lg};
-    margin: ${theme.spacing.lg} ${theme.spacing.xxl};
+    margin: ${theme.spacing.lg} ${theme.spacing.xl};
     overflow: hidden;
 `;
 
@@ -123,7 +123,7 @@ const FiltersHeader = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: ${theme.spacing.lg} ${theme.spacing.xl};
+    padding: ${theme.spacing.md} ${theme.spacing.lg};
     background: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(8px);
     border-bottom: 1px solid rgba(37, 99, 235, 0.1);
@@ -136,21 +136,21 @@ const HeaderLeft = styled.div`
 `;
 
 const FilterIcon = styled.div`
-    width: 32px;
-    height: 32px;
+    width: 24px;
+    height: 24px;
     background: ${theme.primary};
-    border-radius: ${theme.radius.md};
+    border-radius: ${theme.radius.sm};
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 14px;
+    font-size: 11px;
 `;
 
 const FiltersTitle = styled.div`
     font-weight: 600;
     color: ${theme.text.primary};
-    font-size: 16px;
+    font-size: 13px;
 `;
 
 const ClearAllButton = styled.button`
@@ -158,13 +158,13 @@ const ClearAllButton = styled.button`
     align-items: center;
     gap: ${theme.spacing.sm};
     background: none;
-    border: 2px solid ${theme.border};
+    border: 1px solid ${theme.border};
     color: ${theme.text.tertiary};
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 600;
     cursor: pointer;
-    padding: ${theme.spacing.sm} ${theme.spacing.lg};
-    border-radius: ${theme.radius.md};
+    padding: ${theme.spacing.sm} ${theme.spacing.md};
+    border-radius: ${theme.radius.sm};
     transition: all ${theme.transitions.normal};
 
     &:hover {
@@ -178,24 +178,24 @@ const ClearAllButton = styled.button`
 const FilterTags = styled.div`
     display: flex;
     flex-wrap: wrap;
-    gap: ${theme.spacing.lg};
-    padding: ${theme.spacing.xl};
+    gap: ${theme.spacing.md};
+    padding: ${theme.spacing.lg};
 `;
 
 const FilterTag = styled.div`
     display: flex;
     align-items: center;
     background: ${theme.surface};
-    border: 2px solid rgba(37, 99, 235, 0.2);
-    border-radius: 24px;
-    padding: ${theme.spacing.sm} ${theme.spacing.lg} ${theme.spacing.sm} ${theme.spacing.lg};
-    font-size: 14px;
+    border: 1px solid rgba(37, 99, 235, 0.2);
+    border-radius: 16px;
+    padding: ${theme.spacing.sm} ${theme.spacing.md};
+    font-size: 12px;
     transition: all ${theme.transitions.normal};
     box-shadow: ${theme.shadow.xs};
 
     &:hover {
         transform: translateY(-1px);
-        box-shadow: ${theme.shadow.md};
+        box-shadow: ${theme.shadow.sm};
         border-color: ${theme.primary};
     }
 `;
@@ -212,7 +212,7 @@ const FilterTagLabel = styled.span`
 `;
 
 const FilterTagValue = styled.span`
-    max-width: 200px;
+    max-width: 180px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -224,15 +224,15 @@ const RemoveFilterButton = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
     background: ${theme.errorBg};
     color: ${theme.error};
     border: none;
     border-radius: 50%;
     cursor: pointer;
     margin-left: ${theme.spacing.sm};
-    font-size: 10px;
+    font-size: 8px;
     transition: all ${theme.transitions.normal};
 
     &:hover {
@@ -243,7 +243,7 @@ const RemoveFilterButton = styled.button`
 `;
 
 const FiltersFooter = styled.div`
-    padding: ${theme.spacing.lg} ${theme.spacing.xl};
+    padding: ${theme.spacing.md} ${theme.spacing.lg};
     background: rgba(255, 255, 255, 0.8);
     border-top: 1px solid rgba(37, 99, 235, 0.1);
 `;
@@ -252,7 +252,7 @@ const FooterText = styled.div`
     display: flex;
     align-items: center;
     gap: ${theme.spacing.sm};
-    font-size: 13px;
+    font-size: 11px;
     color: ${theme.primary};
     font-weight: 500;
 `;

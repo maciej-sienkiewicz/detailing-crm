@@ -1,4 +1,3 @@
-// src/components/layout/Sidebar.tsx - Updated with production logo hook
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
@@ -21,7 +20,6 @@ import UserProfileSection from './UserProfileSection';
 import { useCompanyLogoUrl } from '../../hooks/useCompanyLogo';
 import {FaRepeat} from "react-icons/fa6";
 
-// Brand Theme System - configurable by client
 const brandTheme = {
     primary: 'var(--brand-primary, #2563eb)',
     primaryLight: 'var(--brand-primary-light, #3b82f6)',
@@ -33,7 +31,6 @@ const brandTheme = {
     surfaceAlt: '#f1f5f9'
 };
 
-// Main menu data
 interface MainMenuItem {
     id: string;
     label: string;
@@ -46,7 +43,6 @@ interface MainMenuItem {
 }
 
 const mainMenuItems: MainMenuItem[] = [
-    // Daily operations
     {
         id: 'calendar',
         label: 'Kalendarz',
@@ -79,8 +75,6 @@ const mainMenuItems: MainMenuItem[] = [
         hasSubmenu: false,
         category: 'daily',
     },
-
-    // Business management
     {
         id: 'clients',
         label: 'Klienci i pojazdy',
@@ -106,8 +100,6 @@ const mainMenuItems: MainMenuItem[] = [
         hasSubmenu: false,
         category: 'business'
     },
-
-    // Tools and administration
     {
         id: 'gallery',
         label: 'Galeria',
@@ -169,7 +161,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     const location = useLocation();
     const navigate = useNavigate();
 
-    // PRODUCTION LOGO HOOK - simple and clean
     const { logoUrl, isLoading: logoLoading } = useCompanyLogoUrl();
 
     const handleMenuItemClick = (item: MainMenuItem) => {
@@ -194,29 +185,24 @@ const Sidebar: React.FC<SidebarProps> = ({
     return (
         <>
             <SidebarContainer isOpen={isOpen} isMobile={isMobile}>
-                {/* Header with logo or fallback */}
                 <SidebarHeader>
                     <LogoContainer>
                         {logoLoading ? (
-                            // Loading state
                             <LogoLoadingContainer>
                                 <LogoSpinner />
-                                <CompanyName style={{fontSize: '14px', color: '#64748b'}}>Ładowanie...</CompanyName>
+                                <CompanyName style={{fontSize: '12px', color: '#64748b'}}>Ładowanie...</CompanyName>
                             </LogoLoadingContainer>
                         ) : logoUrl ? (
-                            // Show company logo when available
                             <CompanyLogoContainer>
                                 <CompanyLogo
                                     src={logoUrl}
                                     alt="Logo firmy"
                                     onError={(e) => {
                                         console.warn('Logo failed to load:', logoUrl);
-                                        // You could set fallback state here if needed
                                     }}
                                 />
                             </CompanyLogoContainer>
                         ) : (
-                            // Fallback - always show icon and text when no logo
                             <>
                                 <LogoIcon>
                                     <FaCarSide />
@@ -234,12 +220,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                     )}
                 </SidebarHeader>
 
-                {/* User profile section */}
                 <UserProfileSection />
 
-                {/* Navigation */}
                 <Navigation>
-                    {/* Daily operations */}
                     <NavSection>
                         <SectionHeader>Dziś</SectionHeader>
                         <MenuList>
@@ -268,7 +251,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                         </MenuList>
                     </NavSection>
 
-                    {/* Business management */}
                     <NavSection>
                         <SectionHeader>Biznes</SectionHeader>
                         <MenuList>
@@ -296,7 +278,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                         </MenuList>
                     </NavSection>
 
-                    {/* Tools */}
                     <NavSection>
                         <SectionHeader>Narzędzia</SectionHeader>
                         <MenuList>
@@ -326,7 +307,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                     </NavSection>
                 </Navigation>
 
-                {/* Footer */}
                 <SidebarFooter>
                     <StatusLine>
                         <StatusDot />
@@ -336,19 +316,17 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </SidebarFooter>
             </SidebarContainer>
 
-            {/* Overlay for mobile */}
             {isMobile && isOpen && <Overlay onClick={toggleSidebar} />}
         </>
     );
 };
 
-// Styled Components - identical to previous version
 const SidebarContainer = styled.div<{ isOpen: boolean; isMobile: boolean }>`
     position: fixed;
     top: 0;
     left: 0;
     height: 100vh;
-    width: 260px;
+    width: 220px;
     background: ${brandTheme.surface};
     border-right: 1px solid #e2e8f0;
     z-index: 1000;
@@ -373,51 +351,49 @@ const SidebarHeader = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 20px;
+    padding: 12px 16px;
     border-bottom: 1px solid #f1f5f9;
-    min-height: 80px;
+    min-height: 60px;
 `;
 
 const LogoContainer = styled.div`
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     flex: 1;
     min-width: 0;
 `;
 
-// Company logo styles
 const CompanyLogoContainer = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
     width: 100%;
-    padding: 8px;
+    padding: 6px;
 `;
 
 const CompanyLogo = styled.img`
-    max-width: 180px;
-    max-height: 40px;
+    max-width: 160px;
+    max-height: 32px;
     width: auto;
     height: auto;
     object-fit: contain;
     border-radius: 4px;
 `;
 
-// Loading state styles
 const LogoLoadingContainer = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 6px;
     width: 100%;
-    padding: 8px;
+    padding: 6px;
 `;
 
 const LogoSpinner = styled.div`
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     border: 2px solid #e2e8f0;
     border-top: 2px solid #2563eb;
     border-radius: 50%;
@@ -429,17 +405,16 @@ const LogoSpinner = styled.div`
     }
 `;
 
-// Original fallback styles
 const LogoIcon = styled.div`
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     background: ${brandTheme.primary};
-    border-radius: 8px;
+    border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 18px;
+    font-size: 16px;
     flex-shrink: 0;
 `;
 
@@ -449,15 +424,15 @@ const LogoText = styled.div`
 `;
 
 const CompanyName = styled.div`
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 700;
     color: #1e293b;
-    letter-spacing: -0.5px;
+    letter-spacing: -0.3px;
 `;
 
 const CloseButton = styled.button`
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     border: none;
     background: none;
     color: ${brandTheme.neutral};
@@ -468,6 +443,7 @@ const CloseButton = styled.button`
     justify-content: center;
     transition: all 0.2s;
     flex-shrink: 0;
+    font-size: 14px;
 
     &:hover {
         background: #f1f5f9;
@@ -478,9 +454,8 @@ const CloseButton = styled.button`
 const Navigation = styled.nav`
     flex: 1;
     overflow-y: auto;
-    padding: 16px 0;
+    padding: 12px 0;
 
-    /* Clean scrollbar */
     &::-webkit-scrollbar {
         width: 4px;
     }
@@ -494,32 +469,32 @@ const Navigation = styled.nav`
 `;
 
 const NavSection = styled.div`
-    margin-bottom: 32px;
+    margin-bottom: 24px;
 
     &:last-child {
-        margin-bottom: 16px;
+        margin-bottom: 12px;
     }
 `;
 
 const SectionHeader = styled.div`
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 600;
     color: ${brandTheme.neutral};
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin: 0 20px 12px;
+    margin: 0 16px 8px;
 `;
 
 const MenuList = styled.div`
     display: flex;
     flex-direction: column;
     gap: 2px;
-    padding: 0 12px;
+    padding: 0 10px;
 `;
 
 const MenuItem = styled.div<{ $active: boolean; $hasSubmenu: boolean }>`
     cursor: pointer;
-    border-radius: 8px;
+    border-radius: 6px;
     transition: all 0.2s ease;
     position: relative;
 
@@ -533,7 +508,7 @@ const MenuItem = styled.div<{ $active: boolean; $hasSubmenu: boolean }>`
             top: 50%;
             transform: translateY(-50%);
             width: 3px;
-            height: 20px;
+            height: 16px;
             background: ${brandTheme.primary};
             border-radius: 0 2px 2px 0;
         }
@@ -547,19 +522,19 @@ const MenuItem = styled.div<{ $active: boolean; $hasSubmenu: boolean }>`
 const MenuItemContent = styled.div`
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    min-height: 44px;
+    gap: 10px;
+    padding: 10px 12px;
+    min-height: 38px;
 `;
 
 const IconContainer = styled.div<{ $active: boolean }>`
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: ${({ $active }) => $active ? brandTheme.primary : brandTheme.neutral};
-    font-size: 16px;
+    font-size: 14px;
     transition: color 0.2s;
 
     ${MenuItem}:hover & {
@@ -568,7 +543,7 @@ const IconContainer = styled.div<{ $active: boolean }>`
 `;
 
 const Label = styled.span`
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
     color: #334155;
     flex: 1;
@@ -577,39 +552,39 @@ const Label = styled.span`
 const NewBadge = styled.span`
     background: linear-gradient(135deg, #10b981, #059669);
     color: white;
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 600;
-    padding: 2px 6px;
-    border-radius: 4px;
+    padding: 2px 5px;
+    border-radius: 3px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
 `;
 
 const ProgressBadge = styled.span`
     background: #d3e1da;
     color: white;
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 600;
-    padding: 2px 6px;
-    border-radius: 4px;
+    padding: 2px 5px;
+    border-radius: 3px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
 `;
 
 const SubmenuArrow = styled.div<{ $expanded: boolean }>`
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: ${brandTheme.neutral};
-    font-size: 10px;
+    font-size: 9px;
     transform: rotate(${({ $expanded }) => $expanded ? '90deg' : '0deg'});
     transition: transform 0.2s;
 `;
 
 const SidebarFooter = styled.div`
-    padding: 16px 20px;
+    padding: 12px 16px;
     border-top: 1px solid #f1f5f9;
     display: flex;
     align-items: center;
@@ -619,23 +594,23 @@ const SidebarFooter = styled.div`
 const StatusLine = styled.div`
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
 `;
 
 const StatusDot = styled.div`
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
     background: #10b981;
     border-radius: 50%;
 `;
 
 const StatusText = styled.span`
-    font-size: 12px;
+    font-size: 11px;
     color: ${brandTheme.neutral};
 `;
 
 const VersionInfo = styled.span`
-    font-size: 11px;
+    font-size: 10px;
     color: #94a3b8;
     font-weight: 500;
 `;

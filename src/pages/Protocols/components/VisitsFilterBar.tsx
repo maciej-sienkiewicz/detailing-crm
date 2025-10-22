@@ -1,4 +1,3 @@
-// src/pages/Protocols/components/VisitsFilterBar.tsx - Complete file with proper formatting
 import React from 'react';
 import styled from 'styled-components';
 import {FaSearch, FaTimes} from 'react-icons/fa';
@@ -42,19 +41,19 @@ const brandTheme = {
         xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
     },
     spacing: {
-        xs: '4px',
-        sm: '8px',
-        md: '16px',
-        lg: '24px',
-        xl: '32px',
-        xxl: '48px'
-    },
-    radius: {
-        sm: '6px',
+        xs: '2px',
+        sm: '4px',
         md: '8px',
         lg: '12px',
         xl: '16px',
         xxl: '20px'
+    },
+    radius: {
+        sm: '4px',
+        md: '6px',
+        lg: '8px',
+        xl: '12px',
+        xxl: '16px'
     }
 };
 
@@ -345,7 +344,6 @@ export const VisitsFilterBar: React.FC<VisitsFilterBarProps> = ({
     );
 };
 
-// Styled Components - dopasowane do stylu z ClientFilters
 const FiltersContent = styled.div`
     padding: ${brandTheme.spacing.lg};
     background: ${brandTheme.surfaceAlt};
@@ -354,14 +352,14 @@ const FiltersContent = styled.div`
     @keyframes slideDown {
         from {
             opacity: 0;
-            transform: translateY(-20px);
+            transform: translateY(-10px);
             max-height: 0;
             padding: 0 ${brandTheme.spacing.lg};
         }
         to {
             opacity: 1;
             transform: translateY(0);
-            max-height: 500px;
+            max-height: 400px;
             padding: ${brandTheme.spacing.lg};
         }
     }
@@ -369,7 +367,7 @@ const FiltersContent = styled.div`
 
 const FiltersGrid = styled.div`
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: ${brandTheme.spacing.lg};
     margin-bottom: ${brandTheme.spacing.lg};
 
@@ -396,14 +394,14 @@ const FilterLabel = styled.label`
     align-items: center;
     gap: ${brandTheme.spacing.xs};
     font-weight: 600;
-    font-size: 14px;
+    font-size: 12px;
     color: ${brandTheme.text.primary};
-    margin-bottom: ${brandTheme.spacing.xs};
+    margin-bottom: 2px;
 `;
 
 const FilterLabelIcon = styled.div`
     color: ${brandTheme.text.muted};
-    font-size: 12px;
+    font-size: 10px;
 `;
 
 const FilterInputWrapper = styled.div`
@@ -415,12 +413,12 @@ const FilterInputWrapper = styled.div`
 
 const FilterInput = styled.input<{ $hasValue: boolean }>`
     width: 100%;
-    height: 48px;
+    height: 36px;
     padding: 0 ${brandTheme.spacing.md};
-    padding-right: ${props => props.$hasValue ? '40px' : brandTheme.spacing.md};
-    border: 2px solid ${props => props.$hasValue ? brandTheme.primary : brandTheme.border};
+    padding-right: ${props => props.$hasValue ? '32px' : brandTheme.spacing.md};
+    border: 1px solid ${props => props.$hasValue ? brandTheme.primary : brandTheme.border};
     border-radius: ${brandTheme.radius.md};
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 500;
     background: ${props => props.$hasValue ? brandTheme.primaryGhost : brandTheme.surface};
     color: ${brandTheme.text.primary};
@@ -430,7 +428,7 @@ const FilterInput = styled.input<{ $hasValue: boolean }>`
     &:focus {
         outline: none;
         border-color: ${brandTheme.primary};
-        box-shadow: 0 0 0 3px ${brandTheme.primaryGhost};
+        box-shadow: 0 0 0 2px ${brandTheme.primaryGhost};
         background: ${brandTheme.surface};
     }
 
@@ -452,8 +450,8 @@ const FilterInput = styled.input<{ $hasValue: boolean }>`
 const ClearInputButton = styled.button`
     position: absolute;
     right: ${brandTheme.spacing.sm};
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     border: none;
     background: ${brandTheme.text.muted};
     color: white;
@@ -462,7 +460,7 @@ const ClearInputButton = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 10px;
+    font-size: 8px;
     transition: all 0.2s ease;
 
     &:hover {
@@ -506,7 +504,7 @@ const ResultsSection = styled.div`
 `;
 
 const ResultsInfo = styled.div`
-    font-size: 14px;
+    font-size: 12px;
     color: ${brandTheme.text.muted};
     font-style: italic;
 `;
@@ -527,12 +525,12 @@ const BaseButton = styled.button`
     padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
     border-radius: ${brandTheme.radius.md};
     font-weight: 600;
-    font-size: 14px;
+    font-size: 12px;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     border: 1px solid transparent;
     white-space: nowrap;
-    min-height: 44px;
+    min-height: 36px;
 
     &:hover {
         transform: translateY(-1px);
