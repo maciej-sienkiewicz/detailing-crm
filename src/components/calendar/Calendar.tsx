@@ -1,4 +1,3 @@
-// src/components/calendar/Calendar.tsx - PRODUCTION READY VERSION WITH RECURRING EVENTS
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from 'styled-components';
 import FullCalendar from '@fullcalendar/react';
@@ -150,32 +149,30 @@ const AppointmentCalendar: React.FC<CalendarProps> = React.memo(({
         }
     }, []);
 
-    // Enhanced filter configuration with recurring events
     const filterConfig = {
         scheduled: { label: 'Zaplanowane', color: theme.primary },
         inProgress: { label: 'W trakcie', color: theme.warning },
-        readyForPickup: { label: 'Oczekujące na odbiór', color: theme.info },
+        readyForPickup: { label: 'Oczekujące', color: theme.info },
         completed: { label: 'Zakończone', color: theme.success },
         cancelled: { label: 'Anulowane', color: theme.error },
-        recurringEvents: { label: 'Cykliczne wydarzenia', color: '#8b5cf6' }
+        recurringEvents: { label: 'Cykliczne', color: '#8b5cf6' }
     };
 
     return (
         <CalendarContainer>
-            {/* Controls */}
             <CalendarControls>
-                <ControlsLeft>
+                <ControlsTop>
                     <NavigationGroup>
                         <NavButton onClick={() => handleNavigate('prev')}>
                             <FaChevronLeft />
                         </NavButton>
                         <CurrentPeriod>{getCurrentPeriodTitle(currentDate, currentView)}</CurrentPeriod>
-                        <TodayButton onClick={() => handleNavigate('today')}>
-                            Dzisiaj
-                        </TodayButton>
                         <NavButton onClick={() => handleNavigate('next')}>
                             <FaChevronRight />
                         </NavButton>
+                        <TodayButton onClick={() => handleNavigate('today')}>
+                            Dzisiaj
+                        </TodayButton>
                     </NavigationGroup>
 
                     <ViewSelector>
@@ -204,9 +201,9 @@ const AppointmentCalendar: React.FC<CalendarProps> = React.memo(({
                             Lista
                         </ViewButton>
                     </ViewSelector>
-                </ControlsLeft>
+                </ControlsTop>
 
-                <ControlsRight>
+                <FiltersRow>
                     <QuickFiltersContainer>
                         {Object.entries(filterConfig).map(([key, config]) => {
                             const isActive = quickFilters[key as keyof QuickFilters];
@@ -223,8 +220,8 @@ const AppointmentCalendar: React.FC<CalendarProps> = React.memo(({
                                         <FilterLabel>{config.label}</FilterLabel>
                                         <CheckIcon $active={isActive} $color={config.color}>
                                             <svg
-                                                width="12"
-                                                height="12"
+                                                width="10"
+                                                height="10"
                                                 viewBox="0 0 24 24"
                                                 fill="none"
                                                 stroke="currentColor"
@@ -240,10 +237,9 @@ const AppointmentCalendar: React.FC<CalendarProps> = React.memo(({
                             );
                         })}
                     </QuickFiltersContainer>
-                </ControlsRight>
+                </FiltersRow>
             </CalendarControls>
 
-            {/* Calendar */}
             <CalendarWrapper>
                 <FullCalendar
                     ref={calendarRef}
@@ -291,30 +287,25 @@ const AppointmentCalendar: React.FC<CalendarProps> = React.memo(({
                         const appointment = info.event.extendedProps as Appointment;
                         const isRecurring = isRecurringEvent(appointment);
 
-                        // Basic styling
-                        info.el.style.borderRadius = '6px';
-                        info.el.style.fontSize = '12px';
+                        info.el.style.borderRadius = '4px';
+                        info.el.style.fontSize = '11px';
                         info.el.style.fontWeight = '600';
                         info.el.style.cursor = 'pointer';
                         info.el.style.transition = 'all 0.2s ease';
 
-                        // Recurring event styling
                         if (isRecurring) {
-                            info.el.style.borderLeft = `4px solid #6b46c1`;
-                            info.el.style.boxShadow = '0 2px 4px rgba(139, 92, 246, 0.15)';
-                            // Add recurring icon to title
+                            info.el.style.borderLeft = `3px solid #6b46c1`;
+                            info.el.style.boxShadow = '0 1px 3px rgba(139, 92, 246, 0.15)';
                             const titleEl = info.el.querySelector('.fc-event-title');
                             if (titleEl && !titleEl.textContent?.startsWith('🔄')) {
                                 titleEl.textContent = `🔄 ${titleEl.textContent}`;
                             }
                         }
 
-                        // Protocol styling
                         if (appointment.isProtocol && !isRecurring) {
-                            info.el.style.borderLeft = `3px solid ${theme.primary}`;
+                            info.el.style.borderLeft = `2px solid ${theme.primary}`;
                         }
 
-                        // Status-specific styling
                         if (appointment.status === 'COMPLETED') {
                             info.el.style.setProperty('opacity', '0.9', 'important');
                             if (isRecurring) {
@@ -333,11 +324,10 @@ const AppointmentCalendar: React.FC<CalendarProps> = React.memo(({
                             }
                         }
 
-                        // Enhanced hover effects
                         info.el.addEventListener('mouseenter', () => {
                             info.el.style.transform = 'translateY(-1px) scale(1.02)';
                             info.el.style.boxShadow = isRecurring
-                                ? '0 4px 12px rgba(139, 92, 246, 0.3)'
+                                ? '0 3px 8px rgba(139, 92, 246, 0.3)'
                                 : theme.shadow.md;
                             info.el.style.zIndex = '10';
                         });
@@ -345,7 +335,7 @@ const AppointmentCalendar: React.FC<CalendarProps> = React.memo(({
                         info.el.addEventListener('mouseleave', () => {
                             info.el.style.transform = 'translateY(0) scale(1)';
                             info.el.style.boxShadow = isRecurring
-                                ? '0 2px 4px rgba(139, 92, 246, 0.15)'
+                                ? '0 1px 3px rgba(139, 92, 246, 0.15)'
                                 : 'none';
                             info.el.style.zIndex = 'auto';
                         });
@@ -358,7 +348,6 @@ const AppointmentCalendar: React.FC<CalendarProps> = React.memo(({
 
 AppointmentCalendar.displayName = 'AppointmentCalendar';
 
-// Styled Components
 const CalendarContainer = styled.div`
     display: flex;
     flex-direction: column;
@@ -368,46 +357,110 @@ const CalendarContainer = styled.div`
     border: 1px solid ${theme.border};
     overflow: hidden;
     box-shadow: ${theme.shadow.sm};
+
+    @media (max-width: ${theme.breakpoints.md}) {
+        border-radius: ${theme.radius.md};
+    }
 `;
 
 const CalendarControls = styled.div`
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: ${theme.spacing.xl} ${theme.spacing.xxxl};
+    flex-direction: column;
+    gap: ${theme.spacing.md};
+    padding: ${theme.spacing.lg} ${theme.spacing.xl};
     background: ${theme.surfaceElevated};
     border-bottom: 1px solid ${theme.borderLight};
+
+    @media (max-width: ${theme.breakpoints.xl}) {
+        padding: ${theme.spacing.md} ${theme.spacing.lg};
+        gap: ${theme.spacing.sm};
+    }
+
+    @media (max-width: ${theme.breakpoints.lg}) {
+        padding: ${theme.spacing.sm} ${theme.spacing.md};
+    }
+
+    @media (max-width: ${theme.breakpoints.md}) {
+        padding: ${theme.spacing.sm};
+    }
 `;
 
-const ControlsLeft = styled.div`
+const ControlsTop = styled.div`
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: ${theme.spacing.xxl};
+    gap: ${theme.spacing.md};
+    flex-wrap: wrap;
+
+    @media (max-width: ${theme.breakpoints.lg}) {
+        gap: ${theme.spacing.sm};
+    }
+
+    @media (max-width: ${theme.breakpoints.md}) {
+        flex-direction: column;
+        align-items: stretch;
+    }
+`;
+
+const FiltersRow = styled.div`
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    @media (max-width: ${theme.breakpoints.md}) {
+        justify-content: flex-start;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        
+        &::-webkit-scrollbar {
+            height: 4px;
+        }
+        
+        &::-webkit-scrollbar-track {
+            background: ${theme.surfaceHover};
+        }
+        
+        &::-webkit-scrollbar-thumb {
+            background: ${theme.border};
+            border-radius: 2px;
+        }
+    }
 `;
 
 const NavigationGroup = styled.div`
     display: flex;
     align-items: center;
-    gap: ${theme.spacing.lg};
+    gap: ${theme.spacing.md};
     background: ${theme.surface};
     border: 1px solid ${theme.border};
-    border-radius: ${theme.radius.md};
-    padding: ${theme.spacing.sm};
-    box-shadow: ${theme.shadow.sm};
+    border-radius: ${theme.radius.sm};
+    padding: ${theme.spacing.xs};
+    box-shadow: ${theme.shadow.xs};
+    flex-shrink: 0;
+
+    @media (max-width: ${theme.breakpoints.lg}) {
+        gap: ${theme.spacing.sm};
+    }
+
+    @media (max-width: ${theme.breakpoints.md}) {
+        width: 100%;
+        justify-content: space-between;
+    }
 `;
 
 const NavButton = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: 28px;
+    height: 28px;
     background: transparent;
     border: none;
     border-radius: ${theme.radius.sm};
     color: ${theme.text.secondary};
     cursor: pointer;
     transition: all 0.2s ease;
+    flex-shrink: 0;
 
     &:hover {
         background: ${theme.surfaceHover};
@@ -415,32 +468,57 @@ const NavButton = styled.button`
     }
 
     svg {
-        font-size: 14px;
+        font-size: 12px;
+    }
+
+    @media (max-width: ${theme.breakpoints.sm}) {
+        width: 32px;
+        height: 32px;
+        
+        svg {
+            font-size: 14px;
+        }
     }
 `;
 
 const CurrentPeriod = styled.div`
-    font-size: 18px;
+    font-size: 14px;
     font-weight: 700;
     color: ${theme.text.primary};
-    min-width: 200px;
+    min-width: 140px;
     text-align: center;
     letter-spacing: -0.025em;
+
+    @media (max-width: ${theme.breakpoints.lg}) {
+        font-size: 13px;
+        min-width: 120px;
+    }
+
+    @media (max-width: ${theme.breakpoints.md}) {
+        flex: 1;
+        font-size: 14px;
+        min-width: unset;
+    }
 `;
 
 const TodayButton = styled.button`
-    padding: ${theme.spacing.sm} ${theme.spacing.lg};
+    padding: ${theme.spacing.xs} ${theme.spacing.md};
     background: ${theme.primary};
     color: white;
     border: none;
     border-radius: ${theme.radius.sm};
     font-weight: 600;
-    font-size: 14px;
+    font-size: 12px;
     cursor: pointer;
     transition: all 0.2s ease;
+    flex-shrink: 0;
 
     &:hover {
         background: ${theme.primaryDark};
+    }
+
+    @media (max-width: ${theme.breakpoints.sm}) {
+        padding: ${theme.spacing.sm} ${theme.spacing.md};
     }
 `;
 
@@ -448,21 +526,27 @@ const ViewSelector = styled.div`
     display: flex;
     background: ${theme.surface};
     border: 1px solid ${theme.border};
-    border-radius: ${theme.radius.md};
+    border-radius: ${theme.radius.sm};
     overflow: hidden;
-    box-shadow: ${theme.shadow.sm};
+    box-shadow: ${theme.shadow.xs};
+
+    @media (max-width: ${theme.breakpoints.md}) {
+        width: 100%;
+    }
 `;
 
 const ViewButton = styled.button<{ $active: boolean }>`
-    padding: ${theme.spacing.md} ${theme.spacing.xl};
+    flex: 1;
+    padding: ${theme.spacing.xs} ${theme.spacing.md};
     background: ${props => props.$active ? theme.primary : 'transparent'};
     color: ${props => props.$active ? 'white' : theme.text.secondary};
     border: none;
     font-weight: 600;
-    font-size: 14px;
+    font-size: 12px;
     cursor: pointer;
     transition: all 0.2s ease;
     border-right: 1px solid ${theme.borderLight};
+    white-space: nowrap;
 
     &:last-child {
         border-right: none;
@@ -472,33 +556,35 @@ const ViewButton = styled.button<{ $active: boolean }>`
         background: ${theme.surfaceHover};
         color: ${theme.primary};
     }
-`;
 
-const ControlsRight = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.lg};
+    @media (max-width: ${theme.breakpoints.sm}) {
+        font-size: 11px;
+        padding: ${theme.spacing.xs} ${theme.spacing.sm};
+    }
 `;
 
 const QuickFiltersContainer = styled.div`
     display: flex;
-    gap: ${theme.spacing.sm};
+    gap: ${theme.spacing.xs};
     flex-wrap: wrap;
+    justify-content: center;
 
-    @media (max-width: 1200px) {
-        gap: ${theme.spacing.xs};
+    @media (max-width: ${theme.breakpoints.md}) {
+        flex-wrap: nowrap;
+        justify-content: flex-start;
     }
 `;
 
 const FilterButton = styled.button<{ $active: boolean; $color: string; $isRecurring?: boolean }>`
-    padding: ${theme.spacing.sm} ${theme.spacing.md};
+    padding: ${theme.spacing.xs} ${theme.spacing.sm};
     background: ${theme.surface};
-    border: 2px solid ${props => props.$active ? props.$color : '#e2e8f0'};
-    border-radius: ${theme.radius.md};
+    border: 1.5px solid ${props => props.$active ? props.$color : '#e2e8f0'};
+    border-radius: ${theme.radius.sm};
     cursor: pointer;
     transition: all 0.2s ease;
-    min-width: 100px;
+    min-width: 70px;
     position: relative;
+    flex-shrink: 0;
 
     ${props => props.$isRecurring && `
         background: ${props.$active ? props.$color + '15' : theme.surface};
@@ -514,9 +600,13 @@ const FilterButton = styled.button<{ $active: boolean; $color: string; $isRecurr
         `}
     }
 
-    @media (max-width: 1200px) {
-        min-width: 80px;
-        padding: ${theme.spacing.xs} ${theme.spacing.sm};
+    @media (max-width: ${theme.breakpoints.lg}) {
+        min-width: 65px;
+        padding: 4px ${theme.spacing.xs};
+    }
+
+    @media (max-width: ${theme.breakpoints.sm}) {
+        min-width: 60px;
     }
 `;
 
@@ -524,18 +614,22 @@ const FilterContent = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: ${theme.spacing.xs};
+    gap: 2px;
 `;
 
 const FilterLabel = styled.div`
-    font-size: 12px;
+    font-size: 10px;
     font-weight: 600;
     color: ${theme.text.secondary};
     text-align: center;
     line-height: 1.2;
 
-    @media (max-width: 1200px) {
-        font-size: 11px;
+    @media (max-width: ${theme.breakpoints.lg}) {
+        font-size: 9px;
+    }
+
+    @media (max-width: ${theme.breakpoints.sm}) {
+        font-size: 8px;
     }
 `;
 
@@ -543,8 +637,8 @@ const CheckIcon = styled.div<{ $active: boolean; $color: string }>`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
     color: ${props => props.$active ? props.$color : '#94a3b8'};
     transition: all 0.2s ease;
     position: relative;
@@ -554,21 +648,34 @@ const CheckIcon = styled.div<{ $active: boolean; $color: string }>`
         transform: ${props => props.$active ? 'scale(1)' : 'scale(0.8)'};
         opacity: ${props => props.$active ? 1 : 0.6};
     }
-`;
 
-const RecurringIcon = styled.span<{ $active: boolean }>`
-    position: absolute;
-    top: -2px;
-    right: -2px;
-    font-size: 8px;
-    opacity: ${props => props.$active ? 1 : 0.5};
-    transition: all 0.2s ease;
+    @media (max-width: ${theme.breakpoints.sm}) {
+        width: 12px;
+        height: 12px;
+        
+        svg {
+            width: 8px;
+            height: 8px;
+        }
+    }
 `;
 
 const CalendarWrapper = styled.div`
     flex: 1;
-    padding: ${theme.spacing.xl} ${theme.spacing.xxxl};
+    padding: ${theme.spacing.lg} ${theme.spacing.xl};
     background: ${theme.surface};
+
+    @media (max-width: ${theme.breakpoints.xl}) {
+        padding: ${theme.spacing.md} ${theme.spacing.lg};
+    }
+
+    @media (max-width: ${theme.breakpoints.lg}) {
+        padding: ${theme.spacing.sm} ${theme.spacing.md};
+    }
+
+    @media (max-width: ${theme.breakpoints.md}) {
+        padding: ${theme.spacing.sm};
+    }
 
     .fc {
         height: 100%;
@@ -581,7 +688,7 @@ const CalendarWrapper = styled.div`
 
     .fc-theme-standard .fc-scrollgrid {
         border-color: ${theme.border};
-        border-radius: ${theme.radius.lg};
+        border-radius: ${theme.radius.md};
         overflow: hidden;
     }
 
@@ -589,8 +696,13 @@ const CalendarWrapper = styled.div`
         background: ${theme.surfaceActive};
         font-weight: 600;
         color: ${theme.text.secondary};
-        font-size: 13px;
-        padding: ${theme.spacing.lg};
+        font-size: 11px;
+        padding: ${theme.spacing.sm};
+
+        @media (max-width: ${theme.breakpoints.md}) {
+            font-size: 10px;
+            padding: ${theme.spacing.xs};
+        }
     }
 
     .fc-daygrid-day {
@@ -604,7 +716,12 @@ const CalendarWrapper = styled.div`
     .fc-daygrid-day-number {
         color: ${theme.text.secondary};
         font-weight: 600;
-        padding: ${theme.spacing.sm};
+        padding: ${theme.spacing.xs};
+        font-size: 12px;
+
+        @media (max-width: ${theme.breakpoints.md}) {
+            font-size: 11px;
+        }
     }
 
     .fc-day-today {
@@ -614,11 +731,16 @@ const CalendarWrapper = styled.div`
             background: ${theme.primary};
             color: white;
             border-radius: ${theme.radius.sm};
-            width: 28px;
-            height: 28px;
+            width: 24px;
+            height: 24px;
             display: flex;
             align-items: center;
             justify-content: center;
+
+            @media (max-width: ${theme.breakpoints.md}) {
+                width: 20px;
+                height: 20px;
+            }
         }
     }
 
@@ -626,28 +748,33 @@ const CalendarWrapper = styled.div`
         border-radius: ${theme.radius.sm};
         border: none;
         font-weight: 600;
-        font-size: 12px;
-        margin: 2px;
-        padding: 2px 6px;
+        font-size: 11px;
+        margin: 1px;
+        padding: 1px 4px;
+
+        @media (max-width: ${theme.breakpoints.md}) {
+            font-size: 10px;
+            padding: 1px 3px;
+        }
 
         &.protocol-event {
-            border-left: 3px solid ${theme.primary};
+            border-left: 2px solid ${theme.primary};
             font-weight: 700;
         }
 
         &.recurring-event {
-            border-left: 4px solid #6b46c1;
+            border-left: 3px solid #6b46c1;
             background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%) !important;
-            box-shadow: 0 2px 4px rgba(139, 92, 246, 0.15);
+            box-shadow: 0 1px 3px rgba(139, 92, 246, 0.15);
             position: relative;
 
             &::before {
                 content: '';
                 position: absolute;
-                top: 2px;
-                right: 2px;
-                width: 8px;
-                height: 8px;
+                top: 1px;
+                right: 1px;
+                width: 6px;
+                height: 6px;
                 background: rgba(255, 255, 255, 0.8);
                 border-radius: 50%;
                 z-index: 1;
@@ -655,25 +782,33 @@ const CalendarWrapper = styled.div`
 
             &:hover {
                 transform: translateY(-1px) scale(1.02) !important;
-                box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3) !important;
+                box-shadow: 0 3px 8px rgba(139, 92, 246, 0.3) !important;
             }
         }
     }
 
     .fc-timegrid-slot {
-        height: 60px;
+        height: 50px;
         border-color: ${theme.borderLight};
+
+        @media (max-width: ${theme.breakpoints.md}) {
+            height: 45px;
+        }
     }
 
     .fc-timegrid-slot-label {
         color: ${theme.text.tertiary};
         font-weight: 500;
-        font-size: 12px;
+        font-size: 11px;
+
+        @media (max-width: ${theme.breakpoints.md}) {
+            font-size: 10px;
+        }
     }
 
     .fc-list-event {
-        border-radius: ${theme.radius.md};
-        margin-bottom: ${theme.spacing.sm};
+        border-radius: ${theme.radius.sm};
+        margin-bottom: ${theme.spacing.xs};
 
         &:hover {
             transform: translateY(-1px);
@@ -681,7 +816,7 @@ const CalendarWrapper = styled.div`
         }
 
         &.recurring-event {
-            border-left: 4px solid #8b5cf6 !important;
+            border-left: 3px solid #8b5cf6 !important;
             background: linear-gradient(90deg, #8b5cf615 0%, transparent 100%) !important;
         }
     }
@@ -689,26 +824,36 @@ const CalendarWrapper = styled.div`
     .fc-list-event-time {
         font-weight: 600;
         color: ${theme.primary};
+        font-size: 11px;
+
+        @media (max-width: ${theme.breakpoints.md}) {
+            font-size: 10px;
+        }
     }
 
     .fc-list-event-title {
         font-weight: 500;
         color: ${theme.text.primary};
+        font-size: 11px;
+
+        @media (max-width: ${theme.breakpoints.md}) {
+            font-size: 10px;
+        }
     }
 
     .fc-scroller::-webkit-scrollbar {
-        width: 6px;
-        height: 6px;
+        width: 5px;
+        height: 5px;
     }
 
     .fc-scroller::-webkit-scrollbar-track {
         background: ${theme.surfaceHover};
-        border-radius: 3px;
+        border-radius: 2px;
     }
 
     .fc-scroller::-webkit-scrollbar-thumb {
         background: ${theme.border};
-        border-radius: 3px;
+        border-radius: 2px;
 
         &:hover {
             background: ${theme.text.muted};
@@ -718,10 +863,10 @@ const CalendarWrapper = styled.div`
     .completed-event {
         opacity: 0.95 !important;
         background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
-        border: 2px solid #047857 !important;
+        border: 1.5px solid #047857 !important;
         color: white !important;
         font-weight: 700 !important;
-        box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25) !important;
+        box-shadow: 0 3px 8px rgba(5, 150, 105, 0.25) !important;
         transform: scale(1.02);
 
         &.recurring-event {
@@ -731,17 +876,17 @@ const CalendarWrapper = styled.div`
 
         &:hover {
             transform: scale(1.05) translateY(-2px) !important;
-            box-shadow: 0 8px 20px rgba(5, 150, 105, 0.4) !important;
+            box-shadow: 0 6px 16px rgba(5, 150, 105, 0.4) !important;
         }
     }
 
     .cancelled-event {
         opacity: 0.9 !important;
         background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%) !important;
-        border: 2px solid #b91c1c !important;
+        border: 1.5px solid #b91c1c !important;
         color: white !important;
         font-weight: 700 !important;
-        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25) !important;
+        box-shadow: 0 3px 8px rgba(220, 38, 38, 0.25) !important;
         position: relative;
         transform: scale(1.02);
 
@@ -756,7 +901,7 @@ const CalendarWrapper = styled.div`
             top: 50%;
             left: 8%;
             right: 8%;
-            height: 2px;
+            height: 1.5px;
             background: rgba(255, 255, 255, 0.9);
             transform: translateY(-50%);
             z-index: 1;
@@ -765,14 +910,7 @@ const CalendarWrapper = styled.div`
 
         &:hover {
             transform: scale(1.05) translateY(-2px) !important;
-            box-shadow: 0 8px 20px rgba(220, 38, 38, 0.4) !important;
-        }
-    }
-
-    @media (max-width: 768px) {
-        .fc-event {
-            font-size: 11px;
-            padding: 1px 4px;
+            box-shadow: 0 6px 16px rgba(220, 38, 38, 0.4) !important;
         }
     }
 `;

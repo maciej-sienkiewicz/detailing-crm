@@ -1,7 +1,7 @@
-// src/pages/Protocols/components/VisitsTable.tsx - Refactored to use DataTable
 import React from 'react';
-import { FaClipboardCheck, FaFilter, FaEye, FaTrash } from 'react-icons/fa';
-import { DataTable, TableColumn, HeaderAction, SelectAllConfig, TooltipWrapper, ActionButton, ActionButtons } from '../../../components/common/DataTable';
+import { FaClipboardCheck, FaFilter, FaEye, FaTrash, FaEdit } from 'react-icons/fa';
+import { DataTable, TableColumn, HeaderAction, ActionButtons } from '../../../components/common/DataTable';
+import { ContextMenu, ContextMenuItem } from '../../../components/common/ContextMenu';
 import { VisitListItem } from '../../../api/visitsApiNew';
 import { ProtocolStatusBadge } from '../shared/components/ProtocolStatusBadge';
 
@@ -19,14 +19,14 @@ interface VisitsTableProps {
 }
 
 const defaultColumns: TableColumn[] = [
-    { id: 'vehicle', label: 'Pojazd', width: '24%', sortable: true }, // Szeroka - marka+model
-    { id: 'licensePlate', label: 'Nr rej.', width: '100px', sortable: true }, // Minimalna stała
-    { id: 'client', label: 'Klient', width: '20%', sortable: true }, // Średnia - nazwa+firma
-    { id: 'period', label: 'Okres', width: '18%', sortable: true }, // Średnia - dwie daty
-    { id: 'status', label: 'Status', width: '12%', sortable: true }, // Kompaktowa - badge
-    { id: 'value', label: 'Wartość', width: '10%', sortable: true }, // Wąska - kwota
-    { id: 'lastUpdate', label: 'Aktualizacja', width: '14%', sortable: true }, // Średnia - data+czas
-    { id: 'actions', label: 'Akcje', width: '130px', sortable: false }, // Minimalna - tylko 2 przyciski
+    { id: 'vehicle', label: 'Pojazd', width: '20%', sortable: true },
+    { id: 'licensePlate', label: 'Nr rej.', width: '100px', sortable: true },
+    { id: 'client', label: 'Klient', width: '18%', sortable: true },
+    { id: 'period', label: 'Okres', width: '16%', sortable: true },
+    { id: 'status', label: 'Status', width: '11%', sortable: true },
+    { id: 'value', label: 'Wartość', width: '10%', sortable: true },
+    { id: 'lastUpdate', label: 'Aktualizacja', width: '12%', sortable: true },
+    { id: 'actions', label: 'Akcje', width: '65px', sortable: false },
 ];
 
 const emptyStateConfig = {
@@ -83,12 +83,12 @@ export const VisitsTable: React.FC<VisitsTableProps> = ({
         switch (columnId) {
             case 'vehicle':
                 return (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '14px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', width: '100%' }}>
+                        <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '12px' }}>
                             {visit.vehicle.make} {visit.vehicle.model}
                         </div>
-                        <div style={{ fontSize: '13px', color: '#64748b' }}>
-                            Rok: {visit.vehicle.productionYear || 'Brak danych'}
+                        <div style={{ fontSize: '11px', color: '#64748b' }}>
+                            Rok: {visit.vehicle.productionYear || 'Brak'}
                         </div>
                     </div>
                 );
@@ -98,14 +98,14 @@ export const VisitsTable: React.FC<VisitsTableProps> = ({
                     <div style={{
                         display: 'inline-flex',
                         alignItems: 'center',
-                        padding: '4px 8px',
+                        padding: '2px 6px',
                         background: 'rgba(26, 54, 93, 0.04)',
                         border: '1px solid rgba(37, 99, 235, 0.2)',
-                        borderRadius: '6px',
+                        borderRadius: '4px',
                         fontWeight: 700,
                         color: 'var(--brand-primary, #1a365d)',
-                        fontSize: '13px',
-                        letterSpacing: '0.5px',
+                        fontSize: '11px',
+                        letterSpacing: '0.4px',
                         textTransform: 'uppercase' as const
                     }}>
                         {visit.vehicle.licensePlate}
@@ -114,12 +114,12 @@ export const VisitsTable: React.FC<VisitsTableProps> = ({
 
             case 'client':
                 return (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '14px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', width: '100%' }}>
+                        <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '12px' }}>
                             {visit.owner.name}
                         </div>
                         {visit.owner.companyName && (
-                            <div style={{ fontSize: '13px', color: '#64748b' }}>
+                            <div style={{ fontSize: '11px', color: '#64748b' }}>
                                 {visit.owner.companyName}
                             </div>
                         )}
@@ -128,7 +128,7 @@ export const VisitsTable: React.FC<VisitsTableProps> = ({
 
             case 'period':
                 return (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '13px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '11px' }}>
                         <div style={{ color: '#0f172a', fontWeight: 600 }}>
                             Od: {formatDate(visit.period.startDate)}
                         </div>
@@ -143,41 +143,48 @@ export const VisitsTable: React.FC<VisitsTableProps> = ({
 
             case 'value':
                 return (
-                    <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '14px' }}>
+                    <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '12px' }}>
                         {visit.totalAmount.toFixed(2)} PLN
                     </div>
                 );
 
             case 'lastUpdate':
                 return (
-                    <div style={{ fontSize: '13px', color: '#64748b' }}>
+                    <div style={{ fontSize: '11px', color: '#64748b' }}>
                         {visit.lastUpdate}
                     </div>
                 );
 
             case 'actions':
+                const menuItems: ContextMenuItem[] = [
+                    {
+                        id: 'view',
+                        label: 'Zobacz szczegóły',
+                        icon: FaEye,
+                        onClick: () => onViewVisit?.(visit),
+                        variant: 'primary'
+                    },
+                    {
+                        id: 'edit',
+                        label: 'Edytuj wizytę',
+                        icon: FaEdit,
+                        onClick: () => onEditVisit?.(visit.id),
+                        variant: 'default',
+                        hidden: !onEditVisit
+                    },
+                    {
+                        id: 'delete',
+                        label: 'Usuń wizytę',
+                        icon: FaTrash,
+                        onClick: () => onDeleteVisit?.(visit.id),
+                        variant: 'danger',
+                        hidden: !onDeleteVisit
+                    }
+                ];
+
                 return (
-                    <ActionButtons>
-                        {onViewVisit && (
-                            <TooltipWrapper title="Zobacz szczegóły">
-                                <ActionButton
-                                    onClick={(e) => handleActionClick(e, () => onViewVisit(visit))}
-                                    $variant="view"
-                                >
-                                    <FaEye />
-                                </ActionButton>
-                            </TooltipWrapper>
-                        )}
-                        {onDeleteVisit && (
-                            <TooltipWrapper title="Usuń wizytę">
-                                <ActionButton
-                                    onClick={(e) => handleActionClick(e, () => onDeleteVisit(visit.id))}
-                                    $variant="delete"
-                                >
-                                    <FaTrash />
-                                </ActionButton>
-                            </TooltipWrapper>
-                        )}
+                    <ActionButtons onClick={(e) => e.stopPropagation()}>
+                        <ContextMenu items={menuItems} size="medium" />
                     </ActionButtons>
                 );
 
@@ -186,7 +193,6 @@ export const VisitsTable: React.FC<VisitsTableProps> = ({
         }
     };
 
-    // Konfiguracja akcji w nagłówku
     const headerActions: HeaderAction[] = [
         {
             id: 'filters',
@@ -208,7 +214,7 @@ export const VisitsTable: React.FC<VisitsTableProps> = ({
             onItemClick={onVisitClick}
             renderCell={renderCell}
             enableDragAndDrop={true}
-            enableViewToggle={false} // Wyłączone dla wizyt
+            enableViewToggle={false}
             defaultViewMode="table"
             storageKeys={storageKeys}
             headerActions={headerActions}
