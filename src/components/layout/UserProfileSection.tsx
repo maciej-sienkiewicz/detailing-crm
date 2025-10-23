@@ -11,7 +11,7 @@ const brandTheme = {
     surface: '#ffffff',
     surfaceAlt: '#f8fafc',
     neutral: '#64748b',
-    border: '#e2e8f0'
+    border: '#e8ecef'
 };
 
 const UserProfileSection: React.FC = () => {

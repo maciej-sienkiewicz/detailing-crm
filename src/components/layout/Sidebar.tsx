@@ -328,7 +328,7 @@ const SidebarContainer = styled.div<{ isOpen: boolean; isMobile: boolean }>`
     height: 100vh;
     width: 220px;
     background: ${brandTheme.surface};
-    border-right: 1px solid #e2e8f0;
+    border-right: 1px solid #e8ecef;
     z-index: 1000;
     display: flex;
     flex-direction: column;
@@ -351,9 +351,9 @@ const SidebarHeader = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 16px;
-    border-bottom: 1px solid #f1f5f9;
-    min-height: 60px;
+    padding: 16px;
+    border-bottom: 1px solid #e8ecef;
+    min-height: 81px;
 `;
 
 const LogoContainer = styled.div`
@@ -585,7 +585,7 @@ const SubmenuArrow = styled.div<{ $expanded: boolean }>`
 
 const SidebarFooter = styled.div`
     padding: 12px 16px;
-    border-top: 1px solid #f1f5f9;
+    border-top: 1px solid #e8ecef;
     display: flex;
     align-items: center;
     justify-content: space-between;

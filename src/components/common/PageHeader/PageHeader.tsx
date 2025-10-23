@@ -29,23 +29,25 @@ export const PageHeader = <T extends React.Key = string>({
                                                              onTabChange
                                                          }: PageHeaderProps<T>) => {
     return (
-        <HeaderContainer>
-            <PageHeaderContent>
-                <HeaderTitle>
-                    <TitleIcon>
-                        <IconComponent />
-                    </TitleIcon>
-                    <TitleContent>
-                        <MainTitle>{title}</MainTitle>
-                        <Subtitle>{subtitle}</Subtitle>
-                    </TitleContent>
-                </HeaderTitle>
-                {actions && <HeaderActions>{actions}</HeaderActions>}
-            </PageHeaderContent>
+        <>
+            <HeaderContainer>
+                <HeaderMain>
+                    <TitleGroup>
+                        <IconBadge>
+                            <IconComponent />
+                        </IconBadge>
+                        <TitleContent>
+                            <Title>{title}</Title>
+                            <Subtitle>{subtitle}</Subtitle>
+                        </TitleContent>
+                    </TitleGroup>
+                    {actions && <ActionsGroup>{actions}</ActionsGroup>}
+                </HeaderMain>
+            </HeaderContainer>
 
             {tabs && tabs.length > 0 && (
-                <TabNavigation>
-                    <TabsList>
+                <TabsContainer>
+                    <TabsBar>
                         {tabs.map(tab => {
                             const Icon = tab.icon;
                             const isActive = activeTab === tab.id;
@@ -55,346 +57,206 @@ export const PageHeader = <T extends React.Key = string>({
                                     $active={isActive}
                                     onClick={() => onTabChange?.(tab.id)}
                                 >
-                                    <TabIcon $active={isActive}>
-                                        <Icon />
-                                    </TabIcon>
-                                    <TabContent>
-                                        <TabLabel $active={isActive}>{tab.label}</TabLabel>
-                                        <TabDescription $active={isActive}>{tab.description}</TabDescription>
-                                    </TabContent>
+                                    <TabIcon><Icon /></TabIcon>
+                                    <TabText>{tab.label}</TabText>
                                 </TabButton>
                             );
                         })}
-                    </TabsList>
-                </TabNavigation>
+                    </TabsBar>
+                </TabsContainer>
             )}
-        </HeaderContainer>
+        </>
     );
 };
 
 const HeaderContainer = styled.header`
-    background: ${theme.surface};
-    border-bottom: 1px solid ${theme.border};
-    box-shadow: ${theme.shadow.sm};
+    background: #fafbfc;
+    border-bottom: 1px solid #e8ecef;
 `;
 
-const PageHeaderContent = styled.div`
-    max-width: 1600px;
-    margin: 0 auto;
-    padding: ${theme.spacing.lg} ${theme.spacing.xl};
+const HeaderMain = styled.div`
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    gap: ${theme.spacing.xl};
-
-    @media (max-width: 1024px) {
-        padding: ${theme.spacing.md} ${theme.spacing.lg};
-        flex-direction: column;
-        align-items: stretch;
-        gap: ${theme.spacing.md};
-    }
+    justify-content: space-between;
+    padding: 16px 24px;
+    min-height: 64px;
+    gap: 24px;
 
     @media (max-width: 768px) {
-        padding: ${theme.spacing.md};
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 12px 16px;
+        gap: 12px;
     }
 `;
 
-const HeaderTitle = styled.div`
+const TitleGroup = styled.div`
     display: flex;
     align-items: center;
-    gap: ${theme.spacing.lg};
-    min-width: 0;
+    gap: 16px;
     flex: 1;
+    min-width: 0;
 `;
 
-const TitleIcon = styled.div`
-    width: 36px;
-    height: 36px;
-    background: linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryLight} 100%);
-    border-radius: ${theme.radius.md};
+const IconBadge = styled.div`
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark} 100%);
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: ${theme.fontSize.xxl};
-    box-shadow: ${theme.shadow.sm};
+    font-size: 20px;
     flex-shrink: 0;
+    box-shadow: 0 4px 12px ${theme.primary}25;
 `;
 
 const TitleContent = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${theme.spacing.xs};
-    min-width: 0;
+    gap: 2px;
     flex: 1;
+    min-width: 0;
 `;
 
-const MainTitle = styled.h1`
-    font-size: ${theme.fontSize.xxxl};
+const Title = styled.h1`
+    font-size: 20px;
     font-weight: 700;
     color: ${theme.text.primary};
     margin: 0;
-    letter-spacing: -0.025em;
+    letter-spacing: -0.01em;
     line-height: 1.2;
-
-    @media (max-width: 768px) {
-        font-size: ${theme.fontSize.xxl};
-    }
 `;
 
 const Subtitle = styled.div`
-    font-size: ${theme.fontSize.md};
-    color: ${theme.text.secondary};
+    font-size: 13px;
+    color: ${theme.text.tertiary};
     font-weight: 500;
     line-height: 1.3;
-
-    @media (max-width: 768px) {
-        font-size: ${theme.fontSize.base};
-    }
 `;
 
-const HeaderActions = styled.div`
+const ActionsGroup = styled.div`
     display: flex;
-    gap: ${theme.spacing.sm};
+    gap: 8px;
     align-items: center;
-    flex-wrap: wrap;
-
-    @media (max-width: 1024px) {
-        justify-content: flex-end;
-        width: 100%;
-    }
 
     @media (max-width: 768px) {
-        flex-direction: column;
-        gap: ${theme.spacing.xs};
+        width: 100%;
 
         > * {
-            width: 100%;
+            flex: 1;
         }
     }
 `;
 
-const TabNavigation = styled.div`
-    background: ${theme.surfaceAlt};
-    border-top: 1px solid ${theme.border};
+const TabsContainer = styled.div`
+    background: white;
+    border-bottom: 1px solid #e8ecef;
 `;
 
-const TabsList = styled.div`
-    max-width: 1600px;
-    margin: 0 auto;
-    padding: 0 ${theme.spacing.xl};
+const TabsBar = styled.div`
     display: flex;
-    background: transparent;
-    gap: 0;
-    position: relative;
+    gap: 2px;
+    padding: 0 24px;
+    overflow-x: auto;
 
-    &::after {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: ${theme.spacing.xl};
-        right: ${theme.spacing.xl};
-        height: 1px;
-        background: ${theme.border};
-        z-index: 0;
-    }
-
-    @media (max-width: 1024px) {
-        padding: 0 ${theme.spacing.lg};
-
-        &::after {
-            left: ${theme.spacing.lg};
-            right: ${theme.spacing.lg};
-        }
+    &::-webkit-scrollbar {
+        height: 0;
     }
 
     @media (max-width: 768px) {
-        padding: 0 ${theme.spacing.md};
-
-        &::after {
-            left: ${theme.spacing.md};
-            right: ${theme.spacing.md};
-        }
+        padding: 0 16px;
     }
 `;
 
 const TabButton = styled.button<{ $active: boolean }>`
-    flex: 1;
+    position: relative;
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: ${theme.spacing.md};
-    padding: ${theme.spacing.lg} ${theme.spacing.md};
-    border: none;
+    gap: 6px;
+    padding: 12px 20px;
     background: transparent;
-    color: ${props => props.$active ? theme.primary : theme.text.tertiary};
+    color: ${props => props.$active ? theme.primary : theme.text.secondary};
+    border: none;
+    font-size: 13px;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    font-weight: ${props => props.$active ? '700' : '500'};
-    z-index: 1;
-    border-bottom: 2px solid transparent;
-
-    ${props => props.$active && `
-        border-bottom-color: ${theme.primary};
-        background: linear-gradient(135deg, ${theme.surface} 0%, ${theme.surfaceElevated} 100%);
-        
-        &::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: -1px;
-            background: ${theme.surface};
-            border-radius: ${theme.radius.sm} ${theme.radius.sm} 0 0;
-            z-index: -1;
-            box-shadow: 
-                0 -1px 4px rgba(0, 0, 0, 0.04),
-                inset 0 1px 0 rgba(255, 255, 255, 0.8);
-        }
-    `}
+    transition: all 0.2s ease;
+    white-space: nowrap;
 
     &:hover {
-        color: ${props => props.$active ? theme.primaryDark : theme.primary};
-        background: ${props => props.$active
-                ? `linear-gradient(135deg, ${theme.surface} 0%, ${theme.surfaceHover} 100%)`
-                : 'rgba(255, 255, 255, 0.5)'
-        };
-
-        ${props => !props.$active && `
-            border-bottom-color: ${theme.border};
-        `}
+        color: ${theme.primary};
+        background: ${theme.surfaceHover};
     }
 
-    &:active {
-        transform: none;
-    }
-
-    @media (max-width: 768px) {
-        padding: ${theme.spacing.md} ${theme.spacing.sm};
-        gap: ${theme.spacing.sm};
-    }
+    ${props => props.$active && `
+        &::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: ${theme.primary};
+        }
+    `}
 `;
 
-const TabIcon = styled.div<{ $active?: boolean }>`
-    width: 20px;
-    height: 20px;
+const TabIcon = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: ${theme.fontSize.md};
-    flex-shrink: 0;
-    border-radius: ${theme.radius.sm};
-    background: ${props => props.$active
-            ? `${theme.primary}10`
-            : 'transparent'
-    };
-    transition: all 0.3s ease;
-
-    ${props => props.$active && `
-        color: ${theme.primary};
-    `}
-
-    @media (max-width: 768px) {
-    width: 18px;
-    height: 18px;
-    font-size: ${theme.fontSize.sm};
-}
+    font-size: 14px;
 `;
 
-const TabContent = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1px;
-    min-width: 0;
-
-    @media (max-width: 768px) {
-        align-items: center;
-    }
-`;
-
-const TabLabel = styled.div<{ $active?: boolean }>`
-    font-size: ${theme.fontSize.md};
-    font-weight: ${props => props.$active ? '700' : '600'};
-    line-height: 1.2;
-    letter-spacing: ${props => props.$active ? '-0.025em' : '0'};
-    text-align: center;
-
-    @media (max-width: 768px) {
-        font-size: ${theme.fontSize.base};
-    }
-`;
-
-const TabDescription = styled.div<{ $active?: boolean }>`
-    font-size: ${theme.fontSize.xs};
-    font-weight: 500;
-    opacity: ${props => props.$active ? '0.8' : '0.6'};
-    line-height: 1.2;
-    color: ${props => props.$active ? theme.text.secondary : theme.text.tertiary};
-    text-align: center;
-    max-width: 200px;
-
-    @media (max-width: 768px) {
-        display: none;
-    }
-`;
+const TabText = styled.span``;
 
 const BaseButton = styled.button`
     display: flex;
     align-items: center;
-    gap: ${theme.spacing.sm};
-    padding: ${theme.spacing.sm} ${theme.spacing.md};
-    border-radius: ${theme.radius.md};
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 8px;
     font-weight: 600;
-    font-size: ${theme.fontSize.base};
+    font-size: 13px;
     cursor: pointer;
-    transition: all ${theme.transitions.spring};
-    border: 1px solid transparent;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
     white-space: nowrap;
-    min-height: 32px;
-
-    &:hover {
-        transform: translateY(-1px);
-    }
-
-    &:active {
-        transform: translateY(0);
-    }
+    min-height: 36px;
 
     &:disabled {
         opacity: 0.5;
         cursor: not-allowed;
-        transform: none;
     }
 
     @media (max-width: 768px) {
+        min-height: 40px;
         justify-content: center;
     }
 `;
 
 export const PrimaryButton = styled(BaseButton)`
-    background: linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryLight} 100%);
+    background: linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark} 100%);
     color: white;
-    box-shadow: ${theme.shadow.sm};
+    box-shadow: 0 2px 8px ${theme.primary}25;
 
     &:hover:not(:disabled) {
-        background: linear-gradient(135deg, ${theme.primaryDark} 0%, ${theme.primary} 100%);
-        box-shadow: ${theme.shadow.md};
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px ${theme.primary}30;
     }
 `;
 
 export const SecondaryButton = styled(BaseButton)`
-    background: ${theme.surface};
-    color: ${theme.text.secondary};
-    border-color: ${theme.border};
-    box-shadow: ${theme.shadow.sm};
+    background: white;
+    color: ${theme.text.primary};
+    border-color: #e8ecef;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 
     &:hover:not(:disabled) {
-        background: ${theme.surfaceHover};
-        color: ${theme.text.primary};
-        border-color: ${theme.borderHover};
-        box-shadow: ${theme.shadow.sm};
+        border-color: ${theme.borderActive};
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
     }
 `;

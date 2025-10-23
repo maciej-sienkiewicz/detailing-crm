@@ -21,9 +21,9 @@ const GalleryStatsComponent: React.FC<GalleryStatsProps> = ({
     }
 
     return (
-        <StatsSection>
+        <StatsRow>
             <StatItem>
-                <StatIcon>
+                <StatIcon $color={theme.primary}>
                     <FaImages />
                 </StatIcon>
                 <StatContent>
@@ -32,104 +32,103 @@ const GalleryStatsComponent: React.FC<GalleryStatsProps> = ({
                 </StatContent>
             </StatItem>
 
-            <Divider />
+            <StatDivider />
 
             <StatItem>
-                <StatIcon>
+                <StatIcon $color="#0891b2">
                     <FaDatabase />
                 </StatIcon>
                 <StatContent>
                     <StatValue>{formatFileSize(stats.totalSize)}</StatValue>
-                    <StatLabel>Łącznie</StatLabel>
+                    <StatLabel>Łączny rozmiar</StatLabel>
                 </StatContent>
             </StatItem>
 
-            <Divider />
+            <StatDivider />
 
             <StatItem>
-                <StatIcon>
+                <StatIcon $color="#d97706">
                     <FaTags />
                 </StatIcon>
                 <StatContent>
                     <StatValue>{availableTagsCount}</StatValue>
-                    <StatLabel>Tagów</StatLabel>
+                    <StatLabel>Dostępnych tagów</StatLabel>
                 </StatContent>
             </StatItem>
 
-            <Divider />
+            <StatDivider />
 
             <StatItem>
-                <StatIcon>
+                <StatIcon $color="#059669">
                     <FaCubes />
                 </StatIcon>
                 <StatContent>
                     <StatValue>{totalItems}</StatValue>
-                    <StatLabel>Wyników</StatLabel>
+                    <StatLabel>Wyników filtrowania</StatLabel>
                 </StatContent>
             </StatItem>
-        </StatsSection>
+        </StatsRow>
     );
 };
 
-const StatsSection = styled.div`
+const StatsRow = styled.div`
     display: flex;
     align-items: center;
-    padding: ${theme.spacing.xl};
-    border-bottom: 1px solid ${theme.borderLight};
-    gap: ${theme.spacing.xl};
+    gap: 24px;
+    padding: 20px 24px;
 
-    @media (max-width: 1024px) {
-        padding: ${theme.spacing.lg};
-        gap: ${theme.spacing.lg};
+    @media (max-width: 1200px) {
+        gap: 16px;
     }
 
     @media (max-width: 768px) {
-        flex-wrap: wrap;
-        padding: ${theme.spacing.md};
-        gap: ${theme.spacing.md};
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+        padding: 16px;
     }
 `;
 
 const StatItem = styled.div`
     display: flex;
     align-items: center;
-    gap: ${theme.spacing.md};
+    gap: 12px;
     flex: 1;
     min-width: 0;
 
     @media (max-width: 768px) {
-        flex: 1 1 calc(50% - ${theme.spacing.sm});
+        flex: none;
     }
 `;
 
-const StatIcon = styled.div`
-    width: 36px;
-    height: 36px;
-    border-radius: ${theme.radius.md};
-    background: ${theme.primary}10;
+const StatIcon = styled.div<{ $color: string }>`
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: ${props => props.$color}15;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: ${theme.primary};
-    font-size: ${theme.fontSize.lg};
+    color: ${props => props.$color};
+    font-size: 18px;
     flex-shrink: 0;
-    transition: all ${theme.transitions.normal};
+    transition: all 0.2s ease;
 
     ${StatItem}:hover & {
         transform: scale(1.05);
-        background: ${theme.primary}15;
+        background: ${props => props.$color}20;
     }
 `;
 
 const StatContent = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${theme.spacing.xs};
+    gap: 2px;
     min-width: 0;
 `;
 
 const StatValue = styled.div`
-    font-size: ${theme.fontSize.xl};
+    font-size: 20px;
     font-weight: 700;
     color: ${theme.text.primary};
     line-height: 1;
@@ -137,17 +136,17 @@ const StatValue = styled.div`
 `;
 
 const StatLabel = styled.div`
-    font-size: ${theme.fontSize.xs};
+    font-size: 11px;
     color: ${theme.text.tertiary};
-    font-weight: 500;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.3px;
 `;
 
-const Divider = styled.div`
+const StatDivider = styled.div`
     width: 1px;
     height: 32px;
-    background: ${theme.borderLight};
+    background: #f0f3f7;
     flex-shrink: 0;
 
     @media (max-width: 768px) {

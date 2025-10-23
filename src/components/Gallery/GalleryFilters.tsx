@@ -47,15 +47,15 @@ const GalleryFiltersComponent: React.FC<GalleryFiltersProps> = ({
     };
 
     return (
-        <FiltersSection>
+        <FiltersContainer>
             <SearchRow>
-                <SearchInputWrapper>
+                <SearchWrapper>
                     <SearchIcon>
                         <FaSearch />
                     </SearchIcon>
                     <SearchInput
                         type="text"
-                        placeholder="Szukaj tagów..."
+                        placeholder="Wyszukaj tagi..."
                         value={tagSearch}
                         onChange={(e) => {
                             setTagSearch(e.target.value);
@@ -66,20 +66,20 @@ const GalleryFiltersComponent: React.FC<GalleryFiltersProps> = ({
                         disabled={isLoading}
                     />
                     {showTagDropdown && filteredAvailableTags.length > 0 && (
-                        <TagDropdown>
-                            {filteredAvailableTags.slice(0, 8).map(tag => (
+                        <Dropdown>
+                            {filteredAvailableTags.slice(0, 6).map(tag => (
                                 <DropdownItem key={tag} onClick={() => handleTagAdd(tag)}>
                                     {tag}
                                 </DropdownItem>
                             ))}
-                        </TagDropdown>
+                        </Dropdown>
                     )}
-                </SearchInputWrapper>
+                </SearchWrapper>
 
                 {selectedTags.length > 0 && (
                     <ClearButton onClick={handleClearAll}>
                         <FaTimes />
-                        Wyczyść ({selectedTags.length})
+                        Wyczyść
                     </ClearButton>
                 )}
             </SearchRow>
@@ -96,7 +96,7 @@ const GalleryFiltersComponent: React.FC<GalleryFiltersProps> = ({
             ) : (
                 availableTags.length > 0 && (
                     <TagsRow>
-                        {availableTags.slice(0, 12).map(tag => (
+                        {availableTags.slice(0, 10).map(tag => (
                             <SuggestionTag key={tag} onClick={() => handleTagAdd(tag)}>
                                 {tag}
                             </SuggestionTag>
@@ -104,95 +104,91 @@ const GalleryFiltersComponent: React.FC<GalleryFiltersProps> = ({
                     </TagsRow>
                 )
             )}
-        </FiltersSection>
+        </FiltersContainer>
     );
 };
 
-const FiltersSection = styled.div`
+const FiltersContainer = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${theme.spacing.lg};
-    padding: ${theme.spacing.xl};
-    border-bottom: 1px solid ${theme.borderLight};
-
-    @media (max-width: 1024px) {
-        padding: ${theme.spacing.lg};
-        gap: ${theme.spacing.md};
-    }
+    gap: 16px;
+    padding: 20px 24px;
 
     @media (max-width: 768px) {
-        padding: ${theme.spacing.md};
+        padding: 16px;
+        gap: 12px;
     }
 `;
 
 const SearchRow = styled.div`
     display: flex;
-    gap: ${theme.spacing.md};
+    gap: 8px;
     align-items: center;
 
     @media (max-width: 768px) {
         flex-direction: column;
-        gap: ${theme.spacing.sm};
+        gap: 8px;
     }
 `;
 
-const SearchInputWrapper = styled.div`
-  position: relative;
-  flex: 1;
+const SearchWrapper = styled.div`
+    position: relative;
+    flex: 1;
 `;
 
 const SearchIcon = styled.div`
     position: absolute;
-    left: ${theme.spacing.md};
+    left: 12px;
     top: 50%;
     transform: translateY(-50%);
     color: ${theme.text.muted};
-    font-size: ${theme.fontSize.sm};
+    font-size: 14px;
     pointer-events: none;
 `;
 
 const SearchInput = styled.input`
-  width: 100%;
-  height: 40px;
-  padding: 0 ${theme.spacing.md} 0 ${theme.spacing.xxxl};
-  border: 1px solid ${theme.border};
-  border-radius: ${theme.radius.md};
-  font-size: ${theme.fontSize.base};
-  background: ${theme.surface};
-  color: ${theme.text.primary};
-  transition: all ${theme.transitions.normal};
+    width: 100%;
+    height: 40px;
+    padding: 0 12px 0 36px;
+    border: 1px solid #e8ecef;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    background: white;
+    color: ${theme.text.primary};
+    transition: all 0.2s ease;
 
-  &:hover {
-    border-color: ${theme.borderActive};
-  }
+    &:hover {
+        border-color: ${theme.borderActive};
+    }
 
-  &:focus {
-    outline: none;
-    border-color: ${theme.primary};
-    box-shadow: 0 0 0 3px ${theme.primary}08;
-  }
+    &:focus {
+        outline: none;
+        border-color: ${theme.primary};
+        box-shadow: 0 0 0 3px ${theme.primary}08;
+    }
 
-  &::placeholder {
-    color: ${theme.text.muted};
-  }
+    &::placeholder {
+        color: ${theme.text.muted};
+    }
 
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
 `;
 
-const TagDropdown = styled.div`
+const Dropdown = styled.div`
     position: absolute;
-    top: calc(100% + ${theme.spacing.xs});
+    top: calc(100% + 4px);
     left: 0;
     right: 0;
-    background: ${theme.surface};
-    border: 1px solid ${theme.border};
-    border-radius: ${theme.radius.md};
-    box-shadow: ${theme.shadow.lg};
+    background: white;
+    border: 1px solid #e8ecef;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     z-index: 100;
-    max-height: 240px;
+    max-height: 200px;
     overflow-y: auto;
     animation: slideDown 0.15s ease;
 
@@ -208,7 +204,7 @@ const TagDropdown = styled.div`
     }
 
     &::-webkit-scrollbar {
-        width: 6px;
+        width: 4px;
     }
 
     &::-webkit-scrollbar-track {
@@ -216,23 +212,23 @@ const TagDropdown = styled.div`
     }
 
     &::-webkit-scrollbar-thumb {
-        background: ${theme.border};
-        border-radius: 3px;
+        background: #e8ecef;
+        border-radius: 2px;
     }
 `;
 
 const DropdownItem = styled.button`
     width: 100%;
-    padding: ${theme.spacing.sm} ${theme.spacing.md};
+    padding: 10px 12px;
     text-align: left;
-    background: ${theme.surface};
+    background: white;
     border: none;
-    border-bottom: 1px solid ${theme.borderLight};
+    border-bottom: 1px solid #f5f7fa;
     color: ${theme.text.secondary};
-    font-size: ${theme.fontSize.sm};
+    font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    transition: all ${theme.transitions.fast};
+    transition: all 0.1s ease;
 
     &:last-child {
         border-bottom: none;
@@ -241,60 +237,60 @@ const DropdownItem = styled.button`
     &:hover {
         background: ${theme.surfaceHover};
         color: ${theme.primary};
+        padding-left: 16px;
     }
 `;
 
 const ClearButton = styled.button`
-  display: flex;
-  align-items: center;
-  gap: ${theme.spacing.sm};
-  height: 40px;
-  padding: 0 ${theme.spacing.lg};
-  background: ${theme.surface};
-  color: ${theme.text.tertiary};
-  border: 1px solid ${theme.border};
-  border-radius: ${theme.radius.md};
-  font-size: ${theme.fontSize.sm};
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all ${theme.transitions.normal};
-
-  svg {
-    font-size: ${theme.fontSize.sm};
-  }
-
-  &:hover {
-    background: ${theme.status.errorLight};
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 40px;
+    padding: 0 16px;
+    background: white;
     color: ${theme.status.error};
-    border-color: ${theme.status.error}40;
-  }
+    border: 1px solid ${theme.status.error}30;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
 
-  @media (max-width: 768px) {
-    width: 100%;
-    justify-content: center;
-  }
+    svg {
+        font-size: 11px;
+    }
+
+    &:hover {
+        background: ${theme.status.errorLight};
+        border-color: ${theme.status.error};
+    }
+
+    @media (max-width: 768px) {
+        width: 100%;
+        justify-content: center;
+    }
 `;
 
 const TagsRow = styled.div`
     display: flex;
     flex-wrap: wrap;
-    gap: ${theme.spacing.sm};
+    gap: 8px;
 `;
 
 const ActiveTag = styled.button`
     display: flex;
     align-items: center;
-    gap: ${theme.spacing.sm};
-    padding: ${theme.spacing.sm} ${theme.spacing.md};
+    gap: 6px;
+    padding: 6px 12px;
     background: ${theme.primary};
     color: white;
     border: none;
-    border-radius: ${theme.radius.sm};
-    font-size: ${theme.fontSize.sm};
+    border-radius: 6px;
+    font-size: 12px;
     font-weight: 600;
     cursor: pointer;
-    transition: all ${theme.transitions.normal};
+    transition: all 0.2s ease;
 
     &:hover {
         background: ${theme.primaryDark};
@@ -308,19 +304,19 @@ const RemoveIcon = styled.span`
     justify-content: center;
     width: 14px;
     height: 14px;
-    font-size: ${theme.fontSize.xs};
+    font-size: 9px;
 `;
 
 const SuggestionTag = styled.button`
-    padding: ${theme.spacing.sm} ${theme.spacing.md};
-    background: ${theme.surfaceAlt};
+    padding: 6px 12px;
+    background: white;
     color: ${theme.text.secondary};
-    border: 1px solid ${theme.border};
-    border-radius: ${theme.radius.sm};
-    font-size: ${theme.fontSize.sm};
+    border: 1px solid #e8ecef;
+    border-radius: 6px;
+    font-size: 12px;
     font-weight: 500;
     cursor: pointer;
-    transition: all ${theme.transitions.normal};
+    transition: all 0.2s ease;
 
     &:hover {
         background: ${theme.primary}08;

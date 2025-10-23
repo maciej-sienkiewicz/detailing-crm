@@ -51,35 +51,41 @@ const GalleryPage: React.FC = () => {
         <PageContainer>
             <GalleryHeader />
 
-            <MainWrapper>
-                <UnifiedContainer>
-                    <GalleryStatsComponent
-                        stats={stats}
-                        availableTagsCount={availableTags.length}
-                        totalItems={totalItems}
-                    />
+            <ContentArea>
+                <ContentInner>
+                    <CompactCard>
+                        <GalleryStatsComponent
+                            stats={stats}
+                            availableTagsCount={availableTags.length}
+                            totalItems={totalItems}
+                        />
 
-                    <GalleryFiltersComponent
-                        availableTags={availableTags}
-                        onFiltersChange={handleFiltersChange}
-                        isLoading={isLoading}
-                    />
+                        <Divider />
 
-                    <GalleryContent
-                        images={images}
-                        isLoading={isLoading}
-                        totalItems={totalItems}
-                        currentPage={currentPage}
-                        totalPages={totalPages}
-                        pageSize={pageSize}
-                        getImageUrl={getImageUrl}
-                        onImageClick={handleImageClick}
-                        onProtocolClick={handleProtocolClick}
-                        onDownload={downloadImage}
-                        onPageChange={handlePageChange}
-                    />
-                </UnifiedContainer>
-            </MainWrapper>
+                        <GalleryFiltersComponent
+                            availableTags={availableTags}
+                            onFiltersChange={handleFiltersChange}
+                            isLoading={isLoading}
+                        />
+                    </CompactCard>
+
+                    <CompactCard>
+                        <GalleryContent
+                            images={images}
+                            isLoading={isLoading}
+                            totalItems={totalItems}
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            pageSize={pageSize}
+                            getImageUrl={getImageUrl}
+                            onImageClick={handleImageClick}
+                            onProtocolClick={handleProtocolClick}
+                            onDownload={downloadImage}
+                            onPageChange={handlePageChange}
+                        />
+                    </CompactCard>
+                </ContentInner>
+            </ContentArea>
 
             <ImagePreviewModal
                 isOpen={showImageModal}
@@ -94,30 +100,41 @@ const GalleryPage: React.FC = () => {
 };
 
 const PageContainer = styled.div`
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #f5f7fa;
     min-height: 100vh;
-    background: ${theme.surfaceAlt};
 `;
 
-const MainWrapper = styled.main`
-    max-width: 1600px;
-    margin: 0 auto;
-    padding: ${theme.spacing.xl};
-
-    @media (max-width: 1024px) {
-        padding: ${theme.spacing.lg};
-    }
+const ContentArea = styled.main`
+    flex: 1;
+    padding: 24px;
 
     @media (max-width: 768px) {
-        padding: ${theme.spacing.md};
+        padding: 16px;
     }
 `;
 
-const UnifiedContainer = styled.div`
-  background: ${theme.surface};
-  border-radius: ${theme.radius.xl};
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  border: 1px solid ${theme.border};
+const ContentInner = styled.div`
+    max-width: 1600px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+`;
+
+const CompactCard = styled.div`
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e8ecef;
+    overflow: hidden;
+`;
+
+const Divider = styled.div`
+    height: 1px;
+    background: #f5f7fa;
 `;
 
 export default GalleryPage;

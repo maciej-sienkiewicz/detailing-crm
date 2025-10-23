@@ -5,7 +5,11 @@ import {carReceptionApi} from '../api/carReceptionApi';
 
 export const useGallery = () => {
     const [images, setImages] = useState<GalleryImage[]>([]);
-    const [stats, setStats] = useState<GalleryStats | null>(null);
+    const [stats, setStats] = useState<GalleryStats>(() => ({
+        totalImages: 0,
+        totalSize: 0,
+        availableTags: [],
+    }));
     const [availableTags, setAvailableTags] = useState<string[]>([]);
     const [currentPage, setCurrentPage] = useState(0);
     const [totalPages, setTotalPages] = useState(0);

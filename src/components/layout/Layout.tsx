@@ -89,6 +89,7 @@ const LayoutContainer = styled.div`
     display: flex;
     min-height: 100vh;
     position: relative;
+    background: #fafbfc;
 `;
 
 const HamburgerButton = styled.button`
@@ -101,16 +102,18 @@ const HamburgerButton = styled.button`
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background-color: #3498db;
+    background-color: var(--brand-primary, #2563eb);
     color: white;
     border: none;
     cursor: pointer;
     z-index: 100;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     font-size: 14px;
+    transition: all 0.2s;
 
     &:hover {
-        background-color: #2980b9;
+        background-color: var(--brand-primary-dark, #1d4ed8);
+        transform: scale(1.05);
     }
 `;
 
@@ -126,18 +129,19 @@ const SidebarOverlay = styled.div`
 
 const MainContent = styled.main<{ sidebarOpen: boolean, hasSecondaryMenu: boolean, isMobile: boolean }>`
     flex: 1;
-    padding: 16px;
     margin-left: ${({ sidebarOpen, hasSecondaryMenu, isMobile }) => {
-    if (isMobile) return '0';
-    if (sidebarOpen && hasSecondaryMenu) return '420px';
-    if (sidebarOpen) return '220px';
-    return '0';
-}};
+        if (isMobile) return '0';
+        if (sidebarOpen && hasSecondaryMenu) return '420px';
+        if (sidebarOpen) return '220px';
+        return '0';
+    }};
     transition: margin-left 0.3s ease-in-out;
     width: 100%;
-    
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+
     @media (max-width: 768px) {
-        padding: 12px;
         margin-top: ${({ sidebarOpen }) => sidebarOpen ? '0' : '48px'};
     }
 `;
