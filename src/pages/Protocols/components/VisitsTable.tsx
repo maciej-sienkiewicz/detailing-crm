@@ -18,14 +18,15 @@ interface VisitsTableProps {
     filtersComponent?: React.ReactNode;
 }
 
+// POPRAWIONE SZEROKOŚCI - bez horizontal scroll
 const defaultColumns: TableColumn[] = [
     { id: 'vehicle', label: 'Pojazd', width: '18%', sortable: true },
     { id: 'licensePlate', label: 'Nr rej.', width: '90px', sortable: true },
     { id: 'client', label: 'Klient', width: '16%', sortable: true },
-    { id: 'period', label: 'Okres', width: '14%', sortable: true },
-    { id: 'status', label: 'Status', width: '10%', sortable: true },
-    { id: 'value', label: 'Wartość', width: '9%', sortable: true },
-    { id: 'lastUpdate', label: 'Aktualizacja', width: '11%', sortable: true },
+    { id: 'period', label: 'Okres', width: '18%', sortable: true },
+    { id: 'status', label: 'Status', width: '11%', sortable: true },
+    { id: 'value', label: 'Wartość', width: '10%', sortable: true },
+    { id: 'lastUpdate', label: 'Aktualizacja', width: '13%', sortable: true },
     { id: 'actions', label: 'Akcje', width: '60px', sortable: false },
 ];
 
@@ -84,10 +85,10 @@ export const VisitsTable: React.FC<VisitsTableProps> = ({
             case 'vehicle':
                 return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', width: '100%' }}>
-                        <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '11px' }}>
+                        <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '12px' }}>
                             {visit.vehicle.make} {visit.vehicle.model}
                         </div>
-                        <div style={{ fontSize: '10px', color: '#64748b' }}>
+                        <div style={{ fontSize: '11px', color: '#64748b' }}>
                             Rok: {visit.vehicle.productionYear || 'Brak'}
                         </div>
                     </div>
@@ -104,7 +105,7 @@ export const VisitsTable: React.FC<VisitsTableProps> = ({
                         borderRadius: '4px',
                         fontWeight: 700,
                         color: 'var(--brand-primary, #1a365d)',
-                        fontSize: '10px',
+                        fontSize: '11px',
                         letterSpacing: '0.4px',
                         textTransform: 'uppercase' as const
                     }}>
@@ -115,11 +116,11 @@ export const VisitsTable: React.FC<VisitsTableProps> = ({
             case 'client':
                 return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', width: '100%' }}>
-                        <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '11px' }}>
+                        <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '12px' }}>
                             {visit.owner.name}
                         </div>
                         {visit.owner.companyName && (
-                            <div style={{ fontSize: '10px', color: '#64748b' }}>
+                            <div style={{ fontSize: '11px', color: '#64748b' }}>
                                 {visit.owner.companyName}
                             </div>
                         )}
@@ -128,7 +129,7 @@ export const VisitsTable: React.FC<VisitsTableProps> = ({
 
             case 'period':
                 return (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '10px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '11px' }}>
                         <div style={{ color: '#0f172a', fontWeight: 600 }}>
                             Od: {formatDate(visit.period.startDate)}
                         </div>
@@ -143,14 +144,14 @@ export const VisitsTable: React.FC<VisitsTableProps> = ({
 
             case 'value':
                 return (
-                    <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '11px' }}>
+                    <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '12px' }}>
                         {visit.totalAmount.toFixed(2)} PLN
                     </div>
                 );
 
             case 'lastUpdate':
                 return (
-                    <div style={{ fontSize: '10px', color: '#64748b' }}>
+                    <div style={{ fontSize: '11px', color: '#64748b' }}>
                         {visit.lastUpdate}
                     </div>
                 );

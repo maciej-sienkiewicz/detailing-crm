@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { FaEllipsisV } from 'react-icons/fa';
 
@@ -19,28 +20,83 @@ interface ContextMenuProps {
 
 export const ContextMenu: React.FC<ContextMenuProps> = ({ items, size = 'medium' }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const menuRef = useRef<HTMLDivElement>(null);
+    const [position, setPosition] = useState({ top: 0, left: 0 });
+    const triggerRef = useRef<HTMLButtonElement>(null);
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
     const visibleItems = items.filter(item => !item.hidden);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+            if (
+                triggerRef.current &&
+                dropdownRef.current &&
+                !triggerRef.current.contains(event.target as Node) &&
+                !dropdownRef.current.contains(event.target as Node)
+            ) {
                 setIsOpen(false);
+            }
+        };
+
+        const handleScroll = () => {
+            if (isOpen && triggerRef.current) {
+                updatePosition();
             }
         };
 
         if (isOpen) {
             document.addEventListener('mousedown', handleClickOutside);
+            window.addEventListener('scroll', handleScroll, true);
+            window.addEventListener('resize', handleScroll);
         }
 
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
+            window.removeEventListener('scroll', handleScroll, true);
+            window.removeEventListener('resize', handleScroll);
         };
     }, [isOpen]);
 
+    const updatePosition = () => {
+        if (!triggerRef.current) return;
+
+        const triggerRect = triggerRef.current.getBoundingClientRect();
+        const dropdownHeight = 150; // Przybliżona wysokość menu
+        const spaceBelow = window.innerHeight - triggerRect.bottom;
+        const spaceAbove = triggerRect.top;
+
+        let top: number;
+        let left = triggerRect.right - 160; // Menu szerokości 160px, wyrównane do prawej
+
+        // Sprawdź czy otwierać w górę czy w dół
+        if (spaceBelow < dropdownHeight && spaceAbove > dropdownHeight) {
+            // Otwórz w górę
+            top = triggerRect.top - dropdownHeight;
+        } else {
+            // Otwórz w dół
+            top = triggerRect.bottom + 4;
+        }
+
+        // Upewnij się że menu nie wychodzi poza prawą krawędź
+        if (left < 10) {
+            left = 10;
+        }
+
+        // Upewnij się że menu nie wychodzi poza lewą krawędź
+        if (left + 160 > window.innerWidth - 10) {
+            left = window.innerWidth - 170;
+        }
+
+        setPosition({ top, left });
+    };
+
     const handleToggle = (e: React.MouseEvent) => {
         e.stopPropagation();
+
+        if (!isOpen) {
+            updatePosition();
+        }
+
         setIsOpen(!isOpen);
     };
 
@@ -56,40 +112,47 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ items, size = 'medium'
         return null;
     }
 
+    const dropdown = isOpen ? createPortal(
+        <MenuDropdown
+            ref={dropdownRef}
+            $isOpen={isOpen}
+            $size={size}
+            style={{
+                top: `${position.top}px`,
+                left: `${position.left}px`,
+            }}
+        >
+            {visibleItems.map((item) => {
+                const IconComponent = item.icon;
+                return (
+                    <MenuItem
+                        key={item.id}
+                        onClick={(e) => handleItemClick(e, item)}
+                        $variant={item.variant || 'default'}
+                        $disabled={item.disabled}
+                    >
+                        {IconComponent && (
+                            <MenuItemIcon>
+                                <IconComponent />
+                            </MenuItemIcon>
+                        )}
+                        <MenuItemLabel>{item.label}</MenuItemLabel>
+                    </MenuItem>
+                );
+            })}
+        </MenuDropdown>,
+        document.body
+    ) : null;
+
     return (
-        <MenuContainer ref={menuRef}>
-            <MenuTrigger onClick={handleToggle} $size={size} $isOpen={isOpen}>
+        <>
+            <MenuTrigger ref={triggerRef} onClick={handleToggle} $size={size} $isOpen={isOpen}>
                 <FaEllipsisV />
             </MenuTrigger>
-
-            <MenuDropdown $isOpen={isOpen} $size={size}>
-                {visibleItems.map((item) => {
-                    const IconComponent = item.icon;
-                    return (
-                        <MenuItem
-                            key={item.id}
-                            onClick={(e) => handleItemClick(e, item)}
-                            $variant={item.variant || 'default'}
-                            $disabled={item.disabled}
-                        >
-                            {IconComponent && (
-                                <MenuItemIcon>
-                                    <IconComponent />
-                                </MenuItemIcon>
-                            )}
-                            <MenuItemLabel>{item.label}</MenuItemLabel>
-                        </MenuItem>
-                    );
-                })}
-            </MenuDropdown>
-        </MenuContainer>
+            {dropdown}
+        </>
     );
 };
-
-const MenuContainer = styled.div`
-    position: relative;
-    display: inline-flex;
-`;
 
 const MenuTrigger = styled.button<{ $size: 'small' | 'medium' | 'large'; $isOpen: boolean }>`
     display: flex;
@@ -139,21 +202,38 @@ const MenuTrigger = styled.button<{ $size: 'small' | 'medium' | 'large'; $isOpen
 `;
 
 const MenuDropdown = styled.div<{ $isOpen: boolean; $size: 'small' | 'medium' | 'large' }>`
-    position: absolute;
-    top: calc(100% + 3px);
-    right: 0;
+    position: fixed; /* KLUCZOWA ZMIANA: fixed zamiast absolute */
     background: #ffffff;
     border: 1px solid #e2e8f0;
     border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
-    z-index: 1000;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.06);
+    z-index: 999999; /* BARDZO WYSOKI Z-INDEX */
     min-width: ${props => props.$size === 'small' ? '140px' : '160px'};
     opacity: ${props => props.$isOpen ? 1 : 0};
     visibility: ${props => props.$isOpen ? 'visible' : 'hidden'};
-    transform: ${props => props.$isOpen ? 'translateY(0) scale(1)' : 'translateY(-6px) scale(0.95)'};
+    transform: ${props => props.$isOpen ? 'scale(1)' : 'scale(0.95)'};
     transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-    transform-origin: top right;
     overflow: hidden;
+    max-height: 400px;
+    overflow-y: auto;
+
+    /* Custom scrollbar */
+    &::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: #f8fafc;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 3px;
+
+        &:hover {
+            background: #94a3b8;
+        }
+    }
 `;
 
 const MenuItem = styled.button<{ $variant: 'default' | 'danger' | 'primary'; $disabled?: boolean }>`

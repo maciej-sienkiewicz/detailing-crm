@@ -45,6 +45,7 @@ export const TableHeader = styled.div`
 export const TableWrapper = styled.div`
     width: 100%;
     overflow-x: auto;
+    overflow-y: visible; /* Nie zmienione - ale teraz nieistotne bo używamy Portal */
     -webkit-overflow-scrolling: touch;
 
     &::-webkit-scrollbar {
@@ -75,11 +76,6 @@ export const TableContent = styled.div`
     width: 100%;
     display: flex;
     flex-direction: column;
-    min-width: 900px;
-
-    @media (max-width: 1400px) {
-        min-width: 800px;
-    }
 
     @media (max-width: 1024px) {
         min-width: 700px;
@@ -92,10 +88,6 @@ export const TableHeaderRow = styled.div`
     border-bottom: 2px solid ${dataTableTheme.border};
     min-height: 40px;
     width: 100%;
-
-    @media (max-width: 1024px) {
-        min-height: 36px;
-    }
 `;
 
 export const HeaderCell = styled.div<{
@@ -112,22 +104,20 @@ export const HeaderCell = styled.div<{
     user-select: none;
     transition: all 0.15s ease;
     overflow: hidden;
-    flex-shrink: 0;
 
     ${props => {
         if (props.$width === 'auto') {
             return `
                 flex: 1 1 auto;
-                min-width: 80px;
+                min-width: 0;
             `;
         }
 
         if (props.$width.endsWith('px')) {
-            const width = parseInt(props.$width);
             return `
+                flex: 0 0 ${props.$width};
                 width: ${props.$width};
-                min-width: ${Math.max(width * 0.7, 60)}px;
-                max-width: ${props.$width};
+                min-width: ${props.$width};
             `;
         }
 
@@ -135,13 +125,13 @@ export const HeaderCell = styled.div<{
             return `
                 flex: 0 0 ${props.$width};
                 width: ${props.$width};
-                min-width: 60px;
+                min-width: 0;
             `;
         }
 
         return `
             flex: 1 1 auto;
-            min-width: 80px;
+            min-width: 0;
         `;
     }}
 
@@ -210,22 +200,21 @@ export const TableCell = styled.div<{ $width?: string }>`
     min-height: 52px;
     border-right: 1px solid ${dataTableTheme.borderLight};
     position: relative;
-    flex-shrink: 0;
+    overflow: hidden; /* PRZYWRÓCONE: teraz bezpieczne bo menu jest w Portal */
 
     ${props => {
         if (!props.$width || props.$width === 'auto') {
             return `
                 flex: 1 1 auto;
-                min-width: 80px;
+                min-width: 0;
             `;
         }
 
         if (props.$width.endsWith('px')) {
-            const width = parseInt(props.$width);
             return `
+                flex: 0 0 ${props.$width};
                 width: ${props.$width};
-                min-width: ${Math.max(width * 0.7, 60)}px;
-                max-width: ${props.$width};
+                min-width: ${props.$width};
             `;
         }
 
@@ -233,13 +222,13 @@ export const TableCell = styled.div<{ $width?: string }>`
             return `
                 flex: 0 0 ${props.$width};
                 width: ${props.$width};
-                min-width: 60px;
+                min-width: 0;
             `;
         }
 
         return `
             flex: 1 1 auto;
-            min-width: 80px;
+            min-width: 0;
         `;
     }}
 
@@ -260,6 +249,7 @@ export const TableCell = styled.div<{ $width?: string }>`
 export const TableBody = styled.div`
     background: ${dataTableTheme.surface};
     width: 100%;
+    overflow: hidden; /* PRZYWRÓCONE: bezpieczne bo menu jest w Portal */
 `;
 
 export const TableTitle = styled.h3`
