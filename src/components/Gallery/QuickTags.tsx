@@ -1,4 +1,3 @@
-// src/components/Gallery/QuickTags.tsx
 import React from 'react';
 import styled from 'styled-components';
 import {FaTags} from 'react-icons/fa';
@@ -33,49 +32,50 @@ const QuickTags: React.FC<QuickTagsProps> = ({ availableTags, selectedTags, onTa
 const QuickTagsSection = styled.div``;
 
 const SectionLabel = styled.div`
-  display: flex;
-  align-items: center;
-  gap: ${theme.spacing.sm};
-  font-size: 14px;
-  font-weight: 600;
-  color: ${theme.text.secondary};
-  margin-bottom: ${theme.spacing.md};
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.sm};
+    font-size: ${theme.fontSize.xs};
+    font-weight: 600;
+    color: ${theme.text.secondary};
+    margin-bottom: ${theme.spacing.sm};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 
-  svg {
-    color: ${theme.primary};
-  }
+    svg {
+        color: ${theme.primary};
+        font-size: ${theme.fontSize.sm};
+    }
 `;
 
 const TagsContainer = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${theme.spacing.sm};
+    display: flex;
+    flex-wrap: wrap;
+    gap: ${theme.spacing.sm};
 `;
 
 const QuickTag = styled.button`
-  padding: ${theme.spacing.sm} ${theme.spacing.md};
-  background: ${theme.surfaceAlt};
-  border: 1px solid ${theme.borderLight};
-  border-radius: ${theme.radius.md};
-  font-size: 13px;
-  font-weight: 500;
-  color: ${theme.text.secondary};
-  cursor: pointer;
-  transition: all ${theme.transitions.normal};
+    padding: ${theme.spacing.sm} ${theme.spacing.md};
+    background: ${theme.surfaceAlt};
+    border: 1px solid ${theme.borderLight};
+    border-radius: ${theme.radius.sm};
+    font-size: ${theme.fontSize.sm};
+    font-weight: 500;
+    color: ${theme.text.secondary};
+    cursor: pointer;
+    transition: all ${theme.transitions.normal};
 
-  &:hover {
-    background: ${theme.primaryGhost};
-    border-color: ${theme.primary};
-    color: ${theme.primary};
-    transform: translateY(-1px);
-    box-shadow: ${theme.shadow.sm};
-  }
+    &:hover {
+        background: ${theme.primaryGhost};
+        border-color: ${theme.primary};
+        color: ${theme.primary};
+        transform: translateY(-1px);
+        box-shadow: ${theme.shadow.sm};
+    }
 
-  &:active {
-    transform: translateY(0);
-  }
+    &:active {
+        transform: translateY(0);
+    }
 `;
 
 export default QuickTags;

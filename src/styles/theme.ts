@@ -38,14 +38,25 @@ export const theme = {
     info: '#0891b2',
     infoBg: '#f0f9ff',
 
+    fontSize: {
+        xs: '10px',
+        sm: '11px',
+        base: '12px',
+        md: '13px',
+        lg: '14px',
+        xl: '15px',
+        xxl: '16px',
+        xxxl: '18px'
+    },
+
     spacing: {
-        xs: '4px',
-        sm: '8px',
-        md: '12px',
-        lg: '16px',
-        xl: '20px',
-        xxl: '24px',
-        xxxl: '32px'
+        xs: '2px',
+        sm: '4px',
+        md: '8px',
+        lg: '12px',
+        xl: '16px',
+        xxl: '20px',
+        xxxl: '24px'
     },
 
     shadow: {
@@ -57,11 +68,11 @@ export const theme = {
     },
 
     radius: {
-        sm: '6px',
-        md: '8px',
-        lg: '12px',
-        xl: '16px',
-        xxl: '20px'
+        sm: '3px',
+        md: '5px',
+        lg: '7px',
+        xl: '9px',
+        xxl: '11px'
     },
 
     transitions: {

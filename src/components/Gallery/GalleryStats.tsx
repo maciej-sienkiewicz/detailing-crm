@@ -1,4 +1,3 @@
-// src/components/Gallery/GalleryStats.tsx
 import React from 'react';
 import styled from 'styled-components';
 import {FaCubes, FaDatabase, FaImages, FaTags} from 'react-icons/fa';
@@ -17,157 +16,143 @@ const GalleryStatsComponent: React.FC<GalleryStatsProps> = ({
                                                                 availableTagsCount,
                                                                 totalItems
                                                             }) => {
+    if (!stats) {
+        return null;
+    }
+
     return (
         <StatsSection>
-            <StatsGrid>
-                <StatCard>
-                    <StatIcon $color={theme.text.primary}>
-                        <FaImages />
-                    </StatIcon>
-                    <StatContent>
-                        <StatValue>{stats.totalImages}</StatValue>
-                        <StatLabel>Zdjęć w galerii</StatLabel>
-                    </StatContent>
-                </StatCard>
+            <StatItem>
+                <StatIcon>
+                    <FaImages />
+                </StatIcon>
+                <StatContent>
+                    <StatValue>{stats.totalImages}</StatValue>
+                    <StatLabel>Wszystkich zdjęć</StatLabel>
+                </StatContent>
+            </StatItem>
 
-                <StatCard>
-                    <StatIcon $color={theme.text.primary}>
-                        <FaDatabase />
-                    </StatIcon>
-                    <StatContent>
-                        <StatValue>{formatFileSize(stats.totalSize)}</StatValue>
-                        <StatLabel>Rozmiar danych</StatLabel>
-                    </StatContent>
-                </StatCard>
+            <Divider />
 
-                <StatCard>
-                    <StatIcon $color={theme.text.primary}>
-                        <FaTags />
-                    </StatIcon>
-                    <StatContent>
-                        <StatValue>{availableTagsCount}</StatValue>
-                        <StatLabel>Dostępnych tagów</StatLabel>
-                    </StatContent>
-                </StatCard>
+            <StatItem>
+                <StatIcon>
+                    <FaDatabase />
+                </StatIcon>
+                <StatContent>
+                    <StatValue>{formatFileSize(stats.totalSize)}</StatValue>
+                    <StatLabel>Łącznie</StatLabel>
+                </StatContent>
+            </StatItem>
 
-                <StatCard>
-                    <StatIcon $color={theme.text.primary}>
-                        <FaCubes />
-                    </StatIcon>
-                    <StatContent>
-                        <StatValue>{totalItems}</StatValue>
-                        <StatLabel>Wyników wyszukiwania</StatLabel>
-                    </StatContent>
-                </StatCard>
-            </StatsGrid>
+            <Divider />
+
+            <StatItem>
+                <StatIcon>
+                    <FaTags />
+                </StatIcon>
+                <StatContent>
+                    <StatValue>{availableTagsCount}</StatValue>
+                    <StatLabel>Tagów</StatLabel>
+                </StatContent>
+            </StatItem>
+
+            <Divider />
+
+            <StatItem>
+                <StatIcon>
+                    <FaCubes />
+                </StatIcon>
+                <StatContent>
+                    <StatValue>{totalItems}</StatValue>
+                    <StatLabel>Wyników</StatLabel>
+                </StatContent>
+            </StatItem>
         </StatsSection>
     );
 };
 
-const StatsSection = styled.section`
-  max-width: 100%;
-  margin: 0 auto;
-  padding: ${theme.spacing.lg} ${theme.spacing.xl} 0;
+const StatsSection = styled.div`
+    display: flex;
+    align-items: center;
+    padding: ${theme.spacing.xl};
+    border-bottom: 1px solid ${theme.borderLight};
+    gap: ${theme.spacing.xl};
 
-  @media (max-width: 1024px) {
-    padding: ${theme.spacing.md} ${theme.spacing.lg} 0;
-  }
+    @media (max-width: 1024px) {
+        padding: ${theme.spacing.lg};
+        gap: ${theme.spacing.lg};
+    }
 
-  @media (max-width: 768px) {
-    padding: ${theme.spacing.md} ${theme.spacing.md} 0;
-  }
+    @media (max-width: 768px) {
+        flex-wrap: wrap;
+        padding: ${theme.spacing.md};
+        gap: ${theme.spacing.md};
+    }
 `;
 
-const StatsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: ${theme.spacing.lg};
-  margin-bottom: ${theme.spacing.lg};
-
-  @media (max-width: 1200px) {
-    grid-template-columns: repeat(2, 1fr);
+const StatItem = styled.div`
+    display: flex;
+    align-items: center;
     gap: ${theme.spacing.md};
-  }
+    flex: 1;
+    min-width: 0;
 
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-    gap: ${theme.spacing.md};
-  }
+    @media (max-width: 768px) {
+        flex: 1 1 calc(50% - ${theme.spacing.sm});
+    }
 `;
 
-const StatCard = styled.div`
-  background: ${theme.surface};
-  border: 1px solid ${theme.border};
-  border-radius: ${theme.radius.xl};
-  padding: ${theme.spacing.lg};
-  display: flex;
-  align-items: center;
-  gap: ${theme.spacing.md};
-  transition: all ${theme.transitions.spring};
-  box-shadow: ${theme.shadow.xs};
-  position: relative;
-  overflow: hidden;
+const StatIcon = styled.div`
+    width: 36px;
+    height: 36px;
+    border-radius: ${theme.radius.md};
+    background: ${theme.primary}10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${theme.primary};
+    font-size: ${theme.fontSize.lg};
+    flex-shrink: 0;
+    transition: all ${theme.transitions.normal};
 
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: ${theme.shadow.lg};
-    border-color: ${theme.primary};
-  }
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, ${theme.primary} 0%, ${theme.primaryLight} 100%);
-    opacity: 0;
-    transition: opacity ${theme.transitions.normal};
-  }
-
-  &:hover::before {
-    opacity: 1;
-  }
-`;
-
-const StatIcon = styled.div<{ $color: string }>`
-  width: 56px;
-  height: 56px;
-  background: linear-gradient(135deg, ${props => props.$color}15 0%, ${props => props.$color}08 100%);
-  border-radius: ${theme.radius.lg};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: ${props => props.$color};
-  font-size: 24px;
-  flex-shrink: 0;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    ${StatItem}:hover & {
+        transform: scale(1.05);
+        background: ${theme.primary}15;
+    }
 `;
 
 const StatContent = styled.div`
-  flex: 1;
-  min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: ${theme.spacing.xs};
+    min-width: 0;
 `;
 
 const StatValue = styled.div`
-  font-size: 28px;
-  font-weight: 700;
-  color: ${theme.text.primary};
-  margin-bottom: ${theme.spacing.xs};
-  letter-spacing: -0.025em;
-  line-height: 1.1;
-
-  @media (max-width: 768px) {
-    font-size: 24px;
-  }
+    font-size: ${theme.fontSize.xl};
+    font-weight: 700;
+    color: ${theme.text.primary};
+    line-height: 1;
+    letter-spacing: -0.01em;
 `;
 
 const StatLabel = styled.div`
-  font-size: 14px;
-  color: ${theme.text.secondary};
-  font-weight: 500;
-  line-height: 1.3;
+    font-size: ${theme.fontSize.xs};
+    color: ${theme.text.tertiary};
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+`;
+
+const Divider = styled.div`
+    width: 1px;
+    height: 32px;
+    background: ${theme.borderLight};
+    flex-shrink: 0;
+
+    @media (max-width: 768px) {
+        display: none;
+    }
 `;
 
 export default GalleryStatsComponent;

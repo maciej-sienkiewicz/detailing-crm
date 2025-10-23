@@ -1,4 +1,3 @@
-// src/components/Gallery/ImagePreviewModal.tsx
 import React from 'react';
 import styled from 'styled-components';
 import {FaDownload} from 'react-icons/fa';
@@ -120,12 +119,14 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
 
 const ImagePreviewContainer = styled.div`
   display: flex;
-  gap: ${theme.spacing.xl};
-  max-height: 80vh;
+  gap: ${theme.spacing.lg};
+  max-height: 75vh;
+  padding: ${theme.spacing.lg};
 
   @media (max-width: 768px) {
     flex-direction: column;
-    gap: ${theme.spacing.lg};
+    gap: ${theme.spacing.md};
+    padding: ${theme.spacing.md};
   }
 `;
 
@@ -134,17 +135,17 @@ const PreviewImage = styled.img`
   max-width: 65%;
   max-height: 100%;
   object-fit: contain;
-  border-radius: ${theme.radius.lg};
+  border-radius: ${theme.radius.md};
   box-shadow: ${theme.shadow.lg};
 
   @media (max-width: 768px) {
     max-width: 100%;
-    max-height: 400px;
+    max-height: 350px;
   }
 `;
 
 const PreviewInfo = styled.div`
-  flex: 0 0 320px;
+  flex: 0 0 280px;
 
   @media (max-width: 768px) {
     flex: none;
@@ -152,8 +153,8 @@ const PreviewInfo = styled.div`
 `;
 
 const InfoSection = styled.div`
-  margin-bottom: ${theme.spacing.lg};
-  padding-bottom: ${theme.spacing.md};
+  margin-bottom: ${theme.spacing.md};
+  padding-bottom: ${theme.spacing.sm};
   border-bottom: 1px solid ${theme.borderLight};
 
   &:last-child {
@@ -163,7 +164,7 @@ const InfoSection = styled.div`
 `;
 
 const InfoLabel = styled.div`
-  font-size: 12px;
+  font-size: ${theme.fontSize.xs};
   font-weight: 600;
   color: ${theme.text.muted};
   margin-bottom: ${theme.spacing.xs};
@@ -173,9 +174,9 @@ const InfoLabel = styled.div`
 
 const InfoValue = styled.div`
   color: ${theme.text.primary};
-  font-size: 15px;
+  font-size: ${theme.fontSize.base};
   font-weight: 500;
-  line-height: 1.5;
+  line-height: 1.4;
 `;
 
 const ProtocolLink = styled.span`
@@ -200,7 +201,7 @@ const PreviewTag = styled.span`
   color: ${theme.text.secondary};
   padding: ${theme.spacing.xs} ${theme.spacing.sm};
   border-radius: ${theme.radius.sm};
-  font-size: 12px;
+  font-size: ${theme.fontSize.xs};
   font-weight: 500;
   border: 1px solid ${theme.borderLight};
 `;
@@ -214,18 +215,18 @@ const DownloadButton = styled.button`
   background: linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryLight} 100%);
   color: white;
   border: none;
-  border-radius: ${theme.radius.lg};
+  border-radius: ${theme.radius.md};
   cursor: pointer;
-  font-size: 14px;
+  font-size: ${theme.fontSize.base};
   font-weight: 600;
   width: 100%;
-  margin-top: ${theme.spacing.xl};
+  margin-top: ${theme.spacing.lg};
   transition: all ${theme.transitions.spring};
   box-shadow: ${theme.shadow.sm};
 
   &:hover {
     background: linear-gradient(135deg, ${theme.primaryDark} 0%, ${theme.primary} 100%);
-    transform: translateY(-2px);
+    transform: translateY(-1px);
     box-shadow: ${theme.shadow.md};
   }
 

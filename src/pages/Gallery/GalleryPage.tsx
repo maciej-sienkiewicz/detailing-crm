@@ -1,4 +1,3 @@
-// src/pages/Gallery/GalleryPage.tsx
 import React, {useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import styled from 'styled-components';
@@ -49,36 +48,38 @@ const GalleryPage: React.FC = () => {
     };
 
     return (
-        <GalleryContainer>
+        <PageContainer>
             <GalleryHeader />
 
-            {stats && (
-                <GalleryStatsComponent
-                    stats={stats}
-                    availableTagsCount={availableTags.length}
-                    totalItems={totalItems}
-                />
-            )}
+            <MainWrapper>
+                <UnifiedContainer>
+                    <GalleryStatsComponent
+                        stats={stats}
+                        availableTagsCount={availableTags.length}
+                        totalItems={totalItems}
+                    />
 
-            <GalleryFiltersComponent
-                availableTags={availableTags}
-                onFiltersChange={handleFiltersChange}
-                isLoading={isLoading}
-            />
+                    <GalleryFiltersComponent
+                        availableTags={availableTags}
+                        onFiltersChange={handleFiltersChange}
+                        isLoading={isLoading}
+                    />
 
-            <GalleryContent
-                images={images}
-                isLoading={isLoading}
-                totalItems={totalItems}
-                currentPage={currentPage}
-                totalPages={totalPages}
-                pageSize={pageSize}
-                getImageUrl={getImageUrl}
-                onImageClick={handleImageClick}
-                onProtocolClick={handleProtocolClick}
-                onDownload={downloadImage}
-                onPageChange={handlePageChange}
-            />
+                    <GalleryContent
+                        images={images}
+                        isLoading={isLoading}
+                        totalItems={totalItems}
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        pageSize={pageSize}
+                        getImageUrl={getImageUrl}
+                        onImageClick={handleImageClick}
+                        onProtocolClick={handleProtocolClick}
+                        onDownload={downloadImage}
+                        onPageChange={handlePageChange}
+                    />
+                </UnifiedContainer>
+            </MainWrapper>
 
             <ImagePreviewModal
                 isOpen={showImageModal}
@@ -88,15 +89,35 @@ const GalleryPage: React.FC = () => {
                 onProtocolClick={handleProtocolClick}
                 onDownload={downloadImage}
             />
-        </GalleryContainer>
+        </PageContainer>
     );
 };
 
-const GalleryContainer = styled.div`
-  min-height: 100vh;
-  background: ${theme.surfaceAlt};
-  display: flex;
-  flex-direction: column;
+const PageContainer = styled.div`
+    min-height: 100vh;
+    background: ${theme.surfaceAlt};
+`;
+
+const MainWrapper = styled.main`
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: ${theme.spacing.xl};
+
+    @media (max-width: 1024px) {
+        padding: ${theme.spacing.lg};
+    }
+
+    @media (max-width: 768px) {
+        padding: ${theme.spacing.md};
+    }
+`;
+
+const UnifiedContainer = styled.div`
+  background: ${theme.surface};
+  border-radius: ${theme.radius.xl};
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid ${theme.border};
 `;
 
 export default GalleryPage;

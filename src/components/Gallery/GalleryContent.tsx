@@ -1,7 +1,6 @@
-// src/components/Gallery/GalleryContent.tsx
 import React from 'react';
 import styled from 'styled-components';
-import {FaSearch} from 'react-icons/fa';
+import {FaImage} from 'react-icons/fa';
 import {GalleryImage} from '../../api/galleryApi';
 import {theme} from '../../styles/theme';
 import ImageCard from './ImageCard';
@@ -36,180 +35,161 @@ const GalleryContent: React.FC<GalleryContentProps> = ({
                                                        }) => {
     if (isLoading) {
         return (
-            <ContentContainer>
-                <LoadingContainer>
-                    <LoadingSpinner />
+            <ContentSection>
+                <LoadingState>
+                    <Spinner />
                     <LoadingText>Ładowanie zdjęć...</LoadingText>
-                </LoadingContainer>
-            </ContentContainer>
+                </LoadingState>
+            </ContentSection>
         );
     }
 
     if (images.length === 0) {
         return (
-            <ContentContainer>
+            <ContentSection>
                 <EmptyState>
-                    <EmptyStateIcon><FaSearch /></EmptyStateIcon>
-                    <EmptyStateTitle>Brak zdjęć</EmptyStateTitle>
-                    <EmptyStateMessage>
-                        Nie znaleziono zdjęć spełniających podane kryteria wyszukiwania.
-                        Spróbuj zmienić filtry lub dodać nowe zdjęcia do protokołów.
-                    </EmptyStateMessage>
+                    <EmptyIcon>
+                        <FaImage />
+                    </EmptyIcon>
+                    <EmptyTitle>Brak zdjęć</EmptyTitle>
+                    <EmptyText>
+                        Nie znaleziono zdjęć. Spróbuj zmienić filtry wyszukiwania.
+                    </EmptyText>
                 </EmptyState>
-            </ContentContainer>
+            </ContentSection>
         );
     }
 
     return (
-        <ContentContainer>
-            <ResultsInfo>
-                <ResultsText>
-                    Znaleziono <strong>{totalItems}</strong> {
-                    totalItems === 1 ? 'zdjęcie' :
-                        totalItems < 5 ? 'zdjęcia' : 'zdjęć'
-                }
-                </ResultsText>
-            </ResultsInfo>
+        <>
+            <ContentSection>
+                <ImagesGrid>
+                    {images.map(image => (
+                        <ImageCard
+                            key={image.id}
+                            image={image}
+                            imageUrl={getImageUrl(image.id)}
+                            onImageClick={onImageClick}
+                            onProtocolClick={onProtocolClick}
+                            onDownload={onDownload}
+                        />
+                    ))}
+                </ImagesGrid>
+            </ContentSection>
 
-            <ImagesGrid>
-                {images.map(image => (
-                    <ImageCard
-                        key={image.id}
-                        image={image}
-                        imageUrl={getImageUrl(image.id)}
-                        onImageClick={onImageClick}
-                        onProtocolClick={onProtocolClick}
-                        onDownload={onDownload}
+            {totalPages > 1 && (
+                <PaginationSection>
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={onPageChange}
+                        totalItems={totalItems}
+                        pageSize={pageSize}
+                        showTotalItems={false}
                     />
-                ))}
-            </ImagesGrid>
-
-            <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={onPageChange}
-                totalItems={totalItems}
-                pageSize={pageSize}
-            />
-        </ContentContainer>
+                </PaginationSection>
+            )}
+        </>
     );
 };
 
-const ContentContainer = styled.div`
-  max-width: 100%;
-  margin: 0;
-  padding: ${theme.spacing.lg} ${theme.spacing.xl};
-  background: ${theme.surface};
-  border-radius: ${theme.radius.xl};
-  border: 1px solid ${theme.border};
-  box-shadow: ${theme.shadow.sm};
-  margin-top: ${theme.spacing.lg};
-  margin-bottom: ${theme.spacing.lg};
+const ContentSection = styled.div`
+    padding: ${theme.spacing.xl};
 
-  @media (max-width: 1024px) {
-    padding: ${theme.spacing.md} ${theme.spacing.lg};
-    margin: ${theme.spacing.md} ${theme.spacing.lg};
-  }
+    @media (max-width: 1024px) {
+        padding: ${theme.spacing.lg};
+    }
 
-  @media (max-width: 768px) {
-    padding: ${theme.spacing.md};
-    margin: ${theme.spacing.md};
-    border-radius: ${theme.radius.lg};
-  }
-`;
-
-const LoadingContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 400px;
-  gap: ${theme.spacing.xl};
-  background: ${theme.surfaceAlt};
-  border-radius: ${theme.radius.xl};
-  border: 2px dashed ${theme.borderLight};
-`;
-
-const LoadingSpinner = styled.div`
-  width: 48px;
-  height: 48px;
-  border: 3px solid ${theme.borderLight};
-  border-top: 3px solid ${theme.primary};
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-`;
-
-const LoadingText = styled.div`
-  font-size: 18px;
-  color: ${theme.text.tertiary};
-  font-weight: 500;
-`;
-
-const ResultsInfo = styled.div`
-  margin-bottom: ${theme.spacing.xl};
-  padding: ${theme.spacing.md} 0;
-  border-bottom: 1px solid ${theme.borderLight};
-`;
-
-const ResultsText = styled.div`
-  color: ${theme.text.secondary};
-  font-size: 16px;
-  font-weight: 500;
-
-  strong {
-    color: ${theme.text.primary};
-    font-weight: 700;
-  }
+    @media (max-width: 768px) {
+        padding: ${theme.spacing.md};
+    }
 `;
 
 const ImagesGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: ${theme.spacing.xl};
-  margin-bottom: ${theme.spacing.xxl};
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: ${theme.spacing.lg};
-  }
+
+    @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+        gap: ${theme.spacing.md};
+    }
+`;
+
+const LoadingState = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: ${theme.spacing.xxxl} 0;
+    gap: ${theme.spacing.lg};
+`;
+
+const Spinner = styled.div`
+    width: 32px;
+    height: 32px;
+    border: 3px solid ${theme.borderLight};
+    border-top-color: ${theme.primary};
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+`;
+
+const LoadingText = styled.div`
+    font-size: ${theme.fontSize.sm};
+    color: ${theme.text.tertiary};
+    font-weight: 500;
 `;
 
 const EmptyState = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: ${theme.spacing.xxl};
-  text-align: center;
-  background: ${theme.surfaceAlt};
-  border-radius: ${theme.radius.xl};
-  border: 2px dashed ${theme.borderLight};
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: ${theme.spacing.xxxl} 0;
+    text-align: center;
 `;
 
-const EmptyStateIcon = styled.div`
-  font-size: 64px;
-  color: ${theme.text.disabled};
-  margin-bottom: ${theme.spacing.lg};
+const EmptyIcon = styled.div`
+    width: 48px;
+    height: 48px;
+    border-radius: ${theme.radius.lg};
+    background: ${theme.surfaceAlt};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: ${theme.fontSize.xxl};
+    color: ${theme.text.disabled};
+    margin-bottom: ${theme.spacing.lg};
 `;
 
-const EmptyStateTitle = styled.h3`
-  color: ${theme.text.secondary};
-  margin-bottom: ${theme.spacing.sm};
-  font-size: 20px;
-  font-weight: 600;
+const EmptyTitle = styled.h3`
+    font-size: ${theme.fontSize.lg};
+    font-weight: 600;
+    color: ${theme.text.secondary};
+    margin: 0 0 ${theme.spacing.sm} 0;
 `;
 
-const EmptyStateMessage = styled.p`
-  color: ${theme.text.muted};
-  max-width: 500px;
-  line-height: 1.6;
-  font-size: 16px;
-  margin: 0;
+const EmptyText = styled.p`
+    font-size: ${theme.fontSize.base};
+    color: ${theme.text.tertiary};
+    max-width: 400px;
+    margin: 0;
+    line-height: 1.5;
+`;
+
+const PaginationSection = styled.div`
+    display: flex;
+    justify-content: center;
+    padding: ${theme.spacing.lg} ${theme.spacing.xl};
+    border-top: 1px solid ${theme.borderLight};
+
+    @media (max-width: 768px) {
+        padding: ${theme.spacing.md};
+    }
 `;
 
 export default GalleryContent;

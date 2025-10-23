@@ -1,12 +1,8 @@
-// src/components/Gallery/GalleryFilters.tsx
 import React, {useState} from 'react';
 import styled from 'styled-components';
-import {FaFilter, FaTags, FaTimes} from 'react-icons/fa';
+import {FaSearch, FaTimes} from 'react-icons/fa';
 import {GalleryFilters} from '../../api/galleryApi';
 import {theme} from '../../styles/theme';
-import SelectedTags from './SelectedTags';
-import TagDropdown from './TagDropdown';
-import QuickTags from './QuickTags';
 
 interface GalleryFiltersProps {
     availableTags: string[];
@@ -51,161 +47,227 @@ const GalleryFiltersComponent: React.FC<GalleryFiltersProps> = ({
     };
 
     return (
-        <FiltersContainer>
-            <FiltersHeader>
-                <HeaderLeft>
-                    <FilterIcon>
-                        <FaFilter />
-                    </FilterIcon>
-                    <HeaderContent>
-                        <FiltersTitle>Filtry wyszukiwania</FiltersTitle>
-                        <FiltersSubtitle>Znajdź zdjęcia według tagów</FiltersSubtitle>
-                    </HeaderContent>
-                </HeaderLeft>
+        <FiltersSection>
+            <SearchRow>
+                <SearchInputWrapper>
+                    <SearchIcon>
+                        <FaSearch />
+                    </SearchIcon>
+                    <SearchInput
+                        type="text"
+                        placeholder="Szukaj tagów..."
+                        value={tagSearch}
+                        onChange={(e) => {
+                            setTagSearch(e.target.value);
+                            setShowTagDropdown(true);
+                        }}
+                        onFocus={() => setShowTagDropdown(true)}
+                        onBlur={() => setTimeout(() => setShowTagDropdown(false), 200)}
+                        disabled={isLoading}
+                    />
+                    {showTagDropdown && filteredAvailableTags.length > 0 && (
+                        <TagDropdown>
+                            {filteredAvailableTags.slice(0, 8).map(tag => (
+                                <DropdownItem key={tag} onClick={() => handleTagAdd(tag)}>
+                                    {tag}
+                                </DropdownItem>
+                            ))}
+                        </TagDropdown>
+                    )}
+                </SearchInputWrapper>
 
                 {selectedTags.length > 0 && (
                     <ClearButton onClick={handleClearAll}>
                         <FaTimes />
-                        Wyczyść filtry
+                        Wyczyść ({selectedTags.length})
                     </ClearButton>
                 )}
-            </FiltersHeader>
+            </SearchRow>
 
-            <FiltersContent>
-                <SelectedTags selectedTags={selectedTags} onTagRemove={handleTagRemove} />
-
-                <TagSearchSection>
-                    <SectionLabel>
-                        <FaTags />
-                        Wyszukaj tagi
-                    </SectionLabel>
-                    <TagSearchContainer>
-                        <TagSearchInput
-                            type="text"
-                            placeholder="Wpisz nazwę tagu..."
-                            value={tagSearch}
-                            onChange={(e) => {
-                                setTagSearch(e.target.value);
-                                setShowTagDropdown(true);
-                            }}
-                            onFocus={() => setShowTagDropdown(true)}
-                            onBlur={() => setTimeout(() => setShowTagDropdown(false), 200)}
-                            disabled={isLoading}
-                        />
-                        {showTagDropdown && (tagSearch || filteredAvailableTags.length > 0) && (
-                            <TagDropdown
-                                filteredTags={filteredAvailableTags}
-                                onTagAdd={handleTagAdd}
-                                isEmpty={false}
-                            />
-                        )}
-                    </TagSearchContainer>
-                </TagSearchSection>
-
-                <QuickTags
-                    availableTags={availableTags}
-                    selectedTags={selectedTags}
-                    onTagAdd={handleTagAdd}
-                />
-            </FiltersContent>
-        </FiltersContainer>
+            {selectedTags.length > 0 ? (
+                <TagsRow>
+                    {selectedTags.map(tag => (
+                        <ActiveTag key={tag} onClick={() => handleTagRemove(tag)}>
+                            {tag}
+                            <RemoveIcon><FaTimes /></RemoveIcon>
+                        </ActiveTag>
+                    ))}
+                </TagsRow>
+            ) : (
+                availableTags.length > 0 && (
+                    <TagsRow>
+                        {availableTags.slice(0, 12).map(tag => (
+                            <SuggestionTag key={tag} onClick={() => handleTagAdd(tag)}>
+                                {tag}
+                            </SuggestionTag>
+                        ))}
+                    </TagsRow>
+                )
+            )}
+        </FiltersSection>
     );
 };
 
-const FiltersContainer = styled.div`
-  max-width: 1600px;
-  margin: 0;
-  margin-top: 10px;
-  padding: 0 ${theme.spacing.xl};
-  margin-bottom: ${theme.spacing.lg};
-
-  @media (max-width: 1024px) {
-    padding: 0 ${theme.spacing.lg};
-  }
-
-  @media (max-width: 768px) {
-    padding: 0 ${theme.spacing.md};
-  }
-`;
-
-const FiltersHeader = styled.div`
-  background: ${theme.surface};
-  border: 1px solid ${theme.border};
-  border-radius: ${theme.radius.xl} ${theme.radius.xl} 0 0;
-  padding: ${theme.spacing.lg} ${theme.spacing.xl};
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: ${theme.spacing.lg};
-  box-shadow: ${theme.shadow.xs};
-
-  @media (max-width: 768px) {
-    padding: ${theme.spacing.md} ${theme.spacing.lg};
+const FiltersSection = styled.div`
+    display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    gap: ${theme.spacing.lg};
+    padding: ${theme.spacing.xl};
+    border-bottom: 1px solid ${theme.borderLight};
+
+    @media (max-width: 1024px) {
+        padding: ${theme.spacing.lg};
+        gap: ${theme.spacing.md};
+    }
+
+    @media (max-width: 768px) {
+        padding: ${theme.spacing.md};
+    }
+`;
+
+const SearchRow = styled.div`
+    display: flex;
     gap: ${theme.spacing.md};
+    align-items: center;
+
+    @media (max-width: 768px) {
+        flex-direction: column;
+        gap: ${theme.spacing.sm};
+    }
+`;
+
+const SearchInputWrapper = styled.div`
+  position: relative;
+  flex: 1;
+`;
+
+const SearchIcon = styled.div`
+    position: absolute;
+    left: ${theme.spacing.md};
+    top: 50%;
+    transform: translateY(-50%);
+    color: ${theme.text.muted};
+    font-size: ${theme.fontSize.sm};
+    pointer-events: none;
+`;
+
+const SearchInput = styled.input`
+  width: 100%;
+  height: 40px;
+  padding: 0 ${theme.spacing.md} 0 ${theme.spacing.xxxl};
+  border: 1px solid ${theme.border};
+  border-radius: ${theme.radius.md};
+  font-size: ${theme.fontSize.base};
+  background: ${theme.surface};
+  color: ${theme.text.primary};
+  transition: all ${theme.transitions.normal};
+
+  &:hover {
+    border-color: ${theme.borderActive};
+  }
+
+  &:focus {
+    outline: none;
+    border-color: ${theme.primary};
+    box-shadow: 0 0 0 3px ${theme.primary}08;
+  }
+
+  &::placeholder {
+    color: ${theme.text.muted};
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 `;
 
-const HeaderLeft = styled.div`
-  display: flex;
-  align-items: center;
-  gap: ${theme.spacing.md};
+const TagDropdown = styled.div`
+    position: absolute;
+    top: calc(100% + ${theme.spacing.xs});
+    left: 0;
+    right: 0;
+    background: ${theme.surface};
+    border: 1px solid ${theme.border};
+    border-radius: ${theme.radius.md};
+    box-shadow: ${theme.shadow.lg};
+    z-index: 100;
+    max-height: 240px;
+    overflow-y: auto;
+    animation: slideDown 0.15s ease;
+
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-4px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    &::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: ${theme.border};
+        border-radius: 3px;
+    }
 `;
 
-const FilterIcon = styled.div`
-  width: 48px;
-  height: 48px;
-  background: ${theme.surfaceAlt};
-  color: ${theme.text.secondary};
-  border-radius: ${theme.radius.lg};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  box-shadow: ${theme.shadow.sm};
-  flex-shrink: 0;
-`;
+const DropdownItem = styled.button`
+    width: 100%;
+    padding: ${theme.spacing.sm} ${theme.spacing.md};
+    text-align: left;
+    background: ${theme.surface};
+    border: none;
+    border-bottom: 1px solid ${theme.borderLight};
+    color: ${theme.text.secondary};
+    font-size: ${theme.fontSize.sm};
+    font-weight: 500;
+    cursor: pointer;
+    transition: all ${theme.transitions.fast};
 
-const HeaderContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: ${theme.spacing.xs};
-`;
+    &:last-child {
+        border-bottom: none;
+    }
 
-const FiltersTitle = styled.h3`
-  font-size: 20px;
-  font-weight: 600;
-  color: ${theme.text.primary};
-  margin: 0;
-  letter-spacing: -0.3px;
-`;
-
-const FiltersSubtitle = styled.div`
-  font-size: 14px;
-  color: ${theme.text.tertiary};
-  font-weight: 500;
+    &:hover {
+        background: ${theme.surfaceHover};
+        color: ${theme.primary};
+    }
 `;
 
 const ClearButton = styled.button`
   display: flex;
   align-items: center;
   gap: ${theme.spacing.sm};
-  padding: ${theme.spacing.sm} ${theme.spacing.md};
-  background: ${theme.status.errorLight};
-  color: ${theme.status.error};
-  border: 1px solid ${theme.status.error}30;
+  height: 40px;
+  padding: 0 ${theme.spacing.lg};
+  background: ${theme.surface};
+  color: ${theme.text.tertiary};
+  border: 1px solid ${theme.border};
   border-radius: ${theme.radius.md};
+  font-size: ${theme.fontSize.sm};
   font-weight: 600;
-  font-size: 14px;
   cursor: pointer;
+  white-space: nowrap;
   transition: all ${theme.transitions.normal};
 
+  svg {
+    font-size: ${theme.fontSize.sm};
+  }
+
   &:hover {
-    background: ${theme.status.error};
-    color: white;
-    transform: translateY(-1px);
-    box-shadow: ${theme.shadow.sm};
+    background: ${theme.status.errorLight};
+    color: ${theme.status.error};
+    border-color: ${theme.status.error}40;
   }
 
   @media (max-width: 768px) {
@@ -214,73 +276,58 @@ const ClearButton = styled.button`
   }
 `;
 
-const FiltersContent = styled.div`
-  background: ${theme.surface};
-  border: 1px solid ${theme.border};
-  border-top: none;
-  border-radius: 0 0 ${theme.radius.xl} ${theme.radius.xl};
-  padding: ${theme.spacing.xl};
-  display: flex;
-  flex-direction: column;
-  gap: ${theme.spacing.xl};
-  box-shadow: ${theme.shadow.sm};
-
-  @media (max-width: 768px) {
-    padding: ${theme.spacing.lg};
-    gap: ${theme.spacing.lg};
-  }
+const TagsRow = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: ${theme.spacing.sm};
 `;
 
-const SectionLabel = styled.div`
-  display: flex;
-  align-items: center;
-  gap: ${theme.spacing.sm};
-  font-size: 14px;
-  font-weight: 600;
-  color: ${theme.text.secondary};
-  margin-bottom: ${theme.spacing.md};
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+const ActiveTag = styled.button`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.sm};
+    padding: ${theme.spacing.sm} ${theme.spacing.md};
+    background: ${theme.primary};
+    color: white;
+    border: none;
+    border-radius: ${theme.radius.sm};
+    font-size: ${theme.fontSize.sm};
+    font-weight: 600;
+    cursor: pointer;
+    transition: all ${theme.transitions.normal};
 
-  svg {
-    color: ${theme.primary};
-  }
+    &:hover {
+        background: ${theme.primaryDark};
+        transform: translateY(-1px);
+    }
 `;
 
-const TagSearchSection = styled.div``;
-
-const TagSearchContainer = styled.div`
-  position: relative;
+const RemoveIcon = styled.span`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    font-size: ${theme.fontSize.xs};
 `;
 
-const TagSearchInput = styled.input`
-  width: 100%;
-  height: 48px;
-  padding: 0 ${theme.spacing.lg};
-  border: 2px solid ${theme.border};
-  border-radius: ${theme.radius.lg};
-  font-size: 16px;
-  font-weight: 500;
-  background: ${theme.surface};
-  color: ${theme.text.primary};
-  transition: all ${theme.transitions.normal};
-
-  &:focus {
-    outline: none;
-    border-color: ${theme.primary};
-    box-shadow: 0 0 0 3px ${theme.primaryGhost};
-  }
-
-  &::placeholder {
-    color: ${theme.text.muted};
-    font-weight: 400;
-  }
-
-  &:disabled {
+const SuggestionTag = styled.button`
+    padding: ${theme.spacing.sm} ${theme.spacing.md};
     background: ${theme.surfaceAlt};
-    color: ${theme.text.disabled};
-    cursor: not-allowed;
-  }
+    color: ${theme.text.secondary};
+    border: 1px solid ${theme.border};
+    border-radius: ${theme.radius.sm};
+    font-size: ${theme.fontSize.sm};
+    font-weight: 500;
+    cursor: pointer;
+    transition: all ${theme.transitions.normal};
+
+    &:hover {
+        background: ${theme.primary}08;
+        color: ${theme.primary};
+        border-color: ${theme.primary}40;
+        transform: translateY(-1px);
+    }
 `;
 
 export default GalleryFiltersComponent;

@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import {FaAngleDoubleLeft, FaAngleDoubleRight, FaChevronLeft, FaChevronRight} from 'react-icons/fa';
+import {theme} from "../../styles/theme";
 
 interface PaginationProps {
     currentPage: number;
@@ -19,17 +20,12 @@ const Pagination: React.FC<PaginationProps> = ({
                                                    pageSize,
                                                    showTotalItems = true
                                                }) => {
-    // Nie wyświetlaj paginacji, jeśli mamy tylko 1 stronę
     if (totalPages <= 1) return null;
 
-    // Logika do wyświetlania odpowiedniej liczby przycisków strony
     const renderPageButtons = () => {
         const buttons: JSX.Element[] = [];
-
-        // Maksymalna liczba przycisków stron do wyświetlenia (bez pierwszej, ostatniej, i przycisków "...")
         const maxVisiblePages = 5;
 
-        // Zawsze pokazuj pierwszą stronę
         buttons.push(
             <PageButton
                 key="first"
@@ -41,23 +37,19 @@ const Pagination: React.FC<PaginationProps> = ({
             </PageButton>
         );
 
-        // Oblicz zakres stron do wyświetlenia
         let startPage = Math.max(2, currentPage - Math.floor(maxVisiblePages / 2));
         let endPage = Math.min(totalPages - 1, startPage + maxVisiblePages - 1);
 
-        // Dostosuj początek, jeśli mamy za mało stron na końcu
         if (endPage - startPage < maxVisiblePages - 1) {
             startPage = Math.max(2, endPage - maxVisiblePages + 1);
         }
 
-        // Dodaj "..." po pierwszej stronie, jeśli potrzeba
         if (startPage > 2) {
             buttons.push(
                 <EllipsisSpan key="ellipsis-start">...</EllipsisSpan>
             );
         }
 
-        // Dodaj przyciski numeryczne
         for (let i = startPage; i <= endPage; i++) {
             buttons.push(
                 <PageButton
@@ -71,14 +63,12 @@ const Pagination: React.FC<PaginationProps> = ({
             );
         }
 
-        // Dodaj "..." przed ostatnią stroną, jeśli potrzeba
         if (endPage < totalPages - 1) {
             buttons.push(
                 <EllipsisSpan key="ellipsis-end">...</EllipsisSpan>
             );
         }
 
-        // Zawsze pokazuj ostatnią stronę, jeśli jest więcej niż jedna strona
         if (totalPages > 1) {
             buttons.push(
                 <PageButton
@@ -95,7 +85,6 @@ const Pagination: React.FC<PaginationProps> = ({
         return buttons;
     };
 
-    // Obliczenie zakresu wyświetlanych elementów
     const calculateItemRange = () => {
         if (!totalItems || !pageSize) return null;
 
@@ -156,9 +145,9 @@ const PaginationContainer = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 20px;
+    margin-top: ${theme.spacing.lg};
     flex-wrap: wrap;
-    gap: 16px;
+    gap: ${theme.spacing.md};
     
     @media (max-width: 768px) {
         flex-direction: column;
@@ -167,34 +156,37 @@ const PaginationContainer = styled.div`
 `;
 
 const ItemsInfo = styled.div`
-    color: #7f8c8d;
-    font-size: 14px;
+    color: ${theme.text.tertiary};
+    font-size: ${theme.fontSize.base};
+    font-weight: 500;
 `;
 
 const PaginationControls = styled.div`
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: ${theme.spacing.xs};
 `;
 
 const PageButton = styled.button<{ active?: boolean }>`
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 36px;
-    height: 36px;
-    padding: 0 8px;
-    border-radius: 4px;
-    font-size: 14px;
-    font-weight: ${props => props.active ? '600' : '400'};
+    min-width: 28px;
+    height: 28px;
+    padding: 0 ${theme.spacing.sm};
+    border-radius: ${theme.radius.sm};
+    font-size: ${theme.fontSize.base};
+    font-weight: ${props => props.active ? '600' : '500'};
     cursor: ${props => props.disabled ? 'default' : 'pointer'};
-    background-color: ${props => props.active ? '#3498db' : 'white'};
-    color: ${props => props.active ? 'white' : '#34495e'};
-    border: 1px solid ${props => props.active ? '#3498db' : '#dfe6e9'};
-    transition: all 0.2s;
+    background-color: ${props => props.active ? theme.primary : theme.surface};
+    color: ${props => props.active ? 'white' : theme.text.secondary};
+    border: 1px solid ${props => props.active ? theme.primary : theme.border};
+    transition: all ${theme.transitions.normal};
     
     &:hover:not(:disabled) {
-        background-color: ${props => props.active ? '#3498db' : '#f8f9fa'};
+        background-color: ${props => props.active ? theme.primaryDark : theme.surfaceHover};
+        border-color: ${props => props.active ? theme.primaryDark : theme.borderActive};
+        transform: translateY(-1px);
     }
     
     &:disabled {
@@ -206,9 +198,10 @@ const EllipsisSpan = styled.span`
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 36px;
-    height: 36px;
-    color: #7f8c8d;
+    min-width: 28px;
+    height: 28px;
+    color: ${theme.text.muted};
+    font-size: ${theme.fontSize.base};
 `;
 
 export default Pagination;
