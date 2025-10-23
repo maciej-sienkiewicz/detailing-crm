@@ -1,4 +1,3 @@
-// src/pages/Clients/components/ClientTable/index.tsx - OSTATECZNA WERSJA
 import React from 'react';
 import { FaUsers, FaFilter } from 'react-icons/fa';
 import { DataTable, TableColumn, HeaderAction, SelectAllConfig } from '../../../../components/common/DataTable';
@@ -24,19 +23,16 @@ interface ClientTableProps {
     filtersComponent?: React.ReactNode;
 }
 
-// OSTATECZNE SZEROKOŚCI - bez horizontal scroll na jakimkolwiek ekranie 1024px+
 const defaultColumns: TableColumn[] = [
-    { id: 'selection', label: '', width: '60px', sortable: false },              // Minimalna checkbox
-    { id: 'client', label: 'Klient', width: '25%', sortable: true },             // Główna informacja
-    { id: 'contact', label: 'Kontakt', width: '20%', sortable: true },           // Najszersza - email+telefon
-    { id: 'company', label: 'Firma', width: '20%', sortable: true },             // Średnia dla firm
-    { id: 'lastVisit', label: 'Ostatnio', width: '10%', sortable: true }, // Kompaktowa dla dat
-    { id: 'metrics', label: 'Dane', width: '10%', sortable: true },    // Wąska dla liczb
-    { id: 'revenue', label: 'Przychody', width: '12%', sortable: true },         // Kompaktowa dla kwot
-    { id: 'actions', label: 'Akcje', width: '140px', sortable: false },          // Stała - dokładnie 3 przyciski
+    { id: 'selection', label: '', width: '50px', sortable: false },
+    { id: 'client', label: 'Klient', width: '18%', sortable: true },
+    { id: 'contact', label: 'Kontakt', width: '20%', sortable: true },
+    { id: 'company', label: 'Firma', width: '18%', sortable: true },
+    { id: 'lastVisit', label: 'Ostatnio', width: '11%', sortable: true },
+    { id: 'metrics', label: 'Dane', width: '10%', sortable: true },
+    { id: 'revenue', label: 'Przychody', width: '11%', sortable: true },
+    { id: 'actions', label: 'Akcje', width: '60px', sortable: false },
 ];
-
-// SUMA: 107% + 140px = NA DUŻYCH EKRANACH IDEALNE WYPEŁNIENIE BEZ SCROLL
 
 const emptyStateConfig = {
     icon: FaUsers,

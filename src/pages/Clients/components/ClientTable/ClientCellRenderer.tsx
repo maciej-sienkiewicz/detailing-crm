@@ -40,6 +40,7 @@ import {
     RevenueDisplay,
     RevenueAmount
 } from './styled';
+import { ContextMenu, ContextMenuItem } from '../../../../components/common/ContextMenu';
 
 interface ClientCellRendererProps {
     client: ClientExpanded;
@@ -62,7 +63,7 @@ export const ClientCellRenderer: React.FC<ClientCellRendererProps> = ({
                                                                           onEditClient,
                                                                           onDeleteClient,
                                                                       }) => {
-    const navigate = useNavigate(); // DODANY HOOK
+    const navigate = useNavigate();
     const status = getClientStatus(client);
     const isSelected = selectedClientIds.includes(client.id);
 
@@ -71,7 +72,6 @@ export const ClientCellRenderer: React.FC<ClientCellRendererProps> = ({
         action();
     };
 
-    // DODANA FUNKCJA - nawigacja do szczegółów klienta
     const handleViewClient = () => {
         navigate(`/clients/${client.id}`);
     };
@@ -190,32 +190,33 @@ export const ClientCellRenderer: React.FC<ClientCellRendererProps> = ({
             );
 
         case 'actions':
+            const menuItems: ContextMenuItem[] = [
+                {
+                    id: 'view',
+                    label: 'Zobacz szczegóły',
+                    icon: FaEye,
+                    onClick: () => handleViewClient(),
+                    variant: 'primary'
+                },
+                {
+                    id: 'edit',
+                    label: 'Edytuj klienta',
+                    icon: FaEdit,
+                    onClick: () => onEditClient(client),
+                    variant: 'default'
+                },
+                {
+                    id: 'delete',
+                    label: 'Usuń klienta',
+                    icon: FaTrash,
+                    onClick: () => onDeleteClient(client.id),
+                    variant: 'danger'
+                }
+            ];
+
             return (
-                <ActionButtons>
-                    <TooltipWrapper title="Zobacz szczegóły klienta">
-                        <ActionButton
-                            onClick={(e) => handleActionClick(e, handleViewClient)}
-                            $variant="view"
-                        >
-                            <FaEye />
-                        </ActionButton>
-                    </TooltipWrapper>
-                    <TooltipWrapper title="Edytuj dane klienta">
-                        <ActionButton
-                            onClick={(e) => handleActionClick(e, () => onEditClient(client))}
-                            $variant="edit"
-                        >
-                            <FaEdit />
-                        </ActionButton>
-                    </TooltipWrapper>
-                    <TooltipWrapper title="Usuń klienta">
-                        <ActionButton
-                            onClick={(e) => handleActionClick(e, () => onDeleteClient(client.id))}
-                            $variant="delete"
-                        >
-                            <FaTrash />
-                        </ActionButton>
-                    </TooltipWrapper>
+                <ActionButtons onClick={(e) => e.stopPropagation()}>
+                    <ContextMenu items={menuItems} size="medium" />
                 </ActionButtons>
             );
 

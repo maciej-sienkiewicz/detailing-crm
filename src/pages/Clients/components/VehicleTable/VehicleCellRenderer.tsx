@@ -1,4 +1,3 @@
-// src/pages/Clients/components/VehicleTable/VehicleCellRenderer.tsx
 import React from 'react';
 import { FaCalendarAlt, FaEdit, FaEye, FaTrash } from 'react-icons/fa';
 import { VehicleExpanded } from '../../../../types';
@@ -22,6 +21,7 @@ import {
     EmptyDate,
     RevenueDisplay
 } from './styled';
+import { ContextMenu, ContextMenuItem } from '../../../../components/common/ContextMenu';
 
 interface VehicleCellRendererProps {
     vehicle: VehicleExpanded;
@@ -33,13 +33,13 @@ interface VehicleCellRendererProps {
 }
 
 export const VehicleCellRenderer: React.FC<VehicleCellRendererProps> = ({
-    vehicle,
-    columnId,
-    onSelectVehicle,
-    onEditVehicle,
-    onDeleteVehicle,
-    onShowHistory
-}) => {
+                                                                            vehicle,
+                                                                            columnId,
+                                                                            onSelectVehicle,
+                                                                            onEditVehicle,
+                                                                            onDeleteVehicle,
+                                                                            onShowHistory
+                                                                        }) => {
     const status = getVehicleStatus(vehicle);
 
     const handleActionClick = (e: React.MouseEvent, action: () => void) => {
@@ -125,32 +125,33 @@ export const VehicleCellRenderer: React.FC<VehicleCellRendererProps> = ({
             );
 
         case 'actions':
+            const menuItems: ContextMenuItem[] = [
+                {
+                    id: 'view',
+                    label: 'Zobacz szczegóły',
+                    icon: FaEye,
+                    onClick: () => onSelectVehicle(vehicle),
+                    variant: 'primary'
+                },
+                {
+                    id: 'edit',
+                    label: 'Edytuj pojazd',
+                    icon: FaEdit,
+                    onClick: () => onEditVehicle(vehicle),
+                    variant: 'default'
+                },
+                {
+                    id: 'delete',
+                    label: 'Usuń pojazd',
+                    icon: FaTrash,
+                    onClick: () => onDeleteVehicle(vehicle.id),
+                    variant: 'danger'
+                }
+            ];
+
             return (
-                <ActionButtons>
-                    <TooltipWrapper title="Zobacz szczegóły pojazdu">
-                        <ActionButton
-                            onClick={(e) => handleActionClick(e, () => onSelectVehicle(vehicle))}
-                            $variant="view"
-                        >
-                            <FaEye />
-                        </ActionButton>
-                    </TooltipWrapper>
-                    <TooltipWrapper title="Edytuj pojazd">
-                        <ActionButton
-                            onClick={(e) => handleActionClick(e, () => onEditVehicle(vehicle))}
-                            $variant="edit"
-                        >
-                            <FaEdit />
-                        </ActionButton>
-                    </TooltipWrapper>
-                    <TooltipWrapper title="Usuń pojazd">
-                        <ActionButton
-                            onClick={(e) => handleActionClick(e, () => onDeleteVehicle(vehicle.id))}
-                            $variant="delete"
-                        >
-                            <FaTrash />
-                        </ActionButton>
-                    </TooltipWrapper>
+                <ActionButtons onClick={(e) => e.stopPropagation()}>
+                    <ContextMenu items={menuItems} size="medium" />
                 </ActionButtons>
             );
 

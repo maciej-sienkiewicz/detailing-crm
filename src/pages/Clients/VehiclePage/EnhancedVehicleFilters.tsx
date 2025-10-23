@@ -42,17 +42,17 @@ const brandTheme = {
     spacing: {
         xs: '4px',
         sm: '8px',
-        md: '16px',
-        lg: '24px',
-        xl: '32px',
-        xxl: '48px'
+        md: '12px',
+        lg: '16px',
+        xl: '20px',
+        xxl: '24px'
     },
     radius: {
-        sm: '6px',
-        md: '8px',
-        lg: '12px',
-        xl: '16px',
-        xxl: '20px'
+        sm: '4px',
+        md: '6px',
+        lg: '8px',
+        xl: '12px',
+        xxl: '16px'
     }
 };
 
@@ -67,7 +67,6 @@ interface EnhancedVehicleFiltersProps {
     resultCount: number;
 }
 
-// NOWY KOMPONENT - tylko panel filtrów bez nagłówka
 const EnhancedVehicleFilters: React.FC<EnhancedVehicleFiltersProps> = ({
                                                                            filters,
                                                                            appliedFilters,
@@ -125,7 +124,6 @@ const EnhancedVehicleFilters: React.FC<EnhancedVehicleFiltersProps> = ({
         onFiltersChange(newFilters);
     }, [localFilters, onFiltersChange]);
 
-    // Sync local filters when external filters change
     React.useEffect(() => {
         setLocalFilters(filters);
     }, [filters]);
@@ -341,9 +339,8 @@ const EnhancedVehicleFilters: React.FC<EnhancedVehicleFiltersProps> = ({
     );
 };
 
-// Styled Components - podobne do klientów
 const FiltersContent = styled.div`
-    padding: ${brandTheme.spacing.lg};
+    padding: ${brandTheme.spacing.md};
     background: ${brandTheme.surfaceAlt};
     border-bottom: 1px solid ${brandTheme.borderLight};
     animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -353,33 +350,33 @@ const FiltersContent = styled.div`
             opacity: 0;
             transform: translateY(-20px);
             max-height: 0;
-            padding: 0 ${brandTheme.spacing.lg};
+            padding: 0 ${brandTheme.spacing.md};
         }
         to {
             opacity: 1;
             transform: translateY(0);
             max-height: 500px;
-            padding: ${brandTheme.spacing.lg};
+            padding: ${brandTheme.spacing.md};
         }
     }
 `;
 
 const FiltersGrid = styled.div`
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: ${brandTheme.spacing.lg};
-    margin-bottom: ${brandTheme.spacing.lg};
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: ${brandTheme.spacing.md};
+    margin-bottom: ${brandTheme.spacing.md};
 
     @media (max-width: 768px) {
         grid-template-columns: 1fr;
-        gap: ${brandTheme.spacing.md};
+        gap: ${brandTheme.spacing.sm};
     }
 `;
 
 const FilterGroup = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${brandTheme.spacing.sm};
+    gap: ${brandTheme.spacing.xs};
 `;
 
 const FilterLabel = styled.label`
@@ -387,14 +384,14 @@ const FilterLabel = styled.label`
     align-items: center;
     gap: ${brandTheme.spacing.xs};
     font-weight: 600;
-    font-size: 14px;
+    font-size: 11px;
     color: ${brandTheme.text.primary};
-    margin-bottom: ${brandTheme.spacing.xs};
+    margin-bottom: 2px;
 `;
 
 const FilterLabelIcon = styled.div`
     color: ${brandTheme.text.muted};
-    font-size: 12px;
+    font-size: 10px;
 `;
 
 const FilterInputWrapper = styled.div`
@@ -405,12 +402,12 @@ const FilterInputWrapper = styled.div`
 
 const FilterInput = styled.input<{ $hasValue: boolean }>`
     width: 100%;
-    height: 48px;
-    padding: 0 ${brandTheme.spacing.md};
-    padding-right: ${props => props.$hasValue ? '40px' : brandTheme.spacing.md};
-    border: 2px solid ${props => props.$hasValue ? brandTheme.primary : brandTheme.border};
+    height: 36px;
+    padding: 0 ${brandTheme.spacing.sm};
+    padding-right: ${props => props.$hasValue ? '32px' : brandTheme.spacing.sm};
+    border: 1.5px solid ${props => props.$hasValue ? brandTheme.primary : brandTheme.border};
     border-radius: ${brandTheme.radius.md};
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 500;
     background: ${props => props.$hasValue ? brandTheme.primaryGhost : brandTheme.surface};
     color: ${brandTheme.text.primary};
@@ -419,13 +416,14 @@ const FilterInput = styled.input<{ $hasValue: boolean }>`
     &:focus {
         outline: none;
         border-color: ${brandTheme.primary};
-        box-shadow: 0 0 0 3px ${brandTheme.primaryGhost};
+        box-shadow: 0 0 0 2px ${brandTheme.primaryGhost};
         background: ${brandTheme.surface};
     }
 
     &::placeholder {
         color: ${brandTheme.text.muted};
         font-weight: 400;
+        font-size: 11px;
     }
 
     ${props => props.$hasValue && `
@@ -435,9 +433,9 @@ const FilterInput = styled.input<{ $hasValue: boolean }>`
 
 const ClearInputButton = styled.button`
     position: absolute;
-    right: ${brandTheme.spacing.sm};
-    width: 24px;
-    height: 24px;
+    right: ${brandTheme.spacing.xs};
+    width: 20px;
+    height: 20px;
     border: none;
     background: ${brandTheme.text.muted};
     color: white;
@@ -446,7 +444,7 @@ const ClearInputButton = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 10px;
+    font-size: 8px;
     transition: all 0.2s ease;
 
     &:hover {
@@ -459,11 +457,11 @@ const VisitRangeDisplay = styled.div`
     background: linear-gradient(135deg, ${brandTheme.status.infoLight} 0%, #f0f9ff 100%);
     border: 1px solid ${brandTheme.status.info}30;
     border-radius: ${brandTheme.radius.lg};
-    padding: ${brandTheme.spacing.md};
-    margin-bottom: ${brandTheme.spacing.lg};
+    padding: ${brandTheme.spacing.sm};
+    margin-bottom: ${brandTheme.spacing.md};
     display: flex;
     align-items: center;
-    gap: ${brandTheme.spacing.md};
+    gap: ${brandTheme.spacing.sm};
 `;
 
 const VisitRangeTitle = styled.div`
@@ -472,10 +470,10 @@ const VisitRangeTitle = styled.div`
     gap: ${brandTheme.spacing.xs};
     font-weight: 600;
     color: ${brandTheme.status.info};
-    font-size: 14px;
+    font-size: 11px;
 
     svg {
-        font-size: 12px;
+        font-size: 10px;
     }
 `;
 
@@ -485,7 +483,7 @@ const VisitRangeInfo = styled.div`
     border-radius: ${brandTheme.radius.md};
     font-weight: 600;
     color: ${brandTheme.text.primary};
-    font-size: 14px;
+    font-size: 11px;
     border: 1px solid ${brandTheme.status.info}20;
 `;
 
@@ -493,14 +491,14 @@ const FiltersFooter = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-top: ${brandTheme.spacing.lg};
+    padding-top: ${brandTheme.spacing.md};
     border-top: 1px solid ${brandTheme.border};
-    gap: ${brandTheme.spacing.md};
+    gap: ${brandTheme.spacing.sm};
 
     @media (max-width: 768px) {
         flex-direction: column;
         align-items: stretch;
-        gap: ${brandTheme.spacing.md};
+        gap: ${brandTheme.spacing.sm};
     }
 `;
 
@@ -512,13 +510,13 @@ const ResultsSection = styled.div`
 const ResultsWithIcon = styled.div`
     display: flex;
     align-items: center;
-    gap: ${brandTheme.spacing.sm};
+    gap: ${brandTheme.spacing.xs};
     color: ${brandTheme.status.success};
     font-weight: 600;
-    font-size: 14px;
+    font-size: 11px;
 
     svg {
-        font-size: 16px;
+        font-size: 12px;
     }
 `;
 
@@ -527,14 +525,14 @@ const ResultsText = styled.span`
 `;
 
 const ResultsInfo = styled.div`
-    font-size: 14px;
+    font-size: 11px;
     color: ${brandTheme.text.muted};
     font-style: italic;
 `;
 
 const FiltersActions = styled.div`
     display: flex;
-    gap: ${brandTheme.spacing.sm};
+    gap: ${brandTheme.spacing.xs};
 
     @media (max-width: 768px) {
         justify-content: flex-end;
@@ -544,16 +542,16 @@ const FiltersActions = styled.div`
 const BaseButton = styled.button`
     display: flex;
     align-items: center;
-    gap: ${brandTheme.spacing.sm};
-    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+    gap: ${brandTheme.spacing.xs};
+    padding: 6px ${brandTheme.spacing.sm};
     border-radius: ${brandTheme.radius.md};
     font-weight: 600;
-    font-size: 14px;
+    font-size: 11px;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     border: 1px solid transparent;
     white-space: nowrap;
-    min-height: 44px;
+    min-height: 32px;
 
     &:hover {
         transform: translateY(-1px);
@@ -567,6 +565,10 @@ const BaseButton = styled.button`
         opacity: 0.5;
         cursor: not-allowed;
         transform: none;
+    }
+
+    svg {
+        font-size: 10px;
     }
 
     span {
