@@ -27,7 +27,6 @@ import ImagePreviewModal from "../../shared/modals/ImagePreviewModal";
 import ImageEditModal from "../../shared/modals/ImageEditModal";
 import DocumentPreviewModal from "./DocumentPreviewModal";
 
-// Enterprise Design System - Professional Automotive Gallery
 const enterprise = {
     primary: 'var(--brand-primary, #2563eb)',
     primaryDark: 'var(--brand-primary-dark, #1d4ed8)',
@@ -53,38 +52,37 @@ const enterprise = {
     errorBg: '#fef2f2',
 
     space: {
-        xs: '4px',
-        sm: '8px',
-        md: '16px',
-        lg: '24px',
-        xl: '32px',
-        xxl: '48px'
+        xs: '2px',
+        sm: '4px',
+        md: '8px',
+        lg: '12px',
+        xl: '16px',
+        xxl: '24px'
     },
 
     fontSize: {
-        xs: '12px',
-        sm: '14px',
-        base: '16px',
-        lg: '18px',
-        xl: '20px'
+        xs: '10px',
+        sm: '11px',
+        base: '12px',
+        lg: '13px',
+        xl: '14px'
     },
 
     shadow: {
         sm: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-        md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-        lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-        xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+        md: '0 2px 4px -1px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.06)',
+        lg: '0 4px 8px -2px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.05)',
+        xl: '0 8px 16px -4px rgba(0, 0, 0, 0.1), 0 4px 8px -4px rgba(0, 0, 0, 0.04)'
     },
 
     radius: {
         sm: '4px',
-        md: '8px',
-        lg: '12px',
-        xl: '16px'
+        md: '6px',
+        lg: '8px',
+        xl: '10px'
     }
 };
 
-// Type definitions for protocol documents
 interface ProtocolDocument {
     storageId: string;
     protocolId: string;
@@ -99,7 +97,6 @@ interface ProtocolDocument {
     downloadUrl: string;
 }
 
-// Document type options
 const DOCUMENT_TYPES = [
     { value: 'MARKETING_CONSENT', label: 'Zgoda marketingowa' },
     { value: 'SERVICE_CONSENT', label: 'Zgoda na dodatkowe usługi' },
@@ -128,23 +125,19 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
     const [editingImageIndex, setEditingImageIndex] = useState(-1);
     const [activeTab, setActiveTab] = useState<'images' | 'documents'>('images');
 
-    // File input refs
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
     const documentInputRef = useRef<HTMLInputElement>(null);
     const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
 
-    // Document preview modal state
     const [showDocumentPreviewModal, setShowDocumentPreviewModal] = useState(false);
     const [previewDocument, setPreviewDocument] = useState<ProtocolDocument | null>(null);
 
-    // Document upload modal state
     const [showDocumentUploadModal, setShowDocumentUploadModal] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [documentType, setDocumentType] = useState('OTHER');
     const [documentDescription, setDocumentDescription] = useState('');
 
-    // Protocol documents API functions
     const protocolDocumentsApi = {
         getDocuments: async (protocolId: string): Promise<ProtocolDocument[]> => {
             return await apiClient.get<ProtocolDocument[]>(`/v1/protocols/${protocolId}/documents`);
@@ -176,13 +169,11 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
         }
     };
 
-    // Handle document preview
     const handlePreviewDocument = (document: ProtocolDocument) => {
         setPreviewDocument(document);
         setShowDocumentPreviewModal(true);
     };
 
-    // Synchronize images with protocol.vehicleImages
     useEffect(() => {
         if (protocol.vehicleImages && protocol.vehicleImages.length > 0) {
             setImages(protocol.vehicleImages);
@@ -191,7 +182,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
         }
     }, [protocol.id]);
 
-    // Fetch documents from API
     useEffect(() => {
         const fetchDocuments = async () => {
             try {
@@ -205,10 +195,8 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
         fetchDocuments();
     }, [protocol.id]);
 
-    // Fetch image URLs
     useEffect(() => {
         const fetchImageUrls = async () => {
-
             const imagesToFetch = images.filter(img =>
                 !img.id.startsWith('temp_') &&
                 !imageUrls[img.id]
@@ -222,7 +210,7 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                         const imageUrl = await carReceptionApi.fetchVehicleImageAsUrl(image.id);
                         return { id: image.id, url: imageUrl };
                     } catch (error) {
-                        console.error(`❌ Error fetching URL for image ${image.id}:`, error);
+                        console.error(`Error fetching URL for image ${image.id}:`, error);
                         return { id: image.id, url: '' };
                     }
                 });
@@ -235,14 +223,13 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                 }, {} as Record<string, string>);
 
                 if (Object.keys(newUrls).length > 0) {
-                    console.log('✅ Fetched URLs for', Object.keys(newUrls).length, 'images');
                     setImageUrls(prev => ({
                         ...prev,
                         ...newUrls
                     }));
                 }
             } catch (error) {
-                console.error('❌ Error in fetchImageUrls:', error);
+                console.error('Error in fetchImageUrls:', error);
             }
         };
 
@@ -251,7 +238,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
         }
     }, [images]);
 
-    // Cleanup effect for URLs
     useEffect(() => {
         return () => {
             Object.values(imageUrls).forEach(url => {
@@ -262,17 +248,14 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
         };
     }, [imageUrls]);
 
-    // Fetch images from API (only when protocol doesn't have vehicleImages)
     const fetchImagesFromApi = async () => {
         if (isLoading) return;
 
-        console.log('📥 Fetching images from API for protocol:', protocol.id);
         setIsLoading(true);
         setError(null);
 
         try {
             const fetchedImages = await carReceptionApi.fetchVehicleImages(protocol.id);
-            console.log('✅ Fetched images from API:', fetchedImages.length);
 
             setImages(fetchedImages);
 
@@ -284,41 +267,29 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                 onProtocolUpdate(updatedProtocol);
             }
         } catch (err) {
-            console.error('❌ Error fetching images from API:', err);
+            console.error('Error fetching images from API:', err);
             setError('Wystąpił błąd podczas pobierania dokumentacji. Spróbuj odświeżyć stronę.');
         } finally {
             setIsLoading(false);
         }
     };
 
-    // Get image URL function
     const getImageUrl = (image: VehicleImage): string => {
-        console.log(`🔍 Getting URL for image ${image.id}:`, {
-            hasDirectUrl: !!image.url,
-            hasCachedUrl: !!imageUrls[image.id],
-            isTemp: image.id.startsWith('temp_')
-        });
-
         if (image.id.startsWith('temp_') && image.url) {
-            console.log(`✅ Using temp URL for ${image.id}`);
             return image.url;
         }
 
         if (imageUrls[image.id]) {
-            console.log(`✅ Using cached URL for ${image.id}`);
             return imageUrls[image.id];
         }
 
         if (image.url) {
-            console.log(`✅ Using direct URL for ${image.id}`);
             return image.url;
         }
 
-        console.log(`❌ No URL found for ${image.id}`);
         return '';
     };
 
-    // Get file icon based on content type
     const getFileIcon = (contentType: string) => {
         if (contentType.includes('pdf')) return <FaFilePdf style={{ color: '#dc2626' }} />;
         if (contentType.includes('word') || contentType.includes('document')) return <FaFileWord style={{ color: '#2563eb' }} />;
@@ -327,20 +298,17 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
         return <FaFileAlt style={{ color: '#64748b' }} />;
     };
 
-    // Format file size
     const formatFileSize = (bytes: number): string => {
         if (bytes < 1024) return bytes + ' B';
         if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
         return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
     };
 
-    // Handle image click
     const handleImageClick = (index: number) => {
         setSelectedImageIndex(index);
         setShowPreviewModal(true);
     };
 
-    // Handle file select for images
     const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files && event.target.files.length > 0) {
             handleAddImages(event);
@@ -350,12 +318,10 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
         }
     };
 
-    // Handle document file select
     const handleDocumentFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files && event.target.files.length > 0) {
             const file = event.target.files[0];
 
-            // Validate file size (10MB limit)
             if (file.size > 10 * 1024 * 1024) {
                 setError('Plik nie może być większy niż 10MB');
                 return;
@@ -369,7 +335,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
         }
     };
 
-    // Handle upload click
     const handleUploadClick = (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
@@ -379,7 +344,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
         }
     };
 
-    // Handle camera click
     const handleCameraClick = (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
@@ -389,7 +353,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
         }
     };
 
-    // Handle document upload click
     const handleDocumentUploadClick = (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
@@ -399,7 +362,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
         }
     };
 
-    // Handle document upload
     const handleDocumentUpload = async () => {
         if (!selectedFile) return;
 
@@ -414,7 +376,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                 documentDescription || undefined
             );
 
-            // Refresh documents list
             const updatedDocuments = await protocolDocumentsApi.getDocuments(protocol.id);
             setDocuments(updatedDocuments);
 
@@ -430,7 +391,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
         }
     };
 
-    // Handle document delete
     const handleDeleteDocument = async (documentId: string) => {
         if (!window.confirm('Czy na pewno chcesz usunąć ten dokument?')) {
             return;
@@ -456,7 +416,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
         }
     };
 
-    // Handle download document
     const handleDownloadDocument = async (protocolDoc: ProtocolDocument) => {
         try {
             const downloadUrl = protocolDocumentsApi.downloadDocument(protocolDoc.protocolId);
@@ -467,14 +426,12 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
         }
     };
 
-    // Handle edit image
     const handleEditImage = (index: number, e: React.MouseEvent) => {
         e.stopPropagation();
         setEditingImageIndex(index);
         setEditModalOpen(true);
     };
 
-    // Handle add images (existing functionality)
     const handleAddImages = (event: React.ChangeEvent<HTMLInputElement>) => {
         event.preventDefault();
 
@@ -510,8 +467,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
             file: file
         };
 
-        console.log('➕ Adding temporary image:', tempImage.id);
-
         const updatedImages = [...images, tempImage];
         setImages(updatedImages);
 
@@ -520,12 +475,9 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
         setEditModalOpen(true);
     };
 
-    // Handle save image info (existing functionality)
     const handleSaveImageInfo = async (newName: string, newTags: string[]) => {
         if (editingImageIndex >= 0 && editingImageIndex < images.length) {
             const currentImage = images[editingImageIndex];
-
-            console.log('💾 Saving image info for:', currentImage.id);
 
             if (currentImage.id.startsWith('temp_') && currentUploadImage) {
                 setEditModalOpen(false);
@@ -540,10 +492,7 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                         tags: newTags
                     };
 
-                    console.log('⬆️ Uploading new image:', updatedUploadImage.name);
                     const uploadedImage = await carReceptionApi.uploadVehicleImage(protocol.id, updatedUploadImage);
-
-                    console.log('✅ Image uploaded successfully:', uploadedImage.id);
 
                     const finalImages = [
                         ...images.filter(img => !img.id.startsWith('temp_')),
@@ -560,7 +509,7 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                     onProtocolUpdate(updatedProtocol);
 
                 } catch (err) {
-                    console.error('❌ Error uploading image:', err);
+                    console.error('Error uploading image:', err);
                     setError('Wystąpił błąd podczas przesyłania dokumentu. Spróbuj ponownie.');
 
                     setImages(images.filter(img => !img.id.startsWith('temp_')));
@@ -582,7 +531,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                 setIsLoading(true);
 
                 try {
-                    console.log('📝 Updating existing image metadata:', currentImage.id);
                     const updatedImage = await carReceptionApi.updateVehicleImage(protocol.id, currentImage.id, {
                         name: newName,
                         tags: newTags
@@ -603,7 +551,7 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                         }
                     }
                 } catch (err) {
-                    console.error('❌ Error updating image metadata:', err);
+                    console.error('Error updating image metadata:', err);
                     setError('Wystąpił błąd podczas aktualizacji informacji o dokumencie.');
                     setImages([...images]);
                 } finally {
@@ -613,13 +561,10 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
         }
     };
 
-    // Handle delete image (existing functionality)
     const handleDeleteImage = async (imageId: string) => {
         if (!window.confirm('Czy na pewno chcesz usunąć ten dokument?')) {
             return;
         }
-
-        console.log('🗑️ Deleting image:', imageId);
 
         if (imageId.startsWith('temp_')) {
             const updatedImages = images.filter(img => img.id !== imageId);
@@ -635,8 +580,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
             const success = await carReceptionApi.deleteVehicleImage(protocol.id, imageId);
 
             if (success) {
-                console.log('✅ Image deleted successfully');
-
                 const updatedImages = images.filter(img => img.id !== imageId);
                 setImages(updatedImages);
 
@@ -655,7 +598,7 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                 setError('Nie udało się usunąć dokumentu. Spróbuj ponownie.');
             }
         } catch (err) {
-            console.error('❌ Error deleting image:', err);
+            console.error('Error deleting image:', err);
             setError('Wystąpił błąd podczas usuwania dokumentu.');
         } finally {
             setIsLoading(false);
@@ -664,7 +607,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
 
     return (
         <DocumentationPanel>
-            {/* Professional Header */}
             <DocumentationHeader>
                 <HeaderContent>
                     <HeaderIcon>
@@ -688,7 +630,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                         <span>Dodaj dokument</span>
                     </DocumentButton>
 
-                    {/* Hidden file inputs */}
                     <input
                         type="file"
                         ref={fileInputRef}
@@ -714,7 +655,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                 </ActionGroup>
             </DocumentationHeader>
 
-            {/* Tab Navigation */}
             <TabContainer>
                 <TabButton
                     $active={activeTab === 'images'}
@@ -732,7 +672,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                 </TabButton>
             </TabContainer>
 
-            {/* Error State */}
             {error && (
                 <ErrorAlert>
                     <FaExclamationCircle />
@@ -740,7 +679,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                 </ErrorAlert>
             )}
 
-            {/* Loading State */}
             {isLoading && currentUploadImage && (
                 <LoadingAlert>
                     <LoadingSpinner />
@@ -748,10 +686,8 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                 </LoadingAlert>
             )}
 
-            {/* Gallery Content */}
             <GalleryContent>
                 {activeTab === 'images' ? (
-                    // Images Tab Content
                     isLoading && images.length === 0 ? (
                         <LoadingState>
                             <LoadingSpinner />
@@ -850,7 +786,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                         </EmptyState>
                     )
                 ) : (
-                    // Documents Tab Content
                     documents.length > 0 ? (
                         <DocumentsList>
                             {documents.map((document) => (
@@ -869,15 +804,16 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                                             <DocumentRowInfo>
                                                 <FaClock />
                                                 <span>
-  {new Date(document.createdAt).toLocaleString('sv-SE', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-  }).replace('T', ' ')}
-</span>                                            </DocumentRowInfo>
+                                                    {new Date(document.createdAt).toLocaleString('sv-SE', {
+                                                        year: 'numeric',
+                                                        month: '2-digit',
+                                                        day: '2-digit',
+                                                        hour: '2-digit',
+                                                        minute: '2-digit',
+                                                        second: '2-digit'
+                                                    }).replace('T', ' ')}
+                                                </span>
+                                            </DocumentRowInfo>
                                             <DocumentRowInfo>
                                                 <FaUser />
                                                 <span>{document.uploadedBy}</span>
@@ -936,7 +872,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                 )}
             </GalleryContent>
 
-            {/* Document Upload Modal */}
             {showDocumentUploadModal && selectedFile && (
                 <ModalOverlay>
                     <ModalContainer>
@@ -1015,8 +950,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
                 </ModalOverlay>
             )}
 
-            {/* Existing Modals */}
-            {/* Document Preview Modal */}
             {showDocumentPreviewModal && previewDocument && (
                 <DocumentPreviewModal
                     isOpen={showDocumentPreviewModal}
@@ -1059,7 +992,6 @@ const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({ protocol, onProtocolU
     );
 };
 
-// Enterprise-Grade Styled Components
 const DocumentationPanel = styled.div`
     display: flex;
     flex-direction: column;
@@ -1087,12 +1019,12 @@ const HeaderIcon = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
+    width: 36px;
+    height: 36px;
     background: ${enterprise.primary}15;
     color: ${enterprise.primary};
     border-radius: ${enterprise.radius.lg};
-    font-size: 20px;
+    font-size: 16px;
 `;
 
 const HeaderText = styled.div`
@@ -1124,7 +1056,7 @@ const UploadButton = styled.button`
     display: flex;
     align-items: center;
     gap: ${enterprise.space.sm};
-    padding: ${enterprise.space.md} ${enterprise.space.lg};
+    padding: ${enterprise.space.sm} ${enterprise.space.lg};
     background: ${enterprise.primary};
     color: white;
     border: none;
@@ -1153,43 +1085,11 @@ const UploadButton = styled.button`
     }
 `;
 
-const CameraButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: ${enterprise.space.sm};
-    padding: ${enterprise.space.md} ${enterprise.space.lg};
-    background: ${enterprise.surface};
-    color: ${enterprise.textSecondary};
-    border: 1px solid ${enterprise.border};
-    border-radius: ${enterprise.radius.md};
-    font-size: ${enterprise.fontSize.sm};
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover:not(:disabled) {
-        background: ${enterprise.surfaceSecondary};
-        border-color: ${enterprise.textTertiary};
-        transform: translateY(-1px);
-        box-shadow: ${enterprise.shadow.sm};
-    }
-
-    &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-        transform: none;
-    }
-
-    svg {
-        font-size: ${enterprise.fontSize.xs};
-    }
-`;
-
 const DocumentButton = styled.button`
     display: flex;
     align-items: center;
     gap: ${enterprise.space.sm};
-    padding: ${enterprise.space.md} ${enterprise.space.lg};
+    padding: ${enterprise.space.sm} ${enterprise.space.lg};
     background: ${enterprise.success};
     color: white;
     border: none;
@@ -1281,8 +1181,8 @@ const LoadingAlert = styled.div`
 `;
 
 const LoadingSpinner = styled.div`
-    width: 16px;
-    height: 16px;
+    width: 12px;
+    height: 12px;
     border: 2px solid transparent;
     border-top: 2px solid currentColor;
     border-radius: 50%;
@@ -1320,12 +1220,12 @@ const LoadingState = styled.div`
 
 const DocumentGrid = styled.div`
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: ${enterprise.space.lg};
     padding: ${enterprise.space.xl};
 
     @media (max-width: 768px) {
-        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
         gap: ${enterprise.space.md};
         padding: ${enterprise.space.lg};
     }
@@ -1355,7 +1255,7 @@ const DocumentCard = styled.div<{ $isTemp?: boolean }>`
 
 const DocumentPreview = styled.div`
     position: relative;
-    height: 200px;
+    height: 160px;
     overflow: hidden;
     background: ${enterprise.surfaceTertiary};
 `;
@@ -1379,7 +1279,7 @@ const DocumentPlaceholder = styled.div`
     align-items: center;
     justify-content: center;
     color: ${enterprise.textMuted};
-    font-size: 32px;
+    font-size: 28px;
 `;
 
 const ProcessingBadge = styled.div`
@@ -1390,10 +1290,10 @@ const ProcessingBadge = styled.div`
     background: ${enterprise.primary};
     color: white;
     border-radius: ${enterprise.radius.sm};
-    font-size: 11px;
+    font-size: 9px;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
 `;
 
 const DocumentInfo = styled.div`
@@ -1432,8 +1332,8 @@ const ActionButton = styled.button<{ $variant?: 'danger' }>`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     background: ${props => props.$variant === 'danger' ? enterprise.error + '20' : enterprise.surfaceSecondary};
     color: ${props => props.$variant === 'danger' ? enterprise.error : enterprise.textSecondary};
     border: none;
@@ -1464,11 +1364,11 @@ const MetaItem = styled.div`
 `;
 
 const MetaLabel = styled.div`
-    font-size: 11px;
+    font-size: 9px;
     color: ${enterprise.textTertiary};
     font-weight: 500;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
 `;
 
 const MetaValue = styled.div`
@@ -1501,10 +1401,10 @@ const TagBadge = styled.div`
     color: ${enterprise.primary};
     border: 1px solid ${enterprise.primary}30;
     border-radius: ${enterprise.radius.sm};
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 500;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
 `;
 
 const DocumentsList = styled.div`
@@ -1535,11 +1435,11 @@ const DocumentRowIcon = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
+    width: 36px;
+    height: 36px;
     background: ${enterprise.surfaceSecondary};
     border-radius: ${enterprise.radius.lg};
-    font-size: 24px;
+    font-size: 18px;
     flex-shrink: 0;
 `;
 
@@ -1576,7 +1476,7 @@ const DocumentRowType = styled.div`
     font-size: ${enterprise.fontSize.xs};
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
     white-space: nowrap;
 `;
 
@@ -1622,15 +1522,15 @@ const EmptyState = styled.div`
 `;
 
 const EmptyIcon = styled.div`
-    width: 80px;
-    height: 80px;
+    width: 60px;
+    height: 60px;
     background: ${enterprise.surfaceSecondary};
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     color: ${enterprise.textMuted};
-    font-size: 32px;
+    font-size: 28px;
     margin-bottom: ${enterprise.space.xl};
 `;
 
@@ -1681,7 +1581,6 @@ const EmptyAction = styled.button`
     }
 `;
 
-// Modal Components
 const ModalOverlay = styled.div`
     position: fixed;
     top: 0;
@@ -1700,7 +1599,7 @@ const ModalContainer = styled.div`
     background: ${enterprise.surface};
     border-radius: ${enterprise.radius.xl};
     box-shadow: ${enterprise.shadow.xl};
-    width: 500px;
+    width: 450px;
     max-width: 95%;
     max-height: 90vh;
     display: flex;
@@ -1728,8 +1627,8 @@ const CloseButton = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     background: ${enterprise.surfaceSecondary};
     border: 1px solid ${enterprise.border};
     border-radius: ${enterprise.radius.sm};
@@ -1765,11 +1664,11 @@ const FilePreviewIcon = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
+    width: 36px;
+    height: 36px;
     background: ${enterprise.surface};
     border-radius: ${enterprise.radius.lg};
-    font-size: 24px;
+    font-size: 20px;
 `;
 
 const FilePreviewInfo = styled.div`
@@ -1826,7 +1725,7 @@ const FormTextarea = styled.textarea`
     background: ${enterprise.surface};
     color: ${enterprise.textPrimary};
     resize: vertical;
-    min-height: 80px;
+    min-height: 70px;
 
     &:focus {
         outline: none;

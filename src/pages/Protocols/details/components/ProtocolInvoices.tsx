@@ -46,18 +46,15 @@ const ProtocolInvoices: React.FC<ProtocolInvoicesProps> = ({ protocol, onProtoco
     const [isLoading, setIsLoading] = useState(false);
     const { showToast } = useToast();
 
-    // Pobierz faktury powiązane z tym protokołem
     useEffect(() => {
         const fetchInvoices = async () => {
             try {
                 setIsLoading(true);
-                // Wywołaj API do pobrania dokumentów związanych z protokołem
                 const documentsResponse = await unifiedFinancialApi.fetchDocuments({
                     protocolId: protocol.id,
-                    direction: TransactionDirection.EXPENSE // Filtrujemy tylko wydatki (faktury kosztowe)
+                    direction: TransactionDirection.EXPENSE
                 });
 
-                // Wyciągnij dokumenty z odpowiedzi paginowanej
                 const expenseDocuments = documentsResponse.data || [];
 
                 setInvoices(expenseDocuments);
@@ -71,13 +68,11 @@ const ProtocolInvoices: React.FC<ProtocolInvoicesProps> = ({ protocol, onProtoco
         fetchInvoices();
     }, [protocol.id]);
 
-    // Format date for display
     const formatDate = (dateString: string): string => {
         if (!dateString) return '';
         return format(new Date(dateString), 'dd.MM.yyyy', { locale: pl });
     };
 
-    // Format currency
     const formatCurrency = (amount: number): string => {
         return new Intl.NumberFormat('pl-PL', {
             style: 'currency',
@@ -87,12 +82,10 @@ const ProtocolInvoices: React.FC<ProtocolInvoicesProps> = ({ protocol, onProtoco
         }).format(amount);
     };
 
-    // Obsługa zapisu faktury
     const handleSaveInvoice = async (invoiceData: any, file?: File | null) => {
         try {
             setIsLoading(true);
 
-            // Dodaj ID protokołu i ustaw typ dokumentu jako faktura oraz kierunek jako wydatek
             const invoiceWithProtocolData = {
                 ...invoiceData,
                 protocolId: protocol.id,
@@ -102,7 +95,6 @@ const ProtocolInvoices: React.FC<ProtocolInvoicesProps> = ({ protocol, onProtoco
             };
 
             if (selectedInvoice && selectedInvoice.id) {
-                // Aktualizacja istniejącego dokumentu
                 const updatedInvoice = await unifiedFinancialApi.updateDocument(
                     selectedInvoice.id,
                     invoiceWithProtocolData,
@@ -117,18 +109,15 @@ const ProtocolInvoices: React.FC<ProtocolInvoicesProps> = ({ protocol, onProtoco
                     );
                 }
             } else {
-                // Dodawanie nowego dokumentu
                 const newInvoice = await unifiedFinancialApi.createDocument(invoiceWithProtocolData, file);
 
                 if (newInvoice) {
                     setInvoices(prevInvoices => [...prevInvoices, newInvoice]);
 
-                    // Wyświetl powiadomienie o dodaniu nowej faktury
                     showToast('info', 'Dodano nową pozycję w archiwum faktur', 3000);
                 }
             }
 
-            // Zamknij modal
             setShowFormModal(false);
             setSelectedInvoice(null);
         } catch (error) {
@@ -139,7 +128,6 @@ const ProtocolInvoices: React.FC<ProtocolInvoicesProps> = ({ protocol, onProtoco
         }
     };
 
-    // Obsługa usuwania faktury
     const handleDeleteInvoice = async (invoiceId: string) => {
         if (!window.confirm('Czy na pewno chcesz usunąć tę fakturę?')) {
             return;
@@ -147,14 +135,11 @@ const ProtocolInvoices: React.FC<ProtocolInvoicesProps> = ({ protocol, onProtoco
 
         try {
             setIsLoading(true);
-            // Wywołaj API do usunięcia dokumentu
             const success = await unifiedFinancialApi.deleteDocument(invoiceId);
 
             if (success) {
-                // Usuń fakturę z lokalnego stanu
                 setInvoices(prevInvoices => prevInvoices.filter(inv => inv.id !== invoiceId));
 
-                // Jeśli to była wyświetlana faktura, zamknij podgląd
                 if (showViewModal && selectedInvoice?.id === invoiceId) {
                     setShowViewModal(false);
                     setSelectedInvoice(null);
@@ -170,13 +155,11 @@ const ProtocolInvoices: React.FC<ProtocolInvoicesProps> = ({ protocol, onProtoco
         }
     };
 
-    // Obsługa pobierania załącznika faktury
     const handleDownloadAttachment = (invoiceId: string) => {
         const attachmentUrl = unifiedFinancialApi.getDocumentAttachmentUrl(invoiceId);
         window.open(attachmentUrl, '_blank');
     };
 
-    // Obsługa podglądu faktury
     const handleViewInvoice = (invoice: UnifiedFinancialDocument) => {
         setSelectedInvoice(invoice);
         setShowViewModal(true);
@@ -187,22 +170,18 @@ const ProtocolInvoices: React.FC<ProtocolInvoicesProps> = ({ protocol, onProtoco
         setShowFormModal(true);
     };
 
-    // Obsługa zmiany statusu faktury
     const handleStatusChange = async (id: string, status: DocumentStatus) => {
         try {
             setIsLoading(true);
-            // Aktualizuj status dokumentu
             const success = await unifiedFinancialApi.updateDocumentStatus(id, status);
 
             if (success) {
-                // Aktualizuj stan lokalny
                 setInvoices(prevInvoices =>
                     prevInvoices.map(invoice =>
                         invoice.id === id ? { ...invoice, status } : invoice
                     )
                 );
 
-                // Aktualizuj wybraną fakturę, jeśli jest aktualnie wyświetlana
                 if (selectedInvoice?.id === id) {
                     setSelectedInvoice({ ...selectedInvoice, status });
                 }
@@ -352,7 +331,6 @@ const ProtocolInvoices: React.FC<ProtocolInvoicesProps> = ({ protocol, onProtoco
                 </>
             )}
 
-            {/* Modal formularza faktury */}
             <InvoiceFormModal
                 isOpen={showFormModal}
                 invoice={selectedInvoice || undefined}
@@ -369,7 +347,6 @@ const ProtocolInvoices: React.FC<ProtocolInvoicesProps> = ({ protocol, onProtoco
                 }}
             />
 
-            {/* Modal podglądu faktury */}
             {selectedInvoice && (
                 <InvoiceViewModal
                     isOpen={showViewModal}
@@ -387,22 +364,21 @@ const ProtocolInvoices: React.FC<ProtocolInvoicesProps> = ({ protocol, onProtoco
     );
 };
 
-// Styled components pozostają bez zmian
 const InvoicesContainer = styled.div`
-    margin-bottom: 30px;
+    margin-bottom: 20px;
 `;
 
 const SectionTitleWithAction = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 12px;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
     border-bottom: 1px solid #e2e8f0;
 `;
 
 const SectionTitle = styled.h3`
-    font-size: 18px;
+    font-size: 14px;
     font-weight: 700;
     color: #0f172a;
     margin: 0;
@@ -412,13 +388,13 @@ const SectionTitle = styled.h3`
 const AddInvoiceButton = styled.button`
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 12px 20px;
+    gap: 6px;
+    padding: 8px 14px;
     background: ${brandTheme.primary};
     color: white;
     border: none;
-    border-radius: 8px;
-    font-size: 14px;
+    border-radius: 6px;
+    font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -427,7 +403,7 @@ const AddInvoiceButton = styled.button`
     &:hover:not(:disabled) {
         background: ${brandTheme.primary};
         transform: translateY(-1px);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.06);
     }
 
     &:active:not(:disabled) {
@@ -443,10 +419,9 @@ const AddInvoiceButton = styled.button`
     }
 
     svg {
-        font-size: 13px;
+        font-size: 11px;
     }
 
-    /* Professional loading state */
     &:disabled svg {
         animation: spin 1s linear infinite;
     }
@@ -460,12 +435,13 @@ const AddInvoiceButton = styled.button`
 const LoadingContainer = styled.div`
     display: flex;
     justify-content: center;
-    padding: 40px;
+    padding: 30px;
     background-color: white;
-    border-radius: 8px;
+    border-radius: 6px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     color: #3498db;
     font-weight: 500;
+    font-size: 12px;
 `;
 
 const EmptyState = styled.div`
@@ -473,57 +449,38 @@ const EmptyState = styled.div`
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 40px 20px;
+    padding: 30px 16px;
     background-color: white;
-    border-radius: 8px;
+    border-radius: 6px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     text-align: center;
     color: #7f8c8d;
 `;
 
 const EmptyIcon = styled.div`
-    font-size: 48px;
+    font-size: 36px;
     color: #bdc3c7;
-    margin-bottom: 20px;
+    margin-bottom: 14px;
 `;
 
 const EmptyText = styled.p`
     color: #7f8c8d;
-    font-size: 14px;
+    font-size: 12px;
     max-width: 600px;
-    margin: 0 0 20px 0;
+    margin: 0 0 14px 0;
     line-height: 1.5;
-`;
-
-const AddFirstButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
-    background-color: #3498db;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-
-    &:hover {
-        background-color: #2980b9;
-    }
 `;
 
 const InvoicesList = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    margin-bottom: 24px;
+    gap: 12px;
+    margin-bottom: 16px;
 `;
 
 const InvoiceCard = styled.div`
     background-color: white;
-    border-radius: 8px;
+    border-radius: 6px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     overflow: hidden;
     transition: all 0.2s;
@@ -536,7 +493,7 @@ const InvoiceCard = styled.div`
 const InvoiceCardHeader = styled.div`
     display: flex;
     align-items: center;
-    padding: 16px;
+    padding: 12px;
     background-color: #f9f9f9;
     border-bottom: 1px solid #f0f0f0;
 `;
@@ -545,13 +502,13 @@ const InvoiceIconContainer = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
     background-color: #fcecec;
     color: #e74c3c;
-    font-size: 20px;
-    margin-right: 16px;
+    font-size: 16px;
+    margin-right: 12px;
     flex-shrink: 0;
 `;
 
@@ -562,31 +519,31 @@ const InvoiceHeaderContent = styled.div`
 const InvoiceMetaInfo = styled.div`
     display: flex;
     align-items: center;
-    gap: 16px;
-    margin-bottom: 4px;
+    gap: 12px;
+    margin-bottom: 3px;
 `;
 
 const InvoiceNumber = styled.div`
     font-weight: 600;
-    font-size: 14px;
+    font-size: 12px;
     color: #34495e;
 `;
 
 const InvoiceDate = styled.div`
     display: flex;
     align-items: center;
-    gap: 5px;
-    font-size: 13px;
+    gap: 4px;
+    font-size: 11px;
     color: #7f8c8d;
 `;
 
 const InvoiceTitle = styled.div`
-    font-size: 15px;
+    font-size: 13px;
     color: #34495e;
 `;
 
 const InvoiceAmount = styled.div<{ expense?: boolean }>`
-    font-size: 18px;
+    font-size: 15px;
     font-weight: 600;
     color: ${props => props.expense ? '#e74c3c' : '#27ae60'};
     text-align: right;
@@ -595,14 +552,14 @@ const InvoiceAmount = styled.div<{ expense?: boolean }>`
 `;
 
 const InvoiceCardBody = styled.div`
-    padding: 16px;
+    padding: 12px;
 `;
 
 const InvoiceDetailsGrid = styled.div`
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-    margin-bottom: 16px;
+    gap: 12px;
+    margin-bottom: 12px;
 
     @media (max-width: 768px) {
         grid-template-columns: 1fr;
@@ -612,48 +569,48 @@ const InvoiceDetailsGrid = styled.div`
 const InvoiceDetailItem = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 3px;
 `;
 
 const DetailLabel = styled.div`
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 12px;
+    gap: 5px;
+    font-size: 10px;
     color: #7f8c8d;
 
     svg {
-        font-size: 12px;
+        font-size: 10px;
     }
 `;
 
 const DetailValue = styled.div<{ expense?: boolean }>`
-    font-size: 14px;
+    font-size: 12px;
     color: ${props => props.expense ? '#e74c3c' : '#34495e'};
     font-weight: ${props => props.expense ? '500' : 'normal'};
 `;
 
 const ItemsSummary = styled.div`
     background-color: #f9f9f9;
-    border-radius: 6px;
-    padding: 12px;
+    border-radius: 5px;
+    padding: 10px;
 `;
 
 const ItemsCount = styled.div`
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 500;
     color: #34495e;
-    margin-bottom: 6px;
+    margin-bottom: 5px;
 `;
 
 const ItemsList = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 3px;
 `;
 
 const ItemSummary = styled.div`
-    font-size: 13px;
+    font-size: 11px;
     color: #7f8c8d;
 `;
 
@@ -661,16 +618,16 @@ const InvoiceCardFooter = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 16px;
+    padding: 10px 12px;
     background-color: #f9f9f9;
     border-top: 1px solid #f0f0f0;
 `;
 
 const InvoiceStatusBadge = styled.div<{ status: DocumentStatus }>`
     display: inline-block;
-    padding: 4px 10px;
+    padding: 3px 8px;
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 10px;
     font-weight: 500;
     background-color: ${props => {
     switch (props.status) {
@@ -700,16 +657,16 @@ const InvoiceStatusBadge = styled.div<{ status: DocumentStatus }>`
 
 const InvoiceActions = styled.div`
     display: flex;
-    gap: 8px;
+    gap: 6px;
 `;
 
 const ActionButton = styled.button`
     background: none;
     border: none;
     color: #3498db;
-    font-size: 16px;
+    font-size: 13px;
     cursor: pointer;
-    padding: 6px;
+    padding: 5px;
     border-radius: 4px;
     display: flex;
     align-items: center;
@@ -731,24 +688,24 @@ const ActionButton = styled.button`
 
 const SummarySection = styled.div`
     background-color: white;
-    border-radius: 8px;
+    border-radius: 6px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    padding: 16px;
+    padding: 12px;
 `;
 
 const SummaryTitle = styled.div`
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 600;
     color: #34495e;
-    margin-bottom: 16px;
-    padding-bottom: 8px;
+    margin-bottom: 12px;
+    padding-bottom: 6px;
     border-bottom: 1px solid #eee;
 `;
 
 const SummaryDetails = styled.div`
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
+    gap: 12px;
 
     @media (max-width: 992px) {
         grid-template-columns: repeat(2, 1fr);
@@ -761,19 +718,19 @@ const SummaryDetails = styled.div`
 
 const SummaryStat = styled.div<{ primary?: boolean }>`
     background-color: ${props => props.primary ? '#fcecec' : '#f9f9f9'};
-    border-radius: 6px;
-    padding: 12px;
+    border-radius: 5px;
+    padding: 10px;
     text-align: center;
 `;
 
 const StatLabel = styled.div`
-    font-size: 13px;
+    font-size: 11px;
     color: #7f8c8d;
-    margin-bottom: 6px;
+    margin-bottom: 5px;
 `;
 
 const StatValue = styled.div<{ expense?: boolean }>`
-    font-size: 18px;
+    font-size: 15px;
     font-weight: 600;
     color: ${props => props.expense ? '#e74c3c' : '#34495e'};
 `;

@@ -2,49 +2,37 @@ import React from 'react';
 import styled from 'styled-components';
 import {FaComments, FaFileInvoiceDollar, FaImages, FaInfo} from 'react-icons/fa';
 
-// Automotive-Grade Design System
 const automotiveTheme = {
-    // Primary Brand Colors
     primary: 'var(--brand-primary, #2563eb)',
     primaryDark: 'var(--brand-primary-dark, #1d4ed8)',
     primaryLight: 'var(--brand-primary-light, #3b82f6)',
 
-    // Professional Surfaces
     surface: '#ffffff',
     surfaceDark: '#f8fafc',
     surfaceElevated: '#ffffff',
 
-    // Industrial Typography
     textPrimary: '#1e293b',
     textSecondary: '#475569',
     textMuted: '#64748b',
 
-    // Technical Borders
     borderPrimary: '#e2e8f0',
     borderLight: '#f1f5f9',
 
-    // Professional Spacing
     spacing: {
-        xs: '4px',
-        sm: '8px',
-        md: '16px',
-        lg: '24px',
-        xl: '32px'
+        xs: '2px',
+        sm: '4px',
+        md: '8px',
+        lg: '12px',
+        xl: '16px'
     },
 
-    // Technical Radius
     radius: {
         sm: '4px',
         md: '6px',
         lg: '8px'
-    },
-
-    // Industrial Shadows
-    shadowSubtle: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
-    shadowElevated: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+    }
 };
 
-// Define tab types
 type TabType = 'summary' | 'comments' | 'invoices' | 'client' | 'vehicle' | 'gallery';
 
 interface TabConfig {
@@ -116,7 +104,6 @@ const ProtocolTabs: React.FC<ProtocolTabsProps> = ({ activeTab, onChange }) => {
     );
 };
 
-// Automotive Professional Styled Components
 const TabsContainer = styled.div`
     background: ${automotiveTheme.surface};
     border: 1px solid ${automotiveTheme.borderPrimary};
@@ -135,7 +122,6 @@ const TabsWrapper = styled.div`
     overflow-x: auto;
     overflow-y: hidden;
     
-    /* Professional scrollbar */
     &::-webkit-scrollbar {
         height: 2px;
     }
@@ -156,7 +142,7 @@ const TabsWrapper = styled.div`
 
 const TabItem = styled.button<{ $active: boolean }>`
     flex: 1;
-    min-width: 120px;
+    min-width: 100px;
     position: relative;
     background: transparent;
     border: none;
@@ -181,7 +167,7 @@ const TabItem = styled.button<{ $active: boolean }>`
     }
 
     @media (max-width: 768px) {
-        min-width: 100px;
+        min-width: 80px;
         flex-shrink: 0;
         padding: ${automotiveTheme.spacing.sm};
         gap: ${automotiveTheme.spacing.xs};
@@ -192,10 +178,10 @@ const TabIconContainer = styled.div<{ $active: boolean }>`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     color: ${props => props.$active ? automotiveTheme.primary : automotiveTheme.textMuted};
-    font-size: 16px;
+    font-size: 13px;
     transition: color 0.2s ease;
 
     ${TabItem}:hover & {
@@ -203,27 +189,27 @@ const TabIconContainer = styled.div<{ $active: boolean }>`
     }
 
     @media (max-width: 768px) {
-        width: 20px;
-        height: 20px;
-        font-size: 14px;
+        width: 16px;
+        height: 16px;
+        font-size: 12px;
     }
 `;
 
 const TabLabel = styled.div<{ $active: boolean }>`
-    font-size: 13px;
+    font-size: 11px;
     font-weight: ${props => props.$active ? '600' : '500'};
     color: ${props => props.$active ? automotiveTheme.textPrimary : automotiveTheme.textSecondary};
     line-height: 1.2;
     transition: all 0.2s ease;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
 
     ${TabItem}:hover & {
         color: ${automotiveTheme.textPrimary};
     }
 
     @media (max-width: 768px) {
-        font-size: 11px;
+        font-size: 10px;
     }
 `;
 

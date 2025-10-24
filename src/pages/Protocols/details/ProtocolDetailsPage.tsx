@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import {useNavigate, useParams} from 'react-router-dom';
 import styled from 'styled-components';
-import {FaArrowLeft, FaBan, FaCheckSquare, FaEdit, FaFilePdf, FaKey, FaRedo} from 'react-icons/fa';
+import {FaBan, FaCheckSquare, FaEdit, FaFilePdf, FaKey, FaRedo} from 'react-icons/fa';
 import {protocolsApi} from "../../../api/protocolsApi";
 import {Comment, commentsApi} from "../../../api/commentsApi";
 import {CarReceptionProtocol, ProtocolStatus, SelectedService} from "../../../types";
@@ -22,67 +22,11 @@ import RestoreProtocolModal, {RestoreOption} from "../shared/components/RestoreP
 import RescheduleProtocolModal from "../shared/components/RescheduleProtocolModal";
 import {format} from "date-fns";
 import {pl} from "date-fns/locale";
-import {FaCarSide} from 'react-icons/fa';
+import {FaCarSide, FaClipboardCheck} from 'react-icons/fa';
 import LoadingOverlay from "./components/LoadingOverlay";
+import {PageHeader, PrimaryButton, SecondaryButton} from '../../../components/common/PageHeader';
+import {theme} from '../../../styles/theme';
 
-// Brand Theme System - Automotive Premium
-const brandTheme = {
-    primary: 'var(--brand-primary, #2563eb)',
-    primaryLight: 'var(--brand-primary-light, #3b82f6)',
-    primaryDark: 'var(--brand-primary-dark, #1d4ed8)',
-    primaryGhost: 'var(--brand-primary-ghost, rgba(37, 99, 235, 0.06))',
-
-    // Professional Color Palette
-    surface: '#ffffff',
-    surfaceElevated: '#fafbfc',
-    surfaceHover: '#f8fafc',
-
-    // Typography
-    textPrimary: '#0f172a',
-    textSecondary: '#475569',
-    textTertiary: '#64748b',
-    textMuted: '#94a3b8',
-
-    // Borders & Dividers
-    border: '#e2e8f0',
-    borderLight: '#f1f5f9',
-    divider: '#e5e7eb',
-
-    // Status Colors
-    success: '#059669',
-    successLight: '#d1fae5',
-    warning: '#f59e0b',
-    warningLight: '#fef3c7',
-    error: '#ef4444',
-    errorLight: '#fee2e2',
-
-    // Shadows
-    shadowSm: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-    shadowMd: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-    shadowLg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-    shadowXl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-
-    // Spacing
-    spacing: {
-        xs: '4px',
-        sm: '8px',
-        md: '16px',
-        lg: '24px',
-        xl: '32px',
-        xxl: '48px'
-    },
-
-    // Border Radius
-    radius: {
-        sm: '6px',
-        md: '8px',
-        lg: '12px',
-        xl: '16px',
-        full: '9999px'
-    }
-};
-
-// Define tab types
 type TabType = 'summary' | 'comments' | 'invoices' | 'client' | 'vehicle' | 'gallery';
 
 const ProtocolDetailsPage: React.FC = () => {
@@ -99,18 +43,11 @@ const ProtocolDetailsPage: React.FC = () => {
     const isCancelled = protocol?.status === ProtocolStatus.CANCELLED;
     const [showRescheduleModal, setShowRescheduleModal] = useState(false);
 
-    // Stany dla modali
     const [showVerificationModal, setShowVerificationModal] = useState(false);
     const [showNotificationModal, setShowNotificationModal] = useState(false);
-
-    // Stany dla procesu wydania samochodu
     const [showClientCommentsModal, setShowClientCommentsModal] = useState(false);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
-
-    // Stan do obsługi podglądu PDF
     const [showPdfPreview, setShowPdfPreview] = useState(false);
-
-    // NOWE: Stany dla modalu sukcesu
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [successModalData, setSuccessModalData] = useState<{
         title: string;
@@ -123,10 +60,8 @@ const ProtocolDetailsPage: React.FC = () => {
 
     const [isReleasing, setIsReleasing] = useState(false);
 
-
     const handleRestoreProtocol = (option: RestoreOption) => {
         setShowRestoreModal(false);
-
         if (!protocol) return;
 
         if (option === 'SCHEDULED') {
@@ -139,7 +74,6 @@ const ProtocolDetailsPage: React.FC = () => {
     const handleRescheduleConfirm = async (dates: { startDate: string; endDate: string }) => {
         try {
             setShowRescheduleModal(false);
-
             if (!protocol) return;
 
             const updatedProtocol = {
@@ -166,7 +100,6 @@ const ProtocolDetailsPage: React.FC = () => {
                 setShowSuccessModal(true);
             } else {
                 const updatedResult = await protocolsApi.updateProtocol(updatedProtocol);
-
                 if (updatedResult) {
                     setProtocol(updatedResult);
                     setSuccessModalData({
@@ -192,17 +125,13 @@ const ProtocolDetailsPage: React.FC = () => {
 
     const handleCancelProtocol = async (reason: CancellationReason) => {
         try {
-
             if (!protocol) return;
-
             await protocolsApi.updateProtocolStatus(protocol!!.id, ProtocolStatus.CANCELLED, reason);
-
             setProtocol({
                 ...protocol,
                 status: ProtocolStatus.CANCELLED,
                 statusUpdatedAt: new Date().toISOString()
             });
-
             setShowCancelModal(false);
             setSuccessModalData({
                 title: 'Wizyta anulowana',
@@ -221,21 +150,17 @@ const ProtocolDetailsPage: React.FC = () => {
         }
     };
 
-    // Load protocol data
     useEffect(() => {
         const loadProtocol = async () => {
             if (!id) return;
-
             try {
                 setLoading(true);
                 const data = await protocolsApi.getProtocolDetails(id);
                 const comments = await commentsApi.getComments(id)
-
                 if (!data) {
                     setError('Protokół nie został znaleziony.');
                     return;
                 }
-
                 setProtocol(data);
                 setComments(comments)
                 setError(null);
@@ -246,14 +171,11 @@ const ProtocolDetailsPage: React.FC = () => {
                 setLoading(false);
             }
         };
-
         loadProtocol();
     }, [id]);
 
-    // Handle status change
     const handleStatusChange = (newStatus: ProtocolStatus) => {
         if (!protocol) return;
-
         setProtocol({
             ...protocol,
             status: newStatus,
@@ -261,54 +183,40 @@ const ProtocolDetailsPage: React.FC = () => {
         });
     };
 
-    // Go back to protocols list
     const handleGoBack = () => {
         navigate('/visits');
     };
 
-    // Update protocol data after changes
     const handleProtocolUpdate = (updatedProtocol: CarReceptionProtocol) => {
         setProtocol(updatedProtocol);
     };
 
-    // Handle finish order
     const handleFinishOrder = () => {
         setShowVerificationModal(true);
     };
 
-    // Handle quality verified
     const handleQualityVerified = () => {
         setShowVerificationModal(false);
         setShowNotificationModal(true);
     };
 
-    // Handle notification selection
     const handleNotificationSelection = async (notificationOptions: {
         sendSms: boolean;
         sendEmail: boolean;
     }) => {
         setShowNotificationModal(false);
         handleStatusChange(ProtocolStatus.READY_FOR_PICKUP);
-
         try {
             await protocolsApi.updateProtocolStatus(protocol!.id, ProtocolStatus.READY_FOR_PICKUP);
         } catch (error) {
             console.error('Błąd podczas aktualizacji statusu w API:', error);
         }
-
-        if (notificationOptions.sendSms) {
-        }
-
-        if (notificationOptions.sendSms || notificationOptions.sendEmail) {
-        }
     };
 
-    // Check if finish order button should be available
     const canFinishOrder = protocol?.status === ProtocolStatus.IN_PROGRESS;
     const canReleaseVehicle = protocol?.status === ProtocolStatus.READY_FOR_PICKUP;
     const isScheduled = protocol?.status === ProtocolStatus.SCHEDULED;
 
-    // Handle vehicle release
     const handleReleaseVehicle = () => {
         if(comments != null && comments.filter(c => c.type === 'CUSTOMER').length > 0) {
             setShowClientCommentsModal(true);
@@ -317,13 +225,11 @@ const ProtocolDetailsPage: React.FC = () => {
         }
     };
 
-    // Handle client comments modal close
     const handleClientCommentsModalClose = () => {
         setShowClientCommentsModal(false);
         setShowPaymentModal(true);
     };
 
-    // ZAKTUALIZOWANA funkcja handlePaymentConfirm z modalem sukcesu
     const handlePaymentConfirm = async (paymentData: {
         paymentMethod: 'cash' | 'card' | 'transfer';
         documentType: 'invoice' | 'receipt' | 'other';
@@ -332,41 +238,30 @@ const ProtocolDetailsPage: React.FC = () => {
     }) => {
         try {
             setShowPaymentModal(false);
-
             const releaseData = {
                 paymentMethod: paymentData.paymentMethod,
                 documentType: paymentData.documentType,
                 ...(paymentData.paymentDays ? { paymentDays: paymentData.paymentDays } : {}),
                 ...(paymentData.overridenItems ? { overridenItems: paymentData.overridenItems } : {})
             };
-
             setIsReleasing(true);
-
             const result = await protocolsApi.releaseVehicle(protocol!.id, releaseData);
-
             setIsReleasing(false);
-
             if (result) {
                 setProtocol(result);
             } else {
-                // Fallback - aktualizujemy lokalnie jeśli API nie zwraca zaktualizowanego protokołu
                 const updatedProtocol = { ...protocol! };
                 updatedProtocol.status = ProtocolStatus.COMPLETED;
                 updatedProtocol.statusUpdatedAt = new Date().toISOString();
-
                 setProtocol(updatedProtocol);
-
                 await protocolsApi.updateProtocolStatus(protocol!.id, ProtocolStatus.COMPLETED);
             }
-
-            // UPDATED: Pokazuj modal sukcesu zamiast alert
             setSuccessModalData({
                 title: 'Pojazd został wydany',
                 message: 'Pojazd został pomyślnie wydany klientowi. Wizyta została zakończona.',
                 icon: <FaCarSide />
             });
             setShowSuccessModal(true);
-
         } catch (error) {
             console.error('Błąd podczas wydawania pojazdu:', error);
             setSuccessModalData({
@@ -380,17 +275,13 @@ const ProtocolDetailsPage: React.FC = () => {
 
     const handleServiceItemsChange = async (services: SelectedService[]) => {
         if (!protocol) return;
-
         try {
             const updatedProtocol: CarReceptionProtocol = {
                 ...protocol,
                 selectedServices: services
             };
-
             setProtocol(updatedProtocol);
-
             const result = await protocolsApi.updateProtocol(updatedProtocol);
-
             if (result) {
                 setProtocol(result);
             }
@@ -400,12 +291,10 @@ const ProtocolDetailsPage: React.FC = () => {
         }
     };
 
-    // Render tab content
     const renderTabContent = () => {
         if (!protocol) {
             return <EmptyTabContent>Brak danych protokołu</EmptyTabContent>;
         }
-
         switch (activeTab) {
             case 'summary':
                 return <ProtocolSummary protocol={protocol} onProtocolUpdate={handleProtocolUpdate} />;
@@ -437,82 +326,71 @@ const ProtocolDetailsPage: React.FC = () => {
                 <ErrorCard>
                     <ErrorIcon>⚠️</ErrorIcon>
                     <ErrorMessage>{error || 'Nie znaleziono protokołu.'}</ErrorMessage>
-                    <BackButton onClick={handleGoBack}>
-                        <FaArrowLeft />
-                        <span>Wróć do listy wizyt</span>
-                    </BackButton>
+                    <SecondaryButton onClick={handleGoBack}>
+                        Wróć do listy wizyt
+                    </SecondaryButton>
                 </ErrorCard>
             </ErrorContainer>
         );
     }
 
+    const headerActions = (
+        <>
+            {canFinishOrder && (
+                <PrimaryButton onClick={handleFinishOrder}>
+                    <FaCheckSquare />
+                    Zakończ wizytę
+                </PrimaryButton>
+            )}
+            {canReleaseVehicle && (
+                <PrimaryButton onClick={handleReleaseVehicle}>
+                    <FaKey />
+                    Wydaj samochód
+                </PrimaryButton>
+            )}
+            {protocol.status == ProtocolStatus.SCHEDULED && (
+                <SecondaryButton onClick={() => navigate(`/visits`, {
+                    state: { editProtocolId: protocol.id }
+                })}>
+                    <FaEdit />
+                    Edytuj
+                </SecondaryButton>
+            )}
+            {isScheduled && (
+                <PrimaryButton onClick={() => navigate(`/visits/${protocol.id}/open`)}>
+                    <FaEdit />
+                    Rozpocznij wizytę
+                </PrimaryButton>
+            )}
+            {!isScheduled && (
+                <PrimaryButton onClick={() => setShowPdfPreview(true)}>
+                    <FaFilePdf />
+                    Drukuj protokół
+                </PrimaryButton>
+            )}
+            {!isCancelled && (
+                <SecondaryButton onClick={() => setShowCancelModal(true)}>
+                    <FaBan />
+                    Anuluj wizytę
+                </SecondaryButton>
+            )}
+            {isCancelled && (
+                <SecondaryButton onClick={() => setShowRestoreModal(true)}>
+                    <FaRedo />
+                    Przywróć wizytę
+                </SecondaryButton>
+            )}
+        </>
+    );
+
     return (
         <PageContainer>
-            <PageHeader>
-                <HeaderLeft>
-                    <BackButton onClick={handleGoBack}>
-                        <FaArrowLeft />
-                    </BackButton>
-                    <HeaderContent>
-                        <HeaderTitle>Wizyta #{protocol.id}</HeaderTitle>
-                        <HeaderSubtitle>{protocol.make} {protocol.model} • {protocol.licensePlate}</HeaderSubtitle>
-                        <HeaderSubtitle>Planowany czas zakończenia: { format(new Date(protocol.endDate), 'yyyy-MM-dd HH:mm', { locale: pl })}</HeaderSubtitle>
-                    </HeaderContent>
-                </HeaderLeft>
-
-                <HeaderActions>
-                    {canFinishOrder && (
-                        <PrimaryActionButton onClick={handleFinishOrder} variant="success">
-                            <FaCheckSquare />
-                            <span>Zakończ wizytę</span>
-                        </PrimaryActionButton>
-                    )}
-
-                    {canReleaseVehicle && (
-                        <PrimaryActionButton onClick={handleReleaseVehicle} variant="warning">
-                            <FaKey />
-                            <span>Wydaj samochód</span>
-                        </PrimaryActionButton>
-                    )}
-
-                    {protocol.status == ProtocolStatus.SCHEDULED && (
-                        <SecondaryActionButton onClick={() => navigate(`/visits`, {
-                            state: { editProtocolId: protocol.id }
-                        })}>
-                            <FaEdit />
-                            <span>Edytuj</span>
-                        </SecondaryActionButton>
-                    )}
-
-                    {isScheduled && (
-                        <PrimaryActionButton onClick={() => navigate(`/visits/${protocol.id}/open`)} variant="primary">
-                            <FaEdit />
-                            <span>Rozpocznij wizytę</span>
-                        </PrimaryActionButton>
-                    )}
-
-                    {!isScheduled && (
-                        <SecondaryActionButton onClick={() => setShowPdfPreview(true)}>
-                            <FaFilePdf />
-                            <span>Drukuj protokół</span>
-                        </SecondaryActionButton>
-                    )}
-
-                    {!isCancelled && (
-                        <DangerActionButton onClick={() => setShowCancelModal(true)}>
-                            <FaBan />
-                            <span>Anuluj wizytę</span>
-                        </DangerActionButton>
-                    )}
-
-                    {isCancelled && (
-                        <RestoreActionButton onClick={() => setShowRestoreModal(true)}>
-                            <FaRedo />
-                            <span>Przywróć wizytę</span>
-                        </RestoreActionButton>
-                    )}
-                </HeaderActions>
-            </PageHeader>
+            <PageHeader
+                icon={FaClipboardCheck}
+                title={`Wizyta #${protocol.id}`}
+                subtitle={`${protocol.make} ${protocol.model} • ${protocol.licensePlate} • Planowany koniec: ${format(new Date(protocol.endDate), 'yyyy-MM-dd HH:mm', { locale: pl })}`}
+                actions={headerActions}
+            />
 
             <MainContent>
                 <ContentSection>
@@ -523,7 +401,6 @@ const ProtocolDetailsPage: React.FC = () => {
                 </ContentSection>
             </MainContent>
 
-            {/* Modals */}
             <QualityVerificationModal
                 isOpen={showVerificationModal}
                 onClose={() => setShowVerificationModal(false)}
@@ -592,7 +469,6 @@ const ProtocolDetailsPage: React.FC = () => {
                 />
             )}
 
-            {/* NOWY: Success Modal */}
             <SuccessModal
                 isOpen={showSuccessModal}
                 onClose={() => setShowSuccessModal(false)}
@@ -611,246 +487,15 @@ const ProtocolDetailsPage: React.FC = () => {
     );
 };
 
-// Professional Styled Components
 const PageContainer = styled.div`
     min-height: 100vh;
-    background: ${brandTheme.surfaceElevated};
-`;
-
-const PageHeader = styled.header`
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: ${brandTheme.surface};
-    border-bottom: 1px solid ${brandTheme.border};
-    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
-    backdrop-filter: blur(8px);
-    background: rgba(255, 255, 255, 0.95);
-    box-shadow: ${brandTheme.shadowSm};
-
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: ${brandTheme.spacing.lg};
-
-    @media (max-width: 1024px) {
-        padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-        flex-direction: column;
-        align-items: flex-start;
-        gap: ${brandTheme.spacing.md};
-    }
-
-    @media (max-width: 768px) {
-        padding: ${brandTheme.spacing.md};
-    }
-`;
-
-const HeaderLeft = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.md};
-    min-width: 0;
-    flex: 1;
-`;
-
-const BackButton = styled.button`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 44px;
-    height: 44px;
-    background: ${brandTheme.surfaceHover};
-    border: 1px solid ${brandTheme.borderLight};
-    border-radius: ${brandTheme.radius.md};
-    color: ${brandTheme.textSecondary};
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    flex-shrink: 0;
-
-    &:hover {
-        background: ${brandTheme.primaryGhost};
-        border-color: ${brandTheme.primary};
-        color: ${brandTheme.primary};
-        transform: translateY(-1px);
-        box-shadow: ${brandTheme.shadowMd};
-    }
-
-    &:active {
-        transform: translateY(0);
-    }
-
-    span {
-        margin-left: ${brandTheme.spacing.sm};
-        font-weight: 500;
-        font-size: 14px;
-
-        @media (max-width: 768px) {
-            display: none;
-        }
-    }
-`;
-
-const HeaderContent = styled.div`
-    min-width: 0;
-    flex: 1;
-`;
-
-const HeaderTitle = styled.h1`
-    font-size: 28px;
-    font-weight: 700;
-    color: ${brandTheme.textPrimary};
-    margin: 0;
-    letter-spacing: -0.025em;
-    line-height: 1.2;
-
-    @media (max-width: 768px) {
-        font-size: 24px;
-    }
-`;
-
-const HeaderSubtitle = styled.div`
-    font-size: 16px;
-    color: ${brandTheme.textSecondary};
-    margin-top: ${brandTheme.spacing.xs};
-    font-weight: 500;
-
-    @media (max-width: 768px) {
-        font-size: 14px;
-    }
-`;
-
-const HeaderActions = styled.div`
-    display: flex;
-    gap: ${brandTheme.spacing.sm};
-    align-items: center;
-    flex-wrap: wrap;
-
-    @media (max-width: 1024px) {
-        width: 100%;
-        justify-content: flex-start;
-    }
-
-    @media (max-width: 768px) {
-        flex-direction: column;
-        gap: ${brandTheme.spacing.xs};
-
-        > * {
-            width: 100%;
-        }
-    }
-`;
-
-const BaseActionButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
-    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
-    border-radius: ${brandTheme.radius.md};
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 1px solid transparent;
-    white-space: nowrap;
-    min-height: 44px;
-
-    &:hover {
-        transform: translateY(-1px);
-        box-shadow: ${brandTheme.shadowMd};
-    }
-
-    &:active {
-        transform: translateY(0);
-    }
-
-    &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-        transform: none;
-        box-shadow: none;
-    }
-
-    span {
-        @media (max-width: 480px) {
-            display: none;
-        }
-    }
-`;
-
-const PrimaryActionButton = styled(BaseActionButton)<{ variant?: 'primary' | 'success' | 'warning' }>`
-    background: ${props => {
-        switch (props.variant) {
-            case 'success': return brandTheme.success;
-            case 'warning': return brandTheme.warning;
-            default: return brandTheme.primary;
-        }
-    }};
-    color: white;
-    border-color: ${props => {
-        switch (props.variant) {
-            case 'success': return brandTheme.success;
-            case 'warning': return brandTheme.warning;
-            default: return brandTheme.primary;
-        }
-    }};
-
-    &:hover {
-        background: ${props => {
-            switch (props.variant) {
-                case 'success': return '#0d9668';
-                case 'warning': return '#d97706';
-                default: return brandTheme.primaryDark;
-            }
-        }};
-    }
-`;
-
-const SecondaryActionButton = styled(BaseActionButton)`
-    background: ${brandTheme.surface};
-    color: ${brandTheme.textSecondary};
-    border-color: ${brandTheme.border};
-
-    &:hover {
-        background: ${brandTheme.surfaceHover};
-        color: ${brandTheme.textPrimary};
-        border-color: ${brandTheme.primary};
-    }
-`;
-
-const DangerActionButton = styled(BaseActionButton)`
-    background: ${brandTheme.surface};
-    color: ${brandTheme.error};
-    border-color: ${brandTheme.error};
-
-    &:hover {
-        background: ${brandTheme.errorLight};
-        color: #dc2626;
-    }
-`;
-
-const RestoreActionButton = styled(BaseActionButton)`
-    background: ${brandTheme.primaryGhost};
-    color: ${brandTheme.primary};
-    border-color: ${brandTheme.primary};
-
-    &:hover {
-        background: ${brandTheme.primary};
-        color: white;
-    }
+    background: ${theme.surfaceHover};
 `;
 
 const MainContent = styled.main`
-    padding: ${brandTheme.spacing.xl};
+    padding: ${theme.spacing.lg};
     max-width: 1600px;
     margin: 0 auto;
-
-    @media (max-width: 1024px) {
-        padding: ${brandTheme.spacing.lg};
-    }
-
-    @media (max-width: 768px) {
-        padding: ${brandTheme.spacing.md};
-    }
 `;
 
 const ContentSection = styled.section`
@@ -858,34 +503,25 @@ const ContentSection = styled.section`
 `;
 
 const TabContentContainer = styled.div`
-    background: ${brandTheme.surface};
-    border-radius: 0 0 ${brandTheme.radius.lg} ${brandTheme.radius.lg};
-    box-shadow: ${brandTheme.shadowMd};
-    padding: ${brandTheme.spacing.xl};
-    border: 1px solid ${brandTheme.border};
+    background: ${theme.surface};
+    border-radius: 0 0 ${theme.radius.md} ${theme.radius.md};
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    padding: ${theme.spacing.lg};
+    border: 1px solid ${theme.border};
     border-top: none;
-
-    @media (max-width: 768px) {
-        padding: ${brandTheme.spacing.lg};
-        border-radius: 0 0 ${brandTheme.radius.md} ${brandTheme.radius.md};
-    }
-
-    @media (max-width: 480px) {
-        padding: ${brandTheme.spacing.md};
-    }
 `;
 
 const EmptyTabContent = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: ${brandTheme.spacing.xxl};
-    color: ${brandTheme.textMuted};
-    font-size: 16px;
+    padding: ${theme.spacing.xxl};
+    color: ${theme.text.muted};
+    font-size: 13px;
     text-align: center;
-    background: ${brandTheme.surfaceElevated};
-    border-radius: ${brandTheme.radius.md};
-    border: 2px dashed ${brandTheme.borderLight};
+    background: ${theme.surfaceElevated};
+    border-radius: ${theme.radius.md};
+    border: 2px dashed ${theme.borderLight};
 `;
 
 const LoadingContainer = styled.div`
@@ -894,18 +530,18 @@ const LoadingContainer = styled.div`
     align-items: center;
     justify-content: center;
     min-height: 60vh;
-    padding: ${brandTheme.spacing.xxl};
-    background: ${brandTheme.surfaceElevated};
+    padding: ${theme.spacing.xxl};
+    background: ${theme.surfaceElevated};
 `;
 
 const LoadingSpinner = styled.div`
-    width: 48px;
-    height: 48px;
-    border: 3px solid ${brandTheme.borderLight};
-    border-top: 3px solid ${brandTheme.primary};
+    width: 32px;
+    height: 32px;
+    border: 2px solid ${theme.borderLight};
+    border-top: 2px solid ${theme.primary};
     border-radius: 50%;
     animation: spin 1s linear infinite;
-    margin-bottom: ${brandTheme.spacing.lg};
+    margin-bottom: ${theme.spacing.md};
 
     @keyframes spin {
         0% { transform: rotate(0deg); }
@@ -914,8 +550,8 @@ const LoadingSpinner = styled.div`
 `;
 
 const LoadingText = styled.div`
-    font-size: 16px;
-    color: ${brandTheme.textSecondary};
+    font-size: 13px;
+    color: ${theme.text.secondary};
     font-weight: 500;
 `;
 
@@ -924,30 +560,30 @@ const ErrorContainer = styled.div`
     align-items: center;
     justify-content: center;
     min-height: 60vh;
-    padding: ${brandTheme.spacing.xxl};
-    background: ${brandTheme.surfaceElevated};
+    padding: ${theme.spacing.xxl};
+    background: ${theme.surfaceElevated};
 `;
 
 const ErrorCard = styled.div`
-    background: ${brandTheme.surface};
-    border-radius: ${brandTheme.radius.xl};
-    padding: ${brandTheme.spacing.xxl};
-    box-shadow: ${brandTheme.shadowLg};
-    border: 1px solid ${brandTheme.border};
+    background: ${theme.surface};
+    border-radius: ${theme.radius.lg};
+    padding: ${theme.spacing.xxl};
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border: 1px solid ${theme.border};
     text-align: center;
     max-width: 500px;
     width: 100%;
 `;
 
 const ErrorIcon = styled.div`
-    font-size: 64px;
-    margin-bottom: ${brandTheme.spacing.lg};
+    font-size: 48px;
+    margin-bottom: ${theme.spacing.md};
 `;
 
 const ErrorMessage = styled.div`
-    font-size: 18px;
-    color: ${brandTheme.textSecondary};
-    margin-bottom: ${brandTheme.spacing.xl};
+    font-size: 14px;
+    color: ${theme.text.secondary};
+    margin-bottom: ${theme.spacing.lg};
     line-height: 1.5;
 `;
 

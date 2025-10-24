@@ -6,29 +6,23 @@ import {FaCalendarAlt, FaExclamationTriangle, FaLock, FaPaperPlane, FaShare, FaU
 import {CarReceptionProtocol, ProtocolStatus} from '../../../../types';
 import {Comment, commentsApi} from '../../../../api/commentsApi';
 
-// Enterprise Design System - Professional Automotive CRM with Brand Colors
 const enterprise = {
-    // Brand Color System - Customizable by client
     primary: 'var(--brand-primary, #2563eb)',
     primaryDark: 'var(--brand-primary-dark, #1d4ed8)',
     primaryLight: 'var(--brand-primary-light, #3b82f6)',
 
-    // Professional Surfaces
     surface: '#ffffff',
     surfaceSecondary: '#f8fafc',
     surfaceTertiary: '#f1f5f9',
 
-    // Professional Text Hierarchy
     textPrimary: '#0f172a',
     textSecondary: '#334155',
     textTertiary: '#64748b',
     textMuted: '#94a3b8',
 
-    // Enterprise Borders & States
     border: '#e2e8f0',
     borderLight: '#f1f5f9',
 
-    // Communication Types - Professional Automotive Grade
     internal: {
         primary: 'var(--brand-primary, #2563eb)',
         background: '#fafbfc',
@@ -48,36 +42,33 @@ const enterprise = {
         light: '#f3f4f6'
     },
 
-    // Professional Spacing
     space: {
-        xs: '4px',
-        sm: '8px',
-        md: '16px',
-        lg: '24px',
-        xl: '32px',
-        xxl: '48px'
+        xs: '2px',
+        sm: '4px',
+        md: '8px',
+        lg: '12px',
+        xl: '16px',
+        xxl: '24px'
     },
 
-    // Enterprise Typography
     fontSize: {
-        xs: '12px',
-        sm: '14px',
-        base: '16px',
-        lg: '18px',
-        xl: '20px'
+        xs: '10px',
+        sm: '11px',
+        base: '12px',
+        lg: '13px',
+        xl: '14px'
     },
 
-    // Subtle Professional Effects
     shadow: {
         sm: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-        md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-        lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+        md: '0 2px 4px -1px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.06)',
+        lg: '0 4px 8px -2px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.05)'
     },
 
     radius: {
         sm: '4px',
-        md: '8px',
-        lg: '12px'
+        md: '6px',
+        lg: '8px'
     }
 };
 
@@ -112,7 +103,6 @@ const ProtocolComments: React.FC<ProtocolCommentsProps> = ({ protocol }) => {
         fetchComments();
     }, [protocol.id]);
 
-    // Clear recently added highlight after 3 seconds
     useEffect(() => {
         if (recentlyAddedId) {
             const timer = setTimeout(() => {
@@ -144,8 +134,8 @@ const ProtocolComments: React.FC<ProtocolCommentsProps> = ({ protocol }) => {
             const savedComment = await commentsApi.addComment(commentData);
 
             if (savedComment) {
-                setComments(prevComments => [savedComment, ...prevComments]); // Add to top for immediate visibility
-                setRecentlyAddedId(savedComment.id); // Highlight the new comment
+                setComments(prevComments => [savedComment, ...prevComments]);
+                setRecentlyAddedId(savedComment.id);
                 setNewComment('');
             } else {
                 setError('Nie udało się dodać wpisu.');
@@ -158,15 +148,12 @@ const ProtocolComments: React.FC<ProtocolCommentsProps> = ({ protocol }) => {
         }
     };
 
-    // Sort comments by timestamp (newest first) for better UX
     const sortedComments = [...comments].sort((a, b) =>
         new Date(b.timestamp || '').getTime() - new Date(a.timestamp || '').getTime()
     );
 
     return (
         <CommunicationPanel>
-
-            {/* Professional Input Section */}
             <InputSection>
                 <InputHeader>
                     <InputTitle>Nowy wpis</InputTitle>
@@ -198,7 +185,7 @@ const ProtocolComments: React.FC<ProtocolCommentsProps> = ({ protocol }) => {
                             : "Wpisz informację do przekazania klientowi..."
                         }
                         $type={commentType}
-                        rows={4}
+                        rows={3}
                     />
 
                     <InputFooter>
@@ -236,7 +223,6 @@ const ProtocolComments: React.FC<ProtocolCommentsProps> = ({ protocol }) => {
                 )}
             </InputSection>
 
-            {/* Professional Timeline */}
             <TimelineSection>
                 <TimelineHeader>
                     <TimelineTitle>Historia komunikacji</TimelineTitle>
@@ -255,7 +241,6 @@ const ProtocolComments: React.FC<ProtocolCommentsProps> = ({ protocol }) => {
                     </EmptyState>
                 ) : (
                     <Timeline>
-                        {/* Always show ALL comments in chronological order for better UX */}
                         <UnifiedTimeline>
                             <SectionHeader>
                                 <SectionTitle>Wszystkie wpisy</SectionTitle>
@@ -316,14 +301,12 @@ const ProtocolComments: React.FC<ProtocolCommentsProps> = ({ protocol }) => {
     );
 };
 
-// Enterprise-Grade Styled Components
 const CommunicationPanel = styled.div`
     display: flex;
     flex-direction: column;
     gap: ${enterprise.space.lg};
 `;
 
-// Professional Input
 const InputSection = styled.div`
     background: ${enterprise.surface};
     border: 1px solid ${enterprise.border};
@@ -392,7 +375,7 @@ const InputBody = styled.div`
 
 const CommentInput = styled.textarea<{ $type: 'INTERNAL' | 'CUSTOMER' }>`
     width: 100%;
-    min-height: 120px;
+    min-height: 80px;
     padding: ${enterprise.space.md};
     border: 1px solid ${enterprise.border};
     border-left: 3px solid ${props => props.$type === 'CUSTOMER' ? enterprise.external.primary : enterprise.primary};
@@ -473,7 +456,6 @@ const ErrorNotification = styled.div`
     }
 `;
 
-// Professional Timeline
 const TimelineSection = styled.div`
     background: ${enterprise.surface};
     border: 1px solid ${enterprise.border};
@@ -516,8 +498,8 @@ const EmptyState = styled.div`
 `;
 
 const EmptyIcon = styled.div`
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
     background: ${enterprise.surfaceTertiary};
     border-radius: 50%;
     margin-bottom: ${enterprise.space.lg};
@@ -540,7 +522,6 @@ const Timeline = styled.div`
     padding: ${enterprise.space.xl};
 `;
 
-// Unified Timeline for better UX
 const UnifiedTimeline = styled.div`
     display: flex;
     flex-direction: column;
@@ -569,8 +550,8 @@ const SectionCount = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 24px;
-    height: 24px;
+    min-width: 20px;
+    height: 20px;
     background: ${enterprise.textMuted};
     color: white;
     border-radius: ${enterprise.radius.sm};
@@ -629,8 +610,8 @@ const Avatar = styled.div<{ $type: 'INTERNAL' | 'EXTERNAL' }>`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     background: ${props => props.$type === 'EXTERNAL' ? enterprise.external.primary : enterprise.primary};
     color: white;
     border-radius: 50%;
@@ -662,10 +643,10 @@ const CommentTypeLabel = styled.div<{ $type: 'INTERNAL' | 'CUSTOMER' }>`
     background: ${props => props.$type === 'CUSTOMER' ? enterprise.external.primary : enterprise.primary};
     color: white;
     border-radius: ${enterprise.radius.sm};
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
 `;
 
 const NewIndicator = styled.div`
@@ -676,10 +657,10 @@ const NewIndicator = styled.div`
     background: #10b981;
     color: white;
     border-radius: ${enterprise.radius.sm};
-    font-size: 11px;
+    font-size: 9px;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
     animation: fadeInOut 3s ease-out;
 
     @keyframes fadeInOut {
@@ -736,8 +717,8 @@ const SystemIcon = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     background: ${enterprise.system.primary};
     color: white;
     border-radius: 50%;
@@ -762,8 +743,8 @@ const SystemTime = styled.div`
 `;
 
 const Spinner = styled.div`
-    width: 16px;
-    height: 16px;
+    width: 12px;
+    height: 12px;
     border: 2px solid transparent;
     border-top: 2px solid currentColor;
     border-radius: 50%;

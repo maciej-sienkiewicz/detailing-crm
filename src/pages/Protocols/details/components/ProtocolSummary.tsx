@@ -1,5 +1,4 @@
 import React, {useState} from 'react';
-import styled from 'styled-components';
 import {
     FaAward,
     FaBell,
@@ -972,66 +971,67 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
         </Container>
     );
 };
+import styled from 'styled-components';
+import {theme} from '../../../../styles/theme';
 
-// Professional Styled Components
-const Container = styled.div`
+export const Container = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${brand.space.xxxl};
+    gap: ${theme.spacing.lg};
     max-width: 100%;
 `;
 
-const StatusSection = styled.div`
-    background: ${brand.surface};
-    border: 1px solid ${brand.border};
-    border-radius: ${brand.radius.xl};
-    padding: ${brand.space.xxl};
-    box-shadow: ${brand.shadow.soft};
+export const StatusSection = styled.div`
+    background: ${theme.surface};
+    border: 1px solid ${theme.border};
+    border-radius: ${theme.radius.md};
+    padding: ${theme.spacing.lg};
+    box-shadow: ${theme.shadow.xs};
 `;
 
-const StatusHeader = styled.div`
+export const StatusHeader = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: ${brand.space.xl};
+    margin-bottom: ${theme.spacing.md};
 `;
 
-const StatusTitle = styled.h3`
-    font-size: 18px;
+export const StatusTitle = styled.h3`
+    font-size: 14px;
     font-weight: 600;
-    color: ${brand.textPrimary};
+    color: ${theme.text.primary};
     margin: 0;
 `;
 
-const StatusProgress = styled.div`
-    font-size: 14px;
+export const StatusProgress = styled.div`
+    font-size: 11px;
     font-weight: 500;
-    color: ${brand.textTertiary};
-    padding: ${brand.space.sm} ${brand.space.md};
-    background: ${brand.surfaceSubtle};
-    border-radius: ${brand.radius.md};
+    color: ${theme.text.tertiary};
+    padding: ${theme.spacing.xs} ${theme.spacing.sm};
+    background: ${theme.surfaceAlt};
+    border-radius: ${theme.radius.sm};
 `;
 
-const StatusTimeline = styled.div`
+export const StatusTimeline = styled.div`
     display: flex;
     align-items: center;
-    margin-bottom: ${brand.space.xl};
+    margin-bottom: ${theme.spacing.md};
 `;
 
-const StatusStep = styled.div<{ $active: boolean; $completed: boolean }>`
+export const StatusStep = styled.div<{ $active: boolean; $completed: boolean }>`
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: ${brand.space.sm};
+    gap: ${theme.spacing.xs};
     opacity: ${props => props.$active || props.$completed ? 1 : 0.4};
 `;
 
-const StepIcon = styled.div<{ $active: boolean; $completed: boolean }>`
+export const StepIcon = styled.div<{ $active: boolean; $completed: boolean }>`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     background: ${props => {
     if (props.$completed) return brand.success;
@@ -1051,224 +1051,201 @@ const StepIcon = styled.div<{ $active: boolean; $completed: boolean }>`
     transition: all 0.3s ease;
 `;
 
-const StepLabel = styled.div`
-    font-size: 13px;
+export const StepLabel = styled.div`
+    font-size: 10px;
     font-weight: 600;
-    color: ${brand.textSecondary};
+    color: ${theme.text.secondary};
     text-align: center;
 `;
 
-const PriceInfo = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${brand.space.xs};
-`;
-
-const PriceRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${brand.space.sm};
-`;
-
-const PriceLabel = styled.span`
-    font-size: 11px;
-    color: ${brand.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    background: ${brand.surfaceElevated};
-    padding: 2px 6px;
-    border-radius: ${brand.radius.sm};
-`;
-
-const StatusConnector = styled.div<{ $active: boolean }>`
+export const StatusConnector = styled.div<{ $active: boolean }>`
     flex: 1;
-    height: 3px;
-    background: ${props => props.$active ? brand.success : brand.border};
-    margin: 0 ${brand.space.lg};
+    height: 2px;
+    background: ${props => props.$active ? theme.success : theme.border};
+    margin: 0 ${theme.spacing.sm};
     transition: background 0.3s ease;
 `;
 
-const AlertBanner = styled.div`
+export const AlertBanner = styled.div`
     display: flex;
     align-items: center;
-    gap: ${brand.space.md};
-    padding: ${brand.space.md} ${brand.space.lg};
-    background: ${brand.warningBg};
+    gap: ${theme.spacing.sm};
+    padding: ${theme.spacing.sm} ${theme.spacing.md};
+    background: ${theme.warningBg};
     border: 1px solid rgba(217, 119, 6, 0.3);
-    border-radius: ${brand.radius.md};
-    color: ${brand.warning};
-    font-size: 14px;
+    border-radius: ${theme.radius.sm};
+    color: ${theme.warning};
+    font-size: 11px;
     font-weight: 500;
 `;
 
-const ContentGrid = styled.div`
+export const ContentGrid = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: ${brand.space.xxxl};
+    gap: ${theme.spacing.lg};
 
     @media (max-width: 1024px) {
         grid-template-columns: 1fr;
     }
 `;
 
-const VehicleCard = styled.div`
-    background: ${brand.surface};
-    border: 1px solid ${brand.border};
-    border-radius: ${brand.radius.xl};
+export const VehicleCard = styled.div`
+    background: ${theme.surface};
+    border: 1px solid ${theme.border};
+    border-radius: ${theme.radius.md};
     overflow: hidden;
-    box-shadow: ${brand.shadow.soft};
+    box-shadow: ${theme.shadow.xs};
 `;
 
-const ClientCard = styled.div`
-    background: ${brand.surface};
-    border: 1px solid ${brand.border};
-    border-radius: ${brand.radius.xl};
+export const ClientCard = styled.div`
+    background: ${theme.surface};
+    border: 1px solid ${theme.border};
+    border-radius: ${theme.radius.md};
     overflow: hidden;
-    box-shadow: ${brand.shadow.soft};
+    box-shadow: ${theme.shadow.xs};
 `;
 
-const CardHeader = styled.div`
+export const CardHeader = styled.div`
     display: flex;
     align-items: center;
-    gap: ${brand.space.lg};
-    padding: ${brand.space.xl} ${brand.space.xxl};
-    background: ${brand.surfaceElevated};
-    border-bottom: 1px solid ${brand.borderLight};
+    gap: ${theme.spacing.md};
+    padding: ${theme.spacing.md} ${theme.spacing.lg};
+    background: ${theme.surfaceElevated};
+    border-bottom: 1px solid ${theme.borderLight};
 `;
 
-const HeaderIcon = styled.div<{ $color: string }>`
+export const HeaderIcon = styled.div<{ $color: string }>`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
+    width: 32px;
+    height: 32px;
     background: ${props => props.$color}15;
     color: ${props => props.$color};
-    border-radius: ${brand.radius.lg};
-    font-size: 20px;
+    border-radius: ${theme.radius.md};
+    font-size: 14px;
 `;
 
-const HeaderContent = styled.div`
+export const HeaderContent = styled.div`
     flex: 1;
 `;
 
-const CardTitle = styled.h3`
-    font-size: 16px;
+export const CardTitle = styled.h3`
+    font-size: 13px;
     font-weight: 600;
-    color: ${brand.textPrimary};
-    margin: 0 0 ${brand.space.xs} 0;
+    color: ${theme.text.primary};
+    margin: 0 0 2px 0;
 `;
 
-const CardSubtitle = styled.div`
-    font-size: 13px;
-    color: ${brand.textTertiary};
+export const CardSubtitle = styled.div`
+    font-size: 11px;
+    color: ${theme.text.tertiary};
     font-weight: 500;
 `;
 
-const ClientTierBadge = styled.div<{ $color: string; $bgColor: string }>`
+export const ClientTierBadge = styled.div<{ $color: string; $bgColor: string }>`
     display: flex;
     align-items: center;
-    gap: ${brand.space.sm};
-    padding: ${brand.space.xs} ${brand.space.sm};
+    gap: ${theme.spacing.xs};
+    padding: 2px ${theme.spacing.xs};
     background: ${props => props.$bgColor};
     color: ${props => props.$color};
     border: 1px solid ${props => props.$color}30;
-    border-radius: ${brand.radius.md};
-    font-size: 12px;
+    border-radius: ${theme.radius.sm};
+    font-size: 10px;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
     width: fit-content;
 
     svg {
-        font-size: 10px;
+        font-size: 8px;
     }
 `;
 
-const VehicleMainInfo = styled.div`
+export const VehicleMainInfo = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: ${brand.space.xxl};
-    border-bottom: 1px solid ${brand.borderLight};
+    padding: ${theme.spacing.lg};
+    border-bottom: 1px solid ${theme.borderLight};
 `;
 
-const VehicleIdentity = styled.div`
+export const VehicleIdentity = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${brand.space.xs};
+    gap: ${theme.spacing.xs};
 `;
 
-const VehicleModel = styled.div`
-    font-size: 20px;
+export const VehicleModel = styled.div`
+    font-size: 15px;
     font-weight: 700;
-    color: ${brand.textPrimary};
+    color: ${theme.text.primary};
 `;
 
-const VehicleYear = styled.div`
-    font-size: 14px;
-    color: ${brand.textTertiary};
+export const VehicleYear = styled.div`
+    font-size: 11px;
+    color: ${theme.text.tertiary};
     font-weight: 500;
 `;
 
-/* ENHANCED LICENSE PLATE - Professional European Design */
-const LicensePlateContainer = styled.div`
+export const LicensePlateContainer = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
 `;
 
-const LicensePlate = styled.div`
+export const LicensePlate = styled.div`
     display: flex;
     align-items: center;
     background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
     border: 2px solid #2c3e50;
-    border-radius: ${brand.radius.sm};
+    border-radius: ${theme.radius.sm};
     box-shadow:
-            0 2px 4px rgba(0, 0, 0, 0.1),
+            0 1px 2px rgba(0, 0, 0, 0.1),
             inset 0 1px 0 rgba(255, 255, 255, 0.7);
     overflow: hidden;
     font-family: 'Courier New', 'Monaco', monospace;
     font-weight: 700;
-    height: 52px;
+    height: 36px;
 `;
 
-const PlateFlag = styled.div`
+export const PlateFlag = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     background: linear-gradient(135deg, #003399 0%, #004da6 100%);
     color: #ffd700;
-    padding: 0 ${brand.space.sm};
+    padding: 0 ${theme.spacing.xs};
     height: 100%;
-    min-width: 32px;
+    min-width: 24px;
     position: relative;
 `;
 
-const EUStars = styled.div`
-    font-size: 6px;
+export const EUStars = styled.div`
+    font-size: 5px;
     line-height: 1;
     text-align: center;
     margin-bottom: 1px;
     text-shadow: 0 0 1px rgba(0, 0, 0, 0.3);
 `;
 
-const CountryCode = styled.div`
-    font-size: 9px;
+export const CountryCode = styled.div`
+    font-size: 7px;
     font-weight: 800;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
     text-shadow: 0 0 1px rgba(0, 0, 0, 0.3);
 `;
 
-const PlateNumber = styled.div`
-    padding: 0 ${brand.space.lg};
+export const PlateNumber = styled.div`
+    padding: 0 ${theme.spacing.md};
     color: #2c3e50;
-    font-size: 18px;
+    font-size: 14px;
     font-weight: 800;
-    letter-spacing: 2px;
+    letter-spacing: 1.5px;
     text-align: center;
-    min-width: 120px;
+    min-width: 90px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1276,472 +1253,327 @@ const PlateNumber = styled.div`
     text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
 `;
 
-const VehicleDetails = styled.div`
+export const VehicleDetails = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${brand.space.lg};
-    padding: ${brand.space.xxl};
+    gap: ${theme.spacing.md};
+    padding: ${theme.spacing.lg};
 `;
 
-const DetailItem = styled.div`
+export const DetailItem = styled.div`
     display: flex;
     align-items: center;
-    gap: ${brand.space.md};
+    gap: ${theme.spacing.sm};
 `;
 
-const DetailIcon = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    background: ${brand.surfaceSubtle};
-    color: ${brand.textTertiary};
-    border-radius: ${brand.radius.md};
-    font-size: 14px;
-`;
-
-const DetailContent = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${brand.space.xs};
-    flex: 1;
-`;
-
-const DetailLabel = styled.div`
-    font-size: 12px;
-    color: ${brand.textMuted};
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-`;
-
-const DetailValue = styled.div<{ $status?: string }>`
-    font-size: 14px;
-    font-weight: 600;
-    color: ${props => props.$status === 'provided' ? brand.success : brand.textPrimary};
-`;
-
-/* CLIENT CARD COMPONENTS */
-const ClientMainInfo = styled.div`
-    padding: ${brand.space.xxl};
-    border-bottom: 1px solid ${brand.borderLight};
-`;
-
-const ClientName = styled.div`
-    font-size: 20px;
-    font-weight: 700;
-    color: ${brand.textPrimary};
-    margin-bottom: ${brand.space.sm};
-`;
-
-const CompanyName = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${brand.space.sm};
-    font-size: 14px;
-    color: ${brand.textTertiary};
-    font-weight: 500;
-
-    svg {
-        font-size: 12px;
-    }
-`;
-
-const BusinessMetrics = styled.div`
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: ${brand.space.lg};
-    padding: ${brand.space.xl} ${brand.space.xxl};
-    border-bottom: 1px solid ${brand.borderLight};
-`;
-
-const MetricCard = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: ${brand.space.md};
-`;
-
-const MetricIcon = styled.div<{ $color: string }>`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    background: ${props => props.$color}15;
-    color: ${props => props.$color};
-    border-radius: ${brand.radius.lg};
-    font-size: 16px;
-`;
-
-const MetricContent = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${brand.space.xs};
-`;
-
-const MetricValue = styled.div`
-    font-size: 18px;
-    font-weight: 700;
-    color: ${brand.textPrimary};
-`;
-
-const MetricLabel = styled.div`
-    font-size: 11px;
-    color: ${brand.textMuted};
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-`;
-
-const ContactSection = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${brand.space.lg};
-    padding: ${brand.space.xl} ${brand.space.xxl};
-    border-bottom: 1px solid ${brand.borderLight};
-`;
-
-const ContactItem = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${brand.space.md};
-`;
-
-const ContactIcon = styled.div`
+export const DetailIcon = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
     width: 24px;
     height: 24px;
-    color: ${brand.textMuted};
+    background: ${theme.surfaceAlt};
+    color: ${theme.text.tertiary};
+    border-radius: ${theme.radius.sm};
+    font-size: 11px;
+`;
+
+export const DetailContent = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+`;
+
+export const DetailLabel = styled.div`
+    font-size: 10px;
+    color: ${theme.text.muted};
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+`;
+
+export const DetailValue = styled.div<{ $status?: string }>`
+    font-size: 12px;
+    font-weight: 600;
+    color: ${props => props.$status === 'provided' ? theme.success : theme.text.primary};
+`;
+
+export const ClientMainInfo = styled.div`
+    padding: ${theme.spacing.lg};
+    border-bottom: 1px solid ${theme.borderLight};
+`;
+
+export const ClientName = styled.div`
+    font-size: 15px;
+    font-weight: 700;
+    color: ${theme.text.primary};
+    margin-bottom: ${theme.spacing.xs};
+`;
+
+export const CompanyName = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.xs};
+    font-size: 11px;
+    color: ${theme.text.tertiary};
+    font-weight: 500;
+
+    svg {
+        font-size: 10px;
+    }
+`;
+
+export const BusinessMetrics = styled.div`
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: ${theme.spacing.md};
+    padding: ${theme.spacing.md} ${theme.spacing.lg};
+    border-bottom: 1px solid ${theme.borderLight};
+`;
+
+export const MetricCard = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: ${theme.spacing.sm};
+`;
+
+export const MetricIcon = styled.div<{ $color: string }>`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: ${props => props.$color}15;
+    color: ${props => props.$color};
+    border-radius: ${theme.radius.md};
     font-size: 12px;
 `;
 
-const ContactValue = styled.div`
+export const MetricContent = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+`;
+
+export const MetricValue = styled.div`
     font-size: 14px;
-    color: ${brand.textSecondary};
+    font-weight: 700;
+    color: ${theme.text.primary};
+`;
+
+export const MetricLabel = styled.div`
+    font-size: 9px;
+    color: ${theme.text.muted};
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+`;
+
+export const ContactSection = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${theme.spacing.md};
+    padding: ${theme.spacing.md} ${theme.spacing.lg};
+    border-bottom: 1px solid ${theme.borderLight};
+`;
+
+export const ContactItem = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.sm};
+`;
+
+export const ContactIcon = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    color: ${theme.text.muted};
+    font-size: 10px;
+`;
+
+export const ContactValue = styled.div`
+    font-size: 11px;
+    color: ${theme.text.secondary};
     font-weight: 500;
     flex: 1;
 `;
 
-// NEW STYLED COMPONENTS FOR ADDITIONAL INFO SECTION
-const AdditionalInfoSection = styled.div`
+export const AdditionalInfoSection = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${brand.space.lg};
+    gap: ${theme.spacing.md};
 `;
 
-const AdditionalInfoGrid = styled.div<{ $fullWidth: boolean }>`
+export const AdditionalInfoGrid = styled.div<{ $fullWidth: boolean }>`
     display: grid;
     grid-template-columns: ${props => props.$fullWidth ? '1fr' : '1fr 1fr'};
-    gap: ${brand.space.xxxl};
+    gap: ${theme.spacing.lg};
 
     @media (max-width: 1024px) {
         grid-template-columns: 1fr;
     }
 `;
 
-const NotesCard = styled.div`
-    background: ${brand.surface};
-    border: 1px solid ${brand.border};
-    border-radius: ${brand.radius.xl};
+export const NotesCard = styled.div`
+    background: ${theme.surface};
+    border: 1px solid ${theme.border};
+    border-radius: ${theme.radius.md};
     overflow: hidden;
-    box-shadow: ${brand.shadow.soft};
+    box-shadow: ${theme.shadow.xs};
 `;
 
-const DeliveryPersonCard = styled.div`
-    background: ${brand.surface};
-    border: 1px solid ${brand.border};
-    border-radius: ${brand.radius.xl};
+export const DeliveryPersonCard = styled.div`
+    background: ${theme.surface};
+    border: 1px solid ${theme.border};
+    border-radius: ${theme.radius.md};
     overflow: hidden;
-    box-shadow: ${brand.shadow.soft};
+    box-shadow: ${theme.shadow.xs};
 `;
 
-const NotesContent = styled.div`
-    padding: ${brand.space.xxl};
+export const NotesContent = styled.div`
+    padding: ${theme.spacing.lg};
 `;
 
-const NotesText = styled.div`
-    font-size: 15px;
-    color: ${brand.textSecondary};
-    line-height: 1.6;
-    background: ${brand.surfaceSubtle};
-    padding: ${brand.space.lg};
-    border-radius: ${brand.radius.md};
-    border-left: 4px solid #8b5cf6;
+export const NotesText = styled.div`
+    font-size: 12px;
+    color: ${theme.text.secondary};
+    line-height: 1.5;
+    background: ${theme.surfaceAlt};
+    padding: ${theme.spacing.md};
+    border-radius: ${theme.radius.sm};
+    border-left: 3px solid #8b5cf6;
     font-style: italic;
 `;
 
-const DeliveryPersonContent = styled.div`
-    padding: ${brand.space.xxl};
+export const DeliveryPersonContent = styled.div`
+    padding: ${theme.spacing.lg};
 `;
 
-const DeliveryPersonInfo = styled.div`
+export const DeliveryPersonInfo = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${brand.space.md};
+    gap: ${theme.spacing.sm};
 `;
 
-const PersonName = styled.div`
-    font-size: 18px;
+export const PersonName = styled.div`
+    font-size: 14px;
     font-weight: 700;
-    color: ${brand.textPrimary};
+    color: ${theme.text.primary};
 `;
 
-const PersonContact = styled.div`
+export const PersonContact = styled.div`
     display: flex;
     align-items: center;
-    gap: ${brand.space.sm};
-    font-size: 14px;
-    color: ${brand.textSecondary};
+    gap: ${theme.spacing.xs};
+    font-size: 11px;
+    color: ${theme.text.secondary};
     font-weight: 500;
 
     svg {
-        font-size: 12px;
-        color: ${brand.textMuted};
+        font-size: 10px;
+        color: ${theme.text.muted};
     }
 `;
 
-/* SERVICES SECTION */
-const ServicesSection = styled.div`
-    background: ${brand.surface};
-    border: 1px solid ${brand.border};
-    border-radius: ${brand.radius.xl};
-    box-shadow: ${brand.shadow.soft};
+export const ServicesSection = styled.div`
+    background: ${theme.surface};
+    border: 1px solid ${theme.border};
+    border-radius: ${theme.radius.md};
+    box-shadow: ${theme.shadow.xs};
     overflow: hidden;
 `;
 
-const SectionHeader = styled.div`
+export const SectionHeader = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: ${brand.space.xl} ${brand.space.xxl};
-    background: ${brand.surfaceElevated};
-    border-bottom: 1px solid ${brand.borderLight};
+    padding: ${theme.spacing.md} ${theme.spacing.lg};
+    background: ${theme.surfaceElevated};
+    border-bottom: 1px solid ${theme.borderLight};
 `;
 
-const SectionTitle = styled.h3`
-    font-size: 18px;
+export const SectionTitle = styled.h3`
+    font-size: 14px;
     font-weight: 600;
-    color: ${brand.textPrimary};
+    color: ${theme.text.primary};
     margin: 0;
 `;
 
-const SectionStats = styled.div`
-    font-size: 13px;
-    color: ${brand.textTertiary};
+export const SectionStats = styled.div`
+    font-size: 11px;
+    color: ${theme.text.tertiary};
     font-weight: 500;
-    margin-top: ${brand.space.xs};
+    margin-top: 2px;
 `;
 
-const HeaderActions = styled.div`
+export const HeaderActions = styled.div`
     display: flex;
-    gap: ${brand.space.sm};
+    gap: ${theme.spacing.xs};
     align-items: center;
 `;
 
-const EditPricesButton = styled.button`
+export const EditPricesButton = styled.button`
     display: flex;
     align-items: center;
-    gap: ${brand.space.sm};
-    padding: ${brand.space.md} ${brand.space.lg};
-    background: ${brand.primaryGhost};
-    color: ${brand.primary};
-    border: 2px solid ${brand.primary}40;
-    border-radius: ${brand.radius.md};
-    font-size: 14px;
+    gap: ${theme.spacing.xs};
+    padding: ${theme.spacing.sm} ${theme.spacing.md};
+    background: ${theme.primaryGhost};
+    color: ${theme.primary};
+    border: 1px solid ${theme.primary}40;
+    border-radius: ${theme.radius.sm};
+    font-size: 11px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
 
     &:hover {
-        background: ${brand.primary}20;
-        border-color: ${brand.primary};
+        background: ${theme.primary}20;
+        border-color: ${theme.primary};
         transform: translateY(-1px);
-        box-shadow: ${brand.shadow.moderate};
+        box-shadow: ${theme.shadow.sm};
     }
 
     svg {
-        font-size: 12px;
+        font-size: 10px;
     }
 
     @media (max-width: 768px) {
         span {
             display: none;
         }
-        
-        padding: ${brand.space.md};
+        padding: ${theme.spacing.sm};
     }
 `;
 
-const AddServiceButton = styled.button`
-   display: flex;
-   align-items: center;
-   gap: ${brand.space.sm};
-   padding: ${brand.space.md} ${brand.space.lg};
-   background: ${brand.primary};
-   color: white;
-   border: none;
-   border-radius: ${brand.radius.md};
-   font-size: 14px;
-   font-weight: 600;
-   cursor: pointer;
-   transition: all 0.2s ease;
-
-   &:hover:not(:disabled) {
-       background: ${brand.primaryDark};
-       transform: translateY(-1px);
-       box-shadow: ${brand.shadow.moderate};
-   }
-
-   &:disabled {
-       opacity: 0.6;
-       cursor: not-allowed;
-       transform: none;
-   }
-
-   svg {
-       font-size: 12px;
-   }
-`;
-
-const ServicesTable = styled.table`
-    width: 100%;
-    border-collapse: collapse;
-`;
-
-const TableHeader = styled.thead``;
-
-const HeaderCell = styled.th`
-    padding: ${brand.space.lg} ${brand.space.xxl};
-    text-align: left;
-    font-size: 12px;
-    font-weight: 600;
-    color: ${brand.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    background: ${brand.surfaceElevated};
-    border-bottom: 1px solid ${brand.borderLight};
-`;
-
-const TableBody = styled.tbody``;
-
-const ServiceRow = styled.tr<{ $pending?: boolean }>`
-    border-bottom: 1px solid ${brand.borderLight};
-    transition: background-color 0.2s ease;
-
-    ${props => props.$pending && `
-       background: ${brand.pendingBg};
-   `}
-
-    &:hover {
-        background: ${brand.surfaceHover};
-    }
-
-    &:last-child {
-        border-bottom: none;
-    }
-`;
-
-const ServiceCell = styled.td`
-    padding: ${brand.space.lg} ${brand.space.xxl};
-    vertical-align: top;
-`;
-
-const PriceCell = styled.td`
-    padding: ${brand.space.lg} ${brand.space.xxl};
-    vertical-align: top;
-`;
-
-const DiscountCell = styled.td`
-    padding: ${brand.space.lg} ${brand.space.xxl};
-    vertical-align: top;
-`;
-
-const FinalPriceCell = styled.td`
-   padding: ${brand.space.lg} ${brand.space.xxl};
-   vertical-align: top;
-`;
-
-const StatusCell = styled.td`
-    padding: ${brand.space.lg} ${brand.space.xxl};
-    vertical-align: top;
-`;
-
-const ActionsCell = styled.td`
-    padding: ${brand.space.lg} ${brand.space.xxl};
-    vertical-align: top;
-`;
-
-const ServiceName = styled.div`
-    font-size: 15px;
-    font-weight: 500;
-    color: ${brand.textPrimary};
-    line-height: 1.4;
-`;
-
-const ServiceNote = styled.div`
-    font-size: 13px;
-    color: ${brand.textMuted};
-    font-style: italic;
-    margin-top: ${brand.space.xs};
-    line-height: 1.4;
-`;
-
-const PriceAmount = styled.div<{ $secondary?: boolean }>`
-    font-size: ${props => props.$secondary ? '13px' : '15px'};
-    font-weight: ${props => props.$secondary ? 500 : 600};
-    color: ${props => props.$secondary ? brand.textSecondary : brand.textPrimary};
-`;
-
-const DiscountInfo = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-`;
-
-const DiscountAmount = styled.div`
-    font-size: 14px;
-    font-weight: 600;
-    color: ${brand.error};
-`;
-
-const SavingsAmount = styled.div`
-    font-size: 12px;
-    color: ${brand.success};
-    font-weight: 500;
-`;
-
-const NoDiscount = styled.div`
-    font-size: 15px;
-    color: ${brand.textMuted};
-    font-weight: 300;
-`;
-
-const FinalPrice = styled.div<{ $secondary?: boolean }>`
-    font-size: ${props => props.$secondary ? '14px' : '16px'};
-    font-weight: ${props => props.$secondary ? 600 : 700};
-    color: ${props => props.$secondary ? brand.textSecondary : brand.primary};
-`;
-
-const ServiceStatus = styled.div<{ $status: string }>`
+export const AddServiceButton = styled.button`
     display: flex;
     align-items: center;
-    gap: ${brand.space.xs};
-    padding: ${brand.space.xs} ${brand.space.sm};
-    background: ${props => props.$status === 'PENDING' ? brand.pendingBg : brand.successBg};
-    color: ${props => props.$status === 'PENDING' ? brand.pending : brand.success};
-    border: 1px solid ${props => props.$status === 'PENDING' ? `${brand.pending}30` : `${brand.success}30`};
-    border-radius: ${brand.radius.sm};
-    font-size: 12px;
-    font-weight: 500;
-    width: fit-content;
+    gap: ${theme.spacing.xs};
+    padding: ${theme.spacing.sm} ${theme.spacing.md};
+    background: ${theme.primary};
+    color: white;
+    border: none;
+    border-radius: ${theme.radius.sm};
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
 
-    span {
-        font-size: 11px;
+    &:hover:not(:disabled) {
+        background: ${theme.primaryDark};
+        transform: translateY(-1px);
+        box-shadow: ${theme.shadow.sm};
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
     }
 
     svg {
@@ -1749,9 +1581,172 @@ const ServiceStatus = styled.div<{ $status: string }>`
     }
 `;
 
-const ServiceActions = styled.div`
+export const ServicesTable = styled.table`
+    width: 100%;
+    border-collapse: collapse;
+`;
+
+export const TableHeader = styled.thead``;
+
+export const HeaderCell = styled.th`
+    padding: ${theme.spacing.sm} ${theme.spacing.lg};
+    text-align: left;
+    font-size: 10px;
+    font-weight: 600;
+    color: ${theme.text.muted};
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    background: ${theme.surfaceElevated};
+    border-bottom: 1px solid ${theme.borderLight};
+`;
+
+export const TableBody = styled.tbody``;
+
+export const ServiceRow = styled.tr<{ $pending?: boolean }>`
+    border-bottom: 1px solid ${theme.borderLight};
+    transition: background-color 0.2s ease;
+
+    ${props => props.$pending && `
+        background: ${theme.infoBg};
+    `}
+
+    &:hover {
+        background: ${theme.surfaceHover};
+    }
+
+    &:last-child {
+        border-bottom: none;
+    }
+`;
+
+export const ServiceCell = styled.td`
+    padding: ${theme.spacing.md} ${theme.spacing.lg};
+    vertical-align: top;
+`;
+
+export const PriceCell = styled.td`
+    padding: ${theme.spacing.md} ${theme.spacing.lg};
+    vertical-align: top;
+`;
+
+export const DiscountCell = styled.td`
+    padding: ${theme.spacing.md} ${theme.spacing.lg};
+    vertical-align: top;
+`;
+
+export const FinalPriceCell = styled.td`
+    padding: ${theme.spacing.md} ${theme.spacing.lg};
+    vertical-align: top;
+`;
+
+export const StatusCell = styled.td`
+    padding: ${theme.spacing.md} ${theme.spacing.lg};
+    vertical-align: top;
+`;
+
+export const ActionsCell = styled.td`
+    padding: ${theme.spacing.md} ${theme.spacing.lg};
+    vertical-align: top;
+`;
+
+export const ServiceName = styled.div`
+    font-size: 12px;
+    font-weight: 500;
+    color: ${theme.text.primary};
+    line-height: 1.3;
+`;
+
+export const ServiceNote = styled.div`
+    font-size: 10px;
+    color: ${theme.text.muted};
+    font-style: italic;
+    margin-top: ${theme.spacing.xs};
+    line-height: 1.3;
+`;
+
+export const PriceInfo = styled.div`
     display: flex;
-    gap: ${brand.space.xs};
+    flex-direction: column;
+    gap: 2px;
+`;
+
+export const PriceRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.xs};
+`;
+
+export const PriceLabel = styled.span`
+    font-size: 9px;
+    color: ${theme.text.muted};
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    background: ${theme.surfaceElevated};
+    padding: 1px 4px;
+    border-radius: ${theme.radius.sm};
+`;
+
+export const PriceAmount = styled.div<{ $secondary?: boolean }>`
+    font-size: ${props => props.$secondary ? '10px' : '11px'};
+    font-weight: ${props => props.$secondary ? 500 : 600};
+    color: ${props => props.$secondary ? theme.text.secondary : theme.text.primary};
+`;
+
+export const DiscountInfo = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+`;
+
+export const DiscountAmount = styled.div`
+    font-size: 11px;
+    font-weight: 600;
+    color: ${theme.error};
+`;
+
+export const SavingsAmount = styled.div`
+    font-size: 10px;
+    color: ${theme.success};
+    font-weight: 500;
+`;
+
+export const NoDiscount = styled.div`
+    font-size: 11px;
+    color: ${theme.text.muted};
+    font-weight: 300;
+`;
+
+export const FinalPrice = styled.div<{ $secondary?: boolean }>`
+    font-size: ${props => props.$secondary ? '11px' : '12px'};
+    font-weight: ${props => props.$secondary ? 600 : 700};
+    color: ${props => props.$secondary ? theme.text.secondary : theme.primary};
+`;
+
+export const ServiceStatus = styled.div<{ $status: string }>`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.xs};
+    padding: 2px ${theme.spacing.xs};
+    background: ${props => props.$status === 'PENDING' ? theme.infoBg : theme.successBg};
+    color: ${props => props.$status === 'PENDING' ? theme.info : theme.success};
+    border: 1px solid ${props => props.$status === 'PENDING' ? `${theme.info}30` : `${theme.success}30`};
+    border-radius: ${theme.radius.sm};
+    font-size: 10px;
+    font-weight: 500;
+    width: fit-content;
+
+    span {
+        font-size: 9px;
+    }
+
+    svg {
+        font-size: 8px;
+    }
+`;
+
+export const ServiceActions = styled.div`
+    display: flex;
+    gap: ${theme.spacing.xs};
     opacity: 0.7;
     transition: opacity 0.2s ease;
 
@@ -1760,97 +1755,96 @@ const ServiceActions = styled.div`
     }
 `;
 
-const ActionIcon = styled.button<{ $type: 'notify' | 'delete'; disabled?: boolean }>`
+export const ActionIcon = styled.button<{ $type: 'notify' | 'delete'; disabled?: boolean }>`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     border: none;
-    border-radius: ${brand.radius.sm};
+    border-radius: ${theme.radius.sm};
     cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
     transition: all 0.2s ease;
-    font-size: 11px;
+    font-size: 9px;
     opacity: ${props => props.disabled ? 0.5 : 1};
 
     ${props => {
-    switch (props.$type) {
-        case 'notify':
-            return `
-                   background: ${brand.primary}20;
-                   color: ${brand.primary};
-                   &:hover:not(:disabled) {
-                       background: ${brand.primary};
-                       color: white;
-                       transform: translateY(-1px);
-                   }
-               `;
-        case 'delete':
-            return `
-                   background: ${brand.error}20;
-                   color: ${brand.error};
-                   &:hover:not(:disabled) {
-                       background: ${brand.error};
-                       color: white;
-                       transform: translateY(-1px);
-                   }
-               `;
-    }
-}}
+        switch (props.$type) {
+            case 'notify':
+                return `
+                    background: ${theme.primary}20;
+                    color: ${theme.primary};
+                    &:hover:not(:disabled) {
+                        background: ${theme.primary};
+                        color: white;
+                        transform: translateY(-1px);
+                    }
+                `;
+            case 'delete':
+                return `
+                    background: ${theme.error}20;
+                    color: ${theme.error};
+                    &:hover:not(:disabled) {
+                        background: ${theme.error};
+                        color: white;
+                        transform: translateY(-1px);
+                    }
+                `;
+        }
+    }}
 
     &:disabled {
         transform: none;
     }
 `;
 
-const TableFooter = styled.tfoot``;
+export const TableFooter = styled.tfoot``;
 
-const FooterRow = styled.tr`
-    background: ${brand.surfaceElevated};
-    border-top: 2px solid ${brand.border};
+export const FooterRow = styled.tr`
+    background: ${theme.surfaceElevated};
+    border-top: 2px solid ${theme.border};
 `;
 
-const FooterCell = styled.td`
-    padding: ${brand.space.lg} ${brand.space.xxl};
+export const FooterCell = styled.td`
+    padding: ${theme.spacing.md} ${theme.spacing.lg};
     font-weight: 600;
 `;
 
-const TotalLabel = styled.div`
-    font-size: 14px;
+export const TotalLabel = styled.div`
+    font-size: 11px;
     font-weight: 700;
-    color: ${brand.textPrimary};
+    color: ${theme.text.primary};
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
 `;
 
-const TotalAmount = styled.div<{ $secondary?: boolean }>`
-    font-size: ${props => props.$secondary ? '13px' : '15px'};
+export const TotalAmount = styled.div<{ $secondary?: boolean }>`
+    font-size: ${props => props.$secondary ? '10px' : '11px'};
     font-weight: ${props => props.$secondary ? 500 : 600};
-    color: ${props => props.$secondary ? brand.textSecondary : brand.textPrimary};
+    color: ${props => props.$secondary ? theme.text.secondary : theme.text.primary};
 `;
 
-const FinalTotalAmount = styled.div<{ $secondary?: boolean }>`
-    font-size: ${props => props.$secondary ? '16px' : '18px'};
+export const FinalTotalAmount = styled.div<{ $secondary?: boolean }>`
+    font-size: ${props => props.$secondary ? '12px' : '14px'};
     font-weight: ${props => props.$secondary ? 600 : 800};
-    color: ${props => props.$secondary ? brand.textSecondary : brand.primary};
+    color: ${props => props.$secondary ? theme.text.secondary : theme.primary};
 `;
 
-// Add missing styled components
-const LoadingContainer = styled.div`
+export const LoadingContainer = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: ${brand.space.xxxl};
-    gap: ${brand.space.lg};
-    color: ${brand.textTertiary};
+    padding: ${theme.spacing.xxl};
+    gap: ${theme.spacing.md};
+    color: ${theme.text.tertiary};
 `;
 
-const LoadingSpinner = styled.div`
-    width: 40px;
-    height: 40px;
-    border: 3px solid ${brand.borderLight};
-    border-top: 3px solid ${brand.primary};
+export const LoadingSpinner = styled.div`
+    width: 32px;
+    height: 32px;
+    border: 2px solid ${theme.borderLight};
+    border-top: 2px solid ${theme.primary};
     border-radius: 50%;
     animation: spin 1s linear infinite;
 
@@ -1860,10 +1854,9 @@ const LoadingSpinner = styled.div`
     }
 `;
 
-// Mini spinner dla akcji
-const MiniSpinner = styled.div`
-    width: 12px;
-    height: 12px;
+export const MiniSpinner = styled.div`
+    width: 10px;
+    height: 10px;
     border: 2px solid transparent;
     border-top: 2px solid currentColor;
     border-radius: 50%;
@@ -1875,18 +1868,18 @@ const MiniSpinner = styled.div`
     }
 `;
 
-const ErrorState = styled.div`
-   display: flex;
-   align-items: center;
-   gap: ${brand.space.md};
-   padding: ${brand.space.xl} ${brand.space.xxl};
-   color: ${brand.error};
-   font-size: 14px;
-   font-weight: 500;
-   background: ${brand.errorBg};
-   border: 1px solid rgba(220, 38, 38, 0.3);
-   border-radius: ${brand.radius.md};
-   margin: ${brand.space.xl} ${brand.space.xxl};
+export const ErrorState = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.sm};
+    padding: ${theme.spacing.md} ${theme.spacing.lg};
+    color: ${theme.error};
+    font-size: 11px;
+    font-weight: 500;
+    background: ${theme.errorBg};
+    border: 1px solid rgba(220, 38, 38, 0.3);
+    border-radius: ${theme.radius.sm};
+    margin: ${theme.spacing.md} ${theme.spacing.lg};
 `;
 
 export default ProtocolSummary;
