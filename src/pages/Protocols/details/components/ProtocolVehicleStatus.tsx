@@ -5,33 +5,10 @@ import {pl} from 'date-fns/locale';
 import {FaCarSide} from 'react-icons/fa';
 import {CarReceptionProtocol} from '../../../../types';
 
-interface VehicleIssue {
-    id: string;
-    location: string;
-    description: string;
-    severity: 'low' | 'medium' | 'high';
-    resolved: boolean;
-    createdAt: string;
-    resolvedAt?: string;
-}
-
 interface ProtocolVehicleStatusProps {
     protocol: CarReceptionProtocol;
     onProtocolUpdate: (updatedProtocol: CarReceptionProtocol) => void;
 }
-
-const getSeverityColor = (severity: string): string => {
-    switch (severity) {
-        case 'low':
-            return '#27ae60';
-        case 'medium':
-            return '#f39c12';
-        case 'high':
-            return '#e74c3c';
-        default:
-            return '#7f8c8d';
-    }
-};
 
 const ProtocolVehicleStatus: React.FC<ProtocolVehicleStatusProps> = ({ protocol, onProtocolUpdate }) => {
      const formatDateTime = (dateString: string): string => {

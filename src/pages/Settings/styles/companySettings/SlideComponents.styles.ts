@@ -8,11 +8,11 @@ export const SlideContainer = styled.div`
     max-width: 1400px;
     margin: 0 auto;
     width: 100%;
-    padding: 0 40px;
+    padding: 0 24px;
     overflow: hidden;
 
     @media (max-width: 768px) {
-        padding: 0 20px;
+        padding: 0 16px;
     }
 `;
 
@@ -36,102 +36,66 @@ export const ActionButton = styled.button<{
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
-    padding: 14px 28px;
-    border-radius: 12px;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 8px;
     font-weight: 600;
-    font-size: 14px;
+    font-size: 13px;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     border: none;
     white-space: nowrap;
-    min-height: 48px;
-    position: relative;
-    overflow: hidden;
+    min-height: 36px;
     font-family: inherit;
-
-    &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-        transition: left 0.5s;
-    }
 
     &:disabled {
         opacity: 0.6;
         cursor: not-allowed;
-        transform: none;
-        
-        &::before {
-            display: none;
-        }
     }
 
     &:not(:disabled):hover {
-        transform: translateY(-2px);
-        
-        &::before {
-            left: 100%;
-        }
+        transform: translateY(-1px);
     }
 
     &:not(:disabled):active {
-        transform: translateY(-1px);
+        transform: translateY(0);
     }
 
     ${props => props.$primary && `
         background: linear-gradient(135deg, #1a365d 0%, #2c5aa0 50%, #3b82f6 100%);
         color: white;
-        box-shadow: 
-            0 4px 16px rgba(26, 54, 93, 0.2),
-            0 8px 32px rgba(59, 130, 246, 0.1),
-            inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        box-shadow: 0 2px 8px rgba(26, 54, 93, 0.15);
 
         &:not(:disabled):hover {
-            box-shadow: 
-                0 8px 32px rgba(26, 54, 93, 0.3),
-                0 16px 48px rgba(59, 130, 246, 0.15),
-                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 16px rgba(26, 54, 93, 0.25);
         }
     `}
 
     ${props => props.$secondary && `
         background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
         color: #64748b;
-        border: 1.5px solid rgba(226, 232, 240, 0.8);
-        box-shadow: 
-            0 2px 8px rgba(0, 0, 0, 0.04),
-            inset 0 1px 0 rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 
         &:not(:disabled):hover {
             background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
             color: #475569;
             border-color: rgba(148, 163, 184, 0.6);
-            box-shadow: 
-                0 4px 16px rgba(0, 0, 0, 0.08),
-                inset 0 1px 0 rgba(255, 255, 255, 0.9);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
     `}
 
     ${props => props.$danger && `
         background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
         color: #dc2626;
-        border: 1.5px solid rgba(252, 165, 165, 0.6);
-        box-shadow: 
-            0 2px 8px rgba(220, 38, 38, 0.1),
-            inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        border: 1px solid rgba(252, 165, 165, 0.6);
+        box-shadow: 0 1px 4px rgba(220, 38, 38, 0.1);
 
         &:not(:disabled):hover {
             background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
             color: white;
             border-color: #dc2626;
-            box-shadow: 
-                0 4px 16px rgba(220, 38, 38, 0.3),
-                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            box-shadow: 0 2px 8px rgba(220, 38, 38, 0.25);
         }
     `}
 `;
@@ -139,100 +103,54 @@ export const ActionButton = styled.button<{
 export const SlideContent = styled.div`
     flex: 1;
     overflow-y: auto;
-    padding: 50px 0 40px;
-    
-    /* Custom scrollbar styling */
+    padding: 24px 0;
+
     &::-webkit-scrollbar {
-        width: 10px;
+        width: 8px;
     }
-    
+
     &::-webkit-scrollbar-track {
         background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-        border-radius: 5px;
-        margin: 8px 0;
+        border-radius: 4px;
+        margin: 4px 0;
     }
-    
+
     &::-webkit-scrollbar-thumb {
         background: linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%);
-        border-radius: 5px;
+        border-radius: 4px;
         border: 2px solid transparent;
         background-clip: padding-box;
-        
+
         &:hover {
             background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+            background-clip: padding-box;
         }
-    }
-    
-    &::-webkit-scrollbar-corner {
-        background: #f1f5f9;
     }
 
     @media (max-width: 768px) {
-        padding: 40px 0 32px;
+        padding: 20px 0;
     }
 `;
 
 export const FormGrid = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 40px 32px;
+    gap: 24px 20px;
     align-items: start;
     background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
-    padding: 50px;
-    border-radius: 24px;
+    padding: 28px;
+    border-radius: 16px;
     border: 1px solid rgba(226, 232, 240, 0.6);
-    box-shadow: 
-        0 8px 32px rgba(15, 23, 42, 0.06),
-        0 4px 16px rgba(15, 23, 42, 0.04),
-        inset 0 1px 0 rgba(255, 255, 255, 0.9);
-    position: relative;
-    overflow: hidden;
-    
-    &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: linear-gradient(90deg, 
-            transparent 0%, 
-            rgba(59, 130, 246, 0.3) 25%, 
-            rgba(26, 54, 93, 0.4) 50%,
-            rgba(59, 130, 246, 0.3) 75%, 
-            transparent 100%
-        );
-    }
-
-    &::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: 
-            radial-gradient(circle at 15% 15%, rgba(59, 130, 246, 0.015) 0%, transparent 40%),
-            radial-gradient(circle at 85% 85%, rgba(26, 54, 93, 0.015) 0%, transparent 40%),
-            radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.01) 0%, transparent 60%);
-        pointer-events: none;
-        z-index: 0;
-    }
-    
-    > * {
-        position: relative;
-        z-index: 1;
-    }
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
 
     @media (max-width: 768px) {
         grid-template-columns: 1fr;
-        gap: 32px;
-        padding: 40px 32px;
-        border-radius: 20px;
+        gap: 20px;
+        padding: 24px;
+        border-radius: 12px;
     }
 
     @media (max-width: 480px) {
-        padding: 32px 24px;
-        border-radius: 16px;
+        padding: 20px;
     }
 `;
