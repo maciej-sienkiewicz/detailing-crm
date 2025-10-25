@@ -166,14 +166,6 @@ export const VisitsTable: React.FC<VisitsTableProps> = ({
                         variant: 'primary'
                     },
                     {
-                        id: 'edit',
-                        label: 'Edytuj wizytę',
-                        icon: FaEdit,
-                        onClick: () => onEditVisit?.(visit.id),
-                        variant: 'default',
-                        hidden: !onEditVisit
-                    },
-                    {
                         id: 'delete',
                         label: 'Usuń wizytę',
                         icon: FaTrash,
