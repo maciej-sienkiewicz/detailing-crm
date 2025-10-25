@@ -9,7 +9,6 @@ import {ServiceStatsModal} from './components/ServiceStatsModal';
 import {CategoryStatsModal} from './components/CategoryStatsModal';
 import styled from 'styled-components';
 
-// Unified professional theme
 const theme = {
     primary: '#1a365d',
     primaryLight: '#2c5aa0',
@@ -24,15 +23,17 @@ const theme = {
     },
     success: '#059669',
     spacing: {
-        sm: '8px',
-        md: '16px',
-        lg: '24px',
-        xl: '32px'
+        xs: '3px',
+        sm: '6px',
+        md: '10px',
+        lg: '14px',
+        xl: '18px'
     },
     radius: {
-        md: '8px',
-        lg: '12px',
-        xl: '16px'
+        sm: '4px',
+        md: '6px',
+        lg: '8px',
+        xl: '10px'
     },
     shadow: {
         sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
@@ -40,17 +41,17 @@ const theme = {
     }
 };
 
-// Simple toast notification
 const showToast = (type: 'success' | 'error', message: string) => {
     const toast = document.createElement('div');
     toast.style.cssText = `
         position: fixed;
         top: 20px;
         right: 20px;
-        padding: 12px 20px;
-        border-radius: 8px;
+        padding: 8px 14px;
+        border-radius: 6px;
         color: white;
         font-weight: 500;
+        font-size: 12px;
         z-index: 10000;
         background: ${type === 'success' ? '#059669' : '#dc2626'};
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
@@ -83,7 +84,6 @@ const showToast = (type: 'success' | 'error', message: string) => {
 };
 
 const FinancialReportsPage: React.FC = () => {
-    // Main data hook
     const {
         uncategorizedServices,
         categories,
@@ -100,7 +100,6 @@ const FinancialReportsPage: React.FC = () => {
         clearError
     } = useStatsData();
 
-    // Modal states
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showAssignModal, setShowAssignModal] = useState(false);
     const [showStatsModal, setShowStatsModal] = useState(false);
@@ -109,7 +108,6 @@ const FinancialReportsPage: React.FC = () => {
     const [selectedService, setSelectedService] = useState<{id: string, name: string} | null>(null);
     const [selectedCategory, setSelectedCategory] = useState<{id: number, name: string} | null>(null);
 
-    // Handle create category
     const handleCreateCategory = () => {
         setShowCreateModal(true);
     };
@@ -125,7 +123,6 @@ const FinancialReportsPage: React.FC = () => {
         }
     };
 
-    // Handle assign to category
     const handleAssignToCategory = (serviceIds: string[]) => {
         setSelectedServiceIds(serviceIds);
         setShowAssignModal(true);
@@ -143,13 +140,11 @@ const FinancialReportsPage: React.FC = () => {
         }
     };
 
-    // Handle show service statistics
     const handleShowServiceStats = (serviceId: string, serviceName: string) => {
         setSelectedService({ id: serviceId, name: serviceName });
         setShowStatsModal(true);
     };
 
-    // Handle show category statistics
     const handleShowCategoryStats = (categoryId: number, categoryName: string) => {
         setSelectedCategory({ id: categoryId, name: categoryName });
         setShowCategoryStatsModal(true);
@@ -165,7 +160,6 @@ const FinancialReportsPage: React.FC = () => {
         setSelectedCategory(null);
     };
 
-    // Handle refresh
     const handleRefresh = async () => {
         await refreshData();
         if (error) {
@@ -173,12 +167,10 @@ const FinancialReportsPage: React.FC = () => {
         }
     };
 
-    // Handle fetch category services
     const handleFetchCategoryServices = async (categoryId: number) => {
         return await fetchCategoryServices(categoryId);
     };
 
-    // Clear error when it changes
     React.useEffect(() => {
         if (error) {
             const timer = setTimeout(() => {
@@ -191,7 +183,6 @@ const FinancialReportsPage: React.FC = () => {
     return (
         <PageContainer>
             <ContentArea>
-                {/* Categories Section */}
                 <CategoriesSection
                     categories={categories}
                     categoryServices={categoryServices}
@@ -205,7 +196,6 @@ const FinancialReportsPage: React.FC = () => {
                     loading={loading}
                 />
 
-                {/* Uncategorized Services Table */}
                 <UncategorizedServicesTable
                     services={uncategorizedServices}
                     loading={loading}
@@ -215,7 +205,6 @@ const FinancialReportsPage: React.FC = () => {
                 />
             </ContentArea>
 
-            {/* Modals */}
             <CreateCategoryModal
                 isOpen={showCreateModal}
                 onClose={() => setShowCreateModal(false)}
@@ -253,14 +242,13 @@ const FinancialReportsPage: React.FC = () => {
     );
 };
 
-// Styled Components
 const PageContainer = styled.div`
     min-height: 100vh;
     background: ${theme.surfaceAlt};
-    padding: ${theme.spacing.lg};
+    padding: ${theme.spacing.md};
 
     @media (max-width: 768px) {
-        padding: ${theme.spacing.md};
+        padding: ${theme.spacing.sm};
     }
 
     .spinning {
@@ -276,7 +264,7 @@ const PageContainer = styled.div`
 const ContentArea = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${theme.spacing.lg};
+    gap: ${theme.spacing.md};
 `;
 
 export default FinancialReportsPage;

@@ -48,23 +48,23 @@ export const brandTheme = {
         xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
     },
 
-    // Spacing Scale
+    // Spacing Scale - REDUCED for compact layout
     spacing: {
-        xs: '4px',
-        sm: '8px',
-        md: '16px',
-        lg: '24px',
-        xl: '32px',
-        xxl: '48px'
+        xs: '3px',
+        sm: '6px',
+        md: '10px',
+        lg: '14px',
+        xl: '18px',
+        xxl: '24px'
     },
 
     // Border Radius
     radius: {
-        sm: '6px',
-        md: '8px',
-        lg: '12px',
-        xl: '16px',
-        xxl: '20px'
+        sm: '4px',
+        md: '6px',
+        lg: '8px',
+        xl: '10px',
+        xxl: '12px'
     },
 
     // Financial specific colors
@@ -104,14 +104,14 @@ export const brandTheme = {
         spring: '0.2s cubic-bezier(0.4, 0, 0.2, 1)'
     },
 
-    // Z-index scale - FIXED: Increased modal z-index values
+    // Z-index scale
     zIndex: {
         dropdown: 1000,
         sticky: 1020,
         fixed: 1030,
         modalBackdrop: 1040,
         modal: 1050,
-        modalEdit: 1060, // Added higher z-index for edit modals
+        modalEdit: 1060,
         popover: 1070,
         tooltip: 1080
     },

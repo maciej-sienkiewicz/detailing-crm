@@ -1,4 +1,4 @@
-// src/pages/Finances/components/FixedCostsPage.tsx - Improved filters design
+// src/pages/Finances/FixedCostsPage.tsx
 import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
 import {
@@ -54,23 +54,19 @@ const FixedCostsPage: React.FC<FixedCostsPageProps> = ({
                                                        }) => {
     const { showToast } = useToast();
 
-    // State
     const [fixedCosts, setFixedCosts] = useState<FixedCost[]>([]);
     const [categorySummary, setCategorySummary] = useState<CategorySummary | null>(null);
     const [upcomingPayments, setUpcomingPayments] = useState<UpcomingPayments | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Filters and search
     const [filters, setFilters] = useState<FixedCostFilters>({});
     const [searchTerm, setSearchTerm] = useState('');
     const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
-    // Sorting
     const [sortField, setSortField] = useState<SortField>('name');
     const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
-    // Pagination
     const [pagination, setPagination] = useState({
         currentPage: 0,
         pageSize: 20,
@@ -78,13 +74,11 @@ const FixedCostsPage: React.FC<FixedCostsPageProps> = ({
         totalPages: 0
     });
 
-    // Load data
     const loadData = async (currentPage = pagination.currentPage || 0, currentPageSize = pagination.pageSize || 20) => {
         try {
             setLoading(true);
             setError(null);
 
-            // Add fallback data for development/testing
             const isDevelopment = process.env.NODE_ENV === 'development';
 
             try {
@@ -157,7 +151,6 @@ const FixedCostsPage: React.FC<FixedCostsPageProps> = ({
         }
     };
 
-    // Effects
     useEffect(() => {
         loadData(0, 20);
     }, []);
@@ -174,7 +167,6 @@ const FixedCostsPage: React.FC<FixedCostsPageProps> = ({
         }
     }, [pagination.currentPage]);
 
-    // Helper functions
     const formatAmount = (amount: number): string => {
         return new Intl.NumberFormat('pl-PL', {
             style: 'currency',
@@ -188,7 +180,6 @@ const FixedCostsPage: React.FC<FixedCostsPageProps> = ({
         return new Date(dateString).toLocaleDateString('pl-PL');
     };
 
-    // Handle sorting
     const handleSort = (field: SortField) => {
         if (sortField === field) {
             setSortDirection(prev =>
@@ -207,7 +198,6 @@ const FixedCostsPage: React.FC<FixedCostsPageProps> = ({
         return <FaSort />;
     };
 
-    // Apply client-side sorting
     const sortedFixedCosts = React.useMemo(() => {
         if (!sortDirection) return fixedCosts;
 
@@ -226,7 +216,6 @@ const FixedCostsPage: React.FC<FixedCostsPageProps> = ({
         });
     }, [fixedCosts, sortField, sortDirection]);
 
-    // Apply search filter
     const filteredFixedCosts = React.useMemo(() => {
         if (!searchTerm) return sortedFixedCosts;
 
@@ -239,7 +228,6 @@ const FixedCostsPage: React.FC<FixedCostsPageProps> = ({
         );
     }, [sortedFixedCosts, searchTerm]);
 
-    // Handle actions
     const handleDeleteFixedCost = async (id: string, name: string) => {
         if (onDeleteFixedCost) {
             onDeleteFixedCost(id, name);
@@ -279,29 +267,24 @@ const FixedCostsPage: React.FC<FixedCostsPageProps> = ({
         }
     };
 
-    // Separate handlers for table row clicks
     const handleViewCost = (cost: FixedCost) => {
         if (onViewFixedCost) {
             onViewFixedCost(cost);
-        } else {
         }
     };
 
     const handleEditCost = (cost: FixedCost) => {
         if (onEditFixedCost) {
             onEditFixedCost(cost);
-        } else {
         }
     };
 
     const handleRecordPaymentForCost = (cost: FixedCost) => {
         if (onRecordPayment) {
             onRecordPayment(cost);
-        } else {
         }
     };
 
-    // Handle filter changes
     const handleFilterChange = (field: keyof FixedCostFilters, value: any) => {
         const newFilters = { ...filters };
         if (value === '' || value === undefined) {
@@ -319,15 +302,6 @@ const FixedCostsPage: React.FC<FixedCostsPageProps> = ({
         setPagination(prev => ({ ...prev, currentPage: 0 }));
     };
 
-    const handleQuickSearch = (searchValue: string) => {
-        setSearchTerm(searchValue);
-    };
-
-    const clearSearch = () => {
-        setSearchTerm('');
-    };
-
-    // Check if any filters are active
     const hasActiveFilters = Object.keys(filters).length > 0 || searchTerm.length > 0;
 
     if (loading && fixedCosts.length === 0) {
@@ -343,7 +317,6 @@ const FixedCostsPage: React.FC<FixedCostsPageProps> = ({
 
     return (
         <PageContainer>
-            {/* Summary Cards */}
             {categorySummary && (
                 <SummarySection>
                     <SummaryCardsGrid>
@@ -396,15 +369,10 @@ const FixedCostsPage: React.FC<FixedCostsPageProps> = ({
                 </SummarySection>
             )}
 
-            {/* Main Content */}
             <ContentContainer>
-                {/* IMPROVED Filters */}
                 <FiltersContainer>
-
-                    {/* Advanced Filters Panel - conditionally shown */}
                     {showAdvancedFilters && (
                         <AdvancedFiltersPanel>
-                            {/* Filter Fields - search removed since it's in main row */}
                             <FiltersGrid>
                                 <CompactFormGroup>
                                     <CompactSelect
@@ -467,7 +435,6 @@ const FixedCostsPage: React.FC<FixedCostsPageProps> = ({
                                     />
                                 </CompactFormGroup>
 
-                                {/* Clear filters button */}
                                 <CompactFormGroup>
                                     <ClearFiltersButton
                                         onClick={clearAllFilters}
@@ -482,7 +449,6 @@ const FixedCostsPage: React.FC<FixedCostsPageProps> = ({
                         </AdvancedFiltersPanel>
                     )}
 
-                    {/* Results Counter */}
                     <ResultsCounter>
                         <ResultsText>
                             Znaleziono: <strong>{filteredFixedCosts.length}</strong> {filteredFixedCosts.length === 1 ? 'koszt' : 'kosztów'}
@@ -490,7 +456,6 @@ const FixedCostsPage: React.FC<FixedCostsPageProps> = ({
                     </ResultsCounter>
                 </FiltersContainer>
 
-                {/* Error Display */}
                 {error && (
                     <ErrorMessage>
                         <ErrorIcon>⚠️</ErrorIcon>
@@ -498,25 +463,13 @@ const FixedCostsPage: React.FC<FixedCostsPageProps> = ({
                     </ErrorMessage>
                 )}
 
-                {/* Fixed Costs Table */}
                 <TableContainer>
                     <TableHeader>
                         <TableTitle>
                             Koszty stałe ({filteredFixedCosts.length})
                         </TableTitle>
 
-                        {/* Search and Filters in Table Header */}
                         <TableHeaderControls>
-                            {/* Quick Search */}
-                            <SearchWrapper>
-                                {searchTerm && (
-                                    <ClearSearchButton onClick={clearSearch}>
-                                        <FaTimes />
-                                    </ClearSearchButton>
-                                )}
-                            </SearchWrapper>
-
-                            {/* Advanced Filters Toggle */}
                             <FiltersToggleButton
                                 onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
                                 $expanded={showAdvancedFilters}
@@ -697,7 +650,6 @@ const FixedCostsPage: React.FC<FixedCostsPageProps> = ({
                         </TableWrapper>
                     )}
 
-                    {/* Pagination */}
                     {pagination.totalPages > 1 && (
                         <PaginationContainer>
                             <Pagination
@@ -716,7 +668,6 @@ const FixedCostsPage: React.FC<FixedCostsPageProps> = ({
     );
 };
 
-// Styled Components
 const PageContainer = styled.div`
     min-height: 100vh;
     background: ${brandTheme.surfaceAlt};
@@ -733,14 +684,14 @@ const LoadingContainer = styled.div`
     background: ${brandTheme.surface};
     border-radius: ${brandTheme.radius.xl};
     border: 1px solid ${brandTheme.border};
-    gap: ${brandTheme.spacing.md};
-    min-height: 400px;
-    margin: ${brandTheme.spacing.xl};
+    gap: ${brandTheme.spacing.sm};
+    min-height: 300px;
+    margin: ${brandTheme.spacing.lg};
 `;
 
 const LoadingSpinner = styled.div`
-    width: 48px;
-    height: 48px;
+    width: 36px;
+    height: 36px;
     border: 3px solid ${brandTheme.borderLight};
     border-top: 3px solid ${brandTheme.primary};
     border-radius: 50%;
@@ -753,7 +704,7 @@ const LoadingSpinner = styled.div`
 `;
 
 const LoadingText = styled.div`
-    font-size: 16px;
+    font-size: 13px;
     color: ${brandTheme.text.secondary};
     font-weight: 500;
 `;
@@ -761,45 +712,45 @@ const LoadingText = styled.div`
 const SummarySection = styled.section`
     max-width: 1600px;
     margin: 0 auto;
-    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl} 0;
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg} 0;
 
     @media (max-width: 1024px) {
-        padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg} 0;
+        padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md} 0;
     }
 
     @media (max-width: 768px) {
-        padding: ${brandTheme.spacing.md} ${brandTheme.spacing.md} 0;
+        padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.sm} 0;
     }
 `;
 
 const SummaryCardsGrid = styled.div`
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: ${brandTheme.spacing.lg};
-    margin-bottom: ${brandTheme.spacing.lg};
+    gap: ${brandTheme.spacing.md};
+    margin-bottom: ${brandTheme.spacing.md};
 
     @media (max-width: 992px) {
         grid-template-columns: 1fr;
     }
 
     @media (max-width: 768px) {
-        gap: ${brandTheme.spacing.md};
+        gap: ${brandTheme.spacing.sm};
     }
 `;
 
 const SummaryCard = styled.div<{ $type?: 'warning' }>`
     background: ${brandTheme.surface};
-    border-radius: ${brandTheme.radius.lg};
+    border-radius: ${brandTheme.radius.md};
     border: 1px solid ${props => props.$type === 'warning' ? brandTheme.status.error : brandTheme.border};
     overflow: hidden;
     box-shadow: ${brandTheme.shadow.xs};
     display: flex;
     align-items: center;
-    gap: ${brandTheme.spacing.md};
-    padding: ${brandTheme.spacing.lg};
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.md};
     transition: all 0.2s ease;
     position: relative;
-    min-height: 110px;
+    min-height: 70px;
 
     &:hover {
         transform: translateY(-1px);
@@ -813,22 +764,22 @@ const SummaryCard = styled.div<{ $type?: 'warning' }>`
         top: 0;
         left: 0;
         right: 0;
-        height: 3px;
+        height: 2px;
         background: ${props => props.$type === 'warning' ? brandTheme.status.error : brandTheme.primary};
         opacity: 0.8;
     }
 `;
 
 const CardIcon = styled.div<{ $color: string }>`
-    width: 48px;
-    height: 48px;
+    width: 32px;
+    height: 32px;
     background: ${brandTheme.surfaceAlt};
-    border-radius: ${brandTheme.radius.md};
+    border-radius: ${brandTheme.radius.sm};
     display: flex;
     align-items: center;
     justify-content: center;
     color: ${brandTheme.text.secondary};
-    font-size: 20px;
+    font-size: 14px;
     flex-shrink: 0;
     border: 1px solid ${brandTheme.border};
     transition: all 0.2s ease;
@@ -850,42 +801,42 @@ const CardContent = styled.div`
 `;
 
 const CardValue = styled.div<{ $type?: string }>`
-    font-size: 20px;
+    font-size: 14px;
     font-weight: 600;
     color: ${props => {
-        if (props.$type === 'error') return brandTheme.status.error;
-        return brandTheme.text.primary;
-    }};
+    if (props.$type === 'error') return brandTheme.status.error;
+    return brandTheme.text.primary;
+}};
     margin-bottom: ${brandTheme.spacing.xs};
     letter-spacing: -0.025em;
     line-height: 1.2;
-    height: 24px;
+    height: 16px;
     display: flex;
     align-items: center;
 
     @media (max-width: 768px) {
-        font-size: 18px;
+        font-size: 13px;
     }
 `;
 
 const CardLabel = styled.div`
-    font-size: 14px;
+    font-size: 11px;
     color: ${brandTheme.text.primary};
     font-weight: 600;
     margin-bottom: ${brandTheme.spacing.xs};
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    height: 17px;
+    letter-spacing: 0.3px;
+    height: 12px;
     display: flex;
     align-items: center;
 `;
 
 const CardDetail = styled.div`
-    font-size: 12px;
+    font-size: 10px;
     color: ${brandTheme.text.tertiary};
     font-weight: 500;
     line-height: 1.3;
-    min-height: 16px;
+    min-height: 12px;
     display: flex;
     align-items: center;
 `;
@@ -894,57 +845,38 @@ const ContentContainer = styled.div`
     flex: 1;
     max-width: 1600px;
     margin: 0 auto;
-    padding: 0 ${brandTheme.spacing.xl} ${brandTheme.spacing.xl};
+    padding: 0 ${brandTheme.spacing.lg} ${brandTheme.spacing.lg};
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: ${brandTheme.spacing.lg};
+    gap: ${brandTheme.spacing.md};
     min-height: 0;
 
     @media (max-width: 1024px) {
-        padding: 0 ${brandTheme.spacing.lg} ${brandTheme.spacing.lg};
+        padding: 0 ${brandTheme.spacing.md} ${brandTheme.spacing.md};
     }
 
     @media (max-width: 768px) {
-        padding: 0 ${brandTheme.spacing.md} ${brandTheme.spacing.md};
-        gap: ${brandTheme.spacing.md};
+        padding: 0 ${brandTheme.spacing.sm} ${brandTheme.spacing.sm};
+        gap: ${brandTheme.spacing.sm};
     }
 `;
 
-// IMPROVED Filters Components - only what's needed
 const FiltersContainer = styled.div`
     background: ${brandTheme.surface};
-    border-radius: ${brandTheme.radius.xl};
+    border-radius: ${brandTheme.radius.lg};
     border: 1px solid ${brandTheme.border};
     overflow: hidden;
     box-shadow: ${brandTheme.shadow.sm};
-    margin-bottom: ${brandTheme.spacing.lg};
-`;
-
-const MainFiltersRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.xl};
-    padding: ${brandTheme.spacing.lg};
-    border-bottom: 1px solid ${brandTheme.border};
-
-    @media (max-width: 1024px) {
-        flex-direction: column;
-        gap: ${brandTheme.spacing.lg};
-        align-items: stretch;
-    }
-
-    @media (max-width: 768px) {
-        gap: ${brandTheme.spacing.md};
-    }
+    margin-bottom: ${brandTheme.spacing.md};
 `;
 
 const ActiveFiltersBadge = styled.span`
     position: absolute;
-    top: -4px;
-    right: -4px;
-    width: 12px;
-    height: 12px;
+    top: -3px;
+    right: -3px;
+    width: 8px;
+    height: 8px;
     background: ${brandTheme.status.warning};
     border-radius: 50%;
     border: 2px solid ${brandTheme.surface};
@@ -963,7 +895,7 @@ const ActiveFiltersBadge = styled.span`
 `;
 
 const AdvancedFiltersPanel = styled.div`
-    padding: ${brandTheme.spacing.lg};
+    padding: ${brandTheme.spacing.md};
     background: ${brandTheme.surfaceAlt};
     border-bottom: 1px solid ${brandTheme.border};
     animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -971,23 +903,23 @@ const AdvancedFiltersPanel = styled.div`
     @keyframes slideDown {
         from {
             opacity: 0;
-            transform: translateY(-20px);
+            transform: translateY(-10px);
             max-height: 0;
-            padding: 0 ${brandTheme.spacing.lg};
+            padding: 0 ${brandTheme.spacing.md};
         }
         to {
             opacity: 1;
             transform: translateY(0);
             max-height: 500px;
-            padding: ${brandTheme.spacing.lg};
+            padding: ${brandTheme.spacing.md};
         }
     }
 `;
 
 const FiltersGrid = styled.div`
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: ${brandTheme.spacing.sm};
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: ${brandTheme.spacing.xs};
 
     @media (max-width: 768px) {
         grid-template-columns: 1fr 1fr;
@@ -1004,11 +936,11 @@ const CompactFormGroup = styled.div`
 `;
 
 const baseInputStyles = `
-    height: 36px;
+    height: 28px;
     padding: 0 ${brandTheme.spacing.sm};
     border: 1px solid ${brandTheme.border};
     border-radius: ${brandTheme.radius.sm};
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 500;
     background: ${brandTheme.surface};
     color: ${brandTheme.text.primary};
@@ -1032,7 +964,6 @@ const CompactInput = styled.input`
 
 const CompactSelect = styled.select`
     ${baseInputStyles}
-    cursor: pointer;
 `;
 
 const ClearFiltersButton = styled.button<{ $hasFilters: boolean }>`
@@ -1040,14 +971,14 @@ const ClearFiltersButton = styled.button<{ $hasFilters: boolean }>`
     align-items: center;
     justify-content: center;
     gap: ${brandTheme.spacing.xs};
-    height: 36px;
+    height: 28px;
     padding: 0 ${brandTheme.spacing.sm};
     border: 1px solid ${props => props.$hasFilters ? brandTheme.status.error : brandTheme.border};
     background: ${props => props.$hasFilters ? brandTheme.status.errorLight : brandTheme.surface};
     color: ${props => props.$hasFilters ? brandTheme.status.error : brandTheme.text.muted};
     border-radius: ${brandTheme.radius.sm};
     font-weight: 600;
-    font-size: 13px;
+    font-size: 11px;
     cursor: pointer;
     transition: all 0.2s ease;
     white-space: nowrap;
@@ -1067,7 +998,7 @@ const ClearFiltersButton = styled.button<{ $hasFilters: boolean }>`
 `;
 
 const ResultsCounter = styled.div`
-    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.lg};
+    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.md};
     background: ${brandTheme.primaryGhost};
     display: flex;
     align-items: center;
@@ -1075,7 +1006,7 @@ const ResultsCounter = styled.div`
 `;
 
 const ResultsText = styled.div`
-    font-size: 14px;
+    font-size: 11px;
     color: ${brandTheme.primary};
     font-weight: 500;
 
@@ -1087,18 +1018,19 @@ const ResultsText = styled.div`
 const ErrorMessage = styled.div`
     display: flex;
     align-items: center;
-    gap: ${brandTheme.spacing.sm};
+    gap: ${brandTheme.spacing.xs};
     background: ${brandTheme.status.errorLight};
     color: ${brandTheme.status.error};
-    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-    border-radius: ${brandTheme.radius.lg};
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+    border-radius: ${brandTheme.radius.md};
     border: 1px solid ${brandTheme.status.error}30;
     font-weight: 500;
     box-shadow: ${brandTheme.shadow.xs};
+    font-size: 11px;
 `;
 
 const ErrorIcon = styled.div`
-    font-size: 18px;
+    font-size: 14px;
     flex-shrink: 0;
 `;
 
@@ -1106,13 +1038,9 @@ const ErrorText = styled.div`
     flex: 1;
 `;
 
-const FiltersToggleSection = styled.div`
-    flex-shrink: 0;
-`;
-
 const TableContainer = styled.div`
     background: ${brandTheme.surface};
-    border-radius: ${brandTheme.radius.xl};
+    border-radius: ${brandTheme.radius.lg};
     border: 1px solid ${brandTheme.border};
     overflow: hidden;
     box-shadow: ${brandTheme.shadow.sm};
@@ -1126,21 +1054,21 @@ const TableHeader = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: ${brandTheme.spacing.lg};
+    padding: ${brandTheme.spacing.md};
     border-bottom: 1px solid ${brandTheme.border};
     background: ${brandTheme.surfaceAlt};
     flex-shrink: 0;
-    gap: ${brandTheme.spacing.xl};
+    gap: ${brandTheme.spacing.lg};
 
     @media (max-width: 1024px) {
         flex-direction: column;
         align-items: stretch;
-        gap: ${brandTheme.spacing.lg};
+        gap: ${brandTheme.spacing.md};
     }
 `;
 
 const TableTitle = styled.h3`
-    font-size: 18px;
+    font-size: 14px;
     font-weight: 600;
     color: ${brandTheme.text.primary};
     margin: 0;
@@ -1148,94 +1076,35 @@ const TableTitle = styled.h3`
     flex-shrink: 0;
 `;
 
-// New component for header controls
 const TableHeaderControls = styled.div`
     display: flex;
     align-items: center;
-    gap: ${brandTheme.spacing.md};
+    gap: ${brandTheme.spacing.sm};
     flex-shrink: 0;
 
     @media (max-width: 768px) {
         flex-direction: column;
         width: 100%;
-        gap: ${brandTheme.spacing.sm};
-    }
-`;
-
-const SearchWrapper = styled.div`
-    position: relative;
-    width: 300px;
-    flex-shrink: 0;
-
-    @media (max-width: 768px) {
-        width: 100%;
-    }
-`;
-
-const SearchInput = styled.input`
-    width: 100%;
-    height: 40px;
-    padding: 0 40px 0 16px;
-    border: 2px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.md};
-    font-size: 14px;
-    font-weight: 500;
-    background: ${brandTheme.surface};
-    color: ${brandTheme.text.primary};
-    transition: all 0.2s ease;
-
-    &:focus {
-        outline: none;
-        border-color: ${brandTheme.primary};
-        box-shadow: 0 0 0 3px ${brandTheme.primaryGhost};
-    }
-
-    &::placeholder {
-        color: ${brandTheme.text.muted};
-        font-weight: 400;
-    }
-`;
-
-const ClearSearchButton = styled.button`
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 18px;
-    height: 18px;
-    border: none;
-    background: ${brandTheme.text.muted};
-    color: white;
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 9px;
-    transition: all 0.2s ease;
-
-    &:hover {
-        background: ${brandTheme.status.error};
-        transform: translateY(-50%) scale(1.1);
+        gap: ${brandTheme.spacing.xs};
     }
 `;
 
 const FiltersToggleButton = styled.button<{ $expanded: boolean; $hasActiveFilters: boolean }>`
     display: flex;
     align-items: center;
-    gap: ${brandTheme.spacing.sm};
+    gap: ${brandTheme.spacing.xs};
     padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
     border: 2px solid ${props => props.$expanded ? brandTheme.primary : brandTheme.border};
     background: ${props => props.$expanded ? brandTheme.primaryGhost : brandTheme.surface};
     color: ${props => props.$expanded ? brandTheme.primary : brandTheme.text.secondary};
-    border-radius: ${brandTheme.radius.md};
+    border-radius: ${brandTheme.radius.sm};
     font-weight: 600;
-    font-size: 14px;
+    font-size: 12px;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     white-space: nowrap;
     position: relative;
-    height: 40px; /* Match search input height */
+    height: 30px;
     flex-shrink: 0;
 
     &:hover {
@@ -1248,7 +1117,7 @@ const FiltersToggleButton = styled.button<{ $expanded: boolean; $hasActiveFilter
 
     svg:last-child {
         margin-left: ${brandTheme.spacing.xs};
-        font-size: 12px;
+        font-size: 10px;
     }
 
     @media (max-width: 768px) {
@@ -1279,11 +1148,11 @@ const TableHead = styled.thead`
 const TableRowHeader = styled.tr``;
 
 const TableHeaderCell = styled.th`
-    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.md};
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.sm};
     text-align: left;
     font-weight: 600;
     color: ${brandTheme.text.primary};
-    font-size: 14px;
+    font-size: 11px;
     border-right: 1px solid ${brandTheme.border};
 
     &:last-child {
@@ -1307,7 +1176,7 @@ const SortableHeaderCell = styled(TableHeaderCell)`
 const SortIconWrapper = styled.span`
     margin-left: ${brandTheme.spacing.xs};
     opacity: 0.6;
-    font-size: 12px;
+    font-size: 10px;
 `;
 
 const TableBody = styled.tbody`
@@ -1329,9 +1198,10 @@ const TableRow = styled.tr`
 `;
 
 const TableCell = styled.td`
-    padding: ${brandTheme.spacing.md};
+    padding: ${brandTheme.spacing.sm};
     border-right: 1px solid ${brandTheme.borderLight};
     vertical-align: middle;
+    font-size: 11px;
 
     &:last-child {
         border-right: none;
@@ -1341,23 +1211,23 @@ const TableCell = styled.td`
 const NameCell = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 3px;
 `;
 
 const CostName = styled.div`
     font-weight: 600;
     color: ${brandTheme.text.primary};
-    font-size: 14px;
+    font-size: 11px;
 `;
 
 const CostDescription = styled.div`
-    font-size: 12px;
+    font-size: 10px;
     color: ${brandTheme.text.muted};
     line-height: 1.4;
 `;
 
 const ContractNumber = styled.div`
-    font-size: 11px;
+    font-size: 9px;
     color: ${brandTheme.text.tertiary};
     font-weight: 500;
 `;
@@ -1371,18 +1241,18 @@ const SupplierCell = styled.div`
 const SupplierName = styled.div`
     font-weight: 500;
     color: ${brandTheme.text.primary};
-    font-size: 13px;
+    font-size: 11px;
 `;
 
 const SupplierTaxId = styled.div`
-    font-size: 11px;
+    font-size: 9px;
     color: ${brandTheme.text.tertiary};
 `;
 
 const NoSupplier = styled.div`
     color: ${brandTheme.text.muted};
     font-style: italic;
-    font-size: 13px;
+    font-size: 11px;
 `;
 
 const AmountCell = styled.div`
@@ -1395,20 +1265,20 @@ const AmountCell = styled.div`
 const MainAmount = styled.div`
     font-weight: 600;
     color: ${brandTheme.text.primary};
-    font-size: 14px;
+    font-size: 11px;
 `;
 
 const OriginalAmount = styled.div`
-    font-size: 11px;
+    font-size: 9px;
     color: ${brandTheme.text.muted};
     font-style: italic;
 `;
 
 const FrequencyBadge = styled.span`
     display: inline-block;
-    padding: 4px 8px;
+    padding: 3px 6px;
     border-radius: ${brandTheme.radius.sm};
-    font-size: 12px;
+    font-size: 10px;
     font-weight: 600;
     background-color: ${brandTheme.surfaceAlt};
     color: ${brandTheme.text.secondary};
@@ -1424,33 +1294,33 @@ const NextPaymentCell = styled.div`
 const PaymentDate = styled.div`
     font-weight: 500;
     color: ${brandTheme.text.primary};
-    font-size: 13px;
+    font-size: 11px;
 `;
 
 const OverdueWarning = styled.div`
     display: flex;
     align-items: center;
-    gap: 4px;
-    font-size: 11px;
+    gap: 3px;
+    font-size: 9px;
     color: ${brandTheme.status.error};
     font-weight: 600;
 
     svg {
-        font-size: 10px;
+        font-size: 8px;
     }
 `;
 
 const NoPayment = styled.div`
     color: ${brandTheme.text.muted};
     font-style: italic;
-    font-size: 13px;
+    font-size: 11px;
 `;
 
 const StatusBadge = styled.span<{ status: string }>`
     display: inline-block;
-    padding: 6px 12px;
-    border-radius: ${brandTheme.radius.md};
-    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: ${brandTheme.radius.sm};
+    font-size: 10px;
     font-weight: 600;
     background-color: ${props => `${FixedCostStatusColors[props.status as keyof typeof FixedCostStatusColors]}22`};
     color: ${props => FixedCostStatusColors[props.status as keyof typeof FixedCostStatusColors]};
@@ -1469,20 +1339,20 @@ const ActionButton = styled.button<{
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 24px;
+    height: 24px;
     border: none;
     border-radius: ${brandTheme.radius.sm};
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    font-size: 13px;
+    font-size: 11px;
     position: relative;
     overflow: hidden;
 
     ${({ $variant }) => {
-        switch ($variant) {
-            case 'view':
-                return `
+    switch ($variant) {
+        case 'view':
+            return `
                     background: ${brandTheme.primaryGhost};
                     color: ${brandTheme.primary};
                     &:hover {
@@ -1492,8 +1362,8 @@ const ActionButton = styled.button<{
                         box-shadow: ${brandTheme.shadow.md};
                     }
                 `;
-            case 'edit':
-                return `
+        case 'edit':
+            return `
                     background: ${brandTheme.status.warningLight};
                     color: ${brandTheme.status.warning};
                     &:hover {
@@ -1503,8 +1373,8 @@ const ActionButton = styled.button<{
                         box-shadow: ${brandTheme.shadow.md};
                     }
                 `;
-            case 'payment':
-                return `
+        case 'payment':
+            return `
                     background: ${brandTheme.status.successLight};
                     color: ${brandTheme.status.success};
                     &:hover {
@@ -1514,8 +1384,8 @@ const ActionButton = styled.button<{
                         box-shadow: ${brandTheme.shadow.md};
                     }
                 `;
-            case 'delete':
-                return `
+        case 'delete':
+            return `
                     background: ${brandTheme.status.errorLight};
                     color: ${brandTheme.status.error};
                     &:hover {
@@ -1525,8 +1395,8 @@ const ActionButton = styled.button<{
                         box-shadow: ${brandTheme.shadow.md};
                     }
                 `;
-        }
-    }}
+    }
+}}
 `;
 
 const EmptyStateContainer = styled.div`
@@ -1539,41 +1409,41 @@ const EmptyStateContainer = styled.div`
     border-radius: ${brandTheme.radius.xl};
     border: 2px dashed ${brandTheme.border};
     text-align: center;
-    min-height: 400px;
-    margin: ${brandTheme.spacing.lg};
+    min-height: 300px;
+    margin: ${brandTheme.spacing.md};
 `;
 
 const EmptyStateIcon = styled.div`
-    width: 64px;
-    height: 64px;
+    width: 48px;
+    height: 48px;
     background: ${brandTheme.surfaceAlt};
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
+    font-size: 20px;
     color: ${brandTheme.text.tertiary};
-    margin-bottom: ${brandTheme.spacing.lg};
+    margin-bottom: ${brandTheme.spacing.md};
     box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
 `;
 
 const EmptyStateTitle = styled.h3`
-    font-size: 20px;
+    font-size: 16px;
     font-weight: 600;
     color: ${brandTheme.text.primary};
-    margin: 0 0 ${brandTheme.spacing.sm} 0;
+    margin: 0 0 ${brandTheme.spacing.xs} 0;
     letter-spacing: -0.025em;
 `;
 
 const EmptyStateDescription = styled.p`
-    font-size: 16px;
+    font-size: 13px;
     color: ${brandTheme.text.secondary};
-    margin: 0 0 ${brandTheme.spacing.sm} 0;
+    margin: 0 0 ${brandTheme.spacing.xs} 0;
     line-height: 1.5;
 `;
 
 const EmptyStateAction = styled.p`
-    font-size: 14px;
+    font-size: 11px;
     color: ${brandTheme.primary};
     margin: 0;
     font-weight: 500;
@@ -1582,7 +1452,7 @@ const EmptyStateAction = styled.p`
 const PaginationContainer = styled.div`
     display: flex;
     justify-content: center;
-    padding: ${brandTheme.spacing.lg} 0;
+    padding: ${brandTheme.spacing.md} 0;
 `;
 
 export default FixedCostsPage;

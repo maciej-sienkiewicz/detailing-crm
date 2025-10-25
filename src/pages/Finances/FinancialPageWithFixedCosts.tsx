@@ -206,7 +206,6 @@ const FinancialPageWithFixedCosts: React.FC = () => {
                 </SecondaryButton>
             );
 
-            // Dwa osobne przyciski dla przychodu i wydatku
             actions.push(
                 <PrimaryButton
                     key="add-expense"
@@ -413,20 +412,20 @@ const LoadingContainer = styled.div`
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: ${brandTheme.spacing.xxl};
+    padding: ${brandTheme.spacing.xl};
     background: ${brandTheme.surface};
-    border-radius: ${brandTheme.radius.xl};
+    border-radius: ${brandTheme.radius.lg};
     border: 1px solid ${brandTheme.border};
     gap: ${brandTheme.spacing.md};
-    min-height: 400px;
-    margin: ${brandTheme.spacing.xl};
+    min-height: 300px;
+    margin: ${brandTheme.spacing.lg};
 `;
 
 const LoadingSpinner = styled.div`
-    width: 48px;
-    height: 48px;
-    border: 3px solid ${brandTheme.borderLight};
-    border-top: 3px solid ${brandTheme.primary};
+    width: 36px;
+    height: 36px;
+    border: 2px solid ${brandTheme.borderLight};
+    border-top: 2px solid ${brandTheme.primary};
     border-radius: 50%;
     animation: spin 1s linear infinite;
 
@@ -437,7 +436,7 @@ const LoadingSpinner = styled.div`
 `;
 
 const LoadingText = styled.div`
-    font-size: 16px;
+    font-size: 13px;
     color: ${brandTheme.text.secondary};
     font-weight: 500;
 `;
@@ -445,14 +444,15 @@ const LoadingText = styled.div`
 const SummarySection = styled.section`
     max-width: 1600px;
     margin: 0 auto;
-    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl} 0;
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg} 0;
+    width: 100%;
 
     @media (max-width: 1024px) {
-        padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg} 0;
+        padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md} 0;
     }
 
     @media (max-width: 768px) {
-        padding: ${brandTheme.spacing.md} ${brandTheme.spacing.md} 0;
+        padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.sm} 0;
     }
 `;
 
@@ -460,20 +460,20 @@ const ContentContainer = styled.div`
     flex: 1;
     max-width: 1600px;
     margin: 0 auto;
-    padding: 0 ${brandTheme.spacing.xl} ${brandTheme.spacing.xl};
+    padding: 0 ${brandTheme.spacing.lg} ${brandTheme.spacing.lg};
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: ${brandTheme.spacing.lg};
+    gap: ${brandTheme.spacing.md};
     min-height: 0;
 
     @media (max-width: 1024px) {
-        padding: 0 ${brandTheme.spacing.lg} ${brandTheme.spacing.lg};
+        padding: 0 ${brandTheme.spacing.md} ${brandTheme.spacing.md};
     }
 
     @media (max-width: 768px) {
-        padding: 0 ${brandTheme.spacing.md} ${brandTheme.spacing.md};
-        gap: ${brandTheme.spacing.md};
+        padding: 0 ${brandTheme.spacing.sm} ${brandTheme.spacing.sm};
+        gap: ${brandTheme.spacing.sm};
     }
 `;
 
@@ -483,20 +483,22 @@ const ErrorMessage = styled.div`
     gap: ${brandTheme.spacing.sm};
     background: ${brandTheme.status.errorLight};
     color: ${brandTheme.status.error};
-    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-    border-radius: ${brandTheme.radius.lg};
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+    border-radius: ${brandTheme.radius.md};
     border: 1px solid ${brandTheme.status.error}30;
     font-weight: 500;
+    font-size: 12px;
     box-shadow: ${brandTheme.shadow.xs};
 `;
 
 const ErrorIcon = styled.div`
-    font-size: 18px;
+    font-size: 14px;
     flex-shrink: 0;
 `;
 
 const ErrorText = styled.div`
     flex: 1;
+    font-size: 12px;
 `;
 
 const RefreshButton = styled.button`
@@ -506,9 +508,9 @@ const RefreshButton = styled.button`
     background: ${brandTheme.status.error};
     color: white;
     border: none;
-    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
+    padding: 4px ${brandTheme.spacing.sm};
     border-radius: ${brandTheme.radius.sm};
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -522,12 +524,12 @@ const RefreshButton = styled.button`
 const PaginationContainer = styled.div`
     display: flex;
     justify-content: center;
-    padding: ${brandTheme.spacing.lg} 0;
+    padding: ${brandTheme.spacing.md} 0;
 `;
 
 const BalanceHistoryContainer = styled.div`
     background: ${brandTheme.surface};
-    border-radius: ${brandTheme.radius.xl};
+    border-radius: ${brandTheme.radius.lg};
     border: 1px solid ${brandTheme.border};
     overflow: hidden;
     box-shadow: ${brandTheme.shadow.sm};
@@ -535,19 +537,19 @@ const BalanceHistoryContainer = styled.div`
 
 const BalanceHistoryHeader = styled.div`
     background: ${brandTheme.surfaceAlt};
-    padding: ${brandTheme.spacing.xl};
+    padding: ${brandTheme.spacing.lg};
     border-bottom: 1px solid ${brandTheme.border};
 `;
 
 const HistoryHeaderText = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${brandTheme.spacing.sm};
+    gap: ${brandTheme.spacing.xs};
 `;
 
 const HistoryTitle = styled.h2`
     margin: 0;
-    font-size: 24px;
+    font-size: 18px;
     font-weight: 700;
     color: ${brandTheme.text.primary};
     letter-spacing: -0.025em;
@@ -555,25 +557,25 @@ const HistoryTitle = styled.h2`
 
 const HistorySubtitle = styled.p`
     margin: 0;
-    font-size: 16px;
+    font-size: 13px;
     color: ${brandTheme.text.secondary};
     line-height: 1.5;
 `;
 
 const BalanceHistoryContent = styled.div`
-    padding: ${brandTheme.spacing.xl};
+    padding: ${brandTheme.spacing.lg};
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: ${brandTheme.spacing.xl};
+    gap: ${brandTheme.spacing.lg};
     text-align: center;
-    min-height: 300px;
+    min-height: 200px;
     justify-content: center;
 `;
 
 const HistoryDescription = styled.p`
     margin: 0;
-    font-size: 16px;
+    font-size: 13px;
     color: ${brandTheme.text.secondary};
     line-height: 1.6;
     max-width: 600px;
@@ -582,13 +584,13 @@ const HistoryDescription = styled.p`
 const HistoryActionButton = styled.button`
     display: flex;
     align-items: center;
-    gap: ${brandTheme.spacing.md};
-    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
     background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
     color: white;
     border: none;
-    border-radius: ${brandTheme.radius.lg};
-    font-size: 16px;
+    border-radius: ${brandTheme.radius.md};
+    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -605,7 +607,7 @@ const HistoryActionButton = styled.button`
     }
 
     svg {
-        font-size: 20px;
+        font-size: 14px;
     }
 `;
 

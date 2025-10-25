@@ -4,7 +4,6 @@ import styled from 'styled-components';
 import {FaCheckSquare, FaFolderPlus, FaGripVertical, FaSquare, FaSync, FaTable} from 'react-icons/fa';
 import {UncategorizedService} from '../../../api/statsApi';
 
-// Brand Theme System - consistent with ClientListTable
 const brandTheme = {
     primary: 'var(--brand-primary, #1a365d)',
     primaryLight: 'var(--brand-primary-light, #2c5aa0)',
@@ -34,6 +33,20 @@ const brandTheme = {
         info: '#0ea5e9',
         infoLight: '#e0f2fe'
     },
+
+    spacing: {
+        xs: '3px',
+        sm: '6px',
+        md: '10px',
+        lg: '14px',
+        xl: '18px'
+    },
+
+    radius: {
+        sm: '4px',
+        md: '6px',
+        lg: '8px'
+    }
 };
 
 interface UncategorizedServicesTableProps {
@@ -53,7 +66,6 @@ export const UncategorizedServicesTable: React.FC<UncategorizedServicesTableProp
                                                                                       }) => {
     const [selectedServices, setSelectedServices] = useState<Set<string>>(new Set());
 
-    // Handle individual checkbox change
     const handleServiceSelect = useCallback((serviceId: string, checked: boolean) => {
         setSelectedServices(prev => {
             const newSet = new Set(prev);
@@ -66,7 +78,6 @@ export const UncategorizedServicesTable: React.FC<UncategorizedServicesTableProp
         });
     }, []);
 
-    // Handle select all checkbox
     const handleSelectAll = useCallback((checked: boolean) => {
         if (checked) {
             setSelectedServices(new Set(services.map(service => service.id)));
@@ -75,15 +86,13 @@ export const UncategorizedServicesTable: React.FC<UncategorizedServicesTableProp
         }
     }, [services]);
 
-    // Handle assign to category
     const handleAssignToCategory = useCallback(() => {
         if (selectedServices.size > 0) {
             onAssignToCategory(Array.from(selectedServices));
-            setSelectedServices(new Set()); // Clear selection after assignment
+            setSelectedServices(new Set());
         }
     }, [selectedServices, onAssignToCategory]);
 
-    // Clear selection when services change (e.g., after successful assignment)
     React.useEffect(() => {
         setSelectedServices(prev => {
             const currentServiceIds = new Set(services.map(s => s.id));
@@ -102,9 +111,7 @@ export const UncategorizedServicesTable: React.FC<UncategorizedServicesTableProp
     };
 
     const allSelected = services.length > 0 && selectedServices.size === services.length;
-    const someSelected = selectedServices.size > 0 && selectedServices.size < services.length;
 
-    // Empty state
     if (services.length === 0) {
         return (
             <ListContainer>
@@ -133,7 +140,6 @@ export const UncategorizedServicesTable: React.FC<UncategorizedServicesTableProp
 
     return (
         <ListContainer>
-            {/* Header */}
             <ListHeader>
                 <ListTitle>
                     Niekategoryzowane usługi ({services.length})
@@ -152,14 +158,12 @@ export const UncategorizedServicesTable: React.FC<UncategorizedServicesTableProp
                 </HeaderActions>
             </ListHeader>
 
-            {/* Loading State */}
             {loading ? (
                 <LoadingContainer>
-                    <FaSync className="spinning" style={{ marginRight: '12px' }} />
+                    <FaSync className="spinning" style={{ marginRight: '8px' }} />
                     Ładowanie usług...
                 </LoadingContainer>
             ) : (
-                /* Table Container - styled like ClientListTable */
                 <TableContainer>
                     <TableHeader>
                         <ModernHeaderCell $width="4%">
@@ -235,27 +239,26 @@ export const UncategorizedServicesTable: React.FC<UncategorizedServicesTableProp
     );
 };
 
-// Styled Components - consistent with ClientListTable
 const ListContainer = styled.div`
     background: ${brandTheme.surface};
-    border-radius: 16px;
+    border-radius: ${brandTheme.radius.lg};
     border: 1px solid ${brandTheme.border};
     overflow: hidden;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    margin-bottom: 24px;
+    margin-bottom: ${brandTheme.spacing.lg};
 `;
 
 const ListHeader = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 24px;
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
     border-bottom: 1px solid ${brandTheme.border};
     background: ${brandTheme.surfaceAlt};
 `;
 
 const ListTitle = styled.h3`
-    font-size: 18px;
+    font-size: 14px;
     font-weight: 600;
     color: #1e293b;
     margin: 0;
@@ -264,20 +267,20 @@ const ListTitle = styled.h3`
 const HeaderActions = styled.div`
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: ${brandTheme.spacing.sm};
 `;
 
 const AssignButton = styled.button`
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
+    gap: ${brandTheme.spacing.xs};
+    padding: 4px ${brandTheme.spacing.sm};
     background: ${brandTheme.status.success};
     color: white;
     border: none;
-    border-radius: 8px;
+    border-radius: ${brandTheme.radius.sm};
     font-weight: 500;
-    font-size: 14px;
+    font-size: 11px;
     cursor: pointer;
     transition: all 0.2s ease;
 
@@ -294,7 +297,7 @@ const AssignButton = styled.button`
     }
 
     svg {
-        font-size: 12px;
+        font-size: 10px;
     }
 `;
 
@@ -302,11 +305,11 @@ const RefreshButton = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 36px;
+    width: 28px;
+    height: 28px;
     background: ${brandTheme.surface};
     border: 1px solid ${brandTheme.border};
-    border-radius: 8px;
+    border-radius: ${brandTheme.radius.sm};
     color: ${brandTheme.neutral};
     cursor: pointer;
     transition: all 0.2s ease;
@@ -332,7 +335,6 @@ const RefreshButton = styled.button`
     }
 `;
 
-// Table Components - exactly like ClientListTable
 const TableContainer = styled.div`
     width: 100%;
     overflow-x: auto;
@@ -342,7 +344,7 @@ const TableHeader = styled.div`
     display: flex;
     background: ${brandTheme.surfaceAlt};
     border-bottom: 2px solid ${brandTheme.border};
-    min-height: 56px;
+    min-height: 40px;
 `;
 
 const ModernHeaderCell = styled.div<{ $width: string }>`
@@ -350,7 +352,7 @@ const ModernHeaderCell = styled.div<{ $width: string }>`
     width: ${props => props.$width};
     display: flex;
     align-items: center;
-    padding: 0 16px;
+    padding: 0 ${brandTheme.spacing.md};
     background: ${brandTheme.surfaceAlt};
     border-right: 1px solid ${brandTheme.border};
     cursor: grab;
@@ -369,13 +371,13 @@ const ModernHeaderCell = styled.div<{ $width: string }>`
 const HeaderContent = styled.div`
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: ${brandTheme.spacing.xs};
     width: 100%;
 `;
 
 const DragHandle = styled.div`
     color: ${brandTheme.neutral};
-    font-size: 12px;
+    font-size: 10px;
     opacity: 0.6;
     transition: opacity 0.2s ease;
 
@@ -385,7 +387,7 @@ const DragHandle = styled.div`
 `;
 
 const HeaderLabel = styled.span`
-    font-size: 14px;
+    font-size: 11px;
     font-weight: 600;
     color: #374151;
 `;
@@ -413,10 +415,10 @@ const TableRow = styled.div<{ $selected?: boolean }>`
 const TableCell = styled.div<{ $width?: string }>`
     flex: 0 0 ${props => props.$width || 'auto'};
     width: ${props => props.$width || 'auto'};
-    padding: 16px;
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
     display: flex;
     align-items: center;
-    min-height: 80px;
+    min-height: 56px;
     border-right: 1px solid ${brandTheme.border};
 
     &:last-child {
@@ -424,17 +426,16 @@ const TableCell = styled.div<{ $width?: string }>`
     }
 `;
 
-// Selection Components
 const SelectionCheckbox = styled.div<{ $selected?: boolean }>`
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    font-size: 18px;
+    font-size: 14px;
     color: ${props => props.$selected ? brandTheme.primary : brandTheme.neutral};
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    padding: 8px;
-    border-radius: 6px;
+    padding: 6px;
+    border-radius: ${brandTheme.radius.sm};
 
     &:hover {
         color: ${brandTheme.primary};
@@ -443,42 +444,40 @@ const SelectionCheckbox = styled.div<{ $selected?: boolean }>`
     }
 `;
 
-// Service-specific Cell Components
 const ServiceInfo = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
     width: 100%;
 `;
 
 const ServiceName = styled.div`
     font-weight: 600;
-    font-size: 15px;
+    font-size: 12px;
     color: #1e293b;
     line-height: 1.3;
 `;
 
 const MetricValue = styled.div`
     font-weight: 700;
-    font-size: 16px;
+    font-size: 13px;
     color: #374151;
     line-height: 1.2;
 `;
 
 const RevenueDisplay = styled.div`
-    font-size: 15px;
+    font-size: 12px;
     font-weight: 600;
     color: #374151;
 `;
 
-// Loading and Empty States
 const LoadingContainer = styled.div`
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 60px 40px;
+    padding: ${brandTheme.spacing.xl} ${brandTheme.spacing.lg};
     color: ${brandTheme.neutral};
-    font-size: 14px;
+    font-size: 12px;
 `;
 
 const EmptyStateContainer = styled.div`
@@ -486,33 +485,33 @@ const EmptyStateContainer = styled.div`
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 60px 40px;
+    padding: ${brandTheme.spacing.xl} ${brandTheme.spacing.lg};
     background: ${brandTheme.surface};
     text-align: center;
 `;
 
 const EmptyStateIcon = styled.div`
-    width: 64px;
-    height: 64px;
+    width: 48px;
+    height: 48px;
     background: ${brandTheme.surfaceAlt};
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
+    font-size: 18px;
     color: ${brandTheme.neutral};
-    margin-bottom: 20px;
+    margin-bottom: ${brandTheme.spacing.md};
 `;
 
 const EmptyStateTitle = styled.h3`
-    font-size: 20px;
+    font-size: 15px;
     font-weight: 600;
     color: #1e293b;
-    margin: 0 0 8px 0;
+    margin: 0 0 ${brandTheme.spacing.xs} 0;
 `;
 
 const EmptyStateDescription = styled.p`
-    font-size: 16px;
+    font-size: 13px;
     color: ${brandTheme.neutral};
     margin: 0;
     line-height: 1.5;

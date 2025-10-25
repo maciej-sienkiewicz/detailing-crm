@@ -34,7 +34,6 @@ const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({
     const [showHistoryModal, setShowHistoryModal] = useState(false);
     const [historyBalanceType, setHistoryBalanceType] = useState<BalanceType | undefined>();
 
-    // Format amount
     const formatAmount = (amount: number): string => {
         return new Intl.NumberFormat('pl-PL', {
             style: 'currency',
@@ -179,7 +178,7 @@ const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({
                     isOpen={showEditModal}
                     balanceType="cash"
                     currentCashBalance={summary.cashBalance}
-                    currentBankBalance={0} // Nie używamy już konta bankowego
+                    currentBankBalance={0}
                     onSave={handleBalanceSaved}
                     onClose={() => setShowEditModal(false)}
                 />
@@ -194,7 +193,6 @@ const FinancialSummaryCards: React.FC<FinancialSummaryCardsProps> = ({
     );
 };
 
-// Modal Component - Updated without reason selection
 interface BalanceEditModalProps {
     isOpen: boolean;
     balanceType: 'cash' | 'bank';
@@ -212,7 +210,7 @@ const BalanceEditModal: React.FC<BalanceEditModalProps> = ({
                                                                onSave,
                                                                onClose
                                                            }) => {
-    const [newBalance, setNewBalance] = useState(currentCashBalance); // Zawsze edytujemy kasę
+    const [newBalance, setNewBalance] = useState(currentCashBalance);
     const [description, setDescription] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -231,11 +229,10 @@ const BalanceEditModal: React.FC<BalanceEditModalProps> = ({
         setError(null);
 
         try {
-            // Import balanceOverrideApi dynamically to avoid circular dependencies
             const { balanceOverrideApi, BalanceType } = await import('../../../api/balanceOverrideApi');
 
             const result = await balanceOverrideApi.manualOverride({
-                balanceType: BalanceType.CASH, // Zawsze kasa
+                balanceType: BalanceType.CASH,
                 newBalance,
                 description: description.trim()
             });
@@ -345,26 +342,25 @@ const BalanceEditModal: React.FC<BalanceEditModalProps> = ({
     );
 };
 
-// Styled Components - Updated to include action buttons
 const SummarySection = styled.section`
     max-width: 1600px;
     margin: 0 auto;
-    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl} 0;
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg} 0;
 
     @media (max-width: 1024px) {
-        padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg} 0;
+        padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md} 0;
     }
 
     @media (max-width: 768px) {
-        padding: ${brandTheme.spacing.md} ${brandTheme.spacing.md} 0;
+        padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.sm} 0;
     }
 `;
 
 const CardsContainer = styled.div`
     display: grid;
     grid-template-columns: repeat(6, 1fr);
-    gap: ${brandTheme.spacing.lg};
-    margin-bottom: ${brandTheme.spacing.lg};
+    gap: ${brandTheme.spacing.md};
+    margin-bottom: ${brandTheme.spacing.md};
 
     @media (max-width: 1400px) {
         grid-template-columns: repeat(3, 1fr);
@@ -385,17 +381,17 @@ interface SummaryCardProps {
 
 const SummaryCard = styled.div<SummaryCardProps>`
     background: ${brandTheme.surface};
-    border-radius: ${brandTheme.radius.lg};
+    border-radius: ${brandTheme.radius.md};
     border: 1px solid ${brandTheme.border};
     overflow: hidden;
     box-shadow: ${brandTheme.shadow.xs};
     display: flex;
     align-items: center;
-    gap: ${brandTheme.spacing.md};
-    padding: ${brandTheme.spacing.lg};
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.md};
     transition: all 0.2s ease;
     position: relative;
-    min-height: 110px;
+    min-height: 70px;
 
     &:hover {
         transform: translateY(-1px);
@@ -417,22 +413,22 @@ const SummaryCard = styled.div<SummaryCardProps>`
         top: 0;
         left: 0;
         right: 0;
-        height: 3px;
+        height: 2px;
         background: ${brandTheme.primary};
         opacity: 0.8;
     }
 `;
 
 const CardIcon = styled.div<{ $color: string }>`
-    width: 48px;
-    height: 48px;
+    width: 32px;
+    height: 32px;
     background: ${brandTheme.surfaceAlt};
-    border-radius: ${brandTheme.radius.md};
+    border-radius: ${brandTheme.radius.sm};
     display: flex;
     align-items: center;
     justify-content: center;
     color: ${brandTheme.text.secondary};
-    font-size: 20px;
+    font-size: 14px;
     flex-shrink: 0;
     border: 1px solid ${brandTheme.border};
     transition: all 0.2s ease;
@@ -454,50 +450,50 @@ const CardContent = styled.div`
 `;
 
 const CardValue = styled.div<{ $profit?: number; $type?: string }>`
-    font-size: 20px;
+    font-size: 14px;
     font-weight: 600;
     color: ${props => {
-        if (props.$profit !== undefined) {
-            return props.$profit >= 0 ? brandTheme.status.success : brandTheme.status.error;
-        }
-        if (props.$type === 'income') {
-            return brandTheme.status.success;
-        }
-        if (props.$type === 'expense') {
-            return brandTheme.status.error;
-        }
-        return brandTheme.text.primary;
-    }};
+    if (props.$profit !== undefined) {
+        return props.$profit >= 0 ? brandTheme.status.success : brandTheme.status.error;
+    }
+    if (props.$type === 'income') {
+        return brandTheme.status.success;
+    }
+    if (props.$type === 'expense') {
+        return brandTheme.status.error;
+    }
+    return brandTheme.text.primary;
+}};
     margin-bottom: ${brandTheme.spacing.xs};
     letter-spacing: -0.025em;
     line-height: 1.2;
-    height: 24px;
+    height: 16px;
     display: flex;
     align-items: center;
 
     @media (max-width: 768px) {
-        font-size: 18px;
+        font-size: 13px;
     }
 `;
 
 const CardLabel = styled.div`
-    font-size: 14px;
+    font-size: 11px;
     color: ${brandTheme.text.primary};
     font-weight: 600;
     margin-bottom: ${brandTheme.spacing.xs};
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    height: 17px;
+    letter-spacing: 0.3px;
+    height: 12px;
     display: flex;
     align-items: center;
 `;
 
 const CardDetail = styled.div`
-    font-size: 12px;
+    font-size: 10px;
     color: ${brandTheme.text.tertiary};
     font-weight: 500;
     line-height: 1.3;
-    min-height: 16px;
+    min-height: 12px;
     display: flex;
     align-items: center;
 `;
@@ -507,25 +503,25 @@ const WarningText = styled.span`
     display: flex;
     align-items: center;
     gap: ${brandTheme.spacing.xs};
-    font-size: 11px;
+    font-size: 9px;
     font-weight: 600;
 
     svg {
-        font-size: 10px;
+        font-size: 8px;
     }
 `;
 
 const CardActions = styled.div`
     position: absolute;
-    top: ${brandTheme.spacing.sm};
-    right: ${brandTheme.spacing.sm};
+    top: ${brandTheme.spacing.xs};
+    right: ${brandTheme.spacing.xs};
     display: flex;
     gap: ${brandTheme.spacing.xs};
 `;
 
 const ActionIcon = styled.button`
-    width: 28px;
-    height: 28px;
+    width: 20px;
+    height: 20px;
     border: none;
     background: ${brandTheme.primary};
     color: white;
@@ -537,7 +533,7 @@ const ActionIcon = styled.button`
     opacity: 0;
     transform: scale(0.8);
     transition: all 0.2s ease;
-    font-size: 12px;
+    font-size: 9px;
     box-shadow: ${brandTheme.shadow.md};
 
     &:hover {
@@ -551,12 +547,12 @@ const ActionIcon = styled.button`
 `;
 
 const ModalContent = styled.div`
-    padding: ${brandTheme.spacing.xl};
+    padding: ${brandTheme.spacing.lg};
     overflow-y: auto;
     flex: 1;
 
     &::-webkit-scrollbar {
-        width: 8px;
+        width: 6px;
     }
 
     &::-webkit-scrollbar-track {
@@ -565,7 +561,7 @@ const ModalContent = styled.div`
 
     &::-webkit-scrollbar-thumb {
         background: ${brandTheme.border};
-        border-radius: 4px;
+        border-radius: 3px;
     }
 
     &::-webkit-scrollbar-thumb:hover {
@@ -577,21 +573,21 @@ const CurrentBalanceInfo = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: ${brandTheme.spacing.md};
+    padding: ${brandTheme.spacing.sm};
     background: ${brandTheme.surfaceAlt};
-    border-radius: ${brandTheme.radius.md};
+    border-radius: ${brandTheme.radius.sm};
     border: 1px solid ${brandTheme.border};
-    margin-bottom: ${brandTheme.spacing.lg};
+    margin-bottom: ${brandTheme.spacing.md};
 `;
 
 const InfoLabel = styled.span`
-    font-size: 14px;
+    font-size: 12px;
     color: ${brandTheme.text.secondary};
     font-weight: 600;
 `;
 
 const InfoValue = styled.span`
-    font-size: 16px;
+    font-size: 13px;
     color: ${brandTheme.text.primary};
     font-weight: 700;
 `;
@@ -602,18 +598,18 @@ const ErrorMessage = styled.div`
     gap: ${brandTheme.spacing.sm};
     background: ${brandTheme.status.errorLight};
     color: ${brandTheme.status.error};
-    padding: ${brandTheme.spacing.md};
-    border-radius: ${brandTheme.radius.md};
+    padding: ${brandTheme.spacing.sm};
+    border-radius: ${brandTheme.radius.sm};
     border: 1px solid ${brandTheme.status.error}30;
     font-weight: 500;
-    font-size: 14px;
-    margin-bottom: ${brandTheme.spacing.lg};
+    font-size: 12px;
+    margin-bottom: ${brandTheme.spacing.md};
 `;
 
 const Form = styled.form`
     display: flex;
     flex-direction: column;
-    gap: ${brandTheme.spacing.lg};
+    gap: ${brandTheme.spacing.md};
 `;
 
 const FormGroup = styled.div`
@@ -623,17 +619,17 @@ const FormGroup = styled.div`
 `;
 
 const Label = styled.label`
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 600;
     color: ${brandTheme.text.primary};
 `;
 
 const Input = styled.input`
-    height: 44px;
-    padding: 0 ${brandTheme.spacing.md};
+    height: 32px;
+    padding: 0 ${brandTheme.spacing.sm};
     border: 2px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.md};
-    font-size: 14px;
+    border-radius: ${brandTheme.radius.sm};
+    font-size: 12px;
     font-weight: 500;
     background: ${brandTheme.surface};
     color: ${brandTheme.text.primary};
@@ -642,7 +638,7 @@ const Input = styled.input`
     &:focus {
         outline: none;
         border-color: ${brandTheme.primary};
-        box-shadow: 0 0 0 3px ${brandTheme.primaryGhost};
+        box-shadow: 0 0 0 2px ${brandTheme.primaryGhost};
     }
 
     &::placeholder {
@@ -652,22 +648,22 @@ const Input = styled.input`
 `;
 
 const Textarea = styled.textarea`
-    padding: ${brandTheme.spacing.md};
+    padding: ${brandTheme.spacing.sm};
     border: 2px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.md};
-    font-size: 14px;
+    border-radius: ${brandTheme.radius.sm};
+    font-size: 12px;
     font-weight: 500;
     background: ${brandTheme.surface};
     color: ${brandTheme.text.primary};
     resize: vertical;
-    min-height: 100px;
+    min-height: 70px;
     font-family: inherit;
     transition: all 0.2s ease;
 
     &:focus {
         outline: none;
         border-color: ${brandTheme.primary};
-        box-shadow: 0 0 0 3px ${brandTheme.primaryGhost};
+        box-shadow: 0 0 0 2px ${brandTheme.primaryGhost};
     }
 
     &::placeholder {
@@ -677,7 +673,7 @@ const Textarea = styled.textarea`
 `;
 
 const FieldHint = styled.div`
-    font-size: 12px;
+    font-size: 10px;
     color: ${brandTheme.text.secondary};
     margin-top: ${brandTheme.spacing.xs};
     line-height: 1.4;
@@ -687,21 +683,21 @@ const DifferenceInfo = styled.div<{ $isPositive: boolean }>`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: ${brandTheme.spacing.md};
+    padding: ${brandTheme.spacing.sm};
     background: ${props => props.$isPositive ? brandTheme.status.successLight : brandTheme.status.warningLight};
     border: 1px solid ${props => props.$isPositive ? brandTheme.status.success + '44' : brandTheme.status.warning + '44'};
-    border-radius: ${brandTheme.radius.md};
-    margin: ${brandTheme.spacing.md} 0;
+    border-radius: ${brandTheme.radius.sm};
+    margin: ${brandTheme.spacing.sm} 0;
 `;
 
 const DifferenceLabel = styled.span`
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 600;
     color: inherit;
 `;
 
 const DifferenceValue = styled.span`
-    font-size: 16px;
+    font-size: 13px;
     font-weight: 700;
     color: inherit;
 `;
@@ -709,8 +705,8 @@ const DifferenceValue = styled.span`
 const FormActions = styled.div`
     display: flex;
     justify-content: flex-end;
-    gap: ${brandTheme.spacing.md};
-    margin-top: ${brandTheme.spacing.lg};
+    gap: ${brandTheme.spacing.sm};
+    margin-top: ${brandTheme.spacing.md};
 
     @media (max-width: 576px) {
         flex-direction: column-reverse;
@@ -721,15 +717,15 @@ const BaseButton = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: ${brandTheme.spacing.sm};
-    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-    border-radius: ${brandTheme.radius.md};
+    gap: ${brandTheme.spacing.xs};
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+    border-radius: ${brandTheme.radius.sm};
     font-weight: 600;
-    font-size: 14px;
+    font-size: 12px;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    min-height: 44px;
-    min-width: 120px;
+    min-height: 32px;
+    min-width: 90px;
 
     &:disabled {
         opacity: 0.6;
@@ -782,7 +778,7 @@ const ModalOverlay = styled.div`
     align-items: center;
     justify-content: center;
     z-index: ${brandTheme.zIndex.modalEdit};
-    padding: ${brandTheme.spacing.lg};
+    padding: ${brandTheme.spacing.md};
     backdrop-filter: blur(4px);
     animation: fadeIn 0.2s ease;
 
@@ -794,10 +790,10 @@ const ModalOverlay = styled.div`
 
 const ModalContainer = styled.div`
     background-color: ${brandTheme.surface};
-    border-radius: ${brandTheme.radius.xl};
+    border-radius: ${brandTheme.radius.lg};
     box-shadow: ${brandTheme.shadow.xl};
     width: 95vw;
-    max-width: 500px;
+    max-width: 420px;
     max-height: 95vh;
     display: flex;
     flex-direction: column;
@@ -827,7 +823,7 @@ const ModalHeader = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
     border-bottom: 1px solid ${brandTheme.border};
     background: ${brandTheme.surfaceAlt};
     flex-shrink: 0;
@@ -836,24 +832,24 @@ const ModalHeader = styled.div`
 const ModalTitle = styled.div`
     display: flex;
     align-items: center;
-    gap: ${brandTheme.spacing.md};
+    gap: ${brandTheme.spacing.sm};
 `;
 
 const TitleIcon = styled.div`
-    width: 40px;
-    height: 40px;
+    width: 28px;
+    height: 28px;
     background: ${brandTheme.primaryGhost};
-    border-radius: ${brandTheme.radius.md};
+    border-radius: ${brandTheme.radius.sm};
     display: flex;
     align-items: center;
     justify-content: center;
     color: ${brandTheme.primary};
-    font-size: 18px;
+    font-size: 13px;
 `;
 
 const TitleText = styled.h2`
     margin: 0;
-    font-size: 18px;
+    font-size: 14px;
     font-weight: 700;
     color: ${brandTheme.text.primary};
     letter-spacing: -0.025em;
@@ -861,10 +857,10 @@ const TitleText = styled.h2`
 
 const SkeletonCard = styled.div`
     background: ${brandTheme.surface};
-    border-radius: ${brandTheme.radius.xl};
+    border-radius: ${brandTheme.radius.lg};
     border: 1px solid ${brandTheme.border};
-    padding: ${brandTheme.spacing.lg};
-    height: 110px;
+    padding: ${brandTheme.spacing.md};
+    height: 70px;
     box-shadow: ${brandTheme.shadow.sm};
     position: relative;
     overflow: hidden;
@@ -898,15 +894,15 @@ const CloseButton = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
+    width: 28px;
+    height: 28px;
     border: none;
     background: ${brandTheme.surfaceHover};
     color: ${brandTheme.text.secondary};
-    border-radius: ${brandTheme.radius.md};
+    border-radius: ${brandTheme.radius.sm};
     cursor: pointer;
     transition: all ${brandTheme.transitions.normal};
-    font-size: 20px;
+    font-size: 16px;
 
     &:hover {
         background: ${brandTheme.status.errorLight};

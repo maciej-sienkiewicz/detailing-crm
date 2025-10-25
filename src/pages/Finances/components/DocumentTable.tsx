@@ -73,7 +73,6 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
         isDownloading
     } = useDocumentOperations({ onError });
 
-    // Save view mode preference
     React.useEffect(() => {
         try {
             localStorage.setItem('financial_view_mode', viewMode);
@@ -82,7 +81,6 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
         }
     }, [viewMode]);
 
-    // Sorting logic
     const sortedDocuments = useMemo(() => {
         if (!sortDirection) return documents;
 
@@ -119,7 +117,6 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
         return <FaSort />;
     }, [sortField, sortDirection]);
 
-    // Helper functions
     const formatDate = useCallback((dateString: string): string => {
         return new Date(dateString).toLocaleDateString('pl-PL');
     }, []);
@@ -196,7 +193,6 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
 
     return (
         <TableContainer>
-            {/* Header with view controls */}
             <TableHeader>
                 <TableTitle>
                     Dokumenty finansowe ({documents.length})
@@ -219,7 +215,6 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
                 </ViewControls>
             </TableHeader>
 
-            {/* Content based on view mode */}
             {viewMode === 'table' ? (
                 <TableWrapper>
                     <Table>
@@ -449,10 +444,9 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
     );
 };
 
-// Styled Components
 const TableContainer = styled.div`
     background: ${brandTheme.surface};
-    border-radius: ${brandTheme.radius.xl};
+    border-radius: ${brandTheme.radius.lg};
     border: 1px solid ${brandTheme.border};
     overflow: hidden;
     box-shadow: ${brandTheme.shadow.sm};
@@ -466,14 +460,14 @@ const TableHeader = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: ${brandTheme.spacing.lg};
+    padding: ${brandTheme.spacing.md};
     border-bottom: 1px solid ${brandTheme.border};
     background: ${brandTheme.surfaceAlt};
     flex-shrink: 0;
 `;
 
 const TableTitle = styled.h3`
-    font-size: 18px;
+    font-size: 14px;
     font-weight: 600;
     color: ${brandTheme.text.primary};
     margin: 0;
@@ -483,7 +477,7 @@ const TableTitle = styled.h3`
 const ViewControls = styled.div`
     display: flex;
     border: 2px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.md};
+    border-radius: ${brandTheme.radius.sm};
     overflow: hidden;
     background: ${brandTheme.surface};
 `;
@@ -492,14 +486,14 @@ const ViewButton = styled.button<{ $active: boolean }>`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 44px;
-    height: 40px;
+    width: 32px;
+    height: 28px;
     border: none;
     background: ${props => props.$active ? brandTheme.primary : brandTheme.surface};
     color: ${props => props.$active ? 'white' : brandTheme.text.tertiary};
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    font-size: 16px;
+    font-size: 12px;
 
     &:hover {
         background: ${props => props.$active ? brandTheme.primaryDark : brandTheme.primaryGhost};
@@ -511,7 +505,6 @@ const ViewButton = styled.button<{ $active: boolean }>`
     }
 `;
 
-// Table Components
 const TableWrapper = styled.div`
     flex: 1;
     overflow: auto;
@@ -534,11 +527,11 @@ const TableHead = styled.thead`
 const TableRowHeader = styled.tr``;
 
 const TableHeaderCell = styled.th`
-    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.md};
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.sm};
     text-align: left;
     font-weight: 600;
     color: ${brandTheme.text.primary};
-    font-size: 14px;
+    font-size: 11px;
     border-right: 1px solid ${brandTheme.border};
 
     &:last-child {
@@ -562,7 +555,7 @@ const SortableHeaderCell = styled(TableHeaderCell)`
 const SortIconWrapper = styled.span`
     margin-left: ${brandTheme.spacing.xs};
     opacity: 0.6;
-    font-size: 12px;
+    font-size: 10px;
 `;
 
 const TableBody = styled.tbody`
@@ -584,60 +577,60 @@ const TableRow = styled.tr`
 `;
 
 const TableCell = styled.td`
-    padding: ${brandTheme.spacing.md};
+    padding: ${brandTheme.spacing.sm};
     border-right: 1px solid ${brandTheme.borderLight};
     vertical-align: middle;
+    font-size: 11px;
 
     &:last-child {
         border-right: none;
     }
 `;
 
-// Document Type Badge
 const DocumentTypeBadge = styled.span<{ type: DocumentType; $small?: boolean }>`
     display: inline-flex;
     align-items: center;
     gap: ${brandTheme.spacing.xs};
-    padding: ${props => props.$small ? '4px 8px' : '6px 12px'};
-    border-radius: ${brandTheme.radius.md};
-    font-size: ${props => props.$small ? '11px' : '12px'};
+    padding: ${props => props.$small ? '3px 6px' : '4px 8px'};
+    border-radius: ${brandTheme.radius.sm};
+    font-size: ${props => props.$small ? '9px' : '10px'};
     font-weight: 600;
     background-color: ${props => {
-        switch (props.type) {
-            case DocumentType.INVOICE:
-                return 'rgba(52, 152, 219, 0.15)';
-            case DocumentType.RECEIPT:
-                return 'rgba(46, 204, 113, 0.15)';
-            case DocumentType.OTHER:
-                return 'rgba(149, 165, 166, 0.15)';
-        }
-    }};
+    switch (props.type) {
+        case DocumentType.INVOICE:
+            return 'rgba(52, 152, 219, 0.15)';
+        case DocumentType.RECEIPT:
+            return 'rgba(46, 204, 113, 0.15)';
+        case DocumentType.OTHER:
+            return 'rgba(149, 165, 166, 0.15)';
+    }
+}};
     color: ${props => {
-        switch (props.type) {
-            case DocumentType.INVOICE:
-                return '#3498db';
-            case DocumentType.RECEIPT:
-                return '#2ecc71';
-            case DocumentType.OTHER:
-                return '#95a5a6';
-        }
-    }};
+    switch (props.type) {
+        case DocumentType.INVOICE:
+            return '#3498db';
+        case DocumentType.RECEIPT:
+            return '#2ecc71';
+        case DocumentType.OTHER:
+            return '#95a5a6';
+    }
+}};
     border: 1px solid ${props => {
-        switch (props.type) {
-            case DocumentType.INVOICE:
-                return 'rgba(52, 152, 219, 0.3)';
-            case DocumentType.RECEIPT:
-                return 'rgba(46, 204, 113, 0.3)';
-            case DocumentType.OTHER:
-                return 'rgba(149, 165, 166, 0.3)';
-        }
-    }};
+    switch (props.type) {
+        case DocumentType.INVOICE:
+            return 'rgba(52, 152, 219, 0.3)';
+        case DocumentType.RECEIPT:
+            return 'rgba(46, 204, 113, 0.3)';
+        case DocumentType.OTHER:
+            return 'rgba(149, 165, 166, 0.3)';
+    }
+}};
 `;
 
 const DocumentTitleCell = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 3px;
 `;
 
 const DocumentTitle = styled.div`
@@ -646,9 +639,9 @@ const DocumentTitle = styled.div`
 `;
 
 const DocumentDescription = styled.div`
-    font-size: 12px;
+    font-size: 10px;
     color: ${brandTheme.text.muted};
-    max-width: 200px;
+    max-width: 180px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -656,9 +649,9 @@ const DocumentDescription = styled.div`
 
 const DirectionBadge = styled.span<{ direction: TransactionDirection }>`
     display: inline-block;
-    padding: 4px 8px;
+    padding: 3px 6px;
     border-radius: ${brandTheme.radius.sm};
-    font-size: 12px;
+    font-size: 10px;
     font-weight: 600;
     background-color: ${props => `${TransactionDirectionColors[props.direction]}22`};
     color: ${props => TransactionDirectionColors[props.direction]};
@@ -672,16 +665,15 @@ const AmountCell = styled.div<{ direction: TransactionDirection }>`
 
 const StatusBadge = styled.span<{ status: DocumentStatus; $small?: boolean }>`
     display: inline-block;
-    padding: ${props => props.$small ? '4px 8px' : '6px 12px'};
-    border-radius: ${brandTheme.radius.md};
-    font-size: ${props => props.$small ? '11px' : '12px'};
+    padding: ${props => props.$small ? '3px 6px' : '4px 8px'};
+    border-radius: ${brandTheme.radius.sm};
+    font-size: ${props => props.$small ? '9px' : '10px'};
     font-weight: 600;
     background-color: ${props => `${DocumentStatusColors[props.status]}22`};
     color: ${props => DocumentStatusColors[props.status]};
     border: 1px solid ${props => `${DocumentStatusColors[props.status]}44`};
 `;
 
-// Action Components
 const ActionButtons = styled.div`
     display: flex;
     gap: ${brandTheme.spacing.xs};
@@ -695,20 +687,20 @@ const ActionButton = styled.button<{
     display: flex;
     align-items: center;
     justify-content: center;
-    width: ${props => props.$small ? '28px' : '32px'};
-    height: ${props => props.$small ? '28px' : '32px'};
+    width: ${props => props.$small ? '22px' : '24px'};
+    height: ${props => props.$small ? '22px' : '24px'};
     border: none;
     border-radius: ${brandTheme.radius.sm};
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    font-size: ${props => props.$small ? '12px' : '13px'};
+    font-size: ${props => props.$small ? '10px' : '11px'};
     position: relative;
     overflow: hidden;
 
     ${({ $variant }) => {
-        switch ($variant) {
-            case 'view':
-                return `
+    switch ($variant) {
+        case 'view':
+            return `
                     background: ${brandTheme.primaryGhost};
                     color: ${brandTheme.primary};
                     &:hover:not(:disabled) {
@@ -718,8 +710,8 @@ const ActionButton = styled.button<{
                         box-shadow: ${brandTheme.shadow.md};
                     }
                 `;
-            case 'print':
-                return `
+        case 'print':
+            return `
                     background: ${brandTheme.status.infoLight};
                     color: ${brandTheme.status.info};
                     &:hover:not(:disabled) {
@@ -729,8 +721,8 @@ const ActionButton = styled.button<{
                         box-shadow: ${brandTheme.shadow.md};
                     }
                 `;
-            case 'download':
-                return `
+        case 'download':
+            return `
                     background: ${brandTheme.status.successLight};
                     color: ${brandTheme.status.success};
                     &:hover:not(:disabled) {
@@ -740,8 +732,8 @@ const ActionButton = styled.button<{
                         box-shadow: ${brandTheme.shadow.md};
                     }
                 `;
-            case 'edit':
-                return `
+        case 'edit':
+            return `
                     background: ${brandTheme.status.warningLight};
                     color: ${brandTheme.status.warning};
                     &:hover:not(:disabled) {
@@ -751,8 +743,8 @@ const ActionButton = styled.button<{
                         box-shadow: ${brandTheme.shadow.md};
                     }
                 `;
-            case 'delete':
-                return `
+        case 'delete':
+            return `
                     background: ${brandTheme.status.errorLight};
                     color: ${brandTheme.status.error};
                     &:hover:not(:disabled) {
@@ -762,8 +754,8 @@ const ActionButton = styled.button<{
                         box-shadow: ${brandTheme.shadow.md};
                     }
                 `;
-        }
-    }}
+    }
+}}
 
     &:disabled {
         opacity: 0.6;
@@ -781,12 +773,11 @@ const ActionButton = styled.button<{
     }
 `;
 
-// Card Components
 const CardsContainer = styled.div`
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: ${brandTheme.spacing.md};
-    padding: ${brandTheme.spacing.lg};
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.md};
     overflow-y: auto;
     flex: 1;
 `;
@@ -794,8 +785,8 @@ const CardsContainer = styled.div`
 const DocumentCard = styled.div`
     background: ${brandTheme.surface};
     border: 2px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.lg};
-    padding: ${brandTheme.spacing.lg};
+    border-radius: ${brandTheme.radius.md};
+    padding: ${brandTheme.spacing.sm};
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: ${brandTheme.shadow.xs};
@@ -811,8 +802,8 @@ const CardHeader = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: ${brandTheme.spacing.md};
-    gap: ${brandTheme.spacing.sm};
+    margin-bottom: ${brandTheme.spacing.sm};
+    gap: ${brandTheme.spacing.xs};
 `;
 
 const CardTitle = styled.div`
@@ -821,7 +812,7 @@ const CardTitle = styled.div`
 `;
 
 const CardNumber = styled.div`
-    font-size: 14px;
+    font-size: 11px;
     font-weight: 600;
     color: ${brandTheme.text.primary};
     margin-top: ${brandTheme.spacing.xs};
@@ -835,25 +826,25 @@ const CardActions = styled.div`
 const CardContent = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${brandTheme.spacing.sm};
+    gap: ${brandTheme.spacing.xs};
 `;
 
 const CardRow = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: ${brandTheme.spacing.sm};
+    gap: ${brandTheme.spacing.xs};
 `;
 
 const CardLabel = styled.span`
-    font-size: 13px;
+    font-size: 10px;
     color: ${brandTheme.text.secondary};
     font-weight: 500;
     flex-shrink: 0;
 `;
 
 const CardValue = styled.span`
-    font-size: 13px;
+    font-size: 10px;
     color: ${brandTheme.text.primary};
     font-weight: 600;
     text-align: right;
@@ -864,10 +855,11 @@ const ProtocolLink = styled.a`
     color: ${brandTheme.primary};
     text-decoration: none;
     font-weight: 600;
-    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.xs};
     border-radius: ${brandTheme.radius.sm};
     transition: all ${brandTheme.transitions.normal};
     display: inline-block;
+    font-size: 10px;
 
     &:hover {
         background: ${brandTheme.primaryGhost};
@@ -879,10 +871,9 @@ const ProtocolLink = styled.a`
 const NoProtocol = styled.span`
     color: ${brandTheme.text.muted};
     font-style: italic;
-    font-size: 13px;
+    font-size: 10px;
 `;
 
-// Loading and Empty States
 const LoadingContainer = styled.div`
     display: flex;
     flex-direction: column;
@@ -892,13 +883,13 @@ const LoadingContainer = styled.div`
     background: ${brandTheme.surface};
     border-radius: ${brandTheme.radius.xl};
     border: 1px solid ${brandTheme.border};
-    gap: ${brandTheme.spacing.md};
-    min-height: 400px;
+    gap: ${brandTheme.spacing.sm};
+    min-height: 300px;
 `;
 
 const LoadingSpinner = styled.div`
-    width: 48px;
-    height: 48px;
+    width: 36px;
+    height: 36px;
     border: 3px solid ${brandTheme.borderLight};
     border-top: 3px solid ${brandTheme.primary};
     border-radius: 50%;
@@ -911,7 +902,7 @@ const LoadingSpinner = styled.div`
 `;
 
 const LoadingText = styled.div`
-    font-size: 16px;
+    font-size: 13px;
     color: ${brandTheme.text.secondary};
     font-weight: 500;
 `;
@@ -926,40 +917,40 @@ const EmptyStateContainer = styled.div`
     border-radius: ${brandTheme.radius.xl};
     border: 2px dashed ${brandTheme.border};
     text-align: center;
-    min-height: 400px;
+    min-height: 300px;
 `;
 
 const EmptyStateIcon = styled.div`
-    width: 64px;
-    height: 64px;
+    width: 48px;
+    height: 48px;
     background: ${brandTheme.surfaceAlt};
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
+    font-size: 20px;
     color: ${brandTheme.text.tertiary};
-    margin-bottom: ${brandTheme.spacing.lg};
+    margin-bottom: ${brandTheme.spacing.md};
     box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
 `;
 
 const EmptyStateTitle = styled.h3`
-    font-size: 20px;
+    font-size: 16px;
     font-weight: 600;
     color: ${brandTheme.text.primary};
-    margin: 0 0 ${brandTheme.spacing.sm} 0;
+    margin: 0 0 ${brandTheme.spacing.xs} 0;
     letter-spacing: -0.025em;
 `;
 
 const EmptyStateDescription = styled.p`
-    font-size: 16px;
+    font-size: 13px;
     color: ${brandTheme.text.secondary};
-    margin: 0 0 ${brandTheme.spacing.sm} 0;
+    margin: 0 0 ${brandTheme.spacing.xs} 0;
     line-height: 1.5;
 `;
 
 const EmptyStateAction = styled.p`
-    font-size: 14px;
+    font-size: 11px;
     color: ${brandTheme.primary};
     margin: 0;
     font-weight: 500;

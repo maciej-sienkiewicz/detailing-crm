@@ -5,7 +5,6 @@ import {FaCalendarAlt, FaChevronDown, FaChevronRight, FaFolder, FaPlus, FaSync} 
 import {Category, CategoryService} from '../../../api/statsApi';
 import {CategoryServicesTable} from './CategoryServicesTable';
 
-// Unified theme
 const theme = {
     primary: '#1a365d',
     primaryLight: '#2c5aa0',
@@ -23,15 +22,16 @@ const theme = {
         infoLight: '#e0f2fe'
     },
     spacing: {
-        xs: '4px',
-        sm: '8px',
-        md: '12px',
-        lg: '16px',
-        xl: '24px'
+        xs: '3px',
+        sm: '6px',
+        md: '10px',
+        lg: '14px',
+        xl: '18px'
     },
     radius: {
-        md: '8px',
-        lg: '12px'
+        sm: '4px',
+        md: '6px',
+        lg: '8px'
     },
     shadow: {
         sm: '0 1px 3px rgba(0, 0, 0, 0.1)'
@@ -227,7 +227,6 @@ export const CategoriesSection: React.FC<CategoriesSectionProps> = ({
     );
 };
 
-// Styled Components
 const CategoriesContainer = styled.div`
     background: ${theme.surface};
     border-radius: ${theme.radius.lg};
@@ -240,27 +239,27 @@ const SectionHeader = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: ${theme.spacing.lg} ${theme.spacing.xl};
+    padding: ${theme.spacing.md} ${theme.spacing.lg};
     border-bottom: 1px solid ${theme.border};
     background: ${theme.surfaceAlt};
 
     @media (max-width: 768px) {
         flex-direction: column;
         align-items: flex-start;
-        gap: ${theme.spacing.md};
+        gap: ${theme.spacing.sm};
     }
 `;
 
 const HeaderLeft = styled.div`
     display: flex;
     align-items: center;
-    gap: ${theme.spacing.sm};
+    gap: ${theme.spacing.xs};
 `;
 
 const HeaderRight = styled.div`
     display: flex;
     align-items: center;
-    gap: ${theme.spacing.md};
+    gap: ${theme.spacing.sm};
 
     @media (max-width: 768px) {
         width: 100%;
@@ -269,21 +268,21 @@ const HeaderRight = styled.div`
 `;
 
 const SectionTitle = styled.h3`
-    font-size: 18px;
+    font-size: 14px;
     font-weight: 600;
     color: ${theme.text.primary};
     margin: 0;
 `;
 
 const CategoryCounter = styled.span`
-    font-size: 14px;
+    font-size: 12px;
     color: ${theme.text.secondary};
     font-weight: 500;
 `;
 
 const ExpandControls = styled.div`
     display: flex;
-    gap: ${theme.spacing.sm};
+    gap: ${theme.spacing.xs};
     align-items: center;
 
     @media (max-width: 768px) {
@@ -292,12 +291,12 @@ const ExpandControls = styled.div`
 `;
 
 const ExpandButton = styled.button`
-    padding: ${theme.spacing.sm} ${theme.spacing.md};
+    padding: 4px ${theme.spacing.sm};
     background: transparent;
     border: 1px solid ${theme.border};
-    border-radius: ${theme.radius.md};
+    border-radius: ${theme.radius.sm};
     color: ${theme.text.secondary};
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -312,14 +311,14 @@ const ExpandButton = styled.button`
 const CreateCategoryButton = styled.button`
     display: flex;
     align-items: center;
-    gap: ${theme.spacing.sm};
-    padding: ${theme.spacing.sm} ${theme.spacing.md};
+    gap: ${theme.spacing.xs};
+    padding: 4px ${theme.spacing.sm};
     background: ${theme.primary};
     color: white;
     border: none;
-    border-radius: ${theme.radius.md};
+    border-radius: ${theme.radius.sm};
     font-weight: 500;
-    font-size: 14px;
+    font-size: 11px;
     cursor: pointer;
     transition: all 0.2s ease;
 
@@ -335,7 +334,7 @@ const CreateCategoryButton = styled.button`
     }
 
     svg {
-        font-size: 12px;
+        font-size: 10px;
     }
 `;
 
@@ -343,11 +342,11 @@ const RefreshButton = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: 28px;
+    height: 28px;
     background: ${theme.surface};
     border: 1px solid ${theme.border};
-    border-radius: ${theme.radius.md};
+    border-radius: ${theme.radius.sm};
     color: ${theme.text.secondary};
     cursor: pointer;
     transition: all 0.2s ease;
@@ -375,15 +374,14 @@ const RefreshButton = styled.button`
 
 const PanelsContainer = styled.div`
     background: ${theme.surfaceAlt};
-    padding: ${theme.spacing.lg};
+    padding: ${theme.spacing.md};
 `;
-
 
 const PanelHeader = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: ${theme.spacing.lg} ${theme.spacing.xl};
+    padding: ${theme.spacing.sm} ${theme.spacing.md};
     cursor: pointer;
     transition: all 0.2s ease;
     user-select: none;
@@ -398,8 +396,8 @@ const PanelContainer = styled.div`
     border-bottom: 1px solid ${theme.border};
     transition: all 0.2s ease;
     background: ${theme.surface};
-    margin-bottom: ${theme.spacing.md};
-    border-radius: ${theme.radius.lg};
+    margin-bottom: ${theme.spacing.sm};
+    border-radius: ${theme.radius.md};
     overflow: hidden;
     box-shadow: ${theme.shadow.sm};
 
@@ -409,19 +407,18 @@ const PanelContainer = styled.div`
 
     &:hover:not([data-expanded="true"]) {
         background: ${theme.surface};
-        
+
         ${PanelHeader} {
             background: ${theme.primaryGhost};
         }
     }
 
-    /* Wyraźniejsza separacja gdy rozwinięte */
     &[data-expanded="true"] {
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         border: 1px solid ${theme.border};
-        
+
         &:not(:last-child) {
-            margin-bottom: ${theme.spacing.xl};
+            margin-bottom: ${theme.spacing.md};
         }
     }
 `;
@@ -429,24 +426,24 @@ const PanelContainer = styled.div`
 const PanelHeaderLeft = styled.div`
     display: flex;
     align-items: center;
-    gap: ${theme.spacing.md};
+    gap: ${theme.spacing.sm};
     flex: 1;
 `;
 
 const PanelHeaderRight = styled.div`
     display: flex;
     align-items: center;
-    gap: ${theme.spacing.sm};
+    gap: ${theme.spacing.xs};
 `;
 
 const ExpandIcon = styled.div<{ $expanded: boolean }>`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
     color: ${theme.text.secondary};
-    font-size: 12px;
+    font-size: 10px;
     transition: all 0.2s ease;
 `;
 
@@ -454,29 +451,29 @@ const CategoryIcon = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: 28px;
+    height: 28px;
     background: ${theme.primaryGhost};
-    border-radius: ${theme.radius.md};
+    border-radius: ${theme.radius.sm};
     color: ${theme.primary};
-    font-size: 16px;
+    font-size: 12px;
 `;
 
 const CategoryInfo = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${theme.spacing.xs};
+    gap: 2px;
 `;
 
 const CategoryName = styled.div`
     font-weight: 600;
-    font-size: 16px;
+    font-size: 13px;
     color: ${theme.text.primary};
     line-height: 1.3;
 `;
 
 const CategoryMeta = styled.div`
-    font-size: 13px;
+    font-size: 11px;
     color: ${theme.text.secondary};
     font-weight: 500;
 `;
@@ -485,15 +482,15 @@ const CategoryStatsButton = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: 28px;
+    height: 28px;
     background: ${theme.status.infoLight};
     color: ${theme.status.info};
     border: 1px solid ${theme.status.info}30;
-    border-radius: ${theme.radius.md};
+    border-radius: ${theme.radius.sm};
     cursor: pointer;
     transition: all 0.2s ease;
-    font-size: 14px;
+    font-size: 11px;
 
     &:hover {
         background: ${theme.status.info};
@@ -511,13 +508,13 @@ const CategoryCount = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 36px;
-    height: 28px;
-    padding: 0 ${theme.spacing.md};
+    min-width: 28px;
+    height: 22px;
+    padding: 0 ${theme.spacing.sm};
     background: ${theme.primaryGhost};
     border: 1px solid ${theme.border};
-    border-radius: ${theme.radius.lg};
-    font-size: 13px;
+    border-radius: ${theme.radius.md};
+    font-size: 11px;
     font-weight: 600;
     color: ${theme.primary};
 `;
@@ -540,39 +537,38 @@ const PanelContent = styled.div`
     }
 `;
 
-// Empty State
 const EmptyState = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: ${theme.spacing.xl} 40px;
+    padding: ${theme.spacing.lg} ${theme.spacing.xl};
     text-align: center;
-    gap: ${theme.spacing.md};
+    gap: ${theme.spacing.sm};
 `;
 
 const EmptyStateIcon = styled.div`
-    width: 56px;
-    height: 56px;
+    width: 42px;
+    height: 42px;
     background: ${theme.surfaceAlt};
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 22px;
+    font-size: 16px;
     color: ${theme.text.muted};
-    margin-bottom: ${theme.spacing.lg};
+    margin-bottom: ${theme.spacing.sm};
 `;
 
 const EmptyStateTitle = styled.h3`
-    font-size: 18px;
+    font-size: 14px;
     font-weight: 600;
     color: ${theme.text.primary};
-    margin: 0 0 ${theme.spacing.sm} 0;
+    margin: 0 0 ${theme.spacing.xs} 0;
 `;
 
 const EmptyStateDescription = styled.p`
-    font-size: 14px;
+    font-size: 12px;
     color: ${theme.text.secondary};
     margin: 0;
     line-height: 1.5;

@@ -1,4 +1,4 @@
-// src/pages/Finances/components/DocumentFilters.tsx - Improved integrated design
+// src/pages/Finances/components/DocumentFilters.tsx
 import React, {useState} from 'react';
 import styled from 'styled-components';
 import {
@@ -41,18 +41,6 @@ const DocumentFilters: React.FC<DocumentFiltersProps> = ({
     const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
 
-    // Quick search handler (removed as we don't have search field anymore)
-    const handleQuickSearch = (searchValue: string) => {
-        setSearchTerm(searchValue);
-        onSearch(searchValue);
-    };
-
-    const clearSearch = () => {
-        setSearchTerm('');
-        onSearch('');
-    };
-
-    // Advanced filter handlers
     const handleAdvancedFilterChange = (field: keyof UnifiedDocumentFilters, value: any) => {
         const newFilters = { ...filters };
         if (value === '' || value === undefined) {
@@ -69,7 +57,6 @@ const DocumentFilters: React.FC<DocumentFiltersProps> = ({
         onSearch('');
     };
 
-    // Type filter configuration
     const typeFilters = [
         { type: 'ALL' as FilterType, label: 'Wszystkie', icon: FaFilter },
         { type: DocumentType.INVOICE, label: DocumentTypeLabels[DocumentType.INVOICE], icon: FaFileInvoiceDollar },
@@ -77,14 +64,11 @@ const DocumentFilters: React.FC<DocumentFiltersProps> = ({
         { type: DocumentType.OTHER, label: DocumentTypeLabels[DocumentType.OTHER], icon: FaExchangeAlt },
     ];
 
-    // Check if any advanced filters are active
     const hasActiveFilters = Object.keys(filters).length > 0 || searchTerm.length > 0;
 
     return (
         <FiltersContainer>
-            {/* Main Filter Row */}
             <MainFiltersRow>
-                {/* Type Filters - now as tabs */}
                 <TypeFiltersSection>
                     <FilterTabsList>
                         {typeFilters.map(({ type, label, icon: Icon }) => (
@@ -102,7 +86,6 @@ const DocumentFilters: React.FC<DocumentFiltersProps> = ({
                     </FilterTabsList>
                 </TypeFiltersSection>
 
-                {/* Show Filters Toggle */}
                 <FiltersToggleSection>
                     <FiltersToggleButton
                         onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
@@ -117,10 +100,8 @@ const DocumentFilters: React.FC<DocumentFiltersProps> = ({
                 </FiltersToggleSection>
             </MainFiltersRow>
 
-            {/* Advanced Filters Panel - conditionally shown */}
             {showAdvancedFilters && (
                 <AdvancedFiltersPanel>
-                    {/* Filter Fields */}
                     <FiltersGrid>
                         <CompactFormGroup>
                             <CompactInput
@@ -200,7 +181,6 @@ const DocumentFilters: React.FC<DocumentFiltersProps> = ({
                             />
                         </CompactFormGroup>
 
-                        {/* Clear filters button */}
                         <CompactFormGroup>
                             <ClearFiltersButton
                                 onClick={clearAllFilters}
@@ -215,7 +195,6 @@ const DocumentFilters: React.FC<DocumentFiltersProps> = ({
                 </AdvancedFiltersPanel>
             )}
 
-            {/* Results Counter */}
             <ResultsCounter>
                 <ResultsText>
                     Znaleziono: <strong>{resultCount}</strong> {resultCount === 1 ? 'dokument' : 'dokumentów'}
@@ -225,31 +204,29 @@ const DocumentFilters: React.FC<DocumentFiltersProps> = ({
     );
 };
 
-// Styled Components
 const FiltersContainer = styled.div`
     background: ${brandTheme.surface};
-    border-radius: ${brandTheme.radius.xl};
+    border-radius: ${brandTheme.radius.lg};
     border: 1px solid ${brandTheme.border};
     overflow: hidden;
     box-shadow: ${brandTheme.shadow.sm};
-    margin-top: 10px;
+    margin-top: ${brandTheme.spacing.sm};
 `;
 
 const MainFiltersRow = styled.div`
     display: flex;
     align-items: center;
-    gap: ${brandTheme.spacing.xl};
-    padding: ${brandTheme.spacing.lg};
+    gap: ${brandTheme.spacing.lg};
+    padding: ${brandTheme.spacing.md};
     border-bottom: 1px solid ${brandTheme.border};
 
     @media (max-width: 1024px) {
         flex-direction: column;
-        gap: ${brandTheme.spacing.lg};
+        gap: ${brandTheme.spacing.md};
         align-items: stretch;
     }
 `;
 
-// Professional Tab-style Type Filters
 const TypeFiltersSection = styled.div`
     flex-shrink: 0;
 `;
@@ -258,22 +235,22 @@ const FilterTabsList = styled.div`
     display: flex;
     background: ${brandTheme.surfaceAlt};
     border: 1px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.lg};
+    border-radius: ${brandTheme.radius.md};
     overflow: hidden;
 `;
 
 const FilterTab = styled.button<{ $active: boolean }>`
     display: flex;
     align-items: center;
-    gap: ${brandTheme.spacing.sm};
-    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    gap: ${brandTheme.spacing.xs};
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
     border: none;
     background: ${props => props.$active ? brandTheme.primary : 'transparent'};
     color: ${props => props.$active ? 'white' : brandTheme.text.secondary};
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     font-weight: ${props => props.$active ? '600' : '500'};
-    font-size: 14px;
+    font-size: 12px;
     white-space: nowrap;
 
     &:hover {
@@ -288,12 +265,12 @@ const FilterTab = styled.button<{ $active: boolean }>`
     @media (max-width: 768px) {
         flex: 1;
         justify-content: center;
-        padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+        padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.sm};
     }
 `;
 
 const FilterTabIcon = styled.div<{ $active: boolean }>`
-    font-size: 14px;
+    font-size: 11px;
     display: flex;
     align-items: center;
 `;
@@ -304,7 +281,6 @@ const FilterTabLabel = styled.span`
     }
 `;
 
-// Toggle Section
 const FiltersToggleSection = styled.div`
     flex-shrink: 0;
 `;
@@ -312,18 +288,19 @@ const FiltersToggleSection = styled.div`
 const FiltersToggleButton = styled.button<{ $expanded: boolean; $hasActiveFilters: boolean }>`
     display: flex;
     align-items: center;
-    gap: ${brandTheme.spacing.sm};
-    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    gap: ${brandTheme.spacing.xs};
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
     border: 2px solid ${props => props.$expanded ? brandTheme.primary : brandTheme.border};
     background: ${props => props.$expanded ? brandTheme.primaryGhost : brandTheme.surface};
     color: ${props => props.$expanded ? brandTheme.primary : brandTheme.text.secondary};
-    border-radius: ${brandTheme.radius.md};
+    border-radius: ${brandTheme.radius.sm};
     font-weight: 600;
-    font-size: 14px;
+    font-size: 12px;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     white-space: nowrap;
     position: relative;
+    height: 30px;
 
     &:hover {
         border-color: ${brandTheme.primary};
@@ -335,16 +312,16 @@ const FiltersToggleButton = styled.button<{ $expanded: boolean; $hasActiveFilter
 
     svg:last-child {
         margin-left: ${brandTheme.spacing.xs};
-        font-size: 12px;
+        font-size: 10px;
     }
 `;
 
 const ActiveFiltersBadge = styled.span`
     position: absolute;
-    top: -4px;
-    right: -4px;
-    width: 12px;
-    height: 12px;
+    top: -3px;
+    right: -3px;
+    width: 8px;
+    height: 8px;
     background: ${brandTheme.status.warning};
     border-radius: 50%;
     border: 2px solid ${brandTheme.surface};
@@ -362,9 +339,8 @@ const ActiveFiltersBadge = styled.span`
     }
 `;
 
-// Advanced Filters Panel
 const AdvancedFiltersPanel = styled.div`
-    padding: ${brandTheme.spacing.lg};
+    padding: ${brandTheme.spacing.md};
     background: ${brandTheme.surfaceAlt};
     border-bottom: 1px solid ${brandTheme.border};
     animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -372,82 +348,23 @@ const AdvancedFiltersPanel = styled.div`
     @keyframes slideDown {
         from {
             opacity: 0;
-            transform: translateY(-20px);
+            transform: translateY(-10px);
             max-height: 0;
-            padding: 0 ${brandTheme.spacing.lg};
+            padding: 0 ${brandTheme.spacing.md};
         }
         to {
             opacity: 1;
             transform: translateY(0);
             max-height: 500px;
-            padding: ${brandTheme.spacing.lg};
+            padding: ${brandTheme.spacing.md};
         }
     }
 `;
 
-const SearchRow = styled.div`
-    margin-bottom: ${brandTheme.spacing.lg};
-    max-width: 400px;
-`;
-
-const SearchWrapper = styled.div`
-    position: relative;
-    width: 100%;
-`;
-
-const SearchInput = styled.input`
-    width: 100%;
-    height: 44px;
-    padding: 0 44px 0 16px;
-    border: 2px solid ${brandTheme.border};
-    border-radius: ${brandTheme.radius.md};
-    font-size: 15px;
-    font-weight: 500;
-    background: ${brandTheme.surface};
-    color: ${brandTheme.text.primary};
-    transition: all 0.2s ease;
-
-    &:focus {
-        outline: none;
-        border-color: ${brandTheme.primary};
-        box-shadow: 0 0 0 3px ${brandTheme.primaryGhost};
-    }
-
-    &::placeholder {
-        color: ${brandTheme.text.muted};
-        font-weight: 400;
-    }
-`;
-
-const ClearSearchButton = styled.button`
-    position: absolute;
-    right: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 20px;
-    height: 20px;
-    border: none;
-    background: ${brandTheme.text.muted};
-    color: white;
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    transition: all 0.2s ease;
-
-    &:hover {
-        background: ${brandTheme.status.error};
-        transform: translateY(-50%) scale(1.1);
-    }
-`;
-
-// Compact Advanced Filters - remove unused AdvancedFiltersRow
 const FiltersGrid = styled.div`
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: ${brandTheme.spacing.sm};
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: ${brandTheme.spacing.xs};
 
     @media (max-width: 768px) {
         grid-template-columns: 1fr 1fr;
@@ -464,11 +381,11 @@ const CompactFormGroup = styled.div`
 `;
 
 const baseInputStyles = `
-    height: 36px;
+    height: 28px;
     padding: 0 ${brandTheme.spacing.sm};
     border: 1px solid ${brandTheme.border};
     border-radius: ${brandTheme.radius.sm};
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 500;
     background: ${brandTheme.surface};
     color: ${brandTheme.text.primary};
@@ -500,14 +417,14 @@ const ClearFiltersButton = styled.button<{ $hasFilters: boolean }>`
     align-items: center;
     justify-content: center;
     gap: ${brandTheme.spacing.xs};
-    height: 36px;
+    height: 28px;
     padding: 0 ${brandTheme.spacing.sm};
     border: 1px solid ${props => props.$hasFilters ? brandTheme.status.error : brandTheme.border};
     background: ${props => props.$hasFilters ? brandTheme.status.errorLight : brandTheme.surface};
     color: ${props => props.$hasFilters ? brandTheme.status.error : brandTheme.text.muted};
     border-radius: ${brandTheme.radius.sm};
     font-weight: 600;
-    font-size: 13px;
+    font-size: 11px;
     cursor: pointer;
     transition: all 0.2s ease;
     white-space: nowrap;
@@ -527,7 +444,7 @@ const ClearFiltersButton = styled.button<{ $hasFilters: boolean }>`
 `;
 
 const ResultsCounter = styled.div`
-    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.lg};
+    padding: ${brandTheme.spacing.xs} ${brandTheme.spacing.md};
     background: ${brandTheme.primaryGhost};
     display: flex;
     align-items: center;
@@ -535,7 +452,7 @@ const ResultsCounter = styled.div`
 `;
 
 const ResultsText = styled.div`
-    font-size: 14px;
+    font-size: 11px;
     color: ${brandTheme.primary};
     font-weight: 500;
 
