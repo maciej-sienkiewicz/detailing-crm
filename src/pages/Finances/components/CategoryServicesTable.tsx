@@ -42,6 +42,8 @@ interface CategoryServicesTableProps {
     categoryName: string;
     loading: boolean;
     onShowStats: (serviceId: string, serviceName: string) => void;
+    // DODANY PROP
+    onShowCategoryStats: () => void;
 }
 
 type SortKey = 'name' | 'servicesCount' | 'totalRevenue';
@@ -56,7 +58,8 @@ export const CategoryServicesTable: React.FC<CategoryServicesTableProps> = ({
                                                                                 services,
                                                                                 categoryName,
                                                                                 loading,
-                                                                                onShowStats
+                                                                                onShowStats,
+                                                                                onShowCategoryStats
                                                                             }) => {
     const [sortConfig, setSortConfig] = useState<SortConfig>({ key: null, direction: null });
 
@@ -129,6 +132,19 @@ export const CategoryServicesTable: React.FC<CategoryServicesTableProps> = ({
         return sorted;
     }, [services, sortConfig]);
 
+    // Obliczanie sum dla stopki
+    const totals = useMemo(() => {
+        return services.reduce(
+            (acc, service) => {
+                acc.totalCount += service.servicesCount;
+                acc.totalRevenue += service.totalRevenue;
+                return acc;
+            },
+            { totalCount: 0, totalRevenue: 0 }
+        );
+    }, [services]);
+
+
     const formatCurrency = (amount: number): string => {
         return new Intl.NumberFormat('pl-PL', {
             style: 'currency',
@@ -136,6 +152,10 @@ export const CategoryServicesTable: React.FC<CategoryServicesTableProps> = ({
             minimumFractionDigits: 0,
             maximumFractionDigits: 0
         }).format(amount);
+    };
+
+    const formatNumber = (amount: number): string => {
+        return new Intl.NumberFormat('pl-PL').format(amount);
     };
 
     if (loading) {
@@ -224,7 +244,7 @@ export const CategoryServicesTable: React.FC<CategoryServicesTableProps> = ({
                                 </ServiceInfo>
                             </TableCell>
                             <TableCell $width="20%">
-                                <MetricValue>{service.servicesCount}</MetricValue>
+                                <MetricValue>{formatNumber(service.servicesCount)}</MetricValue>
                             </TableCell>
                             <TableCell $width="20%">
                                 <RevenueDisplay>{formatCurrency(service.totalRevenue)}</RevenueDisplay>
@@ -243,6 +263,28 @@ export const CategoryServicesTable: React.FC<CategoryServicesTableProps> = ({
                         </TableRow>
                     ))}
                 </TableBody>
+
+                <TableFooter>
+                    <FooterCell $width="50%">
+                        <FooterLabel>Łączne podsumowanie</FooterLabel>
+                    </FooterCell>
+                    <FooterCell $width="20%">
+                        <FooterTotalValue>{formatNumber(totals.totalCount)}</FooterTotalValue>
+                    </FooterCell>
+                    <FooterCell $width="20%">
+                        <FooterTotalRevenue>{formatCurrency(totals.totalRevenue)}</FooterTotalRevenue>
+                    </FooterCell>
+                    <FooterCell $width="10%">
+                        {/* PRZYCISK Z POPRAWNYM WYWOŁANIEM FUNKCJI */}
+                        <ShowCategoryStatsButton
+                            onClick={onShowCategoryStats} // TUTAJ JEST WYWOŁANIE FUNKCJI
+                            title={`Pokaż statystyki dla kategorii ${categoryName}`}
+                        >
+                            <FaChartLine />
+                        </ShowCategoryStatsButton>
+                    </FooterCell>
+                </TableFooter>
+
             </TableContainer>
 
             {sortConfig.key && (
@@ -261,6 +303,75 @@ export const CategoryServicesTable: React.FC<CategoryServicesTableProps> = ({
         </TableWrapper>
     );
 };
+
+// --- DODANE STYLE DLA PRZYCISKU W STOPCE ---
+
+const ShowCategoryStatsButton = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: ${theme.status.infoLight};
+    color: ${theme.status.info};
+    border: 1px solid ${theme.status.info}30;
+    border-radius: ${theme.radius.sm};
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 11px;
+
+    &:hover {
+        background: ${theme.status.info};
+        color: white;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    &:active {
+        transform: translateY(0);
+    }
+`;
+
+
+// --- POZOSTAŁE STYLE (FOOTER I INNE) ---
+
+const TableFooter = styled.div`
+    display: flex;
+    background: ${theme.surfaceAlt};
+    border-top: 1px solid ${theme.border};
+    min-height: 48px;
+    font-weight: 700;
+`;
+
+const FooterCell = styled.div<{ $width: string }>`
+    flex: 0 0 ${props => props.$width};
+    width: ${props => props.$width};
+    padding: ${theme.spacing.sm} ${theme.spacing.md};
+    display: flex;
+    align-items: center;
+    border-right: 1px solid ${theme.border};
+
+    &:last-child {
+        border-right: none;
+    }
+`;
+
+const FooterLabel = styled.span`
+    font-size: 12px;
+    color: ${theme.text.secondary};
+    font-weight: 600;
+`;
+
+const FooterTotalValue = styled.div`
+    font-size: 13px;
+    color: ${theme.primary};
+`;
+
+const FooterTotalRevenue = styled.div`
+    font-size: 13px;
+    color: ${theme.primary};
+`;
+
 
 const TableWrapper = styled.div`
     width: 100%;

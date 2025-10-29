@@ -86,15 +86,6 @@ const CategoryPanel: React.FC<CategoryPanelProps> = ({
                         <CategoryMeta>{category.servicesCount} usług</CategoryMeta>
                     </CategoryInfo>
                 </PanelHeaderLeft>
-                <PanelHeaderRight>
-                    <CategoryStatsButton
-                        onClick={handleCategoryStatsClick}
-                        title="Statystyki kategorii"
-                    >
-                        <FaCalendarAlt />
-                    </CategoryStatsButton>
-                    <CategoryCount>{category.servicesCount}</CategoryCount>
-                </PanelHeaderRight>
             </PanelHeader>
 
             {isExpanded && (
@@ -104,6 +95,7 @@ const CategoryPanel: React.FC<CategoryPanelProps> = ({
                         categoryName={category.name}
                         loading={loadingServices}
                         onShowStats={onShowStats}
+                        onShowCategoryStats={() => onShowCategoryStats(category.id, category.name)}
                     />
                 </PanelContent>
             )}
