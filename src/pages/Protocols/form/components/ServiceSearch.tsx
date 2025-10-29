@@ -1,5 +1,6 @@
 import React, {useEffect, useState} from 'react';
-import {FaPlus, FaSearch} from 'react-icons/fa';
+import styled from 'styled-components';
+import {FaPlus, FaSearch, FaEuroSign} from 'react-icons/fa';
 import {
     AddServiceButton,
     CustomServiceInfo,
@@ -15,6 +16,36 @@ import {
 import PriceEditModal from "../../shared/modals/PriceEditModal";
 import {Service} from '../../../../types';
 import {servicesApi} from "../../../../api/servicesApi";
+
+// Nowy styl dla przycisku edycji ceny
+// Nowy styl dla przycisku edycji ceny
+const EditPriceButton = styled.button.attrs({
+    type: 'button', // KLUCZOWA ZMIANA: zapobiega domyślnemu submitowaniu formularza
+})`
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background: #e0f2fe; /* infoLight */
+    color: #0ea5e9; /* info */
+    border: 1px solid #0ea5e9;
+    border-radius: 4px;
+    font-weight: 500;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    margin-left: 12px; /* Dystans od ceny */
+    white-space: nowrap;
+
+    &:hover {
+        background: #0ea5e9;
+        color: white;
+        border-color: #0ea5e9;
+        transform: translateY(-0.5px);
+    }
+`;
+
 
 interface ServiceSearchProps {
     searchQuery: string;
@@ -81,6 +112,21 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
         }
     };
 
+    /**
+     * Funkcja do otwierania modalu edycji ceny przed wstawieniem usługi.
+     */
+    const handleEditPriceClick = (e: React.MouseEvent, service: { id: string; name: string; price: number }) => {
+        e.stopPropagation(); // Zatrzymuje propagację, aby nie uruchomić handleServiceClick
+
+        setServiceToEdit({
+            ...service,
+            description: '',
+            vatRate: 23,
+            isNew: false
+        });
+        setIsPriceModalOpen(true);
+    };
+
     const handleAddCustomService = () => {
         if (searchQuery.trim() === '') return;
 
@@ -118,11 +164,11 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
 
             if (serviceToEdit.isNew) {
                 try {
-
+                    // Logika dodawania nowej usługi (custom-service)
                     const createdService = await servicesApi.createService({
                         name: serviceToEdit.name,
                         description: serviceToEdit.description || '',
-                        price: price,
+                        price: price, // Netto z modala
                         vatRate: serviceToEdit.vatRate || 23
                     });
 
@@ -155,11 +201,13 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
                     onAddServiceDirect(tempService);
                 }
             } else {
+                // Logika aktualizacji/dodawania istniejącej usługi z inną ceną
                 const updatedService = {
                     ...serviceToEdit,
-                    price: price
+                    price: price // Nowa cena z modala (już netto)
                 };
 
+                // Opcjonalnie: aktualizacja ceny w bazie (jeśli zależy nam na persystencji nowej ceny)
                 try {
                     await servicesApi.updateService(serviceToEdit.id, {
                         name: updatedService.name,
@@ -177,6 +225,7 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
                     console.error('Błąd podczas aktualizacji usługi:', error);
                 }
 
+                // Dodaj usługę do tabeli z nową ceną
                 onSelectService(updatedService);
                 onAddServiceDirect(updatedService);
             }
@@ -234,8 +283,18 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
                                             key={service.id}
                                             onClick={() => handleServiceClick(service)}
                                         >
-                                            <div>{service.name}</div>
-                                            <SearchResultPrice>{service.price.toFixed(2)} zł</SearchResultPrice>
+                                            {/* Lewa sekcja z nazwą i domyślną ceną */}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 1, minWidth: 0 }}>
+                                                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{service.name}</div>
+                                                <SearchResultPrice>{service.price.toFixed(2)} zł</SearchResultPrice>
+                                            </div>
+
+                                            {/* Nowy przycisk "Wstaw z inną ceną" */}
+                                            <EditPriceButton
+                                                onClick={(e) => handleEditPriceClick(e, service)}
+                                            >
+                                                <FaEuroSign /> Wstaw z inną ceną
+                                            </EditPriceButton>
                                         </SearchResultItem>
                                     ))
                             ) : (
@@ -249,8 +308,18 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
                                     key={service.id}
                                     onClick={() => handleServiceClick(service)}
                                 >
-                                    <div>{service.name}</div>
-                                    <SearchResultPrice>{service.price.toFixed(2)} zł</SearchResultPrice>
+                                    {/* Lewa sekcja z nazwą i domyślną ceną */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 1, minWidth: 0 }}>
+                                        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{service.name}</div>
+                                        <SearchResultPrice>{service.price.toFixed(2)} zł</SearchResultPrice>
+                                    </div>
+
+                                    {/* Nowy przycisk "Wstaw z inną ceną" */}
+                                    <EditPriceButton
+                                        onClick={(e) => handleEditPriceClick(e, service)}
+                                    >
+                                        <FaEuroSign /> Wstaw z inną ceną
+                                    </EditPriceButton>
                                 </SearchResultItem>
                             ))
                         ) : (
