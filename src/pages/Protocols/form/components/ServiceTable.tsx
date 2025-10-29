@@ -3,6 +3,7 @@ import {FaEdit, FaStickyNote, FaTrash} from 'react-icons/fa';
 import {DiscountType, SelectedService} from '../../../../types';
 import styled from 'styled-components';
 import ServiceNoteModal from "../../shared/modals/SerivceNoteModal";
+import {theme} from '../../../../styles/theme';
 
 // Professional theme matching the form design
 const formTheme = {
@@ -973,7 +974,7 @@ const ActionButton = styled.button<{ $variant?: 'primary' | 'secondary' | 'dange
 `;
 
 const TableFooter = styled.tfoot`
-    background: linear-gradient(135deg, ${formTheme.colors.surfaceElevated} 0%, ${formTheme.colors.surfaceHover} 100%);
+    background: linear-gradient(135deg, rgba(26, 54, 93, 0.1) 0%, ${theme.primary} 100%);
     border-top: 2px solid ${formTheme.colors.border};
 `;
 
