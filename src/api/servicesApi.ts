@@ -1,5 +1,5 @@
-import {Service} from '../types';
-import {apiClient} from './apiClient';
+import { Service, PriceType, ServicePriceInput } from '../types';
+import { apiClient } from './apiClient';
 
 // Konwersja snake_case na camelCase dla odpowiedzi z API
 const convertSnakeToCamel = (data: any): any => {
@@ -43,10 +43,11 @@ const convertCamelToSnake = (data: any): any => {
     }, {} as Record<string, any>);
 };
 
+// Interface dla danych wysyłanych do API (REQUEST)
 export interface ServiceData {
     name: string;
-    description: string;
-    price: number;
+    description?: string;
+    price: ServicePriceInput;  // inputPrice + inputType
     vatRate: number;
 }
 
@@ -55,7 +56,9 @@ export const servicesApi = {
     fetchServices: async (): Promise<Service[]> => {
         try {
             const data = await apiClient.get<any[]>('/services');
-            return convertSnakeToCamel(data) as Service[];
+            const services = convertSnakeToCamel(data) as Service[];
+
+            return services;
         } catch (error) {
             console.error('Error fetching services:', error);
             throw error;
@@ -66,7 +69,9 @@ export const servicesApi = {
     fetchServiceById: async (id: string): Promise<Service | null> => {
         try {
             const data = await apiClient.get<any>(`/services/${id}`);
-            return convertSnakeToCamel(data) as Service;
+            const service = convertSnakeToCamel(data) as Service;
+
+            return service;
         } catch (error) {
             console.error(`Error fetching service ${id}:`, error);
             return null;
@@ -74,40 +79,15 @@ export const servicesApi = {
     },
 
     // Tworzenie nowej usługi
-    createService: async (serviceData: ServiceData): Promise<any> => {
+    createService: async (serviceData: ServiceData): Promise<Service> => {
         try {
             const requestData = convertCamelToSnake(serviceData);
             const response = await apiClient.post<any>('/services', requestData);
 
-            // Po utworzeniu usługi, serwer zwraca tylko ID (ServiceRecipeId)
-            // Tworzymy lokalnie obiekt symulujący pełną odpowiedź usługi
-            if (response && typeof response === 'object' && 'value' in response) {
-                // Oznacza to, że otrzymaliśmy odpowiedź w formacie {value: "123456"}
-                return {
-                    id: response.value,
-                    name: serviceData.name,
-                    description: serviceData.description,
-                    price: serviceData.price,
-                    vatRate: serviceData.vatRate,
-                    // Dodajemy brakujące pola z bieżącą datą
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString()
-                };
-            } else if (typeof response === 'string') {
-                // Jeśli odpowiedź to string, zakładamy że to ID
-                return {
-                    id: response,
-                    name: serviceData.name,
-                    description: serviceData.description,
-                    price: serviceData.price,
-                    vatRate: serviceData.vatRate,
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString()
-                };
-            }
+            // Backend zwraca pełny obiekt ServiceResponse z wyliczonymi cenami
+            const createdService = convertSnakeToCamel(response) as Service;
 
-            // Jeśli jednak otrzymaliśmy pełną odpowiedź, używamy jej po konwersji
-            return convertSnakeToCamel(response);
+            return createdService;
         } catch (error) {
             console.error('Error creating service:', error);
             throw error;

@@ -17,8 +17,6 @@ import PriceEditModal from "../../shared/modals/PriceEditModal";
 import {Service} from '../../../../types';
 import {servicesApi} from "../../../../api/servicesApi";
 
-// Nowy styl dla przycisku edycji ceny
-// Nowy styl dla przycisku edycji ceny
 const EditPriceButton = styled.button.attrs({
     type: 'button', // KLUCZOWA ZMIANA: zapobiega domyślnemu submitowaniu formularza
 })`

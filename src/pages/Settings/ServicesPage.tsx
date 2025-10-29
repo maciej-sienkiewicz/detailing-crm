@@ -1,4 +1,4 @@
-// src/pages/Settings/ServicesPage.tsx - POPRAWIONE STYLOWANIE
+// src/pages/Settings/ServicesPage.tsx - ZAKTUALIZOWANE DLA NOWEGO API
 import React, { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import {
@@ -10,8 +10,8 @@ import {
     FaWrench,
     FaPlus
 } from 'react-icons/fa';
-import { Service } from '../../types';
-import { servicesApi } from '../../api/servicesApi';
+import { Service, PriceType, PriceTypeLabels, ServicePriceInput } from '../../types';
+import { servicesApi, ServiceData } from '../../api/servicesApi';
 import { DataTable, TableColumn, HeaderAction } from '../../components/common/DataTable';
 import { settingsTheme } from './styles/theme';
 import { ConfirmationDialog } from "../../components/common/NewConfirmationDialog";
@@ -36,6 +36,15 @@ interface ConfirmationState {
     onConfirm: () => void;
 }
 
+// Interface dla formularza edycji (używa ServicePriceInput do wprowadzania danych)
+interface ServiceFormData {
+    id: string;
+    name: string;
+    description?: string;
+    priceInput: ServicePriceInput;  // Do wprowadzania danych
+    vatRate: number;
+}
+
 const ServicesPage = forwardRef<{ handleAddService: () => void }>((props, ref) => {
     const [services, setServices] = useState<Service[]>([]);
     const [filters, setFilters] = useState<ServiceFilters>({
@@ -50,7 +59,7 @@ const ServicesPage = forwardRef<{ handleAddService: () => void }>((props, ref) =
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showModal, setShowModal] = useState(false);
-    const [editingService, setEditingService] = useState<Service | null>(null);
+    const [editingService, setEditingService] = useState<ServiceFormData | null>(null);
     const [defaultVatRate, setDefaultVatRate] = useState(23);
 
     const [confirmationState, setConfirmationState] = useState<ConfirmationState>({
@@ -108,7 +117,7 @@ const ServicesPage = forwardRef<{ handleAddService: () => void }>((props, ref) =
             const searchQuery = filters.searchQuery.toLowerCase().trim();
             result = result.filter(service =>
                 service.name.toLowerCase().includes(searchQuery) ||
-                service.description.toLowerCase().includes(searchQuery)
+                (service.description && service.description.toLowerCase().includes(searchQuery))
             );
         }
 
@@ -122,21 +131,21 @@ const ServicesPage = forwardRef<{ handleAddService: () => void }>((props, ref) =
         if (filters.description.trim()) {
             const descQuery = filters.description.toLowerCase().trim();
             result = result.filter(service =>
-                service.description.toLowerCase().includes(descQuery)
+                service.description && service.description.toLowerCase().includes(descQuery)
             );
         }
 
         if (filters.minPrice.trim()) {
             const minPrice = parseFloat(filters.minPrice);
             if (!isNaN(minPrice)) {
-                result = result.filter(service => service.price >= minPrice);
+                result = result.filter(service => service.price.priceNetto >= minPrice);
             }
         }
 
         if (filters.maxPrice.trim()) {
             const maxPrice = parseFloat(filters.maxPrice);
             if (!isNaN(maxPrice)) {
-                result = result.filter(service => service.price <= maxPrice);
+                result = result.filter(service => service.price.priceNetto <= maxPrice);
             }
         }
 
@@ -170,14 +179,28 @@ const ServicesPage = forwardRef<{ handleAddService: () => void }>((props, ref) =
             id: '',
             name: '',
             description: '',
-            price: 0,
+            priceInput: {
+                inputPrice: 0,
+                inputType: PriceType.NET
+            },
             vatRate: defaultVatRate
         });
         setShowModal(true);
     };
 
     const handleEditService = (service: Service) => {
-        setEditingService({...service});
+        // Konwertuj Service (z PriceResponse) na ServiceFormData (z ServicePriceInput)
+        // Domyślnie używamy ceny netto jako inputPrice
+        setEditingService({
+            id: service.id,
+            name: service.name,
+            description: service.description,
+            priceInput: {
+                inputPrice: service.price.priceNetto,
+                inputType: PriceType.NET
+            },
+            vatRate: service.vatRate
+        });
         setShowModal(true);
     };
 
@@ -203,15 +226,22 @@ const ServicesPage = forwardRef<{ handleAddService: () => void }>((props, ref) =
         });
     };
 
-    const handleSaveService = async (service: Service) => {
+    const handleSaveService = async (formData: ServiceFormData) => {
         try {
+            // Konwertuj ServiceFormData na ServiceData dla API
+            const serviceData: ServiceData = {
+                name: formData.name,
+                description: formData.description,
+                price: formData.priceInput,
+                vatRate: formData.vatRate
+            };
+
             let savedService: Service;
 
-            if (service.id) {
-                savedService = await servicesApi.updateService(service.id, service);
+            if (formData.id) {
+                savedService = await servicesApi.updateService(formData.id, serviceData);
                 setServices(services.map(s => s.id === savedService.id ? savedService : s));
             } else {
-                const { id, ...serviceData } = service;
                 try {
                     savedService = await servicesApi.createService(serviceData);
                     if (savedService) {
@@ -232,17 +262,15 @@ const ServicesPage = forwardRef<{ handleAddService: () => void }>((props, ref) =
         }
     };
 
-    // POPRAWIONE: Optymalne szerokości kolumn
     const columns: TableColumn[] = [
-        { id: 'name', label: 'Nazwa', width: '28%', sortable: true },        // Największa - główna info
-        { id: 'description', label: 'Opis', width: '35%', sortable: true },  // Najszersza - długie teksty
-        { id: 'price', label: 'Cena netto', width: '12%', sortable: true },  // Średnia - kwoty
-        { id: 'vatRate', label: 'VAT', width: '7%', sortable: true },        // Minimalna - procenty
-        { id: 'grossPrice', label: 'Brutto', width: '12%', sortable: true }, // Średnia - kwoty
-        { id: 'actions', label: 'Akcje', width: '130px', sortable: false },   // Minimalna - 2 przyciski
+        { id: 'name', label: 'Nazwa', width: '28%', sortable: true },
+        { id: 'description', label: 'Opis', width: '32%', sortable: true },
+        { id: 'price', label: 'Cena netto', width: '12%', sortable: true },
+        { id: 'vatRate', label: 'VAT', width: '7%', sortable: true },
+        { id: 'grossPrice', label: 'Brutto', width: '12%', sortable: true },
+        { id: 'actions', label: 'Akcje', width: '130px', sortable: false },
     ];
 
-    // POPRAWIONE: Renderowanie komórek - stylowanie spójne z innymi tabelami
     const renderCell = (service: Service, columnId: string): React.ReactNode => {
         switch (columnId) {
             case 'name':
@@ -255,14 +283,14 @@ const ServicesPage = forwardRef<{ handleAddService: () => void }>((props, ref) =
                 );
             case 'description':
                 return (
-                    <ServiceDescription title={service.description}>
-                        {service.description}
+                    <ServiceDescription title={service.description || ''}>
+                        {service.description || '—'}
                     </ServiceDescription>
                 );
             case 'price':
                 return (
                     <PriceCell>
-                        {service.price.toFixed(2)} zł
+                        {service.price.priceNetto.toFixed(2)} zł
                     </PriceCell>
                 );
             case 'vatRate':
@@ -270,7 +298,7 @@ const ServicesPage = forwardRef<{ handleAddService: () => void }>((props, ref) =
             case 'grossPrice':
                 return (
                     <PriceCell $total>
-                        {(service.price * (1 + service.vatRate / 100)).toFixed(2)} zł
+                        {service.price.priceBrutto.toFixed(2)} zł
                     </PriceCell>
                 );
             case 'actions':
@@ -377,7 +405,7 @@ const ServicesPage = forwardRef<{ handleAddService: () => void }>((props, ref) =
 
             {showModal && editingService && (
                 <ServiceFormModal
-                    service={editingService}
+                    serviceFormData={editingService}
                     defaultVatRate={defaultVatRate}
                     onSave={handleSaveService}
                     onCancel={() => {
@@ -400,7 +428,7 @@ const ServicesPage = forwardRef<{ handleAddService: () => void }>((props, ref) =
     );
 });
 
-// Pozostałe komponenty bez zmian...
+// Komponent filtrów
 interface EnhancedServiceFiltersProps {
     filters: ServiceFilters;
     showFilters: boolean;
@@ -449,7 +477,7 @@ const EnhancedServiceFilters: React.FC<EnhancedServiceFiltersProps> = ({
                         </FormGroup>
 
                         <FormGroup>
-                            <Label>Cena min. (zł)</Label>
+                            <Label>Cena min. (zł netto)</Label>
                             <Input
                                 type="number"
                                 min="0"
@@ -461,7 +489,7 @@ const EnhancedServiceFilters: React.FC<EnhancedServiceFiltersProps> = ({
                         </FormGroup>
 
                         <FormGroup>
-                            <Label>Cena maks. (zł)</Label>
+                            <Label>Cena maks. (zł netto)</Label>
                             <Input
                                 type="number"
                                 min="0"
@@ -504,30 +532,69 @@ const EnhancedServiceFilters: React.FC<EnhancedServiceFiltersProps> = ({
     );
 };
 
+// Modal formularza
 interface ServiceFormModalProps {
-    service: Service;
+    serviceFormData: ServiceFormData;
     defaultVatRate: number;
-    onSave: (service: Service) => void;
+    onSave: (formData: ServiceFormData) => void;
     onCancel: () => void;
 }
 
 const ServiceFormModal: React.FC<ServiceFormModalProps> = ({
-                                                               service,
+                                                               serviceFormData,
                                                                defaultVatRate,
                                                                onSave,
                                                                onCancel
                                                            }) => {
-    const [formData, setFormData] = useState<Service>(service);
+    const [formData, setFormData] = useState<ServiceFormData>(serviceFormData);
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    // Funkcja do lokalnego obliczania podglądu cen (tylko dla UI)
+    const calculatePreviewPrices = () => {
+        const { inputPrice, inputType } = formData.priceInput;
+        const vatMultiplier = 1 + formData.vatRate / 100;
+
+        let netPrice: number;
+        let grossPrice: number;
+
+        if (inputType === PriceType.NET) {
+            netPrice = inputPrice;
+            grossPrice = inputPrice * vatMultiplier;
+        } else {
+            grossPrice = inputPrice;
+            netPrice = inputPrice / vatMultiplier;
+        }
+
+        const taxAmount = grossPrice - netPrice;
+
+        return { netPrice, grossPrice, taxAmount };
+    };
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
 
-        if (name === 'price' || name === 'vatRate') {
+        if (name === 'inputPrice') {
             const numValue = parseFloat(value);
             setFormData({
                 ...formData,
-                [name]: isNaN(numValue) ? 0 : numValue
+                priceInput: {
+                    ...formData.priceInput,
+                    inputPrice: isNaN(numValue) ? 0 : numValue
+                }
+            });
+        } else if (name === 'inputType') {
+            setFormData({
+                ...formData,
+                priceInput: {
+                    ...formData.priceInput,
+                    inputType: value as PriceType
+                }
+            });
+        } else if (name === 'vatRate') {
+            const numValue = parseFloat(value);
+            setFormData({
+                ...formData,
+                vatRate: isNaN(numValue) ? 0 : numValue
             });
         } else {
             setFormData({
@@ -551,8 +618,16 @@ const ServiceFormModal: React.FC<ServiceFormModalProps> = ({
             errors.name = 'Nazwa usługi jest wymagana';
         }
 
-        if (formData.price < 0) {
-            errors.price = 'Cena nie może być ujemna';
+        if (formData.name.length > 100) {
+            errors.name = 'Nazwa nie może przekraczać 100 znaków';
+        }
+
+        if (formData.description && formData.description.length > 500) {
+            errors.description = 'Opis nie może przekraczać 500 znaków';
+        }
+
+        if (formData.priceInput.inputPrice < 0) {
+            errors.inputPrice = 'Cena nie może być ujemna';
         }
 
         if (formData.vatRate < 0 || formData.vatRate > 100) {
@@ -571,11 +646,13 @@ const ServiceFormModal: React.FC<ServiceFormModalProps> = ({
         }
     };
 
+    const { netPrice, grossPrice, taxAmount } = calculatePreviewPrices();
+
     return (
         <ModalOverlay>
             <ModalContainer>
                 <ModalHeader>
-                    <h2>{service.id ? 'Edytuj usługę' : 'Dodaj nową usługę'}</h2>
+                    <h2>{serviceFormData.id ? 'Edytuj usługę' : 'Dodaj nową usługę'}</h2>
                     <CloseButton onClick={onCancel}>&times;</CloseButton>
                 </ModalHeader>
                 <ModalBody>
@@ -588,6 +665,7 @@ const ServiceFormModal: React.FC<ServiceFormModalProps> = ({
                                 value={formData.name}
                                 onChange={handleChange}
                                 placeholder="Nazwa usługi"
+                                maxLength={100}
                                 required
                             />
                             {formErrors.name && <ErrorText>{formErrors.name}</ErrorText>}
@@ -598,55 +676,82 @@ const ServiceFormModal: React.FC<ServiceFormModalProps> = ({
                             <Textarea
                                 id="description"
                                 name="description"
-                                value={formData.description}
+                                value={formData.description || ''}
                                 onChange={handleChange}
                                 placeholder="Opis usługi"
+                                maxLength={500}
                                 rows={3}
                             />
+                            {formErrors.description && <ErrorText>{formErrors.description}</ErrorText>}
                         </FormGroup>
 
                         <FormRow>
                             <FormGroup>
-                                <Label htmlFor="price">Cena netto (zł)*</Label>
-                                <Input
-                                    id="price"
-                                    name="price"
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    value={formData.price}
+                                <Label htmlFor="inputType">Typ ceny*</Label>
+                                <Select
+                                    id="inputType"
+                                    name="inputType"
+                                    value={formData.priceInput.inputType}
                                     onChange={handleChange}
                                     required
-                                />
-                                {formErrors.price && <ErrorText>{formErrors.price}</ErrorText>}
+                                >
+                                    <option value={PriceType.NET}>Cena netto</option>
+                                    <option value={PriceType.GROSS}>Cena brutto</option>
+                                </Select>
                             </FormGroup>
 
                             <FormGroup>
-                                <Label htmlFor="vatRate">
-                                    Stawka VAT (%)*
-                                    <HelpText>Domyślnie: {defaultVatRate}%</HelpText>
+                                <Label htmlFor="inputPrice">
+                                    {formData.priceInput.inputType === PriceType.NET ? 'Cena netto (zł)*' : 'Cena brutto (zł)*'}
                                 </Label>
                                 <Input
-                                    id="vatRate"
-                                    name="vatRate"
+                                    id="inputPrice"
+                                    name="inputPrice"
                                     type="number"
-                                    step="1"
+                                    step="0.01"
                                     min="0"
-                                    max="100"
-                                    value={formData.vatRate}
+                                    value={formData.priceInput.inputPrice}
                                     onChange={handleChange}
                                     required
                                 />
-                                {formErrors.vatRate && <ErrorText>{formErrors.vatRate}</ErrorText>}
+                                {formErrors.inputPrice && <ErrorText>{formErrors.inputPrice}</ErrorText>}
                             </FormGroup>
                         </FormRow>
 
                         <FormGroup>
-                            <Label>Cena brutto</Label>
-                            <PriceSummary>
-                                {(formData.price * (1 + formData.vatRate / 100)).toFixed(2)} zł
-                            </PriceSummary>
+                            <Label htmlFor="vatRate">
+                                Stawka VAT (%)*
+                                <HelpText>Domyślnie: {defaultVatRate}%</HelpText>
+                            </Label>
+                            <Input
+                                id="vatRate"
+                                name="vatRate"
+                                type="number"
+                                step="1"
+                                min="0"
+                                max="100"
+                                value={formData.vatRate}
+                                onChange={handleChange}
+                                required
+                            />
+                            {formErrors.vatRate && <ErrorText>{formErrors.vatRate}</ErrorText>}
                         </FormGroup>
+
+                        <PriceSummarySection>
+                            <PriceSummaryTitle>Podgląd cen:</PriceSummaryTitle>
+                            <PriceRow>
+                                <PriceLabel>Cena netto:</PriceLabel>
+                                <PriceValue>{netPrice.toFixed(2)} zł</PriceValue>
+                            </PriceRow>
+                            <PriceRow>
+                                <PriceLabel>VAT ({formData.vatRate}%):</PriceLabel>
+                                <PriceValue>{taxAmount.toFixed(2)} zł</PriceValue>
+                            </PriceRow>
+                            <PriceRow $highlight>
+                                <PriceLabel>Cena brutto:</PriceLabel>
+                                <PriceValue>{grossPrice.toFixed(2)} zł</PriceValue>
+                            </PriceRow>
+                        </PriceSummarySection>
 
                         <ButtonGroup>
                             <SecondaryButton type="button" onClick={onCancel}>
@@ -654,7 +759,7 @@ const ServiceFormModal: React.FC<ServiceFormModalProps> = ({
                             </SecondaryButton>
                             <PrimaryButton type="submit">
                                 <FaSave />
-                                {service.id ? 'Zapisz zmiany' : 'Dodaj usługę'}
+                                {serviceFormData.id ? 'Zapisz zmiany' : 'Dodaj usługę'}
                             </PrimaryButton>
                         </ButtonGroup>
                     </Form>
@@ -664,7 +769,7 @@ const ServiceFormModal: React.FC<ServiceFormModalProps> = ({
     );
 };
 
-// POPRAWIONE STYLED COMPONENTS - spójne z innymi tabelami w aplikacji
+// Styled Components
 const ContentContainer = styled.div`
     flex: 1;
     max-width: 1600px;
@@ -686,7 +791,6 @@ const ContentContainer = styled.div`
     }
 `;
 
-// POPRAWIONE: Stylowanie komórek - jak w innych tabelach
 const ServiceNameCell = styled.div`
     display: flex;
     flex-direction: column;
@@ -696,7 +800,7 @@ const ServiceNameCell = styled.div`
 `;
 
 const ServiceName = styled.div`
-    font-weight: 500; /* ZMIENIONE: z 600 na 500 - jak w innych tabelach */
+    font-weight: 500;
     color: ${settingsTheme.text.primary};
     font-size: 14px;
     line-height: 1.3;
@@ -710,7 +814,7 @@ const ServiceDescription = styled.div`
     color: ${settingsTheme.text.secondary};
     font-size: 13px;
     line-height: 1.4;
-    font-weight: 400; /* ZMIENIONE: dodane explicit normal weight */
+    font-weight: 400;
 
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -722,12 +826,33 @@ const ServiceDescription = styled.div`
 `;
 
 const PriceCell = styled.div<{ $total?: boolean }>`
-    font-weight: ${props => props.$total ? '600' : '500'}; /* ZMIENIONE: zmniejszone z 700/600 na 600/500 */
+    font-weight: ${props => props.$total ? '600' : '500'};
     color: ${props => props.$total ? settingsTheme.primary : settingsTheme.text.primary};
     font-size: 14px;
     text-align: right;
     font-family: monospace;
     white-space: nowrap;
+`;
+
+const PriceTypeBadge = styled.span<{ $type: PriceType }>`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px;
+    border-radius: ${settingsTheme.radius.sm};
+    font-size: 12px;
+    font-weight: 500;
+    min-width: 60px;
+
+    ${props => props.$type === PriceType.NET ? `
+        background-color: ${settingsTheme.status.infoLight};
+        color: ${settingsTheme.status.info};
+        border: 1px solid ${settingsTheme.status.info}40;
+    ` : `
+        background-color: ${settingsTheme.status.successLight};
+        color: ${settingsTheme.status.success};
+        border: 1px solid ${settingsTheme.status.success}40;
+    `}
 `;
 
 const VatBadge = styled.span`
@@ -737,7 +862,7 @@ const VatBadge = styled.span`
     padding: 4px 8px;
     border-radius: ${settingsTheme.radius.sm};
     font-size: 12px;
-    font-weight: 500; /* ZMIENIONE: z 600 na 500 */
+    font-weight: 500;
     background-color: ${settingsTheme.surfaceAlt};
     color: ${settingsTheme.text.secondary};
     border: 1px solid ${settingsTheme.border};
@@ -753,7 +878,6 @@ const ActionButtons = styled.div`
     min-width: 80px;
 `;
 
-// POPRAWIONE: ActionButton używa standardowego komponentu z DataTable
 const ActionButton = styled.button<{
     $variant: 'edit' | 'delete';
     $small?: boolean;
@@ -799,7 +923,6 @@ const ActionButton = styled.button<{
     }}
 `;
 
-// Pozostałe styled components...
 const ErrorMessage = styled.div`
     display: flex;
     align-items: center;
@@ -876,7 +999,6 @@ const LoadingText = styled.div`
     font-weight: 500;
 `;
 
-// Filters styling
 const FiltersContainer = styled.div`
     padding: ${settingsTheme.spacing.lg};
     background: ${settingsTheme.surfaceAlt};
@@ -915,7 +1037,7 @@ const FormGroup = styled.div`
 
 const Label = styled.label`
     font-size: 14px;
-    font-weight: 500; /* ZMIENIONE: z 600 na 500 */
+    font-weight: 500;
     color: ${settingsTheme.text.primary};
     display: flex;
     justify-content: space-between;
@@ -928,7 +1050,7 @@ const Input = styled.input`
     border: 2px solid ${settingsTheme.border};
     border-radius: ${settingsTheme.radius.md};
     font-size: 14px;
-    font-weight: 400; /* ZMIENIONE: z 500 na 400 - normal weight */
+    font-weight: 400;
     background: ${settingsTheme.surface};
     color: ${settingsTheme.text.primary};
     transition: all 0.2s ease;
@@ -942,6 +1064,25 @@ const Input = styled.input`
     &::placeholder {
         color: ${settingsTheme.text.muted};
         font-weight: 400;
+    }
+`;
+
+const Select = styled.select`
+    height: 44px;
+    padding: 0 ${settingsTheme.spacing.md};
+    border: 2px solid ${settingsTheme.border};
+    border-radius: ${settingsTheme.radius.md};
+    font-size: 14px;
+    font-weight: 400;
+    background: ${settingsTheme.surface};
+    color: ${settingsTheme.text.primary};
+    transition: all 0.2s ease;
+    cursor: pointer;
+
+    &:focus {
+        outline: none;
+        border-color: ${settingsTheme.primary};
+        box-shadow: 0 0 0 3px ${settingsTheme.primaryGhost};
     }
 `;
 
@@ -962,7 +1103,7 @@ const ClearButton = styled.button`
     background: ${settingsTheme.surface};
     color: ${settingsTheme.text.secondary};
     border-radius: ${settingsTheme.radius.md};
-    font-weight: 500; /* ZMIENIONE: z 600 na 500 */
+    font-weight: 500;
     font-size: 14px;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -977,17 +1118,16 @@ const ClearButton = styled.button`
 const ResultsCounter = styled.div`
     font-size: 14px;
     color: ${settingsTheme.text.secondary};
-    font-weight: 400; /* ZMIENIONE: z 500 na 400 */
+    font-weight: 400;
     text-align: center;
     padding: ${settingsTheme.spacing.sm} 0;
 
     strong {
         color: ${settingsTheme.primary};
-        font-weight: 600; /* ZMIENIONE: z 700 na 600 */
+        font-weight: 600;
     }
 `;
 
-// Modal Styles
 const ModalOverlay = styled.div`
     position: fixed;
     top: 0;
@@ -1026,7 +1166,7 @@ const ModalHeader = styled.div`
     h2 {
         margin: 0;
         font-size: 20px;
-        font-weight: 600; /* ZMIENIONE: z 700 na 600 */
+        font-weight: 600;
         color: ${settingsTheme.text.primary};
         letter-spacing: -0.025em;
     }
@@ -1083,7 +1223,7 @@ const Textarea = styled.textarea`
     border: 2px solid ${settingsTheme.border};
     border-radius: ${settingsTheme.radius.md};
     font-size: 14px;
-    font-weight: 400; /* ZMIENIONE: z 500 na 400 */
+    font-weight: 400;
     background: ${settingsTheme.surface};
     color: ${settingsTheme.text.primary};
     transition: all 0.2s ease;
@@ -1104,17 +1244,47 @@ const Textarea = styled.textarea`
 const HelpText = styled.span`
     font-size: 12px;
     color: ${settingsTheme.text.muted};
-    font-weight: 400; /* ZMIENIONE: dodane explicit normal weight */
+    font-weight: 400;
 `;
 
-const PriceSummary = styled.div`
-    padding: ${settingsTheme.spacing.sm} ${settingsTheme.spacing.md};
+const PriceSummarySection = styled.div`
+    padding: ${settingsTheme.spacing.md};
     background-color: ${settingsTheme.surfaceAlt};
     border-radius: ${settingsTheme.radius.md};
+    border: 2px solid ${settingsTheme.primaryGhost};
+`;
+
+const PriceSummaryTitle = styled.div`
+    font-size: 14px;
+    font-weight: 600;
+    color: ${settingsTheme.text.primary};
+    margin-bottom: ${settingsTheme.spacing.sm};
+`;
+
+const PriceRow = styled.div<{ $highlight?: boolean }>`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: ${settingsTheme.spacing.xs} 0;
+
+    ${props => props.$highlight && `
+        margin-top: ${settingsTheme.spacing.xs};
+        padding-top: ${settingsTheme.spacing.sm};
+        border-top: 1px solid ${settingsTheme.border};
+    `}
+`;
+
+const PriceLabel = styled.span`
+    font-size: 14px;
+    color: ${settingsTheme.text.secondary};
+    font-weight: 400;
+`;
+
+const PriceValue = styled.span`
     font-size: 16px;
     font-weight: 600;
     color: ${settingsTheme.primary};
-    border: 2px solid ${settingsTheme.primaryGhost};
+    font-family: monospace;
 `;
 
 const ButtonGroup = styled.div`
@@ -1136,7 +1306,7 @@ const SecondaryButton = styled.button`
     gap: ${settingsTheme.spacing.sm};
     padding: ${settingsTheme.spacing.sm} ${settingsTheme.spacing.md};
     border-radius: ${settingsTheme.radius.md};
-    font-weight: 500; /* ZMIENIONE: z 600 na 500 */
+    font-weight: 500;
     font-size: 14px;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1168,7 +1338,7 @@ const PrimaryButton = styled.button`
     gap: ${settingsTheme.spacing.sm};
     padding: ${settingsTheme.spacing.sm} ${settingsTheme.spacing.md};
     border-radius: ${settingsTheme.radius.md};
-    font-weight: 500; /* ZMIENIONE: z 600 na 500 */
+    font-weight: 500;
     font-size: 14px;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
