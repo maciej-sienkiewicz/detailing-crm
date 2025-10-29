@@ -269,7 +269,6 @@ const PriceEditModal: React.FC<PriceEditModalProps> = ({
                         Anuluj
                     </SecondaryButton>
                     <PrimaryButton onClick={handleSave}>
-                        <FaEuroSign />
                         Zapisz cenę
                     </PrimaryButton>
                 </ModalFooter>
