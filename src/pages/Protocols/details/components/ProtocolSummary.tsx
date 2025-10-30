@@ -177,7 +177,8 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                 const updatedServices = result.data.services?.map(service => ({
                     id: service.id,
                     name: service.name,
-                    price: service.basePrice,
+                    quantity: service.quantity || 1,
+                    basePrice: service.basePrice,
                     discountType: service.discount?.type as DiscountType || DiscountType.PERCENTAGE,
                     discountValue: service.discount?.value || 0,
                     finalPrice: service.finalPrice,
@@ -266,7 +267,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                 const mappedServices = services.map(service => ({
                     id: service.id,
                     name: service.name,
-                    price: service.price
+                    price: service.price.priceNetto  // Używamy ceny netto dla AddServiceModal
                 }));
 
                 setAvailableServices(mappedServices);
@@ -311,7 +312,8 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                 const updatedServices = result.data.services?.map(service => ({
                     id: service.id,
                     name: service.name,
-                    price: service.basePrice,
+                    quantity: service.quantity || 1,
+                    basePrice: service.basePrice,
                     discountType: service.discount?.type as DiscountType || DiscountType.PERCENTAGE,
                     discountValue: service.discount?.value || 0,
                     finalPrice: service.finalPrice,
@@ -355,39 +357,36 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
 
     const DEFAULT_VAT_RATE = 23;
 
-// Helper functions for VAT calculations
-    const calculateNetPrice = (grossPrice: number, vatRate: number = DEFAULT_VAT_RATE): number => {
-        return grossPrice / (1 + vatRate / 100);
-    };
-
-    const calculateGrossPrice = (netPrice: number, vatRate: number = DEFAULT_VAT_RATE): number => {
-        return netPrice * (1 + vatRate / 100);
-    };
-
-// Funkcje do obsługi cen - zakładamy że service.price to netto
+    // Funkcje do obsługi cen - używamy struktury PriceResponse z backendu
     const getBasePriceGross = (service: SelectedService): number => {
-        return calculateGrossPrice(service.price);
+        return service.basePrice.priceBrutto;
     };
 
     const getBasePriceNet = (service: SelectedService): number => {
-        return service.price; // price jest już netto
+        return service.basePrice.priceNetto;
     };
 
     const getFinalPriceGross = (service: SelectedService): number => {
-        return calculateGrossPrice(service.finalPrice);
+        return service.finalPrice.priceBrutto;
     };
 
     const getFinalPriceNet = (service: SelectedService): number => {
-        return service.finalPrice; // finalPrice jest również netto
+        return service.finalPrice.priceNetto;
     };
 
-    // Business calculations
-    const totalRevenueNet = protocol.selectedServices.reduce((sum, s) => sum + s.finalPrice, 0);
-    const totalRevenueGross = calculateGrossPrice(totalRevenueNet);
-    const totalDiscountNet = protocol.selectedServices.reduce((sum, s) => sum + (s.price - s.finalPrice), 0);
-    const totalDiscountGross = calculateGrossPrice(totalDiscountNet);
-    const totalBasePriceNet = protocol.selectedServices.reduce((sum, s) => sum + s.price, 0);
-    const totalBasePriceGross = calculateGrossPrice(totalBasePriceNet);
+    // Business calculations - sumujemy wartości z PriceResponse
+    const totalRevenueNet = protocol.selectedServices.reduce((sum, s) => sum + s.finalPrice.priceNetto, 0);
+    const totalRevenueGross = protocol.selectedServices.reduce((sum, s) => sum + s.finalPrice.priceBrutto, 0);
+    const totalRevenueTax = protocol.selectedServices.reduce((sum, s) => sum + s.finalPrice.taxAmount, 0);
+
+    const totalDiscountNet = protocol.selectedServices.reduce((sum, s) => sum + (s.basePrice.priceNetto - s.finalPrice.priceNetto), 0);
+    const totalDiscountGross = protocol.selectedServices.reduce((sum, s) => sum + (s.basePrice.priceBrutto - s.finalPrice.priceBrutto), 0);
+    const totalDiscountTax = protocol.selectedServices.reduce((sum, s) => sum + (s.basePrice.taxAmount - s.finalPrice.taxAmount), 0);
+
+    const totalBasePriceNet = protocol.selectedServices.reduce((sum, s) => sum + s.basePrice.priceNetto, 0);
+    const totalBasePriceGross = protocol.selectedServices.reduce((sum, s) => sum + s.basePrice.priceBrutto, 0);
+    const totalBasePriceTax = protocol.selectedServices.reduce((sum, s) => sum + s.basePrice.taxAmount, 0);
+
     const pendingServices = protocol.selectedServices.filter(s => s.approvalStatus === ServiceApprovalStatus.PENDING);
     const approvedServices = protocol.selectedServices.filter(s => s.approvalStatus === ServiceApprovalStatus.APPROVED);
 
@@ -1034,19 +1033,19 @@ export const StepIcon = styled.div<{ $active: boolean; $completed: boolean }>`
     height: 32px;
     border-radius: 50%;
     background: ${props => {
-    if (props.$completed) return brand.success;
-    if (props.$active) return brand.primary;
-    return brand.surfaceSubtle;
-}};
+        if (props.$completed) return brand.success;
+        if (props.$active) return brand.primary;
+        return brand.surfaceSubtle;
+    }};
     color: ${props => {
-    if (props.$completed || props.$active) return 'white';
-    return brand.textMuted;
-}};
+        if (props.$completed || props.$active) return 'white';
+        return brand.textMuted;
+    }};
     border: 3px solid ${props => {
-    if (props.$completed) return brand.success;
-    if (props.$active) return brand.primary;
-    return brand.border;
-}};
+        if (props.$completed) return brand.success;
+        if (props.$active) return brand.primary;
+        return brand.border;
+    }};
     font-size: 18px;
     transition: all 0.3s ease;
 `;

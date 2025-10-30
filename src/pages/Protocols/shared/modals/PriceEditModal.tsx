@@ -1,6 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
 import {FaEuroSign, FaTimes} from 'react-icons/fa';
+import {PriceType} from '../../../../types';
 
 // Professional Brand Theme
 const brandTheme = {
@@ -65,10 +66,11 @@ const brandTheme = {
 interface PriceEditModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (price: number) => void;
+    onSave: (price: number, inputType: PriceType) => void;
     serviceName: string;
     isNewService: boolean;
     initialPrice?: number;
+    initialPriceType?: PriceType;
 }
 
 const PriceEditModal: React.FC<PriceEditModalProps> = ({
@@ -77,11 +79,12 @@ const PriceEditModal: React.FC<PriceEditModalProps> = ({
                                                            onSave,
                                                            serviceName,
                                                            isNewService,
-                                                           initialPrice = 0
+                                                           initialPrice = 0,
+                                                           initialPriceType = PriceType.GROSS
                                                        }) => {
     const [price, setPrice] = useState<string>(initialPrice > 0 ? initialPrice.toString() : '');
     const [error, setError] = useState<string | null>(null);
-    const [isPriceGross, setIsPriceGross] = useState<boolean>(true);
+    const [isPriceGross, setIsPriceGross] = useState<boolean>(initialPriceType === PriceType.GROSS);
 
     // Domyślna stawka VAT
     const DEFAULT_VAT_RATE = 23;
@@ -91,9 +94,9 @@ const PriceEditModal: React.FC<PriceEditModalProps> = ({
         if (isOpen) {
             setPrice(initialPrice >= 0 ? initialPrice.toString() : '');
             setError(null);
-            setIsPriceGross(true);
+            setIsPriceGross(initialPriceType === PriceType.GROSS);
         }
-    }, [isOpen, initialPrice]);
+    }, [isOpen, initialPrice, initialPriceType]);
 
     // Funkcje do przeliczania cen netto/brutto
     const calculateNetPrice = (grossPrice: number): number => {
@@ -106,8 +109,16 @@ const PriceEditModal: React.FC<PriceEditModalProps> = ({
 
     const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
+
         // Pozwól na wprowadzanie tylko cyfr i kropki/przecinka
         if (value === '' || /^[0-9]*[.,]?[0-9]*$/.test(value)) {
+            // Sprawdź ilość miejsc po przecinku
+            const decimalPart = value.split(/[.,]/)[1];
+            if (decimalPart && decimalPart.length > 2) {
+                // Jeśli więcej niż 2 miejsca po przecinku, ignoruj input
+                return;
+            }
+
             setPrice(value);
             setError(null);
         }
@@ -146,11 +157,11 @@ const PriceEditModal: React.FC<PriceEditModalProps> = ({
             return;
         }
 
-        const finalPriceForAPI = isPriceGross
-            ? calculateNetPrice(numericPrice)  // Brutto -> Netto
-            : numericPrice;                    // Netto -> Netto
+        // Przekaż wprowadzoną cenę oraz typ ceny do API
+        // API oczekuje inputPrice i inputType (GROSS lub NET)
+        const inputType = isPriceGross ? PriceType.GROSS : PriceType.NET;
 
-        onSave(finalPriceForAPI);
+        onSave(numericPrice, inputType);
         setPrice('');
         setError(null);
         onClose();
