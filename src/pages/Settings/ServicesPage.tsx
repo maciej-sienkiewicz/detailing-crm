@@ -1,4 +1,4 @@
-// src/pages/Settings/ServicesPage.tsx - ZAKTUALIZOWANE DLA NOWEGO API
+// src/pages/Settings/ServicesPage.tsx - ZREFAKTORYZOWANE (z paddingiem kolumny Nazwa)
 import React, { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import {
@@ -15,6 +15,7 @@ import { servicesApi, ServiceData } from '../../api/servicesApi';
 import { DataTable, TableColumn, HeaderAction } from '../../components/common/DataTable';
 import { settingsTheme } from './styles/theme';
 import { ConfirmationDialog } from "../../components/common/NewConfirmationDialog";
+import { ContextMenu, ContextMenuItem } from '../../components/common/ContextMenu';
 
 // Interface dla filtrów
 interface ServiceFilters {
@@ -263,13 +264,14 @@ const ServicesPage = forwardRef<{ handleAddService: () => void }>((props, ref) =
     };
 
     const columns: TableColumn[] = [
-        { id: 'name', label: 'Nazwa', width: '28%', sortable: true },
-        { id: 'description', label: 'Opis', width: '32%', sortable: true },
+        { id: 'name', label: 'Nazwa', width: '25%', sortable: true },
+        { id: 'description', label: 'Opis', width: '35%', sortable: true },
         { id: 'price', label: 'Cena netto', width: '12%', sortable: true },
-        { id: 'vatRate', label: 'VAT', width: '7%', sortable: true },
+        { id: 'vatRate', label: 'VAT', width: '8%', sortable: true },
         { id: 'grossPrice', label: 'Brutto', width: '12%', sortable: true },
-        { id: 'actions', label: 'Akcje', width: '130px', sortable: false },
+        { id: 'actions', label: ' ', width: '8%', sortable: false },
     ];
+    // SUMA: 25 + 35 + 12 + 8 + 12 + 8 = 100%
 
     const renderCell = (service: Service, columnId: string): React.ReactNode => {
         switch (columnId) {
@@ -294,7 +296,7 @@ const ServicesPage = forwardRef<{ handleAddService: () => void }>((props, ref) =
                     </PriceCell>
                 );
             case 'vatRate':
-                return <VatBadge>{service.vatRate}%</VatBadge>;
+                return <VatCell><VatBadge>{service.vatRate}%</VatBadge></VatCell>;
             case 'grossPrice':
                 return (
                     <PriceCell $total>
@@ -302,25 +304,27 @@ const ServicesPage = forwardRef<{ handleAddService: () => void }>((props, ref) =
                     </PriceCell>
                 );
             case 'actions':
+                const menuItems: ContextMenuItem[] = [
+                    {
+                        id: 'edit',
+                        label: 'Edytuj',
+                        icon: FaEdit,
+                        onClick: () => handleEditService(service),
+                        variant: 'default',
+                    },
+                    {
+                        id: 'delete',
+                        label: 'Usuń',
+                        icon: FaTrash,
+                        onClick: () => handleDeleteService(service.id, service.name),
+                        variant: 'danger',
+                    }
+                ];
+
                 return (
-                    <ActionButtons>
-                        <ActionButton
-                            onClick={() => handleEditService(service)}
-                            title="Edytuj usługę"
-                            $variant="edit"
-                            $small
-                        >
-                            <FaEdit />
-                        </ActionButton>
-                        <ActionButton
-                            onClick={() => handleDeleteService(service.id, service.name)}
-                            title="Usuń usługę"
-                            $variant="delete"
-                            $small
-                        >
-                            <FaTrash />
-                        </ActionButton>
-                    </ActionButtons>
+                    <ActionMenuContainer>
+                        <ContextMenu items={menuItems} size="small" />
+                    </ActionMenuContainer>
                 );
             default:
                 const value = service[columnId as keyof Service];
@@ -830,6 +834,7 @@ const ServiceNameCell = styled.div`
     gap: 4px;
     width: 100%;
     min-width: 0;
+    padding-left: ${settingsTheme.spacing.sm}; // ZMIANA: Dodany padding
 `;
 
 const ServiceName = styled.div`
@@ -840,13 +845,12 @@ const ServiceName = styled.div`
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    cursor: help;
 `;
 
 const ServiceDescription = styled.div`
     color: ${settingsTheme.text.secondary};
-    font-size: 13px;
-    line-height: 1.4;
+    font-size: 12px;
+    line-height: 1.35;
     font-weight: 400;
 
     display: -webkit-box;
@@ -854,8 +858,7 @@ const ServiceDescription = styled.div`
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
-    cursor: help;
-    min-height: 32px;
+    min-height: 30px;
 `;
 
 const PriceCell = styled.div<{ $total?: boolean }>`
@@ -867,25 +870,11 @@ const PriceCell = styled.div<{ $total?: boolean }>`
     white-space: nowrap;
 `;
 
-const PriceTypeBadge = styled.span<{ $type: PriceType }>`
-    display: inline-flex;
+const VatCell = styled.div`
+    display: flex;
     align-items: center;
     justify-content: center;
-    padding: 4px 10px;
-    border-radius: ${settingsTheme.radius.sm};
-    font-size: 12px;
-    font-weight: 500;
-    min-width: 60px;
-
-    ${props => props.$type === PriceType.NET ? `
-        background-color: ${settingsTheme.status.infoLight};
-        color: ${settingsTheme.status.info};
-        border: 1px solid ${settingsTheme.status.info}40;
-    ` : `
-        background-color: ${settingsTheme.status.successLight};
-        color: ${settingsTheme.status.success};
-        border: 1px solid ${settingsTheme.status.success}40;
-    `}
+    width: 100%;
 `;
 
 const VatBadge = styled.span`
@@ -902,58 +891,11 @@ const VatBadge = styled.span`
     min-width: 40px;
 `;
 
-const ActionButtons = styled.div`
+const ActionMenuContainer = styled.div`
     display: flex;
-    gap: ${settingsTheme.spacing.xs};
     align-items: center;
     justify-content: center;
     width: 100%;
-    min-width: 80px;
-`;
-
-const ActionButton = styled.button<{
-    $variant: 'edit' | 'delete';
-    $small?: boolean;
-}>`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: ${props => props.$small ? '28px' : '32px'};
-    height: ${props => props.$small ? '28px' : '32px'};
-    border: none;
-    border-radius: ${settingsTheme.radius.sm};
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    font-size: ${props => props.$small ? '12px' : '13px'};
-    position: relative;
-    overflow: hidden;
-
-    ${({ $variant }) => {
-        switch ($variant) {
-            case 'edit':
-                return `
-                    background: ${settingsTheme.status.warningLight};
-                    color: ${settingsTheme.status.warning};
-                    &:hover {
-                        background: ${settingsTheme.status.warning};
-                        color: white;
-                        transform: translateY(-1px);
-                        box-shadow: ${settingsTheme.shadow.md};
-                    }
-                `;
-            case 'delete':
-                return `
-                    background: ${settingsTheme.status.errorLight};
-                    color: ${settingsTheme.status.error};
-                    &:hover {
-                        background: ${settingsTheme.status.error};
-                        color: white;
-                        transform: translateY(-1px);
-                        box-shadow: ${settingsTheme.shadow.md};
-                    }
-                `;
-        }
-    }}
 `;
 
 const ErrorMessage = styled.div`

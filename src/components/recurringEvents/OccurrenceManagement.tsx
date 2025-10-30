@@ -659,7 +659,6 @@ const NotesCell = styled.div`
 
 const NotesText = styled.div`
     color: ${theme.text.secondary};
-    cursor: help;
     overflow: hidden;
     text-overflow: ellipsis;
     display: -webkit-box;
