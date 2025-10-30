@@ -59,13 +59,13 @@ export interface VehicleImage {
     protocolId?: string;
 }
 
-// Definicja protokołu przyjęcia pojazdu
+// ✅ ZAKTUALIZOWANE: Definicja protokołu przyjęcia pojazdu
 export interface CarReceptionProtocol {
     id: string;
-    title?: string;        // Tytuł wizyty
-    calendarColorId?: string; // ID koloru używanego do wyświetlania wizyty w kalendarzu
-    startDate: string;     // Teraz zawiera datę i godzinę (format ISO 8601)
-    endDate: string;       // Zawsze będzie ustawiony na koniec dnia
+    title?: string;
+    calendarColorId?: string;
+    startDate: string;
+    endDate: string;
     licensePlate: string;
     make: string;
     model: string;
@@ -92,11 +92,16 @@ export interface CarReceptionProtocol {
     protocolDocuments?: ProtocolDocument[];
     deliveryPerson?: DeliveryPerson | null;
 
+    // ✅ NOWE POLA: zamiast pojedynczego totalAmount
+    totalAmountNetto?: number;
+    totalAmountBrutto?: number;
+    totalTaxAmount?: number;
+
     // Dodatkowe pola
     comments?: any[];
     purchaseInvoices?: any[];
     vehicleIssues?: any[];
-    vehicleImages?: VehicleImage[]; // Zdjęcia pojazdu
+    vehicleImages?: VehicleImage[];
 }
 
 export interface ProtocolDocument {
@@ -145,7 +150,7 @@ export interface PeriodInfo {
     endDate: string;
 }
 
-// Odpowiedź z API dla widoku listy protokołów
+// ✅ ZAKTUALIZOWANE: Odpowiedź z API dla widoku listy protokołów
 export interface ProtocolListItem {
     id: string;
     vehicle: VehicleBasicInfo;
@@ -153,14 +158,17 @@ export interface ProtocolListItem {
     owner: OwnerBasicInfo;
     status: ProtocolStatus;
     totalServiceCount: number;
-    totalAmount: number;
+    // ✅ ZMIANA: zamiast totalAmount: number
+    totalAmountNetto: number;
+    totalAmountBrutto: number;
+    totalTaxAmount: number;
     calendarColorId?: string;
     selectedServices: SelectedService[];
     title: string;
     lastUpdate: string;
 }
 
-// Nowy interfejs dla historii wizyt klienta (uproszczony format z API)
+// ✅ ZAKTUALIZOWANE: Nowy interfejs dla historii wizyt klienta
 export interface ClientProtocolHistory {
     id: string;
     startDate: string;
@@ -169,7 +177,10 @@ export interface ClientProtocolHistory {
     carMake: string;
     carModel: string;
     licensePlate: string;
-    totalAmount: number;
+    // ✅ ZMIANA: zamiast totalAmount: number
+    totalAmountNetto: number;
+    totalAmountBrutto: number;
+    totalTaxAmount: number;
 }
 
 export interface DeliveryPerson {

@@ -3,6 +3,7 @@ import {apiClient, PaginatedResponse} from './apiClient';
 import {ProtocolListItem, ProtocolStatus} from '../types/protocol';
 import {CarReceptionProtocol, SelectedService} from '../types';
 import {apiClientNew} from "./apiClientNew";
+import {ServicePriceInput, PriceType} from '../types/service'; // ✅ Import PriceType
 
 interface ReleaseVehicleData {
     paymentMethod: 'cash' | 'card' | 'transfer';
@@ -11,17 +12,20 @@ interface ReleaseVehicleData {
     overridenItems?: SelectedService[];
 }
 
+// ✅ ZAKTUALIZOWANE: UpdateServiceItemCommand teraz używa PriceDto z backendu
+interface UpdateServiceItemCommand {
+    name: string;
+    price: ServicePriceInput;
+    quantity: number;
+    discount_type?: string;
+    discount_value?: number;
+    approval_status?: string;
+    note?: string;
+    vat_rate?: number;
+}
+
 interface ServicesUpdateCommand {
-    services: Array<{
-        name: string;
-        price: number;
-        quantity?: number;
-        discount_type?: string;
-        discount_value?: number;
-        final_price?: number;
-        approval_status?: string;
-        note?: string;
-    }>;
+    services: UpdateServiceItemCommand[];
 }
 
 interface ProtocolIdResponse {
@@ -74,7 +78,6 @@ export const protocolsApi = {
      */
     releaseVehicle: async (id: string, data: ReleaseVehicleData): Promise<CarReceptionProtocol | null> => {
         try {
-
             return await apiClientNew.post<CarReceptionProtocol>(`/v1/protocols/${id}/release`, data);
         } catch (error) {
             console.error(`Error releasing vehicle (ID: ${id}):`, error);
@@ -82,20 +85,26 @@ export const protocolsApi = {
         }
     },
 
+    /**
+     * ✅ ZAKTUALIZOWANE: Aktualizacja usług w protokole
+     */
     updateServices: async (protocolId: string, services: SelectedService[]): Promise<boolean> => {
         try {
-
-            // Mapowanie z SelectedService na format API
+            // Mapowanie z SelectedService (frontend) na format API (backend)
             const servicesUpdateCommand: ServicesUpdateCommand = {
                 services: services.map(service => ({
                     name: service.name,
-                    price: service.price,
-                    quantity: 1, // Domyślnie 1
+                    // ✅ POPRAWKA: Używamy PriceType.NET zamiast string literal
+                    price: {
+                        inputPrice: service.basePrice.priceNetto,
+                        inputType: PriceType.NET  // ✅ Używamy enum zamiast 'netto'
+                    },
+                    quantity: service.quantity || 1,
                     discount_type: service.discountType,
                     discount_value: service.discountValue,
-                    final_price: service.finalPrice,
                     approval_status: service.approvalStatus || 'PENDING',
-                    note: service.note || ''
+                    note: service.note || '',
+                    vat_rate: 23 // Domyślna stawka VAT
                 }))
             };
 
@@ -198,7 +207,6 @@ export const protocolsApi = {
             return await apiClient.get<ProtocolCounters>('/v1/protocols/counters');
         } catch (error) {
             console.error('Error fetching protocol counters:', error);
-            // Zwracamy domyślne wartości w przypadku błędu
             return {
                 scheduled: 0,
                 inProgress: 0,
@@ -215,7 +223,6 @@ export const protocolsApi = {
      */
     sendProtocolEmail: async (visitId: string): Promise<EmailSendResponse> => {
         try {
-
             const request: SendProtocolEmailRequest = {
                 visit_id: visitId
             };
@@ -224,8 +231,6 @@ export const protocolsApi = {
             return response;
         } catch (error) {
             console.error(`Error sending protocol email (Visit ID: ${visitId}):`, error);
-
-            // Zwracamy strukturę błędu zamiast rzucania wyjątku
             return {
                 success: false,
                 message: error instanceof Error ? error.message : 'Nie udało się wysłać emaila z protokołem'

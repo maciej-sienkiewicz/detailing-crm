@@ -1,18 +1,10 @@
-// src/types/common.ts
-// Wspólne typy używane w różnych częściach aplikacji
+import { PriceResponse } from './service';
 
 export enum DiscountType {
-    PERCENTAGE = 'PERCENTAGE',  // Rabat procentowy (np. 10%)
-    AMOUNT = 'AMOUNT',          // Rabat kwotowy (np. obniżka o 100 zł)
-    FIXED_PRICE = 'FIXED_PRICE' // Stała cena (ustalona kwota końcowa)
+    PERCENTAGE = 'PERCENTAGE',
+    AMOUNT = 'AMOUNT',
+    FIXED_PRICE = 'FIXED_PRICE'
 }
-
-// Etykiety dla typów rabatów
-export const DiscountTypeLabels: Record<DiscountType, string> = {
-    [DiscountType.PERCENTAGE]: 'Rabat procentowy',
-    [DiscountType.AMOUNT]: 'Rabat kwotowy',
-    [DiscountType.FIXED_PRICE]: 'Cena finalna'
-};
 
 // Status zatwierdzenia usługi
 export enum ServiceApprovalStatus {
@@ -21,15 +13,14 @@ export enum ServiceApprovalStatus {
     REJECTED = 'REJECTED'      // Odrzucona przez klienta
 }
 
-
-// Definicja typu dla usługi wybranej w protokole
 export interface SelectedService {
     id: string;
     name: string;
-    price: number;         // Cena jednostkowa
+    quantity: number;
+    basePrice: PriceResponse;
     discountType: DiscountType;
     discountValue: number;
-    finalPrice: number;    // Cena końcowa (po uwzględnieniu ilości i rabatu)
+    finalPrice: PriceResponse;
     approvalStatus?: ServiceApprovalStatus;
     addedAt?: string;
     approvedAt?: string;

@@ -6,6 +6,7 @@
 
 import {apiClientNew, ApiError, PaginatedApiResponse, PaginationParams} from './apiClientNew';
 import {ProtocolStatus, DiscountType} from '../types';
+import {PriceResponse, PriceType} from '../types/service';
 
 // ========================================================================================
 // TYPE DEFINITIONS
@@ -33,7 +34,10 @@ export interface VisitListItem {
         companyName?: string;
     };
     status: ProtocolStatus;
-    totalAmount: number;
+    // ✅ ZMIANA: zamiast totalAmount: number
+    totalAmountNetto: number;
+    totalAmountBrutto: number;
+    totalTaxAmount: number;
     lastUpdate: string;
     calendarColorId: string;
     selectedServices: VisitServiceSummary[];
@@ -51,7 +55,10 @@ export interface ClientVisitHistoryItem {
     make: string;
     model: string;
     licensePlate: string;
-    totalAmount: number;
+    // ✅ ZMIANA: zamiast totalAmount: number
+    totalAmountNetto: number;
+    totalAmountBrutto: number;
+    totalTaxAmount: number;
     title: string;
 }
 
@@ -61,9 +68,9 @@ export interface ClientVisitHistoryItem {
 export interface VisitServiceSummary {
     id: string;
     name: string;
-    price: number;
-    finalPrice: number;
     quantity: number;
+    basePrice: PriceResponse;      // ✅ ZMIANA: było price: number
+    finalPrice: PriceResponse;     // ✅ ZMIANA: było finalPrice: number
     discountType?: string;
     discountValue?: number;
     approvalStatus?: string;
@@ -110,11 +117,13 @@ export interface VisitCounters {
 export interface AddServiceItemRequest {
     serviceId?: string | null;
     name: string;
-    basePrice: number;
+    price: {
+        inputPrice: number;
+        inputType: PriceType;
+    };
     quantity: number;
     discountType?: string | null;
     discountValue?: number | null;
-    finalPrice?: number | null;
     note?: string | null;
     description?: string | null;
     vatRate?: number;
@@ -147,7 +156,10 @@ export interface VisitResponse {
     endDate: string;
     status: ProtocolStatus;
     services: VisitServiceResponse[];
-    totalAmount: number;
+    // ✅ ZMIANA: zamiast totalAmount: number
+    totalAmountNetto: number;
+    totalAmountBrutto: number;
+    totalTaxAmount: number;
     serviceCount: number;
     notes?: string;
     referralSource?: string;
@@ -165,13 +177,13 @@ export interface VisitResponse {
 export interface VisitServiceResponse {
     id: string;
     name: string;
-    basePrice: number;
     quantity: number;
+    basePrice: PriceResponse;      // ✅ ZMIANA
     discount?: {
         type: string;
         value: number;
     };
-    finalPrice: number;
+    finalPrice: PriceResponse;     // ✅ ZMIANA
     approvalStatus: string;
     note?: string;
 }
@@ -202,7 +214,6 @@ class VisitsApi {
      */
     async getVisitsList(params: VisitSearchParams = {}): Promise<VisitsApiResult<PaginatedApiResponse<VisitListItem>>> {
         try {
-
             const { page = 0, size = 10, ...filterParams } = params;
 
             // Prepare filter parameters for the API
@@ -276,7 +287,6 @@ class VisitsApi {
         params: PaginationParams = {}
     ): Promise<VisitsApiResult<PaginatedApiResponse<ClientVisitHistoryItem>>> {
         try {
-
             const { page = 0, size = 5 } = params;
 
             // Call the new API endpoint for client visit history
@@ -319,42 +329,41 @@ class VisitsApi {
     }
 
     /**
-     * Adds services to an existing visit
+     * ✅ ZAKTUALIZOWANE: Adds services to an existing visit
      */
     async addServicesToVisit(
         visitId: string,
         services: Array<{
             id: string;
             name: string;
-            price: number;
+            basePrice: PriceResponse;    // ✅ ZMIANA
             discountType?: DiscountType;
             discountValue?: number;
-            finalPrice: number;
+            finalPrice: PriceResponse;   // ✅ ZMIANA (chociaż może nie być używane w request)
             note?: string;
         }>
     ): Promise<VisitsApiResult<VisitResponse>> {
         try {
-
             // Map services to API request format
             const servicesRequest: AddServiceItemRequest[] = services.map(service => ({
-                // If service ID is custom-generated (starts with 'custom-'), don't send it
                 serviceId: service.id.startsWith('custom-') ? null : service.id,
                 name: service.name,
-                basePrice: service.price,
-                quantity: 1, // Default quantity
+                price: {
+                    inputPrice: service.basePrice.priceNetto,  // ✅ Używamy priceNetto
+                    inputType: PriceType.NET
+                },
+                quantity: 1,
                 discountType: service.discountType || null,
                 discountValue: service.discountValue || null,
-                finalPrice: service.finalPrice,
                 note: service.note || null,
-                description: null, // Not used in current implementation
-                vatRate: 23 // Default VAT rate
+                description: null,
+                vatRate: 23
             }));
 
             const requestData: AddServicesToVisitRequest = {
                 services: servicesRequest
             };
 
-            // Make API call
             const response = await apiClientNew.post<VisitResponse>(
                 `/v1/protocols/${visitId}/services`,
                 requestData,
@@ -388,7 +397,6 @@ class VisitsApi {
         reason?: string
     ): Promise<VisitsApiResult<VisitResponse>> {
         try {
-
             const requestData = {
                 serviceId,
                 reason: reason || null
@@ -464,7 +472,7 @@ class VisitsApi {
     // ========================================================================================
 
     /**
-     * FIXED: Transforms raw API data to match VisitListItem interface
+     * ✅ ZAKTUALIZOWANE: Transforms raw API data to match VisitListItem interface
      */
     private transformVisitListData(rawData: any[]): VisitListItem[] {
         if (!Array.isArray(rawData)) {
@@ -474,8 +482,6 @@ class VisitsApi {
 
         return rawData.map(item => {
             try {
-                // Log individual item for debugging
-
                 const transformed: VisitListItem = {
                     id: item.id?.toString() || '',
                     title: item.title || '',
@@ -491,22 +497,22 @@ class VisitsApi {
                         endDate: item.period?.endDate || item.period?.end_date || ''
                     },
                     owner: {
-                        // FIXED: Obsługa właściwego pola 'client' z odpowiedzi serwera
                         name: item.client?.name || item.owner?.name || '',
                         companyName: item.client?.companyName || item.client?.company_name || item.owner?.companyName || undefined
                     },
                     status: item.status as ProtocolStatus,
-                    totalAmount: parseFloat(item.totalAmount?.toString() || item.total_amount?.toString() || '0'),
+                    // ✅ ZMIANA: Obsługa nowych pól z cenami
+                    totalAmountNetto: parseFloat(item.totalAmountNetto?.toString() || item.total_amount_netto?.toString() || '0'),
+                    totalAmountBrutto: parseFloat(item.totalAmountBrutto?.toString() || item.total_amount_brutto?.toString() || '0'),
+                    totalTaxAmount: parseFloat(item.totalTaxAmount?.toString() || item.total_tax_amount?.toString() || '0'),
                     lastUpdate: item.lastUpdate || item.last_update || '',
                     calendarColorId: item.calendarColorId || item.calendar_color_id || '1',
-                    // FIXED: Obsługa właściwego pola 'services' z odpowiedzi serwera
                     selectedServices: this.transformServices(item.services || item.selected_services || []),
                     totalServiceCount: parseInt(item.totalServiceCount?.toString() || item.total_service_count?.toString() || '0')
                 };
                 return transformed;
             } catch (error) {
                 console.error('❌ Error transforming visit item:', error, item);
-                // Return a fallback object instead of failing
                 return {
                     id: item.id?.toString() || 'unknown',
                     title: item.title || 'Unknown Visit',
@@ -524,7 +530,9 @@ class VisitsApi {
                         name: item.client?.name || item.owner?.name || 'Unknown Client'
                     },
                     status: (item.status as ProtocolStatus) || ProtocolStatus.SCHEDULED,
-                    totalAmount: parseFloat(item.totalAmount?.toString() || item.total_amount?.toString() || '0'),
+                    totalAmountNetto: 0,
+                    totalAmountBrutto: 0,
+                    totalTaxAmount: 0,
                     lastUpdate: item.lastUpdate || item.last_update || '',
                     calendarColorId: item.calendarColorId || item.calendar_color_id || '1',
                     selectedServices: this.transformServices(item.services || item.selected_services || []),
@@ -535,7 +543,7 @@ class VisitsApi {
     }
 
     /**
-     * Transforms services data
+     * ✅ ZAKTUALIZOWANE: Transforms services data
      */
     private transformServices(services: any[]): VisitServiceSummary[] {
         if (!Array.isArray(services)) {
@@ -545,9 +553,19 @@ class VisitsApi {
         return services.map(service => ({
             id: service.id?.toString() || '',
             name: service.name || '',
-            price: parseFloat(service.price?.toString() || '0'),
-            finalPrice: parseFloat(service.finalPrice?.toString() || service.final_price?.toString() || service.price?.toString() || '0'),
             quantity: parseInt(service.quantity?.toString() || '1'),
+            // ✅ ZMIANA: basePrice jako PriceResponse
+            basePrice: {
+                priceNetto: parseFloat(service.basePrice?.priceNetto?.toString() || service.base_price?.price_netto?.toString() || '0'),
+                priceBrutto: parseFloat(service.basePrice?.priceBrutto?.toString() || service.base_price?.price_brutto?.toString() || '0'),
+                taxAmount: parseFloat(service.basePrice?.taxAmount?.toString() || service.base_price?.tax_amount?.toString() || '0')
+            },
+            // ✅ ZMIANA: finalPrice jako PriceResponse
+            finalPrice: {
+                priceNetto: parseFloat(service.finalPrice?.priceNetto?.toString() || service.final_price?.price_netto?.toString() || '0'),
+                priceBrutto: parseFloat(service.finalPrice?.priceBrutto?.toString() || service.final_price?.price_brutto?.toString() || '0'),
+                taxAmount: parseFloat(service.finalPrice?.taxAmount?.toString() || service.final_price?.tax_amount?.toString() || '0')
+            },
             discountType: service.discountType || service.discount_type,
             discountValue: service.discountValue || service.discount_value,
             approvalStatus: service.approvalStatus || service.approval_status,
@@ -556,12 +574,11 @@ class VisitsApi {
     }
 
     /**
-     * FIXED: Improved filter parameters preparation with better status mapping
+     * Improved filter parameters preparation with better status mapping
      */
     private prepareFilterParams(params: VisitFilterParams): Record<string, any> {
         const apiParams: Record<string, any> = {};
 
-        // Map client params to server params
         if (params.clientName) apiParams.clientName = params.clientName;
         if (params.licensePlate) apiParams.licensePlate = params.licensePlate;
         if (params.startDate) apiParams.startDate = params.startDate;
@@ -572,12 +589,10 @@ class VisitsApi {
         if (params.minPrice !== undefined) apiParams.minPrice = params.minPrice;
         if (params.maxPrice !== undefined) apiParams.maxPrice = params.maxPrice;
 
-        // Handle status filter properly
         if (params.status) {
             apiParams.status = params.status;
         }
 
-        // Handle serviceIds array
         if (params.serviceIds && Array.isArray(params.serviceIds) && params.serviceIds.length > 0) {
             apiParams.serviceIds = params.serviceIds;
         }
@@ -589,7 +604,6 @@ class VisitsApi {
      */
     private extractErrorMessage(error: unknown): string {
         if (ApiError.isApiError(error)) {
-            // Handle specific API errors
             switch (error.status) {
                 case 401:
                     return 'Sesja wygasła. Zaloguj się ponownie.';
@@ -628,8 +642,5 @@ class VisitsApi {
 // EXPORTS
 // ========================================================================================
 
-// Export singleton instance
 export const visitsApi = new VisitsApi();
-
-// Default export
 export default visitsApi;
