@@ -426,7 +426,8 @@ const ProtocolDetailsPage: React.FC = () => {
                 isOpen={showPaymentModal}
                 onClose={() => setShowPaymentModal(false)}
                 onConfirm={handlePaymentConfirm}
-                totalAmount={protocol?.selectedServices.reduce((sum, s) => sum + s.finalPrice, 0) || 0}
+                // ✅ ZMIANA: Używamy priceBrutto zamiast finalPrice
+                totalAmount={protocol?.selectedServices.reduce((sum, s) => sum + s.finalPrice.priceBrutto, 0) || 0}
                 services={protocol?.selectedServices || []}
                 onServicesChange={handleServiceItemsChange}
                 protocolId={protocol.id}

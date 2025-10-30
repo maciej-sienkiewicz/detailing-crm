@@ -3,6 +3,7 @@ import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
 import {FaCalculator, FaCheck, FaMoneyBillWave, FaPencilAlt, FaTimes} from 'react-icons/fa';
 import {DiscountType, SelectedService} from '../../../../types';
+import {PriceResponse} from '../../../../types/service';
 import {useToast} from "../../../../components/common/Toast/Toast";
 import {protocolsApi} from "../../../../api/protocolsApi";
 
@@ -68,8 +69,8 @@ const brandTheme = {
 
 interface ServiceExtended extends SelectedService {
     isModified?: boolean;
-    originalPrice?: number;
-    originalFinalPrice?: number;
+    originalPrice?: PriceResponse;      // ✅ ZMIANA: PriceResponse zamiast number
+    originalFinalPrice?: PriceResponse; // ✅ ZMIANA: PriceResponse zamiast number
 }
 
 interface EditPricesModalProps {
@@ -101,8 +102,8 @@ const EditPricesModal: React.FC<EditPricesModalProps> = ({
             const initialServices = services.map(service => ({
                 ...service,
                 isModified: false,
-                originalPrice: service.price,
-                originalFinalPrice: service.finalPrice
+                originalPrice: service.basePrice,      // ✅ ZMIANA: basePrice to PriceResponse
+                originalFinalPrice: service.finalPrice // ✅ ZMIANA: finalPrice to PriceResponse
             }));
 
             setEditedServices(initialServices);
@@ -113,35 +114,57 @@ const EditPricesModal: React.FC<EditPricesModalProps> = ({
     const handleStartEdit = (index: number) => {
         const service = editedServices[index];
         setIsEditing(index);
-        setEditPrice(service.price.toString());
+        setEditPrice(service.basePrice.priceBrutto.toString()); // ✅ ZMIANA: używamy basePrice.priceBrutto
         setEditDiscountValue(service.discountValue.toString());
     };
 
-    const calculateFinalPrice = (price: number, discountType: DiscountType, discountValue: number): number => {
-        let finalPrice = price;
+    const DEFAULT_VAT_RATE = 23;
+
+    const calculateNetPrice = (grossPrice: number): number => {
+        return grossPrice / (1 + DEFAULT_VAT_RATE / 100);
+    };
+
+    const calculateTaxAmount = (netPrice: number): number => {
+        return netPrice * (DEFAULT_VAT_RATE / 100);
+    };
+
+    // ✅ ZAKTUALIZOWANA: Funkcja kalkulacji ceny końcowej używająca PriceResponse
+    const calculateFinalPrice = (
+        basePrice: PriceResponse,
+        discountType: DiscountType,
+        discountValue: number
+    ): PriceResponse => {
+        let finalPriceBrutto = basePrice.priceBrutto;
 
         switch (discountType) {
             case DiscountType.PERCENTAGE:
-                finalPrice = price * (1 - discountValue / 100);
+                finalPriceBrutto = basePrice.priceBrutto * (1 - discountValue / 100);
                 break;
             case DiscountType.AMOUNT:
-                finalPrice = Math.max(0, price - discountValue);
+                finalPriceBrutto = Math.max(0, basePrice.priceBrutto - discountValue);
                 break;
             case DiscountType.FIXED_PRICE:
-                finalPrice = discountValue;
+                finalPriceBrutto = discountValue;
                 break;
         }
 
-        return parseFloat(finalPrice.toFixed(2));
+        const finalPriceNetto = calculateNetPrice(finalPriceBrutto);
+        const taxAmount = calculateTaxAmount(finalPriceNetto);
+
+        return {
+            priceNetto: parseFloat(finalPriceNetto.toFixed(2)),
+            priceBrutto: parseFloat(finalPriceBrutto.toFixed(2)),
+            taxAmount: parseFloat(taxAmount.toFixed(2))
+        };
     };
 
     const handleSaveEdit = () => {
         if (isEditing === null) return;
 
-        const parsedPrice = parseFloat(editPrice);
+        const parsedPriceBrutto = parseFloat(editPrice);
         const parsedDiscountValue = parseFloat(editDiscountValue) || 0;
 
-        if (isNaN(parsedPrice) || parsedPrice <= 0) {
+        if (isNaN(parsedPriceBrutto) || parsedPriceBrutto <= 0) {
             showToast('error', 'Cena musi być większa od 0', 3000);
             return;
         }
@@ -149,16 +172,28 @@ const EditPricesModal: React.FC<EditPricesModalProps> = ({
         const updatedServices = [...editedServices];
         const originalService = updatedServices[isEditing];
 
-        const newFinalPrice = calculateFinalPrice(parsedPrice, originalService.discountType, parsedDiscountValue);
+        // ✅ ZMIANA: Tworzymy nową bazową cenę jako PriceResponse
+        const priceNetto = calculateNetPrice(parsedPriceBrutto);
+        const taxAmount = calculateTaxAmount(priceNetto);
 
-        const isPriceChanged = Math.abs(parsedPrice - (originalService.originalPrice || 0)) > 0.01;
+        const newBasePrice: PriceResponse = {
+            priceNetto: parseFloat(priceNetto.toFixed(2)),
+            priceBrutto: parseFloat(parsedPriceBrutto.toFixed(2)),
+            taxAmount: parseFloat(taxAmount.toFixed(2))
+        };
+
+        const newFinalPrice = calculateFinalPrice(newBasePrice, originalService.discountType, parsedDiscountValue);
+
+        const isPriceChanged = originalService.originalPrice
+            ? Math.abs(parsedPriceBrutto - originalService.originalPrice.priceBrutto) > 0.01
+            : false;
         const isDiscountChanged = Math.abs(parsedDiscountValue - (originalService.discountValue || 0)) > 0.01;
 
         updatedServices[isEditing] = {
             ...originalService,
-            price: parsedPrice,
+            basePrice: newBasePrice,     // ✅ ZMIANA
             discountValue: parsedDiscountValue,
-            finalPrice: newFinalPrice,
+            finalPrice: newFinalPrice,   // ✅ ZMIANA
             isModified: isPriceChanged || isDiscountChanged
         };
 
@@ -177,14 +212,14 @@ const EditPricesModal: React.FC<EditPricesModalProps> = ({
         // Reset discount value when changing type
         let newDiscountValue = 0;
         if (newDiscountType === DiscountType.FIXED_PRICE) {
-            newDiscountValue = service.price; // Set fixed price to current price
+            newDiscountValue = service.basePrice.priceBrutto; // ✅ ZMIANA: używamy basePrice.priceBrutto
         }
 
         updatedServices[index] = {
             ...service,
             discountType: newDiscountType,
             discountValue: newDiscountValue,
-            finalPrice: calculateFinalPrice(service.price, newDiscountType, newDiscountValue),
+            finalPrice: calculateFinalPrice(service.basePrice, newDiscountType, newDiscountValue), // ✅ ZMIANA
             isModified: true
         };
 
@@ -208,7 +243,7 @@ const EditPricesModal: React.FC<EditPricesModalProps> = ({
         updatedServices[index] = {
             ...service,
             discountValue: validatedValue,
-            finalPrice: calculateFinalPrice(service.price, service.discountType, validatedValue),
+            finalPrice: calculateFinalPrice(service.basePrice, service.discountType, validatedValue), // ✅ ZMIANA
             isModified: true
         };
 
@@ -249,8 +284,15 @@ const EditPricesModal: React.FC<EditPricesModalProps> = ({
     };
 
     const calculateTotals = () => {
-        const originalTotal = editedServices.reduce((sum, service) => sum + (service.originalFinalPrice || 0), 0);
-        const newTotal = editedServices.reduce((sum, service) => sum + service.finalPrice, 0);
+        // ✅ ZMIANA: używamy .priceBrutto z PriceResponse
+        const originalTotal = editedServices.reduce(
+            (sum, service) => sum + (service.originalFinalPrice?.priceBrutto || 0),
+            0
+        );
+        const newTotal = editedServices.reduce(
+            (sum, service) => sum + service.finalPrice.priceBrutto,
+            0
+        );
         const difference = newTotal - originalTotal;
 
         return {
@@ -377,11 +419,21 @@ const EditPricesModal: React.FC<EditPricesModalProps> = ({
                                                 </TableCell>
                                                 <TableCell>
                                                     <PricePreview>
-                                                        {calculateFinalPrice(
-                                                            parseFloat(editPrice) || 0,
-                                                            service.discountType,
-                                                            parseFloat(editDiscountValue) || 0
-                                                        ).toFixed(2)} zł
+                                                        {(() => {
+                                                            const priceBrutto = parseFloat(editPrice) || 0;
+                                                            const priceNetto = calculateNetPrice(priceBrutto);
+                                                            const taxAmount = calculateTaxAmount(priceNetto);
+                                                            const tempBasePrice: PriceResponse = {
+                                                                priceNetto: parseFloat(priceNetto.toFixed(2)),
+                                                                priceBrutto: parseFloat(priceBrutto.toFixed(2)),
+                                                                taxAmount: parseFloat(taxAmount.toFixed(2))
+                                                            };
+                                                            return calculateFinalPrice(
+                                                                tempBasePrice,
+                                                                service.discountType,
+                                                                parseFloat(editDiscountValue) || 0
+                                                            ).priceBrutto.toFixed(2);
+                                                        })()} zł
                                                     </PricePreview>
                                                 </TableCell>
                                                 <TableCell>
@@ -413,11 +465,11 @@ const EditPricesModal: React.FC<EditPricesModalProps> = ({
                                                 <TableCell>
                                                     <PriceDisplay>
                                                         <PriceValue $modified={service.isModified}>
-                                                            {service.price.toFixed(2)} zł
+                                                            {service.basePrice.priceBrutto.toFixed(2)} zł
                                                         </PriceValue>
                                                         {service.isModified && service.originalPrice && (
                                                             <OriginalPrice>
-                                                                było: {service.originalPrice.toFixed(2)} zł
+                                                                było: {service.originalPrice.priceBrutto.toFixed(2)} zł
                                                             </OriginalPrice>
                                                         )}
                                                     </PriceDisplay>
@@ -446,7 +498,7 @@ const EditPricesModal: React.FC<EditPricesModalProps> = ({
 
                                                         {service.discountValue > 0 && service.discountType === DiscountType.PERCENTAGE && (
                                                             <DiscountAmount>
-                                                                (-{(service.price * service.discountValue / 100).toFixed(2)} zł)
+                                                                (-{(service.basePrice.priceBrutto * service.discountValue / 100).toFixed(2)} zł)
                                                             </DiscountAmount>
                                                         )}
                                                     </DiscountDisplay>
@@ -454,11 +506,11 @@ const EditPricesModal: React.FC<EditPricesModalProps> = ({
                                                 <TableCell>
                                                     <FinalPriceDisplay>
                                                         <FinalPrice $modified={service.isModified}>
-                                                            {service.finalPrice.toFixed(2)} zł
+                                                            {service.finalPrice.priceBrutto.toFixed(2)} zł
                                                         </FinalPrice>
                                                         {service.isModified && service.originalFinalPrice && (
                                                             <OriginalPrice>
-                                                                było: {service.originalFinalPrice.toFixed(2)} zł
+                                                                było: {service.originalFinalPrice.priceBrutto.toFixed(2)} zł
                                                             </OriginalPrice>
                                                         )}
                                                     </FinalPriceDisplay>

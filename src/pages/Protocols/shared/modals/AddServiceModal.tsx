@@ -2,6 +2,7 @@ import React, {useEffect, useState, useRef} from 'react';
 import styled from 'styled-components';
 import {FaPlus, FaSearch, FaStickyNote, FaTimes} from 'react-icons/fa';
 import {DiscountType} from "../../../../types";
+import {PriceResponse} from "../../../../types/service";
 
 // Professional Brand Theme - Premium Automotive CRM
 const brandTheme = {
@@ -104,14 +105,14 @@ interface AddServiceModalProps {
         services: Array<{
             id: string;
             name: string;
-            price: number;
+            basePrice: PriceResponse;  // ✅ ZMIANA: PriceResponse zamiast number
             discountType?: DiscountType;
             discountValue?: number;
-            finalPrice: number;
+            finalPrice: PriceResponse;  // ✅ ZMIANA: PriceResponse zamiast number
             note?: string
         }>
     }) => void;
-    availableServices: Array<{ id: string; name: string; price: number }>;
+    availableServices: Array<{ id: string; name: string; price: PriceResponse }>;  // ✅ ZMIANA
     customerPhone?: string;
 }
 
@@ -126,18 +127,18 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
     const [selectedServices, setSelectedServices] = useState<Array<{
         id: string;
         name: string;
-        price: number;
+        basePrice: PriceResponse;  // ✅ ZMIANA
         discountType: DiscountType;
         extendedDiscountType: ExtendedDiscountType;
         discountValue: number;
-        finalPrice: number;
+        finalPrice: PriceResponse;  // ✅ ZMIANA
         note?: string;
     }>>([]);
     const [showResults, setShowResults] = useState(false);
     const [searchResults, setSearchResults] = useState<Array<{
         id: string;
         name: string;
-        price: number;
+        price: PriceResponse;  // ✅ ZMIANA
     }>>([]);
     const [customServiceMode, setCustomServiceMode] = useState(false);
     const [customServiceName, setCustomServiceName] = useState('');
@@ -155,7 +156,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
     // FIXED: Stan do kontrolowania focus
     const [isSearchFocused, setIsSearchFocused] = useState(false);
 
-    // Funkcje pomocnicze
+    // Funkcje pomocnicze do kalkulacji cen
     const calculateNetPrice = (grossPrice: number): number => {
         return grossPrice / (1 + DEFAULT_VAT_RATE / 100);
     };
@@ -164,36 +165,48 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         return netPrice * (1 + DEFAULT_VAT_RATE / 100);
     };
 
+    const calculateTaxAmount = (netPrice: number): number => {
+        return netPrice * (DEFAULT_VAT_RATE / 100);
+    };
+
+    // ✅ ZAKTUALIZOWANA funkcja kalkulacji ceny końcowej
     const calculateFinalPrice = (
-        price: number,
+        basePrice: PriceResponse,
         discountType: DiscountType,
         extendedDiscountType: ExtendedDiscountType,
         discountValue: number
-    ): number => {
-        let finalPrice = price;
+    ): PriceResponse => {
+        let finalPriceBrutto = basePrice.priceBrutto;
 
         switch (discountType) {
             case DiscountType.PERCENTAGE:
-                finalPrice = price * (1 - discountValue / 100);
+                finalPriceBrutto = basePrice.priceBrutto * (1 - discountValue / 100);
                 break;
             case DiscountType.AMOUNT:
                 if (extendedDiscountType === ExtendedDiscountType.AMOUNT_NET) {
                     const discountValueGross = calculateGrossPrice(discountValue);
-                    finalPrice = Math.max(0, price - discountValueGross);
+                    finalPriceBrutto = Math.max(0, basePrice.priceBrutto - discountValueGross);
                 } else {
-                    finalPrice = Math.max(0, price - discountValue);
+                    finalPriceBrutto = Math.max(0, basePrice.priceBrutto - discountValue);
                 }
                 break;
             case DiscountType.FIXED_PRICE:
                 if (extendedDiscountType === ExtendedDiscountType.FIXED_PRICE_NET) {
-                    finalPrice = calculateGrossPrice(discountValue);
+                    finalPriceBrutto = calculateGrossPrice(discountValue);
                 } else {
-                    finalPrice = discountValue;
+                    finalPriceBrutto = discountValue;
                 }
                 break;
         }
 
-        return parseFloat(finalPrice.toFixed(2));
+        const finalPriceNetto = calculateNetPrice(finalPriceBrutto);
+        const taxAmount = calculateTaxAmount(finalPriceNetto);
+
+        return {
+            priceNetto: parseFloat(finalPriceNetto.toFixed(2)),
+            priceBrutto: parseFloat(finalPriceBrutto.toFixed(2)),
+            taxAmount: parseFloat(taxAmount.toFixed(2))
+        };
     };
 
     // FIXED: Dodanie obsługi kliknięć poza komponentem
@@ -273,17 +286,17 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
     };
 
     // Dodawanie usługi z wyników wyszukiwania
-    const handleAddServiceFromSearch = (service: { id: string; name: string; price: number }) => {
-        // service.price to netto, więc obliczamy brutto dla finalPrice
-        const grossPrice = calculateGrossPrice(service.price);
+    const handleAddServiceFromSearch = (service: { id: string; name: string; price: PriceResponse }) => {
+        // ✅ ZMIANA: service.price to już PriceResponse z wszystkimi wartościami
 
         const newService = {
-            ...service,
-            price: grossPrice, // Zachowujemy brutto jako cenę bazową
+            id: service.id,
+            name: service.name,
+            basePrice: service.price,  // ✅ ZMIANA: używamy PriceResponse
             discountType: DiscountType.PERCENTAGE,
             extendedDiscountType: ExtendedDiscountType.PERCENTAGE,
             discountValue: 0,
-            finalPrice: grossPrice // Cena końcowa też brutto
+            finalPrice: service.price  // ✅ ZMIANA: używamy PriceResponse
         };
 
         setSelectedServices([...selectedServices, newService]);
@@ -304,17 +317,27 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
     const handleAddCustomService = () => {
         if (customServiceName.trim() === '' || !customServicePrice) return;
 
-        const price = parseFloat(customServicePrice);
-        if (isNaN(price)) return;
+        const priceBrutto = parseFloat(customServicePrice);
+        if (isNaN(priceBrutto)) return;
+
+        // ✅ ZMIANA: Tworzymy PriceResponse
+        const priceNetto = calculateNetPrice(priceBrutto);
+        const taxAmount = calculateTaxAmount(priceNetto);
+
+        const priceResponse: PriceResponse = {
+            priceNetto: parseFloat(priceNetto.toFixed(2)),
+            priceBrutto: parseFloat(priceBrutto.toFixed(2)),
+            taxAmount: parseFloat(taxAmount.toFixed(2))
+        };
 
         const newService = {
             id: `custom-${Date.now()}`,
             name: customServiceName.trim(),
-            price,
+            basePrice: priceResponse,  // ✅ ZMIANA
             discountType: DiscountType.PERCENTAGE,
             extendedDiscountType: ExtendedDiscountType.PERCENTAGE,
             discountValue: 0,
-            finalPrice: price
+            finalPrice: priceResponse  // ✅ ZMIANA
         };
 
         setSelectedServices([...selectedServices, newService]);
@@ -369,9 +392,10 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
             } else if (standardType === DiscountType.AMOUNT) {
                 newDiscountValue = 0;
             } else if (standardType === DiscountType.FIXED_PRICE) {
+                // ✅ ZMIANA: używamy basePrice.priceNetto / basePrice.priceBrutto
                 newDiscountValue = newExtendedType === ExtendedDiscountType.FIXED_PRICE_NET
-                    ? calculateNetPrice(service.price)
-                    : service.price;
+                    ? service.basePrice.priceNetto
+                    : service.basePrice.priceBrutto;
             }
         }
 
@@ -380,7 +404,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
             discountType: standardType,
             extendedDiscountType: newExtendedType,
             discountValue: newDiscountValue,
-            finalPrice: calculateFinalPrice(service.price, standardType, newExtendedType, newDiscountValue)
+            finalPrice: calculateFinalPrice(service.basePrice, standardType, newExtendedType, newDiscountValue)  // ✅ ZMIANA
         };
 
         setSelectedServices(updatedServices);
@@ -404,7 +428,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
             ...service,
             discountValue: validatedValue,
             finalPrice: calculateFinalPrice(
-                service.price,
+                service.basePrice,  // ✅ ZMIANA
                 service.discountType,
                 service.extendedDiscountType,
                 validatedValue
@@ -420,7 +444,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         const servicesData = selectedServices.map(service => ({
             id: service.id,
             name: service.name,
-            price: service.price,
+            basePrice: service.basePrice,  // ✅ ZMIANA
             discountType: service.discountType,
             discountValue: service.discountValue,
             finalPrice: service.finalPrice,
@@ -432,33 +456,35 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         });
     };
 
-    // Obliczanie sum
+    // ✅ ZAKTUALIZOWANE: Obliczanie sum używając PriceResponse
     const calculateTotals = () => {
-        const totalBasePrice = selectedServices.reduce((sum, service) => sum + service.price, 0);
-        const totalDiscountGross = selectedServices.reduce((sum, service) => sum + (service.price - service.finalPrice), 0);
-        const totalFinalPrice = selectedServices.reduce((sum, service) => sum + service.finalPrice, 0);
-
-        const totalBaseNetPrice = calculateNetPrice(totalBasePrice);
-        const totalFinalNetPrice = calculateNetPrice(totalFinalPrice);
-        const totalDiscountNet = totalBaseNetPrice - totalFinalNetPrice;
+        const totalBaseNetto = selectedServices.reduce((sum, s) => sum + s.basePrice.priceNetto, 0);
+        const totalBaseBrutto = selectedServices.reduce((sum, s) => sum + s.basePrice.priceBrutto, 0);
+        const totalFinalNetto = selectedServices.reduce((sum, s) => sum + s.finalPrice.priceNetto, 0);
+        const totalFinalBrutto = selectedServices.reduce((sum, s) => sum + s.finalPrice.priceBrutto, 0);
+        const totalTax = selectedServices.reduce((sum, s) => sum + s.finalPrice.taxAmount, 0);
+        const totalDiscountBrutto = totalBaseBrutto - totalFinalBrutto;
+        const totalDiscountNetto = totalBaseNetto - totalFinalNetto;
 
         return {
-            totalBasePrice,
-            totalDiscountGross,
-            totalDiscountNet,
-            totalFinalPrice,
-            totalBaseNetPrice,
-            totalFinalNetPrice
+            totalBaseNetto,
+            totalBaseBrutto,
+            totalFinalNetto,
+            totalFinalBrutto,
+            totalTax,
+            totalDiscountBrutto,
+            totalDiscountNetto
         };
     };
 
     const {
-        totalBasePrice,
-        totalDiscountGross,
-        totalDiscountNet,
-        totalFinalPrice,
-        totalBaseNetPrice,
-        totalFinalNetPrice
+        totalBaseNetto,
+        totalBaseBrutto,
+        totalFinalNetto,
+        totalFinalBrutto,
+        totalTax,
+        totalDiscountBrutto,
+        totalDiscountNetto
     } = calculateTotals();
 
     if (!isOpen) return null;
@@ -519,9 +545,9 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                                             <SearchResultContent>
                                                 <SearchResultName>{service.name}</SearchResultName>
                                                 <SearchResultPrices>
-                                                    <PriceValue>{calculateGrossPrice(service.price).toFixed(2)} zł</PriceValue>
+                                                    <PriceValue>{service.price.priceBrutto.toFixed(2)} zł</PriceValue>
                                                     <PriceType>brutto</PriceType>
-                                                    <PriceValue>{service.price.toFixed(2)} zł</PriceValue>
+                                                    <PriceValue>{service.price.priceNetto.toFixed(2)} zł</PriceValue>
                                                     <PriceType>netto</PriceType>
                                                 </SearchResultPrices>
                                             </SearchResultContent>
@@ -629,9 +655,9 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                                                 </TableCell>
                                                 <TableCell width="15%">
                                                     <PriceWrapper>
-                                                        <PriceValue>{service.price.toFixed(2)} zł</PriceValue>
+                                                        <PriceValue>{service.basePrice.priceBrutto.toFixed(2)} zł</PriceValue>
                                                         <PriceType>brutto</PriceType>
-                                                        <PriceValue>{calculateNetPrice(service.price).toFixed(2)} zł</PriceValue>
+                                                        <PriceValue>{service.basePrice.priceNetto.toFixed(2)} zł</PriceValue>
                                                         <PriceType>netto</PriceType>
                                                     </PriceWrapper>
                                                 </TableCell>
@@ -663,7 +689,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                                                             />
                                                             {service.discountType === DiscountType.PERCENTAGE && (
                                                                 <DiscountPercentage>
-                                                                    ({(service.price * service.discountValue / 100).toFixed(2)} zł)
+                                                                    ({(service.basePrice.priceBrutto * service.discountValue / 100).toFixed(2)} zł)
                                                                 </DiscountPercentage>
                                                             )}
                                                         </DiscountInputGroup>
@@ -671,9 +697,9 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                                                 </TableCell>
                                                 <TableCell width="15%">
                                                     <PriceWrapper>
-                                                        <PriceValue>{service.finalPrice.toFixed(2)} zł</PriceValue>
+                                                        <PriceValue>{service.finalPrice.priceBrutto.toFixed(2)} zł</PriceValue>
                                                         <PriceType>brutto</PriceType>
-                                                        <PriceValue>{calculateNetPrice(service.finalPrice).toFixed(2)} zł</PriceValue>
+                                                        <PriceValue>{service.finalPrice.priceNetto.toFixed(2)} zł</PriceValue>
                                                         <PriceType>netto</PriceType>
                                                     </PriceWrapper>
                                                 </TableCell>
@@ -697,25 +723,25 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                                         </FooterCell>
                                         <FooterCell width="15%">
                                             <PriceWrapper>
-                                                <TotalValue>{totalBasePrice.toFixed(2)} zł</TotalValue>
+                                                <TotalValue>{totalBaseBrutto.toFixed(2)} zł</TotalValue>
                                                 <PriceType>brutto</PriceType>
-                                                <TotalValue>{totalBaseNetPrice.toFixed(2)} zł</TotalValue>
+                                                <TotalValue>{totalBaseNetto.toFixed(2)} zł</TotalValue>
                                                 <PriceType>netto</PriceType>
                                             </PriceWrapper>
                                         </FooterCell>
                                         <FooterCell width="25%">
                                             <PriceWrapper>
-                                                <TotalValue>{totalDiscountGross.toFixed(2)} zł</TotalValue>
+                                                <TotalValue>{totalDiscountBrutto.toFixed(2)} zł</TotalValue>
                                                 <PriceType>brutto</PriceType>
-                                                <TotalValue>{totalDiscountNet.toFixed(2)} zł</TotalValue>
+                                                <TotalValue>{totalDiscountNetto.toFixed(2)} zł</TotalValue>
                                                 <PriceType>netto</PriceType>
                                             </PriceWrapper>
                                         </FooterCell>
                                         <FooterCell width="15%">
                                             <PriceWrapper>
-                                                <TotalValue highlight>{totalFinalPrice.toFixed(2)} zł</TotalValue>
+                                                <TotalValue highlight>{totalFinalBrutto.toFixed(2)} zł</TotalValue>
                                                 <PriceType>brutto</PriceType>
-                                                <TotalValue>{totalFinalNetPrice.toFixed(2)} zł</TotalValue>
+                                                <TotalValue>{totalFinalNetto.toFixed(2)} zł</TotalValue>
                                                 <PriceType>netto</PriceType>
                                             </PriceWrapper>
                                         </FooterCell>
@@ -1439,8 +1465,8 @@ const ActionButton = styled.button<{ danger?: boolean }>`
     font-size: 14px;
 
     ${({ danger }) => {
-        if (danger) {
-            return `
+    if (danger) {
+        return `
                background: ${brandTheme.status.errorLight};
                color: ${brandTheme.status.error};
                
@@ -1451,9 +1477,9 @@ const ActionButton = styled.button<{ danger?: boolean }>`
                    box-shadow: ${brandTheme.shadow.md};
                }
            `;
-        }
+    }
 
-        return `
+    return `
            background: ${brandTheme.primaryGhost};
            color: ${brandTheme.primary};
            
@@ -1464,7 +1490,7 @@ const ActionButton = styled.button<{ danger?: boolean }>`
                box-shadow: ${brandTheme.shadow.md};
            }
        `;
-    }}
+}}
 
     &:active {
         transform: translateY(0);

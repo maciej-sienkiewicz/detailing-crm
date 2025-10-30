@@ -38,7 +38,8 @@ import {
     DiscountType,
     ProtocolStatus,
     SelectedService,
-    ServiceApprovalStatus
+    ServiceApprovalStatus,
+    PriceResponse
 } from "../../../../types";
 import AddServiceModal from "../../shared/modals/AddServiceModal";
 import EditPricesModal from "./EditPricesModal";
@@ -120,7 +121,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
     const [clientStats, setClientStats] = useState<ClientStatistics | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [availableServices, setAvailableServices] = useState<Array<{ id: string; name: string; price: number }>>([]);
+    const [availableServices, setAvailableServices] = useState<Array<{ id: string; name: string; price: PriceResponse }>>([]);
     const [servicesLoading, setServicesLoading] = useState(false);
     const [addingServices, setAddingServices] = useState(false);
     const [removingServiceId, setRemovingServiceId] = useState<string | null>(null);
@@ -264,10 +265,11 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                 const services = await servicesApi.fetchServices();
 
                 // Map services to the format expected by AddServiceModal
+                // ✅ ZMIANA: Przekazujemy całą strukturę PriceResponse zamiast tylko priceNetto
                 const mappedServices = services.map(service => ({
                     id: service.id,
                     name: service.name,
-                    price: service.price.priceNetto  // Używamy ceny netto dla AddServiceModal
+                    price: service.price  // Przekazujemy całą strukturę PriceResponse
                 }));
 
                 setAvailableServices(mappedServices);
@@ -293,10 +295,10 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
         services: Array<{
             id: string;
             name: string;
-            price: number;
+            basePrice: PriceResponse;  // ✅ ZMIANA: PriceResponse zamiast number
             discountType?: DiscountType;
             discountValue?: number;
-            finalPrice: number;
+            finalPrice: PriceResponse;  // ✅ ZMIANA: PriceResponse zamiast number
             note?: string;
         }>
     }) => {

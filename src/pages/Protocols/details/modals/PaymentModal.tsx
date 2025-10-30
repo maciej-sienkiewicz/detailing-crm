@@ -1,9 +1,17 @@
 import React, {useEffect, useState} from 'react';
 import {FaCheck, FaTimes} from 'react-icons/fa';
 import {useToast} from "../../../../components/common/Toast/Toast";
+// Importuje SelectedService z nowego modelu
 import {SelectedService} from "../../../../types";
 import InvoiceItemsModal from "./InvoiceItemsModal";
 import * as S from './PaymentModalStyles';
+
+// Pomocnicza funkcja do pobierania kwoty brutto
+// Używamy opcjonalnego łańcuchowania, na wypadek gdyby obiekt był null/undefined,
+// ale zakładamy, że w poprawnym SelectedService pole to jest zawsze dostępne
+const getFinalAmount = (service: SelectedService): number => {
+    return service.finalPrice?.priceBrutto ?? 0;
+};
 
 interface PaymentModalProps {
     isOpen: boolean;
@@ -14,6 +22,7 @@ interface PaymentModalProps {
         paymentDays?: number;
         overridenItems?: SelectedService[];
     }) => void;
+    // initialTotalAmount nie jest już bezpośrednio używane w sumowaniu, ale jako punkt odniesienia
     totalAmount: number;
     services: SelectedService[];
     onServicesChange: (services: SelectedService[]) => void;
@@ -26,7 +35,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                                                        isOpen,
                                                        onClose,
                                                        onConfirm,
-                                                       totalAmount: initialTotalAmount,
+                                                       totalAmount: initialTotalAmount, // Nazwa initialTotalAmount jest myląca, lepiej przekazywać kwotę już wyliczoną na podstawie finalPrice
                                                        services,
                                                        onServicesChange,
                                                        protocolId,
@@ -71,7 +80,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             const original = originalItems[i];
             const modified = modifiedItems.find(item => item.id === original.id);
 
-            if (!modified || modified.name !== original.name) {
+            // Dodano sprawdzenie, czy cena brutto finalna się różni, co jest bardziej kompleksowe
+            if (
+                !modified ||
+                modified.name !== original.name ||
+                getFinalAmount(modified) !== getFinalAmount(original)
+            ) {
                 return true;
             }
         }
@@ -80,8 +94,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         return hasMergedItems;
     };
 
+    // POBIERANIE AKTUALNEJ SUMY Z NOWEGO MODELU (priceBrutto)
     const currentServices = pendingInvoiceItems || services;
-    const currentTotalAmount = currentServices.reduce((sum, item) => sum + item.finalPrice, 0);
+    const currentTotalAmount = currentServices.reduce((sum, item) => sum + getFinalAmount(item), 0);
 
     const handleEditInvoiceItems = () => {
         setShowInvoiceItemsModal(true);
@@ -91,7 +106,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         setPendingInvoiceItems(items);
         setShowInvoiceItemsModal(false);
 
-        const newTotal = items.reduce((sum, item) => sum + item.finalPrice, 0);
+        // POBIERANIE NOWEJ SUMY Z NOWEGO MODELU (priceBrutto)
+        const newTotal = items.reduce((sum, item) => sum + getFinalAmount(item), 0);
 
         if (Math.abs(newTotal - initialTotalAmount) > 0.01) {
             showToast('info', `Pozycje faktury zostały zmodyfikowane. Nowa suma: ${newTotal.toFixed(2)} zł`, 3000);
@@ -110,7 +126,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
         if (itemsWereModified && pendingInvoiceItems) {
             const originalTotal = initialTotalAmount;
-            const customTotal = pendingInvoiceItems.reduce((sum, item) => sum + item.finalPrice, 0);
+            // POBIERANIE CUSTOMOWEJ SUMY Z NOWEGO MODELU (priceBrutto)
+            const customTotal = pendingInvoiceItems.reduce((sum, item) => sum + getFinalAmount(item), 0);
 
             if (Math.abs(originalTotal - customTotal) > 0.01) {
                 const confirmed = window.confirm(
