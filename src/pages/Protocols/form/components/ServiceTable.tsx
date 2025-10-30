@@ -230,9 +230,30 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
     };
 
     const handleSavePrice = () => {
-        const parsedPrice = newPrice.trim() === '' ? 0 : parseFloat(newPrice);
+        // Normalizacja: zmiana przecinka na kropkę do walidacji i parsowania
+        const normalizedPrice = newPrice.trim().replace(',', '.');
+
+        if (normalizedPrice === '') {
+            onBasePriceChange(editPopup.serviceId, 0);
+            setEditPopup({...editPopup, visible: false});
+            return;
+        }
+
+        const parsedPrice = parseFloat(normalizedPrice);
 
         if (isNaN(parsedPrice) || parsedPrice < 0) {
+            // W przypadku błędu parsowania lub ujemnej wartości
+            console.error("Niepoprawna lub ujemna cena.");
+            return;
+        }
+
+        // Sprawdzenie precyzji: upewnienie się, że jest maksymalnie 2 miejsca po przecinku
+        // Używamy normalizedPrice, bo to on zawiera separator (kropkę)
+        const parts = normalizedPrice.split('.');
+        if (parts.length > 2 || (parts.length === 2 && parts[1].length > 2)) {
+            // W teorii to nie powinno się stać dzięki walidacji w onChange,
+            // ale jest to dobra praktyka defensywna
+            console.error("Cena ma zbyt wiele miejsc po przecinku.");
             return;
         }
 
@@ -251,9 +272,9 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
         const service = services.find(s => s.id === editPopup.serviceId);
         if (service) {
             if (isPriceGross) {
-                setNewPrice(service.basePrice.priceBrutto.toString());
+                setNewPrice(service.basePrice.priceBrutto.toFixed(2).replace('.', ','));
             } else {
-                setNewPrice(service.basePrice.priceNetto.toString());
+                setNewPrice(service.basePrice.priceNetto.toFixed(2).replace('.', ','));
             }
         }
     };
@@ -358,7 +379,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                                                     currentPrice: service.basePrice.priceNetto,
                                                     isPriceGross: true
                                                 });
-                                                setNewPrice(service.basePrice.priceBrutto.toString());
+                                                setNewPrice(service.basePrice.priceBrutto.toFixed(2).replace('.', ','));
                                             }}
                                         >
                                             <PriceContainer>
@@ -534,7 +555,16 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                                 value={newPrice}
                                 onChange={(e) => {
                                     const value = e.target.value;
-                                    if (value === '' || /^[0-9]*[.,]?[0-9]*$/.test(value)) {
+                                    // Zezwala na cyfry, kropkę lub przecinek, i do dwóch cyfr po separatorze.
+                                    const normalizedValue = value.replace(',', '.');
+
+                                    if (value === '') {
+                                        setNewPrice(value);
+                                        return;
+                                    }
+
+                                    // Regex dla maksymalnie 2 miejsc po kropce, dopuszczający pusty ciąg
+                                    if (/^\d*[.]?\d{0,2}$/.test(normalizedValue)) {
                                         setNewPrice(value);
                                     }
                                 }}
@@ -578,7 +608,8 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
     );
 };
 
-// Styled Components - pozostają bez zmian
+// Styled Components - Zmiana w EditIcon
+
 const TableContainer = styled.div`
     background: ${formTheme.colors.surface};
     border: 1px solid ${formTheme.colors.border};
@@ -631,11 +662,11 @@ const TableHeader = styled.th`
     text-transform: uppercase;
     letter-spacing: 0.5px;
     border-bottom: 1px solid ${formTheme.colors.border};
-    
+
     &:first-child {
         border-top-left-radius: ${formTheme.borderRadius.lg};
     }
-    
+
     &:last-child {
         border-top-right-radius: ${formTheme.borderRadius.lg};
     }
@@ -750,10 +781,10 @@ const PriceRow = styled.div`
 const PriceValue = styled.span<{ secondary?: boolean; primary?: boolean }>`
     font-weight: ${props => props.primary ? 700 : props.secondary ? 500 : 600};
     color: ${props =>
-    props.primary ? formTheme.colors.primary :
-        props.secondary ? formTheme.colors.textSecondary :
-            formTheme.colors.textPrimary
-};
+            props.primary ? formTheme.colors.primary :
+                    props.secondary ? formTheme.colors.textSecondary :
+                            formTheme.colors.textPrimary
+    };
     font-size: ${props => props.secondary ? '13px' : '14px'};
 `;
 
@@ -769,13 +800,9 @@ const PriceLabel = styled.span`
 
 const EditIcon = styled.div`
     color: ${formTheme.colors.primary};
-    opacity: 0;
+    opacity: 1; /* ZMIANA: ZAWSZE WIDOCZNE */
     transition: all 0.2s ease;
     font-size: 12px;
-
-    ${PriceCell}:hover & {
-        opacity: 1;
-    }
 `;
 
 const DiscountCell = styled(TableCell)`
@@ -804,13 +831,13 @@ const DiscountTypeSelect = styled.select`
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
-    
+
     &:focus {
         outline: none;
         border-color: ${formTheme.colors.primary};
         box-shadow: ${formTheme.shadows.focus};
     }
-    
+
     &:hover {
         border-color: ${formTheme.colors.borderHover};
     }
@@ -833,13 +860,13 @@ const DiscountInput = styled.input`
     font-weight: 500;
     text-align: right;
     transition: all 0.2s ease;
-    
+
     &:focus {
         outline: none;
         border-color: ${formTheme.colors.primary};
         box-shadow: ${formTheme.shadows.focus};
     }
-    
+
     &:hover {
         border-color: ${formTheme.colors.borderHover};
     }
@@ -868,11 +895,11 @@ const ActionButton = styled.button<{ $variant?: 'primary' | 'secondary' | 'dange
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     font-size: 14px;
-    
+
     ${props => {
-    switch (props.$variant) {
-        case 'danger':
-            return `
+        switch (props.$variant) {
+            case 'danger':
+                return `
                     background: ${formTheme.colors.errorLight};
                     color: ${formTheme.colors.error};
                     
@@ -883,8 +910,8 @@ const ActionButton = styled.button<{ $variant?: 'primary' | 'secondary' | 'dange
                         box-shadow: ${formTheme.shadows.md};
                     }
                 `;
-        case 'warning':
-            return `
+            case 'warning':
+                return `
                     background: ${formTheme.colors.warningLight};
                     color: ${formTheme.colors.warning};
                     
@@ -895,8 +922,8 @@ const ActionButton = styled.button<{ $variant?: 'primary' | 'secondary' | 'dange
                         box-shadow: ${formTheme.shadows.md};
                     }
                 `;
-        case 'primary':
-            return `
+            case 'primary':
+                return `
                     background: ${formTheme.colors.primaryLight};
                     color: ${formTheme.colors.primary};
                     
@@ -907,8 +934,8 @@ const ActionButton = styled.button<{ $variant?: 'primary' | 'secondary' | 'dange
                         box-shadow: ${formTheme.shadows.md};
                     }
                 `;
-        default:
-            return `
+            default:
+                return `
                     background: ${formTheme.colors.surfaceElevated};
                     color: ${formTheme.colors.textSecondary};
                     
@@ -919,8 +946,8 @@ const ActionButton = styled.button<{ $variant?: 'primary' | 'secondary' | 'dange
                         box-shadow: ${formTheme.shadows.sm};
                     }
                 `;
-    }
-}}
+        }
+    }}
 `;
 
 const TableFooter = styled.tfoot`
@@ -943,10 +970,10 @@ const TotalLabel = styled.div`
 const TotalValue = styled.span<{ secondary?: boolean; primary?: boolean }>`
     font-weight: ${props => props.primary ? 700 : 600};
     color: ${props =>
-    props.primary ? formTheme.colors.primary :
-        props.secondary ? formTheme.colors.textSecondary :
-            formTheme.colors.textPrimary
-};
+            props.primary ? formTheme.colors.primary :
+                    props.secondary ? formTheme.colors.textSecondary :
+                            formTheme.colors.textPrimary
+    };
     font-size: ${props => props.primary ? '16px' : props.secondary ? '13px' : '14px'};
 `;
 
@@ -970,12 +997,12 @@ const MenuItem = styled.div`
     font-weight: 500;
     color: ${formTheme.colors.textPrimary};
     transition: all 0.2s ease;
-    
+
     &:hover {
         background: ${formTheme.colors.surfaceHover};
         color: ${formTheme.colors.primary};
     }
-    
+
     svg {
         font-size: 12px;
     }
@@ -1012,7 +1039,7 @@ const FormGroup = styled.div`
     flex-direction: column;
     gap: ${formTheme.spacing.sm};
     margin-bottom: ${formTheme.spacing.lg};
-    
+
     &:last-child {
         margin-bottom: 0;
     }
@@ -1034,7 +1061,7 @@ const PriceTypeSelect = styled.select`
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
-    
+
     &:focus {
         outline: none;
         border-color: ${formTheme.colors.primary};
@@ -1051,13 +1078,13 @@ const PriceInput = styled.input`
     font-size: 14px;
     font-weight: 500;
     transition: all 0.2s ease;
-    
+
     &:focus {
         outline: none;
         border-color: ${formTheme.colors.primary};
         box-shadow: ${formTheme.shadows.focus};
     }
-    
+
     &::placeholder {
         color: ${formTheme.colors.textTertiary};
         font-weight: 400;
@@ -1083,13 +1110,13 @@ const Button = styled.button<{ $primary?: boolean }>`
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
-    
+
     &:hover {
         background: ${props => props.$primary ? formTheme.colors.primaryHover : formTheme.colors.surfaceHover};
         transform: translateY(-1px);
         box-shadow: ${formTheme.shadows.sm};
     }
-    
+
     &:active {
         transform: translateY(0);
     }

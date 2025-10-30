@@ -574,14 +574,31 @@ const ServiceFormModal: React.FC<ServiceFormModalProps> = ({
         const { name, value } = e.target;
 
         if (name === 'inputPrice') {
-            const numValue = parseFloat(value);
-            setFormData({
-                ...formData,
-                priceInput: {
-                    ...formData.priceInput,
-                    inputPrice: isNaN(numValue) ? 0 : numValue
+            // Pozwalamy na puste pole - wtedy pojawi się placeholder
+            if (value === '') {
+                setFormData({
+                    ...formData,
+                    priceInput: {
+                        ...formData.priceInput,
+                        inputPrice: 0
+                    }
+                });
+            } else {
+                // Walidacja: tylko liczby z maksymalnie 2 miejscami po przecinku, bez leading zeros
+                // Dozwolone: 0, 0., 0.5, 0.50, 1, 10, 123.45 itd.
+                // Niedozwolone: 01, 001, 0123 itd.
+                const regex = /^(0(\.\d{0,2})?|[1-9]\d*(\.\d{0,2})?)$/;
+                if (regex.test(value)) {
+                    const numValue = parseFloat(value);
+                    setFormData({
+                        ...formData,
+                        priceInput: {
+                            ...formData.priceInput,
+                            inputPrice: numValue
+                        }
+                    });
                 }
-            });
+            }
         } else if (name === 'inputType') {
             setFormData({
                 ...formData,
@@ -630,6 +647,13 @@ const ServiceFormModal: React.FC<ServiceFormModalProps> = ({
             errors.inputPrice = 'Cena nie może być ujemna';
         }
 
+        // Sprawdź, czy cena ma maksymalnie 2 miejsca po przecinku
+        const priceString = formData.priceInput.inputPrice.toString();
+        const decimalPart = priceString.split('.')[1];
+        if (decimalPart && decimalPart.length > 2) {
+            errors.inputPrice = 'Cena może mieć maksymalnie 2 miejsca po przecinku';
+        }
+
         if (formData.vatRate < 0 || formData.vatRate > 100) {
             errors.vatRate = 'Stawka VAT musi być wartością od 0 do 100';
         }
@@ -642,7 +666,15 @@ const ServiceFormModal: React.FC<ServiceFormModalProps> = ({
         e.preventDefault();
 
         if (validateForm()) {
-            onSave(formData);
+            // Zaokrąglij cenę do 2 miejsc po przecinku przed zapisem
+            const roundedFormData = {
+                ...formData,
+                priceInput: {
+                    ...formData.priceInput,
+                    inputPrice: Math.round(formData.priceInput.inputPrice * 100) / 100
+                }
+            };
+            onSave(roundedFormData);
         }
     };
 
@@ -710,8 +742,9 @@ const ServiceFormModal: React.FC<ServiceFormModalProps> = ({
                                     type="number"
                                     step="0.01"
                                     min="0"
-                                    value={formData.priceInput.inputPrice}
+                                    value={formData.priceInput.inputPrice || ''}
                                     onChange={handleChange}
+                                    placeholder="np. 99.99"
                                     required
                                 />
                                 {formErrors.inputPrice && <ErrorText>{formErrors.inputPrice}</ErrorText>}

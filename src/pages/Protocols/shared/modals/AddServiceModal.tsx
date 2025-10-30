@@ -169,6 +169,41 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         return netPrice * (DEFAULT_VAT_RATE / 100);
     };
 
+    // ✅ NOWA: Funkcja formatująca wartość do maksymalnie 2 miejsc po przecinku
+    const formatToTwoDecimals = (value: string): string => {
+        // Usuń wszystkie znaki oprócz cyfr, kropki i przecinka
+        let cleaned = value.replace(/[^\d.,]/g, '');
+
+        // Zamień przecinek na kropkę
+        cleaned = cleaned.replace(',', '.');
+
+        // Jeśli jest więcej niż jedna kropka, zostaw tylko pierwszą
+        const parts = cleaned.split('.');
+        if (parts.length > 2) {
+            cleaned = parts[0] + '.' + parts.slice(1).join('');
+        }
+
+        // Ogranicz do 2 miejsc po przecinku
+        if (parts.length === 2 && parts[1].length > 2) {
+            cleaned = parts[0] + '.' + parts[1].substring(0, 2);
+        }
+
+        return cleaned;
+    };
+
+    // ✅ NOWA: Handler dla onBlur - formatuje wartość po opuszczeniu pola
+    const handlePriceBlur = (value: string, setValue: (val: string) => void) => {
+        if (value === '' || value === '.') {
+            setValue('');
+            return;
+        }
+
+        const numValue = parseFloat(value);
+        if (!isNaN(numValue)) {
+            setValue(numValue.toFixed(2));
+        }
+    };
+
     // ✅ ZAKTUALIZOWANA funkcja kalkulacji ceny końcowej
     const calculateFinalPrice = (
         basePrice: PriceResponse,
@@ -592,18 +627,21 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                                     />
                                 </FormGroup>
                                 <FormGroup>
-                                    <Label>Cena (netto)</Label>
+                                    <Label>Cena (brutto)</Label>
                                     <Input
-                                        type="number"
+                                        type="text"
+                                        inputMode="decimal"
                                         value={customServicePrice}
-                                        onChange={e => setCustomServicePrice(e.target.value)}
+                                        onChange={e => {
+                                            const formatted = formatToTwoDecimals(e.target.value);
+                                            setCustomServicePrice(formatted);
+                                        }}
+                                        onBlur={() => handlePriceBlur(customServicePrice, setCustomServicePrice)}
                                         placeholder="0.00"
-                                        min="0"
-                                        step="0.01"
                                     />
                                     {customServicePrice && !isNaN(parseFloat(customServicePrice)) && (
                                         <PriceInfo>
-                                            Brutto: {calculateGrossPrice(parseFloat(customServicePrice)).toFixed(2)} zł
+                                            Netto: {calculateNetPrice(parseFloat(customServicePrice)).toFixed(2)} zł
                                         </PriceInfo>
                                     )}
                                 </FormGroup>
@@ -678,14 +716,21 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                                                         </DiscountTypeSelect>
                                                         <DiscountInputGroup>
                                                             <DiscountInput
-                                                                type="number"
+                                                                type="text"
+                                                                inputMode="decimal"
                                                                 min="0"
                                                                 max={service.discountType === DiscountType.PERCENTAGE ? 100 : undefined}
                                                                 value={service.discountValue}
-                                                                onChange={(e) => handleChangeDiscountValue(
-                                                                    index,
-                                                                    parseFloat(e.target.value) || 0
-                                                                )}
+                                                                onChange={(e) => {
+                                                                    const formatted = formatToTwoDecimals(e.target.value);
+                                                                    const numValue = parseFloat(formatted) || 0;
+                                                                    handleChangeDiscountValue(index, numValue);
+                                                                }}
+                                                                onBlur={(e) => {
+                                                                    // Formatuj do 2 miejsc po przecinku po opuszczeniu pola
+                                                                    const numValue = parseFloat(e.target.value) || 0;
+                                                                    handleChangeDiscountValue(index, parseFloat(numValue.toFixed(2)));
+                                                                }}
                                                             />
                                                             {service.discountType === DiscountType.PERCENTAGE && (
                                                                 <DiscountPercentage>
@@ -959,53 +1004,53 @@ const SearchInputContainer = styled.div`
 `;
 
 const SearchIconWrapper = styled.div`
-   position: absolute;
-   left: ${brandTheme.spacing.md};
-   top: 50%;
-   transform: translateY(-50%);
-   color: ${brandTheme.text.muted};
-   font-size: 16px;
-   z-index: 2;
+    position: absolute;
+    left: ${brandTheme.spacing.md};
+    top: 50%;
+    transform: translateY(-50%);
+    color: ${brandTheme.text.muted};
+    font-size: 16px;
+    z-index: 2;
 `;
 
 const SearchInput = styled.input<{ $hasResults?: boolean }>`
-   width: 100%;
-   height: 48px;
-   padding: 0 ${brandTheme.spacing.md} 0 48px;
-   border: 2px solid ${brandTheme.border};
-   border-radius: ${brandTheme.radius.lg};
-   font-size: 16px;
-   font-weight: 500;
-   background: ${brandTheme.surface};
-   color: ${brandTheme.text.primary};
-   transition: all ${brandTheme.transitions.normal};
+    width: 100%;
+    height: 48px;
+    padding: 0 ${brandTheme.spacing.md} 0 48px;
+    border: 2px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.lg};
+    font-size: 16px;
+    font-weight: 500;
+    background: ${brandTheme.surface};
+    color: ${brandTheme.text.primary};
+    transition: all ${brandTheme.transitions.normal};
 
-   ${props => props.$hasResults && `
+    ${props => props.$hasResults && `
        border-bottom-left-radius: 0;
        border-bottom-right-radius: 0;
        border-bottom-color: transparent;
    `}
 
-   &:focus {
-       outline: none;
-       border-color: ${brandTheme.primary};
-       box-shadow: 0 0 0 3px ${brandTheme.primaryGhost};
-       
-       ${props => props.$hasResults && `
+    &:focus {
+        outline: none;
+        border-color: ${brandTheme.primary};
+        box-shadow: 0 0 0 3px ${brandTheme.primaryGhost};
+
+        ${props => props.$hasResults && `
            border-bottom-color: transparent;
        `}
-   }
+    }
 
-   &::placeholder {
-       color: ${brandTheme.text.muted};
-       font-weight: 400;
-   }
+    &::placeholder {
+        color: ${brandTheme.text.muted};
+        font-weight: 400;
+    }
 
-   &:disabled {
-       background: ${brandTheme.surfaceAlt};
-       cursor: not-allowed;
-       opacity: 0.6;
-   }
+    &:disabled {
+        background: ${brandTheme.surfaceAlt};
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
 `;
 
 const SearchResultsContainer = styled.div`
@@ -1050,25 +1095,25 @@ const SearchResultsContainer = styled.div`
 `;
 
 const SearchResultItem = styled.div`
-   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-   cursor: pointer;
-   transition: all ${brandTheme.transitions.fast};
-   border-bottom: 1px solid ${brandTheme.borderLight};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    cursor: pointer;
+    transition: all ${brandTheme.transitions.fast};
+    border-bottom: 1px solid ${brandTheme.borderLight};
 
-   &:last-child {
-       border-bottom: none;
-       border-bottom-left-radius: ${brandTheme.radius.lg};
-       border-bottom-right-radius: ${brandTheme.radius.lg};
-   }
+    &:last-child {
+        border-bottom: none;
+        border-bottom-left-radius: ${brandTheme.radius.lg};
+        border-bottom-right-radius: ${brandTheme.radius.lg};
+    }
 
-   &:hover {
-       background: ${brandTheme.primaryGhost};
-       color: ${brandTheme.primary};
-   }
+    &:hover {
+        background: ${brandTheme.primaryGhost};
+        color: ${brandTheme.primary};
+    }
 
-   &:active {
-       background: ${brandTheme.primary}20;
-   }
+    &:active {
+        background: ${brandTheme.primary}20;
+    }
 `;
 
 const SearchResultContent = styled.div`
@@ -1090,51 +1135,51 @@ const SearchResultPrices = styled.div`
 `;
 
 const NoResultsMessage = styled.div`
-   color: ${brandTheme.text.muted};
-   text-align: center;
-   padding: ${brandTheme.spacing.xl};
-   font-size: 14px;
-   font-style: italic;
-   background: ${brandTheme.surfaceAlt};
-   border: 2px solid ${brandTheme.primary};
-   border-top: none;
-   border-radius: 0 0 ${brandTheme.radius.lg} ${brandTheme.radius.lg};
-   position: absolute;
-   top: 46px;
-   left: 0;
-   right: 0;
-   z-index: 100;
+    color: ${brandTheme.text.muted};
+    text-align: center;
+    padding: ${brandTheme.spacing.xl};
+    font-size: 14px;
+    font-style: italic;
+    background: ${brandTheme.surfaceAlt};
+    border: 2px solid ${brandTheme.primary};
+    border-top: none;
+    border-radius: 0 0 ${brandTheme.radius.lg} ${brandTheme.radius.lg};
+    position: absolute;
+    top: 46px;
+    left: 0;
+    right: 0;
+    z-index: 100;
 `;
 
 const ToggleSection = styled.div`
-   display: flex;
-   justify-content: center;
+    display: flex;
+    justify-content: center;
 `;
 
 const ToggleButton = styled.button<{ secondary?: boolean }>`
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.sm};
-   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-   background: ${props => props.secondary ? brandTheme.surfaceAlt : brandTheme.primary};
-   color: ${props => props.secondary ? brandTheme.text.secondary : 'white'};
-   border: 2px solid ${props => props.secondary ? brandTheme.border : 'transparent'};
-   border-radius: ${brandTheme.radius.md};
-   cursor: pointer;
-   font-size: 14px;
-   font-weight: 600;
-   transition: all ${brandTheme.transitions.normal};
-   box-shadow: ${brandTheme.shadow.sm};
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    background: ${props => props.secondary ? brandTheme.surfaceAlt : brandTheme.primary};
+    color: ${props => props.secondary ? brandTheme.text.secondary : 'white'};
+    border: 2px solid ${props => props.secondary ? brandTheme.border : 'transparent'};
+    border-radius: ${brandTheme.radius.md};
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all ${brandTheme.transitions.normal};
+    box-shadow: ${brandTheme.shadow.sm};
 
-   &:hover {
-       background: ${props => props.secondary ? brandTheme.surfaceHover : brandTheme.primaryDark};
-       transform: translateY(-1px);
-       box-shadow: ${brandTheme.shadow.md};
-   }
+    &:hover {
+        background: ${props => props.secondary ? brandTheme.surfaceHover : brandTheme.primaryDark};
+        transform: translateY(-1px);
+        box-shadow: ${brandTheme.shadow.md};
+    }
 
-   svg {
-       font-size: 14px;
-   }
+    svg {
+        font-size: 14px;
+    }
 `;
 
 const CustomServiceSection = styled.div`
@@ -1164,73 +1209,73 @@ const FormGroup = styled.div`
 `;
 
 const Label = styled.label`
-   font-size: 14px;
-   font-weight: 600;
-   color: ${brandTheme.text.primary};
+    font-size: 14px;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
 `;
 
 const Input = styled.input`
-   height: 44px;
-   padding: 0 ${brandTheme.spacing.md};
-   border: 2px solid ${brandTheme.border};
-   border-radius: ${brandTheme.radius.md};
-   font-size: 14px;
-   font-weight: 500;
-   background: ${brandTheme.surface};
-   color: ${brandTheme.text.primary};
-   transition: all ${brandTheme.transitions.normal};
+    height: 44px;
+    padding: 0 ${brandTheme.spacing.md};
+    border: 2px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.md};
+    font-size: 14px;
+    font-weight: 500;
+    background: ${brandTheme.surface};
+    color: ${brandTheme.text.primary};
+    transition: all ${brandTheme.transitions.normal};
 
-   &:focus {
-       outline: none;
-       border-color: ${brandTheme.primary};
-       box-shadow: 0 0 0 3px ${brandTheme.primaryGhost};
-   }
+    &:focus {
+        outline: none;
+        border-color: ${brandTheme.primary};
+        box-shadow: 0 0 0 3px ${brandTheme.primaryGhost};
+    }
 
-   &::placeholder {
-       color: ${brandTheme.text.muted};
-       font-weight: 400;
-   }
+    &::placeholder {
+        color: ${brandTheme.text.muted};
+        font-weight: 400;
+    }
 `;
 
 const PriceInfo = styled.div`
-   font-size: 12px;
-   color: ${brandTheme.text.tertiary};
-   margin-top: ${brandTheme.spacing.xs};
-   font-weight: 500;
+    font-size: 12px;
+    color: ${brandTheme.text.tertiary};
+    margin-top: ${brandTheme.spacing.xs};
+    font-weight: 500;
 `;
 
 const AddCustomButton = styled.button`
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   gap: ${brandTheme.spacing.sm};
-   height: 48px;
-   background: linear-gradient(135deg, ${brandTheme.status.success} 0%, #059669 100%);
-   color: white;
-   border: none;
-   border-radius: ${brandTheme.radius.md};
-   font-size: 14px;
-   font-weight: 600;
-   cursor: pointer;
-   transition: all ${brandTheme.transitions.normal};
-   box-shadow: ${brandTheme.shadow.sm};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: ${brandTheme.spacing.sm};
+    height: 48px;
+    background: linear-gradient(135deg, ${brandTheme.status.success} 0%, #059669 100%);
+    color: white;
+    border: none;
+    border-radius: ${brandTheme.radius.md};
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all ${brandTheme.transitions.normal};
+    box-shadow: ${brandTheme.shadow.sm};
 
-   &:hover:not(:disabled) {
-       background: linear-gradient(135deg, #047857 0%, ${brandTheme.status.success} 100%);
-       transform: translateY(-1px);
-       box-shadow: ${brandTheme.shadow.md};
-   }
+    &:hover:not(:disabled) {
+        background: linear-gradient(135deg, #047857 0%, ${brandTheme.status.success} 100%);
+        transform: translateY(-1px);
+        box-shadow: ${brandTheme.shadow.md};
+    }
 
-   &:disabled {
-       opacity: 0.6;
-       cursor: not-allowed;
-       transform: none;
-       background: ${brandTheme.text.disabled};
-   }
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+        background: ${brandTheme.text.disabled};
+    }
 
-   svg {
-       font-size: 14px;
-   }
+    svg {
+        font-size: 14px;
+    }
 `;
 
 const SelectedServicesSection = styled.div`
@@ -1299,17 +1344,17 @@ const TableHeader = styled.div`
 `;
 
 const HeaderCell = styled.div<{ width: string }>`
-   flex: 0 0 ${props => props.width};
-   width: ${props => props.width};
-   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-   font-weight: 600;
-   font-size: 14px;
-   color: ${brandTheme.text.primary};
-   border-right: 1px solid ${brandTheme.border};
+    flex: 0 0 ${props => props.width};
+    width: ${props => props.width};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    font-weight: 600;
+    font-size: 14px;
+    color: ${brandTheme.text.primary};
+    border-right: 1px solid ${brandTheme.border};
 
-   &:last-child {
-       border-right: none;
-   }
+    &:last-child {
+        border-right: none;
+    }
 `;
 
 const TableBody = styled.div`
@@ -1383,60 +1428,60 @@ const PriceType = styled.span`
 `;
 
 const DiscountContainer = styled.div`
-   display: flex;
-   flex-direction: column;
-   gap: ${brandTheme.spacing.sm};
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.sm};
 `;
 
 const DiscountTypeSelect = styled.select`
-   padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
-   border: 1px solid ${brandTheme.border};
-   border-radius: ${brandTheme.radius.sm};
-   font-size: 13px;
-   font-weight: 500;
-   background: ${brandTheme.surface};
-   color: ${brandTheme.text.primary};
-   transition: all ${brandTheme.transitions.normal};
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+    border: 1px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.sm};
+    font-size: 13px;
+    font-weight: 500;
+    background: ${brandTheme.surface};
+    color: ${brandTheme.text.primary};
+    transition: all ${brandTheme.transitions.normal};
 
-   &:focus {
-       outline: none;
-       border-color: ${brandTheme.primary};
-       box-shadow: 0 0 0 2px ${brandTheme.primaryGhost};
-   }
+    &:focus {
+        outline: none;
+        border-color: ${brandTheme.primary};
+        box-shadow: 0 0 0 2px ${brandTheme.primaryGhost};
+    }
 `;
 
 const DiscountInputGroup = styled.div`
-   display: flex;
-   align-items: center;
-   gap: ${brandTheme.spacing.sm};
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.sm};
 `;
 
 const DiscountInput = styled.input`
-   width: 80px;
-   padding: ${brandTheme.spacing.sm};
-   border: 1px solid ${brandTheme.border};
-   border-radius: ${brandTheme.radius.sm};
-   font-size: 13px;
-   font-weight: 500;
-   text-align: right;
-   font-variant-numeric: tabular-nums;
-   transition: all ${brandTheme.transitions.normal};
+    width: 80px;
+    padding: ${brandTheme.spacing.sm};
+    border: 1px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.sm};
+    font-size: 13px;
+    font-weight: 500;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    transition: all ${brandTheme.transitions.normal};
 
-   &:focus {
-       outline: none;
-       border-color: ${brandTheme.primary};
-       box-shadow: 0 0 0 2px ${brandTheme.primaryGhost};
-   }
+    &:focus {
+        outline: none;
+        border-color: ${brandTheme.primary};
+        box-shadow: 0 0 0 2px ${brandTheme.primaryGhost};
+    }
 
-   &::-webkit-outer-spin-button,
-   &::-webkit-inner-spin-button {
-       -webkit-appearance: none;
-       margin: 0;
-   }
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
 
-   &[type=number] {
-       -moz-appearance: textfield;
-   }
+    &[type=number] {
+        -moz-appearance: textfield;
+    }
 `;
 
 const DiscountPercentage = styled.span`
@@ -1465,8 +1510,8 @@ const ActionButton = styled.button<{ danger?: boolean }>`
     font-size: 14px;
 
     ${({ danger }) => {
-    if (danger) {
-        return `
+        if (danger) {
+            return `
                background: ${brandTheme.status.errorLight};
                color: ${brandTheme.status.error};
                
@@ -1477,9 +1522,9 @@ const ActionButton = styled.button<{ danger?: boolean }>`
                    box-shadow: ${brandTheme.shadow.md};
                }
            `;
-    }
+        }
 
-    return `
+        return `
            background: ${brandTheme.primaryGhost};
            color: ${brandTheme.primary};
            
@@ -1490,7 +1535,7 @@ const ActionButton = styled.button<{ danger?: boolean }>`
                box-shadow: ${brandTheme.shadow.md};
            }
        `;
-}}
+    }}
 
     &:active {
         transform: translateY(0);
@@ -1528,12 +1573,12 @@ const TotalValue = styled.span<{ highlight?: boolean }>`
 `;
 
 const ModalFooter = styled.div`
-   display: flex;
-   justify-content: flex-end;
-   gap: ${brandTheme.spacing.md};
-   padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
-   border-top: 2px solid ${brandTheme.border};
-   background: ${brandTheme.surfaceAlt};
+    display: flex;
+    justify-content: flex-end;
+    gap: ${brandTheme.spacing.md};
+    padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
+    border-top: 2px solid ${brandTheme.border};
+    background: ${brandTheme.surfaceAlt};
 `;
 
 const SecondaryButton = styled.button`
@@ -1561,39 +1606,39 @@ const SecondaryButton = styled.button`
 `;
 
 const PrimaryButton = styled.button`
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   gap: ${brandTheme.spacing.sm};
-   padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-   background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
-   color: white;
-   border: 2px solid transparent;
-   border-radius: ${brandTheme.radius.md};
-   font-weight: 600;
-   font-size: 14px;
-   cursor: pointer;
-   transition: all ${brandTheme.transitions.spring};
-   box-shadow: ${brandTheme.shadow.sm};
-   min-height: 44px;
-   min-width: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: ${brandTheme.spacing.sm};
+    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
+    background: linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%);
+    color: white;
+    border: 2px solid transparent;
+    border-radius: ${brandTheme.radius.md};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all ${brandTheme.transitions.spring};
+    box-shadow: ${brandTheme.shadow.sm};
+    min-height: 44px;
+    min-width: 120px;
 
-   &:hover:not(:disabled) {
-       background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
-       transform: translateY(-1px);
-       box-shadow: ${brandTheme.shadow.md};
-   }
+    &:hover:not(:disabled) {
+        background: linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%);
+        transform: translateY(-1px);
+        box-shadow: ${brandTheme.shadow.md};
+    }
 
-   &:disabled {
-       opacity: 0.6;
-       cursor: not-allowed;
-       transform: none;
-       background: ${brandTheme.text.disabled};
-   }
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+        background: ${brandTheme.text.disabled};
+    }
 
-   &:active:not(:disabled) {
-       transform: translateY(0);
-   }
+    &:active:not(:disabled) {
+        transform: translateY(0);
+    }
 `;
 
 // Komponenty modalu notatki
