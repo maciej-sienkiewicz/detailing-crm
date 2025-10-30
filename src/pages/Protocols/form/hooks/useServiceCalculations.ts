@@ -1,16 +1,69 @@
-import {useState} from 'react';
-import {DiscountType, SelectedService} from '../../../../types';
+import { useState } from 'react';
+import { DiscountType, SelectedService, PriceResponse } from '../../../../types';
+
+// --- NOWA FUNKCJA DO LOKALNEGO PRZELICZANIA CENY KOŃCOWEJ ---
+const calculateLocalFinalPrice = (
+    basePrice: PriceResponse,
+    discountType: DiscountType,
+    discountValue: number
+): PriceResponse => {
+
+    // Założenie: Używamy ceny netto do kalkulacji, a VAT to 23% (jak w updateBasePrice)
+    const baseNetto = basePrice.priceNetto;
+    let finalNetto = baseNetto;
+    let discountAmount = 0;
+
+    switch (discountType) {
+        case DiscountType.PERCENTAGE:
+            // Obliczenie kwoty rabatu: baseNetto * (discountValue / 100)
+            discountAmount = baseNetto * (discountValue / 100);
+            finalNetto = baseNetto - discountAmount;
+            break;
+
+        case DiscountType.AMOUNT:
+            // Odejmujemy kwotę rabatu. Zakładamy, że kwota rabatu jest netto.
+            discountAmount = discountValue;
+            finalNetto = baseNetto - discountAmount;
+            break;
+
+        case DiscountType.FIXED_PRICE:
+            // Cena końcowa netto jest równa podanej wartości.
+            finalNetto = discountValue;
+            // Kwota rabatu: baseNetto - finalNetto
+            discountAmount = baseNetto - finalNetto;
+            break;
+
+        default:
+            finalNetto = baseNetto;
+            break;
+    }
+
+    // Upewniamy się, że cena netto nie jest ujemna
+    if (finalNetto < 0) {
+        finalNetto = 0;
+    }
+
+    // Obliczenie brutto i VAT na podstawie nowej ceny netto (zakładamy 23% VAT)
+    const taxRate = 0.23;
+    const priceBrutto = finalNetto * (1 + taxRate);
+    const taxAmount = priceBrutto - finalNetto;
+
+    return {
+        priceNetto: parseFloat(finalNetto.toFixed(2)),
+        priceBrutto: parseFloat(priceBrutto.toFixed(2)),
+        taxAmount: parseFloat(taxAmount.toFixed(2))
+    };
+};
 
 /**
  * Hook do zarządzania usługami i rabatami w protokole.
  *
- * WAŻNE: Ten hook NIE LICZY cen brutto/netto - tylko wyświetla wartości z backendu.
- * Backend zwraca już przeliczone wartości finalPrice, które zawierają rabaty.
- *
- * Logika rabatów:
+ * WAŻNE: Ten hook TERAZ LICZY ceny finalne LOKALNIE dla PODGLĄDU.
+ * Backend nadal jest źródłem prawdy przy zapisie.
+ * * Logika rabatów:
  * - Frontend ustawia typ rabatu i wartość
- * - Backend przelicza finalPrice na podstawie basePrice i rabatu
- * - Frontend tylko wyświetla przeliczone wartości
+ * - **Frontend przelicza finalPrice LOKALNIE dla UX**
+ * - Backend przelicza finalPrice autorytatywnie przy zapisie
  */
 export const useServiceCalculations = (initialServices: SelectedService[] = []) => {
     const servicesWithQuantity = initialServices.map(service => ({
@@ -21,11 +74,10 @@ export const useServiceCalculations = (initialServices: SelectedService[] = []) 
 
     /**
      * Oblicza sumy dla tabeli usług.
-     * UWAGA: Operuje na wartościach NETTO (zgodnie z modelem SelectedService).
-     * Wyświetlanie brutto/netto jest w komponencie ServiceTable.
+     * Operuje na wartościach NETTO.
      */
     const calculateTotals = () => {
-        // Suma cen bazowych (netto)
+        // ... (reszta funkcji bez zmian)
         const totalPrice = services.reduce((sum, service) =>
             sum + service.basePrice.priceNetto, 0);
 
@@ -38,16 +90,14 @@ export const useServiceCalculations = (initialServices: SelectedService[] = []) 
             sum + service.finalPrice.priceNetto, 0);
 
         return {
-            totalPrice,
-            totalDiscount,
-            totalFinalPrice
+            totalPrice: parseFloat(totalPrice.toFixed(2)),
+            totalDiscount: parseFloat(totalDiscount.toFixed(2)),
+            totalFinalPrice: parseFloat(totalFinalPrice.toFixed(2))
         };
     };
 
     /**
      * Dodaje nową usługę do listy.
-     * UWAGA: finalPrice jest opcjonalny - jeśli nie podano, używamy basePrice.
-     * Backend przy zapisie protokołu przeliczy finalPrice na podstawie rabatu.
      */
     const addService = (newService: Omit<SelectedService, 'finalPrice'>) => {
         // Jeśli nie ma finalPrice, użyj basePrice (brak rabatu)
@@ -73,36 +123,32 @@ export const useServiceCalculations = (initialServices: SelectedService[] = []) 
 
     /**
      * Aktualizuje cenę bazową usługi.
-     * UWAGA: Przekazywana wartość newPrice jest z inputu użytkownika.
-     * Backend przy zapisie protokołu ustawi prawidłowe wartości PriceResponse.
-     *
-     * Tymczasowo ustawiamy wartości lokalnie dla podglądu:
-     * - Jeśli to wartość brutto, backend ją przeliczy
-     * - Jeśli to wartość netto, backend ją przeliczy
+     * UWAGA: Tymczasowo ustawiamy finalPrice = basePrice,
+     * a backend przeliczy rabaty przy zapisie.
      */
     const updateBasePrice = (serviceId: string, newPrice: number) => {
         const updatedServices = services.map(service => {
             if (service.id === serviceId) {
                 // Tymczasowo zakładamy że to cena netto dla lokalnego wyświetlania
                 // Backend przelczy to poprawnie
+                const newBaseNetto = newPrice;
                 const newBasePrice = {
-                    priceNetto: newPrice,
-                    priceBrutto: newPrice * 1.23, // Tymczasowe oszacowanie
-                    taxAmount: newPrice * 0.23
+                    priceNetto: newBaseNetto,
+                    priceBrutto: newBaseNetto * 1.23, // Tymczasowe oszacowanie
+                    taxAmount: newBaseNetto * 0.23
                 };
 
-                // finalPrice też aktualizujemy tymczasowo
-                // Backend przelczy to poprawnie z uwzględnieniem rabatu
-                const newFinalPrice = {
-                    priceNetto: newPrice,
-                    priceBrutto: newPrice * 1.23,
-                    taxAmount: newPrice * 0.23
-                };
+                // LOKALNIE PRZELICZAMY FINAL PRICE NA BIEŻĄCO Z UWZGLĘDNIENIEM ISTNIEJĄCEGO RABATU
+                const newFinalPrice = calculateLocalFinalPrice(
+                    newBasePrice,
+                    service.discountType,
+                    service.discountValue
+                );
 
                 return {
                     ...service,
                     basePrice: newBasePrice,
-                    finalPrice: newFinalPrice
+                    finalPrice: newFinalPrice // Aktualizujemy finalPrice
                 };
             }
             return service;
@@ -137,12 +183,20 @@ export const useServiceCalculations = (initialServices: SelectedService[] = []) 
     const updateDiscountType = (serviceId: string, discountType: DiscountType) => {
         const updatedServices = services.map(service => {
             if (service.id === serviceId) {
+                const resetDiscountValue = 0; // Resetujemy wartość rabatu przy zmianie typu
+
+                // LOKALNIE PRZELICZAMY FINAL PRICE
+                const newFinalPrice = calculateLocalFinalPrice(
+                    service.basePrice,
+                    discountType,
+                    resetDiscountValue
+                );
+
                 return {
                     ...service,
                     discountType,
-                    // Resetujemy wartość rabatu przy zmianie typu
-                    discountValue: 0,
-                    // finalPrice pozostaje bez zmian do momentu zapisu
+                    discountValue: resetDiscountValue,
+                    finalPrice: newFinalPrice // LOKALNA AKTUALIZACJA
                 };
             }
             return service;
@@ -159,11 +213,18 @@ export const useServiceCalculations = (initialServices: SelectedService[] = []) 
     const updateDiscountValue = (serviceId: string, discountValue: number) => {
         const updatedServices = services.map(service => {
             if (service.id === serviceId) {
+
+                // LOKALNIE PRZELICZAMY FINAL PRICE
+                const newFinalPrice = calculateLocalFinalPrice(
+                    service.basePrice,
+                    service.discountType,
+                    discountValue
+                );
+
                 return {
                     ...service,
                     discountValue: discountValue,
-                    // finalPrice pozostaje bez zmian do momentu zapisu
-                    // Backend przeliczy to przy zapisie protokołu
+                    finalPrice: newFinalPrice // LOKALNA AKTUALIZACJA
                 };
             }
             return service;
