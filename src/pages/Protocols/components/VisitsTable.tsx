@@ -145,7 +145,7 @@ export const VisitsTable: React.FC<VisitsTableProps> = ({
             case 'value':
                 return (
                     <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '12px' }}>
-                        {visit.totalAmount.toFixed(2)} PLN
+                        {visit.totalAmountBrutto.toFixed(2)} PLN
                     </div>
                 );
 

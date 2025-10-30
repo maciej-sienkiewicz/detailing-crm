@@ -1,5 +1,6 @@
 import React from 'react';
 import {DiscountType, SelectedService} from '../../../../types';
+import {Service} from '../../../../types';
 import {FormErrors} from '../hooks/useFormValidation';
 import ServiceSearch from './ServiceSearch';
 import ServiceTable from './ServiceTable';
@@ -8,12 +9,12 @@ import {ErrorText, FormSection, SectionTitle} from '../styles';
 interface ServiceSectionProps {
     searchQuery: string;
     showResults: boolean;
-    searchResults: Array<{ id: string; name: string; price: number }>;
-    selectedServiceToAdd: { id: string; name: string; price: number } | null;
+    searchResults: Service[];
+    selectedServiceToAdd: Service | null;
     services: SelectedService[];
     errors: FormErrors;
     onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    onSelectService: (service: { id: string; name: string; price: number }) => void;
+    onSelectService: (service: Service) => void;
     onAddService: () => void;
     onRemoveService: (serviceId: string) => void;
     onDiscountTypeChange: (serviceId: string, discountType: DiscountType) => void;
@@ -22,9 +23,9 @@ interface ServiceSectionProps {
     onAddNote?: (serviceId: string, note: string) => void;
     calculateTotals: () => { totalPrice: number; totalDiscount: number; totalFinalPrice: number };
     allowCustomService: boolean;
-    onAddServiceDirect: (service: { id: string; name: string; price: number }) => void;
+    onAddServiceDirect: (service: Service) => void;
     onServiceAdded?: () => void;
-    onServiceCreated?: (oldId: string, newService: { id: string; name: string; price: number }) => void;
+    onServiceCreated?: (oldId: string, newService: Service) => void;
 }
 
 const ServiceSection: React.FC<ServiceSectionProps> = ({

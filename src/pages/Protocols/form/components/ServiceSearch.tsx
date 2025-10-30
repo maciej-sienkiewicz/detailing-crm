@@ -44,25 +44,18 @@ const EditPriceButton = styled.button.attrs({
     }
 `;
 
-// Typ dla uproszczonej usługi używanej w komponencie
-interface SimpleService {
-    id: string;
-    name: string;
-    priceNetto: number;
-}
-
 interface ServiceSearchProps {
     searchQuery: string;
     showResults: boolean;
-    searchResults: SimpleService[];
-    selectedServiceToAdd: SimpleService | null;
+    searchResults: Service[];
+    selectedServiceToAdd: Service | null;
     onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    onSelectService: (service: SimpleService) => void;
+    onSelectService: (service: Service) => void;
     onAddService: () => void;
-    onAddServiceDirect: (service: SimpleService) => void;
+    onAddServiceDirect: (service: Service) => void;
     allowCustomService?: boolean;
     onServiceAdded?: () => void;
-    onServiceCreated?: (oldId: string, newService: SimpleService) => void;
+    onServiceCreated?: (oldId: string, newService: Service) => void;
 }
 
 const ServiceSearch: React.FC<ServiceSearchProps> = ({
@@ -81,20 +74,14 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
     const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
     const [serviceToEdit, setServiceToEdit] = useState<(Service & { isNew?: boolean }) | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [allServices, setAllServices] = useState<SimpleService[]>([]);
+    const [allServices, setAllServices] = useState<Service[]>([]);
     const [isInputFocused, setIsInputFocused] = useState(false);
 
     useEffect(() => {
         const fetchAllServices = async () => {
             try {
                 const services = await servicesApi.fetchServices();
-                // Konwersja Service[] (z PriceResponse) na SimpleService[] (z priceNetto)
-                const simpleServices: SimpleService[] = services.map(service => ({
-                    id: service.id,
-                    name: service.name,
-                    priceNetto: service.price.priceNetto
-                }));
-                setAllServices(simpleServices);
+                setAllServices(services);
             } catch (error) {
                 console.error('Błąd podczas pobierania wszystkich usług:', error);
             }
@@ -107,19 +94,12 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
         searchResults.length === 0 &&
         !selectedServiceToAdd;
 
-    const handleServiceClick = (service: SimpleService) => {
-        if (service.priceNetto === 0) {
+    const handleServiceClick = (service: Service) => {
+        // Sprawdzamy czy usługa ma cenę = 0 (wszystkie składowe)
+        if (service.price.priceNetto === 0 && service.price.priceBrutto === 0) {
             // Usługa bez ceny - otwórz modal edycji
             setServiceToEdit({
-                id: service.id,
-                name: service.name,
-                price: {
-                    priceNetto: 0,
-                    priceBrutto: 0,
-                    taxAmount: 0
-                },
-                description: '',
-                vatRate: 23,
+                ...service,
                 isNew: false
             });
             setIsPriceModalOpen(true);
@@ -133,19 +113,11 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
     /**
      * Funkcja do otwierania modalu edycji ceny przed wstawieniem usługi.
      */
-    const handleEditPriceClick = (e: React.MouseEvent, service: SimpleService) => {
+    const handleEditPriceClick = (e: React.MouseEvent, service: Service) => {
         e.stopPropagation();
 
         setServiceToEdit({
-            id: service.id,
-            name: service.name,
-            price: {
-                priceNetto: service.priceNetto,
-                priceBrutto: service.priceNetto * 1.23, // Przykładowe wyliczenie
-                taxAmount: service.priceNetto * 0.23
-            },
-            description: '',
-            vatRate: 23,
+            ...service,
             isNew: false
         });
         setIsPriceModalOpen(true);
@@ -155,17 +127,9 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
         if (searchQuery.trim() === '') return;
 
         if (selectedServiceToAdd) {
-            if (selectedServiceToAdd.priceNetto === 0) {
+            if (selectedServiceToAdd.price.priceNetto === 0 && selectedServiceToAdd.price.priceBrutto === 0) {
                 setServiceToEdit({
-                    id: selectedServiceToAdd.id,
-                    name: selectedServiceToAdd.name,
-                    price: {
-                        priceNetto: 0,
-                        priceBrutto: 0,
-                        taxAmount: 0
-                    },
-                    description: '',
-                    vatRate: 23,
+                    ...selectedServiceToAdd,
                     isNew: false
                 });
                 setIsPriceModalOpen(true);
@@ -209,19 +173,13 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
                         vatRate: serviceToEdit.vatRate || 23
                     });
 
-                    // Backend zwraca Service z PriceResponse
-                    const serviceWithRealId: SimpleService = {
-                        id: createdService.id,
-                        name: createdService.name,
-                        priceNetto: createdService.price.priceNetto
-                    };
-
+                    // Backend zwraca Service z PriceResponse (już przeliczone wartości)
                     if (onServiceCreated) {
-                        onServiceCreated(serviceToEdit.id, serviceWithRealId);
+                        onServiceCreated(serviceToEdit.id, createdService);
                     }
 
-                    onSelectService(serviceWithRealId);
-                    onAddServiceDirect(serviceWithRealId);
+                    onSelectService(createdService);
+                    onAddServiceDirect(createdService);
 
                     setTimeout(() => {
                         if (onServiceAdded) {
@@ -230,15 +188,7 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
                     }, 1000);
                 } catch (error) {
                     console.error('Błąd podczas dodawania nowej usługi:', error);
-                    // Fallback - użyj tymczasowej usługi
-                    // W przypadku błędu API nie znamy dokładnej wartości netto, więc przyjmujemy inputPrice jako netto
-                    const tempService: SimpleService = {
-                        id: serviceToEdit.id,
-                        name: serviceToEdit.name,
-                        priceNetto: inputType === PriceType.NET ? inputPrice : inputPrice / 1.23
-                    };
-                    onSelectService(tempService);
-                    onAddServiceDirect(tempService);
+                    // W przypadku błędu nie dodajemy usługi
                 }
             } else {
                 // Logika aktualizacji/dodawania istniejącej usługi z inną ceną
@@ -254,14 +204,8 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
                     });
 
                     // Dodaj usługę do tabeli z zaktualizowaną ceną (backend zwraca przeliczoną wartość)
-                    const simpleService: SimpleService = {
-                        id: updatedService.id,
-                        name: updatedService.name,
-                        priceNetto: updatedService.price.priceNetto
-                    };
-
-                    onSelectService(simpleService);
-                    onAddServiceDirect(simpleService);
+                    onSelectService(updatedService);
+                    onAddServiceDirect(updatedService);
 
                     if (onServiceAdded) {
                         setTimeout(() => {
@@ -270,14 +214,6 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
                     }
                 } catch (error) {
                     console.error('Błąd podczas aktualizacji usługi:', error);
-                    // Fallback - użyj usługi z nową ceną
-                    const fallbackService: SimpleService = {
-                        id: serviceToEdit.id,
-                        name: serviceToEdit.name,
-                        priceNetto: inputType === PriceType.NET ? inputPrice : inputPrice / 1.23
-                    };
-                    onSelectService(fallbackService);
-                    onAddServiceDirect(fallbackService);
                 }
             }
 
@@ -340,7 +276,7 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
                                                     {service.name}
                                                 </div>
                                                 <SearchResultPrice>
-                                                    {service.priceNetto.toFixed(2)} zł
+                                                    {service.price.priceNetto.toFixed(2)} zł
                                                 </SearchResultPrice>
                                             </div>
 
@@ -369,7 +305,7 @@ const ServiceSearch: React.FC<ServiceSearchProps> = ({
                                             {service.name}
                                         </div>
                                         <SearchResultPrice>
-                                            {service.priceNetto.toFixed(2)} zł
+                                            {service.price.priceNetto.toFixed(2)} zł
                                         </SearchResultPrice>
                                     </div>
 

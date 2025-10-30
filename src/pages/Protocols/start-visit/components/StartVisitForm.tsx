@@ -1,4 +1,4 @@
-// src/pages/Protocols/start-visit/components/StartVisitForm.tsx - POPRAWIONA WERSJA
+// src/pages/Protocols/start-visit/components/StartVisitForm.tsx - ZAKTUALIZOWANA WERSJA
 
 import React, {useEffect, useState} from 'react';
 import {
@@ -6,7 +6,8 @@ import {
     ClientExpanded,
     ProtocolStatus,
     ServiceApprovalStatus,
-    VehicleExpanded
+    VehicleExpanded,
+    Service
 } from '../../../../types';
 import {protocolsApi} from '../../../../api/protocolsApi';
 import {clientsApi} from '../../../../api/clientsApi';
@@ -25,7 +26,7 @@ import {AutocompleteOption} from '../../components/AutocompleteField';
 
 interface StartVisitFormProps {
     protocol: CarReceptionProtocol;
-    availableServices: Array<{ id: string; name: string; price: number }>;
+    availableServices: Service[];
     onSave: (protocol: CarReceptionProtocol) => void;
     onCancel: () => void;
     isRestoringCancelled?: boolean;
@@ -51,24 +52,23 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
                                                            onCancel,
                                                            isRestoringCancelled = false
                                                        }) => {
-    // POPRAWKA: Inicjalizacja formData z aktualną datą przyjęcia, ale zachowaniem oryginalnej daty zakończenia
+    // Inicjalizacja formData z aktualną datą przyjęcia
     const [formData, setFormData] = useState<CarReceptionProtocol>(() => {
         const currentDateTime = getCurrentDateTimeISO();
 
         return {
             ...protocol,
-            startDate: currentDateTime, // Ustawiamy na obecny czas
-            // endDate pozostaje bez zmian - to planowany termin zakończenia!
-            status: ProtocolStatus.IN_PROGRESS // Ustawiamy status na "W realizacji"
+            startDate: currentDateTime,
+            status: ProtocolStatus.IN_PROGRESS
         };
     });
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
-    const [searchResults, setSearchResults] = useState<Array<{ id: string; name: string; price: number }>>([]);
+    const [searchResults, setSearchResults] = useState<Service[]>([]);
     const [showResults, setShowResults] = useState(false);
-    const [selectedServiceToAdd, setSelectedServiceToAdd] = useState<{ id: string; name: string; price: number } | null>(null);
+    const [selectedServiceToAdd, setSelectedServiceToAdd] = useState<Service | null>(null);
     const [isDeliveryPersonDifferent, setIsDeliveryPersonDifferent] = useState(false);
     const [autocompleteOptions, setAutocompleteOptions] = useState<AutocompleteOption[]>([]);
     const [loadingAutocompleteData, setLoadingAutocompleteData] = useState(false);
@@ -136,7 +136,6 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
         }
     }, [protocol, formData.deliveryPerson]);
 
-    // Uproszczona funkcja formatowania dat
     const formatDateForAPI = (dateString: string): string => {
         if (!dateString) return '';
 
@@ -173,15 +172,20 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
         setFormData(prev => ({
             ...prev,
             selectedServices: services,
-            status: ProtocolStatus.IN_PROGRESS // Upewniamy się że status pozostaje IN_PROGRESS
+            status: ProtocolStatus.IN_PROGRESS
         }));
     }, [services]);
 
-    const handleServiceCreated = (oldId: string, newService: { id: string; name: string; price: number }) => {
+    const handleServiceCreated = (oldId: string, newService: Service) => {
         setServices(prevServices =>
             prevServices.map(service =>
                 service.id === oldId
-                    ? { ...service, id: newService.id }
+                    ? {
+                        ...service,
+                        id: newService.id,
+                        basePrice: newService.price,
+                        finalPrice: newService.price
+                    }
                     : service
             )
         );
@@ -225,7 +229,6 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
         }
     };
 
-    // POPRAWKA: Obsługa zmian w formularzu - POZWALAMY NA EDYCJĘ DATY ZAKOŃCZENIA
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
 
@@ -234,12 +237,7 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
             setFormData(prev => ({ ...prev, [name]: checkbox.checked }));
         } else if (name === 'mileage' || name === 'productionYear') {
             setFormData(prev => ({ ...prev, [name]: value ? parseInt(value, 10) : 0 }));
-        } else if (name === 'startDate') {
-            // Dla daty rozpoczęcia, zachowaj format datetime-local
-            const formattedDate = formatDateForAPI(value);
-            setFormData(prev => ({ ...prev, [name]: formattedDate }));
-        } else if (name === 'endDate') {
-            // POPRAWKA: POZWALAMY NA EDYCJĘ DATY ZAKOŃCZENIA!
+        } else if (name === 'startDate' || name === 'endDate') {
             const formattedDate = formatDateForAPI(value);
             setFormData(prev => ({ ...prev, [name]: formattedDate }));
         } else {
@@ -262,17 +260,18 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
         setSearchResults(results);
     };
 
-    const handleSelectService = (service: { id: string; name: string; price: number }) => {
+    const handleSelectService = (service: Service) => {
         setSelectedServiceToAdd(service);
         setSearchQuery(service.name);
         setShowResults(false);
     };
 
-    const handleAddServiceDirect = (service: { id: string; name: string; price: number }) => {
+    const handleAddServiceDirect = (service: Service) => {
         const newService = {
             id: service.id,
             name: service.name,
-            price: service.price,
+            quantity: 1,
+            basePrice: service.price,
             discountType: "PERCENTAGE" as any,
             discountValue: 0,
             finalPrice: service.price,
@@ -285,7 +284,6 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
         setShowResults(false);
     };
 
-    // Główna funkcja submit z dokładnym logowaniem
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -293,7 +291,6 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
             setLoading(true);
             setError(null);
 
-            // POPRAWKA: Obie daty mogą być modyfikowane i formatowane dla API
             const processedStartDate = formatDateForAPI(formData.startDate || getCurrentDateTimeISO());
             const processedEndDate = formatDateForAPI(formData.endDate || '');
 

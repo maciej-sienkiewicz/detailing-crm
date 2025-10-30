@@ -1,5 +1,6 @@
 import React, {useState} from 'react';
 import {CarReceptionProtocol, SelectedService} from '../../../../types';
+import {Service} from '../../../../types';
 import {useFormSubmit} from '../hooks/useFormSubmit';
 import {useServiceCalculations} from '../hooks/useServiceCalculations';
 import FormHeader from '../components/FormHeader';
@@ -27,7 +28,7 @@ import ScheduleSection from "./ScheduleSection";
 
 interface EditProtocolFormProps {
     protocol: CarReceptionProtocol | null;
-    availableServices: Array<{ id: string; name: string; price: number }>;
+    availableServices: Service[];
     initialData?: Partial<CarReceptionProtocol>;
     appointmentId?: string;
     isFullProtocol?: boolean;
@@ -85,9 +86,9 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
     } = useServiceCalculations(formData.selectedServices || []);
 
     const [searchQuery, setSearchQuery] = useState('');
-    const [searchResults, setSearchResults] = useState<Array<{ id: string; name: string; price: number }>>([]);
+    const [searchResults, setSearchResults] = useState<Service[]>([]);
     const [showResults, setShowResults] = useState(false);
-    const [selectedServiceToAdd, setSelectedServiceToAdd] = useState<{ id: string; name: string; price: number } | null>(null);
+    const [selectedServiceToAdd, setSelectedServiceToAdd] = useState<Service | null>(null);
 
     const error = submitError;
 
@@ -98,11 +99,16 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
         }));
     }, [services, setFormData]);
 
-    const handleServiceCreated = (oldId: string, newService: { id: string; name: string; price: number }) => {
+    const handleServiceCreated = (oldId: string, newService: Service) => {
         setServices(prevServices =>
             prevServices.map(service =>
                 service.id === oldId
-                    ? { ...service, id: newService.id }
+                    ? {
+                        ...service,
+                        id: newService.id,
+                        basePrice: newService.price,
+                        finalPrice: newService.price
+                    }
                     : service
             )
         );
@@ -124,7 +130,7 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
         setSearchResults(results);
     };
 
-    const handleSelectService = (service: { id: string; name: string; price: number }) => {
+    const handleSelectService = (service: Service) => {
         setSelectedServiceToAdd(service);
         setSearchQuery(service.name);
         setShowResults(false);
@@ -135,7 +141,8 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
             const newService: Omit<SelectedService, 'finalPrice'> = {
                 id: selectedServiceToAdd.id,
                 name: selectedServiceToAdd.name,
-                price: selectedServiceToAdd.price,
+                quantity: 1,
+                basePrice: selectedServiceToAdd.price,
                 discountType: "PERCENTAGE" as any,
                 discountValue: 0,
                 approvalStatus: undefined,
@@ -146,7 +153,12 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
             const newService: Omit<SelectedService, 'finalPrice'> = {
                 id: customId,
                 name: searchQuery.trim(),
-                price: 0,
+                quantity: 1,
+                basePrice: {
+                    priceNetto: 0,
+                    priceBrutto: 0,
+                    taxAmount: 0
+                },
                 discountType: "PERCENTAGE" as any,
                 discountValue: 0,
                 approvalStatus: undefined,
@@ -158,11 +170,12 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
         clearFieldError('selectedServices');
     };
 
-    const handleAddServiceDirect = (service: { id: string; name: string; price: number }) => {
+    const handleAddServiceDirect = (service: Service) => {
         const newService: Omit<SelectedService, 'finalPrice'> = {
             id: service.id,
             name: service.name,
-            price: service.price,
+            quantity: 1,
+            basePrice: service.price,
             discountType: "PERCENTAGE" as any,
             discountValue: 0,
             approvalStatus: undefined,
