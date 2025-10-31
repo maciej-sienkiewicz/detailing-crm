@@ -55,9 +55,7 @@ export interface ClientVisitHistoryItem {
     make: string;
     model: string;
     licensePlate: string;
-    totalAmountNetto: number;
-    totalAmountBrutto: number;
-    totalTaxAmount: number;
+    revenue: PriceResponse;
     title: string;
 }
 

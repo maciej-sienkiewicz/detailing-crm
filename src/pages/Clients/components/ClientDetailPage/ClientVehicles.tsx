@@ -1,7 +1,7 @@
 // src/pages/Clients/components/ClientDetailPage/ClientVehicles.tsx
 import React from 'react';
 import styled from 'styled-components';
-import { FaCar, FaArrowRight, FaTachometerAlt, FaCalendarAlt, FaEuroSign, FaWrench } from 'react-icons/fa';
+import {FaCar, FaArrowRight, FaTachometerAlt, FaCalendarAlt, FaEuroSign, FaWrench, FaMoneyBill} from 'react-icons/fa';
 import { SidebarSection, SidebarSectionTitle, EmptyMessage, EmptyIcon, EmptyText, EmptySubtext } from './ClientDetailStyles';
 import { theme } from "../../../../styles/theme";
 import { VehicleExpanded } from '../../../../types';
@@ -125,7 +125,7 @@ const ClientVehicles: React.FC<ClientVehiclesProps> = ({ vehicles, onVehicleClic
 
                             <VehicleStat>
                                 <StatIcon $color={theme.status.success}>
-                                    <FaEuroSign />
+                                    <FaMoneyBill />
                                 </StatIcon>
                                 <StatContent>
                                     <StatValue>{formatCurrency(vehicle.totalSpent)}</StatValue>

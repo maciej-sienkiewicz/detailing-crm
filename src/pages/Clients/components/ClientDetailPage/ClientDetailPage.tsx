@@ -14,6 +14,12 @@ import { ClientDetailErrorDisplay, ClientDetailLoadingDisplay } from "../../Owne
 import { useToast } from '../../../../components/common/Toast/Toast';
 import ClientAnalyticsSection from "../../../../components/ClientAnalytics/ClientAnalyticsSection";
 
+interface PriceDetails {
+    totalAmountNetto: number;
+    totalAmountBrutto: number;
+    totalTaxAmount: number;
+}
+
 // ✅ UPDATED: Interface for client visit history with new price structure
 interface ClientVisitHistoryItem {
     id: string;
@@ -23,9 +29,7 @@ interface ClientVisitHistoryItem {
     carMake: string;
     carModel: string;
     licensePlate: string;
-    totalAmountNetto: number;
-    totalAmountBrutto: number;
-    totalTaxAmount: number;
+    revenue: PriceDetails
 }
 
 const ClientDetailPage: React.FC = () => {
@@ -88,10 +92,11 @@ const ClientDetailPage: React.FC = () => {
                         carMake: visit.make,
                         carModel: visit.model,
                         licensePlate: visit.licensePlate,
-                        // ✅ UPDATED: Używamy nowej struktury cen
-                        totalAmountNetto: visit.totalAmountNetto,
-                        totalAmountBrutto: visit.totalAmountBrutto,
-                        totalTaxAmount: visit.totalTaxAmount
+                        revenue: {
+                            totalAmountNetto: visit.revenue.priceNetto,
+                            totalAmountBrutto: visit.revenue.priceBrutto,
+                            totalTaxAmount: visit.revenue.taxAmount,
+                        },
                     }));
                     setClientVisits(mappedVisits);
                 }

@@ -14,9 +14,7 @@ interface ClientVisitHistoryItem {
     carMake: string;
     carModel: string;
     licensePlate: string;
-    totalAmountNetto: number;
-    totalAmountBrutto: number;
-    totalTaxAmount: number;
+    revenue: PriceDetails;
 }
 
 interface ClientVisitHistoryProps {
@@ -157,9 +155,9 @@ const ClientVisitHistory: React.FC<ClientVisitHistoryProps> = ({
                             {/* ✅ UPDATED: Display brutto amount as main value */}
                             <VisitFooter>
                                 <VisitAmount>
-                                    <AmountLabel>Wartość brutto</AmountLabel>
+                                    <AmountLabel>Wartość netto</AmountLabel>
                                     <AmountValue>
-                                        {formatCurrency(visit.totalAmountBrutto)}
+                                        {formatCurrency(visit.revenue.totalAmountNetto)}
                                     </AmountValue>
                                 </VisitAmount>
                                 <VisitActionIcon>
