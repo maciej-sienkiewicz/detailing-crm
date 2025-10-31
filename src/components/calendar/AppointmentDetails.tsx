@@ -150,10 +150,17 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
         let tax = 0;
 
         appointment.services.forEach((service: any) => {
-            console.log("LOG")
-            console.log(service)
+            console.log("LOG");
+            console.log(service);
+
+            // ✅ Check for protocol service structure (from API)
+            if ('finalPriceNetto' in service && 'finalPriceBrutto' in service) {
+                gross += service.finalPriceBrutto || 0;
+                net += service.finalPriceNetto || 0;
+                tax += service.finalTaxAmount || 0;
+            }
             // Check if this is SelectedService with finalPrice
-            if (service.finalPrice) {
+            else if (service.finalPrice) {
                 if (typeof service.finalPrice === 'object' && 'priceBrutto' in service.finalPrice) {
                     // New PriceResponse structure
                     gross += service.finalPrice.priceBrutto || 0;

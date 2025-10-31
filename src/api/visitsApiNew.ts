@@ -544,6 +544,9 @@ class VisitsApi {
     /**
      * ✅ ZAKTUALIZOWANE: Transforms services data
      */
+    /**
+     * ✅ POPRAWIONE: Transforms services data
+     */
     private transformServices(services: any[]): VisitServiceSummary[] {
         if (!Array.isArray(services)) {
             return [];
@@ -553,17 +556,53 @@ class VisitsApi {
             id: service.id?.toString() || '',
             name: service.name || '',
             quantity: parseInt(service.quantity?.toString() || '1'),
-            // ✅ ZMIANA: basePrice jako PriceResponse
+            // ✅ POPRAWKA: basePrice jako PriceResponse - obsługa zarówno zagnieżdżonej jak i płaskiej struktury
             basePrice: {
-                priceNetto: parseFloat(service.basePrice?.priceNetto?.toString() || service.base_price?.price_netto?.toString() || '0'),
-                priceBrutto: parseFloat(service.basePrice?.priceBrutto?.toString() || service.base_price?.price_brutto?.toString() || '0'),
-                taxAmount: parseFloat(service.basePrice?.taxAmount?.toString() || service.base_price?.tax_amount?.toString() || '0')
+                priceNetto: parseFloat(
+                    service.basePrice?.priceNetto?.toString() ||
+                    service.base_price?.price_netto?.toString() ||
+                    service.basePriceNetto?.toString() ||
+                    service.base_price_netto?.toString() ||
+                    '0'
+                ),
+                priceBrutto: parseFloat(
+                    service.basePrice?.priceBrutto?.toString() ||
+                    service.base_price?.price_brutto?.toString() ||
+                    service.basePriceBrutto?.toString() ||
+                    service.base_price_brutto?.toString() ||
+                    '0'
+                ),
+                taxAmount: parseFloat(
+                    service.basePrice?.taxAmount?.toString() ||
+                    service.base_price?.tax_amount?.toString() ||
+                    service.baseTaxAmount?.toString() ||
+                    service.base_tax_amount?.toString() ||
+                    '0'
+                )
             },
-            // ✅ ZMIANA: finalPrice jako PriceResponse
+            // ✅ POPRAWKA: finalPrice jako PriceResponse - obsługa zarówno zagnieżdżonej jak i płaskiej struktury
             finalPrice: {
-                priceNetto: parseFloat(service.finalPrice?.priceNetto?.toString() || service.final_price?.price_netto?.toString() || '0'),
-                priceBrutto: parseFloat(service.finalPrice?.priceBrutto?.toString() || service.final_price?.price_brutto?.toString() || '0'),
-                taxAmount: parseFloat(service.finalPrice?.taxAmount?.toString() || service.final_price?.tax_amount?.toString() || '0')
+                priceNetto: parseFloat(
+                    service.finalPrice?.priceNetto?.toString() ||
+                    service.final_price?.price_netto?.toString() ||
+                    service.finalPriceNetto?.toString() ||          // ✅ Dodane!
+                    service.final_price_netto?.toString() ||
+                    '0'
+                ),
+                priceBrutto: parseFloat(
+                    service.finalPrice?.priceBrutto?.toString() ||
+                    service.final_price?.price_brutto?.toString() ||
+                    service.finalPriceBrutto?.toString() ||         // ✅ Dodane!
+                    service.final_price_brutto?.toString() ||
+                    '0'
+                ),
+                taxAmount: parseFloat(
+                    service.finalPrice?.taxAmount?.toString() ||
+                    service.final_price?.tax_amount?.toString() ||
+                    service.finalTaxAmount?.toString() ||           // ✅ Dodane!
+                    service.final_tax_amount?.toString() ||
+                    '0'
+                )
             },
             discountType: service.discountType || service.discount_type,
             discountValue: service.discountValue || service.discount_value,

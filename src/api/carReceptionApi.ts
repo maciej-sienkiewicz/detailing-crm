@@ -228,10 +228,10 @@ export const carReceptionApi = {
                 );
 
                 // Wysyłanie żądania PUT z FormData
-                response = await apiClient.put<any>(`/receptions/${protocol.id}/with-files`, formDataWithFiles);
+                response = await apiClient.put<any>(`/v1/protocols/${protocol.id}/with-files`, formDataWithFiles);
             } else {
                 // Jeśli nie mamy zdjęć z plikami, używamy standardowego JSON
-                response = await apiClient.put<any>(`/receptions/${protocol.id}`, protocol);
+                response = await apiClient.put<any>(`/v1/protocols/${protocol.id}`, protocol);
             }
 
             // Połącz dane protokołu z odpowiedzią serwera
