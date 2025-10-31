@@ -117,9 +117,9 @@ export const VehicleCellRenderer: React.FC<VehicleCellRendererProps> = ({
 
         case 'revenue':
             return (
-                <TooltipWrapper title={`Łączne przychody: ${formatCurrency(vehicle.totalSpent)}`}>
+                <TooltipWrapper title={`Łączne przychody: ${formatCurrency(vehicle.totalSpent.totalAmountNetto)}`}>
                     <RevenueDisplay>
-                        {formatCurrency(vehicle.totalSpent)}
+                        {formatCurrency(vehicle.totalSpent.totalAmountNetto)} netto
                     </RevenueDisplay>
                 </TooltipWrapper>
             );

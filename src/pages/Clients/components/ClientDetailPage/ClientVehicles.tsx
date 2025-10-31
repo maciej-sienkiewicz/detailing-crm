@@ -16,7 +16,7 @@ const ClientVehicles: React.FC<ClientVehiclesProps> = ({ vehicles, onVehicleClic
         return new Intl.NumberFormat('pl-PL', {
             style: 'currency',
             currency: 'PLN',
-            maximumFractionDigits: 0
+            maximumFractionDigits: 2
         }).format(amount);
     };
 
@@ -37,9 +37,9 @@ const ClientVehicles: React.FC<ClientVehiclesProps> = ({ vehicles, onVehicleClic
 
     const getVehicleStatusColor = (vehicle: VehicleExpanded): string => {
         // Premium customer logic based on spending or visits
-        if (vehicle.totalSpent > 5000 || vehicle.totalServices > 10) {
+        if (vehicle.totalSpent.totalAmountNetto > 5000 || vehicle.totalServices > 10) {
             return theme.status.success;
-        } else if (vehicle.totalSpent > 2000 || vehicle.totalServices > 5) {
+        } else if (vehicle.totalSpent.totalAmountNetto > 2000 || vehicle.totalServices > 5) {
             return theme.primary;
         } else {
             return theme.text.muted;
@@ -47,9 +47,9 @@ const ClientVehicles: React.FC<ClientVehiclesProps> = ({ vehicles, onVehicleClic
     };
 
     const getVehicleStatusLabel = (vehicle: VehicleExpanded): string => {
-        if (vehicle.totalSpent > 5000 || vehicle.totalServices > 10) {
+        if (vehicle.totalSpent.totalAmountNetto > 5000 || vehicle.totalServices > 10) {
             return 'VIP';
-        } else if (vehicle.totalSpent > 2000 || vehicle.totalServices > 5) {
+        } else if (vehicle.totalSpent.totalAmountNetto > 2000 || vehicle.totalServices > 5) {
             return 'Stały klient';
         } else {
             return 'Standard';
@@ -128,8 +128,8 @@ const ClientVehicles: React.FC<ClientVehiclesProps> = ({ vehicles, onVehicleClic
                                     <FaMoneyBill />
                                 </StatIcon>
                                 <StatContent>
-                                    <StatValue>{formatCurrency(vehicle.totalSpent)}</StatValue>
-                                    <StatLabel>Wydano</StatLabel>
+                                    <StatValue>{formatCurrency(vehicle.totalSpent.totalAmountNetto)}</StatValue>
+                                    <StatLabel>Wydano (netto)</StatLabel>
                                 </StatContent>
                             </VehicleStat>
                         </VehicleStatsGrid>

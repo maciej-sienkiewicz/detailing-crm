@@ -21,7 +21,11 @@ const initialFilters: VehicleFilters = {
 const initialStats: VehicleStats = {
     totalVehicles: 0,
     premiumVehicles: 0,
-    totalRevenue: 0,
+    totalRevenue: {
+        totalAmountNetto: 0,
+        totalAmountBrutto: 0,
+        totalTaxAmount: 0
+    },
     visitRevenueMedian: 0,
     mostActiveVehicle: null
 };
@@ -168,7 +172,11 @@ export const useVehicleFilters = () => {
             return {
                 totalVehicles: result.totalVehicles,
                 premiumVehicles: result.premiumVehicles,
-                totalRevenue: result.totalRevenue,
+                totalRevenue: {
+                    totalAmountNetto: result.totalRevenue.priceNetto,
+                    totalAmountBrutto: result.totalRevenue.priceBrutto,
+                    totalTaxAmount: result.totalRevenue.taxAmount,
+                },
                 visitRevenueMedian: result.visitRevenueMedian,
                 mostActiveVehicle: result.mostActiveVehicle
             };

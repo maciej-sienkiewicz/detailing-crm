@@ -2,6 +2,8 @@
 // Typy związane z pojazdami
 
 // Rozszerzony interfejs pojazdu - zaktualizowany dla nowego API
+import {PriceDetails} from "../shared/types/price";
+
 export interface VehicleExpanded {
     id: string;
     make: string;
@@ -15,7 +17,7 @@ export interface VehicleExpanded {
     // Metryki śledzenia - zaktualizowane nazwy
     totalServices: number;    // Mapowane z visitCount z API
     lastServiceDate?: string; // Mapowane z lastVisitDate z API (po konwersji)
-    totalSpent: number;       // Mapowane z totalRevenue z API
+    totalSpent: PriceDetails;       // Mapowane z totalRevenue z API
 
     // Relacje - zaktualizowane dla nowego API
     ownerIds: string[];       // ID właścicieli (może mieć wielu)

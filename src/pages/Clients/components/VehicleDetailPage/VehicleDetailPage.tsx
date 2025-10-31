@@ -123,7 +123,7 @@ const VehicleDetailPage: React.FC = () => {
             } catch (statsError) {
                 setVehicleStats({
                     servicesNo: foundVehicle.totalServices || 0,
-                    totalRevenue: foundVehicle.totalSpent || 0
+                    totalRevenue: foundVehicle.totalSpent.totalAmountNetto || 0
                 });
             }
 
@@ -217,7 +217,6 @@ const VehicleDetailPage: React.FC = () => {
 
                 <ContentContainer>
                     <MainContent>
-                        <VehicleBasicInfo vehicle={displayVehicle} />
                         <VehicleOwners owners={owners} onOwnerClick={handleOwnerClick} />
 
                         {/* NOWA SEKCJA ANALIZ - ujednolicona z klientami, bez toggle */}

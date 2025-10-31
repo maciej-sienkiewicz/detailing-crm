@@ -126,7 +126,7 @@ const VehicleVisitHistory: React.FC<VehicleVisitHistoryProps> = ({
             <VisitHistoryList>
                 {visitHistory.map((visit, index) => {
                     const startDate = visit.startDate || visit.start_date || visit.startdate;
-                    const totalAmount = visit.totalAmount || visit.total_amount || visit.totalamount || visit.amount;
+                    const totalAmount = visit.totalAmountNetto || visit.total_amount || visit.totalamount || visit.amount;
                     const statusInfo = getStatusInfo(visit.status);
 
                     return (
@@ -149,17 +149,6 @@ const VehicleVisitHistory: React.FC<VehicleVisitHistoryProps> = ({
                                     <StatusText>{statusInfo.label}</StatusText>
                                 </VisitStatusIndicator>
                             </VisitCardHeader>
-
-                            <VisitVehicleSection>
-                                <VehicleInfo>
-                                    <VehicleBrand>
-                                        {vehicleDisplay.make} {vehicleDisplay.model}
-                                    </VehicleBrand>
-                                    <VehiclePlateDisplay>
-                                        {vehicleDisplay.licensePlate}
-                                    </VehiclePlateDisplay>
-                                </VehicleInfo>
-                            </VisitVehicleSection>
 
                             <VisitFooter>
                                 <VisitAmount>

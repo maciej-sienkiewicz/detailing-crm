@@ -1,4 +1,5 @@
 import {MostActiveVehicleInfo, VehicleExpanded} from "../../../types";
+import {PriceDetails} from "../../../shared/types/price";
 
 export interface VehiclesPageContentProps {
     onSetRef?: (ref: {
@@ -30,7 +31,7 @@ export interface VehicleFilters {
 export interface VehicleStats {
     totalVehicles: number;
     premiumVehicles: number;
-    totalRevenue: number;
+    totalRevenue: PriceDetails;
     visitRevenueMedian: number;
     mostActiveVehicle?: MostActiveVehicleInfo | null;
 }

@@ -1,4 +1,4 @@
-import {VehicleExpanded, VehicleOwner, VehicleStatistics} from '../types';
+import {PriceResponse, VehicleExpanded, VehicleOwner, VehicleStatistics} from '../types';
 import {apiClientNew, PaginatedApiResponse, PaginationParams} from './apiClientNew';
 
 export interface VehicleTableResponse {
@@ -13,7 +13,7 @@ export interface VehicleTableResponse {
     owners: VehicleOwnerSummary[];
     visitCount: number;
     lastVisitDate?: number[] | string | null | undefined;
-    totalRevenue: number;
+    totalRevenue: PriceResponse;
     createdAt: number[] | string | undefined;
     updatedAt: number[] | string | undefined;
 }
@@ -60,7 +60,7 @@ export interface VehicleCompanyStatisticsResponse {
     totalVehicles: number;
     premiumVehicles: number;
     visitRevenueMedian: number;
-    totalRevenue: number;
+    totalRevenue: PriceResponse;
     averageRevenuePerVehicle: number;
     mostActiveVehicle?: MostActiveVehicleInfo;
     calculatedAt: string;
@@ -146,7 +146,11 @@ const convertToVehicleExpanded = (tableResponse: VehicleTableResponse): VehicleE
     vin: tableResponse.vin || undefined,
     totalServices: tableResponse.visitCount,
     lastServiceDate: convertDateArrayToString(tableResponse.lastVisitDate),
-    totalSpent: tableResponse.totalRevenue,
+    totalSpent: {
+        totalAmountNetto: tableResponse.totalRevenue.priceNetto,
+        totalAmountBrutto: tableResponse.totalRevenue.priceBrutto,
+        totalTaxAmount: tableResponse.totalRevenue.taxAmount
+    },
     ownerIds: tableResponse.owners.map(owner => owner.id.toString()),
 
     owners: tableResponse.owners.map(owner => ({

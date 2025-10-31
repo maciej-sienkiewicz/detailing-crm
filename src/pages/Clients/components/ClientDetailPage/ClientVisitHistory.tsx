@@ -4,6 +4,7 @@ import { FaArrowRight, FaCalendarAlt, FaCheckCircle, FaClock, FaExclamationTrian
 import { SidebarSection, SidebarSectionTitle, EmptyMessage, EmptyIcon, EmptyText, EmptySubtext } from './ClientDetailStyles';
 import { ProtocolStatus, ProtocolStatusColors, ProtocolStatusLabels } from '../../../../types/protocol';
 import { theme } from "../../../../styles/theme";
+import {PriceDetails} from "../../../../shared/types/price";
 
 // ✅ UPDATED: Interface with new price structure
 interface ClientVisitHistoryItem {
