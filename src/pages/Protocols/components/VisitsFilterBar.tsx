@@ -1,4 +1,5 @@
-import React from 'react';
+// src/pages/Protocols/components/VisitsFilterBar.tsx - FINALNA WERSJA
+import React, {useRef} from 'react';
 import styled from 'styled-components';
 import {FaSearch, FaTimes} from 'react-icons/fa';
 import {VisitsFilterState} from '../hooks/useVisitsFilters';
@@ -76,12 +77,25 @@ export const VisitsFilterBar: React.FC<VisitsFilterBarProps> = ({
                                                                     availableServices = [],
                                                                     servicesLoading = false
                                                                 }) => {
+    // Ref do śledzenia czy jesteśmy w trakcie wykonywania wyszukiwania
+    const isApplyingRef = useRef(false);
+
+    // ✅ NOWE: Ref do śledzenia ostatnich zastosowanych filtrów
+    const lastAppliedFiltersRef = useRef<string>(JSON.stringify(filters));
+
+    // ✅ NOWE: Ref do śledzenia czy użytkownik dokonał zmian od ostatniego wyszukiwania
+    const hasUnappliedChangesRef = useRef(false);
+
     const handleFilterChange = (key: keyof VisitsFilterState, value: any) => {
         onFiltersChange({ [key]: value });
+        // Oznacz że są niezastosowane zmiany
+        hasUnappliedChangesRef.current = true;
     };
 
     const clearField = (fieldName: keyof VisitsFilterState) => {
         onFiltersChange({ [fieldName]: fieldName === 'serviceIds' ? [] : '' });
+        // Oznacz że są niezastosowane zmiany
+        hasUnappliedChangesRef.current = true;
     };
 
     const hasChanges = () => {
@@ -90,6 +104,73 @@ export const VisitsFilterBar: React.FC<VisitsFilterBarProps> = ({
             if (key === 'serviceIds' && Array.isArray(value) && value.length === 0) return false;
             return true;
         });
+    };
+
+    // ✅ NOWE: Sprawdź czy filtry się zmieniły od ostatniego wyszukiwania
+    const hasFiltersChanged = () => {
+        const currentFilters = JSON.stringify(filters);
+        return currentFilters !== lastAppliedFiltersRef.current;
+    };
+
+    // ✅ POPRAWIONE: Obsługa klawisza Enter
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter' && !loading && hasFiltersChanged()) {
+            e.preventDefault();
+            isApplyingRef.current = true;
+            hasUnappliedChangesRef.current = false;
+            lastAppliedFiltersRef.current = JSON.stringify(filters);
+            onApplyFilters();
+            // Reset flagi po krótkiej chwili
+            setTimeout(() => {
+                isApplyingRef.current = false;
+            }, 300);
+        }
+    };
+
+    // ✅ POPRAWIONE: Obsługa wyjścia z pola (onBlur)
+    const handleBlur = () => {
+        // Sprawdź czy były jakiekolwiek zmiany od ostatniego wyszukiwania
+        // (działa także gdy użytkownik wyczyści pole - wtedy też są zmiany!)
+        if (!loading && !isApplyingRef.current && hasUnappliedChangesRef.current) {
+            // Opóźnienie pozwala na kliknięcie przycisków (np. "Zastosuj filtry")
+            // zanim wykona się wyszukiwanie
+            setTimeout(() => {
+                // Sprawdź ponownie czy użytkownik nie kliknął przycisku w międzyczasie
+                if (!isApplyingRef.current && hasUnappliedChangesRef.current) {
+                    isApplyingRef.current = true;
+                    hasUnappliedChangesRef.current = false;
+                    lastAppliedFiltersRef.current = JSON.stringify(filters);
+                    onApplyFilters();
+                    setTimeout(() => {
+                        isApplyingRef.current = false;
+                    }, 100);
+                }
+            }, 200);
+        }
+    };
+
+    // ✅ POPRAWIONE: Obsługa kliknięcia przycisku "Zastosuj filtry"
+    const handleApplyClick = () => {
+        isApplyingRef.current = true;
+        hasUnappliedChangesRef.current = false;
+        lastAppliedFiltersRef.current = JSON.stringify(filters);
+        onApplyFilters();
+        // Reset flagi po krótkiej chwili
+        setTimeout(() => {
+            isApplyingRef.current = false;
+        }, 300);
+    };
+
+    // ✅ POPRAWIONE: Obsługa kliknięcia przycisku "Wyczyść wszystkie"
+    const handleClearAllClick = () => {
+        isApplyingRef.current = true;
+        hasUnappliedChangesRef.current = false;
+        lastAppliedFiltersRef.current = JSON.stringify({});
+        onClearAll();
+        // Reset flagi po krótkiej chwili
+        setTimeout(() => {
+            isApplyingRef.current = false;
+        }, 300);
     };
 
     return (
@@ -108,6 +189,8 @@ export const VisitsFilterBar: React.FC<VisitsFilterBarProps> = ({
                             name="clientName"
                             value={filters.clientName || ''}
                             onChange={(e) => handleFilterChange('clientName', e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            onBlur={handleBlur}
                             placeholder="Nazwa klienta"
                             disabled={loading}
                             $hasValue={!!filters.clientName}
@@ -133,6 +216,8 @@ export const VisitsFilterBar: React.FC<VisitsFilterBarProps> = ({
                             name="licensePlate"
                             value={filters.licensePlate || ''}
                             onChange={(e) => handleFilterChange('licensePlate', e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            onBlur={handleBlur}
                             placeholder="Numer rejestracyjny"
                             disabled={loading}
                             $hasValue={!!filters.licensePlate}
@@ -158,6 +243,8 @@ export const VisitsFilterBar: React.FC<VisitsFilterBarProps> = ({
                             name="make"
                             value={filters.make || ''}
                             onChange={(e) => handleFilterChange('make', e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            onBlur={handleBlur}
                             placeholder="Marka pojazdu"
                             disabled={loading}
                             $hasValue={!!filters.make}
@@ -183,6 +270,8 @@ export const VisitsFilterBar: React.FC<VisitsFilterBarProps> = ({
                             name="model"
                             value={filters.model || ''}
                             onChange={(e) => handleFilterChange('model', e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            onBlur={handleBlur}
                             placeholder="Model pojazdu"
                             disabled={loading}
                             $hasValue={!!filters.model}
@@ -226,6 +315,8 @@ export const VisitsFilterBar: React.FC<VisitsFilterBarProps> = ({
                             type="date"
                             value={filters.startDate || ''}
                             onChange={(e) => handleFilterChange('startDate', e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            onBlur={handleBlur}
                             disabled={loading}
                             $hasValue={!!filters.startDate}
                         />
@@ -252,6 +343,8 @@ export const VisitsFilterBar: React.FC<VisitsFilterBarProps> = ({
                             value={filters.endDate || ''}
                             onChange={(e) => handleFilterChange('endDate', e.target.value)}
                             min={filters.startDate}
+                            onKeyDown={handleKeyDown}
+                            onBlur={handleBlur}
                             disabled={loading}
                             $hasValue={!!filters.endDate}
                         />
@@ -276,6 +369,8 @@ export const VisitsFilterBar: React.FC<VisitsFilterBarProps> = ({
                                 type="number"
                                 value={filters.minPrice || ''}
                                 onChange={(e) => handleFilterChange('minPrice', e.target.value ? Number(e.target.value) : undefined)}
+                                onKeyDown={handleKeyDown}
+                                onBlur={handleBlur}
                                 placeholder="Od"
                                 min="0"
                                 step="0.01"
@@ -294,6 +389,8 @@ export const VisitsFilterBar: React.FC<VisitsFilterBarProps> = ({
                                 type="number"
                                 value={filters.maxPrice || ''}
                                 onChange={(e) => handleFilterChange('maxPrice', e.target.value ? Number(e.target.value) : undefined)}
+                                onKeyDown={handleKeyDown}
+                                onBlur={handleBlur}
                                 placeholder="Do"
                                 min="0"
                                 step="0.01"
@@ -314,7 +411,7 @@ export const VisitsFilterBar: React.FC<VisitsFilterBarProps> = ({
                 <ResultsSection>
                     {hasChanges() ? (
                         <ResultsInfo>
-                            Wprowadź kryteria i kliknij "Zastosuj filtry"
+                            💡 Wyszukiwanie: naciśnij Enter, wyjdź z pola lub kliknij "Zastosuj filtry"
                         </ResultsInfo>
                     ) : (
                         <ResultsInfo>
@@ -325,15 +422,15 @@ export const VisitsFilterBar: React.FC<VisitsFilterBarProps> = ({
 
                 <FiltersActions>
                     {hasChanges() && (
-                        <SecondaryButton onClick={onClearAll} disabled={loading}>
+                        <SecondaryButton onClick={handleClearAllClick} disabled={loading}>
                             <FaTimes />
                             <span>Wyczyść wszystkie</span>
                         </SecondaryButton>
                     )}
                     <PrimaryButton
-                        onClick={onApplyFilters}
+                        onClick={handleApplyClick}
                         $hasChanges={hasChanges()}
-                        disabled={!hasChanges() || loading}
+                        disabled={loading}
                     >
                         <FaSearch />
                         <span>Zastosuj filtry</span>
@@ -343,6 +440,8 @@ export const VisitsFilterBar: React.FC<VisitsFilterBarProps> = ({
         </FiltersContent>
     );
 };
+
+// Styled Components (bez zmian)
 
 const FiltersContent = styled.div`
     padding: ${brandTheme.spacing.lg};
@@ -569,17 +668,17 @@ const SecondaryButton = styled(BaseButton)`
 
 const PrimaryButton = styled(BaseButton)<{ $hasChanges: boolean }>`
     background: ${props => props.$hasChanges
-    ? `linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%)`
-    : brandTheme.surfaceElevated
-};
+            ? `linear-gradient(135deg, ${brandTheme.primary} 0%, ${brandTheme.primaryLight} 100%)`
+            : brandTheme.surfaceElevated
+    };
     color: ${props => props.$hasChanges ? 'white' : brandTheme.text.tertiary};
     box-shadow: ${props => props.$hasChanges ? brandTheme.shadow.sm : brandTheme.shadow.xs};
 
     &:hover:not(:disabled) {
         background: ${props => props.$hasChanges
-    ? `linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%)`
-    : brandTheme.surfaceHover
-};
+                ? `linear-gradient(135deg, ${brandTheme.primaryDark} 0%, ${brandTheme.primary} 100%)`
+                : brandTheme.surfaceHover
+        };
         box-shadow: ${props => props.$hasChanges ? brandTheme.shadow.md : brandTheme.shadow.sm};
     }
 `;

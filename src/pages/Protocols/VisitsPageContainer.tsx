@@ -1,4 +1,4 @@
-// src/pages/Protocols/VisitsPageContainer.tsx - Updated
+// src/pages/Protocols/VisitsPageContainer.tsx - NAPRAWIONA WERSJA
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from 'styled-components';
 import {FaArrowLeft, FaClipboardCheck, FaPlus} from 'react-icons/fa';
@@ -136,7 +136,6 @@ export const VisitsPageContainer: React.FC = () => {
     }, [appData.countersLoaded, appData.countersLoading]);
 
     const performSearch = useCallback(async () => {
-
         const searchFilters = getApiFilters();
 
         if (activeStatusFilter !== 'all') {
@@ -158,7 +157,6 @@ export const VisitsPageContainer: React.FC = () => {
     }, [performSearch]);
 
     const handleStatusFilterChange = useCallback(async (status: StatusFilterType) => {
-
         if (status === activeStatusFilter) {
             return;
         }
@@ -291,6 +289,7 @@ export const VisitsPageContainer: React.FC = () => {
         setShowFilters(prev => !prev);
     }, []);
 
+    // ✅ NAPRAWIONE: UseEffect tylko dla inicjalizacji danych (wykonuje się raz)
     useEffect(() => {
         if (isFirstLoad.current) {
             loadServices();
@@ -299,14 +298,21 @@ export const VisitsPageContainer: React.FC = () => {
         }
     }, [loadServices, loadCounters]);
 
+    // ✅ NAPRAWIONE: UseEffect dla wyszukiwania TYLKO po załadowaniu danych
+    // NIE reaguje na zmiany filtrów - wyszukiwanie tylko przez przycisk "Zastosuj filtry"
     useEffect(() => {
-        const canPerformSearch = appData.servicesLoaded && appData.countersLoaded &&
-            !appData.servicesLoading && !appData.countersLoading && !isFirstLoad.current;
+        const shouldPerformInitialSearch =
+            appData.servicesLoaded &&
+            appData.countersLoaded &&
+            !appData.servicesLoading &&
+            !appData.countersLoading &&
+            visits.length === 0; // Wykonaj tylko jeśli nie ma jeszcze wizyt
 
-        if (canPerformSearch) {
+        if (shouldPerformInitialSearch) {
             performSearch();
         }
-    }, [appData.servicesLoaded, appData.countersLoaded, appData.servicesLoading, appData.countersLoading, performSearch]);
+    }, [appData.servicesLoaded, appData.countersLoaded, appData.servicesLoading, appData.countersLoading, visits.length]);
+    // ⚠️ WAŻNE: Usunięto 'performSearch' z dependencies, więc nie reaguje na zmiany filtrów!
 
     useEffect(() => {
         resetData();
@@ -314,9 +320,6 @@ export const VisitsPageContainer: React.FC = () => {
         clearAllFilters();
         isFirstLoad.current = true;
     }, [location.pathname, resetData, clearAllFilters]);
-
-    useEffect(() => {
-    }, [visits.length, visitsLoading, error, activeStatusFilter, pagination]);
 
     if (showForm) {
         return (
