@@ -1,6 +1,6 @@
-// src/services/ProtocolCalendarService.ts - FIXED VERSION
+// src/services/ProtocolCalendarService.ts - UPDATED FOR NEW PRICE STRUCTURE
 import {VisitListItem, visitsApi} from '../api/visitsApiNew';
-import {Appointment, AppointmentStatus, DiscountType, ServiceApprovalStatus} from '../types';
+import {Appointment, AppointmentStatus, DiscountType, ServiceApprovalStatus, SelectedService} from '../types';
 import {CarReceptionProtocol, ProtocolStatus} from '../types/protocol';
 
 // Helper function to check if date is in range
@@ -27,7 +27,7 @@ const mapProtocolStatusToAppointmentStatus = (protocolStatus: ProtocolStatus): A
     }
 };
 
-// Convert VisitListItem to Appointment for calendar display
+// ✅ UPDATED: Convert VisitListItem to Appointment with new price structure
 const convertVisitListItemToAppointment = (visit: VisitListItem): Appointment => {
     // Bezpieczne parsowanie dat z zagnieżdżonego obiektu period
     const startDate = new Date(visit.period.startDate);
@@ -52,22 +52,22 @@ const convertVisitListItemToAppointment = (visit: VisitListItem): Appointment =>
         isProtocol: true,
         statusUpdatedAt: visit.lastUpdate,
         calendarColorId: visit.calendarColorId,
-        // FIXED: Add missing description and vatRate properties to services mapping
+        // ✅ UPDATED: Map services with PriceResponse structure (already correct from API)
         services: visit.selectedServices?.map(service => ({
             id: service.id,
             name: service.name,
-            price: service.price,
-            description: service.note || '', // FIXED: Use note as description or empty string
-            vatRate: 23, // FIXED: Add default VAT rate (23% for Poland)
+            quantity: service.quantity || 1,
+            basePrice: service.basePrice, // Already PriceResponse from visitsApiNew
             discountType: (service.discountType as DiscountType) || DiscountType.PERCENTAGE,
             discountValue: service.discountValue || 0,
-            finalPrice: service.finalPrice,
-            approvalStatus: (service.approvalStatus as ServiceApprovalStatus) || ServiceApprovalStatus.PENDING
-        })) || []
+            finalPrice: service.finalPrice, // Already PriceResponse from visitsApiNew
+            approvalStatus: (service.approvalStatus as ServiceApprovalStatus) || ServiceApprovalStatus.PENDING,
+            note: service.note
+        } as SelectedService)) || []
     };
 };
 
-// Convert CarReceptionProtocol to Appointment for calendar display
+// ✅ UPDATED: Convert CarReceptionProtocol to Appointment with new price structure
 const convertCarReceptionProtocolToAppointment = (protocol: CarReceptionProtocol): Appointment => {
     const startDate = new Date(protocol.startDate);
     const endDate = new Date(protocol.endDate);
@@ -90,18 +90,18 @@ const convertCarReceptionProtocolToAppointment = (protocol: CarReceptionProtocol
         notes: protocol.notes || '',
         isProtocol: true,
         statusUpdatedAt: protocol.statusUpdatedAt,
-        // FIXED: Add missing description and vatRate properties to services mapping
+        // ✅ UPDATED: selectedServices already have PriceResponse structure
         services: protocol.selectedServices?.map(service => ({
             id: service.id,
             name: service.name,
-            price: service.price,
-            description: service.note || '', // FIXED: Use note as description or empty string
-            vatRate: 23, // FIXED: Add default VAT rate (23% for Poland)
+            quantity: service.quantity || 1,
+            basePrice: service.basePrice, // Already PriceResponse
             discountType: service.discountType,
             discountValue: service.discountValue,
-            finalPrice: service.finalPrice,
-            approvalStatus: service.approvalStatus
-        })) || []
+            finalPrice: service.finalPrice, // Already PriceResponse
+            approvalStatus: service.approvalStatus,
+            note: service.note
+        } as SelectedService)) || []
     };
 };
 
@@ -238,16 +238,4 @@ export const updateProtocolStatusFromCalendar = async (
  */
 export const isProtocolAppointment = (appointmentId: string): boolean => {
     return appointmentId.startsWith('protocol-');
-};
-
-/**
- * Extract protocol ID from appointment ID
- * @param appointmentId Appointment ID
- * @returns Protocol ID or null if not a protocol appointment
- */
-export const extractProtocolId = (appointmentId: string): string | null => {
-    if (isProtocolAppointment(appointmentId)) {
-        return appointmentId.replace('protocol-', '');
-    }
-    return null;
 };

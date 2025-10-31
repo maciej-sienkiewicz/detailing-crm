@@ -1,4 +1,4 @@
-// src/types/appointment.ts
+// src/types/appointment.ts - UPDATED WITH FLEXIBLE SERVICE TYPES
 // Typy związane z wizytami i terminarzem
 
 // Statusy wizyt
@@ -13,15 +13,6 @@ export enum AppointmentStatus {
     COMPLETED = 'COMPLETED',
     CANCELLED = 'CANCELLED'
 }
-
-// Etykiety dla statusów wizyt
-export const AppointmentStatusLabels: Record<AppointmentStatus, string> = {
-    [AppointmentStatus.SCHEDULED]: 'Zaplanowano',
-    [AppointmentStatus.IN_PROGRESS]: 'W realizacji',
-    [AppointmentStatus.READY_FOR_PICKUP]: 'Oczekiwanie na odbiór',
-    [AppointmentStatus.COMPLETED]: 'Zakończony',
-    [AppointmentStatus.CANCELLED]: 'Anulowany'
-};
 
 // Kolory dla statusów wizyt
 export const AppointmentStatusColors: Record<AppointmentStatus, string> = {
@@ -46,7 +37,8 @@ export interface Appointment {
     isProtocol?: boolean;
     statusUpdatedAt?: string;
     calendarColorId?: string;
-    services?: Service[];
+    // ✅ UPDATED: Support both SelectedService (from protocols) and Service (from templates/simple appointments)
+    services?: (SelectedService | Service)[];
 
     // Enhanced recurring event properties
     isRecurringEvent?: boolean;
@@ -71,7 +63,7 @@ export interface Appointment {
                 estimatedDurationMinutes: number;
                 defaultServices: Array<{
                     name: string;
-                    basePrice: number;
+                    basePrice: number; // ✅ This can also be PriceResponse now
                 }>;
                 notes?: string;
             };
@@ -82,15 +74,3 @@ export interface Appointment {
     recurringEventId?: string;
     occurrenceId?: string;
 }
-
-export const isRecurringEventAppointment = (appointment: Appointment): boolean => {
-    return appointment.isRecurringEvent === true ||
-        appointment.id.startsWith('recurring-') ||
-        !!appointment.recurringEventData;
-};
-
-export const hasRecurringEventData = (appointment: Appointment): appointment is Appointment & {
-    recurringEventData: EventOccurrenceResponse;
-} => {
-    return !!appointment.recurringEventData;
-};

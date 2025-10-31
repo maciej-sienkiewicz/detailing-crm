@@ -55,7 +55,6 @@ export interface ClientVisitHistoryItem {
     make: string;
     model: string;
     licensePlate: string;
-    // ✅ ZMIANA: zamiast totalAmount: number
     totalAmountNetto: number;
     totalAmountBrutto: number;
     totalTaxAmount: number;

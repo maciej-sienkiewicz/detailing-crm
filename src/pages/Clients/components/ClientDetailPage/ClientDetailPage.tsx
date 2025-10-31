@@ -7,13 +7,26 @@ import ClientVisitHistory from './ClientVisitHistory';
 import ClientFormModal from '../ClientFormModal';
 import { PageContainer, ContentContainer, MainContent, Sidebar } from './ClientDetailStyles';
 import { ClientExpanded, VehicleExpanded } from '../../../../types';
-import { ClientProtocolHistory } from '../../../../types';
 import { clientsApi } from '../../../../api/clientsApi';
 import { vehicleApi } from '../../../../api/vehiclesApi';
 import { visitsApi } from '../../../../api/visitsApiNew';
 import { ClientDetailErrorDisplay, ClientDetailLoadingDisplay } from "../../OwnersPage/components";
 import { useToast } from '../../../../components/common/Toast/Toast';
 import ClientAnalyticsSection from "../../../../components/ClientAnalytics/ClientAnalyticsSection";
+
+// ✅ UPDATED: Interface for client visit history with new price structure
+interface ClientVisitHistoryItem {
+    id: string;
+    startDate: string;
+    endDate: string;
+    status: string;
+    carMake: string;
+    carModel: string;
+    licensePlate: string;
+    totalAmountNetto: number;
+    totalAmountBrutto: number;
+    totalTaxAmount: number;
+}
 
 const ClientDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -22,7 +35,7 @@ const ClientDetailPage: React.FC = () => {
 
     const [client, setClient] = useState<ClientExpanded | null>(null);
     const [clientVehicles, setClientVehicles] = useState<VehicleExpanded[]>([]);
-    const [clientVisits, setClientVisits] = useState<ClientProtocolHistory[]>([]);
+    const [clientVisits, setClientVisits] = useState<ClientVisitHistoryItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showEditModal, setShowEditModal] = useState(false);
@@ -63,11 +76,11 @@ const ClientDetailPage: React.FC = () => {
                 setClientVehicles([]);
             }
 
-            // Pobierz historię wizyt klienta
+            // ✅ UPDATED: Pobierz historię wizyt z nową strukturą cen
             try {
                 const visitsResult = await visitsApi.getClientVisitHistory(id, { page: 0, size: 10 });
                 if (visitsResult.success && visitsResult.data) {
-                    const mappedVisits: ClientProtocolHistory[] = visitsResult.data.data.map(visit => ({
+                    const mappedVisits: ClientVisitHistoryItem[] = visitsResult.data.data.map(visit => ({
                         id: visit.id,
                         startDate: visit.startDate,
                         endDate: visit.endDate,
@@ -75,7 +88,10 @@ const ClientDetailPage: React.FC = () => {
                         carMake: visit.make,
                         carModel: visit.model,
                         licensePlate: visit.licensePlate,
-                        totalAmount: visit.totalAmount
+                        // ✅ UPDATED: Używamy nowej struktury cen
+                        totalAmountNetto: visit.totalAmountNetto,
+                        totalAmountBrutto: visit.totalAmountBrutto,
+                        totalTaxAmount: visit.totalTaxAmount
                     }));
                     setClientVisits(mappedVisits);
                 }
@@ -149,7 +165,6 @@ const ClientDetailPage: React.FC = () => {
                 <MainContent>
                     <ClientBasicInfo client={client} />
 
-                    {/* ZMIENIONE: Usunięto initialExpanded i collapsible - teraz wyświetla się od razu */}
                     <ClientAnalyticsSection
                         clientId={id}
                         clientName={`${client.firstName} ${client.lastName}`}

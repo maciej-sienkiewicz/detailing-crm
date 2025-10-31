@@ -1,4 +1,4 @@
-// src/components/calendar/AppointmentDetails.tsx - FIXED VERSION
+// src/components/calendar/AppointmentDetails.tsx - UPDATED FOR NEW PRICE STRUCTURE
 import React, {useState, useEffect, useCallback} from 'react';
 import styled from 'styled-components';
 import {format} from 'date-fns';
@@ -20,6 +20,8 @@ import {
     FaCheckCircle
 } from 'react-icons/fa';
 import {Appointment, ProtocolStatus} from '../../types';
+import {SelectedService} from '../../types/common';
+import {PriceResponse} from '../../types/service';
 import {
     EventOccurrenceResponse,
     RecurringEventResponse,
@@ -56,11 +58,10 @@ const extractOccurrenceId = (appointmentId: string): string | null => {
     return null;
 };
 
-// FIXED: Helper function to determine if this is a SIMPLE_EVENT
+// Helper function to determine if this is a SIMPLE_EVENT
 const isSimpleEvent = (appointment: Appointment): boolean => {
     const occurrenceData = (appointment as any).recurringEventData as EventOccurrenceResponse;
 
-    // FIXED: Check in recurringEvent first (the correct field name)
     if (occurrenceData?.recurringEvent?.type) {
         return occurrenceData.recurringEvent.type === EventType.SIMPLE_EVENT;
     }
@@ -137,19 +138,53 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
         }
     };
 
-    const calculateNetPrice = (grossPrice: number): number => {
-        return grossPrice / 1.23;
-    };
-
-    const calculateTotalValue = (): { gross: number; net: number } => {
+    // ✅ UPDATED: Calculate total values using new price structure
+    // Handles both SelectedService (with finalPrice) and Service (with just price)
+    const calculateTotalValue = (): { gross: number; net: number; tax: number } => {
         if (!appointment.services || appointment.services.length === 0) {
-            return { gross: 0, net: 0 };
+            return { gross: 0, net: 0, tax: 0 };
         }
 
-        const gross = appointment.services.reduce((sum, service) => sum + service.price, 0);
-        const net = calculateNetPrice(gross);
+        let gross = 0;
+        let net = 0;
+        let tax = 0;
 
-        return { gross, net };
+        appointment.services.forEach((service: any) => {
+            console.log("LOG")
+            console.log(service)
+            // Check if this is SelectedService with finalPrice
+            if (service.finalPrice) {
+                if (typeof service.finalPrice === 'object' && 'priceBrutto' in service.finalPrice) {
+                    // New PriceResponse structure
+                    gross += service.finalPrice.priceBrutto || 0;
+                    net += service.finalPrice.priceNetto || 0;
+                    tax += service.finalPrice.taxAmount || 0;
+                } else {
+                    // Old structure - finalPrice as number
+                    const priceValue = service.finalPrice as number;
+                    gross += priceValue;
+                    net += priceValue / 1.23;
+                    tax += priceValue - (priceValue / 1.23);
+                }
+            }
+            // Check if this is Service with price (from Service type)
+            else if (service.price) {
+                if (typeof service.price === 'object' && 'priceBrutto' in service.price) {
+                    // New PriceResponse structure
+                    gross += service.price.priceBrutto || 0;
+                    net += service.price.priceNetto || 0;
+                    tax += service.price.taxAmount || 0;
+                } else {
+                    // Old structure - price as number
+                    const priceValue = service.price as number;
+                    gross += priceValue;
+                    net += priceValue / 1.23;
+                    tax += priceValue - (priceValue / 1.23);
+                }
+            }
+        });
+
+        return { gross, net, tax };
     };
 
     const totalValue = calculateTotalValue();
@@ -214,6 +249,32 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
             onConvertToVisit(visitResponse);
         }
     }, [onConvertToVisit]);
+
+    // ✅ UPDATED: Helper to safely extract price value from different structures
+    const getServicePrice = (service: any): number => {
+        // Try finalPrice first (SelectedService)
+        if (service.finalPrice) {
+            if (typeof service.finalPrice === 'object' && 'priceBrutto' in service.finalPrice) {
+                return service.finalPrice.priceBrutto || 0;
+            }
+            return service.finalPrice as number || 0;
+        }
+        // Try price (Service)
+        if (service.price) {
+            if (typeof service.price === 'object' && 'priceBrutto' in service.price) {
+                return service.price.priceBrutto || 0;
+            }
+            return service.price as number || 0;
+        }
+        // Try basePrice (fallback for templates)
+        if (service.basePrice) {
+            if (typeof service.basePrice === 'object' && 'priceBrutto' in service.basePrice) {
+                return service.basePrice.priceBrutto || 0;
+            }
+            return service.basePrice as number || 0;
+        }
+        return 0;
+    };
 
     return (
         <DetailsContainer>
@@ -409,9 +470,7 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
                         <TotalValue>
                             <TotalLabel>Wartość łączna:</TotalLabel>
                             <TotalAmount>
-                                {isRecurringEvent && !appointment.services?.length ?
-                                    'Szacowana według szablonu' :
-                                    `${totalValue.gross.toFixed(2)} zł`}
+                                {totalValue.gross.toFixed(2)}
                             </TotalAmount>
                         </TotalValue>
                     </SectionHeader>
@@ -433,7 +492,7 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
                                         <PriceRow>
                                             <PriceLabel>Cena bazowa:</PriceLabel>
                                             <PriceValue $primary>
-                                                {((service as any).finalPrice || (service as any).basePrice || 0).toFixed(2)} zł
+                                                {getServicePrice(service).toFixed(2)} zł
                                             </PriceValue>
                                         </PriceRow>
                                         {isRecurringEvent && !appointment.services?.length && (
@@ -446,11 +505,16 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
                             ))}
                         </ServicesList>
 
+                        {/* ✅ UPDATED: Summary with new price structure */}
                         {!isRecurringEvent && appointment.services && appointment.services.length > 0 && (
                             <ServicesSummary>
                                 <SummaryRow>
                                     <SummaryLabel>Razem netto:</SummaryLabel>
                                     <SummaryValue>{totalValue.net.toFixed(2)} zł</SummaryValue>
+                                </SummaryRow>
+                                <SummaryRow>
+                                    <SummaryLabel>VAT:</SummaryLabel>
+                                    <SummaryValue>{totalValue.tax.toFixed(2)} zł</SummaryValue>
                                 </SummaryRow>
                                 <SummaryRow $primary>
                                     <SummaryLabel>Razem brutto:</SummaryLabel>
@@ -635,7 +699,7 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
     );
 };
 
-// Styled Components (adding new ones for simple events)
+// Styled Components (pozostają bez zmian)
 const LoadingSpinner = styled.span`
     display: inline-block;
     animation: spin 1s linear infinite;
@@ -666,7 +730,6 @@ const CompletedAction = styled.div`
     }
 `;
 
-// ... rest of the existing styled components remain the same
 const DetailsContainer = styled.div`
     display: flex;
     flex-direction: column;

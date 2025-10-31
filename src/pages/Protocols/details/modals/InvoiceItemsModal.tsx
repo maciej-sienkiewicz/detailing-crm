@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
 import {FaCalculator, FaCheck, FaFileInvoice, FaLayerGroup, FaPencilAlt, FaTimes, FaTrash} from 'react-icons/fa';
-import {SelectedService, ServiceApprovalStatus} from '../../../../types';
+import {DiscountType, PriceResponse, SelectedService, ServiceApprovalStatus} from '../../../../types';
 import {useToast} from "../../../../components/common/Toast/Toast";
 
 // Professional Brand Theme
@@ -140,19 +140,31 @@ const InvoiceItemsModal: React.FC<InvoiceItemsModalProps> = ({
     };
 
     const handleMergeAll = () => {
-        const totalPrice = editedServices.reduce(
-            (sum, service) => sum + service.finalPrice, 0
-        );
+        const totalPrice = editedServices.reduce((sum, service) => {
+            if (service.finalPrice && typeof service.finalPrice === 'object' && 'priceBrutto' in service.finalPrice) {
+                return sum + service.finalPrice.priceBrutto;
+            }
+            return sum + (service.finalPrice as any as number || 0);
+        }, 0);
 
         const originalServices = [...editedServices];
 
         const mergedService: ServiceExtended = {
             id: `merged_${Date.now()}`,
             name: 'Usługi detailingowe',
-            price: totalPrice, // Zachowujemy oryginalną cenę
-            discountType: editedServices[0]?.discountType || 'PERCENTAGE' as any,
-            discountValue: 0, // Bez rabatu dla merged
-            finalPrice: totalPrice, // Cena końcowa taka sama jak suma
+            quantity: 1,
+            basePrice: {
+                priceNetto: totalPrice / 1.23,
+                priceBrutto: totalPrice,
+                taxAmount: totalPrice - (totalPrice / 1.23)
+            },
+            discountType: editedServices[0]?.discountType || DiscountType.PERCENTAGE,
+            discountValue: 0,
+            finalPrice: {
+                priceNetto: totalPrice / 1.23,
+                priceBrutto: totalPrice,
+                taxAmount: totalPrice - (totalPrice / 1.23)
+            },
             isModified: true,
             mergedFrom: originalServices,
             note: '',
@@ -174,9 +186,20 @@ const InvoiceItemsModal: React.FC<InvoiceItemsModalProps> = ({
             return serviceData as SelectedService;
         });
 
-        // Sprawdzenie czy całkowita kwota się nie zmieniła
-        const originalTotal = services.reduce((sum, item) => sum + item.finalPrice, 0);
-        const newTotal = itemsToSave.reduce((sum, item) => sum + item.finalPrice, 0);
+        // Sprawdzenie czy całkowita kwota się nie zmieniła (brutto)
+        const originalTotal = services.reduce((sum, item) => {
+            if (item.finalPrice && typeof item.finalPrice === 'object' && 'priceBrutto' in item.finalPrice) {
+                return sum + item.finalPrice.priceBrutto;
+            }
+            return sum + (item.finalPrice as any as number || 0);
+        }, 0);
+
+        const newTotal = itemsToSave.reduce((sum, item) => {
+            if (item.finalPrice && typeof item.finalPrice === 'object' && 'priceBrutto' in item.finalPrice) {
+                return sum + item.finalPrice.priceBrutto;
+            }
+            return sum + (item.finalPrice as any as number || 0);
+        }, 0);
 
         if (Math.abs(newTotal - originalTotal) > 0.01) {
             showToast('error', 'Błąd: Suma pozycji nie może ulec zmianie!', 4000);
@@ -188,12 +211,27 @@ const InvoiceItemsModal: React.FC<InvoiceItemsModalProps> = ({
         onClose();
     };
 
+
     const calculateTotals = () => {
-        const totalFinalPrice = editedServices.reduce((sum, service) => sum + service.finalPrice, 0);
+        const totalFinalPrice = editedServices.reduce((sum, service) => {
+            // Check if finalPrice has new PriceResponse structure
+            if (service.finalPrice && typeof service.finalPrice === 'object' && 'priceBrutto' in service.finalPrice) {
+                return sum + service.finalPrice.priceBrutto;
+            }
+            // Fallback for old structure (backward compatibility)
+            return sum + (service.finalPrice as any as number || 0);
+        }, 0);
 
         return {
             totalFinalPrice
         };
+    };
+
+    const displayPrice = (priceField: PriceResponse | number): string => {
+        if (typeof priceField === 'object' && 'priceBrutto' in priceField) {
+            return priceField.priceBrutto.toFixed(2);
+        }
+        return (priceField as number || 0).toFixed(2);
     };
 
     const { totalFinalPrice } = calculateTotals();
@@ -283,10 +321,7 @@ const InvoiceItemsModal: React.FC<InvoiceItemsModalProps> = ({
                                                         />
                                                     </TableCell>
                                                     <TableCell>
-                                                        <PriceDisplay>
-                                                            <PriceValue>{service.finalPrice.toFixed(2)} zł</PriceValue>
-                                                            <PriceType>kwota stała</PriceType>
-                                                        </PriceDisplay>
+                                                        <PriceValue>{displayPrice(service.finalPrice)} zł</PriceValue>
                                                     </TableCell>
                                                     <TableCell>
                                                         <ActionsContainer>
@@ -319,10 +354,7 @@ const InvoiceItemsModal: React.FC<InvoiceItemsModalProps> = ({
                                                         </ServiceInfo>
                                                     </TableCell>
                                                     <TableCell>
-                                                        <PriceDisplay>
-                                                            <PriceValue>{service.finalPrice.toFixed(2)} zł</PriceValue>
-                                                            <PriceType>cena końcowa</PriceType>
-                                                        </PriceDisplay>
+                                                        <PriceValue>{displayPrice(service.finalPrice)} zł</PriceValue>
                                                     </TableCell>
                                                     <TableCell>
                                                         <ActionsContainer>

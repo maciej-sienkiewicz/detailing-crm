@@ -2,11 +2,25 @@ import React from 'react';
 import styled from 'styled-components';
 import { FaArrowRight, FaCalendarAlt, FaCheckCircle, FaClock, FaExclamationTriangle } from 'react-icons/fa';
 import { SidebarSection, SidebarSectionTitle, EmptyMessage, EmptyIcon, EmptyText, EmptySubtext } from './ClientDetailStyles';
-import { ProtocolStatus, ProtocolStatusColors, ProtocolStatusLabels, ClientProtocolHistory } from '../../../../types/protocol';
+import { ProtocolStatus, ProtocolStatusColors, ProtocolStatusLabels } from '../../../../types/protocol';
 import { theme } from "../../../../styles/theme";
 
+// ✅ UPDATED: Interface with new price structure
+interface ClientVisitHistoryItem {
+    id: string;
+    startDate: string;
+    endDate: string;
+    status: string;
+    carMake: string;
+    carModel: string;
+    licensePlate: string;
+    totalAmountNetto: number;
+    totalAmountBrutto: number;
+    totalTaxAmount: number;
+}
+
 interface ClientVisitHistoryProps {
-    visits: ClientProtocolHistory[];
+    visits: ClientVisitHistoryItem[];
     onVisitClick: (visitId: string) => void;
     clientName: string;
 }
@@ -76,7 +90,7 @@ const ClientVisitHistory: React.FC<ClientVisitHistoryProps> = ({
         }
     };
 
-    // ZMIANA: Ograniczamy do maksymalnie 5 ostatnich wizyt
+    // Ograniczamy do maksymalnie 5 ostatnich wizyt
     const recentVisits = visits ? visits.slice(0, 5) : [];
 
     if (!visits || visits.length === 0) {
@@ -101,19 +115,18 @@ const ClientVisitHistory: React.FC<ClientVisitHistoryProps> = ({
         <SidebarSection>
             <SidebarSectionTitle>
                 <FaCalendarAlt />
-                {/* ZMIANA: Pokazujemy informację o ograniczeniu do 5 wizyt */}
                 Ostatnie wizyty ({recentVisits.length}{visits.length > 5 ? ' z ' + visits.length : ''})
             </SidebarSectionTitle>
 
             <VisitHistoryList>
                 {recentVisits.map((visit, index) => {
-                    const statusInfo = getStatusInfo(visit.status);
+                    const statusInfo = getStatusInfo(visit.status as ProtocolStatus);
 
                     return (
                         <VisitHistoryCard
                             key={visit.id || index}
                             onClick={() => onVisitClick(visit.id)}
-                            $status={visit.status}
+                            $status={visit.status as ProtocolStatus}
                         >
                             <VisitCardHeader>
                                 <VisitMetadata>
@@ -124,7 +137,7 @@ const ClientVisitHistory: React.FC<ClientVisitHistoryProps> = ({
                                         Wizyta serwisowa
                                     </VisitTitle>
                                 </VisitMetadata>
-                                <VisitStatusIndicator $status={visit.status}>
+                                <VisitStatusIndicator $status={visit.status as ProtocolStatus}>
                                     <StatusDot $color={statusInfo.color} />
                                     <StatusText>{statusInfo.label}</StatusText>
                                 </VisitStatusIndicator>
@@ -141,11 +154,12 @@ const ClientVisitHistory: React.FC<ClientVisitHistoryProps> = ({
                                 </VehicleInfo>
                             </VisitVehicleSection>
 
+                            {/* ✅ UPDATED: Display brutto amount as main value */}
                             <VisitFooter>
                                 <VisitAmount>
-                                    <AmountLabel>Wartość</AmountLabel>
+                                    <AmountLabel>Wartość brutto</AmountLabel>
                                     <AmountValue>
-                                        {formatCurrency(visit.totalAmount)}
+                                        {formatCurrency(visit.totalAmountBrutto)}
                                     </AmountValue>
                                 </VisitAmount>
                                 <VisitActionIcon>
@@ -160,7 +174,7 @@ const ClientVisitHistory: React.FC<ClientVisitHistoryProps> = ({
     );
 };
 
-// Styled components (bez zmian w istniejących + nowe)
+// Styled components (pozostają bez zmian)
 const VisitHistoryList = styled.div`
     display: flex;
     flex-direction: column;
@@ -315,29 +329,6 @@ const VisitActionIcon = styled.div`
     ${VisitHistoryCard}:hover & {
         color: ${theme.text.secondary};
         transform: translateX(2px);
-    }
-`;
-
-// NOWE STYLED COMPONENTS dla informacji o większej liczbie wizyt
-const MoreVisitsInfo = styled.div`
-    margin-top: ${theme.spacing.md};
-    padding: ${theme.spacing.sm};
-    background: ${theme.primaryGhost};
-    border: 1px solid ${theme.primary}20;
-    border-radius: ${theme.radius.md};
-    font-size: 12px;
-    color: ${theme.text.secondary};
-    text-align: center;
-`;
-
-const MoreVisitsLink = styled.span`
-    color: ${theme.primary};
-    font-weight: 600;
-    cursor: pointer;
-    text-decoration: underline;
-    
-    &:hover {
-        color: ${theme.primaryDark};
     }
 `;
 

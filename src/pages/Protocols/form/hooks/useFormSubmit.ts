@@ -102,7 +102,7 @@ export const useFormSubmit = (
         }
 
         // Sprawdzamy czy istnieją usługi z ceną 0
-        const hasZeroPriceServices = formData.selectedServices?.some(service => service.finalPrice === 0);
+        const hasZeroPriceServices = formData.selectedServices?.some(service => service.finalPrice.priceNetto === 0);
 
         if (hasZeroPriceServices && !pendingSubmit) {
             setPendingSubmit(true);
