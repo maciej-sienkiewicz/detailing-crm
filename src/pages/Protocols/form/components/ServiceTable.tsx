@@ -323,6 +323,12 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
         return () => document.removeEventListener('keydown', handleKeyDown);
     }, [editPopup]);
 
+    // Calculate totals for netto and brutto separately
+    const totalBasePriceBrutto = services.reduce((sum, s) => sum + s.basePrice.priceBrutto, 0);
+    const totalBasePriceNetto = services.reduce((sum, s) => sum + s.basePrice.priceNetto, 0);
+    const totalFinalPriceBrutto = services.reduce((sum, s) => sum + s.finalPrice.priceBrutto, 0);
+    const totalFinalPriceNetto = services.reduce((sum, s) => sum + s.finalPrice.priceNetto, 0);
+
     return (
         <TableContainer>
             <TableWrapper>
@@ -481,8 +487,14 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                             <FooterCell>
                                 <PriceInfo>
                                     <PriceRow>
-                                        <TotalValue>{totalPrice.toFixed(2)} zł</TotalValue>
-                                        <PriceLabel>suma cen bazowych</PriceLabel>
+                                        <TotalValue>{totalBasePriceBrutto.toFixed(2)} zł</TotalValue>
+                                        <PriceLabel>brutto</PriceLabel>
+                                    </PriceRow>
+                                    <PriceRow>
+                                        <TotalValue secondary>
+                                            {totalBasePriceNetto.toFixed(2)} zł
+                                        </TotalValue>
+                                        <PriceLabel>netto</PriceLabel>
                                     </PriceRow>
                                 </PriceInfo>
                             </FooterCell>
@@ -497,8 +509,14 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                             <FooterCell>
                                 <PriceInfo>
                                     <PriceRow>
-                                        <TotalValue primary>{totalFinalPrice.toFixed(2)} zł</TotalValue>
-                                        <PriceLabel>cena końcowa</PriceLabel>
+                                        <TotalValue primary>{totalFinalPriceBrutto.toFixed(2)} zł</TotalValue>
+                                        <PriceLabel>brutto</PriceLabel>
+                                    </PriceRow>
+                                    <PriceRow>
+                                        <TotalValue secondary>
+                                            {totalFinalPriceNetto.toFixed(2)} zł
+                                        </TotalValue>
+                                        <PriceLabel>netto</PriceLabel>
                                     </PriceRow>
                                 </PriceInfo>
                             </FooterCell>
