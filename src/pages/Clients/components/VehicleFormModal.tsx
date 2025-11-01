@@ -107,7 +107,11 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
             color: '',
             vin: '',
             totalServices: 0,
-            totalSpent: 0,
+            totalSpent: {
+                totalAmountNetto: 0,
+                totalAmountBrutto: 0,
+                totalTaxAmount: 0
+            },
             ownerIds: defaultOwnerId ? [defaultOwnerId] : []
         }
     );
@@ -129,7 +133,11 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                 color: '',
                 vin: '',
                 totalServices: 0,
-                totalSpent: 0,
+                totalSpent: {
+                    totalAmountNetto: 0,
+                    totalAmountBrutto: 0,
+                    totalTaxAmount: 0
+                },
                 ownerIds: defaultOwnerId ? [defaultOwnerId] : []
             });
         }

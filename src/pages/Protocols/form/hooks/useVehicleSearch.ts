@@ -121,7 +121,11 @@ export const useVehicleSearch = (
                 totalVisits: 0,
                 totalTransactions: 0,
                 abandonedSales: 0,
-                totalRevenue: 0,
+                totalRevenue: {
+                    totalAmountNetto: 0,
+                    totalAmountBrutto: 0,
+                    totalTaxAmount: 0,
+                },
                 contactAttempts: 0,
                 vehicles: []
             }));

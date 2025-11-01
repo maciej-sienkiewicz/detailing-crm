@@ -25,13 +25,13 @@ export const formatCurrency = (amount: number): string => {
 };
 
 export const getVehicleStatus = (vehicle: VehicleExpanded): VehicleStatus => {
-    if (vehicle.totalSpent > 20000) {
+    if (vehicle.totalSpent.totalAmountNetto > 20000) {
         return {
             label: 'Premium',
             color: dataTableTheme.status.warning
         };
     }
-    if (vehicle.totalSpent > 10000) {
+    if (vehicle.totalSpent.totalAmountNetto > 10000) {
         return {
             label: 'VIP',
             color: dataTableTheme.status.info

@@ -47,11 +47,11 @@ export const RecipientsList: React.FC<RecipientsListProps> = ({
                             <StatLabel>Wizyty:</StatLabel>
                             <StatValue>{recipient.totalVisits}</StatValue>
                         </StatItem>
-                        {recipient.totalRevenue > 0 && (
+                        {recipient.totalRevenue.totalAmountNetto > 0 && (
                             <StatItem>
                                 <StatLabel>Wartość:</StatLabel>
                                 <StatValue>
-                                    {recipient.totalRevenue.toLocaleString('pl-PL')} zł
+                                    {recipient.totalRevenue.totalAmountNetto.toLocaleString('pl-PL')} zł
                                 </StatValue>
                             </StatItem>
                         )}

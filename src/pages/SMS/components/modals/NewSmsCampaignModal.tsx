@@ -264,8 +264,8 @@ const NewSmsCampaignModal: React.FC<NewSmsCampaignModalProps> = ({
             }
 
             // Filtracja po przychodach
-            if (recipientFilters.minTotalRevenue > 0 && client.totalRevenue < recipientFilters.minTotalRevenue) return false;
-            if (recipientFilters.maxTotalRevenue > 0 && client.totalRevenue > recipientFilters.maxTotalRevenue) return false;
+            if (recipientFilters.minTotalRevenue > 0 && client.totalRevenue.totalAmountNetto < recipientFilters.minTotalRevenue) return false;
+            if (recipientFilters.maxTotalRevenue > 0 && client.totalRevenue.totalAmountNetto > recipientFilters.maxTotalRevenue) return false;
 
             // Filtracja po pojazdach
             if (recipientFilters.vehicleMake || recipientFilters.vehicleModel ||

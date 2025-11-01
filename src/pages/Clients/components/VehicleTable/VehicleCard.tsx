@@ -91,7 +91,7 @@ export const VehicleCard: React.FC<VehicleCardProps> = ({
                 </CardRow>
                 <CardRow>
                     <CardLabel>Przychody:</CardLabel>
-                    <CardValue>{formatCurrency(vehicle.totalSpent)}</CardValue>
+                    <CardValue>{formatCurrency(vehicle.totalSpent.totalAmountNetto)}</CardValue>
                 </CardRow>
             </CardContent>
         </Card>

@@ -70,7 +70,7 @@ const VehicleHistoryModal: React.FC<VehicleHistoryModalProps> = ({
                                 <StatIcon $color="#2ecc71">
                                     <FaMoneyBillWave />
                                 </StatIcon>
-                                <StatValue>{vehicle.totalSpent.toFixed(2)} zł</StatValue>
+                                <StatValue>{vehicle.totalSpent.totalAmountNetto} zł</StatValue>
                                 <StatLabel>Suma przychodów</StatLabel>
                             </StatItem>
 

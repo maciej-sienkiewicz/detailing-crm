@@ -25,13 +25,13 @@ export const formatCurrency = (amount: number): string => {
 };
 
 export const getClientStatus = (client: ClientExpanded): ClientStatus => {
-    if (client.totalRevenue > 50000) {
+    if (client.totalRevenue.totalAmountNetto > 50000) {
         return {
             label: 'VIP',
             color: dataTableTheme.status.error
         };
     }
-    if (client.totalRevenue > 20000) {
+    if (client.totalRevenue.totalAmountNetto > 20000) {
         return {
             label: 'Premium',
             color: dataTableTheme.status.warning
