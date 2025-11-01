@@ -130,7 +130,7 @@ const ActivityTimelineList: React.FC<ActivityTimelineListProps> = ({ activities,
             case 'CLIENT':
                 return `/clients/${entity.id}`;
             case 'VEHICLE':
-                return `/vehicles/${entity.id}`;
+                return `/vehicle/${entity.id}`;
             case 'PROTOCOL':
                 return `/visits/${entity.id}`;
             case 'VISIT':
