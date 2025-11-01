@@ -420,7 +420,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
         };
     };
 
-    const clientTier = clientStats ? getClientTier(clientStats.totalRevenue) : getClientTier(0);
+    const clientTier = clientStats ? getClientTier(clientStats.totalRevenue.totalAmountNetto) : getClientTier(0);
 
     // Format currency for display
     const formatCurrency = (value: number): string => {
@@ -622,8 +622,8 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                                         <FaMoneyBillWave />
                                     </MetricIcon>
                                     <MetricContent>
-                                        <MetricValue>{formatCurrency(clientStats.totalRevenue)}</MetricValue>
-                                        <MetricLabel>Łączne przychody</MetricLabel>
+                                        <MetricValue>{formatCurrency(clientStats.totalRevenue.totalAmountNetto)}</MetricValue>
+                                        <MetricLabel>Łączne przychody netto</MetricLabel>
                                     </MetricContent>
                                 </MetricCard>
 

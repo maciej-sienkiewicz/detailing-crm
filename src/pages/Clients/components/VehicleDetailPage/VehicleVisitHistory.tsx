@@ -152,7 +152,7 @@ const VehicleVisitHistory: React.FC<VehicleVisitHistoryProps> = ({
 
                             <VisitFooter>
                                 <VisitAmount>
-                                    <AmountLabel>Wartość</AmountLabel>
+                                    <AmountLabel>Wartość netto</AmountLabel>
                                     <AmountValue>
                                         {formatCurrency(totalAmount)}
                                     </AmountValue>

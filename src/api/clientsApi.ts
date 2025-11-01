@@ -1,6 +1,6 @@
 // src/api/clientsApi.ts - NAPRAWIONE WERSJA
 import {apiClientNew, ApiError, PaginatedApiResponse, PaginationParams} from './apiClientNew';
-import {ClientExpanded, ClientStatistics, ContactAttempt} from '../types';
+import {ClientExpanded, ClientStatistics, ClientStatisticsResponse, ContactAttempt, PriceResponse} from '../types';
 
 // Interfejs odpowiadający strukturze z serwera - ClientWithStatisticsResponse
 interface BackendClientWithStatistics {
@@ -39,7 +39,7 @@ interface RawClientData {
     totalVisits?: number;
     totalTransactions?: number;
     abandonedSales?: number;
-    totalRevenue?: number;
+    totalRevenue?: PriceResponse;
     contactAttempts?: number;
     lastVisitDate?: string;
     vehicles?: string[];
@@ -256,11 +256,11 @@ class ClientsApi {
         }
 
         if (params.minTotalRevenue !== undefined) {
-            result = result.filter(client => (client.totalRevenue || 0) >= params.minTotalRevenue!);
+            result = result.filter(client => (client.totalRevenue.totalAmountBrutto || 0) >= params.minTotalRevenue!);
         }
 
         if (params.maxTotalRevenue !== undefined) {
-            result = result.filter(client => (client.totalRevenue || 0) <= params.maxTotalRevenue!);
+            result = result.filter(client => (client.totalRevenue.totalAmountBrutto || 0) <= params.maxTotalRevenue!);
         }
 
         if (params.minVisits !== undefined) {
@@ -324,7 +324,11 @@ class ClientsApi {
             totalVisits: stats?.visit_count || 0,
             totalTransactions: 0, // Nie ma w API, domyślnie 0
             abandonedSales: 0, // Nie ma w API, domyślnie 0
-            totalRevenue: Number(stats?.total_revenue || 0),
+            totalRevenue: {
+                totalAmountNetto: stats?.total_revenue || 0,
+                totalAmountBrutto: stats?.total_revenue || 0,
+                totalTaxAmount: stats?.total_revenue || 0,
+            },
             contactAttempts: 0, // Nie ma w API, domyślnie 0
             lastVisitDate: stats?.last_visit_date,
             vehicles: [], // UWAGA: Brak informacji o pojazdach w tym endpoincie
@@ -446,7 +450,7 @@ class ClientsApi {
                 };
             }
 
-            const response = await apiClientNew.get<ClientStatistics>(
+            const response = await apiClientNew.get<ClientStatisticsResponse>(
                 `${this.baseEndpoint}/${id}/statistics`,
                 undefined,
                 { timeout: 10000 }
@@ -454,7 +458,11 @@ class ClientsApi {
 
             const statistics: ClientStatistics = {
                 totalVisits: response.totalVisits || 0,
-                totalRevenue: response.totalRevenue || 0,
+                totalRevenue: {
+                    totalAmountNetto: response.totalRevenue.priceNetto,
+                    totalAmountBrutto: response.totalRevenue.priceBrutto,
+                    totalTaxAmount: response.totalRevenue.taxAmount
+                },
                 vehicleNo: response.vehicleNo || 0
             };
 
@@ -559,7 +567,11 @@ class ClientsApi {
             totalVisits: clientData.totalVisits || 0,
             totalTransactions: clientData.totalTransactions || 0,
             abandonedSales: clientData.abandonedSales || 0,
-            totalRevenue: clientData.totalRevenue || 0,
+            totalRevenue: {
+                totalAmountNetto: clientData?.totalRevenue?.priceNetto || 0,
+                totalAmountBrutto: clientData?.totalRevenue?.priceBrutto || 0,
+                totalTaxAmount: clientData?.totalRevenue?.taxAmount || 0,
+            },
             contactAttempts: clientData.contactAttempts || 0,
             lastVisitDate: clientData.lastVisitDate || undefined,
             vehicles: Array.isArray(clientData.vehicles) ? clientData.vehicles : [],

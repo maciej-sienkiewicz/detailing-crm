@@ -165,23 +165,34 @@ export const EmptyDate = styled.span`
     font-style: italic;
 `;
 
-export const RevenueDisplay = styled.div`
+export const RevenueAmount = styled.div`
+    /* Gwarantuje, że element zajmie całą szerokość RevenueDisplay */
+    width: 100%;
+    text-align: right; /* Gwarantuje, że tekst wewnątrz będzie do prawej */
+
     font-weight: 700;
     font-size: 12px;
     color: ${dataTableTheme.text.secondary};
-    text-align: right;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    line-height: 1.2;
 
     @media (max-width: 1200px) {
         font-size: 11px;
-        justify-content: center;
-        text-align: center;
+    }
+`;
+
+export const RevenueBrutto = styled.div`
+    /* Gwarantuje, że element zajmie całą szerokość RevenueDisplay */
+    width: 100%;
+    text-align: left; /* Gwarantuje, że tekst wewnątrz będzie do prawej */
+    margin-top: 1px; /* Dodaje drobny odstęp pod kwotą netto */
+
+    font-size: 10px; /* Mniejsza czcionka dla subtelności */
+    color: ${dataTableTheme.text.muted}; /* Szary, stonowany kolor */
+    font-weight: 500; /* Lżejsza waga czcionki */
+    line-height: 1.2;
+
+    @media (max-width: 1200px) {
+        font-size: 9px;
     }
 `;
 

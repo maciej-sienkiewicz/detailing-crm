@@ -126,7 +126,7 @@ export const ClientCard: React.FC<ClientCardProps> = ({
                 </CardRow>
                 <CardRow>
                     <CardLabel>Przychody:</CardLabel>
-                    <CardValue>{formatCurrency(client.totalRevenue)}</CardValue>
+                    <CardValue>{formatCurrency(client.totalRevenue.totalAmountBrutto)}</CardValue>
                 </CardRow>
             </CardContent>
         </Card>

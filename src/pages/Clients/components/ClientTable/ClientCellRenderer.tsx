@@ -38,7 +38,7 @@ import {
     MetricLabel,
     MetricSeparator,
     RevenueDisplay,
-    RevenueAmount
+    RevenueAmount, RevenueBrutto
 } from './styled';
 import { ContextMenu, ContextMenuItem } from '../../../../components/common/ContextMenu';
 
@@ -180,11 +180,14 @@ export const ClientCellRenderer: React.FC<ClientCellRendererProps> = ({
 
         case 'revenue':
             return (
-                <TooltipWrapper title={`Łączne przychody od klienta: ${formatCurrency(client.totalRevenue)}`}>
+                <TooltipWrapper title={`Łączne przychody od klienta: ${formatCurrency(client.totalRevenue.totalAmountNetto)}`}>
                     <RevenueDisplay>
                         <RevenueAmount>
-                            {formatCurrency(client.totalRevenue)}
+                            {formatCurrency(client.totalRevenue.totalAmountNetto)} netto
                         </RevenueAmount>
+                        <RevenueBrutto>
+                            {formatCurrency(client.totalRevenue.totalAmountBrutto)} brutto
+                        </RevenueBrutto>
                     </RevenueDisplay>
                 </TooltipWrapper>
             );

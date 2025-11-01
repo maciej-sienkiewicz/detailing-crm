@@ -1,4 +1,6 @@
 // src/types/client.ts
+import {PriceDetails} from "../shared/types/price";
+
 export interface ClientExpanded {
     id: string;
     firstName: string;
@@ -13,7 +15,7 @@ export interface ClientExpanded {
     totalVisits: number;
     totalTransactions: number;
     abandonedSales: number;
-    totalRevenue: number;
+    totalRevenue: PriceDetails;
     contactAttempts: number;
     lastVisitDate?: string;
     notes?: string;
@@ -27,7 +29,19 @@ export interface ClientExpanded {
 
 export interface ClientStatistics {
     totalVisits: number;
-    totalRevenue: number;
+    totalRevenue: PriceDetails;
+    vehicleNo: number;
+}
+
+export interface ClientStatisticsPriceResponse {
+    priceNetto: number;
+    priceBrutto: number;
+    taxAmount: number;
+}
+
+export interface ClientStatisticsResponse {
+    totalVisits: number;
+    totalRevenue: ClientStatisticsPriceResponse;
     vehicleNo: number;
 }
 

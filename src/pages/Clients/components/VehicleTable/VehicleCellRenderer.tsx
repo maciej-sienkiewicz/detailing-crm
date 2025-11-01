@@ -19,9 +19,9 @@ import {
     ServiceCount,
     LastServiceDate,
     EmptyDate,
-    RevenueDisplay
 } from './styled';
 import { ContextMenu, ContextMenuItem } from '../../../../components/common/ContextMenu';
+import {RevenueAmount, RevenueBrutto, RevenueDisplay} from "../ClientTable/styled";
 
 interface VehicleCellRendererProps {
     vehicle: VehicleExpanded;
@@ -117,9 +117,14 @@ export const VehicleCellRenderer: React.FC<VehicleCellRendererProps> = ({
 
         case 'revenue':
             return (
-                <TooltipWrapper title={`Łączne przychody: ${formatCurrency(vehicle.totalSpent.totalAmountNetto)}`}>
+                <TooltipWrapper title={`Łączne przychody od klienta: ${formatCurrency(vehicle.totalSpent.totalAmountNetto)}`}>
                     <RevenueDisplay>
-                        {formatCurrency(vehicle.totalSpent.totalAmountNetto)} netto
+                        <RevenueAmount>
+                            {formatCurrency(vehicle.totalSpent.totalAmountNetto)} netto
+                        </RevenueAmount>
+                        <RevenueBrutto>
+                            {formatCurrency(vehicle.totalSpent.totalAmountBrutto)} brutto
+                        </RevenueBrutto>
                     </RevenueDisplay>
                 </TooltipWrapper>
             );

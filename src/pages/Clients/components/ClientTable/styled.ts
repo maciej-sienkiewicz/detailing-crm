@@ -236,13 +236,17 @@ export const MetricSeparator = styled.div`
 export const RevenueDisplay = styled.div`
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
+    align-items: flex-end; /* Wyrównuje stertę elementów do prawej */
     justify-content: center;
     text-align: right;
     width: 100%;
 `;
 
 export const RevenueAmount = styled.div`
+    /* Gwarantuje, że element zajmie całą szerokość RevenueDisplay */
+    width: 100%;
+    text-align: right; /* Gwarantuje, że tekst wewnątrz będzie do prawej */
+
     font-weight: 700;
     font-size: 12px;
     color: ${dataTableTheme.text.secondary};
@@ -250,6 +254,22 @@ export const RevenueAmount = styled.div`
 
     @media (max-width: 1200px) {
         font-size: 11px;
+    }
+`;
+
+export const RevenueBrutto = styled.div`
+    /* Gwarantuje, że element zajmie całą szerokość RevenueDisplay */
+    width: 100%;
+    text-align: left; /* Gwarantuje, że tekst wewnątrz będzie do prawej */
+    margin-top: 1px; /* Dodaje drobny odstęp pod kwotą netto */
+
+    font-size: 10px; /* Mniejsza czcionka dla subtelności */
+    color: ${dataTableTheme.text.muted}; /* Szary, stonowany kolor */
+    font-weight: 500; /* Lżejsza waga czcionki */
+    line-height: 1.2;
+
+    @media (max-width: 1200px) {
+        font-size: 9px;
     }
 `;
 
