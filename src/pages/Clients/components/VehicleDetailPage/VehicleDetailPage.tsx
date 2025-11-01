@@ -1,4 +1,4 @@
-// src/pages/Clients/components/VehicleDetailPage/VehicleDetailPage.tsx - NAPRAWIONY z VehicleDetailDrawer
+// src/pages/Clients/components/VehicleDetailPage/VehicleDetailPage.tsx - NAPRAWIONY przycisk Edycji
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import VehicleDetailHeader from './VehicleDetailHeader';
@@ -9,13 +9,14 @@ import VehicleVisitHistory from './VehicleVisitHistory';
 import { LoadingDisplay, ErrorDisplay } from './VehicleDetailComponents';
 import { PageContainer, ContentContainer, MainContent, Sidebar } from './VehicleDetailStyles';
 import VehicleGallerySection from "./VehicleGallerySection";
-// NOWE IMPORTY DLA ANALIZ - zaktualizowane
 import {VehicleExpanded, VehicleStatistics} from "../../../../types";
 import {vehicleApi} from "../../../../api/vehiclesApi";
 import {apiClientNew} from "../../../../api/apiClientNew";
 import VehicleAnalyticsSection from "../../../../components/VehicleAnalytics/VehicleAnalyticsSection";
-// DODANY IMPORT VehicleDetailDrawer
-import VehicleDetailDrawer from "../VehicleDetailDrawer";
+// DODANY IMPORT dla VehicleFormModal
+import VehicleFormModal from "../VehicleFormModal";
+import Modal from "../../../../components/common/Modal";
+import {useToast} from "../../../../components/common/Toast/Toast";
 
 interface VehicleDetailsResponse {
     id: string;
@@ -52,17 +53,18 @@ interface FullOwnerInfo {
 const VehicleDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const { showToast } = useToast();
 
     const [vehicle, setVehicle] = useState<VehicleExpanded | null>(null);
     const [vehicleDetails, setVehicleDetails] = useState<VehicleDetailsResponse | null>(null);
     const [owners, setOwners] = useState<FullOwnerInfo[]>([]);
     const [vehicleStats, setVehicleStats] = useState<VehicleStatistics | null>(null);
     const [visitHistory, setVisitHistory] = useState<any[]>([]);
-    const [showEditModal, setShowEditModal] = useState(false);
 
-    // DODANE STANY dla VehicleDetailDrawer
-    const [showDrawer, setShowDrawer] = useState(false);
-    const [drawerVehicle, setDrawerVehicle] = useState<VehicleExpanded | null>(null);
+    // NAPRAWIONE STANY - modal edycji zamiast drawer'a
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [vehicleToEdit, setVehicleToEdit] = useState<VehicleExpanded | null>(null);
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -154,25 +156,76 @@ const VehicleDetailPage: React.FC = () => {
         navigate('/clients-vehicles?tab=vehicles');
     };
 
-    // NAPRAWIONA FUNKCJA handleEdit - teraz otwiera VehicleDetailDrawer
+    // NAPRAWIONA FUNKCJA handleEdit - teraz otwiera VehicleFormModal
     const handleEdit = () => {
         if (vehicle) {
-            setDrawerVehicle(vehicle);
-            setShowDrawer(true);
+            console.log('🔧 Opening edit modal for vehicle:', vehicle.id);
+            setVehicleToEdit(vehicle);
+            setShowEditModal(true);
         }
     };
 
-    // DODANA FUNKCJA do zamykania drawer'a
-    const handleCloseDrawer = () => {
-        setShowDrawer(false);
-        setDrawerVehicle(null);
+    // DODANA FUNKCJA do zamykania modalu edycji
+    const handleCloseEditModal = () => {
+        console.log('❌ Closing edit modal');
+        setShowEditModal(false);
+        setVehicleToEdit(null);
     };
 
+    // DODANA FUNKCJA do zapisywania zmian i przeładowania danych
+    const handleSaveEdit = async () => {
+        console.log('💾 Vehicle saved, reloading data...');
+        setShowEditModal(false);
+        setVehicleToEdit(null);
+
+        // Przeładuj dane pojazdu po zapisaniu
+        await loadVehicleData();
+    };
+
+    // NAPRAWIONA FUNKCJA handleDelete - teraz pokazuje modal potwierdzenia
     const handleDelete = () => {
+        if (vehicle) {
+            console.log('🗑️ Opening delete confirmation for vehicle:', vehicle.id);
+            setShowDeleteConfirm(true);
+        }
+    };
+
+    // DODANA FUNKCJA do potwierdzenia usunięcia
+    const handleConfirmDelete = async () => {
+        if (!vehicle) return;
+
+        try {
+            console.log('🗑️ Deleting vehicle:', vehicle.id);
+
+            const success = await vehicleApi.deleteVehicle(vehicle.id);
+
+            if (success) {
+                showToast('success', 'Pojazd został usunięty pomyślnie');
+                // Po usunięciu, wróć do listy pojazdów
+                navigate('/clients-vehicles?tab=vehicles');
+            } else {
+                showToast('error', 'Nie udało się usunąć pojazdu');
+                setShowDeleteConfirm(false);
+            }
+        } catch (error: any) {
+            console.error('❌ Error deleting vehicle:', error);
+
+            let errorMessage = 'Nie udało się usunąć pojazdu';
+            if (error.message) {
+                errorMessage = error.message;
+            } else if (error.status === 409) {
+                errorMessage = 'Nie można usunąć pojazdu - posiada powiązane wizyty';
+            } else if (error.status === 404) {
+                errorMessage = 'Pojazd nie został znaleziony';
+            }
+
+            showToast('error', errorMessage);
+            setShowDeleteConfirm(false);
+        }
     };
 
     const handleOwnerClick = (ownerId: string) => {
-        navigate(`/clients/${ownerId}`); // ZMIENIONE: Navigacja do nowej strony szczegółów klienta
+        navigate(`/clients/${ownerId}`);
     };
 
     const handleVisitClick = (visitId: string) => {
@@ -198,7 +251,6 @@ const VehicleDetailPage: React.FC = () => {
         displayName: vehicleDetails.display_name
     } : vehicle;
 
-    // Prepare vehicle info for gallery component
     const vehicleInfoForGallery = {
         make: displayVehicle.make,
         model: displayVehicle.model,
@@ -218,8 +270,6 @@ const VehicleDetailPage: React.FC = () => {
                 <ContentContainer>
                     <MainContent>
                         <VehicleOwners owners={owners} onOwnerClick={handleOwnerClick} />
-
-                        {/* NOWA SEKCJA ANALIZ - ujednolicona z klientami, bez toggle */}
                         <VehicleAnalyticsSection vehicleId={id} />
                     </MainContent>
 
@@ -237,12 +287,125 @@ const VehicleDetailPage: React.FC = () => {
                 </ContentContainer>
             </PageContainer>
 
-            {/* DODANY VehicleDetailDrawer */}
-            <VehicleDetailDrawer
-                isOpen={showDrawer}
-                vehicle={drawerVehicle}
-                onClose={handleCloseDrawer}
-            />
+            {/* DODANY VehicleFormModal - modal edycji pojazdu */}
+            {showEditModal && vehicleToEdit && (
+                <VehicleFormModal
+                    vehicle={vehicleToEdit}
+                    onSave={handleSaveEdit}
+                    onCancel={handleCloseEditModal}
+                />
+            )}
+
+            {/* DODANY Modal potwierdzenia usunięcia */}
+            {showDeleteConfirm && vehicle && (
+                <Modal
+                    isOpen={showDeleteConfirm}
+                    onClose={() => setShowDeleteConfirm(false)}
+                    title="Potwierdź usunięcie pojazdu"
+                >
+                    <div style={{ padding: '24px', textAlign: 'center' }}>
+                        <div style={{
+                            width: '64px',
+                            height: '64px',
+                            background: '#fee2e2',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#dc2626',
+                            fontSize: '28px',
+                            margin: '0 auto 16px',
+                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                        }}>
+                            🗑️
+                        </div>
+                        <h3 style={{
+                            fontSize: '20px',
+                            fontWeight: '700',
+                            color: '#0f172a',
+                            margin: '0 0 16px 0'
+                        }}>
+                            Czy na pewno chcesz usunąć pojazd?
+                        </h3>
+                        <div style={{
+                            background: '#fafbfc',
+                            border: '1px solid #f1f5f9',
+                            borderRadius: '12px',
+                            padding: '16px',
+                            marginBottom: '16px'
+                        }}>
+                            <div style={{
+                                fontSize: '18px',
+                                fontWeight: '600',
+                                color: '#0f172a',
+                                marginBottom: '8px'
+                            }}>
+                                {vehicle.make} {vehicle.model}
+                            </div>
+                            <div style={{
+                                fontSize: '16px',
+                                color: '#475569',
+                                fontWeight: '500'
+                            }}>
+                                {vehicle.licensePlate}
+                            </div>
+                        </div>
+                        <p style={{
+                            fontSize: '14px',
+                            color: '#475569',
+                            lineHeight: '1.5',
+                            margin: '0 0 24px 0'
+                        }}>
+                            Ta operacja jest <strong style={{ color: '#dc2626' }}>nieodwracalna</strong>.
+                            Wszystkie dane pojazdu zostaną permanentnie usunięte.
+                        </p>
+                        <div style={{
+                            display: 'flex',
+                            gap: '8px',
+                            justifyContent: 'center'
+                        }}>
+                            <button
+                                onClick={() => setShowDeleteConfirm(false)}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    padding: '8px 16px',
+                                    background: '#ffffff',
+                                    color: '#475569',
+                                    border: '1px solid #e2e8f0',
+                                    borderRadius: '8px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
+                                    minHeight: '44px'
+                                }}
+                            >
+                                Anuluj
+                            </button>
+                            <button
+                                onClick={handleConfirmDelete}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    padding: '8px 16px',
+                                    background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
+                                    minHeight: '44px'
+                                }}
+                            >
+                                Usuń pojazd
+                            </button>
+                        </div>
+                    </div>
+                </Modal>
+            )}
         </>
     );
 };
