@@ -32,8 +32,15 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ protocolId, onClose, title }) => 
                 }
             } catch (err) {
                 console.error('Błąd ładowania PDF:', err);
+
+                let errorMessage = 'Nie udało się załadować dokumentu PDF. Spróbuj ponownie później.';
+
+                if (err instanceof Error) {
+                    errorMessage = err.message;
+                }
+
                 if (isMounted) {
-                    setError('Nie udało się załadować dokumentu PDF. Spróbuj ponownie później.');
+                    setError(errorMessage); // Ustawienie szczegółowej wiadomości
                     setIsLoading(false);
                 }
             }
@@ -72,6 +79,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ protocolId, onClose, title }) => 
                 {error && (
                     <ErrorOverlay>
                         <ErrorIcon>!</ErrorIcon>
+                        {/* <--- Zmiana: Wyświetlanie zmiennej 'error' (która teraz zawiera treść z serwera) ---> */}
                         <ErrorText>{error}</ErrorText>
                         <RetryButton onClick={() => window.location.reload()}>
                             Odśwież stronę
@@ -92,6 +100,8 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ protocolId, onClose, title }) => 
 };
 
 // Styled Components
+// ... (pozostałe Styled Components bez zmian)
+
 const PDFViewerContainer = styled.div`
     position: fixed;
     top: 50px;
@@ -190,53 +200,53 @@ const LoadingText = styled.div`
 `;
 
 const ErrorOverlay = styled.div`
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #f5f5f5;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #f5f5f5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
 `;
 
 const ErrorIcon = styled.div`
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background-color: #e74c3c;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 40px;
-  font-weight: bold;
-  margin-bottom: 20px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: #e74c3c;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    font-weight: bold;
+    margin-bottom: 20px;
 `;
 
 const ErrorText = styled.div`
-  font-size: 16px;
-  color: #34495e;
-  text-align: center;
-  margin-bottom: 20px;
-  max-width: 600px;
+    font-size: 16px;
+    color: #34495e;
+    text-align: center;
+    margin-bottom: 20px;
+    max-width: 600px;
 `;
 
 const RetryButton = styled.button`
-  padding: 10px 20px;
-  background-color: #3498db;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 14px;
-  cursor: pointer;
-  
-  &:hover {
-    background-color: #2980b9;
-  }
+    padding: 10px 20px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+
+    &:hover {
+        background-color: #2980b9;
+    }
 `;
 
 export default PDFViewer;

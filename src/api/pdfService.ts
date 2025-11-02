@@ -20,7 +20,8 @@ export const pdfService = {
             });
 
             if (!response.ok) {
-                let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                // <--- Zmiana 1: Przechwytujemy treść błędu jako 'serverErrorContent' --->
+                let serverErrorContent = `HTTP ${response.status}: ${response.statusText}`;
 
                 try {
                     const errorText = await response.text();
@@ -29,18 +30,20 @@ export const pdfService = {
                     // Spróbuj sparsować jako JSON jeśli możliwe
                     try {
                         const errorJson = JSON.parse(errorText);
-                        errorMessage = errorJson.message || errorJson.error || errorMessage;
+                        // Zwracamy pełną wiadomość błędu lub fallback na JSON
+                        serverErrorContent = errorJson.message || errorJson.error || errorText;
                     } catch (jsonError) {
-                        // Jeśli nie JSON, użyj tekstu
+                        // Jeśli nie JSON, użyj tekstu jako pełnej treści błędu
                         if (errorText) {
-                            errorMessage = errorText;
+                            serverErrorContent = errorText;
                         }
                     }
                 } catch (textError) {
                     console.error('❌ Nie można odczytać treści błędu:', textError);
                 }
 
-                throw new Error(`Błąd pobierania PDF: ${errorMessage}`);
+                // <--- Zmiana 2: Rzucamy nowy błąd z dokładną wiadomością z serwera --->
+                throw new Error(serverErrorContent);
             }
 
             // Sprawdź Content-Type
