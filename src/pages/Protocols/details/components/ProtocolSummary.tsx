@@ -326,10 +326,10 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                 // Update protocol with services from API response
                 const updatedProtocol: CarReceptionProtocol = {
                     ...protocol,
-                    selectedServices: [...protocol.selectedServices, ...updatedServices]
+                    selectedServices: updatedServices
                 };
 
-                // Call parent update handler
+                // Call parent update handlern[
                 if (onProtocolUpdate) {
                     onProtocolUpdate(updatedProtocol);
                 }
