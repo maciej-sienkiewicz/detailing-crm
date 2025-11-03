@@ -1,30 +1,52 @@
-// src/pages/Protocols/VisitsPageContainer.tsx - NAPRAWIONA WERSJA
+// src/pages/Protocols/VisitsPageContainer.tsx - Z OBSŁUGĄ REZERWACJI
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from 'styled-components';
-import {FaArrowLeft, FaClipboardCheck, FaPlus} from 'react-icons/fa';
+import {FaClipboardCheck, FaPlus} from 'react-icons/fa';
 import {useLocation, useNavigate} from 'react-router-dom';
 import {VisitListItem, visitsApi} from '../../api/visitsApiNew';
 import {ProtocolStatus} from '../../types';
 import {servicesApi} from '../../api/servicesApi';
 import {protocolsApi} from '../../api/protocolsApi';
-import {useVisitsData} from './hooks/useVisitsData';
-import {useVisitsFilters} from './hooks/useVisitsFilters';
-import {VisitsFilterBar} from './components/VisitsFilterBar';
-import {VisitsStatusFilters} from './components/VisitsStatusFilters';
-import {VisitsTable} from './components/VisitsTable';
-import {ServiceOption} from './components/ServiceAutocomplete';
-import Pagination from '../../components/common/Pagination';
+import {reservationsApi, Reservation} from '../../api/reservationsApi';
 import {PageHeader, PrimaryButton} from '../../components/common/PageHeader';
 import {theme} from '../../styles/theme';
-
-import {EditProtocolForm} from './form/components/EditProtocolForm';
-import ProtocolConfirmationModal from './shared/modals/ProtocolConfirmationModal';
-import {BiPen} from "react-icons/bi";
+import Pagination from '../../components/common/Pagination';
 
 type StatusFilterType = 'all' | ProtocolStatus;
 
+// Helper to map Reservation to VisitListItem
+const mapReservationToVisitListItem = (reservation: Reservation): VisitListItem => {
+    return {
+        id: reservation.id,
+        title: reservation.title,
+        vehicle: {
+            make: reservation.vehicleMake,
+            model: reservation.vehicleModel,
+            licensePlate: '', // Not available yet
+            productionYear: 0,
+            color: undefined
+        },
+        period: {
+            startDate: reservation.startDate,
+            endDate: reservation.endDate
+        },
+        owner: {
+            name: reservation.contactName || reservation.contactPhone,
+            companyName: undefined
+        },
+        status: ProtocolStatus.SCHEDULED,
+        totalAmountNetto: 0,
+        totalAmountBrutto: 0,
+        totalTaxAmount: 0,
+        calendarColorId: reservation.calendarColorId,
+        selectedServices: [],
+        totalServiceCount: 0,
+        lastUpdate: reservation.updatedAt
+    };
+};
+
 interface AppData {
-    services: ServiceOption[];
+    services: any[];
     counters: Record<string, number>;
     servicesLoading: boolean;
     countersLoading: boolean;
@@ -36,15 +58,17 @@ export const VisitsPageContainer: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const isFirstLoad = useRef(true);
-    const lastStatusFilter = useRef<StatusFilterType>(ProtocolStatus.IN_PROGRESS);
 
-    const [showForm, setShowForm] = useState(false);
-    const [editingVisit, setEditingVisit] = useState<any>(null);
-    const [availableServices, setAvailableServices] = useState<any[]>([]);
-    const [isShowingConfirmationModal, setIsShowingConfirmationModal] = useState(false);
-    const [currentProtocol, setCurrentProtocol] = useState<any>(null);
-
+    const [visits, setVisits] = useState<VisitListItem[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const [activeStatusFilter, setActiveStatusFilter] = useState<StatusFilterType>(ProtocolStatus.IN_PROGRESS);
+    const [pagination, setPagination] = useState({
+        page: 0,
+        size: 20,
+        totalItems: 0,
+        totalPages: 0
+    });
 
     const [appData, setAppData] = useState<AppData>({
         services: [],
@@ -55,27 +79,6 @@ export const VisitsPageContainer: React.FC = () => {
         countersLoaded: false
     });
 
-    const {
-        visits,
-        loading: visitsLoading,
-        error,
-        pagination,
-        searchVisits,
-        refreshVisits,
-        resetData
-    } = useVisitsData();
-
-    const {
-        filters,
-        activeFiltersCount,
-        hasActiveFilters,
-        updateFilter,
-        updateFilters,
-        clearFilter,
-        clearAllFilters,
-        getApiFilters
-    } = useVisitsFilters();
-
     const loadServices = useCallback(async () => {
         if (appData.servicesLoaded || appData.servicesLoading) return;
 
@@ -83,15 +86,9 @@ export const VisitsPageContainer: React.FC = () => {
 
         try {
             const servicesData = await servicesApi.fetchServices();
-            const serviceOptions: ServiceOption[] = servicesData.map(service => ({
-                id: service.id,
-                name: service.name
-            }));
-
-            setAvailableServices(servicesData);
             setAppData(prev => ({
                 ...prev,
-                services: serviceOptions,
+                services: servicesData,
                 servicesLoading: false,
                 servicesLoaded: true
             }));
@@ -111,16 +108,20 @@ export const VisitsPageContainer: React.FC = () => {
         setAppData(prev => ({ ...prev, countersLoading: true }));
 
         try {
-            const countersData = await protocolsApi.getProtocolCounters();
+            const [protocolCounters, reservationCounters] = await Promise.all([
+                protocolsApi.getProtocolCounters(),
+                reservationsApi.getCounters()
+            ]);
+
             setAppData(prev => ({
                 ...prev,
                 counters: {
-                    all: countersData.all || 0,
-                    [ProtocolStatus.SCHEDULED]: countersData.scheduled || 0,
-                    [ProtocolStatus.IN_PROGRESS]: countersData.inProgress || 0,
-                    [ProtocolStatus.READY_FOR_PICKUP]: countersData.readyForPickup || 0,
-                    [ProtocolStatus.COMPLETED]: countersData.completed || 0,
-                    [ProtocolStatus.CANCELLED]: countersData.cancelled || 0
+                    all: protocolCounters.all + reservationCounters.all,
+                    [ProtocolStatus.SCHEDULED]: reservationCounters.pending + reservationCounters.confirmed,
+                    [ProtocolStatus.IN_PROGRESS]: protocolCounters.inProgress || 0,
+                    [ProtocolStatus.READY_FOR_PICKUP]: protocolCounters.readyForPickup || 0,
+                    [ProtocolStatus.COMPLETED]: protocolCounters.completed || 0,
+                    [ProtocolStatus.CANCELLED]: protocolCounters.cancelled || 0
                 },
                 countersLoading: false,
                 countersLoaded: true
@@ -135,289 +136,211 @@ export const VisitsPageContainer: React.FC = () => {
         }
     }, [appData.countersLoaded, appData.countersLoading]);
 
-    const performSearch = useCallback(async () => {
-        const searchFilters = getApiFilters();
+    const fetchData = useCallback(async (status: StatusFilterType, page: number = 0) => {
+        setLoading(true);
+        setError(null);
 
-        if (activeStatusFilter !== 'all') {
-            searchFilters.status = activeStatusFilter;
+        try {
+            // For SCHEDULED status, fetch reservations instead of visits
+            if (status === ProtocolStatus.SCHEDULED) {
+                const reservationsResponse = await reservationsApi.listReservations({
+                    page,
+                    size: 20,
+                    sortBy: 'startDate',
+                    sortDirection: 'ASC'
+                });
+
+                const mappedVisits = reservationsResponse.data.map(mapReservationToVisitListItem);
+
+                setVisits(mappedVisits);
+                setPagination({
+                    page: reservationsResponse.page,
+                    size: reservationsResponse.size,
+                    totalItems: reservationsResponse.totalItems,
+                    totalPages: reservationsResponse.totalPages
+                });
+            } else {
+                // For other statuses, fetch regular visits
+                const searchFilters: any = {
+                    page,
+                    size: 20
+                };
+
+                if (status !== 'all') {
+                    searchFilters.status = status;
+                }
+
+                const result = await visitsApi.getVisitsList(searchFilters);
+
+                if (result.success && result.data) {
+                    setVisits(result.data.data);
+                    setPagination({
+                        page: result.data.pagination.currentPage,
+                        size: result.data.pagination.pageSize,
+                        totalItems: result.data.pagination.totalItems,
+                        totalPages: result.data.pagination.totalPages
+                    });
+                } else {
+                    setError(result.error || 'Błąd podczas ładowania danych');
+                    setVisits([]);
+                }
+            }
+        } catch (err) {
+            console.error('Error fetching data:', err);
+            setError('Wystąpił błąd podczas ładowania danych');
+            setVisits([]);
+        } finally {
+            setLoading(false);
         }
-
-        await searchVisits(searchFilters, {
-            page: 0,
-            size: pagination.size || 10
-        });
-    }, [activeStatusFilter, getApiFilters, searchVisits, pagination.size]);
-
-    const handleFiltersChange = useCallback((newFilters: Partial<typeof filters>) => {
-        updateFilters(newFilters);
-    }, [updateFilters]);
-
-    const handleApplyFilters = useCallback(async () => {
-        await performSearch();
-    }, [performSearch]);
+    }, []);
 
     const handleStatusFilterChange = useCallback(async (status: StatusFilterType) => {
-        if (status === activeStatusFilter) {
-            return;
-        }
+        if (status === activeStatusFilter) return;
 
         setActiveStatusFilter(status);
-        lastStatusFilter.current = status;
-
-        const searchFilters = getApiFilters();
-        if (status !== 'all') {
-            searchFilters.status = status;
-        }
-
-        await searchVisits(searchFilters, {
-            page: 0,
-            size: pagination.size || 10
-        });
-    }, [activeStatusFilter, getApiFilters, searchVisits, pagination.size]);
-
-    const handleClearAllFilters = useCallback(async () => {
-        clearAllFilters();
-        setActiveStatusFilter(ProtocolStatus.IN_PROGRESS);
-        lastStatusFilter.current = ProtocolStatus.IN_PROGRESS;
-
-        await searchVisits({ status: ProtocolStatus.IN_PROGRESS }, {
-            page: 0,
-            size: pagination.size || 10
-        });
-    }, [clearAllFilters, searchVisits, pagination.size]);
+        await fetchData(status, 0);
+    }, [activeStatusFilter, fetchData]);
 
     const handlePageChange = useCallback(async (page: number) => {
-        const searchFilters = getApiFilters();
-        if (activeStatusFilter !== 'all') {
-            searchFilters.status = activeStatusFilter;
-        }
-
-        await searchVisits(searchFilters, {
-            page: page - 1,
-            size: pagination.size
-        });
-    }, [getApiFilters, activeStatusFilter, searchVisits, pagination.size]);
+        await fetchData(activeStatusFilter, page - 1);
+    }, [activeStatusFilter, fetchData]);
 
     const handleVisitClick = useCallback((visit: VisitListItem) => {
-        navigate(`/visits/${visit.id}`);
-    }, [navigate]);
+        // Check if this is a reservation (no license plate = reservation)
+        if (activeStatusFilter === ProtocolStatus.SCHEDULED && !visit.vehicle.licensePlate) {
+            // Navigate to reservation conversion page
+            navigate(`/reservations/${visit.id}/convert`);
+        } else {
+            navigate(`/visits/${visit.id}`);
+        }
+    }, [navigate, activeStatusFilter]);
 
     const handleViewVisit = useCallback((visit: VisitListItem) => {
-        navigate(`/visits/${visit.id}`);
-    }, [navigate]);
+        if (activeStatusFilter === ProtocolStatus.SCHEDULED && !visit.vehicle.licensePlate) {
+            navigate(`/reservations/${visit.id}/convert`);
+        } else {
+            navigate(`/visits/${visit.id}`);
+        }
+    }, [navigate, activeStatusFilter]);
 
     const handleEditVisit = useCallback((visitId: string) => {
         navigate(`/visits/${visitId}/edit`);
     }, [navigate]);
 
     const handleDeleteVisit = useCallback(async (visitId: string) => {
-        if (window.confirm('Czy na pewno chcesz usunąć tę wizytę?')) {
-            await visitsApi.deleteVisit(visitId)
-            await resetData()
+        if (window.confirm('Czy na pewno chcesz usunąć?')) {
+            try {
+                if (activeStatusFilter === ProtocolStatus.SCHEDULED) {
+                    await reservationsApi.deleteReservation(visitId);
+                } else {
+                    await visitsApi.deleteVisit(visitId);
+                }
+                await fetchData(activeStatusFilter, pagination.page);
+                await loadCounters();
+            } catch (error) {
+                console.error('Error deleting:', error);
+            }
         }
-    }, [refreshVisits]);
+    }, [activeStatusFilter, pagination.page, fetchData, loadCounters]);
 
     const handleAddVisit = useCallback(() => {
-        setEditingVisit(null);
-        setShowForm(true);
-    }, []);
+        // Navigate to reservation creation page
+        navigate('/reservations/new');
+    }, [navigate]);
 
-    const handleFormCancel = useCallback(() => {
-        setShowForm(false);
-        setEditingVisit(null);
-    }, []);
-
-    const handleSaveProtocol = useCallback((protocol: any, showConfirmationModal: boolean) => {
-        setCurrentProtocol(protocol);
-
-        if (showConfirmationModal) {
-            setIsShowingConfirmationModal(true);
-        } else {
-            setShowForm(false);
-            setEditingVisit(null);
-            refreshVisits();
-            navigate(`/visits/${protocol.id}`);
-        }
-    }, [navigate, refreshVisits]);
-
-    const handleConfirmationClose = useCallback(() => {
-        setIsShowingConfirmationModal(false);
-        if (currentProtocol) {
-            setShowForm(false);
-            setEditingVisit(null);
-            refreshVisits();
-            navigate(`/visits/${currentProtocol.id}`);
-        }
-    }, [currentProtocol, navigate, refreshVisits]);
-
-    const handleConfirmationConfirm = useCallback((options: { print: boolean; sendEmail: boolean }) => {
-        handleConfirmationClose();
-    }, [handleConfirmationClose]);
-
-    const refreshServices = useCallback(async () => {
-        try {
-            setAppData(prev => ({ ...prev, servicesLoading: true, servicesLoaded: false }));
-            const servicesData = await servicesApi.fetchServices();
-
-            if (!servicesData || servicesData.length === 0) {
-                console.warn("Pobrano pustą listę usług, zachowuję poprzedni stan");
-                setAppData(prev => ({ ...prev, servicesLoading: false, servicesLoaded: true }));
-                return;
-            }
-
-            const serviceOptions: ServiceOption[] = servicesData.map(service => ({
-                id: service.id,
-                name: service.name
-            }));
-
-            setAvailableServices(servicesData);
-            setAppData(prev => ({
-                ...prev,
-                services: serviceOptions,
-                servicesLoading: false,
-                servicesLoaded: true
-            }));
-        } catch (err) {
-            console.error('Error refreshing services list:', err);
-            setAppData(prev => ({ ...prev, servicesLoading: false }));
-        }
-    }, []);
-
-    const [showFilters, setShowFilters] = useState(false);
-
-    const handleToggleFilters = useCallback(() => {
-        setShowFilters(prev => !prev);
-    }, []);
-
-    // ✅ NAPRAWIONE: UseEffect tylko dla inicjalizacji danych (wykonuje się raz)
     useEffect(() => {
         if (isFirstLoad.current) {
             loadServices();
             loadCounters();
+            fetchData(activeStatusFilter, 0);
             isFirstLoad.current = false;
         }
-    }, [loadServices, loadCounters]);
-
-    // ✅ NAPRAWIONE: UseEffect dla wyszukiwania TYLKO po załadowaniu danych
-    // NIE reaguje na zmiany filtrów - wyszukiwanie tylko przez przycisk "Zastosuj filtry"
-    useEffect(() => {
-        const shouldPerformInitialSearch =
-            appData.servicesLoaded &&
-            appData.countersLoaded &&
-            !appData.servicesLoading &&
-            !appData.countersLoading &&
-            visits.length === 0; // Wykonaj tylko jeśli nie ma jeszcze wizyt
-
-        if (shouldPerformInitialSearch) {
-            performSearch();
-        }
-    }, [appData.servicesLoaded, appData.countersLoaded, appData.servicesLoading, appData.countersLoading, visits.length]);
-    // ⚠️ WAŻNE: Usunięto 'performSearch' z dependencies, więc nie reaguje na zmiany filtrów!
-
-    useEffect(() => {
-        resetData();
-        setActiveStatusFilter(ProtocolStatus.IN_PROGRESS);
-        clearAllFilters();
-        isFirstLoad.current = true;
-    }, [location.pathname, resetData, clearAllFilters]);
-
-    if (showForm) {
-        return (
-            <PageContainer>
-                <PageHeader
-                    icon={BiPen}
-                    title={editingVisit ? 'Edycja wizyty' : 'Nowa wizyta'}
-                    subtitle=""
-                    actions={
-                        <BackButton onClick={handleFormCancel}>
-                            <FaArrowLeft />
-                        </BackButton>
-                    }
-                />
-
-                <EditProtocolForm
-                    protocol={editingVisit}
-                    availableServices={availableServices}
-                    initialData={undefined}
-                    appointmentId={undefined}
-                    isFullProtocol={true}
-                    onSave={handleSaveProtocol}
-                    onCancel={handleFormCancel}
-                    onServiceAdded={refreshServices}
-                />
-
-                {isShowingConfirmationModal && currentProtocol && (
-                    <ProtocolConfirmationModal
-                        isOpen={isShowingConfirmationModal}
-                        onClose={handleConfirmationClose}
-                        protocolId={currentProtocol.id}
-                        clientEmail={currentProtocol.email || ''}
-                        onConfirm={handleConfirmationConfirm}
-                    />
-                )}
-            </PageContainer>
-        );
-    }
+    }, [loadServices, loadCounters, fetchData, activeStatusFilter]);
 
     const headerActions = (
         <PrimaryButton onClick={handleAddVisit}>
-            <FaPlus /> Nowa wizyta
+            <FaPlus /> Nowa rezerwacja
         </PrimaryButton>
-    );
-
-    // Komponent filtrów do rozwijania - TYLKO VisitsFilterBar, bez VisitsActiveFilters
-    const filtersComponent = (
-        <FiltersContainer>
-            <VisitsFilterBar
-                filters={filters}
-                onFiltersChange={handleFiltersChange}
-                onApplyFilters={handleApplyFilters}
-                onClearAll={handleClearAllFilters}
-                loading={visitsLoading}
-                availableServices={appData.services}
-                servicesLoading={appData.servicesLoading}
-            />
-        </FiltersContainer>
     );
 
     return (
         <PageContainer>
             <PageHeader
                 icon={FaClipboardCheck}
-                title="Wizyty"
-                subtitle="Zarządzanie wizytami klientów"
+                title="Wizyty i Rezerwacje"
+                subtitle="Zarządzanie wizytami i rezerwacjami klientów"
                 actions={headerActions}
             />
 
             <ContentContainer>
-                <VisitsStatusFilters
-                    activeStatus={activeStatusFilter}
-                    onStatusChange={handleStatusFilterChange}
-                    counters={appData.counters}
-                    loading={appData.countersLoading}
-                />
+                <StatusFilters>
+                    {[
+                        { key: ProtocolStatus.SCHEDULED, label: 'Zaplanowane' },
+                        { key: ProtocolStatus.IN_PROGRESS, label: 'W realizacji' },
+                        { key: ProtocolStatus.READY_FOR_PICKUP, label: 'Gotowe do odbioru' },
+                        { key: ProtocolStatus.COMPLETED, label: 'Zakończone' },
+                        { key: ProtocolStatus.CANCELLED, label: 'Anulowane' }
+                    ].map(({ key, label }) => (
+                        <StatusButton
+                            key={key}
+                            $active={activeStatusFilter === key}
+                            onClick={() => handleStatusFilterChange(key)}
+                        >
+                            {label}
+                            {appData.counters[key] !== undefined && (
+                                <CountBadge>{appData.counters[key]}</CountBadge>
+                            )}
+                        </StatusButton>
+                    ))}
+                </StatusFilters>
 
                 <ResultsSection>
-                    {error && (
-                        <ErrorMessage>
-                            ⚠️ {error}
-                        </ErrorMessage>
+                    {error && <ErrorMessage>⚠️ {error}</ErrorMessage>}
+
+                    {loading ? (
+                        <LoadingState>Ładowanie...</LoadingState>
+                    ) : (
+                        <TableWrapper>
+                            <SimpleTable>
+                                <thead>
+                                <tr>
+                                    <Th>Pojazd</Th>
+                                    <Th>Nr rej.</Th>
+                                    <Th>Klient</Th>
+                                    <Th>Okres</Th>
+                                    <Th>Status</Th>
+                                    <Th>Akcje</Th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {visits.map(visit => (
+                                    <Tr key={visit.id} onClick={() => handleVisitClick(visit)}>
+                                        <Td>{visit.vehicle.make} {visit.vehicle.model}</Td>
+                                        <Td>{visit.vehicle.licensePlate || '—'}</Td>
+                                        <Td>{visit.owner.name}</Td>
+                                        <Td>
+                                            {new Date(visit.period.startDate).toLocaleDateString('pl-PL')}
+                                        </Td>
+                                        <Td>
+                                            <StatusBadge $status={visit.status}>
+                                                {visit.status}
+                                            </StatusBadge>
+                                        </Td>
+                                        <Td onClick={(e) => e.stopPropagation()}>
+                                            <ActionButton
+                                                onClick={() => handleDeleteVisit(visit.id)}
+                                            >
+                                                Usuń
+                                            </ActionButton>
+                                        </Td>
+                                    </Tr>
+                                ))}
+                                </tbody>
+                            </SimpleTable>
+                        </TableWrapper>
                     )}
 
-                    <VisitsTable
-                        visits={visits}
-                        loading={visitsLoading}
-                        showFilters={showFilters}
-                        hasActiveFilters={hasActiveFilters}
-                        onVisitClick={handleVisitClick}
-                        onViewVisit={handleViewVisit}
-                        onEditVisit={handleEditVisit}
-                        onDeleteVisit={handleDeleteVisit}
-                        onToggleFilters={handleToggleFilters}
-                        filtersComponent={filtersComponent}
-                    />
-
-                    {pagination && pagination.totalPages > 1 && pagination.page !== undefined && (
+                    {pagination.totalPages > 1 && (
                         <PaginationWrapper>
                             <Pagination
                                 currentPage={pagination.page + 1}
@@ -435,75 +358,135 @@ export const VisitsPageContainer: React.FC = () => {
     );
 };
 
+// Styled Components
 const PageContainer = styled.div`
     background: ${theme.surfaceHover};
     min-height: 100vh;
-    padding: 0;
-`;
-
-const BackButton = styled.button`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    background: ${theme.surface};
-    border: 1px solid ${theme.border};
-    border-radius: ${theme.radius.md};
-    color: ${theme.text.secondary};
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-        background: ${theme.surfaceHover};
-        color: ${theme.primary};
-        border-color: ${theme.primary};
-        transform: translateX(-2px);
-    }
-
-    svg {
-        font-size: 16px;
-    }
 `;
 
 const ContentContainer = styled.div`
     max-width: 1600px;
     margin: 0 auto;
-    padding: ${theme.spacing.xxl} ${theme.spacing.xxl};
-    position: relative;
+    padding: ${theme.spacing.xxl};
+`;
 
-    @media (max-width: 1024px) {
-        padding: ${theme.spacing.lg} ${theme.spacing.xxl};
-    }
+const StatusFilters = styled.div`
+    display: flex;
+    gap: ${theme.spacing.md};
+    margin-bottom: ${theme.spacing.xl};
+    flex-wrap: wrap;
+`;
 
-    @media (max-width: 768px) {
-        padding: ${theme.spacing.lg};
+const StatusButton = styled.button<{ $active: boolean }>`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.sm};
+    padding: ${theme.spacing.md} ${theme.spacing.lg};
+    background: ${props => props.$active ? theme.primary : theme.surface};
+    color: ${props => props.$active ? 'white' : theme.text.secondary};
+    border: 2px solid ${props => props.$active ? theme.primary : theme.border};
+    border-radius: ${theme.radius.md};
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow: ${theme.shadow.sm};
     }
 `;
 
-const FiltersContainer = styled.div`
-    background: ${theme.surfaceAlt};
-    padding: 0;
+const CountBadge = styled.span`
+    background: rgba(255,255,255,0.2);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
 `;
 
 const ResultsSection = styled.div`
     display: flex;
     flex-direction: column;
     gap: ${theme.spacing.xl};
-    margin-top: ${theme.spacing.xxl};
 `;
 
 const ErrorMessage = styled.div`
     background: ${theme.errorBg};
     color: ${theme.error};
-    padding: ${theme.spacing.lg} ${theme.spacing.xl};
+    padding: ${theme.spacing.lg};
     border-radius: ${theme.radius.lg};
-    border: 1px solid ${theme.border};
-    font-weight: 500;
+`;
+
+const LoadingState = styled.div`
+    padding: ${theme.spacing.xxl};
+    text-align: center;
+    color: ${theme.text.muted};
+`;
+
+const TableWrapper = styled.div`
+    background: ${theme.surface};
+    border-radius: ${theme.radius.lg};
+    overflow: hidden;
     box-shadow: ${theme.shadow.sm};
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing.lg};
+`;
+
+const SimpleTable = styled.table`
+    width: 100%;
+    border-collapse: collapse;
+`;
+
+const Th = styled.th`
+    background: ${theme.surfaceAlt};
+    padding: ${theme.spacing.md};
+    text-align: left;
+    font-weight: 600;
+    font-size: 13px;
+    color: ${theme.text.primary};
+    border-bottom: 2px solid ${theme.border};
+`;
+
+const Tr = styled.tr`
+    cursor: pointer;
+    transition: background 0.2s;
+
+    &:hover {
+        background: ${theme.surfaceHover};
+    }
+
+    &:not(:last-child) {
+        border-bottom: 1px solid ${theme.border};
+    }
+`;
+
+const Td = styled.td`
+    padding: ${theme.spacing.md};
+    font-size: 13px;
+    color: ${theme.text.secondary};
+`;
+
+const StatusBadge = styled.span<{ $status: string }>`
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    background: ${theme.primaryGhost};
+    color: ${theme.primary};
+`;
+
+const ActionButton = styled.button`
+    padding: 6px 12px;
+    background: ${theme.errorBg};
+    color: ${theme.error};
+    border: none;
+    border-radius: ${theme.radius.sm};
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover {
+        background: ${theme.error};
+        color: white;
+    }
 `;
 
 const PaginationWrapper = styled.div`
