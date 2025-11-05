@@ -8,6 +8,8 @@ import React from 'react';
 import styled from 'styled-components';
 import { FaCar } from 'react-icons/fa';
 import { ReservationFormErrors } from '../libs/types';
+import {BrandAutocomplete} from "../../../pages/Protocols/components/BrandAutocomplete";
+// Import BrandAutocomplete - adjust path as necessary based on project structure
 
 const brandTheme = {
     primary: 'var(--brand-primary, #1a365d)',
@@ -54,6 +56,31 @@ export const ReservationVehicleSection: React.FC<ReservationVehicleSectionProps>
                                                                                         errors,
                                                                                         onChange
                                                                                     }) => {
+    // Adapter function to handle BrandAutocomplete's string onChange to React.ChangeEvent
+    const handleMakeChange = (value: string) => {
+        const syntheticEvent = {
+            target: {
+                name: 'vehicleMake',
+                value: value,
+                type: 'text'
+            }
+        } as React.ChangeEvent<HTMLInputElement>;
+        onChange(syntheticEvent);
+    };
+
+    // Adapter function for model change
+    const handleModelChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        // Renaming model to vehicleModel for Reservation form
+        const syntheticEvent = {
+            ...e,
+            target: {
+                ...e.target,
+                name: 'vehicleModel' // Ensure correct name for the reservation form state
+            }
+        } as React.ChangeEvent<HTMLInputElement>;
+        onChange(syntheticEvent);
+    };
+
     return (
         <Section>
             <SectionTitle>Informacje o pojeździe</SectionTitle>
@@ -68,17 +95,14 @@ export const ReservationVehicleSection: React.FC<ReservationVehicleSectionProps>
                         <span>Marka pojazdu</span>
                         <RequiredBadge>Wymagane</RequiredBadge>
                     </Label>
-                    <Input
-                        id="vehicleMake"
-                        name="vehicleMake"
-                        type="text"
+                    <BrandAutocomplete
                         value={vehicleMake}
-                        onChange={onChange}
-                        placeholder="np. BMW, Audi, Toyota"
+                        onChange={handleMakeChange} // Use adapter for BrandAutocomplete
+                        placeholder="Wybierz lub wpisz markę"
                         required
-                        $hasError={!!errors.vehicleMake}
+                        error={errors.vehicleMake}
                     />
-                    {errors.vehicleMake && <ErrorText>{errors.vehicleMake}</ErrorText>}
+                    {errors.vehicleMake && !errors.vehicleMake.includes('required') && <ErrorText>{errors.vehicleMake}</ErrorText>}
                 </FormGroup>
 
                 <FormGroup>
@@ -92,7 +116,7 @@ export const ReservationVehicleSection: React.FC<ReservationVehicleSectionProps>
                         name="vehicleModel"
                         type="text"
                         value={vehicleModel}
-                        onChange={onChange}
+                        onChange={handleModelChange}
                         placeholder="np. X5, A4, Corolla"
                         required
                         $hasError={!!errors.vehicleModel}
@@ -134,29 +158,6 @@ const SectionDescription = styled.p`
     font-size: 14px;
     color: ${brandTheme.text.secondary};
     font-weight: 500;
-`;
-
-const InfoBox = styled.div`
-    background: ${brandTheme.status.infoLight};
-    border: 1px solid ${brandTheme.status.info};
-    border-radius: ${brandTheme.radius.lg};
-    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-    display: flex;
-    align-items: flex-start;
-    gap: ${brandTheme.spacing.sm};
-`;
-
-const InfoIcon = styled.div`
-    font-size: 16px;
-    flex-shrink: 0;
-    margin-top: 2px;
-`;
-
-const InfoText = styled.div`
-    font-size: 13px;
-    color: ${brandTheme.status.info};
-    font-weight: 500;
-    line-height: 1.5;
 `;
 
 const FormRow = styled.div`
@@ -217,8 +218,8 @@ const Input = styled.input<{ $hasError?: boolean }>`
         outline: none;
         border-color: ${props => props.$hasError ? brandTheme.status.error : brandTheme.primary};
         box-shadow: 0 0 0 3px ${props =>
-    props.$hasError ? brandTheme.status.errorLight : brandTheme.primaryGhost
-};
+                props.$hasError ? brandTheme.status.errorLight : brandTheme.primaryGhost
+        };
     }
 
     &::placeholder {
