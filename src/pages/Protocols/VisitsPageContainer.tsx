@@ -1,4 +1,4 @@
-// src/pages/Protocols/VisitsPageContainer.tsx - Z PRZYCISKIEM REZERWACJI
+// src/pages/Protocols/VisitsPageContainer.tsx - Z OBSŁUGĄ REZERWACJI
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from 'styled-components';
 import {FaArrowLeft, FaCalendarPlus, FaClipboardCheck, FaPlus} from 'react-icons/fa';
@@ -7,6 +7,7 @@ import {VisitListItem, visitsApi} from '../../api/visitsApiNew';
 import {ProtocolStatus} from '../../types';
 import {servicesApi} from '../../api/servicesApi';
 import {protocolsApi} from '../../api/protocolsApi';
+import {reservationsApi, Reservation, ReservationStatus} from '../../api/reservationsApi';
 import {useVisitsData} from './hooks/useVisitsData';
 import {useVisitsFilters} from './hooks/useVisitsFilters';
 import {VisitsFilterBar} from './components/VisitsFilterBar';
@@ -22,7 +23,8 @@ import ProtocolConfirmationModal from './shared/modals/ProtocolConfirmationModal
 import {BiPen} from "react-icons/bi";
 import {ReservationForm} from "../../features/reservations";
 
-type StatusFilterType = 'all' | ProtocolStatus;
+// ✅ NOWE: Rozszerzony typ statusów z rezerwacjami
+type StatusFilterType = 'reservations' | 'all' | ProtocolStatus;
 
 interface AppData {
     services: ServiceOption[];
@@ -33,14 +35,67 @@ interface AppData {
     countersLoaded: boolean;
 }
 
-// Typ formularza do wyświetlenia
 type FormType = 'none' | 'visit' | 'reservation';
+
+// ✅ NOWE: Helper do konwersji Reservation na VisitListItem
+const convertReservationToVisitListItem = (reservation: Reservation): VisitListItem => {
+    return {
+        id: reservation.id,
+        vehicle: {
+            make: reservation.vehicleMake,
+            model: reservation.vehicleModel,
+            licensePlate: '', // Rezerwacja nie ma tablicy rejestracyjnej
+            productionYear: 0, // Rezerwacja nie ma roku produkcji
+            color: undefined
+        },
+        period: {
+            startDate: reservation.startDate,
+            endDate: reservation.endDate
+        },
+        owner: {
+            name: reservation.contactName || reservation.contactPhone,
+            companyName: undefined
+        },
+        status: convertReservationStatusToProtocolStatus(reservation.status),
+        totalServiceCount: reservation.serviceCount,
+        totalAmountNetto: reservation.totalPriceNetto,
+        totalAmountBrutto: reservation.totalPriceBrutto,
+        totalTaxAmount: reservation.totalTaxAmount,
+        calendarColorId: reservation.calendarColorId,
+        selectedServices: reservation.services.map(service => ({
+            id: service.id,
+            name: service.name,
+            quantity: service.quantity,
+            basePrice: service.basePrice,
+            discountType: 'PERCENTAGE' as any,
+            discountValue: 0,
+            finalPrice: service.finalPrice,
+            note: service.note
+        })),
+        title: reservation.title,
+        lastUpdate: new Date(reservation.updatedAt).toLocaleDateString('pl-PL')
+    };
+};
+
+const convertReservationStatusToProtocolStatus = (status: ReservationStatus): ProtocolStatus => {
+    switch (status) {
+        case ReservationStatus.PENDING:
+        case ReservationStatus.CONFIRMED:
+            return ProtocolStatus.IN_PROGRESS;
+        case ReservationStatus.CONVERTED:
+            return ProtocolStatus.COMPLETED;
+        case ReservationStatus.CANCELLED:
+            return ProtocolStatus.CANCELLED;
+        default:
+            return ProtocolStatus.IN_PROGRESS;
+    }
+};
 
 export const VisitsPageContainer: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const isFirstLoad = useRef(true);
-    const lastStatusFilter = useRef<StatusFilterType>(ProtocolStatus.IN_PROGRESS);
+    const lastStatusFilter = useRef<StatusFilterType>('reservations');
 
     const [activeForm, setActiveForm] = useState<FormType>('none');
     const [editingVisit, setEditingVisit] = useState<any>(null);
@@ -48,7 +103,18 @@ export const VisitsPageContainer: React.FC = () => {
     const [isShowingConfirmationModal, setIsShowingConfirmationModal] = useState(false);
     const [currentProtocol, setCurrentProtocol] = useState<any>(null);
 
-    const [activeStatusFilter, setActiveStatusFilter] = useState<StatusFilterType>(ProtocolStatus.IN_PROGRESS);
+    // ✅ ZMODYFIKOWANE: Zmiana domyślnego filtra na 'reservations'
+    const [activeStatusFilter, setActiveStatusFilter] = useState<StatusFilterType>('reservations');
+
+    // ✅ NOWE: Stan dla rezerwacji
+    const [reservations, setReservations] = useState<Reservation[]>([]);
+    const [reservationsLoading, setReservationsLoading] = useState(false);
+    const [reservationsPagination, setReservationsPagination] = useState({
+        page: 0,
+        size: 10,
+        totalPages: 0,
+        totalItems: 0
+    });
 
     const [appData, setAppData] = useState<AppData>({
         services: [],
@@ -109,22 +175,27 @@ export const VisitsPageContainer: React.FC = () => {
         }
     }, [appData.servicesLoaded, appData.servicesLoading]);
 
+    // ✅ ZMODYFIKOWANE: Załaduj countery z rezerwacjami
     const loadCounters = useCallback(async () => {
         if (appData.countersLoaded || appData.countersLoading) return;
 
         setAppData(prev => ({ ...prev, countersLoading: true }));
 
         try {
-            const countersData = await protocolsApi.getProtocolCounters();
+            const [protocolCounters, reservationCounters] = await Promise.all([
+                protocolsApi.getProtocolCounters(),
+                reservationsApi.getCounters()
+            ]);
+
             setAppData(prev => ({
                 ...prev,
                 counters: {
-                    all: countersData.all || 0,
-                    [ProtocolStatus.SCHEDULED]: countersData.scheduled || 0,
-                    [ProtocolStatus.IN_PROGRESS]: countersData.inProgress || 0,
-                    [ProtocolStatus.READY_FOR_PICKUP]: countersData.readyForPickup || 0,
-                    [ProtocolStatus.COMPLETED]: countersData.completed || 0,
-                    [ProtocolStatus.CANCELLED]: countersData.cancelled || 0
+                    all: (protocolCounters.all || 0) + (reservationCounters.all || 0) - (reservationCounters.all || 0),
+                    reservations: reservationCounters.pending + reservationCounters.confirmed,
+                    [ProtocolStatus.IN_PROGRESS]: protocolCounters.inProgress || 0,
+                    [ProtocolStatus.READY_FOR_PICKUP]: protocolCounters.readyForPickup || 0,
+                    [ProtocolStatus.COMPLETED]: protocolCounters.completed || 0,
+                    [ProtocolStatus.CANCELLED]: protocolCounters.cancelled || 0
                 },
                 countersLoading: false,
                 countersLoaded: true
@@ -139,18 +210,52 @@ export const VisitsPageContainer: React.FC = () => {
         }
     }, [appData.countersLoaded, appData.countersLoading]);
 
+    // ✅ NOWE: Funkcja do ładowania rezerwacji
+    const loadReservations = useCallback(async (page: number = 0, size: number = 10) => {
+        setReservationsLoading(true);
+        try {
+            const result = await reservationsApi.listReservations({
+                page,
+                size,
+                sortBy: 'startDate',
+                sortDirection: 'ASC'
+            });
+
+            setReservations(result.data);
+            setReservationsPagination({
+                page: result.page,
+                size: result.size,
+                totalPages: result.totalPages,
+                totalItems: result.totalItems
+            });
+        } catch (error) {
+            console.error('Error loading reservations:', error);
+            setReservations([]);
+        } finally {
+            setReservationsLoading(false);
+        }
+    }, []);
+
+    // ✅ ZMODYFIKOWANE: Funkcja wyszukiwania z obsługą rezerwacji
     const performSearch = useCallback(async () => {
         const searchFilters = getApiFilters();
 
-        if (activeStatusFilter !== 'all') {
+        if (activeStatusFilter === 'reservations') {
+            // Ładuj rezerwacje
+            await loadReservations(0, pagination.size || 10);
+        } else if (activeStatusFilter !== 'all') {
             searchFilters.status = activeStatusFilter;
+            await searchVisits(searchFilters, {
+                page: 0,
+                size: pagination.size || 10
+            });
+        } else {
+            await searchVisits(searchFilters, {
+                page: 0,
+                size: pagination.size || 10
+            });
         }
-
-        await searchVisits(searchFilters, {
-            page: 0,
-            size: pagination.size || 10
-        });
-    }, [activeStatusFilter, getApiFilters, searchVisits, pagination.size]);
+    }, [activeStatusFilter, getApiFilters, searchVisits, loadReservations, pagination.size]);
 
     const handleFiltersChange = useCallback((newFilters: Partial<typeof filters>) => {
         updateFilters(newFilters);
@@ -160,6 +265,7 @@ export const VisitsPageContainer: React.FC = () => {
         await performSearch();
     }, [performSearch]);
 
+    // ✅ ZMODYFIKOWANE: Obsługa zmiany statusu z rezerwacjami
     const handleStatusFilterChange = useCallback(async (status: StatusFilterType) => {
         if (status === activeStatusFilter) {
             return;
@@ -168,71 +274,96 @@ export const VisitsPageContainer: React.FC = () => {
         setActiveStatusFilter(status);
         lastStatusFilter.current = status;
 
-        const searchFilters = getApiFilters();
-        if (status !== 'all') {
-            searchFilters.status = status;
+        if (status === 'reservations') {
+            await loadReservations(0, pagination.size || 10);
+        } else {
+            const searchFilters = getApiFilters();
+            if (status !== 'all') {
+                searchFilters.status = status;
+            }
+
+            await searchVisits(searchFilters, {
+                page: 0,
+                size: pagination.size || 10
+            });
         }
+    }, [activeStatusFilter, getApiFilters, searchVisits, loadReservations, pagination.size]);
 
-        await searchVisits(searchFilters, {
-            page: 0,
-            size: pagination.size || 10
-        });
-    }, [activeStatusFilter, getApiFilters, searchVisits, pagination.size]);
-
+    // ✅ ZMODYFIKOWANE: Reset filtrów z rezerwacjami
     const handleClearAllFilters = useCallback(async () => {
         clearAllFilters();
-        setActiveStatusFilter(ProtocolStatus.IN_PROGRESS);
-        lastStatusFilter.current = ProtocolStatus.IN_PROGRESS;
+        setActiveStatusFilter('reservations');
+        lastStatusFilter.current = 'reservations';
 
-        await searchVisits({ status: ProtocolStatus.IN_PROGRESS }, {
-            page: 0,
-            size: pagination.size || 10
-        });
-    }, [clearAllFilters, searchVisits, pagination.size]);
+        await loadReservations(0, pagination.size || 10);
+    }, [clearAllFilters, loadReservations, pagination.size]);
 
+    // ✅ ZMODYFIKOWANE: Obsługa zmiany strony z rezerwacjami
     const handlePageChange = useCallback(async (page: number) => {
-        const searchFilters = getApiFilters();
-        if (activeStatusFilter !== 'all') {
-            searchFilters.status = activeStatusFilter;
-        }
+        if (activeStatusFilter === 'reservations') {
+            await loadReservations(page - 1, reservationsPagination.size);
+        } else {
+            const searchFilters = getApiFilters();
+            if (activeStatusFilter !== 'all') {
+                searchFilters.status = activeStatusFilter;
+            }
 
-        await searchVisits(searchFilters, {
-            page: page - 1,
-            size: pagination.size
-        });
-    }, [getApiFilters, activeStatusFilter, searchVisits, pagination.size]);
+            await searchVisits(searchFilters, {
+                page: page - 1,
+                size: pagination.size
+            });
+        }
+    }, [activeStatusFilter, getApiFilters, searchVisits, loadReservations, pagination.size, reservationsPagination.size]);
 
     const handleVisitClick = useCallback((visit: VisitListItem) => {
-        navigate(`/visits/${visit.id}`);
-    }, [navigate]);
+        if (activeStatusFilter === 'reservations') {
+            // Kliknięcie w rezerwację - nawiguj do szczegółów rezerwacji lub edycji
+            navigate(`/reservations/${visit.id}`);
+        } else {
+            navigate(`/visits/${visit.id}`);
+        }
+    }, [navigate, activeStatusFilter]);
 
     const handleViewVisit = useCallback((visit: VisitListItem) => {
-        navigate(`/visits/${visit.id}`);
-    }, [navigate]);
+        if (activeStatusFilter === 'reservations') {
+            navigate(`/reservations/${visit.id}`);
+        } else {
+            navigate(`/visits/${visit.id}`);
+        }
+    }, [navigate, activeStatusFilter]);
 
     const handleEditVisit = useCallback((visitId: string) => {
-        navigate(`/visits/${visitId}/edit`);
-    }, [navigate]);
+        if (activeStatusFilter === 'reservations') {
+            // Edycja rezerwacji - możesz otworzyć formularz rezerwacji w trybie edycji
+            console.log('Edit reservation:', visitId);
+        } else {
+            navigate(`/visits/${visitId}/edit`);
+        }
+    }, [navigate, activeStatusFilter]);
 
     const handleDeleteVisit = useCallback(async (visitId: string) => {
-        if (window.confirm('Czy na pewno chcesz usunąć tę wizytę?')) {
-            await visitsApi.deleteVisit(visitId)
-            await resetData()
+        if (activeStatusFilter === 'reservations') {
+            if (window.confirm('Czy na pewno chcesz usunąć tę rezerwację?')) {
+                await reservationsApi.deleteReservation(visitId);
+                await loadReservations(reservationsPagination.page, reservationsPagination.size);
+            }
+        } else {
+            if (window.confirm('Czy na pewno chcesz usunąć tę wizytę?')) {
+                await visitsApi.deleteVisit(visitId);
+                await resetData();
+            }
         }
-    }, [refreshVisits]);
+    }, [activeStatusFilter, loadReservations, resetData, reservationsPagination]);
 
-    // ✅ NOWE: Handler dla przycisku "Nowa wizyta"
     const handleAddVisit = useCallback(() => {
         setEditingVisit(null);
         setActiveForm('visit');
     }, []);
 
-    // ✅ NOWE: Handler dla przycisku "Nowa rezerwacja"
     const handleAddReservation = useCallback(() => {
         setActiveForm('reservation');
     }, []);
 
-    // ✅ ZMODYFIKOWANE: Uniwersalny handler zamykania formularzy
     const handleFormCancel = useCallback(() => {
         setActiveForm('none');
         setEditingVisit(null);
@@ -251,14 +382,17 @@ export const VisitsPageContainer: React.FC = () => {
         }
     }, [navigate, refreshVisits]);
 
-    // ✅ NOWE: Handler sukcesu rezerwacji
     const handleReservationSuccess = useCallback((reservationId: string) => {
         console.log('✅ Reservation created:', reservationId);
         setActiveForm('none');
-        refreshVisits();
-        // Możesz nawigować do szczegółów rezerwacji jeśli masz taki widok
-        // navigate(`/reservations/${reservationId}`);
-    }, [refreshVisits]);
+
+        // Jeśli jesteśmy w widoku rezerwacji, odśwież listę
+        if (activeStatusFilter === 'reservations') {
+            loadReservations(0, reservationsPagination.size);
+        } else {
+            refreshVisits();
+        }
+    }, [activeStatusFilter, loadReservations, refreshVisits, reservationsPagination.size]);
 
     const handleConfirmationClose = useCallback(() => {
         setIsShowingConfirmationModal(false);
@@ -323,21 +457,21 @@ export const VisitsPageContainer: React.FC = () => {
             appData.countersLoaded &&
             !appData.servicesLoading &&
             !appData.countersLoading &&
-            visits.length === 0;
+            visits.length === 0 &&
+            reservations.length === 0;
 
         if (shouldPerformInitialSearch) {
             performSearch();
         }
-    }, [appData.servicesLoaded, appData.countersLoaded, appData.servicesLoading, appData.countersLoading, visits.length]);
+    }, [appData.servicesLoaded, appData.countersLoaded, appData.servicesLoading, appData.countersLoading, visits.length, reservations.length]);
 
     useEffect(() => {
         resetData();
-        setActiveStatusFilter(ProtocolStatus.IN_PROGRESS);
+        setActiveStatusFilter('reservations');
         clearAllFilters();
         isFirstLoad.current = true;
     }, [location.pathname, resetData, clearAllFilters]);
 
-    // ✅ NOWE: Renderowanie formularza wizyty
     if (activeForm === 'visit') {
         return (
             <PageContainer>
@@ -376,7 +510,6 @@ export const VisitsPageContainer: React.FC = () => {
         );
     }
 
-    // ✅ NOWE: Renderowanie formularza rezerwacji
     if (activeForm === 'reservation') {
         return (
             <PageContainer>
@@ -401,7 +534,6 @@ export const VisitsPageContainer: React.FC = () => {
         );
     }
 
-    // ✅ ZMODYFIKOWANE: Dodano oba przyciski w nagłówku
     const headerActions = (
         <ButtonGroup>
             <SecondaryButton onClick={handleAddReservation}>
@@ -420,12 +552,24 @@ export const VisitsPageContainer: React.FC = () => {
                 onFiltersChange={handleFiltersChange}
                 onApplyFilters={handleApplyFilters}
                 onClearAll={handleClearAllFilters}
-                loading={visitsLoading}
+                loading={activeStatusFilter === 'reservations' ? reservationsLoading : visitsLoading}
                 availableServices={appData.services}
                 servicesLoading={appData.servicesLoading}
             />
         </FiltersContainer>
     );
+
+    // ✅ NOWE: Konwertuj rezerwacje na format VisitListItem
+    const displayData: VisitListItem[] = activeStatusFilter === 'reservations'
+        ? reservations.map(convertReservationToVisitListItem)
+        : visits;
+
+    // ✅ NOWE: Użyj odpowiedniej paginacji
+    const currentPagination = activeStatusFilter === 'reservations'
+        ? reservationsPagination
+        : pagination;
+
+    const isLoading = activeStatusFilter === 'reservations' ? reservationsLoading : visitsLoading;
 
     return (
         <PageContainer>
@@ -452,8 +596,8 @@ export const VisitsPageContainer: React.FC = () => {
                     )}
 
                     <VisitsTable
-                        visits={visits}
-                        loading={visitsLoading}
+                        visits={displayData}
+                        loading={isLoading}
                         showFilters={showFilters}
                         hasActiveFilters={hasActiveFilters}
                         onVisitClick={handleVisitClick}
@@ -464,14 +608,14 @@ export const VisitsPageContainer: React.FC = () => {
                         filtersComponent={filtersComponent}
                     />
 
-                    {pagination && pagination.totalPages > 1 && pagination.page !== undefined && (
+                    {currentPagination && currentPagination.totalPages > 1 && currentPagination.page !== undefined && (
                         <PaginationWrapper>
                             <Pagination
-                                currentPage={pagination.page + 1}
-                                totalPages={pagination.totalPages}
+                                currentPage={currentPagination.page + 1}
+                                totalPages={currentPagination.totalPages}
                                 onPageChange={handlePageChange}
-                                totalItems={pagination.totalItems}
-                                pageSize={pagination.size}
+                                totalItems={currentPagination.totalItems}
+                                pageSize={currentPagination.size}
                                 showTotalItems={true}
                             />
                         </PaginationWrapper>
@@ -482,10 +626,7 @@ export const VisitsPageContainer: React.FC = () => {
     );
 };
 
-// ========================================================================================
-// STYLED COMPONENTS
-// ========================================================================================
-
+// Styled Components (bez zmian)
 const PageContainer = styled.div`
     background: ${theme.surfaceHover};
     min-height: 100vh;
@@ -563,7 +704,6 @@ const PaginationWrapper = styled.div`
     justify-content: center;
 `;
 
-// ✅ NOWE: Style dla grupy przycisków
 const ButtonGroup = styled.div`
     display: flex;
     gap: ${theme.spacing.md};
@@ -579,7 +719,6 @@ const ButtonGroup = styled.div`
     }
 `;
 
-// ✅ NOWE: Styl dla przycisku wtórnego (rezerwacja)
 const SecondaryButton = styled.button`
     display: flex;
     align-items: center;
@@ -615,7 +754,6 @@ const SecondaryButton = styled.button`
     }
 `;
 
-// ✅ NOWE: Wrapper dla formularza rezerwacji
 const FormWrapper = styled.div`
     max-width: 1200px;
     margin: 0 auto;

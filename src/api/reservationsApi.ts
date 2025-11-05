@@ -235,7 +235,7 @@ class ReservationsApi {
     async getReservation(reservationId: string): Promise<Reservation> {
         try {
             const response = await apiClientNew.get<Reservation>(
-                `/api/v1/reservations/${reservationId}`,
+                `/v1/reservations/${reservationId}`,
                 {},
                 { timeout: 10000 }
             );
@@ -276,7 +276,7 @@ class ReservationsApi {
                 totalItems: number;
                 totalPages: number;
             }>(
-                '/api/v1/reservations',
+                '/v1/reservations',
                 queryParams,
                 { timeout: 15000 }
             );
@@ -297,7 +297,7 @@ class ReservationsApi {
     ): Promise<Reservation> {
         try {
             const response = await apiClientNew.put<Reservation>(
-                `/api/v1/reservations/${reservationId}`,
+                `/v1/reservations/${reservationId}`,
                 data,
                 { timeout: 15000 }
             );
@@ -318,7 +318,7 @@ class ReservationsApi {
     ): Promise<Reservation> {
         try {
             const response = await apiClientNew.patch<Reservation>(
-                `/api/v1/reservations/${reservationId}/status`,
+                `/v1/reservations/${reservationId}/status`,
                 data,
                 { timeout: 10000 }
             );
@@ -336,7 +336,7 @@ class ReservationsApi {
     async deleteReservation(reservationId: string): Promise<void> {
         try {
             await apiClientNew.delete(
-                `/api/v1/reservations/${reservationId}`,
+                `/v1/reservations/${reservationId}`,
                 { timeout: 10000 }
             );
         } catch (error) {
@@ -351,7 +351,7 @@ class ReservationsApi {
     async getCounters(): Promise<ReservationCounters> {
         try {
             const response = await apiClientNew.get<ReservationCounters>(
-                '/api/v1/reservations/counters',
+                '/v1/reservations/counters',
                 {},
                 { timeout: 10000 }
             );
@@ -373,7 +373,7 @@ class ReservationsApi {
     ): Promise<VisitResponse> {
         try {
             const response = await apiClientNew.post<VisitResponse>(
-                `/api/v1/reservations/${reservationId}/convert-to-visit`,
+                `/v1/reservations/${reservationId}/convert-to-visit`,
                 data,
                 { timeout: 20000 } // Longer timeout for complex operation
             );

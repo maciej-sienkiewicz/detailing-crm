@@ -1,8 +1,10 @@
+// src/pages/Protocols/form/hooks/useProtocolList.ts - Z OBSŁUGĄ REZERWACJI
 import {useCallback, useEffect, useState} from 'react';
 import {FilterType} from '../../list/ProtocolFilters';
 import {ProtocolStatus} from '../../../../types';
 import {SearchCriteria} from '../../list/ProtocolSearchFilters';
 import visitsApiNew, {VisitListItem} from "../../../../api/visitsApiNew";
+import {reservationsApi, Reservation} from "../../../../api/reservationsApi";
 
 interface UseProtocolListReturn {
     protocols: VisitListItem[];
@@ -21,10 +23,11 @@ interface UseProtocolListReturn {
     handlePageChange: (page: number) => void;
 }
 
-const mapFilterToStatus = (filter: FilterType): ProtocolStatus | undefined => {
+// ✅ ZMODYFIKOWANE: Mapowanie z uwzględnieniem rezerwacji
+const mapFilterToStatus = (filter: FilterType): ProtocolStatus | 'reservations' | undefined => {
     switch (filter) {
-        case 'Zaplanowane':
-            return ProtocolStatus.SCHEDULED;
+        case 'Rezerwacje':
+            return 'reservations';
         case 'W realizacji':
             return ProtocolStatus.IN_PROGRESS;
         case 'Oczekujące na odbiór':
@@ -38,40 +41,100 @@ const mapFilterToStatus = (filter: FilterType): ProtocolStatus | undefined => {
     }
 };
 
+// ✅ NOWE: Helper do konwersji Reservation na VisitListItem
+const convertReservationToVisitListItem = (reservation: Reservation): VisitListItem => {
+    return {
+        id: reservation.id,
+        vehicle: {
+            make: reservation.vehicleMake,
+            model: reservation.vehicleModel,
+            licensePlate: '',
+            productionYear: 0,
+            color: undefined
+        },
+        period: {
+            startDate: reservation.startDate,
+            endDate: reservation.endDate
+        },
+        owner: {
+            name: reservation.contactName || reservation.contactPhone,
+            companyName: undefined
+        },
+        status: ProtocolStatus.SCHEDULED, // Rezerwacje wyświetlamy jako zaplanowane
+        totalServiceCount: reservation.serviceCount,
+        totalAmountNetto: reservation.totalPriceNetto,
+        totalAmountBrutto: reservation.totalPriceBrutto,
+        totalTaxAmount: reservation.totalTaxAmount,
+        calendarColorId: reservation.calendarColorId,
+        selectedServices: reservation.services.map(service => ({
+            id: service.id,
+            name: service.name,
+            quantity: service.quantity,
+            basePrice: service.basePrice,
+            discountType: 'PERCENTAGE' as any,
+            discountValue: 0,
+            finalPrice: service.finalPrice,
+            note: service.note
+        })),
+        title: reservation.title,
+        lastUpdate: new Date(reservation.updatedAt).toLocaleDateString('pl-PL')
+    };
+};
+
 export const useProtocolList = (): UseProtocolListReturn => {
     const [protocols, setProtocols] = useState<VisitListItem[]>([]);
     const [filteredProtocols, setFilteredProtocols] = useState<VisitListItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [activeFilter, setActiveFilter] = useState<FilterType>('W realizacji');
+    const [activeFilter, setActiveFilter] = useState<FilterType>('Rezerwacje');
     const [searchParams, setSearchParams] = useState<SearchCriteria>({});
 
     const [pagination, setPagination] = useState({
-        currentPage: 0,  // Indeksowanie od 0 dla API
+        currentPage: 0,
         pageSize: 10,
         totalItems: 0,
         totalPages: 0
     });
 
+    // ✅ ZMODYFIKOWANE: Funkcja pobierania z obsługą rezerwacji
     const fetchProtocols = useCallback(async () => {
         setLoading(true);
         try {
-            // Określenie statusu na podstawie aktywnego filtra
             const status = mapFilterToStatus(activeFilter);
 
-            // Przygotowanie parametrów filtrowania
+            // ✅ NOWE: Jeśli wybrane są rezerwacje, pobierz je
+            if (status === 'reservations') {
+                const result = await reservationsApi.listReservations({
+                    page: pagination.currentPage,
+                    size: pagination.pageSize,
+                    sortBy: 'startDate',
+                    sortDirection: 'ASC'
+                });
+
+                const convertedReservations = result.data.map(convertReservationToVisitListItem);
+                setProtocols(convertedReservations);
+                setFilteredProtocols(convertedReservations);
+
+                setPagination({
+                    currentPage: result.page,
+                    pageSize: result.size,
+                    totalItems: result.totalItems,
+                    totalPages: result.totalPages
+                });
+
+                return;
+            }
+
+            // ✅ Standardowe pobieranie wizyt
             const queryParams: any = {
-                page: pagination.currentPage,  // Używamy currentPage z obiektu pagination
+                page: pagination.currentPage,
                 size: pagination.pageSize
             };
 
-            // Dodanie statusu tylko jeśli nie jest to filtr "Wszystkie"
-            // @ts-ignore
-            if (activeFilter !== 'Wszystkie' && status) {
+            if (status) {
                 queryParams.status = status;
             }
 
-            // Dodanie parametrów wyszukiwania, jeśli są dostępne
             if (Object.keys(searchParams).length > 0) {
                 if (searchParams.clientName) queryParams.clientName = searchParams.clientName;
                 if (searchParams.licensePlate) queryParams.licensePlate = searchParams.licensePlate;
@@ -84,14 +147,12 @@ export const useProtocolList = (): UseProtocolListReturn => {
                 if (searchParams.price?.max) queryParams.maxPrice = searchParams.price.max;
             }
 
-            // Wywołanie API z paginacją
             const result = await visitsApiNew.getVisitsList(queryParams);
 
             if (result.success && result.data) {
                 setProtocols(result.data.data);
                 setFilteredProtocols(result.data.data);
 
-                // Aktualizacja informacji o paginacji z odpowiedzi API
                 setPagination({
                     currentPage: result.data.pagination.currentPage,
                     pageSize: result.data.pagination.pageSize,
@@ -99,17 +160,11 @@ export const useProtocolList = (): UseProtocolListReturn => {
                     totalPages: result.data.pagination.totalPages
                 });
             } else {
-                // Obsługa błędu
                 console.error('Błąd pobierania wizyt:', result.error);
-
-                // Możesz ustawić pustą listę i pokazać błąd użytkownikowi
                 setProtocols([]);
                 setFilteredProtocols([]);
-
                 setError(result.error || 'Nieznany błąd');
 
-
-                // Ustaw domyślną paginację
                 setPagination({
                     currentPage: 0,
                     pageSize: 10,
@@ -126,26 +181,21 @@ export const useProtocolList = (): UseProtocolListReturn => {
         }
     }, [activeFilter, pagination.currentPage, pagination.pageSize, searchParams]);
 
-    // Efekt pobierający dane przy inicjalizacji i zmianie zależności
     useEffect(() => {
         fetchProtocols();
     }, [fetchProtocols]);
 
-    // Funkcja pomocnicza do odświeżenia listy
     const refreshProtocolsList = useCallback(async () => {
         await fetchProtocols();
     }, [fetchProtocols]);
 
-    // Obsługa zmiany strony - upraszczamy tę funkcję
     const handlePageChange = (page: number) => {
-
         setPagination(prev => ({
             ...prev,
-            currentPage: page - 1  // Konwersja z indeksowania od 1 (UI) na indeksowanie od 0 (API)
+            currentPage: page - 1
         }));
     };
 
-    // Obsługa zmiany filtra
     const handleFilterChange = (filter: FilterType) => {
         if (filter === activeFilter) return;
 
@@ -166,7 +216,7 @@ export const useProtocolList = (): UseProtocolListReturn => {
         setActiveFilter: handleFilterChange,
         refreshProtocolsList,
         pagination: {
-            currentPage: pagination.currentPage, // W UI strony są liczone od 1
+            currentPage: pagination.currentPage,
             pageSize: pagination.pageSize,
             totalItems: pagination.totalItems,
             totalPages: pagination.totalPages

@@ -18,7 +18,6 @@ export interface PaginatedResponse<T> {
 
 // Statusy protokołu
 export enum ProtocolStatus {
-    SCHEDULED = 'SCHEDULED',                  // Zaplanowano
     IN_PROGRESS = 'IN_PROGRESS',              // W realizacji
     READY_FOR_PICKUP = 'READY_FOR_PICKUP',    // Oczekiwanie na odbiór
     COMPLETED = 'COMPLETED',                  // Wydano/zakończono
@@ -27,7 +26,6 @@ export enum ProtocolStatus {
 
 // Zaktualizuj etykiety dla statusów
 export const ProtocolStatusLabels: Record<ProtocolStatus, string> = {
-    [ProtocolStatus.SCHEDULED]: 'Zaplanowano',
     [ProtocolStatus.IN_PROGRESS]: 'W realizacji',
     [ProtocolStatus.READY_FOR_PICKUP]: 'Gotowy do odbioru',
     [ProtocolStatus.COMPLETED]: 'Zakończony',
@@ -36,7 +34,6 @@ export const ProtocolStatusLabels: Record<ProtocolStatus, string> = {
 
 // Zaktualizuj kolory dla statusów
 export const ProtocolStatusColors: Record<ProtocolStatus, string> = {
-    [ProtocolStatus.SCHEDULED]: '#3498db',        // Niebieski
     [ProtocolStatus.IN_PROGRESS]: '#9b59b6',      // Fioletowy
     [ProtocolStatus.READY_FOR_PICKUP]: '#2ecc71', // Zielony
     [ProtocolStatus.COMPLETED]: '#7f8c8d',        // Szary

@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import {ProtocolStatus} from '../../../types';
 import {theme} from '../../../styles/theme';
 
-type StatusFilterType = 'all' | ProtocolStatus;
+type StatusFilterType =  'reservations' | 'all' | ProtocolStatus;
 
 interface StatusFilterConfig {
     label: string;
@@ -12,8 +12,8 @@ interface StatusFilterConfig {
 }
 
 const statusConfig: Record<StatusFilterType, StatusFilterConfig> = {
-    [ProtocolStatus.SCHEDULED]: {
-        label: 'Zaplanowane',
+    reservations: {
+        label: 'Rezerwacje',
         color: theme.info,
         lightColor: theme.infoBg
     },
@@ -45,7 +45,7 @@ const statusConfig: Record<StatusFilterType, StatusFilterConfig> = {
 };
 
 interface VisitsStatusFiltersProps {
-    activeStatus: StatusFilterType;
+    activeStatus: StatusFilterType | 'reservations';
     onStatusChange: (status: StatusFilterType) => void;
     counters: Record<string, number>;
     loading: boolean;
@@ -58,7 +58,7 @@ export const VisitsStatusFilters: React.FC<VisitsStatusFiltersProps> = ({
                                                                             loading
                                                                         }) => {
     const filterOrder: StatusFilterType[] = [
-        ProtocolStatus.SCHEDULED,
+        'reservations',
         ProtocolStatus.IN_PROGRESS,
         ProtocolStatus.READY_FOR_PICKUP,
         ProtocolStatus.COMPLETED,
