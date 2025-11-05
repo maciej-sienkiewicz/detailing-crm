@@ -29,7 +29,7 @@ import {
     FaUserTie
 } from 'react-icons/fa';
 import {clientApi} from "../../../../api/clientsApi";
-import {servicesApi} from "../../../../api/servicesApi";
+import {servicesApi} from "../../../../features/services/api/servicesApi";
 import {visitsApi} from "../../../../api/visitsApiNew";
 import {
     CarReceptionProtocol,

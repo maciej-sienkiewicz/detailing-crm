@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import {FaArrowLeft} from 'react-icons/fa';
 import {useLocation, useNavigate} from 'react-router-dom';
-import {servicesApi} from '../../api/servicesApi';
+import {servicesApi} from '../../features/services/api/servicesApi';
 import {
     BackButton,
     ErrorMessage,

@@ -7,7 +7,7 @@
 import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
 import {PriceType, Service} from '../../../types';
-import {servicesApi} from '../../../api/servicesApi';
+import {servicesApi} from '../../services/api/servicesApi';
 import {ReservationSelectedServiceInput} from '../api/reservationsApi';
 import {ServiceSection, useServiceCalculations} from '../../services';
 

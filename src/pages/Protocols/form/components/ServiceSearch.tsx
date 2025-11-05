@@ -15,7 +15,7 @@ import {
 } from '../styles';
 import PriceEditModal from "../../shared/modals/PriceEditModal";
 import {Service, PriceType} from '../../../../types';
-import {servicesApi} from "../../../../api/servicesApi";
+import {servicesApi} from "../../../../features/services/api/servicesApi";
 
 const EditPriceButton = styled.button.attrs({
     type: 'button',

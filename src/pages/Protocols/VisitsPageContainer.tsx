@@ -5,7 +5,7 @@ import {FaArrowLeft, FaCalendarPlus, FaClipboardCheck, FaPlus} from 'react-icons
 import {useLocation, useNavigate} from 'react-router-dom';
 import {VisitListItem, visitsApi} from '../../api/visitsApiNew';
 import {ProtocolStatus} from '../../types';
-import {servicesApi} from '../../api/servicesApi';
+import {servicesApi} from '../../features/services/api/servicesApi';
 import {protocolsApi} from '../../api/protocolsApi';
 import {reservationsApi, Reservation, ReservationStatus} from '../../features/reservations/api/reservationsApi';
 import {useVisitsData} from './hooks/useVisitsData';

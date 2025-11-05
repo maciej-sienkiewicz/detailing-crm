@@ -3,7 +3,7 @@ import {FaArrowLeft} from 'react-icons/fa';
 import {useLocation, useNavigate, useParams} from 'react-router-dom';
 import {CarReceptionProtocol, ProtocolStatus} from '../../../types';
 import {protocolsApi} from '../../../api/protocolsApi';
-import {servicesApi} from '../../../api/servicesApi';
+import {servicesApi} from '../../../features/services/api/servicesApi';
 
 import {BackButton, ErrorMessage, HeaderLeft, LoadingMessage, PageContainer, PageHeader} from '../styles';
 

@@ -11,7 +11,7 @@ import {
     FaPlus
 } from 'react-icons/fa';
 import { Service, PriceType, PriceTypeLabels, ServicePriceInput } from '../../types';
-import { servicesApi, ServiceData } from '../../api/servicesApi';
+import { servicesApi, ServiceData } from '../../features/services/api/servicesApi';
 import { DataTable, TableColumn, HeaderAction } from '../../components/common/DataTable';
 import { settingsTheme } from './styles/theme';
 import { ConfirmationDialog } from "../../components/common/NewConfirmationDialog";
