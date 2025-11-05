@@ -17,12 +17,12 @@ import Pagination from '../../components/common/Pagination';
 import {PageHeader, PrimaryButton} from '../../components/common/PageHeader';
 import {theme} from '../../styles/theme';
 
-import {EditProtocolForm} from './form/components/EditProtocolForm';
 import ProtocolConfirmationModal from './shared/modals/ProtocolConfirmationModal';
 import {BiPen} from "react-icons/bi";
 import {ReservationForm} from "../../features/reservations";
 import {servicesApi} from "../../features/services/api/servicesApi";
 import {ReservationsTable} from "../../features/reservations/components/ReservationsTable/ReservationsTable";
+import {EditVisitForm} from "../../features/visits/components/EditVisitForm/EditVisitForm";
 
 type StatusFilterType = 'reservations' | 'all' | ProtocolStatus;
 
@@ -472,7 +472,7 @@ export const VisitsPageContainer: React.FC = () => {
                     }
                 />
 
-                <EditProtocolForm
+                <EditVisitForm
                     protocol={editingVisit}
                     availableServices={availableServices}
                     initialData={undefined}

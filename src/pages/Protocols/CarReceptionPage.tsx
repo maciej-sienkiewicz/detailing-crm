@@ -14,8 +14,8 @@ import {
 import {useProtocolList} from "./form/hooks/useProtocolList";
 import {useProtocolActions} from "./form/hooks/useProtocolActions";
 import ProtocolConfirmationModal from "./shared/modals/ProtocolConfirmationModal";
-import {EditProtocolForm} from "./form/components/EditProtocolForm";
 import {VisitsPageContainer} from './VisitsPageContainer';
+import {EditVisitForm} from "../../features/visits/components/EditVisitForm/EditVisitForm";
 
 const CarReceptionPage: React.FC = () => {
     const location = useLocation();
@@ -182,7 +182,7 @@ const CarReceptionPage: React.FC = () => {
                 ) : error ? (
                     <ErrorMessage>{error}</ErrorMessage>
                 ) : (
-                    <EditProtocolForm
+                    <EditVisitForm
                         protocol={editingProtocol}
                         availableServices={availableServices}
                         initialData={

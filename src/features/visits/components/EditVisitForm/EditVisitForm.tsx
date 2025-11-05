@@ -1,31 +1,38 @@
-import React, {useState} from 'react';
-import {CarReceptionProtocol, SelectedService} from '../../../../types';
-import {Service} from '../../../../types';
-import {useFormSubmit} from '../hooks/useFormSubmit';
-import {useServiceCalculations} from '../hooks/useServiceCalculations';
-import VisitTitleSection from '../components/VisitTitleSection';
-import ReferralSourceSection from '../components/ReferralSourceSection';
-import NotesSection from '../components/NotesSection';
-import FormActions from '../components/FormActions';
-import VehicleSelectionModal from "../../shared/modals/VehicleSelectionModal";
+import React, {useState, useEffect} from 'react';
+import {CarReceptionProtocol, SelectedService, Service} from '../../../../types';
+
+// Zewnętrzne, przemianowane hooki
+import {useVisitServicesState} from '../../hooks/useVisitServicesState';
+
+// Import sekcji i UI
+import {ServiceSection} from "../../../services";
+import {useAddService} from "../../hooks/useAddService";
+import {useRemoveService} from "../../hooks/useRemoveService";
+import {useUpdateBasePrice} from "../../hooks/useUpdateBasePrice";
+import {useUpdateDiscountType} from "../../hooks/useUpdateDiscountType";
+import {useUpdateDiscountValue} from "../../hooks/useUpdateDiscountValue";
+import {useUpdateServiceNote} from "../../hooks/useUpdateServiceNote";
+import {useHandleServiceCreated} from "../../hooks/useHandleServiceCreated";
+import {useTotalsCalculation} from "../../hooks/useTotalsCalculation";
+import VisitTitleSection from "../../../../pages/Protocols/form/components/VisitTitleSection";
+import ScheduleSection from "../../../../pages/Protocols/form/components/ScheduleSection";
+import ClientInfoSection from "../../../../pages/Protocols/form/components/ClientInfoSection";
+import VehicleInfoSection from "../../../../pages/Protocols/form/components/VehicleInfoSection";
+import NotesSection from "../../../../pages/Protocols/form/components/NotesSection";
 import {
     Button,
-    ConfirmationDialog,
-    DialogActions,
-    DialogContent,
-    DialogText,
-    DialogTitle,
+    ConfirmationDialog, DialogActions, DialogContent, DialogText, DialogTitle,
     ErrorMessage,
     Form,
     FormContainer
-} from '../styles';
-import {useFormDataWithAutocomplete} from "../hooks/useFormData";
-import VehicleInfoSection from "./VehicleInfoSection";
-import ClientInfoSection from "./ClientInfoSection";
-import ScheduleSection from "./ScheduleSection";
-import {ServiceSection} from "../../../../features/services";
+} from "../../../../pages/Protocols/form/styles";
+import VehicleSelectionModal from "../../../../pages/Protocols/shared/modals/VehicleSelectionModal";
+import {useFormDataWithAutocomplete} from "../../../../pages/Protocols/form/hooks/useFormData";
+import {useFormSubmit} from "../../../../pages/Protocols/form/hooks/useFormSubmit";
+import ReferralSourceSection from "../../../../pages/Protocols/form/components/ReferralSourceSection";
+import FormActions from "../../../../pages/Protocols/form/components/FormActions";
 
-interface EditProtocolFormProps {
+interface EditVisitFormProps {
     protocol: CarReceptionProtocol | null;
     availableServices: Service[];
     initialData?: Partial<CarReceptionProtocol>;
@@ -36,16 +43,18 @@ interface EditProtocolFormProps {
     onServiceAdded?: () => void;
 }
 
-export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
-                                                                      protocol,
-                                                                      availableServices,
-                                                                      initialData,
-                                                                      appointmentId,
-                                                                      isFullProtocol = true,
-                                                                      onSave,
-                                                                      onCancel,
-                                                                      onServiceAdded
-                                                                  }) => {
+export const EditVisitForm: React.FC<EditVisitFormProps> = ({
+                                                                protocol,
+                                                                availableServices,
+                                                                initialData,
+                                                                appointmentId,
+                                                                isFullProtocol = true,
+                                                                onSave,
+                                                                onCancel,
+                                                                onServiceAdded
+                                                            }) => {
+
+    // ORKIESTRACJA DANYCH FORMUARZA
     const {
         formData,
         setFormData,
@@ -64,6 +73,7 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
         handleVehicleModalSelect
     } = useFormDataWithAutocomplete(protocol, initialData);
 
+    // ORKIESTRACJA SUBMITU
     const {
         loading,
         error: submitError,
@@ -72,18 +82,19 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
         handleSubmit
     } = useFormSubmit(formData, protocol, appointmentId, onSave, false);
 
-    const {
-        services,
-        setServices,
-        addService,
-        removeService,
-        updateBasePrice,
-        updateDiscountType,
-        updateDiscountValue,
-        updateServiceNote,
-        calculateTotals
-    } = useServiceCalculations(formData.selectedServices || []);
+    // ORKIESTRACJA USŁUG - STAN, KOMENDY i ZAPYTANIA
+    const { services, setServices } = useVisitServicesState(formData.selectedServices || []);
 
+    const addServiceCommand = useAddService(setServices);
+    const removeService = useRemoveService(setServices);
+    const updateBasePrice = useUpdateBasePrice(setServices);
+    const updateDiscountType = useUpdateDiscountType(setServices);
+    const updateDiscountValue = useUpdateDiscountValue(setServices);
+    const updateServiceNote = useUpdateServiceNote(setServices);
+    const handleServiceCreated = useHandleServiceCreated(setServices);
+    const calculateTotals = useTotalsCalculation(services);
+
+    // LOKALNY STAN WYSZUKIWANIA
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<Service[]>([]);
     const [showResults, setShowResults] = useState(false);
@@ -91,39 +102,28 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
 
     const error = submitError;
 
-    React.useEffect(() => {
+    // EFEKT SYNCHRONIZUJĄCY
+    useEffect(() => {
         setFormData(prev => ({
             ...prev,
             selectedServices: services,
         }));
     }, [services, setFormData]);
 
-    const handleServiceCreated = (oldId: string, newService: Service) => {
-        setServices(prevServices =>
-            prevServices.map(service =>
-                service.id === oldId
-                    ? {
-                        ...service,
-                        id: newService.id,
-                        basePrice: newService.price,
-                        finalPrice: newService.price
-                    }
-                    : service
-            )
-        );
-    };
-
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSearchQuery(e.target.value);
+        const query = e.target.value;
+        setSearchQuery(query);
         setShowResults(true);
         setSelectedServiceToAdd(null);
-        if (e.target.value.trim() === '') {
+
+        if (query.trim() === '') {
             setSearchResults([]);
             return;
         }
-        const query = e.target.value.toLowerCase();
+
+        const lowerQuery = query.toLowerCase();
         const results = availableServices.filter(service =>
-            service.name.toLowerCase().includes(query) &&
+            service.name.toLowerCase().includes(lowerQuery) &&
             !services.some(selected => selected.id === service.id)
         );
         setSearchResults(results);
@@ -136,8 +136,10 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
     };
 
     const handleAddService = () => {
+        let newServiceData: Omit<SelectedService, 'finalPrice'>;
+
         if (selectedServiceToAdd) {
-            const newService: Omit<SelectedService, 'finalPrice'> = {
+            newServiceData = {
                 id: selectedServiceToAdd.id,
                 name: selectedServiceToAdd.name,
                 quantity: 1,
@@ -146,31 +148,30 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
                 discountValue: 0,
                 approvalStatus: undefined,
             };
-            addService(newService);
         } else if (searchQuery.trim() !== '') {
             const customId = `custom-${Date.now()}`;
-            const newService: Omit<SelectedService, 'finalPrice'> = {
+            newServiceData = {
                 id: customId,
                 name: searchQuery.trim(),
                 quantity: 1,
-                basePrice: {
-                    priceNetto: 0,
-                    priceBrutto: 0,
-                    taxAmount: 0
-                },
+                basePrice: { priceNetto: 0, priceBrutto: 0, taxAmount: 0 },
                 discountType: "PERCENTAGE" as any,
                 discountValue: 0,
                 approvalStatus: undefined,
             };
-            addService(newService);
+        } else {
+            return;
         }
+
+        addServiceCommand(newServiceData);
         setSearchQuery('');
         setSelectedServiceToAdd(null);
         clearFieldError('selectedServices');
+        if (onServiceAdded) onServiceAdded();
     };
 
     const handleAddServiceDirect = (service: Service) => {
-        const newService: Omit<SelectedService, 'finalPrice'> = {
+        const newServiceData: Omit<SelectedService, 'finalPrice'> = {
             id: service.id,
             name: service.name,
             quantity: 1,
@@ -179,11 +180,12 @@ export const EditProtocolForm: React.FC<EditProtocolFormProps> = ({
             discountValue: 0,
             approvalStatus: undefined,
         };
-        addService(newService);
+        addServiceCommand(newServiceData);
         setSearchQuery('');
         setSelectedServiceToAdd(null);
         clearFieldError('selectedServices');
         setShowResults(false);
+        if (onServiceAdded) onServiceAdded();
     };
 
     if (loadingAutocompleteData) {

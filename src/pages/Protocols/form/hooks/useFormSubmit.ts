@@ -15,11 +15,6 @@ interface UseFormSubmitResult {
     isOpenProtocolAction: boolean;
 }
 
-interface ConfirmationOptions {
-    print: boolean;
-    sendEmail: boolean;
-}
-
 export const useFormSubmit = (
     formData: Partial<CarReceptionProtocol>,
     protocol: CarReceptionProtocol | null,
