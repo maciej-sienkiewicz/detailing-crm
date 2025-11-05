@@ -1,6 +1,6 @@
 import {useCallback, useRef, useState} from 'react';
 import {VisitListItem, visitsApi} from '../../../api/visitsApiNew';
-import {PaginationParams} from '../../../api/apiClientNew';
+import {PaginationParams} from '../../../shared/api/apiClientNew';
 import {VisitFilterParams} from './useVisitsFilters';
 
 export interface UseVisitsDataReturn {

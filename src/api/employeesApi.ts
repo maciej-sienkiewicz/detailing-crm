@@ -1,4 +1,4 @@
-import {apiClientNew, ApiError, PaginatedApiResponse, PaginationParams} from './apiClientNew';
+import {apiClientNew, ApiError, PaginatedApiResponse, PaginationParams} from '../shared/api/apiClientNew';
 import {EmployeeDocument} from '../types';
 import {ContractType, EmployeeFilters, ExtendedEmployee, UserRole} from '../types/employeeTypes';
 

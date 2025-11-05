@@ -1,5 +1,5 @@
 // src/api/galleryApi.ts - poprawiona wersja
-import {apiClient} from './apiClient';
+import {apiClient} from '../shared/api/apiClient';
 
 export interface GalleryImage {
     id: string;

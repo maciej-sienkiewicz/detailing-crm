@@ -1,5 +1,5 @@
 // src/api/fixedCostsApi.ts
-import {apiClient, PaginatedResponse} from './apiClient';
+import {apiClient, PaginatedResponse} from '../shared/api/apiClient';
 
 // Types for Fixed Costs
 export interface FixedCostCategory {

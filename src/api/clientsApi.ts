@@ -1,5 +1,5 @@
 // src/api/clientsApi.ts - NAPRAWIONE WERSJA
-import {apiClientNew, ApiError, PaginatedApiResponse, PaginationParams} from './apiClientNew';
+import {apiClientNew, ApiError, PaginatedApiResponse, PaginationParams} from '../shared/api/apiClientNew';
 import {ClientExpanded, ClientStatistics, ClientStatisticsResponse, ContactAttempt, PriceResponse} from '../types';
 
 // Interfejs odpowiadający strukturze z serwera - ClientWithStatisticsResponse

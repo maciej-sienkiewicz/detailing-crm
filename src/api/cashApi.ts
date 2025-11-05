@@ -1,5 +1,5 @@
 // src/api/cashApi.ts
-import {apiClient, PaginatedResponse} from './apiClient';
+import {apiClient, PaginatedResponse} from '../shared/api/apiClient';
 import {CashTransaction, CashTransactionFilters} from '../types/cash';
 
 /**

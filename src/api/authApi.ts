@@ -1,5 +1,5 @@
 // src/api/authApi.ts
-import {apiClient} from './apiClient';
+import {apiClient} from '../shared/api/apiClient';
 
 // Typy dla żądań i odpowiedzi
 interface LoginRequest {

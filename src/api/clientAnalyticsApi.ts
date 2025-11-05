@@ -1,5 +1,5 @@
 // src/api/clientAnalyticsApi.ts
-import { apiClientNew } from './apiClientNew';
+import { apiClientNew } from '../shared/api/apiClientNew';
 
 // ========================================================================================
 // INTERFACE DEFINITIONS - Frontend Types

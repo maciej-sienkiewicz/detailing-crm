@@ -1,5 +1,5 @@
 // src/api/pdfInvoiceService.ts
-import {apiClient} from './apiClient';
+import {apiClient} from '../shared/api/apiClient';
 import {Invoice} from '../types';
 import {invoicesApi} from './invoicesApi';
 import html2canvas from 'html2canvas';

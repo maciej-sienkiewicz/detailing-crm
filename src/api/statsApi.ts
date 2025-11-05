@@ -1,5 +1,5 @@
 // src/api/statsApi.ts
-import {apiClientNew} from './apiClientNew';
+import {apiClientNew} from '../shared/api/apiClientNew';
 
 // Type definitions based on server responses
 export interface UncategorizedService {

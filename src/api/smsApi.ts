@@ -11,7 +11,7 @@ import {
     SmsTemplate,
     SmsTemplateCategory
 } from '../types/sms';
-import {apiClient, PaginatedResponse} from './apiClient';
+import {apiClient, PaginatedResponse} from '../shared/api/apiClient';
 
 // API dla operacji związanych z SMS
 export const smsApi = {

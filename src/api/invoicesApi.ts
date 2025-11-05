@@ -1,5 +1,5 @@
 // src/api/invoicesApi.ts
-import {apiClient} from './apiClient';
+import {apiClient} from '../shared/api/apiClient';
 import {Invoice, InvoiceFilters, InvoiceStatus} from '../types';
 
 // Typ odpowiedzi dla ekstrahowanych danych z faktury

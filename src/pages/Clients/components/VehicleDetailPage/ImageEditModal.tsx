@@ -3,7 +3,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import styled from 'styled-components';
 import { FaTimes, FaPlus, FaTag, FaSave, FaSpinner } from 'react-icons/fa';
 import { theme } from '../../../../styles/theme';
-import { apiClientNew } from '../../../../api/apiClientNew';
+import { apiClientNew } from '../../../../shared/api/apiClientNew';
 
 interface VehicleImage {
     id: string;

@@ -1,6 +1,6 @@
 // src/api/fleetImageApi.ts
 
-import {apiClient} from './apiClient';
+import {apiClient} from '../shared/api/apiClient';
 import {FleetImage} from '../types/fleetRental';
 
 export const fleetImageApi = {

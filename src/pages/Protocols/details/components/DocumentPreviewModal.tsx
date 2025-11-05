@@ -2,7 +2,7 @@
 import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
 import {FaDownload, FaExclamationTriangle, FaFileAlt, FaTimes} from 'react-icons/fa';
-import {apiClient} from "../../../../api/apiClient";
+import {apiClient} from "../../../../shared/api/apiClient";
 
 interface ProtocolDocument {
     storageId: string;

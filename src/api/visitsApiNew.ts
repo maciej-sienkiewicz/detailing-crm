@@ -4,7 +4,7 @@
  * Handles all visit/protocol-related API operations with proper typing and error handling
  */
 
-import {apiClientNew, ApiError, PaginatedApiResponse, PaginationParams} from './apiClientNew';
+import {apiClientNew, ApiError, PaginatedApiResponse, PaginationParams} from '../shared/api/apiClientNew';
 import {ProtocolStatus, DiscountType} from '../types';
 import {PriceResponse, PriceType} from '../types/service';
 

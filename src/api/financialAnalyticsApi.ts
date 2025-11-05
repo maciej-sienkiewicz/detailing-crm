@@ -15,7 +15,7 @@
  * @version 2.0.0
  */
 
-import {apiClientNew, ApiError} from './apiClientNew';
+import {apiClientNew, ApiError} from '../shared/api/apiClientNew';
 
 // ========================================================================================
 // CORE TYPE DEFINITIONS

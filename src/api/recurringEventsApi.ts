@@ -4,7 +4,7 @@
  * FIXED: Handles LocalDateTime arrays, field mapping, and calculates missing fields
  */
 
-import { apiClientNew, ApiError, PaginationParams } from './apiClientNew';
+import { apiClientNew, ApiError, PaginationParams } from '../shared/api/apiClientNew';
 import {
     RecurringEventResponse,
     CreateRecurringEventRequest,

@@ -1,4 +1,4 @@
-import {apiClient} from './apiClient';
+import {apiClient} from '../shared/api/apiClient';
 
 // Interfejs dla komentarza
 export interface Comment {

@@ -1,5 +1,5 @@
 // src/api/logoApi.ts
-import { apiClientNew } from './apiClientNew';
+import { apiClientNew } from '../shared/api/apiClientNew';
 
 export interface LogoUploadResponse {
     id: number;

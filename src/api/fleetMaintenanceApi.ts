@@ -1,6 +1,6 @@
 // src/api/fleetMaintenanceApi.ts
 
-import {apiClient} from './apiClient';
+import {apiClient} from '../shared/api/apiClient';
 import {FleetFuelEntry, FleetFuelStatus, FleetMaintenance} from '../types/fleetMaintenance';
 
 export const fleetMaintenanceApi = {

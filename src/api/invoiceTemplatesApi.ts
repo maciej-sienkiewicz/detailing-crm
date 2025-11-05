@@ -1,4 +1,4 @@
-import {apiClientNew} from './apiClientNew';
+import {apiClientNew} from '../shared/api/apiClientNew';
 import {InvoiceTemplate, TemplateUploadData} from '../types/invoiceTemplate';
 
 class InvoiceTemplatesApi {

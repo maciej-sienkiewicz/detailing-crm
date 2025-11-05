@@ -1,5 +1,5 @@
 import {PriceResponse, VehicleExpanded, VehicleOwner, VehicleStatistics} from '../types';
-import {apiClientNew, PaginatedApiResponse, PaginationParams} from './apiClientNew';
+import {apiClientNew, PaginatedApiResponse, PaginationParams} from '../shared/api/apiClientNew';
 
 export interface VehicleTableResponse {
     id: number;

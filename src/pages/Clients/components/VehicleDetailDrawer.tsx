@@ -25,7 +25,7 @@ import {vehicleApi} from '../../../api/vehiclesApi';
 import {ProtocolStatus, ProtocolStatusColors, ProtocolStatusLabels} from '../../../types/protocol';
 
 // NAPRAWIONY: Nowe API dla pojazdów i wizyt
-import {apiClientNew} from '../../../api/apiClientNew';
+import {apiClientNew} from '../../../shared/api/apiClientNew';
 
 const brandTheme = {
     primary: 'var(--brand-primary, #1a365d)',

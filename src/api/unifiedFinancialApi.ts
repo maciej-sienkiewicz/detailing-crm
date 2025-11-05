@@ -1,5 +1,5 @@
 // src/api/unifiedFinancialApi.ts
-import {apiClient, PaginatedResponse} from './apiClient';
+import {apiClient, PaginatedResponse} from '../shared/api/apiClient';
 import {
     DocumentStatus,
     UnifiedDocumentFilters,

@@ -14,7 +14,7 @@ import {
     FaClock,
     FaKeyboard
 } from 'react-icons/fa';
-import { apiClientNew } from '../../../../api/apiClientNew';
+import { apiClientNew } from '../../../../shared/api/apiClientNew';
 import vehicleImageApi from "../../../../api/vehicleImageApi";
 
 // Professional Brand Theme (same as ImageEditModal for consistency)

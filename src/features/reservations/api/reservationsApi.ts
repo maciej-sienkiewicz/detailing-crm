@@ -4,7 +4,7 @@
  * Handles reservation operations before converting to full visits
  */
 
-import { apiClientNew } from '../../../api/apiClientNew';
+import { apiClientNew } from '../../../shared/api/apiClientNew';
 import { ProtocolStatus } from '../../../types';
 import { PriceResponse, ServicePriceInput } from '../../../types/service';
 

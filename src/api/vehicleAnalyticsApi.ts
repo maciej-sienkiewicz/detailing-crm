@@ -1,4 +1,4 @@
-import { apiClientNew } from './apiClientNew';
+import { apiClientNew } from '../shared/api/apiClientNew';
 
 export interface VehicleAnalyticsResponse {
     profitabilityAnalysis?: ProfitabilityAnalysisDto;

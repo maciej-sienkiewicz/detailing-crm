@@ -1,6 +1,6 @@
 // src/hooks/useImageDownload.ts
 import {galleryApi, GalleryImage} from '../api/galleryApi';
-import {apiClient} from '../api/apiClient';
+import {apiClient} from '../shared/api/apiClient';
 import {getFileNameWithExtension} from '../utils/galleryUtils';
 
 export const useImageDownload = () => {

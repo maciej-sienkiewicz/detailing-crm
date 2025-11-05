@@ -11,7 +11,7 @@ import { PageContainer, ContentContainer, MainContent, Sidebar } from './Vehicle
 import VehicleGallerySection from "./VehicleGallerySection";
 import {VehicleExpanded, VehicleStatistics} from "../../../../types";
 import {vehicleApi} from "../../../../api/vehiclesApi";
-import {apiClientNew} from "../../../../api/apiClientNew";
+import {apiClientNew} from "../../../../shared/api/apiClientNew";
 import VehicleAnalyticsSection from "../../../../components/VehicleAnalytics/VehicleAnalyticsSection";
 // DODANY IMPORT dla VehicleFormModal
 import VehicleFormModal from "../VehicleFormModal";

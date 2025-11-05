@@ -4,7 +4,7 @@
  * Updated for new server response model
  */
 
-import {apiClientNew, ApiError, PaginatedApiResponse, PaginationParams} from './apiClientNew';
+import {apiClientNew, ApiError, PaginatedApiResponse, PaginationParams} from '../shared/api/apiClientNew';
 import {ActivityCategory, ActivityItem, ActivityStatus, EntityType} from '../types/activity';
 
 // ========================================================================================

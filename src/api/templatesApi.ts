@@ -1,5 +1,5 @@
 // src/api/templatesApi.ts
-import { apiClientNew } from './apiClientNew';
+import { apiClientNew } from '../shared/api/apiClientNew';
 
 export interface TemplateResponse {
     id: string;

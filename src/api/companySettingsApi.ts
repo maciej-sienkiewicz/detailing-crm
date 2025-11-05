@@ -1,5 +1,5 @@
 // src/api/companySettingsApi.ts - Przepracowany zgodnie z dokumentacją backend API
-import { apiClientNew } from './apiClientNew';
+import { apiClientNew } from '../shared/api/apiClientNew';
 
 // ===========================================
 // INTERFEJSY ZGODNE Z NOWĄ DOKUMENTACJĄ API

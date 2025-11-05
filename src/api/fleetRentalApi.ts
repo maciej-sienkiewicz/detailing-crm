@@ -1,6 +1,6 @@
 // src/api/fleetRentalApi.ts
 
-import {apiClient} from './apiClient';
+import {apiClient} from '../shared/api/apiClient';
 import {FleetImage, FleetRental, FleetRentalStatus} from '../types/fleetRental';
 import {FleetRentalFilter} from '../types/fleetFilters';
 

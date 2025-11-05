@@ -1,6 +1,6 @@
 // src/api/pdfService.ts
 
-import {auth} from "./apiClientNew";
+import {auth} from "../shared/api/apiClientNew";
 
 export const pdfService = {
 

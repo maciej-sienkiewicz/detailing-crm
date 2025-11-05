@@ -1,7 +1,7 @@
 // src/hooks/useCompanyLogo.ts
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
-import { apiClientNew } from '../api/apiClientNew';
+import { apiClientNew } from '../shared/api/apiClientNew';
 
 interface LogoData {
     hasLogo: boolean;

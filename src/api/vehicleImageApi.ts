@@ -4,7 +4,7 @@
  * Integrates with the backend VehicleController endpoints
  */
 
-import {apiClientNew, ApiError, auth} from './apiClientNew';
+import {apiClientNew, ApiError, auth} from '../shared/api/apiClientNew';
 
 export interface VehicleImageUploadRequest {
     vehicleId: string;

@@ -1,6 +1,6 @@
 // src/api/fleetApi.ts
 
-import {apiClient} from './apiClient';
+import {apiClient} from '../shared/api/apiClient';
 import {FleetVehicle, FleetVehicleCategory, FleetVehicleStatus, FleetVehicleUsageType} from '../types/fleet';
 import {FleetVehicleFilter} from '../types/fleetFilters';
 

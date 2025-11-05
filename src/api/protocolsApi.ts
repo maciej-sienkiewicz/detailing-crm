@@ -1,8 +1,8 @@
 // src/api/protocolsApi.ts
-import {apiClient, PaginatedResponse} from './apiClient';
+import {apiClient, PaginatedResponse} from '../shared/api/apiClient';
 import {ProtocolListItem, ProtocolStatus} from '../types/protocol';
 import {CarReceptionProtocol, SelectedService} from '../types';
-import {apiClientNew} from "./apiClientNew";
+import {apiClientNew} from "../shared/api/apiClientNew";
 import {ServicePriceInput, PriceType} from '../types/service'; // ✅ Import PriceType
 
 interface ReleaseVehicleData {

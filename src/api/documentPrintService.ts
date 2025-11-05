@@ -1,5 +1,5 @@
 // src/api/documentPrintService.ts - POPRAWIONA WERSJA
-import {apiClientNew, ApiError} from '../api/apiClientNew';
+import {apiClientNew, ApiError} from '../shared/api/apiClientNew';
 
 export interface PrintDocumentOptions {
     documentId: string;

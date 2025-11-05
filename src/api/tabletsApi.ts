@@ -1,5 +1,5 @@
 // src/api/tabletsApi.ts
-import {apiClient} from './apiClient';
+import {apiClient} from '../shared/api/apiClient';
 
 // Updated Types to match backend
 export interface TabletDevice {
