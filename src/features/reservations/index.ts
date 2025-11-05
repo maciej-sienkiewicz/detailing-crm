@@ -34,3 +34,10 @@ export {
     isValidPhoneNumber,
     generateReservationTitle
 } from './libs/utils';
+
+export type {
+    Reservation,
+    ReservationStatus,
+    ReservationService,
+    ReservationSelectedServiceInput
+} from './api/reservationsApi';

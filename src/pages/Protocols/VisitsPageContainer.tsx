@@ -22,6 +22,7 @@ import {EditProtocolForm} from './form/components/EditProtocolForm';
 import ProtocolConfirmationModal from './shared/modals/ProtocolConfirmationModal';
 import {BiPen} from "react-icons/bi";
 import {ReservationForm} from "../../features/reservations";
+import {ReservationsTable} from "../../features/reservations/components/ReservationsTable/ReservationsTable";
 
 // ✅ NOWE: Rozszerzony typ statusów z rezerwacjami
 type StatusFilterType = 'reservations' | 'all' | ProtocolStatus;
@@ -474,67 +475,8 @@ export const VisitsPageContainer: React.FC = () => {
         isFirstLoad.current = true;
     }, [location.pathname, resetData, clearAllFilters]);
 
-    if (activeForm === 'visit') {
-        return (
-            <PageContainer>
-                <PageHeader
-                    icon={BiPen}
-                    title={editingVisit ? 'Edycja wizyty' : 'Nowa wizyta'}
-                    subtitle=""
-                    actions={
-                        <BackButton onClick={handleFormCancel}>
-                            <FaArrowLeft />
-                        </BackButton>
-                    }
-                />
 
-                <EditProtocolForm
-                    protocol={editingVisit}
-                    availableServices={availableServices}
-                    initialData={undefined}
-                    appointmentId={undefined}
-                    isFullProtocol={true}
-                    onSave={handleSaveProtocol}
-                    onCancel={handleFormCancel}
-                    onServiceAdded={refreshServices}
-                />
 
-                {isShowingConfirmationModal && currentProtocol && (
-                    <ProtocolConfirmationModal
-                        isOpen={isShowingConfirmationModal}
-                        onClose={handleConfirmationClose}
-                        protocolId={currentProtocol.id}
-                        clientEmail={currentProtocol.email || ''}
-                        onConfirm={handleConfirmationConfirm}
-                    />
-                )}
-            </PageContainer>
-        );
-    }
-
-    if (activeForm === 'reservation') {
-        return (
-            <PageContainer>
-                <PageHeader
-                    icon={FaCalendarPlus}
-                    title="Nowa rezerwacja"
-                    subtitle="Utwórz szybką rezerwację bez pełnych danych klienta"
-                    actions={
-                        <BackButton onClick={handleFormCancel}>
-                            <FaArrowLeft />
-                        </BackButton>
-                    }
-                />
-
-                <FormWrapper>
-                    <ReservationForm
-                        onSuccess={handleReservationSuccess}
-                        onCancel={handleFormCancel}
-                    />
-                </FormWrapper>
-            </PageContainer>
-        );
-    }
 
     const headerActions = (
         <ButtonGroup>
@@ -597,18 +539,35 @@ export const VisitsPageContainer: React.FC = () => {
                         </ErrorMessage>
                     )}
 
-                    <VisitsTable
-                        visits={displayData}
-                        loading={isLoading}
-                        showFilters={showFilters}
-                        hasActiveFilters={hasActiveFilters}
-                        onVisitClick={handleVisitClick}
-                        onViewVisit={handleViewVisit}
-                        onEditVisit={handleEditVisit}
-                        onDeleteVisit={handleDeleteVisit}
-                        onToggleFilters={handleToggleFilters}
-                        filtersComponent={filtersComponent}
-                    />
+                    {/* ZMIENIONE: Rozdzielone tabele dla rezerwacji i wizyt */}
+                    {activeStatusFilter === 'reservations' ? (
+                        <ReservationsTable
+                            reservations={reservations}
+                            loading={reservationsLoading}
+                            showFilters={showFilters}
+                            hasActiveFilters={hasActiveFilters}
+                            onReservationClick={(reservation) => navigate(`/reservations/${reservation.id}`)}
+                            onViewReservation={(reservation) => navigate(`/reservations/${reservation.id}`)}
+                            onEditReservation={(id) => console.log('Edit reservation:', id)}
+                            onCancelReservation={(id) => console.log('Cancel reservation:', id)}
+                            onDeleteReservation={handleDeleteVisit}
+                            onToggleFilters={handleToggleFilters}
+                            filtersComponent={filtersComponent}
+                        />
+                    ) : (
+                        <VisitsTable
+                            visits={visits}
+                            loading={visitsLoading}
+                            showFilters={showFilters}
+                            hasActiveFilters={hasActiveFilters}
+                            onVisitClick={handleVisitClick}
+                            onViewVisit={handleViewVisit}
+                            onEditVisit={handleEditVisit}
+                            onDeleteVisit={handleDeleteVisit}
+                            onToggleFilters={handleToggleFilters}
+                            filtersComponent={filtersComponent}
+                        />
+                    )}
 
                     {currentPagination && currentPagination.totalPages > 1 && currentPagination.page !== undefined && (
                         <PaginationWrapper>
