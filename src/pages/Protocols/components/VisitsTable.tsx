@@ -18,7 +18,6 @@ interface VisitsTableProps {
     filtersComponent?: React.ReactNode;
 }
 
-// POPRAWIONE SZEROKOŚCI - bez horizontal scroll
 const defaultColumns: TableColumn[] = [
     { id: 'vehicle', label: 'Pojazd', width: '18%', sortable: true },
     { id: 'licensePlate', label: 'Nr rej.', width: '90px', sortable: true },
@@ -54,17 +53,31 @@ export const VisitsTable: React.FC<VisitsTableProps> = ({
                                                             onToggleFilters,
                                                             filtersComponent
                                                         }) => {
-    const formatDate = (dateString: string): string => {
-        if (!dateString) return '';
+    const formatDate = (dateValue: string | number[]): string => {
+        if (!dateValue) return '';
 
-        const date = new Date(dateString);
+        let date: Date;
+
+        if (Array.isArray(dateValue)) {
+            const [year, month, day, hour = 0, minute = 0, second = 0] = dateValue;
+            date = new Date(year, month - 1, day, hour, minute, second);
+        } else {
+            date = new Date(dateValue);
+        }
+
+        if (isNaN(date.getTime())) return '';
+
         const formattedDate = date.toLocaleDateString('pl-PL', {
             year: 'numeric',
             month: '2-digit',
             day: '2-digit'
         });
 
-        if (dateString.includes('T') && dateString.split('T')[1] !== '23:59:59') {
+        const hasTime = Array.isArray(dateValue)
+            ? (dateValue[3] !== undefined && (dateValue[3] !== 23 || dateValue[4] !== 59))
+            : (typeof dateValue === 'string' && dateValue.includes('T') && !dateValue.includes('23:59:59'));
+
+        if (hasTime) {
             const time = date.toLocaleTimeString('pl-PL', {
                 hour: '2-digit',
                 minute: '2-digit'
@@ -88,13 +101,18 @@ export const VisitsTable: React.FC<VisitsTableProps> = ({
                         <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '12px' }}>
                             {visit.vehicle.make} {visit.vehicle.model}
                         </div>
-                        <div style={{ fontSize: '11px', color: '#64748b' }}>
-                            Rok: {visit.vehicle.productionYear || 'Brak'}
-                        </div>
+                        {visit.vehicle.productionYear > 0 && (
+                            <div style={{ fontSize: '11px', color: '#64748b' }}>
+                                Rok: {visit.vehicle.productionYear}
+                            </div>
+                        )}
                     </div>
                 );
 
             case 'licensePlate':
+                if (!visit.vehicle.licensePlate || visit.vehicle.licensePlate.trim() === '') {
+                    return null;
+                }
                 return (
                     <div style={{
                         display: 'inline-flex',
@@ -145,9 +163,9 @@ export const VisitsTable: React.FC<VisitsTableProps> = ({
             case 'value':
                 return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '11px' }}>
-                    <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '12px' }}>
-                        {visit.totalAmountNetto.toFixed(2)} PLN (netto)
-                    </div>
+                        <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '12px' }}>
+                            {visit.totalAmountNetto.toFixed(2)} PLN (netto)
+                        </div>
                         <div style={{ color: '#64748b' }}>
                             {visit.totalAmountBrutto.toFixed(2)} PLN (brutto)
                         </div>
@@ -157,7 +175,10 @@ export const VisitsTable: React.FC<VisitsTableProps> = ({
             case 'lastUpdate':
                 return (
                     <div style={{ fontSize: '11px', color: '#64748b' }}>
-                        {visit.lastUpdate}
+                        {typeof visit.lastUpdate === 'string'
+                            ? visit.lastUpdate
+                            : formatDate(visit.lastUpdate)
+                        }
                     </div>
                 );
 

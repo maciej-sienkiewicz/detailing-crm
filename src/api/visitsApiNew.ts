@@ -526,7 +526,7 @@ class VisitsApi {
                     owner: {
                         name: item.client?.name || item.owner?.name || 'Unknown Client'
                     },
-                    status: (item.status as ProtocolStatus) || ProtocolStatus.SCHEDULED,
+                    status: (item.status as ProtocolStatus) || ProtocolStatus.IN_PROGRESS,
                     totalAmountNetto: 0,
                     totalAmountBrutto: 0,
                     totalTaxAmount: 0,

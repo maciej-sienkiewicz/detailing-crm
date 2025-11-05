@@ -7,8 +7,8 @@
 import React from 'react';
 import styled from 'styled-components';
 import { FaCar } from 'react-icons/fa';
-import { ReservationFormErrors } from '../libs/types';
-import {BrandAutocomplete} from "../../../pages/Protocols/components/BrandAutocomplete";
+import { ReservationFormErrors } from '../../libs/types';
+import {BrandAutocomplete} from "../../../../pages/Protocols/components/BrandAutocomplete";
 // Import BrandAutocomplete - adjust path as necessary based on project structure
 
 const brandTheme = {

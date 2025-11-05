@@ -7,7 +7,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { FaPhone, FaUser } from 'react-icons/fa';
-import { ReservationFormErrors } from '../libs/types';
+import { ReservationFormErrors } from '../../libs/types';
 
 const brandTheme = {
     primary: 'var(--brand-primary, #1a365d)',

@@ -7,8 +7,8 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { FaClock } from 'react-icons/fa';
-import { ReservationFormErrors } from '../libs/types';
-import { extractDateFromISO, extractTimeFromISO } from '../libs/utils';
+import { ReservationFormErrors } from '../../libs/types';
+import { extractDateFromISO, extractTimeFromISO } from '../../libs/utils';
 
 const brandTheme = {
     primary: 'var(--brand-primary, #1a365d)',

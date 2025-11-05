@@ -38,14 +38,16 @@ interface AppData {
 type FormType = 'none' | 'visit' | 'reservation';
 
 // ✅ NOWE: Helper do konwersji Reservation na VisitListItem
+// src/pages/Protocols/VisitsPageContainer.tsx - Zaktualizowana funkcja konwersji
+
 const convertReservationToVisitListItem = (reservation: Reservation): VisitListItem => {
     return {
         id: reservation.id,
         vehicle: {
             make: reservation.vehicleMake,
             model: reservation.vehicleModel,
-            licensePlate: '', // Rezerwacja nie ma tablicy rejestracyjnej
-            productionYear: 0, // Rezerwacja nie ma roku produkcji
+            licensePlate: '',
+            productionYear: 0,
             color: undefined
         },
         period: {
@@ -73,7 +75,7 @@ const convertReservationToVisitListItem = (reservation: Reservation): VisitListI
             note: service.note
         })),
         title: reservation.title,
-        lastUpdate: new Date(reservation.updatedAt).toLocaleDateString('pl-PL')
+        lastUpdate: reservation.updatedAt
     };
 };
 

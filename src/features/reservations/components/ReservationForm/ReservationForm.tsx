@@ -7,11 +7,11 @@
 import React from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import { ReservationFormProps } from '../libs/types';
-import { useReservationForm } from '../hooks/useReservationForm';
-import { useReservationSubmit } from '../hooks/useReservationSubmit';
+import { ReservationFormProps } from '../../libs/types';
+import { useReservationForm } from '../../hooks/useReservationForm';
+import { useReservationSubmit } from '../../hooks/useReservationSubmit';
 import { ReservationFormHeader } from './ReservationFormHeader';
-import VisitTitleSection from '../../../pages/Protocols/form/components/VisitTitleSection';
+import VisitTitleSection from '../../../../pages/Protocols/form/components/VisitTitleSection';
 import { ReservationContactSection } from './ReservationContactSection';
 import { ReservationVehicleSection } from './ReservationVehicleSection';
 import { ReservationScheduleSection } from './ReservationScheduleSection';

@@ -6,10 +6,10 @@
 
 import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import {PriceType, Service} from '../../../types';
-import {servicesApi} from '../../services/api/servicesApi';
-import {ReservationSelectedServiceInput} from '../api/reservationsApi';
-import {ServiceSection, useServiceCalculations} from '../../services';
+import {PriceType, Service} from '../../../../types';
+import {servicesApi} from '../../../services/api/servicesApi';
+import {ReservationSelectedServiceInput} from '../../api/reservationsApi';
+import {ServiceSection, useServiceCalculations} from '../../../services';
 
 const brandTheme = {
     primary: 'var(--brand-primary, #1a365d)',
