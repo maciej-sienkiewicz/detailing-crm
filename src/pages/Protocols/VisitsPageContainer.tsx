@@ -20,6 +20,7 @@ import {theme} from '../../styles/theme';
 import {EditProtocolForm} from './form/components/EditProtocolForm';
 import ProtocolConfirmationModal from './shared/modals/ProtocolConfirmationModal';
 import {BiPen} from "react-icons/bi";
+import {ReservationForm} from "../../features/reservations";
 
 type StatusFilterType = 'all' | ProtocolStatus;
 

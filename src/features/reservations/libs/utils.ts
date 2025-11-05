@@ -1,0 +1,161 @@
+// src/features/reservations/libs/utils.ts
+/**
+ * Utility functions for reservation form
+ */
+
+/**
+ * Formats date for API (ensures proper ISO format without timezone)
+ */
+export const formatDateForAPI = (dateString: string): string => {
+    if (!dateString) return '';
+
+    try {
+        // Remove 'Z' and milliseconds if present
+        let cleanedDate = dateString.replace('Z', '').split('.')[0];
+
+        // Handle space format like "2025-09-25 23:59:59"
+        if (cleanedDate.includes(' ') && !cleanedDate.includes('T')) {
+            cleanedDate = cleanedDate.replace(' ', 'T');
+        }
+
+        // If already in correct ISO format (YYYY-MM-DDTHH:MM:SS), return as is
+        if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(cleanedDate)) {
+            return cleanedDate;
+        }
+
+        // If just date (YYYY-MM-DD), add default time
+        if (/^\d{4}-\d{2}-\d{2}$/.test(cleanedDate)) {
+            return `${cleanedDate}T08:00:00`;
+        }
+
+        // Fallback - try to create proper date
+        const date = new Date(dateString);
+        if (!isNaN(date.getTime())) {
+            return date.toISOString().split('.')[0];
+        }
+
+        console.warn('⚠️ Cannot format date:', dateString);
+        return cleanedDate;
+
+    } catch (error) {
+        console.error('❌ Error formatting date:', error, dateString);
+        return '';
+    }
+};
+
+/**
+ * Extracts date part from ISO string
+ */
+export const extractDateFromISO = (dateString: string): string => {
+    if (!dateString) return '';
+
+    try {
+        let cleanedDate = dateString.replace('Z', '').split('.')[0];
+
+        if (cleanedDate.includes('T')) {
+            return cleanedDate.split('T')[0];
+        }
+
+        if (cleanedDate.includes(' ')) {
+            return cleanedDate.split(' ')[0];
+        }
+
+        if (/^\d{4}-\d{2}-\d{2}$/.test(cleanedDate)) {
+            return cleanedDate;
+        }
+
+        const date = new Date(dateString);
+        if (!isNaN(date.getTime())) {
+            return date.toISOString().split('T')[0];
+        }
+
+        return '';
+    } catch (e) {
+        console.warn('⚠️ Cannot parse date:', dateString, e);
+        return '';
+    }
+};
+
+/**
+ * Extracts time part from ISO string
+ */
+export const extractTimeFromISO = (dateString: string, defaultTime = '08:00'): string => {
+    if (!dateString) return defaultTime;
+
+    try {
+        let cleanedDate = dateString.replace('Z', '').split('.')[0];
+
+        if (cleanedDate.includes('T')) {
+            const timePart = cleanedDate.split('T')[1];
+            if (timePart) {
+                return timePart.substring(0, 5); // HH:MM
+            }
+        }
+
+        if (cleanedDate.includes(' ')) {
+            const timePart = cleanedDate.split(' ')[1];
+            if (timePart) {
+                return timePart.substring(0, 5); // HH:MM
+            }
+        }
+
+        return defaultTime;
+    } catch (e) {
+        console.warn('⚠️ Error extracting time:', dateString, e);
+        return defaultTime;
+    }
+};
+
+/**
+ * Formats phone number for display
+ */
+export const formatPhoneNumber = (phone: string): string => {
+    if (!phone) return '';
+
+    // Remove all non-digits
+    const digits = phone.replace(/\D/g, '');
+
+    // Format with spaces for better readability
+    if (digits.length > 0) {
+        return digits.replace(/(\d{3})(?=\d)/g, '$1 ').trim();
+    }
+
+    return phone;
+};
+
+/**
+ * Validates phone number format
+ */
+export const isValidPhoneNumber = (phone: string): boolean => {
+    if (!phone) return false;
+
+    const digits = phone.replace(/\D/g, '');
+
+    // Polish phone number: 9 digits
+    return digits.length >= 9 && digits.length <= 11;
+};
+
+/**
+ * Generates default reservation title
+ */
+export const generateReservationTitle = (
+    vehicleMake: string,
+    vehicleModel: string,
+    contactName?: string
+): string => {
+    const parts: string[] = [];
+
+    if (vehicleMake && vehicleModel) {
+        parts.push(`${vehicleMake} ${vehicleModel}`);
+    } else if (vehicleMake) {
+        parts.push(vehicleMake);
+    } else if (vehicleModel) {
+        parts.push(vehicleModel);
+    }
+
+    if (contactName) {
+        parts.push(contactName);
+    }
+
+    return parts.length > 0 ? parts.join(' - ') : 'Nowa rezerwacja';
+};
