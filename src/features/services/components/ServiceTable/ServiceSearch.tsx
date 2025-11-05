@@ -2,9 +2,9 @@
 import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
 import {FaPlus, FaSearch, FaEuroSign} from 'react-icons/fa';
-import PriceEditModal from '../../../pages/Protocols/shared/modals/PriceEditModal';
-import {Service, PriceType} from '../../../types';
-import {servicesApi} from '../api/servicesApi';
+import PriceEditModal from '../../../../pages/Protocols/shared/modals/PriceEditModal';
+import {Service, PriceType} from '../../../../types';
+import {servicesApi} from '../../api/servicesApi';
 
 const brandTheme = {
     primary: '#2563eb',

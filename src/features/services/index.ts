@@ -5,9 +5,9 @@
  */
 
 // Components
-export { ServiceSection } from './components/ServiceSection';
-export { ServiceSearch } from './components/ServiceSearch';
-export { ServiceTable } from './components/ServiceTable';
+export { ServiceSection } from './components/ServiceTable/ServiceSection';
+export { ServiceSearch } from './components/ServiceTable/ServiceSearch';
+export { ServiceTable } from './components/ServiceTable/ServiceTable';
 
 // Hooks
 export { useServiceCalculations } from './hooks/useServiceCalculations';

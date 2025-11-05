@@ -1,7 +1,7 @@
 // src/features/services/components/ServiceSection.tsx
 import React from 'react';
 import styled from 'styled-components';
-import { DiscountType, SelectedService, Service } from '../../../types';
+import { DiscountType, SelectedService, Service } from '../../../../types';
 import { ServiceSearch } from './ServiceSearch';
 import { ServiceTable } from './ServiceTable';
 

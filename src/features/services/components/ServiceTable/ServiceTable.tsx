@@ -1,10 +1,10 @@
 // src/features/services/components/ServiceTable.tsx
 import React, {useState} from 'react';
 import {FaEdit, FaStickyNote, FaTrash} from 'react-icons/fa';
-import {DiscountType, SelectedService} from '../../../types';
+import {DiscountType, SelectedService} from '../../../../types';
 import styled from 'styled-components';
-import ServiceNoteModal from '../../../pages/Protocols/shared/modals/SerivceNoteModal';
-import {theme} from '../../../styles/theme';
+import ServiceNoteModal from '../../../../pages/Protocols/shared/modals/SerivceNoteModal';
+import {theme} from '../../../../styles/theme';
 
 // Professional theme matching the form design
 const formTheme = {
