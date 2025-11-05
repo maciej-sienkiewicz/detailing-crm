@@ -12,17 +12,16 @@ import {
 import {protocolsApi} from '../../../../api/protocolsApi';
 import {clientsApi} from '../../../../api/clientsApi';
 import {vehicleApi} from '../../../../api/vehiclesApi';
-import FormHeader from '../../form/components/FormHeader';
 import VisitTitleSection from '../../form/components/VisitTitleSection';
 import VehicleInfoSection from '../../form/components/VehicleInfoSection';
 import ClientInfoSection from '../../form/components/ClientInfoSection';
-import ServiceSection from '../../form/components/ServiceSection';
 import NotesSection from '../../form/components/NotesSection';
 import {DeliveryPersonSection} from '../../form/components/DeliveryPersonSection';
 import ScheduleSection from "../../form/components/ScheduleSection";
 import {useServiceCalculations} from '../../form/hooks/useServiceCalculations';
 import {Button, ErrorMessage, Form, FormActions, FormContainer} from '../../form/styles';
 import {AutocompleteOption} from '../../components/AutocompleteField';
+import {ServiceSection} from "../../../../features/services";
 
 interface StartVisitFormProps {
     protocol: CarReceptionProtocol;

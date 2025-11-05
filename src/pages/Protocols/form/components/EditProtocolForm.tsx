@@ -3,10 +3,8 @@ import {CarReceptionProtocol, SelectedService} from '../../../../types';
 import {Service} from '../../../../types';
 import {useFormSubmit} from '../hooks/useFormSubmit';
 import {useServiceCalculations} from '../hooks/useServiceCalculations';
-import FormHeader from '../components/FormHeader';
 import VisitTitleSection from '../components/VisitTitleSection';
 import ReferralSourceSection from '../components/ReferralSourceSection';
-import ServiceSection from '../components/ServiceSection';
 import NotesSection from '../components/NotesSection';
 import FormActions from '../components/FormActions';
 import VehicleSelectionModal from "../../shared/modals/VehicleSelectionModal";
@@ -25,6 +23,7 @@ import {useFormDataWithAutocomplete} from "../hooks/useFormData";
 import VehicleInfoSection from "./VehicleInfoSection";
 import ClientInfoSection from "./ClientInfoSection";
 import ScheduleSection from "./ScheduleSection";
+import {ServiceSection} from "../../../../features/services";
 
 interface EditProtocolFormProps {
     protocol: CarReceptionProtocol | null;
