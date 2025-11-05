@@ -1,58 +1,262 @@
 // src/features/reservations/components/ReservationServicesSection.tsx
 /**
- * Services section for reservation - simplified version
- * Services are optional for reservations
+ * Services section for reservation with full service management
+ * Uses shared ServiceSection component with service search, table, and calculations
  */
 
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { FaWrench, FaInfoCircle } from 'react-icons/fa';
-import { ReservationSelectedServiceInput } from '../api/reservationsApi';
+import {PriceType, Service} from '../../../types';
+import {servicesApi} from '../../../api/servicesApi';
+import {ReservationSelectedServiceInput} from '../api/reservationsApi';
+import {ServiceSection, useServiceCalculations} from '../../services';
 
 const brandTheme = {
     primary: 'var(--brand-primary, #1a365d)',
     text: {
         primary: '#0f172a',
         secondary: '#475569',
-        muted: '#94a3b8'
-    },
-    status: {
-        warning: '#f59e0b',
-        warningLight: '#fef3c7'
     },
     spacing: {
-        sm: '8px',
-        md: '16px'
+        md: '16px',
     }
 };
 
 interface ReservationServicesSectionProps {
     services: ReservationSelectedServiceInput[];
+    onChange?: (services: ReservationSelectedServiceInput[]) => void;
+    readOnly?: boolean;
 }
 
 export const ReservationServicesSection: React.FC<ReservationServicesSectionProps> = ({
-                                                                                          services
+                                                                                          services: initialServices,
+                                                                                          onChange,
+                                                                                          readOnly = false
                                                                                       }) => {
+    // Konwersja ReservationSelectedServiceInput na SelectedService dla komponentu
+    const convertedServices = initialServices.map(service => ({
+        id: service.serviceId,
+        name: service.name,
+        quantity: service.quantity,
+        basePrice: {
+            priceNetto: service.basePrice.inputType === 'netto'
+                ? service.basePrice.inputPrice
+                : service.basePrice.inputPrice / 1.23,
+            priceBrutto: service.basePrice.inputType === 'brutto'
+                ? service.basePrice.inputPrice
+                : service.basePrice.inputPrice * 1.23,
+            taxAmount: service.basePrice.inputType === 'netto'
+                ? service.basePrice.inputPrice * 0.23
+                : service.basePrice.inputPrice - (service.basePrice.inputPrice / 1.23)
+        },
+        discountType: 'PERCENTAGE' as any,
+        discountValue: 0,
+        finalPrice: {
+            priceNetto: service.basePrice.inputType === 'netto'
+                ? service.basePrice.inputPrice
+                : service.basePrice.inputPrice / 1.23,
+            priceBrutto: service.basePrice.inputType === 'brutto'
+                ? service.basePrice.inputPrice
+                : service.basePrice.inputPrice * 1.23,
+            taxAmount: service.basePrice.inputType === 'netto'
+                ? service.basePrice.inputPrice * 0.23
+                : service.basePrice.inputPrice - (service.basePrice.inputPrice / 1.23)
+        },
+        note: service.note,
+        approvalStatus: undefined
+    }));
+
+    const [availableServices, setAvailableServices] = useState<Service[]>([]);
+    const [loadingServices, setLoadingServices] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<Service[]>([]);
+    const [showResults, setShowResults] = useState(false);
+    const [selectedServiceToAdd, setSelectedServiceToAdd] = useState<Service | null>(null);
+
+    const {
+        services: managedServices,
+        setServices,
+        addService,
+        removeService,
+        updateBasePrice,
+        updateDiscountType,
+        updateDiscountValue,
+        updateServiceNote,
+        calculateTotals
+    } = useServiceCalculations(convertedServices);
+
+    // Load available services
+    useEffect(() => {
+        const fetchServices = async () => {
+            try {
+                setLoadingServices(true);
+                const fetchedServices = await servicesApi.fetchServices();
+                setAvailableServices(fetchedServices);
+            } catch (error) {
+                console.error('Error loading services:', error);
+            } finally {
+                setLoadingServices(false);
+            }
+        };
+
+        fetchServices();
+    }, []);
+
+    // Notify parent of changes
+    useEffect(() => {
+        if (onChange) {
+            const reservationServices: ReservationSelectedServiceInput[] = managedServices.map(service => ({
+                serviceId: service.id,
+                name: service.name,
+                basePrice: {
+                    inputPrice: service.basePrice.priceNetto,
+                    inputType: PriceType.NET
+                },
+                quantity: service.quantity,
+                note: service.note
+            }));
+            onChange(reservationServices);
+        }
+    }, [managedServices, onChange]);
+
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchQuery(e.target.value);
+        setShowResults(true);
+        setSelectedServiceToAdd(null);
+
+        if (e.target.value.trim() === '') {
+            setSearchResults([]);
+            return;
+        }
+
+        const query = e.target.value.toLowerCase();
+        const results = availableServices.filter(service =>
+            service.name.toLowerCase().includes(query) &&
+            !managedServices.some(selected => selected.id === service.id)
+        );
+        setSearchResults(results);
+    };
+
+    const handleSelectService = (service: Service) => {
+        setSelectedServiceToAdd(service);
+        setSearchQuery(service.name);
+        setShowResults(false);
+    };
+
+    const handleAddService = () => {
+        if (selectedServiceToAdd) {
+            const newService = {
+                id: selectedServiceToAdd.id,
+                name: selectedServiceToAdd.name,
+                quantity: 1,
+                basePrice: selectedServiceToAdd.price,
+                discountType: "PERCENTAGE" as any,
+                discountValue: 0,
+                approvalStatus: undefined,
+            };
+            addService(newService);
+        } else if (searchQuery.trim() !== '') {
+            const customId = `custom-${Date.now()}`;
+            const newService = {
+                id: customId,
+                name: searchQuery.trim(),
+                quantity: 1,
+                basePrice: {
+                    priceNetto: 0,
+                    priceBrutto: 0,
+                    taxAmount: 0
+                },
+                discountType: "PERCENTAGE" as any,
+                discountValue: 0,
+                approvalStatus: undefined,
+            };
+            addService(newService);
+        }
+        setSearchQuery('');
+        setSelectedServiceToAdd(null);
+    };
+
+    const handleAddServiceDirect = (service: Service) => {
+        const newService = {
+            id: service.id,
+            name: service.name,
+            quantity: 1,
+            basePrice: service.price,
+            discountType: "PERCENTAGE" as any,
+            discountValue: 0,
+            approvalStatus: undefined,
+        };
+        addService(newService);
+        setSearchQuery('');
+        setSelectedServiceToAdd(null);
+        setShowResults(false);
+    };
+
+    const handleServiceCreated = async (oldId: string, newService: Service) => {
+        setServices(prevServices =>
+            prevServices.map(service =>
+                service.id === oldId
+                    ? {
+                        ...service,
+                        id: newService.id,
+                        basePrice: newService.price,
+                        finalPrice: newService.price
+                    }
+                    : service
+            )
+        );
+
+        // Refresh available services
+        try {
+            const fetchedServices = await servicesApi.fetchServices();
+            setAvailableServices(fetchedServices);
+        } catch (error) {
+            console.error('Error refreshing services:', error);
+        }
+    };
+
+    const refreshServices = async () => {
+        try {
+            const fetchedServices = await servicesApi.fetchServices();
+            setAvailableServices(fetchedServices);
+        } catch (error) {
+            console.error('Error refreshing services:', error);
+        }
+    };
+
+    if (loadingServices) {
+        return (
+            <Section>
+                <SectionTitle>Usługi</SectionTitle>
+                <LoadingMessage>Ładowanie usług...</LoadingMessage>
+            </Section>
+        );
+    }
+
     return (
         <Section>
-            <SectionTitle>Usługi</SectionTitle>
-            <SectionDescription>
-                Planowane usługi - opcjonalne, możesz dodać je później
-            </SectionDescription>
-
-            {services.length > 0 ? (
-                <ServicesList>
-                    {services.map((service, index) => (
-                        <ServiceItem key={index}>
-                            <FaWrench /> {service.name}
-                        </ServiceItem>
-                    ))}
-                </ServicesList>
-            ) : (
-                <EmptyState>
-                    Brak wybranych usług - możesz dodać je później
-                </EmptyState>
-            )}
+            <ServiceSection
+                searchQuery={searchQuery}
+                showResults={showResults}
+                searchResults={searchResults}
+                selectedServiceToAdd={selectedServiceToAdd}
+                services={managedServices}
+                errors={{}}
+                onSearchChange={handleSearchChange}
+                onSelectService={handleSelectService}
+                onAddService={handleAddService}
+                onRemoveService={removeService}
+                onDiscountTypeChange={updateDiscountType}
+                onDiscountValueChange={updateDiscountValue}
+                onBasePriceChange={updateBasePrice}
+                onAddNote={updateServiceNote}
+                calculateTotals={calculateTotals}
+                allowCustomService={true}
+                onAddServiceDirect={handleAddServiceDirect}
+                onServiceAdded={refreshServices}
+                onServiceCreated={handleServiceCreated}
+                readOnly={readOnly}
+            />
         </Section>
     );
 };
@@ -70,7 +274,7 @@ const SectionTitle = styled.h3`
     margin: 0;
     display: flex;
     align-items: center;
-    gap: ${brandTheme.spacing.sm};
+    gap: 8px;
 
     &::before {
         content: '';
@@ -81,63 +285,10 @@ const SectionTitle = styled.h3`
     }
 `;
 
-const SectionDescription = styled.p`
-    margin: 0;
-    font-size: 14px;
-    color: ${brandTheme.text.secondary};
-    font-weight: 500;
-`;
-
-const InfoBox = styled.div`
-    background: ${brandTheme.status.warningLight};
-    border: 1px solid ${brandTheme.status.warning};
-    border-radius: 12px;
-    padding: 16px;
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-`;
-
-const InfoIcon = styled.div`
-    color: ${brandTheme.status.warning};
-    font-size: 16px;
-    flex-shrink: 0;
-    margin-top: 2px;
-`;
-
-const InfoText = styled.div`
-    font-size: 13px;
-    color: ${brandTheme.status.warning};
-    font-weight: 500;
-    line-height: 1.5;
-`;
-
-const ServicesList = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-`;
-
-const ServiceItem = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px;
-    background: #fafbfc;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    color: ${brandTheme.text.primary};
-`;
-
-const EmptyState = styled.div`
+const LoadingMessage = styled.div`
     padding: 24px;
     text-align: center;
-    color: ${brandTheme.text.muted};
+    color: ${brandTheme.text.secondary};
     font-size: 14px;
     font-style: italic;
-    background: #fafbfc;
-    border: 2px dashed #e2e8f0;
-    border-radius: 12px;
 `;

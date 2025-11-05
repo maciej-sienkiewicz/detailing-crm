@@ -1,6 +1,6 @@
 // src/features/reservations/components/ReservationForm.tsx
 /**
- * Main reservation form component
+ * Main reservation form component with full service management
  * Simplified form for creating reservations without client/vehicle profiles
  */
 
@@ -53,6 +53,7 @@ export const ReservationForm: React.FC<ReservationFormProps> = ({
         handleFieldChange,
         handleAllDayToggle,
         handleDateChange,
+        handleServicesChange, // NOWE
         isAllDay,
         resetForm
     } = useReservationForm({ initialStartDate, initialEndDate });
@@ -64,7 +65,6 @@ export const ReservationForm: React.FC<ReservationFormProps> = ({
             if (onSuccess) {
                 onSuccess(reservationId);
             } else {
-                // Default behavior - navigate to reservations list or details
                 navigate(`/reservations/${reservationId}`);
             }
 
@@ -144,9 +144,10 @@ export const ReservationForm: React.FC<ReservationFormProps> = ({
                     onAllDayToggle={handleAllDayToggle}
                 />
 
-                {/* Services (Optional) */}
+                {/* Services with full management */}
                 <ReservationServicesSection
                     services={formData.selectedServices}
+                    onChange={handleServicesChange}
                 />
 
                 {/* Notes */}

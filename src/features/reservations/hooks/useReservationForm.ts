@@ -1,6 +1,6 @@
 // src/features/reservations/hooks/useReservationForm.ts
 /**
- * Main hook for reservation form state management
+ * Main hook for reservation form state management with services support
  */
 
 import { useCallback, useEffect, useState } from 'react';
@@ -95,6 +95,15 @@ export const useReservationForm = ({ initialStartDate, initialEndDate }: UseRese
         clearFieldError(name);
     }, [clearFieldError]);
 
+    // NOWE: Handle services change
+    const handleServicesChange = useCallback((services: ReservationSelectedServiceInput[]) => {
+        setFormData(prev => ({
+            ...prev,
+            selectedServices: services
+        }));
+        clearFieldError('selectedServices');
+    }, [clearFieldError]);
+
     // Handle services
     const handleAddService = useCallback((service: ReservationSelectedServiceInput) => {
         setFormData(prev => ({
@@ -151,6 +160,7 @@ export const useReservationForm = ({ initialStartDate, initialEndDate }: UseRese
         handleFieldChange,
         handleAllDayToggle,
         handleDateChange,
+        handleServicesChange, // NOWE
         handleAddService,
         handleRemoveService,
         handleUpdateService,
