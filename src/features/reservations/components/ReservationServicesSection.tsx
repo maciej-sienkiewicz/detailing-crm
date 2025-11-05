@@ -40,14 +40,6 @@ export const ReservationServicesSection: React.FC<ReservationServicesSectionProp
                 Planowane usługi - opcjonalne, możesz dodać je później
             </SectionDescription>
 
-            <InfoBox>
-                <InfoIcon><FaInfoCircle /></InfoIcon>
-                <InfoText>
-                    <strong>Opcjonalne:</strong> W rezerwacji nie musisz określać usług ani cen.
-                    Możesz dodać je podczas konwersji na pełną wizytę.
-                </InfoText>
-            </InfoBox>
-
             {services.length > 0 ? (
                 <ServicesList>
                     {services.map((service, index) => (

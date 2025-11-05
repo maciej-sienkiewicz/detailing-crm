@@ -217,7 +217,7 @@ class ReservationsApi {
     async createReservation(data: CreateReservationRequest): Promise<Reservation> {
         try {
             const response = await apiClientNew.post<Reservation>(
-                '/api/v1/reservations',
+                '/v1/reservations',
                 data,
                 { timeout: 15000 }
             );

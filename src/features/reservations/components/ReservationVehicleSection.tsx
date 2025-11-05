@@ -61,14 +61,6 @@ export const ReservationVehicleSection: React.FC<ReservationVehicleSectionProps>
                 Podaj markę i model pojazdu - to wystarczy do zaplanowania wizyty
             </SectionDescription>
 
-            <InfoBox>
-                <InfoIcon>ℹ️</InfoIcon>
-                <InfoText>
-                    Nie znasz jeszcze numeru rejestracyjnego? Nie problem!
-                    Uzupełnisz go później podczas konwersji na pełną wizytę.
-                </InfoText>
-            </InfoBox>
-
             <FormRow>
                 <FormGroup>
                     <Label htmlFor="vehicleMake">

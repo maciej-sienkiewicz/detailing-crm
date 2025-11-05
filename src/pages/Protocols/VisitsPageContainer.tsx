@@ -1,7 +1,7 @@
-// src/pages/Protocols/VisitsPageContainer.tsx - NAPRAWIONA WERSJA
+// src/pages/Protocols/VisitsPageContainer.tsx - Z PRZYCISKIEM REZERWACJI
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from 'styled-components';
-import {FaArrowLeft, FaClipboardCheck, FaPlus} from 'react-icons/fa';
+import {FaArrowLeft, FaCalendarPlus, FaClipboardCheck, FaPlus} from 'react-icons/fa';
 import {useLocation, useNavigate} from 'react-router-dom';
 import {VisitListItem, visitsApi} from '../../api/visitsApiNew';
 import {ProtocolStatus} from '../../types';
@@ -33,13 +33,16 @@ interface AppData {
     countersLoaded: boolean;
 }
 
+// Typ formularza do wyświetlenia
+type FormType = 'none' | 'visit' | 'reservation';
+
 export const VisitsPageContainer: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const isFirstLoad = useRef(true);
     const lastStatusFilter = useRef<StatusFilterType>(ProtocolStatus.IN_PROGRESS);
 
-    const [showForm, setShowForm] = useState(false);
+    const [activeForm, setActiveForm] = useState<FormType>('none');
     const [editingVisit, setEditingVisit] = useState<any>(null);
     const [availableServices, setAvailableServices] = useState<any[]>([]);
     const [isShowingConfirmationModal, setIsShowingConfirmationModal] = useState(false);
@@ -218,13 +221,20 @@ export const VisitsPageContainer: React.FC = () => {
         }
     }, [refreshVisits]);
 
+    // ✅ NOWE: Handler dla przycisku "Nowa wizyta"
     const handleAddVisit = useCallback(() => {
         setEditingVisit(null);
-        setShowForm(true);
+        setActiveForm('visit');
     }, []);
 
+    // ✅ NOWE: Handler dla przycisku "Nowa rezerwacja"
+    const handleAddReservation = useCallback(() => {
+        setActiveForm('reservation');
+    }, []);
+
+    // ✅ ZMODYFIKOWANE: Uniwersalny handler zamykania formularzy
     const handleFormCancel = useCallback(() => {
-        setShowForm(false);
+        setActiveForm('none');
         setEditingVisit(null);
     }, []);
 
@@ -234,17 +244,26 @@ export const VisitsPageContainer: React.FC = () => {
         if (showConfirmationModal) {
             setIsShowingConfirmationModal(true);
         } else {
-            setShowForm(false);
+            setActiveForm('none');
             setEditingVisit(null);
             refreshVisits();
             navigate(`/visits/${protocol.id}`);
         }
     }, [navigate, refreshVisits]);
 
+    // ✅ NOWE: Handler sukcesu rezerwacji
+    const handleReservationSuccess = useCallback((reservationId: string) => {
+        console.log('✅ Reservation created:', reservationId);
+        setActiveForm('none');
+        refreshVisits();
+        // Możesz nawigować do szczegółów rezerwacji jeśli masz taki widok
+        // navigate(`/reservations/${reservationId}`);
+    }, [refreshVisits]);
+
     const handleConfirmationClose = useCallback(() => {
         setIsShowingConfirmationModal(false);
         if (currentProtocol) {
-            setShowForm(false);
+            setActiveForm('none');
             setEditingVisit(null);
             refreshVisits();
             navigate(`/visits/${currentProtocol.id}`);
@@ -290,7 +309,6 @@ export const VisitsPageContainer: React.FC = () => {
         setShowFilters(prev => !prev);
     }, []);
 
-    // ✅ NAPRAWIONE: UseEffect tylko dla inicjalizacji danych (wykonuje się raz)
     useEffect(() => {
         if (isFirstLoad.current) {
             loadServices();
@@ -299,21 +317,18 @@ export const VisitsPageContainer: React.FC = () => {
         }
     }, [loadServices, loadCounters]);
 
-    // ✅ NAPRAWIONE: UseEffect dla wyszukiwania TYLKO po załadowaniu danych
-    // NIE reaguje na zmiany filtrów - wyszukiwanie tylko przez przycisk "Zastosuj filtry"
     useEffect(() => {
         const shouldPerformInitialSearch =
             appData.servicesLoaded &&
             appData.countersLoaded &&
             !appData.servicesLoading &&
             !appData.countersLoading &&
-            visits.length === 0; // Wykonaj tylko jeśli nie ma jeszcze wizyt
+            visits.length === 0;
 
         if (shouldPerformInitialSearch) {
             performSearch();
         }
     }, [appData.servicesLoaded, appData.countersLoaded, appData.servicesLoading, appData.countersLoading, visits.length]);
-    // ⚠️ WAŻNE: Usunięto 'performSearch' z dependencies, więc nie reaguje na zmiany filtrów!
 
     useEffect(() => {
         resetData();
@@ -322,7 +337,8 @@ export const VisitsPageContainer: React.FC = () => {
         isFirstLoad.current = true;
     }, [location.pathname, resetData, clearAllFilters]);
 
-    if (showForm) {
+    // ✅ NOWE: Renderowanie formularza wizyty
+    if (activeForm === 'visit') {
         return (
             <PageContainer>
                 <PageHeader
@@ -360,13 +376,43 @@ export const VisitsPageContainer: React.FC = () => {
         );
     }
 
+    // ✅ NOWE: Renderowanie formularza rezerwacji
+    if (activeForm === 'reservation') {
+        return (
+            <PageContainer>
+                <PageHeader
+                    icon={FaCalendarPlus}
+                    title="Nowa rezerwacja"
+                    subtitle="Utwórz szybką rezerwację bez pełnych danych klienta"
+                    actions={
+                        <BackButton onClick={handleFormCancel}>
+                            <FaArrowLeft />
+                        </BackButton>
+                    }
+                />
+
+                <FormWrapper>
+                    <ReservationForm
+                        onSuccess={handleReservationSuccess}
+                        onCancel={handleFormCancel}
+                    />
+                </FormWrapper>
+            </PageContainer>
+        );
+    }
+
+    // ✅ ZMODYFIKOWANE: Dodano oba przyciski w nagłówku
     const headerActions = (
-        <PrimaryButton onClick={handleAddVisit}>
-            <FaPlus /> Nowa wizyta
-        </PrimaryButton>
+        <ButtonGroup>
+            <SecondaryButton onClick={handleAddReservation}>
+                <FaCalendarPlus /> Nowa rezerwacja
+            </SecondaryButton>
+            <PrimaryButton onClick={handleAddVisit}>
+                <FaPlus /> Nowa wizyta
+            </PrimaryButton>
+        </ButtonGroup>
     );
 
-    // Komponent filtrów do rozwijania - TYLKO VisitsFilterBar, bez VisitsActiveFilters
     const filtersComponent = (
         <FiltersContainer>
             <VisitsFilterBar
@@ -435,6 +481,10 @@ export const VisitsPageContainer: React.FC = () => {
         </PageContainer>
     );
 };
+
+// ========================================================================================
+// STYLED COMPONENTS
+// ========================================================================================
 
 const PageContainer = styled.div`
     background: ${theme.surfaceHover};
@@ -511,4 +561,67 @@ const PaginationWrapper = styled.div`
     padding: ${theme.spacing.xl} 0;
     display: flex;
     justify-content: center;
+`;
+
+// ✅ NOWE: Style dla grupy przycisków
+const ButtonGroup = styled.div`
+    display: flex;
+    gap: ${theme.spacing.md};
+    align-items: center;
+
+    @media (max-width: 768px) {
+        flex-direction: column;
+        width: 100%;
+        
+        button {
+            width: 100%;
+        }
+    }
+`;
+
+// ✅ NOWE: Styl dla przycisku wtórnego (rezerwacja)
+const SecondaryButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.sm};
+    padding: ${theme.spacing.md} ${theme.spacing.lg};
+    background: ${theme.surface};
+    color: ${theme.primary};
+    border: 2px solid ${theme.primary};
+    border-radius: ${theme.radius.md};
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+
+    &:hover {
+        background: ${theme.primaryLight};
+        transform: translateY(-1px);
+        box-shadow: ${theme.shadow.md};
+    }
+
+    &:active {
+        transform: translateY(0);
+    }
+
+    svg {
+        font-size: 16px;
+    }
+
+    @media (max-width: 768px) {
+        font-size: 13px;
+        padding: ${theme.spacing.sm} ${theme.spacing.md};
+    }
+`;
+
+// ✅ NOWE: Wrapper dla formularza rezerwacji
+const FormWrapper = styled.div`
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: ${theme.spacing.xxl};
+
+    @media (max-width: 768px) {
+        padding: ${theme.spacing.lg};
+    }
 `;
