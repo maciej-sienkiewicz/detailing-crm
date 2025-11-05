@@ -5,7 +5,7 @@
  */
 
 
-import {ReservationSelectedServiceInput} from "../../../api/reservationsApi";
+import {ReservationSelectedServiceInput} from "../api/reservationsApi";
 
 /**
  * Form data for creating a reservation

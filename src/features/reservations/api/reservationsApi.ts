@@ -4,9 +4,9 @@
  * Handles reservation operations before converting to full visits
  */
 
-import { apiClientNew } from './apiClientNew';
-import { ProtocolStatus } from '../types';
-import { PriceResponse, ServicePriceInput } from '../types/service';
+import { apiClientNew } from '../../../api/apiClientNew';
+import { ProtocolStatus } from '../../../types';
+import { PriceResponse, ServicePriceInput } from '../../../types/service';
 
 // ========================================================================================
 // TYPE DEFINITIONS

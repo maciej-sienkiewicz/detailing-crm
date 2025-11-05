@@ -4,7 +4,7 @@ import {FilterType} from '../../list/ProtocolFilters';
 import {ProtocolStatus} from '../../../../types';
 import {SearchCriteria} from '../../list/ProtocolSearchFilters';
 import visitsApiNew, {VisitListItem} from "../../../../api/visitsApiNew";
-import {reservationsApi, Reservation} from "../../../../api/reservationsApi";
+import {reservationsApi, Reservation} from "../../../../features/reservations/api/reservationsApi";
 
 interface UseProtocolListReturn {
     protocols: VisitListItem[];

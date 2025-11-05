@@ -7,7 +7,7 @@ import {VisitListItem, visitsApi} from '../../api/visitsApiNew';
 import {ProtocolStatus} from '../../types';
 import {servicesApi} from '../../api/servicesApi';
 import {protocolsApi} from '../../api/protocolsApi';
-import {reservationsApi, Reservation, ReservationStatus} from '../../api/reservationsApi';
+import {reservationsApi, Reservation, ReservationStatus} from '../../features/reservations/api/reservationsApi';
 import {useVisitsData} from './hooks/useVisitsData';
 import {useVisitsFilters} from './hooks/useVisitsFilters';
 import {VisitsFilterBar} from './components/VisitsFilterBar';

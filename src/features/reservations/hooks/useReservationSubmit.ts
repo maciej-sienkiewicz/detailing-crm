@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import { ReservationFormData } from '../libs/types';
 import { formatDateForAPI } from '../libs/utils';
-import {CreateReservationRequest, reservationsApi} from "../../../api/reservationsApi";
+import {CreateReservationRequest, reservationsApi} from "../api/reservationsApi";
 
 interface UseReservationSubmitProps {
     onSuccess?: (reservationId: string) => void;

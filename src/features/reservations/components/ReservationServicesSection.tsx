@@ -7,7 +7,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { FaWrench, FaInfoCircle } from 'react-icons/fa';
-import { ReservationSelectedServiceInput } from '../../../api/reservationsApi';
+import { ReservationSelectedServiceInput } from '../api/reservationsApi';
 
 const brandTheme = {
     primary: 'var(--brand-primary, #1a365d)',

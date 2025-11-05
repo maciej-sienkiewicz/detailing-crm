@@ -7,7 +7,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ReservationFormData } from '../libs/types';
 import { useReservationValidation } from './useReservationValidation';
 import { formatPhoneNumber, generateReservationTitle } from '../libs/utils';
-import {ReservationSelectedServiceInput} from "../../../api/reservationsApi";
+import {ReservationSelectedServiceInput} from "../api/reservationsApi";
 
 interface UseReservationFormProps {
     initialStartDate?: string;
