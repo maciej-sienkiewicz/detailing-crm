@@ -129,7 +129,11 @@ export const ReservationsTable: React.FC<ReservationsTableProps> = ({
                         id: 'view',
                         label: 'Podgląd',
                         icon: FaEye,
-                        onClick: () => onViewReservation?.(reservation),
+                        onClick: () => {
+                            if (onReservationClick) {
+                                onReservationClick(reservation);
+                            }
+                        },
                         variant: 'primary'
                     },
                     {

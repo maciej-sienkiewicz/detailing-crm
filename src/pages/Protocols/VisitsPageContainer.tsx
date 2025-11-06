@@ -1,4 +1,4 @@
-// src/pages/Protocols/VisitsPageContainer.tsx - ENHANCED VERSION WITH CONVERSION
+// src/pages/Protocols/VisitsPageContainer.tsx - ENHANCED VERSION WITH RESERVATION DETAILS MODAL
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from 'styled-components';
 import {FaArrowLeft, FaCalendarPlus, FaClipboardCheck, FaPlus} from 'react-icons/fa';
@@ -16,10 +16,10 @@ import {ServiceOption} from './components/ServiceAutocomplete';
 import Pagination from '../../components/common/Pagination';
 import {PageHeader, PrimaryButton} from '../../components/common/PageHeader';
 import {theme} from '../../styles/theme';
-
+import Modal from '../../components/common/Modal';
 import ProtocolConfirmationModal from './shared/modals/ProtocolConfirmationModal';
 import {BiPen} from "react-icons/bi";
-import {ReservationForm} from "../../features/reservations";
+import {ReservationForm, ReservationDetails} from "../../features/reservations";
 import {servicesApi} from "../../features/services/api/servicesApi";
 import {ReservationsTable} from "../../features/reservations/components/ReservationsTable/ReservationsTable";
 import {EditVisitForm} from "../../features/visits/components/EditVisitForm/EditVisitForm";
@@ -47,6 +47,8 @@ export const VisitsPageContainer: React.FC = () => {
     const [activeForm, setActiveForm] = useState<FormType>('none');
     const [editingVisit, setEditingVisit] = useState<any>(null);
     const [convertingReservation, setConvertingReservation] = useState<Reservation | null>(null);
+    const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
+    const [showReservationDetailsModal, setShowReservationDetailsModal] = useState(false);
     const [availableServices, setAvailableServices] = useState<any[]>([]);
     const [isShowingConfirmationModal, setIsShowingConfirmationModal] = useState(false);
     const [currentProtocol, setCurrentProtocol] = useState<any>(null);
@@ -134,8 +136,8 @@ export const VisitsPageContainer: React.FC = () => {
             setAppData(prev => ({
                 ...prev,
                 counters: {
-                    all: (protocolCounters.all || 0) + (reservationCounters.all || 0) - (reservationCounters.all || 0),
-                    reservations: reservationCounters.pending + reservationCounters.confirmed,
+                    all: (protocolCounters.all || 0),
+                    reservations: reservationCounters.confirmed,
                     [ProtocolStatus.IN_PROGRESS]: protocolCounters.inProgress || 0,
                     [ProtocolStatus.READY_FOR_PICKUP]: protocolCounters.readyForPickup || 0,
                     [ProtocolStatus.COMPLETED]: protocolCounters.completed || 0,
@@ -276,6 +278,30 @@ export const VisitsPageContainer: React.FC = () => {
             navigate(`/visits/${visitId}/edit`);
         }
     }, [navigate, activeStatusFilter]);
+
+    // NEW: Handler for clicking on reservation row
+    const handleReservationClick = useCallback((reservation: Reservation) => {
+        console.log('📋 Opening reservation details:', reservation);
+        setSelectedReservation(reservation);
+        setShowReservationDetailsModal(true);
+    }, []);
+
+    // NEW: Handler for "Start Visit" from details modal
+    const handleStartVisitFromModal = useCallback((reservation: Reservation) => {
+        console.log('🚀 Starting visit from reservation:', reservation);
+        setShowReservationDetailsModal(false);
+        setSelectedReservation(null);
+        setConvertingReservation(reservation);
+        setActiveForm('convert');
+    }, []);
+
+    // NEW: Handler for "Edit" from details modal
+    const handleEditReservationFromModal = useCallback((reservationId: string) => {
+        console.log('✏️ Editing reservation:', reservationId);
+        setShowReservationDetailsModal(false);
+        setSelectedReservation(null);
+        navigate(`/reservations/${reservationId}/edit`);
+    }, [navigate]);
 
     const handleStartVisit = useCallback((reservation: Reservation) => {
         console.log('🚀 Starting visit from reservation:', reservation);
@@ -579,8 +605,8 @@ export const VisitsPageContainer: React.FC = () => {
                             loading={reservationsLoading}
                             showFilters={showFilters}
                             hasActiveFilters={hasActiveFilters}
-                            onReservationClick={(reservation) => navigate(`/reservations/${reservation.id}`)}
-                            onViewReservation={(reservation) => navigate(`/reservations/${reservation.id}`)}
+                            onReservationClick={handleReservationClick}
+                            onViewReservation={handleReservationClick}
                             onEditReservation={(id) => navigate(`/reservations/${id}/edit`)}
                             onStartVisit={handleStartVisit}
                             onCancelReservation={(id) => console.log('Cancel reservation:', id)}
@@ -617,6 +643,30 @@ export const VisitsPageContainer: React.FC = () => {
                     )}
                 </ResultsSection>
             </ContentContainer>
+
+            {/* Reservation Details Modal */}
+            {selectedReservation && (
+                <Modal
+                    isOpen={showReservationDetailsModal}
+                    onClose={() => {
+                        setShowReservationDetailsModal(false);
+                        setSelectedReservation(null);
+                    }}
+                    title=""
+                    size="xl"
+                    showCloseButton={false}
+                >
+                    <ReservationDetails
+                        reservation={selectedReservation}
+                        onStartVisit={handleStartVisitFromModal}
+                        onEdit={handleEditReservationFromModal}
+                        onClose={() => {
+                            setShowReservationDetailsModal(false);
+                            setSelectedReservation(null);
+                        }}
+                    />
+                </Modal>
+            )}
         </PageContainer>
     );
 };

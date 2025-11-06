@@ -12,6 +12,7 @@ export { ReservationScheduleSection } from './components/ReservationForm/Reserva
 export { ReservationServicesSection } from './components/ReservationForm/ReservationServicesSection';
 export { ReservationNotesSection } from './components/ReservationForm/ReservationNotesSection';
 export { ReservationFormActions } from './components/ReservationForm/ReservationFormActions';
+export { ReservationDetails } from './components/ReservationDetails/ReservationDetails';
 
 // Hooks
 export { useReservationForm } from './hooks/useReservationForm';
