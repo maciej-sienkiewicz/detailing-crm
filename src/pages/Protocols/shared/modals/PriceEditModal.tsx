@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import {FaEuroSign, FaTimes} from 'react-icons/fa';
+import {FaDollarSign, FaEuroSign, FaTimes, FaTools} from 'react-icons/fa';
 import {PriceType} from '../../../../types';
 
 // Professional Brand Theme
@@ -199,7 +199,7 @@ const PriceEditModal: React.FC<PriceEditModalProps> = ({
                 <ModalHeader>
                     <HeaderContent>
                         <HeaderIcon>
-                            <FaEuroSign />
+                            <FaTools />
                         </HeaderIcon>
                         <HeaderText>
                             <ModalTitle>
@@ -223,7 +223,7 @@ const PriceEditModal: React.FC<PriceEditModalProps> = ({
 
                     {isNewService && (
                         <InfoMessage>
-                            Ta usługa zostanie dodana do bazy danych i będzie dostępna dla przyszłych protokołów
+                            Ta usługa zostanie dodana do bazy danych i będzie dostępna dla przyszłych rezerwacji
                         </InfoMessage>
                     )}
 
@@ -265,13 +265,6 @@ const PriceEditModal: React.FC<PriceEditModalProps> = ({
                             {error && <ErrorText>{error}</ErrorText>}
                         </FormGroup>
                     </FormSection>
-
-                    <TaxInfo>
-                        <TaxInfoIcon>ℹ️</TaxInfoIcon>
-                        <TaxInfoText>
-                            Wszystkie ceny są automatycznie przeliczane z zastosowaniem stawki VAT 23%
-                        </TaxInfoText>
-                    </TaxInfo>
                 </ModalBody>
 
                 <ModalFooter>

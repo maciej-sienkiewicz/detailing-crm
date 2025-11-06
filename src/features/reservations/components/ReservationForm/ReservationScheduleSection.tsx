@@ -106,10 +106,6 @@ export const ReservationScheduleSection: React.FC<ReservationScheduleSectionProp
     return (
         <Section>
             <SectionTitle>Termin rezerwacji</SectionTitle>
-            <SectionDescription>
-                Określ kiedy klient ma przyjechać z pojazdem
-            </SectionDescription>
-
             <FormRow>
                 <FormGroup className="date-time-group">
                     <DateLabelContainer>

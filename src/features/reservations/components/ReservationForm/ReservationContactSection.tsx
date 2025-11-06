@@ -82,9 +82,6 @@ export const ReservationContactSection: React.FC<ReservationContactSectionProps>
     return (
         <Section>
             <SectionTitle>Dane kontaktowe</SectionTitle>
-            <SectionDescription>
-                Podaj dane kontaktowe - wystarczy numer telefonu
-            </SectionDescription>
 
             <FormRow>
                 <FormGroup>

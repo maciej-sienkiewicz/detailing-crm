@@ -44,9 +44,6 @@ export const ReservationNotesSection: React.FC<ReservationNotesSectionProps> = (
     return (
         <Section>
             <SectionTitle>Uwagi</SectionTitle>
-            <SectionDescription>
-                Dodatkowe informacje o rezerwacji (opcjonalne)
-            </SectionDescription>
 
             <FormGroup>
                 <Label htmlFor="notes">

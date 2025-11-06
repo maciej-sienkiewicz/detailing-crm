@@ -84,9 +84,6 @@ export const ReservationVehicleSection: React.FC<ReservationVehicleSectionProps>
     return (
         <Section>
             <SectionTitle>Informacje o pojeździe</SectionTitle>
-            <SectionDescription>
-                Podaj markę i model pojazdu - to wystarczy do zaplanowania wizyty
-            </SectionDescription>
 
             <FormRow>
                 <FormGroup>
