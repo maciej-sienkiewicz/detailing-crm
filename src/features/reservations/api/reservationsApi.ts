@@ -129,12 +129,22 @@ export interface ReservationCounters {
  * Convert to visit request
  */
 export interface ConvertToVisitRequest {
+    title: string;
+    calendarColorId: string;
+    startDate: string;
+    endDate?: string;
+    referralSource?: string;
+    otherSourceDetails?: string;
     ownerName: string;
+    ownerId?: number;
     email?: string;
+    phone?: string;
     companyName?: string;
     taxId?: string;
     address?: string;
     licensePlate: string;
+    make: string;
+    model: string;
     productionYear?: number;
     vin?: string;
     color?: string;
@@ -155,6 +165,7 @@ export interface ConvertToVisitRequest {
     keysProvided?: boolean;
     documentsProvided?: boolean;
     additionalNotes?: string;
+    notes?: string;
 }
 
 /**
