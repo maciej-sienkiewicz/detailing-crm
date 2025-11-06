@@ -67,9 +67,6 @@ export const ReservationsTable: React.FC<ReservationsTableProps> = ({
                         <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '12px' }}>
                             {reservation.vehicleMake} {reservation.vehicleModel}
                         </div>
-                        <div style={{ fontSize: '11px', color: '#64748b' }}>
-                            {reservation.vehicleDisplay}
-                        </div>
                     </div>
                 );
 
