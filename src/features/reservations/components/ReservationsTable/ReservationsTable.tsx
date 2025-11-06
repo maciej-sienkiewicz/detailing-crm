@@ -1,6 +1,5 @@
-// src/features/reservations/components/ReservationsTable.tsx
 import React from 'react';
-import { FaCalendarAlt, FaFilter, FaEye, FaEdit, FaBan, FaTrash } from 'react-icons/fa';
+import { FaCalendarAlt, FaFilter, FaEye, FaEdit, FaBan, FaTrash, FaPlay } from 'react-icons/fa';
 import {Reservation} from "../../api/reservationsApi";
 import {ActionButtons, DataTable, HeaderAction, TableColumn} from "../../../../components/common/DataTable";
 import {ContextMenu, ContextMenuItem} from "../../../../components/common/ContextMenu";
@@ -13,6 +12,7 @@ interface ReservationsTableProps {
     onReservationClick?: (reservation: Reservation) => void;
     onViewReservation?: (reservation: Reservation) => void;
     onEditReservation?: (reservationId: string) => void;
+    onStartVisit?: (reservation: Reservation) => void;
     onCancelReservation?: (reservationId: string) => void;
     onDeleteReservation?: (reservationId: string) => void;
     onToggleFilters?: () => void;
@@ -48,6 +48,7 @@ export const ReservationsTable: React.FC<ReservationsTableProps> = ({
                                                                         onReservationClick,
                                                                         onViewReservation,
                                                                         onEditReservation,
+                                                                        onStartVisit,
                                                                         onCancelReservation,
                                                                         onDeleteReservation,
                                                                         onToggleFilters,
@@ -167,6 +168,13 @@ export const ReservationsTable: React.FC<ReservationsTableProps> = ({
                         label: 'Edytuj',
                         icon: FaEdit,
                         onClick: () => onEditReservation?.(reservation.id),
+                        variant: 'primary'
+                    },
+                    {
+                        id: 'start-visit',
+                        label: 'Rozpocznij wizytę',
+                        icon: FaPlay,
+                        onClick: () => onStartVisit?.(reservation),
                         variant: 'primary'
                     },
                     {

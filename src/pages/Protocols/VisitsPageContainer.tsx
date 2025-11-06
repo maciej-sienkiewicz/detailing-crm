@@ -23,6 +23,7 @@ import {ReservationForm} from "../../features/reservations";
 import {servicesApi} from "../../features/services/api/servicesApi";
 import {ReservationsTable} from "../../features/reservations/components/ReservationsTable/ReservationsTable";
 import {EditVisitForm} from "../../features/visits/components/EditVisitForm/EditVisitForm";
+import {mapReservationToProtocol} from "../../features/reservations/hooks/mapReservationToProtocol";
 
 type StatusFilterType = 'reservations' | 'all' | ProtocolStatus;
 
@@ -551,6 +552,15 @@ export const VisitsPageContainer: React.FC = () => {
 
     const isLoading = activeStatusFilter === 'reservations' ? reservationsLoading : visitsLoading;
 
+    const handleStartVisit = useCallback((reservation: Reservation) => {
+        console.log('🚀 Starting visit from reservation:', reservation);
+        const protocolData = mapReservationToProtocol(reservation);
+        console.log('📋 Mapped protocol data:', protocolData);
+
+        setEditingVisit(protocolData as any);
+        setActiveForm('visit');
+    }, []);
+
     return (
         <PageContainer>
             <PageHeader
@@ -588,6 +598,7 @@ export const VisitsPageContainer: React.FC = () => {
                             onDeleteReservation={handleDeleteVisit}
                             onToggleFilters={handleToggleFilters}
                             filtersComponent={filtersComponent}
+                            onStartVisit={handleStartVisit}
                         />
                     ) : (
                         <VisitsTable

@@ -89,12 +89,10 @@ export interface CarReceptionProtocol {
     protocolDocuments?: ProtocolDocument[];
     deliveryPerson?: DeliveryPerson | null;
 
-    // ✅ NOWE POLA: zamiast pojedynczego totalAmount
     totalAmountNetto?: number;
     totalAmountBrutto?: number;
     totalTaxAmount?: number;
 
-    // Dodatkowe pola
     comments?: any[];
     purchaseInvoices?: any[];
     vehicleIssues?: any[];
