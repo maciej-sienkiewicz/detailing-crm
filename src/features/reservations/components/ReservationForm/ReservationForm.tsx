@@ -1,7 +1,7 @@
-// src/features/reservations/components/ReservationForm.tsx
+// src/features/reservations/components/ReservationForm/ReservationForm.tsx
 /**
  * Main reservation form component with full service management
- * Simplified form for creating reservations without client/vehicle profiles
+ * Supports both create and edit modes
  */
 
 import React from 'react';
@@ -39,10 +39,14 @@ const brandTheme = {
 };
 
 export const ReservationForm: React.FC<ReservationFormProps> = ({
+                                                                    mode = 'create',
+                                                                    initialData,
+                                                                    onSubmit,
                                                                     onSuccess,
                                                                     onCancel,
                                                                     initialStartDate,
-                                                                    initialEndDate
+                                                                    initialEndDate,
+                                                                    loading: externalLoading
                                                                 }) => {
     const navigate = useNavigate();
 
@@ -53,12 +57,16 @@ export const ReservationForm: React.FC<ReservationFormProps> = ({
         handleFieldChange,
         handleAllDayToggle,
         handleDateChange,
-        handleServicesChange, // NOWE
+        handleServicesChange,
         isAllDay,
         resetForm
-    } = useReservationForm({ initialStartDate, initialEndDate });
+    } = useReservationForm({
+        initialStartDate,
+        initialEndDate,
+        initialData
+    });
 
-    const { submitReservation, loading, error } = useReservationSubmit({
+    const { submitReservation, loading: createLoading, error: createError } = useReservationSubmit({
         onSuccess: (reservationId) => {
             console.log('✅ Reservation created successfully:', reservationId);
 
@@ -86,7 +94,16 @@ export const ReservationForm: React.FC<ReservationFormProps> = ({
         }
 
         console.log('✅ Form validation passed, submitting...');
-        await submitReservation(formData);
+
+        // Use custom onSubmit if provided (edit mode), otherwise use create
+        if (onSubmit) {
+            const success = await onSubmit(formData);
+            if (success && onSuccess) {
+                onSuccess(''); // Edit mode doesn't need to pass ID
+            }
+        } else {
+            await submitReservation(formData);
+        }
     };
 
     const handleCancel = () => {
@@ -97,9 +114,12 @@ export const ReservationForm: React.FC<ReservationFormProps> = ({
         }
     };
 
+    const loading = externalLoading ?? createLoading;
+    const error = createError;
+
     return (
         <FormContainer>
-            <ReservationFormHeader />
+            <ReservationFormHeader mode={mode} />
 
             {error && (
                 <ErrorMessage>
@@ -158,6 +178,7 @@ export const ReservationForm: React.FC<ReservationFormProps> = ({
 
                 {/* Form Actions */}
                 <ReservationFormActions
+                    mode={mode}
                     onCancel={handleCancel}
                     loading={loading}
                 />

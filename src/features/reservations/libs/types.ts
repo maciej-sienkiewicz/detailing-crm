@@ -4,7 +4,6 @@
  * Lightweight reservation data - no client/vehicle entities created yet
  */
 
-
 import {ReservationSelectedServiceInput} from "../api/reservationsApi";
 
 /**
@@ -28,8 +27,7 @@ export interface ReservationFormData {
     endDate?: string;  // ISO 8601
 
     // Services
-    selectedServices:
-        ReservationSelectedServiceInput[];
+    selectedServices: ReservationSelectedServiceInput[];
 
     // Notes
     notes?: string;
@@ -55,8 +53,25 @@ export interface ReservationFormErrors {
  * Props for ReservationForm component
  */
 export interface ReservationFormProps {
+    // Mode
+    mode?: 'create' | 'edit';
+
+    // Initial data for edit mode
+    initialData?: ReservationFormData;
+
+    // Custom submit handler (for edit mode)
+    onSubmit?: (formData: ReservationFormData) => Promise<boolean>;
+
+    // Success callback
     onSuccess?: (reservationId: string) => void;
+
+    // Cancel callback
     onCancel?: () => void;
+
+    // Initial dates (for create mode)
     initialStartDate?: string;
     initialEndDate?: string;
+
+    // External loading state
+    loading?: boolean;
 }

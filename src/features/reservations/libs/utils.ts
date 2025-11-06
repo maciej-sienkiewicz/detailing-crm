@@ -1,17 +1,50 @@
 // src/features/reservations/libs/utils.ts
 /**
  * Utility functions for reservation form
+ * Fixed to handle backend date format (array of numbers)
  */
+
+/**
+ * Converts backend date format (array or string) to ISO string
+ */
+const convertBackendDateToISO = (dateValue: string | number[]): string => {
+    if (!dateValue) return '';
+
+    // Handle array format from backend: [year, month, day, hour?, minute?, second?]
+    if (Array.isArray(dateValue)) {
+        const [year, month, day, hour = 0, minute = 0, second = 0] = dateValue;
+        const date = new Date(year, month - 1, day, hour, minute, second);
+
+        if (!isNaN(date.getTime())) {
+            // Format as ISO without timezone: YYYY-MM-DDTHH:MM:SS
+            const pad = (n: number) => String(n).padStart(2, '0');
+            return `${year}-${pad(month)}-${pad(day)}T${pad(hour)}:${pad(minute)}:${pad(second)}`;
+        }
+
+        console.warn('⚠️ Invalid date array:', dateValue);
+        return '';
+    }
+
+    // Handle string format
+    return String(dateValue);
+};
 
 /**
  * Formats date for API (ensures proper ISO format without timezone)
  */
-export const formatDateForAPI = (dateString: string): string => {
+export const formatDateForAPI = (dateString: string | number[]): string => {
     if (!dateString) return '';
 
     try {
+        // Convert to ISO string first if array
+        let isoString = Array.isArray(dateString)
+            ? convertBackendDateToISO(dateString)
+            : dateString;
+
+        if (!isoString) return '';
+
         // Remove 'Z' and milliseconds if present
-        let cleanedDate = dateString.replace('Z', '').split('.')[0];
+        let cleanedDate = isoString.replace('Z', '').split('.')[0];
 
         // Handle space format like "2025-09-25 23:59:59"
         if (cleanedDate.includes(' ') && !cleanedDate.includes('T')) {
@@ -29,7 +62,7 @@ export const formatDateForAPI = (dateString: string): string => {
         }
 
         // Fallback - try to create proper date
-        const date = new Date(dateString);
+        const date = new Date(isoString);
         if (!isNaN(date.getTime())) {
             return date.toISOString().split('.')[0];
         }
@@ -44,13 +77,20 @@ export const formatDateForAPI = (dateString: string): string => {
 };
 
 /**
- * Extracts date part from ISO string
+ * Extracts date part from ISO string or array
  */
-export const extractDateFromISO = (dateString: string): string => {
+export const extractDateFromISO = (dateString: string | number[]): string => {
     if (!dateString) return '';
 
     try {
-        let cleanedDate = dateString.replace('Z', '').split('.')[0];
+        // Convert to ISO string first if array
+        let isoString = Array.isArray(dateString)
+            ? convertBackendDateToISO(dateString)
+            : dateString;
+
+        if (!isoString) return '';
+
+        let cleanedDate = isoString.replace('Z', '').split('.')[0];
 
         if (cleanedDate.includes('T')) {
             return cleanedDate.split('T')[0];
@@ -64,7 +104,7 @@ export const extractDateFromISO = (dateString: string): string => {
             return cleanedDate;
         }
 
-        const date = new Date(dateString);
+        const date = new Date(isoString);
         if (!isNaN(date.getTime())) {
             return date.toISOString().split('T')[0];
         }
@@ -77,13 +117,20 @@ export const extractDateFromISO = (dateString: string): string => {
 };
 
 /**
- * Extracts time part from ISO string
+ * Extracts time part from ISO string or array
  */
-export const extractTimeFromISO = (dateString: string, defaultTime = '08:00'): string => {
+export const extractTimeFromISO = (dateString: string | number[], defaultTime = '08:00'): string => {
     if (!dateString) return defaultTime;
 
     try {
-        let cleanedDate = dateString.replace('Z', '').split('.')[0];
+        // Convert to ISO string first if array
+        let isoString = Array.isArray(dateString)
+            ? convertBackendDateToISO(dateString)
+            : dateString;
+
+        if (!isoString) return defaultTime;
+
+        let cleanedDate = isoString.replace('Z', '').split('.')[0];
 
         if (cleanedDate.includes('T')) {
             const timePart = cleanedDate.split('T')[1];

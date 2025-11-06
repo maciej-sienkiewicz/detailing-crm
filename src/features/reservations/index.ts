@@ -17,6 +17,8 @@ export { ReservationFormActions } from './components/ReservationForm/Reservation
 export { useReservationForm } from './hooks/useReservationForm';
 export { useReservationSubmit } from './hooks/useReservationSubmit';
 export { useReservationValidation } from './hooks/useReservationValidation';
+export { useReservationEdit } from './hooks/useReservationEdit';
+export { useFetchReservation } from './hooks/useFetchReservation';
 
 // Types
 export type {
@@ -35,6 +37,7 @@ export {
     generateReservationTitle
 } from './libs/utils';
 
+// API Types
 export type {
     Reservation,
     ReservationStatus,

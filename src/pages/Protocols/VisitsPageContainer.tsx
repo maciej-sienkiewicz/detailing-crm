@@ -583,7 +583,7 @@ export const VisitsPageContainer: React.FC = () => {
                             hasActiveFilters={hasActiveFilters}
                             onReservationClick={(reservation) => navigate(`/reservations/${reservation.id}`)}
                             onViewReservation={(reservation) => navigate(`/reservations/${reservation.id}`)}
-                            onEditReservation={(id) => console.log('Edit reservation:', id)}
+                            onEditReservation={(id) => navigate(`/reservations/${id}/edit`)}
                             onCancelReservation={(id) => console.log('Cancel reservation:', id)}
                             onDeleteReservation={handleDeleteVisit}
                             onToggleFilters={handleToggleFilters}

@@ -1,11 +1,12 @@
-// src/features/reservations/components/ReservationFormActions.tsx
+// src/features/reservations/components/ReservationForm/ReservationFormActions.tsx
 /**
  * Form actions component for reservation form
+ * Supports both create and edit modes
  */
 
 import React from 'react';
 import styled from 'styled-components';
-import { FaCalendarPlus, FaTimes } from 'react-icons/fa';
+import { FaCalendarPlus, FaSave, FaTimes } from 'react-icons/fa';
 
 const brandTheme = {
     primary: 'var(--brand-primary, #1a365d)',
@@ -36,14 +37,18 @@ const brandTheme = {
 };
 
 interface ReservationFormActionsProps {
+    mode?: 'create' | 'edit';
     onCancel: () => void;
     loading: boolean;
 }
 
 export const ReservationFormActions: React.FC<ReservationFormActionsProps> = ({
+                                                                                  mode = 'create',
                                                                                   onCancel,
                                                                                   loading
                                                                               }) => {
+    const isEditMode = mode === 'edit';
+
     return (
         <ActionsContainer>
             <SecondaryButton type="button" onClick={onCancel} disabled={loading}>
@@ -51,8 +56,14 @@ export const ReservationFormActions: React.FC<ReservationFormActionsProps> = ({
                 <span>Anuluj</span>
             </SecondaryButton>
             <PrimaryButton type="submit" disabled={loading}>
-                <FaCalendarPlus />
-                <span>{loading ? 'Zapisywanie...' : 'Utwórz rezerwację'}</span>
+                {isEditMode ? <FaSave /> : <FaCalendarPlus />}
+                <span>
+                    {loading
+                        ? 'Zapisywanie...'
+                        : isEditMode
+                            ? 'Zapisz zmiany'
+                            : 'Utwórz rezerwację'}
+                </span>
             </PrimaryButton>
         </ActionsContainer>
     );

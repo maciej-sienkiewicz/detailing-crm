@@ -1,4 +1,4 @@
-// src/routes.tsx - ZAKTUALIZOWANE z ClientDetailPage
+// src/routes.tsx - ZAKTUALIZOWANE z ReservationEditPage
 import React, { Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import CalendarPage from './pages/Calendar/CalendarPage';
@@ -27,10 +27,11 @@ import FinancialPageWithFixedCosts from "./pages/Finances/FinancialPageWithFixed
 import SettingsPageWithTabs from './pages/Settings/SettingsPageWithTabs';
 import ClientsVehiclesPage from './pages/Clients/ClientsVehiclesPage';
 import VehicleDetailPage from "./pages/Clients/components/VehicleDetailPage/VehicleDetailPage";
+import ClientDetailPage from "./pages/Clients/components/ClientDetailPage/ClientDetailPage";
 
 // Toast Provider import
 import { ToastProvider } from './components/common/Toast/Toast';
-import ClientDetailPage from "./pages/Clients/components/ClientDetailPage/ClientDetailPage";
+import ReservationEditPage from "./pages/Reservation/ReservationEditPage";
 
 // Lazy load recurring events pages for better performance
 const RecurringEventsPage = React.lazy(() => import('./pages/RecurringEvents/RecurringEventsPage'));
@@ -91,11 +92,11 @@ const AppRoutes: React.FC = () => {
                     {/* Finances */}
                     <Route path="/finances" element={<FinancialPageWithFixedCosts />} />
 
-                    {/* Clients & Vehicles - ROZSZERZONE O CLIENT DETAIL */}
+                    {/* Clients & Vehicles */}
                     <Route path="/clients-vehicles" element={<ClientsVehiclesPage />} />
                     <Route path="/vehicle/:id" element={<VehicleDetailPage />} />
                     <Route path="/" element={<Navigate to="/clients-vehicles?tab=owners" replace />} />
-                    <Route path="/clients/:id" element={<ClientDetailPage />} />  {/* NOWA RUTA */}
+                    <Route path="/clients/:id" element={<ClientDetailPage />} />
 
                     {/* Redirect dla starych ścieżek */}
                     <Route path="/clients/owners" element={<Navigate to="/clients-vehicles?tab=owners" replace />} />
@@ -114,7 +115,12 @@ const AppRoutes: React.FC = () => {
                     <Route path="/visits/:id/open" element={<StartVisitPage />} />
 
                     {/* ======================================================================================== */}
-                    {/* RECURRING EVENTS ROUTES - New Module */}
+                    {/* RESERVATIONS ROUTES - New Module */}
+                    {/* ======================================================================================== */}
+                    <Route path="/reservations/:id/edit" element={<ReservationEditPage />} />
+
+                    {/* ======================================================================================== */}
+                    {/* RECURRING EVENTS ROUTES */}
                     {/* ======================================================================================== */}
                     <Route path="/recurring-events" element={
                         <Suspense fallback={<PageLoadingFallback />}>

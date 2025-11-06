@@ -1,11 +1,12 @@
-// src/features/reservations/components/ReservationFormHeader.tsx
+// src/features/reservations/components/ReservationForm/ReservationFormHeader.tsx
 /**
  * Header component for reservation form
+ * Supports both create and edit modes
  */
 
 import React from 'react';
 import styled from 'styled-components';
-import { FaCalendarPlus } from 'react-icons/fa';
+import { FaCalendarPlus, FaEdit } from 'react-icons/fa';
 
 const brandTheme = {
     primary: 'var(--brand-primary, #1a365d)',
@@ -30,15 +31,25 @@ const brandTheme = {
     }
 };
 
-export const ReservationFormHeader: React.FC = () => {
+interface ReservationFormHeaderProps {
+    mode?: 'create' | 'edit';
+}
+
+export const ReservationFormHeader: React.FC<ReservationFormHeaderProps> = ({ mode = 'create' }) => {
+    const isEditMode = mode === 'edit';
+
     return (
         <HeaderContainer>
             <HeaderIcon>
-                <FaCalendarPlus />
+                {isEditMode ? <FaEdit /> : <FaCalendarPlus />}
             </HeaderIcon>
             <HeaderText>
-                <Title>Nowa rezerwacja</Title>
-                <Subtitle>Zaplanuj wizytę bez tworzenia profilu klienta</Subtitle>
+                <Title>{isEditMode ? 'Edycja rezerwacji' : 'Nowa rezerwacja'}</Title>
+                <Subtitle>
+                    {isEditMode
+                        ? 'Zaktualizuj dane rezerwacji'
+                        : 'Zaplanuj wizytę bez tworzenia profilu klienta'}
+                </Subtitle>
             </HeaderText>
         </HeaderContainer>
     );

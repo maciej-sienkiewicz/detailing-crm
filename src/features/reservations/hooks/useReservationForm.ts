@@ -1,6 +1,7 @@
 // src/features/reservations/hooks/useReservationForm.ts
 /**
  * Main hook for reservation form state management with services support
+ * Supports both create and edit modes
  */
 
 import { useCallback, useEffect, useState } from 'react';
@@ -12,11 +13,23 @@ import {ReservationSelectedServiceInput} from "../api/reservationsApi";
 interface UseReservationFormProps {
     initialStartDate?: string;
     initialEndDate?: string;
+    initialData?: ReservationFormData;
 }
 
-export const useReservationForm = ({ initialStartDate, initialEndDate }: UseReservationFormProps = {}) => {
-    // Initialize form data with defaults
+export const useReservationForm = ({
+                                       initialStartDate,
+                                       initialEndDate,
+                                       initialData
+                                   }: UseReservationFormProps = {}) => {
+    // Initialize form data with defaults or initial data (ONCE)
     const [formData, setFormData] = useState<ReservationFormData>(() => {
+        // If initial data provided (edit mode), use it
+        if (initialData) {
+            console.log('🎯 Using initialData for form:', initialData);
+            return initialData;
+        }
+
+        // Otherwise use defaults (create mode)
         const now = new Date();
         const todayDate = now.toISOString().split('T')[0];
         const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -39,8 +52,13 @@ export const useReservationForm = ({ initialStartDate, initialEndDate }: UseRese
 
     const { errors, validateForm, clearFieldError, clearAllErrors } = useReservationValidation(formData);
 
-    // Auto-generate title when vehicle or contact changes
+    // Auto-generate title when vehicle or contact changes (only in create mode)
     useEffect(() => {
+        // Don't auto-generate in edit mode
+        if (initialData) {
+            return;
+        }
+
         if (!formData.title || formData.title.trim() === '') {
             const autoTitle = generateReservationTitle(
                 formData.vehicleMake,
@@ -52,7 +70,7 @@ export const useReservationForm = ({ initialStartDate, initialEndDate }: UseRese
                 setFormData(prev => ({ ...prev, title: autoTitle }));
             }
         }
-    }, [formData.vehicleMake, formData.vehicleModel, formData.contactName]);
+    }, [formData.vehicleMake, formData.vehicleModel, formData.contactName, formData.title, initialData]);
 
     // Handle basic field changes
     const handleFieldChange = useCallback((
@@ -95,7 +113,7 @@ export const useReservationForm = ({ initialStartDate, initialEndDate }: UseRese
         clearFieldError(name);
     }, [clearFieldError]);
 
-    // NOWE: Handle services change
+    // Handle services change
     const handleServicesChange = useCallback((services: ReservationSelectedServiceInput[]) => {
         setFormData(prev => ({
             ...prev,
@@ -160,7 +178,7 @@ export const useReservationForm = ({ initialStartDate, initialEndDate }: UseRese
         handleFieldChange,
         handleAllDayToggle,
         handleDateChange,
-        handleServicesChange, // NOWE
+        handleServicesChange,
         handleAddService,
         handleRemoveService,
         handleUpdateService,
