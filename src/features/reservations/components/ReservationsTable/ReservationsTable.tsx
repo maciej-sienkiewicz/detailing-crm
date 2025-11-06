@@ -13,7 +13,7 @@ interface ReservationsTableProps {
     onReservationClick?: (reservation: Reservation) => void;
     onViewReservation?: (reservation: Reservation) => void;
     onEditReservation?: (reservationId: string) => void;
-    onStartVisit?: (reservation: Reservation) => void;
+    onStartVisit: (reservation: Reservation) => void;
     onCancelReservation?: (reservationId: string) => void;
     onDeleteReservation?: (reservationId: string) => void;
     onToggleFilters?: () => void;
@@ -55,39 +55,8 @@ export const ReservationsTable: React.FC<ReservationsTableProps> = ({
                                                                         onToggleFilters,
                                                                         filtersComponent
                                                                     }) => {
-    const formatDate = (dateValue: string | number[]): string => {
-        if (!dateValue) return '';
-
-        let date: Date;
-
-        if (Array.isArray(dateValue)) {
-            const [year, month, day, hour = 0, minute = 0, second = 0] = dateValue;
-            date = new Date(year, month - 1, day, hour, minute, second);
-        } else {
-            date = new Date(dateValue);
-        }
-
-        if (isNaN(date.getTime())) return '';
-
-        const formattedDate = date.toLocaleDateString('pl-PL', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit'
-        });
-
-        const hasTime = Array.isArray(dateValue)
-            ? (dateValue[3] !== undefined && (dateValue[3] !== 23 || dateValue[4] !== 59))
-            : (typeof dateValue === 'string' && dateValue.includes('T') && !dateValue.includes('23:59:59'));
-
-        if (hasTime) {
-            const time = date.toLocaleTimeString('pl-PL', {
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-            return `${formattedDate}, ${time}`;
-        }
-
-        return formattedDate;
+    const formatDate = (dateValue: string): string => {
+        return dateValue
     };
 
     const renderCell = (reservation: Reservation, columnId: string) => {

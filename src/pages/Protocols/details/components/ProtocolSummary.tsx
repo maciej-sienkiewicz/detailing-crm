@@ -473,8 +473,8 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                     <StatusProgress>Etap {currentStatus.step}/4</StatusProgress>
                 </StatusHeader>
                 <StatusTimeline>
-                    <StatusStep $active={true} $completed={protocol.status !== 'SCHEDULED'}>
-                        <StepIcon $active={protocol.status === 'SCHEDULED'} $completed={protocol.status !== 'SCHEDULED'}>
+                    <StatusStep $active={true} $completed={true}>
+                        <StepIcon $active={false} $completed={true}>
                             <FaCalendarCheck />
                         </StepIcon>
                         <StepLabel>Przyjęto</StepLabel>

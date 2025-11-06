@@ -78,14 +78,14 @@ const ProtocolDetailsPage: React.FC = () => {
 
             const updatedProtocol = {
                 ...protocol,
-                status: ProtocolStatus.SCHEDULED,
+                status: ProtocolStatus.IN_PROGRESS,
                 startDate: dates.startDate,
                 endDate: dates.endDate,
                 statusUpdatedAt: new Date().toISOString()
             };
 
             const result = await protocolsApi.restoreProtocol(protocol.id, {
-                newStatus: ProtocolStatus.SCHEDULED,
+                newStatus: ProtocolStatus.IN_PROGRESS,
                 newStartDate: dates.startDate,
                 newEndDate: dates.endDate
             });
@@ -215,7 +215,6 @@ const ProtocolDetailsPage: React.FC = () => {
 
     const canFinishOrder = protocol?.status === ProtocolStatus.IN_PROGRESS;
     const canReleaseVehicle = protocol?.status === ProtocolStatus.READY_FOR_PICKUP;
-    const isScheduled = protocol?.status === ProtocolStatus.SCHEDULED;
 
     const handleReleaseVehicle = () => {
         if(comments != null && comments.filter(c => c.type === 'CUSTOMER').length > 0) {
@@ -348,26 +347,10 @@ const ProtocolDetailsPage: React.FC = () => {
                     Wydaj samochód
                 </PrimaryButton>
             )}
-            {protocol.status == ProtocolStatus.SCHEDULED && (
-                <SecondaryButton onClick={() => navigate(`/visits`, {
-                    state: { editProtocolId: protocol.id }
-                })}>
-                    <FaEdit />
-                    Edytuj
-                </SecondaryButton>
-            )}
-            {isScheduled && (
-                <PrimaryButton onClick={() => navigate(`/visits/${protocol.id}/open`)}>
-                    <FaEdit />
-                    Rozpocznij wizytę
-                </PrimaryButton>
-            )}
-            {!isScheduled && (
-                <PrimaryButton onClick={() => setShowPdfPreview(true)}>
-                    <FaFilePdf />
-                    Drukuj protokół
-                </PrimaryButton>
-            )}
+            <PrimaryButton onClick={() => setShowPdfPreview(true)}>
+                <FaFilePdf />
+                Drukuj protokół
+            </PrimaryButton>
             {!isCancelled && (
                 <SecondaryButton onClick={() => setShowCancelModal(true)}>
                     <FaBan />

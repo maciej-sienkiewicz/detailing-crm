@@ -52,7 +52,7 @@ export const useProtocolActions = (
             if (protocolDetails) {
                 // Jeśli mamy flagę isOpenProtocolAction i protokół jest w statusie SCHEDULED,
                 // zmieniamy status na IN_PROGRESS
-                if (isOpenProtocolAction && protocolDetails.status === ProtocolStatus.SCHEDULED) {
+                if (isOpenProtocolAction) {
                     // Aktualizujemy status protokołu na IN_PROGRESS
                     protocolDetails.status = ProtocolStatus.IN_PROGRESS;
 

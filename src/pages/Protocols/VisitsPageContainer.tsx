@@ -38,20 +38,6 @@ interface AppData {
 
 type FormType = 'none' | 'visit' | 'reservation' | 'convert';
 
-const convertReservationStatusToProtocolStatus = (status: ReservationStatus): ProtocolStatus => {
-    switch (status) {
-        case ReservationStatus.PENDING:
-        case ReservationStatus.CONFIRMED:
-            return ProtocolStatus.IN_PROGRESS;
-        case ReservationStatus.CONVERTED:
-            return ProtocolStatus.COMPLETED;
-        case ReservationStatus.CANCELLED:
-            return ProtocolStatus.CANCELLED;
-        default:
-            return ProtocolStatus.IN_PROGRESS;
-    }
-};
-
 export const VisitsPageContainer: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();

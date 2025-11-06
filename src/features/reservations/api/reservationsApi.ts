@@ -16,7 +16,6 @@ import { PriceResponse, ServicePriceInput } from '../../../types/service';
  * Reservation status enum (matches backend)
  */
 export enum ReservationStatus {
-    PENDING = 'PENDING',
     CONFIRMED = 'CONFIRMED',
     CONVERTED = 'CONVERTED',
     CANCELLED = 'CANCELLED'
@@ -118,11 +117,7 @@ export interface ChangeStatusRequest {
  * Reservation counters
  */
 export interface ReservationCounters {
-    pending: number;
     confirmed: number;
-    converted: number;
-    cancelled: number;
-    all: number;
 }
 
 // Patch for src/features/reservations/api/reservationsApi.ts

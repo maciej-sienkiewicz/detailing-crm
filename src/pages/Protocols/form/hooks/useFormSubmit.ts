@@ -182,7 +182,7 @@ export const useFormSubmit = (
                 })) || [];
 
                 // Ustaw odpowiedni status
-                const status = isOpenProtocolAction ? ProtocolStatus.IN_PROGRESS : ProtocolStatus.SCHEDULED;
+                const status = isOpenProtocolAction ? ProtocolStatus.IN_PROGRESS : ProtocolStatus.IN_PROGRESS;
 
                 const newProtocolData: Omit<CarReceptionProtocol, 'id' | 'createdAt' | 'updatedAt'> = {
                     ...updatedFormData,

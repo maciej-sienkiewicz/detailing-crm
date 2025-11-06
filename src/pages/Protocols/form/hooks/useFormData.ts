@@ -69,7 +69,7 @@ export const useFormDataWithAutocomplete = (
             phone: '',
             notes: '',
             selectedServices: [],
-            status: ProtocolStatus.SCHEDULED,
+            status: ProtocolStatus.IN_PROGRESS,
             vehicleImages: [],
             referralSource: undefined,
             otherSourceDetails: '',

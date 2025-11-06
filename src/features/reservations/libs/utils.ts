@@ -56,6 +56,17 @@ export const formatDateForAPI = (dateString: string | number[]): string => {
             return cleanedDate;
         }
 
+        if (/^\d{2}.\d{2}.\d{4} \d{2}:\d{2}$/.test(cleanedDate)) {
+            // Dzieli string na '25-10-2023' i '14:30'
+            const [datePart, timePart] = cleanedDate.split(' ');
+
+            // Przetwarza '25-10-2023'
+            const [day, month, year] = datePart.split('-');
+
+            // Przetwarza '14:30' i dodaje sekundy
+            return `${year}-${month}-${day}T${timePart}:00`;
+        }
+
         // If just date (YYYY-MM-DD), add default time
         if (/^\d{4}-\d{2}-\d{2}$/.test(cleanedDate)) {
             return `${cleanedDate}T08:00:00`;

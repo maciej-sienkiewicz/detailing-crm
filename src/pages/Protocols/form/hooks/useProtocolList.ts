@@ -60,7 +60,7 @@ const convertReservationToVisitListItem = (reservation: Reservation): VisitListI
             name: reservation.contactName || reservation.contactPhone,
             companyName: undefined
         },
-        status: ProtocolStatus.SCHEDULED, // Rezerwacje wyświetlamy jako zaplanowane
+        status: ProtocolStatus.IN_PROGRESS, // Rezerwacje wyświetlamy jako zaplanowane
         totalServiceCount: reservation.serviceCount,
         totalAmountNetto: reservation.totalPriceNetto,
         totalAmountBrutto: reservation.totalPriceBrutto,
