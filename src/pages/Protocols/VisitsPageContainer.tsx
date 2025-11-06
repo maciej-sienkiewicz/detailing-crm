@@ -1,4 +1,4 @@
-// src/pages/Protocols/VisitsPageContainer.tsx - POPRAWIONA WERSJA
+// src/pages/Protocols/VisitsPageContainer.tsx - ENHANCED VERSION WITH CONVERSION
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from 'styled-components';
 import {FaArrowLeft, FaCalendarPlus, FaClipboardCheck, FaPlus} from 'react-icons/fa';
@@ -23,6 +23,7 @@ import {ReservationForm} from "../../features/reservations";
 import {servicesApi} from "../../features/services/api/servicesApi";
 import {ReservationsTable} from "../../features/reservations/components/ReservationsTable/ReservationsTable";
 import {EditVisitForm} from "../../features/visits/components/EditVisitForm/EditVisitForm";
+import {ConvertReservationToVisitForm} from "../../features/reservations/components/ConvertReservationForm/ConvertReservationToVisitForm";
 
 type StatusFilterType = 'reservations' | 'all' | ProtocolStatus;
 
@@ -35,46 +36,7 @@ interface AppData {
     countersLoaded: boolean;
 }
 
-type FormType = 'none' | 'visit' | 'reservation';
-
-const convertReservationToVisitListItem = (reservation: Reservation): VisitListItem => {
-    return {
-        id: reservation.id,
-        vehicle: {
-            make: reservation.vehicleMake,
-            model: reservation.vehicleModel,
-            licensePlate: '',
-            productionYear: 0,
-            color: undefined
-        },
-        period: {
-            startDate: reservation.startDate,
-            endDate: reservation.endDate
-        },
-        owner: {
-            name: reservation.contactName || reservation.contactPhone,
-            companyName: undefined
-        },
-        status: convertReservationStatusToProtocolStatus(reservation.status),
-        totalServiceCount: reservation.serviceCount,
-        totalAmountNetto: reservation.totalPriceNetto,
-        totalAmountBrutto: reservation.totalPriceBrutto,
-        totalTaxAmount: reservation.totalTaxAmount,
-        calendarColorId: reservation.calendarColorId,
-        selectedServices: reservation.services.map(service => ({
-            id: service.id,
-            name: service.name,
-            quantity: service.quantity,
-            basePrice: service.basePrice,
-            discountType: 'PERCENTAGE' as any,
-            discountValue: 0,
-            finalPrice: service.finalPrice,
-            note: service.note
-        })),
-        title: reservation.title,
-        lastUpdate: reservation.updatedAt
-    };
-};
+type FormType = 'none' | 'visit' | 'reservation' | 'convert';
 
 const convertReservationStatusToProtocolStatus = (status: ReservationStatus): ProtocolStatus => {
     switch (status) {
@@ -98,6 +60,7 @@ export const VisitsPageContainer: React.FC = () => {
 
     const [activeForm, setActiveForm] = useState<FormType>('none');
     const [editingVisit, setEditingVisit] = useState<any>(null);
+    const [convertingReservation, setConvertingReservation] = useState<Reservation | null>(null);
     const [availableServices, setAvailableServices] = useState<any[]>([]);
     const [isShowingConfirmationModal, setIsShowingConfirmationModal] = useState(false);
     const [currentProtocol, setCurrentProtocol] = useState<any>(null);
@@ -322,11 +285,17 @@ export const VisitsPageContainer: React.FC = () => {
 
     const handleEditVisit = useCallback((visitId: string) => {
         if (activeStatusFilter === 'reservations') {
-            console.log('Edit reservation:', visitId);
+            navigate(`/reservations/${visitId}/edit`);
         } else {
             navigate(`/visits/${visitId}/edit`);
         }
     }, [navigate, activeStatusFilter]);
+
+    const handleStartVisit = useCallback((reservation: Reservation) => {
+        console.log('🚀 Starting visit from reservation:', reservation);
+        setConvertingReservation(reservation);
+        setActiveForm('convert');
+    }, []);
 
     const handleDeleteVisit = useCallback(async (visitId: string) => {
         if (activeStatusFilter === 'reservations') {
@@ -354,6 +323,7 @@ export const VisitsPageContainer: React.FC = () => {
     const handleFormCancel = useCallback(() => {
         setActiveForm('none');
         setEditingVisit(null);
+        setConvertingReservation(null);
     }, []);
 
     const handleSaveProtocol = useCallback((protocol: any, showConfirmationModal: boolean) => {
@@ -379,6 +349,19 @@ export const VisitsPageContainer: React.FC = () => {
             refreshVisits();
         }
     }, [activeStatusFilter, loadReservations, refreshVisits, reservationsPagination.size]);
+
+    const handleConversionSuccess = useCallback((visitId: string) => {
+        console.log('✅ Reservation converted to visit:', visitId);
+        setActiveForm('none');
+        setConvertingReservation(null);
+
+        // Refresh data
+        loadCounters();
+        refreshVisits();
+
+        // Navigate to new visit
+        navigate(`/visits/${visitId}`);
+    }, [navigate, refreshVisits, loadCounters]);
 
     const handleConfirmationClose = useCallback(() => {
         setIsShowingConfirmationModal(false);
@@ -458,6 +441,33 @@ export const VisitsPageContainer: React.FC = () => {
         isFirstLoad.current = true;
     }, [location.pathname, resetData, clearAllFilters]);
 
+    // CONVERT FORM VIEW
+    if (activeForm === 'convert' && convertingReservation) {
+        return (
+            <PageContainer>
+                <PageHeader
+                    icon={FaCalendarPlus}
+                    title="Rozpocznij wizytę"
+                    subtitle={`Konwersja rezerwacji: ${convertingReservation.title}`}
+                    actions={
+                        <BackButton onClick={handleFormCancel}>
+                            <FaArrowLeft />
+                        </BackButton>
+                    }
+                />
+
+                <FormWrapper>
+                    <ConvertReservationToVisitForm
+                        reservation={convertingReservation}
+                        onSuccess={handleConversionSuccess}
+                        onCancel={handleFormCancel}
+                    />
+                </FormWrapper>
+            </PageContainer>
+        );
+    }
+
+    // VISIT FORM VIEW
     if (activeForm === 'visit') {
         return (
             <PageContainer>
@@ -496,6 +506,7 @@ export const VisitsPageContainer: React.FC = () => {
         );
     }
 
+    // RESERVATION FORM VIEW
     if (activeForm === 'reservation') {
         return (
             <PageContainer>
@@ -520,6 +531,7 @@ export const VisitsPageContainer: React.FC = () => {
         );
     }
 
+    // MAIN TABLE VIEW
     const headerActions = (
         <ButtonGroup>
             <SecondaryButton onClick={handleAddReservation}>
@@ -584,6 +596,7 @@ export const VisitsPageContainer: React.FC = () => {
                             onReservationClick={(reservation) => navigate(`/reservations/${reservation.id}`)}
                             onViewReservation={(reservation) => navigate(`/reservations/${reservation.id}`)}
                             onEditReservation={(id) => navigate(`/reservations/${id}/edit`)}
+                            onStartVisit={handleStartVisit}
                             onCancelReservation={(id) => console.log('Cancel reservation:', id)}
                             onDeleteReservation={handleDeleteVisit}
                             onToggleFilters={handleToggleFilters}
@@ -622,6 +635,7 @@ export const VisitsPageContainer: React.FC = () => {
     );
 };
 
+// Styled Components
 const PageContainer = styled.div`
     background: ${theme.surfaceHover};
     min-height: 100vh;

@@ -1,7 +1,7 @@
-// src/features/reservations/components/ReservationsTable.tsx
+// src/features/reservations/components/ReservationsTable/ReservationsTable.tsx
 import React from 'react';
-import { FaCalendarAlt, FaFilter, FaEye, FaEdit, FaBan, FaTrash } from 'react-icons/fa';
-import {Reservation} from "../../api/reservationsApi";
+import { FaCalendarAlt, FaFilter, FaEye, FaEdit, FaBan, FaTrash, FaArrowRight } from 'react-icons/fa';
+import {Reservation, ReservationStatus} from "../../api/reservationsApi";
 import {ActionButtons, DataTable, HeaderAction, TableColumn} from "../../../../components/common/DataTable";
 import {ContextMenu, ContextMenuItem} from "../../../../components/common/ContextMenu";
 
@@ -13,6 +13,7 @@ interface ReservationsTableProps {
     onReservationClick?: (reservation: Reservation) => void;
     onViewReservation?: (reservation: Reservation) => void;
     onEditReservation?: (reservationId: string) => void;
+    onStartVisit?: (reservation: Reservation) => void;
     onCancelReservation?: (reservationId: string) => void;
     onDeleteReservation?: (reservationId: string) => void;
     onToggleFilters?: () => void;
@@ -48,6 +49,7 @@ export const ReservationsTable: React.FC<ReservationsTableProps> = ({
                                                                         onReservationClick,
                                                                         onViewReservation,
                                                                         onEditReservation,
+                                                                        onStartVisit,
                                                                         onCancelReservation,
                                                                         onDeleteReservation,
                                                                         onToggleFilters,
@@ -154,7 +156,9 @@ export const ReservationsTable: React.FC<ReservationsTableProps> = ({
                 );
 
             case 'actions':
-                const menuItems: ContextMenuItem[] = [
+                const menuItems: ContextMenuItem[] = [];
+
+                menuItems.push(
                     {
                         id: 'view',
                         label: 'Podgląd',
@@ -170,20 +174,32 @@ export const ReservationsTable: React.FC<ReservationsTableProps> = ({
                         variant: 'primary'
                     },
                     {
+                        id: 'start-visit',
+                        label: 'Rozpocznij wizytę',
+                        icon: FaArrowRight,
+                        onClick: () => onStartVisit(reservation),
+                        variant: 'primary'
+                    }
+                );
+
+                // Show cancel only for non-cancelled reservations
+                if (reservation.status !== ReservationStatus.CANCELLED && reservation.status !== ReservationStatus.CONVERTED) {
+                    menuItems.push({
                         id: 'cancel',
                         label: 'Anuluj',
                         icon: FaBan,
                         onClick: () => onCancelReservation?.(reservation.id),
                         variant: 'primary'
-                    },
-                    {
-                        id: 'delete',
-                        label: 'Usuń',
-                        icon: FaTrash,
-                        onClick: () => onDeleteReservation?.(reservation.id),
-                        variant: 'danger'
-                    }
-                ];
+                    });
+                }
+
+                menuItems.push({
+                    id: 'delete',
+                    label: 'Usuń',
+                    icon: FaTrash,
+                    onClick: () => onDeleteReservation?.(reservation.id),
+                    variant: 'danger'
+                });
 
                 return (
                     <ActionButtons onClick={(e) => e.stopPropagation()}>

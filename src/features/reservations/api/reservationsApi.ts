@@ -125,8 +125,11 @@ export interface ReservationCounters {
     all: number;
 }
 
+// Patch for src/features/reservations/api/reservationsApi.ts
+// Replace the ConvertToVisitRequest interface with this corrected version:
+
 /**
- * Convert to visit request
+ * Convert to visit request - CORRECTED VERSION
  */
 export interface ConvertToVisitRequest {
     title: string;
@@ -152,20 +155,22 @@ export interface ConvertToVisitRequest {
     selectedServices: Array<{
         id: string;
         name: string;
-        price: {
-            inputPrice: number;
-            inputType: 'netto' | 'brutto';
+        // CRITICAL: Backend expects CalculatedPriceDto, NOT ServicePriceInput!
+        basePrice: {
+            priceNetto: number;      // NOT inputPrice!
+            priceBrutto: number;     // NOT inputType!
+            taxAmount: number;
         };
         quantity: number;
         vatRate: number;
         discountType?: string;
         discountValue?: number;
-        note?: string;
+        note?: string | null;
     }>;
     keysProvided?: boolean;
     documentsProvided?: boolean;
     additionalNotes?: string;
-    notes?: string;
+    notes?: string | null;
 }
 
 /**
