@@ -179,7 +179,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                     name: service.name,
                     quantity: service.quantity || 1,
                     basePrice: service.basePrice,
-                    discountType: service.discount?.type as DiscountType || DiscountType.PERCENTAGE,
+                    discountType: service.discount?.type as DiscountType || DiscountType.PERCENT,
                     discountValue: service.discount?.value || 0,
                     finalPrice: service.finalPrice,
                     note: service.note || '',
@@ -824,7 +824,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                                         <DiscountInfo>
                                             <DiscountAmount>
                                                 -{service.discountValue.toFixed(2)}
-                                                {service.discountType === DiscountType.PERCENTAGE ? '%' : 'zł'}
+                                                {service.discountType === DiscountType.PERCENT ? '%' : 'zł'}
                                             </DiscountAmount>
                                             <SavingsAmount>(-{(getBasePriceGross(service) - getFinalPriceGross(service)).toFixed(2)} zł)</SavingsAmount>
                                         </DiscountInfo>
