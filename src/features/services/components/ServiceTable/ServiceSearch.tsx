@@ -65,7 +65,7 @@ interface ServiceSearchProps {
     onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onSelectService: (service: Service) => void;
     onAddService: () => void;
-    onAddServiceDirect: (service: Service) => void;
+    onAddServiceDirect: (service: Service, note?: string) => void;
     allowCustomService?: boolean;
     onServiceAdded?: () => void;
     onServiceCreated?: (oldId: string, newService: Service) => void;
@@ -161,7 +161,7 @@ export const ServiceSearch: React.FC<ServiceSearchProps> = ({
         }
     };
 
-    const handleSavePrice = async (inputPrice: number, inputType: PriceType) => {
+    const handleSavePrice = async (inputPrice: number, inputType: PriceType, note?: string) => {
         if (!serviceToEdit) return;
 
         try {
@@ -184,7 +184,7 @@ export const ServiceSearch: React.FC<ServiceSearchProps> = ({
                     }
 
                     onSelectService(createdService);
-                    onAddServiceDirect(createdService);
+                    onAddServiceDirect(createdService, note);
 
                     setTimeout(() => {
                         if (onServiceAdded) {
@@ -207,7 +207,7 @@ export const ServiceSearch: React.FC<ServiceSearchProps> = ({
                     });
 
                     onSelectService(updatedService);
-                    onAddServiceDirect(updatedService);
+                    onAddServiceDirect(updatedService, note);
 
                     if (onServiceAdded) {
                         setTimeout(() => {
@@ -345,8 +345,8 @@ export const ServiceSearch: React.FC<ServiceSearchProps> = ({
                         setIsPriceModalOpen(false);
                         setServiceToEdit(null);
                     }}
-                    onSave={(inputPrice, inputType) => {
-                        void handleSavePrice(inputPrice, inputType);
+                    onSave={(inputPrice, inputType, note) => {
+                        void handleSavePrice(inputPrice, inputType, note);
                     }}
                     serviceName={serviceToEdit.name}
                     isNewService={serviceToEdit.isNew || false}

@@ -217,7 +217,7 @@ export const ReservationServicesSection: React.FC<ReservationServicesSectionProp
         setSelectedServiceToAdd(null);
     };
 
-    const handleAddServiceDirect = (service: Service) => {
+    const handleAddServiceDirect = (service: Service, note?: string) => {
         const newService = {
             id: service.id,
             name: service.name,
@@ -227,7 +227,7 @@ export const ReservationServicesSection: React.FC<ReservationServicesSectionProp
             discountValue: 0,
             approvalStatus: undefined,
         };
-        addService(newService);
+        addService(newService, note);
 
         // Initialize extended type
         setExtendedDiscountTypes(prev => ({

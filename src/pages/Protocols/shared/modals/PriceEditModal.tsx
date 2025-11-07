@@ -66,11 +66,12 @@ const brandTheme = {
 interface PriceEditModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (price: number, inputType: PriceType) => void;
+    onSave: (price: number, inputType: PriceType, note: string) => void; // ✅ ZMIANA: Dodano 'note'
     serviceName: string;
     isNewService: boolean;
     initialPrice?: number;
     initialPriceType?: PriceType;
+    initialNote?: string; // ✅ ZMIANA: Dodano initialNote
 }
 
 const PriceEditModal: React.FC<PriceEditModalProps> = ({
@@ -80,11 +81,13 @@ const PriceEditModal: React.FC<PriceEditModalProps> = ({
                                                            serviceName,
                                                            isNewService,
                                                            initialPrice = 0,
-                                                           initialPriceType = PriceType.GROSS
+                                                           initialPriceType = PriceType.GROSS,
+                                                           initialNote = '' // ✅ ZMIANA: Dodano initialNote do dekonstrukcji
                                                        }) => {
     const [price, setPrice] = useState<string>(initialPrice > 0 ? initialPrice.toString() : '');
     const [error, setError] = useState<string | null>(null);
     const [isPriceGross, setIsPriceGross] = useState<boolean>(initialPriceType === PriceType.GROSS);
+    const [note, setNote] = useState<string>(initialNote || ''); // ✅ ZMIANA: Dodano stan dla notatki
 
     // Domyślna stawka VAT
     const DEFAULT_VAT_RATE = 23;
@@ -95,8 +98,9 @@ const PriceEditModal: React.FC<PriceEditModalProps> = ({
             setPrice(initialPrice >= 0 ? initialPrice.toString() : '');
             setError(null);
             setIsPriceGross(initialPriceType === PriceType.GROSS);
+            setNote(initialNote || ''); // ✅ ZMIANA: Reset notatki
         }
-    }, [isOpen, initialPrice, initialPriceType]);
+    }, [isOpen, initialPrice, initialPriceType, initialNote]); // ✅ ZMIANA: Dodano initialNote do zależności
 
     // Funkcje do przeliczania cen netto/brutto
     const calculateNetPrice = (grossPrice: number): number => {
@@ -157,11 +161,10 @@ const PriceEditModal: React.FC<PriceEditModalProps> = ({
             return;
         }
 
-        // Przekaż wprowadzoną cenę oraz typ ceny do API
-        // API oczekuje inputPrice i inputType (GROSS lub NET)
+        // Przekaż wprowadzoną cenę oraz typ ceny i notatkę
         const inputType = isPriceGross ? PriceType.GROSS : PriceType.NET;
 
-        onSave(numericPrice, inputType);
+        onSave(numericPrice, inputType, note); // ✅ ZMIANA: Przekazanie notatki
         setPrice('');
         setError(null);
         onClose();
@@ -264,6 +267,18 @@ const PriceEditModal: React.FC<PriceEditModalProps> = ({
                             )}
                             {error && <ErrorText>{error}</ErrorText>}
                         </FormGroup>
+
+                        {/* ✅ ZMIANA: Nowe pole tekstowe na notatkę */}
+                        <FormGroup>
+                            <Label htmlFor="serviceNote">Notatka do usługi (opcjonalnie)</Label>
+                            <EditTextArea
+                                id="serviceNote"
+                                value={note}
+                                onChange={(e) => setNote(e.target.value)}
+                                placeholder="Dodaj dodatkowe informacje lub uwagi"
+                            />
+                        </FormGroup>
+                        {/* ✅ KONIEC ZMIANY */}
                     </FormSection>
                 </ModalBody>
 
@@ -552,26 +567,30 @@ const ErrorText = styled.div`
     }
 `;
 
-const TaxInfo = styled.div`
-    background: ${brandTheme.status.warningLight};
-    border: 1px solid ${brandTheme.status.warning};
-    border-radius: ${brandTheme.radius.lg};
-    padding: ${brandTheme.spacing.md} ${brandTheme.spacing.lg};
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
-`;
-
-const TaxInfoIcon = styled.div`
-    font-size: 16px;
-    flex-shrink: 0;
-`;
-
-const TaxInfoText = styled.div`
-    font-size: 13px;
-    color: ${brandTheme.status.warning};
+// ✅ ZMIANA: Nowy styled component dla pola tekstowego
+const EditTextArea = styled.textarea`
+    width: 100%;
+    min-height: 100px; /* Wysokość dla notatki */
+    padding: ${brandTheme.spacing.lg};
+    border: 2px solid ${brandTheme.border};
+    border-radius: ${brandTheme.radius.md};
+    font-size: 14px;
     font-weight: 500;
-    line-height: 1.4;
+    background: ${brandTheme.surface};
+    color: ${brandTheme.text.primary};
+    transition: all ${brandTheme.transitions.normal};
+    resize: vertical;
+
+    &:focus {
+        outline: none;
+        border-color: ${brandTheme.primary};
+        box-shadow: 0 0 0 3px ${brandTheme.primaryGhost};
+    }
+
+    &::placeholder {
+        color: ${brandTheme.text.muted};
+        font-weight: 400;
+    }
 `;
 
 const ModalFooter = styled.div`

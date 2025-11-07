@@ -3,7 +3,7 @@ import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
 import {FaCalculator, FaCheck, FaMoneyBillWave, FaPencilAlt, FaTimes} from 'react-icons/fa';
 import {SelectedService} from '../../../../types';
-import {PriceResponse} from '../../../../types/service';
+import {PriceResponse} from '../../../../types';
 import {useToast} from "../../../../components/common/Toast/Toast";
 import {protocolsApi} from "../../../../api/protocolsApi";
 import {DiscountType} from "../../../../features/reservations/api/reservationsApi";

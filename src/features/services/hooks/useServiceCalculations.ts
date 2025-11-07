@@ -107,12 +107,13 @@ export const useServiceCalculations = (initialServices: SelectedService[] = []) 
     /**
      * Add a new service to the list
      */
-    const addService = (newService: Omit<SelectedService, 'finalPrice'>) => {
+    const addService = (newService: Omit<SelectedService, 'finalPrice'>, note?: string) => {
         const finalPrice = newService.basePrice;
 
         const serviceWithFinalPrice: SelectedService = {
             ...newService,
-            finalPrice: finalPrice
+            finalPrice: finalPrice,
+            note: note
         };
 
         setServices([...services, serviceWithFinalPrice]);
