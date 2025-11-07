@@ -150,7 +150,7 @@ const AppointmentCalendar: React.FC<CalendarProps> = React.memo(({
     }, []);
 
     const filterConfig = {
-        scheduled: { label: 'Zaplanowane', color: theme.primary },
+        scheduled: { label: 'Rezerwacje', color: theme.primary },
         inProgress: { label: 'W trakcie', color: theme.warning },
         readyForPickup: { label: 'Oczekujące', color: theme.info },
         completed: { label: 'Zakończone', color: theme.success },
@@ -292,6 +292,8 @@ const AppointmentCalendar: React.FC<CalendarProps> = React.memo(({
                         info.el.style.fontWeight = '600';
                         info.el.style.cursor = 'pointer';
                         info.el.style.transition = 'all 0.2s ease';
+
+                        console.log(appointment)
 
                         if (isRecurring) {
                             info.el.style.borderLeft = `3px solid #6b46c1`;

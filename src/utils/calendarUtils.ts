@@ -1,4 +1,4 @@
-// src/utils/calendarUtils.ts - ENHANCED VERSION WITH RECURRING EVENTS
+// src/utils/calendarUtils.ts - ENHANCED VERSION WITH RESERVATIONS
 import {Appointment, AppointmentStatus, AppointmentStatusColors} from '../types';
 import {CalendarColor} from '../types/calendar';
 import {format} from 'date-fns';
@@ -7,40 +7,73 @@ import {pl} from 'date-fns/locale';
 export type CalendarView = 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listWeek';
 
 export interface QuickFilters {
-    scheduled: boolean;
+    scheduled: boolean;       // NOW SHOWS: Reservations (not SCHEDULED protocols)
     inProgress: boolean;
     readyForPickup: boolean;
     completed: boolean;
     cancelled: boolean;
-    recurringEvents: boolean; // New filter for recurring events
+    recurringEvents: boolean;
 }
 
 export const DEFAULT_QUICK_FILTERS: QuickFilters = {
-    scheduled: true,
+    scheduled: true,          // Show reservations by default
     inProgress: true,
     readyForPickup: false,
     completed: false,
     cancelled: false,
-    recurringEvents: true // Show recurring events by default
+    recurringEvents: true
 };
 
-export const getStatusKey = (status: AppointmentStatus): keyof QuickFilters => {
-    switch (status) {
-        case AppointmentStatus.SCHEDULED: return 'scheduled';
-        case AppointmentStatus.IN_PROGRESS: return 'inProgress';
-        case AppointmentStatus.READY_FOR_PICKUP: return 'readyForPickup';
-        case AppointmentStatus.COMPLETED: return 'completed';
-        case AppointmentStatus.CANCELLED: return 'cancelled';
-        default: return 'scheduled';
-    }
+/**
+ * Check if appointment is a reservation
+ */
+export const isReservation = (appointment: Appointment): boolean => {
+    return appointment.id.startsWith('reservation-') || (appointment as any).isReservation === true;
 };
 
-// Check if appointment is a recurring event
+/**
+ * Check if appointment is a recurring event
+ */
 export const isRecurringEvent = (event: Appointment): boolean => {
     return (event as any).isRecurringEvent === true || event.id.startsWith('recurring-');
 };
 
-// Get appropriate color for recurring events
+/**
+ * Get status key for filtering - handles reservations specially
+ */
+export const getStatusKey = (appointment: Appointment): keyof QuickFilters | null => {
+    // Reservations always map to 'scheduled' filter
+    if (isReservation(appointment)) {
+        return 'scheduled';
+    }
+
+    // Recurring events have their own filter
+    if (isRecurringEvent(appointment)) {
+        return 'recurringEvents';
+    }
+
+    // Regular protocol status mapping (SCHEDULED protocols are NOT shown in 'scheduled' filter)
+    switch (appointment.status) {
+        case AppointmentStatus.SCHEDULED:
+            // IMPORTANT: SCHEDULED protocols are no longer shown in 'scheduled' filter
+            // They would need their own filter or be hidden
+            return null; // This will filter them out
+        case AppointmentStatus.IN_PROGRESS:
+            return 'inProgress';
+        case AppointmentStatus.READY_FOR_PICKUP:
+            return 'readyForPickup';
+        case AppointmentStatus.COMPLETED:
+            return 'completed';
+        case AppointmentStatus.CANCELLED:
+            return 'cancelled';
+        default:
+            return null;
+    }
+};
+
+/**
+ * Get appropriate color for recurring events
+ */
 export const getRecurringEventColor = (event: Appointment): string => {
     if (event.status === AppointmentStatus.COMPLETED) {
         return '#10b981'; // Green for completed recurring events
@@ -51,15 +84,38 @@ export const getRecurringEventColor = (event: Appointment): string => {
     return '#8b5cf6'; // Purple for active recurring events
 };
 
+/**
+ * Get appropriate color for reservations
+ */
+export const getReservationColor = (reservation: Appointment): string => {
+    if (reservation.status === AppointmentStatus.CANCELLED) {
+        return '#ef4444'; // Red for cancelled reservations
+    }
+    return '#3b82f6'; // Blue for confirmed reservations
+};
+
+/**
+ * Get event background color based on type and status
+ */
 export const getEventBackgroundColor = (
     event: Appointment,
     calendarColors: Record<string, CalendarColor>
 ): string => {
+    // Special handling for reservations
+    if (isReservation(event)) {
+        // Use calendar color if available, otherwise default reservation color
+        if (event.calendarColorId && calendarColors[event.calendarColorId]) {
+            return calendarColors[event.calendarColorId].color;
+        }
+        return getReservationColor(event);
+    }
+
     // Special handling for recurring events
     if (isRecurringEvent(event)) {
         return getRecurringEventColor(event);
     }
 
+    // Regular protocols use calendar color or status color
     if (event.calendarColorId && calendarColors[event.calendarColorId]) {
         return calendarColors[event.calendarColorId].color;
     }
@@ -81,6 +137,9 @@ export const getCurrentPeriodTitle = (currentDate: Date, currentView: CalendarVi
     }
 };
 
+/**
+ * Map appointments to FullCalendar events with proper filtering
+ */
 export const mapAppointmentsToFullCalendarEvents = (
     events: Appointment[],
     quickFilters: QuickFilters,
@@ -88,16 +147,39 @@ export const mapAppointmentsToFullCalendarEvents = (
 ) => {
     return events
         .filter(event => {
-            // Filter recurring events separately
+            // Handle reservations
+            if (isReservation(event)) {
+                return quickFilters.scheduled;
+            }
+
+            // Handle recurring events
             if (isRecurringEvent(event)) {
                 return quickFilters.recurringEvents;
             }
-            // Use existing status-based filtering for regular appointments
-            return quickFilters[getStatusKey(event.status)];
+
+            // Handle regular protocols by status
+            const statusKey = getStatusKey(event);
+            if (!statusKey) return false; // Filter out SCHEDULED protocols
+
+            return quickFilters[statusKey];
         })
         .map(event => {
-            const isRecurring = isRecurringEvent(event);
+            const isRecurr = isRecurringEvent(event);
+            const isReserv = isReservation(event);
             const backgroundColor = getEventBackgroundColor(event, calendarColors);
+
+            // Build class names
+            const classNames = [
+                'professional-event',
+                `status-${event.status}`,
+                `status-${event.status.toLowerCase()}`
+            ];
+
+            if (event.isProtocol) classNames.push('protocol-event');
+            if (isReserv) classNames.push('reservation-event');
+            if (isRecurr) classNames.push('recurring-event');
+            if (event.status === AppointmentStatus.COMPLETED) classNames.push('completed-event');
+            if (event.status === AppointmentStatus.CANCELLED) classNames.push('cancelled-event');
 
             return {
                 id: event.id,
@@ -107,20 +189,17 @@ export const mapAppointmentsToFullCalendarEvents = (
                 extendedProps: {
                     ...event,
                     description: `${event.customerId} • ${event.vehicleId || 'Brak pojazdu'}`,
-                    isRecurringEvent: isRecurring
+                    isRecurringEvent: isRecurr,
+                    isReservation: isReserv
                 },
                 backgroundColor,
-                borderColor: isRecurring ? '#6b46c1' : (event.isProtocol ? '#1a365d' : backgroundColor),
+                borderColor: isRecurr
+                    ? '#6b46c1'
+                    : isReserv
+                        ? '#2563eb'
+                        : (event.isProtocol ? '#1a365d' : backgroundColor),
                 textColor: '#ffffff',
-                classNames: [
-                    'professional-event',
-                    `status-${event.status}`,
-                    `status-${event.status.toLowerCase()}`,
-                    event.isProtocol ? 'protocol-event' : 'appointment-event',
-                    isRecurring ? 'recurring-event' : '',
-                    event.status === AppointmentStatus.COMPLETED ? 'completed-event' : '',
-                    event.status === AppointmentStatus.CANCELLED ? 'cancelled-event' : ''
-                ].filter(Boolean)
+                classNames: classNames.filter(Boolean)
             };
         });
 };

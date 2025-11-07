@@ -1,6 +1,12 @@
-// src/services/CalendarIntegrationService.ts - FIXED VERSION
+// src/services/CalendarIntegrationService.ts - ENHANCED VERSION WITH RESERVATIONS
+/**
+ * Unified service for fetching calendar data from multiple sources
+ * Handles protocols, reservations, and recurring events
+ */
+
 import {Appointment, AppointmentStatus} from '../types';
 import {fetchProtocolsAsAppointments} from './ProtocolCalendarService';
+import {fetchReservationsAsAppointments} from './ReservationCalendarService';
 import {recurringEventsApi} from '../api/recurringEventsApi';
 
 // Convert recurring event occurrence to calendar appointment format
@@ -85,18 +91,22 @@ const convertOccurrenceToAppointment = (occurrence: any): Appointment => {
     };
 };
 
+export interface CalendarData {
+    appointments: Appointment[]; // Regular appointments (if any)
+    protocols: Appointment[];    // Visits/protocols
+    reservations: Appointment[]; // Reservations (NEW)
+    recurringEvents: Appointment[]; // Recurring event occurrences
+    errors: string[]; // Track any errors from individual sources
+}
+
 /**
- * FIXED: Fetch all calendar data from multiple sources with optimization
+ * ENHANCED: Fetch all calendar data from multiple sources with reservations
  */
-export const fetchCalendarData = async (dateRange?: { start: Date; end: Date }): Promise<{
-    appointments: Appointment[];
-    protocols: Appointment[];
-    recurringEvents: Appointment[];
-    errors: string[];
-}> => {
+export const fetchCalendarData = async (dateRange?: { start: Date; end: Date }): Promise<CalendarData> => {
     const errors: string[] = [];
     let appointments: Appointment[] = [];
     let protocols: Appointment[] = [];
+    let reservations: Appointment[] = [];
     let recurringEvents: Appointment[] = [];
 
     try {
@@ -107,7 +117,17 @@ export const fetchCalendarData = async (dateRange?: { start: Date; end: Date }):
             return [];
         });
 
-        // 2. FIXED: Fetch recurring events with full details in single request
+        // 2. Fetch reservations (NEW)
+        const reservationsPromise = fetchReservationsAsAppointments(dateRange || {
+            start: new Date(),
+            end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year ahead
+        }).catch(err => {
+            console.error('Error fetching reservations:', err);
+            errors.push('Nie udało się załadować rezerwacji');
+            return [];
+        });
+
+        // 3. Fetch recurring events with full details in single request
         let recurringEventsPromise: Promise<Appointment[]>;
 
         if (dateRange) {
@@ -130,14 +150,23 @@ export const fetchCalendarData = async (dateRange?: { start: Date; end: Date }):
             recurringEventsPromise = Promise.resolve([]);
         }
 
-        // Wykonaj oba zapytania równolegle
-        const [protocolsResult, recurringEventsResult] = await Promise.all([
+        // Wykonaj wszystkie zapytania równolegle
+        const [protocolsResult, reservationsResult, recurringEventsResult] = await Promise.all([
             protocolsPromise,
+            reservationsPromise,
             recurringEventsPromise
         ]);
 
         protocols = protocolsResult;
+        reservations = reservationsResult;
         recurringEvents = recurringEventsResult.filter(x => x.status == AppointmentStatus.SCHEDULED);
+
+        console.log('✅ Calendar data fetched:', {
+            protocols: protocols.length,
+            reservations: reservations.length,
+            recurringEvents: recurringEvents.length,
+            errors: errors.length
+        });
 
     } catch (err) {
         console.error('Critical error fetching calendar data:', err);
@@ -147,6 +176,7 @@ export const fetchCalendarData = async (dateRange?: { start: Date; end: Date }):
     return {
         appointments, // Puste na razie - można rozszerzyć o zwykłe wizyty
         protocols,
+        reservations,
         recurringEvents,
         errors
     };
@@ -160,11 +190,28 @@ export const isRecurringEventAppointment = (appointmentId: string): boolean => {
 };
 
 /**
+ * Check if appointment ID represents a reservation
+ */
+export const isReservationAppointment = (appointmentId: string): boolean => {
+    return appointmentId.startsWith('reservation-');
+};
+
+/**
  * Extract occurrence ID from recurring event appointment ID
  */
 export const extractOccurrenceId = (appointmentId: string): string | null => {
     if (isRecurringEventAppointment(appointmentId)) {
         return appointmentId.replace('recurring-', '');
+    }
+    return null;
+};
+
+/**
+ * Extract reservation ID from reservation appointment ID
+ */
+export const extractReservationId = (appointmentId: string): string | null => {
+    if (isReservationAppointment(appointmentId)) {
+        return appointmentId.replace('reservation-', '');
     }
     return null;
 };

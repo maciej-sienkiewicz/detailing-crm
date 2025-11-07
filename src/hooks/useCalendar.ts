@@ -1,9 +1,9 @@
-// src/hooks/useCalendar.ts - ENHANCED VERSION WITH RECURRING EVENTS
+// src/hooks/useCalendar.ts - ENHANCED VERSION WITH RESERVATIONS
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {Appointment, AppointmentStatus} from '../types';
 import {EventOccurrenceResponse} from '../types/recurringEvents';
 import {useToast} from '../components/common/Toast/Toast';
-import {fetchCalendarData, isRecurringEventAppointment, extractOccurrenceId} from '../services/CalendarIntegrationService';
+import {fetchCalendarData, isRecurringEventAppointment, isReservationAppointment, extractOccurrenceId, extractReservationId} from '../services/CalendarIntegrationService';
 import {recurringEventsApi} from '../api/recurringEventsApi';
 
 interface UseCalendarReturn {
@@ -20,10 +20,10 @@ interface UseCalendarReturn {
     clearCache: () => void;
 }
 
-// Enhanced global cache to include all calendar data sources
+// Enhanced global cache to include all calendar data sources (protocols, reservations, recurring)
 const globalCache = {
     calendarData: new Map<string, {
-        data: { appointments: Appointment[]; protocols: Appointment[]; recurringEvents: Appointment[] };
+        data: { appointments: Appointment[]; protocols: Appointment[]; reservations: Appointment[]; recurringEvents: Appointment[] };
         timestamp: number;
     }>(),
     activeRequests: new Map<string, Promise<any>>()
@@ -88,8 +88,10 @@ export const useCalendar = (): UseCalendarReturn => {
         // Check cache first
         const cachedData = globalCache.calendarData.get(cacheKey);
         if (!force && cachedData && isCacheValid(cachedData.timestamp)) {
+            // Combine protocols, reservations, and recurring events
             const combinedAppointments = [
                 ...cachedData.data.protocols,
+                ...cachedData.data.reservations,
                 ...cachedData.data.recurringEvents
             ].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
 
@@ -141,9 +143,10 @@ export const useCalendar = (): UseCalendarReturn => {
                 timestamp: now
             });
 
-            // Combine all appointments for calendar display
+            // Combine protocols, reservations, and recurring events for calendar display
             const combinedAppointments = [
                 ...calendarData.protocols,
+                ...calendarData.reservations,
                 ...calendarData.recurringEvents
             ].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
 
@@ -197,8 +200,12 @@ export const useCalendar = (): UseCalendarReturn => {
                 return;
             }
 
+            if (isReservationAppointment(appointment.id)) {
+                showToast('info', 'Rezerwacje należy edytować z poziomu modułu rezerwacji', 4000);
+                return;
+            }
+
             // Handle protocol updates through visits API
-            // This would be implemented based on your existing update logic
             showToast('success', 'Wizyta została zaktualizowana', 3000);
             clearCache();
         } catch (err) {
@@ -214,8 +221,12 @@ export const useCalendar = (): UseCalendarReturn => {
                 return;
             }
 
+            if (isReservationAppointment(id)) {
+                showToast('info', 'Rezerwacje należy usuwać z poziomu modułu rezerwacji', 4000);
+                return;
+            }
+
             // Handle protocol deletion through visits API
-            // This would be implemented based on your existing delete logic
             showToast('success', 'Wizyta została usunięta', 3000);
             clearCache();
         } catch (err) {
@@ -266,10 +277,16 @@ export const useCalendar = (): UseCalendarReturn => {
                 ));
 
                 showToast('success', 'Status cyklicznego wydarzenia został zmieniony', 3000);
-            } else {
-                // Handle protocol status updates through existing logic
-                showToast('success', 'Status wizyty został zmieniony', 3000);
+                return;
             }
+
+            if (isReservationAppointment(id)) {
+                showToast('info', 'Status rezerwacji nie może być zmieniany z kalendarza', 4000);
+                return;
+            }
+
+            // Handle protocol status updates through existing logic
+            showToast('success', 'Status wizyty został zmieniony', 3000);
         } catch (err) {
             showToast('error', 'Nie udało się zmienić statusu', 5000);
             throw err;
