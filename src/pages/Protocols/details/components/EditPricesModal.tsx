@@ -2,10 +2,12 @@
 import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
 import {FaCalculator, FaCheck, FaMoneyBillWave, FaPencilAlt, FaTimes} from 'react-icons/fa';
-import {DiscountType, SelectedService} from '../../../../types';
+import {SelectedService} from '../../../../types';
 import {PriceResponse} from '../../../../types/service';
 import {useToast} from "../../../../components/common/Toast/Toast";
 import {protocolsApi} from "../../../../api/protocolsApi";
+import {DiscountType} from "../../../../features/reservations/api/reservationsApi";
+import {calculateLocalFinalPrice} from "../../../../features/services/hooks/useServiceCalculations";
 
 // Professional Brand Theme
 const brandTheme = {
@@ -134,28 +136,9 @@ const EditPricesModal: React.FC<EditPricesModalProps> = ({
         discountType: DiscountType,
         discountValue: number
     ): PriceResponse => {
-        let finalPriceBrutto = basePrice.priceBrutto;
+        let finalPrice = calculateLocalFinalPrice(basePrice, discountType, discountValue);
 
-        switch (discountType) {
-            case DiscountType.PERCENTAGE:
-                finalPriceBrutto = basePrice.priceBrutto * (1 - discountValue / 100);
-                break;
-            case DiscountType.AMOUNT:
-                finalPriceBrutto = Math.max(0, basePrice.priceBrutto - discountValue);
-                break;
-            case DiscountType.FIXED_PRICE:
-                finalPriceBrutto = discountValue;
-                break;
-        }
-
-        const finalPriceNetto = calculateNetPrice(finalPriceBrutto);
-        const taxAmount = calculateTaxAmount(finalPriceNetto);
-
-        return {
-            priceNetto: parseFloat(finalPriceNetto.toFixed(2)),
-            priceBrutto: parseFloat(finalPriceBrutto.toFixed(2)),
-            taxAmount: parseFloat(taxAmount.toFixed(2))
-        };
+        return finalPrice;
     };
 
     const handleSaveEdit = () => {
@@ -211,7 +194,7 @@ const EditPricesModal: React.FC<EditPricesModalProps> = ({
 
         // Reset discount value when changing type
         let newDiscountValue = 0;
-        if (newDiscountType === DiscountType.FIXED_PRICE) {
+        if (newDiscountType === DiscountType.FIXED_AMOUNT_OFF_BRUTTO) {
             newDiscountValue = service.basePrice.priceBrutto; // ✅ ZMIANA: używamy basePrice.priceBrutto
         }
 
@@ -232,7 +215,7 @@ const EditPricesModal: React.FC<EditPricesModalProps> = ({
 
         let validatedValue = value;
 
-        if (service.discountType === DiscountType.PERCENTAGE && validatedValue > 100) {
+        if (service.discountType === DiscountType.PERCENT && validatedValue > 100) {
             validatedValue = 100;
         }
 
@@ -402,15 +385,17 @@ const EditPricesModal: React.FC<EditPricesModalProps> = ({
                                                             value={service.discountType}
                                                             onChange={(e) => handleDiscountTypeChange(index, e.target.value as DiscountType)}
                                                         >
-                                                            <option value={DiscountType.PERCENTAGE}>Procent</option>
-                                                            <option value={DiscountType.AMOUNT}>Kwota</option>
-                                                            <option value={DiscountType.FIXED_PRICE}>Cena końcowa</option>
+                                                            <option value={DiscountType.PERCENT}>Procent</option>
+                                                            <option value={DiscountType.FIXED_AMOUNT_OFF_NETTO}>Kwota netto</option>
+                                                            <option value={DiscountType.FIXED_AMOUNT_OFF_BRUTTO}>Kwota brutto</option>
+                                                            <option value={DiscountType.FIXED_FINAL_NETTO}>Cena końcowa netto</option>
+                                                            <option value={DiscountType.FIXED_FINAL_BRUTTO}>Cena końcowa brutto</option>
                                                         </DiscountTypeSelect>
                                                         <EditInput
                                                             type="number"
                                                             step="0.01"
                                                             min="0"
-                                                            max={service.discountType === DiscountType.PERCENTAGE ? 100 : undefined}
+                                                            max={service.discountType === DiscountType.PERCENT ? 100 : undefined}
                                                             value={editDiscountValue}
                                                             onChange={(e) => setEditDiscountValue(e.target.value)}
                                                             placeholder="Wartość"
@@ -481,22 +466,24 @@ const EditPricesModal: React.FC<EditPricesModalProps> = ({
                                                             onChange={(e) => handleDiscountTypeChange(index, e.target.value as DiscountType)}
                                                             disabled={isEditing !== null}
                                                         >
-                                                            <option value={DiscountType.PERCENTAGE}>Procent</option>
-                                                            <option value={DiscountType.AMOUNT}>Kwota</option>
-                                                            <option value={DiscountType.FIXED_PRICE}>Cena końcowa</option>
+                                                            <option value={DiscountType.PERCENT}>Procent</option>
+                                                            <option value={DiscountType.FIXED_AMOUNT_OFF_NETTO}>Kwota netto</option>
+                                                            <option value={DiscountType.FIXED_AMOUNT_OFF_BRUTTO}>Kwota brutto</option>
+                                                            <option value={DiscountType.FIXED_FINAL_NETTO}>Cena końcowa netto</option>
+                                                            <option value={DiscountType.FIXED_FINAL_BRUTTO}>Cena końcowa brutto</option>
                                                         </DiscountTypeSelect>
 
                                                         <DiscountValueInput
                                                             type="number"
                                                             step="0.01"
                                                             min="0"
-                                                            max={service.discountType === DiscountType.PERCENTAGE ? 100 : undefined}
+                                                            max={service.discountType === DiscountType.PERCENT ? 100 : undefined}
                                                             value={service.discountValue}
                                                             onChange={(e) => handleDiscountValueChange(index, parseFloat(e.target.value) || 0)}
                                                             disabled={isEditing !== null}
                                                         />
 
-                                                        {service.discountValue > 0 && service.discountType === DiscountType.PERCENTAGE && (
+                                                        {service.discountValue > 0 && service.discountType === DiscountType.PERCENT && (
                                                             <DiscountAmount>
                                                                 (-{(service.basePrice.priceBrutto * service.discountValue / 100).toFixed(2)} zł)
                                                             </DiscountAmount>

@@ -1,10 +1,11 @@
 // src/features/services/components/ServiceTable.tsx
 import React, {useState} from 'react';
 import {FaEdit, FaStickyNote, FaTrash} from 'react-icons/fa';
-import {DiscountType, SelectedService} from '../../../../types';
+import {SelectedService} from '../../../../types';
 import styled from 'styled-components';
 import ServiceNoteModal from '../../../../pages/Protocols/shared/modals/SerivceNoteModal';
 import {theme} from '../../../../styles/theme';
+import {DiscountType} from "../../../reservations/api/reservationsApi";
 
 // Professional theme matching the form design
 const formTheme = {
@@ -78,31 +79,38 @@ const DiscountTypeLabelsExtended: Record<ExtendedDiscountType, string> = {
     [ExtendedDiscountType.FIXED_PRICE_NET]: "Cena końcowa (netto)"
 };
 
-const mapToStandardDiscountType = (extendedType: ExtendedDiscountType): DiscountType => {
-    switch (extendedType) {
-        case ExtendedDiscountType.PERCENTAGE:
-            return DiscountType.PERCENTAGE;
-        case ExtendedDiscountType.AMOUNT_GROSS:
-        case ExtendedDiscountType.AMOUNT_NET:
-            return DiscountType.AMOUNT;
-        case ExtendedDiscountType.FIXED_PRICE_GROSS:
-        case ExtendedDiscountType.FIXED_PRICE_NET:
-            return DiscountType.FIXED_PRICE;
-        default:
-            return DiscountType.PERCENTAGE;
-    }
-};
 
 const mapFromStandardDiscountType = (standardType: DiscountType): ExtendedDiscountType => {
     switch (standardType) {
-        case DiscountType.PERCENTAGE:
+        case DiscountType.PERCENT:
             return ExtendedDiscountType.PERCENTAGE;
-        case DiscountType.AMOUNT:
+        case DiscountType.FIXED_AMOUNT_OFF_BRUTTO:
             return ExtendedDiscountType.AMOUNT_GROSS;
-        case DiscountType.FIXED_PRICE:
+        case DiscountType.FIXED_AMOUNT_OFF_NETTO:
+            return ExtendedDiscountType.AMOUNT_NET;
+        case DiscountType.FIXED_FINAL_BRUTTO:
             return ExtendedDiscountType.FIXED_PRICE_GROSS;
+        case DiscountType.FIXED_FINAL_NETTO:
+            return ExtendedDiscountType.FIXED_PRICE_NET;
         default:
             return ExtendedDiscountType.PERCENTAGE;
+    }
+};
+
+const mapToStandardDiscountType = (extendedType: ExtendedDiscountType): DiscountType => {
+    switch (extendedType) {
+        case ExtendedDiscountType.FIXED_PRICE_NET:
+            return DiscountType.FIXED_FINAL_NETTO;
+        case ExtendedDiscountType.FIXED_PRICE_GROSS:
+            return DiscountType.FIXED_FINAL_BRUTTO;
+        case ExtendedDiscountType.AMOUNT_NET:
+            return DiscountType.FIXED_AMOUNT_OFF_NETTO;
+        case ExtendedDiscountType.AMOUNT_GROSS:
+            return DiscountType.FIXED_AMOUNT_OFF_BRUTTO;
+        case ExtendedDiscountType.PERCENTAGE:
+            return DiscountType.PERCENT;
+        default:
+            return DiscountType.PERCENT;
     }
 };
 
@@ -420,14 +428,14 @@ export const ServiceTable: React.FC<ServiceTableProps> = ({
                                                         <DiscountInput
                                                             type="number"
                                                             min="0"
-                                                            max={service.discountType === DiscountType.PERCENTAGE ? 100 : undefined}
+                                                            max={service.discountType === DiscountType.PERCENT ? 100 : undefined}
                                                             value={service.discountValue}
                                                             onChange={(e) => onDiscountValueChange(
                                                                 service.id,
                                                                 parseFloat(e.target.value) || 0
                                                             )}
                                                         />
-                                                        {service.discountType === DiscountType.PERCENTAGE && (
+                                                        {service.discountType === DiscountType.PERCENT && (
                                                             <DiscountCalculation>
                                                                 ({(service.basePrice.priceBrutto * service.discountValue / 100).toFixed(2)} zł)
                                                             </DiscountCalculation>

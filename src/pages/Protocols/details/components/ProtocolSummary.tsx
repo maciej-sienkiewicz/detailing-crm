@@ -35,7 +35,6 @@ import {
     CarReceptionProtocol,
     ClientExpanded,
     ClientStatistics,
-    DiscountType,
     ProtocolStatus,
     SelectedService,
     ServiceApprovalStatus,
@@ -316,7 +315,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                     name: service.name,
                     quantity: service.quantity || 1,
                     basePrice: service.basePrice,
-                    discountType: service.discount?.type as DiscountType || DiscountType.PERCENTAGE,
+                    discountType: service.discount?.type as DiscountType || DiscountType.PERCENT,
                     discountValue: service.discount?.value || 0,
                     finalPrice: service.finalPrice,
                     note: service.note || '',
@@ -974,6 +973,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
 };
 import styled from 'styled-components';
 import {theme} from '../../../../styles/theme';
+import {DiscountType} from "../../../../features/reservations/api/reservationsApi";
 
 export const Container = styled.div`
     display: flex;

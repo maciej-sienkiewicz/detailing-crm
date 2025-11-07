@@ -1,7 +1,8 @@
 // src/services/ProtocolCalendarService.ts - UPDATED FOR NEW PRICE STRUCTURE
 import {VisitListItem, visitsApi} from '../api/visitsApiNew';
-import {Appointment, AppointmentStatus, DiscountType, ServiceApprovalStatus, SelectedService} from '../types';
+import {Appointment, AppointmentStatus, ServiceApprovalStatus, SelectedService} from '../types';
 import {CarReceptionProtocol, ProtocolStatus} from '../types/protocol';
+import {DiscountType} from "../features/reservations/api/reservationsApi";
 
 // Helper function to check if date is in range
 const isDateInRange = (date: Date, range?: { start: Date; end: Date }): boolean => {
@@ -58,7 +59,7 @@ const convertVisitListItemToAppointment = (visit: VisitListItem): Appointment =>
             name: service.name,
             quantity: service.quantity || 1,
             basePrice: service.basePrice, // Already PriceResponse from visitsApiNew
-            discountType: (service.discountType as DiscountType) || DiscountType.PERCENTAGE,
+            discountType: (service.discountType as DiscountType) || DiscountType.PERCENT,
             discountValue: service.discountValue || 0,
             finalPrice: service.finalPrice, // Already PriceResponse from visitsApiNew
             approvalStatus: (service.approvalStatus as ServiceApprovalStatus) || ServiceApprovalStatus.PENDING,

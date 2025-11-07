@@ -1,6 +1,6 @@
 import React from 'react';
 import {PriceResponse, SelectedService} from "../../../types";
-import {calculateLocalFinalPrice} from "./calculateLocalFinalPrice";
+import {calculateLocalFinalPrice} from "../../services/hooks/useServiceCalculations";
 
 type SetServices = React.Dispatch<React.SetStateAction<SelectedService[]>>;
 

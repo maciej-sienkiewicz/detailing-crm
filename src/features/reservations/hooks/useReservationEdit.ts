@@ -1,12 +1,12 @@
 // src/features/reservations/hooks/useReservationEdit.ts
 /**
  * Hook for handling reservation editing
- * Combines data fetching and update logic
+ * UPDATED: Preserve discount information during edit
  */
 
 import { useCallback, useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Reservation, reservationsApi, UpdateReservationRequest } from '../api/reservationsApi';
+import { Reservation, reservationsApi, UpdateReservationRequest, Discount } from '../api/reservationsApi';
 import { ReservationFormData } from '../libs/types';
 import { formatDateForAPI } from '../libs/utils';
 import { PriceType } from '../../../types/service';
@@ -95,7 +95,7 @@ export const useReservationEdit = ({
                     : undefined
             };
 
-            console.log('📤 Request data:', requestData);
+            console.log('📤 Request data (with discounts):', requestData);
 
             // Call API
             const updatedReservation = await reservationsApi.updateReservation(
@@ -137,6 +137,7 @@ export const useReservationEdit = ({
 
     /**
      * Convert Reservation to ReservationFormData
+     * UPDATED: Preserve discount information
      */
     const convertToFormData = useCallback((reservation: Reservation): ReservationFormData => {
         // Convert backend date format (array) to ISO string
@@ -161,16 +162,28 @@ export const useReservationEdit = ({
             vehicleModel: reservation.vehicleModel,
             startDate: convertDate(reservation.startDate as any),
             endDate: convertDate(reservation.endDate as any),
-            selectedServices: reservation.services.map(service => ({
-                serviceId: service.id,
-                name: service.name,
-                basePrice: {
-                    inputPrice: service.basePrice.priceNetto,
-                    inputType: PriceType.NET
-                },
-                quantity: service.quantity,
-                note: service.note
-            })),
+            // UPDATED: Map services with discount
+            selectedServices: reservation.services.map(service => {
+                // Check if service has discount
+                const hasDiscount = service.discount && service.discount.discountValue > 0;
+
+                const discount: Discount | undefined = hasDiscount ? {
+                    discountType: service.discount!.discountType,
+                    discountValue: service.discount!.discountValue
+                } : undefined;
+
+                return {
+                    serviceId: service.id,
+                    name: service.name,
+                    basePrice: {
+                        inputPrice: service.basePrice.priceNetto,
+                        inputType: PriceType.NET
+                    },
+                    quantity: service.quantity,
+                    discount, // ADDED: Include discount in form data
+                    note: service.note
+                };
+            }),
             notes: reservation.notes || ''
         };
     }, []);

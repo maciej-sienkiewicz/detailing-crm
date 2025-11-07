@@ -1,6 +1,7 @@
 // src/features/reservations/hooks/useReservationSubmit.ts
 /**
  * Hook for handling reservation form submission
+ * UPDATED: Enhanced logging for discount debugging
  */
 
 import { useState } from 'react';
@@ -39,6 +40,15 @@ export const useReservationSubmit = ({ onSuccess, onError }: UseReservationSubmi
             };
 
             console.log('📤 Submitting reservation:', requestData);
+
+            // ADDED: Log discount information for debugging
+            if (requestData.selectedServices) {
+                console.log('📊 Services with discounts:', requestData.selectedServices.map(s => ({
+                    name: s.name,
+                    hasDiscount: !!s.discount,
+                    discount: s.discount
+                })));
+            }
 
             // Call API
             const reservation = await reservationsApi.createReservation(requestData);

@@ -4,7 +4,7 @@ export interface CreateServiceCommand {
     name: string;
     price: number;
     quantity?: number;
-    discountType?: 'PERCENTAGE' | 'FIXED_PRICE' | 'AMOUNT' | null;
+    discountType?: 'PERCENT' | 'FIXED_AMOUNT_OFF_BRUTTO' | 'FIXED_AMOUNT_OFF_NETTO' | 'FIXED_FINAL_BRUTTO' | 'FIXED_FINAL_NETTO' | null;
     discountValue?: number | null;
     finalPrice?: number | null;
     approvalStatus?: 'PENDING' | 'APPROVED' | 'REJECTED' | null;

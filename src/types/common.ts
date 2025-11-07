@@ -1,10 +1,6 @@
 import { PriceResponse } from './service';
+import {DiscountType} from "../features/reservations/api/reservationsApi";
 
-export enum DiscountType {
-    PERCENTAGE = 'PERCENTAGE',
-    AMOUNT = 'AMOUNT',
-    FIXED_PRICE = 'FIXED_PRICE'
-}
 
 // Status zatwierdzenia usługi
 export enum ServiceApprovalStatus {

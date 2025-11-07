@@ -1,12 +1,12 @@
 // src/features/reservations/hooks/useConvertReservationToVisit.ts
 /**
  * Hook for converting reservation to full visit
- * FULLY CORRECTED VERSION - matching backend expectations
+ * UPDATED: Now includes discount support
  */
 
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Reservation, reservationsApi, ConvertToVisitRequest } from '../api/reservationsApi';
+import { Reservation, reservationsApi, ConvertToVisitRequest, Discount } from '../api/reservationsApi';
 
 interface UseConvertReservationToVisitProps {
     reservation: Reservation;
@@ -14,7 +14,6 @@ interface UseConvertReservationToVisitProps {
     onError?: (error: string) => void;
 }
 
-// ReferralSource type matching the backend
 type ReferralSource = 'regular_customer' | 'recommendation' | 'search_engine' | 'social_media' | 'local_ad' | 'other';
 
 export interface ConvertFormData {
@@ -50,11 +49,11 @@ export interface ConvertFormData {
     documentsProvided: boolean;
     additionalNotes?: string;
 
-    // Referral - using proper type
+    // Referral
     referralSource?: ReferralSource;
     otherSourceDetails?: string;
 
-    // Services - using SelectedService structure
+    // Services - UPDATED: Include discount
     services?: Array<{
         id: string;
         name: string;
@@ -127,7 +126,7 @@ export const useConvertReservationToVisit = ({
     }, [reservation]);
 
     /**
-     * Convert reservation to visit
+     * Convert reservation to visit - UPDATED: Preserve discounts
      */
     const convertToVisit = async (formData: ConvertFormData): Promise<boolean> => {
         setLoading(true);
@@ -139,7 +138,7 @@ export const useConvertReservationToVisit = ({
             // Use services from formData if provided, otherwise from reservation
             const servicesToConvert = formData.services || reservation.services;
 
-            // Prepare request - CORRECTED: backend expects CalculatedPriceDto structure
+            // Prepare request - UPDATED: Map discount correctly
             const request: ConvertToVisitRequest = {
                 title: formData.title,
                 calendarColorId: formData.calendarColorId,
@@ -166,22 +165,30 @@ export const useConvertReservationToVisit = ({
                 color: formData.color,
                 mileage: formData.mileage,
 
-                // Services - CRITICAL FIX: Use CalculatedPriceDto structure
-                selectedServices: servicesToConvert.map(service => ({
-                    id: service.id,
-                    name: service.name,
-                    basePrice: {
-                        // Backend expects CalculatedPriceDto with these exact fields
-                        priceNetto: service.basePrice.priceNetto,
-                        priceBrutto: service.basePrice.priceBrutto,
-                        taxAmount: service.basePrice.taxAmount
-                    },
-                    quantity: service.quantity,
-                    vatRate: 23, // Default VAT rate
-                    discountType: 'PERCENTAGE',
-                    discountValue: 0,
-                    note: service.note || null
-                })),
+                // Services - UPDATED: Include discount mapping
+                selectedServices: servicesToConvert.map(service => {
+                    // Determine if service has discount
+                    const hasDiscount = 'discountValue' in service && service.discountValue > 0;
+
+                    const discount: Discount | null = hasDiscount ? {
+                        discountType: service.discountType,
+                        discountValue: service.discountValue
+                    } : null;
+
+                    return {
+                        id: service.id,
+                        name: service.name,
+                        basePrice: {
+                            priceNetto: service.basePrice.priceNetto,
+                            priceBrutto: service.basePrice.priceBrutto,
+                            taxAmount: service.basePrice.taxAmount
+                        },
+                        quantity: service.quantity,
+                        vatRate: 23,
+                        discount, // ADDED: Include discount in conversion
+                        note: service.note || null
+                    };
+                }),
 
                 // Reception details
                 keysProvided: formData.keysProvided,
@@ -191,7 +198,7 @@ export const useConvertReservationToVisit = ({
             };
 
             console.log('📤 Convert request:', request);
-            console.log('📤 Services to send:', request.selectedServices);
+            console.log('📤 Services to send (with discounts):', request.selectedServices);
 
             // Call API
             const visitResponse = await reservationsApi.convertToVisit(

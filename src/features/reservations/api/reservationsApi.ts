@@ -1,4 +1,4 @@
-// src/api/reservationsApi.ts
+// src/features/reservations/api/reservationsApi.ts
 /**
  * API client for Reservations
  * Handles reservation operations before converting to full visits
@@ -22,6 +22,25 @@ export enum ReservationStatus {
 }
 
 /**
+ * Discount type enum (matches backend DiscountTypeDto)
+ */
+export enum DiscountType {
+    PERCENT = 'percent',
+    FIXED_AMOUNT_OFF_BRUTTO = 'fixed_amount_off_brutto',
+    FIXED_AMOUNT_OFF_NETTO = 'fixed_amount_off_netto',
+    FIXED_FINAL_BRUTTO = 'fixed_final_brutto',
+    FIXED_FINAL_NETTO = 'fixed_final_netto'
+}
+
+/**
+ * Discount object (matches backend DiscountDto)
+ */
+export interface Discount {
+    discountType: DiscountType;
+    discountValue: number;
+}
+
+/**
  * Service object as returned within a Reservation
  */
 export interface ReservationService {
@@ -30,6 +49,7 @@ export interface ReservationService {
     basePrice: PriceResponse;
     quantity: number;
     finalPrice: PriceResponse;
+    discount?: Discount; // ADDED: discount support
     note?: string;
 }
 
@@ -37,10 +57,11 @@ export interface ReservationService {
  * Service input object for creating/updating a Reservation
  */
 export interface ReservationSelectedServiceInput {
-    serviceId: string; // Odpowiada 'service_id' w API
+    serviceId: string;
     name: string;
-    basePrice: ServicePriceInput; // Odpowiada 'base_price' w API
+    basePrice: ServicePriceInput;
     quantity: number;
+    discount?: Discount | null; // ADDED: discount support
     note?: string;
 }
 
@@ -54,14 +75,14 @@ export interface Reservation {
     contactName?: string;
     vehicleMake: string;
     vehicleModel: string;
-    vehicleDisplay: string; // Backend computed field: "Make Model"
-    startDate: string; // ISO 8601
-    endDate: string; // ISO 8601
+    vehicleDisplay: string;
+    startDate: string;
+    endDate: string;
     status: ReservationStatus;
     notes?: string;
     calendarColorId: string;
-    visitId?: number; // Set after conversion
-    canBeConverted: boolean; // Backend computed: status === CONFIRMED && !visitId
+    visitId?: number;
+    canBeConverted: boolean;
 
     services: ReservationService[];
     serviceCount: number;
@@ -120,11 +141,8 @@ export interface ReservationCounters {
     confirmed: number;
 }
 
-// Patch for src/features/reservations/api/reservationsApi.ts
-// Replace the ConvertToVisitRequest interface with this corrected version:
-
 /**
- * Convert to visit request - CORRECTED VERSION
+ * Convert to visit request - CORRECTED VERSION with Discount
  */
 export interface ConvertToVisitRequest {
     title: string;
@@ -150,16 +168,17 @@ export interface ConvertToVisitRequest {
     selectedServices: Array<{
         id: string;
         name: string;
-        // CRITICAL: Backend expects CalculatedPriceDto, NOT ServicePriceInput!
         basePrice: {
-            priceNetto: number;      // NOT inputPrice!
-            priceBrutto: number;     // NOT inputType!
+            priceNetto: number;
+            priceBrutto: number;
             taxAmount: number;
         };
         quantity: number;
         vatRate: number;
-        discountType?: string;
-        discountValue?: number;
+        discount?: { // ADDED: discount support in conversion
+            discountType: DiscountType;
+            discountValue: number;
+        } | null;
         note?: string | null;
     }>;
     keysProvided?: boolean;
@@ -386,7 +405,7 @@ class ReservationsApi {
             const response = await apiClientNew.post<VisitResponse>(
                 `/v1/reservations/${reservationId}/convert-to-visit`,
                 data,
-                { timeout: 20000 } // Longer timeout for complex operation
+                { timeout: 20000 }
             );
 
             return response;

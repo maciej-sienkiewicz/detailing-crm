@@ -4,29 +4,29 @@
  * Allows filling in missing client and vehicle details
  */
 
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
-import { FaArrowRight, FaCar } from 'react-icons/fa';
-import { Reservation } from '../../api/reservationsApi';
-import { useConvertReservationToVisit, ConvertFormData } from '../../hooks/useConvertReservationToVisit';
+import {FaArrowRight} from 'react-icons/fa';
+import {DiscountType, Reservation} from '../../api/reservationsApi';
+import {ConvertFormData, useConvertReservationToVisit} from '../../hooks/useConvertReservationToVisit';
 import VisitTitleSection from '../../../../pages/Protocols/form/components/VisitTitleSection';
 import ScheduleSection from '../../../../pages/Protocols/form/components/ScheduleSection';
 import ClientInfoSection from '../../../../pages/Protocols/form/components/ClientInfoSection';
 import VehicleInfoSection from '../../../../pages/Protocols/form/components/VehicleInfoSection';
-import ReferralSourceSection, { ReferralSource } from '../../../../pages/Protocols/form/components/ReferralSourceSection';
+import ReferralSourceSection, {ReferralSource} from '../../../../pages/Protocols/form/components/ReferralSourceSection';
 import NotesSection from '../../../../pages/Protocols/form/components/NotesSection';
-import { ServiceSection } from '../../../services';
-import { servicesApi } from '../../../services/api/servicesApi';
-import { Service, SelectedService } from '../../../../types';
-import { useVisitServicesState } from '../../../visits/hooks/useVisitServicesState';
-import { useAddService } from '../../../visits/hooks/useAddService';
-import { useRemoveService } from '../../../visits/hooks/useRemoveService';
-import { useUpdateBasePrice } from '../../../visits/hooks/useUpdateBasePrice';
-import { useUpdateDiscountType } from '../../../visits/hooks/useUpdateDiscountType';
-import { useUpdateDiscountValue } from '../../../visits/hooks/useUpdateDiscountValue';
-import { useUpdateServiceNote } from '../../../visits/hooks/useUpdateServiceNote';
-import { useHandleServiceCreated } from '../../../visits/hooks/useHandleServiceCreated';
-import { useTotalsCalculation } from '../../../visits/hooks/useTotalsCalculation';
+import {ServiceSection} from '../../../services';
+import {servicesApi} from '../../../services/api/servicesApi';
+import {SelectedService, Service} from '../../../../types';
+import {useVisitServicesState} from '../../../visits/hooks/useVisitServicesState';
+import {useAddService} from '../../../visits/hooks/useAddService';
+import {useRemoveService} from '../../../visits/hooks/useRemoveService';
+import {useUpdateBasePrice} from '../../../visits/hooks/useUpdateBasePrice';
+import {useUpdateDiscountType} from '../../../visits/hooks/useUpdateDiscountType';
+import {useUpdateDiscountValue} from '../../../visits/hooks/useUpdateDiscountValue';
+import {useUpdateServiceNote} from '../../../visits/hooks/useUpdateServiceNote';
+import {useHandleServiceCreated} from '../../../visits/hooks/useHandleServiceCreated';
+import {useTotalsCalculation} from '../../../visits/hooks/useTotalsCalculation';
 
 const brandTheme = {
     primary: 'var(--brand-primary, #1a365d)',
@@ -98,17 +98,19 @@ export const ConvertReservationToVisitForm: React.FC<ConvertReservationToVisitFo
     const [loadingServices, setLoadingServices] = useState(true);
 
     // Convert reservation services to SelectedService format
-    const initialServices: SelectedService[] = reservation.services.map(service => ({
-        id: service.id,
-        name: service.name,
-        quantity: service.quantity,
-        basePrice: service.basePrice,
-        discountType: 'PERCENTAGE' as any,
-        discountValue: 0,
-        finalPrice: service.finalPrice,
-        note: service.note,
-        approvalStatus: undefined
-    }));
+    const initialServices: SelectedService[] = reservation.services.map(service => {
+        return {
+            id: service.id,
+            name: service.name,
+            quantity: service.quantity,
+            basePrice: service.basePrice,
+            discountType: service.discount?.discountType || DiscountType.PERCENT,
+            discountValue: service.discount?.discountValue || 0,
+            finalPrice: service.finalPrice,
+            note: service.note,
+            approvalStatus: undefined
+        };
+    });
 
     const { services, setServices } = useVisitServicesState(initialServices);
     const addServiceCommand = useAddService(setServices);

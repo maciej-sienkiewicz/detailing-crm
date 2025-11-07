@@ -1,15 +1,22 @@
 // src/features/reservations/components/ReservationServicesSection.tsx
 /**
- * Services section for reservation with full service management
- * Uses shared ServiceSection component with service search, table, and calculations
+ * Services section for reservation with full service management INCLUDING DISCOUNTS
+ * Uses adapter layer to convert between shared components and reservation API
  */
 
 import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
 import {PriceType, Service} from '../../../../types';
 import {servicesApi} from '../../../services/api/servicesApi';
-import {ReservationSelectedServiceInput} from '../../api/reservationsApi';
+import {
+    ReservationSelectedServiceInput,
+    DiscountType as ReservationDiscountType,
+    DiscountType
+} from '../../api/reservationsApi';
 import {ServiceSection, useServiceCalculations} from '../../../services';
+import {
+    ServiceWithExtendedDiscount,
+} from '../../utils/discountMapping';
 
 const brandTheme = {
     primary: 'var(--brand-primary, #1a365d)',
@@ -33,38 +40,41 @@ export const ReservationServicesSection: React.FC<ReservationServicesSectionProp
                                                                                           onChange,
                                                                                           readOnly = false
                                                                                       }) => {
-    // Konwersja ReservationSelectedServiceInput na SelectedService dla komponentu
-    const convertedServices = initialServices.map(service => ({
-        id: service.serviceId,
-        name: service.name,
-        quantity: service.quantity,
-        basePrice: {
-            priceNetto: service.basePrice.inputType === 'netto'
-                ? service.basePrice.inputPrice
-                : service.basePrice.inputPrice / 1.23,
-            priceBrutto: service.basePrice.inputType === 'brutto'
-                ? service.basePrice.inputPrice
-                : service.basePrice.inputPrice * 1.23,
-            taxAmount: service.basePrice.inputType === 'netto'
-                ? service.basePrice.inputPrice * 0.23
-                : service.basePrice.inputPrice - (service.basePrice.inputPrice / 1.23)
-        },
-        discountType: 'PERCENTAGE' as any,
-        discountValue: 0,
-        finalPrice: {
-            priceNetto: service.basePrice.inputType === 'netto'
-                ? service.basePrice.inputPrice
-                : service.basePrice.inputPrice / 1.23,
-            priceBrutto: service.basePrice.inputType === 'brutto'
-                ? service.basePrice.inputPrice
-                : service.basePrice.inputPrice * 1.23,
-            taxAmount: service.basePrice.inputType === 'netto'
-                ? service.basePrice.inputPrice * 0.23
-                : service.basePrice.inputPrice - (service.basePrice.inputPrice / 1.23)
-        },
-        note: service.note,
-        approvalStatus: undefined
-    }));
+    // Convert ReservationSelectedServiceInput to ServiceWithExtendedDiscount for shared component
+    const convertedServices: ServiceWithExtendedDiscount[] = initialServices.map(service => {
+        return {
+            id: service.serviceId,
+            name: service.name,
+            quantity: service.quantity,
+            basePrice: {
+                priceNetto: service.basePrice.inputType === 'netto'
+                    ? service.basePrice.inputPrice
+                    : service.basePrice.inputPrice / 1.23,
+                priceBrutto: service.basePrice.inputType === 'brutto'
+                    ? service.basePrice.inputPrice
+                    : service.basePrice.inputPrice * 1.23,
+                taxAmount: service.basePrice.inputType === 'netto'
+                    ? service.basePrice.inputPrice * 0.23
+                    : service.basePrice.inputPrice - (service.basePrice.inputPrice / 1.23)
+            },
+            // Shared component format
+            discountType: service.discount?.discountType || DiscountType.PERCENT,
+            discountValue: service.discount?.discountValue || 0,
+            // Extended metadata
+            finalPrice: {
+                priceNetto: service.basePrice.inputType === 'netto'
+                    ? service.basePrice.inputPrice
+                    : service.basePrice.inputPrice / 1.23,
+                priceBrutto: service.basePrice.inputType === 'brutto'
+                    ? service.basePrice.inputPrice
+                    : service.basePrice.inputPrice * 1.23,
+                taxAmount: service.basePrice.inputType === 'netto'
+                    ? service.basePrice.inputPrice * 0.23
+                    : service.basePrice.inputPrice - (service.basePrice.inputPrice / 1.23)
+            },
+            note: service.note
+        };
+    });
 
     const [availableServices, setAvailableServices] = useState<Service[]>([]);
     const [loadingServices, setLoadingServices] = useState(true);
@@ -72,6 +82,9 @@ export const ReservationServicesSection: React.FC<ReservationServicesSectionProp
     const [searchResults, setSearchResults] = useState<Service[]>([]);
     const [showResults, setShowResults] = useState(false);
     const [selectedServiceToAdd, setSelectedServiceToAdd] = useState<Service | null>(null);
+
+    // Track extended discount types
+    const [extendedDiscountTypes, setExtendedDiscountTypes] = useState<Record<string, ReservationDiscountType>>({});
 
     const {
         services: managedServices,
@@ -102,22 +115,38 @@ export const ReservationServicesSection: React.FC<ReservationServicesSectionProp
         fetchServices();
     }, []);
 
-    // Notify parent of changes
+    // Notify parent of changes - UPDATED: Convert back to ReservationSelectedServiceInput
     useEffect(() => {
         if (onChange) {
-            const reservationServices: ReservationSelectedServiceInput[] = managedServices.map(service => ({
-                serviceId: service.id,
-                name: service.name,
-                basePrice: {
-                    inputPrice: service.basePrice.priceNetto,
-                    inputType: PriceType.NET
-                },
-                quantity: service.quantity,
-                note: service.note
-            }));
+            const reservationServices: ReservationSelectedServiceInput[] = managedServices.map(service => {
+                // Get extended discount type from tracking or default
+                const extendedType = extendedDiscountTypes[service.id];
+
+                // Convert using adapter
+                const serviceWithExtended: ServiceWithExtendedDiscount = {
+                    ...service,
+                };
+
+                return {
+                    serviceId: service.id,
+                    name: service.name,
+                    basePrice: {
+                        inputPrice: service.basePrice.priceNetto,
+                        inputType: PriceType.NET
+                    },
+                    quantity: service.quantity,
+                    discount: {
+                        discountType: service.discountType,
+                        discountValue: service.discountValue,
+                    },
+                    note: service.note
+                };
+            });
+
+            console.log('📤 Sending to parent (with correct discount types):', reservationServices);
             onChange(reservationServices);
         }
-    }, [managedServices, onChange]);
+    }, [managedServices, extendedDiscountTypes, onChange]);
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchQuery(e.target.value);
@@ -150,11 +179,17 @@ export const ReservationServicesSection: React.FC<ReservationServicesSectionProp
                 name: selectedServiceToAdd.name,
                 quantity: 1,
                 basePrice: selectedServiceToAdd.price,
-                discountType: "PERCENTAGE" as any,
+                discountType: DiscountType.PERCENT,
                 discountValue: 0,
                 approvalStatus: undefined,
             };
             addService(newService);
+
+            // Initialize extended type
+            setExtendedDiscountTypes(prev => ({
+                ...prev,
+                [selectedServiceToAdd.id]: ReservationDiscountType.PERCENT
+            }));
         } else if (searchQuery.trim() !== '') {
             const customId = `custom-${Date.now()}`;
             const newService = {
@@ -166,11 +201,17 @@ export const ReservationServicesSection: React.FC<ReservationServicesSectionProp
                     priceBrutto: 0,
                     taxAmount: 0
                 },
-                discountType: "PERCENTAGE" as any,
+                discountType: DiscountType.PERCENT,
                 discountValue: 0,
                 approvalStatus: undefined,
             };
             addService(newService);
+
+            // Initialize extended type
+            setExtendedDiscountTypes(prev => ({
+                ...prev,
+                [customId]: ReservationDiscountType.PERCENT
+            }));
         }
         setSearchQuery('');
         setSelectedServiceToAdd(null);
@@ -182,11 +223,18 @@ export const ReservationServicesSection: React.FC<ReservationServicesSectionProp
             name: service.name,
             quantity: 1,
             basePrice: service.price,
-            discountType: "PERCENTAGE" as any,
+            discountType: DiscountType.PERCENT,
             discountValue: 0,
             approvalStatus: undefined,
         };
         addService(newService);
+
+        // Initialize extended type
+        setExtendedDiscountTypes(prev => ({
+            ...prev,
+            [service.id]: ReservationDiscountType.PERCENT
+        }));
+
         setSearchQuery('');
         setSelectedServiceToAdd(null);
         setShowResults(false);
@@ -205,6 +253,17 @@ export const ReservationServicesSection: React.FC<ReservationServicesSectionProp
                     : service
             )
         );
+
+        // Transfer extended type
+        setExtendedDiscountTypes(prev => {
+            const oldType = prev[oldId];
+            const newTypes = { ...prev };
+            delete newTypes[oldId];
+            if (oldType) {
+                newTypes[newService.id] = oldType;
+            }
+            return newTypes;
+        });
 
         // Refresh available services
         try {

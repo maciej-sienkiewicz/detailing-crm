@@ -1,8 +1,9 @@
 import React, {useEffect, useState, useRef} from 'react';
 import styled from 'styled-components';
 import {FaPlus, FaSearch, FaStickyNote, FaTimes} from 'react-icons/fa';
-import {DiscountType} from "../../../../types";
 import {PriceResponse} from "../../../../types/service";
+import {DiscountType} from "../../../../features/reservations/api/reservationsApi";
+import {calculateLocalFinalPrice} from "../../../../features/services/hooks/useServiceCalculations";
 
 // Professional Brand Theme - Premium Automotive CRM
 const brandTheme = {
@@ -83,16 +84,18 @@ const DiscountTypeLabelsExtended: Record<ExtendedDiscountType, string> = {
 
 const mapToStandardDiscountType = (extendedType: ExtendedDiscountType): DiscountType => {
     switch (extendedType) {
-        case ExtendedDiscountType.PERCENTAGE:
-            return DiscountType.PERCENTAGE;
-        case ExtendedDiscountType.AMOUNT_GROSS:
-        case ExtendedDiscountType.AMOUNT_NET:
-            return DiscountType.AMOUNT;
-        case ExtendedDiscountType.FIXED_PRICE_GROSS:
         case ExtendedDiscountType.FIXED_PRICE_NET:
-            return DiscountType.FIXED_PRICE;
+            return DiscountType.FIXED_FINAL_NETTO;
+        case ExtendedDiscountType.FIXED_PRICE_GROSS:
+            return DiscountType.FIXED_FINAL_BRUTTO;
+        case ExtendedDiscountType.AMOUNT_NET:
+            return DiscountType.FIXED_AMOUNT_OFF_NETTO;
+        case ExtendedDiscountType.AMOUNT_GROSS:
+            return DiscountType.FIXED_AMOUNT_OFF_BRUTTO;
+        case ExtendedDiscountType.PERCENTAGE:
+            return DiscountType.PERCENT;
         default:
-            return DiscountType.PERCENTAGE;
+            return DiscountType.PERCENT;
     }
 };
 
@@ -208,40 +211,12 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
     const calculateFinalPrice = (
         basePrice: PriceResponse,
         discountType: DiscountType,
-        extendedDiscountType: ExtendedDiscountType,
         discountValue: number
     ): PriceResponse => {
         let finalPriceBrutto = basePrice.priceBrutto;
+        let finalPrice = calculateLocalFinalPrice(basePrice, discountType, discountValue)
 
-        switch (discountType) {
-            case DiscountType.PERCENTAGE:
-                finalPriceBrutto = basePrice.priceBrutto * (1 - discountValue / 100);
-                break;
-            case DiscountType.AMOUNT:
-                if (extendedDiscountType === ExtendedDiscountType.AMOUNT_NET) {
-                    const discountValueGross = calculateGrossPrice(discountValue);
-                    finalPriceBrutto = Math.max(0, basePrice.priceBrutto - discountValueGross);
-                } else {
-                    finalPriceBrutto = Math.max(0, basePrice.priceBrutto - discountValue);
-                }
-                break;
-            case DiscountType.FIXED_PRICE:
-                if (extendedDiscountType === ExtendedDiscountType.FIXED_PRICE_NET) {
-                    finalPriceBrutto = calculateGrossPrice(discountValue);
-                } else {
-                    finalPriceBrutto = discountValue;
-                }
-                break;
-        }
-
-        const finalPriceNetto = calculateNetPrice(finalPriceBrutto);
-        const taxAmount = calculateTaxAmount(finalPriceNetto);
-
-        return {
-            priceNetto: parseFloat(finalPriceNetto.toFixed(2)),
-            priceBrutto: parseFloat(finalPriceBrutto.toFixed(2)),
-            taxAmount: parseFloat(taxAmount.toFixed(2))
-        };
+        return finalPrice;
     };
 
     // FIXED: Dodanie obsługi kliknięć poza komponentem
@@ -328,7 +303,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
             id: service.id,
             name: service.name,
             basePrice: service.price,  // ✅ ZMIANA: używamy PriceResponse
-            discountType: DiscountType.PERCENTAGE,
+            discountType: DiscountType.PERCENT,
             extendedDiscountType: ExtendedDiscountType.PERCENTAGE,
             discountValue: 0,
             finalPrice: service.price  // ✅ ZMIANA: używamy PriceResponse
@@ -369,7 +344,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
             id: `custom-${Date.now()}`,
             name: customServiceName.trim(),
             basePrice: priceResponse,  // ✅ ZMIANA
-            discountType: DiscountType.PERCENTAGE,
+            discountType: DiscountType.PERCENT,
             extendedDiscountType: ExtendedDiscountType.PERCENTAGE,
             discountValue: 0,
             finalPrice: priceResponse  // ✅ ZMIANA
@@ -422,13 +397,13 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         let newDiscountValue = service.discountValue;
 
         if (service.extendedDiscountType !== newExtendedType) {
-            if (standardType === DiscountType.PERCENTAGE) {
+            if (standardType === DiscountType.PERCENT) {
                 newDiscountValue = 0;
-            } else if (standardType === DiscountType.AMOUNT) {
+            } else if (standardType === DiscountType.FIXED_AMOUNT_OFF_BRUTTO || standardType === DiscountType.FIXED_AMOUNT_OFF_NETTO ) {
                 newDiscountValue = 0;
-            } else if (standardType === DiscountType.FIXED_PRICE) {
+            } else if (standardType === DiscountType.FIXED_FINAL_NETTO || standardType === DiscountType.FIXED_FINAL_BRUTTO ) {
                 // ✅ ZMIANA: używamy basePrice.priceNetto / basePrice.priceBrutto
-                newDiscountValue = newExtendedType === ExtendedDiscountType.FIXED_PRICE_NET
+                newDiscountValue = newExtendedType === ExtendedDiscountType.AMOUNT_NET
                     ? service.basePrice.priceNetto
                     : service.basePrice.priceBrutto;
             }
@@ -439,7 +414,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
             discountType: standardType,
             extendedDiscountType: newExtendedType,
             discountValue: newDiscountValue,
-            finalPrice: calculateFinalPrice(service.basePrice, standardType, newExtendedType, newDiscountValue)  // ✅ ZMIANA
+            finalPrice: calculateFinalPrice(service.basePrice, standardType, newDiscountValue)  // ✅ ZMIANA
         };
 
         setSelectedServices(updatedServices);
@@ -451,7 +426,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
 
         let validatedValue = value;
 
-        if (service.discountType === DiscountType.PERCENTAGE && validatedValue > 100) {
+        if (service.discountType === DiscountType.PERCENT && validatedValue > 100) {
             validatedValue = 100;
         }
 
@@ -465,7 +440,6 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
             finalPrice: calculateFinalPrice(
                 service.basePrice,  // ✅ ZMIANA
                 service.discountType,
-                service.extendedDiscountType,
                 validatedValue
             )
         };
@@ -719,7 +693,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                                                                 type="text"
                                                                 inputMode="decimal"
                                                                 min="0"
-                                                                max={service.discountType === DiscountType.PERCENTAGE ? 100 : undefined}
+                                                                max={service.discountType === DiscountType.PERCENT ? 100 : undefined}
                                                                 value={service.discountValue}
                                                                 onChange={(e) => {
                                                                     const formatted = formatToTwoDecimals(e.target.value);
@@ -732,7 +706,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                                                                     handleChangeDiscountValue(index, parseFloat(numValue.toFixed(2)));
                                                                 }}
                                                             />
-                                                            {service.discountType === DiscountType.PERCENTAGE && (
+                                                            {service.discountType === DiscountType.PERCENT && (
                                                                 <DiscountPercentage>
                                                                     ({(service.basePrice.priceBrutto * service.discountValue / 100).toFixed(2)} zł)
                                                                 </DiscountPercentage>

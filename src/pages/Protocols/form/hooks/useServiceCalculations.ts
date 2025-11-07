@@ -1,59 +1,7 @@
 import { useState } from 'react';
-import { DiscountType, SelectedService, PriceResponse } from '../../../../types';
-
-// --- NOWA FUNKCJA DO LOKALNEGO PRZELICZANIA CENY KOŃCOWEJ ---
-const calculateLocalFinalPrice = (
-    basePrice: PriceResponse,
-    discountType: DiscountType,
-    discountValue: number
-): PriceResponse => {
-
-    // Założenie: Używamy ceny netto do kalkulacji, a VAT to 23% (jak w updateBasePrice)
-    const baseNetto = basePrice.priceNetto;
-    let finalNetto = baseNetto;
-    let discountAmount = 0;
-
-    switch (discountType) {
-        case DiscountType.PERCENTAGE:
-            // Obliczenie kwoty rabatu: baseNetto * (discountValue / 100)
-            discountAmount = baseNetto * (discountValue / 100);
-            finalNetto = baseNetto - discountAmount;
-            break;
-
-        case DiscountType.AMOUNT:
-            // Odejmujemy kwotę rabatu. Zakładamy, że kwota rabatu jest netto.
-            discountAmount = discountValue;
-            finalNetto = baseNetto - discountAmount;
-            break;
-
-        case DiscountType.FIXED_PRICE:
-            // Cena końcowa netto jest równa podanej wartości.
-            finalNetto = discountValue;
-            // Kwota rabatu: baseNetto - finalNetto
-            discountAmount = baseNetto - finalNetto;
-            break;
-
-        default:
-            finalNetto = baseNetto;
-            break;
-    }
-
-    // Upewniamy się, że cena netto nie jest ujemna
-    if (finalNetto < 0) {
-        finalNetto = 0;
-    }
-
-    // Obliczenie brutto i VAT na podstawie nowej ceny netto (zakładamy 23% VAT)
-    const taxRate = 0.23;
-    const priceBrutto = finalNetto * (1 + taxRate);
-    const taxAmount = priceBrutto - finalNetto;
-
-    return {
-        priceNetto: parseFloat(finalNetto.toFixed(2)),
-        priceBrutto: parseFloat(priceBrutto.toFixed(2)),
-        taxAmount: parseFloat(taxAmount.toFixed(2))
-    };
-};
+import { SelectedService, } from '../../../../types';
+import {calculateLocalFinalPrice} from "../../../../features/services/hooks/useServiceCalculations";
+import {DiscountType} from "../../../../features/reservations/api/reservationsApi";
 
 /**
  * Hook do zarządzania usługami i rabatami w protokole.

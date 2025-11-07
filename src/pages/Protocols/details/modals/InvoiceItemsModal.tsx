@@ -1,8 +1,9 @@
 import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
 import {FaCalculator, FaCheck, FaFileInvoice, FaLayerGroup, FaPencilAlt, FaTimes, FaTrash} from 'react-icons/fa';
-import {DiscountType, PriceResponse, SelectedService, ServiceApprovalStatus} from '../../../../types';
+import {PriceResponse, SelectedService, ServiceApprovalStatus} from '../../../../types';
 import {useToast} from "../../../../components/common/Toast/Toast";
+import {DiscountType} from "../../../../features/reservations/api/reservationsApi";
 
 // Professional Brand Theme
 const brandTheme = {
@@ -158,7 +159,7 @@ const InvoiceItemsModal: React.FC<InvoiceItemsModalProps> = ({
                 priceBrutto: totalPrice,
                 taxAmount: totalPrice - (totalPrice / 1.23)
             },
-            discountType: editedServices[0]?.discountType || DiscountType.PERCENTAGE,
+            discountType: editedServices[0]?.discountType || DiscountType.PERCENT,
             discountValue: 0,
             finalPrice: {
                 priceNetto: totalPrice / 1.23,

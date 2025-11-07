@@ -1,7 +1,7 @@
 // src/features/reservations/libs/types.ts
 /**
  * Types for Reservation Form
- * Lightweight reservation data - no client/vehicle entities created yet
+ * UPDATED: Added discount support
  */
 
 import {ReservationSelectedServiceInput} from "../api/reservationsApi";
@@ -26,7 +26,7 @@ export interface ReservationFormData {
     startDate: string; // ISO 8601
     endDate?: string;  // ISO 8601
 
-    // Services
+    // Services - UPDATED: Now includes discount
     selectedServices: ReservationSelectedServiceInput[];
 
     // Notes
