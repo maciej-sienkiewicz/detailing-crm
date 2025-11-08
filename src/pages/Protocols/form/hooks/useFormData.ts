@@ -50,8 +50,20 @@ export const useFormDataWithAutocomplete = (
     protocol: CarReceptionProtocol | null,
     initialData?: Partial<CarReceptionProtocol>
 ): UseFormDataWithAutocompleteResult => {
-    const [formData, setFormData] = useState<Partial<CarReceptionProtocol>>(
-        protocol || initialData || {
+    const [formData, setFormData] = useState<Partial<CarReceptionProtocol>>(() => {
+        if (initialData) {
+            return {
+                ...initializeDates(),
+                ...initialData,
+                ownerId: initialData.ownerId
+            };
+        }
+
+        if (protocol) {
+            return protocol;
+        }
+
+        return {
             ...initializeDates(),
             title: '',
             calendarColorId: '',
@@ -74,10 +86,9 @@ export const useFormDataWithAutocomplete = (
             referralSource: undefined,
             otherSourceDetails: '',
             deliveryPerson: null,
-            // KLUCZOWE: clientId nie jest inicjalizowany automatycznie
             ownerId: undefined
-        }
-    );
+        };
+    });
 
     const [isClientFromSearch, setIsClientFromSearch] = useState(false);
     const [autocompleteOptions, setAutocompleteOptions] = useState<AutocompleteOption[]>([]);

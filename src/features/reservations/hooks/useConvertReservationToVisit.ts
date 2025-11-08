@@ -30,6 +30,9 @@ export interface ConvertFormData {
     taxId?: string;
     address?: string;
 
+    make: string;
+    model: string;
+
     licensePlate: string;
     productionYear?: number;
     vin?: string;
@@ -92,6 +95,8 @@ export const useConvertReservationToVisit = ({
             address: '',
 
             licensePlate: '',
+            make: reservation.vehicleMake,
+            model: reservation.vehicleModel,
             productionYear: undefined,
             vin: '',
             color: '',

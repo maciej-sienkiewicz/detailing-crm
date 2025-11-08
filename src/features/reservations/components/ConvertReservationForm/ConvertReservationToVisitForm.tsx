@@ -1,9 +1,3 @@
-// src/features/reservations/components/ConvertReservationForm/ConvertReservationToVisitForm.tsx
-/**
- * Form for converting reservation to full visit
- * Allows filling in missing client and vehicle details
- */
-
 import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
 import {FaArrowRight} from 'react-icons/fa';
@@ -27,6 +21,9 @@ import {useUpdateDiscountValue} from '../../../visits/hooks/useUpdateDiscountVal
 import {useUpdateServiceNote} from '../../../visits/hooks/useUpdateServiceNote';
 import {useHandleServiceCreated} from '../../../visits/hooks/useHandleServiceCreated';
 import {useTotalsCalculation} from '../../../visits/hooks/useTotalsCalculation';
+import {useFormDataWithAutocomplete} from '../../../../pages/Protocols/form/hooks/useFormData';
+import VehicleSelectionModal from '../../../../pages/Protocols/shared/modals/VehicleSelectionModal';
+import {parseDateFromBackend} from "../../libs/utils";
 
 const brandTheme = {
     primary: 'var(--brand-primary, #1a365d)',
@@ -90,17 +87,31 @@ export const ConvertReservationToVisitForm: React.FC<ConvertReservationToVisitFo
         onSuccess
     });
 
-    const [formData, setFormData] = useState<ConvertFormData>(getInitialFormData());
-    const [errors, setErrors] = useState<Record<string, string>>({});
+    const initialFormData = getInitialFormData();
 
-    // Services state management
+    const {
+        formData,
+        setFormData,
+        errors,
+        handleChange,
+        handleReferralSourceChange,
+        handleOtherSourceDetailsChange,
+        autocompleteOptions,
+        loadingAutocompleteData,
+        handleAutocompleteSelect,
+        showVehicleModal,
+        setShowVehicleModal,
+        vehicleModalOptions,
+        handleVehicleModalSelect
+    } = useFormDataWithAutocomplete(null, initialFormData);
+
     const [availableServices, setAvailableServices] = useState<Service[]>([]);
     const [loadingServices, setLoadingServices] = useState(true);
 
-    // Convert reservation services to SelectedService format
     const initialServices: SelectedService[] = reservation.services.map(service => {
         return {
             id: service.id,
+            rowId: `row-${service.id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             name: service.name,
             quantity: service.quantity,
             basePrice: service.basePrice,
@@ -122,13 +133,11 @@ export const ConvertReservationToVisitForm: React.FC<ConvertReservationToVisitFo
     const handleServiceCreated = useHandleServiceCreated(setServices);
     const calculateTotals = useTotalsCalculation(services);
 
-    // Service search state
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<Service[]>([]);
     const [showResults, setShowResults] = useState(false);
     const [selectedServiceToAdd, setSelectedServiceToAdd] = useState<Service | null>(null);
 
-    // Load available services
     useEffect(() => {
         const fetchServices = async () => {
             try {
@@ -145,55 +154,24 @@ export const ConvertReservationToVisitForm: React.FC<ConvertReservationToVisitFo
         fetchServices();
     }, []);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-        const { name, value, type } = e.target;
-
+    useEffect(() => {
         setFormData(prev => ({
             ...prev,
-            [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+            vehicleMake: reservation.vehicleMake,
+            make: reservation.vehicleMake,
+            vehicleModel: reservation.vehicleModel,
+            model: reservation.vehicleModel,
+            title: reservation.title,
+            calendarColorId: reservation.calendarColorId,
+            startDate: parseDateFromBackend(reservation.startDate),
+            endDate: parseDateFromBackend(reservation.endDate),
+            contactPhone: reservation.contactPhone,
+            phone: reservation.contactPhone,
+            contactName: reservation.contactName,
+            ownerName: reservation.contactName || '',
+            notes: reservation.notes
         }));
-
-        // Clear error for this field
-        if (errors[name]) {
-            setErrors(prev => {
-                const newErrors = { ...prev };
-                delete newErrors[name];
-                return newErrors;
-            });
-        }
-    };
-
-    const handleReferralSourceChange = (value: ReferralSource | null) => {
-        setFormData(prev => ({
-            ...prev,
-            referralSource: value || undefined
-        }));
-    };
-
-    const handleOtherSourceDetailsChange = (value: string) => {
-        setFormData(prev => ({
-            ...prev,
-            otherSourceDetails: value
-        }));
-    };
-
-    const validateForm = (): boolean => {
-        const newErrors: Record<string, string> = {};
-
-        // Required fields
-        if (!formData.ownerName.trim()) {
-            newErrors.ownerName = 'Imię i nazwisko jest wymagane';
-        }
-        if (!formData.phone.trim()) {
-            newErrors.phone = 'Numer telefonu jest wymagany';
-        }
-        if (!formData.licensePlate.trim()) {
-            newErrors.licensePlate = 'Numer rejestracyjny jest wymagany';
-        }
-
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
+    }, [reservation, setFormData]);
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const query = e.target.value;
@@ -221,7 +199,7 @@ export const ConvertReservationToVisitForm: React.FC<ConvertReservationToVisitFo
     };
 
     const handleAddService = () => {
-        let newServiceData: Omit<SelectedService, 'finalPrice'>;
+        let newServiceData: Omit<SelectedService, 'finalPrice' | 'rowId'>;
 
         if (selectedServiceToAdd) {
             newServiceData = {
@@ -229,7 +207,7 @@ export const ConvertReservationToVisitForm: React.FC<ConvertReservationToVisitFo
                 name: selectedServiceToAdd.name,
                 quantity: 1,
                 basePrice: selectedServiceToAdd.price,
-                discountType: "PERCENTAGE" as any,
+                discountType: DiscountType.PERCENT,
                 discountValue: 0,
                 approvalStatus: undefined,
             };
@@ -240,7 +218,7 @@ export const ConvertReservationToVisitForm: React.FC<ConvertReservationToVisitFo
                 name: searchQuery.trim(),
                 quantity: 1,
                 basePrice: { priceNetto: 0, priceBrutto: 0, taxAmount: 0 },
-                discountType: "PERCENTAGE" as any,
+                discountType: DiscountType.PERCENT,
                 discountValue: 0,
                 approvalStatus: undefined,
             };
@@ -253,17 +231,17 @@ export const ConvertReservationToVisitForm: React.FC<ConvertReservationToVisitFo
         setSelectedServiceToAdd(null);
     };
 
-    const handleAddServiceDirect = (service: Service) => {
-        const newServiceData: Omit<SelectedService, 'finalPrice'> = {
+    const handleAddServiceDirect = (service: Service, note?: string) => {
+        const newServiceData: Omit<SelectedService, 'finalPrice' | 'rowId'> = {
             id: service.id,
             name: service.name,
             quantity: 1,
             basePrice: service.price,
-            discountType: "PERCENTAGE" as any,
+            discountType: DiscountType.PERCENT,
             discountValue: 0,
             approvalStatus: undefined,
         };
-        addServiceCommand(newServiceData);
+        addServiceCommand(newServiceData, note);
         setSearchQuery('');
         setSelectedServiceToAdd(null);
         setShowResults(false);
@@ -278,35 +256,44 @@ export const ConvertReservationToVisitForm: React.FC<ConvertReservationToVisitFo
         }
     };
 
+    const validateForm = (): boolean => {
+        const newErrors: Record<string, string> = {};
+
+        if (!formData.ownerName?.trim()) {
+            newErrors.ownerName = 'Imię i nazwisko jest wymagane';
+        }
+        if (!formData.phone?.trim()) {
+            newErrors.phone = 'Numer telefonu jest wymagany';
+        }
+        if (!formData.licensePlate?.trim()) {
+            newErrors.licensePlate = 'Numer rejestracyjny jest wymagany';
+        }
+
+        return Object.keys(newErrors).length === 0;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        console.log('📝 Validating convert form...');
-
         if (!validateForm()) {
-            console.warn('⚠️ Form validation failed:', errors);
             return;
         }
 
-        console.log('✅ Form validation passed, converting...');
-
-        // Update formData with current services before converting
-        const updatedFormData = {
-            ...formData,
-            services: services  // Use managed services, not reservation services
+        const updatedFormData: ConvertFormData = {
+            ...formData as any,
+            services: services
         };
 
         await convertToVisit(updatedFormData);
     };
 
-    // Prepare formData for existing sections
-    const visitFormData = {
-        ...formData,
-        // Map to expected field names
-        make: formData.vehicleMake,
-        model: formData.vehicleModel,
-        selectedServices: services
-    };
+    if (loadingAutocompleteData) {
+        return (
+            <FormContainer>
+                <LoadingMessage>Ładowanie danych klientów i pojazdów...</LoadingMessage>
+            </FormContainer>
+        );
+    }
 
     return (
         <FormContainer>
@@ -336,48 +323,43 @@ export const ConvertReservationToVisitForm: React.FC<ConvertReservationToVisitFo
             )}
 
             <Form onSubmit={handleSubmit}>
-                {/* Title and Color */}
                 <VisitTitleSection
-                    title={formData.title}
-                    selectedColorId={formData.calendarColorId}
+                    title={formData.title || ''}
+                    selectedColorId={formData.calendarColorId || ''}
                     onChange={handleChange}
                     error={errors.title}
                 />
 
-                {/* Schedule */}
                 <ScheduleSection
-                    formData={visitFormData}
+                    formData={formData}
                     errors={errors}
                     onChange={handleChange}
                     isFullProtocol={true}
                 />
 
-                {/* Client Information - REQUIRED */}
                 <SectionWithBadge>
                     <SectionBadge>Wymagane</SectionBadge>
                     <ClientInfoSection
-                        formData={visitFormData}
+                        formData={formData}
                         errors={errors}
                         onChange={handleChange}
-                        autocompleteOptions={[]}
-                        onAutocompleteSelect={() => {}}
+                        autocompleteOptions={autocompleteOptions}
+                        onAutocompleteSelect={handleAutocompleteSelect}
                     />
                 </SectionWithBadge>
 
-                {/* Vehicle Information - REQUIRED */}
                 <SectionWithBadge>
                     <SectionBadge>Wymagane</SectionBadge>
                     <VehicleInfoSection
-                        formData={visitFormData}
+                        formData={formData}
                         errors={errors}
                         onChange={handleChange}
                         isFullProtocol={true}
-                        autocompleteOptions={[]}
-                        onAutocompleteSelect={() => {}}
+                        autocompleteOptions={autocompleteOptions}
+                        onAutocompleteSelect={handleAutocompleteSelect}
                     />
                 </SectionWithBadge>
 
-                {/* Referral Source */}
                 <ReferralSourceSection
                     referralSource={formData.referralSource || null}
                     otherSourceDetails={formData.otherSourceDetails || ''}
@@ -385,7 +367,6 @@ export const ConvertReservationToVisitForm: React.FC<ConvertReservationToVisitFo
                     onOtherDetailsChange={handleOtherSourceDetailsChange}
                 />
 
-                {/* Services - Full management */}
                 <ServicesSectionWrapper>
                     <ServiceSection
                         searchQuery={searchQuery}
@@ -410,13 +391,11 @@ export const ConvertReservationToVisitForm: React.FC<ConvertReservationToVisitFo
                     />
                 </ServicesSectionWrapper>
 
-                {/* Notes */}
                 <NotesSection
                     notes={formData.notes || ''}
                     onChange={handleChange}
                 />
 
-                {/* Form Actions */}
                 <ActionsContainer>
                     <SecondaryButton type="button" onClick={onCancel} disabled={loading}>
                         Anuluj
@@ -429,11 +408,18 @@ export const ConvertReservationToVisitForm: React.FC<ConvertReservationToVisitFo
                     </PrimaryButton>
                 </ActionsContainer>
             </Form>
+
+            {showVehicleModal && (
+                <VehicleSelectionModal
+                    vehicles={vehicleModalOptions}
+                    onSelect={handleVehicleModalSelect}
+                    onCancel={() => setShowVehicleModal(false)}
+                />
+            )}
         </FormContainer>
     );
 };
 
-// Styled Components
 const FormContainer = styled.div`
     background: ${brandTheme.surface};
     border-radius: ${brandTheme.radius.xl};
@@ -565,36 +551,6 @@ const ServicesSectionWrapper = styled.div`
     gap: ${brandTheme.spacing.md};
 `;
 
-const SectionTitle = styled.h3`
-    font-size: 18px;
-    font-weight: 600;
-    color: ${brandTheme.text.primary};
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: ${brandTheme.spacing.sm};
-
-    &::before {
-        content: '';
-        width: 4px;
-        height: 18px;
-        background: ${brandTheme.primary};
-        border-radius: 2px;
-    }
-`;
-
-const TitleIcon = styled.span`
-    color: ${brandTheme.primary};
-    font-size: 14px;
-`;
-
-const SectionDescription = styled.p`
-    margin: 0;
-    font-size: 14px;
-    color: ${brandTheme.text.secondary};
-    font-weight: 500;
-`;
-
 const ActionsContainer = styled.div`
     display: flex;
     justify-content: flex-end;
@@ -656,4 +612,11 @@ const SecondaryButton = styled(Button)`
         border-color: #cbd5e1;
         box-shadow: ${brandTheme.shadow.sm};
     }
+`;
+
+const LoadingMessage = styled.div`
+    padding: ${brandTheme.spacing.xxl};
+    text-align: center;
+    color: ${brandTheme.text.secondary};
+    font-size: 14px;
 `;
