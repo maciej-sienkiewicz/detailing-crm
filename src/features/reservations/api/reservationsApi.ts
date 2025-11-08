@@ -77,7 +77,7 @@ export interface Reservation {
     vehicleModel: string;
     vehicleDisplay: string;
     startDate: string;
-    endDate: string;
+    endDate?: string;
     status: ReservationStatus;
     notes?: string;
     calendarColorId: string;

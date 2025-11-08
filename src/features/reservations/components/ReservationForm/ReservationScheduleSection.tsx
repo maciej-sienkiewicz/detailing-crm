@@ -84,9 +84,8 @@ export const ReservationScheduleSection: React.FC<ReservationScheduleSectionProp
         if (value) {
             const newDateTime = `${value}T23:59:59`;
 
-            // Validate end date
             if (startDate) {
-                const startDateObj = new Date(startDate.replace(' ', 'T'));
+                const startDateObj = new Date(startDate);
                 const endDateObj = new Date(newDateTime);
 
                 if (endDateObj < startDateObj) {
