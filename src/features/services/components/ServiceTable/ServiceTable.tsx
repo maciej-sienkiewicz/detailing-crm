@@ -509,8 +509,16 @@ export const ServiceTable: React.FC<ServiceTableProps> = ({
                                 <FooterCell>
                                     <PriceInfo>
                                         <PriceRow>
-                                            <TotalValue>{totalDiscount.toFixed(2)} zł</TotalValue>
-                                            <PriceLabel>rabat</PriceLabel>
+                                            <TotalValue>
+                                                {(totalBasePriceBrutto - totalFinalPriceBrutto).toFixed(2)} zł
+                                            </TotalValue>
+                                            <PriceLabel>brutto</PriceLabel>
+                                        </PriceRow>
+                                        <PriceRow>
+                                            <TotalValue secondary>
+                                                {(totalBasePriceNetto - totalFinalPriceNetto).toFixed(2)} zł
+                                            </TotalValue>
+                                            <PriceLabel>netto</PriceLabel>
                                         </PriceRow>
                                     </PriceInfo>
                                 </FooterCell>
