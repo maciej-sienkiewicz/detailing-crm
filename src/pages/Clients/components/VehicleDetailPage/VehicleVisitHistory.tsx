@@ -89,8 +89,6 @@ const VehicleVisitHistory: React.FC<VehicleVisitHistoryProps> = ({
                 return <FaClock />;
             case ProtocolStatus.READY_FOR_PICKUP:
                 return <FaCheckCircle />;
-            case ProtocolStatus.SCHEDULED:
-                return <FaCalendarAlt />;
             case ProtocolStatus.CANCELLED:
                 return <FaExclamationTriangle />;
             default:

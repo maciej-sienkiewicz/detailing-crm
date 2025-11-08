@@ -54,7 +54,7 @@ const convertReservationToVisitListItem = (reservation: Reservation): VisitListI
         },
         period: {
             startDate: reservation.startDate,
-            endDate: reservation.endDate
+            endDate: reservation.endDate || reservation.startDate
         },
         owner: {
             name: reservation.contactName || reservation.contactPhone,

@@ -47,8 +47,7 @@ const StartVisitPage: React.FC = () => {
                 }
 
                 // Sprawdzamy, czy protokół jest w statusie SCHEDULED lub CANCELLED
-                if (fetchedProtocol.status !== ProtocolStatus.SCHEDULED &&
-                    !(fetchedProtocol.status === ProtocolStatus.CANCELLED && isRestoringCancelled)) {
+                if (!(fetchedProtocol.status === ProtocolStatus.CANCELLED && isRestoringCancelled)) {
 
                     if (fetchedProtocol.status === ProtocolStatus.CANCELLED && !isRestoringCancelled) {
                         setError('Anulowane wizyty można przywrócić tylko przez opcję przywracania');

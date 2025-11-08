@@ -5,8 +5,9 @@
  */
 
 import {apiClientNew, ApiError, PaginatedApiResponse, PaginationParams} from '../shared/api/apiClientNew';
-import {ProtocolStatus, DiscountType} from '../types';
+import {ProtocolStatus} from '../types';
 import {PriceResponse, PriceType} from '../types/service';
+import {DiscountType} from "../features/reservations/api/reservationsApi";
 
 // ========================================================================================
 // TYPE DEFINITIONS

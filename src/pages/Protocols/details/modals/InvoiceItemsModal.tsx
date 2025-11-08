@@ -152,6 +152,7 @@ const InvoiceItemsModal: React.FC<InvoiceItemsModalProps> = ({
 
         const mergedService: ServiceExtended = {
             id: `merged_${Date.now()}`,
+            rowId: `row-new-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             name: 'Usługi detailingowe',
             quantity: 1,
             basePrice: {

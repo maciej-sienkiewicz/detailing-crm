@@ -102,7 +102,7 @@ export const useConvertReservationToVisit = ({
             color: '',
             mileage: undefined,
 
-            keysProvided: false,
+            keysProvided: true,
             documentsProvided: false,
             additionalNotes: '',
 

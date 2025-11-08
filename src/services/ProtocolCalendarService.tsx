@@ -13,8 +13,6 @@ const isDateInRange = (date: Date, range?: { start: Date; end: Date }): boolean 
 // Map protocol status to appointment status
 const mapProtocolStatusToAppointmentStatus = (protocolStatus: ProtocolStatus): AppointmentStatus => {
     switch (protocolStatus) {
-        case ProtocolStatus.SCHEDULED:
-            return AppointmentStatus.SCHEDULED;
         case ProtocolStatus.IN_PROGRESS:
             return AppointmentStatus.IN_PROGRESS;
         case ProtocolStatus.READY_FOR_PICKUP:
@@ -195,9 +193,6 @@ export const updateProtocolStatusFromCalendar = async (
         // Convert appointment status back to protocol status
         let protocolStatus: ProtocolStatus;
         switch (newStatus) {
-            case AppointmentStatus.SCHEDULED:
-                protocolStatus = ProtocolStatus.SCHEDULED;
-                break;
             case AppointmentStatus.IN_PROGRESS:
                 protocolStatus = ProtocolStatus.IN_PROGRESS;
                 break;
@@ -211,7 +206,7 @@ export const updateProtocolStatusFromCalendar = async (
                 protocolStatus = ProtocolStatus.CANCELLED;
                 break;
             default:
-                protocolStatus = ProtocolStatus.SCHEDULED;
+                protocolStatus = ProtocolStatus.IN_PROGRESS;
         }
 
         // Update protocol status via API

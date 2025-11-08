@@ -165,7 +165,7 @@ export const useFormSubmit = (
 
                 // Pokazuj modal jeśli wykryto akcję "Rozpocznij wizytę"
                 if (isStartVisitAction ||
-                    (protocol.status === ProtocolStatus.SCHEDULED && protocolToUpdate.status === ProtocolStatus.IN_PROGRESS)) {
+                    (protocolToUpdate.status === ProtocolStatus.IN_PROGRESS)) {
                     showConfirmationModal = true;
                 }
 

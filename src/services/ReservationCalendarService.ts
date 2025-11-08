@@ -70,7 +70,7 @@ const convertReservationToAppointment = (reservation: Reservation): Appointment 
         id: `reservation-${reservation.id}`,
         title: reservation.title,
         start: parseDate(reservation.startDate),
-        end: parseDate(reservation.endDate),
+        end: parseDate(reservation.endDate || reservation.startDate),
         customerId: reservation.contactPhone, // Use phone as identifier
         vehicleId: reservation.vehicleDisplay,
         serviceType: 'reservation',

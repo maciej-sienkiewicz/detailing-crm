@@ -178,6 +178,7 @@ const EditVisitForm: React.FC<EditVisitFormProps> = ({
         if (selectedServiceToAdd) {
             newServiceData = {
                 id: selectedServiceToAdd.id,
+                rowId: `row-${selectedServiceToAdd.id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                 name: selectedServiceToAdd.name,
                 quantity: 1,
                 basePrice: selectedServiceToAdd.price,
@@ -189,6 +190,7 @@ const EditVisitForm: React.FC<EditVisitFormProps> = ({
             const customId = `custom-${Date.now()}`;
             newServiceData = {
                 id: customId,
+                rowId: `row-new-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                 name: searchQuery.trim(),
                 quantity: 1,
                 basePrice: { priceNetto: 0, priceBrutto: 0, taxAmount: 0 },
@@ -214,6 +216,7 @@ const EditVisitForm: React.FC<EditVisitFormProps> = ({
     const handleAddServiceDirect = (service: Service) => {
         const newServiceData: Omit<SelectedService, 'finalPrice'> = {
             id: service.id,
+            rowId: `row-${service.id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             name: service.name,
             quantity: 1,
             basePrice: service.price,

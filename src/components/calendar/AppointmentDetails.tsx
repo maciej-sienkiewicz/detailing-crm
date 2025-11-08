@@ -309,7 +309,7 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
                             <FaHistory />
                             <span>Pokaż {isSimpleEventType ? 'wydarzenie' : 'cykliczne wydarzenie'}</span>
                         </RecurringActionButton>
-                    ) : appointment.isProtocol && (appointment.status as unknown as ProtocolStatus) !== ProtocolStatus.SCHEDULED && (
+                    ) : appointment.isProtocol && (
                         <ProtocolActionButton onClick={handleGoToProtocol}>
                             <FaExternalLinkAlt />
                             <span>Otwórz protokół</span>
@@ -602,7 +602,7 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
                             <span>{isSimpleEventType ? 'Anuluj wydarzenie' : 'Anuluj wystąpienie'}</span>
                         </DangerAction>
                     </RecurringEventActions>
-                ) : appointment.isProtocol && (appointment.status as unknown as ProtocolStatus) === ProtocolStatus.SCHEDULED ? (
+                ) : appointment.isProtocol ? (
                     <ActionGrid>
                         <SecondaryAction onClick={onEdit}>
                             <FaEdit />

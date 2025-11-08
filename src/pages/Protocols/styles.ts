@@ -63,13 +63,6 @@ export const StatusBadge = styled.div<{ status: ProtocolStatus }>`
 
     ${({ status }) => {
         switch (status) {
-            case ProtocolStatus.SCHEDULED:
-                return `
-                    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
-                    color: #1d4ed8;
-                    border: 1px solid rgba(59, 130, 246, 0.3);
-                    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
-                `;
             case ProtocolStatus.IN_PROGRESS:
                 return `
                     background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%);

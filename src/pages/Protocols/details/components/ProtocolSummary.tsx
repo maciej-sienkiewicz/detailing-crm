@@ -176,6 +176,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                 // Transform API response to match protocol format
                 const updatedServices = result.data.services?.map(service => ({
                     id: service.id,
+                    rowId: `row-${service.id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                     name: service.name,
                     quantity: service.quantity || 1,
                     basePrice: service.basePrice,
@@ -189,7 +190,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                 // Update protocol with services from API response
                 const updatedProtocol: CarReceptionProtocol = {
                     ...protocol,
-                    selectedServices: updatedServices
+                    selectedServices: updatedServices,
                 };
 
                 // Call parent update handler
@@ -312,6 +313,7 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                 // Transform API response to match protocol format
                 const updatedServices = result.data.services?.map(service => ({
                     id: service.id,
+                    rowId: `row-${service.id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                     name: service.name,
                     quantity: service.quantity || 1,
                     basePrice: service.basePrice,

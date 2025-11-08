@@ -388,6 +388,7 @@ export const ConvertReservationToVisitForm: React.FC<ConvertReservationToVisitFo
                         allowCustomService={true}
                         onServiceAdded={refreshServices}
                         onServiceCreated={handleServiceCreated}
+                        availableServices={availableServices}
                     />
                 </ServicesSectionWrapper>
 

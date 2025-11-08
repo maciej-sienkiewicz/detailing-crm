@@ -268,6 +268,7 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
     const handleAddServiceDirect = (service: Service) => {
         const newService = {
             id: service.id,
+            rowId: `row-${service.id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             name: service.name,
             quantity: 1,
             basePrice: service.price,
@@ -405,6 +406,7 @@ const StartVisitForm: React.FC<StartVisitFormProps> = ({
                     allowCustomService={true}
                     onAddServiceDirect={handleAddServiceDirect}
                     onServiceCreated={handleServiceCreated}
+                    availableServices={availableServices}
                 />
 
                 <NotesSection notes={formData.notes || ''} onChange={handleChange} />
