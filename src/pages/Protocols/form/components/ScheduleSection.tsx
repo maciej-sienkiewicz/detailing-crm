@@ -1,21 +1,14 @@
-// src/pages/Protocols/form/components/ScheduleSection.tsx - POPRAWIONA WERSJA
-
 import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
 import {CarReceptionProtocol} from '../../../../types';
 import {FormErrors} from '../hooks/useFormValidation';
 import {
     brandTheme,
-    DateTimeContainer,
     ErrorText,
-    FormGroup,
-    FormRow,
-    FormSection,
     Input,
     SectionTitle
 } from '../styles';
 import {useToast} from "../../../../components/common/Toast/Toast";
-import {LabelWithBadge} from './LabelWithBadge';
 
 interface ScheduleSectionProps {
     formData: Partial<CarReceptionProtocol>;
@@ -34,24 +27,20 @@ const ScheduleSection: React.FC<ScheduleSectionProps> = ({
     const [dateError, setDateError] = useState<string | null>(null);
     const [isAllDay, setIsAllDay] = useState(false);
 
-    // Handle all day toggle
     const handleAllDayToggle = () => {
         const newIsAllDay = !isAllDay;
         setIsAllDay(newIsAllDay);
 
         if (newIsAllDay) {
-            // Set to all day - from 00:00 to 23:59, but use the same date for start and end
             const currentDate = formData.startDate ? formData.startDate.split('T')[0] : new Date().toISOString().split('T')[0];
             const startDateTime = `${currentDate}T00:00:00`;
             const endDateTime = `${currentDate}T23:59:59`;
 
-            // Update start date
             const startEvent = {
                 target: { name: 'startDate', value: startDateTime, type: 'text' }
             } as React.ChangeEvent<HTMLInputElement>;
             onChange(startEvent);
 
-            // Update end date to the same day
             const endEvent = {
                 target: { name: 'endDate', value: endDateTime, type: 'text' }
             } as React.ChangeEvent<HTMLInputElement>;
@@ -59,7 +48,6 @@ const ScheduleSection: React.FC<ScheduleSectionProps> = ({
         }
     };
 
-    // Handle date change with validation
     const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
 
@@ -70,7 +58,6 @@ const ScheduleSection: React.FC<ScheduleSectionProps> = ({
                     target: { name: 'endDate', value: newDateTime, type: 'text' }
                 } as React.ChangeEvent<HTMLInputElement>;
 
-                // Check if end date is valid compared to start date
                 if (formData.startDate) {
                     const startDateObj = new Date(formData.startDate.replace(' ', 'T'));
                     const endDateObj = new Date(newDateTime);
@@ -105,10 +92,7 @@ const ScheduleSection: React.FC<ScheduleSectionProps> = ({
         }
     };
 
-    // POPRAWKA: Nie ustawiaj automatycznie daty obecnej dla StartVisitForm
-    // StartVisitForm sam zarządza swoimi datami w useState
     useEffect(() => {
-        // Sprawdź czy nie jesteśmy w kontekście StartVisitForm
         const isStartVisitContext = window.location.pathname.includes('/open');
 
         if (isFullProtocol && !formData.startDate && !isStartVisitContext) {
@@ -127,74 +111,56 @@ const ScheduleSection: React.FC<ScheduleSectionProps> = ({
         }
     }, [isFullProtocol, formData.startDate, onChange]);
 
-    // POPRAWKA: Ulepszona funkcja do wyciągania daty z różnych formatów
     const extractDateFromISO = (dateString: string): string => {
         if (!dateString) return '';
 
         try {
-            // Usuń 'Z' i milisekundy
             let cleanedDate = dateString.replace('Z', '').split('.')[0];
 
-            // Jeśli ma format ISO z T, wyciągnij tylko część z datą
             if (cleanedDate.includes('T')) {
-                const datePart = cleanedDate.split('T')[0];
-                return datePart;
+                return cleanedDate.split('T')[0];
             }
 
-            // Jeśli ma spację zamiast T, wyciągnij część przed spacją
             if (cleanedDate.includes(' ')) {
-                const datePart = cleanedDate.split(' ')[0];
-                return datePart;
+                return cleanedDate.split(' ')[0];
             }
 
-            // Jeśli to już tylko data w formacie YYYY-MM-DD
             if (/^\d{4}-\d{2}-\d{2}$/.test(cleanedDate)) {
                 return cleanedDate;
             }
 
-            // Fallback - spróbuj utworzyć datę i wyciągnij z niej część
             const date = new Date(dateString);
             if (!isNaN(date.getTime())) {
-                const formattedDate = date.toISOString().split('T')[0];
-                return formattedDate;
+                return date.toISOString().split('T')[0];
             }
 
-            console.warn('⚠️ Nie można sparsować daty:', dateString);
             return '';
         } catch (e) {
-            console.warn('⚠️ Błąd podczas parsowania daty:', dateString, e);
             return '';
         }
     };
 
-    // POPRAWKA: Ulepszona funkcja do wyciągania czasu
     const extractTimeFromISO = (dateString: string, defaultTime = '08:00'): string => {
         if (!dateString) return defaultTime;
 
         try {
-            // Usuń 'Z' i milisekundy
             let cleanedDate = dateString.replace('Z', '').split('.')[0];
 
-            // Jeśli ma format ISO z T, wyciągnij czas
             if (cleanedDate.includes('T')) {
                 const timePart = cleanedDate.split('T')[1];
                 if (timePart) {
-                    const timeOnly = timePart.substring(0, 5); // HH:MM
-                    return timeOnly;
+                    return timePart.substring(0, 5);
                 }
             }
 
-            // Jeśli ma spację zamiast T, wyciągnij czas
             if (cleanedDate.includes(' ')) {
                 const timePart = cleanedDate.split(' ')[1];
                 if (timePart) {
-                    const timeOnly = timePart.substring(0, 5); // HH:MM
-                    return timeOnly;
+                    return timePart.substring(0, 5);
                 }
             }
             return defaultTime;
         } catch (e) {
-            console.warn('⚠️ Błąd podczas wyciągania czasu:', dateString, e);
             return defaultTime;
         }
     };
@@ -202,23 +168,25 @@ const ScheduleSection: React.FC<ScheduleSectionProps> = ({
     return (
         <FormSection>
             <SectionTitle>Harmonogram wizyty</SectionTitle>
-            <FormRow className="responsive-row">
-                <FormGroup className="date-time-group">
-                    <DateLabelContainer>
-                        <InlineLabelContainer>
-                            <LabelWithBadge htmlFor="startDate" required={true} badgeVariant="modern">
-                                Data i godzina rozpoczęcia
-                            </LabelWithBadge>
-                            <AllDayToggleContainer>
-                                <AllDayLabel>Cały dzień</AllDayLabel>
-                                <ToggleSwitch $isActive={isAllDay} onClick={handleAllDayToggle} type="button">
-                                    <ToggleSlider $isActive={isAllDay} />
-                                </ToggleSwitch>
-                            </AllDayToggleContainer>
-                        </InlineLabelContainer>
-                    </DateLabelContainer>
 
-                    <DateTimeContainer>
+            {/* KLUCZOWA ZMIANA: Użyj Grid Layout z FIXED kolumnami */}
+            <ScheduleGrid $isAllDay={isAllDay}>
+                {/* Kolumna 1: Data i godzina rozpoczęcia */}
+                <StartDateColumn>
+                    <LabelRow>
+                        <CompactLabel htmlFor="startDate">
+                            Data i godzina rozpoczęcia
+                            <RequiredBadge>Wymagane</RequiredBadge>
+                        </CompactLabel>
+                        <AllDayToggleContainer>
+                            <AllDayLabel>Cały dzień</AllDayLabel>
+                            <ToggleSwitch $isActive={isAllDay} onClick={handleAllDayToggle} type="button">
+                                <ToggleSlider $isActive={isAllDay} />
+                            </ToggleSwitch>
+                        </AllDayToggleContainer>
+                    </LabelRow>
+
+                    <InputRow>
                         <Input
                             id="startDate"
                             name="startDate"
@@ -226,7 +194,6 @@ const ScheduleSection: React.FC<ScheduleSectionProps> = ({
                             value={extractDateFromISO(formData.startDate || '')}
                             onChange={handleDateChange}
                             required
-                            className="date-input"
                             $hasError={!!errors.startDate}
                         />
                         {!isAllDay && (
@@ -244,59 +211,127 @@ const ScheduleSection: React.FC<ScheduleSectionProps> = ({
                                     onChange(syntheticEvent);
                                 }}
                                 required
-                                className="time-input"
                             />
                         )}
-                    </DateTimeContainer>
-                    {errors.startDate && <ErrorText>{errors.startDate}</ErrorText>}
-                </FormGroup>
+                    </InputRow>
 
+                    {errors.startDate && <ErrorText>{errors.startDate}</ErrorText>}
+                </StartDateColumn>
+
+                {/* Kolumna 2: Data zakończenia (tylko gdy nie "cały dzień") */}
                 {!isAllDay && (
-                    <FormGroup>
-                        <LabelWithBadge htmlFor="endDate" required={true} badgeVariant="modern">
-                            Data zakończenia
-                        </LabelWithBadge>
-                        <Input
-                            id="endDate"
-                            name="endDate"
-                            type="date"
-                            value={extractDateFromISO(formData.endDate || '')}
-                            onChange={handleDateChange}
-                            required
-                            $hasError={!!(errors.endDate || dateError)}
-                        />
+                    <EndDateColumn>
+                        <LabelRow>
+                            <CompactLabel htmlFor="endDate">
+                                Data zakończenia
+                                <RequiredBadge>Wymagane</RequiredBadge>
+                            </CompactLabel>
+                        </LabelRow>
+
+                        <InputRow>
+                            <Input
+                                id="endDate"
+                                name="endDate"
+                                type="date"
+                                value={extractDateFromISO(formData.endDate || '')}
+                                onChange={handleDateChange}
+                                required
+                                $hasError={!!(errors.endDate || dateError)}
+                            />
+                        </InputRow>
+
                         {errors.endDate && <ErrorText>{errors.endDate}</ErrorText>}
                         {dateError && <ErrorText>{dateError}</ErrorText>}
-                    </FormGroup>
+                    </EndDateColumn>
                 )}
-            </FormRow>
+            </ScheduleGrid>
         </FormSection>
     );
 };
 
-// Styled Components for All Day Toggle
-const DateLabelContainer = styled.div`
+// ==================== STYLED COMPONENTS ====================
+
+const FormSection = styled.section`
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.md};
+`;
+
+// KLUCZOWA ZMIANA: Grid z FIXED kolumnami zamiast auto-fit
+const ScheduleGrid = styled.div<{ $isAllDay: boolean }>`
+    display: grid;
+    grid-template-columns: ${props => props.$isAllDay ? '1fr' : '1fr 1fr'};
+    gap: ${brandTheme.spacing.md};
+    align-items: start;
+
+    @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+    }
+`;
+
+const StartDateColumn = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.xs};
+    min-width: 0;
+`;
+
+const EndDateColumn = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${brandTheme.spacing.xs};
+    min-width: 0;
+`;
+
+const LabelRow = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: ${brandTheme.spacing.sm};
+    min-height: 28px;
     margin-bottom: ${brandTheme.spacing.xs};
 `;
 
-const InlineLabelContainer = styled.div`
-    display: flex;
+const CompactLabel = styled.label`
+    font-size: 14px;
+    font-weight: 600;
+    color: ${brandTheme.text.primary};
+    display: inline-flex;
     align-items: center;
-    gap: ${brandTheme.spacing.lg};
-    width: 100%;
+    gap: ${brandTheme.spacing.sm};
+    flex: 0 1 auto;
+    min-width: 0;
+    white-space: nowrap;
+`;
+
+const RequiredBadge = styled.span`
+    background: ${brandTheme.primaryLight};
+    opacity: 0.29;
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+    white-space: nowrap;
+    box-shadow: 0 2px 4px ${brandTheme.primary}30;
+    border: 2px solid ${brandTheme.primaryLight};
 `;
 
 const AllDayToggleContainer = styled.div`
     display: flex;
     align-items: center;
     gap: ${brandTheme.spacing.sm};
-    margin-left: auto;
+    flex-shrink: 0;
 `;
 
 const AllDayLabel = styled.span`
     font-size: 13px;
     font-weight: 500;
     color: ${brandTheme.text.secondary};
+    white-space: nowrap;
 `;
 
 const ToggleSwitch = styled.button<{ $isActive: boolean }>`
@@ -309,9 +344,12 @@ const ToggleSwitch = styled.button<{ $isActive: boolean }>`
     cursor: pointer;
     transition: all ${brandTheme.transitions.normal};
     outline: none;
+    flex-shrink: 0;
+
     &:hover {
         background: ${props => props.$isActive ? brandTheme.primaryDark : brandTheme.text.secondary};
     }
+
     &:focus {
         box-shadow: 0 0 0 3px ${props => props.$isActive ? brandTheme.primaryGhost : 'rgba(148, 163, 184, 0.2)'};
     }
@@ -327,6 +365,35 @@ const ToggleSlider = styled.div<{ $isActive: boolean }>`
     border-radius: 50%;
     transition: all ${brandTheme.transitions.spring};
     box-shadow: ${brandTheme.shadow.sm};
+`;
+
+// KLUCZOWA ZMIANA: Inputy w jednym wierszu z gap
+const InputRow = styled.div`
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: ${brandTheme.spacing.sm};
+    align-items: center;
+
+    input {
+        height: 44px;
+    }
+
+    input[type="time"] {
+        width: 120px;
+    }
+
+    /* Gdy jest tylko data (bez czasu) */
+    &:has(input:only-child) {
+        grid-template-columns: 1fr;
+    }
+
+    @media (max-width: 576px) {
+        grid-template-columns: 1fr;
+
+        input[type="time"] {
+            width: 100%;
+        }
+    }
 `;
 
 export default ScheduleSection;

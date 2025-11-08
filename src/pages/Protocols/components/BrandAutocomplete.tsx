@@ -354,7 +354,7 @@ const InputContainer = styled.div<{ $isOpen: boolean; $disabled: boolean; $hasEr
     position: relative;
     display: flex;
     align-items: center;
-    min-height: 44px;
+    height: 44px;
     background: ${brandTheme.surface};
     border: 2px solid ${props => {
         if (props.$hasError) return '#dc2626';
@@ -364,7 +364,7 @@ const InputContainer = styled.div<{ $isOpen: boolean; $disabled: boolean; $hasEr
     border-radius: 8px;
     transition: all 0.2s ease;
     opacity: ${props => props.$disabled ? 0.6 : 1};
-    padding: 4px 8px;
+    padding: 0 8px;
 
     &:hover:not(:has(input:disabled)) {
         border-color: ${props => props.$hasError ? '#dc2626' : brandTheme.primary};
@@ -379,8 +379,8 @@ const InputWrapper = styled.div`
     display: flex;
     align-items: center;
     flex: 1;
-    min-height: 36px;
-    padding: 2px 4px;
+    height: 100%;
+    padding: 0;
 `;
 
 const SearchIcon = styled.div`
@@ -388,12 +388,14 @@ const SearchIcon = styled.div`
     font-size: 14px;
     margin-right: 8px;
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
 `;
 
 const Input = styled.input`
     flex-grow: 1;
     min-width: 120px;
-    height: 32px;
+    height: 100%;
     padding: 0 8px;
     border: none;
     outline: none;
@@ -416,7 +418,7 @@ const ButtonsContainer = styled.div`
     display: flex;
     align-items: center;
     gap: 4px;
-    margin-left: 8px;
+    flex-shrink: 0;
 `;
 
 const ClearButton = styled.button`

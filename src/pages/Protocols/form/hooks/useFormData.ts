@@ -73,7 +73,7 @@ export const useFormDataWithAutocomplete = (
             productionYear: null,
             mileage: 0,
             keysProvided: true,
-            documentsProvided: true,
+            documentsProvided: false,
             ownerName: '',
             companyName: '',
             taxId: '',
@@ -89,6 +89,7 @@ export const useFormDataWithAutocomplete = (
             ownerId: undefined
         };
     });
+
 
     const [isClientFromSearch, setIsClientFromSearch] = useState(false);
     const [autocompleteOptions, setAutocompleteOptions] = useState<AutocompleteOption[]>([]);

@@ -111,20 +111,22 @@ const VehicleInfoSection: React.FC<VehicleInfoSectionProps> = ({
                             value={formData.make || ''}
                             placeholder="Wybierz lub wpisz markę"
                             readOnly={true}
-                            style={{ backgroundColor: '#f9f9f9', cursor: 'not-allowed' }}
+                            style={{ backgroundColor: '#f9f9f9', cursor: 'not-allowed', height: '44px' }}
                             $hasError={!!errors.make}
                         />
                     ) : (
-                        <BrandAutocomplete
-                            value={formData.make || ''}
-                            onChange={(value) => {
-                                const syntheticEvent = { target: { name: 'make', value: value, type: 'text' } } as React.ChangeEvent<HTMLInputElement>;
-                                onChange(syntheticEvent);
-                            }}
-                            placeholder="Wybierz lub wpisz markę"
-                            required
-                            error={errors.make}
-                        />
+                        <div style={{ height: '44px' }}>
+                            <BrandAutocomplete
+                                value={formData.make || ''}
+                                onChange={(value) => {
+                                    const syntheticEvent = { target: { name: 'make', value: value, type: 'text' } } as React.ChangeEvent<HTMLInputElement>;
+                                    onChange(syntheticEvent);
+                                }}
+                                placeholder="Wybierz lub wpisz markę"
+                                required
+                                error={errors.make}
+                            />
+                        </div>
                     )}
                 </FormGroup>
 
