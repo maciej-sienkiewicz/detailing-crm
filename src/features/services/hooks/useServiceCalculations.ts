@@ -1,12 +1,11 @@
-// src/features/services/hooks/useServiceCalculations.ts
 import { useState } from 'react';
 import { SelectedService, PriceResponse } from '../../../types';
-import {DiscountType} from "../../reservations/api/reservationsApi";
+import { DiscountType } from "../../reservations/api/reservationsApi";
+
 const VAT_RATE = 1.23;
-/**
- * Locally calculates final price based on discount type and value
- * This is for immediate UX feedback - backend is the source of truth on save
- */
+
+const generateRowId = () => `row-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
 export const calculateLocalFinalPrice = (
     basePrice: PriceResponse,
     discountType: DiscountType,
@@ -58,35 +57,25 @@ export const calculateLocalFinalPrice = (
             };
     }
 
-    // Kluczowe dla poprawności księgowej: zaokrąglamy składniki (Netto i VAT),
-    // a Brutto ustalamy na podstawie tych zaokrągleń.
     const roundedNetto = parseFloat(finalNetto.toFixed(2));
     const roundedTaxAmount = parseFloat(taxAmount.toFixed(2));
     const calculatedBrutto = roundedNetto + roundedTaxAmount;
 
-
     return {
         priceNetto: roundedNetto,
-        priceBrutto: parseFloat(calculatedBrutto.toFixed(2)), // W ten sposób suma netto i VAT zgadza się z brutto
+        priceBrutto: parseFloat(calculatedBrutto.toFixed(2)),
         taxAmount: roundedTaxAmount
     };
 };
 
-/**
- * Hook for managing services and discounts
- * Provides local calculations for immediate UX feedback
- * Backend recalculates authoritatively on save
- */
 export const useServiceCalculations = (initialServices: SelectedService[] = []) => {
-    const servicesWithQuantity = initialServices.map(service => ({
+    const servicesWithRowIds = initialServices.map(service => ({
         ...service,
+        rowId: service.rowId || generateRowId()
     }));
 
-    const [services, setServices] = useState<SelectedService[]>(servicesWithQuantity);
+    const [services, setServices] = useState<SelectedService[]>(servicesWithRowIds);
 
-    /**
-     * Calculate totals for the services table (operates on NETTO values)
-     */
     const calculateTotals = () => {
         const totalPrice = services.reduce((sum, service) =>
             sum + service.basePrice.priceNetto, 0);
@@ -104,14 +93,16 @@ export const useServiceCalculations = (initialServices: SelectedService[] = []) 
         };
     };
 
-    /**
-     * Add a new service to the list
-     */
-    const addService = (newService: Omit<SelectedService, 'finalPrice'>, note?: string) => {
-        const finalPrice = newService.basePrice;
+    const addService = (newService: Omit<SelectedService, 'finalPrice' | 'rowId'>, note?: string) => {
+        const finalPrice = calculateLocalFinalPrice(
+            newService.basePrice,
+            newService.discountType,
+            newService.discountValue
+        );
 
         const serviceWithFinalPrice: SelectedService = {
             ...newService,
+            rowId: generateRowId(),
             finalPrice: finalPrice,
             note: note
         };
@@ -120,22 +111,15 @@ export const useServiceCalculations = (initialServices: SelectedService[] = []) 
         return [...services, serviceWithFinalPrice];
     };
 
-    /**
-     * Remove a service from the list
-     */
-    const removeService = (serviceId: string) => {
-        const updatedServices = services.filter(s => s.id !== serviceId);
+    const removeService = (rowId: string) => {
+        const updatedServices = services.filter(s => s.rowId !== rowId);
         setServices(updatedServices);
         return updatedServices;
     };
 
-    /**
-     * Update service base price
-     * Recalculates final price locally based on existing discount
-     */
-    const updateBasePrice = (serviceId: string, newPrice: number) => {
+    const updateBasePrice = (rowId: string, newPrice: number) => {
         const updatedServices = services.map(service => {
-            if (service.id === serviceId) {
+            if (service.rowId === rowId) {
                 const newBaseNetto = newPrice;
                 const newBasePrice = {
                     priceNetto: newBaseNetto,
@@ -162,12 +146,9 @@ export const useServiceCalculations = (initialServices: SelectedService[] = []) 
         return updatedServices;
     };
 
-    /**
-     * Update service quantity (for future use if needed)
-     */
-    const updateQuantity = (serviceId: string, newQuantity: number) => {
+    const updateQuantity = (rowId: string, newQuantity: number) => {
         const updatedServices = services.map(service => {
-            if (service.id === serviceId) {
+            if (service.rowId === rowId) {
                 return {
                     ...service,
                     quantity: newQuantity
@@ -180,13 +161,9 @@ export const useServiceCalculations = (initialServices: SelectedService[] = []) 
         return updatedServices;
     };
 
-    /**
-     * Update discount type
-     * Resets discount value and recalculates final price
-     */
-    const updateDiscountType = (serviceId: string, discountType: DiscountType) => {
+    const updateDiscountType = (rowId: string, discountType: DiscountType) => {
         const updatedServices = services.map(service => {
-            if (service.id === serviceId) {
+            if (service.rowId === rowId) {
                 const resetDiscountValue = 0;
 
                 const newFinalPrice = calculateLocalFinalPrice(
@@ -209,13 +186,9 @@ export const useServiceCalculations = (initialServices: SelectedService[] = []) 
         return updatedServices;
     };
 
-    /**
-     * Update discount value
-     * Recalculates final price locally
-     */
-    const updateDiscountValue = (serviceId: string, discountValue: number) => {
+    const updateDiscountValue = (rowId: string, discountValue: number) => {
         const updatedServices = services.map(service => {
-            if (service.id === serviceId) {
+            if (service.rowId === rowId) {
                 const newFinalPrice = calculateLocalFinalPrice(
                     service.basePrice,
                     service.discountType,
@@ -235,12 +208,9 @@ export const useServiceCalculations = (initialServices: SelectedService[] = []) 
         return updatedServices;
     };
 
-    /**
-     * Update service note
-     */
-    const updateServiceNote = (serviceId: string, note: string) => {
+    const updateServiceNote = (rowId: string, note: string) => {
         const updatedServices = services.map(service => {
-            if (service.id === serviceId) {
+            if (service.rowId === rowId) {
                 return {
                     ...service,
                     note

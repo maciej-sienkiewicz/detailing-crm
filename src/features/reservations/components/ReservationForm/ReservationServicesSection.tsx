@@ -44,6 +44,7 @@ export const ReservationServicesSection: React.FC<ReservationServicesSectionProp
     const convertedServices: ServiceWithExtendedDiscount[] = initialServices.map(service => {
         return {
             id: service.serviceId,
+            rowId: `row-${service.serviceId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             name: service.name,
             quantity: service.quantity,
             basePrice: {
@@ -57,10 +58,8 @@ export const ReservationServicesSection: React.FC<ReservationServicesSectionProp
                     ? service.basePrice.inputPrice * 0.23
                     : service.basePrice.inputPrice - (service.basePrice.inputPrice / 1.23)
             },
-            // Shared component format
             discountType: service.discount?.discountType || DiscountType.PERCENT,
             discountValue: service.discount?.discountValue || 0,
-            // Extended metadata
             finalPrice: {
                 priceNetto: service.basePrice.inputType === 'netto'
                     ? service.basePrice.inputPrice

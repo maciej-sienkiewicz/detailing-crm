@@ -27,11 +27,11 @@ interface ServiceSectionProps {
     onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onSelectService: (service: Service) => void;
     onAddService: () => void;
-    onRemoveService: (serviceId: string) => void;
-    onDiscountTypeChange: (serviceId: string, discountType: DiscountType) => void;
-    onDiscountValueChange: (serviceId: string, discountValue: number) => void;
-    onBasePriceChange: (serviceId: string, newPrice: number) => void;
-    onAddNote?: (serviceId: string, note: string) => void;
+    onRemoveService: (rowId: string) => void;
+    onDiscountTypeChange: (rowId: string, discountType: DiscountType) => void;
+    onDiscountValueChange: (rowId: string, discountValue: number) => void;
+    onBasePriceChange: (rowId: string, newPrice: number) => void;
+    onAddNote?: (rowId: string, note: string) => void;
     calculateTotals: () => { totalPrice: number; totalDiscount: number; totalFinalPrice: number };
     allowCustomService: boolean;
     onAddServiceDirect: (service: Service, note?: string) => void;

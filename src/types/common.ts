@@ -11,6 +11,7 @@ export enum ServiceApprovalStatus {
 
 export interface SelectedService {
     id: string;
+    rowId: string;
     name: string;
     quantity: number;
     basePrice: PriceResponse;

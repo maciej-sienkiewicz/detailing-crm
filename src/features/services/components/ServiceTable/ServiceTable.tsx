@@ -193,8 +193,8 @@ export const ServiceTable: React.FC<ServiceTableProps> = ({
         let hasUpdates = false;
 
         services.forEach(service => {
-            if (!extendedDiscountTypes[service.id]) {
-                updatedTypes[service.id] = service.extendedDiscountType ||
+            if (!extendedDiscountTypes[service.rowId]) {
+                updatedTypes[service.rowId] = service.extendedDiscountType ||
                     mapFromStandardDiscountType(service.discountType);
                 hasUpdates = true;
             }
@@ -276,13 +276,13 @@ export const ServiceTable: React.FC<ServiceTableProps> = ({
         }
     };
 
-    const handleExtendedDiscountTypeChange = (serviceId: string, newExtendedType: ExtendedDiscountType) => {
+    const handleExtendedDiscountTypeChange = (rowId: string, newExtendedType: ExtendedDiscountType) => {
         const standardType = mapToStandardDiscountType(newExtendedType);
         setExtendedDiscountTypes({
             ...extendedDiscountTypes,
-            [serviceId]: newExtendedType
+            [rowId]: newExtendedType
         });
-        onDiscountTypeChange(serviceId, standardType);
+        onDiscountTypeChange(rowId, standardType);
     };
 
     const handleOpenNoteModal = (service: ServiceExtended) => {
@@ -362,7 +362,7 @@ export const ServiceTable: React.FC<ServiceTableProps> = ({
                                     mapFromStandardDiscountType(service.discountType);
 
                                 return (
-                                    <TableRow key={service.id}>
+                                    <TableRow key={service.rowId}>
                                         <TableCell>
                                             <ServiceInfo>
                                                 <ServiceName>{service.name}</ServiceName>
@@ -373,7 +373,7 @@ export const ServiceTable: React.FC<ServiceTableProps> = ({
                                         </TableCell>
 
                                         <PriceCell
-                                            id={`price-${service.id}`}
+                                            id={`price-${service.rowId}`}
                                             onContextMenu={(e) => handlePriceRightClick(e, service)}
                                             onClick={readOnly ? undefined : (e) => {
                                                 const rect = e.currentTarget.getBoundingClientRect();
@@ -381,7 +381,7 @@ export const ServiceTable: React.FC<ServiceTableProps> = ({
                                                     visible: true,
                                                     x: rect.left,
                                                     y: rect.bottom + window.scrollY,
-                                                    serviceId: service.id,
+                                                    serviceId: service.rowId,
                                                     currentPrice: service.basePrice.priceNetto,
                                                     isPriceGross: true
                                                 });
@@ -416,7 +416,7 @@ export const ServiceTable: React.FC<ServiceTableProps> = ({
                                                     <DiscountTypeSelect
                                                         value={extendedType}
                                                         onChange={(e) => handleExtendedDiscountTypeChange(
-                                                            service.id,
+                                                            service.rowId,
                                                             e.target.value as ExtendedDiscountType
                                                         )}
                                                     >
@@ -431,7 +431,7 @@ export const ServiceTable: React.FC<ServiceTableProps> = ({
                                                             max={service.discountType === DiscountType.PERCENT ? 100 : undefined}
                                                             value={service.discountValue}
                                                             onChange={(e) => onDiscountValueChange(
-                                                                service.id,
+                                                                service.rowId,
                                                                 parseFloat(e.target.value) || 0
                                                             )}
                                                         />
@@ -472,7 +472,7 @@ export const ServiceTable: React.FC<ServiceTableProps> = ({
                                                         <FaStickyNote />
                                                     </ActionButton>
                                                     <ActionButton
-                                                        onClick={() => onRemoveService(service.id)}
+                                                        onClick={() => onRemoveService(service.rowId)}
                                                         title="Usuń usługę"
                                                         $variant="danger"
                                                     >

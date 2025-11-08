@@ -12,6 +12,7 @@ import {DiscountType as ReservationDiscountType, Discount, DiscountType} from '.
  */
 export interface ServiceWithExtendedDiscount {
     id: string;
+    rowId: string;
     name: string;
     quantity: number;
     basePrice: {
