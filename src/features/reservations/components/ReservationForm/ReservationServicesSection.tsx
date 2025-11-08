@@ -88,19 +88,27 @@ export const ReservationServicesSection: React.FC<ReservationServicesSectionProp
         calculateTotals
     } = useServiceCalculations(convertedServices);
 
-    useEffect(() => {
-        const fetchServices = async () => {
-            try {
-                setLoadingServices(true);
-                const fetchedServices = await servicesApi.fetchServices();
-                setAvailableServices(fetchedServices);
-            } catch (error) {
-                console.error('Error loading services:', error);
-            } finally {
-                setLoadingServices(false);
-            }
-        };
+    const fetchServices = async () => {
+        try {
+            setLoadingServices(true);
+            const fetchedServices = await servicesApi.fetchServices();
+            setAvailableServices(fetchedServices);
 
+            if (searchQuery.trim() !== '') {
+                const query = searchQuery.toLowerCase();
+                const results = fetchedServices.filter(service =>
+                    service.name.toLowerCase().includes(query)
+                );
+                setSearchResults(results);
+            }
+        } catch (error) {
+            console.error('Error loading services:', error);
+        } finally {
+            setLoadingServices(false);
+        }
+    };
+
+    useEffect(() => {
         fetchServices();
     }, []);
 
@@ -128,20 +136,19 @@ export const ReservationServicesSection: React.FC<ReservationServicesSectionProp
     }, [managedServices, extendedDiscountTypes, onChange]);
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSearchQuery(e.target.value);
+        const query = e.target.value;
+        setSearchQuery(query);
         setShowResults(true);
         setSelectedServiceToAdd(null);
 
-        if (e.target.value.trim() === '') {
+        if (query.trim() === '') {
             setSearchResults([]);
             return;
         }
 
-        const query = e.target.value.toLowerCase();
+        const lowerQuery = query.toLowerCase();
         const results = availableServices.filter(service =>
-            service.name.toLowerCase().includes(query) &&
-            !managedServices.some(selected => selected.id === service.id)
-        );
+            service.name.toLowerCase().includes(lowerQuery));
         setSearchResults(results);
     };
 
@@ -240,21 +247,11 @@ export const ReservationServicesSection: React.FC<ReservationServicesSectionProp
             return newTypes;
         });
 
-        try {
-            const fetchedServices = await servicesApi.fetchServices();
-            setAvailableServices(fetchedServices);
-        } catch (error) {
-            console.error('Error refreshing services:', error);
-        }
+        await fetchServices();
     };
 
     const refreshServices = async () => {
-        try {
-            const fetchedServices = await servicesApi.fetchServices();
-            setAvailableServices(fetchedServices);
-        } catch (error) {
-            console.error('Error refreshing services:', error);
-        }
+        await fetchServices();
     };
 
     if (loadingServices) {
@@ -274,6 +271,7 @@ export const ReservationServicesSection: React.FC<ReservationServicesSectionProp
                 searchResults={searchResults}
                 selectedServiceToAdd={selectedServiceToAdd}
                 services={managedServices}
+                availableServices={availableServices}
                 errors={{}}
                 onSearchChange={handleSearchChange}
                 onSelectService={handleSelectService}

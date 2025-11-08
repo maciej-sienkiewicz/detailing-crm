@@ -22,7 +22,7 @@ import {BiPen} from "react-icons/bi";
 import {ReservationForm, ReservationDetails} from "../../features/reservations";
 import {servicesApi} from "../../features/services/api/servicesApi";
 import {ReservationsTable} from "../../features/reservations/components/ReservationsTable/ReservationsTable";
-import {EditVisitForm} from "../../features/visits/components/EditVisitForm/EditVisitForm";
+import EditVisitForm from "../../features/visits/components/EditVisitForm/EditVisitForm";
 import {ConvertReservationToVisitForm} from "../../features/reservations/components/ConvertReservationForm/ConvertReservationToVisitForm";
 
 type StatusFilterType = 'reservations' | 'all' | ProtocolStatus;
@@ -390,9 +390,15 @@ export const VisitsPageContainer: React.FC = () => {
     }, [handleConfirmationClose]);
 
     const refreshServices = useCallback(async () => {
+        console.log('🔄 VisitsPageContainer: refreshServices called');
         try {
             setAppData(prev => ({ ...prev, servicesLoading: true, servicesLoaded: false }));
             const servicesData = await servicesApi.fetchServices();
+
+            console.log('📦 Fetched services:', {
+                count: servicesData.length,
+                names: servicesData.map(s => s.name)
+            });
 
             if (!servicesData || servicesData.length === 0) {
                 console.warn("Pobrano pustą listę usług, zachowuję poprzedni stan");
@@ -405,6 +411,7 @@ export const VisitsPageContainer: React.FC = () => {
                 name: service.name
             }));
 
+            console.log('✅ Setting new availableServices:', servicesData.length);
             setAvailableServices(servicesData);
             setAppData(prev => ({
                 ...prev,

@@ -1,4 +1,3 @@
-// src/features/services/components/ServiceSection.tsx
 import React from 'react';
 import styled from 'styled-components';
 import { SelectedService, Service } from '../../../../types';
@@ -23,6 +22,7 @@ interface ServiceSectionProps {
     searchResults: Service[];
     selectedServiceToAdd: Service | null;
     services: SelectedService[];
+    availableServices: Service[];
     errors?: Record<string, string>;
     onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onSelectService: (service: Service) => void;
@@ -46,6 +46,7 @@ export const ServiceSection: React.FC<ServiceSectionProps> = ({
                                                                   searchResults,
                                                                   selectedServiceToAdd,
                                                                   services,
+                                                                  availableServices,
                                                                   errors = {},
                                                                   onSearchChange,
                                                                   onSelectService,
@@ -73,6 +74,7 @@ export const ServiceSection: React.FC<ServiceSectionProps> = ({
                     showResults={showResults}
                     searchResults={searchResults}
                     selectedServiceToAdd={selectedServiceToAdd}
+                    availableServices={availableServices}
                     onSearchChange={onSearchChange}
                     onSelectService={onSelectService}
                     onAddService={onAddService}

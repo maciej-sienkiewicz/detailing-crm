@@ -1,4 +1,3 @@
-// src/features/services/components/ServiceSearch.tsx
 import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
 import {FaPlus, FaSearch, FaEuroSign} from 'react-icons/fa';
@@ -62,6 +61,7 @@ interface ServiceSearchProps {
     showResults: boolean;
     searchResults: Service[];
     selectedServiceToAdd: Service | null;
+    availableServices: Service[];
     onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onSelectService: (service: Service) => void;
     onAddService: () => void;
@@ -76,6 +76,7 @@ export const ServiceSearch: React.FC<ServiceSearchProps> = ({
                                                                 showResults,
                                                                 searchResults,
                                                                 selectedServiceToAdd,
+                                                                availableServices,
                                                                 onSearchChange,
                                                                 onSelectService,
                                                                 onAddService,
@@ -87,21 +88,7 @@ export const ServiceSearch: React.FC<ServiceSearchProps> = ({
     const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
     const [serviceToEdit, setServiceToEdit] = useState<(Service & { isNew?: boolean }) | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [allServices, setAllServices] = useState<Service[]>([]);
     const [isInputFocused, setIsInputFocused] = useState(false);
-
-    useEffect(() => {
-        const fetchAllServices = async () => {
-            try {
-                const services = await servicesApi.fetchServices();
-                setAllServices(services);
-            } catch (error) {
-                console.error('Błąd podczas pobierania wszystkich usług:', error);
-            }
-        };
-
-        fetchAllServices();
-    }, []);
 
     const isCustomService = searchQuery.trim() !== '' &&
         searchResults.length === 0 &&
@@ -186,11 +173,9 @@ export const ServiceSearch: React.FC<ServiceSearchProps> = ({
                     onSelectService(createdService);
                     onAddServiceDirect(createdService, note);
 
-                    setTimeout(() => {
-                        if (onServiceAdded) {
-                            onServiceAdded();
-                        }
-                    }, 1000);
+                    if (onServiceAdded) {
+                        await onServiceAdded();
+                    }
                 } catch (error) {
                     console.error('Błąd podczas dodawania nowej usługi:', error);
                 }
@@ -210,9 +195,7 @@ export const ServiceSearch: React.FC<ServiceSearchProps> = ({
                     onAddServiceDirect(updatedService, note);
 
                     if (onServiceAdded) {
-                        setTimeout(() => {
-                            onServiceAdded();
-                        }, 1000);
+                        await onServiceAdded();
                     }
                 } catch (error) {
                     console.error('Błąd podczas aktualizacji usługi:', error);
@@ -264,8 +247,8 @@ export const ServiceSearch: React.FC<ServiceSearchProps> = ({
                 {shouldShowResults && (
                     <SearchResultsList>
                         {searchQuery.trim() === '' ? (
-                            allServices.length > 0 ? (
-                                allServices
+                            availableServices.length > 0 ? (
+                                availableServices
                                     .filter(service => !selectedServiceToAdd || service.id !== selectedServiceToAdd.id)
                                     .map(service => (
                                         <SearchResultItem
@@ -358,7 +341,6 @@ export const ServiceSearch: React.FC<ServiceSearchProps> = ({
     );
 };
 
-// Styled Components
 const SearchContainer = styled.div`
     display: flex;
     gap: ${brandTheme.spacing.md};

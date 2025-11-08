@@ -15,7 +15,7 @@ import {useProtocolList} from "./form/hooks/useProtocolList";
 import {useProtocolActions} from "./form/hooks/useProtocolActions";
 import ProtocolConfirmationModal from "./shared/modals/ProtocolConfirmationModal";
 import {VisitsPageContainer} from './VisitsPageContainer';
-import {EditVisitForm} from "../../features/visits/components/EditVisitForm/EditVisitForm";
+import EditVisitForm from "../../features/visits/components/EditVisitForm/EditVisitForm";
 
 const CarReceptionPage: React.FC = () => {
     const location = useLocation();

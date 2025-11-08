@@ -1,10 +1,8 @@
 import React, {useState, useEffect} from 'react';
 import {CarReceptionProtocol, SelectedService, Service} from '../../../../types';
 
-// Zewnętrzne, przemianowane hooki
 import {useVisitServicesState} from '../../hooks/useVisitServicesState';
 
-// Import sekcji i UI
 import {ServiceSection} from "../../../services";
 import {useAddService} from "../../hooks/useAddService";
 import {useRemoveService} from "../../hooks/useRemoveService";
@@ -43,7 +41,7 @@ interface EditVisitFormProps {
     onServiceAdded?: () => void;
 }
 
-export const EditVisitForm: React.FC<EditVisitFormProps> = ({
+const EditVisitForm: React.FC<EditVisitFormProps> = ({
                                                                 protocol,
                                                                 availableServices,
                                                                 initialData,
@@ -54,7 +52,6 @@ export const EditVisitForm: React.FC<EditVisitFormProps> = ({
                                                                 onServiceAdded
                                                             }) => {
 
-    // ORKIESTRACJA DANYCH FORMUARZA
     const {
         formData,
         setFormData,
@@ -73,7 +70,6 @@ export const EditVisitForm: React.FC<EditVisitFormProps> = ({
         handleVehicleModalSelect
     } = useFormDataWithAutocomplete(protocol, initialData);
 
-    // ORKIESTRACJA SUBMITU
     const {
         loading,
         error: submitError,
@@ -82,7 +78,6 @@ export const EditVisitForm: React.FC<EditVisitFormProps> = ({
         handleSubmit
     } = useFormSubmit(formData, protocol, appointmentId, onSave, false);
 
-    // ORKIESTRACJA USŁUG - STAN, KOMENDY i ZAPYTANIA
     const { services, setServices } = useVisitServicesState(formData.selectedServices || []);
 
     const addServiceCommand = useAddService(setServices);
@@ -94,7 +89,6 @@ export const EditVisitForm: React.FC<EditVisitFormProps> = ({
     const handleServiceCreated = useHandleServiceCreated(setServices);
     const calculateTotals = useTotalsCalculation(services);
 
-    // LOKALNY STAN WYSZUKIWANIA
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<Service[]>([]);
     const [showResults, setShowResults] = useState(false);
@@ -102,7 +96,28 @@ export const EditVisitForm: React.FC<EditVisitFormProps> = ({
 
     const error = submitError;
 
-    // EFEKT SYNCHRONIZUJĄCY
+    useEffect(() => {
+        console.log('🔄 EditVisitForm: availableServices changed', {
+            count: availableServices.length,
+            names: availableServices.map(s => s.name),
+            searchQuery,
+            hasSearchQuery: searchQuery.trim() !== ''
+        });
+
+        if (searchQuery.trim() !== '') {
+            const lowerQuery = searchQuery.toLowerCase();
+            const results = availableServices.filter(service =>
+                service.name.toLowerCase().includes(lowerQuery));
+
+            console.log('🔍 Recalculated search results:', {
+                query: searchQuery,
+                resultsCount: results.length,
+                results: results.map(r => r.name)
+            });
+            setSearchResults(results);
+        }
+    }, [availableServices, searchQuery, services]);
+
     useEffect(() => {
         setFormData(prev => ({
             ...prev,
@@ -112,6 +127,7 @@ export const EditVisitForm: React.FC<EditVisitFormProps> = ({
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const query = e.target.value;
+        console.log('🔎 Search query changed:', query);
         setSearchQuery(query);
         setShowResults(true);
         setSelectedServiceToAdd(null);
@@ -122,10 +138,31 @@ export const EditVisitForm: React.FC<EditVisitFormProps> = ({
         }
 
         const lowerQuery = query.toLowerCase();
-        const results = availableServices.filter(service =>
-            service.name.toLowerCase().includes(lowerQuery) &&
-            !services.some(selected => selected.id === service.id)
-        );
+
+        console.log('📋 Available services details:', availableServices.map(s => ({
+            id: s.id,
+            name: s.name,
+            nameLower: s.name.toLowerCase(),
+            includes: s.name.toLowerCase().includes(lowerQuery)
+        })));
+
+        console.log('📋 Currently selected services:', services.map(s => ({
+            id: s.id,
+            name: s.name
+        })));
+
+        const results = availableServices.filter(service => {
+            const nameMatches = service.name.toLowerCase().includes(lowerQuery);
+
+            return nameMatches;
+        });
+
+        console.log('🔍 Search results:', {
+            query,
+            availableServicesCount: availableServices.length,
+            resultsCount: results.length,
+            results: results.map(r => r.name)
+        });
         setSearchResults(results);
     };
 
@@ -167,7 +204,11 @@ export const EditVisitForm: React.FC<EditVisitFormProps> = ({
         setSearchQuery('');
         setSelectedServiceToAdd(null);
         clearFieldError('selectedServices');
-        if (onServiceAdded) onServiceAdded();
+
+        console.log('➕ Service added, calling onServiceAdded');
+        if (onServiceAdded) {
+            onServiceAdded();
+        }
     };
 
     const handleAddServiceDirect = (service: Service) => {
@@ -185,7 +226,11 @@ export const EditVisitForm: React.FC<EditVisitFormProps> = ({
         setSelectedServiceToAdd(null);
         clearFieldError('selectedServices');
         setShowResults(false);
-        if (onServiceAdded) onServiceAdded();
+
+        console.log('➕ Service added directly, calling onServiceAdded');
+        if (onServiceAdded) {
+            onServiceAdded();
+        }
     };
 
     if (loadingAutocompleteData) {
@@ -229,6 +274,7 @@ export const EditVisitForm: React.FC<EditVisitFormProps> = ({
                     searchResults={searchResults}
                     selectedServiceToAdd={selectedServiceToAdd}
                     services={services}
+                    availableServices={availableServices}
                     errors={errors}
                     onSearchChange={handleSearchChange}
                     onSelectService={handleSelectService}
@@ -263,3 +309,4 @@ export const EditVisitForm: React.FC<EditVisitFormProps> = ({
         </FormContainer>
     );
 };
+export default EditVisitForm
