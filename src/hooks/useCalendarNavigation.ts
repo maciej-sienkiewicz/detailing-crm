@@ -40,12 +40,6 @@ export const useCalendarNavigation = ({
     }, [calendarRange, loadAppointments]);
 
     const handleAppointmentCreate = useCallback((start: Date, end: Date) => {
-        const now = new Date();
-        if (start < new Date(now.getFullYear(), now.getMonth(), now.getDate())) {
-            showToast('error', 'Nie można tworzyć wizyt w przeszłości', 3000);
-            return;
-        }
-
         setSelectedDate(start);
         const correctedEndDate = new Date(end);
         correctedEndDate.setDate(correctedEndDate.getDate() - 1);

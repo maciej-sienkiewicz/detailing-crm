@@ -1,3 +1,5 @@
+// src/components/calendar/Calendar.tsx
+
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from 'styled-components';
 import FullCalendar from '@fullcalendar/react';
@@ -54,10 +56,25 @@ const AppointmentCalendar: React.FC<CalendarProps> = React.memo(({
         onEventSelect(appointment);
     }, [onEventSelect]);
 
+    // POPRAWIONE: Sprawdzaj czy kliknięcie nie nakłada się na istniejący event
     const handleDateSelect = useCallback((info: any) => {
         if (onEventCreate) {
             let start = new Date(info.start);
             let end = new Date(info.end);
+
+            // ✅ POPRAWKA: Sprawdź czy w wybranym zakresie jest już jakiś event
+            const hasEventInRange = memoizedEvents.some(event => {
+                const eventStart = new Date(event.start);
+                const eventEnd = new Date(event.end);
+
+                // Sprawdź czy zakresy dat się nakładają
+                return (start < eventEnd && end > eventStart);
+            });
+
+            if (hasEventInRange) {
+                console.log('🚫 Date selection blocked - overlaps with existing event');
+                return;
+            }
 
             if (start.getTime() === end.getTime()) {
                 end = addMinutes(start, 60);
@@ -65,7 +82,7 @@ const AppointmentCalendar: React.FC<CalendarProps> = React.memo(({
 
             onEventCreate(start, end);
         }
-    }, [onEventCreate]);
+    }, [onEventCreate, memoizedEvents]);
 
     const handleDatesSet = useCallback((info: any) => {
         if (!calendarRef.current) return;
@@ -262,6 +279,21 @@ const AppointmentCalendar: React.FC<CalendarProps> = React.memo(({
                         hour12: false
                     }}
                     headerToolbar={false}
+                    selectAllow={(selectInfo) => {
+                        const selectStart = new Date(selectInfo.start);
+                        const selectEnd = new Date(selectInfo.end);
+
+                        const hasOverlap = memoizedEvents.some(event => {
+                            const eventStart = new Date(event.start);
+                            const eventEnd = new Date(event.end);
+
+                            return (selectStart < eventEnd && selectEnd > eventStart);
+                        });
+
+                        return !hasOverlap;
+                    }}
+                    unselectAuto={true}
+                    unselectCancel=".fc-event"
                     views={{
                         dayGrid: {
                             titleFormat: {
@@ -283,6 +315,7 @@ const AppointmentCalendar: React.FC<CalendarProps> = React.memo(({
                     allDayText="Cały dzień"
                     noEventsText="Brak wizyt w wybranym zakresie"
                     eventDisplay="block"
+                    // POPRAWIONE: Lepsze zarządzanie eventami wielodniowymi
                     eventDidMount={(info) => {
                         const appointment = info.event.extendedProps as Appointment;
                         const isRecurring = isRecurringEvent(appointment);
@@ -292,6 +325,8 @@ const AppointmentCalendar: React.FC<CalendarProps> = React.memo(({
                         info.el.style.fontWeight = '600';
                         info.el.style.cursor = 'pointer';
                         info.el.style.transition = 'all 0.2s ease';
+                        // DODANE: Wyższy z-index dla eventów aby były nad selekcją
+                        info.el.style.zIndex = '5';
 
                         console.log(appointment)
 
@@ -339,7 +374,7 @@ const AppointmentCalendar: React.FC<CalendarProps> = React.memo(({
                             info.el.style.boxShadow = isRecurring
                                 ? '0 1px 3px rgba(139, 92, 246, 0.15)'
                                 : 'none';
-                            info.el.style.zIndex = 'auto';
+                            info.el.style.zIndex = '5';
                         });
                     }}
                 />

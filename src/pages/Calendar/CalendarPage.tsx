@@ -1,32 +1,68 @@
-// src/pages/Calendar/CalendarPage.tsx - PRODUCTION READY VERSION
+// src/pages/Calendar/CalendarPage.tsx - WITH CONVERSION VIEW
 import React from 'react';
 import styled from 'styled-components';
-import {CalendarPageProvider} from './CalendarPageProvider';
-import {CalendarPageHeader} from './components/CalendarPageHeader';
-import {CalendarPageStats} from './components/CalendarPageStats';
-import {CalendarPageContent} from './components/CalendarPageContent';
-import {CalendarPageModals} from './components/CalendarPageModals';
-import {theme} from '../../styles/theme';
-import {ErrorBoundary} from "../../components/common/ErrorBoundary";
+import { CalendarPageProvider, useCalendarPageContext } from './CalendarPageProvider';
+import { CalendarPageHeader } from './components/CalendarPageHeader';
+import { CalendarPageStats } from './components/CalendarPageStats';
+import { CalendarPageContent } from './components/CalendarPageContent';
+import { CalendarPageModals } from './components/CalendarPageModals';
+import { ConvertReservationToVisitForm } from '../../features/reservations/components/ConvertReservationForm/ConvertReservationToVisitForm';
+import { theme } from '../../styles/theme';
+import { ErrorBoundary } from "../../components/common/ErrorBoundary";
+import { FaArrowLeft, FaCalendarPlus } from 'react-icons/fa';
+import { PageHeader } from '../../components/common/PageHeader';
 
 /**
- * Production-ready Calendar Page
- * Features:
- * - Clean separation of concerns
- * - Error boundaries
- * - Performance optimizations
- * - Modular architecture
+ * Inner component that can use context
+ */
+const CalendarPageContent_: React.FC = () => {
+    const { activeView, convertingReservation, actions } = useCalendarPageContext();
+
+    // ✅ CONVERT VIEW - pokazuj formularz konwersji
+    if (activeView === 'convertReservation' && convertingReservation) {
+        return (
+            <ConvertViewContainer>
+                <PageHeader
+                    icon={FaCalendarPlus}
+                    title="Rozpocznij wizytę"
+                    subtitle={`Konwersja rezerwacji: ${convertingReservation.title}`}
+                    actions={
+                        <BackButton onClick={actions.handleCancelConversion}>
+                            <FaArrowLeft />
+                        </BackButton>
+                    }
+                />
+
+                <FormWrapper>
+                    <ConvertReservationToVisitForm
+                        reservation={convertingReservation}
+                        onSuccess={actions.handleConversionSuccess}
+                        onCancel={actions.handleCancelConversion}
+                    />
+                </FormWrapper>
+            </ConvertViewContainer>
+        );
+    }
+
+    // ✅ CALENDAR VIEW - standardowy widok kalendarza
+    return (
+        <CalendarPageContainer>
+            <CalendarPageHeader />
+            <CalendarPageStats />
+            <CalendarPageContent />
+            <CalendarPageModals />
+        </CalendarPageContainer>
+    );
+};
+
+/**
+ * Main Calendar Page with Provider
  */
 const CalendarPage: React.FC = () => {
     return (
         <ErrorBoundary fallback={<CalendarErrorFallback />}>
             <CalendarPageProvider>
-                <CalendarPageContainer>
-                    <CalendarPageHeader />
-                    <CalendarPageStats />
-                    <CalendarPageContent />
-                    <CalendarPageModals />
-                </CalendarPageContainer>
+                <CalendarPageContent_ />
             </CalendarPageProvider>
         </ErrorBoundary>
     );
@@ -47,12 +83,55 @@ const CalendarErrorFallback: React.FC = () => (
     </ErrorContainer>
 );
 
-// Styled Components
+// ============================================================================
+// STYLED COMPONENTS
+// ============================================================================
+
 const CalendarPageContainer = styled.div`
     min-height: 100vh;
     background: ${theme.surfaceAlt};
     display: flex;
     flex-direction: column;
+`;
+
+const ConvertViewContainer = styled.div`
+    min-height: 100vh;
+    background: ${theme.surfaceHover};
+`;
+
+const FormWrapper = styled.div`
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: ${theme.spacing.xxl};
+
+    @media (max-width: 768px) {
+        padding: ${theme.spacing.lg};
+    }
+`;
+
+const BackButton = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: ${theme.surface};
+    border: 1px solid ${theme.border};
+    border-radius: ${theme.radius.md};
+    color: ${theme.text.secondary};
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: ${theme.surfaceHover};
+        color: ${theme.primary};
+        border-color: ${theme.primary};
+        transform: translateX(-2px);
+    }
+
+    svg {
+        font-size: 16px;
+    }
 `;
 
 const ErrorContainer = styled.div`

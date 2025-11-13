@@ -1,14 +1,17 @@
-// src/pages/Calendar/CalendarPageProvider.tsx - NAPRAWIONA WERSJA
-import React, {createContext, useCallback, useContext, useEffect, useRef, useState} from 'react';
-import {useNavigate} from 'react-router-dom';
-import {Appointment, AppointmentStatus} from '../../types';
-import {useCalendar} from '../../hooks/useCalendar';
-import {useCalendarNavigation} from '../../hooks/useCalendarNavigation';
-import {useConvertToVisit} from '../../hooks/useConvertToVisit';
-import {protocolsApi} from '../../api/protocolsApi';
-import {useToast} from '../../components/common/Toast/Toast';
-import {ConvertToVisitResponse} from '../../types/recurringEvents';
-import {endOfDay, endOfWeek, startOfDay, startOfWeek} from 'date-fns';
+// src/pages/Calendar/CalendarPageProvider.tsx - COMPLETE WITHOUT NAVIGATION
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Appointment, AppointmentStatus } from '../../types';
+import { useCalendar } from '../../hooks/useCalendar';
+import { useCalendarNavigation } from '../../hooks/useCalendarNavigation';
+import { useConvertToVisit } from '../../hooks/useConvertToVisit';
+import { protocolsApi } from '../../api/protocolsApi';
+import { useToast } from '../../components/common/Toast/Toast';
+import { ConvertToVisitResponse } from '../../types/recurringEvents';
+import { endOfDay, endOfWeek, startOfDay, startOfWeek } from 'date-fns';
+import { isReservationAppointment, extractReservationId } from '../../services/CalendarIntegrationService';
+import { Reservation } from '../../features/reservations/api/reservationsApi';
+import { appointmentToReservation } from '../../utils/appointmentConverters';
 
 interface CalendarStats {
     loading: boolean;
@@ -20,6 +23,9 @@ interface CalendarStats {
     cancelled: number;
 }
 
+// ✅ NOWY typ dla aktywnego widoku
+type CalendarView = 'calendar' | 'convertReservation';
+
 interface CalendarPageContextType {
     // Data
     appointments: Appointment[];
@@ -29,6 +35,10 @@ interface CalendarPageContextType {
     calendarRange: { start: Date; end: Date } | null;
     stats: CalendarStats;
 
+    // ✅ NOWE: View state
+    activeView: CalendarView;
+    convertingReservation: Reservation | null;
+
     // Functions
     loadAppointments: (range?: { start: Date; end: Date }, force?: boolean) => Promise<void>;
     handleRangeChange: (range: { start: Date; end: Date }) => void;
@@ -37,6 +47,7 @@ interface CalendarPageContextType {
     // Modals
     modals: {
         selectedAppointment: Appointment | null;
+        selectedReservation: Reservation | null;
         showAppointmentDetailsModal: boolean;
         setShowAppointmentDetailsModal: (show: boolean) => void;
     };
@@ -45,12 +56,17 @@ interface CalendarPageContextType {
     actions: {
         selectAppointment: (appointment: Appointment) => void;
         handleEditClick: () => void;
-        handleDeleteAppointment: () => Promise<void>; // FIXED: Promise<void>
-        handleStatusChange: (status: AppointmentStatus) => Promise<void>; // FIXED: Promise<void>
+        handleDeleteAppointment: () => Promise<void>;
+        handleStatusChange: (status: AppointmentStatus) => Promise<void>;
         handleCreateProtocol: () => void;
         handleNewAppointmentClick: () => void;
         handleConvertToVisit: (visitResponse: ConvertToVisitResponse) => void;
-        refreshStats: () => Promise<void>; // FIXED: Dodano do interfejsu
+        refreshStats: () => Promise<void>;
+        // ✅ ZMIENIONE: Nie przyjmują już parametrów
+        handleEditReservation: (reservationId: string) => void;
+        handleStartVisitFromReservation: (reservation: Reservation) => void;
+        handleCancelConversion: () => void;
+        handleConversionSuccess: (visitId: string) => void;
     };
 }
 
@@ -97,6 +113,10 @@ export const CalendarPageProvider: React.FC<CalendarPageProviderProps> = ({ chil
         cancelled: 0
     });
 
+    // ✅ NOWE: View state
+    const [activeView, setActiveView] = useState<CalendarView>('calendar');
+    const [convertingReservation, setConvertingReservation] = useState<Reservation | null>(null);
+
     // Navigation hook
     const {
         calendarRange,
@@ -111,16 +131,12 @@ export const CalendarPageProvider: React.FC<CalendarPageProviderProps> = ({ chil
     // Convert to visit hook
     const { handleConvertToVisit: processConvertToVisit } = useConvertToVisit({
         onVisitCreated: (visitResponse) => {
-
-            // Pokazujemy dodatkowe powiadomienie z detalami
             showToast('success',
                 `Wizyta "${visitResponse.title}" została utworzona pomyślnie`,
                 4000
             );
         },
         onCalendarRefresh: () => {
-
-            // Force refresh kalendarza aby pokazać nową wizytę i ukryć przekształconą cykliczną
             if (calendarRange) {
                 loadAppointments(calendarRange, true);
             }
@@ -129,6 +145,7 @@ export const CalendarPageProvider: React.FC<CalendarPageProviderProps> = ({ chil
 
     // Modal state
     const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+    const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
     const [showAppointmentDetailsModal, setShowAppointmentDetailsModal] = useState(false);
 
     // Refs for preventing multiple actions
@@ -139,19 +156,15 @@ export const CalendarPageProvider: React.FC<CalendarPageProviderProps> = ({ chil
         setStatsState(prev => ({ ...prev, loading: true, error: null }));
 
         try {
-            // Pobierz liczniki z API
             const counters = await protocolsApi.getProtocolCounters();
-
-            // Oblicz statystyki na podstawie aktualnych wizyt
             const now = new Date();
             const todayStart = startOfDay(now);
             const todayEnd = endOfDay(now);
             const yesterdayStart = startOfDay(new Date(now.getTime() - 24 * 60 * 60 * 1000));
             const yesterdayEnd = endOfDay(new Date(now.getTime() - 24 * 60 * 60 * 1000));
-            const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Poniedziałek
+            const weekStart = startOfWeek(now, { weekStartsOn: 1 });
             const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
 
-            // Filtruj wizyty protokołowe (pomijamy cykliczne wydarzenia)
             const protocolVisits = appointments.filter(apt => apt.isProtocol);
 
             const todayVisits = protocolVisits.filter(apt => {
@@ -190,24 +203,35 @@ export const CalendarPageProvider: React.FC<CalendarPageProviderProps> = ({ chil
         }
     }, [appointments]);
 
-    // Auto-refresh stats when appointments change
     useEffect(() => {
         if (appointments.length > 0) {
             calculateStats();
         }
     }, [appointments, calculateStats]);
 
-    // Refresh stats function
     const refreshStats = useCallback(async (): Promise<void> => {
         await calculateStats();
     }, [calculateStats]);
 
-    // Action handlers
+    // ============================================================================
+    // APPOINTMENT SELECTION
+    // ============================================================================
     const selectAppointment = useCallback((appointment: Appointment) => {
         setSelectedAppointment(appointment);
+
+        if (isReservationAppointment(appointment.id)) {
+            const reservation = appointmentToReservation(appointment);
+            setSelectedReservation(reservation);
+        } else {
+            setSelectedReservation(null);
+        }
+
         setShowAppointmentDetailsModal(true);
     }, []);
 
+    // ============================================================================
+    // PROTOCOL ACTIONS
+    // ============================================================================
     const handleEditClick = useCallback(() => {
         if (!selectedAppointment) return;
 
@@ -215,7 +239,6 @@ export const CalendarPageProvider: React.FC<CalendarPageProviderProps> = ({ chil
             const protocolId = selectedAppointment.id.replace('protocol-', '');
             navigate(`/visits/${protocolId}/edit`);
         } else {
-            // For regular appointments, navigate to visit creation with pre-filled data
             navigate('/visits', {
                 state: {
                     editProtocolId: selectedAppointment.id,
@@ -245,13 +268,10 @@ export const CalendarPageProvider: React.FC<CalendarPageProviderProps> = ({ chil
         processingRef.current = true;
 
         try {
-
             await removeAppointment(selectedAppointment.id);
-
             showToast('success', 'Wizyta została usunięta', 3000);
             setShowAppointmentDetailsModal(false);
             setSelectedAppointment(null);
-
         } catch (error) {
             console.error('Error deleting appointment:', error);
             showToast('error', 'Nie udało się usunąć wizyty', 5000);
@@ -266,14 +286,9 @@ export const CalendarPageProvider: React.FC<CalendarPageProviderProps> = ({ chil
         processingRef.current = true;
 
         try {
-
             await changeAppointmentStatus(selectedAppointment.id, status);
-
-            // Update local state
             setSelectedAppointment(prev => prev ? { ...prev, status } : null);
-
             showToast('success', 'Status wizyty został zmieniony', 3000);
-
         } catch (error) {
             console.error('Error changing appointment status:', error);
             showToast('error', 'Nie udało się zmienić statusu wizyty', 5000);
@@ -286,18 +301,14 @@ export const CalendarPageProvider: React.FC<CalendarPageProviderProps> = ({ chil
         if (!selectedAppointment) return;
 
         if (selectedAppointment.isProtocol) {
-            // If it's already a protocol, navigate to the protocol details/start visit
             const protocolId = selectedAppointment.id.replace('protocol-', '');
 
             if (selectedAppointment.status === AppointmentStatus.SCHEDULED) {
-                // Start the visit
                 navigate(`/visits/${protocolId}/open`);
             } else {
-                // View the protocol
                 navigate(`/visits/${protocolId}`);
             }
         } else {
-            // Create new protocol from appointment
             navigate('/visits', {
                 state: {
                     appointmentId: selectedAppointment.id,
@@ -317,17 +328,72 @@ export const CalendarPageProvider: React.FC<CalendarPageProviderProps> = ({ chil
         setShowAppointmentDetailsModal(false);
     }, [selectedAppointment, navigate]);
 
-    // Obsługa konwersji cyklicznych wizyt
+    // ============================================================================
+    // ✅ RESERVATION ACTIONS - BEZ NAWIGACJI
+    // ============================================================================
+    const handleEditReservation = useCallback((reservationId: string) => {
+        setShowAppointmentDetailsModal(false);
+        navigate(`/reservations/${reservationId}/edit`);
+    }, [navigate]);
+
+    const handleStartVisitFromReservation = useCallback((reservation: Reservation) => {
+        console.log('🚀 Starting visit conversion from reservation:', reservation);
+
+        // Zamknij modal
+        setShowAppointmentDetailsModal(false);
+        setSelectedAppointment(null);
+        setSelectedReservation(null);
+
+        // ✅ ZMIENIONE: Ustaw stan konwersji i zmień widok
+        setConvertingReservation(reservation);
+        setActiveView('convertReservation');
+    }, []);
+
+    // ✅ NOWE: Anuluj konwersję i wróć do kalendarza
+    const handleCancelConversion = useCallback(() => {
+        setConvertingReservation(null);
+        setActiveView('calendar');
+    }, []);
+
+    // ✅ NOWE: Po udanej konwersji
+    const handleConversionSuccess = useCallback((visitId: string) => {
+        console.log('✅ Reservation converted to visit:', visitId);
+
+        // Wyczyść stan
+        setConvertingReservation(null);
+        setActiveView('calendar');
+
+        // Odśwież kalendarz
+        if (calendarRange) {
+            loadAppointments(calendarRange, true);
+        }
+
+        // Odśwież statystyki
+        refreshStats();
+
+        // Pokazuj sukces
+        showToast('success', 'Rezerwacja została przekształcona w wizytę', 4000);
+
+        // Opcjonalnie: zapytaj czy przejść do wizyty
+        setTimeout(() => {
+            const shouldNavigate = window.confirm(
+                'Czy chcesz przejść do szczegółów nowej wizyty?'
+            );
+
+            if (shouldNavigate) {
+                navigate(`/visits/${visitId}`);
+            }
+        }, 1000);
+    }, [calendarRange, loadAppointments, refreshStats, showToast, navigate]);
+
+    // ============================================================================
+    // CONVERT TO VISIT (recurring events)
+    // ============================================================================
     const handleConvertToVisit = useCallback((visitResponse: ConvertToVisitResponse) => {
-
-        // Wywołaj hook który obsłuży resztę logiki
         processConvertToVisit(visitResponse);
-
-        // Zamknij modal szczegółów
         setShowAppointmentDetailsModal(false);
         setSelectedAppointment(null);
 
-        // Opcjonalnie: pokaż dodatkowe akcje
         setTimeout(() => {
             const shouldNavigate = window.confirm(
                 `Wizyta "${visitResponse.title}" została utworzona. Czy chcesz przejść do szczegółów wizyty?`
@@ -337,41 +403,47 @@ export const CalendarPageProvider: React.FC<CalendarPageProviderProps> = ({ chil
                 navigate(`/visits/${visitResponse.id}`);
             }
         }, 1000);
-
     }, [processConvertToVisit, navigate]);
 
-    // Context value
+    // ============================================================================
+    // CONTEXT VALUE
+    // ============================================================================
     const contextValue: CalendarPageContextType = {
-        // Data
         appointments,
         loading,
         error,
         lastRefresh,
         calendarRange,
-        stats: statsState, // FIXED: Użyj statsState zamiast stats
+        stats: statsState,
 
-        // Functions
+        // ✅ NOWE
+        activeView,
+        convertingReservation,
+
         loadAppointments,
         handleRangeChange,
         handleAppointmentCreate,
 
-        // Modals
         modals: {
             selectedAppointment,
+            selectedReservation,
             showAppointmentDetailsModal,
             setShowAppointmentDetailsModal
         },
 
-        // Actions
         actions: {
             selectAppointment,
             handleEditClick,
-            handleDeleteAppointment, // Teraz Promise<void>
-            handleStatusChange, // Teraz Promise<void>
+            handleDeleteAppointment,
+            handleStatusChange,
             handleCreateProtocol,
             handleNewAppointmentClick,
             handleConvertToVisit,
-            refreshStats // Dodano do interfejsu
+            refreshStats,
+            handleEditReservation,
+            handleStartVisitFromReservation,
+            handleCancelConversion,        // ✅ NOWE
+            handleConversionSuccess        // ✅ NOWE
         }
     };
 
