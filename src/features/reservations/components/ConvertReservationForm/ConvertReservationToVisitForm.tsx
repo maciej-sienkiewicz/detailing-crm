@@ -12,16 +12,8 @@ import ReferralSourceSection, {ReferralSource} from '../../../../pages/Protocols
 import NotesSection from '../../../../pages/Protocols/form/components/NotesSection';
 import {ServiceSection} from '../../../services';
 import {servicesApi} from '../../../services/api/servicesApi';
-import {SelectedService, Service} from '../../../../types';
-import {useVisitServicesState} from '../../../visits/hooks/useVisitServicesState';
-import {useAddService} from '../../../visits/hooks/useAddService';
-import {useRemoveService} from '../../../visits/hooks/useRemoveService';
-import {useUpdateBasePrice} from '../../../visits/hooks/useUpdateBasePrice';
-import {useUpdateDiscountType} from '../../../visits/hooks/useUpdateDiscountType';
-import {useUpdateDiscountValue} from '../../../visits/hooks/useUpdateDiscountValue';
-import {useUpdateServiceNote} from '../../../visits/hooks/useUpdateServiceNote';
-import {useHandleServiceCreated} from '../../../visits/hooks/useHandleServiceCreated';
-import {useTotalsCalculation} from '../../../visits/hooks/useTotalsCalculation';
+import {Service} from '../../../../types';
+import {useServiceCalculations} from '../../../services/hooks/useServiceCalculations';
 import {useFormDataWithAutocomplete} from '../../../../pages/Protocols/form/hooks/useFormData';
 import VehicleSelectionModal from '../../../../pages/Protocols/shared/modals/VehicleSelectionModal';
 
@@ -109,7 +101,8 @@ export const ConvertReservationToVisitForm: React.FC<ConvertReservationToVisitFo
     const [availableServices, setAvailableServices] = useState<Service[]>([]);
     const [loadingServices, setLoadingServices] = useState(true);
 
-    const initialServices: SelectedService[] = reservation.services.map(service => {
+    // Convert reservation services to SelectedService format
+    const initialServices = reservation.services.map(service => {
         return {
             id: service.id,
             rowId: `row-${service.id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -124,15 +117,18 @@ export const ConvertReservationToVisitForm: React.FC<ConvertReservationToVisitFo
         };
     });
 
-    const { services, setServices } = useVisitServicesState(initialServices);
-    const addServiceCommand = useAddService(setServices);
-    const removeService = useRemoveService(setServices);
-    const updateBasePrice = useUpdateBasePrice(setServices);
-    const updateDiscountType = useUpdateDiscountType(setServices);
-    const updateDiscountValue = useUpdateDiscountValue(setServices);
-    const updateServiceNote = useUpdateServiceNote(setServices);
-    const handleServiceCreated = useHandleServiceCreated(setServices);
-    const calculateTotals = useTotalsCalculation(services);
+    // Use service calculations hook for proper state management
+    const {
+        services,
+        setServices,
+        addService,
+        removeService,
+        updateBasePrice,
+        updateDiscountType,
+        updateDiscountValue,
+        updateServiceNote,
+        calculateTotals
+    } = useServiceCalculations(initialServices);
 
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<Service[]>([]);
@@ -202,10 +198,8 @@ export const ConvertReservationToVisitForm: React.FC<ConvertReservationToVisitFo
     };
 
     const handleAddService = () => {
-        let newServiceData: Omit<SelectedService, 'finalPrice' | 'rowId'>;
-
         if (selectedServiceToAdd) {
-            newServiceData = {
+            const newServiceData = {
                 id: selectedServiceToAdd.id,
                 name: selectedServiceToAdd.name,
                 quantity: 1,
@@ -214,9 +208,10 @@ export const ConvertReservationToVisitForm: React.FC<ConvertReservationToVisitFo
                 discountValue: 0,
                 approvalStatus: undefined,
             };
+            addService(newServiceData);
         } else if (searchQuery.trim() !== '') {
             const customId = `custom-${Date.now()}`;
-            newServiceData = {
+            const newServiceData = {
                 id: customId,
                 name: searchQuery.trim(),
                 quantity: 1,
@@ -225,17 +220,15 @@ export const ConvertReservationToVisitForm: React.FC<ConvertReservationToVisitFo
                 discountValue: 0,
                 approvalStatus: undefined,
             };
-        } else {
-            return;
+            addService(newServiceData);
         }
 
-        addServiceCommand(newServiceData);
         setSearchQuery('');
         setSelectedServiceToAdd(null);
     };
 
     const handleAddServiceDirect = (service: Service, note?: string) => {
-        const newServiceData: Omit<SelectedService, 'finalPrice' | 'rowId'> = {
+        const newServiceData = {
             id: service.id,
             name: service.name,
             quantity: 1,
@@ -244,7 +237,7 @@ export const ConvertReservationToVisitForm: React.FC<ConvertReservationToVisitFo
             discountValue: 0,
             approvalStatus: undefined,
         };
-        addServiceCommand(newServiceData, note);
+        addService(newServiceData, note);
         setSearchQuery('');
         setSelectedServiceToAdd(null);
         setShowResults(false);
@@ -257,6 +250,21 @@ export const ConvertReservationToVisitForm: React.FC<ConvertReservationToVisitFo
         } catch (error) {
             console.error('Error refreshing services:', error);
         }
+    };
+
+    const handleServiceCreated = (oldId: string, newService: Service) => {
+        setServices(prevServices =>
+            prevServices.map(service =>
+                service.id === oldId
+                    ? {
+                        ...service,
+                        id: newService.id,
+                        basePrice: newService.price,
+                        finalPrice: newService.price
+                    }
+                    : service
+            )
+        );
     };
 
     const validateForm = (): boolean => {

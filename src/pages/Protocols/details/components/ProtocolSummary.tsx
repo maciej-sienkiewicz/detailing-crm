@@ -825,10 +825,10 @@ const ProtocolSummary: React.FC<ProtocolSummaryProps> = ({ protocol, onProtocolU
                                     {service.discountValue > 0 ? (
                                         <DiscountInfo>
                                             <DiscountAmount>
-                                                -{service.discountValue.toFixed(2)}
+                                                -{(getBasePriceGross(service)-getFinalPriceGross(service)).toFixed(2)}
                                                 {service.discountType === DiscountType.PERCENT ? '%' : 'zł'}
                                             </DiscountAmount>
-                                            <SavingsAmount>(-{(getBasePriceGross(service) - getFinalPriceGross(service)).toFixed(2)} zł)</SavingsAmount>
+                                            <SavingsAmount>(-{(getBasePriceNet(service) - getFinalPriceNet(service)).toFixed(2)} zł)</SavingsAmount>
                                         </DiscountInfo>
                                     ) : (
                                         <NoDiscount>—</NoDiscount>
