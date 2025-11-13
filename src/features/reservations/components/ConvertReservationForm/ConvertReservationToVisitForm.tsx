@@ -1,3 +1,4 @@
+// src/features/reservations/components/ConvertReservationForm/ConvertReservationToVisitForm.tsx
 import React, {useEffect, useState} from 'react';
 import styled from 'styled-components';
 import {FaArrowRight} from 'react-icons/fa';
@@ -23,7 +24,6 @@ import {useHandleServiceCreated} from '../../../visits/hooks/useHandleServiceCre
 import {useTotalsCalculation} from '../../../visits/hooks/useTotalsCalculation';
 import {useFormDataWithAutocomplete} from '../../../../pages/Protocols/form/hooks/useFormData';
 import VehicleSelectionModal from '../../../../pages/Protocols/shared/modals/VehicleSelectionModal';
-import {parseDateFromBackend} from "../../libs/utils";
 
 const brandTheme = {
     primary: 'var(--brand-primary, #1a365d)',
@@ -87,6 +87,7 @@ export const ConvertReservationToVisitForm: React.FC<ConvertReservationToVisitFo
         onSuccess
     });
 
+    // Get initial form data (already has ISO formatted dates)
     const initialFormData = getInitialFormData();
 
     const {
@@ -154,6 +155,7 @@ export const ConvertReservationToVisitForm: React.FC<ConvertReservationToVisitFo
         fetchServices();
     }, []);
 
+    // Update form data with reservation data (dates are already in ISO format)
     useEffect(() => {
         setFormData(prev => ({
             ...prev,
@@ -163,15 +165,16 @@ export const ConvertReservationToVisitForm: React.FC<ConvertReservationToVisitFo
             model: reservation.vehicleModel,
             title: reservation.title,
             calendarColorId: reservation.calendarColorId,
-            startDate: parseDateFromBackend(reservation.startDate),
-            endDate: parseDateFromBackend(reservation.endDate),
+            // These are already in ISO format from getInitialFormData
+            startDate: initialFormData.startDate,
+            endDate: initialFormData.endDate,
             contactPhone: reservation.contactPhone,
             phone: reservation.contactPhone,
             contactName: reservation.contactName,
             ownerName: reservation.contactName || '',
             notes: reservation.notes
         }));
-    }, [reservation, setFormData]);
+    }, [reservation, initialFormData, setFormData]);
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const query = e.target.value;
@@ -421,6 +424,7 @@ export const ConvertReservationToVisitForm: React.FC<ConvertReservationToVisitFo
     );
 };
 
+// Styled components remain the same...
 const FormContainer = styled.div`
     background: ${brandTheme.surface};
     border-radius: ${brandTheme.radius.xl};

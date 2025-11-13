@@ -6,14 +6,15 @@
 
 import { Appointment, AppointmentStatus } from '../types';
 import { Reservation, reservationsApi, ReservationStatus } from '../features/reservations/api/reservationsApi';
+import { parseBackendDate } from '../features/reservations/libs/dateParser';
 
 /**
  * Converts backend reservation to calendar appointment
  */
-const convertReservationToAppointment = (reservation: Reservation): Appointment => {
+const convertReservationToAppointment = (reservation: Reservation): Appointment | null => {
     // Map reservation status to appointment status
     let appointmentStatus: AppointmentStatus;
-    console.log(reservation.status)
+
     switch (reservation.status) {
         case ReservationStatus.CONFIRMED:
             appointmentStatus = AppointmentStatus.SCHEDULED;
@@ -23,60 +24,34 @@ const convertReservationToAppointment = (reservation: Reservation): Appointment 
             break;
         case ReservationStatus.CONVERTED:
             // Skip converted reservations - they're now full visits
-            return null as any;
+            return null;
         default:
             appointmentStatus = AppointmentStatus.SCHEDULED;
     }
 
+    // Parse dates using centralized parser
+    const startDate = parseBackendDate(reservation.startDate);
+    const endDate = parseBackendDate(reservation.endDate);
 
+    if (!startDate) {
+        console.error('Failed to parse reservation start date:', reservation.startDate);
+        return null;
+    }
 
-    // Parse dates - handle both string and array formats
-    const parseDate = (dateValue: string | number[]): Date => {
-        // ➡️ Logika dla tablicy (pozostawiona bez zmian, jest poprawna,
-        // pamiętając o indeksowaniu miesiąca od 0).
-        if (Array.isArray(dateValue)) {
-            // [rok, miesiąc (1-12), dzień, godzina, minuta, sekunda]
-            const [year, month, day, hour = 0, minute = 0, second = 0] = dateValue;
-            // Miesiąc w konstruktorze Date jest indeksowany od 0 (styczeń = 0)
-            return new Date(year, month - 1, day, hour, minute, second);
-        }
-
-        // ➡️ Logika dla stringa (ZAKTUALIZOWANA)
-        if (typeof dateValue === 'string') {
-            // Sprawdzenie, czy string jest w formacie DD.MM.RRRR
-            if (dateValue.includes('.')) {
-                // Rozdzielenie na części: [0] = Dzień, [1] = Miesiąc, [2] = Rok
-                const [day, month, year] = dateValue.split('.');
-
-                // Przeorganizowanie na bezpieczny format ISO RRRR-MM-DD
-                const isoFormat = `${year}-${month}-${day}`;
-
-                return new Date(isoFormat);
-            }
-
-            // Domyślna obsługa innych stringów (np. RRRR/MM/DD, timestampy, etc.)
-            return new Date(dateValue);
-        }
-
-        // Zwrócenie 'Invalid Date' lub domyślnej daty, jeśli typ jest nieoczekiwany (choć typowanie to wyklucza)
-        return new Date('Invalid Date');
-    };
-
-    console.log("dupa")
-    console.log(reservation.startDate)
-    console.log(reservation.endDate)
+    // If no end date, use start date + 1 hour
+    const finalEndDate = endDate || new Date(startDate.getTime() + 60 * 60 * 1000);
 
     return {
         id: `reservation-${reservation.id}`,
         title: reservation.title,
-        start: parseDate(reservation.startDate),
-        end: parseDate(reservation.endDate || reservation.startDate),
-        customerId: reservation.contactPhone, // Use phone as identifier
+        start: startDate,
+        end: finalEndDate,
+        customerId: reservation.contactPhone,
         vehicleId: reservation.vehicleDisplay,
         serviceType: 'reservation',
         status: appointmentStatus,
         notes: reservation.notes,
-        isProtocol: false, // Reservations are NOT protocols
+        isProtocol: false,
         calendarColorId: reservation.calendarColorId,
         services: reservation.services.map(service => ({
             id: service.id,
@@ -89,7 +64,6 @@ const convertReservationToAppointment = (reservation: Reservation): Appointment 
             note: service.note
         })),
         statusUpdatedAt: reservation.updatedAt,
-        // Mark as reservation for filtering
         isReservation: true,
         reservationData: reservation
     } as Appointment & { isReservation: boolean; reservationData: Reservation };
@@ -108,12 +82,11 @@ export const fetchReservationsAsAppointments = async (
         });
 
         // Fetch all confirmed reservations
-        // We don't filter by date on API level as backend might not support it
         const response = await reservationsApi.listReservations({
             status: ReservationStatus.CONFIRMED,
             sortBy: 'startDate',
             sortDirection: 'ASC',
-            size: 1000 // Large size to get all reservations
+            size: 1000
         });
 
         console.log(`✅ Fetched ${response.data.length} reservations from API`);
@@ -122,20 +95,13 @@ export const fetchReservationsAsAppointments = async (
         const appointments = response.data
             .map(convertReservationToAppointment)
             .filter(apt => {
-                console.log(apt)
-                if (!apt) return false; // Skip converted reservations
+                if (!apt) return false;
 
-                // Filter by date range
                 const aptStart = new Date(apt.start);
-                console.log(apt.end);
                 const aptEnd = new Date(apt.end);
 
-                console.log(aptStart)
-                console.log(`end: ${apt.end}`)
-                console.log(aptStart <= dateRange.end && aptEnd >= dateRange.start)
-
                 return aptStart <= dateRange.end && aptEnd >= dateRange.start;
-            });
+            }) as Appointment[];
 
         console.log(`📅 Converted ${appointments.length} reservations to calendar events`);
 

@@ -1,9 +1,8 @@
-// src/utils/appointmentConverters.ts - z importem
+// src/utils/appointmentConverters.ts
 import { Appointment } from '../types';
 import { Reservation } from '../features/reservations/api/reservationsApi';
 import { isReservationAppointment, extractReservationId } from '../services/CalendarIntegrationService';
-// ✅ DODAJ IMPORT
-import { formatDateForAPI } from '../features/reservations/libs/utils';
+import { formatDateForBackend } from '../features/reservations/libs/dateParser';
 
 /**
  * Converts Appointment to Reservation
@@ -38,16 +37,9 @@ export const appointmentToReservation = (appointment: Appointment): Reservation 
     const totalPriceNetto = services.reduce((sum, s) => sum + s.finalPrice.priceNetto, 0);
     const totalTaxAmount = services.reduce((sum, s) => sum + s.finalPrice.taxAmount, 0);
 
-    // ✅ POPRAWIONE: Konwertuj Date na format ISO, potem na format API
-    const startDateISO = appointment.start.toISOString();
-    const endDateISO = appointment.end.toISOString();
-
-    // Konwertuj do formatu yyyy-MM-ddTHH:mm:ss dla formatDateForAPI
-    const startDateFormatted = startDateISO.substring(0, 19); // "2024-01-15T10:00:00"
-    const endDateFormatted = endDateISO.substring(0, 19);
-
-    const startDate = formatDateForAPI(startDateFormatted);  // "15.01.2024 10:00"
-    const endDate = formatDateForAPI(endDateFormatted);      // "15.01.2024 11:00"
+    // Convert dates to backend format
+    const startDate = formatDateForBackend(appointment.start);
+    const endDate = formatDateForBackend(appointment.end);
 
     // Build reservation object
     return {

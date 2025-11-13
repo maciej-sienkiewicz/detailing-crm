@@ -1,7 +1,8 @@
+// src/features/reservations/hooks/useConvertReservationToVisit.ts
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Reservation, reservationsApi, ConvertToVisitRequest, Discount } from '../api/reservationsApi';
-import { parseDateFromBackend, formatDateForAPI } from '../libs/utils';
+import { backendDateToISO, formatDateForBackend } from '../libs/dateParser';
 
 interface UseConvertReservationToVisitProps {
     reservation: Reservation;
@@ -76,11 +77,15 @@ export const useConvertReservationToVisit = ({
     const [error, setError] = useState<string | null>(null);
 
     const getInitialFormData = useCallback((): ConvertFormData => {
+        // Convert backend dates to ISO format for forms
+        const startDateISO = backendDateToISO(reservation.startDate);
+        const endDateISO = reservation.endDate ? backendDateToISO(reservation.endDate) : undefined;
+
         return {
             title: reservation.title,
             calendarColorId: reservation.calendarColorId,
-            startDate: parseDateFromBackend(reservation.startDate),
-            endDate: parseDateFromBackend(reservation.endDate),
+            startDate: startDateISO,
+            endDate: endDateISO,
             vehicleMake: reservation.vehicleMake,
             vehicleModel: reservation.vehicleModel,
             contactPhone: reservation.contactPhone,
@@ -121,8 +126,8 @@ export const useConvertReservationToVisit = ({
             const request: ConvertToVisitRequest = {
                 title: formData.title,
                 calendarColorId: formData.calendarColorId,
-                startDate: formatDateForAPI(formData.startDate),
-                endDate: formData.endDate ? formatDateForAPI(formData.endDate) : undefined,
+                startDate: formatDateForBackend(formData.startDate),
+                endDate: formData.endDate ? formatDateForBackend(formData.endDate) : undefined,
                 referralSource: formData.referralSource,
                 otherSourceDetails: formData.otherSourceDetails,
 
