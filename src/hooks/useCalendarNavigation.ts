@@ -1,8 +1,9 @@
-// src/pages/Calendar/hooks/useCalendarNavigation.ts
+// src/hooks/useCalendarNavigation.ts
 import {useCallback, useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {useToast} from "../components/common/Toast/Toast";
 import {Appointment} from "../types";
+import {format, startOfDay, endOfDay, subDays} from 'date-fns';
 
 interface UseCalendarNavigationProps {
     loadAppointments: (range?: { start: Date; end: Date }) => Promise<void>;
@@ -31,7 +32,6 @@ export const useCalendarNavigation = ({
 
         setCalendarRange(range);
 
-        // Debounced data loading
         const timeoutId = setTimeout(() => {
             loadAppointments(range);
         }, 100);
@@ -39,44 +39,51 @@ export const useCalendarNavigation = ({
         return () => clearTimeout(timeoutId);
     }, [calendarRange, loadAppointments]);
 
+    // ✅ POPRAWIONE: Używamy date-fns do właściwej konwersji
     const handleAppointmentCreate = useCallback((start: Date, end: Date) => {
-        setSelectedDate(start);
-        const correctedEndDate = new Date(end);
-        correctedEndDate.setDate(correctedEndDate.getDate() - 1);
-        setSelectedEndDate(correctedEndDate);
+        // Konwertuj UTC date na lokalną datę kalendarzową
+        const startDateStr = format(start, 'yyyy-MM-dd');
+        const endDateStr = format(end, 'yyyy-MM-dd');
 
-        // Navigate to visit creation
-        const localStartDate = new Date(start);
-        localStartDate.setHours(12, 0, 0, 0);
+        // Utwórz lokalne daty z tych stringów
+        const localStart = new Date(startDateStr + 'T08:00:00');
 
-        const localEndDate = new Date(correctedEndDate);
-        localEndDate.setHours(23, 59, 0, 0);
+        // FullCalendar zwraca end jako następny dzień o 00:00, więc cofamy o 1 dzień
+        const localEnd = subDays(new Date(endDateStr + 'T00:00:00'), 1);
+        localEnd.setHours(23, 59, 0, 0);
 
-        navigate('/visits', {
+        setSelectedDate(localStart);
+        setSelectedEndDate(localEnd);
+
+        console.log('📅 Creating reservation for date range:', {
+            originalStart: start.toISOString(),
+            originalEnd: end.toISOString(),
+            startDateStr,
+            endDateStr,
+            localStart: localStart.toISOString(),
+            localEnd: localEnd.toISOString()
+        });
+
+        navigate('/reservations/new', {
             state: {
-                startDate: localStartDate.toISOString(),
-                endDate: localEndDate.toISOString(),
-                isFullProtocol: false
+                startDate: localStart.toISOString(),
+                endDate: localEnd.toISOString(),
+                fromCalendar: true
             }
         });
-    }, [navigate, showToast]);
+    }, [navigate]);
 
     const handleNewAppointmentClick = useCallback(() => {
         const startDate = new Date();
-        const endDate = new Date(startDate);
-        endDate.setDate(endDate.getDate() + 1);
-        endDate.setHours(23, 59, 0, 0);
+        startDate.setHours(8, 0, 0, 0);
 
-        const toLocalISOString = (date: Date): string => {
-            const offset = date.getTimezoneOffset() * 60000;
-            const localDate = new Date(date.getTime() - offset);
-            return localDate.toISOString();
-        };
+        const endDate = new Date(startDate);
+        endDate.setHours(23, 59, 0, 0);
 
         navigate('/visits', {
             state: {
-                startDate: toLocalISOString(startDate),
-                endDate: toLocalISOString(endDate),
+                startDate: startDate.toISOString(),
+                endDate: endDate.toISOString(),
                 isFullProtocol: false,
                 fromCalendar: true
             }

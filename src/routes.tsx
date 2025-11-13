@@ -32,6 +32,7 @@ import ClientDetailPage from "./pages/Clients/components/ClientDetailPage/Client
 // Toast Provider import
 import { ToastProvider } from './components/common/Toast/Toast';
 import ReservationEditPage from "./pages/Reservation/ReservationEditPage";
+import ReservationCreatePage from "./pages/Reservation/ReservationCreatePage";
 
 // Lazy load recurring events pages for better performance
 const RecurringEventsPage = React.lazy(() => import('./pages/RecurringEvents/RecurringEventsPage'));
@@ -117,6 +118,7 @@ const AppRoutes: React.FC = () => {
                     {/* ======================================================================================== */}
                     {/* RESERVATIONS ROUTES - New Module */}
                     {/* ======================================================================================== */}
+                    <Route path="/reservations/new" element={<ReservationCreatePage />} />
                     <Route path="/reservations/:id/edit" element={<ReservationEditPage />} />
 
                     {/* ======================================================================================== */}
