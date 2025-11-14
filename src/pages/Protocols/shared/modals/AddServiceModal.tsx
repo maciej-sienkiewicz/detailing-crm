@@ -108,14 +108,14 @@ interface AddServiceModalProps {
         services: Array<{
             id: string;
             name: string;
-            basePrice: PriceResponse;  // ✅ ZMIANA: PriceResponse zamiast number
+            basePrice: PriceResponse;
             discountType?: DiscountType;
             discountValue?: number;
-            finalPrice: PriceResponse;  // ✅ ZMIANA: PriceResponse zamiast number
+            finalPrice: PriceResponse;
             note?: string
         }>
     }) => void;
-    availableServices: Array<{ id: string; name: string; price: PriceResponse }>;  // ✅ ZMIANA
+    availableServices: Array<{ id: string; name: string; price: PriceResponse }>;
     customerPhone?: string;
 }
 
@@ -130,18 +130,18 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
     const [selectedServices, setSelectedServices] = useState<Array<{
         id: string;
         name: string;
-        basePrice: PriceResponse;  // ✅ ZMIANA
+        basePrice: PriceResponse;
         discountType: DiscountType;
         extendedDiscountType: ExtendedDiscountType;
         discountValue: number;
-        finalPrice: PriceResponse;  // ✅ ZMIANA
+        finalPrice: PriceResponse;
         note?: string;
     }>>([]);
     const [showResults, setShowResults] = useState(false);
     const [searchResults, setSearchResults] = useState<Array<{
         id: string;
         name: string;
-        price: PriceResponse;  // ✅ ZMIANA
+        price: PriceResponse;
     }>>([]);
     const [customServiceMode, setCustomServiceMode] = useState(false);
     const [customServiceName, setCustomServiceName] = useState('');
@@ -152,11 +152,8 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         note: string;
     }>({ index: -1, open: false, note: '' });
 
-    // FIXED: Dodanie ref dla kontenera wyszukiwania
     const searchContainerRef = useRef<HTMLDivElement>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
-
-    // FIXED: Stan do kontrolowania focus
     const [isSearchFocused, setIsSearchFocused] = useState(false);
 
     // Funkcje pomocnicze do kalkulacji cen
@@ -172,21 +169,15 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         return netPrice * (DEFAULT_VAT_RATE / 100);
     };
 
-    // ✅ NOWA: Funkcja formatująca wartość do maksymalnie 2 miejsc po przecinku
     const formatToTwoDecimals = (value: string): string => {
-        // Usuń wszystkie znaki oprócz cyfr, kropki i przecinka
         let cleaned = value.replace(/[^\d.,]/g, '');
-
-        // Zamień przecinek na kropkę
         cleaned = cleaned.replace(',', '.');
 
-        // Jeśli jest więcej niż jedna kropka, zostaw tylko pierwszą
         const parts = cleaned.split('.');
         if (parts.length > 2) {
             cleaned = parts[0] + '.' + parts.slice(1).join('');
         }
 
-        // Ogranicz do 2 miejsc po przecinku
         if (parts.length === 2 && parts[1].length > 2) {
             cleaned = parts[0] + '.' + parts[1].substring(0, 2);
         }
@@ -194,7 +185,6 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         return cleaned;
     };
 
-    // ✅ NOWA: Handler dla onBlur - formatuje wartość po opuszczeniu pola
     const handlePriceBlur = (value: string, setValue: (val: string) => void) => {
         if (value === '' || value === '.') {
             setValue('');
@@ -207,19 +197,15 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         }
     };
 
-    // ✅ ZAKTUALIZOWANA funkcja kalkulacji ceny końcowej
     const calculateFinalPrice = (
         basePrice: PriceResponse,
         discountType: DiscountType,
         discountValue: number
     ): PriceResponse => {
-        let finalPriceBrutto = basePrice.priceBrutto;
-        let finalPrice = calculateLocalFinalPrice(basePrice, discountType, discountValue)
-
-        return finalPrice;
+        return calculateLocalFinalPrice(basePrice, discountType, discountValue);
     };
 
-    // FIXED: Dodanie obsługi kliknięć poza komponentem
+    // Obsługa kliknięć poza komponentem
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
@@ -250,7 +236,17 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         }
     }, [isOpen]);
 
-    // FIXED: Poprawiona obsługa wyszukiwania
+    // ✅ NOWY: Automatyczne przenoszenie wartości z wyszukiwarki do custom service
+    useEffect(() => {
+        if (customServiceMode && searchQuery.trim() !== '') {
+            setCustomServiceName(searchQuery.trim());
+            setSearchQuery('');
+            setSearchResults([]);
+            setShowResults(false);
+            setIsSearchFocused(false);
+        }
+    }, [customServiceMode]);
+
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const query = e.target.value;
         setSearchQuery(query);
@@ -261,7 +257,6 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
             return;
         }
 
-        // Filtruj usługi tylko jeśli input ma focus
         if (isSearchFocused) {
             const filteredServices = availableServices.filter(service =>
                 service.name.toLowerCase().includes(query.toLowerCase()) &&
@@ -273,7 +268,6 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         }
     };
 
-    // FIXED: Obsługa focus na inpucie wyszukiwania
     const handleSearchFocus = () => {
         setIsSearchFocused(true);
         if (searchQuery.trim() !== '') {
@@ -286,27 +280,22 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         }
     };
 
-    // FIXED: Obsługa utraty focus
     const handleSearchBlur = () => {
-        // Opóźnienie żeby kliknięcie w wyniki zostało zarejestrowane
         setTimeout(() => {
             setIsSearchFocused(false);
             setShowResults(false);
         }, 150);
     };
 
-    // Dodawanie usługi z wyników wyszukiwania
     const handleAddServiceFromSearch = (service: { id: string; name: string; price: PriceResponse }) => {
-        // ✅ ZMIANA: service.price to już PriceResponse z wszystkimi wartościami
-
         const newService = {
             id: service.id,
             name: service.name,
-            basePrice: service.price,  // ✅ ZMIANA: używamy PriceResponse
+            basePrice: service.price,
             discountType: DiscountType.PERCENT,
             extendedDiscountType: ExtendedDiscountType.PERCENTAGE,
             discountValue: 0,
-            finalPrice: service.price  // ✅ ZMIANA: używamy PriceResponse
+            finalPrice: service.price
         };
 
         setSelectedServices([...selectedServices, newService]);
@@ -315,7 +304,6 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         setShowResults(false);
         setIsSearchFocused(false);
 
-        // FIXED: Przywrócenie focus do inputa po dodaniu usługi
         setTimeout(() => {
             if (searchInputRef.current) {
                 searchInputRef.current.focus();
@@ -323,14 +311,12 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         }, 100);
     };
 
-    // Dodawanie niestandardowej usługi
     const handleAddCustomService = () => {
         if (customServiceName.trim() === '' || !customServicePrice) return;
 
         const priceBrutto = parseFloat(customServicePrice);
         if (isNaN(priceBrutto)) return;
 
-        // ✅ ZMIANA: Tworzymy PriceResponse
         const priceNetto = calculateNetPrice(priceBrutto);
         const taxAmount = calculateTaxAmount(priceNetto);
 
@@ -343,11 +329,11 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         const newService = {
             id: `custom-${Date.now()}`,
             name: customServiceName.trim(),
-            basePrice: priceResponse,  // ✅ ZMIANA
+            basePrice: priceResponse,
             discountType: DiscountType.PERCENT,
             extendedDiscountType: ExtendedDiscountType.PERCENTAGE,
             discountValue: 0,
-            finalPrice: priceResponse  // ✅ ZMIANA
+            finalPrice: priceResponse
         };
 
         setSelectedServices([...selectedServices, newService]);
@@ -356,7 +342,38 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         setCustomServiceMode(false);
     };
 
-    // Reszta metod handleRemoveService, handleOpenNoteModal, handleSaveNote, handleCancelNote, handleChangeDiscountType, handleChangeDiscountValue, handleSubmit pozostają bez zmian...
+    // ✅ NOWA: Funkcja zarządzająca przełączaniem trybu custom service
+    const toggleCustomServiceMode = (enable: boolean) => {
+        if (enable) {
+            setCustomServiceMode(true);
+
+            if (searchQuery.trim() !== '') {
+                setCustomServiceName(searchQuery.trim());
+                setSearchQuery('');
+                setSearchResults([]);
+                setShowResults(false);
+                setIsSearchFocused(false);
+            }
+
+            setTimeout(() => {
+                const nameInput = document.querySelector<HTMLInputElement>('input[placeholder="Wprowadź nazwę usługi"]');
+                if (nameInput) {
+                    nameInput.focus();
+                    nameInput.setSelectionRange(nameInput.value.length, nameInput.value.length);
+                }
+            }, 100);
+        } else {
+            setCustomServiceMode(false);
+            setCustomServiceName('');
+            setCustomServicePrice('');
+
+            setTimeout(() => {
+                if (searchInputRef.current) {
+                    searchInputRef.current.focus();
+                }
+            }, 100);
+        }
+    };
 
     const handleRemoveService = (index: number) => {
         const updatedServices = [...selectedServices];
@@ -399,11 +416,10 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         if (service.extendedDiscountType !== newExtendedType) {
             if (standardType === DiscountType.PERCENT) {
                 newDiscountValue = 0;
-            } else if (standardType === DiscountType.FIXED_AMOUNT_OFF_BRUTTO || standardType === DiscountType.FIXED_AMOUNT_OFF_NETTO ) {
+            } else if (standardType === DiscountType.FIXED_AMOUNT_OFF_BRUTTO || standardType === DiscountType.FIXED_AMOUNT_OFF_NETTO) {
                 newDiscountValue = 0;
-            } else if (standardType === DiscountType.FIXED_FINAL_NETTO || standardType === DiscountType.FIXED_FINAL_BRUTTO ) {
-                // ✅ ZMIANA: używamy basePrice.priceNetto / basePrice.priceBrutto
-                newDiscountValue = newExtendedType === ExtendedDiscountType.AMOUNT_NET
+            } else if (standardType === DiscountType.FIXED_FINAL_NETTO || standardType === DiscountType.FIXED_FINAL_BRUTTO) {
+                newDiscountValue = newExtendedType === ExtendedDiscountType.FIXED_PRICE_NET
                     ? service.basePrice.priceNetto
                     : service.basePrice.priceBrutto;
             }
@@ -414,7 +430,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
             discountType: standardType,
             extendedDiscountType: newExtendedType,
             discountValue: newDiscountValue,
-            finalPrice: calculateFinalPrice(service.basePrice, standardType, newDiscountValue)  // ✅ ZMIANA
+            finalPrice: calculateFinalPrice(service.basePrice, standardType, newDiscountValue)
         };
 
         setSelectedServices(updatedServices);
@@ -438,7 +454,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
             ...service,
             discountValue: validatedValue,
             finalPrice: calculateFinalPrice(
-                service.basePrice,  // ✅ ZMIANA
+                service.basePrice,
                 service.discountType,
                 validatedValue
             )
@@ -453,7 +469,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         const servicesData = selectedServices.map(service => ({
             id: service.id,
             name: service.name,
-            basePrice: service.basePrice,  // ✅ ZMIANA
+            basePrice: service.basePrice,
             discountType: service.discountType,
             discountValue: service.discountValue,
             finalPrice: service.finalPrice,
@@ -465,7 +481,6 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
         });
     };
 
-    // ✅ ZAKTUALIZOWANE: Obliczanie sum używając PriceResponse
     const calculateTotals = () => {
         const totalBaseNetto = selectedServices.reduce((sum, s) => sum + s.basePrice.priceNetto, 0);
         const totalBaseBrutto = selectedServices.reduce((sum, s) => sum + s.basePrice.priceBrutto, 0);
@@ -522,12 +537,13 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                     {/* Wyszukiwarka usług */}
                     <SearchSection>
                         <SectionTitle>Wyszukaj usługę</SectionTitle>
-                        <SearchContainer>
+                        <SearchContainer ref={searchContainerRef}>
                             <SearchInputContainer>
                                 <SearchIconWrapper>
                                     <FaSearch />
                                 </SearchIconWrapper>
                                 <SearchInput
+                                    ref={searchInputRef}
                                     type="text"
                                     value={searchQuery}
                                     onChange={handleSearchChange}
@@ -546,7 +562,6 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                                         <SearchResultItem
                                             key={service.id}
                                             onMouseDown={(e) => {
-                                                // Użyj onMouseDown zamiast onClick żeby wyprzedzić onBlur
                                                 e.preventDefault();
                                                 handleAddServiceFromSearch(service);
                                             }}
@@ -573,20 +588,20 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                         </SearchContainer>
                     </SearchSection>
 
-                    {/* Przycisk przełączający do trybu dodawania niestandardowej usługi */}
+                    {/* ✅ ZAKTUALIZOWANE: Przyciski toggle */}
                     <ToggleSection>
                         {!customServiceMode ? (
-                            <ToggleButton onClick={() => setCustomServiceMode(true)}>
+                            <ToggleButton onClick={() => toggleCustomServiceMode(true)}>
                                 <FaPlus /> Dodaj niestandardową usługę
                             </ToggleButton>
                         ) : (
-                            <ToggleButton secondary onClick={() => setCustomServiceMode(false)}>
+                            <ToggleButton secondary onClick={() => toggleCustomServiceMode(false)}>
                                 <FaTimes /> Anuluj dodawanie niestandardowej usługi
                             </ToggleButton>
                         )}
                     </ToggleSection>
 
-                    {/* Formularz dodawania niestandardowej usługi */}
+                    {/* ✅ ZAKTUALIZOWANY: Formularz dodawania niestandardowej usługi */}
                     {customServiceMode && (
                         <CustomServiceSection>
                             <SectionTitle>Nowa usługa</SectionTitle>
@@ -598,6 +613,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                                         value={customServiceName}
                                         onChange={e => setCustomServiceName(e.target.value)}
                                         placeholder="Wprowadź nazwę usługi"
+                                        autoFocus
                                     />
                                 </FormGroup>
                                 <FormGroup>
@@ -620,6 +636,14 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                                     )}
                                 </FormGroup>
                             </FormRow>
+
+                            {/* ✅ NOWE: Info message gdy nazwa została przeniesiona */}
+                            {customServiceName && (
+                                <TransferredValueInfo>
+                                    💡 Nazwa usługi została automatycznie przeniesiona z wyszukiwarki
+                                </TransferredValueInfo>
+                            )}
+
                             <AddCustomButton
                                 onClick={handleAddCustomService}
                                 disabled={customServiceName.trim() === '' || !customServicePrice || isNaN(parseFloat(customServicePrice))}
@@ -701,7 +725,6 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                                                                     handleChangeDiscountValue(index, numValue);
                                                                 }}
                                                                 onBlur={(e) => {
-                                                                    // Formatuj do 2 miejsc po przecinku po opuszczeniu pola
                                                                     const numValue = parseFloat(e.target.value) || 0;
                                                                     handleChangeDiscountValue(index, parseFloat(numValue.toFixed(2)));
                                                                 }}
@@ -876,6 +899,31 @@ const ModalHeader = styled.div`
     padding: ${brandTheme.spacing.lg} ${brandTheme.spacing.xl};
     border-bottom: 2px solid ${brandTheme.border};
     background: ${brandTheme.surfaceAlt};
+`;
+
+const TransferredValueInfo = styled.div`
+    background: linear-gradient(135deg, ${brandTheme.status.successLight} 0%, rgba(5, 150, 105, 0.05) 100%);
+    color: ${brandTheme.status.success};
+    padding: ${brandTheme.spacing.sm} ${brandTheme.spacing.md};
+    border-radius: ${brandTheme.radius.md};
+    border: 1px solid rgba(5, 150, 105, 0.2);
+    font-size: 12px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: ${brandTheme.spacing.xs};
+    animation: fadeIn 0.3s ease;
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-5px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
 `;
 
 const ModalTitle = styled.h2`
