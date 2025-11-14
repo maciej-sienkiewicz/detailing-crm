@@ -112,8 +112,8 @@ export const useReservationEdit = ({
             contactName: reservation.contactName || '',
             vehicleMake: reservation.vehicleMake,
             vehicleModel: reservation.vehicleModel,
-            startDate: parseDateFromBackend(reservation.startDate),
-            endDate: parseDateFromBackend(reservation.endDate),
+            startDate: parseDateFromBackend(reservation.startDate)?.toISOString()|| "",
+            endDate: parseDateFromBackend(reservation.endDate)?.toISOString(),
             selectedServices: reservation.services.map(service => {
                 const hasDiscount = service.discount && service.discount.discountValue > 0;
 
