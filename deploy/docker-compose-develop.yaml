@@ -1,5 +1,5 @@
 services:
-  detailing-crm-frontend:
+  detailing-crm-frontend-develop:
     image: ${ENV_DETAILING_CRM_FRONTEND_IMAGE}
     container_name: ${DETAILING_CRM_FRONTEND_CONTAINER_NAME}
     ports:
